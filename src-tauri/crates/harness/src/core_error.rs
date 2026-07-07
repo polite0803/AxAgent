@@ -32,7 +32,7 @@ use thiserror::Error;
 /// # Examples
 ///
 /// ```
-/// use axagent_core::error::{AxAgentError, Result};
+/// use axagent_harness::core_error::{AxAgentError, Result};
 ///
 /// fn example() -> Result<()> {
 ///     Err(AxAgentError::NotFound("User not found".to_string()))

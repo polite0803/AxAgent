@@ -7,7 +7,7 @@
 //!
 //! 使用方式:
 //! ```rust,ignore
-//! use axagent_core::prompts::{PromptRegistry, PromptLang};
+//! use axagent_kit::prompts::{PromptRegistry, PromptLang};
 //!
 //! let prompt = PromptRegistry::get("extraction.system_prompt", PromptLang::ZhCN);
 //! let formatted = PromptRegistry::format(

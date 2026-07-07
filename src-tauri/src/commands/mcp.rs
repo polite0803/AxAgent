@@ -9,7 +9,7 @@ use tauri::{Emitter, State};
 
 #[tauri::command]
 pub async fn list_mcp_servers(state: State<'_, AppState>) -> Result<Vec<McpServer>, String> {
-    axagent_core::repo::mcp_server::list_mcp_servers(state.harness.db())
+    axagent_dao::repo::mcp_server::list_mcp_servers(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -19,7 +19,7 @@ pub async fn create_mcp_server(
     state: State<'_, AppState>,
     input: CreateMcpServerInput,
 ) -> Result<McpServer, String> {
-    axagent_core::repo::mcp_server::create_mcp_server(state.harness.db(), input)
+    axagent_dao::repo::mcp_server::create_mcp_server(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -30,14 +30,14 @@ pub async fn update_mcp_server(
     id: String,
     input: CreateMcpServerInput,
 ) -> Result<McpServer, String> {
-    axagent_core::repo::mcp_server::update_mcp_server(state.harness.db(), &id, input)
+    axagent_dao::repo::mcp_server::update_mcp_server(state.harness.db(), &id, input)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn delete_mcp_server(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::mcp_server::delete_mcp_server(state.harness.db(), &id)
+    axagent_dao::repo::mcp_server::delete_mcp_server(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -49,7 +49,7 @@ pub async fn test_mcp_server(
 ) -> Result<serde_json::Value, String> {
     const TEST_TIMEOUT_SECS: u64 = 10;
 
-    let server = axagent_core::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
+    let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
         .await
         .map_err(|e| format!("获取 MCP 服务器配置失败: {e}"))?;
 
@@ -62,7 +62,7 @@ pub async fn test_mcp_server(
 
     // Builtin servers don't need real connection testing
     if server.transport == "builtin" {
-        let tools = axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), &id)
+        let tools = axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), &id)
             .await
             .map_err(|e| e.to_string())?;
         return Ok(serde_json::json!({
@@ -93,7 +93,7 @@ pub async fn test_mcp_server(
                     .and_then(|s| serde_json::from_str(s).ok())
                     .unwrap_or_default();
 
-                let tools = axagent_core::mcp_client::discover_tools_stdio(command, &args, &env)
+                let tools = axagent_mcp::mcp_client::discover_tools_stdio(command, &args, &env)
                     .await
                     .map_err(|e| {
                         serde_json::to_string(
@@ -117,7 +117,7 @@ pub async fn test_mcp_server(
                     .ok_or_else(|| format!("{} 服务器缺少 endpoint 配置", server.transport))?;
 
                 let tools = if server.transport == "http" {
-                    axagent_core::mcp_client::discover_tools_http(endpoint)
+                    axagent_mcp::mcp_client::discover_tools_http(endpoint)
                         .await
                         .map_err(|e| {
                             serde_json::to_string(
@@ -129,7 +129,7 @@ pub async fn test_mcp_server(
                             })
                         })?
                 } else {
-                    axagent_core::mcp_client::discover_tools_sse(endpoint)
+                    axagent_mcp::mcp_client::discover_tools_sse(endpoint)
                         .await
                         .map_err(|e| {
                             serde_json::to_string(
@@ -169,7 +169,7 @@ pub async fn list_mcp_tools(
     state: State<'_, AppState>,
     server_id: String,
 ) -> Result<Vec<ToolDescriptor>, String> {
-    axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), &server_id)
+    axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), &server_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -183,7 +183,7 @@ pub async fn discover_mcp_tools(
     let discovered = discover_mcp_tools_inner(&state, &id).await?;
 
     // 持久化到 DB（使用原始 DiscoveredTool）
-    axagent_core::repo::mcp_server::save_tool_descriptors(
+    axagent_dao::repo::mcp_server::save_tool_descriptors(
         state.harness.db(),
         &id,
         discovered.clone(),
@@ -211,7 +211,7 @@ pub async fn list_tool_executions(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Vec<ToolExecution>, String> {
-    axagent_core::repo::tool_execution::list_tool_executions(state.harness.db(), &conversation_id)
+    axagent_dao::repo::tool_execution::list_tool_executions(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -229,7 +229,7 @@ pub async fn hot_reload_mcp_server(
     let tools = discover_mcp_tools_inner(&state, &id).await?;
 
     // 2. Save discovered tools to DB
-    axagent_core::repo::mcp_server::save_tool_descriptors(state.harness.db(), &id, tools.clone())
+    axagent_dao::repo::mcp_server::save_tool_descriptors(state.harness.db(), &id, tools.clone())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -238,7 +238,7 @@ pub async fn hot_reload_mcp_server(
     {
         #[cfg(not(target_os = "android"))]
         {
-            let pool = axagent_core::mcp_client::global_mcp_pool();
+            let pool = axagent_mcp::mcp_client::global_mcp_pool();
             pool.evict_by_server_id(&id);
         }
     }
@@ -265,16 +265,16 @@ pub async fn hot_reload_mcp_server(
 async fn discover_mcp_tools_inner(
     state: &AppState,
     id: &str,
-) -> Result<Vec<axagent_core::mcp_client::DiscoveredTool>, String> {
+) -> Result<Vec<axagent_mcp::mcp_client::DiscoveredTool>, String> {
     // Builtin servers: 从 DB 的 tool_descriptors 表读取（已持久化的工具列表）
     if id.starts_with("builtin-") {
         let descriptors =
-            axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), id)
+            axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), id)
                 .await
                 .map_err(|e| e.to_string())?;
-        let tools: Vec<axagent_core::mcp_client::DiscoveredTool> = descriptors
+        let tools: Vec<axagent_mcp::mcp_client::DiscoveredTool> = descriptors
             .into_iter()
-            .map(|d| axagent_core::mcp_client::DiscoveredTool {
+            .map(|d| axagent_mcp::mcp_client::DiscoveredTool {
                 name: d.name,
                 description: d.description,
                 input_schema: d
@@ -285,7 +285,7 @@ async fn discover_mcp_tools_inner(
         return Ok(tools);
     }
 
-    let server = axagent_core::repo::mcp_server::get_mcp_server(state.harness.db(), id)
+    let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -306,7 +306,7 @@ async fn discover_mcp_tools_inner(
     // 使用统一的发现入口
     let tools = tokio::time::timeout(
         timeout_duration,
-        axagent_core::mcp_client::discover_tools_unified(
+        axagent_mcp::mcp_client::discover_tools_unified(
             &server.transport,
             command,
             args.as_deref(),

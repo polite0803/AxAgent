@@ -233,7 +233,7 @@ async fn generate_plan_via_llm(
     content: &str,
     user_message_id: &str,
 ) -> Result<Plan, String> {
-    use axagent_core::repo::provider::{self, get_active_key};
+    use axagent_dao::repo::provider::{self, get_active_key};
     use axagent_harness::resolve_base_url_for_type;
 
     let db = state.harness.db();
@@ -263,7 +263,7 @@ async fn generate_plan_via_llm(
         .map_err(|e| format!("No active provider key: {}", e))?;
 
     let api_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| format!("Failed to decrypt provider key: {}", e))?;
 
     // Parse proxy config from the provider
@@ -423,7 +423,7 @@ async fn generate_plan_via_llm(
 
 /// Extract JSON from LLM response text, stripping markdown code fences if present.
 fn extract_json_from_text(text: &str) -> Result<Value, String> {
-    use axagent_core::extract_json_from_llm_response;
+    use axagent_kit::utils::extract_json_from_llm_response;
 
     let text = text.trim();
     let extracted = extract_json_from_llm_response(text);
@@ -485,7 +485,7 @@ async fn build_agent_context(
 
     let db = state.harness.db();
 
-    let prov = axagent_core::repo::provider::get_provider(db, provider_id)
+    let prov = axagent_dao::repo::provider::get_provider(db, provider_id)
         .await
         .map_err(|e| format!("Failed to load provider: {}", e))?;
 
@@ -495,10 +495,10 @@ async fn build_agent_context(
         .find(|k| k.enabled)
         .ok_or_else(|| "No active API key for provider".to_string())?;
 
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, state.harness.master_key())
+    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())?;
 
-    let settings = axagent_core::repo::settings::get_settings(db)
+    let settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
 
@@ -543,7 +543,7 @@ async fn build_agent_context(
         },
     };
 
-    let conversation = axagent_core::repo::conversation::get_conversation(db, conversation_id)
+    let conversation = axagent_dao::repo::conversation::get_conversation(db, conversation_id)
         .await
         .map_err(|e| format!("Failed to load conversation: {}", e))?;
 
@@ -565,13 +565,13 @@ async fn build_step_tools(
     let mut chat_tools: Vec<ChatTool> = Vec::new();
 
     for server_id in &agent_ctx.enabled_mcp_server_ids {
-        let server = match axagent_core::repo::mcp_server::get_mcp_server(db, server_id).await {
+        let server = match axagent_dao::repo::mcp_server::get_mcp_server(db, server_id).await {
             Ok(s) => s,
             Err(_) => continue,
         };
 
         if let Ok(descriptors) =
-            axagent_core::repo::mcp_server::list_tools_for_server(db, server_id).await
+            axagent_dao::repo::mcp_server::list_tools_for_server(db, server_id).await
         {
             for td in descriptors {
                 let parameters: Option<Value> = td
@@ -774,12 +774,12 @@ pub async fn plan_generate(
 
     // Load conversation to get provider/model info
     let conversation =
-        axagent_core::repo::conversation::get_conversation(db, &request.conversation_id)
+        axagent_dao::repo::conversation::get_conversation(db, &request.conversation_id)
             .await
             .map_err(|e| format!("Conversation not found: {}", e))?;
 
     // Find the latest user message for this conversation
-    let messages = axagent_core::repo::message::list_messages(db, &request.conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(db, &request.conversation_id)
         .await
         .map_err(|e| format!("Failed to get messages: {}", e))?;
 
@@ -791,15 +791,15 @@ pub async fn plan_generate(
         .unwrap_or_else(|| Uuid::new_v4().to_string());
 
     // Deactivate any existing active plans for this conversation
-    let existing_active = axagent_core::entity::plans::Entity::find()
-        .filter(axagent_core::entity::plans::Column::ConversationId.eq(&request.conversation_id))
-        .filter(axagent_core::entity::plans::Column::IsActive.eq(1))
+    let existing_active = axagent_entities::plans::Entity::find()
+        .filter(axagent_entities::plans::Column::ConversationId.eq(&request.conversation_id))
+        .filter(axagent_entities::plans::Column::IsActive.eq(1))
         .all(db)
         .await
         .unwrap_or_default();
 
     for plan in existing_active {
-        let mut am: axagent_core::entity::plans::ActiveModel = plan.into();
+        let mut am: axagent_entities::plans::ActiveModel = plan.into();
         am.is_active = Set(0);
         am.update(db).await.ok();
     }
@@ -819,7 +819,7 @@ pub async fn plan_generate(
     let steps_json = serde_json::to_string(&plan.steps)
         .map_err(|e| format!("Failed to serialize steps: {}", e))?;
 
-    let plan_entity = axagent_core::entity::plans::ActiveModel {
+    let plan_entity = axagent_entities::plans::ActiveModel {
         id: Set(plan.id.clone()),
         conversation_id: Set(plan.conversation_id.clone()),
         user_message_id: Set(plan.user_message_id.clone()),
@@ -833,7 +833,7 @@ pub async fn plan_generate(
         updated_at: Set(plan.updated_at),
     };
 
-    axagent_core::entity::plans::Entity::insert(plan_entity)
+    axagent_entities::plans::Entity::insert(plan_entity)
         .exec(db)
         .await
         .map_err(|e| format!("Failed to save plan: {}", e))?;
@@ -860,7 +860,7 @@ pub async fn plan_execute(
     let db = state.harness.db();
 
     // Load plan from database
-    let plan_row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
+    let plan_row = axagent_entities::plans::Entity::find_by_id(&request.plan_id)
         .one(db)
         .await
         .map_err(|e| format!("Failed to load plan: {}", e))?
@@ -883,7 +883,7 @@ pub async fn plan_execute(
     }
 
     // Update plan status to executing
-    let mut am: axagent_core::entity::plans::ActiveModel = plan_row.clone().into();
+    let mut am: axagent_entities::plans::ActiveModel = plan_row.clone().into();
     am.status = Set("executing".to_string());
     am.updated_at = Set(chrono::Utc::now().timestamp_millis());
     am.update(db)
@@ -907,7 +907,7 @@ pub async fn plan_execute(
 
     if steps_to_run.is_empty() {
         // No steps to execute — mark as completed
-        let mut am: axagent_core::entity::plans::ActiveModel = plan_row.into();
+        let mut am: axagent_entities::plans::ActiveModel = plan_row.into();
         am.status = Set("completed".to_string());
         am.updated_at = Set(chrono::Utc::now().timestamp_millis());
         am.update(db).await.ok();
@@ -925,7 +925,7 @@ pub async fn plan_execute(
 
     // Load conversation for provider/model info
     let conversation =
-        axagent_core::repo::conversation::get_conversation(db, &request.conversation_id)
+        axagent_dao::repo::conversation::get_conversation(db, &request.conversation_id)
             .await
             .map_err(|e| format!("Failed to load conversation: {}", e))?;
 
@@ -1170,7 +1170,7 @@ pub async fn plan_execute(
         .any(|s| s.status == PlanStepStatus::Error);
     let final_status = if has_errors { "partial" } else { "completed" };
 
-    let mut am2: axagent_core::entity::plans::ActiveModel = plan_row.into();
+    let mut am2: axagent_entities::plans::ActiveModel = plan_row.into();
     am2.steps_json = Set(steps_json);
     am2.status = Set(final_status.to_string());
     am2.updated_at = Set(chrono::Utc::now().timestamp_millis());
@@ -1212,13 +1212,13 @@ pub async fn plan_cancel(
         }
     }
 
-    if let Some(row) = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
+    if let Some(row) = axagent_entities::plans::Entity::find_by_id(&request.plan_id)
         .one(db)
         .await
         .ok()
         .flatten()
     {
-        let mut am: axagent_core::entity::plans::ActiveModel = row.into();
+        let mut am: axagent_entities::plans::ActiveModel = row.into();
         am.status = Set("cancelled".to_string());
         am.is_active = Set(0);
         am.updated_at = Set(chrono::Utc::now().timestamp_millis());
@@ -1249,15 +1249,15 @@ pub async fn plan_activate(
     let db = state.harness.db();
 
     // Deactivate all other active plans for this conversation
-    let existing = axagent_core::entity::plans::Entity::find()
-        .filter(axagent_core::entity::plans::Column::ConversationId.eq(&request.conversation_id))
-        .filter(axagent_core::entity::plans::Column::IsActive.eq(1))
+    let existing = axagent_entities::plans::Entity::find()
+        .filter(axagent_entities::plans::Column::ConversationId.eq(&request.conversation_id))
+        .filter(axagent_entities::plans::Column::IsActive.eq(1))
         .all(db)
         .await
         .map_err(|e| format!("DB error: {}", e))?;
     for row in &existing {
         if row.id != request.plan_id {
-            let mut am: axagent_core::entity::plans::ActiveModel = row.clone().into();
+            let mut am: axagent_entities::plans::ActiveModel = row.clone().into();
             am.is_active = Set(0);
             am.updated_at = Set(chrono::Utc::now().timestamp_millis());
             am.update(db).await.ok();
@@ -1265,7 +1265,7 @@ pub async fn plan_activate(
     }
 
     // Activate target plan
-    let row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
+    let row = axagent_entities::plans::Entity::find_by_id(&request.plan_id)
         .one(db)
         .await
         .map_err(|e| format!("DB error: {}", e))?
@@ -1276,7 +1276,7 @@ pub async fn plan_activate(
             )
         })?;
 
-    let mut am: axagent_core::entity::plans::ActiveModel = row.clone().into();
+    let mut am: axagent_entities::plans::ActiveModel = row.clone().into();
     am.is_active = Set(1);
     am.status = Set("reviewing".to_string());
     am.updated_at = Set(chrono::Utc::now().timestamp_millis());
@@ -1307,7 +1307,7 @@ pub async fn plan_get(
 ) -> Result<Option<Plan>, String> {
     let db = state.harness.db();
 
-    let row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
+    let row = axagent_entities::plans::Entity::find_by_id(&request.plan_id)
         .one(db)
         .await
         .map_err(|e| format!("DB error: {}", e))?;
@@ -1350,15 +1350,15 @@ pub async fn plan_list(
 ) -> Result<Vec<Plan>, String> {
     let db = state.harness.db();
 
-    let mut query = axagent_core::entity::plans::Entity::find()
-        .filter(axagent_core::entity::plans::Column::ConversationId.eq(&request.conversation_id));
+    let mut query = axagent_entities::plans::Entity::find()
+        .filter(axagent_entities::plans::Column::ConversationId.eq(&request.conversation_id));
 
     if !request.include_completed.unwrap_or(false) {
-        query = query.filter(axagent_core::entity::plans::Column::IsActive.eq(1));
+        query = query.filter(axagent_entities::plans::Column::IsActive.eq(1));
     }
 
     let rows = query
-        .order_by_desc(axagent_core::entity::plans::Column::CreatedAt)
+        .order_by_desc(axagent_entities::plans::Column::CreatedAt)
         .all(db)
         .await
         .map_err(|e| format!("DB error: {}", e))?;
@@ -1403,7 +1403,7 @@ pub async fn plan_modify_step(
 ) -> Result<Option<Plan>, String> {
     let db = state.harness.db();
 
-    let row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
+    let row = axagent_entities::plans::Entity::find_by_id(&request.plan_id)
         .one(db)
         .await
         .map_err(|e| format!("DB error: {}", e))?
@@ -1437,7 +1437,7 @@ pub async fn plan_modify_step(
         serde_json::to_string(&steps).map_err(|e| format!("Failed to serialize steps: {}", e))?;
 
     let now = chrono::Utc::now().timestamp_millis();
-    let mut am: axagent_core::entity::plans::ActiveModel = row.clone().into();
+    let mut am: axagent_entities::plans::ActiveModel = row.clone().into();
     am.steps_json = Set(steps_json);
     am.updated_at = Set(now);
     am.update(db)

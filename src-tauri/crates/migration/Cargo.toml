@@ -5,7 +5,9 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+axagent-dao = { path = "../dao" }
 axagent-harness = { path = "../harness" }
+axagent-kit = { path = "../kit" }
 chrono = { workspace = true }
 dirs = "5"
 serde_yaml = "0.9"

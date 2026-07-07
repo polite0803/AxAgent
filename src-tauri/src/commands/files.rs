@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::file_authorizer::{AuthorizationRequest, AuthorizationResponse, PermissionLevel};
-use axagent_core::repo::stored_file::StoredFile;
+use axagent_storage::file_authorizer::{AuthorizationRequest, AuthorizationResponse, PermissionLevel};
+use axagent_dao::repo::stored_file::StoredFile;
 use serde::Serialize;
 use tauri::{Emitter, State};
 
@@ -23,16 +23,16 @@ pub async fn upload_file(
         .decode(&data)
         .map_err(|e| format!("Invalid base64: {}", e))?;
 
-    axagent_core::storage_paths::ensure_documents_dirs()
+    axagent_storage::storage_paths::ensure_documents_dirs()
         .map_err(|e| format!("Failed to ensure documents dirs: {}", e))?;
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
 
     let saved = file_store
         .save_file(&bytes, &file_name, &mime_type)
         .map_err(|e| e.to_string())?;
 
-    let id = axagent_core::utils::gen_id();
-    let stored = axagent_core::repo::stored_file::create_stored_file(
+    let id = axagent_kit::utils::gen_id();
+    let stored = axagent_dao::repo::stored_file::create_stored_file(
         state.harness.db(),
         &id,
         &saved.hash,
@@ -51,11 +51,11 @@ pub async fn upload_file(
 #[tauri::command]
 pub async fn download_file(state: State<'_, AppState>, file_id: String) -> Result<String, String> {
     use base64::Engine;
-    let file = axagent_core::repo::stored_file::get_stored_file(state.harness.db(), &file_id)
+    let file = axagent_dao::repo::stored_file::get_stored_file(state.harness.db(), &file_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
 
     let data = file_store
         .read_file(&file.storage_path)
@@ -69,7 +69,7 @@ pub async fn list_files(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Vec<StoredFile>, String> {
-    axagent_core::repo::stored_file::list_stored_files_by_conversation(
+    axagent_dao::repo::stored_file::list_stored_files_by_conversation(
         state.harness.db(),
         &conversation_id,
     )
@@ -79,7 +79,7 @@ pub async fn list_files(
 
 #[tauri::command]
 pub async fn delete_file(state: State<'_, AppState>, file_id: String) -> Result<(), String> {
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
     super::file_cleanup::delete_attachment_reference(state.harness.db(), &file_store, &file_id)
         .await
 }

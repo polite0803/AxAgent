@@ -314,7 +314,7 @@ pub async fn get_scheduled_task_templates(
     state: State<'_, AppState>,
 ) -> Result<Vec<serde_json::Value>, String> {
     require_operator(&state)?;
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use sea_orm::EntityTrait;
 
     let mut templates: Vec<serde_json::Value> = vec![

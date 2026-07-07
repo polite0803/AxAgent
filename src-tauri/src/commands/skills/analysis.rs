@@ -3,7 +3,7 @@ use super::install::skills_dir;
 use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill_err;
-use axagent_core::crypto::decrypt_key;
+use axagent_crypto::decrypt_key;
 use axagent_harness::types::provider_model::ProviderType;
 use axagent_harness::types::settings_chat::ChatContent;
 use axagent_harness::types::{ChatMessage, ChatRequest};
@@ -52,7 +52,7 @@ pub async fn skill_analyze_frontend(
     }
 
     // 获取默认 Provider 配置
-    let settings = axagent_core::repo::settings::get_settings(state.harness.db())
+    let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     let provider_id = settings.default_provider_id.as_ref().ok_or_else(|| {
@@ -64,10 +64,10 @@ pub async fn skill_analyze_frontend(
             .with_detail("未配置默认模型".to_string())
     })?;
 
-    let provider = axagent_core::repo::provider::get_provider(state.harness.db(), provider_id)
+    let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
         .await
         .map_err(|e| e.to_string())?;
-    let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), &provider.id)
+    let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &provider.id)
         .await
         .map_err(|e| e.to_string())?;
     let decrypted_key = decrypt_key(&key_row.key_encrypted, state.harness.master_key())

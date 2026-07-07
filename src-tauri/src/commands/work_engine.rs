@@ -67,8 +67,8 @@ pub struct ExecutionSummaryResponse {
     pub created_at: i64,
 }
 
-impl From<axagent_core::entity::workflow_executions::Model> for ExecutionSummaryResponse {
-    fn from(m: axagent_core::entity::workflow_executions::Model) -> Self {
+impl From<axagent_entities::workflow_executions::Model> for ExecutionSummaryResponse {
+    fn from(m: axagent_entities::workflow_executions::Model) -> Self {
         Self {
             id: m.id,
             workflow_id: m.workflow_id,
@@ -220,7 +220,7 @@ pub async fn execute_workflow_node(
         ));
     }
 
-    let node: axagent_core::workflow_types::WorkflowNode =
+    let node: axagent_harness::workflow_types::WorkflowNode =
         serde_json::from_value(node_json).map_err(|e| format!("节点 JSON 解析失败: {}", e))?;
 
     // P1-14: 节点类型白名单校验 —— 拒绝执行危险节点类型
@@ -273,7 +273,7 @@ pub async fn debug_run_workflow(
     model_id: Option<String>,
     provider_id: Option<String>,
 ) -> Result<String, String> {
-    use axagent_core::repo::workflow_template;
+    use axagent_dao::repo::workflow_template;
 
     let db = state.harness.db();
     let template = workflow_template::get_workflow_template(db, &template_id)
@@ -281,16 +281,16 @@ pub async fn debug_run_workflow(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Template {} not found", template_id))?;
 
-    let nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
+    let nodes: Vec<axagent_harness::workflow_types::WorkflowNode> =
         serde_json::from_str(&template.nodes).map_err(|e| format!("节点解析失败: {}", e))?;
     for (i, n) in nodes.iter().enumerate() {
         let typ = axagent_rt_workflow::work_engine::node_executor_trait::node_type_name(n);
         tracing::info!(i, node_id = %n.base_id(), node_type = typ, "deserialized node");
     }
-    let edges: Vec<axagent_core::workflow_types::WorkflowEdge> =
+    let edges: Vec<axagent_harness::workflow_types::WorkflowEdge> =
         serde_json::from_str(&template.edges).map_err(|e| format!("边解析失败: {}", e))?;
 
-    let variables: Vec<axagent_core::workflow_types::Variable> = template
+    let variables: Vec<axagent_harness::workflow_types::Variable> = template
         .variables
         .as_deref()
         .map(serde_json::from_str)
@@ -298,13 +298,13 @@ pub async fn debug_run_workflow(
         .map_err(|e| format!("变量解析失败: {}", e))?
         .unwrap_or_default();
 
-    let input_schema: Option<axagent_core::workflow_types::JsonSchema> = template
+    let input_schema: Option<axagent_harness::workflow_types::JsonSchema> = template
         .input_schema
         .as_deref()
         .map(serde_json::from_str)
         .transpose()
         .map_err(|e| format!("input_schema 解析失败: {}", e))?;
-    let output_schema: Option<axagent_core::workflow_types::JsonSchema> = template
+    let output_schema: Option<axagent_harness::workflow_types::JsonSchema> = template
         .output_schema
         .as_deref()
         .map(serde_json::from_str)

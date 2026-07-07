@@ -110,11 +110,16 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
+axagent-cache = { path = "crates/cache" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
+axagent-disk-cache = { path = "crates/disk-cache" }
 axagent-document-parser = { path = "crates/document-parser" }
+axagent-entities = { path = "crates/entities" }
 axagent-gateway = { path = "crates/gateway" }
 axagent-harness = { path = "crates/harness" }
+axagent-kit = { path = "crates/kit" }
+axagent-mcp = { path = "crates/mcp" }
 axagent-migration = { path = "crates/migration" }
 axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }

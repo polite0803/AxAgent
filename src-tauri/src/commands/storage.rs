@@ -4,8 +4,8 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
 use crate::commands::error_code::storage_path as storage_path_err;
-use axagent_core::storage_inventory::{self, StorageInventory};
-use axagent_core::storage_paths;
+use axagent_storage::storage_inventory::{self, StorageInventory};
+use axagent_storage::storage_paths;
 use serde::Serialize;
 use serde_json;
 use std::path::PathBuf;
@@ -186,11 +186,11 @@ pub async fn change_documents_root(
 
     // Persist the setting
     let db = state.harness.db();
-    let mut settings = axagent_core::repo::settings::get_settings(db)
+    let mut settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .map_err(|e| e.to_string())?;
     settings.documents_root_override = Some(new_path);
-    axagent_core::repo::settings::save_settings(db, &settings)
+    axagent_dao::repo::settings::save_settings(db, &settings)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -204,11 +204,11 @@ pub async fn change_documents_root(
 #[tauri::command]
 pub async fn reset_documents_root(state: State<'_, AppState>) -> Result<(), String> {
     let db = state.harness.db();
-    let mut settings = axagent_core::repo::settings::get_settings(db)
+    let mut settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .map_err(|e| e.to_string())?;
     settings.documents_root_override = None;
-    axagent_core::repo::settings::save_settings(db, &settings)
+    axagent_dao::repo::settings::save_settings(db, &settings)
         .await
         .map_err(|e| e.to_string())?;
 

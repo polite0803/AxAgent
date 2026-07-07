@@ -9,7 +9,9 @@ async-trait = "0.1"
 axagent-harness = { path = "../harness" }
 axagent-dao = { path = "../dao" }
 axagent-entities = { path = "../entities" }
+axagent-document-parser = { path = "../document-parser" }
 axagent-kit = { path = "../kit" }
+axagent-mcp = { path = "../mcp" }
 axagent-search = { path = "../search" }
 axagent-runtime-core = { path = "../runtime-core" }
 base64 = "0.22"

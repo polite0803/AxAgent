@@ -20,7 +20,7 @@ pub async fn regenerate_message(
     } = options;
     tracing::info!("[regenerate_message] Step 1: loading messages from DB");
     // 1. Get all active messages for the conversation
-    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
     tracing::info!("[regenerate_message] Step 2: messages loaded, count={}", messages.len());
@@ -43,7 +43,7 @@ pub async fn regenerate_message(
     tracing::info!("[regenerate_message] Step 3: user_msg_id={}", last_user_msg.id);
 
     // 2. Count existing AI reply versions for this user message
-    let existing_versions = axagent_core::repo::message::list_message_versions(
+    let existing_versions = axagent_dao::repo::message::list_message_versions(
         state.harness.db(),
         &conversation_id,
         &last_user_msg.id,
@@ -63,7 +63,7 @@ pub async fn regenerate_message(
 
     // 3. Deactivate all existing AI reply versions for this user message
     tracing::info!("[regenerate_message] Step 5: deactivating old versions ({} existing)", existing_versions.len());
-    use axagent_core::entity::messages as msg_entity;
+    use axagent_entities::messages as msg_entity;
     use sea_orm::sea_query::Expr;
     msg_entity::Entity::update_many()
         .filter(msg_entity::Column::ConversationId.eq(&conversation_id))
@@ -77,7 +77,7 @@ pub async fn regenerate_message(
     // 4. Get conversation details
     tracing::info!("[regenerate_message] Step 7: loading conversation");
     let mut conversation =
-        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
+        axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
     tracing::info!("[regenerate_message] Step 8: conversation loaded, provider={} model={}", conversation.provider_id, conversation.model_id);
@@ -92,23 +92,23 @@ pub async fn regenerate_message(
 
     // 5. Get provider config + decrypt key
     let provider =
-        axagent_core::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
+        axagent_dao::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let key_row =
-        axagent_core::repo::provider::get_active_key(state.harness.db(), &conversation.provider_id)
+        axagent_dao::repo::provider::get_active_key(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     // 6. Rebuild chat messages (active messages only — old inactive versions excluded)
     let remaining_messages =
-        axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+        axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
 
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
 
@@ -216,9 +216,9 @@ pub async fn regenerate_message(
     }
 
     // 7. Spawn streaming with new version
-    let assistant_message_id = axagent_core::utils::gen_id();
+    let assistant_message_id = axagent_kit::utils::gen_id();
 
-    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
+    let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -249,7 +249,7 @@ pub async fn regenerate_message(
         .collect();
     // Check if any search provider is configured — auto-include web_search
     let has_search_provider =
-        axagent_core::repo::search_provider::list_search_providers(state.harness.db())
+        axagent_dao::repo::search_provider::list_search_providers(state.harness.db())
             .await
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
@@ -313,7 +313,7 @@ pub async fn regenerate_message(
         }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), server_id)
+                axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), server_id)
                     .await
             {
                 for td in descriptors {
@@ -341,7 +341,7 @@ pub async fn regenerate_message(
         }
     };
 
-    let regen_model_overrides = axagent_core::repo::provider::get_model(
+    let regen_model_overrides = axagent_dao::repo::provider::get_model(
         state.harness.db(),
         &conversation.provider_id,
         &conversation.model_id,
@@ -448,7 +448,7 @@ pub async fn regenerate_with_model(
         enabled_memory_namespace_ids,
         enabled_wiki_ids,
     } = options;
-    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -459,7 +459,7 @@ pub async fn regenerate_with_model(
         .clone();
 
     // Count existing versions and preserve original created_at
-    let existing_versions = axagent_core::repo::message::list_message_versions(
+    let existing_versions = axagent_dao::repo::message::list_message_versions(
         state.harness.db(),
         &conversation_id,
         &user_msg.id,
@@ -472,7 +472,7 @@ pub async fn regenerate_with_model(
     let companion = is_companion.unwrap_or(false);
 
     // Deactivate all existing versions (skip for companion models in multi-model mode)
-    use axagent_core::entity::messages as msg_entity;
+    use axagent_entities::messages as msg_entity;
     use sea_orm::sea_query::Expr;
     if !companion {
         msg_entity::Entity::update_many()
@@ -486,7 +486,7 @@ pub async fn regenerate_with_model(
 
     // Get conversation, but override model_id and provider_id to target values
     let mut conversation =
-        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
+        axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
     conversation.model_id = target_model_id;
@@ -494,23 +494,23 @@ pub async fn regenerate_with_model(
 
     // Use target provider instead of conversation's default
     let provider =
-        axagent_core::repo::provider::get_provider(state.harness.db(), &target_provider_id)
+        axagent_dao::repo::provider::get_provider(state.harness.db(), &target_provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let key_row =
-        axagent_core::repo::provider::get_active_key(state.harness.db(), &target_provider_id)
+        axagent_dao::repo::provider::get_active_key(state.harness.db(), &target_provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     // Build context messages (same logic as regenerate_message)
     let remaining_messages =
-        axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+        axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
 
     // Resolve effective system prompt: conversation → category → global default
@@ -623,8 +623,8 @@ pub async fn regenerate_with_model(
         }
     }
 
-    let assistant_message_id = axagent_core::utils::gen_id();
-    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
+    let assistant_message_id = axagent_kit::utils::gen_id();
+    let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -653,7 +653,7 @@ pub async fn regenerate_with_model(
         .into_iter()
         .collect();
     let has_search_provider =
-        axagent_core::repo::search_provider::list_search_providers(state.harness.db())
+        axagent_dao::repo::search_provider::list_search_providers(state.harness.db())
             .await
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
@@ -717,7 +717,7 @@ pub async fn regenerate_with_model(
         }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
-                axagent_core::repo::mcp_server::list_tools_for_server(state.harness.db(), server_id)
+                axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), server_id)
                     .await
             {
                 for td in descriptors {
@@ -745,7 +745,7 @@ pub async fn regenerate_with_model(
         }
     };
 
-    let rwm_overrides = axagent_core::repo::provider::get_model(
+    let rwm_overrides = axagent_dao::repo::provider::get_model(
         state.harness.db(),
         &conversation.provider_id,
         &conversation.model_id,
@@ -784,7 +784,7 @@ pub async fn regenerate_with_model(
     // model switching in ModelTags without waiting for the first stream chunk.
     {
         use sea_orm::ActiveValue::Set;
-        if let Err(e) = (axagent_core::entity::messages::ActiveModel {
+        if let Err(e) = (axagent_entities::messages::ActiveModel {
             id: Set(assistant_message_id.clone()),
             conversation_id: Set(conversation_id.clone()),
             role: Set("assistant".to_string()),
@@ -796,7 +796,7 @@ pub async fn regenerate_with_model(
             completion_tokens: Set(None),
             attachments: Set("[]".to_string()),
             thinking: Set(None),
-            created_at: Set(original_created_at.unwrap_or_else(axagent_core::utils::now_ts)),
+            created_at: Set(original_created_at.unwrap_or_else(axagent_kit::utils::now_ts)),
             branch_id: Set(None),
             parent_message_id: Set(Some(user_msg.id.clone())),
             version_index: Set(new_version_index),

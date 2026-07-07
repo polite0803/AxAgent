@@ -26,7 +26,7 @@ pub async fn list_message_versions(
     conversation_id: String,
     parent_message_id: String,
 ) -> Result<Vec<Message>, String> {
-    axagent_core::repo::message::list_message_versions(
+    axagent_dao::repo::message::list_message_versions(
         state.harness.db(),
         &conversation_id,
         &parent_message_id,
@@ -41,7 +41,7 @@ pub async fn switch_message_version(
     parent_message_id: String,
     message_id: String,
 ) -> Result<(), String> {
-    axagent_core::repo::message::set_active_version(
+    axagent_dao::repo::message::set_active_version(
         state.harness.db(),
         &conversation_id,
         &parent_message_id,
@@ -57,12 +57,12 @@ pub async fn delete_message_group(
     user_message_id: String,
 ) -> Result<(), String> {
     let deleted =
-        axagent_core::repo::message::delete_message_group(state.harness.db(), &user_message_id)
+        axagent_dao::repo::message::delete_message_group(state.harness.db(), &user_message_id)
             .await
             .map_err(|e| e.to_string())?;
     // Decrement message count by deleted count
     for _ in 0..deleted {
-        axagent_core::repo::conversation::decrement_message_count(
+        axagent_dao::repo::conversation::decrement_message_count(
             state.harness.db(),
             &conversation_id,
         )
@@ -101,14 +101,14 @@ pub(crate) async fn do_compress(
     ) =
         (&settings.compression_provider_id, &settings.compression_model_id)
     {
-        match axagent_core::repo::provider::get_provider(db, pid).await {
+        match axagent_dao::repo::provider::get_provider(db, pid).await {
             Ok(p) => match p.keys.first() {
                 Some(k) => {
-                    let dk = axagent_core::crypto::decrypt_key(&k.key_encrypted, master_key)
+                    let dk = axagent_crypto::decrypt_key(&k.key_encrypted, master_key)
                         .map_err(|e| e.to_string())?;
                     let kid = k.id.clone();
                     let proxy = ProviderProxyConfig::resolve(&p.proxy_config, settings);
-                    let override_umc = axagent_core::repo::provider::get_model(db, pid, mid)
+                    let override_umc = axagent_dao::repo::provider::get_model(db, pid, mid)
                         .await
                         .ok()
                         .and_then(|m| m.param_overrides)
@@ -218,8 +218,8 @@ pub(crate) async fn do_compress(
             .with_detail(format!("Summary generation failed: {}", e))
     })?;
 
-    let token_count = axagent_core::token_counter::estimate_tokens(&response.content);
-    axagent_core::repo::conversation::upsert_summary(
+    let token_count = axagent_kit::token_counter::estimate_tokens(&response.content);
+    axagent_dao::repo::conversation::upsert_summary(
         db,
         conversation_id,
         &response.content,
@@ -245,13 +245,13 @@ pub async fn compress_context(
     conversation_id: String,
 ) -> Result<ConversationSummary, String> {
     let conversation =
-        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
+        axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
 
     // Get provider + key
     let provider =
-        axagent_core::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
+        axagent_dao::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
             .map_err(|e| e.to_string())?;
     let key_row = provider
@@ -259,21 +259,21 @@ pub async fn compress_context(
         .first()
         .ok_or_else(|| "No API key configured".to_string())?;
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_core::repo::settings::get_settings(state.harness.db())
+    let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
     // Load messages after last marker
     let db_messages =
-        axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+        axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
 
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
 
     // For manual compression: try messages after last marker first,
     // fall back to ALL messages if nothing after marker
@@ -319,13 +319,13 @@ pub async fn compress_context(
 
     // Load existing summary
     let existing_summary =
-        axagent_core::repo::conversation::get_summary(state.harness.db(), &conversation_id)
+        axagent_dao::repo::conversation::get_summary(state.harness.db(), &conversation_id)
             .await
             .ok()
             .flatten();
 
     // Compress
-    let use_max_completion_tokens = axagent_core::repo::provider::get_model(
+    let use_max_completion_tokens = axagent_dao::repo::provider::get_model(
         state.harness.db(),
         &conversation.provider_id,
         &conversation.model_id,
@@ -357,7 +357,7 @@ pub async fn compress_context(
     .await?;
 
     // Insert compression marker message
-    let marker_msg = axagent_core::repo::message::create_message(
+    let marker_msg = axagent_dao::repo::message::create_message(
         state.harness.db(),
         &conversation_id,
         MessageRole::System,
@@ -374,7 +374,7 @@ pub async fn compress_context(
 
     // Return the updated summary
     let summary =
-        axagent_core::repo::conversation::get_summary(state.harness.db(), &conversation_id)
+        axagent_dao::repo::conversation::get_summary(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?
             .ok_or_else(|| "Summary not found after compression".to_string())?;
@@ -387,7 +387,7 @@ pub async fn get_compression_summary(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Option<ConversationSummary>, String> {
-    axagent_core::repo::conversation::get_summary(state.harness.db(), &conversation_id)
+    axagent_dao::repo::conversation::get_summary(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -398,15 +398,15 @@ pub async fn delete_compression(
     conversation_id: String,
 ) -> Result<(), String> {
     // Delete the summary
-    axagent_core::repo::conversation::delete_summary(state.harness.db(), &conversation_id)
+    axagent_dao::repo::conversation::delete_summary(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
     // Delete all compression marker messages
-    axagent_core::entity::messages::Entity::delete_many()
-        .filter(axagent_core::entity::messages::Column::ConversationId.eq(&conversation_id))
+    axagent_entities::messages::Entity::delete_many()
+        .filter(axagent_entities::messages::Column::ConversationId.eq(&conversation_id))
         .filter(
-            axagent_core::entity::messages::Column::Content
+            axagent_entities::messages::Column::Content
                 .eq(crate::context_manager::COMPRESSION_MARKER),
         )
         .exec(state.harness.db())
@@ -421,7 +421,7 @@ pub async fn send_system_message(
     conversation_id: String,
     content: String,
 ) -> Result<Message, String> {
-    let msg = axagent_core::repo::message::create_message(
+    let msg = axagent_dao::repo::message::create_message(
         state.harness.db(),
         &conversation_id,
         MessageRole::System,
@@ -447,11 +447,11 @@ mod tests_conversation {
     #[test]
     fn build_message_content_turns_images_into_multipart_data_urls() {
         let temp_dir = std::env::temp_dir()
-            .join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+            .join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
 
         let result = {
-            let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+            let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
             let saved = file_store
                 .save_file(b"abc", "image.png", "image/png")
                 .unwrap();
@@ -510,11 +510,11 @@ mod tests_conversation {
     #[test]
     fn build_message_content_uses_inline_attachment_data_when_file_path_is_missing() {
         let temp_dir = std::env::temp_dir()
-            .join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+            .join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
 
         let result = {
-            let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+            let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
             let message = Message {
                 id: "msg-1".into(),
                 conversation_id: "conv-1".into(),
@@ -567,12 +567,12 @@ mod tests_conversation {
 
     #[tokio::test]
     async fn delete_conversation_removes_attached_files_and_records() {
-        let db = axagent_core::db::create_test_pool().await.unwrap().conn;
+        let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
         let temp_dir = std::env::temp_dir()
-            .join(format!("axagent-conv-delete-test-{}", axagent_core::utils::gen_id()));
+            .join(format!("axagent-conv-delete-test-{}", axagent_kit::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
 
-        let conversation = axagent_core::repo::conversation::create_conversation(
+        let conversation = axagent_dao::repo::conversation::create_conversation(
             &db,
             "Files cleanup",
             "model-1",
@@ -582,7 +582,7 @@ mod tests_conversation {
         .await
         .unwrap();
 
-        let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+        let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
         let saved = file_store
             .save_file(b"cleanup me", "cleanup.png", "image/png")
             .unwrap();
@@ -592,7 +592,7 @@ mod tests_conversation {
             "fixture file must exist before deleting the conversation"
         );
 
-        axagent_core::repo::stored_file::create_stored_file(
+        axagent_dao::repo::stored_file::create_stored_file(
             &db,
             "file-1",
             &saved.hash,
@@ -612,13 +612,13 @@ mod tests_conversation {
             "deleting a conversation should clean up its attached files, got: {result:?}"
         );
         assert!(
-            axagent_core::repo::conversation::get_conversation(&db, &conversation.id)
+            axagent_dao::repo::conversation::get_conversation(&db, &conversation.id)
                 .await
                 .is_err(),
             "conversation must be deleted"
         );
         assert!(
-            axagent_core::repo::stored_file::list_stored_files_by_conversation(
+            axagent_dao::repo::stored_file::list_stored_files_by_conversation(
                 &db,
                 &conversation.id
             )
@@ -640,11 +640,11 @@ mod tests_conversation {
     async fn persist_attachments_registers_stored_files_for_files_page() {
         use base64::Engine;
 
-        let db = axagent_core::db::create_test_pool().await.unwrap().conn;
+        let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
         let temp_dir = std::env::temp_dir()
-            .join(format!("axagent-persist-attachments-test-{}", axagent_core::utils::gen_id()));
+            .join(format!("axagent-persist-attachments-test-{}", axagent_kit::utils::gen_id()));
         fs::create_dir_all(&temp_dir).unwrap();
-        let conversation = axagent_core::repo::conversation::create_conversation(
+        let conversation = axagent_dao::repo::conversation::create_conversation(
             &db,
             "Image indexing",
             "model-1",
@@ -654,7 +654,7 @@ mod tests_conversation {
         .await
         .unwrap();
 
-        let vector_store = Arc::new(axagent_core::vector_store::VectorStore::new(db.clone()));
+        let vector_store = Arc::new(axagent_search::vector_store::VectorStore::new(db.clone()));
         let memory_service = {
             let storage =
                 axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
@@ -797,7 +797,7 @@ mod tests_conversation {
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(
                 axagent_runtime::harness::HarnessDeps {
-                    persistence: Arc::new(axagent_core::db::DbHandle {
+                    persistence: Arc::new(axagent_dao::db::DbHandle {
                         conn: db.clone(),
                         path: ":memory:".into(),
                     }) as Arc<dyn axagent_harness::Persistence>,
@@ -866,7 +866,7 @@ mod tests_conversation {
                 )),
             )),
             shutdown_token: tokio_util::sync::CancellationToken::new(),
-            file_authorizer: Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
+            file_authorizer: Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
             session_share_manager: Arc::new(tokio::sync::RwLock::new(
                 std::collections::HashMap::new(),
             )),
@@ -874,7 +874,7 @@ mod tests_conversation {
             infra: crate::state::InfraState::new(
                 axagent_runtime::harness::RuntimeHarness::new(
                     axagent_runtime::harness::HarnessDeps {
-                        persistence: Arc::new(axagent_core::db::DbHandle {
+                        persistence: Arc::new(axagent_dao::db::DbHandle {
                             conn: db.clone(),
                             path: ":memory:".into(),
                         })
@@ -888,7 +888,7 @@ mod tests_conversation {
                 ),
                 vector_store.clone(),
                 Arc::new(tokio::sync::Semaphore::new(2)),
-                Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
+                Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
                 temp_dir.clone(),
             ),
             gateway_state: crate::state::GatewayState::new(Arc::new(Mutex::new(None))),
@@ -1025,7 +1025,7 @@ mod tests_conversation {
             data: base64::engine::general_purpose::STANDARD.encode(b"abc"),
         }];
 
-        axagent_core::storage_paths::set_documents_root(temp_dir.clone());
+        axagent_storage::storage_paths::set_documents_root(temp_dir.clone());
 
         let persisted = persist_attachments(&state, &conversation.id, &attachments)
             .await
@@ -1037,7 +1037,7 @@ mod tests_conversation {
             persisted[0].file_path
         );
 
-        let stored_files = axagent_core::repo::stored_file::list_all_stored_files(&db)
+        let stored_files = axagent_dao::repo::stored_file::list_all_stored_files(&db)
             .await
             .unwrap();
         assert_eq!(
@@ -1049,7 +1049,7 @@ mod tests_conversation {
         assert_eq!(stored_files[0].mime_type, "image/png");
 
         // Cleanup: remove file written to documents root
-        let _ = axagent_core::file_store::FileStore::new().delete_file(&persisted[0].file_path);
+        let _ = axagent_storage::file_store::FileStore::new().delete_file(&persisted[0].file_path);
         let _ = fs::remove_dir_all(&temp_dir);
     }
 }

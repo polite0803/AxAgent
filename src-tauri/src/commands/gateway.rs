@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::gateway as gateway_err;
-use axagent_core::repo::cli_config::CliTool;
+use axagent_dao::repo::cli_config::CliTool;
 use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_harness::types::*;
 use tauri::State;
@@ -54,7 +54,7 @@ struct CliToolConnectionState {
 }
 
 async fn load_gateway_runtime_settings(state: &AppState) -> Result<GatewayRuntimeSettings, String> {
-    let settings = axagent_core::repo::settings::get_settings(state.harness.db())
+    let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -63,8 +63,8 @@ async fn load_gateway_runtime_settings(state: &AppState) -> Result<GatewayRuntim
         port: settings.gateway_port,
         ssl_port: settings.gateway_ssl_port,
         ssl_enabled: settings.gateway_ssl_enabled,
-        ssl_cert_path: axagent_core::path_vars::decode_path_opt(&settings.gateway_ssl_cert_path),
-        ssl_key_path: axagent_core::path_vars::decode_path_opt(&settings.gateway_ssl_key_path),
+        ssl_cert_path: axagent_storage::path_vars::decode_path_opt(&settings.gateway_ssl_cert_path),
+        ssl_key_path: axagent_storage::path_vars::decode_path_opt(&settings.gateway_ssl_key_path),
         force_ssl: settings.gateway_force_ssl,
     })
 }
@@ -216,19 +216,19 @@ fn detect_cli_tool_connection_state(
     tool: CliTool,
     gateway_urls: &GatewayUrlOptions,
 ) -> CliToolConnectionState {
-    let is_installed = axagent_core::repo::cli_config::check_installed(tool);
+    let is_installed = axagent_dao::repo::cli_config::check_installed(tool);
     let http_connected = gateway_urls
         .http
         .as_deref()
         .map(|gateway_url| {
-            axagent_core::repo::cli_config::validate_connection(tool, gateway_url).unwrap_or(false)
+            axagent_dao::repo::cli_config::validate_connection(tool, gateway_url).unwrap_or(false)
         })
         .unwrap_or(false);
     let https_connected = gateway_urls
         .https
         .as_deref()
         .map(|gateway_url| {
-            axagent_core::repo::cli_config::validate_connection(tool, gateway_url).unwrap_or(false)
+            axagent_dao::repo::cli_config::validate_connection(tool, gateway_url).unwrap_or(false)
         })
         .unwrap_or(false);
 
@@ -330,17 +330,17 @@ pub async fn get_all_cli_tool_statuses(
     state: State<'_, AppState>,
 ) -> Result<Vec<CliToolInfo>, String> {
     let mut results = Vec::new();
-    for tool in axagent_core::repo::cli_config::CliTool::all() {
+    for tool in axagent_dao::repo::cli_config::CliTool::all() {
         let gateway_urls = resolve_gateway_urls(&state, *tool).await?;
-        let version = axagent_core::repo::cli_config::check_installed_version(*tool);
-        let config_exists = axagent_core::repo::cli_config::check_config_exists(*tool);
+        let version = axagent_dao::repo::cli_config::check_installed_version(*tool);
+        let config_exists = axagent_dao::repo::cli_config::check_config_exists(*tool);
         let is_installed = version.is_some() || config_exists;
         let connection_state = if is_installed {
             let http_connected = gateway_urls
                 .http
                 .as_deref()
                 .map(|gateway_url| {
-                    axagent_core::repo::cli_config::validate_connection(*tool, gateway_url)
+                    axagent_dao::repo::cli_config::validate_connection(*tool, gateway_url)
                         .unwrap_or(false)
                 })
                 .unwrap_or(false);
@@ -348,7 +348,7 @@ pub async fn get_all_cli_tool_statuses(
                 .https
                 .as_deref()
                 .map(|gateway_url| {
-                    axagent_core::repo::cli_config::validate_connection(*tool, gateway_url)
+                    axagent_dao::repo::cli_config::validate_connection(*tool, gateway_url)
                         .unwrap_or(false)
                 })
                 .unwrap_or(false);
@@ -356,8 +356,8 @@ pub async fn get_all_cli_tool_statuses(
         } else {
             resolve_cli_tool_connection_state(false, false, false)
         };
-        let config_path = axagent_core::repo::cli_config::get_config_path(*tool).ok();
-        let has_backup = axagent_core::repo::cli_config::has_backup(*tool);
+        let config_path = axagent_dao::repo::cli_config::get_config_path(*tool).ok();
+        let has_backup = axagent_dao::repo::cli_config::has_backup(*tool);
         results.push(CliToolInfo {
             id: tool.id().to_string(),
             name: tool.display_name().to_string(),
@@ -384,7 +384,7 @@ pub async fn connect_cli_tool(
     let protocol = QuickConnectProtocol::parse(&protocol)?;
 
     // Get plain key via decryption
-    let plain_key = axagent_core::repo::gateway_key::get_plain_key(
+    let plain_key = axagent_dao::repo::gateway_key::get_plain_key(
         state.harness.db(),
         &DefaultCryptoService::new(state.harness.master_key_owned()),
         state.harness.master_key(),
@@ -395,7 +395,7 @@ pub async fn connect_cli_tool(
 
     let gateway_url = resolve_gateway_url_for_selected_protocol(&state, cli_tool, protocol).await?;
 
-    axagent_core::repo::cli_config::connect(cli_tool, &gateway_url, &plain_key)
+    axagent_dao::repo::cli_config::connect(cli_tool, &gateway_url, &plain_key)
         .map_err(|e| e.to_string())
 }
 
@@ -409,7 +409,7 @@ pub async fn disconnect_cli_tool(
     let gateway_urls = resolve_gateway_urls(&state, cli_tool).await?;
     let connection_state = detect_cli_tool_connection_state(cli_tool, &gateway_urls);
     let gateway_url = disconnect_gateway_url_for_cli_tool(&gateway_urls, &connection_state)?;
-    axagent_core::repo::cli_config::disconnect(cli_tool, restore_backup, &gateway_url)
+    axagent_dao::repo::cli_config::disconnect(cli_tool, restore_backup, &gateway_url)
         .map_err(|e| e.to_string())
 }
 
@@ -417,7 +417,7 @@ pub async fn disconnect_cli_tool(
 
 #[tauri::command]
 pub async fn list_gateway_keys(state: State<'_, AppState>) -> Result<Vec<GatewayKey>, String> {
-    axagent_core::repo::gateway::list_gateway_keys(state.harness.db())
+    axagent_dao::repo::gateway::list_gateway_keys(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -427,7 +427,7 @@ pub async fn create_gateway_key(
     state: State<'_, AppState>,
     name: String,
 ) -> Result<CreateGatewayKeyResult, String> {
-    axagent_core::repo::gateway_key::create_gateway_key(
+    axagent_dao::repo::gateway_key::create_gateway_key(
         state.harness.db(),
         &name,
         &DefaultCryptoService::new(state.harness.master_key_owned()),
@@ -439,7 +439,7 @@ pub async fn create_gateway_key(
 
 #[tauri::command]
 pub async fn delete_gateway_key(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::gateway::delete_gateway_key(state.harness.db(), &id)
+    axagent_dao::repo::gateway::delete_gateway_key(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -450,7 +450,7 @@ pub async fn toggle_gateway_key(
     id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    axagent_core::repo::gateway::toggle_gateway_key(state.harness.db(), &id, enabled)
+    axagent_dao::repo::gateway::toggle_gateway_key(state.harness.db(), &id, enabled)
         .await
         .map_err(|e| e.to_string())
 }
@@ -459,7 +459,7 @@ pub async fn toggle_gateway_key(
 /// 与 `get_decrypted_provider_key` 保持一致的安全策略。
 #[tauri::command]
 pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Result<String, String> {
-    let plain = axagent_core::repo::gateway_key::get_plain_key(
+    let plain = axagent_dao::repo::gateway_key::get_plain_key(
         state.harness.db(),
         &DefaultCryptoService::new(state.harness.master_key_owned()),
         state.harness.master_key(),
@@ -467,12 +467,12 @@ pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Resu
     )
     .await
     .map_err(|e| e.to_string())?;
-    Ok(axagent_core::crypto::key_prefix(&plain))
+    Ok(axagent_crypto::key_prefix(&plain))
 }
 
 #[tauri::command]
 pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMetrics, String> {
-    axagent_core::repo::gateway::get_gateway_metrics(state.harness.db())
+    axagent_dao::repo::gateway::get_gateway_metrics(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -604,7 +604,7 @@ pub async fn get_gateway_status(state: State<'_, AppState>) -> Result<GatewaySta
 pub async fn get_gateway_usage_by_key(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByKey>, String> {
-    axagent_core::repo::gateway::get_usage_by_key(state.harness.db())
+    axagent_dao::repo::gateway::get_usage_by_key(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -613,7 +613,7 @@ pub async fn get_gateway_usage_by_key(
 pub async fn get_gateway_usage_by_provider(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByProvider>, String> {
-    axagent_core::repo::gateway::get_usage_by_provider(state.harness.db())
+    axagent_dao::repo::gateway::get_usage_by_provider(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -623,7 +623,7 @@ pub async fn get_gateway_usage_by_day(
     state: State<'_, AppState>,
     days: Option<u32>,
 ) -> Result<Vec<UsageByDay>, String> {
-    axagent_core::repo::gateway::get_usage_by_day(state.harness.db(), days.unwrap_or(30))
+    axagent_dao::repo::gateway::get_usage_by_day(state.harness.db(), days.unwrap_or(30))
         .await
         .map_err(|e| e.to_string())
 }
@@ -632,7 +632,7 @@ pub async fn get_gateway_usage_by_day(
 pub async fn get_connected_programs(
     state: State<'_, AppState>,
 ) -> Result<Vec<ConnectedProgram>, String> {
-    axagent_core::repo::gateway::get_connected_programs(state.harness.db())
+    axagent_dao::repo::gateway::get_connected_programs(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -641,7 +641,7 @@ pub async fn get_connected_programs(
 pub async fn get_gateway_diagnostics(
     state: State<'_, AppState>,
 ) -> Result<Vec<GatewayDiagnostic>, String> {
-    axagent_core::repo::gateway_diagnostic::get_diagnostics(state.harness.db())
+    axagent_dao::repo::gateway_diagnostic::get_diagnostics(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -650,7 +650,7 @@ pub async fn get_gateway_diagnostics(
 pub async fn get_program_policies(
     state: State<'_, AppState>,
 ) -> Result<Vec<ProgramPolicy>, String> {
-    axagent_core::repo::program_policy::list_program_policies(state.harness.db())
+    axagent_dao::repo::program_policy::list_program_policies(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -660,14 +660,14 @@ pub async fn save_program_policy(
     state: State<'_, AppState>,
     input: SaveProgramPolicyInput,
 ) -> Result<ProgramPolicy, String> {
-    axagent_core::repo::program_policy::save_program_policy(state.harness.db(), &input)
+    axagent_dao::repo::program_policy::save_program_policy(state.harness.db(), &input)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn delete_program_policy(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::program_policy::delete_program_policy(state.harness.db(), &id)
+    axagent_dao::repo::program_policy::delete_program_policy(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -745,7 +745,7 @@ pub async fn list_gateway_request_logs(
     limit: Option<u64>,
     offset: Option<u64>,
 ) -> Result<Vec<GatewayRequestLog>, String> {
-    axagent_core::repo::gateway_request_log::list_request_logs(
+    axagent_dao::repo::gateway_request_log::list_request_logs(
         state.harness.db(),
         limit.unwrap_or(100),
         offset.unwrap_or(0),
@@ -756,7 +756,7 @@ pub async fn list_gateway_request_logs(
 
 #[tauri::command]
 pub async fn clear_gateway_request_logs(state: State<'_, AppState>) -> Result<u64, String> {
-    axagent_core::repo::gateway_request_log::clear_request_logs(state.harness.db())
+    axagent_dao::repo::gateway_request_log::clear_request_logs(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -852,7 +852,7 @@ pub async fn get_active_gateway_platform(state: State<'_, AppState>) -> Result<S
     }
 
     // 回退：检查 gateway_link 表中是否有激活的平台链接
-    let links = axagent_core::repo::gateway_link::list_gateway_links(state.harness.db())
+    let links = axagent_dao::repo::gateway_link::list_gateway_links(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -879,7 +879,7 @@ mod tests {
         build_gateway_url_options, disconnect_gateway_url_for_cli_tool, gateway_api_base_path,
         list_gateway_templates, resolve_cli_tool_connection_state,
     };
-    use axagent_core::repo::cli_config::CliTool;
+    use axagent_dao::repo::cli_config::CliTool;
 
     #[test]
     fn gateway_api_base_path_matches_native_protocols() {

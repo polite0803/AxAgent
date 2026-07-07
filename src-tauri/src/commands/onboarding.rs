@@ -5,7 +5,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::onboarding as onboarding_err;
-use axagent_core::repo::provider::{
+use axagent_dao::repo::provider::{
     add_provider_key, create_provider, list_providers, toggle_provider,
 };
 use axagent_harness::types::{CreateProviderInput, ProviderType};

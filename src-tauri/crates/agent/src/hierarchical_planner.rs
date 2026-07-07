@@ -995,7 +995,7 @@ impl Default for HierarchicalPlanner {
     }
 }
 
-// compile_plan_to_dag 已移至 axagent_core::plan_compiler
+// compile_plan_to_dag 已移至 axagent_kit::plan_compiler
 pub use axagent_kit::plan_compiler::compile_plan_to_dag;
 
 #[cfg(test)]

@@ -88,7 +88,7 @@ pub async fn skills_hub_review(
                     workflow.get("nodes").and_then(|v| v.as_array()),
                     workflow.get("edges").and_then(|v| v.as_array()),
                 ) {
-                    use axagent_core::entity::workflow_template;
+                    use axagent_entities::workflow_template;
                     use sea_orm::Set;
 
                     let template_id = format!("skill_wf_{}", axagent_skill.name);
@@ -118,7 +118,7 @@ pub async fn skills_hub_review(
                         created_at: Set(now),
                         updated_at: Set(now),
                     };
-                    if let Err(e) = axagent_core::repo::workflow_template::upsert_workflow_template(
+                    if let Err(e) = axagent_dao::repo::workflow_template::upsert_workflow_template(
                         state.harness.db(),
                         tmpl,
                     )

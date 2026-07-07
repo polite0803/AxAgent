@@ -8,8 +8,8 @@
 use std::path::Path;
 use tracing::{info, warn};
 
-use axagent_core::ast_index::AstIndex;
-use axagent_core::file_index::{CODE_EXTENSIONS, FileIndex, FileIndexConfig};
+use axagent_search::ast_index::AstIndex;
+use axagent_search::file_index::{CODE_EXTENSIONS, FileIndex, FileIndexConfig};
 
 /// Create FileIndex and AstIndex and index the workspace, all within a blocking task.
 ///

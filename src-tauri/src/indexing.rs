@@ -14,9 +14,9 @@ use sea_orm::DatabaseConnection;
 
 use std::sync::Arc;
 
-use axagent_core::error::{AxAgentError, Result};
-use axagent_core::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG};
-use axagent_core::vector_store::{VectorSearchResult, VectorStore};
+use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_search::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG};
+use axagent_search::vector_store::{VectorSearchResult, VectorStore};
 use axagent_harness::types::*;
 use axagent_harness::{
     ProviderAdapter, ProviderRequestContext, url_utils::resolve_base_url_for_type,
@@ -103,11 +103,11 @@ pub async fn build_embed_context(
     master_key: &[u8; 32],
     provider_id: &str,
 ) -> Result<(ProviderRequestContext, ProviderConfig)> {
-    let provider = axagent_core::repo::provider::get_provider(db, provider_id).await?;
-    let key_row = axagent_core::repo::provider::get_active_key(db, provider_id).await?;
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key)?;
+    let provider = axagent_dao::repo::provider::get_provider(db, provider_id).await?;
+    let key_row = axagent_dao::repo::provider::get_active_key(db, provider_id).await?;
+    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)?;
 
-    let global_settings = axagent_core::repo::settings::get_settings(db)
+    let global_settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
     let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
@@ -257,10 +257,10 @@ pub async fn index_knowledge_document(
     chunk_overlap: Option<i32>,
     separator: Option<String>,
 ) -> Result<()> {
-    axagent_core::repo::knowledge::update_document_status(db, document_id, "indexing").await?;
+    axagent_dao::repo::knowledge::update_document_status(db, document_id, "indexing").await?;
 
     // H6: resolve embedding dimensions from knowledge base config
-    let dimensions = axagent_core::repo::knowledge::get_knowledge_base(db, knowledge_base_id)
+    let dimensions = axagent_dao::repo::knowledge::get_knowledge_base(db, knowledge_base_id)
         .await
         .ok()
         .and_then(|kb| kb.embedding_dimensions)
@@ -284,13 +284,13 @@ pub async fn index_knowledge_document(
 
     match result {
         Ok(()) => {
-            axagent_core::repo::knowledge::update_document_status(db, document_id, "ready").await?;
+            axagent_dao::repo::knowledge::update_document_status(db, document_id, "ready").await?;
             Ok(())
         },
         Err(e) => {
             // H5: set status to failed so the user can retry
             let _ =
-                axagent_core::repo::knowledge::update_document_status(db, document_id, "failed")
+                axagent_dao::repo::knowledge::update_document_status(db, document_id, "failed")
                     .await;
             Err(e)
         },
@@ -317,16 +317,16 @@ async fn run_indexing(
     let strategy = if is_conversation {
         let conv_id = source_path.strip_prefix("conversation://").unwrap_or("");
         let text =
-            axagent_core::repo::conversation::get_conversation_archive_text(db, conv_id).await?;
+            axagent_dao::repo::conversation::get_conversation_archive_text(db, conv_id).await?;
 
         ChunkStrategy::FromText {
             text,
             chunk_size: chunk_size
                 .map(|v| v as usize)
-                .unwrap_or(axagent_core::text_chunker::DEFAULT_CHUNK_SIZE),
+                .unwrap_or(axagent_search::text_chunker::DEFAULT_CHUNK_SIZE),
             overlap: chunk_overlap
                 .map(|v| v as usize)
-                .unwrap_or(axagent_core::text_chunker::DEFAULT_OVERLAP),
+                .unwrap_or(axagent_search::text_chunker::DEFAULT_OVERLAP),
             separator,
         }
     } else {
@@ -335,10 +335,10 @@ async fn run_indexing(
             mime_type: mime_type.to_string(),
             chunk_size: chunk_size
                 .map(|v| v as usize)
-                .unwrap_or(axagent_core::text_chunker::DEFAULT_CHUNK_SIZE),
+                .unwrap_or(axagent_search::text_chunker::DEFAULT_CHUNK_SIZE),
             overlap: chunk_overlap
                 .map(|v| v as usize)
-                .unwrap_or(axagent_core::text_chunker::DEFAULT_OVERLAP),
+                .unwrap_or(axagent_search::text_chunker::DEFAULT_OVERLAP),
             separator,
         }
     };
@@ -430,8 +430,8 @@ pub async fn index_wiki_note(
 ) -> Result<()> {
     let strategy = ChunkStrategy::FromText {
         text: content.to_string(),
-        chunk_size: axagent_core::text_chunker::DEFAULT_CHUNK_SIZE,
-        overlap: axagent_core::text_chunker::DEFAULT_OVERLAP,
+        chunk_size: axagent_search::text_chunker::DEFAULT_CHUNK_SIZE,
+        overlap: axagent_search::text_chunker::DEFAULT_OVERLAP,
         separator: None,
     };
 
@@ -469,7 +469,7 @@ pub async fn index_source(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
     vector_store: &VectorStore,
-    container: &axagent_core::rag::KnowledgeContainer,
+    container: &axagent_search::rag::KnowledgeContainer,
     item_id: &str,
     content: &str,
     source_path: Option<&str>,
@@ -479,7 +479,7 @@ pub async fn index_source(
     let embedding_provider = match &config.embedding_provider {
         Some(p) => p.clone(),
         None => {
-            return Err(axagent_core::error::AxAgentError::Provider(format!(
+            return Err(axagent_harness::core_error::AxAgentError::Provider(format!(
                 "{} '{}' has no embedding provider configured",
                 container.container_type_str(),
                 container.id
@@ -489,7 +489,7 @@ pub async fn index_source(
     let dimensions = config.embedding_dimensions.map(|d| d as usize);
 
     match container.container_type {
-        axagent_core::rag::ContainerType::KnowledgeBase => {
+        axagent_search::rag::ContainerType::KnowledgeBase => {
             let chunk_size = container.chunk_size;
             let chunk_overlap = container.chunk_overlap;
             let separator = None;
@@ -510,12 +510,12 @@ pub async fn index_source(
                 )
                 .await
             } else {
-                Err(axagent_core::error::AxAgentError::Provider(
+                Err(axagent_harness::core_error::AxAgentError::Provider(
                     "KnowledgeBase indexing requires source_path and mime_type".to_string(),
                 ))
             }
         },
-        axagent_core::rag::ContainerType::Memory => {
+        axagent_search::rag::ContainerType::Memory => {
             index_memory_item(
                 db,
                 master_key,
@@ -528,7 +528,7 @@ pub async fn index_source(
             )
             .await
         },
-        axagent_core::rag::ContainerType::WikiVault => {
+        axagent_search::rag::ContainerType::WikiVault => {
             index_wiki_note(
                 db,
                 master_key,
@@ -579,7 +579,7 @@ pub async fn search_memory(
     top_k: usize,
 ) -> Result<Vec<VectorSearchResult>> {
     // Look up namespace settings for dimensions
-    let dims = axagent_core::repo::memory::get_namespace(db, namespace_id)
+    let dims = axagent_dao::repo::memory::get_namespace(db, namespace_id)
         .await
         .ok()
         .and_then(|ns| ns.embedding_dimensions.map(|v| v as usize));
@@ -628,7 +628,7 @@ pub async fn collect_rag_context(
     }
 
     // Read pipeline config from global settings
-    let pipeline_config = axagent_core::repo::settings::get_settings(db)
+    let pipeline_config = axagent_dao::repo::settings::get_settings(db)
         .await
         .map(|s| s.rag_pipeline_config)
         .unwrap_or_default();

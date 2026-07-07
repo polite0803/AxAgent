@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::prompts::{PromptLang, PromptRegistry};
+use axagent_kit::prompts::{PromptLang, PromptRegistry};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, Message, MessageRole};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};

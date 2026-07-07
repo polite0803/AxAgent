@@ -7,9 +7,9 @@ use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
 use axagent_agent::{AgentExecutionProgressSnapshot, AxAgentApiClient};
-use axagent_core::cloud_workspace::CloudWorkspace;
-use axagent_core::repo::{conversation, message, provider, search_provider};
-use axagent_core::workspace_uri::WorkspaceUri;
+use axagent_storage::cloud_workspace::CloudWorkspace;
+use axagent_dao::repo::{conversation, message, provider, search_provider};
+use axagent_storage::workspace_uri::WorkspaceUri;
 use axagent_harness::types::{
     Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole, ProviderProxyConfig,
 };
@@ -408,7 +408,7 @@ pub async fn agent_query(
 
     if let Some(ref profile_id) = request.agent_profile_id {
         if let Ok(profile) =
-            axagent_core::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
+            axagent_dao::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
                 .await
         {
             // Layer 1: AgentRole system_prompt（岗位）
@@ -430,7 +430,7 @@ pub async fn agent_query(
             // Layer 2: Expert domain knowledge（技能）
             if let Some(ref expert_id) = profile.expert_id {
                 if let Ok(Some(expert)) =
-                    axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                    axagent_entities::agency_experts::Entity::find_by_id(expert_id)
                         .one(app_state.harness.db())
                         .await
                         .map_err(|e| e.to_string())
@@ -501,7 +501,7 @@ pub async fn agent_query(
 
     // Set workflow_status to "running" for workflow-type sessions
     if conversation.session_type == "workflow" {
-        let _ = axagent_core::repo::conversation::update_conversation(
+        let _ = axagent_dao::repo::conversation::update_conversation(
             app_state.harness.db(),
             &conversation_id,
             axagent_harness::types::UpdateConversationInput {
@@ -530,12 +530,12 @@ pub async fn agent_query(
 
     // Decrypt key
     let api_key =
-        axagent_core::crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
+        axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
             .map_err(|e| e.to_string())?;
     info!("[agent_query] Decrypted API key");
 
     // Get settings from database
-    let settings = axagent_core::repo::settings::get_settings(app_state.harness.db())
+    let settings = axagent_dao::repo::settings::get_settings(app_state.harness.db())
         .await
         .unwrap_or_default();
 
@@ -558,7 +558,7 @@ pub async fn agent_query(
     };
 
     // Get model info for param overrides
-    let resolved_model = axagent_core::repo::provider::get_model(
+    let resolved_model = axagent_dao::repo::provider::get_model(
         app_state.harness.db(),
         &request.provider_id,
         &request.model_id,
@@ -659,7 +659,7 @@ pub async fn agent_query(
             let conv_id = conversation_id.clone();
             let sid = server_id.clone();
             async move {
-                let server = match axagent_core::repo::mcp_server::get_mcp_server(&db, &sid).await {
+                let server = match axagent_dao::repo::mcp_server::get_mcp_server(&db, &sid).await {
                     Ok(s) => s,
                     Err(e) => {
                         info!("[agent] Failed to load MCP server '{}': {}", sid, e);
@@ -678,7 +678,7 @@ pub async fn agent_query(
                 let mut chat_tools = Vec::new();
                 let mut tool_descriptors = Vec::new();
                 if let Ok(descriptors) =
-                    axagent_core::repo::mcp_server::list_tools_for_server(&db, &sid).await
+                    axagent_dao::repo::mcp_server::list_tools_for_server(&db, &sid).await
                 {
                     for td in descriptors {
                         let parameters: Option<Value> = td
@@ -821,14 +821,14 @@ pub async fn agent_query(
             .and_then(|providers| providers.into_iter().find(|p| p.enabled))
     };
     if let Some(ref sp) = search_provider_used {
-        let api_key = axagent_core::entity::search_providers::Entity::find_by_id(&sp.id)
+        let api_key = axagent_entities::search_providers::Entity::find_by_id(&sp.id)
             .one(app_state.harness.db())
             .await
             .ok()
             .flatten()
             .and_then(|e| e.api_key_ref)
             .and_then(|enc| {
-                match axagent_core::crypto::decrypt_key(&enc, app_state.harness.master_key()) {
+                match axagent_crypto::decrypt_key(&enc, app_state.harness.master_key()) {
                     Ok(key) => Some(key),
                     Err(e) => {
                         tracing::warn!("[agent] 搜索 API key 解密失败: {}", e);
@@ -936,7 +936,7 @@ pub async fn agent_query(
         .iter()
         .filter(|a| a.file_type.starts_with("image/"))
         .filter_map(|a| {
-            let file_store = axagent_core::file_store::FileStore::new();
+            let file_store = axagent_storage::file_store::FileStore::new();
             if a.file_path.is_empty() {
                 // Use inline data if available
                 a.data
@@ -969,7 +969,7 @@ pub async fn agent_query(
     .map_err(|e| e.to_string())?;
 
     // Increment the persisted message count
-    axagent_core::repo::conversation::increment_message_count(
+    axagent_dao::repo::conversation::increment_message_count(
         app_state.harness.db(),
         &conversation_id,
     )
@@ -1074,7 +1074,7 @@ pub async fn agent_query(
             .unwrap_or_default()
     } else {
         // Fallback: load enabled memory namespaces from the conversation's settings
-        match axagent_core::repo::conversation::get_conversation(
+        match axagent_dao::repo::conversation::get_conversation(
             app_state.harness.db(),
             &conversation_id,
         )
@@ -1284,7 +1284,7 @@ pub async fn agent_query(
     };
 
     // Retrieve workspace root from agent session DB record before building system prompt
-    let db_session = axagent_core::repo::agent_session::get_agent_session_by_conversation_id(
+    let db_session = axagent_dao::repo::agent_session::get_agent_session_by_conversation_id(
         app_state.harness.db(),
         &conversation_id,
     )
@@ -1301,7 +1301,7 @@ pub async fn agent_query(
         }
     }
 
-    let app_language = axagent_core::repo::settings::get_settings(app_state.harness.db())
+    let app_language = axagent_dao::repo::settings::get_settings(app_state.harness.db())
         .await
         .ok()
         .map(|s| s.language);
@@ -1404,7 +1404,7 @@ pub async fn agent_query(
 
     // Check token budget before expensive LLM call
     let estimated_input_tokens =
-        axagent_core::token_counter::estimate_tokens(&request.input) as u64;
+        axagent_kit::token_counter::estimate_tokens(&request.input) as u64;
     if let Err(budget_err) = check_token_budget(estimated_input_tokens) {
         tracing::warn!("[agent_query] Token budget check failed: {}", budget_err);
         // Emit error to frontend
@@ -1702,7 +1702,7 @@ pub async fn agent_query(
 
             // Set workflow_status to "completed" for workflow-type sessions
             if conversation.session_type == "workflow" {
-                let _ = axagent_core::repo::conversation::update_conversation(
+                let _ = axagent_dao::repo::conversation::update_conversation(
                     app_state.harness.db(),
                     &conversation_id,
                     axagent_harness::types::UpdateConversationInput {
@@ -1974,7 +1974,7 @@ pub async fn agent_query(
 
             // Set workflow_status to "failed" for workflow-type sessions
             if conversation.session_type == "workflow" {
-                let _ = axagent_core::repo::conversation::update_conversation(
+                let _ = axagent_dao::repo::conversation::update_conversation(
                     app_state.harness.db(),
                     &conversation_id,
                     axagent_harness::types::UpdateConversationInput {
@@ -2007,7 +2007,7 @@ async fn check_and_suggest_workflow_match(
     conversation_id: &str,
     user_input: &str,
 ) -> Result<(), String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use sea_orm::EntityTrait;
 
     let input_lower = user_input.to_lowercase();
@@ -2170,7 +2170,7 @@ async fn load_enabled_skill_contents(
     enabled_skill_ids: &[String],
 ) -> Vec<(String, String)> {
     let disabled =
-        match axagent_core::repo::skill::get_disabled_skills(app_state.harness.db()).await {
+        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
             Ok(d) => d,
             Err(_) => return Vec::new(),
         };
@@ -2257,7 +2257,7 @@ async fn load_skill_tools(
     enabled_skill_ids: &[String],
 ) -> (Vec<ChatTool>, HashMap<String, axagent_trajectory::Skill>) {
     let disabled =
-        match axagent_core::repo::skill::get_disabled_skills(app_state.harness.db()).await {
+        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
             Ok(d) => d,
             Err(_) => return (Vec::new(), HashMap::new()),
         };
@@ -2554,7 +2554,7 @@ async fn execute_skill_async(
             let deps_json = inter_skill_deps_json.clone();
 
             tokio::spawn(catch_unwind_logged("skill.tool_execution_update.steps", async move {
-                let execution = axagent_core::repo::tool_execution::find_latest_execution_by_tool(
+                let execution = axagent_dao::repo::tool_execution::find_latest_execution_by_tool(
                     &db,
                     &conversation_id_clone,
                     &skill_name_for_lookup,
@@ -2563,7 +2563,7 @@ async fn execute_skill_async(
                 match execution {
                     Ok(Some(exec)) => {
                         if let Err(e) =
-                            axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                            axagent_dao::repo::tool_execution::update_tool_execution_skill_details(
                                 &db,
                                 &exec.id,
                                 Some(&skill_steps_json),
@@ -2605,7 +2605,7 @@ async fn execute_skill_async(
             let skill_name_for_lookup = skill_name.to_string();
 
             tokio::spawn(catch_unwind_logged("skill.tool_execution_update.deps", async move {
-                let execution = axagent_core::repo::tool_execution::find_latest_execution_by_tool(
+                let execution = axagent_dao::repo::tool_execution::find_latest_execution_by_tool(
                     &db,
                     &conversation_id_clone,
                     &skill_name_for_lookup,
@@ -2614,7 +2614,7 @@ async fn execute_skill_async(
                 match execution {
                     Ok(Some(exec)) => {
                         if let Err(e) =
-                            axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                            axagent_dao::repo::tool_execution::update_tool_execution_skill_details(
                                 &db,
                                 &exec.id,
                                 deps_json.as_deref(),
@@ -2859,9 +2859,9 @@ fn build_agent_system_prompt(
         if !lang.is_empty() {
             let already_present = prompts
                 .iter()
-                .any(|p| axagent_core::utils::has_output_language_directive(p));
+                .any(|p| axagent_kit::utils::has_output_language_directive(p));
             if !already_present {
-                prompts.push(axagent_core::utils::build_output_language_directive(lang));
+                prompts.push(axagent_kit::utils::build_output_language_directive(lang));
             }
         }
     }
@@ -3272,7 +3272,7 @@ pub async fn agent_update_session(
     request: AgentUpdateSessionRequest,
 ) -> Result<AgentUpdateSessionResponse, String> {
     // Get or create agent session
-    let session = axagent_core::repo::agent_session::upsert_agent_session(
+    let session = axagent_dao::repo::agent_session::upsert_agent_session(
         app_state.harness.db(),
         &request.conversation_id,
         request.cwd.as_deref(),
@@ -3297,7 +3297,7 @@ pub async fn agent_get_session(
     request: AgentGetSessionRequest,
 ) -> Result<AgentGetSessionResponse, String> {
     // Get agent session from database
-    let session = axagent_core::repo::agent_session::get_agent_session_by_conversation_id(
+    let session = axagent_dao::repo::agent_session::get_agent_session_by_conversation_id(
         app_state.harness.db(),
         &request.conversation_id,
     )
@@ -3323,7 +3323,7 @@ pub async fn agent_get_session(
         })
     } else {
         // Create a new session if none exists
-        let new_session = axagent_core::repo::agent_session::upsert_agent_session(
+        let new_session = axagent_dao::repo::agent_session::upsert_agent_session(
             app_state.harness.db(),
             &request.conversation_id,
             None,
@@ -3363,7 +3363,7 @@ pub async fn agent_ensure_workspace(
     let workspace_uri_str = if let Some(ref uri) = _request.workspace_uri {
         Some(uri.clone())
     } else {
-        axagent_core::repo::settings::get_settings(app_state.harness.db())
+        axagent_dao::repo::settings::get_settings(app_state.harness.db())
             .await
             .ok()
             .and_then(|s| s.workspace_uri)
@@ -3462,7 +3462,7 @@ pub async fn agent_backup_and_clear_sdk_context(
     app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<(), String> {
-    axagent_core::repo::agent_session::backup_and_clear_sdk_context_by_conversation_id(
+    axagent_dao::repo::agent_session::backup_and_clear_sdk_context_by_conversation_id(
         app_state.harness.db(),
         &conversation_id,
     )
@@ -3476,7 +3476,7 @@ pub async fn agent_restore_sdk_context_from_backup(
     app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<(), String> {
-    axagent_core::repo::agent_session::restore_sdk_context_from_backup_by_conversation_id(
+    axagent_dao::repo::agent_session::restore_sdk_context_from_backup_by_conversation_id(
         app_state.harness.db(),
         &conversation_id,
     )
@@ -3512,12 +3512,12 @@ pub async fn workflow_create(
     app_state: State<'_, AppState>,
     request: WorkflowCreateRequest,
 ) -> Result<WorkflowCreateResponse, String> {
-    let nodes: Vec<axagent_core::workflow_types::WorkflowNode> = request
+    let nodes: Vec<axagent_harness::workflow_types::WorkflowNode> = request
         .nodes
         .into_iter()
         .filter_map(|n| serde_json::from_value(n).ok())
         .collect();
-    let edges: Vec<axagent_core::workflow_types::WorkflowEdge> = request
+    let edges: Vec<axagent_harness::workflow_types::WorkflowEdge> = request
         .edges
         .into_iter()
         .filter_map(|e| serde_json::from_value(e).ok())
@@ -3544,7 +3544,7 @@ pub async fn workflow_execute(
     workflow_id: String,
     model_id: Option<String>,
     provider_id: Option<String>,
-    variables: Option<Vec<axagent_core::workflow_types::Variable>>,
+    variables: Option<Vec<axagent_harness::workflow_types::Variable>>,
 ) -> Result<String, String> {
     // 验证工作流存在
     let _ = app_state
@@ -3768,7 +3768,7 @@ pub async fn get_conversation_workflow_preview(
 ) -> Result<ConversationWorkflowPreview, String> {
     let db = app_state.harness.db();
 
-    let executions = axagent_core::repo::tool_execution::list_tool_executions(db, &conversation_id)
+    let executions = axagent_dao::repo::tool_execution::list_tool_executions(db, &conversation_id)
         .await
         .map_err(|e| {
             ErrorResponse::new(agent_err::INTERNAL)

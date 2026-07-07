@@ -87,10 +87,10 @@ fn start_auto_backup(app: &tauri::AppHandle, state: &AppState, app_dir: std::pat
     let shutdown_token = state.shutdown_token.clone();
     let app_for_emit = app.clone();
     tauri::async_runtime::spawn(async move {
-        if let Ok(settings) = axagent_core::repo::settings::get_settings(&db).await {
+        if let Ok(settings) = axagent_dao::repo::settings::get_settings(&db).await {
             if settings.auto_backup_enabled && settings.auto_backup_interval_hours > 0 {
                 let backup_dir_setting =
-                    axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+                    axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
                 let interval = settings.auto_backup_interval_hours;
                 let max_count = settings.auto_backup_max_count;
                 let interval_secs = interval as u64 * 3600;
@@ -99,7 +99,7 @@ fn start_auto_backup(app: &tauri::AppHandle, state: &AppState, app_dir: std::pat
                 let shutdown_token = shutdown_token.clone();
                 let app_for_backup = app_for_emit.clone();
 
-                let initial_delay_secs = match axagent_core::repo::backup::list_backups(
+                let initial_delay_secs = match axagent_dao::repo::backup::list_backups(
                     &db,
                     &axagent_storage::DefaultPathEncoder,
                 )
@@ -133,12 +133,12 @@ fn start_auto_backup(app: &tauri::AppHandle, state: &AppState, app_dir: std::pat
                                 break;
                             }
                             _ = tokio::time::sleep(dur) => {
-                                let backup_dir = axagent_core::repo::backup::resolve_backup_dir(
+                                let backup_dir = axagent_dao::repo::backup::resolve_backup_dir(
                                     backup_dir_setting.as_deref(),
                                     &app_dir2,
                                 );
                                 if let Err(e) =
-                                    axagent_core::repo::backup::create_backup(&db2, "sqlite", &backup_dir, &axagent_storage::DefaultPathEncoder)
+                                    axagent_dao::repo::backup::create_backup(&db2, "sqlite", &backup_dir, &axagent_storage::DefaultPathEncoder)
                                         .await
                                 {
                                     tracing::warn!("Auto-backup failed: {}", e);
@@ -153,7 +153,7 @@ fn start_auto_backup(app: &tauri::AppHandle, state: &AppState, app_dir: std::pat
                                         "message": "Auto-backup created successfully",
                                     }));
                                     let _ =
-                                        axagent_core::repo::backup::cleanup_old_backups(&db2, max_count, &axagent_storage::DefaultPathEncoder)
+                                        axagent_dao::repo::backup::cleanup_old_backups(&db2, max_count, &axagent_storage::DefaultPathEncoder)
                                             .await;
                                 }
                             }
@@ -208,7 +208,7 @@ fn start_platform_adapters(state: &AppState) {
     let db = state.harness.db().clone();
 
     tauri::async_runtime::spawn(async move {
-        let config = axagent_core::repo::platform_config::get_platform_config(&db).await;
+        let config = axagent_dao::repo::platform_config::get_platform_config(&db).await;
         match platform_manager.reconcile(&config).await {
             Ok(report) => {
                 if !report.started.is_empty() {
@@ -242,14 +242,14 @@ fn start_webdav_sync(app: &tauri::AppHandle, state: &AppState, app_dir: std::pat
     let shutdown_token = state.shutdown_token.clone();
     let app_clone = app.clone();
     tauri::async_runtime::spawn(async move {
-        if let Ok(settings) = axagent_core::repo::settings::get_settings(&db).await {
+        if let Ok(settings) = axagent_dao::repo::settings::get_settings(&db).await {
             if settings.webdav_sync_enabled && settings.webdav_sync_interval_minutes > 0 {
                 let db2 = db.clone();
                 let interval = settings.webdav_sync_interval_minutes;
                 let interval_secs = interval as u64 * 60;
 
                 let initial_delay_secs =
-                    match axagent_core::repo::settings::get_setting(&db, "webdav_last_sync_time")
+                    match axagent_dao::repo::settings::get_setting(&db, "webdav_last_sync_time")
                         .await
                     {
                         Ok(Some(ts)) => {
@@ -293,7 +293,7 @@ fn start_closed_loop_service(_app: &tauri::AppHandle, state: &AppState) {
     let closed_loop = state.closed_loop_service.clone();
     let nudge_service = state.nudge_service.clone();
     tauri::async_runtime::spawn(async move {
-        if let Ok(settings) = axagent_core::repo::settings::get_settings(&db).await {
+        if let Ok(settings) = axagent_dao::repo::settings::get_settings(&db).await {
             if settings.closed_loop_enabled {
                 closed_loop.start();
                 let interval_minutes = settings.closed_loop_interval_minutes.max(1);
@@ -1225,7 +1225,7 @@ fn start_cron_scheduler(state: &AppState) {
                 let vector_store = vector_store.clone();
                 Box::pin(async move {
                     let embed_fn = crate::indexing::ProviderEmbedFn;
-                    let result = axagent_core::rag::collect_rag_context(
+                    let result = axagent_search::rag::collect_rag_context(
                         &db,
                         &master_key,
                         &vector_store,

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::rag::KnowledgeContainer;
+use axagent_search::rag::KnowledgeContainer;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -131,21 +131,21 @@ pub async fn analyze_knowledge_integration(
 ) -> Result<Vec<IntegrationInsight>, String> {
     let mut containers = Vec::new();
 
-    let kbs = axagent_core::repo::knowledge::list_knowledge_bases(state.harness.db())
+    let kbs = axagent_dao::repo::knowledge::list_knowledge_bases(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for kb in &kbs {
         containers.push(KnowledgeContainer::from_knowledge_base(kb));
     }
 
-    let namespaces = axagent_core::repo::memory::list_namespaces(state.harness.db())
+    let namespaces = axagent_dao::repo::memory::list_namespaces(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for ns in &namespaces {
         containers.push(KnowledgeContainer::from_memory_ns(ns));
     }
 
-    let wikis = axagent_core::repo::wiki::list_wikis(state.harness.db())
+    let wikis = axagent_dao::repo::wiki::list_wikis(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
     for wiki in &wikis {

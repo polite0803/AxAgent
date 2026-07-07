@@ -27,7 +27,7 @@ use quick_cache::sync::Cache;
 /// # Example
 ///
 /// ```no_run
-/// use axagent_core::cache::EmbeddingCache;
+/// use axagent_cache::cache::EmbeddingCache;
 ///
 /// let cache = EmbeddingCache::new(1000);
 /// cache.insert("text_hash".to_string(), vec![0.1, 0.2, 0.3]);
@@ -113,7 +113,7 @@ impl Default for EmbeddingCache {
 /// # Example
 ///
 /// ```no_run
-/// use axagent_core::cache::TextHashCache;
+/// use axagent_cache::cache::TextHashCache;
 ///
 /// let cache = TextHashCache::new(500);
 /// cache.insert("document_id".to_string(), "hash_value".to_string());

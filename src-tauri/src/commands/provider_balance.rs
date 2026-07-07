@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::crypto::decrypt_key;
-use axagent_core::repo::provider;
+use axagent_crypto::decrypt_key;
+use axagent_dao::repo::provider;
 use axagent_runtime_core::fetch_deepseek_balance;
 use sea_orm::EntityTrait;
 use tauri::State;
@@ -50,7 +50,7 @@ pub async fn fetch_provider_balance(
             })?
     };
 
-    use axagent_core::entity::provider_keys;
+    use axagent_entities::provider_keys;
     use sea_orm::ColumnTrait;
     use sea_orm::QueryFilter;
 

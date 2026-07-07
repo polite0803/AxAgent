@@ -8,8 +8,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use axagent_core::file_authorizer::FileAuthorizer;
-use axagent_core::vector_store::VectorStore;
+use axagent_storage::file_authorizer::FileAuthorizer;
+use axagent_search::vector_store::VectorStore;
 use axagent_runtime::harness::RuntimeHarness;
 
 #[allow(dead_code)]

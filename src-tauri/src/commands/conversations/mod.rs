@@ -246,7 +246,7 @@ pub(crate) async fn resolve_system_prompt(
 
     if let Some(ref cat_id) = conversation.category_id {
         if let Ok(categories) =
-            axagent_core::repo::conversation_category::list_conversation_categories(db).await
+            axagent_dao::repo::conversation_category::list_conversation_categories(db).await
         {
             if let Some(cat) = categories.iter().find(|c| &c.id == cat_id)
                 && let Some(ref s) = cat.system_prompt
@@ -258,7 +258,7 @@ pub(crate) async fn resolve_system_prompt(
     }
 
     // 3. Global default system prompt (lowest priority)
-    let settings = axagent_core::repo::settings::get_settings(db)
+    let settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
     settings.default_system_prompt.filter(|s| !s.is_empty())
@@ -268,16 +268,16 @@ pub(crate) async fn persist_attachments(
     state: &AppState,
     conversation_id: &str,
     attachments: &[AttachmentInput],
-) -> axagent_core::error::Result<Vec<Attachment>> {
-    axagent_core::storage_paths::ensure_documents_dirs()?;
-    let file_store = axagent_core::file_store::FileStore::new();
+) -> axagent_harness::core_error::Result<Vec<Attachment>> {
+    axagent_storage::storage_paths::ensure_documents_dirs()?;
+    let file_store = axagent_storage::file_store::FileStore::new();
 
     let mut persisted = Vec::with_capacity(attachments.len());
     for attachment in attachments {
         // Safety limit: reject base64 payloads larger than 100MB to prevent OOM
         const MAX_ATTACHMENT_BASE64_SIZE: usize = 100 * 1024 * 1024; // 100 MB
         if attachment.data.len() > MAX_ATTACHMENT_BASE64_SIZE {
-            return Err(axagent_core::error::AxAgentError::Validation(format!(
+            return Err(axagent_harness::core_error::AxAgentError::Validation(format!(
                 "Attachment '{}' base64 data is too large ({} bytes, max {} bytes)",
                 attachment.file_name,
                 attachment.data.len(),
@@ -288,7 +288,7 @@ pub(crate) async fn persist_attachments(
         let data = base64::engine::general_purpose::STANDARD
             .decode(&attachment.data)
             .map_err(|e| {
-                axagent_core::error::AxAgentError::Validation(format!(
+                axagent_harness::core_error::AxAgentError::Validation(format!(
                     "Invalid attachment base64 for {}: {}",
                     attachment.file_name, e
                 ))
@@ -297,7 +297,7 @@ pub(crate) async fn persist_attachments(
         // Safety limit: reject decoded data larger than 50MB
         const MAX_ATTACHMENT_DECODED_SIZE: usize = 50 * 1024 * 1024; // 50 MB
         if data.len() > MAX_ATTACHMENT_DECODED_SIZE {
-            return Err(axagent_core::error::AxAgentError::Validation(format!(
+            return Err(axagent_harness::core_error::AxAgentError::Validation(format!(
                 "Attachment '{}' decoded content is too large ({} bytes, max {} bytes)",
                 attachment.file_name,
                 data.len(),
@@ -305,8 +305,8 @@ pub(crate) async fn persist_attachments(
             )));
         }
         let saved = file_store.save_file(&data, &attachment.file_name, &attachment.file_type)?;
-        let stored_file_id = axagent_core::utils::gen_id();
-        axagent_core::repo::stored_file::create_stored_file(
+        let stored_file_id = axagent_kit::utils::gen_id();
+        axagent_dao::repo::stored_file::create_stored_file(
             state.harness.db(),
             &stored_file_id,
             &saved.hash,
@@ -527,9 +527,9 @@ pub(crate) fn strip_display_tags(content: &str) -> String {
 }
 
 pub(crate) fn build_message_content(
-    file_store: &axagent_core::file_store::FileStore,
+    file_store: &axagent_storage::file_store::FileStore,
     message: &Message,
-) -> axagent_core::error::Result<ChatContent> {
+) -> axagent_harness::core_error::Result<ChatContent> {
     // Strip display-only tags from all messages (not just assistant)
     // to prevent prompt injection via <knowledge-retrieval> or <memory-retrieval> tags
     let content = strip_display_tags(&message.content);
@@ -556,7 +556,7 @@ pub(crate) fn build_message_content(
     for attachment in image_attachments {
         let data_url = if attachment.file_path.is_empty() {
             let base64_data = attachment.data.as_ref().ok_or_else(|| {
-                axagent_core::error::AxAgentError::Validation(format!(
+                axagent_harness::core_error::AxAgentError::Validation(format!(
                     "Attachment {} is missing both file_path and inline data",
                     attachment.file_name
                 ))
@@ -588,9 +588,9 @@ pub(crate) fn build_message_content(
 }
 
 pub(crate) fn chat_message_from_message(
-    file_store: &axagent_core::file_store::FileStore,
+    file_store: &axagent_storage::file_store::FileStore,
     message: &Message,
-) -> axagent_core::error::Result<ChatMessage> {
+) -> axagent_harness::core_error::Result<ChatMessage> {
     let tool_calls: Option<Vec<ToolCall>> = message
         .tool_calls_json
         .as_ref()
@@ -613,7 +613,7 @@ pub(crate) fn chat_message_from_message(
 
 #[tauri::command]
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
-    axagent_core::repo::conversation::list_conversations(state.harness.db())
+    axagent_dao::repo::conversation::list_conversations(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -626,7 +626,7 @@ pub async fn create_conversation(
     provider_id: String,
     system_prompt: Option<String>,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::create_conversation(
+    axagent_dao::repo::conversation::create_conversation(
         state.harness.db(),
         &title,
         &model_id,
@@ -648,7 +648,7 @@ pub async fn update_conversation(
         || input.enabled_wiki_ids.is_some();
 
     let updated =
-        axagent_core::repo::conversation::update_conversation(state.harness.db(), &id, input)
+        axagent_dao::repo::conversation::update_conversation(state.harness.db(), &id, input)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -678,7 +678,7 @@ pub async fn batch_delete_conversations(
             let db = db.clone();
             let id = id.clone();
             tokio::spawn(async move {
-                let file_store = axagent_core::file_store::FileStore::new();
+                let file_store = axagent_storage::file_store::FileStore::new();
                 delete_conversation_with_attachments_using(&db, &file_store, &id).await
             })
         })
@@ -703,7 +703,7 @@ pub async fn branch_conversation(
     as_child: bool,
     title: Option<String>,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::branch_conversation(
+    axagent_dao::repo::conversation::branch_conversation(
         state.harness.db(),
         &conversation_id,
         &until_message_id,
@@ -718,17 +718,17 @@ async fn delete_conversation_with_attachments(
     db: &sea_orm::DatabaseConnection,
     conversation_id: &str,
 ) -> Result<(), String> {
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
     delete_conversation_with_attachments_using(db, &file_store, conversation_id).await
 }
 
 async fn delete_conversation_with_attachments_using(
     db: &sea_orm::DatabaseConnection,
-    file_store: &axagent_core::file_store::FileStore,
+    file_store: &axagent_storage::file_store::FileStore,
     conversation_id: &str,
 ) -> Result<(), String> {
     let files =
-        axagent_core::repo::stored_file::list_stored_files_by_conversation(db, conversation_id)
+        axagent_dao::repo::stored_file::list_stored_files_by_conversation(db, conversation_id)
             .await
             .map_err(|e| e.to_string())?;
     for file in files {
@@ -736,18 +736,18 @@ async fn delete_conversation_with_attachments_using(
     }
 
     // 清理关联数据（无 FK 约束，需手动删除避免孤行）
-    if let Err(e) = axagent_core::repo::conversation::delete_summary(db, conversation_id).await {
+    if let Err(e) = axagent_dao::repo::conversation::delete_summary(db, conversation_id).await {
         tracing::warn!("Failed to delete conversation summary: {}", e);
     }
-    if let Err(e) = axagent_core::entity::agent_sessions::Entity::delete_many()
-        .filter(axagent_core::entity::agent_sessions::Column::ConversationId.eq(conversation_id))
+    if let Err(e) = axagent_entities::agent_sessions::Entity::delete_many()
+        .filter(axagent_entities::agent_sessions::Column::ConversationId.eq(conversation_id))
         .exec(db)
         .await
     {
         tracing::warn!("Failed to delete agent sessions: {}", e);
     }
 
-    axagent_core::repo::conversation::delete_conversation(db, conversation_id)
+    axagent_dao::repo::conversation::delete_conversation(db, conversation_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -757,7 +757,7 @@ pub async fn search_conversations(
     state: State<'_, AppState>,
     query: String,
 ) -> Result<Vec<ConversationSearchResult>, String> {
-    axagent_core::repo::conversation::search_conversations(state.harness.db(), &query)
+    axagent_dao::repo::conversation::search_conversations(state.harness.db(), &query)
         .await
         .map_err(|e| e.to_string())
 }
@@ -767,7 +767,7 @@ pub async fn toggle_pin_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::toggle_pin(state.harness.db(), &id)
+    axagent_dao::repo::conversation::toggle_pin(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -777,7 +777,7 @@ pub async fn toggle_archive_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::toggle_archive(state.harness.db(), &id)
+    axagent_dao::repo::conversation::toggle_archive(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -789,7 +789,7 @@ pub async fn archive_conversation_to_knowledge_base(
     id: String,
     knowledge_base_id: String,
 ) -> Result<Conversation, String> {
-    let (updated_conv, doc) = axagent_core::repo::conversation::archive_to_knowledge_base(
+    let (updated_conv, doc) = axagent_dao::repo::conversation::archive_to_knowledge_base(
         state.harness.db(),
         &id,
         &knowledge_base_id,
@@ -799,12 +799,12 @@ pub async fn archive_conversation_to_knowledge_base(
 
     // Trigger async indexing for the newly created document
     let kb =
-        axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
+        axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
             .await
             .map_err(|e| e.to_string())?;
 
     if kb.embedding_provider.is_some() {
-        let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
+        let container = axagent_search::rag::KnowledgeContainer::from_knowledge_base(&kb);
         let db = state.harness.db().clone();
         let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
@@ -834,7 +834,7 @@ pub async fn archive_conversation_to_knowledge_base(
                     doc_id,
                     err_msg
                 );
-                let _ = axagent_core::repo::knowledge::update_document_status_with_error(
+                let _ = axagent_dao::repo::knowledge::update_document_status_with_error(
                     &db,
                     &doc_id,
                     "failed",
@@ -861,7 +861,7 @@ pub async fn archive_conversation_to_knowledge_base(
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
 ) -> Result<Vec<Conversation>, String> {
-    axagent_core::repo::conversation::list_archived_conversations(state.harness.db())
+    axagent_dao::repo::conversation::list_archived_conversations(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -873,7 +873,7 @@ pub async fn archive_workflow_session(
     conversation_id: String,
     feedback: Option<String>,
 ) -> Result<Conversation, String> {
-    use axagent_core::entity::{conversations, workflow_template};
+    use axagent_entities::{conversations, workflow_template};
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
     let db = state.harness.db();
@@ -908,11 +908,11 @@ pub async fn archive_workflow_session(
             .map_err(|e| e.to_string())?
             .is_some()
         {
-            let messages = axagent_core::repo::message::list_messages(db, &conversation_id)
+            let messages = axagent_dao::repo::message::list_messages(db, &conversation_id)
                 .await
                 .map_err(|e| e.to_string())?;
 
-            let execution = axagent_core::entity::workflow_executions::ActiveModel {
+            let execution = axagent_entities::workflow_executions::ActiveModel {
                 id: Set(uuid::Uuid::new_v4().to_string()),
                 workflow_id: Set(template_id.clone()),
                 status: Set(conv
@@ -929,8 +929,8 @@ pub async fn archive_workflow_session(
                     .to_string(),
                 )),
                 total_time_ms: Set(None),
-                created_at: Set(axagent_core::utils::now_ts()),
-                updated_at: Set(axagent_core::utils::now_ts()),
+                created_at: Set(axagent_kit::utils::now_ts()),
+                updated_at: Set(axagent_kit::utils::now_ts()),
             };
             execution.insert(db).await.map_err(|e| e.to_string())?;
         }
@@ -943,14 +943,14 @@ pub async fn archive_workflow_session(
     am.updated_at = Set(now);
     let updated = am.update(db).await.map_err(|e| e.to_string())?;
 
-    let conv = axagent_core::repo::conversation::conversation_from_entity(updated);
+    let conv = axagent_dao::repo::conversation::conversation_from_entity(updated);
     Ok(conv)
 }
 
 pub(crate) async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
-        Box<dyn futures::Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>,
+        Box<dyn futures::Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send>,
     >,
     params: StreamConsumptionParams<'_>,
 ) -> (
@@ -1462,18 +1462,18 @@ pub(crate) async fn execute_tool_call(
             );
         }
         let text = if let Ok(providers) =
-            axagent_core::repo::search_provider::list_search_providers(db).await
+            axagent_dao::repo::search_provider::list_search_providers(db).await
         {
             if let Some(p) = providers.iter().find(|p| p.enabled) {
-                let api_key = axagent_core::entity::search_providers::Entity::find_by_id(&p.id)
+                let api_key = axagent_entities::search_providers::Entity::find_by_id(&p.id)
                     .one(db)
                     .await
                     .ok()
                     .flatten()
                     .and_then(|e| e.api_key_ref)
-                    .and_then(|enc| axagent_core::crypto::decrypt_key(&enc, master_key).ok())
+                    .and_then(|enc| axagent_crypto::decrypt_key(&enc, master_key).ok())
                     .unwrap_or_default();
-                axagent_core::search::execute_search_text(
+                axagent_search::search::execute_search_text(
                     &p.provider_type,
                     p.endpoint.as_deref(),
                     &api_key,
@@ -1483,15 +1483,15 @@ pub(crate) async fn execute_tool_call(
                 )
                 .await
             } else {
-                axagent_core::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
+                axagent_search::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
             }
         } else {
-            axagent_core::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
+            axagent_search::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
         };
         return (text, false);
     }
 
-    let server_and_tool = axagent_core::repo::mcp_server::find_server_for_tool(
+    let server_and_tool = axagent_dao::repo::mcp_server::find_server_for_tool(
         db,
         &tool_call.function.name,
         mcp_server_ids,
@@ -1541,12 +1541,12 @@ pub(crate) async fn execute_tool_call(
             )
             .await
             {
-                Ok(Ok(r)) => Ok(axagent_core::mcp_client::McpToolResult {
+                Ok(Ok(r)) => Ok(axagent_mcp::mcp_client::McpToolResult {
                     content: r.content,
                     is_error: r.is_error,
                     progress: Vec::new(),
                 }),
-                Ok(Err(e)) => Err(axagent_core::error::AxAgentError::Gateway(e.to_string())),
+                Ok(Err(e)) => Err(axagent_harness::core_error::AxAgentError::Gateway(e.to_string())),
                 Err(_) => {
                     use crate::commands::error_code::tool as tool_err;
                     return (
@@ -1579,7 +1579,7 @@ pub(crate) async fn execute_tool_call(
                 .unwrap_or_default();
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_core::mcp_client::call_tool_stdio(
+                axagent_mcp::mcp_client::call_tool_stdio(
                     &command,
                     &args,
                     &env,
@@ -1612,7 +1612,7 @@ pub(crate) async fn execute_tool_call(
             };
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_core::mcp_client::call_tool_http(
+                axagent_mcp::mcp_client::call_tool_http(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
@@ -1644,7 +1644,7 @@ pub(crate) async fn execute_tool_call(
             };
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_core::mcp_client::call_tool_sse(
+                axagent_mcp::mcp_client::call_tool_sse(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
@@ -1748,7 +1748,7 @@ pub(crate) async fn generate_ai_title(
         let mid = model_id.to_string();
         let db = db.clone();
         async move {
-            axagent_core::repo::provider::get_model(&db, &pid, &mid)
+            axagent_dao::repo::provider::get_model(&db, &pid, &mid)
                 .await
                 .ok()
                 .and_then(|m| m.param_overrides)
@@ -1761,7 +1761,7 @@ pub(crate) async fn generate_ai_title(
         (&settings.title_summary_provider_id, &settings.title_summary_model_id)
     {
         // Try to use the configured title summary provider
-        let provider = match axagent_core::repo::provider::get_provider(db, pid).await {
+        let provider = match axagent_dao::repo::provider::get_provider(db, pid).await {
             Ok(p) => p,
             Err(e) => {
                 tracing::warn!("Title summary provider not found, falling back: {}", e);
@@ -1778,7 +1778,7 @@ pub(crate) async fn generate_ai_title(
                 .await;
             },
         };
-        let key_row = match axagent_core::repo::provider::get_active_key(db, pid).await {
+        let key_row = match axagent_dao::repo::provider::get_active_key(db, pid).await {
             Ok(k) => k,
             Err(e) => {
                 tracing::warn!("Title summary provider has no active key, falling back: {}", e);
@@ -1795,7 +1795,7 @@ pub(crate) async fn generate_ai_title(
                 .await;
             },
         };
-        let dk = match axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key) {
+        let dk = match axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key) {
             Ok(dk) => dk,
             Err(e) => {
                 tracing::warn!("Title summary key decrypt failed, falling back: {}", e);
@@ -1968,12 +1968,12 @@ pub async fn regenerate_conversation_title(
     let master_key = state.harness.master_key_owned();
 
     // Load conversation
-    let conversation = axagent_core::repo::conversation::get_conversation(&db, &conversation_id)
+    let conversation = axagent_dao::repo::conversation::get_conversation(&db, &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
     // Load all messages to build full conversation context for title generation
-    let messages = axagent_core::repo::message::list_messages(&db, &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(&db, &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -1988,16 +1988,16 @@ pub async fn regenerate_conversation_title(
     }
 
     // Load provider for fallback
-    let provider = axagent_core::repo::provider::get_provider(&db, &conversation.provider_id)
+    let provider = axagent_dao::repo::provider::get_provider(&db, &conversation.provider_id)
         .await
         .map_err(|e| e.to_string())?;
-    let key_row = axagent_core::repo::provider::get_active_key(&db, &provider.id)
+    let key_row = axagent_dao::repo::provider::get_active_key(&db, &provider.id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &master_key)
+    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, &master_key)
         .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_core::repo::settings::get_settings(&db)
+    let global_settings = axagent_dao::repo::settings::get_settings(&db)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -2049,7 +2049,7 @@ pub async fn regenerate_conversation_title(
 
         match ai_title {
             Ok(title) => {
-                if let Err(e) = axagent_core::repo::conversation::update_conversation_title(
+                if let Err(e) = axagent_dao::repo::conversation::update_conversation_title(
                     &db, &conv_id, &title,
                 )
                 .await
@@ -2167,12 +2167,12 @@ pub(crate) async fn sync_context_sources(
     conversation_id: &str,
     conversation: &Conversation,
 ) -> Result<(), String> {
-    axagent_core::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
+    axagent_dao::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
     for kb_id in &conversation.enabled_knowledge_base_ids {
-        let title = axagent_core::repo::knowledge::get_knowledge_base(db, kb_id)
+        let title = axagent_dao::repo::knowledge::get_knowledge_base(db, kb_id)
             .await
             .map(|kb| kb.name)
             .unwrap_or_else(|_| kb_id.clone());
@@ -2184,13 +2184,13 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_core::repo::context_source::add_context_source(db, &input)
+        axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     for mem_id in &conversation.enabled_memory_namespace_ids {
-        let title = axagent_core::repo::memory::get_namespace(db, mem_id)
+        let title = axagent_dao::repo::memory::get_namespace(db, mem_id)
             .await
             .map(|ns| ns.name)
             .unwrap_or_else(|_| mem_id.clone());
@@ -2202,13 +2202,13 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_core::repo::context_source::add_context_source(db, &input)
+        axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     for wiki_id in &conversation.enabled_wiki_ids {
-        let title = axagent_core::repo::wiki::get_wiki(db, wiki_id)
+        let title = axagent_dao::repo::wiki::get_wiki(db, wiki_id)
             .await
             .map(|w| w.name)
             .unwrap_or_else(|_| wiki_id.clone());
@@ -2220,7 +2220,7 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_core::repo::context_source::add_context_source(db, &input)
+        axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -2239,7 +2239,7 @@ pub(crate) async fn resolve_rag_ids(
     let mut mem = Vec::new();
     let mut wiki = Vec::new();
 
-    match axagent_core::repo::context_source::list_context_sources(db, conversation_id).await {
+    match axagent_dao::repo::context_source::list_context_sources(db, conversation_id).await {
         Ok(sources) => {
             for src in sources {
                 if !src.enabled {
@@ -2303,7 +2303,7 @@ pub(crate) fn apply_rag_token_budget(context_parts: &[String], budget: usize) ->
     let mut rag_tokens = 0usize;
     for (i, part) in context_parts.iter().enumerate() {
         let item = format!("<memory-item id=\"rag-{}\">\n{}\n</memory-item>", i, part);
-        let item_tokens = axagent_core::token_counter::estimate_tokens(&item);
+        let item_tokens = axagent_kit::token_counter::estimate_tokens(&item);
         if rag_tokens + item_tokens > budget {
             tracing::warn!(
                 "RAG context budget exceeded: {}+{} > {}, truncating at item {}",
@@ -2322,11 +2322,11 @@ pub(crate) fn apply_rag_token_budget(context_parts: &[String], budget: usize) ->
 #[test]
 pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
     let temp_dir =
-        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
     fs::create_dir_all(&temp_dir).unwrap();
 
     let result = {
-        let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+        let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
         let saved = file_store
             .save_file(b"abc", "image.png", "image/png")
             .unwrap();
@@ -2385,11 +2385,11 @@ pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
 #[test]
 pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_is_missing() {
     let temp_dir =
-        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
     fs::create_dir_all(&temp_dir).unwrap();
 
     let result = {
-        let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+        let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
         let message = Message {
             id: "msg-1".into(),
             conversation_id: "conv-1".into(),
@@ -2442,12 +2442,12 @@ pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_i
 
 #[tokio::test]
 async fn delete_conversation_removes_attached_files_and_records() {
-    let db = axagent_core::db::create_test_pool().await.unwrap().conn;
+    let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
     let temp_dir = std::env::temp_dir()
-        .join(format!("axagent-conv-delete-test-{}", axagent_core::utils::gen_id()));
+        .join(format!("axagent-conv-delete-test-{}", axagent_kit::utils::gen_id()));
     fs::create_dir_all(&temp_dir).unwrap();
 
-    let conversation = axagent_core::repo::conversation::create_conversation(
+    let conversation = axagent_dao::repo::conversation::create_conversation(
         &db,
         "Files cleanup",
         "model-1",
@@ -2457,7 +2457,7 @@ async fn delete_conversation_removes_attached_files_and_records() {
     .await
     .unwrap();
 
-    let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+    let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
     let saved = file_store
         .save_file(b"cleanup me", "cleanup.png", "image/png")
         .unwrap();
@@ -2467,7 +2467,7 @@ async fn delete_conversation_removes_attached_files_and_records() {
         "fixture file must exist before deleting the conversation"
     );
 
-    axagent_core::repo::stored_file::create_stored_file(
+    axagent_dao::repo::stored_file::create_stored_file(
         &db,
         "file-1",
         &saved.hash,
@@ -2487,13 +2487,13 @@ async fn delete_conversation_removes_attached_files_and_records() {
         "deleting a conversation should clean up its attached files, got: {result:?}"
     );
     assert!(
-        axagent_core::repo::conversation::get_conversation(&db, &conversation.id)
+        axagent_dao::repo::conversation::get_conversation(&db, &conversation.id)
             .await
             .is_err(),
         "conversation must be deleted"
     );
     assert!(
-        axagent_core::repo::stored_file::list_stored_files_by_conversation(&db, &conversation.id)
+        axagent_dao::repo::stored_file::list_stored_files_by_conversation(&db, &conversation.id)
             .await
             .unwrap()
             .is_empty(),
@@ -2512,11 +2512,11 @@ async fn delete_conversation_removes_attached_files_and_records() {
 pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() {
     use base64::Engine;
 
-    let db = axagent_core::db::create_test_pool().await.unwrap().conn;
+    let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
     let temp_dir = std::env::temp_dir()
-        .join(format!("axagent-persist-attachments-test-{}", axagent_core::utils::gen_id()));
+        .join(format!("axagent-persist-attachments-test-{}", axagent_kit::utils::gen_id()));
     fs::create_dir_all(&temp_dir).unwrap();
-    let conversation = axagent_core::repo::conversation::create_conversation(
+    let conversation = axagent_dao::repo::conversation::create_conversation(
         &db,
         "Image indexing",
         "model-1",
@@ -2526,7 +2526,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
     .await
     .unwrap();
 
-    let vector_store = Arc::new(axagent_core::vector_store::VectorStore::new(db.clone()));
+    let vector_store = Arc::new(axagent_search::vector_store::VectorStore::new(db.clone()));
     let memory_service = {
         let storage = axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));
         let ms = axagent_trajectory::MemoryService::new(std::sync::Arc::new(storage))
@@ -2664,7 +2664,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         prompt_cache: Arc::new(PromptCache::new()),
         harness: axagent_runtime::harness::RuntimeHarness::new(
             axagent_runtime::harness::HarnessDeps {
-                persistence: Arc::new(axagent_core::db::DbHandle {
+                persistence: Arc::new(axagent_dao::db::DbHandle {
                     conn: db.clone(),
                     path: ":memory:".into(),
                 }) as Arc<dyn axagent_harness::Persistence>,
@@ -2730,12 +2730,12 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
         ))),
         shutdown_token: tokio_util::sync::CancellationToken::new(),
-        file_authorizer: Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
+        file_authorizer: Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
         session_share_manager: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         // ── Phase 3 P1 Task 3.1: domain sub-states ──
         infra: crate::state::InfraState::new(
             axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
-                persistence: Arc::new(axagent_core::db::DbHandle {
+                persistence: Arc::new(axagent_dao::db::DbHandle {
                     conn: db.clone(),
                     path: ":memory:".into(),
                 }) as Arc<dyn axagent_harness::Persistence>,
@@ -2747,7 +2747,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             }),
             vector_store.clone(),
             Arc::new(tokio::sync::Semaphore::new(2)),
-            Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
+            Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
             temp_dir.clone(),
         ),
         gateway_state: crate::state::GatewayState::new(Arc::new(tokio::sync::Mutex::new(None))),
@@ -2876,7 +2876,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         data: base64::engine::general_purpose::STANDARD.encode(b"abc"),
     }];
 
-    axagent_core::storage_paths::set_documents_root(temp_dir.clone());
+    axagent_storage::storage_paths::set_documents_root(temp_dir.clone());
 
     let persisted = persist_attachments(&state, &conversation.id, &attachments)
         .await
@@ -2888,7 +2888,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         persisted[0].file_path
     );
 
-    let stored_files = axagent_core::repo::stored_file::list_all_stored_files(&db)
+    let stored_files = axagent_dao::repo::stored_file::list_all_stored_files(&db)
         .await
         .unwrap();
     assert_eq!(
@@ -2900,7 +2900,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
     assert_eq!(stored_files[0].mime_type, "image/png");
 
     // Cleanup: remove file written to documents root
-    let _ = axagent_core::file_store::FileStore::new().delete_file(&persisted[0].file_path);
+    let _ = axagent_storage::file_store::FileStore::new().delete_file(&persisted[0].file_path);
     let _ = fs::remove_dir_all(&temp_dir);
 }
 

@@ -8,7 +8,7 @@
 
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_core::computer_control;
+use axagent_kit::computer_control;
 use serde_json::Value;
 
 pub struct ComputerUseTool;

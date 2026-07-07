@@ -19,8 +19,9 @@
 //! 协议层 ChatAction 的 `data` 字段在这里展开。
 
 use crate::AppState;
-use axagent_core::repo::workflow_template as db_repo;
-use axagent_core::workflow_types::*;
+use axagent_dao::repo::workflow_template as db_repo;
+use axagent_dao::workflow_conversions::workflow_template_response_from_model;
+use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 use tauri::State;
@@ -145,7 +146,7 @@ pub async fn apply_rollback_to_version(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("version {version} of template '{template_id}' not found"))?;
 
-    let resp = WorkflowTemplateResponse::from(restored);
+    let resp = workflow_template_response_from_model(restored);
 
     let input = WorkflowTemplateInput {
         name: resp.name.clone(),
@@ -766,7 +767,7 @@ async fn load_template(
     db_repo::get_workflow_template(db, id)
         .await
         .map_err(|e| e.to_string())?
-        .map(WorkflowTemplateResponse::from)
+        .map(workflow_template_response_from_model)
         .ok_or_else(|| format!("template '{id}' not found"))
 }
 

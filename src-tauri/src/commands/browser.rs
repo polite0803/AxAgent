@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #[cfg(not(target_os = "android"))]
-use axagent_core::browser_automation::{ExtractedElement, NavigateResult, ScreenshotResult};
+use axagent_kit::browser_automation::{ExtractedElement, NavigateResult, ScreenshotResult};
 #[cfg(not(target_os = "android"))]
 use tauri::State;
 
@@ -16,7 +16,7 @@ use crate::commands::error_code::browser as browser_err;
 async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
     let mut client_guard = state.browser_client.lock().await;
     if client_guard.is_none() {
-        let client = axagent_core::browser_automation::PlaywrightClient::launch()
+        let client = axagent_kit::browser_automation::PlaywrightClient::launch()
             .await
             .map_err(|e| e.to_string())?;
         *client_guard = Some(client);

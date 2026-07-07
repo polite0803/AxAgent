@@ -23,7 +23,7 @@ pub struct SkillState {
     pub webhook_subscription_manager:
         Option<Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>>,
     pub plugin_manager: Arc<tokio::sync::RwLock<axagent_plugins::PluginManager>>,
-    pub sync_engine: Option<Arc<axagent_core::cloud_storage::SyncEngine>>,
+    pub sync_engine: Option<Arc<axagent_storage::cloud_storage::SyncEngine>>,
     pub tot_sessions:
         Arc<tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>>,
     pub planner_sessions: Arc<
@@ -31,7 +31,7 @@ pub struct SkillState {
     >,
     #[cfg(not(target_os = "android"))]
     pub browser_client:
-        Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
+        Arc<tokio::sync::Mutex<Option<axagent_kit::browser_automation::PlaywrightClient>>>,
     #[cfg(target_os = "android")]
     pub browser_client: Arc<tokio::sync::Mutex<Option<()>>>,
     // P3 #11: WIP engines — None until implemented
@@ -60,7 +60,7 @@ impl SkillState {
             Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>,
         >,
         plugin_manager: Arc<tokio::sync::RwLock<axagent_plugins::PluginManager>>,
-        sync_engine: Option<Arc<axagent_core::cloud_storage::SyncEngine>>,
+        sync_engine: Option<Arc<axagent_storage::cloud_storage::SyncEngine>>,
         tot_sessions: Arc<
             tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>,
         >,
@@ -135,7 +135,7 @@ pub enum SandboxExecutorField {
 #[allow(dead_code)]
 pub enum BrowserClientField {
     #[cfg(not(target_os = "android"))]
-    Real(Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>),
+    Real(Arc<tokio::sync::Mutex<Option<axagent_kit::browser_automation::PlaywrightClient>>>),
     #[cfg(target_os = "android")]
     Real(Arc<tokio::sync::Mutex<Option<serde_json::Value>>>),
     Dummy,

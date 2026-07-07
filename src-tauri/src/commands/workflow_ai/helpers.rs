@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::crypto::decrypt_key;
-use axagent_core::workflow_types::*;
+use axagent_crypto::decrypt_key;
+use axagent_harness::workflow_types::*;
 use axagent_harness::types::ProviderType;
 use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
 use serde::{Deserialize, Serialize};
@@ -139,7 +139,7 @@ pub(super) struct ResolvedProvider {
 }
 
 pub(super) async fn resolve_ai_provider(state: &AppState) -> Result<ResolvedProvider, String> {
-    let providers = axagent_core::repo::provider::list_providers(state.harness.db())
+    let providers = axagent_dao::repo::provider::list_providers(state.harness.db())
         .await
         .map_err(|e| format!("Failed to list providers: {}", e))?;
 
@@ -148,7 +148,7 @@ pub(super) async fn resolve_ai_provider(state: &AppState) -> Result<ResolvedProv
     })?;
 
     let provider_key =
-        axagent_core::repo::provider::get_active_key(state.harness.db(), &provider.id)
+        axagent_dao::repo::provider::get_active_key(state.harness.db(), &provider.id)
             .await
             .map_err(|e| format!("Failed to get provider key: {}", e))?;
 

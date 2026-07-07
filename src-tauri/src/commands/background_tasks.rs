@@ -4,7 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
 use crate::commands::spawn_guard::panic_message;
-use axagent_core::entity::background_tasks;
+use axagent_entities::background_tasks;
 use chrono::Utc;
 use futures::FutureExt;
 use sea_orm::*;

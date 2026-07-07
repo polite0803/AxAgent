@@ -11,7 +11,7 @@ use tauri::command;
 pub async fn list_search_providers(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SearchProvider>, String> {
-    axagent_core::repo::search_provider::list_search_providers(state.harness.db())
+    axagent_dao::repo::search_provider::list_search_providers(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -22,7 +22,7 @@ pub async fn get_search_provider(
     state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<SearchProvider, String> {
-    axagent_core::repo::search_provider::get_search_provider(state.harness.db(), &id)
+    axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -38,12 +38,12 @@ pub async fn create_search_provider(
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
             input.api_key = Some(
-                axagent_core::crypto::encrypt_key(key, state.harness.master_key())
+                axagent_crypto::encrypt_key(key, state.harness.master_key())
                     .map_err(|e| e.to_string())?,
             );
         }
     }
-    axagent_core::repo::search_provider::create_search_provider(state.harness.db(), input)
+    axagent_dao::repo::search_provider::create_search_provider(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -58,12 +58,12 @@ pub async fn update_search_provider(
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
             input.api_key = Some(
-                axagent_core::crypto::encrypt_key(key, state.harness.master_key())
+                axagent_crypto::encrypt_key(key, state.harness.master_key())
                     .map_err(|e| e.to_string())?,
             );
         }
     }
-    axagent_core::repo::search_provider::update_search_provider(state.harness.db(), &id, input)
+    axagent_dao::repo::search_provider::update_search_provider(state.harness.db(), &id, input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -74,7 +74,7 @@ pub async fn delete_search_provider(
     state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<(), String> {
-    axagent_core::repo::search_provider::delete_search_provider(state.harness.db(), &id)
+    axagent_dao::repo::search_provider::delete_search_provider(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -85,7 +85,7 @@ async fn get_search_api_key(
     id: &str,
     master_key: &[u8; 32],
 ) -> Result<Option<String>, String> {
-    use axagent_core::entity::search_providers;
+    use axagent_entities::search_providers;
     use sea_orm::EntityTrait;
 
     let model = search_providers::Entity::find_by_id(id)
@@ -96,7 +96,7 @@ async fn get_search_api_key(
 
     match model.api_key_ref {
         Some(ref encrypted) if !encrypted.is_empty() => {
-            axagent_core::crypto::decrypt_key(encrypted, master_key)
+            axagent_crypto::decrypt_key(encrypted, master_key)
                 .map(Some)
                 .map_err(|e| e.to_string())
         },
@@ -113,7 +113,7 @@ pub async fn test_search_provider(
     use std::time::Instant;
 
     let provider =
-        axagent_core::repo::search_provider::get_search_provider(state.harness.db(), &id)
+        axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -160,7 +160,7 @@ pub async fn execute_search(
     query: String,
 ) -> Result<serde_json::Value, String> {
     // 尝试从 DB 获取提供商配置，失败则走 DDG 免费搜索
-    let provider = match axagent_core::repo::search_provider::get_search_provider(
+    let provider = match axagent_dao::repo::search_provider::get_search_provider(
         state.harness.db(),
         &provider_id,
     )

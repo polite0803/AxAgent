@@ -247,7 +247,7 @@ pub(crate) async fn resolve_system_prompt(
 
     if let Some(ref cat_id) = conversation.category_id {
         if let Ok(categories) =
-            axagent_core::repo::conversation_category::list_conversation_categories(db).await
+            axagent_dao::repo::conversation_category::list_conversation_categories(db).await
         {
             if let Some(cat) = categories.iter().find(|c| &c.id == cat_id)
                 && let Some(ref s) = cat.system_prompt
@@ -259,7 +259,7 @@ pub(crate) async fn resolve_system_prompt(
     }
 
     // 3. Global default system prompt (lowest priority)
-    let settings = axagent_core::repo::settings::get_settings(db)
+    let settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
     settings.default_system_prompt.filter(|s| !s.is_empty())
@@ -269,16 +269,16 @@ pub(crate) async fn persist_attachments(
     state: &AppState,
     conversation_id: &str,
     attachments: &[AttachmentInput],
-) -> axagent_core::error::Result<Vec<Attachment>> {
-    axagent_core::storage_paths::ensure_documents_dirs()?;
-    let file_store = axagent_core::file_store::FileStore::new();
+) -> axagent_harness::core_error::Result<Vec<Attachment>> {
+    axagent_storage::storage_paths::ensure_documents_dirs()?;
+    let file_store = axagent_storage::file_store::FileStore::new();
 
     let mut persisted = Vec::with_capacity(attachments.len());
     for attachment in attachments {
         // Safety limit: reject base64 payloads larger than 100MB to prevent OOM
         const MAX_ATTACHMENT_BASE64_SIZE: usize = 100 * 1024 * 1024; // 100 MB
         if attachment.data.len() > MAX_ATTACHMENT_BASE64_SIZE {
-            return Err(axagent_core::error::AxAgentError::Validation(format!(
+            return Err(axagent_harness::core_error::AxAgentError::Validation(format!(
                 "Attachment '{}' base64 data is too large ({} bytes, max {} bytes)",
                 attachment.file_name,
                 attachment.data.len(),
@@ -289,7 +289,7 @@ pub(crate) async fn persist_attachments(
         let data = base64::engine::general_purpose::STANDARD
             .decode(&attachment.data)
             .map_err(|e| {
-                axagent_core::error::AxAgentError::Validation(format!(
+                axagent_harness::core_error::AxAgentError::Validation(format!(
                     "Invalid attachment base64 for {}: {}",
                     attachment.file_name, e
                 ))
@@ -298,7 +298,7 @@ pub(crate) async fn persist_attachments(
         // Safety limit: reject decoded data larger than 50MB
         const MAX_ATTACHMENT_DECODED_SIZE: usize = 50 * 1024 * 1024; // 50 MB
         if data.len() > MAX_ATTACHMENT_DECODED_SIZE {
-            return Err(axagent_core::error::AxAgentError::Validation(format!(
+            return Err(axagent_harness::core_error::AxAgentError::Validation(format!(
                 "Attachment '{}' decoded content is too large ({} bytes, max {} bytes)",
                 attachment.file_name,
                 data.len(),
@@ -306,8 +306,8 @@ pub(crate) async fn persist_attachments(
             )));
         }
         let saved = file_store.save_file(&data, &attachment.file_name, &attachment.file_type)?;
-        let stored_file_id = axagent_core::utils::gen_id();
-        axagent_core::repo::stored_file::create_stored_file(
+        let stored_file_id = axagent_kit::utils::gen_id();
+        axagent_dao::repo::stored_file::create_stored_file(
             state.harness.db(),
             &stored_file_id,
             &saved.hash,
@@ -528,9 +528,9 @@ pub(crate) fn strip_display_tags(content: &str) -> String {
 }
 
 pub(crate) fn build_message_content(
-    file_store: &axagent_core::file_store::FileStore,
+    file_store: &axagent_storage::file_store::FileStore,
     message: &Message,
-) -> axagent_core::error::Result<ChatContent> {
+) -> axagent_harness::core_error::Result<ChatContent> {
     // Strip display-only tags from all messages (not just assistant)
     // to prevent prompt injection via <knowledge-retrieval> or <memory-retrieval> tags
     let content = strip_display_tags(&message.content);
@@ -557,7 +557,7 @@ pub(crate) fn build_message_content(
     for attachment in image_attachments {
         let data_url = if attachment.file_path.is_empty() {
             let base64_data = attachment.data.as_ref().ok_or_else(|| {
-                axagent_core::error::AxAgentError::Validation(format!(
+                axagent_harness::core_error::AxAgentError::Validation(format!(
                     "Attachment {} is missing both file_path and inline data",
                     attachment.file_name
                 ))
@@ -589,9 +589,9 @@ pub(crate) fn build_message_content(
 }
 
 pub(crate) fn chat_message_from_message(
-    file_store: &axagent_core::file_store::FileStore,
+    file_store: &axagent_storage::file_store::FileStore,
     message: &Message,
-) -> axagent_core::error::Result<ChatMessage> {
+) -> axagent_harness::core_error::Result<ChatMessage> {
     let tool_calls: Option<Vec<ToolCall>> = message
         .tool_calls_json
         .as_ref()

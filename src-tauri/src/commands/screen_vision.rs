@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::screen_vision::UIElementInfo;
+use axagent_kit::screen_vision::UIElementInfo;
 use axagent_harness::types::ProviderType;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
@@ -47,8 +47,8 @@ fn resolve_provider_adapter(
 
 async fn capture_screenshot(
     monitor_index: Option<u32>,
-) -> Result<axagent_core::screen_capture::ScreenCaptureResult, String> {
-    let capture = axagent_core::screen_capture::ScreenCapture::new();
+) -> Result<axagent_kit::screen_capture::ScreenCaptureResult, String> {
+    let capture = axagent_kit::screen_capture::ScreenCapture::new();
     capture
         .capture_full(monitor_index)
         .await
@@ -65,18 +65,18 @@ async fn build_vision_context(
     master_key: &[u8; 32],
     provider_id: &str,
 ) -> Result<VisionContext, String> {
-    let provider = axagent_core::repo::provider::get_provider(db, provider_id)
+    let provider = axagent_dao::repo::provider::get_provider(db, provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let key_row = axagent_core::repo::provider::get_active_key(db, provider_id)
+    let key_row = axagent_dao::repo::provider::get_active_key(db, provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key)
+    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)
         .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_core::repo::settings::get_settings(db)
+    let global_settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
     let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
@@ -110,7 +110,7 @@ async fn build_vision_context(
 }
 
 fn map_actions_to_info(
-    actions: &[axagent_core::screen_vision::SuggestedAction],
+    actions: &[axagent_kit::screen_vision::SuggestedAction],
     elements: &[UIElementInfo],
 ) -> Vec<SuggestedActionInfo> {
     actions
@@ -269,7 +269,7 @@ pub async fn click_element_at_position(
     y: f64,
     button: Option<String>,
 ) -> Result<(), String> {
-    use axagent_core::ui_automation::MouseButton;
+    use axagent_kit::ui_automation::MouseButton;
 
     let btn = match button.as_deref().unwrap_or("left") {
         "right" => MouseButton::Right,
@@ -277,7 +277,7 @@ pub async fn click_element_at_position(
         _ => MouseButton::Left,
     };
 
-    axagent_core::ui_automation::UIAutomation::click(x, y, btn)
+    axagent_kit::ui_automation::UIAutomation::click(x, y, btn)
         .await
         .map_err(|e| format!("Click failed: {}", e))?;
 
@@ -291,25 +291,25 @@ pub async fn execute_vision_action(
     y: f64,
     text: Option<String>,
 ) -> Result<(), String> {
-    use axagent_core::ui_automation::UIAutomation;
+    use axagent_kit::ui_automation::UIAutomation;
 
     match action_type.to_lowercase().as_str() {
         "click" => {
-            UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
+            UIAutomation::click(x, y, axagent_kit::ui_automation::MouseButton::Left)
                 .await
                 .map_err(|e| format!("Click failed: {}", e))?;
         },
         "double_click" | "doubleclick" => {
-            UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
+            UIAutomation::click(x, y, axagent_kit::ui_automation::MouseButton::Left)
                 .await
                 .map_err(|e| format!("Click failed: {}", e))?;
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
+            UIAutomation::click(x, y, axagent_kit::ui_automation::MouseButton::Left)
                 .await
                 .map_err(|e| format!("Double click failed: {}", e))?;
         },
         "right_click" | "rightclick" => {
-            UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Right)
+            UIAutomation::click(x, y, axagent_kit::ui_automation::MouseButton::Right)
                 .await
                 .map_err(|e| format!("Right click failed: {}", e))?;
         },

@@ -24,7 +24,7 @@ use crate::commands::error::ErrorResponse;
 
 #[tauri::command]
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
-    axagent_core::repo::conversation::list_conversations(state.harness.db())
+    axagent_dao::repo::conversation::list_conversations(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -37,7 +37,7 @@ pub async fn create_conversation(
     provider_id: String,
     system_prompt: Option<String>,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::create_conversation(
+    axagent_dao::repo::conversation::create_conversation(
         state.harness.db(),
         &title,
         &model_id,
@@ -59,7 +59,7 @@ pub async fn update_conversation(
         || input.enabled_wiki_ids.is_some();
 
     let updated =
-        axagent_core::repo::conversation::update_conversation(state.harness.db(), &id, input)
+        axagent_dao::repo::conversation::update_conversation(state.harness.db(), &id, input)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -89,7 +89,7 @@ pub async fn batch_delete_conversations(
             let db = db.clone();
             let id = id.clone();
             tokio::spawn(async move {
-                let file_store = axagent_core::file_store::FileStore::new();
+                let file_store = axagent_storage::file_store::FileStore::new();
                 delete_conversation_with_attachments_using(&db, &file_store, &id).await
             })
         })
@@ -114,7 +114,7 @@ pub async fn branch_conversation(
     as_child: bool,
     title: Option<String>,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::branch_conversation(
+    axagent_dao::repo::conversation::branch_conversation(
         state.harness.db(),
         &conversation_id,
         &until_message_id,
@@ -129,17 +129,17 @@ async fn delete_conversation_with_attachments(
     db: &sea_orm::DatabaseConnection,
     conversation_id: &str,
 ) -> Result<(), String> {
-    let file_store = axagent_core::file_store::FileStore::new();
+    let file_store = axagent_storage::file_store::FileStore::new();
     delete_conversation_with_attachments_using(db, &file_store, conversation_id).await
 }
 
 pub(super) async fn delete_conversation_with_attachments_using(
     db: &sea_orm::DatabaseConnection,
-    file_store: &axagent_core::file_store::FileStore,
+    file_store: &axagent_storage::file_store::FileStore,
     conversation_id: &str,
 ) -> Result<(), String> {
     let files =
-        axagent_core::repo::stored_file::list_stored_files_by_conversation(db, conversation_id)
+        axagent_dao::repo::stored_file::list_stored_files_by_conversation(db, conversation_id)
             .await
             .map_err(|e| e.to_string())?;
     for file in files {
@@ -147,18 +147,18 @@ pub(super) async fn delete_conversation_with_attachments_using(
     }
 
     // 清理关联数据（无 FK 约束，需手动删除避免孤行）
-    if let Err(e) = axagent_core::repo::conversation::delete_summary(db, conversation_id).await {
+    if let Err(e) = axagent_dao::repo::conversation::delete_summary(db, conversation_id).await {
         tracing::warn!("Failed to delete conversation summary: {}", e);
     }
-    if let Err(e) = axagent_core::entity::agent_sessions::Entity::delete_many()
-        .filter(axagent_core::entity::agent_sessions::Column::ConversationId.eq(conversation_id))
+    if let Err(e) = axagent_entities::agent_sessions::Entity::delete_many()
+        .filter(axagent_entities::agent_sessions::Column::ConversationId.eq(conversation_id))
         .exec(db)
         .await
     {
         tracing::warn!("Failed to delete agent sessions: {}", e);
     }
 
-    axagent_core::repo::conversation::delete_conversation(db, conversation_id)
+    axagent_dao::repo::conversation::delete_conversation(db, conversation_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -168,7 +168,7 @@ pub async fn search_conversations(
     state: State<'_, AppState>,
     query: String,
 ) -> Result<Vec<ConversationSearchResult>, String> {
-    axagent_core::repo::conversation::search_conversations(state.harness.db(), &query)
+    axagent_dao::repo::conversation::search_conversations(state.harness.db(), &query)
         .await
         .map_err(|e| e.to_string())
 }
@@ -178,7 +178,7 @@ pub async fn toggle_pin_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::toggle_pin(state.harness.db(), &id)
+    axagent_dao::repo::conversation::toggle_pin(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -188,7 +188,7 @@ pub async fn toggle_archive_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::toggle_archive(state.harness.db(), &id)
+    axagent_dao::repo::conversation::toggle_archive(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -200,7 +200,7 @@ pub async fn archive_conversation_to_knowledge_base(
     id: String,
     knowledge_base_id: String,
 ) -> Result<Conversation, String> {
-    let (updated_conv, doc) = axagent_core::repo::conversation::archive_to_knowledge_base(
+    let (updated_conv, doc) = axagent_dao::repo::conversation::archive_to_knowledge_base(
         state.harness.db(),
         &id,
         &knowledge_base_id,
@@ -210,12 +210,12 @@ pub async fn archive_conversation_to_knowledge_base(
 
     // Trigger async indexing for the newly created document
     let kb =
-        axagent_core::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
+        axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
             .await
             .map_err(|e| e.to_string())?;
 
     if kb.embedding_provider.is_some() {
-        let container = axagent_core::rag::KnowledgeContainer::from_knowledge_base(&kb);
+        let container = axagent_search::rag::KnowledgeContainer::from_knowledge_base(&kb);
         let db = state.harness.db().clone();
         let master_key = state.harness.master_key_owned();
         let vector_store = state.vector_store.clone();
@@ -245,7 +245,7 @@ pub async fn archive_conversation_to_knowledge_base(
                     doc_id,
                     err_msg
                 );
-                let _ = axagent_core::repo::knowledge::update_document_status_with_error(
+                let _ = axagent_dao::repo::knowledge::update_document_status_with_error(
                     &db,
                     &doc_id,
                     "failed",
@@ -272,7 +272,7 @@ pub async fn archive_conversation_to_knowledge_base(
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
 ) -> Result<Vec<Conversation>, String> {
-    axagent_core::repo::conversation::list_archived_conversations(state.harness.db())
+    axagent_dao::repo::conversation::list_archived_conversations(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -284,7 +284,7 @@ pub async fn archive_workflow_session(
     conversation_id: String,
     feedback: Option<String>,
 ) -> Result<Conversation, String> {
-    use axagent_core::entity::{conversations, workflow_template};
+    use axagent_entities::{conversations, workflow_template};
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
     let db = state.harness.db();
@@ -319,11 +319,11 @@ pub async fn archive_workflow_session(
             .map_err(|e| e.to_string())?
             .is_some()
         {
-            let messages = axagent_core::repo::message::list_messages(db, &conversation_id)
+            let messages = axagent_dao::repo::message::list_messages(db, &conversation_id)
                 .await
                 .map_err(|e| e.to_string())?;
 
-            let execution = axagent_core::entity::workflow_executions::ActiveModel {
+            let execution = axagent_entities::workflow_executions::ActiveModel {
                 id: Set(uuid::Uuid::new_v4().to_string()),
                 workflow_id: Set(template_id.clone()),
                 status: Set(conv
@@ -340,8 +340,8 @@ pub async fn archive_workflow_session(
                     .to_string(),
                 )),
                 total_time_ms: Set(None),
-                created_at: Set(axagent_core::utils::now_ts()),
-                updated_at: Set(axagent_core::utils::now_ts()),
+                created_at: Set(axagent_kit::utils::now_ts()),
+                updated_at: Set(axagent_kit::utils::now_ts()),
             };
             execution.insert(db).await.map_err(|e| e.to_string())?;
         }
@@ -354,14 +354,14 @@ pub async fn archive_workflow_session(
     am.updated_at = Set(now);
     let updated = am.update(db).await.map_err(|e| e.to_string())?;
 
-    let conv = axagent_core::repo::conversation::conversation_from_entity(updated);
+    let conv = axagent_dao::repo::conversation::conversation_from_entity(updated);
     Ok(conv)
 }
 
 pub(crate) async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
-        Box<dyn futures::Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>,
+        Box<dyn futures::Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send>,
     >,
     params: StreamConsumptionParams<'_>,
 ) -> (
@@ -881,18 +881,18 @@ pub(crate) async fn execute_tool_call(
             );
         }
         let text = if let Ok(providers) =
-            axagent_core::repo::search_provider::list_search_providers(db).await
+            axagent_dao::repo::search_provider::list_search_providers(db).await
         {
             if let Some(p) = providers.iter().find(|p| p.enabled) {
-                let api_key = axagent_core::entity::search_providers::Entity::find_by_id(&p.id)
+                let api_key = axagent_entities::search_providers::Entity::find_by_id(&p.id)
                     .one(db)
                     .await
                     .ok()
                     .flatten()
                     .and_then(|e| e.api_key_ref)
-                    .and_then(|enc| axagent_core::crypto::decrypt_key(&enc, master_key).ok())
+                    .and_then(|enc| axagent_crypto::decrypt_key(&enc, master_key).ok())
                     .unwrap_or_default();
-                axagent_core::search::execute_search_text(
+                axagent_search::search::execute_search_text(
                     &p.provider_type,
                     p.endpoint.as_deref(),
                     &api_key,
@@ -902,15 +902,15 @@ pub(crate) async fn execute_tool_call(
                 )
                 .await
             } else {
-                axagent_core::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
+                axagent_search::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
             }
         } else {
-            axagent_core::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
+            axagent_search::search::execute_search_text("ddg", None, "", &query, 5, 10000).await
         };
         return (text, false);
     }
 
-    let server_and_tool = axagent_core::repo::mcp_server::find_server_for_tool(
+    let server_and_tool = axagent_dao::repo::mcp_server::find_server_for_tool(
         db,
         &tool_call.function.name,
         mcp_server_ids,
@@ -960,12 +960,12 @@ pub(crate) async fn execute_tool_call(
             )
             .await
             {
-                Ok(Ok(r)) => Ok(axagent_core::mcp_client::McpToolResult {
+                Ok(Ok(r)) => Ok(axagent_mcp::mcp_client::McpToolResult {
                     content: r.content,
                     is_error: r.is_error,
                     progress: Vec::new(),
                 }),
-                Ok(Err(e)) => Err(axagent_core::error::AxAgentError::Gateway(e.to_string())),
+                Ok(Err(e)) => Err(axagent_harness::core_error::AxAgentError::Gateway(e.to_string())),
                 Err(_) => {
                     use crate::commands::error_code::tool as tool_err;
                     return (
@@ -998,7 +998,7 @@ pub(crate) async fn execute_tool_call(
                 .unwrap_or_default();
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_core::mcp_client::call_tool_stdio(
+                axagent_mcp::mcp_client::call_tool_stdio(
                     &command,
                     &args,
                     &env,
@@ -1031,7 +1031,7 @@ pub(crate) async fn execute_tool_call(
             };
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_core::mcp_client::call_tool_http(
+                axagent_mcp::mcp_client::call_tool_http(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
@@ -1063,7 +1063,7 @@ pub(crate) async fn execute_tool_call(
             };
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_core::mcp_client::call_tool_sse(
+                axagent_mcp::mcp_client::call_tool_sse(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
@@ -1167,7 +1167,7 @@ pub(crate) async fn generate_ai_title(
         let mid = model_id.to_string();
         let db = db.clone();
         async move {
-            axagent_core::repo::provider::get_model(&db, &pid, &mid)
+            axagent_dao::repo::provider::get_model(&db, &pid, &mid)
                 .await
                 .ok()
                 .and_then(|m| m.param_overrides)
@@ -1180,7 +1180,7 @@ pub(crate) async fn generate_ai_title(
         (&settings.title_summary_provider_id, &settings.title_summary_model_id)
     {
         // Try to use the configured title summary provider
-        let provider = match axagent_core::repo::provider::get_provider(db, pid).await {
+        let provider = match axagent_dao::repo::provider::get_provider(db, pid).await {
             Ok(p) => p,
             Err(e) => {
                 tracing::warn!("Title summary provider not found, falling back: {}", e);
@@ -1197,7 +1197,7 @@ pub(crate) async fn generate_ai_title(
                 .await;
             },
         };
-        let key_row = match axagent_core::repo::provider::get_active_key(db, pid).await {
+        let key_row = match axagent_dao::repo::provider::get_active_key(db, pid).await {
             Ok(k) => k,
             Err(e) => {
                 tracing::warn!("Title summary provider has no active key, falling back: {}", e);
@@ -1214,7 +1214,7 @@ pub(crate) async fn generate_ai_title(
                 .await;
             },
         };
-        let dk = match axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key) {
+        let dk = match axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key) {
             Ok(dk) => dk,
             Err(e) => {
                 tracing::warn!("Title summary key decrypt failed, falling back: {}", e);

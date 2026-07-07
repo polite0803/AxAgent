@@ -1,238 +1,172 @@
 #!/usr/bin/env python3
-"""Replace axagent_core:: references with direct leaf crate paths across 9 crates.
+"""Replace all axagent_core:: references with direct leaf crate paths.
 
-Mapping from core re-exports (crates/core/src/lib.rs):
-  error/*        → axagent_harness::core_error/*
-  i18n/*         → axagent_harness::i18n/*
-  constants/*    → axagent_harness::constants/*
-  workflow_types/* → axagent_harness::workflow_types/* (except local types)
-  platform_config/* → axagent_harness::platform_config/*
-  validate_recursive → axagent_harness::schema_validator::validate_recursive
-  ddl/*          → axagent_dao::ddl/*
-  repo/*         → axagent_dao::repo/*
-  db/*           → axagent_dao::db/*
-  entity/*       → axagent_entities::*
-  plan_compiler/*  → axagent_kit::plan_compiler/*
-  secure_store/*   → axagent_kit::secure_store/*
-  model_knowledge/* → axagent_kit::model_knowledge/*
-  screen_vision/*  → axagent_kit::screen_vision/*
-  browser_automation/* → axagent_kit::browser_automation/*
-  computer_control/* → axagent_kit::computer_control/*
-  git_tools/*      → axagent_kit::git_tools/*
-  html_cleaner/*   → axagent_kit::html_cleaner/*
-  skill_dirs/*     → axagent_kit::skill_dirs/*
-  slash_command/*  → axagent_kit::slash_command/*
-  crypto/*         → axagent_crypto::crypto/*
-  search/*         → axagent_search::search/*
-  validate_against_schema → axagent_kit::schema_validator::validate_against_schema
-  extract_json_from_llm_response → axagent_kit::utils::extract_json_from_llm_response
+Usage: python3 scripts/replace_core_refs.py
 """
 
 import os
 import re
-import subprocess
+import glob
 
-CRATES_DIR = os.path.join("src-tauri", "crates")
-TARGET_CRATES = ["agent", "orchestrator", "migration", "providers",
-                 "rt-messaging", "rt-workflow", "tools", "trajectory", "runtime"]
+ROOT = os.path.join(os.path.dirname(__file__), "..", "src-tauri")
 
-# Mapping: axagent_core::PREFIX → REPLACEMENT
-PREFIX_MAP = {
-    "axagent_core::error::":         "axagent_harness::core_error::",
-    "axagent_core::i18n::":          "axagent_harness::i18n::",
-    "axagent_core::constants::":     "axagent_harness::constants::",
-    "axagent_core::workflow_types::":"axagent_harness::workflow_types::",
-    "axagent_core::platform_config::":"axagent_harness::platform_config::",
-    "axagent_core::ddl::":           "axagent_dao::ddl::",
-    "axagent_core::repo::":          "axagent_dao::repo::",
-    "axagent_core::db::":            "axagent_dao::db::",
-    "axagent_core::entity::":        "axagent_entities::",
-    "axagent_core::plan_compiler::": "axagent_kit::plan_compiler::",
-    "axagent_core::secure_store::":  "axagent_kit::secure_store::",
-    "axagent_core::model_knowledge::":"axagent_kit::model_knowledge::",
-    "axagent_core::screen_vision::": "axagent_kit::screen_vision::",
-    "axagent_core::browser_automation::":"axagent_kit::browser_automation::",
-    "axagent_core::computer_control::":"axagent_kit::computer_control::",
-    "axagent_core::git_tools::":     "axagent_kit::git_tools::",
-    "axagent_core::html_cleaner::":  "axagent_kit::html_cleaner::",
-    "axagent_core::skill_dirs::":    "axagent_kit::skill_dirs::",
-    "axagent_core::slash_command::": "axagent_kit::slash_command::",
-    "axagent_core::crypto::":        "axagent_crypto::crypto::",
-    "axagent_core::search::":        "axagent_search::search::",
-}
-
-# Special function names (not module::function but just a bare fn name)
-FUNCTION_MAP = {
-    "axagent_core::validate_recursive": "axagent_harness::schema_validator::validate_recursive",
-    "axagent_core::validate_against_schema": "axagent_kit::schema_validator::validate_against_schema",
-    "axagent_core::extract_json_from_llm_response": "axagent_kit::utils::extract_json_from_llm_response",
-}
-
-# Cargo.toml dependencies to add based on which replacements were used
-DEP_MAP = {
-    "axagent_harness": [],
-    "axagent_dao": [],
-    "axagent_entities": [],
-    "axagent_kit": [],
-    "axagent_crypto": [],
-    "axagent_search": [],
-}
-
-def apply_replacements(content):
-    """Apply all prefix and function replacements to a file's content."""
-    for old, new in FUNCTION_MAP.items():
-        content = content.replace(old, new)
-    for old, new in PREFIX_MAP.items():
-        content = content.replace(old, new)
-    return content
-
-def get_used_replacement_modules(content):
-    """Determine which leaf crate deps are needed based on replacements applied."""
-    modules = set()
-    if "axagent_harness::" in content:
-        modules.add("axagent_harness")
-    if "axagent_dao::" in content:
-        modules.add("axagent_dao")
-    if "axagent_entities::" in content:
-        modules.add("axagent_entities")
-    if "axagent_kit::" in content:
-        modules.add("axagent_kit")
-    if "axagent_crypto::" in content:
-        modules.add("axagent_crypto")
-    if "axagent_search::" in content:
-        modules.add("axagent_search")
-    return modules
-
-def update_cargo_toml(crate_name, used_modules):
-    """Add required leaf crate deps and remove axagent-core from Cargo.toml."""
-    cargo_path = os.path.join(CRATES_DIR, crate_name, "Cargo.toml")
-    if not os.path.exists(cargo_path):
-        print(f"  Cargo.toml not found: {cargo_path}")
-        return
-
-    with open(cargo_path, "r") as f:
-        lines = f.readlines()
-
-    new_lines = []
-    in_deps = False
-    has_axagent_core = False
-    existing_axagent_deps = set()
-
-    for line in lines:
-        if line.startswith("[dependencies]"):
-            in_deps = True
-            new_lines.append(line)
+def find_rs_files():
+    """Find all .rs files that might reference axagent_core::"""
+    files = []
+    for root, dirs, _ in os.walk(os.path.join(ROOT, "crates")):
+        # Skip crates/core itself
+        if "crates/core" in root:
             continue
-        elif line.startswith("[") and not line.startswith("[[") and in_deps:
-            in_deps = False
+        for f in os.listdir(root):
+            if f.endswith(".rs"):
+                files.append(os.path.join(root, f))
+    # Also include src/ (app binary)
+    src_dir = os.path.join(ROOT, "src")
+    for root, dirs, _ in os.walk(src_dir):
+        for f in os.listdir(root):
+            if f.endswith(".rs"):
+                files.append(os.path.join(root, f))
+    # schema-gen too
+    schema_dir = os.path.join(ROOT, "schema-gen")
+    for root, dirs, _ in os.walk(schema_dir):
+        for f in os.listdir(root):
+            if f.endswith(".rs"):
+                files.append(os.path.join(root, f))
+    return sorted(set(files))
 
-        if in_deps:
-            m = re.match(r'^\s*(axagent-\w+)', line)
-            if m:
-                existing_axagent_deps.add(m.group(1))
-                if "axagent-core" in line:
-                    has_axagent_core = True
-                    continue  # skip axagent-core
-            new_lines.append(line)
-        else:
-            new_lines.append(line)
+# Replacement mapping: axagent_core::MODULE -> LEAF_CRATE_PATH
+# Ordered from most specific to least specific to avoid partial matches
+REPLACEMENTS = [
+    # Special cases with different crate/name mappings
+    ("axagent_core::crypto", "axagent_crypto"),
+    ("axagent_core::computer_control", "axagent_kit::computer_control"),
+    ("axagent_core::document_parser", "axagent_document_parser"),
+    ("axagent_core::disk_cache", "axagent_disk_cache"),
 
-    if not has_axagent_core:
-        print(f"  (no axagent-core to remove)")
-        # Still write back in case we need to add new deps
-        pass
+    # Kit re-exports
+    ("axagent_core::billing", "axagent_kit::billing"),
+    ("axagent_core::browser_automation", "axagent_kit::browser_automation"),
+    ("axagent_core::command_validator", "axagent_kit::command_validator"),
+    ("axagent_core::git_tools", "axagent_kit::git_tools"),
+    ("axagent_core::html_cleaner", "axagent_kit::html_cleaner"),
+    ("axagent_core::markdown_parser", "axagent_kit::markdown_parser"),
+    ("axagent_core::marketplace_service", "axagent_kit::marketplace_service"),
+    ("axagent_core::marketplace", "axagent_kit::marketplace"),
+    ("axagent_core::model_knowledge", "axagent_kit::model_knowledge"),
+    ("axagent_core::operation_audit", "axagent_kit::operation_audit"),
+    ("axagent_core::output_processor", "axagent_kit::output_processor"),
+    ("axagent_core::plan_compiler", "axagent_kit::plan_compiler"),
+    ("axagent_core::preset_templates", "axagent_kit::preset_templates"),
+    ("axagent_core::prompt_template", "axagent_kit::prompt_template"),
+    ("axagent_core::prompts", "axagent_kit::prompts"),
+    ("axagent_core::resource_limits", "axagent_kit::resource_limits"),
+    ("axagent_core::sandbox_runner", "axagent_kit::sandbox_runner"),
+    ("axagent_core::schema_validator", "axagent_kit::schema_validator"),
+    ("axagent_core::screen_capture", "axagent_kit::screen_capture"),
+    ("axagent_core::screen_vision", "axagent_kit::screen_vision"),
+    ("axagent_core::secure_store", "axagent_kit::secure_store"),
+    ("axagent_core::service_container", "axagent_kit::service_container"),
+    ("axagent_core::shell_parser", "axagent_kit::shell_parser"),
+    ("axagent_core::skill_dirs", "axagent_kit::skill_dirs"),
+    ("axagent_core::slash_command", "axagent_kit::slash_command"),
+    ("axagent_core::token_budget", "axagent_kit::token_budget"),
+    ("axagent_core::token_counter", "axagent_kit::token_counter"),
+    ("axagent_core::ui_automation", "axagent_kit::ui_automation"),
+    ("axagent_core::unified_config", "axagent_kit::unified_config"),
+    ("axagent_core::utils", "axagent_kit::utils"),
+    ("axagent_core::workflow_version", "axagent_kit::workflow_version"),
 
-    # Check if new leaf crate deps are needed
-    leaf_to_path = {
-        "axagent-dao": '"../dao"',
-        "axagent-entities": '"../entities"',
-        "axagent-kit": '"../kit"',
-        "axagent-crypto": '"../crypto"',
-        "axagent-search": '"../search"',
-    }
+    # Search re-exports
+    ("axagent_core::ast_index", "axagent_search::ast_index"),
+    ("axagent_core::file_index", "axagent_search::file_index"),
+    ("axagent_core::hybrid_search", "axagent_search::hybrid_search"),
+    ("axagent_core::incremental_indexer", "axagent_search::incremental_indexer"),
+    ("axagent_core::inference", "axagent_search::inference"),
+    ("axagent_core::model_downloader", "axagent_search::model_downloader"),
+    ("axagent_core::query_enhancement", "axagent_search::query_enhancement"),
+    ("axagent_core::rag_pipeline", "axagent_search::rag_pipeline"),
+    ("axagent_core::rag", "axagent_search::rag"),
+    ("axagent_core::recall_pipeline", "axagent_search::recall_pipeline"),
+    ("axagent_core::reranker", "axagent_search::reranker"),
+    ("axagent_core::search", "axagent_search::search"),
+    ("axagent_core::self_rag", "axagent_search::self_rag"),
+    ("axagent_core::semantic_cache", "axagent_search::semantic_cache"),
+    ("axagent_core::text_chunker", "axagent_search::text_chunker"),
+    ("axagent_core::vector_cache", "axagent_search::vector_cache"),
+    ("axagent_core::vector_store", "axagent_search::vector_store"),
 
-    needed_additions = []
-    for module in sorted(used_modules):
-        leaf_name = module.replace("_", "-")
-        if leaf_name not in existing_axagent_deps and leaf_name != "axagent-harness":
-            path = leaf_to_path.get(leaf_name, f'"../{leaf_name.replace("axagent-", "")}"')
-            needed_additions.append(f"{leaf_name} = {{ path = {path} }}\n")
+    # Storage re-exports
+    ("axagent_core::cloud_storage", "axagent_storage::cloud_storage"),
+    ("axagent_core::cloud_workspace", "axagent_storage::cloud_workspace"),
+    ("axagent_core::file_authorizer", "axagent_storage::file_authorizer"),
+    ("axagent_core::file_store", "axagent_storage::file_store"),
+    ("axagent_core::path_vars", "axagent_storage::path_vars"),
+    ("axagent_core::storage_inventory", "axagent_storage::storage_inventory"),
+    ("axagent_core::storage_migration", "axagent_storage::storage_migration"),
+    ("axagent_core::storage_paths", "axagent_storage::storage_paths"),
+    ("axagent_core::sync_conflict", "axagent_storage::sync_conflict"),
+    ("axagent_core::webdav", "axagent_storage::webdav"),
+    ("axagent_core::workspace_uri", "axagent_storage::workspace_uri"),
 
-    if not has_axagent_core and not needed_additions:
-        return  # no changes
+    # Cache re-exports
+    ("axagent_core::cache_persister", "axagent_cache::cache_persister"),
+    ("axagent_core::cache_snapshot", "axagent_cache::cache_snapshot"),
+    ("axagent_core::cache", "axagent_cache::cache"),
 
-    # Insert new deps after [dependencies] line
-    insert_pos = None
-    for i, line in enumerate(new_lines):
-        if line.startswith("[dependencies]"):
-            insert_pos = i + 1
-            break
+    # MCP re-exports
+    ("axagent_core::mcp_client", "axagent_mcp::mcp_client"),
+    ("axagent_core::mcp_health", "axagent_mcp::mcp_health"),
+    ("axagent_core::mcp_oauth", "axagent_mcp::mcp_oauth"),
 
-    if insert_pos is not None:
-        for dep in needed_additions:
-            new_lines.insert(insert_pos, dep)
-            insert_pos += 1
+    # DAO re-exports
+    ("axagent_core::repo", "axagent_dao::repo"),
+    ("axagent_core::db", "axagent_dao::db"),
+    ("axagent_core::ddl", "axagent_dao::ddl"),
 
-    with open(cargo_path, "w") as f:
-        f.writelines(new_lines)
+    # Entities re-export
+    ("axagent_core::entity", "axagent_entities"),
 
-    action = "Removed axagent-core"
-    if needed_additions:
-        action += f", added {needed_additions}"
-    print(f"  {action}")
+    # Harness re-exports
+    ("axagent_core::workflow_types", "axagent_harness::workflow_types"),
+    ("axagent_core::platform_config", "axagent_harness::platform_config"),
+    ("axagent_core::constants", "axagent_harness::constants"),
+    ("axagent_core::error_codes", "axagent_harness::error_codes"),
+    ("axagent_core::error", "axagent_harness::core_error"),
+    ("axagent_core::persistence", "axagent_harness"),
+    ("axagent_core::i18n", "axagent_harness::i18n"),
+]
+
+def replace_in_file(filepath):
+    """Replace all axagent_core:: references in a single .rs file."""
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Skip files that don't contain axagent_core::
+    if "axagent_core::" not in content:
+        return False
+
+    old_content = content
+    for old, new in REPLACEMENTS:
+        content = content.replace(old, new)
+
+    if content != old_content:
+        print(f"  Modified: {os.path.relpath(filepath, ROOT)}")
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+        return True
+    return False
 
 def main():
-    for crate in TARGET_CRATES:
-        src_dir = os.path.join(CRATES_DIR, crate, "src")
-        if not os.path.exists(src_dir):
-            print(f"=== {crate}: src/ not found ===")
-            continue
+    files = find_rs_files()
+    print(f"Found {len(files)} .rs files to scan")
 
-        print(f"\n=== {crate} ===")
-        replacements_found = False
-        all_content = ""
+    modified = 0
+    for f in files:
+        if replace_in_file(f):
+            modified += 1
 
-        for root, dirs, files in os.walk(src_dir):
-            for fname in files:
-                if not fname.endswith(".rs"):
-                    continue
-                fpath = os.path.join(root, fname)
-                with open(fpath, "r") as f:
-                    content = f.read()
-
-                if "axagent_core::" not in content:
-                    continue
-
-                new_content = apply_replacements(content)
-                if new_content != content:
-                    with open(fpath, "w") as f:
-                        f.write(new_content)
-                    replacements_found = True
-                    # Count replacements
-                    count_old = content.count("axagent_core::")
-                    count_new = new_content.count("axagent_core::")
-                    print(f"  {os.path.relpath(fpath)}: {count_old - count_new} replacements")
-                    all_content += new_content
-
-        if not replacements_found:
-            print("  No axagent_core references found")
-
-        # Update Cargo.toml
-        with open(os.path.join(CRATES_DIR, crate, "src", "lib.rs")) if os.path.exists(os.path.join(CRATES_DIR, crate, "src", "lib.rs")) else open(os.devnull, "r"):
-            pass
-
-        # Determine needed deps from full source
-        full_src = ""
-        for root, dirs, files in os.walk(src_dir):
-            for fname in files:
-                if fname.endswith(".rs"):
-                    with open(os.path.join(root, fname)) as f:
-                        full_src += f.read()
-
-        used_modules = get_used_replacement_modules(full_src)
-        update_cargo_toml(crate, used_modules)
-
-    print("\n=== Done ===")
+    print(f"\nModified {modified} files")
+    print("Done!")
 
 if __name__ == "__main__":
     main()

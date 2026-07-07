@@ -12,7 +12,7 @@
 //! which provides fine-grained budget allocation across working memory, retrieved memories,
 //! skills, nudges, and session history.
 
-use axagent_core::token_counter;
+use axagent_kit::token_counter;
 use axagent_harness::types::{ChatContent, ChatMessage};
 use axagent_trajectory::{ContextAssembler, TokenBudget};
 

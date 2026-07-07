@@ -266,7 +266,7 @@ pub fn run() {
             let sea_db = state.harness.db().clone();
 
             spawn_block_on("session_reset", async move {
-                let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db).await;
+                let _ = axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await;
             })
             .unwrap_or_else(|e| {
                 tracing::error!("Session reset thread panicked: {:?}", e);
@@ -391,7 +391,7 @@ pub fn run() {
             let tray_language = {
                 let db = state.harness.db().clone();
                 spawn_block_on("tray_language", async move {
-                    axagent_core::repo::settings::get_settings(&db)
+                    axagent_dao::repo::settings::get_settings(&db)
                         .await
                         .map(|s| s.language)
                         .unwrap_or_else(|_| "en".to_string())

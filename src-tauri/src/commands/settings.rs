@@ -7,14 +7,14 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
-    let mut settings = axagent_core::repo::settings::get_settings(state.harness.db())
+    let mut settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
-    settings.backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+    settings.backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     settings.gateway_ssl_cert_path =
-        axagent_core::path_vars::decode_path_opt(&settings.gateway_ssl_cert_path);
+        axagent_storage::path_vars::decode_path_opt(&settings.gateway_ssl_cert_path);
     settings.gateway_ssl_key_path =
-        axagent_core::path_vars::decode_path_opt(&settings.gateway_ssl_key_path);
+        axagent_storage::path_vars::decode_path_opt(&settings.gateway_ssl_key_path);
     Ok(settings)
 }
 
@@ -25,12 +25,12 @@ pub async fn save_settings(
     state: State<'_, AppState>,
     mut settings: AppSettings,
 ) -> Result<(), String> {
-    settings.backup_dir = axagent_core::path_vars::encode_path_opt(&settings.backup_dir);
+    settings.backup_dir = axagent_storage::path_vars::encode_path_opt(&settings.backup_dir);
     settings.gateway_ssl_cert_path =
-        axagent_core::path_vars::encode_path_opt(&settings.gateway_ssl_cert_path);
+        axagent_storage::path_vars::encode_path_opt(&settings.gateway_ssl_cert_path);
     settings.gateway_ssl_key_path =
-        axagent_core::path_vars::encode_path_opt(&settings.gateway_ssl_key_path);
-    axagent_core::repo::settings::save_settings(state.harness.db(), &settings)
+        axagent_storage::path_vars::encode_path_opt(&settings.gateway_ssl_key_path);
+    axagent_dao::repo::settings::save_settings(state.harness.db(), &settings)
         .await
         .map_err(|e| e.to_string())?;
 

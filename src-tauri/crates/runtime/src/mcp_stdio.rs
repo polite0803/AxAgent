@@ -2,7 +2,7 @@
 
 //! MCP stdio transport implementation.
 //!
-//! **DEPRECATED**: 请使用 `axagent_core::mcp_client` 替代。
+//! **DEPRECATED**: 请使用 `axagent_mcp::mcp_client` 替代。
 //! 此模块将在后续版本中删除。
 //!
 //! 迁移计划:
@@ -1390,7 +1390,7 @@ impl Drop for McpStdioProcess {
     }
 }
 
-// DEPRECATED: 使用 axagent_core::mcp_client 替代
+// DEPRECATED: 使用 axagent_mcp::mcp_client 替代
 pub fn spawn_mcp_stdio_process(bootstrap: &McpClientBootstrap) -> io::Result<McpStdioProcess> {
     match &bootstrap.transport {
         McpClientTransport::Stdio(transport) => McpStdioProcess::spawn(transport),

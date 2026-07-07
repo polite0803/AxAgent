@@ -4,8 +4,8 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
 use crate::commands::spawn_guard::panic_message;
-use axagent_core::repo::backup;
-use axagent_core::repo::settings::get_settings;
+use axagent_dao::repo::backup;
+use axagent_dao::repo::settings::get_settings;
 use axagent_harness::types::*;
 use axagent_storage::DefaultPathEncoder;
 use futures::FutureExt;
@@ -32,7 +32,7 @@ pub async fn create_backup(
     let settings = get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
-    let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+    let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
     backup::create_backup(state.harness.db(), &format, &backup_dir, &DefaultPathEncoder)
         .await
@@ -124,7 +124,7 @@ pub async fn get_backup_settings(state: State<'_, AppState>) -> Result<AutoBacku
     let settings = get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
-    let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+    let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let default_dir = backup::resolve_backup_dir(None, &state.app_data_dir);
     Ok(AutoBackupSettings {
         enabled: settings.auto_backup_enabled,
@@ -148,9 +148,9 @@ pub async fn update_backup_settings(
     settings.auto_backup_enabled = backup_settings.enabled;
     settings.auto_backup_interval_hours = backup_settings.interval_hours;
     settings.auto_backup_max_count = backup_settings.max_count;
-    settings.backup_dir = axagent_core::path_vars::encode_path_opt(&backup_settings.backup_dir);
+    settings.backup_dir = axagent_storage::path_vars::encode_path_opt(&backup_settings.backup_dir);
 
-    axagent_core::repo::settings::save_settings(state.harness.db(), &settings)
+    axagent_dao::repo::settings::save_settings(state.harness.db(), &settings)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -224,7 +224,7 @@ async fn restart_auto_backup(
                 // Read current settings to get backup_dir
                 let backup_dir = match get_settings(&db).await {
                     Ok(s) => {
-                        let decoded = axagent_core::path_vars::decode_path_opt(&s.backup_dir);
+                        let decoded = axagent_storage::path_vars::decode_path_opt(&s.backup_dir);
                         backup::resolve_backup_dir(decoded.as_deref(), &app_dir)
                     },
                     Err(_) => backup::resolve_backup_dir(None, &app_dir),
@@ -393,7 +393,7 @@ pub async fn download_cloud_backup(
     let settings = get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
-    let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+    let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
     std::fs::create_dir_all(&backup_dir).map_err(|e| format!("创建备份目录失败: {}", e))?;
 

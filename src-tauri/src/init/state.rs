@@ -13,7 +13,7 @@ use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::state::{BrowserClientField, SandboxExecutorField};
-use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
+use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use tokio_util::sync::CancellationToken;
@@ -36,7 +36,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 这些组件后续在 Step 5/6 也会迁到 harness 内部。
     let sea_db = db_handle.conn.clone();
 
-    let vector_store = axagent_core::vector_store::VectorStore::new(sea_db.clone());
+    let vector_store = axagent_search::vector_store::VectorStore::new(sea_db.clone());
     let vector_store_arc = Arc::new(vector_store);
 
     {
@@ -92,19 +92,19 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
 
     // ensure_preset_servers / migrate_hardcoded_paths / migrate_legacy_keys
-    // 已合并到 axagent_core::db::create_pool() 中，无需在此重复调用
+    // 已合并到 axagent_dao::db::create_pool() 中，无需在此重复调用
 
-    let app_settings = axagent_core::repo::settings::get_settings(&sea_db)
+    let app_settings = axagent_dao::repo::settings::get_settings(&sea_db)
         .await
         .unwrap_or_default();
 
-    axagent_core::storage_paths::init_documents_root(
+    axagent_storage::storage_paths::init_documents_root(
         app_settings
             .documents_root_override
             .as_ref()
             .map(PathBuf::from),
     );
-    axagent_core::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
+    axagent_storage::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
         tracing::warn!("Failed to create documents storage dirs (non-critical on mobile): {}", e);
     });
 
@@ -182,7 +182,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     let config_home = app_dir.clone();
     let mut plugin_config = PluginManagerConfig::new(config_home.clone());
-    plugin_config.external_dirs = axagent_core::skill_dirs::all_skills_dirs();
+    plugin_config.external_dirs = axagent_kit::skill_dirs::all_skills_dirs();
     let plugin_manager = Arc::new(tokio::sync::RwLock::new(PluginManager::new(plugin_config)));
 
     // ── Extract every AppState field into a local so that the same values
@@ -360,7 +360,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             axagent_runtime::dashboard_registry::DashboardRegistry::new_with_config(
                 axagent_runtime::dashboard_registry::DashboardRegistryConfig {
                     plugin_dirs: vec![
-                        axagent_core::storage_paths::documents_root().join("dashboard-plugins"),
+                        axagent_storage::storage_paths::documents_root().join("dashboard-plugins"),
                     ],
                     auto_load: true,
                 },
@@ -423,7 +423,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
     #[cfg(not(target_os = "android"))]
     let browser_client: Arc<
-        tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>,
+        tokio::sync::Mutex<Option<axagent_kit::browser_automation::PlaywrightClient>>,
     > = Arc::new(tokio::sync::Mutex::new(None));
     #[cfg(target_os = "android")]
     let browser_client: Arc<tokio::sync::Mutex<Option<()>>> =
@@ -480,7 +480,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             Arc::new(axagent_trajectory::SkillSandboxExecutor::with_default_policy())
         }
     };
-    let file_authorizer = Arc::new(axagent_core::file_authorizer::FileAuthorizer::new());
+    let file_authorizer = Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new());
     let session_share_manager: crate::app_state::SessionShareStore =
         Arc::new(TokioRwLock::new(std::collections::HashMap::new()));
     let sandbox_executor_field: SandboxExecutorField = {
@@ -691,8 +691,8 @@ async fn load_cloud_storage_config(
     sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_harness::types::AppSettings,
 ) -> Option<CloudStorageConfig> {
-    use axagent_core::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};
-    let settings = axagent_core::repo::settings::get_settings(sea_db)
+    use axagent_storage::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};
+    let settings = axagent_dao::repo::settings::get_settings(sea_db)
         .await
         .ok()?;
 
@@ -721,7 +721,7 @@ async fn load_cloud_storage_config(
         webdav: settings
             .webdav_host
             .as_ref()
-            .map(|h| axagent_core::cloud_storage::WebDavConfig {
+            .map(|h| axagent_storage::cloud_storage::WebDavConfig {
                 host: h.clone(),
                 username: settings.webdav_username.clone().unwrap_or_default(),
                 password: settings.webdav_password.clone().unwrap_or_default(),

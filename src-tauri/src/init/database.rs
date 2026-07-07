@@ -40,7 +40,7 @@ pub fn restrict_file_permissions(path: &Path) -> Result<(), String> {
 }
 
 pub struct DatabaseInitResult {
-    pub db_handle: axagent_core::db::DbHandle,
+    pub db_handle: axagent_dao::db::DbHandle,
     pub db_path: String,
     pub master_key: [u8; 32],
     pub app_dir: PathBuf,
@@ -52,7 +52,7 @@ pub struct DatabaseInitResult {
 /// 子线程中 `dirs::data_dir()` 因缺少 JNI 上下文不可用。
 /// 此函数跳过路径解析，直接使用传入的目录。
 pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResult, String> {
-    axagent_core::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
+    axagent_storage::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
         tracing::warn!(
             "Failed to create documents storage dirs (non-critical, will retry later): {}",
             e
@@ -67,7 +67,7 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
     // 注册 sqlite-vec 扩展。在 Android 上默认跳过（见 vector_store.rs），
     // 在桌面平台用 catch_unwind 防止 FFI 异常 panic。
     let vec_registration = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        axagent_core::vector_store::register_sqlite_vec_extension();
+        axagent_search::vector_store::register_sqlite_vec_extension();
     }));
     if let Err(e) = vec_registration {
         let msg = if let Some(s) = e.downcast_ref::<String>() {
@@ -85,18 +85,18 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
     axagent_tools::global_state::set_db_path(&db_path);
 
     // 直接使用当前 tokio runtime，不再创建嵌套 Runtime
-    let db_handle = axagent_core::db::create_pool(&db_path)
+    let db_handle = axagent_dao::db::create_pool(&db_path)
         .await
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
     // MCP 预设服务器播种（依赖 mcp_client，在 core 中）
-    if let Err(e) = axagent_core::repo::mcp_server::ensure_preset_servers(&db_handle.conn).await {
+    if let Err(e) = axagent_dao::repo::mcp_server::ensure_preset_servers(&db_handle.conn).await {
         tracing::warn!("[DB] MCP 预设服务器迁移失败: {e}");
     }
 
     // 硬编码路径 → 模板变量迁移（已迁入 storage，直接调用）
     // 注意：此函数已从 path_vars 移除，迁移逻辑由各模块自行处理
-    // axagent_core::path_vars::migrate_hardcoded_paths(&db_handle.conn).await;
+    // axagent_storage::path_vars::migrate_hardcoded_paths(&db_handle.conn).await;
 
     // 注册 SeaORM 连接
     axagent_tools::global_state::set_sea_db(std::sync::Arc::new(db_handle.conn.clone()));
@@ -141,7 +141,7 @@ fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32]
                 key_path.display()
             ));
         }
-        let key = axagent_core::crypto::generate_master_key();
+        let key = axagent_crypto::generate_master_key();
         std::fs::write(key_path, key).map_err(|e| format!("failed to write master key: {}", e))?;
         restrict_file_permissions(key_path)?;
         Ok(key)

@@ -23,7 +23,7 @@ impl CachePersister {
 
     /// Create a persister that stores snapshots under the application's
     /// documents root (typically `~/Documents/axagent/cache/`).
-    /// Requires `axagent_core::storage_paths::documents_root()` at the call site.
+    /// Requires `axagent_storage::storage_paths::documents_root()` at the call site.
     pub fn with_default_path() -> Self {
         Self {
             snapshot_dir: PathBuf::from("cache"),

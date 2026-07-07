@@ -11,12 +11,12 @@ pub async fn regenerate_conversation_title(
     let master_key = state.harness.master_key_owned();
 
     // Load conversation
-    let conversation = axagent_core::repo::conversation::get_conversation(&db, &conversation_id)
+    let conversation = axagent_dao::repo::conversation::get_conversation(&db, &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
     // Load all messages to build full conversation context for title generation
-    let messages = axagent_core::repo::message::list_messages(&db, &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(&db, &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -31,16 +31,16 @@ pub async fn regenerate_conversation_title(
     }
 
     // Load provider for fallback
-    let provider = axagent_core::repo::provider::get_provider(&db, &conversation.provider_id)
+    let provider = axagent_dao::repo::provider::get_provider(&db, &conversation.provider_id)
         .await
         .map_err(|e| e.to_string())?;
-    let key_row = axagent_core::repo::provider::get_active_key(&db, &provider.id)
+    let key_row = axagent_dao::repo::provider::get_active_key(&db, &provider.id)
         .await
         .map_err(|e| e.to_string())?;
-    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &master_key)
+    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, &master_key)
         .map_err(|e| e.to_string())?;
 
-    let global_settings = axagent_core::repo::settings::get_settings(&db)
+    let global_settings = axagent_dao::repo::settings::get_settings(&db)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -103,7 +103,7 @@ pub async fn regenerate_conversation_title(
 
         match ai_title {
             Ok(title) => {
-                if let Err(e) = axagent_core::repo::conversation::update_conversation_title(
+                if let Err(e) = axagent_dao::repo::conversation::update_conversation_title(
                     &db, &conv_id, &title,
                 )
                 .await
@@ -222,12 +222,12 @@ pub(crate) async fn sync_context_sources(
     conversation_id: &str,
     conversation: &Conversation,
 ) -> Result<(), String> {
-    axagent_core::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
+    axagent_dao::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
     for kb_id in &conversation.enabled_knowledge_base_ids {
-        let title = axagent_core::repo::knowledge::get_knowledge_base(db, kb_id)
+        let title = axagent_dao::repo::knowledge::get_knowledge_base(db, kb_id)
             .await
             .map(|kb| kb.name)
             .unwrap_or_else(|_| kb_id.clone());
@@ -239,13 +239,13 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_core::repo::context_source::add_context_source(db, &input)
+        axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     for mem_id in &conversation.enabled_memory_namespace_ids {
-        let title = axagent_core::repo::memory::get_namespace(db, mem_id)
+        let title = axagent_dao::repo::memory::get_namespace(db, mem_id)
             .await
             .map(|ns| ns.name)
             .unwrap_or_else(|_| mem_id.clone());
@@ -257,13 +257,13 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_core::repo::context_source::add_context_source(db, &input)
+        axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
             .map_err(|e| e.to_string())?;
     }
 
     for wiki_id in &conversation.enabled_wiki_ids {
-        let title = axagent_core::repo::wiki::get_wiki(db, wiki_id)
+        let title = axagent_dao::repo::wiki::get_wiki(db, wiki_id)
             .await
             .map(|w| w.name)
             .unwrap_or_else(|_| wiki_id.clone());
@@ -275,7 +275,7 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_core::repo::context_source::add_context_source(db, &input)
+        axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
             .map_err(|e| e.to_string())?;
     }
@@ -294,7 +294,7 @@ pub(crate) async fn resolve_rag_ids(
     let mut mem = Vec::new();
     let mut wiki = Vec::new();
 
-    match axagent_core::repo::context_source::list_context_sources(db, conversation_id).await {
+    match axagent_dao::repo::context_source::list_context_sources(db, conversation_id).await {
         Ok(sources) => {
             for src in sources {
                 if !src.enabled {
@@ -358,7 +358,7 @@ pub(crate) fn apply_rag_token_budget(context_parts: &[String], budget: usize) ->
     let mut rag_tokens = 0usize;
     for (i, part) in context_parts.iter().enumerate() {
         let item = format!("<memory-item id=\"rag-{}\">\n{}\n</memory-item>", i, part);
-        let item_tokens = axagent_core::token_counter::estimate_tokens(&item);
+        let item_tokens = axagent_kit::token_counter::estimate_tokens(&item);
         if rag_tokens + item_tokens > budget {
             tracing::warn!(
                 "RAG context budget exceeded: {}+{} > {}, truncating at item {}",
@@ -377,11 +377,11 @@ pub(crate) fn apply_rag_token_budget(context_parts: &[String], budget: usize) ->
 #[test]
 pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
     let temp_dir =
-        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
     fs::create_dir_all(&temp_dir).expect("创建临时目录失败");
 
     let result = {
-        let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+        let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
         let saved = file_store
             .save_file(b"abc", "image.png", "image/png")
             .expect("操作失败");
@@ -440,11 +440,11 @@ pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
 #[test]
 pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_is_missing() {
     let temp_dir =
-        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_core::utils::gen_id()));
+        std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
     fs::create_dir_all(&temp_dir).expect("创建临时目录失败");
 
     let result = {
-        let file_store = axagent_core::file_store::FileStore::with_root(temp_dir.clone());
+        let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
         let message = Message {
             id: "msg-1".into(),
             conversation_id: "conv-1".into(),

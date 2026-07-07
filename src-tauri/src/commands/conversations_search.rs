@@ -50,7 +50,7 @@ pub async fn session_search(
         let snippet: String = row.try_get("", "snippet").map_err(|e| e.to_string())?;
         let rank: f64 = row.try_get("", "rank").map_err(|e| e.to_string())?;
 
-        let title = axagent_core::repo::conversation::get_conversation(
+        let title = axagent_dao::repo::conversation::get_conversation(
             state.harness.db(),
             &conversation_id,
         )

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::prompts::PromptLang;
-use axagent_core::repo::index_jobs as jobs;
+use axagent_kit::prompts::PromptLang;
+use axagent_dao::repo::index_jobs as jobs;
 use axagent_harness::types::*;
 use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
 use sea_orm::ActiveModelTrait;
@@ -24,7 +24,7 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
 pub async fn list_memory_namespaces(
     state: State<'_, AppState>,
 ) -> Result<Vec<MemoryNamespace>, String> {
-    axagent_core::repo::memory::list_namespaces(state.harness.db())
+    axagent_dao::repo::memory::list_namespaces(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
@@ -34,14 +34,14 @@ pub async fn create_memory_namespace(
     state: State<'_, AppState>,
     input: CreateMemoryNamespaceInput,
 ) -> Result<MemoryNamespace, String> {
-    axagent_core::repo::memory::create_namespace(state.harness.db(), input)
+    axagent_dao::repo::memory::create_namespace(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn delete_memory_namespace(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::memory::delete_namespace(state.harness.db(), &id)
+    axagent_dao::repo::memory::delete_namespace(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -52,7 +52,7 @@ pub async fn update_memory_namespace(
     id: String,
     input: UpdateMemoryNamespaceInput,
 ) -> Result<MemoryNamespace, String> {
-    axagent_core::repo::memory::update_namespace(state.harness.db(), &id, input)
+    axagent_dao::repo::memory::update_namespace(state.harness.db(), &id, input)
         .await
         .map_err(|e| e.to_string())
 }
@@ -73,11 +73,11 @@ pub async fn list_memory_items(
         );
     }
     // Verify namespace exists before accessing its items
-    let ns = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+    let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
     let _ = ns; // Namespace exists, proceed
-    axagent_core::repo::memory::list_items(state.harness.db(), &namespace_id)
+    axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -88,17 +88,17 @@ pub async fn add_memory_item(
     state: State<'_, AppState>,
     input: CreateMemoryItemInput,
 ) -> Result<MemoryItem, String> {
-    let item = axagent_core::repo::memory::add_item(state.harness.db(), input)
+    let item = axagent_dao::repo::memory::add_item(state.harness.db(), input)
         .await
         .map_err(|e| e.to_string())?;
 
     // Spawn async embedding task if namespace has an embedding provider
-    let ns = axagent_core::repo::memory::get_namespace(state.harness.db(), &item.namespace_id)
+    let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &item.namespace_id)
         .await
         .map_err(|e| e.to_string())?;
 
     if ns.embedding_provider.is_some() {
-        let _ = axagent_core::repo::memory::update_item_index_status(
+        let _ = axagent_dao::repo::memory::update_item_index_status(
             state.harness.db(),
             &item.id,
             "pending",
@@ -124,7 +124,7 @@ pub async fn add_memory_item(
         })
     } else {
         // No embedding provider — mark as skipped
-        let _ = axagent_core::repo::memory::update_item_index_status(
+        let _ = axagent_dao::repo::memory::update_item_index_status(
             state.harness.db(),
             &item.id,
             "skipped",
@@ -151,7 +151,7 @@ pub async fn delete_memory_item(
         .delete_document_embeddings(&collection_id, &id)
         .await;
 
-    axagent_core::repo::memory::delete_item(state.harness.db(), &id)
+    axagent_dao::repo::memory::delete_item(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -165,18 +165,18 @@ pub async fn update_memory_item(
     input: UpdateMemoryItemInput,
 ) -> Result<MemoryItem, String> {
     let content_changed = input.content.is_some();
-    let item = axagent_core::repo::memory::update_item(state.harness.db(), &id, input)
+    let item = axagent_dao::repo::memory::update_item(state.harness.db(), &id, input)
         .await
         .map_err(|e| e.to_string())?;
 
     // Re-index if content changed and namespace has embedding provider
     if content_changed {
-        let ns = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+        let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
             .await
             .map_err(|e| e.to_string())?;
 
         if ns.embedding_provider.is_some() {
-            let _ = axagent_core::repo::memory::update_item_index_status(
+            let _ = axagent_dao::repo::memory::update_item_index_status(
                 state.harness.db(),
                 &id,
                 "pending",
@@ -212,7 +212,7 @@ pub async fn search_memory(
     namespace_id: String,
     query: String,
     top_k: Option<usize>,
-) -> Result<Vec<axagent_core::vector_store::VectorSearchResult>, String> {
+) -> Result<Vec<axagent_search::vector_store::VectorSearchResult>, String> {
     // Validate namespace_id format (prevent injection)
     if namespace_id.is_empty()
         || namespace_id.len() > 128
@@ -224,7 +224,7 @@ pub async fn search_memory(
         );
     }
     // Verify namespace exists before searching
-    let ns = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+    let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
     let _ = ns; // Namespace exists, proceed
@@ -246,7 +246,7 @@ pub async fn rebuild_memory_index(
     state: State<'_, AppState>,
     namespace_id: String,
 ) -> Result<(), String> {
-    let ns = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+    let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -257,12 +257,12 @@ pub async fn rebuild_memory_index(
     let collection_id = format!("mem_{}", namespace_id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    let items = axagent_core::repo::memory::list_items(state.harness.db(), &namespace_id)
+    let items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
 
     for item in &items {
-        let _ = axagent_core::repo::memory::update_item_index_status(
+        let _ = axagent_dao::repo::memory::update_item_index_status(
             state.harness.db(),
             &item.id,
             "pending",
@@ -293,7 +293,7 @@ pub async fn auto_extract_incremental_memories(
     conversation_id: String,
     namespace_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_core::entity::conversations;
+    use axagent_entities::conversations;
     use sea_orm::EntityTrait;
 
     let conv = conversations::Entity::find_by_id(&conversation_id)
@@ -323,7 +323,7 @@ pub async fn auto_extract_incremental_memories(
         if provided_id.is_empty() {
             None
         } else {
-            match axagent_core::repo::memory::get_namespace(state.harness.db(), provided_id).await {
+            match axagent_dao::repo::memory::get_namespace(state.harness.db(), provided_id).await {
                 Ok(_) => Some(provided_id.clone()),
                 Err(_) => {
                     return Ok(serde_json::json!({
@@ -341,7 +341,7 @@ pub async fn auto_extract_incremental_memories(
         Some(id) => id,
         None => {
             // 回退：找 name 含 "auto" 或 "default" 的 namespace
-            let default_ns = axagent_core::repo::memory::list_namespaces(state.harness.db())
+            let default_ns = axagent_dao::repo::memory::list_namespaces(state.harness.db())
                 .await
                 .map_err(|e| e.to_string())?
                 .into_iter()
@@ -361,7 +361,7 @@ pub async fn auto_extract_incremental_memories(
         },
     };
 
-    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -380,7 +380,7 @@ pub async fn auto_extract_incremental_memories(
     };
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_core::repo::settings::get_settings(state.harness.db())
+        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
             .await
             .unwrap_or_default();
         let provider_id = settings
@@ -392,10 +392,10 @@ pub async fn auto_extract_incremental_memories(
             .as_deref()
             .ok_or("No default model configured")?;
 
-        let provider = axagent_core::repo::provider::get_provider(state.harness.db(), provider_id)
+        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
-        let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), provider_id)
+        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -403,7 +403,7 @@ pub async fn auto_extract_incremental_memories(
     };
 
     let api_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
@@ -445,7 +445,7 @@ pub async fn auto_extract_incremental_memories(
         return Ok(serde_json::json!({"extracted": 0, "skipped": false}));
     }
 
-    let ns_config = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+    let ns_config = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
         .ok();
     let can_vector_dedup = ns_config
@@ -453,7 +453,7 @@ pub async fn auto_extract_incremental_memories(
         .and_then(|ns| ns.embedding_provider.clone())
         .is_some();
 
-    let existing_items = axagent_core::repo::memory::list_items(state.harness.db(), &namespace_id)
+    let existing_items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
     let existing_contents: std::collections::HashSet<String> = existing_items
@@ -489,14 +489,14 @@ pub async fn auto_extract_incremental_memories(
             content: item.content.clone(),
             source: Some("auto_extract".to_string()),
         };
-        if let Ok(mem_item) = axagent_core::repo::memory::add_item(state.harness.db(), input).await
+        if let Ok(mem_item) = axagent_dao::repo::memory::add_item(state.harness.db(), input).await
         {
-            let ns = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+            let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
                 .await
                 .ok();
             if let Some(ns) = ns {
                 if ns.embedding_provider.is_some() {
-                    let _ = axagent_core::repo::memory::update_item_index_status(
+                    let _ = axagent_dao::repo::memory::update_item_index_status(
                         state.harness.db(),
                         &mem_item.id,
                         "pending",
@@ -574,12 +574,12 @@ pub async fn clear_memory_index(
         .map_err(|e| e.to_string())?;
 
     // Reset all items to "pending"
-    let items = axagent_core::repo::memory::list_items(state.harness.db(), &namespace_id)
+    let items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
 
     for item in items {
-        let _ = axagent_core::repo::memory::update_item_index_status(
+        let _ = axagent_dao::repo::memory::update_item_index_status(
             state.harness.db(),
             &item.id,
             "pending",
@@ -598,7 +598,7 @@ pub async fn reindex_memory_item(
     namespace_id: String,
     item_id: String,
 ) -> Result<(), String> {
-    let ns = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+    let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -606,7 +606,7 @@ pub async fn reindex_memory_item(
         return Err("No embedding provider configured".to_string());
     }
 
-    let _ = axagent_core::repo::memory::update_item_index_status(
+    let _ = axagent_dao::repo::memory::update_item_index_status(
         state.harness.db(),
         &item_id,
         "pending",
@@ -653,15 +653,15 @@ pub async fn sync_working_memory_to_namespace(
             content: content.clone(),
             source: Some("auto_extract".to_string()),
         };
-        match axagent_core::repo::memory::add_item(state.harness.db(), input).await {
+        match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
                 let ns =
-                    axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+                    axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
                         .await
                         .ok();
                 if let Some(ns) = ns {
                     if ns.embedding_provider.is_some() {
-                        let _ = axagent_core::repo::memory::update_item_index_status(
+                        let _ = axagent_dao::repo::memory::update_item_index_status(
                             state.harness.db(),
                             &mem_item.id,
                             "pending",
@@ -680,7 +680,7 @@ pub async fn sync_working_memory_to_namespace(
                             None,
                         );
                     } else {
-                        let _ = axagent_core::repo::memory::update_item_index_status(
+                        let _ = axagent_dao::repo::memory::update_item_index_status(
                             state.harness.db(),
                             &mem_item.id,
                             "skipped",
@@ -707,7 +707,7 @@ pub async fn reorder_memory_namespaces(
     state: State<'_, AppState>,
     namespace_ids: Vec<String>,
 ) -> Result<(), String> {
-    axagent_core::repo::memory::reorder_namespaces(state.harness.db(), &namespace_ids)
+    axagent_dao::repo::memory::reorder_namespaces(state.harness.db(), &namespace_ids)
         .await
         .map_err(|e| e.to_string())
 }
@@ -788,7 +788,7 @@ pub async fn extract_conversation_entities(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<serde_json::Value, String> {
-    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -797,7 +797,7 @@ pub async fn extract_conversation_entities(
     }
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_core::repo::settings::get_settings(state.harness.db())
+        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
             .await
             .unwrap_or_default();
         let provider_id = settings
@@ -808,17 +808,17 @@ pub async fn extract_conversation_entities(
             .default_model_id
             .as_deref()
             .ok_or("No default model configured")?;
-        let provider = axagent_core::repo::provider::get_provider(state.harness.db(), provider_id)
+        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
-        let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), provider_id)
+        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
         (provider, key_row, model_id.to_string(), settings)
     };
 
     let api_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
@@ -1108,7 +1108,7 @@ pub async fn consolidate_memory_cluster(
     drop(ms);
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_core::repo::settings::get_settings(state.harness.db())
+        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
             .await
             .unwrap_or_default();
         let provider_id = settings
@@ -1119,17 +1119,17 @@ pub async fn consolidate_memory_cluster(
             .default_model_id
             .as_deref()
             .ok_or("No default model configured")?;
-        let provider = axagent_core::repo::provider::get_provider(state.harness.db(), provider_id)
+        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
-        let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), provider_id)
+        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
         (provider, key_row, model_id.to_string(), settings)
     };
 
     let api_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
@@ -1257,12 +1257,12 @@ pub async fn extract_conversation_memories(
     conversation_id: String,
     namespace_id: String,
 ) -> Result<Vec<MemoryItem>, String> {
-    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
     let (provider, key_row, model_id, settings) = {
-        let settings = axagent_core::repo::settings::get_settings(state.harness.db())
+        let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
             .await
             .unwrap_or_default();
         let provider_id = settings
@@ -1274,10 +1274,10 @@ pub async fn extract_conversation_memories(
             .as_deref()
             .ok_or("No default model configured")?;
 
-        let provider = axagent_core::repo::provider::get_provider(state.harness.db(), provider_id)
+        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
-        let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), provider_id)
+        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -1285,7 +1285,7 @@ pub async fn extract_conversation_memories(
     };
 
     let api_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &settings);
@@ -1323,7 +1323,7 @@ pub async fn extract_conversation_memories(
     )
     .await?;
 
-    let existing_items = axagent_core::repo::memory::list_items(state.harness.db(), &namespace_id)
+    let existing_items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| e.to_string())?;
     let existing_contents: std::collections::HashSet<String> = existing_items
@@ -1331,7 +1331,7 @@ pub async fn extract_conversation_memories(
         .map(|item| item.content.to_lowercase().trim().to_string())
         .collect();
 
-    let ns_config = axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+    let ns_config = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
         .ok();
     let can_vector_dedup = ns_config
@@ -1368,15 +1368,15 @@ pub async fn extract_conversation_memories(
             content: item.content.clone(),
             source: Some("auto_extract".to_string()),
         };
-        match axagent_core::repo::memory::add_item(state.harness.db(), input).await {
+        match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
                 let ns =
-                    axagent_core::repo::memory::get_namespace(state.harness.db(), &namespace_id)
+                    axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
                         .await
                         .ok();
                 if let Some(ns) = ns {
                     if ns.embedding_provider.is_some() {
-                        let _ = axagent_core::repo::memory::update_item_index_status(
+                        let _ = axagent_dao::repo::memory::update_item_index_status(
                             state.harness.db(),
                             &mem_item.id,
                             "pending",
@@ -1432,7 +1432,7 @@ pub async fn extract_conversation_memories(
                     }
                 }
 
-                let _ = axagent_core::repo::memory::update_item_index_status(
+                let _ = axagent_dao::repo::memory::update_item_index_status(
                     state.harness.db(),
                     &mem_item.id,
                     "skipped",
@@ -1492,7 +1492,7 @@ async fn update_conversation_memory_status(
     conversation_id: &str,
     action: &str,
 ) -> Result<(), String> {
-    use axagent_core::entity::conversations;
+    use axagent_entities::conversations;
     use sea_orm::{EntityTrait, Set};
 
     let conv = conversations::Entity::find_by_id(conversation_id)

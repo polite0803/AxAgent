@@ -47,7 +47,7 @@ pub(super) fn skills_dir() -> PathBuf {
 }
 
 fn all_skills_dirs() -> Vec<PathBuf> {
-    axagent_core::skill_dirs::all_skills_dirs()
+    axagent_kit::skill_dirs::all_skills_dirs()
 }
 
 #[allow(dead_code)]
@@ -149,7 +149,7 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
     }
     let plugins = report.into_registry_allowing_failures();
 
-    let disabled = axagent_core::repo::skill::get_disabled_skills(state.harness.db())
+    let disabled = axagent_dao::repo::skill::get_disabled_skills(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -237,7 +237,7 @@ pub async fn get_skill(
             ErrorResponse::new(skill_err::NOT_FOUND).with_param("name".to_string(), name.clone())
         })?;
 
-    let disabled = axagent_core::repo::skill::get_disabled_skills(state.harness.db())
+    let disabled = axagent_dao::repo::skill::get_disabled_skills(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -363,7 +363,7 @@ pub async fn toggle_skill(
     name: String,
     enabled: bool,
 ) -> Result<(), ErrorResponse> {
-    axagent_core::repo::skill::set_skill_enabled(state.harness.db(), &name, enabled)
+    axagent_dao::repo::skill::set_skill_enabled(state.harness.db(), &name, enabled)
         .await
         .map_err(|e| e.to_string())?;
     let _ = app.emit(
@@ -602,7 +602,7 @@ async fn install_from_github(
         std::fs::remove_dir_all(&skill_target).map_err(|e| e.to_string())?;
     }
 
-    let mut git_cmd = axagent_core::utils::cmd("git");
+    let mut git_cmd = axagent_kit::utils::cmd("git");
     let git_available = git_cmd
         .arg("--version")
         .output()
@@ -610,7 +610,7 @@ async fn install_from_github(
         .unwrap_or(false);
 
     if git_available {
-        let output = axagent_core::utils::cmd("git")
+        let output = axagent_kit::utils::cmd("git")
             .args([
                 "clone",
                 "--depth",
@@ -761,7 +761,7 @@ async fn install_from_github_zipball(
 }
 
 fn get_git_commit(repo_path: &Path) -> Option<String> {
-    let output = axagent_core::utils::cmd("git")
+    let output = axagent_kit::utils::cmd("git")
         .args(["rev-parse", "HEAD"])
         .current_dir(repo_path)
         .output()
@@ -889,7 +889,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
     std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&skill_dir).map_err(|e| e.to_string())?;
 
-    let output = axagent_core::utils::cmd("git")
+    let output = axagent_kit::utils::cmd("git")
         .args([
             "clone",
             "--depth",
@@ -904,7 +904,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
         return Err(format!("Git clone failed: {}", String::from_utf8_lossy(&output.stderr)));
     }
 
-    let checkout_output = axagent_core::utils::cmd("git")
+    let checkout_output = axagent_kit::utils::cmd("git")
         .args(["checkout", &target_version])
         .current_dir(&skill_dir)
         .output()

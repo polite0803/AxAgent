@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::repo::agent_role;
+use axagent_dao::repo::agent_role;
 use axagent_harness::types::AgentRoleDef;
 use serde::Serialize;
 use std::fs;
@@ -100,14 +100,14 @@ pub async fn update_agent_role(
     system_prompt: String,
 ) -> Result<(), String> {
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-    let row = axagent_core::entity::agent_roles::Entity::find_by_id(&id)
+    let row = axagent_entities::agent_roles::Entity::find_by_id(&id)
         .one(app_state.harness.db())
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Role {} not found", id))?;
-    let mut am: axagent_core::entity::agent_roles::ActiveModel = row.into();
+    let mut am: axagent_entities::agent_roles::ActiveModel = row.into();
     am.system_prompt = Set(system_prompt);
-    am.updated_at = Set(axagent_core::utils::now_ts());
+    am.updated_at = Set(axagent_kit::utils::now_ts());
     am.update(app_state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
@@ -185,7 +185,7 @@ fn parse_open_agent_spec(yaml_str: &str) -> Result<AgentRoleDef, String> {
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
-    let now = axagent_core::utils::now_ts();
+    let now = axagent_kit::utils::now_ts();
 
     Ok(AgentRoleDef {
         id: role_id,

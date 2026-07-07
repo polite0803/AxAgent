@@ -1971,7 +1971,7 @@ impl Tool for ReadXlsxTool {
             return Ok(ToolResult::error(format!("文件未找到: {}", file_path)));
         }
 
-        match axagent_core::document_parser::extract_text(
+        match axagent_document_parser::extract_text(
             path,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         ) {
@@ -2025,7 +2025,7 @@ impl Tool for ReadPptxTool {
             return Ok(ToolResult::error(format!("文件未找到: {}", file_path)));
         }
 
-        match axagent_core::document_parser::extract_text(
+        match axagent_document_parser::extract_text(
             path,
             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         ) {

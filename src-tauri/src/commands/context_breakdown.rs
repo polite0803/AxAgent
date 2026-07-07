@@ -53,9 +53,9 @@ async fn count_messages_by_role(
     use sea_orm::QueryFilter;
     use sea_orm::entity::prelude::*;
 
-    let rows = axagent_core::entity::messages::Entity::find()
-        .filter(axagent_core::entity::messages::Column::ConversationId.eq(conversation_id))
-        .filter(axagent_core::entity::messages::Column::IsActive.eq(1))
+    let rows = axagent_entities::messages::Entity::find()
+        .filter(axagent_entities::messages::Column::ConversationId.eq(conversation_id))
+        .filter(axagent_entities::messages::Column::IsActive.eq(1))
         .all(db)
         .await
         .map_err(|e| e.to_string())?;
@@ -87,7 +87,7 @@ pub async fn get_context_breakdown(
     let db = state.harness.db();
 
     // ── 1) 获取对话配置 ──
-    let conv = axagent_core::repo::conversation::get_conversation(db, &conversation_id)
+    let conv = axagent_dao::repo::conversation::get_conversation(db, &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 

@@ -18,7 +18,7 @@ pub(super) async fn check_and_suggest_workflow_match(
     conversation_id: &str,
     user_input: &str,
 ) -> Result<(), String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use sea_orm::EntityTrait;
 
     let input_lower = user_input.to_lowercase();
@@ -181,7 +181,7 @@ pub(super) async fn load_enabled_skill_contents(
     enabled_skill_ids: &[String],
 ) -> Vec<(String, String)> {
     let disabled =
-        match axagent_core::repo::skill::get_disabled_skills(app_state.harness.db()).await {
+        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
             Ok(d) => d,
             Err(_) => return Vec::new(),
         };
@@ -268,7 +268,7 @@ pub(super) async fn load_skill_tools(
     enabled_skill_ids: &[String],
 ) -> (Vec<ChatTool>, HashMap<String, axagent_trajectory::Skill>) {
     let disabled =
-        match axagent_core::repo::skill::get_disabled_skills(app_state.harness.db()).await {
+        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
             Ok(d) => d,
             Err(_) => return (Vec::new(), HashMap::new()),
         };
@@ -678,7 +678,7 @@ pub(super) async fn execute_skill_async(
                 "skill_execution.tool_execution_update.steps",
                 async move {
                     let execution =
-                        axagent_core::repo::tool_execution::find_latest_execution_by_tool(
+                        axagent_dao::repo::tool_execution::find_latest_execution_by_tool(
                             &db,
                             &conversation_id_clone,
                             &skill_name_for_lookup,
@@ -686,7 +686,7 @@ pub(super) async fn execute_skill_async(
                         .await;
                     match execution {
                         Ok(Some(exec)) => {
-                            if let Err(e) = axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                            if let Err(e) = axagent_dao::repo::tool_execution::update_tool_execution_skill_details(
                                 &db,
                                 &exec.id,
                                 Some(&skill_steps_json),
@@ -718,7 +718,7 @@ pub(super) async fn execute_skill_async(
                 "skill_execution.tool_execution_update.deps",
                 async move {
                     let execution =
-                        axagent_core::repo::tool_execution::find_latest_execution_by_tool(
+                        axagent_dao::repo::tool_execution::find_latest_execution_by_tool(
                             &db,
                             &conversation_id_clone,
                             &skill_name_for_lookup,
@@ -726,7 +726,7 @@ pub(super) async fn execute_skill_async(
                         .await;
                     match execution {
                         Ok(Some(exec)) => {
-                            if let Err(e) = axagent_core::repo::tool_execution::update_tool_execution_skill_details(
+                            if let Err(e) = axagent_dao::repo::tool_execution::update_tool_execution_skill_details(
                                 &db,
                                 &exec.id,
                                 None,
@@ -958,9 +958,9 @@ pub(super) fn build_agent_system_prompt(
         if !lang.is_empty() {
             let already_present = prompts
                 .iter()
-                .any(|p| axagent_core::utils::has_output_language_directive(p));
+                .any(|p| axagent_kit::utils::has_output_language_directive(p));
             if !already_present {
-                prompts.push(axagent_core::utils::build_output_language_directive(lang));
+                prompts.push(axagent_kit::utils::build_output_language_directive(lang));
             }
         }
     }

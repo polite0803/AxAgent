@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::repo::stored_file::StoredFile;
+use axagent_dao::repo::stored_file::StoredFile;
 use axagent_harness::types::BackupManifest;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
@@ -48,14 +48,14 @@ fn resolve_storage_path(storage_path: &str) -> Result<String, String> {
     let resolved = if storage_path.is_absolute() {
         storage_path.to_path_buf()
     } else {
-        axagent_core::storage_paths::resolve_documents_path(&storage_path.to_string_lossy())
+        axagent_storage::storage_paths::resolve_documents_path(&storage_path.to_string_lossy())
     };
 
     // 路径安全：canonicalize 后必须落在 documents 根目录之内。
     // 阻止 `..`、绝对路径、符号链接等方式越界访问系统任意文件。
     // 不存在的路径 canonicalize 会失败，直接返回原路径（只读类命令可接受，
     // 写/打开类命令由调用方根据结果决定是否继续）。
-    let documents_root = axagent_core::storage_paths::documents_root();
+    let documents_root = axagent_storage::storage_paths::documents_root();
     let canonical = resolved.canonicalize().unwrap_or(resolved);
     let canonical_root = documents_root
         .canonicalize()
@@ -258,7 +258,7 @@ pub async fn read_attachment_preview(file_path: String) -> Result<String, String
 
 #[tauri::command]
 pub async fn save_avatar_file(data: String, mime_type: String) -> Result<String, String> {
-    use axagent_core::file_store::FileStore;
+    use axagent_storage::file_store::FileStore;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(&data)
         .map_err(|e| format!("Invalid base64: {e}"))?;
@@ -330,7 +330,7 @@ pub async fn list_files_page_entries(
     let entries = match category.as_str() {
         "images" | "files" => {
             let all_files =
-                axagent_core::repo::stored_file::list_all_stored_files(state.harness.db())
+                axagent_dao::repo::stored_file::list_all_stored_files(state.harness.db())
                     .await
                     .map_err(|e| e.to_string())?;
             if category == "images" {
@@ -340,7 +340,7 @@ pub async fn list_files_page_entries(
             }
         },
         "backups" => {
-            let manifests = axagent_core::repo::backup::list_backups(
+            let manifests = axagent_dao::repo::backup::list_backups(
                 state.harness.db(),
                 &axagent_storage::DefaultPathEncoder,
             )
@@ -382,7 +382,7 @@ pub async fn cleanup_missing_files_page_entry(
     let (source_kind, record_id) = parse_entry_id(&entry_id)?;
     match source_kind {
         "attachment" => {
-            let file_store = axagent_core::file_store::FileStore::new();
+            let file_store = axagent_storage::file_store::FileStore::new();
             super::file_cleanup::delete_attachment_reference(
                 state.harness.db(),
                 &file_store,
@@ -390,7 +390,7 @@ pub async fn cleanup_missing_files_page_entry(
             )
             .await
         },
-        "backup_manifest" => axagent_core::repo::backup::delete_backup(
+        "backup_manifest" => axagent_dao::repo::backup::delete_backup(
             state.harness.db(),
             record_id,
             &axagent_storage::DefaultPathEncoder,
@@ -552,7 +552,7 @@ mod tests {
         )];
         let entries = build_image_entries(&files);
 
-        let expected = axagent_core::storage_paths::documents_root()
+        let expected = axagent_storage::storage_paths::documents_root()
             .join("images/abc123_photo.jpg")
             .to_string_lossy()
             .to_string();
@@ -647,18 +647,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_attachment_cleanup_removes_disk_file_and_db_record() {
-        let db = axagent_core::db::create_test_pool().await.unwrap().conn;
+        let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
         let app_data_dir = make_temp_app_data_dir();
         std::fs::create_dir_all(&app_data_dir).unwrap();
 
-        let file_store = axagent_core::file_store::FileStore::with_root(app_data_dir.clone());
+        let file_store = axagent_storage::file_store::FileStore::with_root(app_data_dir.clone());
         let saved = file_store
             .save_file(b"hello world", "photo.png", "image/png")
             .unwrap();
         let physical_path = app_data_dir.join(&saved.storage_path);
         assert!(physical_path.exists(), "test fixture file must exist before cleanup");
 
-        axagent_core::repo::stored_file::create_stored_file(
+        axagent_dao::repo::stored_file::create_stored_file(
             &db,
             "file-1",
             &saved.hash,
@@ -682,7 +682,7 @@ mod tests {
             "attachment cleanup must remove the backing file from disk"
         );
         assert!(
-            axagent_core::repo::stored_file::get_stored_file(&db, "file-1")
+            axagent_dao::repo::stored_file::get_stored_file(&db, "file-1")
                 .await
                 .is_err(),
             "attachment cleanup must also remove the stored-file record"
@@ -693,11 +693,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_attachment_cleanup_preserves_shared_file_until_last_reference() {
-        let db = axagent_core::db::create_test_pool().await.unwrap().conn;
+        let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
         let app_data_dir = make_temp_app_data_dir();
         std::fs::create_dir_all(&app_data_dir).unwrap();
 
-        let file_store = axagent_core::file_store::FileStore::with_root(app_data_dir.clone());
+        let file_store = axagent_storage::file_store::FileStore::with_root(app_data_dir.clone());
         let saved = file_store
             .save_file(b"same-bytes", "shared.png", "image/png")
             .unwrap();
@@ -705,7 +705,7 @@ mod tests {
         assert!(physical_path.exists(), "shared fixture file must exist before cleanup");
 
         for file_id in ["file-1", "file-2"] {
-            axagent_core::repo::stored_file::create_stored_file(
+            axagent_dao::repo::stored_file::create_stored_file(
                 &db,
                 file_id,
                 &saved.hash,
@@ -730,13 +730,13 @@ mod tests {
             "cleanup must keep the shared backing file while another record still references it"
         );
         assert!(
-            axagent_core::repo::stored_file::get_stored_file(&db, "file-1")
+            axagent_dao::repo::stored_file::get_stored_file(&db, "file-1")
                 .await
                 .is_err(),
             "cleanup must remove the targeted record"
         );
         assert!(
-            axagent_core::repo::stored_file::get_stored_file(&db, "file-2")
+            axagent_dao::repo::stored_file::get_stored_file(&db, "file-2")
                 .await
                 .is_ok(),
             "cleanup must preserve other records that still share the same storage path"
@@ -906,7 +906,7 @@ mod tests {
         std::fs::create_dir_all(&tmp).unwrap();
 
         // Save via FileStore directly (mirrors command logic without the Tauri runtime)
-        let store = axagent_core::file_store::FileStore::with_root(tmp.clone());
+        let store = axagent_storage::file_store::FileStore::with_root(tmp.clone());
         let decoded = base64::engine::general_purpose::STANDARD
             .decode(&b64)
             .unwrap();

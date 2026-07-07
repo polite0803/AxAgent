@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::rag::{ContainerType, KnowledgeContainer};
+use axagent_search::rag::{ContainerType, KnowledgeContainer};
 use axagent_harness::types::CreateSourceInput;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -59,7 +59,7 @@ async fn fetch_all_sources(
     let include_wiki = container_types.is_none_or(|t| t.contains(&"wiki".to_string()));
 
     if include_kb {
-        match axagent_core::repo::knowledge::list_knowledge_bases(db).await {
+        match axagent_dao::repo::knowledge::list_knowledge_bases(db).await {
             Ok(kbs) => {
                 for kb in kbs {
                     sources.push(UnifiedSource::from(KnowledgeContainer::from_knowledge_base(&kb)));
@@ -70,7 +70,7 @@ async fn fetch_all_sources(
     }
 
     if include_mem {
-        match axagent_core::repo::memory::list_namespaces(db).await {
+        match axagent_dao::repo::memory::list_namespaces(db).await {
             Ok(nss) => {
                 for ns in nss {
                     sources.push(UnifiedSource::from(KnowledgeContainer::from_memory_ns(&ns)));
@@ -81,7 +81,7 @@ async fn fetch_all_sources(
     }
 
     if include_wiki {
-        match axagent_core::repo::wiki::list_wikis(db).await {
+        match axagent_dao::repo::wiki::list_wikis(db).await {
             Ok(wikis) => {
                 for w in wikis {
                     sources.push(UnifiedSource::from(KnowledgeContainer::from_wiki(&w)));
@@ -114,7 +114,7 @@ pub async fn create_source(
     let embedding_provider = if input.embedding_provider.is_some() {
         input.embedding_provider
     } else {
-        axagent_core::repo::settings::get_settings(db)
+        axagent_dao::repo::settings::get_settings(db)
             .await
             .ok()
             .and_then(|s| s.default_provider_id)
@@ -122,7 +122,7 @@ pub async fn create_source(
 
     match input.source_type.as_str() {
         "knowledge" => {
-            let kb = axagent_core::repo::knowledge::create_knowledge_base(
+            let kb = axagent_dao::repo::knowledge::create_knowledge_base(
                 db,
                 axagent_harness::types::CreateKnowledgeBaseInput {
                     name: input.name,
@@ -136,7 +136,7 @@ pub async fn create_source(
             Ok(UnifiedSource::from(KnowledgeContainer::from_knowledge_base(&kb)))
         },
         "memory" => {
-            let ns = axagent_core::repo::memory::create_namespace(
+            let ns = axagent_dao::repo::memory::create_namespace(
                 db,
                 axagent_harness::types::CreateMemoryNamespaceInput {
                     name: input.name,
@@ -154,9 +154,9 @@ pub async fn create_source(
             Ok(UnifiedSource::from(KnowledgeContainer::from_memory_ns(&ns)))
         },
         "wiki" => {
-            let wiki = axagent_core::repo::wiki::create_wiki(
+            let wiki = axagent_dao::repo::wiki::create_wiki(
                 db,
-                axagent_core::repo::wiki::CreateWikiInput {
+                axagent_dao::repo::wiki::CreateWikiInput {
                     name: input.name,
                     description: input.description,
                     root_path: input
@@ -183,16 +183,16 @@ pub async fn get_source_config(
     let db = state.harness.db();
 
     let config = match container_type.as_str() {
-        "knowledge" => axagent_core::repo::knowledge::get_knowledge_base(db, &container_id)
+        "knowledge" => axagent_dao::repo::knowledge::get_knowledge_base(db, &container_id)
             .await
             .map(|kb| kb.source_config())
             .map_err(|e| e.to_string())?,
-        "memory" => axagent_core::repo::memory::get_namespace(db, &container_id)
+        "memory" => axagent_dao::repo::memory::get_namespace(db, &container_id)
             .await
             .map(|ns| ns.source_config())
             .map_err(|e| e.to_string())?,
         "wiki" => {
-            let w = axagent_core::repo::wiki::get_wiki(db, &container_id)
+            let w = axagent_dao::repo::wiki::get_wiki(db, &container_id)
                 .await
                 .map_err(|e| e.to_string())?;
             w.source_config()

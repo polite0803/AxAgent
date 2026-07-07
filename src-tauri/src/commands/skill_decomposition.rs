@@ -311,13 +311,13 @@ fn create_plugin_manager() -> Result<PluginManager, String> {
 }
 
 async fn get_mcp_tool_names(db: &sea_orm::DatabaseConnection) -> Result<Vec<String>, String> {
-    let servers = axagent_core::repo::mcp_server::list_mcp_servers(db)
+    let servers = axagent_dao::repo::mcp_server::list_mcp_servers(db)
         .await
         .map_err(|e| e.to_string())?;
     let mut tool_names = Vec::new();
     for server in servers {
         if let Ok(tools) =
-            axagent_core::repo::mcp_server::list_tools_for_server(db, &server.id).await
+            axagent_dao::repo::mcp_server::list_tools_for_server(db, &server.id).await
         {
             for tool in tools {
                 tool_names.push(tool.name);
@@ -470,7 +470,7 @@ pub async fn confirm_decomposition(
     let now = chrono::Utc::now().timestamp_millis();
     let composite_source = serde_json::to_string(&result.original_source).ok();
 
-    let template = axagent_core::entity::workflow_template::ActiveModel {
+    let template = axagent_entities::workflow_template::ActiveModel {
         id: Set(workflow_id.clone()),
         name: Set(request.workflow_name),
         description: Set(request.workflow_description),
@@ -493,7 +493,7 @@ pub async fn confirm_decomposition(
         updated_at: Set(now),
     };
 
-    axagent_core::repo::workflow_template::insert_workflow_template(state.harness.db(), template)
+    axagent_dao::repo::workflow_template::insert_workflow_template(state.harness.db(), template)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -576,7 +576,7 @@ pub async fn upgrade_tool_with_llm(
     state: State<'_, AppState>,
     request: ToolUpgradeRequest,
 ) -> Result<ToolUpgradeResponse, String> {
-    let settings = axagent_core::repo::settings::get_settings(state.harness.db())
+    let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -589,16 +589,16 @@ pub async fn upgrade_tool_with_llm(
         .as_ref()
         .ok_or_else(|| "No default model configured".to_string())?;
 
-    let provider = axagent_core::repo::provider::get_provider(state.harness.db(), provider_id)
+    let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let key_row = axagent_core::repo::provider::get_active_key(state.harness.db(), &provider.id)
+    let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &provider.id)
         .await
         .map_err(|e| e.to_string())?;
 
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
             .map_err(|e| e.to_string())?;
 
     let registry_key = match provider.provider_type {

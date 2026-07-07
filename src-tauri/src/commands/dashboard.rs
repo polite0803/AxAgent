@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use tauri::State;
 
 fn default_plugins_dir() -> PathBuf {
-    axagent_core::storage_paths::documents_root().join("dashboard-plugins")
+    axagent_storage::storage_paths::documents_root().join("dashboard-plugins")
 }
 
 #[tauri::command]

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::repo::agent_profile;
+use axagent_dao::repo::agent_profile;
 use axagent_harness::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;
@@ -44,7 +44,7 @@ pub async fn create_agent_profile(
     input: CreateAgentProfileInput,
 ) -> Result<AgentProfile, String> {
     let db = app_state.harness.db();
-    let id = format!("custom-{}", axagent_core::utils::now_ts());
+    let id = format!("custom-{}", axagent_kit::utils::now_ts());
 
     let tags = input.tags.unwrap_or_default();
     agent_profile::upsert_agent_profile(
@@ -116,8 +116,8 @@ pub async fn import_agent_profiles_from_agency(
     let mut count = 0u32;
     let mut errors = Vec::new();
 
-    let rows = axagent_core::entity::agency_experts::Entity::find()
-        .filter(axagent_core::entity::agency_experts::Column::IsEnabled.eq(1))
+    let rows = axagent_entities::agency_experts::Entity::find()
+        .filter(axagent_entities::agency_experts::Column::IsEnabled.eq(1))
         .all(db)
         .await
         .map_err(|e| e.to_string())?;
@@ -180,7 +180,7 @@ pub async fn ensure_agent_profile(
     let db = app_state.harness.db();
 
     // 已存在则直接返回
-    if axagent_core::repo::agent_profile::get_agent_profile(db, &id)
+    if axagent_dao::repo::agent_profile::get_agent_profile(db, &id)
         .await
         .is_ok()
     {
@@ -188,7 +188,7 @@ pub async fn ensure_agent_profile(
     }
 
     // 创建最小 profile
-    axagent_core::repo::agent_profile::create_agent_profile(
+    axagent_dao::repo::agent_profile::create_agent_profile(
         db,
         &id,
         &name,
@@ -205,14 +205,14 @@ pub async fn ensure_agent_profile(
     // 如果有 expert_id，设置绑定
     if let Some(ref eid) = expert_id {
         use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-        if let Some(row) = axagent_core::entity::agent_profiles::Entity::find_by_id(&id)
+        if let Some(row) = axagent_entities::agent_profiles::Entity::find_by_id(&id)
             .one(db)
             .await
             .map_err(|e| e.to_string())?
         {
-            let mut am: axagent_core::entity::agent_profiles::ActiveModel = row.into();
+            let mut am: axagent_entities::agent_profiles::ActiveModel = row.into();
             am.expert_id = Set(Some(eid.clone()));
-            am.updated_at = Set(axagent_core::utils::now_ts());
+            am.updated_at = Set(axagent_kit::utils::now_ts());
             am.update(db).await.map_err(|e| e.to_string())?;
         }
     }

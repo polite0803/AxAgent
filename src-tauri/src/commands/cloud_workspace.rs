@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::cloud_storage::{
+use axagent_storage::cloud_storage::{
     BackendType, CloudStorageConfig, S3Config, S3ProviderPreset, WebDavConfig,
 };
-use axagent_core::sync_conflict::{ConflictResolution, ConflictStrategy};
-use axagent_core::workspace_uri::WorkspaceUri;
+use axagent_storage::sync_conflict::{ConflictResolution, ConflictStrategy};
+use axagent_storage::workspace_uri::WorkspaceUri;
 use tauri::State;
 
 use crate::AppState;
@@ -115,8 +115,8 @@ pub fn list_cloud_provider_presets() -> Vec<CloudProviderPresetDto> {
 fn build_cloud_workspace(
     state: &State<'_, AppState>,
     workspace_uri_str: &str,
-) -> Result<(axagent_core::cloud_workspace::CloudWorkspace, String), String> {
-    use axagent_core::cloud_workspace::CloudWorkspace;
+) -> Result<(axagent_storage::cloud_workspace::CloudWorkspace, String), String> {
+    use axagent_storage::cloud_workspace::CloudWorkspace;
 
     let workspace_uri = WorkspaceUri::parse(workspace_uri_str)
         .map_err(|e| format!("Invalid workspace URI: {}", e))?;
@@ -352,7 +352,7 @@ pub async fn check_cloud_connection(config: CheckCloudConnectionRequest) -> Resu
         provider_preset: S3ProviderPreset::Custom,
         backend_type,
         sync_enabled: true,
-        sync_mode: axagent_core::cloud_storage::SyncMode::Sync,
+        sync_mode: axagent_storage::cloud_storage::SyncMode::Sync,
         profile_name: "test".to_string(),
         s3: if backend_type == BackendType::S3 {
             Some(S3Config {

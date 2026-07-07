@@ -15,7 +15,7 @@ pub use sea_orm::DatabaseConnection;
 
 /// 持久化层抽象接口
 ///
-/// 由 `axagent_core::db::DbHandle` 实现（见下方）。
+/// 由 `axagent_dao::db::DbHandle` 实现（见下方）。
 /// 在 `axagent-runtime` 启动时注入。
 pub trait Persistence: Send + Sync {
     /// 拿到底层连接句柄。

@@ -8,9 +8,9 @@
 //! 3. 细粒度进度事件（parsing → chunking → embedding → storing）
 
 use crate::AppState;
-use axagent_core::rag;
-use axagent_core::repo::index_jobs as jobs;
-use axagent_core::vector_store::VectorStore;
+use axagent_search::rag;
+use axagent_dao::repo::index_jobs as jobs;
+use axagent_search::vector_store::VectorStore;
 use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
@@ -283,19 +283,19 @@ impl IndexJobService {
     ) -> Result<rag::KnowledgeContainer, String> {
         match container_type {
             rag::ContainerType::KnowledgeBase => {
-                let kb = axagent_core::repo::knowledge::get_knowledge_base(&self.db, container_id)
+                let kb = axagent_dao::repo::knowledge::get_knowledge_base(&self.db, container_id)
                     .await
                     .map_err(|e| e.to_string())?;
                 Ok(rag::KnowledgeContainer::from_knowledge_base(&kb))
             },
             rag::ContainerType::Memory => {
-                let ns = axagent_core::repo::memory::get_namespace(&self.db, container_id)
+                let ns = axagent_dao::repo::memory::get_namespace(&self.db, container_id)
                     .await
                     .map_err(|e| e.to_string())?;
                 Ok(rag::KnowledgeContainer::from_memory_ns(&ns))
             },
             rag::ContainerType::WikiVault => {
-                let wiki = axagent_core::repo::wiki::get_wiki(&self.db, container_id)
+                let wiki = axagent_dao::repo::wiki::get_wiki(&self.db, container_id)
                     .await
                     .map_err(|e| e.to_string())?;
                 Ok(rag::KnowledgeContainer::from_wiki(&wiki))
@@ -310,19 +310,19 @@ impl IndexJobService {
     ) -> Result<(Option<String>, Option<String>, Option<String>), String> {
         match container_type {
             rag::ContainerType::KnowledgeBase => {
-                let doc = axagent_core::repo::knowledge::get_document(&self.db, &job.item_id)
+                let doc = axagent_dao::repo::knowledge::get_document(&self.db, &job.item_id)
                     .await
                     .map_err(|e| e.to_string())?;
                 Ok((Some(doc.source_path), Some(doc.mime_type), None))
             },
             rag::ContainerType::Memory => {
-                let item = axagent_core::repo::memory::get_item(&self.db, &job.item_id)
+                let item = axagent_dao::repo::memory::get_item(&self.db, &job.item_id)
                     .await
                     .map_err(|e| e.to_string())?;
                 Ok((None, None, Some(item.content)))
             },
             rag::ContainerType::WikiVault => {
-                let note = axagent_core::repo::note::get_note(&self.db, &job.item_id)
+                let note = axagent_dao::repo::note::get_note(&self.db, &job.item_id)
                     .await
                     .map_err(|e| e.to_string())?;
                 Ok((None, None, Some(note.content)))
@@ -337,7 +337,7 @@ impl IndexJobService {
     ) -> Result<(), String> {
         match container_type {
             rag::ContainerType::KnowledgeBase => {
-                axagent_core::repo::knowledge::update_document_status(
+                axagent_dao::repo::knowledge::update_document_status(
                     &self.db,
                     &job.item_id,
                     "ready",
@@ -346,7 +346,7 @@ impl IndexJobService {
                 .map_err(|e| e.to_string())?;
             },
             rag::ContainerType::Memory => {
-                axagent_core::repo::memory::update_item_index_status(
+                axagent_dao::repo::memory::update_item_index_status(
                     &self.db,
                     &job.item_id,
                     "ready",
@@ -369,7 +369,7 @@ impl IndexJobService {
         if let Some(ct) = ct {
             let _ = match ct {
                 rag::ContainerType::KnowledgeBase => {
-                    axagent_core::repo::knowledge::update_document_status_with_error(
+                    axagent_dao::repo::knowledge::update_document_status_with_error(
                         &self.db,
                         &job.item_id,
                         "failed",
@@ -378,7 +378,7 @@ impl IndexJobService {
                     .await
                 },
                 rag::ContainerType::Memory => {
-                    axagent_core::repo::memory::update_item_index_status(
+                    axagent_dao::repo::memory::update_item_index_status(
                         &self.db,
                         &job.item_id,
                         "failed",

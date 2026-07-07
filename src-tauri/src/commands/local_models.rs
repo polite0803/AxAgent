@@ -2,7 +2,7 @@
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
-use axagent_core::model_downloader::{LocalModelInfo, ModelDownloader, PresetModel};
+use axagent_search::model_downloader::{LocalModelInfo, ModelDownloader, PresetModel};
 
 #[tauri::command]
 pub async fn list_local_models() -> Result<Vec<LocalModelInfo>, String> {

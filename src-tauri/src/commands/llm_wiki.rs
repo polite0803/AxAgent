@@ -5,7 +5,8 @@ use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_agent::{
     ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler,
 };
-use axagent_core::{entity::wiki_sync_queue, repo::wiki};
+use axagent_dao::repo::wiki;
+use axagent_entities::wiki_sync_queue;
 use axagent_harness::types::{ProviderProxyConfig, ProviderType};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use sea_orm::{
@@ -30,8 +31,8 @@ pub struct WikiOutput {
     pub updated_at: i64,
 }
 
-impl From<axagent_core::entity::wikis::Model> for WikiOutput {
-    fn from(m: axagent_core::entity::wikis::Model) -> Self {
+impl From<axagent_entities::wikis::Model> for WikiOutput {
+    fn from(m: axagent_entities::wikis::Model) -> Self {
         Self {
             id: m.id,
             name: m.name,
@@ -60,8 +61,8 @@ pub struct WikiOperationOutput {
     pub completed_at: Option<i64>,
 }
 
-impl From<axagent_core::entity::wiki_operations::Model> for WikiOperationOutput {
-    fn from(m: axagent_core::entity::wiki_operations::Model) -> Self {
+impl From<axagent_entities::wiki_operations::Model> for WikiOperationOutput {
+    fn from(m: axagent_entities::wiki_operations::Model) -> Self {
         Self {
             id: m.id,
             wiki_id: m.wiki_id,
@@ -79,8 +80,8 @@ impl From<axagent_core::entity::wiki_operations::Model> for WikiOperationOutput 
 
 #[tauri::command]
 pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>, String> {
-    let wikis = axagent_core::entity::wikis::Entity::find()
-        .order_by(axagent_core::entity::wikis::Column::CreatedAt, sea_orm::Order::Desc)
+    let wikis = axagent_entities::wikis::Entity::find()
+        .order_by(axagent_entities::wikis::Column::CreatedAt, sea_orm::Order::Desc)
         .all(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
@@ -141,9 +142,9 @@ pub async fn llm_wiki_operations_list(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<Vec<WikiOperationOutput>, String> {
-    let operations = axagent_core::entity::wiki_operations::Entity::find()
-        .filter(axagent_core::entity::wiki_operations::Column::WikiId.eq(&wiki_id))
-        .order_by(axagent_core::entity::wiki_operations::Column::CreatedAt, sea_orm::Order::Desc)
+    let operations = axagent_entities::wiki_operations::Entity::find()
+        .filter(axagent_entities::wiki_operations::Column::WikiId.eq(&wiki_id))
+        .order_by(axagent_entities::wiki_operations::Column::CreatedAt, sea_orm::Order::Desc)
         .limit(100)
         .all(state.harness.db())
         .await
@@ -200,12 +201,12 @@ pub async fn llm_wiki_ingest(
     let result = pipeline.ingest(&input.wiki_id, source).await?;
 
     if !result.generated_note_ids.is_empty() {
-        let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
+        let wiki = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
         if wiki.embedding_provider.is_some() {
-            let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+            let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
             let db = state.harness.db().clone();
             let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
@@ -215,7 +216,7 @@ pub async fn llm_wiki_ingest(
 
             tokio::spawn(catch_unwind_logged("llm_wiki.ingest", async move {
                 for note_id in &note_ids {
-                    let note_result = axagent_core::repo::note::get_note(&db, note_id).await;
+                    let note_result = axagent_dao::repo::note::get_note(&db, note_id).await;
                     if let Ok(note) = note_result {
                         let collection_id = format!("wiki_{}", wiki_id);
                         let _ = vector_store
@@ -324,18 +325,18 @@ async fn build_llm_adapter(
 ) -> Result<(Arc<dyn ProviderAdapter>, ProviderRequestContext, String), String> {
     let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
 
-    let provider = axagent_core::repo::provider::get_provider(db, &provider_id)
+    let provider = axagent_dao::repo::provider::get_provider(db, &provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let key = axagent_core::repo::provider::get_active_key(db, &provider_id)
+    let key = axagent_dao::repo::provider::get_active_key(db, &provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, master_key)
+    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, master_key)
         .map_err(|e| e.to_string())?;
 
-    let settings = axagent_core::repo::settings::get_settings(db)
+    let settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
 
@@ -367,7 +368,7 @@ pub async fn llm_wiki_compile(
     state: State<'_, AppState>,
     input: CompileInput,
 ) -> Result<CompileResultOutput, String> {
-    let wiki_model = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
+    let wiki_model = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -392,12 +393,12 @@ pub async fn llm_wiki_compile(
         .collect();
 
     if !pages_to_index.is_empty() {
-        let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
+        let wiki = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
             .await
             .map_err(|e| e.to_string())?;
 
         if wiki.embedding_provider.is_some() {
-            let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+            let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
             let db = state.harness.db().clone();
             let master_key = state.harness.master_key_owned();
             let vector_store = state.vector_store.clone();
@@ -406,10 +407,10 @@ pub async fn llm_wiki_compile(
 
             tokio::spawn(catch_unwind_logged("llm_wiki.compile", async move {
                 for (title, content) in &pages_to_index {
-                    let note_result = axagent_core::entity::notes::Entity::find()
-                        .filter(axagent_core::entity::notes::Column::VaultId.eq(&wiki_id))
-                        .filter(axagent_core::entity::notes::Column::Title.eq(title))
-                        .filter(axagent_core::entity::notes::Column::IsDeleted.eq(0))
+                    let note_result = axagent_entities::notes::Entity::find()
+                        .filter(axagent_entities::notes::Column::VaultId.eq(&wiki_id))
+                        .filter(axagent_entities::notes::Column::Title.eq(title))
+                        .filter(axagent_entities::notes::Column::IsDeleted.eq(0))
                         .one(&db)
                         .await;
 
@@ -514,7 +515,7 @@ pub async fn llm_wiki_query(
     state: State<'_, AppState>,
     input: QueryInput,
 ) -> Result<QueryResultOutput, String> {
-    let wiki = axagent_core::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
+    let wiki = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -581,7 +582,7 @@ async fn generate_query_embedding(
 ) -> Result<Vec<f32>, String> {
     let embed_fn = crate::indexing::ProviderEmbedFn;
     let dims = dimensions.map(|d| d as usize);
-    let embed_response = axagent_core::rag::AsyncEmbedFn::generate(
+    let embed_response = axagent_search::rag::AsyncEmbedFn::generate(
         &embed_fn,
         state.harness.db(),
         state.harness.master_key(),
@@ -600,7 +601,7 @@ async fn generate_query_embedding(
 }
 
 struct WikiVectorSearchAdapter {
-    vector_store: Arc<axagent_core::vector_store::VectorStore>,
+    vector_store: Arc<axagent_search::vector_store::VectorStore>,
 }
 
 #[async_trait::async_trait]
@@ -700,7 +701,7 @@ pub async fn llm_wiki_update_schema(
     state: State<'_, AppState>,
     input: UpdateSchemaInput,
 ) -> Result<(), String> {
-    let wiki = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
+    let wiki = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -728,7 +729,7 @@ pub async fn llm_wiki_delete_schema(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<(), String> {
-    let wiki = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
+    let wiki = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -767,7 +768,7 @@ pub async fn llm_wiki_ask(
     wiki_id: String,
     question: String,
 ) -> Result<String, String> {
-    let wiki_model = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
+    let wiki_model = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -800,7 +801,7 @@ pub async fn write_base64_to_file(
     state: State<'_, AppState>,
     input: WriteBase64Input,
 ) -> Result<String, String> {
-    let wiki = axagent_core::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
+    let wiki = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -1006,15 +1007,15 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
 async fn process_sync_event(
     db: &sea_orm::DatabaseConnection,
     master_key: &[u8; 32],
-    vector_store: &axagent_core::vector_store::VectorStore,
+    vector_store: &axagent_search::vector_store::VectorStore,
     model: &wiki_sync_queue::Model,
-) -> Result<(), axagent_core::error::AxAgentError> {
+) -> Result<(), axagent_harness::core_error::AxAgentError> {
     match model.event_type.as_str() {
         "note_created" | "note_updated" => {
-            let note = axagent_core::repo::note::get_note(db, &model.target_id).await?;
+            let note = axagent_dao::repo::note::get_note(db, &model.target_id).await?;
 
-            let wiki = axagent_core::repo::wiki::get_wiki(db, &model.wiki_id).await?;
-            let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+            let wiki = axagent_dao::repo::wiki::get_wiki(db, &model.wiki_id).await?;
+            let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
             match &container.embedding_provider {
                 Some(_) => {
                     tracing::info!(
@@ -1045,7 +1046,7 @@ async fn process_sync_event(
             }
         },
         "note_deleted" => {
-            let collection_id = axagent_core::rag::collection_id("wiki", &model.wiki_id);
+            let collection_id = axagent_search::rag::collection_id("wiki", &model.wiki_id);
             tracing::info!(
                 "Sync: removing note {} from vector store for wiki {}",
                 model.target_id,
@@ -1069,7 +1070,7 @@ async fn process_sync_event(
         },
         "wiki_deleted" => {
             tracing::info!("Sync: wiki {} deleted, cleaning up", model.wiki_id);
-            let collection_id = axagent_core::rag::collection_id("wiki", &model.wiki_id);
+            let collection_id = axagent_search::rag::collection_id("wiki", &model.wiki_id);
             vector_store.delete_collection(&collection_id).await
         },
         _ => {
@@ -1083,8 +1084,8 @@ async fn process_sync_event(
 pub async fn wiki_check_capacity(
     state: State<'_, AppState>,
     wiki_id: String,
-) -> Result<axagent_core::rag::CapacityCheckResult, String> {
-    axagent_core::rag::check_vault_rag_capacity(state.harness.db(), &wiki_id)
+) -> Result<axagent_search::rag::CapacityCheckResult, String> {
+    axagent_search::rag::check_vault_rag_capacity(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -1093,8 +1094,8 @@ pub async fn wiki_check_capacity(
 pub async fn wiki_get_capacity_info(
     state: State<'_, AppState>,
     wiki_id: String,
-) -> Result<axagent_core::rag::VaultCapacityInfo, String> {
-    axagent_core::rag::get_vault_capacity_info(state.harness.db(), &wiki_id)
+) -> Result<axagent_search::rag::VaultCapacityInfo, String> {
+    axagent_search::rag::get_vault_capacity_info(state.harness.db(), &wiki_id)
         .await
         .map_err(|e| e.to_string())
 }

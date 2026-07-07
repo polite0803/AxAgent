@@ -14,7 +14,7 @@
 //! # Example
 //!
 //! ```
-//! use axagent_core::semantic_cache::SemanticCache;
+//! use axagent_search::semantic_cache::SemanticCache;
 //!
 //! let mut cache = SemanticCache::new(0.95, 10000);
 //!

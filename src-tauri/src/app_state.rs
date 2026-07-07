@@ -3,8 +3,8 @@
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::SemanticCache;
 use crate::state::{AgentState, GatewayState, InfraState, MemoryState, SkillState, TaskState};
-use axagent_core::cloud_storage::SyncEngine;
-use axagent_core::file_authorizer::FileAuthorizer;
+use axagent_storage::cloud_storage::SyncEngine;
+use axagent_storage::file_authorizer::FileAuthorizer;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
@@ -202,7 +202,7 @@ pub struct AppState {
     pub skill_watcher_shutdown: std::sync::OnceLock<Arc<AtomicBool>>,
     /// 优雅关闭信号，通知所有后台任务停止
     pub shutdown_token: CancellationToken,
-    pub vector_store: Arc<axagent_core::vector_store::VectorStore>,
+    pub vector_store: Arc<axagent_search::vector_store::VectorStore>,
     pub indexing_semaphore: Arc<tokio::sync::Semaphore>,
     pub stream_cancel_flags: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_permission_senders:
@@ -261,7 +261,7 @@ pub struct AppState {
     // Browser client: use tokio::sync::Mutex to replace global static mut to avoid data race
     #[cfg(not(target_os = "android"))]
     pub browser_client:
-        Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
+        Arc<tokio::sync::Mutex<Option<axagent_kit::browser_automation::PlaywrightClient>>>,
     #[cfg(target_os = "android")]
     pub browser_client: Arc<tokio::sync::Mutex<Option<()>>>,
     pub dream_consolidator: Arc<axagent_trajectory::DreamConsolidator>,

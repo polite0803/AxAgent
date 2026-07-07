@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::entity::dynamic_ui_form_data::Column as FormDataColumn;
-use axagent_core::entity::dynamic_ui_form_data::{
+use axagent_entities::dynamic_ui_form_data::Column as FormDataColumn;
+use axagent_entities::dynamic_ui_form_data::{
     ActiveModel as FormDataActiveModel, Entity as FormDataEntity, Model as FormDataModel,
 };
-use axagent_core::entity::dynamic_ui_schema_versions::{
+use axagent_entities::dynamic_ui_schema_versions::{
     ActiveModel as VersionActiveModel, Entity as VersionEntity, Model as VersionModel,
 };
-use axagent_core::entity::dynamic_ui_schemas::{
+use axagent_entities::dynamic_ui_schemas::{
     ActiveModel as SchemaActiveModel, Column as SchemaColumn, Entity as SchemaEntity,
     Model as SchemaModel,
 };
@@ -218,8 +218,8 @@ async fn cleanup_old_versions(
     keep: usize,
 ) -> Result<usize, String> {
     let all = VersionEntity::find()
-        .filter(axagent_core::entity::dynamic_ui_schema_versions::Column::SchemaId.eq(schema_id))
-        .order_by(axagent_core::entity::dynamic_ui_schema_versions::Column::CreatedAt, Order::Desc)
+        .filter(axagent_entities::dynamic_ui_schema_versions::Column::SchemaId.eq(schema_id))
+        .order_by(axagent_entities::dynamic_ui_schema_versions::Column::CreatedAt, Order::Desc)
         .all(db)
         .await
         .map_err(|e| format!("查询版本列表失败: {e}"))?;
@@ -413,7 +413,7 @@ pub async fn delete_dynamic_ui_schema(
 
     // 级联删除版本历史
     VersionEntity::delete_many()
-        .filter(axagent_core::entity::dynamic_ui_schema_versions::Column::SchemaId.eq(&id))
+        .filter(axagent_entities::dynamic_ui_schema_versions::Column::SchemaId.eq(&id))
         .exec(db)
         .await
         .map_err(|e| format!("删除版本历史失败: {e}"))?;
@@ -451,8 +451,8 @@ pub async fn list_dynamic_ui_schema_versions(
 
     // 查询版本历史（按时间倒序）
     let models = VersionEntity::find()
-        .filter(axagent_core::entity::dynamic_ui_schema_versions::Column::SchemaId.eq(&schema_id))
-        .order_by(axagent_core::entity::dynamic_ui_schema_versions::Column::CreatedAt, Order::Desc)
+        .filter(axagent_entities::dynamic_ui_schema_versions::Column::SchemaId.eq(&schema_id))
+        .order_by(axagent_entities::dynamic_ui_schema_versions::Column::CreatedAt, Order::Desc)
         .limit(50)
         .all(db)
         .await

@@ -13,7 +13,7 @@
 //! let result = some_core_function().map_err(|e| map_core_error(&e, "操作名称"))?;
 //! ```
 
-use axagent_core::error::AxAgentError;
+use axagent_harness::core_error::AxAgentError;
 use super::error::ErrorResponse;
 use super::error_code;
 

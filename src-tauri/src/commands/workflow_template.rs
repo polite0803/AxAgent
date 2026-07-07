@@ -3,8 +3,9 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::workflow as workflow_err;
-use axagent_core::repo::workflow_template as db_repo;
-use axagent_core::workflow_types::*;
+use axagent_dao::repo::workflow_template as db_repo;
+use axagent_dao::workflow_conversions::workflow_template_response_from_model;
+use axagent_harness::workflow_types::*;
 use axagent_runtime::work_engine::node_executor_trait::node_type_name;
 use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use serde::Deserialize;
@@ -12,10 +13,10 @@ use tauri::State;
 
 fn model_to_active_model(
     template: &WorkflowTemplateData,
-) -> axagent_core::entity::workflow_template::ActiveModel {
+) -> axagent_entities::workflow_template::ActiveModel {
     let now = chrono::Utc::now().timestamp_millis();
 
-    axagent_core::entity::workflow_template::ActiveModel {
+    axagent_entities::workflow_template::ActiveModel {
         id: Set(template.id.clone()),
         name: Set(template.name.clone()),
         description: Set(template.description.clone()),
@@ -67,7 +68,7 @@ pub async fn list_workflow_templates(
 
     Ok(templates
         .into_iter()
-        .map(WorkflowTemplateResponse::from)
+        .map(workflow_template_response_from_model)
         .collect())
 }
 
@@ -81,7 +82,7 @@ pub async fn get_workflow_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(template.map(WorkflowTemplateResponse::from))
+    Ok(template.map(workflow_template_response_from_model))
 }
 
 #[tauri::command]
@@ -204,7 +205,7 @@ pub async fn duplicate_workflow_template(
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
     })?;
-    let response = WorkflowTemplateResponse::from(template);
+    let response = workflow_template_response_from_model(template);
 
     let now = chrono::Utc::now().timestamp_millis();
     let new_template = WorkflowTemplateData {
@@ -240,7 +241,7 @@ pub async fn duplicate_workflow_template(
 
 #[tauri::command]
 pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, String> {
-    use axagent_core::preset_templates::{
+    use axagent_kit::preset_templates::{
         convert_preset_to_workflow_template, get_preset_templates,
     };
 
@@ -285,7 +286,7 @@ pub async fn get_template_by_version(
     let template = db_repo::get_template_by_version(db, &id, version)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(template.map(WorkflowTemplateResponse::from))
+    Ok(template.map(workflow_template_response_from_model))
 }
 
 #[derive(Debug, Deserialize)]
@@ -694,7 +695,7 @@ pub async fn export_workflow_template(
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
     })?;
-    let response = WorkflowTemplateResponse::from(template);
+    let response = workflow_template_response_from_model(template);
 
     serde_json::to_string_pretty(&response).map_err(|e| e.to_string())
 }
@@ -888,7 +889,7 @@ fn infer_agent_from_n8n(
 
 /// 确保 AgentRole 存在，不存在则创建
 async fn ensure_agent_role(db: &DatabaseConnection, role_name: &str) -> Result<(), String> {
-    use axagent_core::entity::agent_roles;
+    use axagent_entities::agent_roles;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
     // 按 name 字段查重，避免仅按主键匹配导致同名字段创建重复记录
@@ -930,7 +931,7 @@ async fn ensure_agent_profile(
     expert_id: &str,
     expert_prompt: &str,
 ) -> Result<(), String> {
-    use axagent_core::entity::{agency_experts, agent_profiles};
+    use axagent_entities::{agency_experts, agent_profiles};
     use sea_orm::Set;
 
     let now = chrono::Utc::now().timestamp_millis();
@@ -1019,7 +1020,7 @@ pub async fn find_similar_workflows(
         return Ok(Vec::new());
     }
 
-    let all = axagent_core::entity::workflow_template::Entity::find()
+    let all = axagent_entities::workflow_template::Entity::find()
         .all(db)
         .await
         .map_err(|e| e.to_string())?;
@@ -1063,7 +1064,7 @@ async fn check_workflow_duplicate(
     db: &DatabaseConnection,
     name: &str,
 ) -> Result<Option<String>, String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
 
     let input_tokens: std::collections::HashSet<String> = name
         .to_lowercase()
@@ -1350,8 +1351,8 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
 async fn convert_n8n_to_axagent(
     db: &DatabaseConnection,
     json: &serde_json::Value,
-) -> Result<axagent_core::workflow_types::WorkflowTemplateData, String> {
-    use axagent_core::workflow_types::*;
+) -> Result<axagent_harness::workflow_types::WorkflowTemplateData, String> {
+    use axagent_harness::workflow_types::*;
 
     let name = json
         .get("name")

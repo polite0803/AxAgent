@@ -10,7 +10,7 @@
 //! 现改用 registry 单源查表；本文件不再依赖具体 Adapter 类型（OpenAIAdapter / AnthropicAdapter / ...）。
 
 use axagent_agent::ProviderLlmBridge;
-use axagent_core::crypto;
+use axagent_crypto::crypto;
 use axagent_dao::repo::provider;
 use axagent_harness::registry::ProviderRegistry;
 use axagent_harness::url_utils::resolve_base_url_for_type;

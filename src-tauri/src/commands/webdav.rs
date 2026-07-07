@@ -4,9 +4,9 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
 use crate::commands::spawn_guard::panic_message;
-use axagent_core::crypto::{decrypt_key, encrypt_key};
-use axagent_core::repo::{backup, settings as settings_repo};
-use axagent_core::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};
+use axagent_crypto::{decrypt_key, encrypt_key};
+use axagent_dao::repo::{backup, settings as settings_repo};
+use axagent_storage::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};
 use futures::FutureExt;
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, PaginatorTrait, Statement};
 #[cfg(unix)]
@@ -133,7 +133,7 @@ pub async fn webdav_restore(
         .await
         .map_err(|e| e.to_string())?;
 
-    let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+    let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
     backup::ensure_backup_dir(&backup_dir).map_err(|e| e.to_string())?;
 
@@ -392,7 +392,7 @@ async fn do_webdav_backup_once(
         .map_err(|e| e.to_string())?;
 
     // 2. Create local SQLite snapshot via VACUUM INTO
-    let decoded_backup_dir = axagent_core::path_vars::decode_path_opt(&settings.backup_dir);
+    let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), app_data_dir);
     backup::ensure_backup_dir(&backup_dir).map_err(|e| e.to_string())?;
 
@@ -473,7 +473,7 @@ async fn do_webdav_backup_once(
 }
 
 async fn count_objects_json(db: &DatabaseConnection) -> String {
-    use axagent_core::entity::*;
+    use axagent_entities::*;
 
     let conv_count = conversations::Entity::find().count(db).await.unwrap_or(0);
     let msg_count = messages::Entity::find().count(db).await.unwrap_or(0);
@@ -598,7 +598,7 @@ mod tests {
     #[test]
     fn restore_cleanup_removes_tracked_safety_key_files() {
         let temp_root = std::env::temp_dir()
-            .join(format!("axagent-webdav-restore-cleanup-{}", axagent_core::utils::gen_id()));
+            .join(format!("axagent-webdav-restore-cleanup-{}", axagent_kit::utils::gen_id()));
         std::fs::create_dir_all(&temp_root).expect("create temp root");
         let safety_key = temp_root.join("_pre_webdav_restore_safety.key");
         std::fs::write(&safety_key, b"secret").expect("write safety key");
@@ -621,7 +621,7 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
 
         let temp_root = std::env::temp_dir()
-            .join(format!("axagent-webdav-restore-perms-{}", axagent_core::utils::gen_id()));
+            .join(format!("axagent-webdav-restore-perms-{}", axagent_kit::utils::gen_id()));
         std::fs::create_dir_all(&temp_root).expect("create temp root");
         let safety_key = temp_root.join("_pre_webdav_restore_safety.key");
         std::fs::write(&safety_key, b"secret").expect("write safety key");

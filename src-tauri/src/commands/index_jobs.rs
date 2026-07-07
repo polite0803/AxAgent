@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use axagent_core::repo::index_jobs::{
+use axagent_dao::repo::index_jobs::{
     self, INDEX_JOB_STATUS_CANCELLED, INDEX_JOB_STATUS_COMPLETED, INDEX_JOB_STATUS_FAILED,
     INDEX_JOB_STATUS_PENDING, INDEX_JOB_STATUS_PROCESSING, IndexJob, JOB_TYPE_INDEX_DOCUMENT,
     JOB_TYPE_INDEX_MEMORY, JOB_TYPE_INDEX_WIKI_NOTE,
@@ -155,12 +155,12 @@ pub async fn index_jobs_reindex_collection(
     match source_type.as_str() {
         "kb" => {
             let docs =
-                axagent_core::repo::knowledge::list_documents(state.harness.db(), &source_id)
+                axagent_dao::repo::knowledge::list_documents(state.harness.db(), &source_id)
                     .await
                     .map_err(|e| e.to_string())?;
             let count = docs.len() as u64;
             for doc in docs {
-                let _ = axagent_core::repo::knowledge::update_document_status(
+                let _ = axagent_dao::repo::knowledge::update_document_status(
                     state.harness.db(),
                     &doc.id,
                     "pending",
@@ -180,7 +180,7 @@ pub async fn index_jobs_reindex_collection(
             Ok(count)
         },
         "memory" => {
-            let items = axagent_core::repo::memory::list_namespaces(state.harness.db())
+            let items = axagent_dao::repo::memory::list_namespaces(state.harness.db())
                 .await
                 .map_err(|e| e.to_string())?;
             let count = items.len() as u64;
@@ -199,7 +199,7 @@ pub async fn index_jobs_reindex_collection(
             Ok(count)
         },
         "wiki" => {
-            let notes = axagent_core::repo::note::list_notes(state.harness.db(), &source_id)
+            let notes = axagent_dao::repo::note::list_notes(state.harness.db(), &source_id)
                 .await
                 .map_err(|e| e.to_string())?;
             let count = notes.len() as u64;

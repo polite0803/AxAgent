@@ -9,7 +9,7 @@ pub async fn list_messages(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Vec<Message>, String> {
-    axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+    axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -21,7 +21,7 @@ pub async fn list_messages_page(
     limit: Option<u64>,
     before_message_id: Option<String>,
 ) -> Result<MessagePage, String> {
-    axagent_core::repo::message::list_messages_page(
+    axagent_dao::repo::message::list_messages_page(
         state.harness.db(),
         &conversation_id,
         limit.unwrap_or(10),
@@ -33,7 +33,7 @@ pub async fn list_messages_page(
 
 #[tauri::command]
 pub async fn delete_message(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_core::repo::message::delete_message(state.harness.db(), &id)
+    axagent_dao::repo::message::delete_message(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -44,7 +44,7 @@ pub async fn update_message_content(
     id: String,
     content: String,
 ) -> Result<Message, String> {
-    axagent_core::repo::message::update_message_content(state.harness.db(), &id, &content)
+    axagent_dao::repo::message::update_message_content(state.harness.db(), &id, &content)
         .await
         .map_err(|e| e.to_string())
 }
@@ -54,7 +54,7 @@ pub async fn clear_conversation_messages(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<u64, String> {
-    let rows = axagent_core::repo::message::clear_conversation_messages(
+    let rows = axagent_dao::repo::message::clear_conversation_messages(
         state.harness.db(),
         &conversation_id,
     )
@@ -62,7 +62,7 @@ pub async fn clear_conversation_messages(
     .map_err(|e| e.to_string())?;
 
     // Also clear the agent session's SDK context so the agent doesn't retain old history
-    let _ = axagent_core::repo::agent_session::clear_sdk_context_by_conversation_id(
+    let _ = axagent_dao::repo::agent_session::clear_sdk_context_by_conversation_id(
         state.harness.db(),
         &conversation_id,
     )
@@ -78,10 +78,10 @@ pub async fn export_conversation(
     format: String,
 ) -> Result<String, String> {
     let conversation =
-        axagent_core::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
+        axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
             .map_err(|e| e.to_string())?;
-    let messages = axagent_core::repo::message::list_messages(state.harness.db(), &conversation_id)
+    let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -113,7 +113,7 @@ pub async fn get_conversation_stats(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<ConversationStats, String> {
-    axagent_core::repo::message::get_conversation_stats(state.harness.db(), &conversation_id)
+    axagent_dao::repo::message::get_conversation_stats(state.harness.db(), &conversation_id)
         .await
         .map_err(|e| e.to_string())
 }

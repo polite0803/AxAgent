@@ -7,7 +7,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::platform as platform_err;
 use crate::commands::spawn_guard::panic_message;
-use axagent_core::platform_config::PlatformConfig;
+use axagent_harness::platform_config::PlatformConfig;
 use axagent_runtime::message_gateway::platform_manager::{
     PlatformAdapterStatus, PlatformReconcileReport,
 };
@@ -42,7 +42,7 @@ pub struct PlatformSession {
 
 #[tauri::command]
 pub async fn get_platform_config(state: State<'_, AppState>) -> Result<PlatformConfig, String> {
-    Ok(axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await)
+    Ok(axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await)
 }
 
 #[tauri::command]
@@ -50,7 +50,7 @@ pub async fn update_platform_config(
     state: State<'_, AppState>,
     config: PlatformConfig,
 ) -> Result<PlatformReconcileReport, String> {
-    axagent_core::repo::platform_config::save_platform_config(state.harness.db(), &config)
+    axagent_dao::repo::platform_config::save_platform_config(state.harness.db(), &config)
         .await
         .map_err(|e| e.to_string())?;
     state
@@ -151,7 +151,7 @@ pub async fn send_platform_message(
     if !VALID_PLATFORMS.contains(&platform.as_str()) {
         return Err(format!("Unsupported platform: {}", platform));
     }
-    let config = axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await;
+    let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
 
     let adapter = state
         .platform_manager
@@ -171,7 +171,7 @@ pub async fn send_telegram_message(
     chat_id: i64,
     text: String,
 ) -> Result<(), String> {
-    let config = axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await;
+    let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
 
     if !config.telegram_enabled {
         return Err(ErrorResponse::err(platform_err::TELEGRAM_NOT_ENABLED));
@@ -194,7 +194,7 @@ pub async fn send_discord_message(
     state: State<'_, AppState>,
     content: String,
 ) -> Result<(), String> {
-    let config = axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await;
+    let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
 
     if !config.discord_enabled {
         return Err(ErrorResponse::err(platform_err::DISCORD_NOT_ENABLED));
@@ -232,10 +232,10 @@ pub async fn create_platform_session(
 
     // 持久化会话路由
     let mut routes =
-        axagent_core::repo::platform_config::load_session_routes(state.harness.db()).await;
+        axagent_dao::repo::platform_config::load_session_routes(state.harness.db()).await;
     let key = format!("{}_{}", platform, user_id);
     routes.insert(key.clone(), session_id.clone());
-    axagent_core::repo::platform_config::save_session_routes(state.harness.db(), &routes)
+    axagent_dao::repo::platform_config::save_session_routes(state.harness.db(), &routes)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -253,7 +253,7 @@ pub async fn create_platform_session(
 pub async fn get_active_sessions(
     state: State<'_, AppState>,
 ) -> Result<Vec<PlatformSession>, String> {
-    let routes = axagent_core::repo::platform_config::load_session_routes(state.harness.db()).await;
+    let routes = axagent_dao::repo::platform_config::load_session_routes(state.harness.db()).await;
     let now = chrono::Utc::now().timestamp_millis();
 
     let sessions: Vec<PlatformSession> = routes
@@ -283,9 +283,9 @@ pub async fn deactivate_platform_session(
 ) -> Result<(), String> {
     // 从路由表中移除会话
     let mut routes =
-        axagent_core::repo::platform_config::load_session_routes(state.harness.db()).await;
+        axagent_dao::repo::platform_config::load_session_routes(state.harness.db()).await;
     routes.retain(|_, v| v != &session_id);
-    axagent_core::repo::platform_config::save_session_routes(state.harness.db(), &routes)
+    axagent_dao::repo::platform_config::save_session_routes(state.harness.db(), &routes)
         .await
         .map_err(|e| e.to_string())?;
     Ok(())
@@ -297,7 +297,7 @@ pub async fn deactivate_platform_session(
 pub async fn get_platform_statuses(
     state: State<'_, AppState>,
 ) -> Result<Vec<PlatformAdapterStatus>, String> {
-    let config = axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await;
+    let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
     Ok(state.platform_manager.get_statuses(&config).await)
 }
 
@@ -305,7 +305,7 @@ pub async fn get_platform_statuses(
 pub async fn reconcile_platforms(
     state: State<'_, AppState>,
 ) -> Result<PlatformReconcileReport, String> {
-    let config = axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await;
+    let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
     state
         .platform_manager
         .reconcile(&config)
@@ -320,7 +320,7 @@ pub async fn start_api_server(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let config = axagent_core::repo::platform_config::get_platform_config(state.harness.db()).await;
+    let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
 
     if !config.api_server_enabled {
         return Err(ErrorResponse::err(platform_err::API_SERVER_NOT_ENABLED));

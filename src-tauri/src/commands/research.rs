@@ -5,10 +5,10 @@
 //! 根据对话历史调用 LLM 生成结构化研究报告，供前端 ReportViewer 组件渲染。
 
 use crate::AppState;
-use axagent_core::crypto::decrypt_key;
-use axagent_core::repo::conversation as conversation_repo;
-use axagent_core::repo::message as message_repo;
-use axagent_core::repo::provider::{self as provider_repo, get_active_key};
+use axagent_crypto::decrypt_key;
+use axagent_dao::repo::conversation as conversation_repo;
+use axagent_dao::repo::message as message_repo;
+use axagent_dao::repo::provider::{self as provider_repo, get_active_key};
 use axagent_harness::resolve_base_url_for_type;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, MessageRole};
 use serde::{Deserialize, Serialize};

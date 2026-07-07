@@ -3,7 +3,7 @@
 //! Orchestrator Tauri 命令 —— 自然语言 → 工作流 DAG。
 
 use crate::app_state::AppState;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 use axagent_orchestrator::{DynamicSubGraph, OrchestrationStrategy, OrchestratorExecutor};
 use serde::{Deserialize, Serialize};
 use tauri::State;

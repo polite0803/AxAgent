@@ -11,19 +11,19 @@ fn file_cleanup_lock() -> &'static tokio::sync::Mutex<()> {
 
 pub async fn delete_attachment_reference(
     db: &DatabaseConnection,
-    file_store: &axagent_core::file_store::FileStore,
+    file_store: &axagent_storage::file_store::FileStore,
     record_id: &str,
 ) -> Result<(), String> {
     let _guard = file_cleanup_lock().lock().await;
 
-    let file = axagent_core::repo::stored_file::get_stored_file(db, record_id)
+    let file = axagent_dao::repo::stored_file::get_stored_file(db, record_id)
         .await
         .map_err(|e| e.to_string())?;
-    axagent_core::repo::stored_file::delete_stored_file(db, record_id)
+    axagent_dao::repo::stored_file::delete_stored_file(db, record_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let remaining_refs = axagent_core::repo::stored_file::count_stored_files_with_storage_path(
+    let remaining_refs = axagent_dao::repo::stored_file::count_stored_files_with_storage_path(
         db,
         &file.storage_path,
     )

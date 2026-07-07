@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::computer_control;
-use axagent_core::screen_capture::CaptureRegion;
-use axagent_core::ui_automation::UIElementQuery;
+use axagent_kit::computer_control;
+use axagent_kit::screen_capture::CaptureRegion;
+use axagent_kit::ui_automation::UIElementQuery;
 
 #[tauri::command]
 pub async fn screen_capture(

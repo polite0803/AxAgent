@@ -14,3 +14,4 @@ pub mod migrations;
 pub mod platform_adapter_impl;
 pub mod repo;
 pub mod search_sources_impl;
+pub mod workflow_conversions;
