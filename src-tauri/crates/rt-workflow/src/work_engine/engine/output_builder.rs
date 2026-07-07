@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use axagent_core::workflow_types::{JsonSchema, WorkflowNode};
+use axagent_harness::workflow_types::{JsonSchema, WorkflowNode};
 
 // ── 辅助函数（run_workflow 尾部使用）──
 

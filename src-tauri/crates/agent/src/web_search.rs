@@ -3,7 +3,7 @@
 use crate::research_state::{SearchQuery, SearchResult, SourceType};
 use crate::search_provider::{ContentMetadata, ExtractedContent, RelevanceScorer, SearchProvider};
 use async_trait::async_trait;
-use axagent_core::html_cleaner::HtmlCleaner;
+use axagent_kit::html_cleaner::HtmlCleaner;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 

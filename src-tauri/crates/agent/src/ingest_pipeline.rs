@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::fs;
 
-use axagent_core::entity::wiki_sources;
-use axagent_core::utils::gen_id;
+use axagent_entities::wiki_sources;
+use axagent_kit::utils::gen_id;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::util_fns::truncate_to_char_boundary;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
@@ -637,7 +637,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
 
         let file_path = format!("notes/{}/{}.md", dir, slug);
 
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
+        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
             .one(self.db.as_ref())
             .await
             .map_err(|e| format!("DB error: {}", e))?
@@ -653,7 +653,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             .await
             .map_err(|e| e.to_string())?;
 
-        let input = axagent_core::repo::note::CreateNoteInput {
+        let input = axagent_dao::repo::note::CreateNoteInput {
             vault_id: wiki_id.to_string(),
             title: page.title.clone(),
             file_path: file_path.clone(),
@@ -663,7 +663,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             source_refs: Some(vec![source_id.to_string()]),
         };
 
-        let note = axagent_core::repo::note::create_note(self.db.as_ref(), input)
+        let note = axagent_dao::repo::note::create_note(self.db.as_ref(), input)
             .await
             .map_err(|e| format!("Failed to create note: {}", e))?;
 
@@ -744,7 +744,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     }
 
     async fn load_purpose(&self, wiki_id: &str) -> Result<String, String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
+        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
             .one(self.db.as_ref())
             .await
             .map_err(|e| format!("DB error: {}", e))?

@@ -25,7 +25,7 @@
 //!  - `interrupt_nodes`: 命中即挂起的 body 节点 ID 集合
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::{LoopCheckpoint, LoopType, WorkflowNode};
+use axagent_harness::workflow_types::{LoopCheckpoint, LoopType, WorkflowNode};
 #[cfg(test)]
 use serde_json::json;
 use std::collections::HashMap;
@@ -61,7 +61,7 @@ impl Default for LoopExecutor {
 ///
 /// 返回 (是否触发, 触发的 step_id, 触发的 step_output)。
 fn detect_interrupt(
-    config: &axagent_core::workflow_types::LoopNodeConfig,
+    config: &axagent_harness::workflow_types::LoopNodeConfig,
     step_id: &str,
     step_output: &serde_json::Value,
 ) -> Option<(String, serde_json::Value)> {
@@ -595,7 +595,7 @@ mod tests {
 
     #[test]
     fn detect_interrupt_by_node_id() {
-        let cfg = axagent_core::workflow_types::LoopNodeConfig {
+        let cfg = axagent_harness::workflow_types::LoopNodeConfig {
             loop_type: LoopType::ForEach,
             items_var: None,
             iter_input_var: None,
@@ -617,7 +617,7 @@ mod tests {
 
     #[test]
     fn detect_interrupt_by_pending_status() {
-        let cfg = axagent_core::workflow_types::LoopNodeConfig {
+        let cfg = axagent_harness::workflow_types::LoopNodeConfig {
             loop_type: LoopType::ForEach,
             items_var: None,
             iter_input_var: None,
@@ -639,7 +639,7 @@ mod tests {
 
     #[test]
     fn detect_interrupt_negative() {
-        let cfg = axagent_core::workflow_types::LoopNodeConfig {
+        let cfg = axagent_harness::workflow_types::LoopNodeConfig {
             loop_type: LoopType::ForEach,
             items_var: None,
             iter_input_var: None,

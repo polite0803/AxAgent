@@ -24,7 +24,7 @@ async fn db_spawn_task(
     title: &str,
     desc: &str,
 ) -> Result<String, sea_orm::DbErr> {
-    use axagent_core::entity::background_tasks;
+    use axagent_entities::background_tasks;
     let id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().timestamp_millis();
     let model = background_tasks::ActiveModel {
@@ -48,7 +48,7 @@ async fn db_spawn_task(
 }
 
 async fn db_get_task(db: &sea_orm::DatabaseConnection, id: &str) -> Result<String, sea_orm::DbErr> {
-    use axagent_core::entity::background_tasks;
+    use axagent_entities::background_tasks;
     if let Some(t) = background_tasks::Entity::find_by_id(id).one(db).await? {
         Ok(format!("**{}** [{}]\nID: {}\n{}", t.title, t.status, t.id, t.description))
     } else {
@@ -57,7 +57,7 @@ async fn db_get_task(db: &sea_orm::DatabaseConnection, id: &str) -> Result<Strin
 }
 
 async fn db_list_tasks(db: &sea_orm::DatabaseConnection) -> Result<String, sea_orm::DbErr> {
-    use axagent_core::entity::background_tasks;
+    use axagent_entities::background_tasks;
     use sea_orm::EntityTrait;
     use sea_orm::QueryOrder;
     let tasks = background_tasks::Entity::find()
@@ -79,7 +79,7 @@ async fn db_stop_task(
     db: &sea_orm::DatabaseConnection,
     id: &str,
 ) -> Result<String, sea_orm::DbErr> {
-    use axagent_core::entity::background_tasks;
+    use axagent_entities::background_tasks;
     if let Some(t) = background_tasks::Entity::find_by_id(id).one(db).await? {
         let now = chrono::Utc::now().timestamp_millis();
         let mut am: background_tasks::ActiveModel = t.into();
@@ -98,7 +98,7 @@ async fn db_update_status(
     id: &str,
     status: &str,
 ) -> Result<String, sea_orm::DbErr> {
-    use axagent_core::entity::background_tasks;
+    use axagent_entities::background_tasks;
     if let Some(t) = background_tasks::Entity::find_by_id(id).one(db).await? {
         let now = chrono::Utc::now().timestamp_millis();
         let mut am: background_tasks::ActiveModel = t.into();
@@ -118,7 +118,7 @@ async fn db_get_output(
     db: &sea_orm::DatabaseConnection,
     id: &str,
 ) -> Result<String, sea_orm::DbErr> {
-    use axagent_core::entity::background_tasks;
+    use axagent_entities::background_tasks;
     if let Some(t) = background_tasks::Entity::find_by_id(id).one(db).await? {
         if t.output.is_empty() {
             Ok("(无输出)".to_string())

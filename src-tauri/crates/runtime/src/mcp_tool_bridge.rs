@@ -311,7 +311,7 @@ impl McpToolRegistry {
         if let Some(ref transport) = transport
             && transport != "builtin"
         {
-            let result = axagent_core::mcp_client::call_tool_unified(
+            let result = axagent_mcp::mcp_client::call_tool_unified(
                 transport,
                 command.as_deref(),
                 args.as_deref(),

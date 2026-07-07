@@ -385,7 +385,7 @@ fn worker_provider_failure_flows_through_recovery_to_policy() {
 
 #[test]
 fn ssrf_protection_blocks_private_ips() {
-    use axagent_core::search::is_safe_url;
+    use axagent_search::search::is_safe_url;
 
     assert!(!is_safe_url("http://127.0.0.1:8080/admin"));
     assert!(!is_safe_url("http://localhost:3000/api"));
@@ -399,7 +399,7 @@ fn ssrf_protection_blocks_private_ips() {
 
 #[test]
 fn ssrf_protection_allows_public_urls() {
-    use axagent_core::search::is_safe_url;
+    use axagent_search::search::is_safe_url;
 
     assert!(is_safe_url("https://example.com"));
     assert!(is_safe_url("https://api.openai.com/v1/chat"));
@@ -408,7 +408,7 @@ fn ssrf_protection_allows_public_urls() {
 
 #[test]
 fn ssrf_protection_rejects_non_http_schemes() {
-    use axagent_core::search::is_safe_url;
+    use axagent_search::search::is_safe_url;
 
     assert!(!is_safe_url("file:///etc/passwd"));
     assert!(!is_safe_url("ftp://example.com/file"));

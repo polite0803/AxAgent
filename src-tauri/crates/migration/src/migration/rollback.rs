@@ -163,8 +163,8 @@ pub fn list_backups() -> Vec<BackupInfo> {
 }
 
 pub fn migrate_secrets(secrets: HashMap<String, String>) -> Vec<(String, Result<(), String>)> {
-    let store = axagent_core::secure_store::CombinedSecureStore::with_default_paths();
-    axagent_core::secure_store::migrate_secrets(&store, secrets)
+    let store = axagent_kit::secure_store::CombinedSecureStore::with_default_paths();
+    axagent_kit::secure_store::migrate_secrets(&store, secrets)
 }
 
 // ── `axagent_harness::MigrationRunner` trait impl ──

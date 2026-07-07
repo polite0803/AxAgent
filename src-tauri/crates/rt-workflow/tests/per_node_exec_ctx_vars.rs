@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::{
+use axagent_harness::workflow_types::{
     EdgeType, Position, RetryConfig, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode,
     TriggerType, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
 };
@@ -141,10 +141,10 @@ fn make_edge(source: &str, target: &str) -> WorkflowEdge {
 
 /// 构造一个 WorkEngine，使用 in-memory SQLite 连接，并初始化内置 executor。
 ///
-/// run_workflow 内部会调 `axagent_core::repo::workflow_execution::create_workflow_execution`
+/// run_workflow 内部会调 `axagent_dao::repo::workflow_execution::create_workflow_execution`
 /// 写 DB 审计记录，所以必须用真实连接（不能是 `DatabaseConnection::default()`，那会返回 Disconnected）。
 async fn new_engine() -> Arc<WorkEngine> {
-    let handle = axagent_core::db::create_test_pool()
+    let handle = axagent_dao::db::create_test_pool()
         .await
         .expect("create_test_pool");
     let engine = Arc::new(WorkEngine::new(

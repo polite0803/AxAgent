@@ -6,7 +6,7 @@ use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 
 pub mod env_config;
-use axagent_core::secure_store::SecureStore;
+use axagent_kit::secure_store::SecureStore;
 pub use env_config::{SkillConfigTool, SkillEnvCheckTool};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -132,7 +132,7 @@ impl SkillIndex {
     }
 
     fn rebuild(&mut self) {
-        let dirs = axagent_core::skill_dirs::skill_dirs();
+        let dirs = axagent_kit::skill_dirs::skill_dirs();
         let mut entries = Vec::new();
         let mut seen = std::collections::HashSet::new();
 
@@ -1596,8 +1596,8 @@ fn write_env_file(map: &std::collections::HashMap<String, String>) -> Result<(),
 }
 
 fn set_env_var(name: &str, value: &str) -> Result<(), ToolError> {
-    if axagent_core::secure_store::is_secret_key(name) {
-        let store = axagent_core::secure_store::CombinedSecureStore::with_default_paths();
+    if axagent_kit::secure_store::is_secret_key(name) {
+        let store = axagent_kit::secure_store::CombinedSecureStore::with_default_paths();
         store.store_secret(name, value).map_err(|e| {
             ToolError::execution_failed(format!("Failed to store secret securely: {}", e))
         })?;

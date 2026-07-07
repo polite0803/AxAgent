@@ -5,9 +5,9 @@ use std::sync::Arc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use axagent_core::entity::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
-use axagent_core::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
-use axagent_core::utils::gen_id;
+use axagent_entities::{notes, wiki_operations, wiki_pages, wiki_sources, wikis};
+use axagent_dao::repo::note::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
+use axagent_kit::utils::gen_id;
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
@@ -676,7 +676,7 @@ impl WikiCompiler {
                 return Ok((note.clone(), false));
             }
 
-            let _ = axagent_core::repo::wiki::create_version(
+            let _ = axagent_dao::repo::wiki::create_version(
                 self.db.as_ref(),
                 wiki_id,
                 &note.id,
@@ -694,7 +694,7 @@ impl WikiCompiler {
             };
 
             let updated_note =
-                axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
+                axagent_dao::repo::note::update_note(self.db.as_ref(), &note.id, input)
                     .await
                     .map_err(|e| e.to_string())?;
 
@@ -727,7 +727,7 @@ impl WikiCompiler {
             source_refs: Some(page.source_ids.clone()),
         };
 
-        let note = axagent_core::repo::note::create_note(self.db.as_ref(), input)
+        let note = axagent_dao::repo::note::create_note(self.db.as_ref(), input)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -747,7 +747,7 @@ impl WikiCompiler {
         }
         let _ = tokio::fs::write(&note_path, &page.content).await;
 
-        let _ = axagent_core::repo::wiki::increment_note_count(self.db.as_ref(), wiki_id).await;
+        let _ = axagent_dao::repo::wiki::increment_note_count(self.db.as_ref(), wiki_id).await;
 
         Ok((note, false))
     }
@@ -781,7 +781,7 @@ impl WikiCompiler {
         Ok(db_notes
             .into_iter()
             .next()
-            .map(axagent_core::repo::note::model_to_note))
+            .map(axagent_dao::repo::note::model_to_note))
     }
 
     async fn update_quality_score(&self, note: &Note, page: &CompiledPage) -> Result<(), String> {
@@ -892,7 +892,7 @@ impl WikiCompiler {
         let mut by_type: std::collections::HashMap<String, Vec<String>> =
             std::collections::HashMap::new();
         for note in &db_notes {
-            let note_ref = axagent_core::repo::note::model_to_note(note.clone());
+            let note_ref = axagent_dao::repo::note::model_to_note(note.clone());
             let pt = note_ref.page_type.unwrap_or_else(|| "note".to_string());
             by_type.entry(pt).or_default().push(note.title.clone());
         }
@@ -1103,7 +1103,7 @@ impl WikiCompiler {
                 page_type: Some(page_type.to_string()),
                 source_refs: None,
             };
-            let _ = axagent_core::repo::note::create_note(self.db.as_ref(), input)
+            let _ = axagent_dao::repo::note::create_note(self.db.as_ref(), input)
                 .await
                 .map_err(|e| e.to_string())?;
         }
@@ -1419,7 +1419,7 @@ mod tests {
             &self,
             _ctx: &ProviderRequestContext,
             _request: ChatRequest,
-        ) -> axagent_core::error::Result<ChatResponse> {
+        ) -> axagent_harness::core_error::Result<ChatResponse> {
             Ok(ChatResponse {
                 id: "test".to_string(),
                 model: "test".to_string(),
@@ -1442,7 +1442,7 @@ mod tests {
             _ctx: &ProviderRequestContext,
             _request: ChatRequest,
             _cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-        ) -> Pin<Box<dyn Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>>
+        ) -> Pin<Box<dyn Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send>>
         {
             Box::pin(futures::stream::empty())
         }
@@ -1450,7 +1450,7 @@ mod tests {
         async fn list_models(
             &self,
             _ctx: &ProviderRequestContext,
-        ) -> axagent_core::error::Result<Vec<Model>> {
+        ) -> axagent_harness::core_error::Result<Vec<Model>> {
             Ok(vec![])
         }
 
@@ -1458,7 +1458,7 @@ mod tests {
             &self,
             _ctx: &ProviderRequestContext,
             _request: EmbedRequest,
-        ) -> axagent_core::error::Result<EmbedResponse> {
+        ) -> axagent_harness::core_error::Result<EmbedResponse> {
             Ok(EmbedResponse {
                 embeddings: vec![vec![0.0; 128]],
                 dimensions: 128,

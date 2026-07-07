@@ -221,3 +221,7 @@ pub use hook_service::{HookService, SharedHookService};
 // ── FeatureFlagProvider 契约 ──
 pub mod feature_flag_provider;
 pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};
+
+// ── 校验工具 ──
+pub mod schema_validator;
+pub use schema_validator::{validate_against_schema, validate_recursive};

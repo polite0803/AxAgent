@@ -12,8 +12,8 @@ use sea_orm::{
     Set,
 };
 
-use axagent_core::entity::{notes, wikis};
-use axagent_core::error::{AxAgentError, Result};
+use axagent_entities::{notes, wikis};
+use axagent_harness::core_error::{AxAgentError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchemaVersion {
@@ -238,7 +238,7 @@ impl SchemaManager {
             .await?;
 
         for note_model in db_notes {
-            let mut note = axagent_core::repo::note::model_to_note(note_model.clone());
+            let mut note = axagent_dao::repo::note::model_to_note(note_model.clone());
             let mut content_updated = false;
 
             for added_field in &diff.added_fields {
@@ -252,13 +252,13 @@ impl SchemaManager {
             }
 
             if content_updated {
-                let input = axagent_core::repo::note::UpdateNoteInput {
+                let input = axagent_dao::repo::note::UpdateNoteInput {
                     title: None,
                     content: Some(note.content.clone()),
                     page_type: None,
                     related_pages: None,
                 };
-                axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
+                axagent_dao::repo::note::update_note(self.db.as_ref(), &note.id, input)
                     .await
                     .map_err(|e| {
                         AxAgentError::Internal(format!("Failed to migrate page {}: {}", note.id, e))

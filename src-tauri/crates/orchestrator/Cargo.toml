@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
-axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { workspace = true }

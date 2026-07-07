@@ -16,8 +16,8 @@
 use crate::openai::OpenAIAdapter;
 use crate::{ProviderAdapter, ProviderRequestContext};
 use async_trait::async_trait;
-use axagent_core::constants::default_url;
-use axagent_core::error::{AxAgentError, Result};
+use axagent_harness::constants::default_url;
+use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
 use futures::Stream;
 use serde::Deserialize;
@@ -171,7 +171,7 @@ impl ProviderAdapter for OllamaAdapter {
                 }
                 let group_name = m.details.as_ref().and_then(|d| d.family.clone());
                 // get_model_context_window 已经返回 Option,保留 None 表示未知
-                let max_tokens = axagent_core::model_knowledge::get_model_context_window(&m.name);
+                let max_tokens = axagent_kit::model_knowledge::get_model_context_window(&m.name);
                 let name = m
                     .details
                     .as_ref()

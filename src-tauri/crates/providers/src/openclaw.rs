@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use async_trait::async_trait;
-use axagent_core::error::{AxAgentError, Result};
+use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
 use futures::Stream;
 use std::pin::Pin;
@@ -27,7 +27,7 @@ impl OpenClawAdapter {
     fn remap_ctx(&self, ctx: &ProviderRequestContext) -> ProviderRequestContext {
         let mut out = ctx.clone();
         if out.base_url.is_none() {
-            out.base_url = Some(axagent_core::constants::default_url::OPENCLAW_HOST.to_string());
+            out.base_url = Some(axagent_harness::constants::default_url::OPENCLAW_HOST.to_string());
         }
         out
     }

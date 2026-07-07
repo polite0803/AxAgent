@@ -1,0 +1,13 @@
+[package]
+name = "axagent-scanner"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+axagent-harness = { path = "../harness" }
+async-trait = "0.1"
+chrono = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }

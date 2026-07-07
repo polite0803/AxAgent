@@ -3,7 +3,7 @@
 //! 终止执行器 —— 标记工作流结束位置，可选提取上游节点输出作为最终结果。
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 
 use crate::work_engine::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};

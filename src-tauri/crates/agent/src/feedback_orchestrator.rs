@@ -98,8 +98,8 @@ impl FeedbackOrchestrator {
                     // 达到负反馈阈值，重置计数器并触发 RL 训练
                     self.negative_count.store(0, Ordering::Relaxed);
                     OrchestratorAction::TriggerRLTraining {
-                        reason: axagent_core::i18n::fmt_msg_with(
-                            axagent_core::i18n::I18nKey::AgentNegativeFeedbackThreshold,
+                        reason: axagent_harness::i18n::fmt_msg_with(
+                            axagent_harness::i18n::I18nKey::AgentNegativeFeedbackThreshold,
                             &prev.to_string(),
                             &self.negative_threshold.to_string(),
                         ),
@@ -120,8 +120,8 @@ impl FeedbackOrchestrator {
                 if prev >= self.positive_threshold {
                     self.positive_count.store(0, Ordering::Relaxed);
                     OrchestratorAction::TriggerSkillEvolution {
-                        reason: axagent_core::i18n::fmt_msg_with(
-                            axagent_core::i18n::I18nKey::AgentPositiveFeedbackThreshold,
+                        reason: axagent_harness::i18n::fmt_msg_with(
+                            axagent_harness::i18n::I18nKey::AgentPositiveFeedbackThreshold,
                             &prev.to_string(),
                             &self.positive_threshold.to_string(),
                         ),

@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use axagent_core::repo::note_graph::{LinkGraph, RelevanceEdge, RelevanceSignal};
+use axagent_dao::repo::note_graph::{LinkGraph, RelevanceEdge, RelevanceSignal};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,7 +184,7 @@ impl Default for RelevanceEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_core::repo::note::{GraphData, GraphEdge, GraphNode};
+    use axagent_dao::repo::note::{GraphData, GraphEdge, GraphNode};
 
     fn create_test_graph() -> LinkGraph {
         let nodes = vec![

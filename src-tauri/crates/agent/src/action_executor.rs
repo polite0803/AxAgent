@@ -107,8 +107,8 @@ impl ActionExecutor {
         let (_server_name, local_name) = parse_full_tool_name(tool_name);
 
         if let Err(e) = Self::sandbox_check(local_name, &input) {
-            return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
-                axagent_core::i18n::I18nKey::AgentSandboxCheckFailed,
+            return Err(ActionError::ToolExecution(axagent_harness::i18n::fmt_msg(
+                axagent_harness::i18n::I18nKey::AgentSandboxCheckFailed,
                 &e.to_string(),
             )));
         }
@@ -131,8 +131,8 @@ impl ActionExecutor {
             }
         } else {
             Err(ActionError::InvalidAction(
-                axagent_core::i18n::msg(
-                    axagent_core::i18n::I18nKey::AgentToolRegistryNotConfigured,
+                axagent_harness::i18n::msg(
+                    axagent_harness::i18n::I18nKey::AgentToolRegistryNotConfigured,
                 )
                 .to_string(),
             ))
@@ -157,8 +157,8 @@ impl ActionExecutor {
             if let Some(path_str) = input.get(key).and_then(|v| v.as_str()) {
                 let path = std::path::Path::new(path_str);
                 if path.is_absolute() {
-                    return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
-                        axagent_core::i18n::I18nKey::AgentToolAbsolutePathDenied,
+                    return Err(ActionError::ToolExecution(axagent_harness::i18n::fmt_msg(
+                        axagent_harness::i18n::I18nKey::AgentToolAbsolutePathDenied,
                         &format!("{tool_name}[{key}]: {path_str}"),
                     )));
                 }
@@ -166,8 +166,8 @@ impl ActionExecutor {
                     .components()
                     .any(|c| c == std::path::Component::ParentDir)
                 {
-                    return Err(ActionError::ToolExecution(axagent_core::i18n::fmt_msg(
-                        axagent_core::i18n::I18nKey::AgentToolPathTraversalDenied,
+                    return Err(ActionError::ToolExecution(axagent_harness::i18n::fmt_msg(
+                        axagent_harness::i18n::I18nKey::AgentToolPathTraversalDenied,
                         &format!("{tool_name}[{key}]: {path_str}"),
                     )));
                 }

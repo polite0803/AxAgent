@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_core::error::AxAgentError;
-use axagent_core::token_counter::estimate_tokens;
+use axagent_harness::core_error::AxAgentError;
+use axagent_kit::token_counter::estimate_tokens;
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};

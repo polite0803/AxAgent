@@ -5,7 +5,7 @@
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
-use axagent_core::repo::agent_session;
+use axagent_dao::repo::agent_session;
 use axagent_harness::conversation_model::{
     ContentBlock as HarnessContentBlock, ConversationMessage as HarnessConversationMessage,
     MessageRole as HarnessMessageRole, TokenUsage as HarnessTokenUsage,

@@ -3,7 +3,7 @@
 //! 校验执行器 —— 根据 ValidationNodeConfig 执行断言校验。
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
@@ -60,7 +60,7 @@ impl NodeExecutorTrait for ValidationExecutor {
             let passed = match assertion.assertion_type.as_str() {
                 "json_schema" => {
                     if let (Some(expected), Some(actual)) = (&expected_value, &actual_value) {
-                        let (valid, _) = axagent_core::validate_against_schema(actual, expected);
+                        let (valid, _) = axagent_kit::schema_validator::validate_against_schema(actual, expected);
                         valid
                     } else {
                         false

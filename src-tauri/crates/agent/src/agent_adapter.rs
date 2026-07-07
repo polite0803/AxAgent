@@ -124,8 +124,8 @@ impl AgentImpl for AgentImplAdapter {
                 }
             } else {
                 Err(AgentError::ExecutionFailed(
-                    axagent_core::i18n::msg(
-                        axagent_core::i18n::I18nKey::AgentExecutorNotConfigured,
+                    axagent_harness::i18n::msg(
+                        axagent_harness::i18n::I18nKey::AgentExecutorNotConfigured,
                     )
                     .to_string(),
                 ))

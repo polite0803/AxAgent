@@ -14,7 +14,7 @@
 //! 统一为 `Result<String>` + 内部用 `AxAgentError::Provider` 包裹。
 
 use async_trait::async_trait;
-use axagent_core::error::{AxAgentError, Result};
+use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::ProviderAdapter;
 use axagent_harness::ProviderRequestContext;
 use axagent_harness::types::*;

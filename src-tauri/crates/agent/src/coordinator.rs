@@ -79,7 +79,7 @@ impl WorkerDefinition {
     /// 验证工作者定义是否合法。
     // i18n-note: Validation error messages. Future: accept language parameter or convert to error codes.
     pub fn validate(&self) -> Result<(), String> {
-        use axagent_core::i18n::{self, I18nKey};
+        use axagent_harness::i18n::{self, I18nKey};
         if self.agent_type.is_empty() {
             return Err(i18n::fmt_msg(I18nKey::AgentFieldRequired, "agent_type"));
         }

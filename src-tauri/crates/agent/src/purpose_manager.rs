@@ -32,7 +32,7 @@ pub struct PurposeManager;
 
 impl PurposeManager {
     pub async fn load(db: &DatabaseConnection, wiki_id: &str) -> Result<String, String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
+        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
             .one(db)
             .await
             .map_err(|e| format!("DB error: {}", e))?
@@ -49,7 +49,7 @@ impl PurposeManager {
     }
 
     pub async fn save(db: &DatabaseConnection, wiki_id: &str, content: &str) -> Result<(), String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
+        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
             .one(db)
             .await
             .map_err(|e| format!("DB error: {}", e))?
@@ -79,7 +79,7 @@ impl PurposeManager {
     }
 
     pub async fn exists(db: &DatabaseConnection, wiki_id: &str) -> Result<bool, String> {
-        let wiki = axagent_core::entity::wikis::Entity::find_by_id(wiki_id)
+        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
             .one(db)
             .await
             .map_err(|e| format!("DB error: {}", e))?

@@ -41,7 +41,7 @@ pub fn compile_script(engine: &Engine, script: &str) -> Result<AST, String> {
 
 /// 从模板 tool_defs 批量编译 Rhai 工具（非 DAG 节点方式）
 pub fn compile_from_tool_defs(
-    tool_defs: &[axagent_core::workflow_types::RhaiToolDef],
+    tool_defs: &[axagent_harness::workflow_types::RhaiToolDef],
 ) -> RhaiScriptCache {
     let engine = create_rhai_engine();
     let mut cache = HashMap::new();

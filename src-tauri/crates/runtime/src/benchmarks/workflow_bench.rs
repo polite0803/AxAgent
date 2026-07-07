@@ -16,7 +16,7 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use axagent_core::workflow_types::{
+use axagent_harness::workflow_types::{
     EndNode, EndNodeConfig, Position, RetryConfig, TriggerConfig, TriggerNode, TriggerType,
     WorkflowNode, WorkflowNodeBase,
 };

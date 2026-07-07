@@ -57,7 +57,7 @@ impl Tool for ToolSearchTool {
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let q = i["query"].as_str().unwrap_or("").to_lowercase();
         // 加载所有已注册工具信息
-        let skill_dirs = axagent_core::skill_dirs::skill_dirs();
+        let skill_dirs = axagent_kit::skill_dirs::skill_dirs();
         let mut skills = Vec::new();
         for (_kind, dir) in &skill_dirs {
             if let Ok(entries) = std::fs::read_dir(dir) {
@@ -179,7 +179,7 @@ impl Tool for ConfigTool {
             "get" => {
                 let db = crate::global_state::get_sea_db();
                 if let Some(db) = db {
-                    use axagent_core::entity::settings;
+                    use axagent_entities::settings;
                     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
                     if let Ok(Some(record)) = settings::Entity::find()
                         .filter(settings::Column::Key.eq(key))
@@ -200,7 +200,7 @@ impl Tool for ConfigTool {
                 let db = crate::global_state::get_sea_db().ok_or_else(|| {
                     ToolError::execution_failed("数据库未初始化，无法保存配置".to_string())
                 })?;
-                use axagent_core::entity::settings;
+                use axagent_entities::settings;
                 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
                 let existing = settings::Entity::find()
                     .filter(settings::Column::Key.eq(key))

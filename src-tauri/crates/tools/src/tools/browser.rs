@@ -5,7 +5,7 @@ use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 #[cfg(not(target_os = "android"))]
 use async_trait::async_trait;
 #[cfg(not(target_os = "android"))]
-use axagent_core::browser_automation::{PlaywrightClient, shared_browser_pool};
+use axagent_kit::browser_automation::{PlaywrightClient, shared_browser_pool};
 #[cfg(not(target_os = "android"))]
 use serde_json::Value;
 

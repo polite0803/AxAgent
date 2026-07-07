@@ -2,7 +2,7 @@
 
 //! 统一工作流引擎 —— DAG 管理 + 并发执行 + DB 持久化。
 //!
-//! 节点类型统一为 axagent_core::workflow_types::WorkflowNode（28 种），
+//! 节点类型统一为 axagent_harness::workflow_types::WorkflowNode（28 种），
 //! 执行通过 NodeDispatcher 分发到对应执行器。
 
 use std::collections::{HashMap, HashSet};
@@ -14,7 +14,7 @@ use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
-use axagent_core::workflow_types::{
+use axagent_harness::workflow_types::{
     CompensationStrategy, DegradeStrategy, EdgeType, JsonSchema, OnFailureAction, Variable,
     WorkflowEdge, WorkflowNode,
 };
@@ -273,8 +273,8 @@ pub struct WorkEngine {
 /// P1-14: 提取节点的类型字符串（用于白名单校验）。
 /// 与 `dispatcher.rs::node_type_name` 等价；放这里以让外部 binary 不必
 /// 跨 crate 引入 dispatcher 内部函数。
-pub fn node_type_of(node: &axagent_core::workflow_types::WorkflowNode) -> &'static str {
-    use axagent_core::workflow_types::WorkflowNode;
+pub fn node_type_of(node: &axagent_harness::workflow_types::WorkflowNode) -> &'static str {
+    use axagent_harness::workflow_types::WorkflowNode;
     match node {
         WorkflowNode::Trigger(_) => "trigger",
         WorkflowNode::Agent(_) => "agent",
@@ -391,7 +391,7 @@ impl WorkEngine {
     pub async fn precompile_tool_defs(
         &self,
         workflow_id: &str,
-        tool_defs: &[axagent_core::workflow_types::RhaiToolDef],
+        tool_defs: &[axagent_harness::workflow_types::RhaiToolDef],
     ) {
         if tool_defs.is_empty() {
             return;
@@ -1050,7 +1050,7 @@ impl WorkEngine {
                     .collect()
             };
             for exec_id in &running_exec_ids {
-                axagent_core::repo::workflow_execution::update_workflow_execution_status(
+                axagent_dao::repo::workflow_execution::update_workflow_execution_status(
                     &self.db,
                     exec_id,
                     "cancelled",
@@ -1150,7 +1150,7 @@ impl WorkEngine {
             // 注意：workflow_executions 表当前没有 error_message 字段，错误细节
             // 仅记入日志；后续若加字段再透传。
             if let Err(e) =
-                axagent_core::repo::workflow_execution::update_workflow_execution_status(
+                axagent_dao::repo::workflow_execution::update_workflow_execution_status(
                     &self.db,
                     &execution_id,
                     "failed",
@@ -1851,7 +1851,7 @@ impl WorkEngine {
                                         .build()
                                         .expect("failed to build sub-workflow runtime");
                                     rt.block_on(async move {
-                                        use axagent_core::repo::workflow_template;
+                                        use axagent_dao::repo::workflow_template;
 
                                         let result: Result<(String, serde_json::Value), String> =
                                             async {
@@ -2800,7 +2800,7 @@ impl WorkEngine {
         state.business_rule_engine = self.business_rule_engine();
         state.tool_registry = self.tool_registry();
         let input_params = serde_json::to_string(&input).ok();
-        axagent_core::repo::workflow_execution::create_workflow_execution(
+        axagent_dao::repo::workflow_execution::create_workflow_execution(
             &self.db,
             &execution_id,
             workflow_id,
@@ -2876,7 +2876,7 @@ impl WorkEngine {
             }
             // 取消时清理 Loop 检查点（避免脏数据遗留）
             if let Err(e) =
-                axagent_core::repo::loop_checkpoint::delete_loop_checkpoints_for_execution(
+                axagent_dao::repo::loop_checkpoint::delete_loop_checkpoints_for_execution(
                     &self.db,
                     execution_id,
                 )
@@ -2894,7 +2894,7 @@ impl WorkEngine {
                 sig.notify_waiters();
             }
             self.loop_partial_txs.lock().await.remove(execution_id);
-            axagent_core::repo::workflow_execution::update_workflow_execution_status(
+            axagent_dao::repo::workflow_execution::update_workflow_execution_status(
                 &self.db,
                 execution_id,
                 "cancelled",
@@ -2985,7 +2985,7 @@ impl WorkEngine {
         Option<axagent_harness::workflow_types::LoopCheckpoint>,
         axagent_harness::core_error::AxAgentError,
     > {
-        axagent_core::repo::loop_checkpoint::load_loop_checkpoint(&self.db, execution_id, node_id)
+        axagent_dao::repo::loop_checkpoint::load_loop_checkpoint(&self.db, execution_id, node_id)
             .await
     }
 
@@ -3000,8 +3000,8 @@ impl WorkEngine {
     pub async fn list_executions(
         &self,
         workflow_id: &str,
-    ) -> Result<Vec<axagent_core::entity::workflow_executions::Model>, WorkEngineError> {
-        axagent_core::repo::workflow_execution::list_workflow_executions(&self.db, workflow_id)
+    ) -> Result<Vec<axagent_entities::workflow_executions::Model>, WorkEngineError> {
+        axagent_dao::repo::workflow_execution::list_workflow_executions(&self.db, workflow_id)
             .await
             .map_err(|e| WorkEngineError::Db(e.to_string()))
     }
@@ -3093,7 +3093,7 @@ impl WorkEngine {
                 ExecutionStatus::PartiallyCompleted => "partially_completed",
                 _ => "completed",
             };
-            axagent_core::repo::workflow_execution::update_workflow_execution_status(
+            axagent_dao::repo::workflow_execution::update_workflow_execution_status(
                 &self.db,
                 execution_id,
                 db_status,
@@ -3195,10 +3195,10 @@ pub fn build_loop_checkpoint_ops(
     let db_for_load = db.clone();
     let db_for_delete = db.clone();
     LoopCheckpointOps {
-        save: Arc::new(move |cp: axagent_core::workflow_types::LoopCheckpoint| {
+        save: Arc::new(move |cp: axagent_harness::workflow_types::LoopCheckpoint| {
             let db = db_for_save.clone();
             Box::pin(async move {
-                axagent_core::repo::loop_checkpoint::save_loop_checkpoint(&db, &cp)
+                axagent_dao::repo::loop_checkpoint::save_loop_checkpoint(&db, &cp)
                     .await
                     .map_err(|e| format!("save_loop_checkpoint failed: {e}"))
             })
@@ -3206,7 +3206,7 @@ pub fn build_loop_checkpoint_ops(
         load: Arc::new(move |eid: String, nid: String| {
             let db = db_for_load.clone();
             Box::pin(async move {
-                axagent_core::repo::loop_checkpoint::load_loop_checkpoint(&db, &eid, &nid)
+                axagent_dao::repo::loop_checkpoint::load_loop_checkpoint(&db, &eid, &nid)
                     .await
                     .map_err(|e| format!("load_loop_checkpoint failed: {e}"))
             })
@@ -3214,7 +3214,7 @@ pub fn build_loop_checkpoint_ops(
         delete: Arc::new(move |eid: String, nid: String| {
             let db = db_for_delete.clone();
             Box::pin(async move {
-                axagent_core::repo::loop_checkpoint::delete_loop_checkpoint(&db, &eid, &nid)
+                axagent_dao::repo::loop_checkpoint::delete_loop_checkpoint(&db, &eid, &nid)
                     .await
                     .map_err(|e| format!("delete_loop_checkpoint failed: {e}"))
             })

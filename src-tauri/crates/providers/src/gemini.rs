@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use async_trait::async_trait;
-use axagent_core::constants::default_url;
-use axagent_core::error::{AxAgentError, Result};
+use axagent_harness::constants::default_url;
+use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
 use futures::Stream;
 use futures::StreamExt;
@@ -29,8 +29,8 @@ impl GeminiAdapter {
             client: crate::build_default_http_client().unwrap_or_else(|e| {
                 tracing::warn!(
                     "{}",
-                    axagent_core::i18n::fmt_msg(
-                        axagent_core::i18n::I18nKey::ProviderHttpClientBuildFailed,
+                    axagent_harness::i18n::fmt_msg(
+                        axagent_harness::i18n::I18nKey::ProviderHttpClientBuildFailed,
                         &format!("Gemini: {e}")
                     )
                 );

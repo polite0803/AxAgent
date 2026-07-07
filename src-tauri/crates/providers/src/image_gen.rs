@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use axagent_core::constants::default_url;
+use axagent_harness::constants::default_url;
 
 #[derive(Error, Debug)]
 pub enum ImageGenError {
@@ -76,8 +76,8 @@ impl FluxProvider {
             client: crate::build_default_http_client().unwrap_or_else(|e| {
                 tracing::warn!(
                     "{}",
-                    axagent_core::i18n::fmt_msg(
-                        axagent_core::i18n::I18nKey::ProviderHttpClientBuildFailed,
+                    axagent_harness::i18n::fmt_msg(
+                        axagent_harness::i18n::I18nKey::ProviderHttpClientBuildFailed,
                         &format!("ImageGen: {e}")
                     )
                 );
@@ -192,8 +192,8 @@ impl DallEProvider {
             client: crate::build_default_http_client().unwrap_or_else(|e| {
                 tracing::warn!(
                     "{}",
-                    axagent_core::i18n::fmt_msg(
-                        axagent_core::i18n::I18nKey::ProviderHttpClientBuildFailed,
+                    axagent_harness::i18n::fmt_msg(
+                        axagent_harness::i18n::I18nKey::ProviderHttpClientBuildFailed,
                         &format!("ImageGen: {e}")
                     )
                 );

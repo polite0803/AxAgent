@@ -137,7 +137,7 @@ impl Tool for MemoryFlushTool {
             },
         };
 
-        let namespaces = axagent_core::repo::memory::list_namespaces(&db).await;
+        let namespaces = axagent_dao::repo::memory::list_namespaces(&db).await;
         let ns_id = match &namespaces {
             Ok(list) => list
                 .iter()
@@ -163,7 +163,7 @@ impl Tool for MemoryFlushTool {
             source: Some(format!("agent_flush:{}", category)),
         };
 
-        match axagent_core::repo::memory::add_item(&db, input).await {
+        match axagent_dao::repo::memory::add_item(&db, input).await {
             Ok(item) => {
                 tracing::info!(
                     "MemoryFlush: persisted item {} to namespace {}",

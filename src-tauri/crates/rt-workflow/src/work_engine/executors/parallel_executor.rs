@@ -38,7 +38,7 @@
 //! - `aggregation`: All / Any / Race / Majority，决定如何从分支结果合成最终输出
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::{MergeStrategy, WorkflowNode};
+use axagent_harness::workflow_types::{MergeStrategy, WorkflowNode};
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{

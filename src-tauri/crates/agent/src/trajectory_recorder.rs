@@ -87,8 +87,8 @@ impl TrajectoryStore {
     }
 
     pub async fn save(&self, trajectory: &Trajectory) -> Result<(), String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
+        use axagent_entities::settings as settings_model;
+        use axagent_entities::settings::Entity as SettingsEntity;
 
         let key = format!("trajectory:{}", trajectory.id);
         let json = serde_json::to_string(trajectory).map_err(|e| e.to_string())?;
@@ -136,8 +136,8 @@ impl TrajectoryStore {
     }
 
     pub async fn load(&self, id: &str) -> Result<Option<Trajectory>, String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
+        use axagent_entities::settings as settings_model;
+        use axagent_entities::settings::Entity as SettingsEntity;
 
         let key = format!("trajectory:{}", id);
         let result = SettingsEntity::find()
@@ -196,8 +196,8 @@ impl TrajectoryStore {
     }
 
     pub async fn delete(&self, id: &str) -> Result<bool, String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
+        use axagent_entities::settings as settings_model;
+        use axagent_entities::settings::Entity as SettingsEntity;
 
         let key = format!("trajectory:{}", id);
         let existing = SettingsEntity::find()
@@ -230,8 +230,8 @@ impl TrajectoryStore {
     }
 
     async fn load_index(&self, index_key: &str) -> Result<Option<Vec<String>>, String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
+        use axagent_entities::settings as settings_model;
+        use axagent_entities::settings::Entity as SettingsEntity;
 
         let result = SettingsEntity::find()
             .filter(settings_model::Column::Key.eq(index_key))
@@ -250,8 +250,8 @@ impl TrajectoryStore {
     }
 
     async fn save_index(&self, index_key: &str, index: &[String]) -> Result<(), String> {
-        use axagent_core::entity::settings as settings_model;
-        use axagent_core::entity::settings::Entity as SettingsEntity;
+        use axagent_entities::settings as settings_model;
+        use axagent_entities::settings::Entity as SettingsEntity;
 
         let json = serde_json::to_string(index).map_err(|e| e.to_string())?;
 

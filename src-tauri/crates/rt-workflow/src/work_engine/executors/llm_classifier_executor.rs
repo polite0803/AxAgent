@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -337,7 +337,7 @@ fn value_to_input_text(v: serde_json::Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_core::workflow_types::{
+    use axagent_harness::workflow_types::{
         LlmClassifierNode, LlmClassifierNodeConfig, WorkflowNodeBase,
     };
     use std::collections::HashMap;
@@ -453,7 +453,7 @@ mod tests {
     //
     // 走 execute() 完整流程能验证 fix 端到端有效（负向用例不需要 mock LLM）。
     // 正向用例需要真实 Provider/Adapter，超出单测范围——但我们用
-    // `axagent_core::db::create_test_pool()` 注入真实 DB 句柄，
+    // `axagent_dao::db::create_test_pool()` 注入真实 DB 句柄，
     // 让 executor 至少能跑过 provider 解析（最后会因
     // ProviderRegistry 为空返回 UNSUPPORTED_PROVIDER，而不是 panic
     // 在 "Disconnected" DB 上）。
@@ -465,7 +465,7 @@ mod tests {
 
     /// 正向用例需要真实 DB 才能跑过 `resolve_provider_and_adapter`。
     async fn make_executor_with_db() -> LlmClassifierExecutor {
-        let handle = axagent_core::db::create_test_pool()
+        let handle = axagent_dao::db::create_test_pool()
             .await
             .expect("create_test_pool");
         LlmClassifierExecutor::new(Arc::new(handle.conn), [0u8; 32])

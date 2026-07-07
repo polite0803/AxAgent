@@ -3,8 +3,8 @@
 use crate::context_keys;
 use crate::{ProgressEntry, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_core::html_cleaner::HtmlCleaner;
-use axagent_core::search::{
+use axagent_kit::html_cleaner::HtmlCleaner;
+use axagent_search::search::{
     SearchServiceConfig, estimate_credibility, execute_search_with_config, rerank_search_results,
 };
 use serde_json::Value;
@@ -97,7 +97,7 @@ impl Tool for WebSearchTool {
 
         let mut progress = Vec::new();
 
-        let expansion = axagent_core::search::expand_search_queries(query);
+        let expansion = axagent_search::search::expand_search_queries(query);
         let queries: Vec<&str> = expansion
             .queries
             .iter()
@@ -105,7 +105,7 @@ impl Tool for WebSearchTool {
             .map(|s| s.as_str())
             .collect();
 
-        let mut all_results: Vec<axagent_core::search::SearchResult> = Vec::new();
+        let mut all_results: Vec<axagent_search::search::SearchResult> = Vec::new();
         let mut seen_urls: HashSet<String> = HashSet::new();
 
         let total_queries = queries.len();
@@ -196,7 +196,7 @@ impl Tool for WebSearchTool {
             .collect();
 
         if !top_urls.is_empty() {
-            let client = axagent_core::search::shared_http_client();
+            let client = axagent_search::search::shared_http_client();
             let cleaner = HtmlCleaner::new();
             let mut fetched = 0usize;
 
@@ -212,7 +212,7 @@ impl Tool for WebSearchTool {
                 });
 
                 // SSRF 防护：对搜索结果 URL 做 DNS 解析后验证
-                if !axagent_core::search::is_safe_url_deep(url).await {
+                if !axagent_search::search::is_safe_url_deep(url).await {
                     continue;
                 }
                 match client.get(*url).send().await {

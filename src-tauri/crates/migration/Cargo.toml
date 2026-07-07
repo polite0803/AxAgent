@@ -5,7 +5,6 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-core = { path = "../core" }
 axagent-harness = { path = "../harness" }
 chrono = { workspace = true }
 dirs = "5"

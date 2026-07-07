@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use axagent_core::entity::{note_backlinks, note_links, notes, wikis};
+use axagent_entities::{note_backlinks, note_links, notes, wikis};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
@@ -96,9 +96,9 @@ impl QueryEngine {
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
-        let all_notes: Vec<axagent_core::repo::note::Note> = db_notes
+        let all_notes: Vec<axagent_dao::repo::note::Note> = db_notes
             .into_iter()
-            .map(axagent_core::repo::note::model_to_note)
+            .map(axagent_dao::repo::note::model_to_note)
             .collect();
 
         let avg_dl = if !all_notes.is_empty() {
@@ -124,7 +124,7 @@ impl QueryEngine {
             df.insert(word, count);
         }
 
-        let mut scored: Vec<(axagent_core::repo::note::Note, f64)> = Vec::new();
+        let mut scored: Vec<(axagent_dao::repo::note::Note, f64)> = Vec::new();
 
         for note in all_notes {
             let score =
@@ -197,9 +197,9 @@ impl QueryEngine {
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
-        let all_notes: Vec<axagent_core::repo::note::Note> = db_notes
+        let all_notes: Vec<axagent_dao::repo::note::Note> = db_notes
             .into_iter()
-            .map(axagent_core::repo::note::model_to_note)
+            .map(axagent_dao::repo::note::model_to_note)
             .collect();
 
         let avg_dl = if !all_notes.is_empty() {
@@ -256,7 +256,7 @@ impl QueryEngine {
             .take(ctx.limit)
             .collect();
 
-        let note_map: HashMap<String, axagent_core::repo::note::Note> =
+        let note_map: HashMap<String, axagent_dao::repo::note::Note> =
             all_notes.into_iter().map(|n| (n.id.clone(), n)).collect();
 
         let mut pages = Vec::new();
@@ -318,7 +318,7 @@ impl QueryEngine {
 
         let mut context = String::from("Relevant wiki pages:\n\n");
         for (i, page) in search_result.pages.iter().enumerate() {
-            let note = axagent_core::repo::note::get_note(self.db.as_ref(), &page.note_id)
+            let note = axagent_dao::repo::note::get_note(self.db.as_ref(), &page.note_id)
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -387,7 +387,7 @@ impl QueryEngine {
     }
 
     pub async fn get_page_context(&self, note_id: &str, depth: usize) -> Result<String, String> {
-        let note = axagent_core::repo::note::get_note(self.db.as_ref(), note_id)
+        let note = axagent_dao::repo::note::get_note(self.db.as_ref(), note_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -411,7 +411,7 @@ impl QueryEngine {
             visited.insert(bl.source_note_id.clone());
 
             if let Ok(ref_note) =
-                axagent_core::repo::note::get_note(self.db.as_ref(), &bl.source_note_id).await
+                axagent_dao::repo::note::get_note(self.db.as_ref(), &bl.source_note_id).await
             {
                 context.push_str(&format!(
                     "## Related: {}\n{}\n\n",
@@ -433,7 +433,7 @@ const BM25_K1: f64 = 1.2;
 const BM25_B: f64 = 0.75;
 
 fn compute_bm25_score(
-    note: &axagent_core::repo::note::Note,
+    note: &axagent_dao::repo::note::Note,
     query_lower: &str,
     query_words: &[&str],
     df: &HashMap<&str, f64>,

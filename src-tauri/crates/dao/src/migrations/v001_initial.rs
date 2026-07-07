@@ -412,7 +412,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             snapshot_json TEXT NOT NULL, created_at BIGINT NOT NULL, step_id TEXT)",
         // Loop 节点可恢复检查点。复合主键 (execution_id, node_id)：
         // 同一 execution 内多个 Loop 节点并存时互不干扰。payload_json
-        // 序列化为 axagent_core::workflow_types::LoopCheckpoint。
+        // 序列化为 axagent_harness::workflow_types::LoopCheckpoint。
         "CREATE TABLE IF NOT EXISTS loop_checkpoints (\
             execution_id TEXT NOT NULL, node_id TEXT NOT NULL, \
             payload_json TEXT NOT NULL, updated_at BIGINT NOT NULL, \

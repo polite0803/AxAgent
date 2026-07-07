@@ -489,7 +489,7 @@ impl ManagedMcpServer {
 /// MCP stdio 服务器管理器。
 ///
 /// 管理 MCP 子进程的生命周期、工具发现和调用。
-/// 新代码应优先使用 `axagent_core::mcp_client::call_tool_unified` 等统一入口。
+/// 新代码应优先使用 `axagent_mcp::mcp_client::call_tool_unified` 等统一入口。
 #[derive(Debug)]
 pub struct McpServerManager {
     servers: BTreeMap<String, ManagedMcpServer>,

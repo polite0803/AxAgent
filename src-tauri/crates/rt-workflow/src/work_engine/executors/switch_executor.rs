@@ -171,7 +171,7 @@ impl NodeExecutorTrait for SwitchExecutor {
 
 impl SwitchExecutor {
     fn build_output(
-        c: &axagent_core::workflow_types::SwitchNodeConfig,
+        c: &axagent_harness::workflow_types::SwitchNodeConfig,
         actual: Option<serde_json::Value>,
         matched_label: Option<String>,
     ) -> NodeOutput {

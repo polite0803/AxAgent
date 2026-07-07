@@ -17,7 +17,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axagent_core::workflow_types::{
+use axagent_harness::workflow_types::{
     LoopCheckpoint, LoopNode, LoopNodeConfig, LoopType, Position, RetryConfig, WorkflowNode,
     WorkflowNodeBase,
 };

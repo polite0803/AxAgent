@@ -685,7 +685,7 @@ impl UnifiedToolRegistry {
     pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
         // 加载分类启用状态
         let key = "tool_groups_enabled";
-        let result = axagent_core::repo::settings::get_setting(db, key).await;
+        let result = axagent_dao::repo::settings::get_setting(db, key).await;
 
         if let Ok(Some(value)) = result
             && let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&value)
@@ -695,7 +695,7 @@ impl UnifiedToolRegistry {
 
         // 加载单工具禁用列表
         let dt_key = "disabled_tools";
-        let dt_result = axagent_core::repo::settings::get_setting(db, dt_key).await;
+        let dt_result = axagent_dao::repo::settings::get_setting(db, dt_key).await;
 
         if let Ok(Some(value)) = dt_result
             && let Ok(list) = serde_json::from_str::<Vec<String>>(&value)
@@ -774,7 +774,7 @@ impl UnifiedToolRegistry {
         let key = "tool_groups_enabled";
         let serialized =
             serde_json::to_string(&self.groups.group_enabled).map_err(|e| e.to_string())?;
-        axagent_core::repo::settings::set_setting(db, key, &serialized)
+        axagent_dao::repo::settings::set_setting(db, key, &serialized)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -800,7 +800,7 @@ impl UnifiedToolRegistry {
         let serialized =
             serde_json::to_string(&self.groups.disabled_tools.iter().collect::<Vec<_>>())
                 .map_err(|e| e.to_string())?;
-        axagent_core::repo::settings::set_setting(db, key, &serialized)
+        axagent_dao::repo::settings::set_setting(db, key, &serialized)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -1119,7 +1119,7 @@ impl UnifiedToolRegistry {
         // 使用统一的 MCP 客户端入口（使用原始 MCP 工具名，不带前缀）
         let result = tokio::time::timeout(
             timeout,
-            axagent_core::mcp_client::call_tool_unified(
+            axagent_mcp::mcp_client::call_tool_unified(
                 transport,
                 command,
                 args.as_deref(),

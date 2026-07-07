@@ -7,8 +7,9 @@ publish = false
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
-axagent-core = { path = "../core" }
+axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
+axagent-kit = { path = "../kit" }
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "5"
 futures = "0.3"

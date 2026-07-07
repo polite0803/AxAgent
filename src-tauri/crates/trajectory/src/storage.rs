@@ -10,7 +10,7 @@ use crate::trajectory::{
     TrajectoryOutcome, TrajectoryPattern, TrajectoryQuery, TrajectoryStep,
 };
 use anyhow::{Context, Result};
-use axagent_core::entity::{
+use axagent_entities::{
     trajectories, trajectory_entities, trajectory_learned_patterns, trajectory_memories,
     trajectory_messages, trajectory_patterns, trajectory_preferences, trajectory_relationships,
     trajectory_rewards, trajectory_sessions, trajectory_skill_executions, trajectory_skills,

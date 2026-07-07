@@ -4,7 +4,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 use tokio::net::lookup_host;
 
 use crate::work_engine::execution_state::ExecutionState;

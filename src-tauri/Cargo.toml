@@ -2,9 +2,7 @@
 members = [
   ".",
   "crates/agent",
-  "crates/cache",
-  "crates/core",
-  "crates/crypto",
+  "crates/cache",  "crates/crypto",
   "crates/dao",
   "crates/disk-cache",
   "crates/document-parser",
@@ -77,7 +75,7 @@ description = "AxAgent - AI Chat Desktop App"
 default = ["notification", "browser-use", "computer-use", "channel-platforms"]
 notification = ["dep:tauri-plugin-notification"]
 browser-use = []
-computer-use = ["axagent-core/computer-use", "axagent-providers/computer-use"]
+computer-use = ["axagent-providers/computer-use"]
 channel-platforms = []
 server = []
 
@@ -112,7 +110,6 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
-axagent-core = { path = "crates/core" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
 axagent-document-parser = { path = "crates/document-parser" }

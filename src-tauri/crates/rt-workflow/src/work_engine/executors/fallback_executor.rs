@@ -5,7 +5,7 @@
 //! 返回模拟 JSON 而非 UnsupportedNodeType 错误，确保工作流不会因不支持的节点类型而崩溃。
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::WorkflowNode;
 
 use crate::work_engine::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};

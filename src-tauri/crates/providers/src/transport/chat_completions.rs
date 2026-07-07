@@ -9,7 +9,7 @@ use super::{
     TransportToolCall, TransportUsage,
 };
 
-use axagent_core::constants::default_url;
+use axagent_harness::constants::default_url;
 
 pub struct ChatCompletionsTransport {
     client: reqwest::Client,

@@ -53,7 +53,7 @@ impl Tool for McpToolWrapper {
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let result = match &self.transport {
             McpTransportConfig::Stdio { command, args, env } => {
-                axagent_core::mcp_client::call_tool_stdio_pooled(
+                axagent_mcp::mcp_client::call_tool_stdio_pooled(
                     command,
                     args,
                     env,
@@ -69,7 +69,7 @@ impl Tool for McpToolWrapper {
                 })?
             },
             McpTransportConfig::Http { endpoint } => {
-                axagent_core::mcp_client::call_tool_http(endpoint, &self.tool_name, input, None)
+                axagent_mcp::mcp_client::call_tool_http(endpoint, &self.tool_name, input, None)
                     .await
                     .map_err(|e| {
                         ToolError::execution_failed_for(
@@ -79,7 +79,7 @@ impl Tool for McpToolWrapper {
                     })?
             },
             McpTransportConfig::Sse { endpoint } => {
-                axagent_core::mcp_client::call_tool_sse(endpoint, &self.tool_name, input, None)
+                axagent_mcp::mcp_client::call_tool_sse(endpoint, &self.tool_name, input, None)
                     .await
                     .map_err(|e| {
                         ToolError::execution_failed_for(
