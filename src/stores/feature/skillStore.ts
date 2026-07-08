@@ -60,9 +60,10 @@ interface SkillState {
   ) => Promise<string>;
 }
 
-async function syncExtensionStore(): Promise<void> {
+/** 将已加载的 skills 同步到扩展 store，避免重复 IPC 调用。 */
+async function syncExtensionStore(skills: Skill[]): Promise<void> {
   const { useSkillExtensionStore } = await import("@/stores");
-  useSkillExtensionStore.getState().fetchSkills();
+  useSkillExtensionStore.getState().syncFromSkills(skills);
 }
 
 /** 每个 skill 的操作版本计数器，用于 toggleSkill 防竞态 */
@@ -124,7 +125,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       } else {
         triggerOnDisable(name).catch(logIpcError("triggerOnDisable"));
       }
-      syncExtensionStore();
+      syncExtensionStore(get().skills);
     } catch (e) {
       logIpcError("切换 skill 状态失败")(e);
       // 版本检查：如果已被更新的操作覆盖，不执行回滚
@@ -153,7 +154,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     });
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
     triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
-    syncExtensionStore();
+    syncExtensionStore(get().skills);
     return name;
   },
 
@@ -162,7 +163,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     await triggerOnUninstall(name).catch(logIpcError("triggerOnUninstall"));
     await invoke("uninstall_skill", { name });
     set((state) => ({ skills: state.skills.filter((s) => s.name !== name) }));
-    syncExtensionStore();
+    syncExtensionStore(get().skills);
   },
 
   uninstallSkillGroup: async (group: string) => {
@@ -173,7 +174,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     );
     await invoke("uninstall_skill_group", { group });
     set((state) => ({ skills: state.skills.filter((s) => s.group !== group) }));
-    syncExtensionStore();
+    syncExtensionStore(get().skills);
   },
 
   openSkillsDir: async () => {
@@ -262,7 +263,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       await get().loadSkills();
       const { triggerOnInstall } = await import("@/lib/skillLifecycle");
       triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
-      syncExtensionStore();
+      syncExtensionStore(get().skills);
     }
     return result;
   },
@@ -272,7 +273,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     await get().getSkill(name);
     const { triggerSkillReload } = await import("@/lib/skillLifecycle");
     triggerSkillReload(name).catch(logIpcError("triggerSkillReload"));
-    syncExtensionStore();
+    syncExtensionStore(get().skills);
     return result;
   },
 
@@ -281,7 +282,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     await get().getSkill(name);
     const { triggerSkillReload } = await import("@/lib/skillLifecycle");
     triggerSkillReload(name).catch(logIpcError("triggerSkillReload"));
-    syncExtensionStore();
+    syncExtensionStore(get().skills);
     return result;
   },
 
@@ -307,7 +308,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     }));
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
     triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
-    syncExtensionStore();
+    syncExtensionStore(get().skills);
     return result;
   },
 }));

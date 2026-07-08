@@ -126,6 +126,9 @@ interface SkillExtensionState {
   handlers: Record<string, SkillHandler>;
 
   fetchSkills: () => Promise<void>;
+  /** 从内存中的 skills 数组直接合并扩展，消除重复 IPC 调用。
+   *  由 skillStore 在加载完技能后调用。 */
+  syncFromSkills: (skills: Skill[]) => void;
   getHandler: (name: string) => SkillHandler | undefined;
   refreshSkill: (skillName: string) => Promise<void>;
   registerCustomComponent: (skillName: string, entry: ComponentRegistryEntry) => void;
@@ -421,7 +424,6 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
         set({ skills, ...merged, loading: false });
       } catch (e) {
         logIpcError(i18n.t("skillExtension.fetchFailed"))(e);
-        // 重置为空白状态，避免 UI 与真实状态不同步
         set({
           loading: false,
           skills: [],
@@ -436,6 +438,11 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
           handlers: {},
         });
       }
+    },
+
+    syncFromSkills: (skills: Skill[]) => {
+      const merged = mergeExtensions(skills);
+      set({ skills, ...merged, loading: false });
     },
 
     getHandler: (name: string) => get().handlers[name],

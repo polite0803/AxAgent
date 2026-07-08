@@ -205,7 +205,7 @@ impl KeyVerifyLimiter {
             drop(map); // 释放锁，让 evict_if_needed 重新获取
             let mut map = self.failures.lock();
             self.evict_if_needed(&mut map);
-            map.entry(ip.to_string()).or_insert((0, now))
+            *map.entry(ip.to_string()).or_insert((0, now))
         });
         if entry.0 >= self.max_failures && entry.1.elapsed() < self.cooldown {
             // 仍处于 ban 中：把 first_at 重置回 now，让 cooldown
