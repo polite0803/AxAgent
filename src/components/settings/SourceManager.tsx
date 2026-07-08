@@ -407,7 +407,7 @@ function KnowledgeTab({
               title={t("sourceManager.stats.knowledgeBases")}
               value={bases.length}
               prefix={<Database size={16} style={{ color: token.colorPrimary }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -417,7 +417,7 @@ function KnowledgeTab({
               title={t("sourceManager.stats.documents")}
               value={bases.length}
               prefix={<BookOpen size={16} style={{ color: token.colorInfo }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -428,7 +428,7 @@ function KnowledgeTab({
               value={configuredCount}
               suffix={`/ ${knowledgeSources.length}`}
               prefix={<Zap size={16} style={{ color: token.colorSuccess }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -577,7 +577,7 @@ function MemoryTab({
               title={t("sourceManager.stats.namespaces")}
               value={namespaces.length}
               prefix={<Brain size={16} style={{ color: token.colorPrimary }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -587,7 +587,7 @@ function MemoryTab({
               title={t("sourceManager.stats.memoryItems")}
               value={namespaces.length}
               prefix={<Sparkles size={16} style={{ color: token.colorPrimary }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -598,7 +598,7 @@ function MemoryTab({
               value={configuredCount}
               suffix={`/ ${memorySources.length}`}
               prefix={<Zap size={16} style={{ color: token.colorSuccess }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -741,7 +741,7 @@ function WikiTab({
               title={t("sourceManager.stats.wikis")}
               value={wikis.length}
               prefix={<Network size={16} style={{ color: token.colorPrimary }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -751,7 +751,7 @@ function WikiTab({
               title={t("sourceManager.stats.notes")}
               value={totalNotes}
               prefix={<BookOpen size={16} style={{ color: token.colorPrimary }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -761,7 +761,7 @@ function WikiTab({
               title={t("sourceManager.stats.wikiSources")}
               value={totalSources}
               prefix={<FolderPlus size={16} style={{ color: token.colorWarning }} />}
-              valueStyle={{ fontSize: 24 }}
+              styles={{ content: { fontSize: 24 } }}
             />
           </Card>
         </Col>

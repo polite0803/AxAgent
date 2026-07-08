@@ -101,7 +101,7 @@ function StatCard({
                 }
                 value={value}
                 suffix={suffix}
-                valueStyle={{ fontSize: 22, fontWeight: 600, color: token.colorText }}
+                styles={{ content: { fontSize: 22, fontWeight: 600, color: token.colorText } }}
               />
             </div>
           </Flex>
@@ -300,28 +300,28 @@ export function DashboardPage() {
                 <Statistic
                   title={t("dashboard.totalTokens")}
                   value={formatNumber(data.gatewayMetrics?.totalTokens ?? data.totalTokens)}
-                  valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                  styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 />
               </Col>
               <Col span={12}>
                 <Statistic
                   title={t("dashboard.gatewayActiveConnections")}
                   value={data.gatewayMetrics?.activeConnections ?? 0}
-                  valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                  styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 />
               </Col>
               <Col span={12}>
                 <Statistic
                   title={t("dashboard.todayRequests")}
                   value={formatNumber(data.gatewayMetrics?.todayRequests ?? 0)}
-                  valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                  styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 />
               </Col>
               <Col span={12}>
                 <Statistic
                   title={t("dashboard.todayTokenUsage")}
                   value={formatNumber(data.gatewayMetrics?.todayTokens ?? 0)}
-                  valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                  styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 />
               </Col>
             </Row>
@@ -351,21 +351,21 @@ export function DashboardPage() {
                     <Statistic
                       title={t("dashboard.totalRequests")}
                       value={formatNumber(data.gatewayMetrics.totalRequests)}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                   <Col span={8}>
                     <Statistic
                       title={t("dashboard.todayRequests")}
                       value={formatNumber(data.gatewayMetrics.todayRequests)}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                   <Col span={8}>
                     <Statistic
                       title={t("dashboard.activeConnections")}
                       value={data.gatewayMetrics.activeConnections}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                 </Row>
@@ -414,14 +414,14 @@ export function DashboardPage() {
                     <Statistic
                       title={t("dashboard.agentTotalSessions")}
                       value={data.agentStats.totalSessions}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                   <Col span={8}>
                     <Statistic
                       title={t("dashboard.agentCompleted")}
                       value={data.agentStats.completedSessions}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                       valueRender={(v) => (
                         <span style={{ color: "#52c41a", fontWeight: 600, fontSize: 18 }}>
                           {v}
@@ -433,7 +433,7 @@ export function DashboardPage() {
                     <Statistic
                       title={t("dashboard.agentFailed")}
                       value={data.agentStats.failedSessions}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                       valueRender={(v) => (
                         <span
                           style={{
@@ -480,14 +480,14 @@ export function DashboardPage() {
                     <Statistic
                       title={t("dashboard.totalProviders")}
                       value={data.providerCount}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                   <Col span={12}>
                     <Statistic
                       title={t("dashboard.totalModels")}
                       value={data.modelCount}
-                      valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                      styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                 </Row>

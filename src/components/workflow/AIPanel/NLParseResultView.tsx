@@ -74,18 +74,18 @@ export const NLParseResultView: React.FC<NLParseResultViewProps> = React.memo(({
               <Statistic
                 title={t("workflow.nlParser.nodes")}
                 value={nodeCount}
-                valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 prefix={<Workflow size={12} />}
               />
               <Statistic
                 title={t("workflow.nlParser.edges")}
                 value={edgeCount}
-                valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
               />
               <Statistic
                 title={t("workflow.nlParser.variables")}
                 value={variableCount}
-                valueStyle={{ fontSize: 18, fontWeight: 600, color: token.colorText }}
+                styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
               />
             </div>
             {/* 节点类型分布 */}

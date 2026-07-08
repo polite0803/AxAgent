@@ -214,9 +214,7 @@ export function GatewayMonitor() {
                 <Statistic
                   title={t("gatewayMonitor.errorCount")}
                   value={metrics.error_count}
-                  valueStyle={{
-                    color: metrics.error_count > 0 ? token.colorError : undefined,
-                  }}
+                  styles={{ content: { color: metrics.error_count > 0 ? token.colorError : undefined } }}
                 />
               </Card>
               <Card size="small">

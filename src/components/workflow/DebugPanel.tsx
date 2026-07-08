@@ -1007,7 +1007,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
             <Statistic
               title={t("workflow.debug.issuesFound")}
               value={issuesWithCode}
-              valueStyle={{ color: issuesWithCode > 0 ? token.colorError : token.colorSuccess }}
+              styles={{ content: { color: issuesWithCode > 0 ? token.colorError : token.colorSuccess } }}
               prefix={issuesWithCode > 0 ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
             />
           </Card>
@@ -1017,7 +1017,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
             <Statistic
               title={t("workflow.debug.cyclesDetected")}
               value={cycles.length}
-              valueStyle={{ color: cycles.length > 0 ? token.colorError : token.colorSuccess }}
+              styles={{ content: { color: cycles.length > 0 ? token.colorError : token.colorSuccess } }}
               prefix={cycles.length > 0 ? <ExclamationCircleOutlined /> : <CheckCircleOutlined />}
             />
           </Card>
@@ -1335,7 +1335,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               <Statistic
                 title={t("workflow.debug.execTime")}
                 value={formatDuration(status.total_time_ms)}
-                valueStyle={{ fontSize: 16 }}
+                styles={{ content: { fontSize: 16 } }}
               />
             </Card>
           </Col>
@@ -1345,7 +1345,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                 title={t("workflow.debug.nodesExecuted")}
                 value={nodeRecords.length}
                 suffix={`/ ${status.node_count || nodes.length}`}
-                valueStyle={{ fontSize: 16 }}
+                styles={{ content: { fontSize: 16 } }}
               />
             </Card>
           </Col>
@@ -1354,7 +1354,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               <Statistic
                 title={t("workflow.debug.breakpoints")}
                 value={breakpoints.length}
-                valueStyle={{ fontSize: 16 }}
+                styles={{ content: { fontSize: 16 } }}
               />
             </Card>
           </Col>
