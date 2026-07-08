@@ -1,0 +1,28 @@
+[package]
+name = "axagent-astock-data"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+publish = false
+
+[dependencies]
+async-trait = "0.1"
+axagent-harness = { path = "../harness" }
+chrono = { workspace = true }
+encoding_rs = "0.8"
+flate2 = "1"
+futures = "0.3"
+moka = { workspace = true }
+redb = { workspace = true }
+reqwest = { workspace = true, features = ["cookies"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+urlencoding = "2"
+
+[dev-dependencies]
+# 用 serial_test 把所有访问 GLOBAL_AS_OF 静态的测试串行化,
+# 避免 cargo test 多线程并行运行时测试间全局状态污染。
+serial_test = "3"

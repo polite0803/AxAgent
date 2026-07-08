@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "AxInvest 分歧日志标准化三元组 Schema。分歧日志为审计追踪核心资产，Dao 层必须实施只读保护：CRUD 仅允许 CREATE/READ，禁止 UPDATE/DELETE。",
+
+  "divergence_log": {
+    "description": "分歧日志三元组：记录系统内部不同 Agent/因子对同一决策结论的分歧情况",
+    "type": "object",
+    "required": ["entity", "dimension", "divergence_triple", "timestamp", "session_id"],
+    "properties": {
+      "entity": {
+        "type": "string",
+        "minLength": 1,
+        "description": "分歧涉及的目标实体，如股票代码 '300285' 或因子名 'f7_trader'"
+      },
+      "dimension": {
+        "type": "string",
+        "enum": [
+          "valuation", // 估值维度分歧（PE/PB/DCF vs 市场价）
+          "sentiment", // 情绪维度分歧（PACE 情绪 vs 资金流向）
+          "technicals", // 技术面分歧（ten-tScores vs MACD/RSI）
+          "fundamentals", // 基本面分歧（财务数据 vs LLM 判断）
+          "risk_assessment", // 风险评估分歧（三个风险评估师之间）
+          "trader_consensus", // 交易方案共识分歧（f7 vs f7_free）
+          "catalyst_interpretation" // 催化剂解读分歧
+        ],
+        "description": "分歧所在的决策维度"
+      },
+      "divergence_triple": {
+        "type": "object",
+        "required": ["source_a", "source_b", "magnitude", "direction"],
+        "description": "分歧三元组核心数据：分歧来源 A vs B 的差异程度和方向",
+        "properties": {
+          "source_a": {
+            "type": "string",
+            "description": "分歧来源方 A，如 'portfolio-mgr f7_posterior=0.72'"
+          },
+          "source_b": {
+            "type": "string",
+            "description": "分歧来源方 B，如 'portfolio-mgr no_f7_posterior=0.45'"
+          },
+          "magnitude": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "分歧幅度（归一化为 0~1），越高越严重"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["A_gt_B", "B_gt_A", "opposing", "conflicting"],
+            "description": "分歧方向：A>B / B>A / 方向相反 / 完全冲突"
+          }
+        }
+      },
+      "resolution": {
+        "type": "object",
+        "required": ["resolved_by", "resolution_type"],
+        "description": "分歧的解决方式（可选，仅在分歧被解决后追加）",
+        "properties": {
+          "resolved_by": {
+            "type": "string",
+            "enum": ["risk_downgrade", "technical_veto", "bearish_veto", "human_override", "graceful_degradation"],
+            "description": "解决机制"
+          },
+          "resolution_type": {
+            "type": "string",
+            "enum": ["overridden", "capped", "flagged_only", "ignored"],
+            "description": "解决类型"
+          },
+          "detail": {
+            "type": "string",
+            "description": "解决详情"
+          }
+        }
+      },
+      "timestamp": {
+        "type": "number",
+        "description": "分歧发现的 Unix 时间戳（秒），不可修改"
+      },
+      "session_id": {
+        "type": "string",
+        "description": "产生分歧的会话 ID"
+      }
+    }
+  },
+
+  "dao_guard": {
+    "description": "Dao 层只读保护配置：分歧日志一旦写入即为不可变审计记录",
+    "rules": {
+      "allow_operations": ["CREATE", "READ"],
+      "forbid_operations": ["UPDATE", "DELETE"],
+      "forbid_methods": ["update", "delete", "upsert", "insert_or_replace", "truncate"],
+      "enforcement_point": "所有数据访问层（sqlite_dao / file_dao / api_dao）必须在 write 路径检查 table_name == 'divergence_logs' 时拒绝 UPDATE/DELETE",
+      "circumvention_prevention": {
+        "no_drop_table": true,
+        "no_alter_table": true,
+        "no_rename_table": true,
+        "no_raw_sql_modification": true
+      }
+    }
+  },
+
+  "integrity_verification": {
+    "description": "只读保护的验证方式",
+    "checks": [
+      {
+        "type": "sha256_chain",
+        "description": "每条日志计算 SHA256(row_id || prev_hash || content_hash) 形成防篡改链"
+      },
+      {
+        "type": "periodic_audit",
+        "description": "每 24h 自动校验最新 100 条日志的 hash 链完整性"
+      },
+      {
+        "type": "read_only_marker",
+        "description": "写入时自动设置 read_only=true 标记，Dao 层在 UPDATE/DELETE 前检查标记"
+      }
+    ]
+  }
+}

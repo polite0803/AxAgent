@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AxAgent",
+  "productName": "AxInvest",
   "version": "2.8.2",
-  "identifier": "top.axagent.desktop",
+  "identifier": "top.axinvest.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -53,7 +53,7 @@
   "plugins": {
     "updater": {
       "active": false,
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU0OThDNDAyMUU5OTQwNTcKUldSWFFKa2VBc1NZVkZlU2lBTS8wU1pqUFFuODhKNUFzd3owZFNlTUFXelJXM1VBNndmN2hKQ0cK",
       "endpoints": [],
       "windows": {
         "installMode": "passive"

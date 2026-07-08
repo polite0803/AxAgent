@@ -1,0 +1,25 @@
+[package]
+name = "axagent-quant"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+# 错误处理
+# 异步 trait
+async-trait = "0.1"
+# 使用 harness 的 MarketDataProvider trait 替代直接依赖 astock-data
+axagent-harness = { path = "../harness" }
+# 时间处理（Engine 时间戳 + 交易日计算）
+chrono = { version = "0.4", features = ["serde"] }
+# Rhai 嵌入式脚本（策略可热加载）
+rhai = { version = "1", features = ["sync", "serde", "internals"] }
+# 序列化
+serde = { workspace = true }
+serde_json = "1"
+thiserror = { workspace = true }
+# 异步运行时（Engine::run 需在 tokio context 中调用）
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
+# 日志
+tracing = "0.1"

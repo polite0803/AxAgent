@@ -1,0 +1,15 @@
+[package]
+name = "axagent-market-sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "ABIDES-inspired market simulation: limit order book, DES kernel, multi-agent trading"
+
+[dependencies]
+chrono = { workspace = true }
+rand = "0.8"
+serde = { workspace = true, features = ["derive"] }
+serde_json = "1"
+thiserror = { workspace = true }
+tracing = "0.1"

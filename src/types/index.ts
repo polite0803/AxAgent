@@ -201,6 +201,8 @@ export interface Message {
   first_token_latency_ms?: number | null;
   /** Structured content blocks (from agent session ContentBlock). */
   blocks?: ContentBlock[];
+  /** Additional metadata for extensibility */
+  meta?: Record<string, unknown>;
 }
 
 // ── Content Block (Part-based message model, short-term) ──────────────
@@ -1559,3 +1561,18 @@ export type {
   UpdateDynamicUISchemaParams,
 } from "./dynamicUI";
 export { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "./dynamicUI";
+
+// ── AxInvest quant types ──
+export type {
+  BacktestResult,
+  BacktestRunRequest,
+  BacktestRunResponse,
+  EquityPoint,
+  MetricsCompareResponse,
+  QuantPaperTrade,
+  QuantRun,
+  RegisterRhaiRequest,
+  StrategyMeta,
+  TradeSide,
+} from "./quant";
+export { BUILTIN_STRATEGY_IDS, DEFAULT_RHAI_TEMPLATE, DEFAULT_STRATEGY_PARAMS } from "./quant";

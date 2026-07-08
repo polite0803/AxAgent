@@ -1,0 +1,108 @@
+{
+  "version": "1.0.0",
+  "last_reviewed": "2026-07-02T00:00:00+08:00",
+  "review_cycle_days": 90,
+  "last_reviewed_by": "governance-bot",
+  "description": "AxInvest 投资决策加权因子配置表 — 所有硬编码权重的外部化入口。季度人工复核，超期未复核前端标黄提醒。",
+
+  "portfolio_weights": {
+    "serenity_factor": {
+      "weight": 0.25,
+      "label": "f1 瓶颈稀缺度",
+      "note": "Serenity 纵深评分归一化",
+      "category": "alpha"
+    },
+    "financial_health": {
+      "weight": 0.15,
+      "label": "f2 财务健康度",
+      "note": "ROE/负债率/毛利率复合评分",
+      "category": "alpha"
+    },
+    "valuation_score": { "weight": 0.10, "label": "f3 估值分位", "note": "PE/PB 行业分位归一化", "category": "alpha" },
+    "momentum_signal": { "weight": 0.08, "label": "f4 动量信号", "note": "20/60 日动量", "category": "beta" },
+    "technicals": { "weight": 0.07, "label": "f5 技术面", "note": "MACD/RSI/KDJ 复合", "category": "beta" },
+    "money_flow": { "weight": 0.05, "label": "f6 资金流向", "note": "主力资金净流入", "category": "flow" },
+    "llm_trader": {
+      "weight": 0.15,
+      "label": "f7 LLM 交易信号",
+      "note": "LLM 综合判断（仅定性提案）",
+      "category": "llm"
+    },
+    "serenity_deep": {
+      "weight": 0.05,
+      "label": "f8 深度 Serenity",
+      "note": "多维度 Serenity 链式推理",
+      "category": "alpha"
+    },
+    "catalyst_urgency": { "weight": 0.05, "label": "f9 催化剂时效", "note": "催化剂时间衰减", "category": "event" },
+    "risk_adjustment": { "weight": 0.05, "label": "f10 风险调整", "note": "VaR/回撤/黑天鹅概率", "category": "risk" },
+    "pace_factor": {
+      "weight": 0.12,
+      "label": "f11 情绪向量",
+      "note": "PACE 四维情绪+背离修正+协同增强",
+      "category": "sentiment"
+    }
+  },
+
+  "llm_trader_override": {
+    "enabled": false,
+    "note": "将 f7 权重从 0.15 覆盖为 0.08 时需手动启用。决策日志中标注 override 来源。",
+    "override_weight": 0.15
+  },
+
+  "source_credibility": {
+    "official": 1.0,
+    "regulatory": 1.0,
+    "exchange": 0.9,
+    "media_major": 0.7,
+    "media": 0.6,
+    "research": 0.7,
+    "self_media": 0.2,
+    "social": 0.15,
+    "unknown": 0.3
+  },
+
+  "data_verification": {
+    "gross_margin_range": [0.0, 95.0],
+    "roe_range": [-50.0, 60.0],
+    "debt_ratio_range": [0.0, 100.0],
+    "revenue_growth_range": [-50.0, 200.0],
+    "capex_depreciation_range": [0.0, 20.0],
+    "rnd_ratio_range": [0.0, 80.0],
+    "pe_sigma_threshold": 2.0,
+    "cross_validation_tolerance_pct": 15.0
+  },
+
+  "time_decay": {
+    "catalyst_half_life_hours": 24,
+    "sentiment_half_life_hours": 24,
+    "max_event_age_hours": 72,
+    "short_term_window_hours": 4,
+    "medium_term_window_hours": 48
+  },
+
+  "synergy_multipliers": {
+    "etf_inflow_synergy": 1.3,
+    "etf_outflow_synergy": 1.3,
+    "etf_opposite_penalty": 0.7,
+    "divergence_money_flow_penalty": 0.5,
+    "divergence_net_outflow_threshold": 0.10
+  },
+
+  "technical_veto": {
+    "rsi_overbought": 80.0,
+    "rsi_oversold": 20.0,
+    "macd_divergence_lookback": 20,
+    "macd_recent_window": 5,
+    "macd_divergence_ratio": 0.7,
+    "price_near_extreme_ratio": 0.98
+  },
+
+  "risk_limits": {
+    "max_single_position": 0.30,
+    "max_sector_exposure": 0.50,
+    "min_confidence_to_execute": 60,
+    "max_daily_trades": 5,
+    "stop_loss_pct": -10.0
+  }
+}

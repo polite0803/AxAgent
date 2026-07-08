@@ -1,0 +1,96 @@
+#![allow(clippy::result_large_err)]
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// builtin_tools, builtin_tools_registry 已迁移至 axagent-tools crate
+// ── Search/RAG 模块已迁至 axagent-search ──
+pub use axagent_cache::cache;
+pub use axagent_cache::cache_persister;
+pub use axagent_cache::cache_snapshot;
+pub use axagent_kit::billing;
+#[cfg(not(target_os = "android"))]
+pub use axagent_kit::browser_automation;
+pub use axagent_kit::command_validator;
+pub use axagent_kit::computer_control;
+pub use axagent_search::ast_index;
+pub use axagent_storage::cloud_storage;
+pub use axagent_storage::cloud_workspace;
+pub mod constants;
+pub use axagent_crypto::crypto;
+pub use axagent_dao::db;
+pub use axagent_dao::ddl;
+pub mod disk_cache;
+pub mod document_parser;
+pub use axagent_entities as entity;
+pub mod error;
+pub mod error_codes;
+pub mod i18n;
+pub use axagent_kit::git_tools;
+pub use axagent_kit::html_cleaner;
+pub use axagent_kit::markdown_parser;
+pub use axagent_kit::marketplace;
+pub use axagent_kit::marketplace_service;
+pub use axagent_kit::memory_forgetting;
+pub use axagent_kit::model_knowledge;
+pub use axagent_kit::operation_audit;
+pub use axagent_kit::output_processor;
+pub use axagent_mcp::mcp_client;
+pub use axagent_mcp::mcp_health;
+pub use axagent_mcp::mcp_oauth;
+pub use axagent_search::file_index;
+pub use axagent_search::hybrid_search;
+pub use axagent_search::incremental_indexer;
+pub use axagent_search::inference;
+pub use axagent_search::model_downloader;
+pub use axagent_storage::file_authorizer;
+pub use axagent_storage::file_store;
+pub use axagent_storage::path_vars;
+pub mod persistence;
+pub use axagent_kit::plan_compiler;
+pub mod platform_config;
+pub use axagent_dao::repo;
+pub use axagent_kit::preset_templates;
+pub use axagent_kit::prompt_template;
+pub use axagent_kit::prompts;
+pub use axagent_kit::resource_limits;
+pub use axagent_kit::sandbox_runner;
+pub use axagent_kit::schema_validator;
+pub use axagent_kit::screen_capture;
+pub use axagent_kit::screen_vision;
+pub use axagent_kit::secure_store;
+pub use axagent_kit::service_container;
+pub use axagent_kit::shell_parser;
+pub use axagent_kit::skill_dirs;
+pub use axagent_kit::slash_command;
+pub use axagent_kit::token_budget;
+pub use axagent_kit::token_counter;
+pub use axagent_kit::ui_automation;
+pub use axagent_kit::unified_config;
+pub use axagent_kit::utils;
+pub use axagent_search::query_enhancement;
+pub use axagent_search::rag;
+pub use axagent_search::rag_pipeline;
+pub use axagent_search::recall_pipeline;
+pub use axagent_search::reranker;
+pub use axagent_search::search;
+pub use axagent_search::self_rag;
+pub use axagent_search::semantic_cache;
+pub use axagent_search::text_chunker;
+pub use axagent_search::vector_cache;
+pub use axagent_search::vector_store;
+pub use axagent_storage::storage_inventory;
+pub use axagent_storage::storage_migration;
+pub use axagent_storage::storage_paths;
+// workflow_types 由 axagent-harness 提供定义，core 模块文件做 re-export + 扩展
+// (harness 是 contract layer,不应依赖 entities 的 Model;core 这里负责加
+// `From<workflow_template::Model>` impl,因此需要同名 Response 覆盖 harness 的版本)
+pub mod workflow_types;
+pub use axagent_kit::workflow_version;
+pub use axagent_storage::sync_conflict;
+pub use axagent_storage::webdav;
+pub use axagent_storage::workspace_uri;
+
+pub use memory_forgetting::{ForgettingConfig, MemoryEntry, MemoryForgettingEngine};
+pub use resource_limits::ResourceLimits;
+pub use schema_validator::{validate_against_schema, validate_recursive};
+pub use service_container::ServiceContainer;
+pub use utils::extract_json_from_llm_response;

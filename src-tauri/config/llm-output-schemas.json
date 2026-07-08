@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "AxInvest LLM Agent 输出格式强约束 Schema。所有 LLM Agent（trader/research-mgr/catalyst/debate-convergence/risk-level/data-quality）的输出必须通过本 Schema 验证，否则触发 strict_mode 降级。",
+
+  "schemas": {
+    "base_event": {
+      "description": "事件基础字段（所有事件类 Agent 输出必须绑定此五字段）",
+      "type": "object",
+      "required": ["Target_Entity", "Event_Type", "Impact_Direction", "Impact_Timeline", "Confidence_Score"],
+      "properties": {
+        "Target_Entity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "事件影响的目标实体，格式：股票代码或板块名称，如 '300285' 或 '半导体'"
+        },
+        "Event_Type": {
+          "type": "string",
+          "minLength": 1,
+          "enum": [
+            "增持",
+            "回购",
+            "中标",
+            "重大合同",
+            "业绩预增",
+            "扭亏为盈",
+            "减持",
+            "业绩预亏",
+            "立案调查",
+            "监管函",
+            "退市风险",
+            "产品发布",
+            "技术突破",
+            "政策利好",
+            "评级上调",
+            "评级下调",
+            "商誉减值",
+            "诉讼",
+            "违约",
+            "并购重组",
+            "分红",
+            "送转",
+            "行业景气",
+            "周期性波动",
+            "汇率影响",
+            "原材料价格",
+            "定期报告",
+            "股东大会",
+            "人事变动",
+            "停牌",
+            "复牌",
+            "其他"
+          ],
+          "description": "事件类型，必须从枚举中选择最匹配的类型"
+        },
+        "Impact_Direction": {
+          "type": "string",
+          "enum": ["Positive", "Negative", "Neutral"],
+          "description": "事件对目标实体的影响方向：Positive=利好，Negative=利空，Neutral=中性"
+        },
+        "Impact_Timeline": {
+          "type": "string",
+          "enum": ["Immediate", "Short_Term", "Medium_Term", "Long_Term"],
+          "description": "事件影响的时间维度：Immediate=即时（T+0~1），Short_Term=短期（1~5日），Medium_Term=中期（1~4周），Long_Term=长期（1月+）"
+        },
+        "Confidence_Score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "LLM 自评可信度（0.0~1.0），<0.4 触发 C 维度自动丢弃（见 pace-calc.rhai）"
+        }
+      }
+    },
+
+    "trader_output": {
+      "description": "LLM Trader Agent 输出格式 — P2-1 定性提案",
+      "type": "object",
+      "required": ["direction", "confidence"],
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["bull", "bear", "neutral"],
+          "description": "交易方向：bull=看多，bear=看空，neutral=中性"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "交易方向置信度"
+        },
+        "catalysts": {
+          "type": "array",
+          "items": { "$ref": "#/schemas/base_event" },
+          "minItems": 1,
+          "maxItems": 5,
+          "description": "支撑交易方向的关键催化剂事件列表"
+        },
+        "risk_factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["risk_name", "severity"],
+            "properties": {
+              "risk_name": { "type": "string" },
+              "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+              "probability": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+            }
+          },
+          "maxItems": 5,
+          "description": "关键风险因素"
+        },
+        "targetPrice": {
+          "type": "number",
+          "description": "DEPRECATED P2-1: 目标价字段废弃，不再作为决策因子，仅作参考"
+        },
+        "stopLoss": {
+          "type": "number",
+          "description": "DEPRECATED P2-1: 止损价字段废弃，由凯利公式和风控层计算"
+        }
+      }
+    },
+
+    "catalyst_output": {
+      "description": "LLM Catalyst Agent 输出格式",
+      "type": "object",
+      "required": ["catalyst_level", "events"],
+      "properties": {
+        "catalyst_level": {
+          "type": "string",
+          "enum": [
+            "L3-估值体系级",
+            "L2-业绩拐点级",
+            "L1-普通消息",
+            "L-1-普通利空",
+            "L-2-业绩暴雷级",
+            "L-3-退市造假级",
+            "无"
+          ],
+          "description": "催化剂强度等级"
+        },
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/schemas/base_event" },
+          "minItems": 0,
+          "maxItems": 10
+        }
+      }
+    },
+
+    "risk_output": {
+      "description": "LLM Risk Level Agent 输出格式",
+      "type": "object",
+      "required": ["category", "risk_factors"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["低风险", "中风险", "高风险", "极高风险"],
+          "description": "综合风险等级"
+        },
+        "risk_factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["Target_Entity", "Event_Type", "Impact_Direction", "Confidence_Score"],
+            "properties": {
+              "Target_Entity": { "type": "string" },
+              "Event_Type": { "type": "string" },
+              "Impact_Direction": { "type": "string", "enum": ["Positive", "Negative", "Neutral"] },
+              "Confidence_Score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+              "Impact_Timeline": { "type": "string", "enum": ["Immediate", "Short_Term", "Medium_Term", "Long_Term"] }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "validation_rules": {
+    "strict_mode_threshold": {
+      "description": "任一必填字段缺失或类型不匹配 → 触发 strict_mode 降级，agent_executor 注入 __untrusted=true",
+      "enabled": true
+    },
+    "backward_compatibility": {
+      "description": "P2-1: targetPrice/stopLoss 标记为 DEPRECATED，不再作为 Schema 必填字段",
+      "deprecated_fields": ["targetPrice", "stopLoss"],
+      "grace_period": "2026-09-01"
+    },
+    "event_type_enum_loose": {
+      "description": "Event_Type 枚举允许 '其他' 兜底，但若 '其他' 占比 > 30% 触发数据质量警告",
+      "other_ratio_threshold": 0.30
+    }
+  }
+}

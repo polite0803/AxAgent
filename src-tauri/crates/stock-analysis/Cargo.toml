@@ -1,0 +1,23 @@
+[package]
+name = "axagent-stock-analysis"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+publish = false
+
+[dependencies]
+async-trait = "0.1"
+axagent-astock-data = { path = "../astock-data" }
+axagent-core = { path = "../core" }
+axagent-entities = { path = "../entities" }
+axagent-harness = { path = "../harness" }
+chrono = { workspace = true }
+csv = "1"
+futures = "0.3"
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
