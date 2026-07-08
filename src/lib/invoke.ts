@@ -28,8 +28,8 @@ export class TimeoutError extends Error {
   ) {
     super(
       `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. `
-      + `The backend operation may still be running. `
-      + `Consider increasing the timeout or optimizing the operation.`,
+        + `The backend operation may still be running. `
+        + `Consider increasing the timeout or optimizing the operation.`,
     );
     this.name = "TimeoutError";
   }

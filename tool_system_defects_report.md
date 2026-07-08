@@ -11,21 +11,21 @@ AIGC:
 
 # AxAgent 工具系统缺陷报告
 
-> 生成日期：2026-07-08  
-> 修复日期：2026-07-08  
-> 审查范围：`D:\OneManager\AxAgent\src` 下所有工具系统相关代码  
+> 生成日期：2026-07-08\
+> 修复日期：2026-07-08\
+> 审查范围：`D:\OneManager\AxAgent\src` 下所有工具系统相关代码\
 > 审查文件数：30+ 核心文件
 
 ---
 
 ## 缺陷修复统计
 
-| 严重程度 | 总数 | 已修复 | 部分修复 | 说明 |
-|---------|------|--------|----------|------|
-| 🔴 高危 | 5 | 5 | 0 | 全部修复 |
-| 🟡 中危 | 12 | 12 | 0 | 全部修复（含 2.6 软取消方案） |
-| 🟢 低危 | 6 | 6 | 0 | 全部修复 |
-| **总计** | **23** | **23** | **0** | |
+| 严重程度 | 总数   | 已修复 | 部分修复 | 说明                          |
+| -------- | ------ | ------ | -------- | ----------------------------- |
+| 🔴 高危  | 5      | 5      | 0        | 全部修复                      |
+| 🟡 中危  | 12     | 12     | 0        | 全部修复（含 2.6 软取消方案） |
+| 🟢 低危  | 6      | 6      | 0        | 全部修复                      |
+| **总计** | **23** | **23** | **0**    |                               |
 
 > 设计建议（4.1-4.3）为架构级改进建议，未纳入本次修复范围。
 
@@ -112,7 +112,7 @@ AIGC:
 - **文件**: `src/lib/invoke.ts`
 - **行号**: 429–508
 - **描述**: 前端超时后 Tauri 后端 IPC 调用无法真正中断（Tauri v2 IPC 无 abort 机制，后端确认无 cancel 接口）。
-- **修复内容**: 
+- **修复内容**:
   1. 新增 `TimeoutError` 类，超时错误有明确类型标识
   2. `withTimeout` 引入显式 cancellation token（`{ value: false }`），超时后即使后端结果返回也会被 `guardedFn` 永久挂起，绝不更新前端状态
   3. `isRetryableError` 显式拒绝 `TimeoutError`（超时表示操作过重，重试只会雪上加霜）
@@ -214,48 +214,51 @@ AIGC:
 以下为架构级改进建议，需要更大范围的代码变更，建议在后续版本中规划：
 
 ### 4.1 工具执行结果缺少结构化错误模型
+
 在整个工具调用链路中，错误信息以纯字符串形式传递。建议定义统一的 `ToolError` 接口。
 
 ### 4.2 工具调用缺少统一的审计/追踪机制
+
 当前工具调用的记录分散在三个独立系统中，建议引入统一的端到端追踪 ID。
 
 ### 4.3 `browserMock.ts` 维护负担
+
 3157 行的 mock 文件需手动同步。建议改为自动生成或共享接口定义。
 
 ---
 
 ## 附录：审查文件清单
 
-| 文件 | 路径 | 行数 |
-|------|------|------|
-| invoke.ts | `src/lib/invoke.ts` | 596 |
-| codeExecutor.ts | `src/lib/codeExecutor.ts` | 185 |
-| actionRouter.ts | `src/lib/actionRouter.ts` | 519 |
-| skillPermissions.ts | `src/lib/skillPermissions.ts` | 277 |
-| SchemaValidator.ts | `src/lib/dynamicUI/SchemaValidator.ts` | 222 |
-| ComponentRegistry.ts | `src/lib/dynamicUI/ComponentRegistry.ts` | 87 |
-| skillActionExecutor.ts | `src/lib/skillActionExecutor.ts` | 53 |
-| storage.ts | `src/lib/storage.ts` | 177 |
-| executionStore.ts | `src/stores/feature/executionStore.ts` | 866 |
-| executionPhaseMachine.ts | `src/stores/feature/executionPhaseMachine.ts` | 41 |
-| executionToolCallUtils.ts | `src/stores/feature/executionToolCallUtils.ts` | 34 |
-| localToolStore.ts | `src/stores/feature/localToolStore.ts` | 89 |
-| recommendationStore.ts | `src/stores/devtools/recommendationStore.ts` | 120 |
-| conversationStoreSend.ts | `src/stores/domain/conversationStoreSend.ts` | 1739 |
-| localTool.ts | `src/types/localTool.ts` | 67 |
-| dynamicUI.ts | `src/types/dynamicUI.ts` | 298 |
-| index.ts | `src/types/index.ts` | 1574 |
-| ToolCallCard.tsx | `src/components/chat/ToolCallCard.tsx` | 301 |
-| toolCallDisplay.ts | `src/components/chat/toolCallDisplay.ts` | 62 |
-| ToolManager.tsx | `src/components/settings/ToolManager.tsx` | 272 |
-| LocalToolSettings.tsx | `src/components/settings/LocalToolSettings.tsx` | 208 |
-| ToolSemanticCheck.tsx | `src/components/settings/ToolSemanticCheck.tsx` | 449 |
-| ToolRecommendationPanel.tsx | `src/components/recommendation/ToolRecommendationPanel.tsx` | 222 |
-| ToolNode.tsx | `src/components/workflow/Nodes/ToolNode.tsx` | 122 |
-| ToolPropertyPanel.tsx | `src/components/workflow/Panels/PropertyPanels/ToolPropertyPanel.tsx` | 215 |
-| browserMock.ts | `src/lib/browserMock.ts` | 3157 |
+| 文件                        | 路径                                                                  | 行数 |
+| --------------------------- | --------------------------------------------------------------------- | ---- |
+| invoke.ts                   | `src/lib/invoke.ts`                                                   | 596  |
+| codeExecutor.ts             | `src/lib/codeExecutor.ts`                                             | 185  |
+| actionRouter.ts             | `src/lib/actionRouter.ts`                                             | 519  |
+| skillPermissions.ts         | `src/lib/skillPermissions.ts`                                         | 277  |
+| SchemaValidator.ts          | `src/lib/dynamicUI/SchemaValidator.ts`                                | 222  |
+| ComponentRegistry.ts        | `src/lib/dynamicUI/ComponentRegistry.ts`                              | 87   |
+| skillActionExecutor.ts      | `src/lib/skillActionExecutor.ts`                                      | 53   |
+| storage.ts                  | `src/lib/storage.ts`                                                  | 177  |
+| executionStore.ts           | `src/stores/feature/executionStore.ts`                                | 866  |
+| executionPhaseMachine.ts    | `src/stores/feature/executionPhaseMachine.ts`                         | 41   |
+| executionToolCallUtils.ts   | `src/stores/feature/executionToolCallUtils.ts`                        | 34   |
+| localToolStore.ts           | `src/stores/feature/localToolStore.ts`                                | 89   |
+| recommendationStore.ts      | `src/stores/devtools/recommendationStore.ts`                          | 120  |
+| conversationStoreSend.ts    | `src/stores/domain/conversationStoreSend.ts`                          | 1739 |
+| localTool.ts                | `src/types/localTool.ts`                                              | 67   |
+| dynamicUI.ts                | `src/types/dynamicUI.ts`                                              | 298  |
+| index.ts                    | `src/types/index.ts`                                                  | 1574 |
+| ToolCallCard.tsx            | `src/components/chat/ToolCallCard.tsx`                                | 301  |
+| toolCallDisplay.ts          | `src/components/chat/toolCallDisplay.ts`                              | 62   |
+| ToolManager.tsx             | `src/components/settings/ToolManager.tsx`                             | 272  |
+| LocalToolSettings.tsx       | `src/components/settings/LocalToolSettings.tsx`                       | 208  |
+| ToolSemanticCheck.tsx       | `src/components/settings/ToolSemanticCheck.tsx`                       | 449  |
+| ToolRecommendationPanel.tsx | `src/components/recommendation/ToolRecommendationPanel.tsx`           | 222  |
+| ToolNode.tsx                | `src/components/workflow/Nodes/ToolNode.tsx`                          | 122  |
+| ToolPropertyPanel.tsx       | `src/components/workflow/Panels/PropertyPanels/ToolPropertyPanel.tsx` | 215  |
+| browserMock.ts              | `src/lib/browserMock.ts`                                              | 3157 |
 
 ---
 
-*修复完成。23 个缺陷全部修复。2.6（withTimeout 超时取消）通过前端软取消方案实现：超时后结果绝不更新 UI、不会被重试，虽无法真正中断后端执行（Tauri v2 IPC 无此能力），但已满足"超时后不再影响前端状态"的修复目标。*
-*（内容由AI生成，仅供参考）*
+_修复完成。23 个缺陷全部修复。2.6（withTimeout 超时取消）通过前端软取消方案实现：超时后结果绝不更新 UI、不会被重试，虽无法真正中断后端执行（Tauri v2 IPC 无此能力），但已满足"超时后不再影响前端状态"的修复目标。_
+_（内容由AI生成，仅供参考）_

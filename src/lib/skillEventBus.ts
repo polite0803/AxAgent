@@ -28,7 +28,7 @@ function evictIfNeeded() {
   // 按 lastAccess 升序（最久未访问在前），同时间按 handler 数量升序
   entries.sort((a, b) => {
     const timeDiff = a[1].lastAccess - b[1].lastAccess;
-    if (timeDiff !== 0) return timeDiff;
+    if (timeDiff !== 0) { return timeDiff; }
     return a[1].handlers.size - b[1].handlers.size;
   });
   for (let i = 0; i < excess && i < entries.length; i++) {
