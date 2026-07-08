@@ -5,6 +5,8 @@
 use anyhow::Result;
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use serde::{Deserialize, Serialize};
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 
 #[cfg(target_os = "android")]
 use axagent_harness::constants::android_msg;

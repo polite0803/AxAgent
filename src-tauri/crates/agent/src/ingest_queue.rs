@@ -257,7 +257,9 @@ impl IngestQueue {
             task.status = IngestTaskStatus::Pending;
             task.retry_count = 0;
             task.error_message = None;
-            self.save_to_disk().await.ok();
+            if let Err(e) = self.save_to_disk().await {
+                tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+            }
             return true;
         }
         false

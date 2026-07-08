@@ -229,7 +229,7 @@ pub fn run() {
 
             android_utils::mark_startup_phase("db_init_start");
 
-            let db_result = match spawn_block_on("db_init", init::init_database_with_dir(app_dir)) {
+            let db_result = match spawn_block_on("db_init", init::init_database_with_dir(app_dir.clone())) {
                 Ok(Ok(result)) => result,
                 Ok(Err(e)) => {
                     tracing::error!("Database initialization failed: {}", e);

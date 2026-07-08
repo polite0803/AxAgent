@@ -6,9 +6,9 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
+axagent-credential = { path = "../credential" }
 axagent-crypto = { path = "../crypto" }
 axagent-dao = { path = "../dao" }
-axagent-credential = { path = "../credential" }
 axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }

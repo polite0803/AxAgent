@@ -147,7 +147,7 @@ pub(crate) fn increment_skill_usage(skill: &mut Skill, success: bool) {
 #[allow(dead_code)]
 fn generate_skill_id() -> String {
     let timestamp = Utc::now().timestamp_millis();
-    let counter = SKILL_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let counter = SKILL_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
     format!("skill_{}_{}", timestamp, counter)
 }
 

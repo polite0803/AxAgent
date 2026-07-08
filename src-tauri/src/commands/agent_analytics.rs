@@ -12,8 +12,8 @@ pub async fn trajectory_stats(app_state: State<'_, AppState>) -> Result<serde_js
         .get_statistics()
         .await
         .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?;
-    serde_json::to_value(stats)
-        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))
+    Ok(serde_json::to_value(stats)
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 #[tauri::command]
@@ -46,16 +46,16 @@ pub async fn get_trajectory_detail(
                 .with_category(ErrorCategory::Validation)
                 .with_detail(format!("Trajectory {} not found", trajectory_id))
         })?;
-    serde_json::to_value(trajectory)
-        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))
+    Ok(serde_json::to_value(trajectory)
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 #[tauri::command]
 pub async fn pattern_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let pl = app_state.pattern_learner.read().await;
     let stats = pl.get_statistics();
-    serde_json::to_value(stats)
-        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))
+    Ok(serde_json::to_value(stats)
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 #[tauri::command]

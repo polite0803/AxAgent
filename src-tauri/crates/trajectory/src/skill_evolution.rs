@@ -502,8 +502,8 @@ impl SkillEvolutionEngine {
 
         if let Some(ref mut pop) = self.population {
             if self.config.use_llm_mutation {
-                let llm_guard = self.llm_provider.read().unwrap();
-                if let Some(ref provider) = *llm_guard {
+                let llm_provider = self.llm_provider.read().unwrap().clone();
+                if let Some(ref provider) = llm_provider {
                     for individual in &mut pop.individuals {
                         let failure_evidence: Vec<String> = test_trajectories
                             .iter()
@@ -564,8 +564,8 @@ impl SkillEvolutionEngine {
             }
 
             if self.config.use_execution_validation {
-                let sandbox_guard = self.sandbox.read().unwrap();
-                if let Some(ref sandbox) = *sandbox_guard {
+                let sandbox = self.sandbox.read().unwrap().clone();
+                if let Some(ref sandbox) = sandbox {
                     for individual in &mut pop.individuals.iter_mut() {
                         let mut total_success = 0.0;
                         let mut rounds = 0;
