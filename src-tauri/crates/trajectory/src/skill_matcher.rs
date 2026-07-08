@@ -135,7 +135,7 @@ fn calculate_match_score(
     let input_lower = user_input.to_lowercase();
     let skill_id_lower = skill_id.to_lowercase();
     let skill_name_lower = skill_name.to_lowercase();
-    let reasons: Vec<String> = Vec::new();
+    let mut reasons: Vec<String> = Vec::new();
     let mut score: f64 = 0.0;
 
     let patterns = KeywordPatterns::get();

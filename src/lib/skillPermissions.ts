@@ -140,6 +140,11 @@ export function isStoreWriteCovered(
  * - 支持通配符 "read_*" 匹配
  * - 返回完整的违规列表
  *
+ * 职责边界：此函数为声明时静态校验，仅能检查 manifest 中显式声明的内容（commands）。
+ * storeRead/storeWrite/navigate/network 的操作目标在声明时不可知，需在运行时
+ * per-call 白名单检查中强制。实现在 RPC 桥接层
+ * （SkillSandboxContainer → createHostApiBridge / actionRouter.ts）。
+ *
  * @param permissions Skill 声明的权限
  * @param requiredCommands Skill 实际需要的命令列表（从 manifest.capabilities 提取）
  * @returns 校验结果

@@ -48,17 +48,38 @@ export function SkillDependencyCheck() {
         const depInfo: DependencyInfo[] = [];
         let allSatisfied = true;
 
-        for (const [depName, versionConstraint] of Object.entries(deps)) {
-          const installed = installedNames.has(depName);
-          if (!installed) {
-            allSatisfied = false;
+        // 兼容两种依赖数据格式：
+        // 1) Record<string, string>（前端类型定义，{ name: version }）
+        // 2) Array<{ name, version_constraint, required }>（Rust 后端返回）
+        if (Array.isArray(deps)) {
+          for (const dep of deps) {
+            const depName = typeof dep === "string" ? dep : dep?.name ?? dep?.skill_name ?? String(dep);
+            const installed = installedNames.has(depName);
+            if (!installed) {
+              allSatisfied = false;
+            }
+            depInfo.push({
+              skillName: depName,
+              required: dep?.required ?? true,
+              installed,
+              versionConstraint: typeof dep === "object"
+                ? (dep.version_constraint ?? dep.versionConstraint)
+                : undefined,
+            });
           }
-          depInfo.push({
-            skillName: depName,
-            required: true,
-            installed,
-            versionConstraint,
-          });
+        } else {
+          for (const [depName, versionConstraint] of Object.entries(deps as Record<string, string>)) {
+            const installed = installedNames.has(depName);
+            if (!installed) {
+              allSatisfied = false;
+            }
+            depInfo.push({
+              skillName: depName,
+              required: true,
+              installed,
+              versionConstraint,
+            });
+          }
         }
 
         if (depInfo.length > 0) {

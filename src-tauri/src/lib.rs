@@ -69,8 +69,8 @@ where
                 #[cfg(not(target_os = "android"))]
                 {
                     eprintln!("{msg}");
-                    if let Ok(mut log_dir) = std::env::var("APPDATA")
-                        .or_else(|_| std::env::var("HOME"))
+                    if let Ok(mut log_dir) =
+                        std::env::var("APPDATA").or_else(|_| std::env::var("HOME"))
                     {
                         log_dir.push_str("/axagent-crash.log");
                         let _ = std::fs::write(&log_dir, &msg);

@@ -339,12 +339,15 @@ pub(super) struct SkillExecutionRecord {
 
 pub(super) struct SkillOutputTracker {
     inner: Mutex<HashMap<String, Vec<SkillExecutionRecord>>>,
+    /// 每个 conversation 的最大记录数，超出时丢弃最旧记录
+    max_records_per_conv: usize,
 }
 
 impl SkillOutputTracker {
     fn new() -> Self {
         Self {
             inner: Mutex::new(HashMap::new()),
+            max_records_per_conv: 200,
         }
     }
 
@@ -355,6 +358,10 @@ impl SkillOutputTracker {
     ) -> Result<(), String> {
         let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
         let entries = tracker.entry(conversation_id.to_string()).or_default();
+        // 防止内存无限增长：超出上限时移除最旧记录
+        if entries.len() >= self.max_records_per_conv {
+            entries.remove(0);
+        }
         entries.push(record);
         Ok(())
     }
@@ -594,6 +601,10 @@ pub(super) async fn execute_skill_async(
     let goal = context.as_ref().and_then(|c| c.goal.clone());
     let constraints = context.as_ref().and_then(|c| c.constraints.clone());
     let execution_mode = "content".to_string();
+    // TODO P2-2.12: execution_mode 当前硬编码为 "content"，MCP 分支永远不可达。
+    // MCP 工具调用目前通过 UnifiedToolRegistry 独立路径处理，
+    // 而非 skill_execution 流程。如需恢复 MCP 分支，应从 skill manifest
+    // 中动态读取 execution_mode 声明。
     let mcp_tool_call = extract_mcp_tool_call(skill_content);
 
     let tracker = get_skill_output_tracker();

@@ -120,7 +120,8 @@ impl NodeExecutorTrait for DatabaseQueryExecutor {
             ctx,
             c.credential_id.as_deref(),
             c.connection_name.as_deref(),
-        ).await?;
+        )
+        .await?;
 
         let pool = AnyPoolOptions::new()
             .max_connections(1)

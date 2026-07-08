@@ -571,9 +571,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         coevolution_env.clone(),
         process_reward_model.clone(),
     );
-    let tool_state = ToolState::new(
-        auto_tool_creator.clone(),
-    );
+    let tool_state = ToolState::new(auto_tool_creator.clone());
 
     // 初始化 reflector 持久化
     {

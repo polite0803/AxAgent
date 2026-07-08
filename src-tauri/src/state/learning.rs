@@ -23,11 +23,6 @@ impl LearningState {
         coevolution_env: Arc<Mutex<axagent_trajectory::CoevolutionEnvironment>>,
         process_reward_model: Arc<Mutex<axagent_trajectory::ProcessRewardModel>>,
     ) -> Self {
-        Self {
-            text_grad_engine,
-            intrinsic_motivation,
-            coevolution_env,
-            process_reward_model,
-        }
+        Self { text_grad_engine, intrinsic_motivation, coevolution_env, process_reward_model }
     }
 }

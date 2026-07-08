@@ -11,7 +11,19 @@ interface LifecycleCacheEntry {
 }
 
 const lifecycleCache = new Map<string, LifecycleCacheEntry>();
-const LIFECYCLE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** P3-2.19: 生命周期缓存 TTL 可配置，默认 5 分钟 */
+let lifecycleCacheTtlMs = 5 * 60 * 1000;
+
+/** 获取当前缓存 TTL（毫秒） */
+export function getLifecycleCacheTtl(): number {
+  return lifecycleCacheTtlMs;
+}
+
+/** 设置缓存 TTL（毫秒），传入 0 或负数将禁用缓存 */
+export function setLifecycleCacheTtl(ttlMs: number): void {
+  lifecycleCacheTtlMs = ttlMs;
+}
 
 async function readLifecycleData(
   skillName: string,
@@ -20,7 +32,8 @@ async function readLifecycleData(
   permissions: SkillPermissions | undefined;
 }> {
   const cached = lifecycleCache.get(skillName);
-  if (cached && Date.now() - cached.ts < LIFECYCLE_CACHE_TTL_MS) {
+  const ttl = lifecycleCacheTtlMs;
+  if (cached && ttl > 0 && Date.now() - cached.ts < ttl) {
     return { hooks: cached.hooks, permissions: cached.permissions };
   }
 

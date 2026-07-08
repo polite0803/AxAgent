@@ -1006,21 +1006,26 @@ mod tests_conversation {
                     axagent_trajectory::ComputationGraph::new(),
                     axagent_trajectory::TextGradConfig::default(),
                 ))),
-                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::IntrinsicMotivationEngine::new(
-                    axagent_trajectory::IntrinsicMotivationConfig::default(),
-                ))),
+                Arc::new(tokio::sync::Mutex::new(
+                    axagent_trajectory::IntrinsicMotivationEngine::new(
+                        axagent_trajectory::IntrinsicMotivationConfig::default(),
+                    ),
+                )),
                 Arc::new(tokio::sync::Mutex::new(axagent_trajectory::CoevolutionEnvironment::new(
                     axagent_trajectory::CoevolutionConfig::default(),
                 ))),
-                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"))),
+                Arc::new(tokio::sync::Mutex::new(
+                    axagent_trajectory::ProcessRewardModel::default()
+                        .with_default_provider("general"),
+                )),
             ),
-            tool: crate::state::ToolState::new(
-                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::AutoToolCreator::new(
+            tool: crate::state::ToolState::new(Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::AutoToolCreator::new(
                     axagent_trajectory::AutoToolCreatorConfig::default(),
                     Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
                     Box::new(axagent_trajectory::DefaultSandboxToolTester),
-                ))),
-            ),
+                ),
+            ))),
         };
 
         let attachments = vec![AttachmentInput {

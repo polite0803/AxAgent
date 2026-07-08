@@ -171,10 +171,7 @@ impl KeyVerifyLimiter {
     fn evict_if_needed(&self, map: &mut HashMap<String, (u32, Instant)>) {
         while map.len() > self.max_entries {
             // 找到 first_attempt_at 最早的条目
-            let oldest = map
-                .iter()
-                .min_by_key(|(_, (_, ts))| *ts)
-                .map(|(k, _)| k.clone());
+            let oldest = map.iter().min_by_key(|(_, (_, ts))| *ts).map(|(k, _)| k.clone());
             if let Some(key) = oldest {
                 map.remove(&key);
             } else {

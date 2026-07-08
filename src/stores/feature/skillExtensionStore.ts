@@ -440,7 +440,7 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
 
     getHandler: (name: string) => get().handlers[name],
 
-    refreshSkill: async (skillName: string) => {
+    refreshSkill: async (_skillName: string) => {
       const skills = await invoke<Skill[]>("list_skills");
       // 直接使用后端最新 skills 列表，以 skill ID 为权威数据源
       const merged = mergeExtensions(skills);

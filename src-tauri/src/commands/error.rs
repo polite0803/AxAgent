@@ -78,12 +78,7 @@ pub type CommandError = ErrorResponse;
 impl ErrorResponse {
     /// 创建新的错误响应（默认分类为 General）
     pub fn new(code: impl Into<String>) -> Self {
-        Self {
-            code: code.into(),
-            category: ErrorCategory::General,
-            detail: None,
-            params: None,
-        }
+        Self { code: code.into(), category: ErrorCategory::General, detail: None, params: None }
     }
 
     /// 创建带分类的错误响应
@@ -150,12 +145,7 @@ impl ErrorResponse {
         e: impl std::fmt::Display,
         category: ErrorCategory,
     ) -> Self {
-        Self {
-            code: code.into(),
-            category,
-            detail: Some(e.to_string()),
-            params: None,
-        }
+        Self { code: code.into(), category, detail: Some(e.to_string()), params: None }
     }
 }
 

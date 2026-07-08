@@ -88,7 +88,17 @@ export function SkillSandboxContainer({
         message: string,
         type: "info" | "success" | "warning" | "error" = "info",
       ): void => {
-        notification[type]({ message, placement: "bottomRight" });
+        // P3-2.25: 对齐 antd NotificationArgsProps：error 类型将 message
+        // 作为 description 传递，避免标题截断；其他类型使用 message 作为标题
+        if (type === "error") {
+          notification.error({
+            message: i18n.t("skill.error") || "Error",
+            description: message,
+            placement: "bottomRight",
+          });
+        } else {
+          notification[type]({ message, placement: "bottomRight" });
+        }
       },
       getTheme: (): "light" | "dark" => {
         try {

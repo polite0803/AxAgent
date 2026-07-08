@@ -16,6 +16,25 @@ export type UnlistenFn = () => void;
 /** Default timeout for Tauri invoke calls (5 minutes). Set to 0 to disable. */
 export const DEFAULT_INVOKE_TIMEOUT_MS = 5 * 60 * 1000;
 
+/**
+ * Error thrown when an IPC call exceeds its timeout.
+ * Unlike transient network errors, timeout indicates the operation is too heavy
+ * and should NOT be retried automatically.
+ */
+export class TimeoutError extends Error {
+  constructor(
+    public readonly cmdName: string,
+    public readonly timeoutMs: number,
+  ) {
+    super(
+      `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. `
+      + `The backend operation may still be running. `
+      + `Consider increasing the timeout or optimizing the operation.`,
+    );
+    this.name = "TimeoutError";
+  }
+}
+
 // ─── 指数退避重试 ───
 
 /** 默认重试配置 */
@@ -32,12 +51,11 @@ export interface RetryOptions {
   timeoutMs?: number;
 }
 
-/** 可重试的瞬时错误模式 */
+/** 可重试的瞬时错误模式。注意：TimeoutError 不在此列——超时表示操作过重，不应自动重试。 */
 const RETRYABLE_ERROR_PATTERNS = [
   /connection.*refused/i,
   /connection.*reset/i,
   /network.*error/i,
-  /timeout/i,
   /temporarily/i,
   /econnrefused/i,
   /econnreset/i,
@@ -47,6 +65,10 @@ const RETRYABLE_ERROR_PATTERNS = [
 ] as const;
 
 function isRetryableError(error: unknown): boolean {
+  // TimeoutError should NEVER be retried — it indicates the operation is too heavy.
+  if (error instanceof TimeoutError) {
+    return false;
+  }
   const msg = error instanceof Error ? error.message : String(error);
   return RETRYABLE_ERROR_PATTERNS.some((pattern) => pattern.test(msg));
 }
@@ -407,8 +429,15 @@ export async function invoke<T>(
 }
 
 /**
- * Wrap a Tauri invoke call with a timeout.
- * If the call takes longer than `timeoutMs`, it rejects with a descriptive error.
+ * Wrap a Tauri invoke call with a timeout, implementing soft cancellation.
+ *
+ * - On timeout: throws `TimeoutError`, and the cancellation token prevents
+ *   the original promise result from ever being processed (even if it resolves
+ *   after the timeout, the result is discarded).
+ * - The backend operation continues running (Tauri v2 IPC has no abort
+ *   mechanism), but the frontend will not update state with stale results.
+ * - TimeoutError is NOT retried by `invokeWithRetry` — the operation is too
+ *   heavy or the backend is stuck, and retrying would only compound the problem.
  */
 async function withTimeout<T>(
   fn: () => Promise<T>,
@@ -420,44 +449,43 @@ async function withTimeout<T>(
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let timedOut = false;
+  const cancelled = { value: false };
 
-  const timeoutPromise = new Promise<never>((_, reject) => {
+  // Wrap fn() so that if it resolves after timeout, the result is discarded.
+  const guardedFn = fn().then((result) => {
+    if (cancelled.value) {
+      // Silently discard — the caller already received a TimeoutError.
+      return new Promise<never>(() => {});
+    }
+    return result;
+  });
+
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
-      timedOut = true;
-      reject(
-        new Error(
-          `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. `
-            + `The operation may still be running in the backend. `
-            + `Consider using a longer timeout or checking backend logs.`,
-        ),
-      );
+      cancelled.value = true;
+      reject(new TimeoutError(cmdName, timeoutMs));
     }, timeoutMs);
   });
 
   try {
-    const result = await Promise.race([fn(), timeoutPromise]);
+    const result = await Promise.race([guardedFn, timeoutPromise]);
     return result;
   } catch (e) {
-    const msg = String(e).toLowerCase();
-    if (
-      !timedOut
-      && (msg.includes("connection")
+    // Only attempt connection-error rewrapping for non-timeout errors.
+    if (!cancelled.value) {
+      const msg = String(e).toLowerCase();
+      if (
+        msg.includes("connection")
         || msg.includes("refused")
         || msg.includes("fetch")
         || msg.includes("ipc")
-        || msg.includes("protocol"))
-    ) {
-      throw new Error(
-        `Backend connection failed for "${cmdName}". The AxAgent backend may not be running or has crashed. Please restart the application using 'npm run tauri dev'.`,
-        { cause: e },
-      );
-    }
-    if (timedOut) {
-      console.warn(
-        `[invoke] "${cmdName}" timed out but the backend operation may still be running. `
-          + "Consider cancelling the operation manually via agent_cancel if supported.",
-      );
+        || msg.includes("protocol")
+      ) {
+        throw new Error(
+          `Backend connection failed for "${cmdName}". The AxAgent backend may not be running or has crashed. Please restart the application using 'npm run tauri dev'.`,
+          { cause: e },
+        );
+      }
     }
     throw e;
   } finally {

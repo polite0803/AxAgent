@@ -94,7 +94,10 @@ impl FileAuthorizer {
 
     /// SECURITY (C10): 之前直接 self-approve，现在只生成待审批 request。
     /// 真正的批准必须由 `approve_request` 完成（用户通过 UI 显式点击）。
-    pub async fn request_authorization(&self, request: AuthorizationRequest) -> AuthorizationResponse {
+    pub async fn request_authorization(
+        &self,
+        request: AuthorizationRequest,
+    ) -> AuthorizationResponse {
         let path = PathBuf::from(&request.path);
 
         if !self.is_path_safe(&path) {
@@ -105,7 +108,8 @@ impl FileAuthorizer {
                 Some(request.level.clone()),
                 false,
                 "unsafe path",
-            ).await;
+            )
+            .await;
             return AuthorizationResponse {
                 authorized: false,
                 auth_id: None,
@@ -140,7 +144,8 @@ impl FileAuthorizer {
             Some(level.clone()),
             true,
             "pending user approval",
-        ).await;
+        )
+        .await;
 
         AuthorizationResponse {
             authorized: false,
@@ -181,7 +186,8 @@ impl FileAuthorizer {
                 Some(req.level.clone()),
                 false,
                 "unsafe path",
-            ).await;
+            )
+            .await;
             return AuthorizationResponse {
                 authorized: false,
                 auth_id: None,
@@ -221,7 +227,8 @@ impl FileAuthorizer {
             Some(req.level.clone()),
             true,
             &format!("approved, expires {}", expires_at.to_rfc3339()),
-        ).await;
+        )
+        .await;
 
         AuthorizationResponse {
             authorized: true,
@@ -245,7 +252,8 @@ impl FileAuthorizer {
                 Some(req.level),
                 false,
                 "denied by user",
-            ).await;
+            )
+            .await;
             true
         } else {
             false
@@ -381,11 +389,11 @@ impl FileAuthorizer {
                     }
                 }
                 true
-            }
+            },
             Err(_) => {
                 // ── 4. 不存在的路径：沿父目录链找到最近存在的目录 ──
                 Self::validate_non_existent_path(path)
-            }
+            },
         }
     }
 
@@ -401,7 +409,9 @@ impl FileAuthorizer {
         // NTFS 备用数据流：冒号出现在盘符之后的位置即视为风险。
         // 合法形式：`C:\...` (冒号在位置 1)；其余位置的冒号均为可疑。
         if let Some(colon_pos) = path_str.find(':') {
-            if colon_pos != 1 || !path_str.as_bytes().get(0).map_or(false, |b| b.is_ascii_alphabetic()) {
+            if colon_pos != 1
+                || !path_str.as_bytes().get(0).map_or(false, |b| b.is_ascii_alphabetic())
+            {
                 return true;
             }
         }
@@ -456,7 +466,7 @@ impl FileAuthorizer {
                         remaining = new_remaining;
                     }
                     current = parent.to_path_buf();
-                }
+                },
                 _ => break,
             }
         }
@@ -520,10 +530,8 @@ impl FileAuthorizer {
             if let Ok(json) = serde_json::to_string(&entry) {
                 // 使用 std::fs::OpenOptions 以 append 模式打开，避免持有锁期间做 I/O
                 let json_line = format!("{}\n", json);
-                if let Ok(mut file) = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(log_path)
+                if let Ok(mut file) =
+                    std::fs::OpenOptions::new().create(true).append(true).open(log_path)
                 {
                     let _ = file.write_all(json_line.as_bytes());
                 }

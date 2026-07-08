@@ -3,34 +3,50 @@
 /** Skill 事件总线，提供 Skill → App 通信的 namespace 隔离事件系统 */
 
 type EventHandler = (payload: unknown) => void | Promise<void>;
-const listeners = new Map<string, Set<EventHandler>>();
+
+interface ListenerEntry {
+  handlers: Set<EventHandler>;
+  lastAccess: number;
+}
+
+const listeners = new Map<string, ListenerEntry>();
 const MAX_LISTENER_KEYS = 200;
 
 /**
- * 容量驱逐策略：FIFO（先进先出）。
- * 当注册的监听器 key 数量超过 MAX_LISTENER_KEYS 时，驱逐最早注册的监听器。
- * 对于 event bus 场景，FIFO 是可接受的——长期未活跃的 Skill 通常先注册。
+ * P3-2.20: LRU 驱逐策略。
+ * 当注册的监听器 key 数量超过 MAX_LISTENER_KEYS 时，驱逐最久未访问的 key。
+ * emit 和 on 均会更新 lastAccess 时间戳，确保活跃 key 不被误驱逐。
+ * 驱逐时选择 handler 数量最少的 key（当多个 key 访问时间接近时），
+ * 最小化对活跃 Skill 的影响。
  */
 function evictIfNeeded() {
   if (listeners.size <= MAX_LISTENER_KEYS) {
     return;
   }
-  const keys = listeners.keys();
   const excess = listeners.size - MAX_LISTENER_KEYS;
-  for (let i = 0; i < excess; i++) {
-    const key = keys.next().value;
-    if (key !== undefined) {
-      listeners.delete(key);
-    }
+  const entries = Array.from(listeners.entries());
+  // 按 lastAccess 升序（最久未访问在前），同时间按 handler 数量升序
+  entries.sort((a, b) => {
+    const timeDiff = a[1].lastAccess - b[1].lastAccess;
+    if (timeDiff !== 0) return timeDiff;
+    return a[1].handlers.size - b[1].handlers.size;
+  });
+  for (let i = 0; i < excess && i < entries.length; i++) {
+    listeners.delete(entries[i][0]);
   }
+}
+
+function touchEntry(entry: ListenerEntry): void {
+  entry.lastAccess = Date.now();
 }
 
 export const skillEventBus = {
   emit(skillName: string, event: string, payload: unknown): void {
     const key = `${skillName}:${event}`;
-    const handlers = listeners.get(key);
-    if (handlers) {
-      for (const handler of handlers) {
+    const entry = listeners.get(key);
+    if (entry) {
+      touchEntry(entry);
+      for (const handler of entry.handlers) {
         try {
           const result = handler(payload);
           if (result instanceof Promise) {
@@ -45,13 +61,17 @@ export const skillEventBus = {
 
   on(skillName: string, event: string, handler: EventHandler): () => void {
     const key = `${skillName}:${event}`;
-    if (!listeners.has(key)) {
-      listeners.set(key, new Set());
+    let entry = listeners.get(key);
+    if (!entry) {
+      entry = { handlers: new Set(), lastAccess: Date.now() };
+      listeners.set(key, entry);
       evictIfNeeded();
+    } else {
+      touchEntry(entry);
     }
-    listeners.get(key)!.add(handler);
+    entry.handlers.add(handler);
     return () => {
-      listeners.get(key)?.delete(handler);
+      entry?.handlers.delete(handler);
     };
   },
 

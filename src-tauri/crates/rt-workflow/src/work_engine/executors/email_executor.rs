@@ -100,7 +100,8 @@ impl NodeExecutorTrait for EmailExecutor {
             c.smtp_port,
             c.smtp_user.as_deref(),
             c.smtp_pass.as_deref(),
-        ).await?;
+        )
+        .await?;
 
         tracing::info!(
             host = %smtp.host,

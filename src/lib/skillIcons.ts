@@ -100,6 +100,6 @@ export function resolveIconComponent(iconStr: string): LucideIcon {
   if (component) {
     return component;
   }
-  console.warn(`[skillIcons] 未识别的图标 "${iconStr}"，回退到 Puzzle`);
-  return Puzzle;
+  console.warn(`[skillIcons] 未识别的图标 "${iconStr}"，回退到 Package`);
+  return Package;
 }

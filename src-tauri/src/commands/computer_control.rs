@@ -36,12 +36,10 @@ fn check_computer_control_permission() -> Result<(), String> {
     if COMPUTER_CONTROL_GRANTED.load(Ordering::SeqCst) {
         Ok(())
     } else {
-        Err(
-            "Permission denied: computer_control capability has not been granted. \
+        Err("Permission denied: computer_control capability has not been granted. \
              The user must explicitly authorize computer control access before \
              screen capture, mouse/keyboard automation commands can be used."
-                .to_string(),
-        )
+            .to_string())
     }
 }
 

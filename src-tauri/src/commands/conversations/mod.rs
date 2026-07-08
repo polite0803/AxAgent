@@ -2824,15 +2824,17 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(tokio::sync::Mutex::new(axagent_trajectory::CoevolutionEnvironment::new(
                 axagent_trajectory::CoevolutionConfig::default(),
             ))),
-            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"))),
+            Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"),
+            )),
         ),
-        tool: crate::state::ToolState::new(
-            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::AutoToolCreator::new(
+        tool: crate::state::ToolState::new(Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::AutoToolCreator::new(
                 axagent_trajectory::AutoToolCreatorConfig::default(),
                 Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
                 Box::new(axagent_trajectory::DefaultSandboxToolTester),
-            ))),
-        ),
+            ),
+        ))),
     };
 
     let attachments = vec![AttachmentInput {

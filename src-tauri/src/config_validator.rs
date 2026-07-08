@@ -34,7 +34,7 @@ pub fn validate_agent_roles(path: &str) -> bool {
         Err(e) => {
             tracing::warn!("[config-validator] Cannot read {}: {}", path, e);
             return false;
-        }
+        },
     };
 
     let config: AgentRolesConfig = match serde_yaml::from_str(&content) {
@@ -42,7 +42,7 @@ pub fn validate_agent_roles(path: &str) -> bool {
         Err(e) => {
             tracing::warn!("[config-validator] {} is not valid YAML: {}", path, e);
             return false;
-        }
+        },
     };
 
     let mut valid = true;
@@ -52,14 +52,14 @@ pub fn validate_agent_roles(path: &str) -> bool {
         None => {
             tracing::warn!("[config-validator] {} missing 'schema_version'", path);
             valid = false;
-        }
+        },
         Some(v) if v == 0 => {
             tracing::warn!("[config-validator] {} schema_version is 0 (reserved)", path);
             valid = false;
-        }
+        },
         Some(v) => {
             tracing::info!("[config-validator] {} schema_version={}", path, v);
-        }
+        },
     }
 
     let roles = match config.roles {
@@ -67,7 +67,7 @@ pub fn validate_agent_roles(path: &str) -> bool {
         None => {
             tracing::warn!("[config-validator] {} missing 'roles' array", path);
             return false;
-        }
+        },
     };
 
     if roles.is_empty() {
@@ -79,11 +79,7 @@ pub fn validate_agent_roles(path: &str) -> bool {
         let idx = i + 1;
 
         if role.name.as_ref().map_or(true, |n| n.trim().is_empty()) {
-            tracing::warn!(
-                "[config-validator] {} role #{} missing or empty 'name'",
-                path,
-                idx
-            );
+            tracing::warn!("[config-validator] {} role #{} missing or empty 'name'", path, idx);
             valid = false;
         }
 
@@ -108,21 +104,13 @@ pub fn validate_agent_roles(path: &str) -> bool {
 
         if let Some(ts) = role.timeout_seconds {
             if ts == 0 {
-                tracing::warn!(
-                    "[config-validator] {} role #{} timeout_seconds is 0",
-                    path,
-                    idx
-                );
+                tracing::warn!("[config-validator] {} role #{} timeout_seconds is 0", path, idx);
             }
         }
     }
 
     if valid {
-        tracing::info!(
-            "[config-validator] {} passed validation ({} roles)",
-            path,
-            roles.len()
-        );
+        tracing::info!("[config-validator] {} passed validation ({} roles)", path, roles.len());
     }
 
     valid

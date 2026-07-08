@@ -13,9 +13,7 @@ pub struct ToolState {
 
 #[allow(dead_code)]
 impl ToolState {
-    pub fn new(
-        auto_tool_creator: Arc<Mutex<axagent_trajectory::AutoToolCreator>>,
-    ) -> Self {
+    pub fn new(auto_tool_creator: Arc<Mutex<axagent_trajectory::AutoToolCreator>>) -> Self {
         Self { auto_tool_creator }
     }
 }
