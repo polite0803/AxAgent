@@ -141,6 +141,18 @@ pub struct PermissionPolicy {
 
 pub use axagent_runtime_core::permissions::PermissionMode;
 
+/// Explicit permission mode rank for reliable comparison.
+/// Lower rank = more restrictive.
+fn mode_rank(mode: &PermissionMode) -> u8 {
+    match mode {
+        PermissionMode::ReadOnly => 0,
+        PermissionMode::WorkspaceWrite => 1,
+        PermissionMode::DangerFullAccess => 2,
+        PermissionMode::Prompt => 3,
+        PermissionMode::Allow => 4,
+    }
+}
+
 impl PermissionPolicy {
     pub fn new(mode: PermissionMode) -> Self {
         Self {
@@ -199,7 +211,7 @@ impl PermissionPolicy {
 
         // 4. 检查工具的最小模式要求
         if let Some(required_mode) = self.tool_requirements.get(tool_name)
-            && self.active_mode < *required_mode
+            && mode_rank(&self.active_mode) < mode_rank(required_mode)
         {
             return PermissionDecision::new(
                 PermissionBehavior::Ask,

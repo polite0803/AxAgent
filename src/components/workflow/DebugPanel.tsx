@@ -1489,7 +1489,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                   size="small"
                   column={1}
                   bordered
-                  contentStyle={{ fontFamily: "monospace", fontSize: 11 }}
+                  contentStyle={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 11 }}
                   labelStyle={{ width: 140, fontSize: 11 }}
                 >
                   {Object.entries(variables).map(([key, val]) => (

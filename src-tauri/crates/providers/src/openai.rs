@@ -919,11 +919,15 @@ impl ProviderAdapter for OpenAIAdapter {
                             {
                                 pending_tool_calls[idx].0 = id.clone();
                             }
-                            if let Some(ref ct) = tc.call_type {
+                            if let Some(ref ct) = tc.call_type
+                                && !ct.is_empty()
+                            {
                                 pending_tool_calls[idx].1 = ct.clone();
                             }
                             if let Some(ref f) = tc.function {
-                                if let Some(ref name) = f.name {
+                                if let Some(ref name) = f.name
+                                    && !name.is_empty()
+                                {
                                     pending_tool_calls[idx].2 = name.clone();
                                 }
                                 if let Some(ref args) = f.arguments {

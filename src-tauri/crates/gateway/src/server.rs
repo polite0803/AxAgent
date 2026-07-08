@@ -90,9 +90,9 @@ pub(crate) fn client_ip_policy_from_env_or_default() -> ClientIpPolicy {
 
     let Some(raw) = raw else {
         tracing::warn!(
-            "TRUSTED_PROXIES 未设置，client_ip_policy 回退到 trust_all()；生产部署建议显式配置"
+            "TRUSTED_PROXIES 未设置，client_ip_policy 使用默认值（不信任任何代理）；生产部署建议显式配置 TRUSTED_PROXIES"
         );
-        return ClientIpPolicy::trust_all();
+        return ClientIpPolicy::default();
     };
 
     let mut proxies: Vec<std::net::IpAddr> = Vec::new();

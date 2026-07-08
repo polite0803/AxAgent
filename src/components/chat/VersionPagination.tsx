@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Button, theme, Typography } from "antd";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 import { useConversationStore } from "@/stores";
 import type { Message } from "@/types";
@@ -19,15 +20,13 @@ export function VersionPagination({
   const switchMessageVersion = useConversationStore(
     (s) => s.switchMessageVersion,
   );
+  const [switching, setSwitching] = useState(false);
+  const switchingRef = useRef(false);
 
   const currentModelId = msg.model_id;
   const modelVersions = allVersions.filter(
     (v) => v.model_id === currentModelId,
   );
-
-  if (modelVersions.length <= 1) {
-    return null;
-  }
 
   const sorted = modelVersions.toSorted(
     (a, b) => a.version_index - b.version_index,
@@ -35,22 +34,36 @@ export function VersionPagination({
   const currentIdx = sorted.findIndex((v) => v.id === msg.id);
   const current = currentIdx >= 0 ? currentIdx : sorted.findIndex((v) => v.is_active);
 
+  const doSwitch = useCallback(
+    async (targetId: string) => {
+      // Fix: concurrent guard — prevent rapid clicks from triggering
+      // multiple switches before React state catches up. switchingRef
+      // provides the lock; switching state disables buttons visually.
+      if (switchingRef.current || !msg.parent_message_id) return;
+      switchingRef.current = true;
+      setSwitching(true);
+      try {
+        await switchMessageVersion(conversationId, msg.parent_message_id, targetId);
+      } finally {
+        switchingRef.current = false;
+        setSwitching(false);
+      }
+    },
+    [conversationId, msg.parent_message_id, switchMessageVersion],
+  );
+
+  if (modelVersions.length <= 1 && !switching) {
+    return null;
+  }
+
   const handlePrev = () => {
-    if (current > 0 && msg.parent_message_id) {
-      switchMessageVersion(
-        conversationId,
-        msg.parent_message_id,
-        sorted[current - 1].id,
-      );
+    if (current > 0) {
+      doSwitch(sorted[current - 1].id);
     }
   };
   const handleNext = () => {
-    if (current < sorted.length - 1 && msg.parent_message_id) {
-      switchMessageVersion(
-        conversationId,
-        msg.parent_message_id,
-        sorted[current + 1].id,
-      );
+    if (current < sorted.length - 1) {
+      doSwitch(sorted[current + 1].id);
     }
   };
 
@@ -63,27 +76,39 @@ export function VersionPagination({
         marginRight: 8,
       }}
     >
-      <Button
-        type="text"
-        size="small"
-        icon={<ChevronLeft size={14} />}
-        disabled={current <= 0}
-        onClick={handlePrev}
-        style={{ minWidth: 20, padding: "0 2px" }}
-      />
-      <Typography.Text
-        style={{ fontSize: 12, color: token.colorTextSecondary }}
-      >
-        {current + 1}/{sorted.length}
-      </Typography.Text>
-      <Button
-        type="text"
-        size="small"
-        icon={<ChevronRight size={14} />}
-        disabled={current >= sorted.length - 1}
-        onClick={handleNext}
-        style={{ minWidth: 20, padding: "0 2px" }}
-      />
+      {switching ? (
+        <Loader
+          size={14}
+          style={{
+            animation: "axagent-think-spin 1s linear infinite",
+            color: token.colorTextSecondary,
+          }}
+        />
+      ) : (
+        <>
+          <Button
+            type="text"
+            size="small"
+            icon={<ChevronLeft size={14} />}
+            disabled={switching || current <= 0}
+            onClick={handlePrev}
+            style={{ minWidth: 20, padding: "0 2px" }}
+          />
+          <Typography.Text
+            style={{ fontSize: 12, color: token.colorTextSecondary }}
+          >
+            {current + 1}/{sorted.length}
+          </Typography.Text>
+          <Button
+            type="text"
+            size="small"
+            icon={<ChevronRight size={14} />}
+            disabled={switching || current >= sorted.length - 1}
+            onClick={handleNext}
+            style={{ minWidth: 20, padding: "0 2px" }}
+          />
+        </>
+      )}
     </span>
   );
 }

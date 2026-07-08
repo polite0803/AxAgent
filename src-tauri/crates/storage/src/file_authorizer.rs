@@ -3,8 +3,9 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 use tracing::warn;
 use uuid::Uuid;
 
@@ -69,6 +70,8 @@ pub struct FileAuthorizer {
     audit_log: Mutex<Vec<AuditEntry>>,
     max_temp_duration: Duration,
     default_duration: Duration,
+    /// M3: 审计日志文件路径，设置后 audit() 会追加写入 JSONL 格式的持久化日志
+    audit_log_path: Mutex<Option<PathBuf>>,
 }
 
 impl FileAuthorizer {
@@ -79,12 +82,19 @@ impl FileAuthorizer {
             audit_log: Mutex::new(Vec::new()),
             max_temp_duration: Duration::hours(24),
             default_duration: Duration::minutes(30),
+            audit_log_path: Mutex::new(None),
         }
+    }
+
+    /// M3: 设置审计日志文件路径，启用文件持久化。
+    pub async fn set_audit_log_path(&self, path: PathBuf) {
+        let mut log_path = self.audit_log_path.lock().await;
+        *log_path = Some(path);
     }
 
     /// SECURITY (C10): 之前直接 self-approve，现在只生成待审批 request。
     /// 真正的批准必须由 `approve_request` 完成（用户通过 UI 显式点击）。
-    pub fn request_authorization(&self, request: AuthorizationRequest) -> AuthorizationResponse {
+    pub async fn request_authorization(&self, request: AuthorizationRequest) -> AuthorizationResponse {
         let path = PathBuf::from(&request.path);
 
         if !self.is_path_safe(&path) {
@@ -95,7 +105,7 @@ impl FileAuthorizer {
                 Some(request.level.clone()),
                 false,
                 "unsafe path",
-            );
+            ).await;
             return AuthorizationResponse {
                 authorized: false,
                 auth_id: None,
@@ -120,7 +130,7 @@ impl FileAuthorizer {
         let path_str = req.path.clone();
         let level = req.level.clone();
         {
-            let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+            let mut pending = self.pending_requests.lock().await;
             pending.push(req);
         }
         self.audit(
@@ -130,7 +140,7 @@ impl FileAuthorizer {
             Some(level.clone()),
             true,
             "pending user approval",
-        );
+        ).await;
 
         AuthorizationResponse {
             authorized: false,
@@ -144,8 +154,8 @@ impl FileAuthorizer {
     }
 
     /// SECURITY (C10): 显式用户/UI 批准流程。
-    pub fn approve_request(&self, request_id: &str, approver: &str) -> AuthorizationResponse {
-        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn approve_request(&self, request_id: &str, approver: &str) -> AuthorizationResponse {
+        let mut pending = self.pending_requests.lock().await;
         let pos = pending.iter().position(|r| r.id == request_id);
         let req = match pos {
             Some(i) => pending.remove(i),
@@ -171,7 +181,7 @@ impl FileAuthorizer {
                 Some(req.level.clone()),
                 false,
                 "unsafe path",
-            );
+            ).await;
             return AuthorizationResponse {
                 authorized: false,
                 auth_id: None,
@@ -201,7 +211,7 @@ impl FileAuthorizer {
         };
         let auth_id = auth.id.clone();
         {
-            let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+            let mut authorizations = self.authorizations.lock().await;
             authorizations.insert(auth_id.clone(), auth);
         }
         self.audit(
@@ -211,7 +221,7 @@ impl FileAuthorizer {
             Some(req.level.clone()),
             true,
             &format!("approved, expires {}", expires_at.to_rfc3339()),
-        );
+        ).await;
 
         AuthorizationResponse {
             authorized: true,
@@ -224,8 +234,8 @@ impl FileAuthorizer {
         }
     }
 
-    pub fn deny_request(&self, request_id: &str, approver: &str) -> bool {
-        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn deny_request(&self, request_id: &str, approver: &str) -> bool {
+        let mut pending = self.pending_requests.lock().await;
         if let Some(pos) = pending.iter().position(|r| r.id == request_id) {
             let req = pending.remove(pos);
             self.audit(
@@ -235,7 +245,7 @@ impl FileAuthorizer {
                 Some(req.level),
                 false,
                 "denied by user",
-            );
+            ).await;
             true
         } else {
             false
@@ -243,9 +253,9 @@ impl FileAuthorizer {
     }
 
     /// SECURITY (H5): 路径匹配：精确 → 父目录递归 → 都检查 expires_at。
-    pub fn check_authorization(&self, path: &str, required_level: &PermissionLevel) -> bool {
+    pub async fn check_authorization(&self, path: &str, required_level: &PermissionLevel) -> bool {
         let path = PathBuf::from(path);
-        let authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+        let authorizations = self.authorizations.lock().await;
 
         for auth in authorizations.values() {
             if self.is_expired(auth) {
@@ -261,21 +271,21 @@ impl FileAuthorizer {
         false
     }
 
-    pub fn revoke_authorization(&self, auth_id: &str) -> bool {
-        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn revoke_authorization(&self, auth_id: &str) -> bool {
+        let mut authorizations = self.authorizations.lock().await;
         authorizations.remove(auth_id).is_some()
     }
 
-    pub fn revoke_all_for_path(&self, path: &str) -> usize {
+    pub async fn revoke_all_for_path(&self, path: &str) -> usize {
         let path = PathBuf::from(path);
-        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+        let mut authorizations = self.authorizations.lock().await;
         let before = authorizations.len();
         authorizations.retain(|_, auth| !path_matches(&auth.path, &path));
         before - authorizations.len()
     }
 
-    pub fn cleanup_expired(&self) -> usize {
-        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn cleanup_expired(&self) -> usize {
+        let mut authorizations = self.authorizations.lock().await;
         let before = authorizations.len();
         let now = Utc::now();
         authorizations.retain(|_, auth| match auth.expires_at {
@@ -285,18 +295,18 @@ impl FileAuthorizer {
         before - authorizations.len()
     }
 
-    pub fn list_authorizations(&self) -> Vec<FileAuthorization> {
-        let authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn list_authorizations(&self) -> Vec<FileAuthorization> {
+        let authorizations = self.authorizations.lock().await;
         authorizations.values().cloned().collect()
     }
 
-    pub fn get_authorization(&self, auth_id: &str) -> Option<FileAuthorization> {
-        let authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn get_authorization(&self, auth_id: &str) -> Option<FileAuthorization> {
+        let authorizations = self.authorizations.lock().await;
         authorizations.get(auth_id).cloned()
     }
 
-    pub fn renew_authorization(&self, auth_id: &str, additional_minutes: i64) -> bool {
-        let mut authorizations = self.authorizations.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn renew_authorization(&self, auth_id: &str, additional_minutes: i64) -> bool {
+        let mut authorizations = self.authorizations.lock().await;
         if let Some(auth) = authorizations.get_mut(auth_id) {
             if !auth.auto_renew {
                 return false;
@@ -329,53 +339,151 @@ impl FileAuthorizer {
         )
     }
 
-    /// SECURITY: 拒绝路径遍历与符号链接。
-    /// 注意：要求 path 已存在（否则 canonicalize 失败），调用方应在文件创建后重新检查。
+    /// SECURITY (C3): 拒绝路径遍历、符号链接、UNC/NFTS 流语法攻击。
+    ///
+    /// 增强策略：
+    ///   1. 先用 canonicalize 解析真实路径再做前缀检查，阻止符号链接逃逸。
+    ///   2. 检测 UNC 路径与 NTFS 备用数据流语法（如 `:$DATA`）。
+    ///   3. 对尚不存在的路径，沿父目录链向上找到最近存在的目录后 canonicalize，
+    ///      再拼接剩余相对路径做安全性判定。
     fn is_path_safe(&self, path: &Path) -> bool {
         let path_str = path.to_string_lossy();
+
+        // ── 1. 基础合法性 ──
         if path_str.is_empty() || path_str.contains('\0') {
             return false;
         }
-        if path_str.contains("..") || path_str.starts_with('~') {
+        if path_str.starts_with('~') {
             return false;
         }
+
+        // ── 2. NTFS 备用数据流 (ADS) 与 UNC 语法检测 ──
+        if cfg!(windows) && Self::has_ntfs_stream_or_unc_risk(&path_str) {
+            return false;
+        }
+
+        // ── 3. canonicalize 解析现有路径 ──
         match std::fs::canonicalize(path) {
             Ok(real) => {
+                // 解析后必须是绝对路径，且不能包含 .. 段
+                if !real.is_absolute() {
+                    return false;
+                }
                 let real_str = real.to_string_lossy();
                 if real_str.contains("..") {
                     return false;
                 }
-                // 解析后路径应是绝对路径
-                if !real.is_absolute() {
-                    return false;
+                // 再次检查 canonicalize 后的 NTFS/UNC 风险
+                #[cfg(windows)]
+                {
+                    if Self::has_ntfs_stream_or_unc_risk(&real_str) {
+                        return false;
+                    }
                 }
                 true
-            },
+            }
             Err(_) => {
-                // 不存在的文件：这里放行"创建中"的请求，但写入时还会再 check。
-                // 关键是不允许 .. 段。
-                !path_str.contains("..")
-            },
+                // ── 4. 不存在的路径：沿父目录链找到最近存在的目录 ──
+                Self::validate_non_existent_path(path)
+            }
         }
     }
 
-    pub fn add_pending_request(&self, request: AuthorizationRequest) {
-        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+    /// 检测 Windows NTFS 备用数据流语法（如 `file::$DATA`）和危险 UNC 前缀。
+    #[cfg(windows)]
+    fn has_ntfs_stream_or_unc_risk(path_str: &str) -> bool {
+        // UNC 路径：`\\?\` 或 `\\.\` 在 canonicalize 后通常已规范化，
+        // 但对于原始输入仍需防御。
+        if path_str.starts_with("\\\\.\\") {
+            return true;
+        }
+
+        // NTFS 备用数据流：冒号出现在盘符之后的位置即视为风险。
+        // 合法形式：`C:\...` (冒号在位置 1)；其余位置的冒号均为可疑。
+        if let Some(colon_pos) = path_str.find(':') {
+            if colon_pos != 1 || !path_str.as_bytes().get(0).map_or(false, |b| b.is_ascii_alphabetic()) {
+                return true;
+            }
+        }
+        false
+    }
+
+    #[cfg(not(windows))]
+    fn has_ntfs_stream_or_unc_risk(_path_str: &str) -> bool {
+        false
+    }
+
+    /// 对尚不存在的路径，沿父目录链向上找到最近存在的目录后 canonicalize，
+    /// 再拼接剩余相对路径段做安全性检查。
+    fn validate_non_existent_path(path: &Path) -> bool {
+        let path_str = path.to_string_lossy();
+
+        // 基础遍历检查：不允许任何 `..` 段
+        if path_str.contains("..") {
+            return false;
+        }
+
+        // 沿父目录链向上查找第一个存在的目录
+        let mut current = path.to_path_buf();
+        let mut remaining = std::path::PathBuf::new();
+
+        loop {
+            match current.parent() {
+                Some(parent) if !parent.as_os_str().is_empty() => {
+                    if parent.exists() {
+                        // 找到存在的父目录，canonicalize 它
+                        if let Ok(real_parent) = std::fs::canonicalize(parent) {
+                            let resolved = real_parent.join(&remaining);
+                            let resolved_str = resolved.to_string_lossy();
+                            // 解析后不能包含 .. 或 NTFS 风险
+                            if resolved_str.contains("..") {
+                                return false;
+                            }
+                            #[cfg(windows)]
+                            {
+                                if Self::has_ntfs_stream_or_unc_risk(&resolved_str) {
+                                    return false;
+                                }
+                            }
+                            return resolved.is_absolute();
+                        }
+                        break;
+                    }
+                    // 父目录不存在，继续向上
+                    if let Ok(segment) = current.file_name() {
+                        let mut new_remaining = std::path::PathBuf::from(segment);
+                        new_remaining.push(&remaining);
+                        remaining = new_remaining;
+                    }
+                    current = parent.to_path_buf();
+                }
+                _ => break,
+            }
+        }
+
+        // 兜底：若无法解析（如根目录不存在这种极端情况），
+        // 至少确保没有明显的路径遍历标记
+        !path_str.contains("..")
+    }
+
+    pub async fn add_pending_request(&self, request: AuthorizationRequest) {
+        let mut pending = self.pending_requests.lock().await;
         pending.push(request);
     }
 
-    pub fn get_pending_requests(&self) -> Vec<AuthorizationRequest> {
-        let pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn get_pending_requests(&self) -> Vec<AuthorizationRequest> {
+        let pending = self.pending_requests.lock().await;
         pending.clone()
     }
 
-    pub fn clear_pending_requests(&self) {
-        let mut pending = self.pending_requests.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn clear_pending_requests(&self) {
+        let mut pending = self.pending_requests.lock().await;
         pending.clear();
     }
 
-    /// SECURITY (M10): 写审计日志（内存 ring buffer + tracing）。
-    pub fn audit(
+    /// SECURITY (M10): 写审计日志（内存 ring buffer + tracing + 文件持久化）。
+    /// M3: 若已设置 audit_log_path，追加写入 JSONL 格式的持久化日志文件。
+    pub async fn audit(
         &self,
         action: &str,
         actor: &str,
@@ -406,7 +514,24 @@ impl FileAuthorizer {
                 entry.action, entry.actor, entry.path, entry.success, entry.note
             );
         }
-        let mut log = self.audit_log.lock().unwrap_or_else(|e| e.into_inner());
+
+        // M3: 文件持久化（JSONL 格式）
+        if let Some(ref log_path) = *self.audit_log_path.lock().await {
+            if let Ok(json) = serde_json::to_string(&entry) {
+                // 使用 std::fs::OpenOptions 以 append 模式打开，避免持有锁期间做 I/O
+                let json_line = format!("{}\n", json);
+                if let Ok(mut file) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(log_path)
+                {
+                    let _ = file.write_all(json_line.as_bytes());
+                }
+            }
+        }
+
+        // 内存 ring buffer
+        let mut log = self.audit_log.lock().await;
         log.push(entry);
         // ring buffer: 保留最近 1000 条
         if log.len() > 1000 {
@@ -415,8 +540,8 @@ impl FileAuthorizer {
         }
     }
 
-    pub fn get_audit_log(&self) -> Vec<AuditEntry> {
-        let log = self.audit_log.lock().unwrap_or_else(|e| e.into_inner());
+    pub async fn get_audit_log(&self) -> Vec<AuditEntry> {
+        let log = self.audit_log.lock().await;
         log.clone()
     }
 }
@@ -461,30 +586,30 @@ mod tests {
         }
     }
 
-    #[test]
-    fn request_no_longer_auto_approves() {
+    #[tokio::test]
+    async fn request_no_longer_auto_approves() {
         // SECURITY (C10): 直接 request_authorization 必须 pending
         let a = FileAuthorizer::new();
-        let r = a.request_authorization(req("/tmp/legit.txt", PermissionLevel::Read));
+        let r = a.request_authorization(req("/tmp/legit.txt", PermissionLevel::Read)).await;
         assert!(!r.authorized, "request_authorization must not auto-approve");
         assert!(r.request_id.is_some());
     }
 
-    #[test]
-    fn approve_request_grants() {
+    #[tokio::test]
+    async fn approve_request_grants() {
         let a = FileAuthorizer::new();
-        let r = a.request_authorization(req("/tmp/legit.txt", PermissionLevel::Read));
+        let r = a.request_authorization(req("/tmp/legit.txt", PermissionLevel::Read)).await;
         let req_id = r.request_id.unwrap();
-        let r2 = a.approve_request(&req_id, "user-1");
+        let r2 = a.approve_request(&req_id, "user-1").await;
         assert!(r2.authorized);
         assert!(r2.auth_id.is_some());
         // SECURITY: 批准者被记录
-        let auth = a.get_authorization(&r2.auth_id.unwrap()).unwrap();
+        let auth = a.get_authorization(&r2.auth_id.unwrap()).await.unwrap();
         assert_eq!(auth.approver.as_deref(), Some("user-1"));
     }
 
-    #[test]
-    fn path_under_dir_authorized() {
+    #[tokio::test]
+    async fn path_under_dir_authorized() {
         // SECURITY (H5): 目录授权后子文件应通过
         let a = FileAuthorizer::new();
         // 用 tempdir 的真实路径
@@ -493,37 +618,37 @@ mod tests {
         let file = dir.join("inside.txt");
         std::fs::write(&file, "x").unwrap();
 
-        let r = a.request_authorization(req(&dir.to_string_lossy(), PermissionLevel::Read));
+        let r = a.request_authorization(req(&dir.to_string_lossy(), PermissionLevel::Read)).await;
         let req_id = r.request_id.unwrap();
-        let r2 = a.approve_request(&req_id, "user-1");
+        let r2 = a.approve_request(&req_id, "user-1").await;
         assert!(r2.authorized);
 
-        assert!(a.check_authorization(&file.to_string_lossy(), &PermissionLevel::Read));
-        assert!(!a.check_authorization(&file.to_string_lossy(), &PermissionLevel::Write));
+        assert!(a.check_authorization(&file.to_string_lossy(), &PermissionLevel::Read).await);
+        assert!(!a.check_authorization(&file.to_string_lossy(), &PermissionLevel::Write).await);
 
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    #[test]
-    fn temp_level_has_ttl() {
+    #[tokio::test]
+    async fn temp_level_has_ttl() {
         // SECURITY (H4): Temp 必须带 expires_at
         let a = FileAuthorizer::new();
-        let r = a.request_authorization(req("/tmp/x.txt", PermissionLevel::Temp));
+        let r = a.request_authorization(req("/tmp/x.txt", PermissionLevel::Temp)).await;
         let req_id = r.request_id.unwrap();
-        let r2 = a.approve_request(&req_id, "user-1");
+        let r2 = a.approve_request(&req_id, "user-1").await;
         let auth_id = r2.auth_id.unwrap();
-        let auth = a.get_authorization(&auth_id).unwrap();
+        let auth = a.get_authorization(&auth_id).await.unwrap();
         assert!(auth.expires_at.is_some());
     }
 
-    #[test]
-    fn audit_records_actions() {
+    #[tokio::test]
+    async fn audit_records_actions() {
         // SECURITY (M10)
         let a = FileAuthorizer::new();
-        let r = a.request_authorization(req("/tmp/x.txt", PermissionLevel::Read));
+        let r = a.request_authorization(req("/tmp/x.txt", PermissionLevel::Read)).await;
         let req_id = r.request_id.unwrap();
-        let _ = a.approve_request(&req_id, "user-1");
-        let log = a.get_audit_log();
+        let _ = a.approve_request(&req_id, "user-1").await;
+        let log = a.get_audit_log().await;
         assert!(log.iter().any(|e| e.action == "approve_request"));
     }
 }

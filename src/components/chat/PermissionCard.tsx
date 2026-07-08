@@ -331,7 +331,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                 {affectedPaths.map((p, _i) => (
                   <Tag
                     key={p}
-                    style={{ fontSize: 12, fontFamily: "monospace" }}
+                    style={{ fontSize: 12, fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
                   >
                     {p.length > 40 ? p.slice(0, 40) + "..." : p}
                   </Tag>
@@ -368,7 +368,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                 margin: 0,
                 padding: 10,
                 fontSize: 12,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                 backgroundColor: token.colorBgTextHover,
                 borderRadius: 6,
                 whiteSpace: "pre-wrap",

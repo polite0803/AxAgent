@@ -156,7 +156,7 @@ const monoStyle: React.CSSProperties = {
   maxHeight: 300,
   overflow: "auto",
   whiteSpace: "pre-wrap",
-  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
   padding: "4px 0",
 };
 

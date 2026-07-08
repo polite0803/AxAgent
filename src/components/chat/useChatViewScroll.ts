@@ -175,7 +175,11 @@ export function useChatViewScroll({
     setShowScrollToBottom((prev) => prev === nextShowScrollToBottom ? prev : nextShowScrollToBottom);
   }, []);
 
+  const isLoadingHistoryRef = useRef(false);
+
   const handleLoadOlderMessages = useCallback(async () => {
+    if (isLoadingHistoryRef.current) return;
+    isLoadingHistoryRef.current = true;
     const scrollContainer = (bubbleListRef.current as BubbleListElement)?.scrollBoxNativeElement as
       | HTMLDivElement
       | null
@@ -186,6 +190,7 @@ export function useChatViewScroll({
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         if (!scrollContainer) {
+          isLoadingHistoryRef.current = false;
           return;
         }
         scrollContainer.scrollTop = getScrollTopAfterPrepend(
@@ -194,6 +199,7 @@ export function useChatViewScroll({
           scrollContainer.scrollHeight,
           CHAT_SCROLL_IS_REVERSED,
         );
+        isLoadingHistoryRef.current = false;
       });
     });
   }, [loadOlderMessages, bubbleListRef]);

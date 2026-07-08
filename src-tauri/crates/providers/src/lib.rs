@@ -139,15 +139,18 @@ pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
 
     let mut result = String::with_capacity(text.len());
     let mut reasoning_parts: Vec<String> = Vec::new();
-    let mut remaining = text;
+    // m3: 使用偏移量推进替代剩余片段切片，避免每次 find() 从头扫描 O(n²)→O(n)
+    let mut pos: usize = 0;
 
     loop {
-        let Some(start) = remaining.find(THINK_OPEN) else {
-            result.push_str(remaining);
+        let Some(start) = text[pos..].find(THINK_OPEN) else {
+            result.push_str(&text[pos..]);
             break;
         };
-        result.push_str(&remaining[..start]);
-        let after_open = &remaining[start..];
+        let abs_start = pos + start;
+        result.push_str(&text[pos..abs_start]);
+        let after_open = &text[abs_start..];
+
         let tag_end = if let Some(close_bracket) = after_open.find('>') {
             if after_open.starts_with("<think")
                 && let Some(think_close_pos) = after_open.find(THINK_CLOSE)
@@ -157,12 +160,12 @@ pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
                 if !reasoning.is_empty() {
                     reasoning_parts.push(reasoning);
                 }
-                remaining = &after_open[think_close_pos + THINK_CLOSE.len()..];
+                pos = abs_start + think_close_pos + THINK_CLOSE.len();
                 continue;
             }
             close_bracket + 1
         } else {
-            result.push_str(remaining);
+            result.push_str(&text[pos..]);
             break;
         };
         let search_from = tag_end;
@@ -171,7 +174,7 @@ pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
             if !reasoning.is_empty() {
                 reasoning_parts.push(reasoning);
             }
-            remaining = &after_open[search_from + end + THINK_CLOSE.len()..];
+            pos = abs_start + search_from + end + THINK_CLOSE.len();
         } else {
             result.push_str(&after_open[search_from..]);
             break;

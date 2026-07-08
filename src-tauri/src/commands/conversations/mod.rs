@@ -2709,6 +2709,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         ),
         agent: crate::state::AgentState::new(
             Arc::new(axagent_agent::SessionManager::new(db.clone())),
@@ -2811,6 +2812,26 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
                 axagent_trajectory::ConstitutionConfig::default(),
             )),
             Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
+        ),
+        learning: crate::state::LearningState::new(
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
+                axagent_trajectory::ComputationGraph::new(),
+                axagent_trajectory::TextGradConfig::default(),
+            ))),
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::IntrinsicMotivationEngine::new(
+                axagent_trajectory::IntrinsicMotivationConfig::default(),
+            ))),
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::CoevolutionEnvironment::new(
+                axagent_trajectory::CoevolutionConfig::default(),
+            ))),
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"))),
+        ),
+        tool: crate::state::ToolState::new(
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::AutoToolCreator::new(
+                axagent_trajectory::AutoToolCreatorConfig::default(),
+                Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
+                Box::new(axagent_trajectory::DefaultSandboxToolTester),
+            ))),
         ),
     };
 

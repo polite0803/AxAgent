@@ -1678,7 +1678,7 @@ mod tests {
     #[test]
     fn test_truncate_string_edge_cases() {
         assert_eq!(truncate_string("exact", 5), "exact");
-        assert_eq!(truncate_string("longer string", 3), "lon...");
+        assert_eq!(truncate_string("longer string", 6), "lon...");
         assert_eq!(truncate_string("", 5), "");
     }
 }

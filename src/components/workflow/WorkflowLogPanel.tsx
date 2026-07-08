@@ -61,7 +61,7 @@ export function WorkflowLogPanel({ logs, onClear, onExport, maxHeight = 300 }: W
           backgroundColor: "#1e1e1e",
           borderRadius: 6,
           padding: 8,
-          fontFamily: "Consolas, Monaco, monospace",
+          fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
           fontSize: 12,
           lineHeight: 1.6,
         }}

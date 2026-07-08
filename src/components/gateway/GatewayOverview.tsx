@@ -207,7 +207,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                       type="link"
                       onClick={() => handleOpenUrl(httpUrl)}
                       style={{
-                        fontFamily: "monospace",
+                        fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                         textDecoration: "underline dashed",
                         textUnderlineOffset: 3,
                         userSelect: "all",
@@ -228,7 +228,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                         type="link"
                         onClick={() => handleOpenUrl(httpsUrl)}
                         style={{
-                          fontFamily: "monospace",
+                          fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                           textDecoration: "underline dashed",
                           textUnderlineOffset: 3,
                           userSelect: "all",

@@ -125,7 +125,7 @@ export function DropdownMenu(
     if (left + pw > window.innerWidth - 8) { left = window.innerWidth - pw - 8; }
     if (left < 8) { left = 8; }
 
-    setPanelStyle({ position: "fixed", top, left, zIndex: 9999 });
+    setPanelStyle({ position: "fixed", top, left, zIndex: "var(--z-dropdown)" });
   }, []);
 
   useLayoutEffect(() => {

@@ -453,6 +453,12 @@ async function withTimeout<T>(
         { cause: e },
       );
     }
+    if (timedOut) {
+      console.warn(
+        `[invoke] "${cmdName}" timed out but the backend operation may still be running. `
+        + "Consider cancelling the operation manually via agent_cancel if supported.",
+      );
+    }
     throw e;
   } finally {
     if (timer !== undefined) {

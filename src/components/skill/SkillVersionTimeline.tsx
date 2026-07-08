@@ -102,7 +102,7 @@ export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
         width={700}
       >
         {selectedDiff && (
-          <div style={{ fontFamily: "monospace", fontSize: 12 }}>
+          <div style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 12 }}>
             <div
               style={{
                 background: token.colorErrorBg ?? "#fff1f0",

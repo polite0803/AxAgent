@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::error::{CommandError, ErrorCategory};
 use axagent_trajectory::TrajectoryQuery;
 use tauri::State;
 
 #[tauri::command]
 pub async fn trajectory_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let stats = app_state.trajectory_storage.get_statistics().await.map_err(|e| e.to_string())?;
-    serde_json::to_value(stats).map_err(|e| e.to_string())
+    let stats = app_state
+        .trajectory_storage
+        .get_statistics()
+        .await
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?;
+    serde_json::to_value(stats)
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))
 }
 
 #[tauri::command]
@@ -17,8 +23,11 @@ pub async fn trajectory_list(
     limit: Option<usize>,
 ) -> Result<Vec<serde_json::Value>, String> {
     let query = TrajectoryQuery { session_id, limit: limit.or(Some(20)), ..Default::default() };
-    let trajectories =
-        app_state.trajectory_storage.query_trajectories(&query).await.map_err(|e| e.to_string())?;
+    let trajectories = app_state
+        .trajectory_storage
+        .query_trajectories(&query)
+        .await
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?;
     Ok(trajectories.iter().filter_map(|t| serde_json::to_value(t).ok()).collect())
 }
 
@@ -31,16 +40,22 @@ pub async fn get_trajectory_detail(
         .trajectory_storage
         .get_trajectory(&trajectory_id)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Trajectory {} not found", trajectory_id))?;
-    serde_json::to_value(trajectory).map_err(|e| e.to_string())
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?
+        .ok_or_else(|| {
+            CommandError::new("TRAJECTORY_NOT_FOUND")
+                .with_category(ErrorCategory::Validation)
+                .with_detail(format!("Trajectory {} not found", trajectory_id))
+        })?;
+    serde_json::to_value(trajectory)
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))
 }
 
 #[tauri::command]
 pub async fn pattern_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let pl = app_state.pattern_learner.read().await;
     let stats = pl.get_statistics();
-    serde_json::to_value(stats).map_err(|e| e.to_string())
+    serde_json::to_value(stats)
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))
 }
 
 #[tauri::command]
@@ -85,7 +100,7 @@ pub async fn rl_export_training_data(
         .trajectory_storage
         .export_trajectories(&options)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?;
     Ok(entries.iter().filter_map(|e| serde_json::to_value(e).ok()).collect())
 }
 
@@ -98,8 +113,12 @@ pub async fn rl_compute_rewards(
     let mut trajectory = storage
         .get_trajectory(&trajectory_id)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Trajectory {} not found", trajectory_id))?;
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?
+        .ok_or_else(|| {
+            CommandError::new("TRAJECTORY_NOT_FOUND")
+                .with_category(ErrorCategory::Validation)
+                .with_detail(format!("Trajectory {} not found", trajectory_id))
+        })?;
 
     let rl = app_state.rl_engine.read().await;
     let rewards = rl.compute_rewards(&mut trajectory);

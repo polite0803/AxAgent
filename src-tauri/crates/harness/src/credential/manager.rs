@@ -24,53 +24,43 @@ pub struct SmtpConfig {
 
 /// Runtime credential manager with lazy-loading and caching.
 ///
-/// Thread-safe: wraps interior state behind a `std::sync::Mutex` so it can be
-/// shared via `Arc<CredentialManager>` across executor threads.
+/// Thread-safe: wraps interior state behind a `tokio::sync::Mutex` so it can
+/// be shared via `Arc<CredentialManager>` across async executor tasks.
 pub struct CredentialManager {
     store: CredentialStore,
-    cache: std::sync::Mutex<HashMap<String, Credential>>,
+    cache: tokio::sync::Mutex<HashMap<String, Credential>>,
 }
 
 impl CredentialManager {
     /// Create a new credential manager backed by the given store.
     pub fn new(store: CredentialStore) -> Self {
-        Self { store, cache: std::sync::Mutex::new(HashMap::new()) }
+        Self { store, cache: tokio::sync::Mutex::new(HashMap::new()) }
     }
 
     /// Get a credential by ID, loading from disk and caching on first access.
-    pub fn get_credential(&self, id: &str) -> Result<Credential> {
+    pub async fn get_credential(&self, id: &str) -> Result<Credential> {
         {
-            let cache = self
-                .cache
-                .lock()
-                .map_err(|e| AxAgentError::Internal(format!("credential cache lock: {e}")))?;
+            let cache = self.cache.lock().await;
             if let Some(cached) = cache.get(id) {
                 return Ok(cached.clone());
             }
         }
         let cred = self.store.load_credential(id)?;
         {
-            let mut cache = self
-                .cache
-                .lock()
-                .map_err(|e| AxAgentError::Internal(format!("credential cache lock: {e}")))?;
+            let mut cache = self.cache.lock().await;
             cache.insert(id.to_string(), cred.clone());
         }
         Ok(cred)
     }
 
     /// Clear the in-memory cache (useful after credential updates).
-    pub fn invalidate(&self, id: &str) {
-        if let Ok(mut cache) = self.cache.lock() {
-            cache.remove(id);
-        }
+    pub async fn invalidate(&self, id: &str) {
+        self.cache.lock().await.remove(id);
     }
 
     /// Clear all cached credentials.
-    pub fn invalidate_all(&self) {
-        if let Ok(mut cache) = self.cache.lock() {
-            cache.clear();
-        }
+    pub async fn invalidate_all(&self) {
+        self.cache.lock().await.clear();
     }
 
     /// List all stored credentials (metadata only).
@@ -79,16 +69,16 @@ impl CredentialManager {
     }
 
     /// Save a new or updated credential to the store.
-    pub fn save_credential(&self, credential: &Credential) -> Result<()> {
+    pub async fn save_credential(&self, credential: &Credential) -> Result<()> {
         self.store.save_credential(credential)?;
-        self.invalidate(&credential.id);
+        self.invalidate(&credential.id).await;
         Ok(())
     }
 
     /// Delete a credential from the store.
-    pub fn delete_credential(&self, id: &str) -> Result<()> {
+    pub async fn delete_credential(&self, id: &str) -> Result<()> {
         self.store.delete_credential(id)?;
-        self.invalidate(id);
+        self.invalidate(id).await;
         Ok(())
     }
 
@@ -137,8 +127,8 @@ impl CredentialManager {
     }
 
     /// Extract a database connection string from a credential.
-    pub fn get_database_connection_string(&self, credential_id: &str) -> Result<String> {
-        let cred = self.get_credential(credential_id)?;
+    pub async fn get_database_connection_string(&self, credential_id: &str) -> Result<String> {
+        let cred = self.get_credential(credential_id).await?;
         match &cred.credential_type {
             CredentialType::DatabaseConnection { connection_string } => {
                 Ok(connection_string.clone())
@@ -150,8 +140,8 @@ impl CredentialManager {
     }
 
     /// Extract SMTP configuration from a credential.
-    pub fn get_smtp_config(&self, credential_id: &str) -> Result<SmtpConfig> {
-        let cred = self.get_credential(credential_id)?;
+    pub async fn get_smtp_config(&self, credential_id: &str) -> Result<SmtpConfig> {
+        let cred = self.get_credential(credential_id).await?;
         match &cred.credential_type {
             CredentialType::Smtp { host, port, user, pass, tls } => Ok(SmtpConfig {
                 host: host.clone(),

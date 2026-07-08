@@ -97,7 +97,9 @@ impl IngestQueue {
 
         let id = task.id.clone();
         self.tasks.lock().await.push(task);
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
         id
     }
 
@@ -123,7 +125,9 @@ impl IngestQueue {
             self.tasks.lock().await.push(task);
         }
 
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
         ids
     }
 
@@ -139,7 +143,9 @@ impl IngestQueue {
             }
         };
 
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
 
         let result = self
             .pipeline
@@ -189,7 +195,9 @@ impl IngestQueue {
             }
         }
 
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
 
         result.ok()
     }
@@ -233,7 +241,9 @@ impl IngestQueue {
         {
             task.status = IngestTaskStatus::Cancelled;
             task.completed_at = Some(chrono::Utc::now().timestamp());
-            self.save_to_disk().await.ok();
+            if let Err(e) = self.save_to_disk().await {
+                tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+            }
             return true;
         }
         false
@@ -280,7 +290,9 @@ impl IngestQueue {
             t.status != IngestTaskStatus::Completed && t.status != IngestTaskStatus::Cancelled
         });
         let removed = before - tasks.len();
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
         removed
     }
 

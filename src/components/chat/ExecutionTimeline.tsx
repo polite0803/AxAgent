@@ -378,7 +378,7 @@ export const ExecutionTimeline = React.memo(function ExecutionTimeline({
           {evt.description && (
             <Typography.Text
               type="secondary"
-              style={{ fontSize: 12, fontFamily: "monospace" }}
+              style={{ fontSize: 12, fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
               ellipsis
             >
               {evt.description}

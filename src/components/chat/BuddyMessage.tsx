@@ -55,7 +55,7 @@ export const BuddyMessageBubble = React.memo(
           borderRadius: 12,
           padding: "8px 12px",
           marginBottom: 8,
-          maxWidth: 260,
+          maxWidth: "260px",
         }}
       >
         <div

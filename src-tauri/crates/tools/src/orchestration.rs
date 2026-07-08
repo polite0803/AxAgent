@@ -179,23 +179,25 @@ impl Orchestrator {
             let reg = registry.clone();
             let context = ctx.clone();
             let timeout = self.config.timeout_secs;
+            let req_id = request.id.clone();
+            let req_name = request.name.clone();
 
             let handle = tokio::spawn(async move {
                 let _permit = sem.acquire().await;
                 run_single(request, reg, &context, timeout, max_retries, retry_delay_ms).await
             });
 
-            handles.push(handle);
+            handles.push((req_id, req_name, handle));
         }
 
         let mut results = Vec::with_capacity(handles.len());
-        for handle in handles {
+        for (req_id, req_name, handle) in handles {
             match handle.await {
                 Ok(response) => results.push(response),
                 Err(_) => {
                     results.push(ToolCallResponse {
-                        id: "error".into(),
-                        name: "error".into(),
+                        id: req_id,
+                        name: req_name,
                         result: Err(ToolError::execution_failed_for(
                             "Orchestrator",
                             "并发任务 panic",

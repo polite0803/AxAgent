@@ -780,6 +780,10 @@ pub async fn write_base64_to_file(
     let raw_dir = std::path::PathBuf::from(&wiki.root_path).join("raw");
     tokio::fs::create_dir_all(&raw_dir).await.map_err(|e| e.to_string())?;
 
+    if input.file_name.contains("..") || input.file_name.contains('/') || input.file_name.contains('\\') {
+        return Err(format!("Invalid file name: {}", input.file_name));
+    }
+
     let file_path = raw_dir.join(&input.file_name);
     tokio::fs::write(&file_path, &bytes).await.map_err(|e| e.to_string())?;
 

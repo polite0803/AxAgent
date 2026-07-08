@@ -1027,7 +1027,7 @@ export function McpServerSettings() {
                     }}
                     placeholder={t("settings.mcpServers.importPlaceholder")}
                     status={importError ? "error" : undefined}
-                    style={{ fontFamily: "monospace" }}
+                    style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
                   />
                   {importError && (
                     <div

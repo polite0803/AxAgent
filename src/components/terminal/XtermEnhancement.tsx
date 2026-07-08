@@ -74,7 +74,7 @@ export function useXtermEnhancement(
   const {
     cursorBlink = true,
     fontSize = 14,
-    fontFamily = "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+    fontFamily = "var(--font-mono, 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace)",
     theme,
     scrollback = 10000,
     enableWebLinks = true,

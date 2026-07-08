@@ -38,15 +38,20 @@ export function shouldHideAssistantBubble(
     return false;
   }
 
-  // With blocks: hide only if there are NO tool_use blocks AND no text blocks
+  // With blocks: check for any tool-related blocks, including mixed old/new formats
   if (message.blocks && message.blocks.length > 0) {
     const hasText = message.blocks.some((b) => b.type === "text");
     if (hasText) {
       return false;
     }
-    // Has tool_use blocks → show bubble (tool blocks rendered visually)
-    const hasToolUse = message.blocks.some((b) => b.type === "tool_use");
+    const hasToolUse = message.blocks.some(
+      (b) => b.type === "tool_use" || b.type === "tool_result",
+    );
     if (hasToolUse) {
+      return false;
+    }
+    // Also check old-format tool_calls_json during transition period
+    if (message.tool_calls_json) {
       return false;
     }
     return true;

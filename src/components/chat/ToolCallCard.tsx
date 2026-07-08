@@ -90,7 +90,7 @@ export const ToolCallCard = React.memo(
                   margin: "4px 0 0",
                   padding: 8,
                   fontSize: 12,
-                  fontFamily: "monospace",
+                  fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                   backgroundColor: token.colorBgTextHover,
                   borderRadius: token.borderRadius,
                   whiteSpace: "pre-wrap",
@@ -126,7 +126,7 @@ export const ToolCallCard = React.memo(
                   margin: "4px 0 0",
                   padding: 8,
                   fontSize: 12,
-                  fontFamily: "monospace",
+                  fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                   backgroundColor: token.colorBgTextHover,
                   borderRadius: token.borderRadius,
                   whiteSpace: "pre-wrap",
@@ -206,7 +206,7 @@ export const ToolCallCard = React.memo(
           description: (
             <Typography.Text
               type="secondary"
-              style={{ fontSize: 12, fontFamily: "monospace" }}
+              style={{ fontSize: 12, fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
               ellipsis
             >
               {getInputSummary(tc.input)}

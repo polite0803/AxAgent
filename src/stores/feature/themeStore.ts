@@ -139,29 +139,6 @@ const BUILT_IN_THEMES: Record<string, ThemeColors> = {
     brightCyan: "#8ec07c",
     brightWhite: "#ebdbb2",
   },
-  "catppuccin-mocha": {
-    background: "#1e1e2e",
-    foreground: "#cdd6f4",
-    cursor: "#f5e0dc",
-    cursorAccent: "#1e1e2e",
-    selectionBackground: "#585b7066",
-    black: "#45475a",
-    red: "#f38ba8",
-    green: "#a6e3a1",
-    yellow: "#f9e2af",
-    blue: "#89b4fa",
-    magenta: "#f5c2e7",
-    cyan: "#94e2d5",
-    white: "#bac2de",
-    brightBlack: "#585b70",
-    brightRed: "#f38ba8",
-    brightGreen: "#a6e3a1",
-    brightYellow: "#f9e2af",
-    brightBlue: "#89b4fa",
-    brightMagenta: "#f5c2e7",
-    brightCyan: "#94e2d5",
-    brightWhite: "#a6adc8",
-  },
 };
 
 export const useThemeStore = create<ThemeState>()(
@@ -176,6 +153,14 @@ export const useThemeStore = create<ThemeState>()(
       setCurrentTheme: (themeName: string) => {
         set({ currentTheme: themeName });
         applyThemeToDocument(themeName);
+        // Map theme name to its corresponding data-theme-preset attribute
+        const presetMap: Record<string, string> = {
+          default: "deep-dusk",
+          monokai: "deep-dusk",
+          gruvbox: "deep-dusk",
+        };
+        const preset = presetMap[themeName] || themeName;
+        document.documentElement.setAttribute("data-theme-preset", preset);
       },
 
       loadThemes: async () => {
@@ -200,12 +185,6 @@ export const useThemeStore = create<ThemeState>()(
               version: "1.0.0",
               author: "github.com/morhetz/gruvbox",
               description: "Gruvbox dark theme",
-            },
-            {
-              name: "catppuccin-mocha",
-              version: "1.0.0",
-              author: "Catppuccin",
-              description: "Catppuccin Mocha theme",
             },
           ];
           set({ themes: [...builtInThemes, ...themeList], isLoading: false });

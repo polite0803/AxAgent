@@ -214,7 +214,7 @@ const ActionDiffItem: React.FC<ActionDiffItemProps> = ({
               borderRadius: 4,
               minHeight: 40,
               fontSize: 12,
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-all",
             }}
@@ -234,7 +234,7 @@ const ActionDiffItem: React.FC<ActionDiffItemProps> = ({
               borderRadius: 4,
               minHeight: 40,
               fontSize: 12,
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-all",
             }}

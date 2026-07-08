@@ -24,9 +24,11 @@ impl Default for SandboxConfig {
             allowed_commands: Vec::new(),
             denied_commands: Vec::new(),
             network_enabled: false,
-            max_memory_mb: Some(512),
-            max_cpu_time_secs: Some(60),
-            max_output_bytes: Some(1024 * 1024),
+            // m5: 调整默认值以适应现代开发任务（编译、数据处理等）。
+            // 内存从 512MB → 2048MB，CPU 从 60s → 300s，输出从 1MB → 10MB。
+            max_memory_mb: Some(2048),
+            max_cpu_time_secs: Some(300),
+            max_output_bytes: Some(10 * 1024 * 1024),
             env_whitelist: vec!["PATH".to_string(), "HOME".to_string(), "TEMP".to_string()],
         }
     }

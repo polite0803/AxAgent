@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.3);
-  z-index: 9998;
+  z-index: var(--z-overlay);
 }
 
 .help-panel__drawer {
@@ -10,13 +10,13 @@
   right: 0;
   top: 0;
   bottom: 0;
-  width: 360px;
+  width: clamp(280px, 85vw, 360px);
   max-width: 90vw;
   display: flex;
   flex-direction: column;
   background: var(--color-bg-container, #fff);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
-  z-index: 9999;
+  z-index: var(--z-notification);
   animation: helpSlideIn 0.25s ease;
 }
 

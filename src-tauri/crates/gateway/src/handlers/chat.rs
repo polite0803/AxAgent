@@ -113,7 +113,9 @@ pub async fn chat_completions(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| {
+            serde_json::from_str(s).map_err(|e| tracing::warn!(error = %e, "Failed to parse custom headers")).ok()
+        }),
         api_mode: request.api_mode.clone(),
         conversation: request.conversation.clone(),
         previous_response_id: request.previous_response_id.clone(),

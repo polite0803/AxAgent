@@ -99,7 +99,7 @@ export function GatewayLinkDetail() {
             style={{
               fontSize: 12,
               color: token.colorTextTertiary,
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
             }}
           >
             {selectedLink.endpoint}

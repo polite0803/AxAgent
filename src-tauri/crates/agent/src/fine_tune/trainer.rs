@@ -1150,7 +1150,9 @@ mod tests {
             "Previous execution reflection: needs improvement\n\nImprove future responses."
         );
 
-        std::fs::remove_file(&tmp).ok();
+        if let Err(e) = std::fs::remove_file(&tmp) {
+            tracing::warn!(path = %tmp.display(), error = %e, "Failed to clean up temp file");
+        }
     }
 
     #[test]

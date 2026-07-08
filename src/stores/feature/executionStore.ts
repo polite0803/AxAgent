@@ -317,7 +317,7 @@ export const useExecutionStore = create<ExecutionStore>()(
                   assistantMessageId: event.assistantMessageId || "",
                 }),
                 executionStatus: "running",
-                startedAt: Date.now(),
+                startedAt: existing?.startedAt ?? Date.now(),
               },
             };
             // Also add to agentPool so AgentPoolPanel / ExecutionTimeline
@@ -352,7 +352,21 @@ export const useExecutionStore = create<ExecutionStore>()(
           (s) => {
             const existing = s.toolCalls[event.toolUseId];
             if (!existing) {
-              return {};
+              console.warn(
+                `[executionStore] Tool result for unknown toolUseId: ${event.toolUseId}`,
+              );
+              const fallback: ToolCallState = {
+                toolUseId: event.toolUseId,
+                toolName: event.toolName || "unknown",
+                input: event.input ?? {},
+                assistantMessageId: event.assistantMessageId || "",
+                executionStatus: event.isError ? "failed" : "success",
+                output: event.content,
+                isError: event.isError,
+              };
+              return {
+                toolCalls: { ...s.toolCalls, [event.toolUseId]: fallback },
+              };
             }
             const updates: Record<string, ToolCallState> = {
               [event.toolUseId]: {
@@ -374,9 +388,9 @@ export const useExecutionStore = create<ExecutionStore>()(
                 status: event.isError ? "failed" : "completed",
                 summary: event.content?.slice(0, 200),
                 error: event.isError ? (event.content ?? "Tool failed") : undefined,
-                duration: pool[idx].startedAt
+                duration: pool[idx].startedAt != null
                   ? Date.now() - pool[idx].startedAt
-                  : 0,
+                  : undefined,
               };
             }
             return {
@@ -427,7 +441,7 @@ export const useExecutionStore = create<ExecutionStore>()(
                   ? event.content
                   : existing.error,
                 messages: [...(existing.messages || []), msg],
-                duration: existing.startedAt
+                duration: existing.startedAt != null
                   ? Date.now() - existing.startedAt
                   : undefined,
               };
@@ -654,6 +668,27 @@ export const useExecutionStore = create<ExecutionStore>()(
             const restTraj = { ...s.trajectoriesByConversation };
             delete restTraj[conversationId];
             delete _latestMessageIdByConv[conversationId];
+
+            // Identify tool call IDs belonging to this conversation via agentPool
+            const removedToolUseIds = new Set<string>();
+            for (const item of (s.agentPool[conversationId] || [])) {
+              if (item.id.startsWith("tool-")) {
+                removedToolUseIds.add(item.id.replace("tool-", ""));
+              }
+            }
+            const restToolCalls: Record<string, ToolCallState> = {};
+            for (const [id, tc] of Object.entries(s.toolCalls)) {
+              if (!removedToolUseIds.has(id) && !removedToolUseIds.has(tc.toolUseId)) {
+                restToolCalls[id] = tc;
+              }
+            }
+            const restSdkIdToExecId: Record<string, string> = {};
+            for (const [sdkId, execId] of Object.entries(s.sdkIdToExecId)) {
+              if (!removedToolUseIds.has(sdkId) && !removedToolUseIds.has(execId)) {
+                restSdkIdToExecId[sdkId] = execId;
+              }
+            }
+
             return {
               phases: restPhases,
               agentStatus: restStatus,
@@ -662,6 +697,8 @@ export const useExecutionStore = create<ExecutionStore>()(
               currentToolCall: s.currentToolCall?.conversationId === conversationId
                 ? null
                 : s.currentToolCall,
+              toolCalls: restToolCalls,
+              sdkIdToExecId: restSdkIdToExecId,
             };
           },
           false,
@@ -687,13 +724,15 @@ export const useExecutionStore = create<ExecutionStore>()(
 
 // ── 事件监听器注册 ──
 
-let _listenersSetup = false;
+let _listenerRefCount = 0;
 
 export function setupExecutionEventListeners(): () => void {
-  if (_listenersSetup) {
-    return () => {};
+  _listenerRefCount++;
+  if (_listenerRefCount > 1) {
+    return () => {
+      _listenerRefCount--;
+    };
   }
-  _listenersSetup = true;
 
   const unlisteners: Promise<UnlistenFn>[] = [];
   const store = useExecutionStore.getState();
@@ -817,7 +856,10 @@ export function setupExecutionEventListeners(): () => void {
   );
 
   return () => {
-    _listenersSetup = false;
-    unlisteners.forEach((u) => u.then((f) => f()));
+    _listenerRefCount--;
+    if (_listenerRefCount <= 0) {
+      _listenerRefCount = 0;
+      unlisteners.forEach((u) => u.then((f) => f()));
+    }
   };
 }

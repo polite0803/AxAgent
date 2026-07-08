@@ -37,12 +37,19 @@ export function DeleteLastVersionPopover({
   const handleDeleteAll = async () => {
     setOpen(false);
     try {
-      if (msg.parent_message_id) {
-        await deleteMessageGroup(conversationId, msg.parent_message_id);
-      } else if (msg.id.startsWith("temp-")) {
+      // Fix: temp-prefixed messages must be cleaned up locally FIRST,
+      // regardless of whether they have a parent_message_id.
+      // Otherwise when a temp message has a parent_message_id, the
+      // deleteMessageGroup branch passes the grandparent's ID, which
+      // would leave the temp message's own children (AI responses) orphaned.
+      if (msg.id.startsWith("temp-")) {
         useConversationStore.setState((s) => ({
-          messages: s.messages.filter((m) => m.id !== msg.id),
+          messages: s.messages.filter(
+            (m) => m.id !== msg.id && m.parent_message_id !== msg.id,
+          ),
         }));
+      } else if (msg.parent_message_id) {
+        await deleteMessageGroup(conversationId, msg.parent_message_id);
       }
     } catch (e) {
       messageApi.error(String(e));

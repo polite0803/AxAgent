@@ -2,7 +2,7 @@
 
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::SemanticCache;
-use crate::state::{AgentState, GatewayState, InfraState, MemoryState, SkillState, TaskState};
+use crate::state::{AgentState, GatewayState, InfraState, LearningState, MemoryState, SkillState, TaskState, ToolState};
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
@@ -19,6 +19,14 @@ use tokio_util::sync::CancellationToken;
 
 use std::path::PathBuf;
 use tokio::sync::RwLock as TokioRwLock;
+
+// Tree of Thoughts constants
+/// 剪枝阈值：低于此分数的节点在 BFS 遍历中被丢弃
+pub const TOT_DEFAULT_PRUNING_THRESHOLD: f64 = 0.3;
+/// 最大搜索深度（单位：ToT 层数）
+pub const TOT_DEFAULT_MAX_DEPTH: u32 = 5;
+/// 每层最大分支数
+pub const TOT_DEFAULT_MAX_BRANCHES: u32 = 3;
 
 // Tree of Thoughts types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,9 +74,9 @@ impl Default for TotSession {
             current_node_id: None,
             root_node_id: None,
             traversal_strategy: "bfs".to_string(),
-            pruning_threshold: 0.3,
-            max_depth: 5,
-            max_branches: 3,
+            pruning_threshold: TOT_DEFAULT_PRUNING_THRESHOLD,
+            max_depth: TOT_DEFAULT_MAX_DEPTH,
+            max_branches: TOT_DEFAULT_MAX_BRANCHES,
         }
     }
 }
@@ -300,6 +308,8 @@ pub struct AppState {
     pub agent: AgentState,
     pub memory: MemoryState,
     pub skill: SkillState,
+    pub learning: LearningState,
+    pub tool: ToolState,
 }
 
 impl Drop for AppState {

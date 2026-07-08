@@ -609,6 +609,9 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         Some(verification_prompt)
     }
 
+    /// # 锁顺序约定
+    ///
+    /// 本方法获取 `self.implementation.lock()`。全局锁顺序约定：**始终先锁 tot_engine 再锁 implementation**。
     pub async fn initialize(&self, config: AgentConfig) -> Result<(), AgentError> {
         // 1. 原子守卫：仅允许从 Idle 进入 Initializing；并发进入返回 InvalidState
         if !self.try_transition(&[STATE_IDLE], STATE_INITIALIZING) {
@@ -669,6 +672,9 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         }
     }
 
+    /// # 锁顺序约定
+    ///
+    /// 本方法获取 `self.implementation.lock()`。全局锁顺序约定：**始终先锁 tot_engine 再锁 implementation**。
     pub async fn execute(&self, input: AgentInput) -> Result<CoordinatorOutput, AgentError> {
         // 0. 从外部 steer_queue 同步指令到内部 SteerManager
         // 此方法接收额外指令源（如 AppState.steer_queue），不直接引用 Tauri 状态
@@ -807,6 +813,9 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         self.cache_service.set_force_immediate(false).await;
     }
 
+    /// # 锁顺序约定
+    ///
+    /// 本方法获取 `self.implementation.lock()`。全局锁顺序约定：**始终先锁 tot_engine 再锁 implementation**。
     pub async fn pause(&self) -> Result<(), AgentError> {
         // 1. 原子检查：仅当状态为 Running 时才进入（不预占状态，避免失败后回滚）
         let current = self.current_state();
@@ -842,6 +851,9 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         Ok(())
     }
 
+    /// # 锁顺序约定
+    ///
+    /// 本方法获取 `self.implementation.lock()`。全局锁顺序约定：**始终先锁 tot_engine 再锁 implementation**。
     pub async fn resume(&self) -> Result<(), AgentError> {
         // 1. 原子检查：仅当状态为 Paused 时才进入
         let current = self.current_state();
@@ -877,6 +889,9 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         Ok(())
     }
 
+    /// # 锁顺序约定
+    ///
+    /// 本方法获取 `self.implementation.lock()`。全局锁顺序约定：**始终先锁 tot_engine 再锁 implementation**。
     pub async fn cancel(&self) -> Result<(), AgentError> {
         // 0. 状态守卫：仅允许 Running / Paused / WaitingForConfirmation 进入取消流程
         let current = self.current_state();

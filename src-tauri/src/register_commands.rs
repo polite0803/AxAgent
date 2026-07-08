@@ -272,6 +272,12 @@ macro_rules! register_all_commands {
             commands::dashboard::dashboard_install_plugin,
             commands::dashboard::get_dashboard_stats,
             #[cfg(not(mobile))]
+            commands::computer_control::grant_computer_control_permission,
+            #[cfg(not(mobile))]
+            commands::computer_control::revoke_computer_control_permission,
+            #[cfg(not(mobile))]
+            commands::computer_control::is_computer_control_granted,
+            #[cfg(not(mobile))]
             commands::computer_control::screen_capture,
             #[cfg(not(mobile))]
             commands::computer_control::find_ui_elements,

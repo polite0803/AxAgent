@@ -837,7 +837,7 @@ export function useChatViewMessages({
       }
 
       const stableKey = msg.parent_message_id
-        ? `ai:${msg.parent_message_id}`
+        ? `ai:${msg.parent_message_id}:${msg.id}`
         : msg.id;
       if (nextCache.has(stableKey)) {
         continue;
@@ -871,7 +871,7 @@ export function useChatViewMessages({
     const name = role?.name ?? t("chat.generalAssistant");
     const icon = role?.icon ?? "\uD83E\uDD16";
     setExpertSwitchBubble({
-      key: `__expert-switch__${sw.roleId}__${Date.now()}`,
+      key: `__expert-switch__${sw.roleId}__${++expertSwitchCounterRef.current}`,
       role: "expert-switch",
       content: JSON.stringify({ icon, name: t("chat.switchedTo", { name }) }),
       variant: "borderless" as const,
@@ -1005,7 +1005,15 @@ export function useChatViewMessages({
 
   const formatTime = useCallback((ts: number) => {
     const d = new Date(ts);
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const now = new Date();
+    const isToday = d.getFullYear() === now.getFullYear()
+      && d.getMonth() === now.getMonth()
+      && d.getDate() === now.getDate();
+    const timeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    if (isToday) {
+      return timeStr;
+    }
+    return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${timeStr}`;
   }, []);
 
   const getModelDisplayInfo = useCallback(
@@ -1034,9 +1042,9 @@ export function useChatViewMessages({
     } => {
       switch (bubbleStyle) {
         case "compact":
-          return { variant: "borderless" };
+          return { variant: "borderless", style: { borderLeft: "2px solid var(--color-primary)", padding: "4px 8px" } };
         case "minimal":
-          return { variant: "borderless", style: { padding: "4px 8px" } };
+          return { variant: "borderless", style: { padding: "4px 8px", borderLeft: "2px solid var(--color-primary)" } };
         case "modern":
         default:
           return { variant: isUser ? "shadow" : "outlined" };
@@ -1466,19 +1474,7 @@ export function useChatViewMessages({
             );
           }
 
-          if (isMultiModelMsg && rawBubbleLoading) {
-            return (
-              <>
-                {msgMarker}
-                <span className="axagent-streaming-dots" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </>
-            );
-          }
-
+          // Compute agent permissions/askUsers early for unified loading decision
           const isAgentMode = activeConversation?.mode === "agent";
           const msgPermissions = isAgentMode && msg && activeConversationId
             ? Object.values(agentPendingPermissions).filter(
@@ -1499,12 +1495,8 @@ export function useChatViewMessages({
             )
             : [];
 
-          if (
-            isAgentMsg
-            && rawBubbleLoading
-            && msgPermissions.length === 0
-            && msgAskUsers.length === 0
-          ) {
+          // Unified loading dots: show unless Agent mode has pending permissions/askUsers
+          if (rawBubbleLoading && (!isAgentMsg || (msgPermissions.length === 0 && msgAskUsers.length === 0))) {
             return (
               <>
                 {msgMarker}

@@ -12,7 +12,7 @@ use crate::AppState;
 use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
-use crate::state::{BrowserClientField, SandboxExecutorField};
+use crate::state::{BrowserClientField, LearningState, SandboxExecutorField, ToolState};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
@@ -463,6 +463,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }
     };
     let file_authorizer = Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new());
+    // M3: 设置审计日志持久化路径
+    file_authorizer.set_audit_log_path(app_dir.join("audit.log")).await;
     let session_share_manager: crate::app_state::SessionShareStore =
         Arc::new(TokioRwLock::new(std::collections::HashMap::new()));
     let sandbox_executor_field: SandboxExecutorField = {
@@ -510,6 +512,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         agent_ask_senders.clone(),
         agent_always_allowed.clone(),
         agent_prompters.clone(),
+        steer_queue.clone(),
     );
     let agent_state = crate::state::AgentState::new(
         agent_session_manager.clone(),
@@ -559,6 +562,17 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         browser_client_field,
         constitution.clone(),
         proactive_service.clone(),
+    );
+
+    // ── M1: 新子状态分解 — 学习引擎与工具创建器 ──
+    let learning_state = LearningState::new(
+        text_grad_engine.clone(),
+        intrinsic_motivation.clone(),
+        coevolution_env.clone(),
+        process_reward_model.clone(),
+    );
+    let tool_state = ToolState::new(
+        auto_tool_creator.clone(),
     );
 
     // 初始化 reflector 持久化
@@ -655,6 +669,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         agent: agent_state,
         memory: memory_state,
         skill: skill_state,
+        // M1: 新增学习与工具子状态
+        learning: learning_state,
+        tool: tool_state,
     })
 }
 
