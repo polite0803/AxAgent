@@ -132,7 +132,9 @@ export function ToolSemanticCheck() {
     if (!selectedTool) {
       return;
     }
-    setTimeout(() => checkSemanticMatches(selectedTool), 0);
+    // 3.4: Replace setTimeout(0) anti-pattern with requestAnimationFrame
+    const frameId = requestAnimationFrame(() => checkSemanticMatches(selectedTool));
+    return () => cancelAnimationFrame(frameId);
   }, [selectedTool, checkSemanticMatches]);
 
   const handleUpgradeTool = useCallback(async () => {

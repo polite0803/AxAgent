@@ -44,6 +44,8 @@ export function SkillSandboxContainer({
   const apiBridgeRef = useRef<HostApiBridge | null>(null);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
+  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  const rpcHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -260,6 +262,7 @@ export function SkillSandboxContainer({
           logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
         }
       };
+      messageHandlerRef.current = messageHandler;
 
       const handleRpc = (event: MessageEvent) => {
         const msg = event.data;
@@ -269,6 +272,7 @@ export function SkillSandboxContainer({
           logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
         }
       };
+      rpcHandlerRef.current = handleRpc;
 
       window.addEventListener("message", messageHandler);
       iframe.srcdoc = finalHtml;
@@ -292,6 +296,14 @@ export function SkillSandboxContainer({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSandbox();
     return () => {
+      if (messageHandlerRef.current) {
+        window.removeEventListener("message", messageHandlerRef.current);
+        messageHandlerRef.current = null;
+      }
+      if (rpcHandlerRef.current) {
+        window.removeEventListener("message", rpcHandlerRef.current);
+        rpcHandlerRef.current = null;
+      }
       if (bridgeRef.current) {
         bridgeRef.current.destroy();
       }

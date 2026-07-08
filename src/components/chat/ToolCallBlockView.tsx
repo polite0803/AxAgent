@@ -160,14 +160,14 @@ export const ToolCallBlockView = React.memo(
                               ? (
                                 <Alert
                                   message={t("chat.inspector.toolError")}
-                                  description={result!.output}
+                                  description={result.output}
                                   type="error"
                                   showIcon
                                   style={{ margin: 0, fontSize: 12 }}
                                   banner
                                 />
                               )
-                              : result!.output}
+                              : result.output}
                           </div>
                         </details>
                       )}

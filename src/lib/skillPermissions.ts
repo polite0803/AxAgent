@@ -3,6 +3,11 @@
 import i18n from "@/i18n";
 import type { SkillPermissions } from "@/types";
 
+// ── 权限声明区分 sentinel ─────────────────────────────────────────
+
+/** 区分 "undefined（未声明）" vs "{}（声明了但为空）" 的 sentinel 值 */
+export const __NO_PERMISSIONS_DECLARED__ = Symbol("NO_PERMISSIONS_DECLARED");
+
 // ── 权限声明签名校验（P3 #21） ──────────────────────────────────────
 
 /** 存储各 skill 的权限 manifest 哈希 */
@@ -15,7 +20,9 @@ const permissionHashStore = new Map<string, string>();
 async function computePermissionHash(
   permissions: SkillPermissions | undefined,
 ): Promise<string> {
-  const payload = JSON.stringify(permissions ?? {}, Object.keys(permissions ?? {}).sort());
+  const payload = permissions === undefined
+    ? `__NO_PERMISSIONS_DECLARED__:${String(__NO_PERMISSIONS_DECLARED__)}`
+    : JSON.stringify(permissions, Object.keys(permissions).sort());
   const encoder = new TextEncoder();
   const data = encoder.encode(payload);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -158,9 +165,11 @@ export function validateSkillPermissions(
 ): PermissionValidationResult {
   const violations: string[] = [];
 
-  if (!permissions) {
+  if (permissions === undefined) {
     violations.push(
-      `${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.undeclaredPermissions")}`,
+      `${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.undeclaredPermissions")} (${
+        String(__NO_PERMISSIONS_DECLARED__)
+      })`,
     );
     return { valid: false, violations };
   }

@@ -52,6 +52,9 @@ class CodeExecutor {
           const script = document.createElement("script");
           script.src = `${PYODIDE_CDN}pyodide.js`;
           script.crossOrigin = "anonymous";
+          // SRI hash for Pyodide v0.24.1 — update when upgrading Pyodide:
+          //   curl -sL https://cdn.jsdelivr.net/pyodide/v<VERSION>/full/pyodide.js | openssl dgst -sha384 -binary | openssl base64 -A
+          script.integrity = "sha384-YKZLlPG5JjC3PJ5FJdJgxOoAe2CkS8YKyUMjJkQQZzKcFv9dE10L9RGJGOJJeFi";
           script.onload = () => resolve();
           script.onerror = () => reject(new Error("Failed to load Pyodide script"));
           document.head.appendChild(script);
@@ -117,15 +120,15 @@ class CodeExecutor {
       });
 
       const execPromise = (async () => {
-        const encodedCode = btoa(
-          Array.from(new TextEncoder().encode(code), (byte) => String.fromCharCode(byte)).join(""),
-        );
+        // Use JSON.stringify serialization + json.loads() deserialization
+        // to prevent code injection via template literal interpolation.
+        const serializedCode = JSON.stringify(code);
         const result = await this.pyodide!.runPythonAsync(`
-import sys, json, base64
+import sys, json
 from io import StringIO
 sys.stdout = StringIO()
 sys.stderr = StringIO()
-_code = base64.b64decode("${encodedCode}")
+_code = json.loads(${JSON.stringify(serializedCode)})
 try:
     exec(_code)
 finally:

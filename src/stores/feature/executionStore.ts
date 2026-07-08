@@ -364,8 +364,24 @@ export const useExecutionStore = create<ExecutionStore>()(
                 output: event.content,
                 isError: event.isError,
               };
+              // 2.1: Sync fallback to agentPool so clearConversation can clean it up
+              const pool = [...(s.agentPool[event.conversationId] || [])];
+              const poolIdx = pool.findIndex((p) => p.id === poolId);
+              const poolItem: AgentPoolItem = {
+                id: poolId,
+                conversationId: event.conversationId,
+                type: "worker",
+                name: event.toolName || "unknown",
+                status: event.isError ? "failed" : "completed",
+                summary: event.content?.slice(0, 200),
+                error: event.isError ? (event.content ?? "Tool failed") : undefined,
+                messageId: event.assistantMessageId || _latestMessageIdByConv[event.conversationId],
+              };
+              if (poolIdx >= 0) { pool[poolIdx] = { ...pool[poolIdx], ...poolItem }; }
+              else { pool.push(poolItem); }
               return {
                 toolCalls: { ...s.toolCalls, [event.toolUseId]: fallback },
+                agentPool: { ...s.agentPool, [event.conversationId]: pool },
               };
             }
             const updates: Record<string, ToolCallState> = {
@@ -376,6 +392,16 @@ export const useExecutionStore = create<ExecutionStore>()(
                 isError: event.isError,
               },
             };
+            // 2.3: Sync executionId key via sdkIdToExecId map
+            const execId = s.sdkIdToExecId[event.toolUseId];
+            if (execId && s.toolCalls[execId]) {
+              updates[execId] = {
+                ...s.toolCalls[execId],
+                executionStatus: event.isError ? "failed" : "success",
+                output: event.content,
+                isError: event.isError,
+              };
+            }
             const currentToolCall = s.currentToolCall?.toolUseId === event.toolUseId
               ? null
               : s.currentToolCall;
@@ -670,10 +696,29 @@ export const useExecutionStore = create<ExecutionStore>()(
             delete _latestMessageIdByConv[conversationId];
 
             // Identify tool call IDs belonging to this conversation via agentPool
+            // 2.2: Track both tool- and worker- prefixed pool items
             const removedToolUseIds = new Set<string>();
             for (const item of (s.agentPool[conversationId] || [])) {
               if (item.id.startsWith("tool-")) {
                 removedToolUseIds.add(item.id.replace("tool-", ""));
+              } else if (item.id.startsWith("worker-")) {
+                removedToolUseIds.add(item.id.replace("worker-", ""));
+              }
+            }
+            // 2.2: Scan toolCalls for orphan entries whose assistantMessageId
+            // matches _latestMessageIdByConv (was already deleted above), or
+            // whose ids match removed pool items
+            const poolMessageIds = new Set(
+              (s.agentPool[conversationId] || [])
+                .map((item) => item.messageId)
+                .filter(Boolean) as string[],
+            );
+            for (const [id, tc] of Object.entries(s.toolCalls)) {
+              if (
+                tc.assistantMessageId && poolMessageIds.has(tc.assistantMessageId)
+              ) {
+                removedToolUseIds.add(id);
+                removedToolUseIds.add(tc.toolUseId);
               }
             }
             const restToolCalls: Record<string, ToolCallState> = {};

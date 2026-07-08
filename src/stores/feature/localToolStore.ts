@@ -38,14 +38,20 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
   },
 
   deleteTool: async (id: string) => {
-    try {
-      await invoke<boolean>("delete_generated_tool", { id });
-      set((s) => ({
+    // 2.9: Optimistic removal — remove from UI first, restore on backend failure
+    let previousTools: GeneratedToolInfo[] = [];
+    set((s) => {
+      previousTools = s.tools;
+      return {
         tools: s.tools.filter((t) => t.id !== id),
         error: null,
-      }));
+      };
+    });
+    try {
+      await invoke<boolean>("delete_generated_tool", { id });
     } catch (e) {
-      set({ error: String(e) });
+      // Restore on failure
+      set({ tools: previousTools, error: String(e) });
     }
   },
 
@@ -80,7 +86,22 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
         "toggle_single_tool",
         { toolName },
       );
-      set({ groups: updatedGroups, error: null });
+      // 2.4: Partial merge strategy instead of full replacement —
+      // preserves local state not reflected in the backend response
+      set((s) => {
+        const existingMap = new Map(s.groups.map((g) => [g.groupId, g]));
+        const merged = updatedGroups.map((ug) => {
+          const existing = existingMap.get(ug.groupId);
+          return existing ? { ...existing, ...ug } : ug;
+        });
+        // Append groups from existing that are not in the updated response
+        for (const [groupId, g] of existingMap) {
+          if (!updatedGroups.some((ug) => ug.groupId === groupId)) {
+            merged.push(g);
+          }
+        }
+        return { groups: merged, error: null };
+      });
     } catch (e) {
       set({ error: String(e) });
     }
