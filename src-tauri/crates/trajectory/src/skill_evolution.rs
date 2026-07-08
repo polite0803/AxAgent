@@ -569,7 +569,9 @@ impl SkillEvolutionEngine {
                     for individual in &mut pop.individuals.iter_mut() {
                         let mut total_success = 0.0;
                         let mut rounds = 0;
-                        for trajectory in test_trajectories.iter().take(self.config.validation_rounds) {
+                        for trajectory in
+                            test_trajectories.iter().take(self.config.validation_rounds)
+                        {
                             if let Ok(result) =
                                 sandbox.execute_skill(individual, &trajectory.topic).await
                             {

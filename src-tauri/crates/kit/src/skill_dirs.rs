@@ -106,16 +106,22 @@ pub fn reload_skill_dirs() -> Vec<(String, PathBuf)> {
 
 pub fn skill_dirs() -> Vec<(String, PathBuf)> {
     init_if_needed();
-    SKILL_DIRS.read().unwrap().as_ref().map(|d| {
-        d.iter().map(|(label, dir)| (label.clone(), dir.clone())).collect()
-    }).unwrap_or_default()
+    SKILL_DIRS
+        .read()
+        .unwrap()
+        .as_ref()
+        .map(|d| d.iter().map(|(label, dir)| (label.clone(), dir.clone())).collect())
+        .unwrap_or_default()
 }
 
 pub fn all_skills_dirs() -> Vec<PathBuf> {
     init_if_needed();
-    SKILL_DIRS.read().unwrap().as_ref().map(|d| {
-        d.iter().map(|(_, dir)| dir.clone()).collect()
-    }).unwrap_or_default()
+    SKILL_DIRS
+        .read()
+        .unwrap()
+        .as_ref()
+        .map(|d| d.iter().map(|(_, dir)| dir.clone()).collect())
+        .unwrap_or_default()
 }
 
 pub fn external_skill_dirs() -> Vec<PathBuf> {

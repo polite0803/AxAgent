@@ -147,7 +147,9 @@ impl CredentialStore {
         let path = self.file_path(id);
         if path.exists() {
             std::fs::remove_file(&path).map_err(|e| {
-                CredentialError::Io(std::io::Error::other(format!("credential delete {path:?}: {e}")))
+                CredentialError::Io(std::io::Error::other(format!(
+                    "credential delete {path:?}: {e}"
+                )))
             })?;
         }
         Ok(())
