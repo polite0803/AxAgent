@@ -431,7 +431,7 @@ impl SkillEvolutionEngine {
         *self.llm_provider.write().unwrap() = Some(provider);
     }
 
-    pub fn set_sandbox(&self, executor: Arc<dyn SandboxExecutor>) {
+    pub fn set_sandbox(&mut self, executor: Arc<dyn SandboxExecutor>) {
         self.config.use_execution_validation = true;
         *self.sandbox.write().unwrap() = Some(executor);
     }
