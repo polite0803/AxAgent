@@ -36,11 +36,14 @@ pub trait SsrFGuard: Send + Sync {
 }
 
 #[deprecated(note = "NoopSsrFGuard is for testing only. Use SsrFGuard in production.")]
+#[allow(deprecated)]
 #[derive(Default)]
 pub struct NoopSsrFGuard {
+    #[allow(deprecated)]
     config: SsrFConfig,
 }
 #[async_trait]
+#[allow(deprecated)]
 impl SsrFGuard for NoopSsrFGuard {
     async fn check_url(&self, _: &str) -> UrlSafety {
         tracing::warn!("NoopSsrFGuard is active - SSRF protection disabled");
