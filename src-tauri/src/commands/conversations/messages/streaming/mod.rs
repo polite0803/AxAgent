@@ -210,8 +210,18 @@ pub(super) fn spawn_stream_task(
                     .await;
 
                 total_content.push_str(&content);
-                if usage.is_some() {
-                    total_usage = usage;
+                if let Some(u) = usage {
+                    total_usage = match total_usage {
+                        Some(acc) => Some(TokenUsage {
+                            prompt_tokens: acc.prompt_tokens + u.prompt_tokens,
+                            completion_tokens: acc.completion_tokens + u.completion_tokens,
+                            total_tokens: acc.total_tokens + u.total_tokens,
+                            cache_creation_tokens: u.cache_creation_tokens.or(acc.cache_creation_tokens),
+                            cache_read_tokens: u.cache_read_tokens.or(acc.cache_read_tokens),
+                            cache_miss_tokens: u.cache_miss_tokens.or(acc.cache_miss_tokens),
+                        }),
+                        None => Some(u),
+                    };
                 }
                 // Keep first iteration's TTFT, last iteration's TPS
                 if final_first_token_latency_ms.is_none() {

@@ -192,8 +192,10 @@ export function DashboardPage() {
           ).length,
         totalToolCalls: 0,
       },
-      providerCount: providers.length,
-      modelCount: providers.reduce((sum, p) => sum + (p.models?.length ?? 0), 0),
+      providerCount: providers.filter((p) => p.enabled).length,
+      modelCount: providers
+        .filter((p) => p.enabled)
+        .reduce((sum, p) => sum + (p.models?.filter((m) => m.enabled).length ?? 0), 0),
     };
   }, [conversations, gatewayMetrics, providers, backendStats]);
 
