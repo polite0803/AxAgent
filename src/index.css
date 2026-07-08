@@ -219,6 +219,285 @@
   --tracking-tight: -0.05em;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   21th 全局样式覆盖 — neo-brutalist 质感
+   当 data-theme-preset 含 "21th" 时激活，覆盖全局基础样式
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme-preset*="21th"] {
+  /* ── 全局零圆角 ── */
+  --radius: 0px !important;
+  --radius-lg: 0px !important;
+  --ant-border-radius: 0px;
+}
+
+/* 21th 字体：等宽优先 */
+[data-theme-preset*="21th"] body,
+[data-theme-preset*="21th"] .app-shell {
+  font-family: var(--font-mono-preferred, "Geist Mono", ui-monospace, monospace);
+  letter-spacing: var(--tracking-tight, -0.05em);
+}
+
+/* 21th Ant Design 组件覆盖：零圆角 + brutalist 阴影 */
+[data-theme-preset*="21th"] .ant-btn {
+  border-radius: 0 !important;
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  font-family: inherit;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  border-width: 1px;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+[data-theme-preset*="21th"] .ant-btn:not(:disabled):hover {
+  transform: translate(1px, 1px);
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+[data-theme-preset*="21th"] .ant-btn:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+[data-theme-preset*="21th"] .ant-input,
+[data-theme-preset*="21th"] .ant-select-selector,
+[data-theme-preset*="21th"] .ant-input-affix-wrapper {
+  border-radius: 0 !important;
+  border-width: 1px;
+  font-family: inherit;
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+[data-theme-preset*="21th"] .ant-input:focus,
+[data-theme-preset*="21th"] .ant-input-focused,
+[data-theme-preset*="21th"] .ant-input-affix-wrapper-focused {
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+
+[data-theme-preset*="21th"] .ant-card {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+
+[data-theme-preset*="21th"] .ant-modal-content {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-lg, 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 4px 6px -1px rgba(0, 0, 0, 1));
+}
+
+[data-theme-preset*="21th"] .ant-tag {
+  border-radius: 0 !important;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-width: 1px;
+}
+
+[data-theme-preset*="21th"] .ant-tabs-tab {
+  font-family: inherit;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+[data-theme-preset*="21th"] .ant-divider {
+  border-color: var(--border-color);
+  border-width: 1px;
+}
+
+[data-theme-preset*="21th"] .ant-tooltip-inner {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  font-family: inherit;
+  font-size: 11px;
+}
+
+[data-theme-preset*="21th"] .ant-popover-inner {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+
+[data-theme-preset*="21th"] .ant-dropdown-menu {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-md, 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 2px 4px -1px rgba(0, 0, 0, 1));
+}
+
+/* 21th 消息气泡 — brutalist 质感 */
+[data-theme-preset*="21th"] .msg-row {
+  gap: 6px;
+}
+[data-theme-preset*="21th"] .msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  background: var(--color-primary);
+  color: var(--bg);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  font-size: 11px;
+}
+[data-theme-preset*="21th"] .msg-content {
+  font-size: 13px;
+  line-height: 1.6;
+}
+[data-theme-preset*="21th"] .msg-content code {
+  border-radius: 0;
+  padding: 1px 4px;
+  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+}
+[data-theme-preset*="21th"] .msg-content pre {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+[data-theme-preset*="21th"] .msg-content.bubble-outlined {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+}
+[data-theme-preset*="21th"] .msg-content.bubble-shadow {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  padding: 8px 12px;
+}
+[data-theme-preset*="21th"] .msg-content.bubble-filled {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+}
+[data-theme-preset*="21th"] .msg-row.user .msg-content {
+  max-width: 85%;
+  background: var(--color-primary);
+  color: var(--bg);
+  border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+[data-theme-preset*="21th"] .msg-row.assistant .msg-content.bubble-outlined {
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0;
+  border-top: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* 21th 输入框 — brutalist 硬边 */
+[data-theme-preset*="21th"] .chat-input-area {
+  border-top: 1px solid var(--border-color);
+  padding: 4px 16px 6px;
+}
+[data-theme-preset*="21th"] .chat-input-box {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  padding: 4px 8px;
+  background: var(--bg);
+  font-family: var(--font-mono-preferred, "Geist Mono", ui-monospace, monospace);
+}
+[data-theme-preset*="21th"] .chat-input-box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+[data-theme-preset*="21th"] .chat-input-box textarea {
+  font-family: var(--font-mono-preferred, "Geist Mono", ui-monospace, monospace);
+  font-size: 13px;
+}
+[data-theme-preset*="21th"] .chat-input-tools .ant-btn {
+  box-shadow: none;
+  border: 1px solid transparent;
+}
+[data-theme-preset*="21th"] .chat-input-tools .ant-btn:hover {
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  transform: translate(1px, 1px);
+}
+
+/* 21th 侧边栏 — 精密仪表盘 */
+[data-theme-preset*="21th"] .ax-chat-sidebar {
+  border-right: 1px solid var(--border-color);
+}
+[data-theme-preset*="21th"] .ax-chat-sidebar .ant-btn-text {
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] .ax-chat-sidebar .ant-input {
+  border-radius: 0;
+}
+
+/* 21th 标题栏 — 结构线条感 */
+[data-theme-preset*="21th"] .titlebar {
+  border-bottom: 1px solid var(--border-color);
+}
+[data-theme-preset*="21th"] .titlebar-btn {
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] .titlebar-btn:hover {
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+}
+
+/* 21th 状态栏 — 数据仪表感 */
+[data-theme-preset*="21th"] .global-status-bar {
+  border-top: 1px solid var(--border-color);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* 21th 工具调用卡片 */
+[data-theme-preset*="21th"] .tool-call-card,
+[data-theme-preset*="21th"] .tool-call-node {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+
+/* 21th 表格 — crisp 网格 */
+[data-theme-preset*="21th"] .ant-table {
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] .ant-table-cell {
+  border-color: var(--border-color);
+}
+[data-theme-preset*="21th"] .ant-table-thead > tr > th {
+  border-bottom: 2px solid var(--color-primary);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  background: var(--bg);
+}
+
+/* 21th Slider / Switch */
+[data-theme-preset*="21th"] .ant-slider-handle {
+  border-radius: 0;
+  border: 2px solid var(--color-primary);
+}
+[data-theme-preset*="21th"] .ant-switch {
+  border-radius: 0;
+}
+
+/* 21th 滚动条 — 细线风格 */
+[data-theme-preset*="21th"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-theme-preset*="21th"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme-preset*="21th"] ::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
 /* ── Cyberpunk preset 覆盖 ── */
 [data-theme-preset*="cyber"],
 [data-theme-preset*="neon"] {
@@ -2144,10 +2423,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* ── 消息气泡 ── */
-.msg-group { margin-bottom: 18px; }
+.msg-group { margin-bottom: 8px; }
 .msg-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
   flex-shrink: 0;
 }
@@ -2286,6 +2565,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ── AI 消息折叠 ── */
 .ai-content-wrapper {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 .ai-content-collapsed {
   max-height: calc(1.65em * 3);

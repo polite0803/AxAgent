@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Icon } from "@/components/common/Icon";
+import { invoke } from "@/lib/invoke";
 import { useConversationStore, useGatewayStore, useProviderStore } from "@/stores";
+import { DashboardStats } from "@/types";
 import { Card, Col, Flex, Row, Spin, Statistic, theme } from "antd";
 import { Bot, Cpu, Database, Globe, MessageSquare, TrendingUp, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -137,40 +139,37 @@ export function DashboardPage() {
   const { token } = theme.useToken();
 
   const conversations = useConversationStore((s) => s.conversations);
+  const fetchConversations = useConversationStore((s) => s.fetchConversations);
   const gatewayMetrics = useGatewayStore((s) => s.metrics);
   const fetchGatewayMetrics = useGatewayStore((s) => s.fetchMetrics);
   const providers = useProviderStore((s) => s.providers);
   const fetchProviders = useProviderStore((s) => s.fetchProviders);
 
   const [loading, setLoading] = useState(true);
+  const [backendStats, setBackendStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.allSettled([
+      const [stats] = await Promise.all([
+        invoke<DashboardStats>("get_dashboard_stats").catch(() => null),
         fetchGatewayMetrics().catch(() => {}),
         fetchProviders().catch(() => {}),
+        fetchConversations().catch(() => {}),
       ]);
+      setBackendStats(stats);
       setLoading(false);
     };
     load();
-  }, [fetchGatewayMetrics, fetchProviders]);
-
-  // Compute aggregate conversation stats
-  const totalMessages = useMemo(() => {
-    let count = 0;
-    for (const conv of conversations) {
-      count += conv.message_count || 0;
-    }
-    return count;
-  }, [conversations]);
+  }, [fetchGatewayMetrics, fetchProviders, fetchConversations]);
 
   const dashboardData = useMemo<DashboardData>(() => {
     const g = gatewayMetrics;
+    const stats = backendStats;
     return {
-      conversationCount: conversations.length,
-      totalMessages,
-      totalTokens: g?.total_tokens ?? 0,
+      conversationCount: stats?.total_conversations ?? conversations.length,
+      totalMessages: stats?.total_messages ?? conversations.reduce((sum, c) => sum + (c.message_count || 0), 0),
+      totalTokens: stats?.total_tokens ?? g?.total_tokens ?? 0,
       gatewayMetrics: g
         ? {
           totalRequests: g.total_requests,
@@ -181,15 +180,22 @@ export function DashboardPage() {
         }
         : null,
       agentStats: {
-        totalSessions: 0,
-        completedSessions: 0,
-        failedSessions: 0,
+        totalSessions: stats?.total_agent_sessions
+          ?? conversations.filter((c) => c.mode === "agent" || c.mode === "gateway").length,
+        completedSessions: stats?.completed_agent_sessions
+          ?? conversations.filter((c) => c.mode === "agent" || c.mode === "gateway").filter((c) =>
+            c.workflow_status === "completed"
+          ).length,
+        failedSessions: stats?.failed_agent_sessions
+          ?? conversations.filter((c) => c.mode === "agent" || c.mode === "gateway").filter((c) =>
+            c.workflow_status === "failed"
+          ).length,
         totalToolCalls: 0,
       },
       providerCount: providers.length,
       modelCount: providers.reduce((sum, p) => sum + (p.models?.length ?? 0), 0),
     };
-  }, [conversations, totalMessages, gatewayMetrics, providers]);
+  }, [conversations, gatewayMetrics, providers, backendStats]);
 
   const data = dashboardData;
   const isLoading = loading;

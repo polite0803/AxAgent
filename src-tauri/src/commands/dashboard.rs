@@ -5,6 +5,9 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::dashboard as dashboard_err;
 use axagent_runtime::dashboard_plugin::{DashboardPluginAdapter, DashboardPluginManifest};
 use axagent_runtime::dashboard_registry::DashboardPluginInfo;
+use sea_orm::QuerySelect;
+use sea_orm::entity::prelude::*;
+use serde::Serialize;
 use std::path::PathBuf;
 use tauri::State;
 
@@ -159,4 +162,66 @@ fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> Result<()
         }
     }
     Ok(())
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DashboardStats {
+    pub total_conversations: i64,
+    pub total_messages: i64,
+    pub total_prompt_tokens: i64,
+    pub total_completion_tokens: i64,
+    pub total_tokens: i64,
+    pub total_agent_sessions: i64,
+    pub completed_agent_sessions: i64,
+    pub failed_agent_sessions: i64,
+    pub total_agent_tokens: i64,
+}
+
+#[tauri::command]
+pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<DashboardStats, String> {
+    let db = state.harness.db();
+
+    let total_conversations = axagent_entities::conversations::Entity::find()
+        .count(db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let total_messages = axagent_entities::messages::Entity::find()
+        .filter(axagent_entities::messages::Column::IsActive.eq(1))
+        .count(db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let rows = axagent_entities::messages::Entity::find()
+        .filter(axagent_entities::messages::Column::IsActive.eq(1))
+        .all(db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let total_prompt_tokens: i64 = rows.iter().filter_map(|m| m.prompt_tokens).sum();
+    let total_completion_tokens: i64 = rows.iter().filter_map(|m| m.completion_tokens).sum();
+
+    let agent_sessions = axagent_entities::agent_sessions::Entity::find()
+        .all(db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let total_agent_sessions = agent_sessions.len() as i64;
+    let total_agent_tokens: i64 = agent_sessions.iter().map(|s| s.total_tokens as i64).sum();
+    let completed_agent_sessions =
+        agent_sessions.iter().filter(|s| s.runtime_status == "completed").count() as i64;
+    let failed_agent_sessions =
+        agent_sessions.iter().filter(|s| s.runtime_status == "failed").count() as i64;
+
+    Ok(DashboardStats {
+        total_conversations,
+        total_messages,
+        total_prompt_tokens,
+        total_completion_tokens,
+        total_tokens: total_prompt_tokens + total_completion_tokens,
+        total_agent_sessions,
+        completed_agent_sessions,
+        failed_agent_sessions,
+        total_agent_tokens,
+    })
 }

@@ -110,6 +110,7 @@
     "editMessage": "编辑消息",
     "saveOnly": "仅保存",
     "saveAndResend": "保存并重发",
+    "expandMessage": "展开消息",
     "partial": "主动停止",
     "like": "赞",
     "dislike": "踩",

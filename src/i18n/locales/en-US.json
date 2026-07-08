@@ -151,6 +151,7 @@
     "editMessage": "Edit message",
     "saveOnly": "Save only",
     "saveAndResend": "Save & Resend",
+    "expandMessage": "Expand message",
     "partial": "Stopped",
     "cancelled": "Cancelled",
     "like": "Like",

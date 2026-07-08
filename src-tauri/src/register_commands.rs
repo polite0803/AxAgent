@@ -270,6 +270,7 @@ macro_rules! register_all_commands {
             commands::dashboard::dashboard_reload_plugins,
             commands::dashboard::dashboard_open_plugins_folder,
             commands::dashboard::dashboard_install_plugin,
+            commands::dashboard::get_dashboard_stats,
             #[cfg(not(mobile))]
             commands::computer_control::screen_capture,
             #[cfg(not(mobile))]

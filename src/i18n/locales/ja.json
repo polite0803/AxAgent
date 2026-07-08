@@ -109,6 +109,7 @@
     "editMessage": "メッセージを編集",
     "saveOnly": "保存のみ",
     "saveAndResend": "保存して再送信",
+    "expandMessage": "メッセージを展開",
     "partial": "停止済み",
     "like": "いいね",
     "dislike": "よくない",

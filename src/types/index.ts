@@ -1559,3 +1559,15 @@ export type {
   UpdateDynamicUISchemaParams,
 } from "./dynamicUI";
 export { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "./dynamicUI";
+
+export interface DashboardStats {
+  total_conversations: number;
+  total_messages: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_agent_sessions: number;
+  completed_agent_sessions: number;
+  failed_agent_sessions: number;
+  total_agent_tokens: number;
+}

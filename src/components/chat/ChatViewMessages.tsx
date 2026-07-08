@@ -622,8 +622,7 @@ export function useChatViewMessages({
   const [summaryModalText, setSummaryModalText] = useState("");
 
   // ── AI 消息折叠状态 ──
-  const [collapsedAiIds, setCollapsedAiIds] = useState<Set<string>>(new Set());
-  const [, setCollapseTick] = useState(0);
+  const [collapsedAiIds, setCollapsedAiIds] = useState<Record<string, boolean>>({});
   const prevStreamingRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -632,11 +631,10 @@ export function useChatViewMessages({
     if (prev === curr) { return; }
     prevStreamingRef.current = curr;
 
-    setCollapsedAiIds((prevSet) => {
-      const next = new Set(prevSet);
-      if (prev && !next.has(prev)) { next.add(prev); }
-      if (curr && next.has(curr)) { next.delete(curr); }
-      setCollapseTick((t) => t + 1);
+    setCollapsedAiIds((prevMap) => {
+      const next = { ...prevMap };
+      if (prev) { next[prev] = true; }
+      if (curr) { delete next[curr]; }
       return next;
     });
   }, [streamingMessageId]);
@@ -1521,7 +1519,29 @@ export function useChatViewMessages({
 
           // ── AI 消息折叠 ──
           const msgId = msg?.id;
-          const isCollapsed = !!msgId && !isStreaming && collapsedAiIds.has(msgId);
+          const isCollapsed = !!msgId && !isStreaming && collapsedAiIds[msgId];
+
+          const handleToggleCollapse = () => {
+            if (!msgId) { return; }
+            setCollapsedAiIds((prev) => {
+              const next = { ...prev };
+              if (next[msgId]) {
+                delete next[msgId];
+              } else {
+                next[msgId] = true;
+              }
+              return next;
+            });
+          };
+
+          const handleExpand = () => {
+            if (!msgId) { return; }
+            setCollapsedAiIds((prev) => {
+              const next = { ...prev };
+              delete next[msgId];
+              return next;
+            });
+          };
 
           return (
             <>
@@ -1540,14 +1560,7 @@ export function useChatViewMessages({
                 {isCollapsed && (
                   <div
                     className="ai-collapse-overlay"
-                    onClick={() => {
-                      setCollapsedAiIds((prev) => {
-                        const next = new Set(prev);
-                        next.delete(msgId);
-                        setCollapseTick((t) => t + 1);
-                        return next;
-                      });
-                    }}
+                    onClick={handleExpand}
                   >
                     <span className="ai-collapse-label">{t("chat.expandMessage")}</span>
                   </div>
@@ -1555,15 +1568,7 @@ export function useChatViewMessages({
                 {!isStreaming && !!msgId && (
                   <button
                     className="ai-collapse-toggle"
-                    onClick={() => {
-                      setCollapsedAiIds((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(msgId)) { next.delete(msgId); }
-                        else { next.add(msgId); }
-                        setCollapseTick((t) => t + 1);
-                        return next;
-                      });
-                    }}
+                    onClick={handleToggleCollapse}
                   >
                     {isCollapsed ? t("common.expand") : t("common.collapse")}
                   </button>

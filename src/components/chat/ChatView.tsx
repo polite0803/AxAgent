@@ -450,13 +450,13 @@ function ChatViewInner({
                   minHeight: 0,
                   padding: settings.chat_minimap_enabled
                       && settings.chat_minimap_style === "sticky"
-                    ? "50px 24px 16px 24px"
-                    : "16px 24px",
+                    ? "40px 16px 8px 16px"
+                    : "8px 16px",
                   overflowX: "hidden",
                   overflowY: "auto",
                   display: "flex",
                   flexDirection: "column-reverse",
-                  gap: 10,
+                  gap: 4,
                 }}
               >
                 {msgState.visibleBubbleItems.map((item) => {

@@ -564,8 +564,26 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
         .collect()
 }
 
-fn build_request(request: &ChatRequest, messages: &[ChatMessage], stream: bool) -> OpenAIRequest {
-    let thinking_style = request.thinking_param_style.as_deref().unwrap_or("reasoning_effort");
+fn build_request(
+    ctx: &ProviderRequestContext,
+    request: &ChatRequest,
+    messages: &[ChatMessage],
+    stream: bool,
+) -> OpenAIRequest {
+    let base_url = ctx.base_url.as_deref().unwrap_or(DEFAULT_BASE_URL);
+    let is_siliconflow = base_url.contains("siliconflow.cn");
+    let mut thinking_style = request.thinking_param_style.as_deref().unwrap_or("reasoning_effort");
+
+    // 兼容性降级:非 SiliconFlow 端点不识别 enable_thinking / thinking_budget
+    if thinking_style == "enable_thinking" && !is_siliconflow {
+        tracing::warn!(
+            target: "axagent.providers",
+            provider_id = %ctx.provider_id,
+            base_url = %base_url,
+            "thinking_param_style='enable_thinking' 非 SiliconFlow, 降级为 reasoning_effort"
+        );
+        thinking_style = "reasoning_effort";
+    }
 
     // "none" style: never send any thinking-related params
     // "enable_thinking" style (SiliconFlow): enable_thinking + thinking_budget fields
@@ -580,7 +598,6 @@ fn build_request(request: &ChatRequest, messages: &[ChatMessage], stream: bool) 
     };
 
     // "reasoning_effort" style (OpenAI): reasoning_effort field
-    // Clamp to "high" max — "xhigh" is not supported by most OpenAI-compatible providers (e.g. NVIDIA)
     let reasoning_effort = if thinking_style == "reasoning_effort" {
         request.thinking_budget.map(|b| match b {
             0 => "none".to_string(),
@@ -609,7 +626,17 @@ fn build_request(request: &ChatRequest, messages: &[ChatMessage], stream: bool) 
         (request.max_tokens.filter(|&v| v > 0), None)
     };
 
-    OpenAIRequest {
+    // 兼容性: 非标准 OpenAI 提供商(各类中转/网关)不支持 stream_options.include_usage
+    let is_standard_openai = base_url.contains("api.openai.com")
+        || base_url.contains("api.deepseek.com")
+        || is_siliconflow;
+    let stream_options = if stream && is_standard_openai {
+        Some(StreamOptions { include_usage: true })
+    } else {
+        None
+    };
+
+    let body = OpenAIRequest {
         model: request.model.clone(),
         messages: convert_messages(messages),
         temperature: if has_thinking {
@@ -621,16 +648,29 @@ fn build_request(request: &ChatRequest, messages: &[ChatMessage], stream: bool) 
         max_tokens,
         max_completion_tokens,
         stream,
-        stream_options: if stream {
-            Some(StreamOptions { include_usage: true })
-        } else {
-            None
-        },
+        stream_options,
         tools: request.tools.clone(),
         reasoning_effort,
         enable_thinking,
         thinking_budget: sf_thinking_budget,
-    }
+    };
+
+    tracing::debug!(
+        target: "axagent.providers",
+        model = %body.model,
+        base_url = %base_url,
+        thinking_style = %thinking_style,
+        has_thinking = has_thinking,
+        enable_thinking = ?body.enable_thinking,
+        thinking_budget = ?body.thinking_budget,
+        reasoning_effort = ?body.reasoning_effort,
+        max_tokens = ?body.max_tokens,
+        max_completion_tokens = ?body.max_completion_tokens,
+        tools_count = body.tools.as_ref().map(|t| t.len()).unwrap_or(0),
+        "openai build_request"
+    );
+
+    body
 }
 
 #[cfg(test)]
@@ -680,7 +720,7 @@ impl ProviderAdapter for OpenAIAdapter {
         request: ChatRequest,
     ) -> Result<ChatResponse> {
         let url = Self::chat_url(ctx);
-        let body = build_request(&request, &request.messages, false);
+        let body = build_request(ctx, &request, &request.messages, false);
 
         let resp = crate::apply_request_headers(
             self.get_client(ctx)?
@@ -764,7 +804,7 @@ impl ProviderAdapter for OpenAIAdapter {
         let api_key = ctx.api_key.clone();
         let custom_headers = ctx.custom_headers.clone();
         let url = Self::chat_url(ctx);
-        let body = build_request(&request, &request.messages, true);
+        let body = build_request(ctx, &request, &request.messages, true);
 
         let (mut tx, rx) = futures::channel::mpsc::channel(256);
 
@@ -852,6 +892,15 @@ impl ProviderAdapter for OpenAIAdapter {
                         });
                     if let Some(tc_deltas) = tool_call_deltas {
                         for tc in tc_deltas {
+                            tracing::info!(
+                                target: "axagent.providers.toolcall",
+                                index = tc.index,
+                                id = ?tc.id,
+                                call_type = ?tc.call_type,
+                                name = ?tc.function.as_ref().and_then(|f| f.name.as_ref()),
+                                args_preview = ?tc.function.as_ref().and_then(|f| f.arguments.as_ref()).map(|a| &a[..a.len().min(100)]),
+                                "tool_call delta received"
+                            );
                             // 上限保护:防止恶意/异常上游把 index 推到很大,
                             // 导致 vector grow 吃掉内存
                             const MAX_PENDING_TOOL_CALLS: usize = 256;

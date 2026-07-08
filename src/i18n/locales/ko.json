@@ -109,6 +109,7 @@
     "editMessage": "메시지 편집",
     "saveOnly": "저장만",
     "saveAndResend": "저장 후 재전송",
+    "expandMessage": "메시지 펼치기",
     "partial": "중지됨",
     "like": "좋아요",
     "dislike": "싫어요",
