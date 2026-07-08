@@ -51,6 +51,7 @@ dashmap = "6"
 enigo = "0.6"
 hex = "0.4"
 image = { version = "0.25", features = ["png"] }
+insta = { version = "1.48", features = ["yaml", "json", "redactions"] }
 lazy_static = "1"
 libsqlite3-sys = { version = "0.30", features = ["bundled"] }
 moka = { version = "0.12", features = ["future"] }
