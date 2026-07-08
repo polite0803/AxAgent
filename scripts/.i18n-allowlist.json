@@ -1,8 +1,8 @@
 {
   "version": "2",
-  "generated": "2026-07-01",
-  "total_entries": 458,
-  "total_files": 419,
+  "generated": "2026-07-08",
+  "total_entries": 521,
+  "total_files": 481,
   "entries": [
     {
       "file": "src/stores/domain/streamStore.ts",
@@ -2768,6 +2768,306 @@
       "lines": "142,143,144,145,510,511",
       "reason": "非UI字符串-测试Mock数据",
       "note": "测试文件中的 mock t() 返回值，非实际 UI 文本"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalysisDebugPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalystReportCard.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalystReportGrid.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/DebatePanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/RiskMatrix.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/ValueAssessmentPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/MarketSimPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/MonteCarloPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/QuantSimPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/StockSearchBar.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/PortfolioDashboard.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/ExitRecommendationPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/FundPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/TradeStatsPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/TradeReviewPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/PriceAlertPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/EventCalendarPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/DecisionBanner.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/DragonTigerPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/ConceptBlocksPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/WatchlistPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/CompareView.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/PositionsMiniPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/charts/DrawdownChart.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/charts/EquityCurveChart.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/charts/WalkForwardFoldBarChart.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/charts/WalkForwardOOSChart.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/tabs/BacktestTab.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/tabs/CompareTab.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/tabs/RhaiEditorTab.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/quant/tabs/StrategyForm.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/settings/AgentProfileList.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/settings/DataVendorsTab.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/settings/StockAnalysisConfigPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/settings/ScheduledRecommendationTab.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactAnalystSummary.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactDebateNode.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRiskSummary.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRecommendation.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/analystDualView.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/debateDualView.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/decisionDualView.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/recommendationDualView.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/riskDualView.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/valueAssessmentDualView.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/DecisionComparisonPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactDecisionComparison.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactValueAssessment.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/PanelCollapseButton.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/WhatIfBacktest.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/SerenityScreeningPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/RecoStrategyMatrix.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/RecoSignalTimeline.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/QuickBacktestPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/HistoryAnalysisPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/stock-analysis/ScheduledAnalysisPanel.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/components/time-travel/ReplaySweep.tsx",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/lib/stock-analysis-export.ts",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/lib/stock-analysis-utils.ts",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
+    },
+    {
+      "file": "src/stores/feature/stockAnalysisStore.ts",
+      "lines": "*",
+      "reason": "硬编码中文字符串-待迁移"
     }
   ]
 }
