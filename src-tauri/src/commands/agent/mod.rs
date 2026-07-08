@@ -3013,6 +3013,9 @@ pub async fn agent_runtime_stats(
     let running = {
         let r = app_state.running_agents.read().await;
         r.contains(&conversation_id)
+            // Agent 模式下的 regenerate 走 spawn_stream_task（stream_cancel_flags），
+            // 不走 agent_query（running_agents），所以也要检查 stream 层是否存活
+            || app_state.stream_cancel_flags.contains_key(&conversation_id)
     };
     let paused = {
         let p = app_state.agent_paused.lock().await;
