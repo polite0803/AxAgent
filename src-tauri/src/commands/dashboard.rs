@@ -5,7 +5,6 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::dashboard as dashboard_err;
 use axagent_runtime::dashboard_plugin::{DashboardPluginAdapter, DashboardPluginManifest};
 use axagent_runtime::dashboard_registry::DashboardPluginInfo;
-use sea_orm::QuerySelect;
 use sea_orm::entity::prelude::*;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -214,8 +213,8 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
         agent_sessions.iter().filter(|s| s.runtime_status == "failed").count() as i64;
 
     Ok(DashboardStats {
-        total_conversations,
-        total_messages,
+        total_conversations: total_conversations as i64,
+        total_messages: total_messages as i64,
         total_prompt_tokens,
         total_completion_tokens,
         total_tokens: total_prompt_tokens + total_completion_tokens,
