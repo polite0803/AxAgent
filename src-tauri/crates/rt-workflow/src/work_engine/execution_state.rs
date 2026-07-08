@@ -235,7 +235,7 @@ pub struct ExecutionState {
     /// 凭证管理器（可选，None = 不使用凭证）。
     /// 执行器通过它按 credential_id 懒加载并解密 DatabaseConnection / Smtp / ApiKey 等凭证。
     #[serde(skip, default)]
-    pub credential_manager: Option<Arc<axagent_harness::credential::CredentialManager>>,
+    pub credential_manager: Option<Arc<axagent_credential::CredentialManager>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     #[serde(skip, default)]
     pub tool_registry: Option<Arc<dyn axagent_harness::ToolRegistry>>,

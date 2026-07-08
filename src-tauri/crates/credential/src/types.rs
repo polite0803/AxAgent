@@ -1,17 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Credential type system
-//!
-//! Core data structures for credential management: API keys, basic auth,
-//! bearer tokens, OAuth2, database connections, and SMTP configuration.
+//! Core data structures for credential management.
 
 use serde::{Deserialize, Serialize};
 
-pub mod manager;
-pub mod store;
-pub use manager::CredentialManager;
-
-/// Supported credential types for various integrations
+/// Supported credential types for various integrations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CredentialType {
     /// API key with custom header name (e.g. X-API-Key)
@@ -28,29 +21,6 @@ pub enum CredentialType {
     Smtp { host: String, port: u16, user: String, pass: String, tls: bool },
 }
 
-/// A stored credential with metadata
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Credential {
-    pub id: String,
-    pub name: String,
-    pub credential_type: CredentialType,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
-
-/// Lightweight reference to a credential (used in node configs)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CredentialRef {
-    pub credential_id: String,
-}
-
-impl Credential {
-    pub fn new(id: String, name: String, credential_type: CredentialType) -> Self {
-        let now = chrono::Utc::now().timestamp_millis();
-        Self { id, name, credential_type, created_at: now, updated_at: now }
-    }
-}
-
 impl std::fmt::Display for CredentialType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -62,4 +32,37 @@ impl std::fmt::Display for CredentialType {
             CredentialType::Smtp { .. } => write!(f, "Smtp"),
         }
     }
+}
+
+/// Stored credential with metadata.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Credential {
+    pub id: String,
+    pub name: String,
+    pub credential_type: CredentialType,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+impl Credential {
+    pub fn new(id: String, name: String, credential_type: CredentialType) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        Self { id, name, credential_type, created_at: now, updated_at: now }
+    }
+}
+
+/// Lightweight reference to a credential (used in node configs).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CredentialRef {
+    pub credential_id: String,
+}
+
+/// SMTP configuration extracted from a Smtp credential.
+#[derive(Debug, Clone)]
+pub struct SmtpConfig {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    pub pass: String,
+    pub tls: bool,
 }

@@ -22,7 +22,6 @@ pub use audit_trail::{AuditEntry, AuditRecorder};
 pub mod cache_interceptor;
 pub use cache_interceptor::{HarnessCache, LlmCacheKey};
 pub mod confidence;
-pub mod credential;
 pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
 pub mod channel_adapter;
 pub mod constants;
@@ -93,7 +92,7 @@ pub mod trajectory_service;
 pub mod webhook_subscription;
 /// 关键 Webhook 类型重导出 — struct/enum 级
 pub use webhook_subscription::{
-    DispatchResult, NoopWebhookSubscriptionService, WebhookEvent, WebhookPayload,
+    DispatchResult, WebhookEvent, WebhookPayload,
     WebhookSubscription, WebhookSubscriptionInfo, WebhookSubscriptionService,
 };
 
@@ -121,7 +120,7 @@ pub use search_sources::{
 pub mod llm_execution;
 pub use llm_execution::{
     LlmCallConfig as HarnessLlmCallConfig, LlmCallResult as HarnessLlmCallResult,
-    LlmExecutionService, NoopLlmExecutionService, SharedLlmExecutionService,
+    LlmExecutionService, SharedLlmExecutionService,
 };
 pub mod marketplace;
 pub use marketplace::{
@@ -154,28 +153,28 @@ pub use url_utils::{
 };
 
 // ── PromptGuard 契约重导出 ──
-pub use prompt_guard::{NoopPromptGuard, PromptGuard};
+pub use prompt_guard::PromptGuard;
 
 // ── SessionTracer 契约重导出 ──
-pub use session_tracer::{NoopSessionTracer, SessionTracer};
+pub use session_tracer::SessionTracer;
 
 // ── NpmRegistry 契约重导出 ──
-pub use npm_registry::{NoopNpmRegistryService, NpmRegistryService, parse_npm_package_spec};
+pub use npm_registry::{NpmRegistryService, parse_npm_package_spec};
 
 // ── RhaiEngine 契约重导出 ──
-pub use rhai_engine::{NoopRhaiEngineAdapter, RhaiEngineAdapter, RhaiToolFn};
+pub use rhai_engine::{RhaiEngineAdapter, RhaiToolFn};
 
 // ── Planner 契约重导出 ──
-pub use planner::{NoopPlannerAdapter, PlannerAdapter};
+pub use planner::PlannerAdapter;
 
 // ── TrajectoryService 契约重导出 ──
 pub use trajectory_service::{
-    IntegrityCheck, IntegrityResult, NoopTrajectoryService, TaskComplexity, TrajectoryService,
+    IntegrityCheck, IntegrityResult, TaskComplexity, TrajectoryService,
 };
 
 // ── Tool 契约重导出 ──
 pub use tool::{
-    DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, NoopOutputSanitizer,
+    DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer,
     OutputSanitizer, PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory,
     ToolContext, ToolInfo, ToolPermissions, ToolResult, parse_tool_name,
 };
@@ -231,49 +230,46 @@ pub mod memory;
 pub use memory::{
     MemoryActionResultDto, MemoryAddRequest, MemoryFeedbackRequest, MemoryGroupedDto,
     MemorySearchItem, MemorySearchRequest, MemoryStore, MemoryTreeItem, MemoryUpdateRequest,
-    NoopMemoryStore,
 };
 
 // ── P2: MemoryScanner 契约（本地日历/文件扫描） ──
 pub mod scanner;
-pub use scanner::{MemoryScanner, NoopMemoryScanner, ScanResult, ScannedItem, ScannerConfig};
+pub use scanner::{MemoryScanner, ScanResult, ScannedItem, ScannerConfig};
 
 // ── P3: BrowserController 契约（浏览器自动化） ──
 pub mod browser;
 pub use browser::{
     BrowserController, BrowserNavigateResult, BrowserScreenshotResult, ExtractedElement,
-    NoopBrowserController,
 };
 
 // ── P5: Agent 契约（统一 agent 接口 + 注册表） ──
 pub mod agent;
 pub use agent::{
     Agent, AgentCapability, AgentExecuteRequest, AgentInfo, AgentPlan, AgentRegistry, AgentResult,
-    NoopAgent, PlanStep,
+    PlanStep,
 };
 
 // ── P6: 自学习系统契约 ──
 pub mod rl;
 pub use rl::{
-    NoopRLEngine, NoopRLTrainer, RLConfig, RLEngine, RLTrainer, RewardWeights, TrainingEpisode,
+    RLConfig, RLEngine, RLTrainer, RewardWeights, TrainingEpisode,
     TrainingReport, TrainingStep,
 };
 pub mod dream;
 pub use dream::{
     ConsolidationDataProvider, DistilledKnowledge, DreamConsolidationConfig,
-    DreamConsolidationResult, DreamConsolidator, ExperienceRecord, NoopConsolidationDataProvider,
-    NoopDreamConsolidator, ReplaySample,
+    DreamConsolidationResult, DreamConsolidator, ExperienceRecord, ReplaySample,
 };
 pub mod profile;
 pub use profile::{
     CodingStyleProfile, CommentStyle, CommunicationProfile, DomainKnowledgeProfile, ExpertiseLevel,
-    IndentationStyle, LearningState, NamingConvention, NoopUserProfileService, ProfileUpdate, Tone,
+    IndentationStyle, LearningState, NamingConvention, ProfileUpdate, Tone,
     UserProfile, UserProfileService, WorkHabitProfile,
 };
 pub mod style;
 pub use style::{
     CodeSample, CodeStyleTemplate, DocumentStyleProfile, ExtractedCodePatterns, FunctionPattern,
-    MessageSample, NamingPattern, NoopStyleApplier, NoopStyleExtractor, NoopStyleVectorizer,
+    MessageSample, NamingPattern,
     StructurePattern, StyleApplier, StyleExtractor, StylePattern, StylePatternType, StyleVector,
     StyleVectorizer,
 };
@@ -281,68 +277,64 @@ pub use style::{
 // ── P7: RAG 契约（向量检索 / 重排 / 知识图谱 / 文档索引） ──
 pub mod rag_provider;
 pub use rag_provider::{
-    EmbeddingProvider, NoopEmbeddingProvider, NoopRAGProvider, NoopRerankProvider,
-    NoopSelfRagProvider, NoopVectorStoreProvider, RAGProvider, RAGQuery, RerankProvider,
+    EmbeddingProvider, RAGProvider, RAGQuery, RerankProvider,
     RetrievalQuality, SelfRagProvider, VectorQueryResult, VectorStoreProvider,
 };
 pub mod knowledge_graph;
 pub use knowledge_graph::{
-    EntityExtractor, EntityGraphProvider, ExtractedEntity, ExtractedRelation, NoopEntityExtractor,
-    NoopEntityGraphProvider,
+    EntityExtractor, EntityGraphProvider, ExtractedEntity, ExtractedRelation,
 };
 pub mod indexer;
 pub use indexer::{
-    ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, IndexJobStatus, NoopChunkProvider,
-    NoopDocumentIndexer,
+    ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, IndexJobStatus,
 };
 
 // ── P8: 网关/平台管理契约 ──
 pub mod gateway_service;
-pub use gateway_service::{GatewayInfo, GatewayService, GatewayStatus, NoopGatewayService};
+pub use gateway_service::{GatewayInfo, GatewayService, GatewayStatus};
 pub mod platform_manager;
 pub use platform_manager::{
-    NoopPlatformManager, PlatformConnectionInfo, PlatformManager, PlatformMessageHandler,
+    PlatformConnectionInfo, PlatformManager, PlatformMessageHandler,
 };
 
 // ── P9: 安全防护契约（限流 / SSRF / 内容过滤 / 工具指标 / 熔断 / 访问控制） ──
 pub mod rate_limiter;
 pub use rate_limiter::{
-    NoopRateLimiter, RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiter,
+    RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiter,
 };
 pub mod ssrf_guard;
 pub use ssrf_guard::{SsrFConfig, SsrFGuard, UrlSafety};
 pub mod content_filter;
 pub use content_filter::{
-    ContentFilter, ContentFilterConfig, ContentType, FilterAction, NoopContentFilter,
+    ContentFilter, ContentFilterConfig, ContentType, FilterAction,
 };
 pub mod tool_metrics;
 pub use tool_metrics::{
-    NoopToolMetricsCollector, ToolCallRecord, ToolMetricsCollector, ToolMetricsSnapshot,
+    ToolCallRecord, ToolMetricsCollector, ToolMetricsSnapshot,
 };
 pub mod circuit_breaker;
 pub use circuit_breaker::{
-    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerSnapshot, CircuitState, NoopCircuitBreaker,
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerSnapshot, CircuitState,
 };
 pub mod tool_access;
 pub use tool_access::{
-    AccessDecision, NoopToolAccessControl, ToolAccessControl, ToolAccessRequest,
+    AccessDecision, ToolAccessControl, ToolAccessRequest,
 };
 
 // ── P10: 开发者体验契约（可观测 / 基准测试 / 开发体验） ──
 pub mod observability;
-pub use observability::{NoopObservabilityProvider, ObservabilityProvider, SpanType};
+pub use observability::{ObservabilityProvider, SpanType};
 pub mod benchmark;
 pub use benchmark::{
-    BenchmarkReport, BenchmarkRunner, BenchmarkTask, Difficulty, NoopBenchmarkRunner, TaskResult,
+    BenchmarkReport, BenchmarkRunner, BenchmarkTask, Difficulty, TaskResult,
 };
 pub mod dev_experience;
 pub use dev_experience::{
-    DevExperienceProvider, EnvironmentInfo, LogLevel, NoopDevExperienceProvider,
+    DevExperienceProvider, EnvironmentInfo, LogLevel,
 };
 
 // ── MCP 服务契约（让 tools/gateway 不依赖 mcp crate） ──
 pub mod mcp_service;
 pub use mcp_service::{
     DiscoveredMcpTool, McpClientService, McpServerConfig, McpServerStore, McpToolCallResult,
-    NoopMcpClientService, NoopMcpServerStore,
 };

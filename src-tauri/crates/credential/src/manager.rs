@@ -1,38 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 //! Runtime credential manager with in-memory caching.
-//!
-//! Provides on-demand credential loading with a transparent cache to avoid
-//! repeated disk reads and decrypt operations during workflow execution.
 
 use std::collections::HashMap;
 
-use crate::core_error::{AxAgentError, Result};
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 
-use super::store::CredentialStore;
-use super::{Credential, CredentialType};
-
-/// SMTP configuration extracted from a Smtp credential.
-#[derive(Debug, Clone)]
-pub struct SmtpConfig {
-    pub host: String,
-    pub port: u16,
-    pub user: String,
-    pub pass: String,
-    pub tls: bool,
-}
+use crate::error::{CredentialError, Result};
+use crate::store::CredentialStore;
+use crate::types::{Credential, CredentialType, SmtpConfig};
 
 /// Runtime credential manager with lazy-loading and caching.
-///
-/// Thread-safe: wraps interior state behind a `tokio::sync::Mutex` so it can
-/// be shared via `Arc<CredentialManager>` across async executor tasks.
 pub struct CredentialManager {
     store: CredentialStore,
     cache: tokio::sync::Mutex<HashMap<String, Credential>>,
 }
 
 impl CredentialManager {
-    /// Create a new credential manager backed by the given store.
     pub fn new(store: CredentialStore) -> Self {
         Self { store, cache: tokio::sync::Mutex::new(HashMap::new()) }
     }
@@ -53,7 +37,7 @@ impl CredentialManager {
         Ok(cred)
     }
 
-    /// Clear the in-memory cache (useful after credential updates).
+    /// Clear the in-memory cache.
     pub async fn invalidate(&self, id: &str) {
         self.cache.lock().await.remove(id);
     }
@@ -64,7 +48,7 @@ impl CredentialManager {
     }
 
     /// List all stored credentials (metadata only).
-    pub fn list_credentials(&self) -> Result<Vec<super::store::CredentialMeta>> {
+    pub fn list_credentials(&self) -> Result<Vec<crate::store::CredentialMeta>> {
         self.store.list_credentials()
     }
 
@@ -83,8 +67,6 @@ impl CredentialManager {
     }
 
     /// Inject credential-based authentication into an HTTP request builder.
-    ///
-    /// Modifies headers or auth based on the credential type.
     pub fn inject_into_http_request(
         &self,
         credential: &Credential,
@@ -96,17 +78,14 @@ impl CredentialManager {
                 Ok(request.basic_auth(username, Some(password)))
             },
             CredentialType::BearerToken { token } => Ok(request.bearer_auth(token)),
-            CredentialType::OAuth2 { client_id: _, client_secret: _, token_url: _, scopes: _ } => {
-                Err(AxAgentError::Internal(
-                    "OAuth2 credential injection not yet implemented".to_string(),
-                ))
-            },
+            CredentialType::OAuth2 { .. } => Err(CredentialError::Internal(
+                "OAuth2 credential injection not yet implemented".to_string(),
+            )),
             _ => Ok(request),
         }
     }
 
-    /// Inject credential-based headers into a `reqwest::Client`'s request.
-    /// Returns a map of headers to add when building the request manually.
+    /// Get auth headers for manual request building.
     pub fn get_auth_headers(&self, credential: &Credential) -> Result<Vec<(String, String)>> {
         match &credential.credential_type {
             CredentialType::ApiKey { key, header_name } => {
@@ -116,10 +95,7 @@ impl CredentialManager {
                 Ok(vec![("Authorization".to_string(), format!("Bearer {token}"))])
             },
             CredentialType::BasicAuth { username, password } => {
-                let encoded = base64::Engine::encode(
-                    &base64::engine::general_purpose::STANDARD,
-                    format!("{username}:{password}"),
-                );
+                let encoded = BASE64.encode(format!("{username}:{password}"));
                 Ok(vec![("Authorization".to_string(), format!("Basic {encoded}"))])
             },
             _ => Ok(vec![]),
@@ -133,7 +109,7 @@ impl CredentialManager {
             CredentialType::DatabaseConnection { connection_string } => {
                 Ok(connection_string.clone())
             },
-            other => Err(AxAgentError::Validation(format!(
+            other => Err(CredentialError::Validation(format!(
                 "credential {credential_id} is {other}, not DatabaseConnection"
             ))),
         }
@@ -150,7 +126,7 @@ impl CredentialManager {
                 pass: pass.clone(),
                 tls: *tls,
             }),
-            other => Err(AxAgentError::Validation(format!(
+            other => Err(CredentialError::Validation(format!(
                 "credential {credential_id} is {other}, not Smtp"
             ))),
         }

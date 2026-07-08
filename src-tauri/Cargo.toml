@@ -3,6 +3,7 @@ members = [
   ".",
   "crates/agent",
   "crates/cache",
+  "crates/credential",
   "crates/crypto",
   "crates/dao",
   "crates/disk-cache",
@@ -112,6 +113,7 @@ tauri-build = { version = "2", features = [] }
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
 axagent-cache = { path = "crates/cache" }
+axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
 axagent-disk-cache = { path = "crates/disk-cache" }

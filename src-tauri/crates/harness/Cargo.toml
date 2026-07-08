@@ -6,13 +6,9 @@ publish = false
 description = "Harness contract layer — trait interfaces for dependency inversion"
 
 [dependencies]
-aes-gcm = "0.10"
 async-trait = "0.1"
-base64 = "0.22"
 chrono = { workspace = true, features = ["serde"] }
 futures = "0.3"
-hex = { workspace = true }
-rand = "0.8"
 regex = "1"
 reqwest = { workspace = true }
 schemars = "0.8"
