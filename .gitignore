@@ -119,3 +119,5 @@ design-prototype.html
 design-spec.html
 axagent-layout-v4.html
 *.output.txt
+src-tauri/src/commands/skills.rs
+src-tauri/src/commands/workflow_ai.rs
