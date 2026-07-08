@@ -310,7 +310,7 @@ pub use rate_limiter::{
     NoopRateLimiter, RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiter,
 };
 pub mod ssrf_guard;
-pub use ssrf_guard::{NoopSsrFGuard, SsrFConfig, SsrFGuard, UrlSafety};
+pub use ssrf_guard::{SsrFConfig, SsrFGuard, UrlSafety};
 pub mod content_filter;
 pub use content_filter::{
     ContentFilter, ContentFilterConfig, ContentType, FilterAction, NoopContentFilter,

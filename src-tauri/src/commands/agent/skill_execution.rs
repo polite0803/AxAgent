@@ -338,10 +338,33 @@ pub(super) struct SkillExecutionRecord {
     output: Option<String>,
 }
 
+/// Per-conversation entry with last-access timestamp for LRU eviction.
+struct ConvEntry {
+    records: Vec<SkillExecutionRecord>,
+    last_access: Instant,
+}
+
+impl ConvEntry {
+    fn new() -> Self {
+        Self {
+            records: Vec::new(),
+            last_access: Instant::now(),
+        }
+    }
+
+    fn touch(&mut self) {
+        self.last_access = Instant::now();
+    }
+}
+
+/// SkillOutputTracker with conversation-level LRU eviction.
+/// Maintains per-conversation skill execution records, each with an
+/// independent max_records cap. When the global conversation count exceeds
+/// max_conversations, the least recently accessed conversation is evicted.
 pub(super) struct SkillOutputTracker {
-    inner: Mutex<HashMap<String, Vec<SkillExecutionRecord>>>,
-    /// 每个 conversation 的最大记录数，超出时丢弃最旧记录
+    inner: Mutex<HashMap<String, ConvEntry>>,
     max_records_per_conv: usize,
+    max_conversations: usize,
 }
 
 impl SkillOutputTracker {
@@ -349,6 +372,26 @@ impl SkillOutputTracker {
         Self {
             inner: Mutex::new(HashMap::new()),
             max_records_per_conv: 200,
+            max_conversations: 64,
+        }
+    }
+
+    /// Evict the least recently accessed conversation(s) until we are within capacity.
+    fn evict_lru_if_needed(entries: &mut HashMap<String, ConvEntry>, max: usize) {
+        while entries.len() > max {
+            let mut oldest_key: Option<String> = None;
+            let mut oldest_time: Option<Instant> = None;
+            for (k, v) in entries.iter() {
+                if oldest_time.is_none() || v.last_access < oldest_time.unwrap() {
+                    oldest_time = Some(v.last_access);
+                    oldest_key = Some(k.clone());
+                }
+            }
+            if let Some(key) = oldest_key {
+                entries.remove(&key);
+            } else {
+                break;
+            }
         }
     }
 
@@ -358,12 +401,17 @@ impl SkillOutputTracker {
         record: SkillExecutionRecord,
     ) -> Result<(), String> {
         let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
-        let entries = tracker.entry(conversation_id.to_string()).or_default();
-        // 防止内存无限增长：超出上限时移除最旧记录
-        if entries.len() >= self.max_records_per_conv {
-            entries.remove(0);
+        let entry = tracker
+            .entry(conversation_id.to_string())
+            .or_insert_with(ConvEntry::new);
+        entry.touch();
+
+        if entry.records.len() >= self.max_records_per_conv {
+            entry.records.remove(0);
         }
-        entries.push(record);
+        entry.records.push(record);
+
+        Self::evict_lru_if_needed(&mut tracker, self.max_conversations);
         Ok(())
     }
 
@@ -372,14 +420,15 @@ impl SkillOutputTracker {
         conversation_id: &str,
         limit: usize,
     ) -> Result<Vec<SkillExecutionRecord>, String> {
-        let tracker = self.inner.lock().map_err(|e| e.to_string())?;
-        if let Some(entries) = tracker.get(conversation_id) {
-            let start = if entries.len() > limit {
-                entries.len() - limit
+        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
+        if let Some(entry) = tracker.get_mut(conversation_id) {
+            entry.touch();
+            let start = if entry.records.len() > limit {
+                entry.records.len() - limit
             } else {
                 0
             };
-            return Ok(entries[start..].to_vec());
+            return Ok(entry.records[start..].to_vec());
         }
         Ok(Vec::new())
     }
@@ -391,8 +440,10 @@ impl SkillOutputTracker {
         output: String,
     ) -> Result<(), String> {
         let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
-        if let Some(entries) = tracker.get_mut(conversation_id) {
-            if let Some(last) = entries
+        if let Some(entry) = tracker.get_mut(conversation_id) {
+            entry.touch();
+            if let Some(last) = entry
+                .records
                 .iter_mut()
                 .rev()
                 .find(|r| r.skill_name == skill_name)
