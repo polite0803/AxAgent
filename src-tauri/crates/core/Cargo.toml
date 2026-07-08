@@ -11,6 +11,9 @@ publish = false
 # only kept if `src/*.rs` actually uses them; transitive deps consumed by
 # the re-exported sub-crates do not need to be declared here.
 
+[features]
+computer-use = ["axagent-kit/computer-use"]
+
 [dependencies]
 # Re-export targets (referenced by `pub use` in lib.rs)
 axagent-cache = { path = "../cache" }
