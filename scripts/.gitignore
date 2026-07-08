@@ -1,0 +1,4 @@
+scripts/ci-check.mjs
+scripts/post-merge-stock.mjs
+scripts/check-i18n-key-exists.mjs
+scripts/verify-axinvest-integrity.mjs
