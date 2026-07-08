@@ -68,19 +68,19 @@ test.describe("Time Travel / As-Of Mode", () => {
   });
 
   test("AppHeader mounts the LIVE pill on non-chat, non-stock pages", async ({ page }) => {
-    await expect(page.locator('[data-testid="mode-switch"]')).toBeVisible({
+    await expect(page.locator('[data-testid="page-time-anchor"]')).toBeVisible({
       timeout: 30000,
     });
     // Navigate to another non-chat, non-stock page and verify pill is still visible
     await page.goto("/knowledge");
     await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator('[data-testid="mode-switch"]')).toBeVisible({
+    await expect(page.locator('[data-testid="page-time-anchor"]')).toBeVisible({
       timeout: 30000,
     });
   });
 
   test("clicking LIVE opens the As-Of date picker modal", async ({ page }) => {
-    const modeSwitch = page.locator('[data-testid="mode-switch"]');
+    const modeSwitch = page.locator('[data-testid="page-time-anchor"]');
     await expect(modeSwitch).toBeVisible({ timeout: 30000 });
     // Dismiss any overlay modal first so we can click normally
     await dismissModals(page);
@@ -90,7 +90,7 @@ test.describe("Time Travel / As-Of Mode", () => {
   });
 
   test("picking a past date enters Replay mode and shows the Replay badge", async ({ page }) => {
-    const modeSwitch = page.locator('[data-testid="mode-switch"]');
+    const modeSwitch = page.locator('[data-testid="page-time-anchor"]');
     // Dismiss any overlay modal first so we can click normally
     await dismissModals(page);
     await modeSwitch.click();
@@ -138,12 +138,12 @@ test.describe("Time Travel / As-Of Mode", () => {
     });
     await page.reload();
     await dismissModals(page);
-    await expect(page.locator('[data-testid="mode-switch"]')).toBeVisible({
+    await expect(page.locator('[data-testid="page-time-anchor"]')).toBeVisible({
       timeout: 30000,
     });
 
     // Click the mode-switch — should open the confirm modal
-    await page.locator('[data-testid="mode-switch"]').click({ force: true });
+    await page.locator('[data-testid="page-time-anchor"]').click({ force: true });
 
     // AntD Modal renders role="dialog" — verify one appears with a confirm copy
     const dialog = page.locator('[role="dialog"]').first();
@@ -193,7 +193,7 @@ test.describe("Time Travel / As-Of Mode", () => {
     });
     await page.reload();
     await dismissModals(page);
-    await expect(page.locator('[data-testid="mode-switch"]')).toBeVisible({
+    await expect(page.locator('[data-testid="page-time-anchor"]')).toBeVisible({
       timeout: 30000,
     });
 
@@ -201,7 +201,7 @@ test.describe("Time Travel / As-Of Mode", () => {
     for (const path of ["/knowledge", "/workflow", "/settings/advanced"]) {
       await page.goto(path);
       await page.waitForLoadState("domcontentloaded");
-      const pill = page.locator('[data-testid="mode-switch"]');
+      const pill = page.locator('[data-testid="page-time-anchor"]');
       await expect(pill).toBeVisible({ timeout: 30000 });
       const txt = (await pill.textContent()) ?? "";
       // In replay, the pill text should NOT just be "LIVE"
@@ -230,7 +230,7 @@ test.describe("Time Travel / As-Of Mode", () => {
     await page.goto("/settings");
     await page.waitForLoadState("domcontentloaded");
     await dismissModals(page);
-    await expect(page.locator('[data-testid="mode-switch"]')).toBeVisible({
+    await expect(page.locator('[data-testid="page-time-anchor"]')).toBeVisible({
       timeout: 30000,
     });
 
