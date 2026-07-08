@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+#![allow(clippy::await_holding_lock)]
 
 //! Skill Evolution System - GEPA-inspired skill improvement through genetic algorithms
 //!
@@ -501,7 +502,6 @@ impl SkillEvolutionEngine {
 
         if let Some(ref mut pop) = self.population {
             if self.config.use_llm_mutation {
-                #![allow(clippy::await_holding_lock)]
                 let llm_guard = self.llm_provider.read().unwrap();
                 if let Some(ref provider) = *llm_guard {
                     for individual in &mut pop.individuals {
@@ -564,7 +564,6 @@ impl SkillEvolutionEngine {
             }
 
             if self.config.use_execution_validation {
-                #![allow(clippy::await_holding_lock)]
                 let sandbox_guard = self.sandbox.read().unwrap();
                 if let Some(ref sandbox) = *sandbox_guard {
                     for individual in &mut pop.individuals.iter_mut() {

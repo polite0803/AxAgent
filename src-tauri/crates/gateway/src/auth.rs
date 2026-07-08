@@ -201,7 +201,7 @@ impl KeyVerifyLimiter {
         // 先检查容量，必要时淘汰（在外层释放锁，闭包内不持有 map）
         {
             let mut map = self.failures.lock();
-            if map.len() >= self.max_failures {
+            if map.len() >= self.max_failures as usize {
                 self.evict_if_needed(&mut map);
             }
         }
