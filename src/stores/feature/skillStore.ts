@@ -65,6 +65,15 @@ async function syncExtensionStore(): Promise<void> {
   useSkillExtensionStore.getState().fetchSkills();
 }
 
+/** 每个 skill 的操作版本计数器，用于 toggleSkill 防竞态 */
+const toggleVersion = new Map<string, number>();
+
+function bumpVersion(name: string): number {
+  const next = (toggleVersion.get(name) ?? 0) + 1;
+  toggleVersion.set(name, next);
+  return next;
+}
+
 export const useSkillStore = create<SkillState>((set, get) => ({
   skills: [],
   skillProposals: [],
@@ -99,11 +108,16 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   },
 
   toggleSkill: async (name: string, enabled: boolean) => {
+    const version = bumpVersion(name);
     set({
       skills: get().skills.map((s) => s.name === name ? { ...s, enabled } : s),
     });
     try {
       await invoke("toggle_skill", { name, enabled });
+      // 版本检查：如果在此期间触发了新的 toggle，跳过回调以避免状态混乱
+      if (toggleVersion.get(name) !== version) {
+        return;
+      }
       const { triggerOnEnable, triggerOnDisable } = await import("@/lib/skillLifecycle");
       if (enabled) {
         triggerOnEnable(name).catch(logIpcError("triggerOnEnable"));
@@ -113,6 +127,10 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       syncExtensionStore();
     } catch (e) {
       logIpcError("切换 skill 状态失败")(e);
+      // 版本检查：如果已被更新的操作覆盖，不执行回滚
+      if (toggleVersion.get(name) !== version) {
+        return;
+      }
       set({
         skills: get().skills.map((s) => s.name === name ? { ...s, enabled: !enabled } : s),
       });

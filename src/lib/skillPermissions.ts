@@ -109,6 +109,9 @@ function isStorePermCovered(
     return (
       fieldPath === parsed.fieldPath
       || fieldPath.startsWith(parsed.fieldPath + ".")
+      // Support array index notation: "items.0.name" is a child of "items"
+      || (parsed.fieldPath.split(".").every((seg) => /^\d+$/.test(seg) || /^[a-zA-Z_]\w*$/.test(seg))
+        && fieldPath.startsWith(parsed.fieldPath + "."))
     );
   });
 }

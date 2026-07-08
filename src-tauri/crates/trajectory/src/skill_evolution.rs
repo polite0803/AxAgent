@@ -345,11 +345,15 @@ impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
         })
     }
 
+    /// ⚠️ 此实现仅为测试/演示用途的后备评估函数。
+    /// 基于内容长度和关键词的简单启发式评分，不反映实际技能质量。
+    /// 生产环境应在 ExternalLlmEvolutionProvider 中替换为真实的 LLM 评估。
     fn evaluate_quality(
         &self,
         content: &str,
         _context: &str,
     ) -> Pin<Box<dyn Future<Output = Result<f64, String>> + Send + '_>> {
+        // 简单启发式评分：仅用于测试/演示，不反映实际质量
         let score = (content.len() as f64 / 500.0).min(1.0) * 0.3
             + if content.contains("error") || content.contains("Error") {
                 0.3

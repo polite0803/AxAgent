@@ -859,6 +859,7 @@ export function useChatViewMessages({
   }, [activeMessages, thinkingActiveMessageIds, userSearchContentById, bubbleItemCache]);
 
   const [expertSwitchBubble, setExpertSwitchBubble] = useState<BubbleItemType | null>(null);
+  const expertSwitchCounterRef = useRef(0);
   useEffect(() => {
     if (!activeConversationId) {
       return;

@@ -5,7 +5,7 @@ import { App, Button, Input, Modal, Spin, theme } from "antd";
 import DOMPurify from "dompurify";
 import { ChevronDown } from "lucide-react";
 import NodeRenderer from "markstream-react";
-import React, { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
@@ -67,10 +67,8 @@ const LAZY_BUBBLE_ROOT_MARGIN = "300px";
 const LAZY_BUBBLE_MIN_HEIGHT = 60;
 
 const LazyBubble = React.memo(function LazyBubble({
-  itemKey,
   children,
 }: {
-  itemKey: string;
   children: ReactNode;
 }) {
   const [visible, setVisible] = useState(false);
@@ -531,7 +529,7 @@ function ChatViewInner({
                   // Only use lazy rendering for large lists (>20 items)
                   if (messages.length > 20) {
                     return (
-                      <LazyBubble key={item.key} itemKey={String(item.key)}>
+                      <LazyBubble key={item.key}>
                         {bubbleNode}
                       </LazyBubble>
                     );

@@ -39,7 +39,7 @@ export function VersionPagination({
       // Fix: concurrent guard — prevent rapid clicks from triggering
       // multiple switches before React state catches up. switchingRef
       // provides the lock; switching state disables buttons visually.
-      if (switchingRef.current || !msg.parent_message_id) return;
+      if (switchingRef.current || !msg.parent_message_id) { return; }
       switchingRef.current = true;
       setSwitching(true);
       try {
@@ -76,39 +76,41 @@ export function VersionPagination({
         marginRight: 8,
       }}
     >
-      {switching ? (
-        <Loader
-          size={14}
-          style={{
-            animation: "axagent-think-spin 1s linear infinite",
-            color: token.colorTextSecondary,
-          }}
-        />
-      ) : (
-        <>
-          <Button
-            type="text"
-            size="small"
-            icon={<ChevronLeft size={14} />}
-            disabled={switching || current <= 0}
-            onClick={handlePrev}
-            style={{ minWidth: 20, padding: "0 2px" }}
+      {switching
+        ? (
+          <Loader
+            size={14}
+            style={{
+              animation: "axagent-think-spin 1s linear infinite",
+              color: token.colorTextSecondary,
+            }}
           />
-          <Typography.Text
-            style={{ fontSize: 12, color: token.colorTextSecondary }}
-          >
-            {current + 1}/{sorted.length}
-          </Typography.Text>
-          <Button
-            type="text"
-            size="small"
-            icon={<ChevronRight size={14} />}
-            disabled={switching || current >= sorted.length - 1}
-            onClick={handleNext}
-            style={{ minWidth: 20, padding: "0 2px" }}
-          />
-        </>
-      )}
+        )
+        : (
+          <>
+            <Button
+              type="text"
+              size="small"
+              icon={<ChevronLeft size={14} />}
+              disabled={switching || current <= 0}
+              onClick={handlePrev}
+              style={{ minWidth: 20, padding: "0 2px" }}
+            />
+            <Typography.Text
+              style={{ fontSize: 12, color: token.colorTextSecondary }}
+            >
+              {current + 1}/{sorted.length}
+            </Typography.Text>
+            <Button
+              type="text"
+              size="small"
+              icon={<ChevronRight size={14} />}
+              disabled={switching || current >= sorted.length - 1}
+              onClick={handleNext}
+              style={{ minWidth: 20, padding: "0 2px" }}
+            />
+          </>
+        )}
     </span>
   );
 }

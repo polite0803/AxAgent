@@ -12,6 +12,9 @@
  * 6. secureStorage 使用 Tauri 后端 AES-256-GCM 加密，保护 API Key 等敏感数据
  */
 
+/** Maximum recommended size for a single localStorage entry (500 KB). */
+const MAX_ENTRY_SIZE_BYTES = 500 * 1024;
+
 export const storage = {
   get<T = string>(key: string): T | null {
     const raw = localStorage.getItem(key);
@@ -25,7 +28,16 @@ export const storage = {
 
   set<T>(key: string, value: T): void {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      const serialized = JSON.stringify(value);
+      // Warn if entry exceeds recommended size to prevent silent truncation
+      if (serialized.length > MAX_ENTRY_SIZE_BYTES) {
+        console.warn(
+          `[storage] 数据过大 (${(serialized.length / 1024).toFixed(1)} KB > ${
+            MAX_ENTRY_SIZE_BYTES / 1024
+          } KB)，key="${key}"。建议拆分为多个键或使用 IndexedDB。`,
+        );
+      }
+      localStorage.setItem(key, serialized);
     } catch (e) {
       if (e instanceof DOMException && e.name === "QuotaExceededError") {
         console.warn(`[storage] 存储空间不足，无法保存 ${key}`);

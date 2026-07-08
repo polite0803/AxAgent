@@ -442,21 +442,7 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
 
     refreshSkill: async (skillName: string) => {
       const skills = await invoke<Skill[]>("list_skills");
-      // 增量更新：只合并变化的 skill，保留其他 skill 的扩展数据
-      const currentSkills = get().skills;
-      const skillMap = new Map(currentSkills.map((cs) => [cs.name, cs]));
-
-      // 使用最新数据覆盖匹配的 skill，保留不匹配的旧数据
-      const updatedSkills = skills.map((s) => {
-        const existing = skillMap.get(s.name);
-        return existing && s.name !== skillName ? existing : s;
-      });
-      if (!updatedSkills.some((s) => s.name === skillName)) {
-        const newSkill = skills.find((s) => s.name === skillName);
-        if (newSkill) {
-          updatedSkills.push(newSkill);
-        }
-      }
+      // 直接使用后端最新 skills 列表，以 skill ID 为权威数据源
       const merged = mergeExtensions(skills);
       set({ skills, ...merged });
     },

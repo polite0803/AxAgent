@@ -127,8 +127,9 @@ AIGC:
 
 **文件**: 项目全局 1689 处 `.unwrap()` + 1104 处 `.expect()`
 **描述**: 总计 2793 处 panic 面。虽然部分位于测试代码中是可接受的，但生产代码（如 `commands/` 目录下的 handler）中也存在大量 unwrap。在生产环境中一次 panic 可能导致整个请求处理线程崩溃（在 tokio 中可能被 catch_unwind 捕获但代价高昂）。
-**修复建议**: 
-- 生产代码中的 `unwrap()` 替换为 `?` 或 `.map_err()` 
+**修复建议**:
+
+- 生产代码中的 `unwrap()` 替换为 `?` 或 `.map_err()`
 - `.expect()` 至少提供有意义的错误上下文
 - 对 `serde_json::from_str().unwrap()` 这类在测试中可接受、但在生产代码处理外部输入时危险的调用，统一替换
 
@@ -141,10 +142,11 @@ AIGC:
 ### 4.3 [Medium] 日志中可能泄露敏感信息
 
 **文件**:
+
 - `src-tauri/crates/runtime/src/api_server.rs:22` — API token 写入 info 日志
 - `src-tauri/crates/runtime/src/oauth.rs:547` — 设置 `CLAW_CONFIG_HOME` 环境变量
-**描述**: 敏感信息（token、配置路径）可能通过日志泄露。虽然项目中未发现大量明显的 `tracing::info!(api_key)` 模式，但仍需警惕。
-**修复建议**: 建立日志脱敏规范，对 token/密钥类字段在日志中仅输出哈希前缀。
+  **描述**: 敏感信息（token、配置路径）可能通过日志泄露。虽然项目中未发现大量明显的 `tracing::info!(api_key)` 模式，但仍需警惕。
+  **修复建议**: 建立日志脱敏规范，对 token/密钥类字段在日志中仅输出哈希前缀。
 
 ### 4.4 [Info] 错误处理整体评价
 
@@ -162,10 +164,11 @@ AIGC:
 
 **文件**: 项目全局 3703 处 `.clone()` 调用
 **描述**: 大量的 `.clone()` 调用，尤其在处理 String、Vec、HashMap 等堆分配类型时。这会导致不必要的内存分配和数据拷贝。常见原因包括：
+
 - 在多处使用同一数据而未使用引用
 - 将数据移入闭包/async block 时未使用 Arc
 - 函数签名设计为接收 owned 类型而非借用
-**修复建议**: 
+  **修复建议**:
 - 对只读场景使用 `&T` 或 `Arc<T>` 替代 clone
 - 使用 `Cow<str>` 延迟 clone
 - 利用 Rust 的 move 语义和借用检查器减少不必要的拷贝
@@ -197,10 +200,11 @@ AIGC:
 
 **文件**: `src-tauri/crates/mcp/src/`、`src-tauri/crates/gateway/src/handlers/`
 **描述**: MCP 客户端和 Gateway handler 这两个关键安全面模块的测试覆盖相对薄弱。尤其是：
+
 - `mcp_client.rs` 的网络错误路径测试不足
 - `gateway/src/handlers/chat.rs` 的错误响应路径测试不足
 - `credential/store.rs` 的加密/解密错误路径测试不足
-**修复建议**: 增加针对以下场景的测试：
+  **修复建议**: 增加针对以下场景的测试：
 - MCP 连接超时/断开重连
 - Gateway 认证失败/限流触发
 - 加密存储的密钥轮换/损坏数据恢复
@@ -209,11 +213,12 @@ AIGC:
 
 **文件**: 测试主要集中在 `agent/tests/`、`runtime/tests/`、`rt-workflow/tests/` 等
 **描述**: 以下 crate 缺少独立的 tests 目录：
+
 - `harness` — 核心抽象层，无独立集成测试
 - `gateway` — API 网关，无独立集成测试
 - `crypto` — 加密模块，无独立集成测试
 - `mcp` — MCP 协议，无独立集成测试
-**修复建议**: 为上述核心 crate 添加集成测试，至少覆盖关键业务流程。
+  **修复建议**: 为上述核心 crate 添加集成测试，至少覆盖关键业务流程。
 
 ### 6.4 [Info] 测试质量评价
 
@@ -228,13 +233,13 @@ AIGC:
 
 ### 按严重等级统计
 
-| 等级 | 数量 | 说明 |
-|------|------|------|
-| **Critical** | 0 | 未发现直接导致远程代码执行或数据完全丢失的缺陷 |
-| **High** | 3 | std::sync::Mutex in async context / ingest_queue 持久化失败静默丢弃 / 过多 unwrap |
-| **Medium** | 8 | API Token 日志泄露 / SSRF NoopGuard / spawn 任务泄漏 / 死锁风险 / .ok() 滥用 / clone 过度 / 测试覆盖不足 |
-| **Low** | 7 | 路径拼接 / ClientIP trust_all / TAVILY 密钥 / unsafe Send/Sync / 临时文件清理 / 同步 I/O / 字符串拼接 |
-| **Info** | 4 | 加密实现质量 / 错误体系 / 数据结构 / 测试分布 |
+| 等级         | 数量 | 说明                                                                                                     |
+| ------------ | ---- | -------------------------------------------------------------------------------------------------------- |
+| **Critical** | 0    | 未发现直接导致远程代码执行或数据完全丢失的缺陷                                                           |
+| **High**     | 3    | std::sync::Mutex in async context / ingest_queue 持久化失败静默丢弃 / 过多 unwrap                        |
+| **Medium**   | 8    | API Token 日志泄露 / SSRF NoopGuard / spawn 任务泄漏 / 死锁风险 / .ok() 滥用 / clone 过度 / 测试覆盖不足 |
+| **Low**      | 7    | 路径拼接 / ClientIP trust_all / TAVILY 密钥 / unsafe Send/Sync / 临时文件清理 / 同步 I/O / 字符串拼接    |
+| **Info**     | 4    | 加密实现质量 / 错误体系 / 数据结构 / 测试分布                                                            |
 
 ### 优先修复建议（按紧急程度）
 
@@ -247,5 +252,5 @@ AIGC:
 
 ---
 
-*报告由自动化代码审计工具生成，基于静态模式匹配和人工审查。建议结合动态分析（如 fuzzing、渗透测试）和人工代码审查进行交叉验证。*
-*（内容由AI生成，仅供参考）*
+_报告由自动化代码审计工具生成，基于静态模式匹配和人工审查。建议结合动态分析（如 fuzzing、渗透测试）和人工代码审查进行交叉验证。_
+_（内容由AI生成，仅供参考）_

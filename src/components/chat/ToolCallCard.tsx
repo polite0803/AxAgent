@@ -291,6 +291,7 @@ export const ToolCallCard = React.memo(
         || a.approvalStatus !== b.approvalStatus
         || a.output !== b.output
         || a.isError !== b.isError
+        || JSON.stringify(a.input) !== JSON.stringify(b.input)
       ) {
         return false;
       }

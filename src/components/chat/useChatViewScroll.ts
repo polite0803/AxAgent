@@ -178,7 +178,7 @@ export function useChatViewScroll({
   const isLoadingHistoryRef = useRef(false);
 
   const handleLoadOlderMessages = useCallback(async () => {
-    if (isLoadingHistoryRef.current) return;
+    if (isLoadingHistoryRef.current) { return; }
     isLoadingHistoryRef.current = true;
     const scrollContainer = (bubbleListRef.current as BubbleListElement)?.scrollBoxNativeElement as
       | HTMLDivElement

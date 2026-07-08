@@ -245,11 +245,9 @@ export function useChatViewActions({
       // Fix: when no active AI message exists (e.g. all versions were deleted),
       // fall back to any AI response for the edited user message, then to
       // undefined (which triggers regenerateMessage's built-in last-user fallback).
-      const targetMsgId =
-        aiMsg?.id ??
-        msgs.find(
-          (m) =>
-            m.parent_message_id === editingMessageId && m.role === "assistant",
+      const targetMsgId = aiMsg?.id
+        ?? msgs.find(
+          (m) => m.parent_message_id === editingMessageId && m.role === "assistant",
         )?.id;
       await regenerateMessage(targetMsgId);
     } catch (e) {

@@ -87,7 +87,10 @@ export const ToolCallBlockView = React.memo(
                   <div className="tc-desc">
                     <Typography.Text
                       type="secondary"
-                      style={{ fontSize: 12, fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
+                      }}
                       ellipsis
                     >
                       {getInputSummary(inputDisplay)}

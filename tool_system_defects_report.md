@@ -11,20 +11,20 @@ AIGC:
 
 # AxAgent 工具系统缺陷报告
 
-> 生成日期：2026-07-08  
-> 审查范围：`D:\OneManager\AxAgent\src` 下所有工具系统相关代码  
+> 生成日期：2026-07-08\
+> 审查范围：`D:\OneManager\AxAgent\src` 下所有工具系统相关代码\
 > 审查文件数：30+ 核心文件
 
 ---
 
 ## 缺陷统计
 
-| 严重程度 | 数量 | 说明 |
-|---------|------|------|
-| 🔴 高危 | 5 | 安全漏洞、数据丢失风险 |
-| 🟡 中危 | 12 | 功能缺陷、边界条件缺失 |
-| 🟢 低危 | 6 | 代码质量、性能隐患 |
-| **总计** | **23** | |
+| 严重程度 | 数量   | 说明                   |
+| -------- | ------ | ---------------------- |
+| 🔴 高危  | 5      | 安全漏洞、数据丢失风险 |
+| 🟡 中危  | 12     | 功能缺陷、边界条件缺失 |
+| 🟢 低危  | 6      | 代码质量、性能隐患     |
+| **总计** | **23** |                        |
 
 ---
 
@@ -245,36 +245,36 @@ AIGC:
 
 ## 附录：审查文件清单
 
-| 文件 | 路径 | 行数 |
-|------|------|------|
-| invoke.ts | `src/lib/invoke.ts` | 596 |
-| codeExecutor.ts | `src/lib/codeExecutor.ts` | 185 |
-| actionRouter.ts | `src/lib/actionRouter.ts` | 519 |
-| skillPermissions.ts | `src/lib/skillPermissions.ts` | 277 |
-| SchemaValidator.ts | `src/lib/dynamicUI/SchemaValidator.ts` | 222 |
-| ComponentRegistry.ts | `src/lib/dynamicUI/ComponentRegistry.ts` | 87 |
-| skillActionExecutor.ts | `src/lib/skillActionExecutor.ts` | 53 |
-| storage.ts | `src/lib/storage.ts` | 177 |
-| executionStore.ts | `src/stores/feature/executionStore.ts` | 866 |
-| executionPhaseMachine.ts | `src/stores/feature/executionPhaseMachine.ts` | 41 |
-| executionToolCallUtils.ts | `src/stores/feature/executionToolCallUtils.ts` | 34 |
-| localToolStore.ts | `src/stores/feature/localToolStore.ts` | 89 |
-| recommendationStore.ts | `src/stores/devtools/recommendationStore.ts` | 120 |
-| conversationStoreSend.ts | `src/stores/domain/conversationStoreSend.ts` | 1739 |
-| localTool.ts | `src/types/localTool.ts` | 67 |
-| dynamicUI.ts | `src/types/dynamicUI.ts` | 298 |
-| index.ts | `src/types/index.ts` | 1574 |
-| ToolCallCard.tsx | `src/components/chat/ToolCallCard.tsx` | 301 |
-| toolCallDisplay.ts | `src/components/chat/toolCallDisplay.ts` | 62 |
-| ToolManager.tsx | `src/components/settings/ToolManager.tsx` | 272 |
-| LocalToolSettings.tsx | `src/components/settings/LocalToolSettings.tsx` | 208 |
-| ToolSemanticCheck.tsx | `src/components/settings/ToolSemanticCheck.tsx` | 449 |
-| ToolRecommendationPanel.tsx | `src/components/recommendation/ToolRecommendationPanel.tsx` | 222 |
-| ToolNode.tsx | `src/components/workflow/Nodes/ToolNode.tsx` | 122 |
-| ToolPropertyPanel.tsx | `src/components/workflow/Panels/PropertyPanels/ToolPropertyPanel.tsx` | 215 |
-| browserMock.ts | `src/lib/browserMock.ts` | 3157 |
+| 文件                        | 路径                                                                  | 行数 |
+| --------------------------- | --------------------------------------------------------------------- | ---- |
+| invoke.ts                   | `src/lib/invoke.ts`                                                   | 596  |
+| codeExecutor.ts             | `src/lib/codeExecutor.ts`                                             | 185  |
+| actionRouter.ts             | `src/lib/actionRouter.ts`                                             | 519  |
+| skillPermissions.ts         | `src/lib/skillPermissions.ts`                                         | 277  |
+| SchemaValidator.ts          | `src/lib/dynamicUI/SchemaValidator.ts`                                | 222  |
+| ComponentRegistry.ts        | `src/lib/dynamicUI/ComponentRegistry.ts`                              | 87   |
+| skillActionExecutor.ts      | `src/lib/skillActionExecutor.ts`                                      | 53   |
+| storage.ts                  | `src/lib/storage.ts`                                                  | 177  |
+| executionStore.ts           | `src/stores/feature/executionStore.ts`                                | 866  |
+| executionPhaseMachine.ts    | `src/stores/feature/executionPhaseMachine.ts`                         | 41   |
+| executionToolCallUtils.ts   | `src/stores/feature/executionToolCallUtils.ts`                        | 34   |
+| localToolStore.ts           | `src/stores/feature/localToolStore.ts`                                | 89   |
+| recommendationStore.ts      | `src/stores/devtools/recommendationStore.ts`                          | 120  |
+| conversationStoreSend.ts    | `src/stores/domain/conversationStoreSend.ts`                          | 1739 |
+| localTool.ts                | `src/types/localTool.ts`                                              | 67   |
+| dynamicUI.ts                | `src/types/dynamicUI.ts`                                              | 298  |
+| index.ts                    | `src/types/index.ts`                                                  | 1574 |
+| ToolCallCard.tsx            | `src/components/chat/ToolCallCard.tsx`                                | 301  |
+| toolCallDisplay.ts          | `src/components/chat/toolCallDisplay.ts`                              | 62   |
+| ToolManager.tsx             | `src/components/settings/ToolManager.tsx`                             | 272  |
+| LocalToolSettings.tsx       | `src/components/settings/LocalToolSettings.tsx`                       | 208  |
+| ToolSemanticCheck.tsx       | `src/components/settings/ToolSemanticCheck.tsx`                       | 449  |
+| ToolRecommendationPanel.tsx | `src/components/recommendation/ToolRecommendationPanel.tsx`           | 222  |
+| ToolNode.tsx                | `src/components/workflow/Nodes/ToolNode.tsx`                          | 122  |
+| ToolPropertyPanel.tsx       | `src/components/workflow/Panels/PropertyPanels/ToolPropertyPanel.tsx` | 215  |
+| browserMock.ts              | `src/lib/browserMock.ts`                                              | 3157 |
 
 ---
 
-*报告结束。建议按严重程度优先级（🔴 → 🟡 → 🟢）顺序修复。*
-*（内容由AI生成，仅供参考）*
+_报告结束。建议按严重程度优先级（🔴 → 🟡 → 🟢）顺序修复。_
+_（内容由AI生成，仅供参考）_

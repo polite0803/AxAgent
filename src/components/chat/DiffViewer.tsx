@@ -309,7 +309,9 @@ export const FileChangeCard = React.memo(function FileChangeCard({
             : isDeleted
             ? <FileCode size={14} style={{ color: token.colorError }} />
             : <FileDiff size={14} style={{ color: token.colorWarning }} />}
-          <Typography.Text style={{ fontSize: 13, fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}>
+          <Typography.Text
+            style={{ fontSize: 13, fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
+          >
             {change.filePath}
           </Typography.Text>
           {isNew && (

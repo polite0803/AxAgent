@@ -8,10 +8,16 @@ interface NamespacedComponentEntry extends ComponentRegistryEntry {
 
 class ComponentRegistry {
   private registry = new Map<string, NamespacedComponentEntry>();
+  /** Reverse index mapping bare type -> full key for O(1) fallback lookup. */
+  private typeIndex = new Map<string, string>();
 
   register(entry: ComponentRegistryEntry, namespace?: string): void {
     const fullKey = namespace ? `${namespace}:${entry.type}` : entry.type;
     this.registry.set(fullKey, { ...entry, namespace });
+    // Maintain reverse index for bare type lookup
+    if (!this.typeIndex.has(entry.type)) {
+      this.typeIndex.set(entry.type, fullKey);
+    }
   }
 
   registerBatch(entries: ComponentRegistryEntry[], namespace?: string): void {
@@ -24,14 +30,10 @@ class ComponentRegistry {
     if (this.registry.has(type)) {
       return this.registry.get(type);
     }
-    for (const [, entry] of this.registry) {
-      const entryType = entry.namespace ? `${entry.namespace}:${entry.type}` : entry.type;
-      if (entryType === type) {
-        return entry;
-      }
-      if (!entry.namespace && entry.type === type) {
-        return entry;
-      }
+    // O(1) fallback via reverse index
+    const fullKey = this.typeIndex.get(type);
+    if (fullKey) {
+      return this.registry.get(fullKey);
     }
     return undefined;
   }
@@ -63,23 +65,40 @@ class ComponentRegistry {
 
   unregister(type: string, namespace?: string): void {
     const fullKey = namespace ? `${namespace}:${type}` : type;
+    const entry = this.registry.get(fullKey);
+    if (entry) {
+      // Remove from reverse index if no other entry uses the same bare type
+      let hasDup = false;
+      for (const [key, e] of this.registry) {
+        if (key !== fullKey && e.type === entry.type) {
+          hasDup = true;
+          break;
+        }
+      }
+      if (!hasDup) {
+        this.typeIndex.delete(entry.type);
+      }
+    }
     this.registry.delete(fullKey);
   }
 
   unregisterNamespace(namespace: string): void {
     for (const [key] of this.registry) {
       if (key.startsWith(`${namespace}:`)) {
-        this.registry.delete(key);
+        this.unregister(key.replace(`${namespace}:`, ""), namespace);
       }
     }
   }
 
   getAllTypes(): DynamicComponentType[] {
-    return [...this.registry.keys()] as DynamicComponentType[];
+    return [...this.registry.keys()]
+      .filter((key) => !key.includes(":"))
+      .map((key) => key as DynamicComponentType);
   }
 
   clear(): void {
     this.registry.clear();
+    this.typeIndex.clear();
   }
 }
 

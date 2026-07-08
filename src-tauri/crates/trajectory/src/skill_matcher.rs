@@ -147,6 +147,7 @@ fn calculate_match_score(
         for keyword in keywords {
             if input_lower.contains(keyword) {
                 score += 0.3;
+                reasons.push(format!("openclaw skill id matches keyword '{}'", keyword));
             }
         }
     }
@@ -156,6 +157,7 @@ fn calculate_match_score(
             for keyword in keywords.iter() {
                 if input_lower.contains(keyword) {
                     score += 0.25;
+                    reasons.push(format!("pattern '{}' matched keyword '{}'", key, keyword));
                 }
             }
         }
@@ -164,6 +166,7 @@ fn calculate_match_score(
     for tag in skill_tags {
         if input_lower.contains(&tag.to_lowercase()) {
             score += 0.2;
+            reasons.push(format!("tag '{}' matched", tag));
         }
     }
 
@@ -171,6 +174,7 @@ fn calculate_match_score(
     for word in desc_words {
         if word.len() > 4 && input_lower.contains(&word.to_lowercase()) {
             score += 0.1;
+            reasons.push(format!("description word '{}' matched", word));
         }
     }
 

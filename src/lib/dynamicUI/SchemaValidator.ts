@@ -9,17 +9,20 @@ import {
   VALID_DYNAMIC_COMPONENT_TYPES,
 } from "@/types";
 
+/** Maximum nesting depth for schema validation to prevent stack overflow. */
+const MAX_NESTING_DEPTH = 50;
+
 /**
  * 使用递归遍历校验 UISchema 的结构合法性。
  * 校验项：
  * 1. 必填字段：version、id、type
  * 2. DynamicComponentType 是否为合法枚举值
  * 3. 组件类型与 props 的兼容性（如 Table 必须有 columns 字段）
- * 4. 递归校验 children
+ * 4. 递归校验 children（最大深度 50 层）
  */
 export function validateSchema(schema: unknown): SchemaValidationResult {
   const errors: SchemaValidationError[] = [];
-  validateNode(schema as UISchema, "root", errors);
+  validateNode(schema as UISchema, "root", errors, 0);
   return {
     valid: errors.length === 0,
     errors,
@@ -30,7 +33,15 @@ function validateNode(
   node: unknown,
   path: string,
   errors: SchemaValidationError[],
+  depth: number,
 ): void {
+  if (depth > MAX_NESTING_DEPTH) {
+    errors.push({
+      path,
+      message: `节点嵌套深度超过上限 ${MAX_NESTING_DEPTH}，可能存在循环引用或恶意构造`,
+    });
+    return;
+  }
   if (typeof node !== "object" || node === null) {
     errors.push({
       path,
@@ -125,7 +136,7 @@ function validateNode(
   // 递归校验 children
   if (Array.isArray(obj.children)) {
     for (let i = 0; i < obj.children.length; i++) {
-      validateNode(obj.children[i], `${path}.children[${i}]`, errors);
+      validateNode(obj.children[i], `${path}.children[${i}]`, errors, depth + 1);
     }
   }
 }
