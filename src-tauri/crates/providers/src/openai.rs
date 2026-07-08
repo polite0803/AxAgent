@@ -914,7 +914,9 @@ impl ProviderAdapter for OpenAIAdapter {
                                     String::new(),
                                 ));
                             }
-                            if let Some(ref id) = tc.id {
+                            if let Some(ref id) = tc.id
+                                && !id.is_empty()
+                            {
                                 pending_tool_calls[idx].0 = id.clone();
                             }
                             if let Some(ref ct) = tc.call_type {
