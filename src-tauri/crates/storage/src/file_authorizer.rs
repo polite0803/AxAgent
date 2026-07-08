@@ -460,7 +460,7 @@ impl FileAuthorizer {
                         break;
                     }
                     // 父目录不存在，继续向上
-                    if let Ok(segment) = current.file_name() {
+                    if let Some(segment) = current.file_name() {
                         let mut new_remaining = std::path::PathBuf::from(segment);
                         new_remaining.push(&remaining);
                         remaining = new_remaining;
