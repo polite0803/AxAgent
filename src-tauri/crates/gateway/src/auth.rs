@@ -198,15 +198,16 @@ impl KeyVerifyLimiter {
 
     /// 记录一次失败。冷却期内被 ban 时，刷新 first_ts（防重置攻击）。
     pub fn record_failure(&self, ip: &str) {
+        // 先检查容量，必要时淘汰（在外层释放锁，闭包内不持有 map）
+        {
+            let mut map = self.failures.lock();
+            if map.len() >= self.max_failures {
+                self.evict_if_needed(&mut map);
+            }
+        }
         let mut map = self.failures.lock();
         let now = Instant::now();
-        let entry = map.entry(ip.to_string()).or_insert_with(|| {
-            // 新条目：先检查容量，必要时淘汰
-            drop(map); // 释放锁，让 evict_if_needed 重新获取
-            let mut map = self.failures.lock();
-            self.evict_if_needed(&mut map);
-            *map.entry(ip.to_string()).or_insert((0, now))
-        });
+        let entry = map.entry(ip.to_string()).or_insert((0, now));
         if entry.0 >= self.max_failures && entry.1.elapsed() < self.cooldown {
             // 仍处于 ban 中：把 first_at 重置回 now，让 cooldown
             // 再持续一次完整窗口。这样攻击者连续打不会被绕过。
