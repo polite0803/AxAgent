@@ -172,7 +172,6 @@ impl CredentialService for CredentialManager {
         let cred = CredentialManager::get_credential(self, credential_id)
             .await
             .map_err(|e| e.to_string())?;
-        CredentialManager::get_auth_headers(self, &cred)
-            .map_err(|e| e.to_string())
+        CredentialManager::get_auth_headers(self, &cred).map_err(|e| e.to_string())
     }
 }

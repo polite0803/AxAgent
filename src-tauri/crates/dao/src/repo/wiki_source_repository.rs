@@ -4,7 +4,10 @@ use std::sync::Arc;
 
 use axagent_entities::wiki_sources;
 use axagent_harness::wiki_dtos::{InsertWikiSourceInput, WikiSource, WikiSourceRepository};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Set,
+};
 
 pub struct DaoWikiSourceRepository {
     db: Arc<DatabaseConnection>,

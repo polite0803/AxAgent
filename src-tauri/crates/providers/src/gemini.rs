@@ -810,7 +810,8 @@ impl ProviderAdapter for GeminiAdapter {
             .map(|m| {
                 let model_id = m.name.strip_prefix("models/").unwrap_or(&m.name).to_string();
                 let name = m.display_name.unwrap_or_else(|| model_id.clone());
-                let model_type = axagent_harness::types::provider_model::detect_model_type(&model_id);
+                let model_type =
+                    axagent_harness::types::provider_model::detect_model_type(&model_id);
                 let mut caps = match model_type {
                     ModelType::Chat => vec![ModelCapability::TextChat],
                     ModelType::Embedding => vec![],

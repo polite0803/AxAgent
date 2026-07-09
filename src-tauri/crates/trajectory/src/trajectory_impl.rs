@@ -7,8 +7,7 @@
 //! in the pure DTO definitions of `axagent_harness::trajectory_types`.
 
 use axagent_harness::trajectory_types::{
-    ReplayContext, RewardCategory, Trajectory, TrajectoryBuilder, TrajectoryOutcome,
-    TrajectoryStep,
+    ReplayContext, RewardCategory, Trajectory, TrajectoryBuilder, TrajectoryOutcome, TrajectoryStep,
 };
 
 /// Business logic extension for `ReplayContext`.

@@ -570,9 +570,7 @@ impl WorkEngine {
     }
 
     /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
-    fn business_rule_engine(
-        &self,
-    ) -> Option<Arc<crate::business_rules::BusinessRuleEngine>> {
+    fn business_rule_engine(&self) -> Option<Arc<crate::business_rules::BusinessRuleEngine>> {
         self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned").clone()
     }
 

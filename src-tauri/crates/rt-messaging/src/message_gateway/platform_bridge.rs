@@ -5,9 +5,8 @@ use std::sync::Arc;
 use crate::message_gateway::platform_manager::{PlatformManager, PlatformMessageCallback};
 use axagent_harness::build_provider_request_context;
 use axagent_harness::repositories::{
-    conversation_repository, message_repository, platform_config_repository,
-    provider_repository, settings_repository,
-    CreateConversationInput, CreateMessageInput,
+    CreateConversationInput, CreateMessageInput, conversation_repository, message_repository,
+    platform_config_repository, provider_repository, settings_repository,
 };
 
 async fn persist_session_route(
@@ -61,7 +60,9 @@ impl PlatformBridge {
             .await
             .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-        let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider_config.provider_type);
+        let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+            &provider_config.provider_type,
+        );
         let registry = self.provider_registry.as_ref().ok_or_else(|| {
             anyhow::anyhow!(
                 "PlatformBridge 未注入 ProviderRegistry（请调用 HasProviderRegistry::set_provider_registry）"
@@ -194,9 +195,7 @@ impl PlatformMessageCallback for PlatformBridge {
     }
 
     async fn save_cursor(&self, platform: &str, cursor: i64) {
-        if let Err(e) =
-            platform_config_repository().save_platform_cursor(platform, cursor).await
-        {
+        if let Err(e) = platform_config_repository().save_platform_cursor(platform, cursor).await {
             tracing::error!("[PlatformBridge] cursor save failed for {}: {}", platform, e);
         }
     }
@@ -218,10 +217,8 @@ impl PlatformBridge {
         let preprocessed = apply_slash_command_to_input(text);
         let effective_text = &preprocessed.modified_text;
 
-        let app_settings = settings_repository()
-            .get_settings()
-            .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        let app_settings =
+            settings_repository().get_settings().await.map_err(|e| anyhow::anyhow!("{}", e))?;
         let provider_id = app_settings
             .default_provider_id
             .as_deref()
@@ -233,8 +230,10 @@ impl PlatformBridge {
 
         // 尝试复用已有对话：查找已关联的 agent_session
         let conv_title = format!("[{}] {}", platform, username.unwrap_or(user_id));
-        let existing_conv_id =
-            self.platform_manager.get_linked_agent_session(platform, user_id, None::<&sea_orm::DatabaseConnection>).await;
+        let existing_conv_id = self
+            .platform_manager
+            .get_linked_agent_session(platform, user_id, None::<&sea_orm::DatabaseConnection>)
+            .await;
 
         let conv = if let Some(ref existing_id) = existing_conv_id {
             match conversation_repository().get_conversation(existing_id).await {

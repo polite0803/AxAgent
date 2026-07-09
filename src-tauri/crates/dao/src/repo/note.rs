@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use axagent_entities::{note_backlinks, note_links, notes};
 use axagent_harness::core_error::{AxAgentError, Result};
-pub use axagent_harness::note_dtos::{self, calculate_content_hash, CreateNoteInput, Note, UpdateNoteInput};
+pub use axagent_harness::note_dtos::{
+    self, CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash,
+};
 use axagent_harness::util_fns::gen_id;
 
 // NoteLink DTO 在 harness 里定义（提升到 harness 让 search 等下游 crate 不用反向依赖 dao），

@@ -8,8 +8,8 @@
 //! tools crate from the dao persistence layer.
 
 use async_trait::async_trait;
-use axagent_harness::repositories::tool_execution_repository;
 use axagent_harness::ToolExecutionAudit;
+use axagent_harness::repositories::tool_execution_repository;
 
 #[derive(Clone)]
 pub struct ToolExecutionRecorder;

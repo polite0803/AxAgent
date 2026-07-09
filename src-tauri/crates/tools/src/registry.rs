@@ -13,10 +13,10 @@ use crate::hooks::{HookAction, HookConfig, HookEventType};
 pub use crate::mcp_manager::{McpManager, McpServerConfig, McpToolConfig};
 use crate::permissions::{PermissionMode, PermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
-use axagent_harness::ToolExecutionAudit;
 use crate::stats::ToolUsageStats;
 use crate::{Tool, ToolCategory, ToolError, ToolErrorKind, ToolInfo, ToolResult};
 use async_trait::async_trait;
+use axagent_harness::ToolExecutionAudit;
 use axagent_runtime_core::ToolExecutor as RuntimeToolExecutor;
 // serde_json::Value used for JSON Schema in MCP tool configs
 use serde_json::Value;
@@ -670,9 +670,7 @@ impl UnifiedToolRegistry {
     pub async fn load_enabled_state(&mut self, _db: &sea_orm::DatabaseConnection) {
         // 加载分类启用状态
         let key = "tool_groups_enabled";
-        let result = axagent_harness::repositories::settings_repository()
-            .get_setting(key)
-            .await;
+        let result = axagent_harness::repositories::settings_repository().get_setting(key).await;
 
         if let Ok(Some(value)) = result
             && let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&value)
@@ -682,9 +680,8 @@ impl UnifiedToolRegistry {
 
         // 加载单工具禁用列表
         let dt_key = "disabled_tools";
-        let dt_result = axagent_harness::repositories::settings_repository()
-            .get_setting(dt_key)
-            .await;
+        let dt_result =
+            axagent_harness::repositories::settings_repository().get_setting(dt_key).await;
 
         if let Ok(Some(value)) = dt_result
             && let Ok(list) = serde_json::from_str::<Vec<String>>(&value)

@@ -125,9 +125,7 @@ impl Tool for MemoryFlushTool {
             },
         };
 
-        let namespaces = axagent_harness::repositories::memory_repository()
-            .list_namespaces()
-            .await;
+        let namespaces = axagent_harness::repositories::memory_repository().list_namespaces().await;
         let ns_id = match &namespaces {
             Ok(list) => list
                 .iter()
@@ -153,10 +151,7 @@ impl Tool for MemoryFlushTool {
             source: Some(format!("agent_flush:{}", category)),
         };
 
-        match axagent_harness::repositories::memory_repository()
-            .add_item(input)
-            .await
-        {
+        match axagent_harness::repositories::memory_repository().add_item(input).await {
             Ok(item) => {
                 tracing::info!(
                     "MemoryFlush: persisted item {} to namespace {}",

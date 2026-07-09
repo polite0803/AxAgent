@@ -152,7 +152,9 @@ impl PlatformManager {
 
         // 回退到持久化路由
         if db.is_some() {
-            let routes = axagent_harness::repositories::platform_config_repository().load_session_routes().await;
+            let routes = axagent_harness::repositories::platform_config_repository()
+                .load_session_routes()
+                .await;
             let key = format!("{}_{}", platform, user_id);
             return routes.get(&key).cloned();
         }

@@ -383,7 +383,10 @@ pub async fn auto_extract_incremental_memories(
     let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())?;
 
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &settings);
+    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &settings,
+    );
     let ctx = ProviderRequestContext {
         api_key,
         key_id: key_row.id.clone(),
@@ -778,7 +781,10 @@ pub async fn extract_conversation_entities(
     let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())?;
 
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &settings);
+    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &settings,
+    );
     let ctx = ProviderRequestContext {
         api_key,
         key_id: key_row.id.clone(),
@@ -1055,7 +1061,10 @@ pub async fn consolidate_memory_cluster(
     let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())?;
 
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &settings);
+    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &settings,
+    );
     let ctx = ProviderRequestContext {
         api_key,
         key_id: key_row.id.clone(),
@@ -1198,7 +1207,10 @@ pub async fn extract_conversation_memories(
     let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| e.to_string())?;
 
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &settings);
+    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &settings,
+    );
     let ctx = ProviderRequestContext {
         api_key,
         key_id: key_row.id.clone(),

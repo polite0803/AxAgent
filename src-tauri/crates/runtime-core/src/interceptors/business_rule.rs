@@ -3,7 +3,9 @@
 //! Business rule interceptor — checks business rules before node execution.
 
 use axagent_harness::business_rules::{BusinessRuleEvaluator, RuleEvaluationOutcome};
-use axagent_harness::interceptor::{HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult};
+use axagent_harness::interceptor::{
+    HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult,
+};
 use std::sync::Arc;
 
 /// 业务规则拦截器 — 在工作流节点执行前检查业务规则

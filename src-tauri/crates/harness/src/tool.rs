@@ -365,9 +365,7 @@ pub trait OutputSanitizer: Send + Sync + std::fmt::Debug {
 
 // 默认脱敏器和 Noop 实现已提取至 `output_sanitizer` 模块。
 // 保留此处的 re-export 以保证向后兼容。
-pub use crate::output_sanitizer::{
-    DefaultInputSanitizer, DefaultOutputSanitizer,
-};
+pub use crate::output_sanitizer::{DefaultInputSanitizer, DefaultOutputSanitizer};
 pub use crate::test_support::NoopOutputSanitizer;
 
 // ─────────────────────────────────────────────────────────

@@ -254,7 +254,8 @@ const SESSION_TTL_SECS: u64 = 24 * 60 * 60;
 impl SessionManager {
     pub fn new(db: DatabaseConnection) -> Self {
         let db = Arc::new(db);
-        let agent_session_repo: Arc<dyn AgentSessionRepository> = Arc::new(DaoAgentSessionRepository::new(db));
+        let agent_session_repo: Arc<dyn AgentSessionRepository> =
+            Arc::new(DaoAgentSessionRepository::new(db));
         Self {
             sessions: Mutex::new(std::collections::HashMap::new()),
             conversation_index: Mutex::new(std::collections::HashMap::new()),
@@ -346,13 +347,11 @@ impl SessionManager {
             session.session_mut().workspace_root = Some(std::path::PathBuf::from(cwd.as_str()));
         }
 
-        let axagent_session = self.agent_session_repo.upsert_agent_session(
-            &conversation_id,
-            cwd_to_use.as_deref(),
-            Some("default"),
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+        let axagent_session = self
+            .agent_session_repo
+            .upsert_agent_session(&conversation_id, cwd_to_use.as_deref(), Some("default"))
+            .await
+            .map_err(|e| e.to_string())?;
 
         session = session.with_axagent_session_id(axagent_session.id);
 
@@ -406,14 +405,10 @@ impl SessionManager {
                 drop(conv_index);
                 drop(sessions);
 
-                let _ = self.agent_session_repo.update_agent_session_after_query(
-                    &axagent_sid,
-                    "idle",
-                    None,
-                    tokens_delta,
-                    0.0,
-                )
-                .await;
+                let _ = self
+                    .agent_session_repo
+                    .update_agent_session_after_query(&axagent_sid, "idle", None, tokens_delta, 0.0)
+                    .await;
             }
         }
     }
@@ -430,8 +425,8 @@ impl SessionManager {
             self.session_last_access.lock().await.remove(&session_id);
 
             let _ = self.agent_session_repo.update_agent_session_status(&session_id, "idle").await;
-            let _ = self.agent_session_repo.clear_sdk_context_by_conversation_id(conversation_id)
-                .await;
+            let _ =
+                self.agent_session_repo.clear_sdk_context_by_conversation_id(conversation_id).await;
         }
     }
 
@@ -748,14 +743,16 @@ impl SessionManager {
             // authoritative cost comes from the event payload.
             let cost_delta = 0.0;
 
-            let _ = self.agent_session_repo.update_agent_session_after_query(
-                axagent_session_id,
-                "idle",
-                None,
-                tokens_delta,
-                cost_delta,
-            )
-            .await;
+            let _ = self
+                .agent_session_repo
+                .update_agent_session_after_query(
+                    axagent_session_id,
+                    "idle",
+                    None,
+                    tokens_delta,
+                    cost_delta,
+                )
+                .await;
         }
 
         // Store updated session back

@@ -27,7 +27,8 @@ pub async fn workflow_ai_chat_stream(
 ) -> Result<(), String> {
     let resolved = resolve_ai_provider(&state).await?;
 
-    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&resolved.provider_type);
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&resolved.provider_type);
     let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
         ErrorResponse::err_with_detail(
             provider_err::ADAPTER_NOT_FOUND,

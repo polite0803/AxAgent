@@ -13,7 +13,9 @@ use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
 use axagent_harness::note_dtos::CreateNoteInput;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::util_fns::truncate_to_char_boundary;
-use axagent_harness::wiki_dtos::{InsertWikiSourceInput, NoteRepository, WikiRepository, WikiSource, WikiSourceRepository};
+use axagent_harness::wiki_dtos::{
+    InsertWikiSourceInput, NoteRepository, WikiRepository, WikiSource, WikiSourceRepository,
+};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_kit::utils::gen_id;
 use sea_orm::DatabaseConnection;
@@ -163,8 +165,7 @@ pub struct IngestPipeline {
 
 impl IngestPipeline {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        let wiki_repo: Arc<dyn WikiRepository> =
-            Arc::new(DaoWikiRepository::new(db.clone()));
+        let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(db.clone()));
         let wiki_source_repo: Arc<dyn WikiSourceRepository> =
             Arc::new(DaoWikiSourceRepository::new(db.clone()));
         Self {
@@ -637,7 +638,8 @@ Each page must be valid JSON inside a ```json fenced code block with these field
 
         let file_path = format!("notes/{}/{}.md", dir, slug);
 
-        let wiki = self.wiki_repo
+        let wiki = self
+            .wiki_repo
             .find_by_id(wiki_id)
             .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
@@ -731,7 +733,8 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     }
 
     async fn load_purpose(&self, wiki_id: &str) -> Result<String, String> {
-        let wiki = self.wiki_repo
+        let wiki = self
+            .wiki_repo
             .find_by_id(wiki_id)
             .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;

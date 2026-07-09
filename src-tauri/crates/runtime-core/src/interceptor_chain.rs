@@ -43,11 +43,8 @@ mod tests {
         let chain = InterceptorChain::new();
         let mut ctx = InterceptorContext::before_llm(None);
         let rt = tokio::runtime::Runtime::new().unwrap();
-        let result = rt.block_on(execute_interceptor_chain(
-            &chain,
-            InterceptPoint::BeforeLlmCall,
-            &mut ctx,
-        ));
+        let result =
+            rt.block_on(execute_interceptor_chain(&chain, InterceptPoint::BeforeLlmCall, &mut ctx));
         assert!(matches!(result, InterceptorResult::Continue));
     }
 }

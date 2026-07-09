@@ -35,9 +35,7 @@ impl WikiOperationRepository for DaoWikiOperationRepository {
             ..Default::default()
         };
 
-        am.insert(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
+        am.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
 
         Ok(())
     }

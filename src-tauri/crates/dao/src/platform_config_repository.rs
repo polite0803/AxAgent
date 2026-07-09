@@ -26,10 +26,7 @@ impl PlatformConfigRepository for DaoPlatformConfigRepository {
         crate::repo::platform_config::load_session_routes(&self.db).await
     }
 
-    async fn save_session_routes(
-        &self,
-        routes: &HashMap<String, String>,
-    ) -> Result<(), String> {
+    async fn save_session_routes(&self, routes: &HashMap<String, String>) -> Result<(), String> {
         crate::repo::platform_config::save_session_routes(&self.db, routes)
             .await
             .map_err(|e| e.to_string())

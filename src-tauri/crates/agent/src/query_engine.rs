@@ -94,8 +94,7 @@ impl QueryEngine {
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
-        let all_notes: Vec<Note> =
-            self.note_repo.find_by_vault(&ctx.wiki_id, false).await?;
+        let all_notes: Vec<Note> = self.note_repo.find_by_vault(&ctx.wiki_id, false).await?;
 
         let avg_dl = if !all_notes.is_empty() {
             all_notes.iter().map(|n| n.content.len() as f64).sum::<f64>() / all_notes.len() as f64
@@ -178,8 +177,7 @@ impl QueryEngine {
         let query_lower = ctx.query.to_lowercase();
         let query_words: Vec<&str> = query_lower.split_whitespace().collect();
 
-        let all_notes: Vec<Note> =
-            self.note_repo.find_by_vault(&ctx.wiki_id, false).await?;
+        let all_notes: Vec<Note> = self.note_repo.find_by_vault(&ctx.wiki_id, false).await?;
 
         let avg_dl = if !all_notes.is_empty() {
             all_notes.iter().map(|n| n.content.len() as f64).sum::<f64>() / all_notes.len() as f64
@@ -383,9 +381,7 @@ impl QueryEngine {
             }
             visited.insert(bl.source_note_id.clone());
 
-            if let Ok(Some(ref_note)) =
-                self.note_repo.find_by_id(&bl.source_note_id).await
-            {
+            if let Ok(Some(ref_note)) = self.note_repo.find_by_id(&bl.source_note_id).await {
                 context.push_str(&format!(
                     "## Related: {}\n{}\n\n",
                     ref_note.title,

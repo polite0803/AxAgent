@@ -8,11 +8,10 @@
 use std::sync::{Arc, OnceLock, RwLock};
 
 use crate::repositories::{
-    ConversationRepository, DatabaseInitializer, GeneratedToolRepository,
-    MemoryRepository, MessageRepository, NoteBacklinkRepository, NoteRepository,
-    PlatformConfigRepository, ProviderRepository, SessionRepository, SettingsRepository,
-    SkillDirsProvider, ToolExecutionRepository,
-    WikiPageRepository, WikiRepository, WikiSourceRepository,
+    ConversationRepository, DatabaseInitializer, GeneratedToolRepository, MemoryRepository,
+    MessageRepository, NoteBacklinkRepository, NoteRepository, PlatformConfigRepository,
+    ProviderRepository, SessionRepository, SettingsRepository, SkillDirsProvider,
+    ToolExecutionRepository, WikiPageRepository, WikiRepository, WikiSourceRepository,
 };
 
 /// 全局服务注册表 —— 集中管理所有 repository 和 provider 的 DI 注入点。

@@ -9,8 +9,8 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
-use crate::{ProviderAdapter, ProviderRequestContext, build_http_client};
 use crate::url_utils::resolve_chat_url;
+use crate::{ProviderAdapter, ProviderRequestContext, build_http_client};
 
 const DEFAULT_BASE_URL: &str = default_url::OPENAI_BASE;
 

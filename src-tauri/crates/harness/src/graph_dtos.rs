@@ -155,7 +155,11 @@ impl LinkGraph {
         source_map: &HashMap<String, Vec<String>>,
     ) -> RelevanceSignal {
         RelevanceSignal {
-            direct_link: if self.has_direct_link(page_a, page_b) { 1.0 } else { 0.0 },
+            direct_link: if self.has_direct_link(page_a, page_b) {
+                1.0
+            } else {
+                0.0
+            },
             source_overlap: self.compute_source_overlap(page_a, page_b, source_map),
             adamic_adar: self.compute_adamic_adar(page_a, page_b),
             type_affinity: self.compute_type_affinity(page_a, page_b),
@@ -272,7 +276,11 @@ impl LinkGraph {
 
         let intersection = sources_a.intersection(&sources_b).count() as f64;
         let union = sources_a.union(&sources_b).count() as f64;
-        if union == 0.0 { 0.0 } else { intersection / union }
+        if union == 0.0 {
+            0.0
+        } else {
+            intersection / union
+        }
     }
 
     fn compute_adamic_adar(&self, page_a: &str, page_b: &str) -> f64 {
@@ -284,7 +292,11 @@ impl LinkGraph {
             .iter()
             .map(|n| {
                 let degree = self.get_degree(n) as f64;
-                if degree > 1.0 { 1.0 / (degree - 1.0).ln() } else { 0.0 }
+                if degree > 1.0 {
+                    1.0 / (degree - 1.0).ln()
+                } else {
+                    0.0
+                }
             })
             .sum()
     }
@@ -301,7 +313,9 @@ impl LinkGraph {
             }
         } else {
             match (&type_a, &type_b) {
-                (PageType::Entity, PageType::Concept) | (PageType::Concept, PageType::Entity) => 0.5,
+                (PageType::Entity, PageType::Concept) | (PageType::Concept, PageType::Entity) => {
+                    0.5
+                },
                 _ => 0.0,
             }
         }

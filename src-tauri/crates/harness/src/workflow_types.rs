@@ -1295,10 +1295,7 @@ pub struct SwarmNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
-#[serde(
-    tag = "type",
-    rename_all = "camelCase"
-)]
+#[serde(tag = "type", rename_all = "camelCase")]
 #[schemars(tag = "type", rename_all = "camelCase")]
 pub enum WorkflowNode {
     Trigger(TriggerNode),

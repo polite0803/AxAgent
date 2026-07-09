@@ -210,10 +210,7 @@ pub trait NoteRepository: Send + Sync {
     ) -> Result<Note, String>;
 
     /// Create a new note.
-    async fn create_note(
-        &self,
-        input: crate::note_dtos::CreateNoteInput,
-    ) -> Result<Note, String>;
+    async fn create_note(&self, input: crate::note_dtos::CreateNoteInput) -> Result<Note, String>;
 }
 
 // ── NoteBacklinkRepository trait ─────────────────────────────

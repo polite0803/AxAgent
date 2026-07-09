@@ -103,7 +103,10 @@ pub async fn build_embed_context(
     let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)?;
 
     let global_settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
-    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &global_settings,
+    );
 
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
@@ -151,7 +154,9 @@ pub async fn generate_embeddings(
     let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
-    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider_config.provider_type);
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+        &provider_config.provider_type,
+    );
     let adapter = provider_registry.get(registry_key).ok_or_else(|| {
         AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
     })?;

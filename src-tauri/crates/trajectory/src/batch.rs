@@ -314,8 +314,10 @@ impl BatchProcessor {
                 Ok(jsonl.join("\n"))
             },
             ExportFormat::RlTraining => {
-                let entries: Vec<RLTrainingEntry> =
-                    filtered.iter().map(|t| axagent_harness::trajectory_scorer::TrajectoryScorer::export_as_rl(t)).collect();
+                let entries: Vec<RLTrainingEntry> = filtered
+                    .iter()
+                    .map(|t| axagent_harness::trajectory_scorer::TrajectoryScorer::export_as_rl(t))
+                    .collect();
                 let jsonl: Vec<String> =
                     entries.iter().map(|e| serde_json::to_string(e).unwrap_or_default()).collect();
                 Ok(jsonl.join("\n"))

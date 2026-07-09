@@ -37,8 +37,8 @@ pub mod rag_config;
 pub mod types;
 pub mod url_utils;
 pub mod util_fns;
-pub mod workflow_types;
 pub mod workflow_node_deserializer;
+pub mod workflow_types;
 #[macro_use]
 pub mod reliability;
 
@@ -74,9 +74,9 @@ pub mod louvain_dtos;
 pub mod note_dtos;
 pub mod page_type;
 pub mod repo_dtos;
-pub mod wiki_dtos;
 pub mod repositories;
 pub mod service_registry;
+pub mod wiki_dtos;
 
 // ── Harness 约束修复模块 ──
 pub mod consistency_check;
@@ -84,7 +84,9 @@ pub mod hallucination_guard;
 
 // ── 原有 Harness 模块 ──
 pub mod business_rules;
-pub use business_rules::{BusinessRule, BusinessRuleEvaluator, RuleAction, RuleEvaluationOutcome, RuleResult};
+pub use business_rules::{
+    BusinessRule, BusinessRuleEvaluator, RuleAction, RuleEvaluationOutcome, RuleResult,
+};
 pub mod context_builder;
 pub mod context_contributor;
 pub use context_contributor::{ContextContributor, ContextRequest};
@@ -163,8 +165,8 @@ pub use path_vars::PathEncoder;
 pub mod mcp_types;
 pub use mcp_types::DiscoveredTool;
 
-pub mod trajectory_types;
 pub mod trajectory_scorer;
+pub mod trajectory_types;
 
 // ── Provider 契约重导出 ──
 pub use context_builder::build_provider_request_context;

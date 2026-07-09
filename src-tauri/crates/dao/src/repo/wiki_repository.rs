@@ -69,10 +69,7 @@ impl WikiRepository for DaoWikiRepository {
             ..Default::default()
         };
 
-        let model = am
-            .insert(self.db.as_ref())
-            .await
-            .map_err(|e| format!("DB error: {}", e))?;
+        let model = am.insert(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
         Ok(NoteVersion {
             id: model.id,
@@ -97,9 +94,7 @@ impl WikiRepository for DaoWikiRepository {
         let mut am = model.into_active_model();
         am.note_count = Set(new_count);
         am.updated_at = Set(chrono::Utc::now().timestamp());
-        am.update(self.db.as_ref())
-            .await
-            .map_err(|e| format!("DB error: {}", e))?;
+        am.update(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
         Ok(())
     }

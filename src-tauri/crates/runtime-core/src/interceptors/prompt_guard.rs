@@ -2,7 +2,9 @@
 
 //! PromptGuard interceptor — filters user input before LLM calls.
 
-use axagent_harness::interceptor::{HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult};
+use axagent_harness::interceptor::{
+    HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult,
+};
 use axagent_harness::prompt_guard::PromptGuard;
 use std::sync::Arc;
 

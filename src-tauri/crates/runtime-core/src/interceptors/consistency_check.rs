@@ -3,7 +3,9 @@
 //! Consistency check interceptor — validates output consistency after LLM calls.
 
 use axagent_harness::consistency_check::ConsistencyCheckConfig;
-use axagent_harness::interceptor::{HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult};
+use axagent_harness::interceptor::{
+    HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult,
+};
 
 /// 一致性检查拦截器 — 在 LLM 调用后检查输出一致性
 #[derive(Debug)]
@@ -41,9 +43,7 @@ impl HarnessInterceptor for ConsistencyCheckInterceptor {
             None => return InterceptorResult::Continue,
         };
 
-        tracing::debug!(
-            "[ConsistencyCheckInterceptor] 需要二次结果进行对比，当前单次结果跳过检查"
-        );
+        tracing::debug!("[ConsistencyCheckInterceptor] 需要二次结果进行对比，当前单次结果跳过检查");
 
         InterceptorResult::Continue
     }

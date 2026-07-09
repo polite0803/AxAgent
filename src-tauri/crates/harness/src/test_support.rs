@@ -19,7 +19,6 @@ use async_trait::async_trait;
 use serde_json::Map;
 use serde_json::Value;
 
-use crate::core_error::{AxAgentError, Result};
 use crate::AccessDecision;
 use crate::Agent;
 use crate::AgentCapability;
@@ -136,6 +135,7 @@ use crate::VectorQueryResult;
 use crate::VectorStoreProvider;
 use crate::WebhookSubscriptionInfo;
 use crate::WebhookSubscriptionService;
+use crate::core_error::{AxAgentError, Result};
 use crate::llm_execution::{LlmCallConfig, LlmCallResult};
 use crate::types::CreateKnowledgeEntityInput;
 use crate::types::KnowledgeEntity;
@@ -454,7 +454,10 @@ impl BrowserController for NoopBrowserController {
     async fn screenshot(&self) -> std::result::Result<BrowserScreenshotResult, String> {
         Err("browser not configured".to_string())
     }
-    async fn extract_elements(&self, _selector: &str) -> std::result::Result<Vec<ExtractedElement>, String> {
+    async fn extract_elements(
+        &self,
+        _selector: &str,
+    ) -> std::result::Result<Vec<ExtractedElement>, String> {
         Ok(Vec::new())
     }
     async fn click(&self, _selector: &str) -> std::result::Result<(), String> {
@@ -540,13 +543,22 @@ impl DevExperienceProvider for NoopDevExperienceProvider {
 pub struct NoopConsolidationDataProvider;
 #[async_trait]
 impl ConsolidationDataProvider for NoopConsolidationDataProvider {
-    async fn fetch_new_experiences(&self, _limit: usize) -> std::result::Result<Vec<ExperienceRecord>, String> {
+    async fn fetch_new_experiences(
+        &self,
+        _limit: usize,
+    ) -> std::result::Result<Vec<ExperienceRecord>, String> {
         Ok(Vec::new())
     }
-    async fn fetch_replay_samples(&self, _limit: usize) -> std::result::Result<Vec<ReplaySample>, String> {
+    async fn fetch_replay_samples(
+        &self,
+        _limit: usize,
+    ) -> std::result::Result<Vec<ReplaySample>, String> {
         Ok(Vec::new())
     }
-    async fn store_distilled(&self, _knowledge: DistilledKnowledge) -> std::result::Result<(), String> {
+    async fn store_distilled(
+        &self,
+        _knowledge: DistilledKnowledge,
+    ) -> std::result::Result<(), String> {
         Ok(())
     }
 }
@@ -588,7 +600,11 @@ impl GatewayService for NoopGatewayService {
 pub struct NoopChunkProvider;
 #[async_trait]
 impl ChunkProvider for NoopChunkProvider {
-    async fn chunk(&self, _: &str, _: &IndexConfig) -> std::result::Result<Vec<DocumentChunk>, String> {
+    async fn chunk(
+        &self,
+        _: &str,
+        _: &IndexConfig,
+    ) -> std::result::Result<Vec<DocumentChunk>, String> {
         Ok(Vec::new())
     }
     async fn chunk_batch(
@@ -636,7 +652,11 @@ impl EntityGraphProvider for NoopEntityGraphProvider {
     async fn get_entities(&self, _: &str) -> std::result::Result<Vec<KnowledgeEntity>, String> {
         Ok(Vec::new())
     }
-    async fn search_entities(&self, _: &str, _: &str) -> std::result::Result<Vec<KnowledgeEntity>, String> {
+    async fn search_entities(
+        &self,
+        _: &str,
+        _: &str,
+    ) -> std::result::Result<Vec<KnowledgeEntity>, String> {
         Ok(Vec::new())
     }
     async fn create_entity(
@@ -739,7 +759,10 @@ pub struct NoopMemoryStore;
 
 #[async_trait]
 impl MemoryStore for NoopMemoryStore {
-    async fn add_memory(&self, _req: MemoryAddRequest) -> std::result::Result<MemoryActionResultDto, String> {
+    async fn add_memory(
+        &self,
+        _req: MemoryAddRequest,
+    ) -> std::result::Result<MemoryActionResultDto, String> {
         Ok(MemoryActionResultDto { success: true, error: None })
     }
     async fn search_memories(
@@ -832,7 +855,11 @@ impl OutputSanitizer for NoopOutputSanitizer {
 pub struct NoopPlannerAdapter;
 
 impl PlannerAdapter for NoopPlannerAdapter {
-    fn create_plan(&mut self, _goal: &str, _phases_json: &[serde_json::Value]) -> std::result::Result<(), String> {
+    fn create_plan(
+        &mut self,
+        _goal: &str,
+        _phases_json: &[serde_json::Value],
+    ) -> std::result::Result<(), String> {
         Err("Planner is not configured".to_string())
     }
 
@@ -844,7 +871,11 @@ impl PlannerAdapter for NoopPlannerAdapter {
         None
     }
 
-    fn request_replan(&mut self, _reason: &str, _actions_json: &[serde_json::Value]) -> std::result::Result<(), String> {
+    fn request_replan(
+        &mut self,
+        _reason: &str,
+        _actions_json: &[serde_json::Value],
+    ) -> std::result::Result<(), String> {
         Err("Planner is not configured".to_string())
     }
 
@@ -852,7 +883,12 @@ impl PlannerAdapter for NoopPlannerAdapter {
         false
     }
 
-    fn mark_task_completed(&mut self, _phase_index: usize, _task_index: usize, _result: serde_json::Value) {
+    fn mark_task_completed(
+        &mut self,
+        _phase_index: usize,
+        _task_index: usize,
+        _result: serde_json::Value,
+    ) {
     }
 
     fn mark_phase_completed(&mut self, _phase_index: usize) -> std::result::Result<(), String> {
@@ -962,10 +998,21 @@ impl EmbeddingProvider for NoopEmbeddingProvider {
 pub struct NoopVectorStoreProvider;
 #[async_trait]
 impl VectorStoreProvider for NoopVectorStoreProvider {
-    async fn search(&self, _: &str, _: &[f32], _: usize) -> std::result::Result<Vec<VectorQueryResult>, String> {
+    async fn search(
+        &self,
+        _: &str,
+        _: &[f32],
+        _: usize,
+    ) -> std::result::Result<Vec<VectorQueryResult>, String> {
         Ok(Vec::new())
     }
-    async fn upsert(&self, _: &str, _: &str, _: &[f32], _: &str) -> std::result::Result<(), String> {
+    async fn upsert(
+        &self,
+        _: &str,
+        _: &str,
+        _: &[f32],
+        _: &str,
+    ) -> std::result::Result<(), String> {
         Err("not configured".into())
     }
     async fn delete(&self, _: &str, _: &str) -> std::result::Result<(), String> {
@@ -996,7 +1043,11 @@ impl RerankProvider for NoopRerankProvider {
 pub struct NoopSelfRagProvider;
 #[async_trait]
 impl SelfRagProvider for NoopSelfRagProvider {
-    async fn judge_chunks(&self, _: &str, _: &[String]) -> std::result::Result<RetrievalQuality, String> {
+    async fn judge_chunks(
+        &self,
+        _: &str,
+        _: &[String],
+    ) -> std::result::Result<RetrievalQuality, String> {
         Ok(RetrievalQuality::Good)
     }
     async fn refine_query(&self, query: &str, _: &str) -> std::result::Result<String, String> {
@@ -1012,7 +1063,10 @@ impl RAGProvider for NoopRAGProvider {
     async fn retrieve(&self, _: &RAGQuery) -> std::result::Result<RagContextResult, String> {
         Err("not configured".into())
     }
-    async fn hybrid_search(&self, _: &RAGQuery) -> std::result::Result<Vec<RagRetrievedItem>, String> {
+    async fn hybrid_search(
+        &self,
+        _: &RAGQuery,
+    ) -> std::result::Result<Vec<RagRetrievedItem>, String> {
         Ok(Vec::new())
     }
     fn available_collections(&self) -> Vec<String> {
@@ -1063,7 +1117,10 @@ impl RhaiEngineAdapter for NoopRhaiEngineAdapter {
 pub struct NoopRLEngine;
 #[async_trait]
 impl RLEngine for NoopRLEngine {
-    async fn compute_rewards(&self, _episodes: &[TrainingEpisode]) -> std::result::Result<Vec<f64>, String> {
+    async fn compute_rewards(
+        &self,
+        _episodes: &[TrainingEpisode],
+    ) -> std::result::Result<Vec<f64>, String> {
         Ok(vec![0.0])
     }
     async fn compute_advantages(&self, _rewards: &[f64]) -> Vec<f64> {
@@ -1077,7 +1134,10 @@ impl RLEngine for NoopRLEngine {
 pub struct NoopRLTrainer;
 #[async_trait]
 impl RLTrainer for NoopRLTrainer {
-    async fn train_episode(&self, _episode: TrainingEpisode) -> std::result::Result<TrainingReport, String> {
+    async fn train_episode(
+        &self,
+        _episode: TrainingEpisode,
+    ) -> std::result::Result<TrainingReport, String> {
         Err("RL trainer not configured".to_string())
     }
     async fn get_progress(&self) -> std::result::Result<TrainingReport, String> {
@@ -1138,7 +1198,10 @@ impl SsrFGuard for NoopSsrFGuard {
 pub struct NoopStyleExtractor;
 #[async_trait]
 impl StyleExtractor for NoopStyleExtractor {
-    async fn extract_from_code(&self, _: &[CodeSample]) -> std::result::Result<ExtractedCodePatterns, String> {
+    async fn extract_from_code(
+        &self,
+        _: &[CodeSample],
+    ) -> std::result::Result<ExtractedCodePatterns, String> {
         Err("not configured".into())
     }
     async fn extract_from_messages(
@@ -1154,7 +1217,11 @@ impl StyleExtractor for NoopStyleExtractor {
 pub struct NoopStyleApplier;
 #[async_trait]
 impl StyleApplier for NoopStyleApplier {
-    async fn apply_style(&self, code: &str, _: &CodeStyleTemplate) -> std::result::Result<String, String> {
+    async fn apply_style(
+        &self,
+        code: &str,
+        _: &CodeStyleTemplate,
+    ) -> std::result::Result<String, String> {
         Ok(code.to_string())
     }
     fn active_template(&self) -> Option<CodeStyleTemplate> {
@@ -1170,7 +1237,10 @@ impl StyleVectorizer for NoopStyleVectorizer {
     async fn vectorize_code(&self, _: &CodeSample) -> std::result::Result<StyleVector, String> {
         Err("not configured".into())
     }
-    async fn vectorize_message(&self, _: &MessageSample) -> std::result::Result<StyleVector, String> {
+    async fn vectorize_message(
+        &self,
+        _: &MessageSample,
+    ) -> std::result::Result<StyleVector, String> {
         Err("not configured".into())
     }
 }
@@ -1277,55 +1347,135 @@ impl WebhookSubscriptionService for NoopWebhookSubscriptionService {
 use crate::note_dtos::{CreateNoteInput, Note, UpdateNoteInput};
 use crate::types::Wiki;
 use crate::wiki_dtos::{
-    InsertWikiSourceInput, NoteRepository, NoteVersion, WikiOperation,
-    WikiOperationRepository, WikiPage, WikiPageRepository, WikiRepository, WikiSource,
-    WikiSourceRepository,
+    InsertWikiSourceInput, NoteRepository, NoteVersion, WikiOperation, WikiOperationRepository,
+    WikiPage, WikiPageRepository, WikiRepository, WikiSource, WikiSourceRepository,
 };
 
 struct EmptyNoteRepository;
 #[async_trait]
 impl NoteRepository for EmptyNoteRepository {
-    async fn find_by_id(&self, _id: &str) -> std::result::Result<Option<Note>, String> { Ok(None) }
-    async fn find_by_vault(&self, _vault_id: &str, _include_deleted: bool) -> std::result::Result<Vec<Note>, String> { Ok(Vec::new()) }
-    async fn find_by_vault_and_title(&self, _vault_id: &str, _title: &str, _include_deleted: bool) -> std::result::Result<Vec<Note>, String> { Ok(Vec::new()) }
-    async fn create_note(&self, _input: CreateNoteInput) -> std::result::Result<Note, String> { Err("not implemented".into()) }
-    async fn update_note(&self, _note_id: &str, _input: UpdateNoteInput) -> std::result::Result<Note, String> { Err("not implemented".into()) }
+    async fn find_by_id(&self, _id: &str) -> std::result::Result<Option<Note>, String> {
+        Ok(None)
+    }
+    async fn find_by_vault(
+        &self,
+        _vault_id: &str,
+        _include_deleted: bool,
+    ) -> std::result::Result<Vec<Note>, String> {
+        Ok(Vec::new())
+    }
+    async fn find_by_vault_and_title(
+        &self,
+        _vault_id: &str,
+        _title: &str,
+        _include_deleted: bool,
+    ) -> std::result::Result<Vec<Note>, String> {
+        Ok(Vec::new())
+    }
+    async fn create_note(&self, _input: CreateNoteInput) -> std::result::Result<Note, String> {
+        Err("not implemented".into())
+    }
+    async fn update_note(
+        &self,
+        _note_id: &str,
+        _input: UpdateNoteInput,
+    ) -> std::result::Result<Note, String> {
+        Err("not implemented".into())
+    }
 }
 
 struct EmptyWikiRepository;
 #[async_trait]
 impl WikiRepository for EmptyWikiRepository {
-    async fn find_by_id(&self, _id: &str) -> std::result::Result<Option<Wiki>, String> { Ok(None) }
-    async fn create_version(&self, _wiki_id: &str, _note_id: &str, _title: &str, _content: &str, _author: &str) -> std::result::Result<NoteVersion, String> { Err("not implemented".into()) }
-    async fn increment_note_count(&self, _wiki_id: &str) -> std::result::Result<(), String> { Ok(()) }
+    async fn find_by_id(&self, _id: &str) -> std::result::Result<Option<Wiki>, String> {
+        Ok(None)
+    }
+    async fn create_version(
+        &self,
+        _wiki_id: &str,
+        _note_id: &str,
+        _title: &str,
+        _content: &str,
+        _author: &str,
+    ) -> std::result::Result<NoteVersion, String> {
+        Err("not implemented".into())
+    }
+    async fn increment_note_count(&self, _wiki_id: &str) -> std::result::Result<(), String> {
+        Ok(())
+    }
 }
 
 struct EmptyWikiPageRepository;
 #[async_trait]
 impl WikiPageRepository for EmptyWikiPageRepository {
-    async fn find_by_note_id(&self, _note_id: &str) -> std::result::Result<Option<WikiPage>, String> { Ok(None) }
-    async fn find_by_wiki_id(&self, _wiki_id: &str) -> std::result::Result<Vec<WikiPage>, String> { Ok(Vec::new()) }
-    async fn upsert(&self, _page: WikiPage) -> std::result::Result<(), String> { Ok(()) }
-    async fn update_lint_result(&self, _note_id: &str, _quality_score: Option<f64>, _last_linted_at: Option<i64>) -> std::result::Result<(), String> { Ok(()) }
+    async fn find_by_note_id(
+        &self,
+        _note_id: &str,
+    ) -> std::result::Result<Option<WikiPage>, String> {
+        Ok(None)
+    }
+    async fn find_by_wiki_id(&self, _wiki_id: &str) -> std::result::Result<Vec<WikiPage>, String> {
+        Ok(Vec::new())
+    }
+    async fn upsert(&self, _page: WikiPage) -> std::result::Result<(), String> {
+        Ok(())
+    }
+    async fn update_lint_result(
+        &self,
+        _note_id: &str,
+        _quality_score: Option<f64>,
+        _last_linted_at: Option<i64>,
+    ) -> std::result::Result<(), String> {
+        Ok(())
+    }
 }
 
 struct EmptyWikiSourceRepository;
 #[async_trait]
 impl WikiSourceRepository for EmptyWikiSourceRepository {
-    async fn find_by_id(&self, _source_id: &str) -> std::result::Result<Option<WikiSource>, String> { Ok(None) }
-    async fn find_by_wiki_id(&self, _wiki_id: &str) -> std::result::Result<Vec<WikiSource>, String> { Ok(Vec::new()) }
-    async fn count_by_wiki_id(&self, _wiki_id: &str) -> std::result::Result<usize, String> { Ok(0) }
-    async fn insert(&self, _input: InsertWikiSourceInput) -> std::result::Result<WikiSource, String> { Err("not implemented".into()) }
+    async fn find_by_id(
+        &self,
+        _source_id: &str,
+    ) -> std::result::Result<Option<WikiSource>, String> {
+        Ok(None)
+    }
+    async fn find_by_wiki_id(
+        &self,
+        _wiki_id: &str,
+    ) -> std::result::Result<Vec<WikiSource>, String> {
+        Ok(Vec::new())
+    }
+    async fn count_by_wiki_id(&self, _wiki_id: &str) -> std::result::Result<usize, String> {
+        Ok(0)
+    }
+    async fn insert(
+        &self,
+        _input: InsertWikiSourceInput,
+    ) -> std::result::Result<WikiSource, String> {
+        Err("not implemented".into())
+    }
 }
 
 struct EmptyWikiOperationRepository;
 #[async_trait]
 impl WikiOperationRepository for EmptyWikiOperationRepository {
-    async fn log(&self, _op: WikiOperation) -> std::result::Result<(), String> { Ok(()) }
+    async fn log(&self, _op: WikiOperation) -> std::result::Result<(), String> {
+        Ok(())
+    }
 }
 
-pub fn empty_note_repo() -> Arc<dyn NoteRepository> { Arc::new(EmptyNoteRepository) }
-pub fn empty_wiki_repo() -> Arc<dyn WikiRepository> { Arc::new(EmptyWikiRepository) }
-pub fn empty_wiki_page_repo() -> Arc<dyn WikiPageRepository> { Arc::new(EmptyWikiPageRepository) }
-pub fn empty_wiki_source_repo() -> Arc<dyn WikiSourceRepository> { Arc::new(EmptyWikiSourceRepository) }
-pub fn empty_wiki_operation_repo() -> Arc<dyn WikiOperationRepository> { Arc::new(EmptyWikiOperationRepository) }
+pub fn empty_note_repo() -> Arc<dyn NoteRepository> {
+    Arc::new(EmptyNoteRepository)
+}
+pub fn empty_wiki_repo() -> Arc<dyn WikiRepository> {
+    Arc::new(EmptyWikiRepository)
+}
+pub fn empty_wiki_page_repo() -> Arc<dyn WikiPageRepository> {
+    Arc::new(EmptyWikiPageRepository)
+}
+pub fn empty_wiki_source_repo() -> Arc<dyn WikiSourceRepository> {
+    Arc::new(EmptyWikiSourceRepository)
+}
+pub fn empty_wiki_operation_repo() -> Arc<dyn WikiOperationRepository> {
+    Arc::new(EmptyWikiOperationRepository)
+}

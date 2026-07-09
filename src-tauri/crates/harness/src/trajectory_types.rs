@@ -457,8 +457,6 @@ pub enum RewardCategory {
     Safety,
 }
 
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepReward {
     pub step_index: usize,
@@ -500,4 +498,3 @@ impl ToolCreationRequest {
         }
     }
 }
-

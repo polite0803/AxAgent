@@ -6,9 +6,9 @@
 //! 也包含跨多个 repo 的服务（如 marketplace_service）— 这些服务全部是
 //! SeaORM 数据访问逻辑，留在 dao 层。
 
+pub mod conversation_repository;
 pub mod db;
 pub mod ddl;
-pub mod conversation_repository;
 pub mod generated_tool_repository;
 pub mod integrity;
 pub mod marketplace_service;

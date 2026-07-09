@@ -244,7 +244,9 @@ async fn generate_plan_via_llm(
         .map_err(|e| format!("Failed to load provider: {}", e))?;
 
     // Resolve provider adapter
-    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider_config.provider_type);
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+        &provider_config.provider_type,
+    );
 
     let adapter = state.harness.provider_registry().get(&registry_key).ok_or_else(|| {
         ErrorResponse::err_with_detail(
@@ -491,7 +493,10 @@ async fn build_agent_context(
         provider_id: prov.id.clone(),
         base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
-        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(&prov.proxy_config, &settings),
+        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(
+            &prov.proxy_config,
+            &settings,
+        ),
         custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,

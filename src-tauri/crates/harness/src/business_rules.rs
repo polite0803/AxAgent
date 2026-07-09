@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 
 //! 业务规则类型定义 — 纯契约层，零实现逻辑。
 //!
@@ -58,27 +58,14 @@ pub enum RuleEvaluationOutcome {
     /// 全部规则通过
     Pass,
     /// 违反了一条规则
-    Violation {
-        rule_name: String,
-        rule_description: String,
-        action: RuleAction,
-        reason: String,
-    },
+    Violation { rule_name: String, rule_description: String, action: RuleAction, reason: String },
     /// 需要人工审批
-    RequiresApproval {
-        rule_name: String,
-        rule_description: String,
-        reason: String,
-    },
+    RequiresApproval { rule_name: String, rule_description: String, reason: String },
 }
 
 /// 业务规则评估器 trait — 由 rt-workflow 中的 BusinessRuleEngine 实现。
 ///
 /// 拦截器等组件通过此 trait 解耦，无需直接依赖具体实现类型。
 pub trait BusinessRuleEvaluator: std::fmt::Debug + Send + Sync {
-    fn evaluate(
-        &self,
-        node_type: &str,
-        node_input: &serde_json::Value,
-    ) -> RuleEvaluationOutcome;
+    fn evaluate(&self, node_type: &str, node_input: &serde_json::Value) -> RuleEvaluationOutcome;
 }

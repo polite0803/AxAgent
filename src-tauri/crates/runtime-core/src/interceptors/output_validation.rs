@@ -2,7 +2,9 @@
 
 //! Output validation interceptor — validates LLM response format.
 
-use axagent_harness::interceptor::{HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult};
+use axagent_harness::interceptor::{
+    HarnessInterceptor, InterceptPoint, InterceptorContext, InterceptorResult,
+};
 
 /// 输出校验拦截器 — 在 LLM 调用后校验响应格式
 #[derive(Debug)]

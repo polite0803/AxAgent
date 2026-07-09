@@ -755,7 +755,9 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
                         model_id: String::from(*model_id),
                         name: String::from(*name),
                         group_name: None,
-                        model_type: axagent_harness::types::provider_model::detect_model_type(model_id),
+                        model_type: axagent_harness::types::provider_model::detect_model_type(
+                            model_id,
+                        ),
                         capabilities: caps.clone(),
                         max_tokens: *max_tokens,
                         max_output_tokens: None,

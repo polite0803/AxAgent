@@ -11,12 +11,12 @@ use async_trait::async_trait;
 
 use crate::repo_dtos::*;
 use crate::service_registry::get_service_registry;
-use crate::types::ProviderConfig;
-use crate::types::ProviderKey;
+use crate::types::AppSettings;
 use crate::types::Conversation;
 use crate::types::Message;
 use crate::types::MessageRole;
-use crate::types::AppSettings;
+use crate::types::ProviderConfig;
+use crate::types::ProviderKey;
 use std::collections::HashMap;
 
 // ── NoteRepository ─────────────────────────────
@@ -317,7 +317,10 @@ pub fn tool_execution_repository() -> Arc<dyn ToolExecutionRepository> {
 #[async_trait]
 pub trait MemoryRepository: Send + Sync {
     async fn list_namespaces(&self) -> Result<Vec<crate::types::MemoryNamespace>, String>;
-    async fn add_item(&self, input: crate::types::CreateMemoryItemInput) -> Result<crate::types::MemoryItem, String>;
+    async fn add_item(
+        &self,
+        input: crate::types::CreateMemoryItemInput,
+    ) -> Result<crate::types::MemoryItem, String>;
 }
 
 pub fn set_memory_repository(repo: Arc<dyn MemoryRepository>) {
@@ -376,7 +379,7 @@ pub trait WorkflowExecutionRepository: Send + Sync {
     async fn list_workflow_executions(
         &self,
         workflow_id: &str,
-    ) -> Result<Vec<axagent_entities::workflow_executions::Model>, String>;
+    ) -> Result<Vec<WorkflowExecutionData>, String>;
 }
 
 pub fn set_workflow_execution_repository(repo: Arc<dyn WorkflowExecutionRepository>) {
@@ -391,14 +394,19 @@ pub fn workflow_execution_repository() -> Arc<dyn WorkflowExecutionRepository> {
 
 #[async_trait]
 pub trait LoopCheckpointRepository: Send + Sync {
-    async fn save_loop_checkpoint(&self, cp: &crate::workflow_types::LoopCheckpoint) -> Result<(), String>;
+    async fn save_loop_checkpoint(
+        &self,
+        cp: &crate::workflow_types::LoopCheckpoint,
+    ) -> Result<(), String>;
     async fn load_loop_checkpoint(
         &self,
         execution_id: &str,
         node_id: &str,
     ) -> Result<Option<crate::workflow_types::LoopCheckpoint>, String>;
-    async fn delete_loop_checkpoint(&self, execution_id: &str, node_id: &str) -> Result<(), String>;
-    async fn delete_loop_checkpoints_for_execution(&self, execution_id: &str) -> Result<(), String>;
+    async fn delete_loop_checkpoint(&self, execution_id: &str, node_id: &str)
+    -> Result<(), String>;
+    async fn delete_loop_checkpoints_for_execution(&self, execution_id: &str)
+    -> Result<(), String>;
 }
 
 pub fn set_loop_checkpoint_repository(repo: Arc<dyn LoopCheckpointRepository>) {

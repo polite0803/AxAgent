@@ -24,11 +24,7 @@ pub struct BusinessRuleEngine {
 }
 
 impl BusinessRuleEvaluator for BusinessRuleEngine {
-    fn evaluate(
-        &self,
-        node_type: &str,
-        node_input: &serde_json::Value,
-    ) -> RuleEvaluationOutcome {
+    fn evaluate(&self, node_type: &str, node_input: &serde_json::Value) -> RuleEvaluationOutcome {
         for rule in &self.rules {
             let result = (rule.evaluate)(node_type, node_input);
             match result {
@@ -40,14 +36,14 @@ impl BusinessRuleEvaluator for BusinessRuleEngine {
                         action: rule.action.clone(),
                         reason: reason.clone(),
                     };
-                }
+                },
                 RuleResult::RequiresApproval { ref reason } => {
                     return RuleEvaluationOutcome::RequiresApproval {
                         rule_name: rule.name.clone(),
                         rule_description: rule.description.clone(),
                         reason: reason.clone(),
                     };
-                }
+                },
             }
         }
         RuleEvaluationOutcome::Pass
@@ -203,7 +199,7 @@ mod tests {
         let rule = amount_threshold_rule(10000.0);
         let input = json!({"amount": 5000});
         match (rule.evaluate)("tool", &input) {
-            RuleResult::Pass => {}
+            RuleResult::Pass => {},
             other => panic!("Expected Pass, got {:?}", other),
         }
     }
@@ -213,7 +209,7 @@ mod tests {
         let rule = amount_threshold_rule(10000.0);
         let input = json!({"amount": 15000});
         match (rule.evaluate)("tool", &input) {
-            RuleResult::RequiresApproval { .. } => {}
+            RuleResult::RequiresApproval { .. } => {},
             other => panic!("Expected RequiresApproval, got {:?}", other),
         }
     }
@@ -225,7 +221,7 @@ mod tests {
         match (rule.evaluate)("tool", &input) {
             RuleResult::RequiresApproval { ref reason } => {
                 assert!(reason.contains("delete_file"));
-            }
+            },
             other => panic!("Expected RequiresApproval, got {:?}", other),
         }
     }
@@ -235,7 +231,7 @@ mod tests {
         let rule = destructive_operation_guard();
         let input = json!({"tool_name": "read_file", "file_path": "/tmp/test"});
         match (rule.evaluate)("tool", &input) {
-            RuleResult::Pass => {}
+            RuleResult::Pass => {},
             other => panic!("Expected Pass, got {:?}", other),
         }
     }
@@ -245,7 +241,7 @@ mod tests {
         let rule = network_access_guard(vec!["api.example.com".to_string()]);
         let input = json!({"url": "https://api.example.com/v1/data"});
         match (rule.evaluate)("httpRequest", &input) {
-            RuleResult::Pass => {}
+            RuleResult::Pass => {},
             other => panic!("Expected Pass, got {:?}", other),
         }
     }
@@ -257,7 +253,7 @@ mod tests {
         match (rule.evaluate)("httpRequest", &input) {
             RuleResult::Violation { ref reason } => {
                 assert!(reason.contains("evil.com"));
-            }
+            },
             other => panic!("Expected Violation, got {:?}", other),
         }
     }

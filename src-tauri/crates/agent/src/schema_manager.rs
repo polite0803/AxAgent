@@ -7,12 +7,10 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::sync::RwLock;
 
-use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set,
-};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set};
 
-use axagent_entities::wikis;
 use axagent_dao::repo::note_repository::DaoNoteRepository;
+use axagent_entities::wikis;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::note_dtos::UpdateNoteInput;
 use axagent_harness::wiki_dtos::NoteRepository;
@@ -244,12 +242,9 @@ impl SchemaManager {
                     page_type: None,
                     related_pages: None,
                 };
-                self.note_repo
-                    .update_note(&note.id, input)
-                    .await
-                    .map_err(|e| {
-                        AxAgentError::Internal(format!("Failed to migrate page {}: {}", note.id, e))
-                    })?;
+                self.note_repo.update_note(&note.id, input).await.map_err(|e| {
+                    AxAgentError::Internal(format!("Failed to migrate page {}: {}", note.id, e))
+                })?;
                 migrated += 1;
             }
         }

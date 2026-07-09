@@ -113,3 +113,38 @@ pub struct AgentProfile {
     pub system_prompt: Option<String>,
     pub model: Option<String>,
 }
+
+// ── WorkflowEngine 系列 ─────────────────────
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct WorkflowExecutionData {
+    pub id: String,
+    pub workflow_id: String,
+    pub status: String,
+    pub input_params: Option<String>,
+    pub output_result: Option<String>,
+    pub node_executions: Option<String>,
+    pub total_time_ms: Option<i32>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct WorkflowTemplateData {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub icon: String,
+    pub tags: Option<String>,
+    pub version: i32,
+    pub is_preset: bool,
+    pub is_editable: bool,
+    pub is_public: bool,
+    pub trigger_config: Option<String>,
+    pub nodes: String,
+    pub edges: String,
+    pub input_schema: Option<String>,
+    pub output_schema: Option<String>,
+    pub variables: Option<String>,
+    pub error_config: Option<String>,
+}

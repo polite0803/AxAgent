@@ -67,10 +67,7 @@ impl NoteRepository for DaoNoteRepository {
         if !include_deleted {
             query = query.filter(notes::Column::IsDeleted.eq(0));
         }
-        let models = query
-            .all(self.db.as_ref())
-            .await
-            .map_err(|e| format!("DB error: {}", e))?;
+        let models = query.all(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
         Ok(models.into_iter().map(|m| Self::model_to_note(m)).collect())
     }
@@ -80,24 +77,17 @@ impl NoteRepository for DaoNoteRepository {
         vault_id: &str,
         include_deleted: bool,
     ) -> Result<Vec<Note>, String> {
-        let mut query = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(vault_id.to_string()));
+        let mut query =
+            notes::Entity::find().filter(notes::Column::VaultId.eq(vault_id.to_string()));
         if !include_deleted {
             query = query.filter(notes::Column::IsDeleted.eq(0));
         }
-        let models = query
-            .all(self.db.as_ref())
-            .await
-            .map_err(|e| format!("DB error: {}", e))?;
+        let models = query.all(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
         Ok(models.into_iter().map(|m| Self::model_to_note(m)).collect())
     }
 
-    async fn update_note(
-        &self,
-        note_id: &str,
-        input: UpdateNoteInput,
-    ) -> Result<Note, String> {
+    async fn update_note(&self, note_id: &str, input: UpdateNoteInput) -> Result<Note, String> {
         let model = notes::Entity::find_by_id(note_id)
             .one(self.db.as_ref())
             .await
@@ -124,8 +114,7 @@ impl NoteRepository for DaoNoteRepository {
         am.user_edited = Set(1);
         am.user_edited_at = Set(Some(chrono::Utc::now().timestamp()));
 
-        let updated = am.update(self.db.as_ref()).await
-            .map_err(|e| format!("DB error: {}", e))?;
+        let updated = am.update(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
         Ok(Self::model_to_note(updated))
     }
@@ -144,7 +133,9 @@ impl NoteRepository for DaoNoteRepository {
             content_hash: Set(content_hash),
             author: Set(input.author),
             page_type: Set(input.page_type),
-            source_refs: Set(input.source_refs.map(|v| serde_json::to_value(v).unwrap_or_default())),
+            source_refs: Set(input
+                .source_refs
+                .map(|v| serde_json::to_value(v).unwrap_or_default())),
             related_pages: Set(None),
             quality_score: Set(None),
             last_linted_at: Set(None),
@@ -157,8 +148,7 @@ impl NoteRepository for DaoNoteRepository {
             is_deleted: Set(0),
         };
 
-        let model = am.insert(self.db.as_ref()).await
-            .map_err(|e| format!("DB error: {}", e))?;
+        let model = am.insert(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
         Ok(Self::model_to_note(model))
     }

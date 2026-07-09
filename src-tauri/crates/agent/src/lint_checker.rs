@@ -56,17 +56,14 @@ impl LintChecker {
         wiki_page_repo: Arc<dyn WikiPageRepository>,
         backlink_repo: Arc<dyn NoteBacklinkRepository>,
     ) -> Self {
-        Self {
-            note_repo,
-            wiki_repo,
-            wiki_page_repo,
-            backlink_repo,
-            parser: MarkdownParser::new(),
-        }
+        Self { note_repo, wiki_repo, wiki_page_repo, backlink_repo, parser: MarkdownParser::new() }
     }
 
     pub async fn lint_note(&self, note_id: &str) -> Result<LintResult, String> {
-        let note = self.note_repo.find_by_id(note_id).await?
+        let note = self
+            .note_repo
+            .find_by_id(note_id)
+            .await?
             .ok_or_else(|| format!("Note {} not found", note_id))?;
 
         let mut issues = Vec::new();
@@ -149,11 +146,7 @@ impl LintChecker {
         }
     }
 
-    async fn check_links(
-        &self,
-        note: &Note,
-        issues: &mut Vec<LintIssue>,
-    ) -> Result<(), String> {
+    async fn check_links(&self, note: &Note, issues: &mut Vec<LintIssue>) -> Result<(), String> {
         let parsed = self.parser.parse(&note.content);
 
         for link in &parsed.links {
@@ -161,10 +154,8 @@ impl LintChecker {
                 continue;
             }
 
-            let target_result = self
-                .note_repo
-                .find_by_vault_and_title(&note.vault_id, &link.target, false)
-                .await?;
+            let target_result =
+                self.note_repo.find_by_vault_and_title(&note.vault_id, &link.target, false).await?;
             let target_exists = !target_result.is_empty();
 
             if !target_exists {
@@ -221,11 +212,7 @@ impl LintChecker {
         }
     }
 
-    fn check_content_quality(
-        &self,
-        note: &Note,
-        issues: &mut Vec<LintIssue>,
-    ) {
+    fn check_content_quality(&self, note: &Note, issues: &mut Vec<LintIssue>) {
         let lower = note.content.to_lowercase();
 
         for phrase in &["unknown", "not sure", "cannot determine", "i don't know", "todo"] {
@@ -255,7 +242,10 @@ impl LintChecker {
         all_titles: &HashSet<String>,
         results: &mut Vec<LintResult>,
     ) -> Result<(), String> {
-        let wiki = self.wiki_repo.find_by_id(wiki_id).await?
+        let wiki = self
+            .wiki_repo
+            .find_by_id(wiki_id)
+            .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
         let index_path = std::path::Path::new(&wiki.root_path).join("notes").join("index.md");
@@ -372,11 +362,9 @@ impl LintChecker {
     pub async fn update_quality_score(&self, note_id: &str) -> Result<f64, String> {
         let result = self.lint_note(note_id).await?;
 
-        self.wiki_page_repo.update_lint_result(
-            note_id,
-            Some(result.score),
-            Some(chrono::Utc::now().timestamp()),
-        ).await?;
+        self.wiki_page_repo
+            .update_lint_result(note_id, Some(result.score), Some(chrono::Utc::now().timestamp()))
+            .await?;
 
         Ok(result.score)
     }
@@ -394,16 +382,17 @@ impl LintChecker {
                 regex::Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").map_err(|e| e.to_string())?;
             for issue in &result.issues {
                 if issue.code == "broken-link" {
-                    let note = self.note_repo.find_by_id(nid).await?
+                    let note = self
+                        .note_repo
+                        .find_by_id(nid)
+                        .await?
                         .ok_or_else(|| format!("Note {} not found", nid))?;
 
                     let mut content = note.content.clone();
 
                     let all_notes = self.note_repo.find_by_vault(&note.vault_id, false).await?;
-                    let valid_titles: HashSet<String> = all_notes
-                        .iter()
-                        .map(|n| n.title.clone())
-                        .collect();
+                    let valid_titles: HashSet<String> =
+                        all_notes.iter().map(|n| n.title.clone()).collect();
 
                     content = link_re
                         .replace_all(&content, |caps: &regex::Captures| {
@@ -486,8 +475,12 @@ mod tests {
         LintChecker::new(
             Arc::new(axagent_dao::repo::note_repository::DaoNoteRepository::new(db.clone())),
             Arc::new(axagent_dao::repo::wiki_repository::DaoWikiRepository::new(db.clone())),
-            Arc::new(axagent_dao::repo::wiki_page_repository::DaoWikiPageRepository::new(db.clone())),
-            Arc::new(axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository::new(db.clone())),
+            Arc::new(axagent_dao::repo::wiki_page_repository::DaoWikiPageRepository::new(
+                db.clone(),
+            )),
+            Arc::new(axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository::new(
+                db.clone(),
+            )),
         )
     }
 

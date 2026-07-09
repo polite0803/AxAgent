@@ -22,9 +22,7 @@ impl DaoConversationRepository {
 #[async_trait]
 impl ConversationRepository for DaoConversationRepository {
     async fn get_conversation(&self, id: &str) -> Result<Conversation, String> {
-        crate::repo::conversation::get_conversation(&self.db, id)
-            .await
-            .map_err(|e| e.to_string())
+        crate::repo::conversation::get_conversation(&self.db, id).await.map_err(|e| e.to_string())
     }
 
     async fn create_conversation(

@@ -33,10 +33,7 @@ impl TrajectoryScorer {
         let successful_tools = steps
             .iter()
             .filter(|s| {
-                s.tool_results
-                    .as_ref()
-                    .map(|r| !r.iter().any(|tr| tr.is_error))
-                    .unwrap_or(false)
+                s.tool_results.as_ref().map(|r| !r.iter().any(|tr| tr.is_error)).unwrap_or(false)
             })
             .count();
         let tool_efficiency = if tool_count > 0 {
@@ -123,17 +120,11 @@ impl TrajectoryScorer {
             .join("\n\n");
 
         let mut completion = String::new();
-        for step in trajectory
-            .steps
-            .iter()
-            .filter(|s| s.role == MessageRole::Assistant)
-        {
+        for step in trajectory.steps.iter().filter(|s| s.role == MessageRole::Assistant) {
             completion.push_str(&step.content);
             if let Some(ref tool_calls) = step.tool_calls {
                 completion.push_str("\n\n<tool_calls>\n");
-                completion.push_str(
-                    &serde_json::to_string(tool_calls).unwrap_or_default(),
-                );
+                completion.push_str(&serde_json::to_string(tool_calls).unwrap_or_default());
                 completion.push_str("\n</tool_calls>\n");
             }
             completion.push_str("\n\n");

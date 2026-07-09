@@ -547,7 +547,10 @@ async fn resolve_native_context(
     })?;
 
     let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
-    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &global_settings,
+    );
 
     Ok(ResolvedNativeContext {
         provider: provider.clone(),
