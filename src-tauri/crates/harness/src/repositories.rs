@@ -421,10 +421,8 @@ pub fn loop_checkpoint_repository() -> Arc<dyn LoopCheckpointRepository> {
 
 #[async_trait]
 pub trait WorkflowTemplateRepository: Send + Sync {
-    async fn get_workflow_template(
-        &self,
-        id: &str,
-    ) -> Result<Option<axagent_entities::workflow_template::Model>, String>;
+    async fn get_workflow_template(&self, id: &str)
+    -> Result<Option<WorkflowTemplateData>, String>;
 }
 
 pub fn set_workflow_template_repository(repo: Arc<dyn WorkflowTemplateRepository>) {

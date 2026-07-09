@@ -8,10 +8,11 @@
 use std::sync::{Arc, OnceLock, RwLock};
 
 use crate::repositories::{
-    ConversationRepository, DatabaseInitializer, GeneratedToolRepository, MemoryRepository,
-    MessageRepository, NoteBacklinkRepository, NoteRepository, PlatformConfigRepository,
-    ProviderRepository, SessionRepository, SettingsRepository, SkillDirsProvider,
-    ToolExecutionRepository, WikiPageRepository, WikiRepository, WikiSourceRepository,
+    ConversationRepository, DatabaseInitializer, GeneratedToolRepository, LoopCheckpointRepository,
+    MemoryRepository, MessageRepository, NoteBacklinkRepository, NoteRepository,
+    PlatformConfigRepository, ProviderRepository, SessionRepository, SettingsRepository,
+    SkillDirsProvider, ToolExecutionRepository, WikiPageRepository, WikiRepository,
+    WikiSourceRepository, WorkflowExecutionRepository, WorkflowTemplateRepository,
 };
 
 /// 全局服务注册表 —— 集中管理所有 repository 和 provider 的 DI 注入点。
@@ -33,6 +34,9 @@ pub struct ServiceRegistry {
     pub message_repo: OnceLock<RwLock<Option<Arc<dyn MessageRepository>>>>,
     pub tool_execution_repo: OnceLock<RwLock<Option<Arc<dyn ToolExecutionRepository>>>>,
     pub memory_repo: OnceLock<RwLock<Option<Arc<dyn MemoryRepository>>>>,
+    pub workflow_execution_repo: OnceLock<RwLock<Option<Arc<dyn WorkflowExecutionRepository>>>>,
+    pub loop_checkpoint_repo: OnceLock<RwLock<Option<Arc<dyn LoopCheckpointRepository>>>>,
+    pub workflow_template_repo: OnceLock<RwLock<Option<Arc<dyn WorkflowTemplateRepository>>>>,
     pub db_init: OnceLock<RwLock<Option<Arc<dyn DatabaseInitializer>>>>,
     pub skill_dirs: OnceLock<RwLock<Option<Arc<dyn SkillDirsProvider>>>>,
 }
@@ -54,6 +58,9 @@ impl ServiceRegistry {
             message_repo: OnceLock::new(),
             tool_execution_repo: OnceLock::new(),
             memory_repo: OnceLock::new(),
+            workflow_execution_repo: OnceLock::new(),
+            loop_checkpoint_repo: OnceLock::new(),
+            workflow_template_repo: OnceLock::new(),
             db_init: OnceLock::new(),
             skill_dirs: OnceLock::new(),
         }
@@ -279,6 +286,59 @@ impl ServiceRegistry {
             .unwrap()
             .clone()
             .expect("ToolExecutionRepository not initialized.")
+    }
+
+    // ── WorkflowExecutionRepository ──
+
+    pub fn set_workflow_execution_repository(&self, repo: Arc<dyn WorkflowExecutionRepository>) {
+        self.workflow_execution_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap()
+            .replace(repo);
+    }
+
+    pub fn workflow_execution_repository(&self) -> Arc<dyn WorkflowExecutionRepository> {
+        self.workflow_execution_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("WorkflowExecutionRepository not initialized.")
+    }
+
+    // ── LoopCheckpointRepository ──
+
+    pub fn set_loop_checkpoint_repository(&self, repo: Arc<dyn LoopCheckpointRepository>) {
+        self.loop_checkpoint_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn loop_checkpoint_repository(&self) -> Arc<dyn LoopCheckpointRepository> {
+        self.loop_checkpoint_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("LoopCheckpointRepository not initialized.")
+    }
+
+    // ── WorkflowTemplateRepository ──
+
+    pub fn set_workflow_template_repository(&self, repo: Arc<dyn WorkflowTemplateRepository>) {
+        self.workflow_template_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap()
+            .replace(repo);
+    }
+
+    pub fn workflow_template_repository(&self) -> Arc<dyn WorkflowTemplateRepository> {
+        self.workflow_template_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("WorkflowTemplateRepository not initialized.")
     }
 
     // ── MemoryRepository ──

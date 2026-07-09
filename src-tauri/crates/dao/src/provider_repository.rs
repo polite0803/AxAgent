@@ -35,4 +35,21 @@ impl ProviderRepository for DaoProviderRepository {
             .await
             .map_err(|e| e.to_string())
     }
+
+    async fn resolve_model_for_node(
+        &self,
+        node_model: Option<&str>,
+        session_model: Option<&str>,
+        session_provider_id: Option<&str>,
+        profile_suggested_provider: Option<&str>,
+    ) -> Result<(ProviderConfig, ProviderKey, String), String> {
+        crate::repo::provider::resolve_model_for_node(
+            &self.db,
+            node_model,
+            session_model,
+            session_provider_id,
+            profile_suggested_provider,
+        )
+        .await
+    }
 }
