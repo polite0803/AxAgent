@@ -26,41 +26,6 @@ pub trait EntityGraphProvider: Send + Sync {
     ) -> Result<KnowledgeRelation, String>;
     async fn delete_relation(&self, relation_id: &str) -> Result<(), String>;
 }
-#[derive(Default)]
-pub struct NoopEntityGraphProvider;
-#[async_trait]
-impl EntityGraphProvider for NoopEntityGraphProvider {
-    async fn get_entities(&self, _: &str) -> Result<Vec<KnowledgeEntity>, String> {
-        Ok(Vec::new())
-    }
-    async fn search_entities(&self, _: &str, _: &str) -> Result<Vec<KnowledgeEntity>, String> {
-        Ok(Vec::new())
-    }
-    async fn create_entity(
-        &self,
-        _: &str,
-        _: CreateKnowledgeEntityInput,
-    ) -> Result<KnowledgeEntity, String> {
-        Err("not configured".into())
-    }
-    async fn delete_entity(&self, _: &str) -> Result<(), String> {
-        Ok(())
-    }
-    async fn get_relations(&self, _: &str) -> Result<Vec<KnowledgeRelation>, String> {
-        Ok(Vec::new())
-    }
-    async fn create_relation(
-        &self,
-        _: &str,
-        _: &str,
-        _: &str,
-    ) -> Result<KnowledgeRelation, String> {
-        Err("not configured".into())
-    }
-    async fn delete_relation(&self, _: &str) -> Result<(), String> {
-        Ok(())
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ExtractedEntity {
@@ -83,19 +48,4 @@ pub trait EntityExtractor: Send + Sync {
         text: &str,
         entities: &[ExtractedEntity],
     ) -> Result<Vec<ExtractedRelation>, String>;
-}
-#[derive(Default)]
-pub struct NoopEntityExtractor;
-#[async_trait]
-impl EntityExtractor for NoopEntityExtractor {
-    async fn extract_entities(&self, _: &str) -> Result<Vec<ExtractedEntity>, String> {
-        Ok(Vec::new())
-    }
-    async fn extract_relations(
-        &self,
-        _: &str,
-        _: &[ExtractedEntity],
-    ) -> Result<Vec<ExtractedRelation>, String> {
-        Ok(Vec::new())
-    }
 }

@@ -38,6 +38,8 @@ pub mod execution_progress;
 pub mod feature_flags;
 pub mod fork_bridge;
 pub mod hook_chain;
+pub mod interceptors;
+pub mod interceptor_chain;
 pub mod hooks;
 pub mod json;
 pub mod message_importance;

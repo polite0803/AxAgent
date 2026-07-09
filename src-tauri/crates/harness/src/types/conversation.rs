@@ -43,37 +43,44 @@ pub struct Conversation {
 }
 
 impl Conversation {
-    pub fn enabled_sources(&self) -> Vec<SourceRef> {
+    // Business methods extracted to ConversationSourceResolver below.
+}
+
+/// Resolver for Conversation enabled sources (knowledge / memory / wiki).
+pub struct ConversationSourceResolver;
+
+impl ConversationSourceResolver {
+    pub fn enabled_sources(conversation: &Conversation) -> Vec<SourceRef> {
         let mut sources = Vec::new();
-        for id in &self.enabled_knowledge_base_ids {
+        for id in &conversation.enabled_knowledge_base_ids {
             sources.push(SourceRef::knowledge(id));
         }
-        for id in &self.enabled_memory_namespace_ids {
+        for id in &conversation.enabled_memory_namespace_ids {
             sources.push(SourceRef::memory(id));
         }
-        for id in &self.enabled_wiki_ids {
+        for id in &conversation.enabled_wiki_ids {
             sources.push(SourceRef::wiki(id));
         }
         sources
     }
 
-    pub fn set_enabled_sources(&mut self, sources: &[SourceRef]) {
-        self.enabled_knowledge_base_ids = sources
+    pub fn set_enabled_sources(conversation: &mut Conversation, sources: &[SourceRef]) {
+        conversation.enabled_knowledge_base_ids = sources
             .iter()
             .filter(|s| s.container_type == "knowledge")
             .map(|s| s.id.clone())
             .collect();
-        self.enabled_memory_namespace_ids =
+        conversation.enabled_memory_namespace_ids =
             sources.iter().filter(|s| s.container_type == "memory").map(|s| s.id.clone()).collect();
-        self.enabled_wiki_ids =
+        conversation.enabled_wiki_ids =
             sources.iter().filter(|s| s.container_type == "wiki").map(|s| s.id.clone()).collect();
     }
 
-    pub fn source_ids_by_type(&self, container_type: &str) -> Vec<String> {
+    pub fn source_ids_by_type(conversation: &Conversation, container_type: &str) -> Vec<String> {
         match container_type {
-            "knowledge" => self.enabled_knowledge_base_ids.clone(),
-            "memory" => self.enabled_memory_namespace_ids.clone(),
-            "wiki" => self.enabled_wiki_ids.clone(),
+            "knowledge" => conversation.enabled_knowledge_base_ids.clone(),
+            "memory" => conversation.enabled_memory_namespace_ids.clone(),
+            "wiki" => conversation.enabled_wiki_ids.clone(),
             _ => Vec::new(),
         }
     }

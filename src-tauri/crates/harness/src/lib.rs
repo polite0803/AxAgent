@@ -38,6 +38,7 @@ pub mod types;
 pub mod url_utils;
 pub mod util_fns;
 pub mod workflow_types;
+pub mod workflow_node_deserializer;
 #[macro_use]
 pub mod reliability;
 
@@ -55,8 +56,27 @@ pub use constants::*;
 // ── 共享错误码 ──
 pub use error_codes::*;
 
+// ── JSON Schema 校验（权威实现）──
+pub mod json_schema;
+
 // ── 序列化/反序列化 Schema 校验 ──
 pub mod serialization;
+
+// ── 工具系统模块 ──
+pub mod output_sanitizer;
+pub mod tool;
+pub mod tool_permissions;
+pub mod tool_validation;
+
+// ── 依赖注入容器 ──
+pub mod graph_dtos;
+pub mod louvain_dtos;
+pub mod note_dtos;
+pub mod page_type;
+pub mod repo_dtos;
+pub mod wiki_dtos;
+pub mod repositories;
+pub mod service_registry;
 
 // ── Harness 约束修复模块 ──
 pub mod consistency_check;
@@ -64,8 +84,10 @@ pub mod hallucination_guard;
 
 // ── 原有 Harness 模块 ──
 pub mod business_rules;
-pub use business_rules::{BusinessRule, BusinessRuleEngine, RuleResult};
+pub use business_rules::{BusinessRule, BusinessRuleEvaluator, RuleAction, RuleEvaluationOutcome, RuleResult};
 pub mod context_builder;
+pub mod context_contributor;
+pub use context_contributor::{ContextContributor, ContextRequest};
 pub mod error;
 pub mod has_provider_registry;
 pub mod inference_engine;
@@ -86,7 +108,6 @@ pub mod rhai_engine;
 pub mod session_tracer;
 pub mod storage_backend;
 pub mod test_support;
-pub mod tool;
 pub mod trajectory_service;
 // ── Webhook 契约 ──
 pub mod webhook_subscription;
@@ -143,6 +164,7 @@ pub mod mcp_types;
 pub use mcp_types::DiscoveredTool;
 
 pub mod trajectory_types;
+pub mod trajectory_scorer;
 
 // ── Provider 契约重导出 ──
 pub use context_builder::build_provider_request_context;
@@ -180,6 +202,10 @@ pub use tool::{
 // ── Registry 契约重导出 ──
 pub use registry::ToolRegistry;
 
+// ── ToolExecutionAudit 契约（让 tools crate 不依赖 dao） ──
+pub mod tool_audit;
+pub use tool_audit::ToolExecutionAudit;
+
 // ── StorageBackend 契约 ──
 pub use storage_backend::{ListResult, StorageBackend, StorageObject, StorageObjectMeta};
 
@@ -198,14 +224,16 @@ pub use error::{ToolError, ToolErrorKind};
 // ── 统一拦截器链 ──
 pub mod interceptor;
 pub use interceptor::{
-    BusinessRuleInterceptor, ConsistencyCheckInterceptor, HarnessInterceptor, InterceptPoint,
-    InterceptorChain, InterceptorContext, InterceptorResult, OutputValidationInterceptor,
-    PromptGuardInterceptor,
+    HarnessInterceptor, InterceptPoint, InterceptorChain, InterceptorContext, InterceptorResult,
 };
 
 // ── PromptProvider 契约（让 runtime-core 不依赖 kit） ──
 pub mod prompt_provider;
-pub use prompt_provider::{NoopPromptProvider, PromptLang, PromptProvider, StaticPromptProvider};
+pub use prompt_provider::{PromptLang, PromptProvider, StaticPromptProvider};
+
+// ── AgentSession 持久化契约（让 agent 不依赖 dao） ──
+pub mod agent_session_repo;
+pub use agent_session_repo::AgentSessionRepository;
 
 // ── CacheService 契约 ──
 pub mod cache_service;
@@ -284,6 +312,10 @@ pub mod gateway_service;
 pub use gateway_service::{GatewayInfo, GatewayService, GatewayStatus};
 pub mod platform_manager;
 pub use platform_manager::{PlatformConnectionInfo, PlatformManager, PlatformMessageHandler};
+
+// ── Credential 服务契约 ──
+pub mod credential_service;
+pub use credential_service::{CredentialService, SharedCredentialService, SmtpServiceConfig};
 
 // ── P9: 安全防护契约（限流 / SSRF / 内容过滤 / 工具指标 / 熔断 / 访问控制） ──
 pub mod rate_limiter;

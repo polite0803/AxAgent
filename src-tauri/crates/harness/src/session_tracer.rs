@@ -21,12 +21,6 @@ pub trait SessionTracer: fmt::Debug + Send + Sync {
 /// 空实现 SessionTracer — 丢弃所有事件。
 ///
 /// 在未配置 telemetry 时作为默认 fallback 使用。
-#[derive(Debug)]
-pub struct NoopSessionTracer;
-
-impl SessionTracer for NoopSessionTracer {
-    fn record(&self, _name: &str, _attributes: Map<String, Value>) {}
-}
 
 #[cfg(test)]
 mod tests {

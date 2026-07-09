@@ -541,7 +541,7 @@ pub async fn agent_query(
         provider_id: prov.id.clone(),
         base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
-        proxy_config: ProviderProxyConfig::resolve(&prov.proxy_config, &settings),
+        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(&prov.proxy_config, &settings),
         custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,

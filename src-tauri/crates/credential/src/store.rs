@@ -40,6 +40,7 @@ impl From<&Credential> for CredentialMeta {
 }
 
 /// Encrypted credential storage backed by the filesystem.
+#[derive(Debug)]
 pub struct CredentialStore {
     store_dir: PathBuf,
     master_key: [u8; 32],

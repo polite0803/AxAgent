@@ -39,13 +39,3 @@ pub struct ScanResult {
 pub trait MemoryScanner: Send + Sync {
     async fn scan(&self, config: &ScannerConfig) -> Result<ScanResult, String>;
 }
-
-#[derive(Debug, Default)]
-pub struct NoopMemoryScanner;
-
-#[async_trait]
-impl MemoryScanner for NoopMemoryScanner {
-    async fn scan(&self, _config: &ScannerConfig) -> Result<ScanResult, String> {
-        Ok(ScanResult::default())
-    }
-}

@@ -70,7 +70,7 @@ impl rag::AsyncEmbedFn for ProviderEmbedFn {
 /// Build a `LlmCallFn` from the first enabled provider in the DB.
 /// Used by the RAG pipeline for query enhancement LLM calls.
 pub async fn build_rag_llm_fn(db: &DatabaseConnection, master_key: &[u8; 32]) -> Option<LlmCallFn> {
-    let bridge = axagent_runtime::llm_bridge::build_llm_bridge_from_db(db, master_key).await?;
+    let bridge = axagent_runtime::llm_bridge::build_llm_bridge_from_db(master_key).await?;
 
     Some(Arc::new(move |prompt: String| {
         let bridge = bridge.clone();
@@ -103,7 +103,7 @@ pub async fn build_embed_context(
     let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)?;
 
     let global_settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
@@ -151,7 +151,7 @@ pub async fn generate_embeddings(
     let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
-    let registry_key = provider_config.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider_config.provider_type);
     let adapter = provider_registry.get(registry_key).ok_or_else(|| {
         AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
     })?;

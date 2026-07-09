@@ -277,7 +277,7 @@ export function SkillSandboxContainer({
       window.addEventListener("message", messageHandler);
       iframe.srcdoc = finalHtml;
     } catch (e) {
-      logIpcError(`加载 Skill "${skillName}"`)(e);
+      logIpcError(i18n.t("skill.loadFailed", { name: skillName }))(e);
       setError(String(e));
       setLoading(false);
       if (loadTimerRef.current) {

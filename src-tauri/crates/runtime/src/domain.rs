@@ -26,11 +26,6 @@ pub mod crypto {
     pub use axagent_crypto::*;
 }
 
-/// Re-exports from `axagent-dao` (数据访问层)
-pub mod dao {
-    pub use axagent_dao::*;
-}
-
 /// Re-exports from `axagent-disk-cache` (磁盘缓存层)
 pub mod disk_cache {
     pub use axagent_disk_cache::*;

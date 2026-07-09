@@ -30,29 +30,3 @@ pub trait DevExperienceProvider: Send + Sync {
     fn version(&self) -> &'static str;
     async fn check_update(&self) -> Result<Option<String>, String>;
 }
-#[derive(Default)]
-pub struct NoopDevExperienceProvider;
-#[async_trait]
-impl DevExperienceProvider for NoopDevExperienceProvider {
-    async fn get_env_info(&self) -> Result<EnvironmentInfo, String> {
-        Ok(EnvironmentInfo {
-            os: std::env::consts::OS.into(),
-            arch: std::env::consts::ARCH.into(),
-            hostname: "unknown".into(),
-            rust_version: None,
-            node_version: None,
-            ide: None,
-            workspace_path: None,
-        })
-    }
-    async fn set_log_level(&self, _: LogLevel) {}
-    async fn get_log_level(&self) -> Result<LogLevel, String> {
-        Ok(LogLevel::Info)
-    }
-    fn version(&self) -> &'static str {
-        "0.0.0"
-    }
-    async fn check_update(&self) -> Result<Option<String>, String> {
-        Ok(None)
-    }
-}

@@ -5,7 +5,8 @@
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
-use axagent_dao::repo::agent_session;
+use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
+use axagent_harness::AgentSessionRepository;
 use axagent_harness::conversation_model::{
     ContentBlock as HarnessContentBlock, ConversationMessage as HarnessConversationMessage,
     MessageRole as HarnessMessageRole, TokenUsage as HarnessTokenUsage,
@@ -235,7 +236,6 @@ pub struct SessionManager {
     conversation_index: Mutex<std::collections::HashMap<String, String>>,
     /// Tracks last access time for each session_id (epoch millis)
     session_last_access: Mutex<std::collections::HashMap<String, u64>>,
-    db: Arc<DatabaseConnection>,
     app_handle: tokio::sync::Mutex<Option<AppHandle>>,
     default_workspace_dir: tokio::sync::Mutex<Option<String>>,
     /// Per-conversation execution progress trackers for frontend panels.
@@ -243,6 +243,7 @@ pub struct SessionManager {
         tokio::sync::RwLock<std::collections::HashMap<String, Arc<AgentExecutionProgress>>>,
     /// 轨迹学习服务（可选，用于压缩完整性校验和任务复杂度估算）
     trajectory: Option<Arc<dyn TrajectoryService>>,
+    agent_session_repo: Arc<dyn AgentSessionRepository>,
 }
 
 /// Maximum number of sessions to keep in memory (LRU eviction).
@@ -252,15 +253,17 @@ const SESSION_TTL_SECS: u64 = 24 * 60 * 60;
 
 impl SessionManager {
     pub fn new(db: DatabaseConnection) -> Self {
+        let db = Arc::new(db);
+        let agent_session_repo: Arc<dyn AgentSessionRepository> = Arc::new(DaoAgentSessionRepository::new(db));
         Self {
             sessions: Mutex::new(std::collections::HashMap::new()),
             conversation_index: Mutex::new(std::collections::HashMap::new()),
             session_last_access: Mutex::new(std::collections::HashMap::new()),
-            db: Arc::new(db),
             app_handle: tokio::sync::Mutex::new(None),
             default_workspace_dir: tokio::sync::Mutex::new(None),
             progress_trackers: tokio::sync::RwLock::new(std::collections::HashMap::new()),
             trajectory: None,
+            agent_session_repo,
         }
     }
 
@@ -343,8 +346,7 @@ impl SessionManager {
             session.session_mut().workspace_root = Some(std::path::PathBuf::from(cwd.as_str()));
         }
 
-        let axagent_session = agent_session::upsert_agent_session(
-            &self.db,
+        let axagent_session = self.agent_session_repo.upsert_agent_session(
             &conversation_id,
             cwd_to_use.as_deref(),
             Some("default"),
@@ -392,7 +394,6 @@ impl SessionManager {
             session.session_mut().updated_at_ms = updated_session.updated_at_ms;
 
             if let Some(axagent_session_id) = session.axagent_session_id() {
-                let db = self.db.clone();
                 let axagent_sid = axagent_session_id.to_string();
                 // 优先使用调用方传入的 usage;否则从 messages 末尾的 usage 字段汇总
                 let effective_usage =
@@ -405,8 +406,7 @@ impl SessionManager {
                 drop(conv_index);
                 drop(sessions);
 
-                let _ = agent_session::update_agent_session_after_query(
-                    &db,
+                let _ = self.agent_session_repo.update_agent_session_after_query(
                     &axagent_sid,
                     "idle",
                     None,
@@ -429,8 +429,8 @@ impl SessionManager {
             sessions.remove(&session_id);
             self.session_last_access.lock().await.remove(&session_id);
 
-            let _ = agent_session::update_agent_session_status(&self.db, &session_id, "idle").await;
-            let _ = agent_session::clear_sdk_context_by_conversation_id(&self.db, conversation_id)
+            let _ = self.agent_session_repo.update_agent_session_status(&session_id, "idle").await;
+            let _ = self.agent_session_repo.clear_sdk_context_by_conversation_id(conversation_id)
                 .await;
         }
     }
@@ -748,8 +748,7 @@ impl SessionManager {
             // authoritative cost comes from the event payload.
             let cost_delta = 0.0;
 
-            let _ = agent_session::update_agent_session_after_query(
-                &self.db,
+            let _ = self.agent_session_repo.update_agent_session_after_query(
                 axagent_session_id,
                 "idle",
                 None,

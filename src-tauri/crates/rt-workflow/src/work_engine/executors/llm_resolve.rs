@@ -49,7 +49,7 @@ pub(crate) async fn resolve_provider_and_adapter(
             )
         })?;
 
-    let registry_key = prov.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&prov.provider_type);
     let adapter: Arc<dyn ProviderAdapter> =
         provider_registry.and_then(|reg| reg.get(registry_key)).ok_or_else(|| {
             NodeError::exec_failed(

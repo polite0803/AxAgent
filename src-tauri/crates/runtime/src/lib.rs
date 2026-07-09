@@ -96,8 +96,10 @@ mod trust_resolver;
 pub mod worker_boot;
 
 pub use api_docs::{ApiDocGenerator, OpenApiSpec};
+pub use axagent_runtime_core::cache_guard::CacheGuard;
 pub use axagent_runtime_core::conversation::{AssistantEvent, RuntimeError, TurnSummary};
 pub use axagent_runtime_core::permissions::{PermissionMode, PermissionPromptDecision};
+pub use axagent_runtime_core::prompt_cache::{PromptCache, PromptCacheState};
 pub use axagent_runtime_core::session::{ContentBlock, Session};
 pub use bash::{BashCommandInput, BashCommandOutput, execute_bash};
 pub use bootstrap::{BootstrapPhase, BootstrapPlan};

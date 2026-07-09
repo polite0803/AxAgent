@@ -53,20 +53,6 @@ pub trait LlmExecutionService: Send + Sync {
 }
 
 /// A no-op implementation for testing.
-pub struct NoopLlmExecutionService;
-
-#[async_trait]
-impl LlmExecutionService for NoopLlmExecutionService {
-    async fn execute(
-        &self,
-        _adapter: &(dyn ProviderAdapter + '_),
-        _ctx: &ProviderRequestContext,
-        _messages: serde_json::Value,
-        _config: &LlmCallConfig,
-    ) -> Result<LlmCallResult, String> {
-        Ok(LlmCallResult { content: String::new() })
-    }
-}
 
 /// Arc wrapper for convenience.
 pub type SharedLlmExecutionService = Arc<dyn LlmExecutionService>;

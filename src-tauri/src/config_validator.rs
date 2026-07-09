@@ -53,7 +53,7 @@ pub fn validate_agent_roles(path: &str) -> bool {
             tracing::warn!("[config-validator] {} missing 'schema_version'", path);
             valid = false;
         },
-        Some(v) if v == 0 => {
+        Some(0) => {
             tracing::warn!("[config-validator] {} schema_version is 0 (reserved)", path);
             valid = false;
         },
@@ -78,18 +78,37 @@ pub fn validate_agent_roles(path: &str) -> bool {
     for (i, role) in roles.iter().enumerate() {
         let idx = i + 1;
 
-        if role.name.as_ref().map_or(true, |n| n.trim().is_empty()) {
+        if role.enabled == Some(false) {
+            tracing::info!(
+                "[config-validator] {} role #{} is disabled, skip validation",
+                path,
+                idx
+            );
+            continue;
+        }
+
+        if role.name.as_ref().is_none_or(|n| n.trim().is_empty()) {
             tracing::warn!("[config-validator] {} role #{} missing or empty 'name'", path, idx);
             valid = false;
         }
 
-        if role.system_prompt.as_ref().map_or(true, |p| p.trim().is_empty()) {
+        if role.system_prompt.as_ref().is_none_or(|p| p.trim().is_empty()) {
             tracing::warn!(
                 "[config-validator] {} role #{} missing or empty 'system_prompt'",
                 path,
                 idx
             );
             valid = false;
+        }
+
+        if let Some(tools) = &role.allowed_tools {
+            if tools.is_empty() {
+                tracing::warn!(
+                    "[config-validator] {} role #{} allowed_tools is empty (no tools permitted)",
+                    path,
+                    idx
+                );
+            }
         }
 
         if let Some(mc) = role.max_concurrent {

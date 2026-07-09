@@ -3,6 +3,7 @@
 //! Workflow Engine — DAG executor, agent roles, work engine, orchestration.
 
 pub mod agent_roles;
+pub mod business_rules;
 pub mod expression_engine;
 pub mod trigger;
 pub mod work_engine;

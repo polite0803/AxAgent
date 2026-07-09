@@ -5,7 +5,7 @@ use axagent_harness::core_error::AxAgentError;
 use axagent_harness::types::{
     GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage,
 };
-use axagent_harness::url_utils::resolve_base_url_for_type;
+use axagent_providers::url_utils::resolve_base_url_for_type;
 
 use axum::{
     body::{Body, Bytes, to_bytes},
@@ -547,7 +547,7 @@ async fn resolve_native_context(
     })?;
 
     let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     Ok(ResolvedNativeContext {
         provider: provider.clone(),

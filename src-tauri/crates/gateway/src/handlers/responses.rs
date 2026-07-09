@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use axagent_harness::ProviderRequestContext;
 use axagent_harness::types::*;
-use axagent_harness::url_utils::resolve_base_url_for_type;
+use axagent_providers::url_utils::resolve_base_url_for_type;
 
 use crate::auth::AuthenticatedKey;
 use crate::handlers::error::{error_response, record_log};
@@ -66,7 +66,7 @@ pub async fn get_response(
     };
 
     let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,
@@ -188,7 +188,7 @@ pub async fn delete_response(
     };
 
     let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,

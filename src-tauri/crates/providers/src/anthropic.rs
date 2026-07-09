@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
 use crate::{ProviderAdapter, ProviderRequestContext, build_http_client, parse_base64_data_url};
-use axagent_harness::url_utils::resolve_chat_url;
+use crate::url_utils::resolve_chat_url;
 
 const DEFAULT_BASE_URL: &str = default_url::ANTHROPIC_BASE;
 const ANTHROPIC_VERSION: &str = "2023-06-01";
@@ -839,7 +839,7 @@ impl ProviderAdapter for AnthropicAdapter {
             .data
             .into_iter()
             .map(|m| {
-                let model_type = ModelType::detect(&m.id);
+                let model_type = axagent_harness::types::provider_model::detect_model_type(&m.id);
                 let mut caps = match model_type {
                     ModelType::Chat => vec![ModelCapability::TextChat],
                     ModelType::Embedding => vec![],

@@ -231,11 +231,11 @@ pub struct ExecutionState {
     /// 硬约束，在执行层直接拦截违规操作（LLM 无法绕过）。
     /// 与 domain_constraints（软约束，仅作为 LLM prompt 建议）共存。
     #[serde(skip, default)]
-    pub business_rule_engine: Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>>,
+    pub business_rule_engine: Option<Arc<crate::business_rules::BusinessRuleEngine>>,
     /// 凭证管理器（可选，None = 不使用凭证）。
     /// 执行器通过它按 credential_id 懒加载并解密 DatabaseConnection / Smtp / ApiKey 等凭证。
     #[serde(skip, default)]
-    pub credential_manager: Option<Arc<axagent_credential::CredentialManager>>,
+    pub credential_manager: Option<axagent_harness::SharedCredentialService>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     #[serde(skip, default)]
     pub tool_registry: Option<Arc<dyn axagent_harness::ToolRegistry>>,

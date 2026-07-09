@@ -7,12 +7,16 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::fs;
 
-use axagent_entities::wiki_sources;
+use axagent_dao::repo::note_repository::DaoNoteRepository;
+use axagent_dao::repo::wiki_repository::DaoWikiRepository;
+use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
+use axagent_harness::note_dtos::CreateNoteInput;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::util_fns::truncate_to_char_boundary;
+use axagent_harness::wiki_dtos::{InsertWikiSourceInput, NoteRepository, WikiRepository, WikiSource, WikiSourceRepository};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_kit::utils::gen_id;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::DatabaseConnection;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum IngestSourceType {
@@ -149,7 +153,9 @@ struct IngestCache {
 }
 
 pub struct IngestPipeline {
-    db: Arc<DatabaseConnection>,
+    wiki_repo: Arc<dyn WikiRepository>,
+    wiki_source_repo: Arc<dyn WikiSourceRepository>,
+    note_repo: Arc<dyn NoteRepository>,
     llm_adapter: Option<Arc<dyn ProviderAdapter>>,
     llm_ctx: Option<ProviderRequestContext>,
     llm_model: Option<String>,
@@ -157,7 +163,18 @@ pub struct IngestPipeline {
 
 impl IngestPipeline {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self { db, llm_adapter: None, llm_ctx: None, llm_model: None }
+        let wiki_repo: Arc<dyn WikiRepository> =
+            Arc::new(DaoWikiRepository::new(db.clone()));
+        let wiki_source_repo: Arc<dyn WikiSourceRepository> =
+            Arc::new(DaoWikiSourceRepository::new(db.clone()));
+        Self {
+            wiki_repo,
+            wiki_source_repo,
+            note_repo: Arc::new(DaoNoteRepository::new(db)),
+            llm_adapter: None,
+            llm_ctx: None,
+            llm_model: None,
+        }
     }
 
     pub fn with_llm(
@@ -268,21 +285,19 @@ impl IngestPipeline {
             _ => "text/markdown",
         };
 
-        let am = wiki_sources::ActiveModel {
-            id: Set(id.clone()),
-            wiki_id: Set(wiki_id.to_string()),
-            source_type: Set(format!("{:?}", source_type).to_lowercase()),
-            source_path: Set(raw_path.clone()),
-            title: Set(metadata.title.clone().unwrap_or_else(|| "Untitled".to_string())),
-            mime_type: Set(mime_type.to_string()),
-            size_bytes: Set(0),
-            content_hash: Set(content_hash.clone()),
-            metadata_json: Set(Some(serde_json::to_value(&metadata).unwrap_or_default())),
-            created_at: Set(chrono::Utc::now().timestamp()),
-            updated_at: Set(chrono::Utc::now().timestamp()),
-        };
-
-        am.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+        self.wiki_source_repo
+            .insert(InsertWikiSourceInput {
+                id: id.clone(),
+                wiki_id: wiki_id.to_string(),
+                source_type: format!("{:?}", source_type).to_lowercase(),
+                source_path: raw_path.clone(),
+                title: metadata.title.clone().unwrap_or_else(|| "Untitled".to_string()),
+                mime_type: mime_type.to_string(),
+                size_bytes: 0,
+                content_hash: content_hash.clone(),
+                metadata_json: Some(serde_json::to_value(&metadata).unwrap_or_default()),
+            })
+            .await?;
 
         let mut pages_generated = 0usize;
         let mut generated_note_ids = Vec::new();
@@ -622,10 +637,9 @@ Each page must be valid JSON inside a ```json fenced code block with these field
 
         let file_path = format!("notes/{}/{}.md", dir, slug);
 
-        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| format!("DB error: {}", e))?
+        let wiki = self.wiki_repo
+            .find_by_id(wiki_id)
+            .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
         let note_path = std::path::Path::new(&wiki.root_path).join(&file_path);
@@ -634,7 +648,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         }
         fs::write(&note_path, &page.content).await.map_err(|e| e.to_string())?;
 
-        let input = axagent_dao::repo::note::CreateNoteInput {
+        let input = CreateNoteInput {
             vault_id: wiki_id.to_string(),
             title: page.title.clone(),
             file_path: file_path.clone(),
@@ -644,9 +658,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             source_refs: Some(vec![source_id.to_string()]),
         };
 
-        let note = axagent_dao::repo::note::create_note(self.db.as_ref(), input)
-            .await
-            .map_err(|e| format!("Failed to create note: {}", e))?;
+        let note = self.note_repo.create_note(input).await?;
 
         Ok(note.id)
     }
@@ -719,10 +731,9 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     }
 
     async fn load_purpose(&self, wiki_id: &str) -> Result<String, String> {
-        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| format!("DB error: {}", e))?
+        let wiki = self.wiki_repo
+            .find_by_id(wiki_id)
+            .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");
@@ -863,7 +874,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         metadata: &SourceMetadata,
         _content: &str,
         content_hash: &str,
-    ) -> Result<wiki_sources::Model, String> {
+    ) -> Result<WikiSource, String> {
         let id = gen_id();
         let mime_type = match source.source_type {
             IngestSourceType::Pdf => "application/pdf",
@@ -880,21 +891,19 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             _ => "text/markdown",
         };
 
-        let am = wiki_sources::ActiveModel {
-            id: Set(id),
-            wiki_id: Set(wiki_id.to_string()),
-            source_type: Set(format!("{:?}", source.source_type).to_lowercase()),
-            source_path: Set(raw_path.to_string()),
-            title: Set(metadata.title.clone().unwrap_or_else(|| "Untitled".to_string())),
-            mime_type: Set(mime_type.to_string()),
-            size_bytes: Set(0),
-            content_hash: Set(content_hash.to_string()),
-            metadata_json: Set(Some(serde_json::to_value(metadata).unwrap_or_default())),
-            created_at: Set(chrono::Utc::now().timestamp()),
-            updated_at: Set(chrono::Utc::now().timestamp()),
-        };
-
-        am.insert(self.db.as_ref()).await.map_err(|e| e.to_string())
+        self.wiki_source_repo
+            .insert(InsertWikiSourceInput {
+                id,
+                wiki_id: wiki_id.to_string(),
+                source_type: format!("{:?}", source.source_type).to_lowercase(),
+                source_path: raw_path.to_string(),
+                title: metadata.title.clone().unwrap_or_else(|| "Untitled".to_string()),
+                mime_type: mime_type.to_string(),
+                size_bytes: 0,
+                content_hash: content_hash.to_string(),
+                metadata_json: Some(serde_json::to_value(metadata).unwrap_or_default()),
+            })
+            .await
     }
 }
 

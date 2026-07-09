@@ -8,12 +8,14 @@ use tokio::fs;
 use tokio::sync::RwLock;
 
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    Set,
+    ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set,
 };
 
-use axagent_entities::{notes, wikis};
+use axagent_entities::wikis;
+use axagent_dao::repo::note_repository::DaoNoteRepository;
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::note_dtos::UpdateNoteInput;
+use axagent_harness::wiki_dtos::NoteRepository;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchemaVersion {
@@ -61,12 +63,17 @@ pub enum Compatibility {
 
 pub struct SchemaManager {
     db: Arc<DatabaseConnection>,
+    note_repo: Arc<dyn NoteRepository>,
     cache: Arc<RwLock<Option<String>>>,
 }
 
 impl SchemaManager {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self { db, cache: Arc::new(RwLock::new(None)) }
+        Self {
+            db: db.clone(),
+            note_repo: Arc::new(DaoNoteRepository::new(db)),
+            cache: Arc::new(RwLock::new(None)),
+        }
     }
 
     pub async fn get_current_schema(&self, wiki_id: &str) -> Result<String> {
@@ -215,14 +222,9 @@ impl SchemaManager {
         let diff = self.diff_schemas(wiki_id, from_version, to_version).await?;
         let mut migrated = 0;
 
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(wiki_id))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
-            .await?;
+        let all_notes = self.note_repo.find_by_vault(wiki_id, false).await?;
 
-        for note_model in db_notes {
-            let mut note = axagent_dao::repo::note::model_to_note(note_model.clone());
+        for mut note in all_notes {
             let mut content_updated = false;
 
             for added_field in &diff.added_fields {
@@ -236,13 +238,14 @@ impl SchemaManager {
             }
 
             if content_updated {
-                let input = axagent_dao::repo::note::UpdateNoteInput {
+                let input = UpdateNoteInput {
                     title: None,
                     content: Some(note.content.clone()),
                     page_type: None,
                     related_pages: None,
                 };
-                axagent_dao::repo::note::update_note(self.db.as_ref(), &note.id, input)
+                self.note_repo
+                    .update_note(&note.id, input)
                     .await
                     .map_err(|e| {
                         AxAgentError::Internal(format!("Failed to migrate page {}: {}", note.id, e))

@@ -179,7 +179,7 @@ pub async fn generate_research_report(
         .map_err(|e| format!("密钥解密失败: {}", e))?;
 
     // 3. 创建 ProviderAdapter
-    let registry_key = provider_config.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider_config.provider_type);
 
     let adapter = state
         .harness

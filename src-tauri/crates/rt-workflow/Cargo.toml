@@ -6,12 +6,12 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
-axagent-credential = { path = "../credential" }
 axagent-crypto = { path = "../crypto" }
 axagent-dao = { path = "../dao" }
 axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
+axagent-providers = { path = "../providers" }
 axagent-runtime-core = { path = "../runtime-core" }
 chrono = { workspace = true }
 chrono-tz = "0.8"

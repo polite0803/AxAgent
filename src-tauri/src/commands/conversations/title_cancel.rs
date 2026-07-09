@@ -44,7 +44,7 @@ pub async fn regenerate_conversation_title(
         .await
         .map_err(|e| e.to_string())?;
 
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id.clone(),

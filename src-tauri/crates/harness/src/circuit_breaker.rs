@@ -45,27 +45,3 @@ pub trait CircuitBreaker: Send + Sync {
     fn snapshot(&self) -> CircuitBreakerSnapshot;
     fn config(&self) -> &CircuitBreakerConfig;
 }
-#[derive(Default)]
-pub struct NoopCircuitBreaker {
-    config: CircuitBreakerConfig,
-}
-impl CircuitBreaker for NoopCircuitBreaker {
-    fn is_allowed(&self) -> bool {
-        true
-    }
-    fn record_success(&self) {}
-    fn record_failure(&self) {}
-    fn reset(&self) {}
-    fn snapshot(&self) -> CircuitBreakerSnapshot {
-        CircuitBreakerSnapshot {
-            state: CircuitState::Closed,
-            failure_count: 0,
-            last_failure_secs_ago: None,
-            total_success: 0,
-            total_failure: 0,
-        }
-    }
-    fn config(&self) -> &CircuitBreakerConfig {
-        &self.config
-    }
-}

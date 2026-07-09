@@ -6,7 +6,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use axagent_harness::types::{ProviderConfig, ProviderType};
-use axagent_harness::url_utils::resolve_base_url_for_type;
+use axagent_providers::url_utils::resolve_base_url_for_type;
 use axagent_harness::{ProviderProxyConfig, ProviderRequestContext};
 
 /// `record_log!` — record a request log entry via the platform adapter.
@@ -115,7 +115,7 @@ pub(crate) async fn resolve_hermes_provider_context(
     };
 
     let global_settings = adapter.settings().get_settings().await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key,

@@ -39,21 +39,6 @@ pub trait RhaiEngineAdapter: fmt::Debug + Send + Sync {
 pub type RhaiToolFn = Arc<dyn Fn(String, JsonValue) -> Result<JsonValue, String> + Send + Sync>;
 
 /// 空实现 — 总是失败（Rhai 引擎未配置）
-#[derive(Debug)]
-pub struct NoopRhaiEngineAdapter;
-
-impl RhaiEngineAdapter for NoopRhaiEngineAdapter {
-    fn register_scripts(&self, _scripts: &[JsonValue]) {}
-
-    fn execute_script(
-        &self,
-        _script_name: &str,
-        _args: JsonValue,
-        _tool_fns: &HashMap<String, RhaiToolFn>,
-    ) -> Result<JsonValue, String> {
-        Err("Rhai engine is not configured".to_string())
-    }
-}
 
 #[cfg(test)]
 mod tests {

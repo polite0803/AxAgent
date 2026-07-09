@@ -11,6 +11,7 @@ axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 axagent-mcp = { path = "../mcp" }
+axagent-providers = { path = "../providers" }
 axum = { version = "0.8", features = ["ws"] }
 axum-server = { version = "0.7", features = ["tls-rustls"] }
 futures = "0.3"

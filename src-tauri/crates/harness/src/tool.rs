@@ -95,78 +95,9 @@ impl ToolCategory {
     }
 }
 
-/// 权限范围定义
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ToolPermissions {
-    /// 允许调用的工具名白名单（空 = 允许全部）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub allowed_tools: Option<Vec<String>>,
-    /// 明确禁止的工具名
-    pub forbidden_tools: Vec<String>,
-    /// 允许的 ToolCategory 白名单（空 = 允许全部）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub allowed_categories: Option<Vec<ToolCategory>>,
-    /// 最大调用次数（会话级），None = 不限
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_calls_per_session: Option<u32>,
-    /// 是否启用严格模式（禁止 LLM 发散）
-    pub strict_mode: bool,
-}
-
-impl ToolPermissions {
-    /// 校验是否允许调用指定工具。
-    ///
-    /// 检查顺序：
-    /// 1. `forbidden_tools` 黑名单
-    /// 2. `allowed_tools` 白名单（若设置）
-    /// 3. `allowed_categories` 类别白名单（若设置）
-    /// 4. `max_calls_per_session` 调用次数限制
-    ///
-    /// `session_total_calls` 通常由调用方维护和传入。
-    pub fn check_tool_allowed(
-        &self,
-        tool_name: &str,
-        category: ToolCategory,
-        session_total_calls: u32,
-    ) -> PermissionResult {
-        // 1. 检查黑名单
-        if self.forbidden_tools.iter().any(|t| t == tool_name) {
-            let reason = format!("工具 '{tool_name}' 在禁止调用列表中");
-            warn!("权限拒绝: {reason}");
-            return PermissionResult::Deny(reason);
-        }
-
-        // 2. 检查白名单
-        if let Some(ref allowed) = self.allowed_tools
-            && !allowed.iter().any(|t| t == tool_name)
-        {
-            let reason = format!("工具 '{tool_name}' 不在允许调用列表中（允许: {:?}）", allowed);
-            warn!("权限拒绝: {reason}");
-            return PermissionResult::Deny(reason);
-        }
-
-        // 3. 检查类别白名单
-        if let Some(ref allowed_cats) = self.allowed_categories
-            && !allowed_cats.contains(&category)
-        {
-            let reason =
-                format!("工具类别 '{:?}' 不在允许类别中（允许: {:?}）", category, allowed_cats);
-            warn!("权限拒绝: {reason}");
-            return PermissionResult::Deny(reason);
-        }
-
-        // 4. 检查会话级调用次数限制
-        if let Some(max_calls) = self.max_calls_per_session
-            && session_total_calls >= max_calls
-        {
-            let reason = format!("工具调用次数已达上限（{max_calls}/{max_calls}）");
-            warn!("权限拒绝: {reason}");
-            return PermissionResult::Deny(reason);
-        }
-
-        PermissionResult::Allow
-    }
-}
+// ToolPermissions 结构体及其 check_tool_allowed() 方法已提取至
+// `tool_permissions` 模块。保留此处的 re-export 以保证向后兼容。
+pub use crate::tool_permissions::ToolPermissions;
 
 /// 工具执行上下文
 #[derive(Debug, Clone)]
@@ -395,103 +326,10 @@ pub trait Tool: Send + Sync {
 
     /// 输入验证（在执行前调用）
     ///
-    /// 默认实现会检查：
-    /// - required 字段是否存在
-    /// - 每个属性的 type、enum、minimum/maximum、minLength/maxLength
+    /// 默认实现委托给 `ToolValidator`，校验 required / type / enum /
+    /// minimum / maximum / minLength / maxLength。
     async fn validate(&self, input: &Value, _ctx: &ToolContext) -> Result<(), ToolError> {
-        let schema = self.input_schema();
-
-        // 必填字段检查
-        if let Some(required) = schema.get("required").and_then(|v| v.as_array()) {
-            for field in required {
-                let key = field.as_str().unwrap_or("");
-                if input.get(key).is_none() || input.get(key) == Some(&Value::Null) {
-                    return Err(ToolError::invalid_input(format!("缺少必需参数: {key}")));
-                }
-            }
-        }
-
-        // 校验 properties 中每个字段的类型/格式/枚举值/范围
-        if let Some(properties) = schema.get("properties").and_then(|v| v.as_object()) {
-            for (prop_name, prop_schema) in properties {
-                let val = match input.get(prop_name) {
-                    Some(v) if !v.is_null() => v,
-                    _ => continue, // 可选参数且未提供，跳过
-                };
-
-                // 类型校验
-                if let Some(expected_type) = prop_schema.get("type").and_then(|t| t.as_str()) {
-                    let type_ok = match expected_type {
-                        "string" => val.is_string(),
-                        "number" | "integer" => val.is_number(),
-                        "boolean" => matches!(val, Value::Bool(_)),
-                        "array" => val.is_array(),
-                        "object" => val.is_object(),
-                        _ => true,
-                    };
-                    if !type_ok {
-                        return Err(ToolError::invalid_input(format!(
-                            "参数 '{prop_name}' 应为 {expected_type} 类型"
-                        )));
-                    }
-                    // 对 integer 额外检查必须是整数
-                    if expected_type == "integer" && !val.as_f64().is_some_and(|f| f.fract() == 0.0)
-                    {
-                        return Err(ToolError::invalid_input(format!(
-                            "参数 '{prop_name}' 应为整数"
-                        )));
-                    }
-                }
-
-                // 枚举值校验
-                if let Some(enum_vals) = prop_schema.get("enum").and_then(|e| e.as_array())
-                    && !enum_vals.contains(val)
-                {
-                    return Err(ToolError::invalid_input(format!(
-                        "参数 '{prop_name}' 值不在允许范围内: {:?}",
-                        enum_vals
-                    )));
-                }
-
-                // 最小值/最大值校验（数值）
-                if let Some(min) = prop_schema.get("minimum").and_then(|m| m.as_f64())
-                    && let Some(n) = val.as_f64()
-                    && n < min
-                {
-                    return Err(ToolError::invalid_input(format!(
-                        "参数 '{prop_name}' 不能小于 {min}"
-                    )));
-                }
-                if let Some(max) = prop_schema.get("maximum").and_then(|m| m.as_f64())
-                    && let Some(n) = val.as_f64()
-                    && n > max
-                {
-                    return Err(ToolError::invalid_input(format!(
-                        "参数 '{prop_name}' 不能大于 {max}"
-                    )));
-                }
-
-                // 最小长度/最大长度校验（字符串）
-                if let Some(min_len) = prop_schema.get("minLength").and_then(|m| m.as_u64())
-                    && let Some(s) = val.as_str()
-                    && (s.len() as u64) < min_len
-                {
-                    return Err(ToolError::invalid_input(format!(
-                        "参数 '{prop_name}' 长度不能少于 {min_len}"
-                    )));
-                }
-                if let Some(max_len) = prop_schema.get("maxLength").and_then(|m| m.as_u64())
-                    && let Some(s) = val.as_str()
-                    && (s.len() as u64) > max_len
-                {
-                    return Err(ToolError::invalid_input(format!(
-                        "参数 '{prop_name}' 长度不能超过 {max_len}"
-                    )));
-                }
-            }
-        }
-
-        Ok(())
+        crate::tool_validation::ToolValidator::default().validate(input, &self.input_schema())
     }
 
     /// 权限检查（在执行前调用）
@@ -525,81 +363,12 @@ pub trait OutputSanitizer: Send + Sync + std::fmt::Debug {
     fn sanitize(&self, output: &str, ctx: &SanitizeContext) -> String;
 }
 
-/// 默认脱敏器 — 支持正则模式匹配替换
-#[derive(Debug, Clone)]
-pub struct DefaultOutputSanitizer {
-    patterns: Vec<(regex::Regex, &'static str)>,
-}
-
-impl DefaultOutputSanitizer {
-    pub fn new() -> Self {
-        let patterns = vec![
-            // API key: sk-xxx
-            (
-                regex::Regex::new(r"(?i)(sk|pk)-[a-zA-Z0-9]{20,}").expect("static regex"),
-                "${1}-****",
-            ),
-            // 内部 IP: 192.168.x.x / 10.x.x.x
-            (
-                regex::Regex::new(r"\b192\.168\.\d{1,3}\.\d{1,3}\b").expect("static regex"),
-                "192.168.*.*",
-            ),
-            (
-                regex::Regex::new(r"\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b").expect("static regex"),
-                "10.*.*.*",
-            ),
-            (
-                regex::Regex::new(r"\b172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b")
-                    .expect("static regex"),
-                "172.*.*.*",
-            ),
-            // 邮箱
-            (
-                regex::Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
-                    .expect("static regex"),
-                "***@***",
-            ),
-            // 常见 token 模式
-            (
-                regex::Regex::new(r"(?i)(token|secret|password)\s*[:=]\s*\S{8,}")
-                    .expect("static regex"),
-                "${1}=****",
-            ),
-        ];
-        Self { patterns }
-    }
-
-    /// 使用自定义模式构建
-    pub fn with_custom_patterns(patterns: Vec<(regex::Regex, &'static str)>) -> Self {
-        Self { patterns }
-    }
-}
-
-impl Default for DefaultOutputSanitizer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl OutputSanitizer for DefaultOutputSanitizer {
-    fn sanitize(&self, output: &str, _ctx: &SanitizeContext) -> String {
-        let mut result = output.to_string();
-        for (re, replacement) in &self.patterns {
-            result = re.replace_all(&result, *replacement).to_string();
-        }
-        result
-    }
-}
-
-/// 空脱敏器 — 直接透传
-#[derive(Debug, Clone)]
-pub struct NoopOutputSanitizer;
-
-impl OutputSanitizer for NoopOutputSanitizer {
-    fn sanitize(&self, output: &str, _ctx: &SanitizeContext) -> String {
-        output.to_string()
-    }
-}
+// 默认脱敏器和 Noop 实现已提取至 `output_sanitizer` 模块。
+// 保留此处的 re-export 以保证向后兼容。
+pub use crate::output_sanitizer::{
+    DefaultInputSanitizer, DefaultOutputSanitizer,
+};
+pub use crate::test_support::NoopOutputSanitizer;
 
 // ─────────────────────────────────────────────────────────
 
@@ -626,32 +395,4 @@ pub trait InputSanitizer: Send + Sync + std::fmt::Debug {
     fn sanitize_input(&self, input: &str, context: &str) -> String;
 }
 
-/// 默认输入脱敏器 — 复用 DefaultOutputSanitizer 的正则模式
-#[derive(Debug, Clone)]
-pub struct DefaultInputSanitizer {
-    output_sanitizer: DefaultOutputSanitizer,
-}
-
-impl DefaultInputSanitizer {
-    pub fn new() -> Self {
-        Self { output_sanitizer: DefaultOutputSanitizer::new() }
-    }
-}
-
-impl Default for DefaultInputSanitizer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl InputSanitizer for DefaultInputSanitizer {
-    fn sanitize_input(&self, input: &str, _context: &str) -> String {
-        // 对 LLM 输入做脱敏（只坏不修：只替换敏感内容，不改变语义）
-        let ctx = SanitizeContext {
-            tool_name: "__input_sanitizer__".into(),
-            tool_category: ToolCategory::System,
-            conversation_id: None,
-        };
-        self.output_sanitizer.sanitize(input, &ctx)
-    }
-}
+// 默认输入脱敏器已提取至 `output_sanitizer` 模块。

@@ -151,8 +151,8 @@ impl PlatformManager {
         drop(router);
 
         // 回退到持久化路由
-        if let Some(db) = db {
-            let routes = axagent_dao::repo::platform_config::load_session_routes(db).await;
+        if db.is_some() {
+            let routes = axagent_harness::repositories::platform_config_repository().load_session_routes().await;
             let key = format!("{}_{}", platform, user_id);
             return routes.get(&key).cloned();
         }

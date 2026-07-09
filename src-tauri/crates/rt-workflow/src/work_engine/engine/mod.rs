@@ -226,7 +226,7 @@ pub struct WorkEngine {
     /// 硬约束，在执行层直接拦截违规操作。
     /// 通过 `set_business_rule_engine` 注入。
     business_rule_engine:
-        Arc<std::sync::Mutex<Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>>>>,
+        Arc<std::sync::Mutex<Option<Arc<crate::business_rules::BusinessRuleEngine>>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
@@ -563,7 +563,7 @@ impl WorkEngine {
     /// 多次调用：后者覆盖前者（标准 setter 语义）。
     pub async fn set_business_rule_engine(
         &self,
-        engine: Arc<axagent_harness::business_rules::BusinessRuleEngine>,
+        engine: Arc<crate::business_rules::BusinessRuleEngine>,
     ) {
         *self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned") =
             Some(engine);
@@ -572,7 +572,7 @@ impl WorkEngine {
     /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
     fn business_rule_engine(
         &self,
-    ) -> Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>> {
+    ) -> Option<Arc<crate::business_rules::BusinessRuleEngine>> {
         self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned").clone()
     }
 

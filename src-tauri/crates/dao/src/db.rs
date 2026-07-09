@@ -501,7 +501,7 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
                 model_id: model_id.to_string(),
                 name: name.to_string(),
                 group_name: None,
-                model_type: ModelType::detect(model_id),
+                model_type: axagent_harness::types::provider_model::detect_model_type(model_id),
                 capabilities: caps,
                 max_tokens,
                 max_output_tokens: None,

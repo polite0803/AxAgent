@@ -1231,7 +1231,7 @@ pub(crate) async fn generate_ai_title(
                 .await;
             },
         };
-        let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, settings);
+        let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, settings);
         let ctx = ProviderRequestContext {
             api_key: dk,
             key_id: key_row.id.clone(),
@@ -1321,7 +1321,7 @@ pub(crate) async fn generate_ai_title_with(
         store: None,
     };
 
-    let registry_key = provider.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider.provider_type);
     let adapter = harness
         .provider_registry()
         .get(registry_key)

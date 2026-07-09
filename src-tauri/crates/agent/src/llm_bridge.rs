@@ -637,7 +637,16 @@ impl PrmLlmProvider for ProviderLlmBridge {
                                 (RewardCategory::Efficiency, efficiency.clamp(0.0, 1.0)),
                                 (RewardCategory::Safety, safety.clamp(0.0, 1.0)),
                             ];
-                            let reward: f64 = categories.iter().map(|(c, s)| c.weight() * s).sum();
+                            let reward: f64 = categories.iter().map(|(c, s)| {
+                                let w = match c {
+                                    RewardCategory::Correctness => 0.30,
+                                    RewardCategory::Coherence => 0.20,
+                                    RewardCategory::Completeness => 0.25,
+                                    RewardCategory::Efficiency => 0.15,
+                                    RewardCategory::Safety => 0.10,
+                                };
+                                w * s
+                            }).sum();
 
                             return Ok(StepReward {
                                 step_index: 0,

@@ -5,52 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use axagent_entities::{note_backlinks, note_links, notes};
 use axagent_harness::core_error::{AxAgentError, Result};
+pub use axagent_harness::note_dtos::{self, calculate_content_hash, CreateNoteInput, Note, UpdateNoteInput};
 use axagent_harness::util_fns::gen_id;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Note {
-    pub id: String,
-    pub vault_id: String,
-    pub title: String,
-    pub file_path: String,
-    pub content: String,
-    pub content_hash: String,
-    pub author: String,
-    pub page_type: Option<String>,
-    pub source_refs: Option<Vec<String>>,
-    pub related_pages: Option<Vec<String>>,
-    pub quality_score: Option<f64>,
-    pub last_linted_at: Option<i64>,
-    pub last_compiled_at: Option<i64>,
-    pub compiled_source_hash: Option<String>,
-    pub user_edited: bool,
-    pub user_edited_at: Option<i64>,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub is_deleted: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateNoteInput {
-    pub vault_id: String,
-    pub title: String,
-    pub file_path: String,
-    pub content: String,
-    pub author: String,
-    pub page_type: Option<String>,
-    pub source_refs: Option<Vec<String>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateNoteInput {
-    pub title: Option<String>,
-    pub content: Option<String>,
-    pub page_type: Option<String>,
-    pub related_pages: Option<Vec<String>>,
-}
 
 // NoteLink DTO 在 harness 里定义（提升到 harness 让 search 等下游 crate 不用反向依赖 dao），
 // 这里 re-export 保持向后兼容 — 单一类型来源。
@@ -324,41 +280,7 @@ pub async fn sync_note_links(
     Ok(())
 }
 
-pub fn calculate_content_hash(content: &str) -> String {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut hasher = DefaultHasher::new();
-    content.hash(&mut hasher);
-    format!("{:x}", hasher.finish())
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GraphNode {
-    pub id: String,
-    pub title: String,
-    #[serde(rename = "type")]
-    pub node_type: String,
-    pub tags: Vec<String>,
-    pub link_count: i32,
-    pub backlink_count: i32,
-    pub path: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GraphEdge {
-    pub source: String,
-    pub target: String,
-    #[serde(rename = "type")]
-    pub edge_type: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GraphData {
-    pub nodes: Vec<GraphNode>,
-    pub edges: Vec<GraphEdge>,
-}
+pub use axagent_harness::graph_dtos::{GraphData, GraphEdge, GraphNode};
 
 pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<GraphData> {
     let notes = list_notes(db, vault_id).await?;
@@ -442,32 +364,4 @@ fn extract_tags_from_content(content: &str) -> Vec<String> {
         }
     }
     tags
-}
-
-// ── Bridge: DAO Note → Harness Note ──────────────────────────
-
-impl From<Note> for axagent_harness::rag_config::Note {
-    fn from(n: Note) -> Self {
-        Self {
-            id: n.id,
-            vault_id: n.vault_id,
-            title: n.title,
-            file_path: n.file_path,
-            content: n.content,
-            content_hash: n.content_hash,
-            author: n.author,
-            page_type: n.page_type,
-            source_refs: n.source_refs,
-            related_pages: n.related_pages,
-            quality_score: n.quality_score,
-            last_linted_at: n.last_linted_at,
-            last_compiled_at: n.last_compiled_at,
-            compiled_source_hash: n.compiled_source_hash,
-            user_edited: n.user_edited,
-            user_edited_at: n.user_edited_at,
-            created_at: n.created_at,
-            updated_at: n.updated_at,
-            is_deleted: n.is_deleted,
-        }
-    }
 }

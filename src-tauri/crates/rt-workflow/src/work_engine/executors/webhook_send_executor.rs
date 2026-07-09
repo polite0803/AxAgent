@@ -72,9 +72,9 @@ impl NodeExecutorTrait for WebhookSendExecutor {
         if let Some(cid) = c.credential_id.as_deref()
             && let Some(cm) = &ctx.credential_manager
         {
-            match cm.get_credential(cid).await {
-                Ok(cred) => {
-                    for (key, value) in cm.get_auth_headers(&cred).unwrap_or_default() {
+            match cm.get_auth_headers(cid).await {
+                Ok(headers) => {
+                    for (key, value) in headers {
                         req = req.header(&key, &value);
                     }
                 },

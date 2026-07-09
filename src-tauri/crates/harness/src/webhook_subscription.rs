@@ -129,35 +129,3 @@ pub struct WebhookSubscriptionInfo {
 
 // ── 空实现 — 什么也不做 ────────────────────────────────
 
-#[derive(Debug)]
-pub struct NoopWebhookSubscriptionService;
-
-#[async_trait::async_trait]
-impl WebhookSubscriptionService for NoopWebhookSubscriptionService {
-    async fn subscribe(
-        &self,
-        _url: String,
-        _event: &str,
-        _secret: Option<String>,
-    ) -> Result<WebhookSubscriptionInfo, String> {
-        Err("Webhook subscription service is not configured".to_string())
-    }
-
-    async fn get_subscriptions_for_event(&self, _event: &str) -> Vec<WebhookSubscriptionInfo> {
-        Vec::new()
-    }
-
-    async fn unsubscribe(&self, _subscription_id: &str) -> Result<(), String> {
-        Ok(())
-    }
-
-    async fn reset_failures(&self, _subscription_id: &str) {}
-
-    async fn increment_failure(&self, _subscription_id: &str) {}
-
-    async fn update_last_triggered(&self, _subscription_id: &str) {}
-
-    async fn list_subscriptions(&self) -> Vec<WebhookSubscriptionInfo> {
-        Vec::new()
-    }
-}

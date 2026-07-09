@@ -174,7 +174,7 @@ pub async fn validate_provider_key(
             tracing::warn!("Failed to read global settings, falling back to defaults: {}", e)
         })
         .unwrap_or_default();
-    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
         &provider.proxy_config,
         &global_settings,
     );
@@ -306,7 +306,7 @@ pub async fn fetch_remote_models(
             tracing::warn!("Failed to read global settings, falling back to defaults: {}", e)
         })
         .unwrap_or_default();
-    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
         &provider.proxy_config,
         &global_settings,
     );
@@ -399,7 +399,7 @@ pub async fn test_model(
             tracing::warn!("Failed to read global settings, falling back to defaults: {}", e)
         })
         .unwrap_or_default();
-    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
         &provider.proxy_config,
         &global_settings,
     );

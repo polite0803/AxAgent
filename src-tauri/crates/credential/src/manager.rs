@@ -11,6 +11,7 @@ use crate::store::CredentialStore;
 use crate::types::{Credential, CredentialType, SmtpConfig};
 
 /// Runtime credential manager with lazy-loading and caching.
+#[derive(Debug)]
 pub struct CredentialManager {
     store: CredentialStore,
     cache: tokio::sync::Mutex<HashMap<String, Credential>>,
@@ -130,5 +131,48 @@ impl CredentialManager {
                 "credential {credential_id} is {other}, not Smtp"
             ))),
         }
+    }
+}
+
+// ── Harness CredentialService trait implementation ──
+
+use axagent_harness::credential_service::{CredentialService, SmtpServiceConfig};
+
+#[async_trait::async_trait]
+impl CredentialService for CredentialManager {
+    async fn get_database_connection_string(
+        &self,
+        credential_id: &str,
+    ) -> std::result::Result<String, String> {
+        CredentialManager::get_database_connection_string(self, credential_id)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    async fn get_smtp_config(
+        &self,
+        credential_id: &str,
+    ) -> std::result::Result<SmtpServiceConfig, String> {
+        let sc = CredentialManager::get_smtp_config(self, credential_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(SmtpServiceConfig {
+            host: sc.host,
+            port: sc.port,
+            user: sc.user,
+            pass: sc.pass,
+            tls: sc.tls,
+        })
+    }
+
+    async fn get_auth_headers(
+        &self,
+        credential_id: &str,
+    ) -> std::result::Result<Vec<(String, String)>, String> {
+        let cred = CredentialManager::get_credential(self, credential_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        CredentialManager::get_auth_headers(self, &cred)
+            .map_err(|e| e.to_string())
     }
 }

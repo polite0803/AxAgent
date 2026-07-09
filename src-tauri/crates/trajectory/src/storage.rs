@@ -1080,7 +1080,7 @@ impl TrajectoryStorage {
             })
             .await?
             .into_iter()
-            .map(|t| t.export_as_rl())
+            .map(|t| axagent_harness::trajectory_scorer::TrajectoryScorer::export_as_rl(&t))
             .collect())
     }
 

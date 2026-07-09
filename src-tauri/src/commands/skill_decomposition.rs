@@ -515,7 +515,7 @@ pub async fn generate_missing_tool(
             .map_err(|e| e.to_string())?;
 
     // Persist to database
-    axagent_runtime::tool_generator::persist_to_db(&tool, state.harness.db())
+    axagent_runtime::tool_generator::persist_to_db(&tool)
         .await
         .map_err(|e| e.to_string())?;
 

@@ -592,9 +592,7 @@ where
                 let ctx_req = ContextRequest {
                     session_id: &self.session.session_id,
                     conversation_id: None,
-                    session: &self.session,
                     system_prompt: &self.system_prompt,
-                    feature_flags: crate::feature_flags::global_feature_flags(),
                     extras: &Default::default(),
                 };
                 for contributor in &self.context_contributors {

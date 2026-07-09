@@ -1794,7 +1794,7 @@ pub(crate) async fn generate_ai_title(
                 .await;
             },
         };
-        let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, settings);
+        let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, settings);
         let ctx = ProviderRequestContext {
             api_key: dk,
             key_id: key_row.id.clone(),
@@ -1878,7 +1878,7 @@ pub(crate) async fn generate_ai_title_with(
         store: None,
     };
 
-    let registry_key = provider.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider.provider_type);
     let adapter = harness.provider_registry().get(registry_key).ok_or_else(|| {
         let err = format!("Adapter not found for provider type: {}", registry_key);
         tracing::error!("[title-gen] {}", err);
@@ -1973,7 +1973,7 @@ pub async fn regenerate_conversation_title(
     let global_settings =
         axagent_dao::repo::settings::get_settings(&db).await.map_err(|e| e.to_string())?;
 
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id.clone(),

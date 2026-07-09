@@ -29,7 +29,7 @@ use std::collections::HashMap;
 use std::string::ToString;
 
 /// 错误分类，供前端做分支处理（重试 / 授权 / 放弃等）。
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCategory {
     /// 可重试错误：网络超时、临时故障、资源暂时不可用等
@@ -41,13 +41,8 @@ pub enum ErrorCategory {
     /// 输入验证错误：参数缺失、格式不正确、值域不合法
     Validation,
     /// 通用错误（默认分类）
+    #[default]
     General,
-}
-
-impl Default for ErrorCategory {
-    fn default() -> Self {
-        Self::General
-    }
 }
 
 /// 统一错误响应结构

@@ -107,7 +107,7 @@ pub(crate) async fn do_compress(
                     let dk = axagent_crypto::decrypt_key(&k.key_encrypted, master_key)
                         .map_err(|e| e.to_string())?;
                     let kid = k.id.clone();
-                    let proxy = ProviderProxyConfig::resolve(&p.proxy_config, settings);
+                    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&p.proxy_config, settings);
                     let override_umc = axagent_dao::repo::provider::get_model(db, pid, mid)
                         .await
                         .ok()
@@ -207,7 +207,7 @@ pub(crate) async fn do_compress(
         store_response: None,
     };
 
-    let registry_key = comp_provider.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&comp_provider.provider_type);
     let adapter = harness
         .provider_registry()
         .get(registry_key)
@@ -265,7 +265,7 @@ pub async fn compress_context(
     let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     // Load messages after last marker
     let db_messages =

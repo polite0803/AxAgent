@@ -16,6 +16,7 @@ pub mod registry;
 #[cfg(feature = "computer-use")]
 pub mod screen_vision;
 pub mod transport;
+pub mod url_utils;
 
 pub use image_gen::{
     DallEProvider, FluxProvider, GeneratedImage, ImageGenModelInfo, ImageGenProvider,

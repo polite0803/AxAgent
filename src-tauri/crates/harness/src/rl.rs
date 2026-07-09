@@ -68,34 +68,3 @@ pub trait RLTrainer: Send + Sync {
     async fn train_episode(&self, episode: TrainingEpisode) -> Result<TrainingReport, String>;
     async fn get_progress(&self) -> Result<TrainingReport, String>;
 }
-
-#[derive(Default)]
-pub struct NoopRLEngine;
-#[async_trait]
-impl RLEngine for NoopRLEngine {
-    async fn compute_rewards(&self, _episodes: &[TrainingEpisode]) -> Result<Vec<f64>, String> {
-        Ok(vec![0.0])
-    }
-    async fn compute_advantages(&self, _rewards: &[f64]) -> Vec<f64> {
-        vec![0.0]
-    }
-    async fn reset(&self) {}
-}
-
-#[derive(Default)]
-pub struct NoopRLTrainer;
-#[async_trait]
-impl RLTrainer for NoopRLTrainer {
-    async fn train_episode(&self, _episode: TrainingEpisode) -> Result<TrainingReport, String> {
-        Err("RL trainer not configured".to_string())
-    }
-    async fn get_progress(&self) -> Result<TrainingReport, String> {
-        Ok(TrainingReport {
-            episodes_trained: 0,
-            avg_reward: 0.0,
-            max_reward: 0.0,
-            total_steps: 0,
-            duration_secs: 0.0,
-        })
-    }
-}

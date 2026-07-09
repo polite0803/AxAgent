@@ -1002,6 +1002,7 @@ dependencies = [
  "axagent-harness",
  "axagent-kit",
  "axagent-mcp",
+ "axagent-providers",
  "axum",
  "axum-server",
  "futures",
@@ -1249,12 +1250,12 @@ name = "axagent-rt-workflow"
 version = "2.8.2"
 dependencies = [
  "async-trait",
- "axagent-credential",
  "axagent-crypto",
  "axagent-dao",
  "axagent-entities",
  "axagent-harness",
  "axagent-kit",
+ "axagent-providers",
  "axagent-runtime-core",
  "chrono",
  "chrono-tz",

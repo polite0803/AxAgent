@@ -8,10 +8,18 @@
 
 pub mod db;
 pub mod ddl;
+pub mod conversation_repository;
+pub mod generated_tool_repository;
 pub mod integrity;
 pub mod marketplace_service;
+pub mod memory_repository;
+pub mod message_repository;
 pub mod migrations;
 pub mod platform_adapter_impl;
+pub mod platform_config_repository;
+pub mod provider_repository;
 pub mod repo;
 pub mod search_sources_impl;
+pub mod settings_repository;
+pub mod tool_execution_repository;
 pub mod workflow_conversions;

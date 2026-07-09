@@ -21,12 +21,3 @@ pub trait ToolAccessControl: Send + Sync {
     async fn check_access(&self, req: &ToolAccessRequest) -> AccessDecision;
     async fn record_result(&self, req: &ToolAccessRequest, success: bool, error: Option<&str>);
 }
-#[derive(Default)]
-pub struct NoopToolAccessControl;
-#[async_trait]
-impl ToolAccessControl for NoopToolAccessControl {
-    async fn check_access(&self, _: &ToolAccessRequest) -> AccessDecision {
-        AccessDecision::Allow
-    }
-    async fn record_result(&self, _: &ToolAccessRequest, _: bool, _: Option<&str>) {}
-}

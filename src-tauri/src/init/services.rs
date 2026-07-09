@@ -480,7 +480,7 @@ fn start_rl_reward_computation(state: &AppState) {
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             {
                 let mut rl = rl_engine.write().await;
@@ -699,7 +699,7 @@ fn start_skill_evolution(state: &AppState) {
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             let engine = skill_evolution_engine.lock().await;
             engine.set_llm_provider(std::sync::Arc::new(bridge));
@@ -966,7 +966,7 @@ fn start_auto_tool_observation(state: &AppState) {
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             let mut atc = auto_tool_creator.lock().await;
             atc.set_llm_provider(Box::new(bridge));
@@ -1039,7 +1039,7 @@ fn start_text_grad_analysis(state: &AppState) {
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             let mut engine = text_grad_engine.lock().await;
             engine.set_provider(bridge);

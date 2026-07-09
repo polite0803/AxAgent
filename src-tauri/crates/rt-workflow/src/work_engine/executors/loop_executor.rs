@@ -124,7 +124,7 @@ impl NodeExecutorTrait for LoopExecutor {
         let node_id = node.base_id().to_string();
 
         // ── 解析输入数组 ──
-        let input_var = c.effective_input_var();
+        let input_var = axagent_harness::workflow_types::LoopNodeConfigResolver::effective_input_var(c);
         let items: Vec<serde_json::Value> = if let Some(var_name) = input_var {
             match context.variables.get(var_name) {
                 Some(serde_json::Value::Array(arr)) => arr.clone(),
@@ -182,8 +182,8 @@ impl NodeExecutorTrait for LoopExecutor {
         // ── iteratee_var 校验 ──
         let iteratee_var_key =
             c.iteratee_var.clone().unwrap_or_else(|| "__loop_iteratee__".to_string());
-        let output_var_key = c.effective_output_var().to_string();
-        let partial_var_key = c.effective_partial_var().map(|s| s.to_string());
+        let output_var_key = axagent_harness::workflow_types::LoopNodeConfigResolver::effective_output_var(c).to_string();
+        let partial_var_key = axagent_harness::workflow_types::LoopNodeConfigResolver::effective_partial_var(c).map(|s| s.to_string());
 
         // ── 主循环：迭代 items[cursor..total] ──
         let mut last_iter_index: i32 = cursor as i32 - 1;
