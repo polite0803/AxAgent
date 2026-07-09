@@ -6064,6 +6064,7 @@
     "exported": "Навык экспортирован",
     "hasUI": "Есть расширение UI",
     "timeoutError": "Таймаут загрузки песочницы, пожалуйста, повторите",
+    "runtimeError": "Ошибка выполнения Skill \"{{name}}\"",
     "entryFileEmpty": "Входной файл «{{entry}}» пуст или не существует",
     "iframeNotReady": "Ссылка iframe не готова",
     "storeNotFound": "Хранилище \"{{name}}\" не найдено",

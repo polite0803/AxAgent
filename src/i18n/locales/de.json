@@ -6064,6 +6064,7 @@
     "exported": "Skill exportiert",
     "hasUI": "Hat UI-Erweiterung",
     "timeoutError": "Sandbox-Ladezeitüberschreitung, bitte erneut versuchen",
+    "runtimeError": "Skill \"{{name}}\": Laufzeitfehler",
     "entryFileEmpty": "Einstiegsdatei \"{{entry}}\" ist leer oder existiert nicht",
     "iframeNotReady": "iframe-Referenz nicht bereit",
     "storeNotFound": "Speicher \"{{name}}\" nicht gefunden",

@@ -219,10 +219,6 @@ pub use hook_service::{HookService, SharedHookService};
 pub mod feature_flag_provider;
 pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};
 
-// ── 校验工具 ──
-pub mod schema_validator;
-pub use schema_validator::{validate_against_schema, validate_recursive};
-
 // ── P1: MemoryStore 契约（记忆外溢/共享） ──
 pub mod memory;
 pub use memory::{

@@ -6064,6 +6064,7 @@
     "exported": "技能已導出",
     "hasUI": "含 UI 擴展",
     "timeoutError": "沙箱加載超時，請重試",
+    "runtimeError": "Skill \"{{name}}\" 運行時錯誤",
     "entryFileEmpty": "入口文件 \"{{entry}}\" 為空或不存在",
     "iframeNotReady": "iframe ref 未就緒",
     "storeNotFound": "Store \"{{name}}\" 未找到",

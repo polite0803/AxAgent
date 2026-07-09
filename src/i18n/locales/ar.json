@@ -6064,6 +6064,7 @@
     "exported": "تم تصدير المهارة",
     "hasUI": "يحتوي على امتداد واجهة",
     "timeoutError": "انتهت مهلة تحميل بيئة الاختبار، يرجى إعادة المحاولة",
+    "runtimeError": "خطأ وقت تشغيل Skill \"{{name}}\"",
     "entryFileEmpty": "ملف الدخول \"{{entry}}\" فارغ أو غير موجود",
     "iframeNotReady": "مرجع iframe غير جاهز",
     "storeNotFound": "المخزن \"{{name}}\" غير موجود",

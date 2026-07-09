@@ -6064,6 +6064,7 @@
     "exported": "Habilidad exportada",
     "hasUI": "Tiene extensión de UI",
     "timeoutError": "Tiempo de espera del sandbox agotado, por favor reintente",
+    "runtimeError": "Error de ejecución del Skill \"{{name}}\"",
     "entryFileEmpty": "El archivo de entrada \"{{entry}}\" está vacío o no existe",
     "iframeNotReady": "Referencia iframe no lista",
     "storeNotFound": "Almacén \"{{name}}\" no encontrado",

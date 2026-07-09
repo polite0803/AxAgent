@@ -6064,6 +6064,7 @@
     "exported": "スキルをエクスポートしました",
     "hasUI": "UI拡張あり",
     "timeoutError": "サンドボックスの読み込みがタイムアウトしました。再試行してください",
+    "runtimeError": "Skill \"{{name}}\" のランタイムエラー",
     "entryFileEmpty": "エントリファイル「{{entry}}」は空か存在しません",
     "iframeNotReady": "iframe参照の準備ができていません",
     "storeNotFound": "ストア「{{name}}」が見つかりません",

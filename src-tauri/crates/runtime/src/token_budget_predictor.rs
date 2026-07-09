@@ -7,7 +7,7 @@
 //! - 超过阈值（默认 80% 上下文窗口）时主动触发压缩
 //! - 根据历史 token 增长率预测何时需要压缩
 
-use crate::session::ConversationMessage;
+use axagent_runtime_core::session::ConversationMessage;
 
 /// 一次 token 使用快照，用于历史趋势分析
 #[derive(Debug, Clone)]
@@ -63,11 +63,13 @@ impl TokenBudgetPredictor {
             total += 4;
             for block in &msg.blocks {
                 total += match block {
-                    crate::session::ContentBlock::Text { text } => (text.len() as u32 / 4).max(1),
-                    crate::session::ContentBlock::ToolUse { name, input, .. } => {
-                        8 + (name.len() as u32 / 4) + (input.len() as u32 / 4)
+                    axagent_runtime_core::session::ContentBlock::Text { text } => {
+                        (text.len() as u32 / 4).max(1)
                     },
-                    crate::session::ContentBlock::ToolResult { output, .. } => {
+                    axagent_runtime_core::session::ContentBlock::ToolUse {
+                        name, input, ..
+                    } => 8 + (name.len() as u32 / 4) + (input.len() as u32 / 4),
+                    axagent_runtime_core::session::ContentBlock::ToolResult { output, .. } => {
                         4 + (output.len() as u32 / 4)
                     },
                 };
@@ -148,8 +150,8 @@ impl Default for TokenBudgetPredictor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::ContentBlock;
-    use crate::session::MessageRole;
+    use axagent_runtime_core::session::ContentBlock;
+    use axagent_runtime_core::session::MessageRole;
 
     #[test]
     fn estimate_empty_is_zero() {
@@ -173,8 +175,8 @@ mod tests {
         let mut predictor = TokenBudgetPredictor::new(100);
         // 构造一个超过 80% 阈值的消息
         let msg = ConversationMessage {
-            role: crate::session::MessageRole::User,
-            blocks: vec![crate::session::ContentBlock::Text {
+            role: axagent_runtime_core::session::MessageRole::User,
+            blocks: vec![axagent_runtime_core::session::ContentBlock::Text {
                 text: "x".repeat(400), // 400 / 4 ≈ 100 + 4 角色 = 104 > 100
             }],
             usage: None,
@@ -190,8 +192,10 @@ mod tests {
     fn proceed_when_under_threshold() {
         let mut predictor = TokenBudgetPredictor::new(100_000);
         let msg = ConversationMessage {
-            role: crate::session::MessageRole::User,
-            blocks: vec![crate::session::ContentBlock::Text { text: "hello".to_string() }],
+            role: axagent_runtime_core::session::MessageRole::User,
+            blocks: vec![axagent_runtime_core::session::ContentBlock::Text {
+                text: "hello".to_string(),
+            }],
             usage: None,
         };
         let decision = predictor.evaluate(&[msg]);

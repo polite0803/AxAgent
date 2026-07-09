@@ -6064,6 +6064,7 @@
     "exported": "Compétence exportée",
     "hasUI": "A une extension UI",
     "timeoutError": "Le chargement du bac à sable a expiré, veuillez réessayer",
+    "runtimeError": "Erreur d'exécution du Skill \"{{name}}\"",
     "entryFileEmpty": "Le fichier d'entrée « {{entry}} » est vide ou n'existe pas",
     "iframeNotReady": "Référence iframe non prête",
     "storeNotFound": "Magasin « {{name}} » introuvable",

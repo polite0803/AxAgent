@@ -6299,6 +6299,7 @@
     "exported": "Skill Exported",
     "hasUI": "Has UI Extension",
     "timeoutError": "Sandbox load timed out, please retry",
+    "runtimeError": "Skill \"{{name}}\" runtime error",
     "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
     "iframeNotReady": "iframe ref not ready",
     "storeNotFound": "Store \"{{name}}\" not found",

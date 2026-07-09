@@ -6,9 +6,9 @@
 //! 触发紧急压缩并重试，而非直接返回硬错误。
 //! 移植自 claude-code-main 的 reactiveCompact.ts。
 
-use crate::compact::{CompactionConfig, CompactionResult, compact_session};
-use crate::session::Session;
 use axagent_harness::prompt_provider::NoopPromptProvider;
+use axagent_runtime_core::compact::{CompactionConfig, CompactionResult, compact_session};
+use axagent_runtime_core::session::Session;
 
 const NP: &NoopPromptProvider = &NoopPromptProvider;
 
@@ -144,7 +144,7 @@ pub fn classify_trigger(error_text: &str) -> Option<ReactiveTrigger> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{ContentBlock, ConversationMessage, Session};
+    use axagent_runtime_core::session::{ContentBlock, ConversationMessage, Session};
 
     fn make_large_session(message_count: usize) -> Session {
         let mut session = Session::new();

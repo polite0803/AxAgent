@@ -12,7 +12,7 @@
 
 use std::path::Path;
 
-use crate::permissions::PermissionMode;
+use axagent_runtime_core::permissions::PermissionMode;
 
 /// Result of validating a bash command before execution.
 #[derive(Debug, Clone, PartialEq, Eq)]

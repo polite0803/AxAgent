@@ -6064,6 +6064,7 @@
     "exported": "스킬 내보내기 완료",
     "hasUI": "UI 확장 포함",
     "timeoutError": "샌드박스 로드 시간이 초과되었습니다. 다시 시도하세요",
+    "runtimeError": "Skill \"{{name}}\" 런타임 오류",
     "entryFileEmpty": "엔트리 파일 \"{{entry}}\"이(가) 비어 있거나 존재하지 않습니다",
     "iframeNotReady": "iframe 참조가 준비되지 않았습니다",
     "storeNotFound": "스토어 \"{{name}}\"을(를) 찾을 수 없습니다",

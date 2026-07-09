@@ -526,15 +526,15 @@ impl FileAuthorizer {
         }
 
         // M3: 文件持久化（JSONL 格式）
-        if let Some(ref log_path) = *self.audit_log_path.lock().await {
-            if let Ok(json) = serde_json::to_string(&entry) {
-                // 使用 std::fs::OpenOptions 以 append 模式打开，避免持有锁期间做 I/O
-                let json_line = format!("{}\n", json);
-                if let Ok(mut file) =
-                    std::fs::OpenOptions::new().create(true).append(true).open(log_path)
-                {
-                    let _ = file.write_all(json_line.as_bytes());
-                }
+        if let Some(ref log_path) = *self.audit_log_path.lock().await
+            && let Ok(json) = serde_json::to_string(&entry)
+        {
+            // 使用 std::fs::OpenOptions 以 append 模式打开，避免持有锁期间做 I/O
+            let json_line = format!("{}\n", json);
+            if let Ok(mut file) =
+                std::fs::OpenOptions::new().create(true).append(true).open(log_path)
+            {
+                let _ = file.write_all(json_line.as_bytes());
             }
         }
 

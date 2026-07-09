@@ -571,7 +571,7 @@ fn validate_against_schema(
     path: &str,
     errors: &mut Vec<String>,
 ) -> bool {
-    axagent_harness::schema_validator::validate_recursive(value, schema, path, errors)
+    axagent_kit::schema_validator::validate_recursive(value, schema, path, errors)
 }
 
 pub fn detect_state_change(before: &serde_json::Value, after: &serde_json::Value) -> StateDiff {

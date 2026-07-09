@@ -259,7 +259,7 @@ export function SkillSandboxContainer({
           window.removeEventListener("message", messageHandler);
           window.addEventListener("message", handleRpc);
         } else if (msg?.type === "skill:error") {
-          logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
+          logIpcError(i18n.t("skill.runtimeError", { name: skillName }))(msg.error);
         }
       };
       messageHandlerRef.current = messageHandler;
@@ -269,7 +269,7 @@ export function SkillSandboxContainer({
         if (msg?.type === "rpc:request" && apiBridgeRef.current) {
           apiBridgeRef.current.handleRpcRequest(msg);
         } else if (msg?.type === "skill:error") {
-          logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
+          logIpcError(i18n.t("skill.runtimeError", { name: skillName }))(msg.error);
         }
       };
       rpcHandlerRef.current = handleRpc;
