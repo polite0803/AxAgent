@@ -5,7 +5,7 @@
 use axagent_harness::kit_bridge::{
     KitHtmlCleaner, KitMarkdownParser, KitSkillDirs, KitSlashCommandProcessor,
     KitTokenBudgetDecision, KitTokenBudgetTracker, MdParsedFrontmatter, MdParsedLink, MdParsedNote,
-    SlashCommandAction, SlashCommandPreprocessed,
+    SlashCommandAction,
 };
 
 // ── MarkdownParser ────────────────────────────────────────────
