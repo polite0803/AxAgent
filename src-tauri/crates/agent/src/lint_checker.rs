@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use axagent_harness::kit_bridge::{KitMarkdownParser, MdParsedNote};
+use axagent_harness::kit_bridge::KitMarkdownParser;
 use axagent_harness::note_dtos::{Note, UpdateNoteInput};
 use axagent_harness::wiki_dtos::{
     NoteBacklinkRepository, NoteRepository, WikiPageRepository, WikiRepository,
@@ -482,6 +482,7 @@ mod tests {
             Arc::new(axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository::new(
                 db.clone(),
             )),
+            Box::new(crate::noop_kit::NoopMarkdownParser),
         )
     }
 

@@ -6,7 +6,6 @@
 use axagent_harness::kit_bridge::{
     KitHtmlCleaner, KitMarkdownParser, KitSkillDirs, KitSlashCommandProcessor,
     KitTokenBudgetDecision, KitTokenBudgetTracker, MdParsedNote, SlashCommandAction,
-    SlashCommandPreprocessed,
 };
 
 // ── NoopTokenBudgetTracker ────────────────────────────────────

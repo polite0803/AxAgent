@@ -9,7 +9,7 @@ use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_harness::PluginAgentProvider;
 use axagent_harness::feature_flag_provider::SharedFeatureFlagProvider;
-use axagent_harness::tool_service::{HookEventFirer, NoopHookEventFirer};
+use axagent_harness::tool_service::HookEventFirer;
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock, Mutex, OnceLock, RwLock};
 

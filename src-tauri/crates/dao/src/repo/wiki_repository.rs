@@ -44,7 +44,7 @@ impl WikiRepository for DaoWikiRepository {
             .await
             .map_err(|e| format!("DB error: {}", e))?;
 
-        Ok(model.map(|m| Self::model_to_wiki(m)))
+        Ok(model.map(Self::model_to_wiki))
     }
 
     async fn create_version(

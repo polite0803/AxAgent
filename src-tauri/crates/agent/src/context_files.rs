@@ -503,7 +503,7 @@ mod tests {
     #[test]
     fn test_resolve_skill_references_not_found() {
         let content = "@skill:nonexistent-skill-xyz";
-        let result = resolve_skill_references(content);
+        let result = resolve_skill_references(content, &crate::noop_kit::NoopSkillDirs);
         assert!(result.contains("[Skill 'nonexistent-skill-xyz' not found]"));
     }
 
@@ -590,7 +590,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("ref.txt"), "resolved content").unwrap();
         let content = "Hello @file:ref.txt world";
-        let result = resolve_references(&content, dir.path()).await;
+        let result =
+            resolve_references(&content, dir.path(), &crate::noop_kit::NoopSkillDirs).await;
         assert_eq!(result, "Hello resolved content world");
     }
 
@@ -602,7 +603,8 @@ mod tests {
             "@file:data.md <!-- if:platform:{} -->platform-specific<!-- endif -->",
             std::env::consts::OS
         );
-        let result = resolve_references(&content, dir.path()).await;
+        let result =
+            resolve_references(&content, dir.path(), &crate::noop_kit::NoopSkillDirs).await;
         assert!(result.contains("data payload"));
         assert!(result.contains("platform-specific"));
     }

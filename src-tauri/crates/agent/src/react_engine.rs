@@ -6,9 +6,7 @@ pub use crate::reasoning_state::ReActConfig;
 use crate::reasoning_state::{ActionType, ReasoningContext, ReasoningState};
 use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
-use axagent_harness::kit_bridge::{
-    KitBudgetCompletionEvent, KitTokenBudgetDecision, KitTokenBudgetTracker,
-};
+use axagent_harness::kit_bridge::{KitTokenBudgetDecision, KitTokenBudgetTracker};
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::util_fns::estimate_tokens;

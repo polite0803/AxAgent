@@ -3,7 +3,6 @@
 //! Session Manager for AxAgent Agent
 
 use crate::event_bus::AgentPermissionPayload;
-use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
 use axagent_harness::AgentSessionRepository;
 use axagent_harness::ConversationMessage;

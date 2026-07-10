@@ -45,7 +45,7 @@ impl WikiPageRepository for DaoWikiPageRepository {
             .await
             .map_err(|e| format!("DB error: {}", e))?;
 
-        Ok(model.map(|m| Self::model_to_wiki_page(m)))
+        Ok(model.map(Self::model_to_wiki_page))
     }
 
     async fn upsert(&self, page: WikiPage) -> Result<(), String> {
@@ -119,6 +119,6 @@ impl WikiPageRepository for DaoWikiPageRepository {
             .await
             .map_err(|e| format!("DB error: {}", e))?;
 
-        Ok(models.into_iter().map(|m| Self::model_to_wiki_page(m)).collect())
+        Ok(models.into_iter().map(Self::model_to_wiki_page).collect())
     }
 }

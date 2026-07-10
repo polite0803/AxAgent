@@ -52,7 +52,7 @@ impl NoteRepository for DaoNoteRepository {
             .await
             .map_err(|e| format!("DB error: {}", e))?;
 
-        Ok(model.map(|m| Self::model_to_note(m)))
+        Ok(model.map(Self::model_to_note))
     }
 
     async fn find_by_vault_and_title(
@@ -69,7 +69,7 @@ impl NoteRepository for DaoNoteRepository {
         }
         let models = query.all(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
-        Ok(models.into_iter().map(|m| Self::model_to_note(m)).collect())
+        Ok(models.into_iter().map(Self::model_to_note).collect())
     }
 
     async fn find_by_vault(
@@ -84,7 +84,7 @@ impl NoteRepository for DaoNoteRepository {
         }
         let models = query.all(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
 
-        Ok(models.into_iter().map(|m| Self::model_to_note(m)).collect())
+        Ok(models.into_iter().map(Self::model_to_note).collect())
     }
 
     async fn update_note(&self, note_id: &str, input: UpdateNoteInput) -> Result<Note, String> {
