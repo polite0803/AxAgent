@@ -23,8 +23,6 @@ pub trait NpmRegistryService: fmt::Debug + Send + Sync {
     ) -> Result<(), String>;
 }
 
-/// 空实现 — 总是失败（npm 包安装不可用）
-
 /// 解析 npm 包规范字符串，返回 (package_name, optional_version)。
 /// 支持格式："pkg"、"pkg@1.0.0"、"@scope/pkg"、"@scope/pkg@1.0.0"
 pub fn parse_npm_package_spec(spec: &str) -> (&str, Option<&str>) {

@@ -213,10 +213,8 @@ fn is_read_only_command(command: &str) -> bool {
             '"' if !in_single => in_double = !in_double,
             ';' | '|' | '`' if !in_single && !in_double => return false,
             '&' if !in_single && !in_double && prev == '&' => return false,
-            '$' if !in_single => {
-                if chars.clone().next() == Some('(') {
-                    return false;
-                }
+            '$' if !in_single && chars.clone().next() == Some('(') => {
+                return false;
             },
             _ => {},
         }

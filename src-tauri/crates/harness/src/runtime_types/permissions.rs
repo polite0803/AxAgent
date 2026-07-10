@@ -347,10 +347,10 @@ impl PermissionPolicy {
                 );
             },
             Some(PermissionOverride::Allow) => {
-                if ask_rule.is_some() {
+                if let Some(ask_rule) = &ask_rule {
                     let reason = format!(
                         "tool '{tool_name}' requires approval due to ask rule '{}'",
-                        ask_rule.as_ref().unwrap().raw
+                        ask_rule.raw
                     );
                     return Self::prompt_or_deny(
                         tool_name,

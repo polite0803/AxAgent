@@ -329,7 +329,7 @@ pub trait Tool: Send + Sync {
     /// 默认实现委托给 `ToolValidator`，校验 required / type / enum /
     /// minimum / maximum / minLength / maxLength。
     async fn validate(&self, input: &Value, _ctx: &ToolContext) -> Result<(), ToolError> {
-        crate::tool_validation::ToolValidator::default().validate(input, &self.input_schema())
+        crate::tool_validation::ToolValidator.validate(input, &self.input_schema())
     }
 
     /// 权限检查（在执行前调用）

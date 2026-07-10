@@ -52,7 +52,5 @@ pub trait LlmExecutionService: Send + Sync {
     ) -> Result<LlmCallResult, String>;
 }
 
-/// A no-op implementation for testing.
-
 /// Arc wrapper for convenience.
 pub type SharedLlmExecutionService = Arc<dyn LlmExecutionService>;

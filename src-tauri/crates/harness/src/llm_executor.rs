@@ -551,22 +551,21 @@ impl Stream for ExecuteLlmStream {
 
                     // 置信度
                     let mut block = false;
-                    if let Some(threshold) = this.config.confidence_threshold {
-                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&this.content)
-                        {
-                            let confidence =
-                                parsed.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
-                            if confidence < threshold {
-                                tracing::warn!(
-                                    "[execute_llm_stream] 置信度 {:.2} 低于阈值 {:.2}",
-                                    confidence,
-                                    threshold
-                                );
-                                if let Some(ref conf_cfg) = this.config.confidence_config
-                                    && matches!(conf_cfg.on_low_confidence, ConfidenceAction::Block)
-                                {
-                                    block = true;
-                                }
+                    if let Some(threshold) = this.config.confidence_threshold
+                        && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&this.content)
+                    {
+                        let confidence =
+                            parsed.get("confidence").and_then(|c| c.as_f64()).unwrap_or(1.0);
+                        if confidence < threshold {
+                            tracing::warn!(
+                                "[execute_llm_stream] 置信度 {:.2} 低于阈值 {:.2}",
+                                confidence,
+                                threshold
+                            );
+                            if let Some(ref conf_cfg) = this.config.confidence_config
+                                && matches!(conf_cfg.on_low_confidence, ConfidenceAction::Block)
+                            {
+                                block = true;
                             }
                         }
                     }
@@ -607,11 +606,11 @@ impl Stream for ExecuteLlmStream {
                     return Poll::Ready(None);
                 },
                 StreamPhase::Caching(mut fut_opt) => {
-                    if let Some(fut) = fut_opt.as_mut() {
-                        if let Poll::Pending = fut.as_mut().poll(cx) {
-                            this.phase = StreamPhase::Caching(fut_opt);
-                            return Poll::Pending;
-                        }
+                    if let Some(fut) = fut_opt.as_mut()
+                        && fut.as_mut().poll(cx).is_pending()
+                    {
+                        this.phase = StreamPhase::Caching(fut_opt);
+                        return Poll::Pending;
                     }
                     this.phase = StreamPhase::Done;
                     return Poll::Ready(None);

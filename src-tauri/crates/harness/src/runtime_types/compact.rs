@@ -85,12 +85,12 @@ pub fn should_compact(
     config: CompactionConfig,
     provider: &dyn PromptProvider,
 ) -> bool {
-    let start =
-        if session.messages.first().map_or(false, |msg| has_compacted_summary(msg, provider)) {
-            1
-        } else {
-            0
-        };
+    let start = if session.messages.first().is_some_and(|msg| has_compacted_summary(msg, provider))
+    {
+        1
+    } else {
+        0
+    };
     let compactable = &session.messages[start..];
 
     compactable.len() > config.preserve_recent_messages
@@ -101,7 +101,7 @@ pub fn should_compact(
 fn has_compacted_summary(message: &ConversationMessage, provider: &dyn PromptProvider) -> bool {
     message.role == MessageRole::System
         && first_text_block(message)
-            .map_or(false, |text| text.starts_with(compact_continuation_preamble(provider)))
+            .is_some_and(|text| text.starts_with(compact_continuation_preamble(provider)))
 }
 
 fn first_text_block(message: &ConversationMessage) -> Option<&str> {

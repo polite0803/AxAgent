@@ -8,8 +8,7 @@ use std::collections::HashSet;
 use crate::conversation_model::{ContentBlock, ConversationMessage, MessageRole};
 use crate::prompt_provider::{PromptLang, PromptProvider};
 use crate::runtime_types::compact::{
-    CompactionConfig, CompactionResult, estimate_message_tokens, score_message,
-    select_top_messages, should_compact,
+    CompactionConfig, CompactionResult, score_message, select_top_messages, should_compact,
 };
 use crate::runtime_types::session::Session;
 
@@ -200,14 +199,12 @@ pub fn compact_session(
     compacted_session.messages = compacted_messages;
     compacted_session.record_compaction(summary.clone(), actual_removed.len());
 
-    let result = CompactionResult {
+    CompactionResult {
         summary,
         formatted_summary,
         compacted_session,
         removed_message_count: actual_removed.len(),
-    };
-
-    result
+    }
 }
 
 fn summarize_messages(messages: &[ConversationMessage]) -> String {
@@ -432,8 +429,6 @@ fn truncate_summary(content: &str, max_chars: usize) -> String {
     truncated.push('…');
     truncated
 }
-
-/// with per-block computation for structured content.
 
 fn extract_tag_block(content: &str, tag: &str) -> Option<String> {
     let start = format!("<{tag}>");

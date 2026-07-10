@@ -92,13 +92,9 @@ pub fn validate_recursive(
                     true
                 }
             },
-            "null" => {
-                if !value.is_null() {
-                    errors.push(format!("{path}: 期望 null，实际 {}", type_name(value)));
-                    false
-                } else {
-                    true
-                }
+            "null" if !value.is_null() => {
+                errors.push(format!("{path}: 期望 null，实际 {}", type_name(value)));
+                false
             },
             _ => true,
         };
@@ -127,85 +123,79 @@ pub fn validate_recursive(
                 } else {
                     format!("{path}.{key}")
                 };
-                if let Some(child_val) = obj.get(key) {
-                    if !child_val.is_null() {
-                        if !validate_recursive(child_val, prop_schema, &child_path, errors) {
-                            valid = false;
-                        }
-                    }
+                if let Some(child_val) = obj.get(key)
+                    && !child_val.is_null()
+                    && !validate_recursive(child_val, prop_schema, &child_path, errors)
+                {
+                    valid = false;
                 }
             }
         }
 
         // additionalProperties
-        if let Some(additional) = schema.get("additionalProperties") {
-            if additional.as_bool() == Some(false) {
-                if let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) {
-                    for key in obj.keys() {
-                        if !properties.contains_key(key) {
-                            errors.push(format!("{path}.{key}: 未定义的字段"));
-                            valid = false;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 数组专属：items
-    if let Some(arr) = value.as_array() {
-        if let Some(items_schema) = schema.get("items") {
-            for (i, item) in arr.iter().enumerate() {
-                let child_path = format!("{path}[{i}]");
-                if !validate_recursive(item, items_schema, &child_path, errors) {
+        if let Some(additional) = schema.get("additionalProperties")
+            && additional.as_bool() == Some(false)
+            && let Some(properties) = schema.get("properties").and_then(|p| p.as_object())
+        {
+            for key in obj.keys() {
+                if !properties.contains_key(key) {
+                    errors.push(format!("{path}.{key}: 未定义的字段"));
                     valid = false;
                 }
             }
         }
     }
 
+    // 数组专属：items
+    if let Some(arr) = value.as_array()
+        && let Some(items_schema) = schema.get("items")
+    {
+        for (i, item) in arr.iter().enumerate() {
+            let child_path = format!("{path}[{i}]");
+            if !validate_recursive(item, items_schema, &child_path, errors) {
+                valid = false;
+            }
+        }
+    }
+
     // 通用约束：enum / minLength / maxLength / minimum / maximum
-    if let Some(enum_vals) = schema.get("enum").and_then(|e| e.as_array()) {
-        if !enum_vals.contains(value) {
-            errors.push(format!("{path}: 值不在允许范围内: {:?}", enum_vals));
-            valid = false;
-        }
+    if let Some(enum_vals) = schema.get("enum").and_then(|e| e.as_array())
+        && !enum_vals.contains(value)
+    {
+        errors.push(format!("{path}: 值不在允许范围内: {:?}", enum_vals));
+        valid = false;
     }
 
-    if let Some(min_len) = schema.get("minLength").and_then(|m| m.as_u64()) {
-        if let Some(s) = value.as_str() {
-            if (s.len() as u64) < min_len {
-                errors.push(format!("{path}: 长度不能少于 {min_len}"));
-                valid = false;
-            }
-        }
+    if let Some(min_len) = schema.get("minLength").and_then(|m| m.as_u64())
+        && let Some(s) = value.as_str()
+        && (s.len() as u64) < min_len
+    {
+        errors.push(format!("{path}: 长度不能少于 {min_len}"));
+        valid = false;
     }
 
-    if let Some(max_len) = schema.get("maxLength").and_then(|m| m.as_u64()) {
-        if let Some(s) = value.as_str() {
-            if (s.len() as u64) > max_len {
-                errors.push(format!("{path}: 长度不能超过 {max_len}"));
-                valid = false;
-            }
-        }
+    if let Some(max_len) = schema.get("maxLength").and_then(|m| m.as_u64())
+        && let Some(s) = value.as_str()
+        && (s.len() as u64) > max_len
+    {
+        errors.push(format!("{path}: 长度不能超过 {max_len}"));
+        valid = false;
     }
 
-    if let Some(min) = schema.get("minimum").and_then(|m| m.as_f64()) {
-        if let Some(n) = value.as_f64() {
-            if n < min {
-                errors.push(format!("{path}: 不能小于 {min}"));
-                valid = false;
-            }
-        }
+    if let Some(min) = schema.get("minimum").and_then(|m| m.as_f64())
+        && let Some(n) = value.as_f64()
+        && n < min
+    {
+        errors.push(format!("{path}: 不能小于 {min}"));
+        valid = false;
     }
 
-    if let Some(max) = schema.get("maximum").and_then(|m| m.as_f64()) {
-        if let Some(n) = value.as_f64() {
-            if n > max {
-                errors.push(format!("{path}: 不能大于 {max}"));
-                valid = false;
-            }
-        }
+    if let Some(max) = schema.get("maximum").and_then(|m| m.as_f64())
+        && let Some(n) = value.as_f64()
+        && n > max
+    {
+        errors.push(format!("{path}: 不能大于 {max}"));
+        valid = false;
     }
 
     valid

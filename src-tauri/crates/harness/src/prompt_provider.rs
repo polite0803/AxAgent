@@ -49,8 +49,6 @@ pub trait PromptProvider: Send + Sync {
     fn get_all_languages(&self, key: &str) -> HashMap<String, &'static str>;
 }
 
-/// A no-op PromptProvider that returns empty strings for all keys.
-
 /// Static PromptProvider backed by a compiled-in registry.
 ///
 /// Used when a real registry is available at compile time

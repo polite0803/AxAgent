@@ -67,8 +67,6 @@ impl OutputSanitizer for DefaultOutputSanitizer {
     }
 }
 
-/// 空脱敏器 — 直接透传，用于测试。
-
 /// 默认输入脱敏器 — 复用 `DefaultOutputSanitizer` 的正则模式。
 #[derive(Debug, Clone)]
 pub struct DefaultInputSanitizer {
