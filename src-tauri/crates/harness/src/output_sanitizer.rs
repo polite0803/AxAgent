@@ -99,6 +99,7 @@ impl InputSanitizer for DefaultInputSanitizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopOutputSanitizer;
 
     #[test]
     fn test_api_key_redaction() {
@@ -158,7 +159,7 @@ mod tests {
         let sanitizer = NoopOutputSanitizer;
         let ctx = SanitizeContext {
             tool_name: "test".into(),
-            tool_category: ToolCategory::Write,
+            tool_category: ToolCategory::FileWrite,
             conversation_id: None,
         };
         let content = "sk-sensitive-key and user@email.com";

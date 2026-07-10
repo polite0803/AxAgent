@@ -43,6 +43,7 @@ pub type RhaiToolFn = Arc<dyn Fn(String, JsonValue) -> Result<JsonValue, String>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopRhaiEngineAdapter;
 
     #[test]
     fn noop_never_succeeds_on_execute() {

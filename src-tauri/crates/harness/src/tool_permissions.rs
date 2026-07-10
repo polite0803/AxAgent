@@ -91,7 +91,7 @@ mod tests {
     fn test_deny_list_blocks_tool() {
         let perms =
             ToolPermissions { forbidden_tools: vec!["dangerous".into()], ..Default::default() };
-        match perms.check_tool_allowed("dangerous", Tc::General, 0) {
+        match perms.check_tool_allowed("dangerous", Tc::System, 0) {
             PermissionResult::Deny(msg) => assert!(msg.contains("禁止")),
             _ => panic!("Expected Deny"),
         }
@@ -101,12 +101,9 @@ mod tests {
     fn test_allow_list_permits_only_listed() {
         let perms =
             ToolPermissions { allowed_tools: Some(vec!["safe".into()]), ..Default::default() };
+        assert!(matches!(perms.check_tool_allowed("safe", Tc::System, 0), PermissionResult::Allow));
         assert!(matches!(
-            perms.check_tool_allowed("safe", Tc::General, 0),
-            PermissionResult::Allow
-        ));
-        assert!(matches!(
-            perms.check_tool_allowed("other", Tc::General, 0),
+            perms.check_tool_allowed("other", Tc::System, 0),
             PermissionResult::Deny(_)
         ));
     }
@@ -127,13 +124,16 @@ mod tests {
     #[test]
     fn test_max_calls_exceeded() {
         let perms = ToolPermissions { max_calls_per_session: Some(3), ..Default::default() };
-        assert!(matches!(perms.check_tool_allowed("t", Tc::General, 2), PermissionResult::Allow));
-        assert!(matches!(perms.check_tool_allowed("t", Tc::General, 3), PermissionResult::Deny(_)));
+        assert!(matches!(perms.check_tool_allowed("t", Tc::System, 2), PermissionResult::Allow));
+        assert!(matches!(perms.check_tool_allowed("t", Tc::System, 3), PermissionResult::Deny(_)));
     }
 
     #[test]
     fn test_empty_permissions_allow_all() {
         let perms = ToolPermissions::default();
-        assert!(matches!(perms.check_tool_allowed("x", Tc::Write, 999), PermissionResult::Allow));
+        assert!(matches!(
+            perms.check_tool_allowed("x", Tc::FileWrite, 999),
+            PermissionResult::Allow
+        ));
     }
 }

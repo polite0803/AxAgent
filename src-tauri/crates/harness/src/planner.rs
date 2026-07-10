@@ -55,6 +55,7 @@ pub trait PlannerAdapter: fmt::Debug + Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopPlannerAdapter;
 
     #[test]
     fn noop_never_creates_plan() {

@@ -25,6 +25,7 @@ pub trait SessionTracer: fmt::Debug + Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopSessionTracer;
 
     #[test]
     fn noop_does_not_panic() {

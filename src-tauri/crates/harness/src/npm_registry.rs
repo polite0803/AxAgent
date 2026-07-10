@@ -41,6 +41,7 @@ pub fn parse_npm_package_spec(spec: &str) -> (&str, Option<&str>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopNpmRegistryService;
 
     #[test]
     fn parses_scoped_package_with_version() {

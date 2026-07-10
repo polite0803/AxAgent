@@ -735,12 +735,6 @@ mod tests {
     #[test]
     fn test_parse_params_multiple() {
         let pm = default_pm();
-        let inner = format!(
-            r#"{}<![CDATA[1]]></|CHAT2API|parameter>\
-             {}<![CDATA["hello"]]></|CHAT2API|parameter>"#,
-            pm.format_param("a", "").replace("<![CDATA[]]>", "<![CDATA[1]]>"),
-            pm.format_param("b", "").replace("<![CDATA[]]>", "<![CDATA[\"hello\"]]>"),
-        );
         // Actually simpler: construct directly
         let inner = format!(
             r#"<|CHAT2API|parameter name="a"><![CDATA[1]]></|CHAT2API|parameter>\
@@ -875,7 +869,6 @@ mod tests {
     #[test]
     fn test_custom_prefix_format_roundtrip() {
         let pm_custom = custom_pm("MYGATE");
-        let pm_default = default_pm();
 
         let calls = vec![ToolCall {
             id: "call_0".to_string(),

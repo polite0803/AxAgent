@@ -62,6 +62,7 @@ impl TaskComplexity {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopTrajectoryService;
 
     #[test]
     fn noop_returns_defaults() {

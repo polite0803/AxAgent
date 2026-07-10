@@ -112,6 +112,7 @@ impl PromptGuard for PatternPromptGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopPromptGuard;
 
     #[test]
     fn noop_passes_through() {
