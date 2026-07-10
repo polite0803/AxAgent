@@ -1467,7 +1467,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               <div style={{ marginTop: 8 }}>
                 <Input
                   size="small"
-                  placeholder="CHAT2API"
+                  placeholder={t("settings.markerPrefixPlaceholder")}
                   value={provider?.tool_adaptation_marker_prefix ?? ""}
                   onChange={(e) => {
                     const val = e.target.value || null;
@@ -1481,7 +1481,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     color: token.colorTextQuaternary,
                   }}
                 >
-                  Marker 前缀（默认 CHAT2API，通常无需修改）
+                  {t("settings.markerPrefixDesc")}
                 </div>
               </div>
             )}

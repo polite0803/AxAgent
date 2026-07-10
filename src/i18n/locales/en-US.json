@@ -1506,7 +1506,9 @@
       "statusConnecting": "Connecting",
       "lastActivity": "Last Activity",
       "activeSessions": "Active Sessions",
-      "noStatuses": "No statuses available"
+      "noStatuses": "No statuses available",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)"
     },
     "webhooks": "Webhooks",
     "advanced": "Advanced",

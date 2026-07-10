@@ -2606,7 +2606,9 @@
       "statusConnecting": "连接中",
       "lastActivity": "最后活跃",
       "activeSessions": "活跃会话数",
-      "noStatuses": "暂无连接状态"
+      "noStatuses": "暂无连接状态",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）"
     },
     "advanced": "高级设置",
     "evolution": {
