@@ -129,6 +129,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: "1.97.0"
           targets: ${{ matrix.target }}
 
       - name: Rust cache
@@ -304,6 +305,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: "1.97.0"
           targets: aarch64-unknown-linux-gnu
 
       - name: Rust cache
@@ -413,6 +415,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: "1.97.0"
           targets: ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || matrix.abi == 'armeabi-v7a' && 'armv7-linux-androideabi' || 'x86_64-linux-android' }}
 
       - name: Rust cache
