@@ -47,7 +47,7 @@ impl AgentRole {
             AgentRole::Researcher => vec!["FileRead", "Network", "Knowledge", "Browser"],
             AgentRole::CodeReviewer => vec!["FileRead", "Vcs", "Knowledge"],
             AgentRole::SafetyGuard => vec!["FileRead", "Knowledge"],
-            AgentRole::Custom { allowed_categories: _, .. } => {
+            AgentRole::Custom { .. } => {
                 vec![]
             },
         }

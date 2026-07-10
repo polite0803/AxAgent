@@ -617,7 +617,7 @@ impl DefaultLlmContentGenerator {
                 let llm_config = axagent_harness::LlmCallConfig::default();
                 let response = axagent_harness::execute_llm(&**adapter, ctx, request, &llm_config)
                     .await
-                    .map_err(|e| ResearchError::LlmFailed(e))?;
+                    .map_err(ResearchError::LlmFailed)?;
 
                 Ok(response.response.content)
             },

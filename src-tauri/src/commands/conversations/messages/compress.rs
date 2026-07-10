@@ -781,7 +781,6 @@ mod tests_conversation {
                 axagent_tools::registry::UnifiedToolRegistry::new(),
             )),
             work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                Arc::new(db.clone()),
                 [0; 32],
                 Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                     as Arc<dyn axagent_harness::registry::ProviderRegistry>,
@@ -924,7 +923,6 @@ mod tests_conversation {
                     axagent_tools::registry::UnifiedToolRegistry::new(),
                 )),
                 Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                    Arc::new(db.clone()),
                     [0; 32],
                     Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                         as Arc<dyn axagent_harness::registry::ProviderRegistry>,

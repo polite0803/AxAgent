@@ -13,9 +13,6 @@ use std::sync::{Arc, PoisonError};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use axagent_harness::repositories::{
-    AgencyExpertRepository, AgentProfileRepository, AgentRoleRepository,
-};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, RagContextResult};
 use axagent_harness::workflow_types::WorkflowNode;
 use futures::StreamExt;

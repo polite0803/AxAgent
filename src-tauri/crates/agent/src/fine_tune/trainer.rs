@@ -978,7 +978,7 @@ mod tests {
         let training_result = result.unwrap();
         assert_eq!(training_result.job_id, job.id);
         assert!(training_result.output_lora_path.contains("adapter_model.safetensors"));
-        assert!(training_result.train_loss_curve.len() > 0);
+        assert!(!training_result.train_loss_curve.is_empty());
         let found = trainer.get_job(&job.id).unwrap();
         assert_eq!(found.status, JobStatus::Completed);
         assert!(found.metrics.final_loss.is_some());

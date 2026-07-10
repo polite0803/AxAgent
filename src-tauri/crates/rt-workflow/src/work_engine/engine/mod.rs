@@ -10,13 +10,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Utc;
-use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use axagent_harness::workflow_types::{
-    BackoffType, CompensationStrategy, DegradeStrategy, EdgeType, ErrorConfig, JsonSchema,
-    OnFailureAction, RetryConfig, Variable, WorkflowEdge, WorkflowNode,
+    BackoffType, CompensationStrategy, DegradeStrategy, EdgeType, JsonSchema, OnFailureAction,
+    RetryConfig, Variable, WorkflowEdge, WorkflowNode,
 };
 
 use axagent_harness::RhaiEngineAdapter;
@@ -195,7 +194,6 @@ impl RunOptions {
 #[derive(Clone)]
 
 pub struct WorkEngine {
-    db: Arc<DatabaseConnection>,
     executions: Arc<Mutex<HashMap<String, ExecutionState>>>,
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
     /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
@@ -591,7 +589,6 @@ impl WorkEngine {
 
 impl WorkEngine {
     pub fn new(
-        db: Arc<DatabaseConnection>,
         master_key: [u8; 32],
         provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
     ) -> Self {
@@ -603,7 +600,7 @@ impl WorkEngine {
         // 统一走 HasProviderRegistry trait，避免 5 个 executor 各自实现 with_provider_registry。
         use axagent_harness::HasProviderRegistry;
 
-        let mut llm_exec = LlmExecutor::new(db.clone(), master_key);
+        let mut llm_exec = LlmExecutor::new(master_key);
         // 唯一构造路径：创建 Arc<AgentExecutor>，dispatcher 与 WorkEngine.agent_executor
         // 共享同一个实例。运行期不再 register(E) 重新注册，避免丢失 provider_registry。
         let mut agent_exec = AgentExecutor::with_shared_caches(
@@ -611,8 +608,8 @@ impl WorkEngine {
             agent_provider_cache.clone(),
             agent_profile_cache.clone(),
         );
-        let mut cond_exec = ConditionExecutor::new(db.clone(), master_key);
-        let mut classifier_exec = LlmClassifierExecutor::new(db.clone(), master_key);
+        let mut cond_exec = ConditionExecutor::new(master_key);
+        let mut classifier_exec = LlmClassifierExecutor::new(master_key);
 
         llm_exec.set_provider_registry(provider_registry.clone());
         agent_exec.set_provider_registry(provider_registry.clone());
@@ -631,7 +628,6 @@ impl WorkEngine {
 
         // Self { ... }
         Self {
-            db,
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
@@ -668,7 +664,7 @@ impl WorkEngine {
     ///
     /// 外部调用方式：
     /// ```ignore
-    /// let engine = Arc::new(WorkEngine::new(db, master_key, registry));
+    /// let engine = Arc::new(WorkEngine::new(master_key, registry));
     /// rt.block_on(engine.init_trigger_manager());
     /// ```
     pub async fn init_trigger_manager(self: &Arc<Self>) {
@@ -3098,7 +3094,7 @@ pub fn build_loop_checkpoint_ops() -> super::execution_state::LoopCheckpointOps 
 
 // ── Condition 节点分支跳过辅助 ──
 
-/// Condition 节点完成后，将不匹配分支上的所有下游节点标记为 Skipped。
+// Condition 节点完成后，将不匹配分支上的所有下游节点标记为 Skipped。
 
 // ── 测试 ──
 
@@ -3120,15 +3116,10 @@ mod tests {
     }
 
     /// 构造一个仅用于桥接测试的 WorkEngine。
-    /// - `DatabaseConnection::default()`：sea-orm 的零值连接，不发起实际查询
     /// - master_key `[0u8; 32]`：占位密钥，桥接测试不涉及解密
     /// - `EmptyProviderRegistry`：空实现，桥接测试不查 provider
     fn make_test_engine() -> WorkEngine {
-        WorkEngine::new(
-            Arc::new(sea_orm::DatabaseConnection::default()),
-            [0u8; 32],
-            Arc::new(EmptyProviderRegistry),
-        )
+        WorkEngine::new([0u8; 32], Arc::new(EmptyProviderRegistry))
     }
 
     #[tokio::test]

@@ -2,7 +2,6 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::WorkflowNode;
-use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
@@ -10,16 +9,16 @@ use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
 };
 
+#[derive(Default)]
 pub struct LlmClassifierExecutor {
-    db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
     /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl LlmClassifierExecutor {
-    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self { db, master_key, provider_registry: None }
+    pub fn new(master_key: [u8; 32]) -> Self {
+        Self { master_key, provider_registry: None }
     }
 }
 
@@ -29,16 +28,6 @@ impl axagent_harness::HasProviderRegistry for LlmClassifierExecutor {
         registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
     ) {
         self.provider_registry = Some(registry);
-    }
-}
-
-impl Default for LlmClassifierExecutor {
-    fn default() -> Self {
-        Self {
-            db: Arc::new(DatabaseConnection::default()),
-            master_key: [0u8; 32],
-            provider_registry: None,
-        }
     }
 }
 
@@ -449,12 +438,6 @@ mod tests {
         LlmClassifierExecutor::default()
     }
 
-    /// 正向用例需要真实 DB 才能跑过 `resolve_provider_and_adapter`。
-    async fn make_executor_with_db() -> LlmClassifierExecutor {
-        let handle = axagent_dao::db::create_test_pool().await.expect("create_test_pool");
-        LlmClassifierExecutor::new(Arc::new(handle.conn), [0u8; 32])
-    }
-
     fn make_classifier_node(input_var: &str) -> WorkflowNode {
         WorkflowNode::LlmClassifier(LlmClassifierNode {
             base: WorkflowNodeBase {
@@ -520,7 +503,7 @@ mod tests {
         //                  → 修复后正确下钻到 "output" 字段 → input_text 非空
         // 后续会被 provider 解析拦住（ProviderRegistry 为空走 UNSUPPORTED_PROVIDER），
         // 但**关键证据**是 error code 不是 VALIDATION_FAILED。
-        let exec = make_executor_with_db().await;
+        let exec = make_executor();
         let node = make_classifier_node("t-risk.output");
         let ctx = make_context(&[(
             "t-risk",
@@ -538,7 +521,7 @@ mod tests {
     async fn execute_top_level_key_path_passes_validation() {
         // input_var: "t-risk"（不带点）→ 修复前/后行为一致：整 key 查到 → 非空
         // 同样应在 provider 解析处失败，但 error code 不是 VALIDATION_FAILED。
-        let exec = make_executor_with_db().await;
+        let exec = make_executor();
         let node = make_classifier_node("t-risk");
         let ctx = make_context(&[("t-risk", serde_json::json!("hello"))]);
         let err = exec.execute(&node, &ctx).await.unwrap_err();

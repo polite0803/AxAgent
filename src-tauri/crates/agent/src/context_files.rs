@@ -519,7 +519,7 @@ mod tests {
     #[test]
     fn test_strip_conditional_sections_platform_no_match() {
         let content = "before<!-- if:platform:nonexistent -->should be removed<!-- endif -->after";
-        let result = strip_conditional_sections(&content);
+        let result = strip_conditional_sections(content);
         assert_eq!(result, "beforeafter");
     }
 
@@ -590,8 +590,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("ref.txt"), "resolved content").unwrap();
         let content = "Hello @file:ref.txt world";
-        let result =
-            resolve_references(&content, dir.path(), &crate::noop_kit::NoopSkillDirs).await;
+        let result = resolve_references(content, dir.path(), &crate::noop_kit::NoopSkillDirs).await;
         assert_eq!(result, "Hello resolved content world");
     }
 

@@ -161,7 +161,7 @@ impl TrajectoryRecorder {
         let quality = self.compute_quality(&state.steps, outcome);
         let value_score = Self::compute_value_score(quality.overall, outcome, &state.steps);
 
-        let trajectory = Trajectory {
+        Trajectory {
             id: uuid::Uuid::new_v4().to_string(),
             session_id: state.session_id.clone(),
             user_id: state.user_id.clone(),
@@ -177,9 +177,7 @@ impl TrajectoryRecorder {
             created_at: state.start_time,
             replay_count: 0,
             last_replay_at: None,
-        };
-
-        trajectory
+        }
     }
 
     fn determine_outcome(&self, state: &TrajectoryRecorderState) -> TrajectoryOutcome {

@@ -134,13 +134,10 @@ impl IngestQueue {
     pub async fn process_next(&self) -> Option<IngestResult> {
         let task_id = {
             let mut tasks = self.tasks.lock().await;
-            if let Some(idx) = tasks.iter().position(|t| t.status == IngestTaskStatus::Pending) {
-                tasks[idx].status = IngestTaskStatus::Processing;
-                tasks[idx].started_at = Some(chrono::Utc::now().timestamp());
-                tasks[idx].id.clone()
-            } else {
-                return None;
-            }
+            let idx = tasks.iter().position(|t| t.status == IngestTaskStatus::Pending)?;
+            tasks[idx].status = IngestTaskStatus::Processing;
+            tasks[idx].started_at = Some(chrono::Utc::now().timestamp());
+            tasks[idx].id.clone()
         };
 
         if let Err(e) = self.save_to_disk().await {
@@ -594,12 +591,12 @@ mod tests {
 
         {
             let mut tasks = queue.tasks.lock().await;
-            if let Some(task) = tasks.iter_mut().find(|t| t.id == id) {
-                if task.status == IngestTaskStatus::Failed {
-                    task.status = IngestTaskStatus::Pending;
-                    task.retry_count = 0;
-                    task.error_message = None;
-                }
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id)
+                && task.status == IngestTaskStatus::Failed
+            {
+                task.status = IngestTaskStatus::Pending;
+                task.retry_count = 0;
+                task.error_message = None;
             }
         }
 

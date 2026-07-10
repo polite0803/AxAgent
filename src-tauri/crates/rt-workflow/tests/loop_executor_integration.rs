@@ -52,10 +52,10 @@ fn make_loop_node(config: LoopNodeConfig) -> WorkflowNode {
 
 /// 内存版 LoopCheckpointOps —— 用 HashMap 模拟持久化层。
 /// key = (execution_id, node_id) 复合主键。
-fn in_memory_checkpoint_ops()
--> (LoopCheckpointOps, Arc<tokio::sync::Mutex<HashMap<(String, String), LoopCheckpoint>>>) {
-    let store: Arc<tokio::sync::Mutex<HashMap<(String, String), LoopCheckpoint>>> =
-        Arc::new(tokio::sync::Mutex::new(HashMap::new()));
+type CheckpointStore = Arc<tokio::sync::Mutex<HashMap<(String, String), LoopCheckpoint>>>;
+
+fn in_memory_checkpoint_ops() -> (LoopCheckpointOps, CheckpointStore) {
+    let store: CheckpointStore = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
     let s_save = store.clone();
     let s_load = store.clone();
     let s_del = store.clone();
@@ -234,11 +234,12 @@ async fn loop_interrupt_pause_then_resume_continues() {
     for _ in 0..200 {
         tokio::time::sleep(std::time::Duration::from_millis(25)).await;
         let g = cp_store.lock().await;
-        if let Some(cp) = g.get(&(exec_id_for_task.clone(), "loop1".to_string())) {
-            if cp.pending_approval_node.is_some() && cp.cursor == 0 {
-                found_paused = true;
-                break;
-            }
+        if let Some(cp) = g.get(&(exec_id_for_task.clone(), "loop1".to_string()))
+            && cp.pending_approval_node.is_some()
+            && cp.cursor == 0
+        {
+            found_paused = true;
+            break;
         }
     }
     assert!(

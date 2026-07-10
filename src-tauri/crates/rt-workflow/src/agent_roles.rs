@@ -562,7 +562,6 @@ pub struct ResolvedRole {
 /// DB accessor —— 经 harness `AgentRoleRepository` 抽象，不直接依赖 axagent-entities。
 pub mod db_access {
     use axagent_harness::repo_dtos::AgentRoleDto;
-    use axagent_harness::repositories::AgentRoleRepository;
 
     pub struct AgentRoleRow {
         pub name: String,

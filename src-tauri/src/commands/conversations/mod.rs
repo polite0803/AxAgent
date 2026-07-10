@@ -2607,7 +2607,6 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             axagent_tools::registry::UnifiedToolRegistry::new(),
         )),
         work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-            Arc::new(db.clone()),
             [0; 32],
             Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                 as Arc<dyn axagent_harness::registry::ProviderRegistry>,
@@ -2738,7 +2737,6 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             )),
             Arc::new(tokio::sync::Mutex::new(axagent_tools::registry::UnifiedToolRegistry::new())),
             Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                Arc::new(db.clone()),
                 [0; 32],
                 Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                     as Arc<dyn axagent_harness::registry::ProviderRegistry>,

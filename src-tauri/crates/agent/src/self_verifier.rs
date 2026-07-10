@@ -182,7 +182,7 @@ impl SemanticValidator for LlmSemanticValidator {
         let response =
             axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config)
                 .await
-                .map_err(|e| VerificationError::LlmError(e))?;
+                .map_err(VerificationError::LlmError)?;
 
         let content = response.response.content.trim();
 

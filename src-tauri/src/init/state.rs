@@ -323,7 +323,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =
         {
             let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                Arc::new(sea_db.clone()),
                 master_key,
                 harness_registry.clone(),
             ));

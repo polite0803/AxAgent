@@ -390,11 +390,8 @@ impl QueryEngine {
     #[must_use]
     pub fn new_for_test() -> Self {
         use axagent_harness::wiki_dtos::NoteBacklink;
-        use std::collections::HashMap;
-        use std::sync::Mutex;
 
-        #[allow(dead_code)] // mock 仓库,字段仅占位
-        struct MockNoteRepo(Mutex<HashMap<String, Note>>);
+        struct MockNoteRepo;
         #[async_trait::async_trait]
         impl NoteRepository for MockNoteRepo {
             async fn find_by_id(&self, _id: &str) -> Result<Option<Note>, String> {
@@ -478,11 +475,7 @@ impl QueryEngine {
             }
         }
 
-        Self::new(
-            Arc::new(MockNoteRepo(Mutex::new(HashMap::new()))),
-            Arc::new(MockWikiRepo),
-            Arc::new(MockBacklinkRepo),
-        )
+        Self::new(Arc::new(MockNoteRepo), Arc::new(MockWikiRepo), Arc::new(MockBacklinkRepo))
     }
 }
 

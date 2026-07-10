@@ -9,7 +9,7 @@ use axagent_harness::ConversationMessage;
 use axagent_harness::compact_session::compact_session;
 use axagent_harness::conversation_model::{
     ContentBlock as HarnessContentBlock, ConversationMessage as HarnessConversationMessage,
-    MessageRole as HarnessMessageRole, TokenUsage as HarnessTokenUsage,
+    TokenUsage as HarnessTokenUsage,
 };
 use axagent_harness::prompt_provider::NoopPromptProvider;
 use axagent_harness::runtime_types::compact::CompactionConfig;
@@ -1167,6 +1167,7 @@ impl HookProgressReporter for TauriHookProgressReporter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_harness::conversation_model::MessageRole as HarnessMessageRole;
     use sea_orm::DatabaseConnection;
 
     #[test]

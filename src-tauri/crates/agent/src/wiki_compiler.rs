@@ -54,6 +54,7 @@ pub struct WikiCompiler {
 }
 
 impl WikiCompiler {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         note_repo: Arc<dyn NoteRepository>,
         wiki_repo: Arc<dyn WikiRepository>,

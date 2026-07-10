@@ -8,22 +8,21 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::{CompareOperator, LogicalOperator, WorkflowNode};
-use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
+#[derive(Default)]
 pub struct ConditionExecutor {
-    db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
     /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl ConditionExecutor {
-    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self { db, master_key, provider_registry: None }
+    pub fn new(master_key: [u8; 32]) -> Self {
+        Self { master_key, provider_registry: None }
     }
 }
 
@@ -33,16 +32,6 @@ impl axagent_harness::HasProviderRegistry for ConditionExecutor {
         registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
     ) {
         self.provider_registry = Some(registry);
-    }
-}
-
-impl Default for ConditionExecutor {
-    fn default() -> Self {
-        Self {
-            db: Arc::new(DatabaseConnection::default()),
-            master_key: [0u8; 32],
-            provider_registry: None,
-        }
     }
 }
 
