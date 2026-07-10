@@ -45,7 +45,7 @@ impl HarnessInterceptor for BusinessRuleInterceptor {
 
         match self.engine.evaluate(node_type, &input) {
             RuleEvaluationOutcome::Pass => InterceptorResult::Continue,
-            RuleEvaluationOutcome::Violation { reason, action: _, .. } => {
+            RuleEvaluationOutcome::Violation { reason, .. } => {
                 InterceptorResult::Block { reason: format!("[业务规则] {reason}") }
             },
             RuleEvaluationOutcome::RequiresApproval { reason, .. } => {
