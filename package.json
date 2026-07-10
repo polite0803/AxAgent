@@ -100,7 +100,7 @@
     "recharts": "^2.15.4",
     "stream-markdown": "^0.0.15",
     "stream-markdown-parser": "^0.0.91",
-    "stream-monaco": "^0.0.40",
+    "stream-monaco": "^0.0.46",
     "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
