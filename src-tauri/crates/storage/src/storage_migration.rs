@@ -277,7 +277,7 @@ mod tests {
 
     #[tokio::test]
     async fn empty_db_is_noop() {
-        let db = test_db().await;
+        let _db = test_db().await;
         let dirs = test_dirs();
         let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r, MigrationReport::default());

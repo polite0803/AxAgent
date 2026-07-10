@@ -24,6 +24,7 @@ uuid = { workspace = true }
 zip = "2"
 
 [dev-dependencies]
+axagent-dao = { path = "../dao" }
 tempfile = "3"
 
 [lints.rust]

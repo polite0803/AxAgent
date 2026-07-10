@@ -1395,6 +1395,7 @@ name = "axagent-storage"
 version = "2.8.2"
 dependencies = [
  "async-trait",
+ "axagent-dao",
  "axagent-entities",
  "axagent-harness",
  "chrono",
