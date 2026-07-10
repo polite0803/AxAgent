@@ -33,6 +33,7 @@ pub mod ui_automation;
 pub mod ui_automation;
 
 pub mod billing;
+pub mod bridge_impls;
 pub mod markdown_parser;
 pub mod marketplace;
 pub mod marketplace_service;

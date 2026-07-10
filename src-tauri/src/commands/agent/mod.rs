@@ -6,12 +6,15 @@ use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
-use axagent_agent::{AgentExecutionProgressSnapshot, AxAgentApiClient};
+use axagent_agent::AxAgentApiClient;
 use axagent_dao::repo::{conversation, message, provider, search_provider};
+use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{
     Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole, ProviderProxyConfig,
 };
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_runtime_core::create_conversation_runtime;
+use axagent_runtime_core::execution_progress::AgentExecutionProgressSnapshot;
 use axagent_storage::cloud_workspace::CloudWorkspace;
 use axagent_storage::workspace_uri::WorkspaceUri;
 use axagent_tools::context_keys;
@@ -410,11 +413,8 @@ pub async fn agent_query(
         {
             // Layer 1: AgentRole system_prompt（岗位）
             if let Some(ref role_name) = profile.agent_role {
-                if let Some(resolved) = axagent_runtime::agent_roles::AgentRole::resolve(
-                    app_state.harness.db(),
-                    role_name,
-                )
-                .await
+                if let Some(resolved) =
+                    axagent_runtime::agent_roles::AgentRole::resolve(role_name).await
                 {
                     effective_agent_role =
                         axagent_runtime::agent_roles::AgentRole::from_str_opt(&resolved.name);
@@ -583,30 +583,11 @@ pub async fn agent_query(
         .and_then(|o| o.max_tokens)
         .or_else(|| model_param_overrides.as_ref().and_then(|p| p.max_tokens));
 
-    // Create provider adapter instance
-    let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        axagent_harness::types::ProviderType::OpenAI => {
-            Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        },
-        axagent_harness::types::ProviderType::OpenAIResponses => {
-            Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Anthropic => {
-            Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Gemini => {
-            Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        },
-        axagent_harness::types::ProviderType::OpenClaw => {
-            Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Hermes => {
-            Arc::new(axagent_providers::hermes::HermesAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Ollama => {
-            Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        },
-    };
+    // Create provider adapter instance via RuntimeHarness（支持 tool_adaptation 包裹）
+    let adapter: Arc<dyn ProviderAdapter> =
+        app_state.harness.get_adapter_for_provider(&prov).await.ok_or_else(|| {
+            format!("No adapter available for provider type {:?}", prov.provider_type)
+        })?;
 
     // Load MCP tools for enabled servers (same logic as Q&A mode)
     let mcp_ids = request.enabled_mcp_server_ids.clone().unwrap_or_default();
@@ -1430,6 +1411,16 @@ pub async fn agent_query(
     // P4: Save input for trajectory recording (request.input is moved below)
     let trajectory_input = request.input.clone();
 
+    // Build runtime via factory, then delegate to session_manager.
+    // This keeps axagent-runtime-core out of the agent crate's dependencies.
+    let runtime = create_conversation_runtime(
+        session.session().clone(),
+        Box::new(api_client),
+        Box::new(tool_registry),
+        PermissionPolicy::new(runtime_permission_mode),
+        system_prompt,
+    );
+
     let result: Result<
         (axagent_runtime::TurnSummary, axagent_runtime::Session),
         axagent_runtime::RuntimeError,
@@ -1437,13 +1428,10 @@ pub async fn agent_query(
         .run_turn_with_tools(
             &session_id,
             augmented_input,
-            api_client,
-            tool_registry,
-            system_prompt,
+            runtime,
             conversation_id.clone(),
-            runtime_permission_mode,
-            app_state.agent_prompters.clone(),
             Some(cancel_token),
+            app_state.agent_prompters.clone(),
         )
         .await;
     info!("[agent_query] run_turn_with_tools completed");

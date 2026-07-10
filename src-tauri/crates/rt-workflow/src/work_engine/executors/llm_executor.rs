@@ -13,7 +13,7 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use axagent_harness::build_provider_request_context;
-use axagent_runtime_core::{LlmCallConfig, execute_llm};
+use axagent_harness::{LlmCallConfig, execute_llm};
 
 pub struct LlmExecutor {
     db: Arc<DatabaseConnection>,
@@ -76,7 +76,6 @@ impl NodeExecutorTrait for LlmExecutor {
         let session_provider_id =
             context.variables.get(super::WORKFLOW_PROVIDER_ID_VAR).and_then(|v| v.as_str());
         let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
-            &self.db,
             &self.master_key,
             self.provider_registry.as_ref(),
             node_model,

@@ -56,31 +56,3 @@ pub fn calculate_content_hash(content: &str) -> String {
     content.hash(&mut hasher);
     format!("{:x}", hasher.finish())
 }
-
-// ── Bridge: note_dtos::Note → rag_config::Note ──
-
-impl From<Note> for crate::rag_config::Note {
-    fn from(n: Note) -> Self {
-        Self {
-            id: n.id,
-            vault_id: n.vault_id,
-            title: n.title,
-            file_path: n.file_path,
-            content: n.content,
-            content_hash: n.content_hash,
-            author: n.author,
-            page_type: n.page_type,
-            source_refs: n.source_refs,
-            related_pages: n.related_pages,
-            quality_score: n.quality_score,
-            last_linted_at: n.last_linted_at,
-            last_compiled_at: n.last_compiled_at,
-            compiled_source_hash: n.compiled_source_hash,
-            user_edited: n.user_edited,
-            user_edited_at: n.user_edited_at,
-            created_at: n.created_at,
-            updated_at: n.updated_at,
-            is_deleted: n.is_deleted,
-        }
-    }
-}

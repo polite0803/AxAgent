@@ -204,7 +204,19 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
         }),
     );
 
-    let mut stream = adapter.chat_stream(&resolved.ctx, request, None);
+    let llm_config = axagent_runtime_core::LlmCallConfig {
+        session_id: Some(session_id.clone()),
+        ..Default::default()
+    };
+    let mut stream = axagent_runtime_core::execute_llm_stream(
+        &*adapter,
+        &resolved.ctx,
+        request,
+        &llm_config,
+        None,
+    )
+    .await
+    .map_err(|e| format!("LLM 初始化失败: {e}"))?;
     let message_id = format!("wf-ai-{}", uuid::Uuid::new_v4());
 
     while let Some(result) = stream.next().await {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::session::Session;
+pub use axagent_harness::TokenUsage;
 
 const DEFAULT_INPUT_COST_PER_MILLION: f64 = 3.0;
 const DEFAULT_OUTPUT_COST_PER_MILLION: f64 = 15.0;
@@ -26,28 +27,6 @@ impl ModelPricing {
             cache_read_cost_per_million: DEFAULT_CACHE_READ_COST_PER_MILLION,
         }
     }
-}
-
-/// Token counters accumulated for a conversation turn or session.
-///
-/// # 字段语义
-/// - `input_tokens`: provider 计费口径的 input（DeepSeek = `prompt_tokens`，
-///   OpenAI o-series 同样 = `prompt_tokens`）。
-/// - `output_tokens`: provider 计费口径的 output（含 `reasoning_content`，DeepSeek R1 全额计费）。
-/// - `cache_creation_input_tokens`: 写入 cache 的 token（Anthropic / OpenAI o-series prompt caching）。
-/// - `cache_read_input_tokens`: 命中 cache 的 token（DeepSeek 顶层 `prompt_cache_hit_tokens`，
-///   OpenAI 嵌套 `prompt_tokens_details.cached_tokens`）。
-/// - `cache_miss_input_tokens`: DeepSeek 顶层 `prompt_cache_miss_tokens` 真值（提供商直接返回，
-///   不再依赖 `input - cache_read` 推算）。`None` 表示上游未提供（如 OpenAI/Claude），
-///   此时 `cache_hit_rate` 退回到 `input - cache_creation` 推算分母。
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct TokenUsage {
-    pub input_tokens: u32,
-    pub output_tokens: u32,
-    pub cache_creation_input_tokens: u32,
-    pub cache_read_input_tokens: u32,
-    #[serde(default)]
-    pub cache_miss_input_tokens: Option<u32>,
 }
 
 /// Estimated dollar cost derived from a [`TokenUsage`] sample.
@@ -422,15 +401,13 @@ pub fn pricing_for_model(model: &str) -> Option<ModelPricing> {
     None
 }
 
-impl TokenUsage {
-    #[must_use]
-    pub fn total_tokens(self) -> u32 {
-        self.input_tokens
-            + self.output_tokens
-            + self.cache_creation_input_tokens
-            + self.cache_read_input_tokens
-    }
+// ── TokenCost trait (extension pattern: define trait in runtime-core, impl for harness type) ──
 
+/// Cost estimation and cache-rate analysis for [`TokenUsage`].
+///
+/// This trait lives in consumer territory (`axagent-runtime-core`) so that
+/// pricing tables and formatting logic do not pollute the harness foundation.
+pub trait TokenCost {
     /// 计算缓存命中率。
     ///
     /// # 算法
@@ -440,7 +417,23 @@ impl TokenUsage {
     /// 4. 当分母为 0（全部走 cache creation）→ 返回 `None`。
     /// 5. 当命中 = 0 但存在 miss token → 返回 `Some(0.0)`。
     #[must_use]
-    pub fn cache_hit_rate(self) -> Option<f64> {
+    fn cache_hit_rate(self) -> Option<f64>;
+
+    #[must_use]
+    fn estimate_cost_usd(self) -> UsageCostEstimate;
+
+    #[must_use]
+    fn estimate_cost_usd_with_pricing(self, pricing: ModelPricing) -> UsageCostEstimate;
+
+    #[must_use]
+    fn summary_lines(self, label: &str) -> Vec<String>;
+
+    #[must_use]
+    fn summary_lines_for_model(self, label: &str, model: Option<&str>) -> Vec<String>;
+}
+
+impl TokenCost for TokenUsage {
+    fn cache_hit_rate(self) -> Option<f64> {
         // P0-2: 优先使用 provider 报告的真值 miss 计数
         let cache_miss = match self.cache_miss_input_tokens {
             Some(miss) => miss,
@@ -456,13 +449,11 @@ impl TokenUsage {
         Some(f64::from(self.cache_read_input_tokens) / f64::from(denominator))
     }
 
-    #[must_use]
-    pub fn estimate_cost_usd(self) -> UsageCostEstimate {
+    fn estimate_cost_usd(self) -> UsageCostEstimate {
         self.estimate_cost_usd_with_pricing(ModelPricing::default_sonnet_tier())
     }
 
-    #[must_use]
-    pub fn estimate_cost_usd_with_pricing(self, pricing: ModelPricing) -> UsageCostEstimate {
+    fn estimate_cost_usd_with_pricing(self, pricing: ModelPricing) -> UsageCostEstimate {
         UsageCostEstimate {
             input_cost_usd: cost_for_tokens(self.input_tokens, pricing.input_cost_per_million),
             output_cost_usd: cost_for_tokens(self.output_tokens, pricing.output_cost_per_million),
@@ -477,13 +468,11 @@ impl TokenUsage {
         }
     }
 
-    #[must_use]
-    pub fn summary_lines(self, label: &str) -> Vec<String> {
+    fn summary_lines(self, label: &str) -> Vec<String> {
         self.summary_lines_for_model(label, None)
     }
 
-    #[must_use]
-    pub fn summary_lines_for_model(self, label: &str, model: Option<&str>) -> Vec<String> {
+    fn summary_lines_for_model(self, label: &str, model: Option<&str>) -> Vec<String> {
         let pricing = model.and_then(pricing_for_model);
         let cost = pricing.map_or_else(
             || self.estimate_cost_usd(),
@@ -603,7 +592,7 @@ impl UsageTracker {
 
 #[cfg(test)]
 mod tests {
-    use super::{TokenUsage, UsageTracker, format_usd, pricing_for_model};
+    use super::{TokenCost, TokenUsage, UsageTracker, format_usd, pricing_for_model};
     use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
 
     #[test]

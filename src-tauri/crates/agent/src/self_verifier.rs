@@ -178,13 +178,13 @@ impl SemanticValidator for LlmSemanticValidator {
             store: None,
         };
 
-        let response = self
-            .adapter
-            .chat(&self.ctx, request)
-            .await
-            .map_err(|e| VerificationError::LlmError(e.to_string()))?;
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response =
+            axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config)
+                .await
+                .map_err(|e| VerificationError::LlmError(e))?;
 
-        let content = response.content.trim();
+        let content = response.response.content.trim();
 
         let json_str = if content.starts_with("```json") {
             content.trim_start_matches("```json").trim_end_matches("```").trim()
@@ -571,7 +571,7 @@ fn validate_against_schema(
     path: &str,
     errors: &mut Vec<String>,
 ) -> bool {
-    axagent_kit::schema_validator::validate_recursive(value, schema, path, errors)
+    axagent_harness::json_schema::validate_recursive(value, schema, path, errors)
 }
 
 pub fn detect_state_change(before: &serde_json::Value, after: &serde_json::Value) -> StateDiff {

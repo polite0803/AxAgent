@@ -28,6 +28,7 @@ pub mod constants;
 pub mod contracts;
 pub use contracts::HarnessToolExecutor;
 pub mod conversation_model;
+pub use conversation_model::{ContentBlock, ConversationMessage, SessionInfo, TokenUsage};
 pub mod core_error;
 pub mod error_codes;
 mod persistence_mod;
@@ -141,10 +142,13 @@ pub use search_sources::{
 
 // ── Marketplace 契约（让 gateway / kit 不依赖 dao / entities） ──
 pub mod llm_execution;
-pub use llm_execution::{
-    LlmCallConfig as HarnessLlmCallConfig, LlmCallResult as HarnessLlmCallResult,
-    LlmExecutionService, SharedLlmExecutionService,
-};
+pub use llm_execution::{LlmExecutionService, SharedLlmExecutionService};
+
+// ── LLM 执行边界（原 runtime-core，上移至 harness 以满足铁律 4 共享类型权威） ──
+pub mod retry_policy;
+pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
+pub mod llm_executor;
+pub use llm_executor::{LlmCallConfig, LlmUsage, execute_llm, execute_llm_stream};
 pub mod marketplace;
 pub use marketplace::{
     CreateReviewRequest, MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,
@@ -237,7 +241,10 @@ pub use prompt_provider::{PromptLang, PromptProvider, StaticPromptProvider};
 pub mod agent_session_repo;
 pub use agent_session_repo::AgentSessionRepository;
 
-// ── CacheService 契约 ──
+pub mod runtime_types;
+
+pub mod kit_bridge;
+
 pub mod cache_service;
 pub use cache_service::{CacheService, SharedCacheService};
 
@@ -347,4 +354,17 @@ pub use dev_experience::{DevExperienceProvider, EnvironmentInfo, LogLevel};
 pub mod mcp_service;
 pub use mcp_service::{
     DiscoveredMcpTool, McpClientService, McpServerConfig, McpServerStore, McpToolCallResult,
+};
+
+// ── 工具体系运行时服务（让 tools 不依赖 runtime-core） ──
+pub mod tool_service;
+pub use tool_service::{
+    CronJobData, CronJobStore, HookEventFirer, McpTransport, NoopCronJobStore, NoopHookEventFirer,
+};
+
+// ── 会话压缩核心逻辑（无 HookRunner 依赖） ──
+pub mod compact_session;
+pub use compact_session::{
+    cleanup_task_boundary, compact_session, decay_weight, detect_task_boundary,
+    format_compact_summary, get_compact_continuation_message, summarize_turn,
 };

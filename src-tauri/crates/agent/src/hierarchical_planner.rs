@@ -952,10 +952,7 @@ impl Default for HierarchicalPlanner {
     }
 }
 
-// compile_plan_to_dag 已移至 axagent_kit::plan_compiler
-pub use axagent_kit::plan_compiler::compile_plan_to_dag;
-
-#[cfg(test)]
+// compile_plan_to_dag 移到了 axagent_kit::plan_compiler；外部调用方请直接 use 该路径。#[cfg(test)]
 mod tests {
     use super::*;
     use axagent_harness::workflow_types::WorkflowNode;

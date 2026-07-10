@@ -131,6 +131,9 @@ pub trait WikiRepository: Send + Sync {
 
     /// Increment the note count for a wiki.
     async fn increment_note_count(&self, wiki_id: &str) -> Result<(), String>;
+
+    /// Update the schema version for a wiki.
+    async fn update_schema_version(&self, wiki_id: &str, version: &str) -> Result<(), String>;
 }
 
 // ── WikiSourceRepository trait ──────────────────────────────────
@@ -211,6 +214,9 @@ pub trait NoteRepository: Send + Sync {
 
     /// Create a new note.
     async fn create_note(&self, input: crate::note_dtos::CreateNoteInput) -> Result<Note, String>;
+
+    /// Find forward link target IDs for a given source note.
+    async fn find_link_target_ids(&self, note_id: &str) -> Result<Vec<String>, String>;
 }
 
 // ── NoteBacklinkRepository trait ─────────────────────────────
@@ -219,4 +225,7 @@ pub trait NoteRepository: Send + Sync {
 pub trait NoteBacklinkRepository: Send + Sync {
     /// Count backlinks pointing to a note.
     async fn count_by_target_note_id(&self, note_id: &str) -> Result<usize, String>;
+
+    /// Find backlinks by target note ID.
+    async fn find_by_target_note_id(&self, note_id: &str) -> Result<Vec<NoteBacklink>, String>;
 }

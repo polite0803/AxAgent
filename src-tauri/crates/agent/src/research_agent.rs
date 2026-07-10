@@ -614,12 +614,12 @@ impl DefaultLlmContentGenerator {
                     store: None,
                 };
 
-                let response = adapter
-                    .chat(ctx, request)
+                let llm_config = axagent_harness::LlmCallConfig::default();
+                let response = axagent_harness::execute_llm(&**adapter, ctx, request, &llm_config)
                     .await
-                    .map_err(|e| ResearchError::LlmFailed(e.to_string()))?;
+                    .map_err(|e| ResearchError::LlmFailed(e))?;
 
-                Ok(response.content)
+                Ok(response.response.content)
             },
             _ => Err(ResearchError::LlmFailed("No LLM adapter configured".to_string())),
         }

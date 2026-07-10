@@ -16,6 +16,9 @@ use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use crate::commands::spawn_guard::catch_unwind_logged;
+#[cfg(test)]
+use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
+use axagent_harness::AgentSessionRepository;
 use axagent_harness::types::*;
 use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_providers::{ProviderRequestContext, extract_reasoning_from_text};
@@ -942,9 +945,7 @@ pub async fn archive_workflow_session(
 pub(crate) async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
-        Box<
-            dyn futures::Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send,
-        >,
+        Box<dyn futures::Stream<Item = std::result::Result<ChatStreamChunk, String>> + Send>,
     >,
     params: StreamConsumptionParams<'_>,
 ) -> (String, Option<TokenUsage>, Option<Vec<ToolCall>>, Option<String>, Option<f64>, Option<i64>) {
@@ -2523,7 +2524,11 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         agent_ask_senders: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_always_allowed: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_prompters: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
-        agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
+        agent_session_manager: {
+            let repo: Arc<dyn AgentSessionRepository> =
+                Arc::new(DaoAgentSessionRepository::new(Arc::new(db.clone())));
+            Arc::new(axagent_agent::SessionManager::new(repo))
+        },
         agent_cancel_tokens: Arc::new(DashMap::new()),
         agent_paused: Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -2719,7 +2724,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         ),
         agent: crate::state::AgentState::new(
-            Arc::new(axagent_agent::SessionManager::new(db.clone())),
+            Arc::new(axagent_agent::SessionManager::new_for_test(db.clone())),
             Arc::new(DashMap::new()),
             Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
             Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),

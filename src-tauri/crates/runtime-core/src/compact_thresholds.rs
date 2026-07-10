@@ -238,7 +238,9 @@ pub fn recommended_compaction_config(session: &Session, effective_window: u64) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{ContentBlock, ConversationMessage, Session};
+    use crate::session::{
+        ContentBlock, ContentBlockExt, ConversationMessage, ConversationMessageExt, Session,
+    };
 
     fn make_session_with_token_estimate(approx_tokens: usize) -> Session {
         let mut session = Session::new();
@@ -247,10 +249,12 @@ mod tests {
         for i in 0..10 {
             let text = format!("msg{} {}", i, "x".repeat(chars_per_msg.max(20)));
             if i % 2 == 0 {
-                session.push_message(ConversationMessage::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
+                    .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
                     .unwrap();
             }
         }

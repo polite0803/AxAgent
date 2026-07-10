@@ -522,6 +522,8 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
             )),
         ),
         std::sync::Arc::new(axagent_dao::marketplace_service::MarketplaceServiceImpl),
+        axagent_dao::platform_adapter_impl::build_mcp_server_store(state.harness.db().clone()),
+        axagent_mcp::client_service_impl::build_mcp_client_service(),
     )
     .await
     .map_err(|e| e.to_string())?;

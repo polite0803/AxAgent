@@ -126,19 +126,18 @@ impl Tool for BriefTool {
         let msg = i["message"].as_str().unwrap_or("");
         let attachments = i["attachments"].as_array().map(|a| a.len()).unwrap_or(0);
         // 触发通知 Hook
-        let runner = axagent_runtime_core::HookRunner::new(
-            axagent_runtime_core::RuntimeHookConfig::default(),
-        );
-        let _ = runner.run_event(
-            axagent_runtime_core::HookEvent::Notification,
-            &serde_json::json!({
-                "type": "brief",
-                "message": msg,
-                "attachments": attachments,
-                "conversation_id": ctx.conversation_id,
-            })
-            .to_string(),
-        );
+        if let Some(firer) = crate::tools::agent::HOOK_FIRER.get() {
+            firer.fire_hook(
+                "Notification",
+                &serde_json::json!({
+                    "type": "brief",
+                    "message": msg,
+                    "attachments": attachments,
+                    "conversation_id": ctx.conversation_id,
+                })
+                .to_string(),
+            );
+        }
         let mut out = format!("📢 {}\n\n---\n已推送到用户界面", msg);
         if attachments > 0 {
             out.push_str(&format!("\n📎 {} 个附件已上传", attachments));
@@ -177,17 +176,12 @@ impl Tool for ConfigTool {
 
         match action {
             "get" => {
-                let db = crate::global_state::get_sea_db();
-                if let Some(db) = db {
-                    use axagent_entities::settings;
-                    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-                    if let Ok(Some(record)) = settings::Entity::find()
-                        .filter(settings::Column::Key.eq(key))
-                        .one(db.as_ref())
-                        .await
-                    {
-                        return Ok(ToolResult::success(format!("⚙️ {} = {}", key, record.value)));
-                    }
+                let repo = axagent_harness::repositories::settings_repository();
+                match repo.get_setting(key).await {
+                    Ok(Some(value)) => {
+                        return Ok(ToolResult::success(format!("⚙️ {} = {}", key, value)));
+                    },
+                    _ => {},
                 }
                 // 回退到环境变量
                 if let Ok(env_val) = std::env::var(key) {
@@ -197,34 +191,10 @@ impl Tool for ConfigTool {
                 }
             },
             "set" => {
-                let db = crate::global_state::get_sea_db().ok_or_else(|| {
-                    ToolError::execution_failed("数据库未初始化，无法保存配置".to_string())
-                })?;
-                use axagent_entities::settings;
-                use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-                let existing = settings::Entity::find()
-                    .filter(settings::Column::Key.eq(key))
-                    .one(db.as_ref())
+                let repo = axagent_harness::repositories::settings_repository();
+                repo.set_setting(key, val)
                     .await
-                    .map_err(|e| ToolError::execution_failed(format!("查询配置失败: {}", e)))?;
-                match existing {
-                    Some(record) => {
-                        let mut active: settings::ActiveModel = record.into();
-                        active.value = Set(val.to_string());
-                        active.update(db.as_ref()).await.map_err(|e| {
-                            ToolError::execution_failed(format!("更新配置失败: {}", e))
-                        })?;
-                    },
-                    None => {
-                        let active = settings::ActiveModel {
-                            key: Set(key.to_string()),
-                            value: Set(val.to_string()),
-                        };
-                        active.insert(db.as_ref()).await.map_err(|e| {
-                            ToolError::execution_failed(format!("保存配置失败: {}", e))
-                        })?;
-                    },
-                }
+                    .map_err(|e| ToolError::execution_failed(format!("保存配置失败: {}", e)))?;
                 Ok(ToolResult::success(format!("⚙️ {} = {} (已保存)", key, val)))
             },
             _ => Err(ToolError::invalid_input("action 必须是 get 或 set")),

@@ -6,11 +6,13 @@ pub use crate::reasoning_state::ReActConfig;
 use crate::reasoning_state::{ActionType, ReasoningContext, ReasoningState};
 use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
+use axagent_harness::kit_bridge::{
+    KitBudgetCompletionEvent, KitTokenBudgetDecision, KitTokenBudgetTracker,
+};
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::util_fns::estimate_tokens;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_kit::token_budget::{TokenBudgetDecision, TokenBudgetTracker};
-use axagent_kit::token_counter::estimate_tokens;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;
@@ -335,37 +337,15 @@ impl LlmDrivenReasoningProvider {
             };
         }
 
-        // ── 旧路径：直接 adapter.chat() ──
-        const MAX_RETRIES: usize = 2;
-        let mut last_error: Option<String> = None;
-
-        for attempt in 0..=MAX_RETRIES {
-            match self.adapter.chat(&self.ctx, request.clone()).await {
-                Ok(response) => return Ok(response.content),
-                Err(e) => {
-                    let err_str = e.to_string();
-                    let is_retryable = err_str.contains("timeout")
-                        || err_str.contains("connection")
-                        || err_str.contains("reset")
-                        || err_str.contains("429")
-                        || err_str.contains("503")
-                        || err_str.contains("502")
-                        || err_str.contains("rate limit");
-
-                    if !is_retryable || attempt >= MAX_RETRIES {
-                        return Err(ReActError::LlmReasoningError(err_str));
-                    }
-
-                    last_error = Some(err_str);
-                    let delay = std::time::Duration::from_millis(500 * 2u64.pow(attempt as u32));
-                    tokio::time::sleep(delay).await;
-                },
-            }
+        // ── 旧路径：通过 execute_llm() 统一入口（含重试/超时/PromptGuard） ──
+        let llm_config = axagent_harness::LlmCallConfig {
+            retry_policy: Some(axagent_harness::retry_policy::RetryPolicy::default_llm()),
+            ..Default::default()
+        };
+        match axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config).await {
+            Ok(result) => Ok(result.response.content),
+            Err(e) => Err(ReActError::LlmReasoningError(e)),
         }
-
-        Err(ReActError::LlmReasoningError(
-            last_error.unwrap_or_else(|| "LLM call failed after retries".to_string()),
-        ))
     }
 
     fn parse_action_from_response(&self, response: &str) -> Option<Action> {
@@ -627,7 +607,7 @@ pub struct ReActEngine {
     verifier: Arc<SelfVerifier>,
     config: ReActConfig,
     event_sender: broadcast::Sender<ThoughtEvent>,
-    token_budget: TokenBudgetTracker,
+    token_budget: Box<dyn KitTokenBudgetTracker>,
     reasoning_provider: Arc<dyn LlmReasoningProvider>,
     planner: Option<Arc<tokio::sync::Mutex<crate::hierarchical_planner::HierarchicalPlanner>>>,
     cycle_detector: Option<CycleDetector>,
@@ -648,7 +628,7 @@ impl ReActEngine {
             verifier,
             config: ReActConfig::default(),
             event_sender,
-            token_budget: TokenBudgetTracker::new(),
+            token_budget: Box::new(crate::noop_kit::NoopTokenBudgetTracker),
             reasoning_provider: Arc::new(DefaultReasoningProvider::new()),
             planner: None,
             cycle_detector: None,
@@ -661,6 +641,11 @@ impl ReActEngine {
 
     pub fn with_config(mut self, config: ReActConfig) -> Self {
         self.config = config;
+        self
+    }
+
+    pub fn with_token_budget(mut self, budget: Box<dyn KitTokenBudgetTracker>) -> Self {
+        self.token_budget = budget;
         self
     }
 
@@ -808,14 +793,14 @@ impl ReActEngine {
                             .check(self.config.token_budget_limit, estimated_tokens);
 
                         match decision {
-                            TokenBudgetDecision::Continue { nudge_message, .. } => {
+                            KitTokenBudgetDecision::Continue { nudge_message, .. } => {
                                 if context.iteration > 0 && context.iteration.is_multiple_of(5) {
                                     let step =
                                         ThoughtStep::new(ReasoningState::Reflecting, nudge_message);
                                     chain.add_step(step);
                                 }
                             },
-                            TokenBudgetDecision::Stop { completion_event } => {
+                            KitTokenBudgetDecision::Stop { completion_event } => {
                                 if let Some(event) = completion_event {
                                     let reason = if event.diminishing_returns {
                                         format!(

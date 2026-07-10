@@ -689,7 +689,9 @@ mod tests_conversation {
             agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
-            agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
+            agent_session_manager: Arc::new(axagent_agent::SessionManager::new_for_test(
+                db.clone(),
+            )),
             agent_cancel_tokens: Arc::new(DashMap::new()),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -899,7 +901,7 @@ mod tests_conversation {
                 Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             ),
             agent: crate::state::AgentState::new(
-                Arc::new(axagent_agent::SessionManager::new(db.clone())),
+                Arc::new(axagent_agent::SessionManager::new_for_test(db.clone())),
                 Arc::new(DashMap::new()),
                 Arc::new(Mutex::new(std::collections::HashSet::new())),
                 Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),

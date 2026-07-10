@@ -137,11 +137,16 @@ use crate::WebhookSubscriptionInfo;
 use crate::WebhookSubscriptionService;
 use crate::core_error::{AxAgentError, Result};
 use crate::llm_execution::{LlmCallConfig, LlmCallResult};
+use crate::repo_dtos::{WorkflowExecutionData, WorkflowTemplateData};
+use crate::repositories::{
+    LoopCheckpointRepository, WorkflowExecutionRepository, WorkflowTemplateRepository,
+};
 use crate::types::CreateKnowledgeEntityInput;
 use crate::types::KnowledgeEntity;
 use crate::types::KnowledgeRelation;
 use crate::types::RagContextResult;
 use crate::types::RagRetrievedItem;
+use crate::workflow_types::LoopCheckpoint;
 
 use crate::platform_adapter::{
     CryptoService, GatewayKeyRepository, GatewayRequestLogRepository, PlatformAdapter,
@@ -172,7 +177,19 @@ impl ProviderRepository for EmptyProviderRepository {
     async fn list_providers(&self) -> Result<Vec<ProviderConfig>> {
         Ok(vec![])
     }
+    async fn get_provider(&self, _id: &str) -> Result<ProviderConfig> {
+        Err(AxAgentError::NotFound("test stub".into()))
+    }
     async fn get_active_key(&self, _provider_id: &str) -> Result<ProviderKey> {
+        Err(AxAgentError::NotFound("test stub".into()))
+    }
+    async fn resolve_model_for_node(
+        &self,
+        _node_model: Option<&str>,
+        _session_model: Option<&str>,
+        _session_provider_id: Option<&str>,
+        _profile_suggested_provider: Option<&str>,
+    ) -> Result<(ProviderConfig, ProviderKey, String)> {
         Err(AxAgentError::NotFound("test stub".into()))
     }
 }
@@ -1382,6 +1399,13 @@ impl NoteRepository for EmptyNoteRepository {
     ) -> std::result::Result<Note, String> {
         Err("not implemented".into())
     }
+
+    async fn find_link_target_ids(
+        &self,
+        _note_id: &str,
+    ) -> std::result::Result<Vec<String>, String> {
+        Ok(Vec::new())
+    }
 }
 
 struct EmptyWikiRepository;
@@ -1401,6 +1425,13 @@ impl WikiRepository for EmptyWikiRepository {
         Err("not implemented".into())
     }
     async fn increment_note_count(&self, _wiki_id: &str) -> std::result::Result<(), String> {
+        Ok(())
+    }
+    async fn update_schema_version(
+        &self,
+        _wiki_id: &str,
+        _version: &str,
+    ) -> std::result::Result<(), String> {
         Ok(())
     }
 }
@@ -1478,4 +1509,84 @@ pub fn empty_wiki_source_repo() -> Arc<dyn WikiSourceRepository> {
 }
 pub fn empty_wiki_operation_repo() -> Arc<dyn WikiOperationRepository> {
     Arc::new(EmptyWikiOperationRepository)
+}
+
+struct EmptyWorkflowExecutionRepository;
+#[async_trait]
+impl WorkflowExecutionRepository for EmptyWorkflowExecutionRepository {
+    async fn create_workflow_execution(
+        &self,
+        _id: &str,
+        _workflow_id: &str,
+        _input_params: Option<&str>,
+    ) -> std::result::Result<(), String> {
+        Ok(())
+    }
+    async fn update_workflow_execution_status(
+        &self,
+        _id: &str,
+        _status: &str,
+        _output_result: Option<&str>,
+        _node_executions: Option<&str>,
+        _total_time_ms: Option<i32>,
+    ) -> std::result::Result<bool, String> {
+        Ok(true)
+    }
+    async fn list_workflow_executions(
+        &self,
+        _workflow_id: &str,
+    ) -> std::result::Result<Vec<WorkflowExecutionData>, String> {
+        Ok(vec![])
+    }
+}
+
+pub fn empty_workflow_execution_repo() -> Arc<dyn WorkflowExecutionRepository> {
+    Arc::new(EmptyWorkflowExecutionRepository)
+}
+
+struct EmptyLoopCheckpointRepository;
+#[async_trait]
+impl LoopCheckpointRepository for EmptyLoopCheckpointRepository {
+    async fn save_loop_checkpoint(&self, _cp: &LoopCheckpoint) -> std::result::Result<(), String> {
+        Ok(())
+    }
+    async fn load_loop_checkpoint(
+        &self,
+        _execution_id: &str,
+        _node_id: &str,
+    ) -> std::result::Result<Option<LoopCheckpoint>, String> {
+        Ok(None)
+    }
+    async fn delete_loop_checkpoint(
+        &self,
+        _execution_id: &str,
+        _node_id: &str,
+    ) -> std::result::Result<(), String> {
+        Ok(())
+    }
+    async fn delete_loop_checkpoints_for_execution(
+        &self,
+        _execution_id: &str,
+    ) -> std::result::Result<(), String> {
+        Ok(())
+    }
+}
+
+pub fn empty_loop_checkpoint_repo() -> Arc<dyn LoopCheckpointRepository> {
+    Arc::new(EmptyLoopCheckpointRepository)
+}
+
+struct EmptyWorkflowTemplateRepository;
+#[async_trait]
+impl WorkflowTemplateRepository for EmptyWorkflowTemplateRepository {
+    async fn get_workflow_template(
+        &self,
+        _id: &str,
+    ) -> std::result::Result<Option<WorkflowTemplateData>, String> {
+        Ok(None)
+    }
+}
+
+pub fn empty_workflow_template_repo() -> Arc<dyn WorkflowTemplateRepository> {
+    Arc::new(EmptyWorkflowTemplateRepository)
 }

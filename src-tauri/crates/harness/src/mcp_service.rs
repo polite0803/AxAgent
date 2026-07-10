@@ -2,15 +2,28 @@
 
 //! MCP 服务契约 — 让 tools/gateway 不依赖 mcp crate。
 
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
+/// MCP server 的最小连接配置 —— 让 gateway 不依赖 `axagent_entities::mcp_servers::Model`
+/// 与 SeaORM。字段对齐 `mcp_client::discover_tools_unified` / `call_tool_unified`
+/// 所需的 transport/command/args/env/endpoint。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServerConfig {
     pub id: String,
     pub name: String,
+    /// 传输类型：stdio / http / sse。
+    pub transport: String,
+    /// stdio 传输的可执行命令。
     pub command: Option<String>,
-    pub url: Option<String>,
+    /// stdio 传输的命令行参数。
+    pub args: Option<Vec<String>>,
+    /// stdio 传输注入的环境变量。
+    pub env: Option<HashMap<String, String>>,
+    /// http / sse 传输的服务端点 URL。
+    pub endpoint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

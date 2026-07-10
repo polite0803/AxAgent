@@ -7,6 +7,7 @@ pub mod anthropic;
 pub mod gemini;
 pub mod hermes;
 pub mod image_gen;
+pub mod managed_tool_adapter;
 pub mod ollama;
 pub mod openai;
 pub mod openai_responses;

@@ -6,80 +6,11 @@
 
 use serde::{Deserialize, Serialize};
 
-/// 笔记 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Note {
-    pub id: String,
-    pub title: String,
-    pub content: String,
-    pub wiki_id: String,
-    pub created_at: String,
-    pub updated_at: String,
-    pub tags: Option<String>,
-    pub source: Option<String>,
-    pub url: Option<String>,
-    pub is_processed: bool,
-}
-
-/// 创建笔记的输入 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateNoteInput {
-    pub title: String,
-    pub content: String,
-    pub wiki_id: String,
-    pub tags: Option<String>,
-    pub source: Option<String>,
-    pub url: Option<String>,
-}
-
-/// 更新笔记的输入 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateNoteInput {
-    pub id: String,
-    pub content: Option<String>,
-    pub tags: Option<String>,
-    pub is_processed: Option<bool>,
-}
-
-/// Wiki 页面 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WikiPage {
-    pub id: String,
-    pub title: String,
-    pub wiki_id: String,
-    pub content: String,
-    pub parent_id: Option<String>,
-    pub path: Option<String>,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-/// Wiki 源 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WikiSource {
-    pub id: String,
-    pub wiki_id: String,
-    pub url: String,
-    pub title: Option<String>,
-    pub content: Option<String>,
-    pub source_type: String,
-    pub created_at: String,
-}
-
 /// Settings DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SettingsEntry {
     pub key: String,
     pub value: String,
-}
-
-/// Backlink DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NoteBacklink {
-    pub id: String,
-    pub source_note_id: String,
-    pub target_note_id: String,
-    pub context: Option<String>,
 }
 
 /// Session DTO
@@ -90,28 +21,6 @@ pub struct SessionRecord {
     pub created_at: String,
     pub updated_at: String,
     pub metadata: Option<String>,
-}
-
-/// Wiki DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Wiki {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub avatar_path: Option<String>,
-    pub allow_public: bool,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-/// Agent profile DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentProfile {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub system_prompt: Option<String>,
-    pub model: Option<String>,
 }
 
 // ── WorkflowEngine 系列 ─────────────────────
@@ -147,4 +56,233 @@ pub struct WorkflowTemplateData {
     pub output_schema: Option<String>,
     pub variables: Option<String>,
     pub error_config: Option<String>,
+}
+
+// ── BackgroundTask 系列 ─────────────────────
+
+/// 后台任务 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackgroundTask {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub task_type: String,
+    pub command: Option<String>,
+    pub prompt: Option<String>,
+    pub status: String,
+    pub output: String,
+    pub exit_code: Option<i32>,
+    pub conversation_id: Option<String>,
+    pub created_by: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub finished_at: Option<i64>,
+}
+
+/// 创建后台任务的输入 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateBackgroundTaskInput {
+    pub title: String,
+    pub description: String,
+    pub task_type: String,
+    pub command: Option<String>,
+    pub prompt: Option<String>,
+    pub created_by: Option<String>,
+}
+
+/// 更新后台任务状态的输入 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateBackgroundTaskInput {
+    pub id: String,
+    pub status: Option<String>,
+    pub output: Option<String>,
+    pub exit_code: Option<i32>,
+    pub finished_at: Option<i64>,
+}
+
+// ── StoredFile 系列 ─────────────────────────
+
+/// 已存储文件 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StoredFile {
+    pub id: String,
+    pub hash: String,
+    pub original_name: String,
+    pub mime_type: String,
+    pub size_bytes: i64,
+    pub storage_path: String,
+    pub conversation_id: Option<String>,
+    pub created_at: String,
+}
+
+/// 创建存储文件的输入 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateStoredFileInput {
+    pub id: String,
+    pub hash: String,
+    pub original_name: String,
+    pub mime_type: String,
+    pub size_bytes: i64,
+    pub storage_path: String,
+    pub conversation_id: Option<String>,
+}
+
+// ── Knowledge 系列 ──────────────────────────
+
+/// 知识实体 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KnowledgeEntityDto {
+    pub id: String,
+    pub knowledge_base_id: String,
+    pub name: String,
+    pub entity_type: String,
+    pub description: Option<String>,
+    pub source_path: String,
+    pub source_language: Option<String>,
+    pub properties: serde_json::Value,
+    pub lifecycle: Option<serde_json::Value>,
+    pub behaviors: Option<serde_json::Value>,
+    pub metadata: Option<serde_json::Value>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+/// 创建知识实体的输入
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateKnowledgeEntityInput {
+    pub knowledge_base_id: String,
+    pub name: String,
+    pub entity_type: String,
+    pub description: Option<String>,
+    pub source_path: String,
+    pub source_language: Option<String>,
+    pub properties: serde_json::Value,
+    pub lifecycle: Option<serde_json::Value>,
+    pub behaviors: Option<serde_json::Value>,
+}
+
+/// 知识流程 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KnowledgeFlowDto {
+    pub id: String,
+    pub knowledge_base_id: String,
+    pub name: String,
+    pub flow_type: String,
+    pub description: Option<String>,
+    pub source_path: String,
+    pub steps: serde_json::Value,
+    pub decision_points: Option<serde_json::Value>,
+    pub error_handling: Option<serde_json::Value>,
+    pub preconditions: Option<serde_json::Value>,
+    pub postconditions: Option<serde_json::Value>,
+    pub metadata: Option<serde_json::Value>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+/// 创建知识流程的输入
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateKnowledgeFlowInput {
+    pub knowledge_base_id: String,
+    pub name: String,
+    pub flow_type: String,
+    pub description: Option<String>,
+    pub source_path: String,
+    pub steps: serde_json::Value,
+    pub decision_points: Option<serde_json::Value>,
+    pub error_handling: Option<serde_json::Value>,
+    pub preconditions: Option<serde_json::Value>,
+    pub postconditions: Option<serde_json::Value>,
+}
+
+/// 知识接口 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KnowledgeInterfaceDto {
+    pub id: String,
+    pub knowledge_base_id: String,
+    pub name: String,
+    pub interface_type: String,
+    pub description: Option<String>,
+    pub source_path: String,
+    pub input_schema: serde_json::Value,
+    pub output_schema: serde_json::Value,
+    pub error_codes: Option<serde_json::Value>,
+    pub communication_pattern: Option<String>,
+    pub version: Option<String>,
+    pub metadata: Option<serde_json::Value>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+/// 创建知识接口的输入
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateKnowledgeInterfaceInput {
+    pub knowledge_base_id: String,
+    pub name: String,
+    pub interface_type: String,
+    pub description: Option<String>,
+    pub source_path: String,
+    pub input_schema: serde_json::Value,
+    pub output_schema: serde_json::Value,
+    pub error_codes: Option<serde_json::Value>,
+    pub communication_pattern: Option<String>,
+}
+
+/// 知识文档 DTO（用于 CRUD trait）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KnowledgeDocumentDto {
+    pub id: String,
+    pub knowledge_base_id: String,
+    pub title: String,
+    pub source_path: String,
+    pub mime_type: String,
+    pub size_bytes: i64,
+    pub indexing_status: String,
+    pub doc_type: String,
+    pub index_error: Option<String>,
+    pub source_conversation_id: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+/// 创建知识文档的输入
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateKnowledgeDocumentInput {
+    pub knowledge_base_id: String,
+    pub title: String,
+    pub source_path: String,
+    pub mime_type: String,
+    pub size_bytes: i64,
+    pub doc_type: String,
+}
+
+// ── Agent 系列 ─────────────────────────────────
+
+/// Agency Expert DTO（技能 / 领域专家）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgencyExpertDto {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub category: String,
+    pub system_prompt: String,
+    pub color: Option<String>,
+    pub source_dir: String,
+    pub is_enabled: bool,
+    pub imported_at: i64,
+    pub recommended_workflows: Option<String>,
+    pub recommended_tools: Option<String>,
+}
+
+/// Agent Role DTO（岗位定义，来自 DB `agent_roles` 表）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentRoleDto {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub system_prompt: String,
+    pub default_tools: Vec<String>,
+    pub max_concurrent: i32,
+    pub timeout_seconds: i64,
+    pub source: String,
 }

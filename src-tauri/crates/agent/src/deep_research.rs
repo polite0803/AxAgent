@@ -278,12 +278,12 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
             store: None,
         };
 
-        let response = adapter
-            .chat(ctx, request)
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response = axagent_harness::execute_llm(adapter, ctx, request, &llm_config)
             .await
             .map_err(|e| format!("LLM query generation failed: {}", e))?;
 
-        self.parse_queries(&response.content)
+        self.parse_queries(&response.response.content)
     }
 
     fn parse_queries(&self, response: &str) -> Result<Vec<ResearchQuery>, String> {
@@ -529,12 +529,12 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
                 store: None,
             };
 
-            let response = adapter
-                .chat(ctx, request)
+            let llm_config = axagent_harness::LlmCallConfig::default();
+            let response = axagent_harness::execute_llm(adapter, ctx, request, &llm_config)
                 .await
                 .map_err(|e| format!("LLM gap query generation failed: {}", e))?;
 
-            self.parse_queries(&response.content)
+            self.parse_queries(&response.response.content)
         } else {
             let queries: Vec<ResearchQuery> = gaps
                 .iter()
@@ -906,8 +906,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let (score, gaps) = researcher.analyze_coverage("Rust programming", &[], &[]);
         assert!((score - 0.0).abs() < f32::EPSILON);
@@ -921,8 +921,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "Rust programming".to_string(),
@@ -952,8 +952,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "obscure topic".to_string(),
@@ -975,8 +975,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let gaps = vec!["definition of Rust".to_string(), "history of Rust".to_string()];
         let queries =
@@ -992,8 +992,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let queries = researcher.generate_gap_queries("Rust", &[], None, None, None).await.unwrap();
         assert!(!queries.is_empty());
@@ -1006,8 +1006,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![
             ResearchFinding {
@@ -1041,8 +1041,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
@@ -1064,8 +1064,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
@@ -1095,8 +1095,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
@@ -1126,8 +1126,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
@@ -1157,8 +1157,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let queries = researcher.default_queries("Rust");
         assert_eq!(queries.len(), 5);
@@ -1172,8 +1172,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let ctx = researcher.build_context(Some("Rust is a systems language"), "Rust safety");
         assert!(ctx.contains("Wiki Overview"));
@@ -1189,8 +1189,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let ctx = researcher.build_context(None, "Rust safety");
         assert!(!ctx.contains("Wiki Overview"));
@@ -1204,8 +1204,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let text = r#"Here are the results: [{"query": "test", "rationale": "why"}] done"#;
         let json = researcher.extract_json(text).unwrap();
@@ -1220,8 +1220,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let text = r#"Result: {"key": "value"} end"#;
         let json = researcher.extract_json(text).unwrap();
@@ -1236,8 +1236,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let result = researcher.extract_json("no json here");
         assert!(result.is_err());
@@ -1265,8 +1265,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let gaps = vec!["definition of Rust".to_string()];
         let queries = researcher.default_gap_queries("Rust", &gaps);
@@ -1281,8 +1281,8 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
-        let searcher = Arc::new(WebSearchProvider::new());
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let queries = researcher.default_gap_queries("Rust", &[]);
         assert!(!queries.is_empty());

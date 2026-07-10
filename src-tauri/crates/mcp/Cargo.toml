@@ -5,6 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+async-trait = "0.1"
 axagent-harness = { path = "../harness" }
 dirs = "5"
 futures = "0.3"

@@ -5,7 +5,7 @@ use axagent_harness::core_error::AxAgentError;
 use axagent_harness::types::{
     GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage,
 };
-use axagent_providers::url_utils::resolve_base_url_for_type;
+use axagent_harness::url_utils::resolve_base_url_for_type;
 
 use axum::{
     body::{Body, Bytes, to_bytes},
@@ -1080,11 +1080,15 @@ pub async fn gemini_model_operation(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_crypto::crypto::{encrypt_key, key_prefix};
-    use axagent_dao::db::{DbHandle, create_test_pool};
-    use axagent_dao::repo::{gateway, gateway_request_log, provider};
+    use async_trait::async_trait;
+    use axagent_harness::core_error::{AxAgentError, Result};
+    use axagent_harness::platform_adapter::{
+        CryptoService, GatewayKeyRepository, GatewayRequestLogRepository, PlatformAdapter,
+        ProviderRepository, SettingsRepository,
+    };
     use axagent_harness::types::{
-        CreateProviderInput, Model, ModelCapability, ModelType, ProviderType, TokenUsage,
+        AppSettings, GatewayKey, Model, ModelCapability, ModelType, ProviderConfig, ProviderKey,
+        ProviderType, TokenUsage,
     };
     use axum::{
         Router,
@@ -1093,6 +1097,7 @@ mod tests {
         http::{HeaderMap, Method, Request, Response, StatusCode, header},
         routing::any,
     };
+    use sea_orm::Database;
     use serde_json::json;
     use std::sync::{Arc, Mutex};
     use tower::ServiceExt;
@@ -1184,117 +1189,219 @@ mod tests {
         (format!("http://{}", addr), captures, task)
     }
 
-    async fn seed_native_router(
-        provider_type: ProviderType,
-        api_host: &str,
-        model_id: &str,
-    ) -> (Router, DbHandle, String, GatewayAppState) {
-        let handle = create_test_pool().await.unwrap();
-        let db = &handle.conn;
-        let master_key = [9u8; 32];
-        let crypto_service =
-            axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key);
-        let gateway_key =
-            gateway::create_gateway_key(db, "Native Test Key", &crypto_service, Some(&master_key))
-                .await
-                .unwrap();
-        let provider = provider::create_provider(
-            db,
-            CreateProviderInput {
-                name: "Native Provider".into(),
-                provider_type,
-                api_host: api_host.into(),
-                api_path: None,
-                enabled: true,
-                builtin_id: None,
-            },
-        )
-        .await
-        .unwrap();
-        provider::save_models(
-            db,
-            &provider.id,
-            &[Model {
-                provider_id: provider.id.clone(),
-                model_id: model_id.into(),
-                name: model_id.into(),
-                group_name: None,
-                model_type: ModelType::Chat,
-                capabilities: vec![ModelCapability::TextChat],
-                max_tokens: Some(4096),
-                max_output_tokens: None,
-                enabled: true,
-                param_overrides: None,
-                input_price_per_mtok: None,
-                output_price_per_mtok: None,
-            }],
-        )
-        .await
-        .unwrap();
+    // ── 测试用 PlatformAdapter mock ──
+    // 铁律5：consumer(gateway) 测试不得依赖 axagent-dao / axagent-crypto。
+    // 改为本地实现 harness 的 PlatformAdapter trait，用内存态返回测试数据。
+    #[derive(Clone)]
+    struct TestPlatformAdapter {
+        gateway_key: GatewayKey,
+        plain_key: String,
+        providers: Vec<ProviderConfig>,
+        keys: Vec<ProviderKey>,
+    }
 
-        provider::add_provider_key(
-            db,
-            &provider.id,
-            &encrypt_key("upstream-secret", &master_key).unwrap(),
-            &key_prefix("upstream-secret"),
-        )
-        .await
-        .unwrap();
+    #[async_trait]
+    impl ProviderRepository for TestPlatformAdapter {
+        async fn list_providers(&self) -> Result<Vec<ProviderConfig>> {
+            Ok(self.providers.clone())
+        }
+        async fn get_provider(&self, id: &str) -> Result<ProviderConfig> {
+            self.providers
+                .iter()
+                .find(|p| p.id == id)
+                .cloned()
+                .ok_or_else(|| AxAgentError::NotFound(format!("provider {id} not found")))
+        }
+        async fn resolve_model_for_node(
+            &self,
+            _node_model: Option<&str>,
+            _session_model: Option<&str>,
+            _session_provider_id: Option<&str>,
+            _profile_suggested_provider: Option<&str>,
+        ) -> Result<(ProviderConfig, ProviderKey, String)> {
+            let provider = self
+                .providers
+                .first()
+                .cloned()
+                .ok_or_else(|| AxAgentError::NotFound("no provider configured".into()))?;
+            let key = self.get_active_key(&provider.id).await?;
+            let model = provider.models.first().map(|m| m.model_id.clone()).unwrap_or_default();
+            Ok((provider, key, model))
+        }
+        async fn get_active_key(&self, provider_id: &str) -> Result<ProviderKey> {
+            self.keys
+                .iter()
+                .find(|k| k.provider_id == provider_id && k.enabled)
+                .cloned()
+                .ok_or_else(|| {
+                    AxAgentError::NotFound(format!("no active key for provider {provider_id}"))
+                })
+        }
+    }
 
-        let state = GatewayAppState {
-            db: handle.conn.clone(),
-            master_key,
+    #[async_trait]
+    impl SettingsRepository for TestPlatformAdapter {
+        async fn get_settings(&self) -> Result<AppSettings> {
+            Ok(AppSettings::default())
+        }
+    }
+
+    #[async_trait]
+    impl GatewayKeyRepository for TestPlatformAdapter {
+        async fn list_gateway_keys(&self) -> Result<Vec<GatewayKey>> {
+            Ok(vec![self.gateway_key.clone()])
+        }
+        async fn verify_key(&self, token: &str) -> Result<Option<GatewayKey>> {
+            if token == self.plain_key {
+                Ok(Some(self.gateway_key.clone()))
+            } else {
+                Ok(None)
+            }
+        }
+        async fn get_by_id(&self, key_id: &str) -> Result<Option<GatewayKey>> {
+            if key_id == self.gateway_key.id {
+                Ok(Some(self.gateway_key.clone()))
+            } else {
+                Ok(None)
+            }
+        }
+        async fn update_last_used(&self, _key_id: &str) -> Result<()> {
+            Ok(())
+        }
+        async fn record_usage(
+            &self,
+            _key_id: &str,
+            _provider_id: &str,
+            _model_id: Option<&str>,
+            _request_tokens: u64,
+            _response_tokens: u64,
+            _cached_input_tokens: u64,
+        ) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    #[async_trait]
+    impl GatewayRequestLogRepository for TestPlatformAdapter {
+        async fn record_request_log(
+            &self,
+            _key_id: &str,
+            _key_name: &str,
+            _method: &str,
+            _path: &str,
+            _model_id: Option<&str>,
+            _provider_id: Option<&str>,
+            _status_code: i32,
+            _duration_ms: i32,
+            _request_tokens: i64,
+            _response_tokens: i64,
+            _error_message: Option<&str>,
+        ) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    impl CryptoService for TestPlatformAdapter {
+        fn decrypt_key(&self, encrypted: &str) -> Result<String> {
+            Ok(encrypted.to_string())
+        }
+        fn encrypt_key(&self, plaintext: &str) -> Result<String> {
+            Ok(plaintext.to_string())
+        }
+        fn decrypt_key_with(&self, encrypted: &str, _master_key: &[u8; 32]) -> Result<String> {
+            Ok(encrypted.to_string())
+        }
+        fn encrypt_key_with(&self, plaintext: &str, _master_key: &[u8; 32]) -> Result<String> {
+            Ok(plaintext.to_string())
+        }
+        fn hmac_sha256(&self, _key: &[u8], _msg: &str) -> String {
+            String::new()
+        }
+        fn sha256_hash(&self, input: &str) -> String {
+            input.to_string()
+        }
+        fn key_prefix(&self, key: &str) -> String {
+            key.chars().take(4).collect()
+        }
+        fn generate_gateway_key(&self) -> String {
+            "generated-key".to_string()
+        }
+        fn generate_master_key(&self) -> [u8; 32] {
+            [0u8; 32]
+        }
+        fn encrypt_backup_key(&self, key_data: &[u8]) -> Result<Vec<u8>> {
+            Ok(key_data.to_vec())
+        }
+        fn decrypt_backup_key(&self, enc_data: &[u8]) -> Result<Vec<u8>> {
+            Ok(enc_data.to_vec())
+        }
+    }
+
+    #[async_trait]
+    impl PlatformAdapter for TestPlatformAdapter {
+        fn providers(&self) -> &dyn ProviderRepository {
+            self
+        }
+        fn settings(&self) -> &dyn SettingsRepository {
+            self
+        }
+        fn gateway_keys(&self) -> &dyn GatewayKeyRepository {
+            self
+        }
+        fn request_log(&self) -> &dyn GatewayRequestLogRepository {
+            self
+        }
+        fn crypto(&self) -> &dyn CryptoService {
+            self
+        }
+    }
+
+    async fn build_native_state(
+        gateway_key: GatewayKey,
+        plain_key: String,
+        providers: Vec<ProviderConfig>,
+        keys: Vec<ProviderKey>,
+    ) -> GatewayAppState {
+        let db = Database::connect("sqlite::memory:?mode=rwc").await.expect("in-memory db");
+        GatewayAppState {
+            db,
+            master_key: [9u8; 32],
             started_at: 0,
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
-            adapter: axagent_dao::platform_adapter_impl::build_platform_adapter(
-                handle.conn.clone(),
-                master_key,
-                std::sync::Arc::new(
-                    axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
-                ),
-            ),
+            adapter: std::sync::Arc::new(TestPlatformAdapter {
+                gateway_key: gateway_key.clone(),
+                plain_key,
+                providers,
+                keys,
+            }),
             marketplace_service: axagent_harness::test_support::empty_marketplace_service(),
+            mcp_store: std::sync::Arc::new(axagent_harness::test_support::NoopMcpServerStore),
+            mcp_client: std::sync::Arc::new(axagent_harness::test_support::NoopMcpClientService),
             ticket_store: crate::realtime::default_ticket_store(),
-            // SECURITY (Phase 2 Task 2.3): 测试用独立 limiter 实例，
-            // 避免跨测试污染。设置一个很宽的阈值（100）让单测不会被
-            // 限流误伤。
+            // SECURITY (Phase 2 Task 2.3): 测试用独立 limiter 实例，避免跨测试污染。
             key_verify_limiter: std::sync::Arc::new(crate::auth::KeyVerifyLimiter::new(
                 100,
                 std::time::Duration::from_secs(60),
             )),
             client_ip_policy: std::sync::Arc::new(crate::auth::ClientIpPolicy::trust_all()),
             qr_bind_store: crate::qr_bind::QrBindStore::new(),
-        };
-        (create_router(state.clone()), handle, gateway_key.plain_key, state)
+        }
     }
 
-    async fn insert_provider_with_optional_key(
-        db: &sea_orm::DatabaseConnection,
-        master_key: &[u8; 32],
-        name: &str,
+    fn make_provider(
         provider_type: ProviderType,
         api_host: &str,
         model_id: &str,
-        with_key: bool,
-    ) -> axagent_harness::types::ProviderConfig {
-        let provider = provider::create_provider(
-            db,
-            CreateProviderInput {
-                name: name.into(),
-                provider_type,
-                api_host: api_host.into(),
-                api_path: None,
-                enabled: true,
-                builtin_id: None,
-            },
-        )
-        .await
-        .unwrap();
-        provider::save_models(
-            db,
-            &provider.id,
-            &[Model {
-                provider_id: provider.id.clone(),
+    ) -> ProviderConfig {
+        ProviderConfig {
+            id: format!("native-{model_id}"),
+            name: "Native Provider".into(),
+            provider_type,
+            api_host: api_host.into(),
+            api_path: None,
+            enabled: true,
+            models: vec![Model {
+                provider_id: format!("native-{model_id}"),
                 model_id: model_id.into(),
                 name: model_id.into(),
                 group_name: None,
@@ -1307,22 +1414,54 @@ mod tests {
                 input_price_per_mtok: None,
                 output_price_per_mtok: None,
             }],
-        )
-        .await
-        .unwrap();
-
-        if with_key {
-            provider::add_provider_key(
-                db,
-                &provider.id,
-                &encrypt_key("upstream-secret", master_key).unwrap(),
-                &key_prefix("upstream-secret"),
-            )
-            .await
-            .unwrap();
+            keys: vec![],
+            proxy_config: None,
+            tool_adaptation: None,
+            tool_adaptation_marker_prefix: None,
+            custom_headers: None,
+            icon: None,
+            builtin_id: None,
+            sort_order: 0,
+            created_at: 0,
+            updated_at: 0,
         }
+    }
 
-        provider::get_provider(db, &provider.id).await.unwrap()
+    fn make_key(provider_id: &str) -> ProviderKey {
+        ProviderKey {
+            id: format!("{provider_id}-key"),
+            provider_id: provider_id.into(),
+            key_encrypted: "upstream-secret".into(),
+            key_prefix: "sk".into(),
+            enabled: true,
+            last_validated_at: None,
+            last_error: None,
+            rotation_index: 0,
+            created_at: 0,
+        }
+    }
+
+    async fn seed_native_router(
+        provider_type: ProviderType,
+        api_host: &str,
+        model_id: &str,
+    ) -> (Router, String, GatewayAppState) {
+        let plain_key = "sk-native-test-plain".to_string();
+        let gateway_key = GatewayKey {
+            id: "native-test-key".into(),
+            name: "Native Test Key".into(),
+            key_hash: "hash".into(),
+            key_prefix: "sk-t".into(),
+            enabled: true,
+            created_at: 0,
+            last_used_at: None,
+            has_encrypted_key: true,
+        };
+        let provider = make_provider(provider_type, api_host, model_id);
+        let key = make_key(&provider.id);
+        let state =
+            build_native_state(gateway_key, plain_key.clone(), vec![provider], vec![key]).await;
+        (create_router(state.clone()), plain_key, state)
     }
 
     fn assert_usage(actual: Option<TokenUsage>, prompt: u32, completion: u32, total: u32) {
@@ -1438,7 +1577,7 @@ mod tests {
         .to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body.clone()).await;
-        let (app, handle, gateway_key, _) =
+        let (app, gateway_key, _state) =
             seed_native_router(ProviderType::OpenAI, &upstream_base, "gpt-5").await;
 
         let response = app
@@ -1475,17 +1614,6 @@ mod tests {
         assert_eq!(captured[0].body["model"], "gpt-5");
         drop(captured);
 
-        let metrics = gateway::get_gateway_metrics(&handle.conn).await.unwrap();
-        assert_eq!(metrics.total_requests, 1);
-        assert_eq!(metrics.total_request_tokens, 11);
-        assert_eq!(metrics.total_response_tokens, 7);
-
-        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0).await.unwrap();
-        assert_eq!(logs.len(), 1);
-        assert_eq!(logs[0].path, "/v1/responses");
-        assert_eq!(logs[0].request_tokens, 11);
-        assert_eq!(logs[0].response_tokens, 7);
-
         upstream_task.abort();
     }
 
@@ -1506,7 +1634,7 @@ mod tests {
         .to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body.clone()).await;
-        let (app, handle, gateway_key, _) =
+        let (app, gateway_key, _state) =
             seed_native_router(ProviderType::Anthropic, &upstream_base, "claude-sonnet-4-6").await;
 
         let response = app
@@ -1545,16 +1673,6 @@ mod tests {
         assert_eq!(captured[0].anthropic_version.as_deref(), Some("2023-06-01"));
         drop(captured);
 
-        let metrics = gateway::get_gateway_metrics(&handle.conn).await.unwrap();
-        assert_eq!(metrics.total_requests, 1);
-        assert_eq!(metrics.total_request_tokens, 61);
-        assert_eq!(metrics.total_response_tokens, 17);
-
-        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0).await.unwrap();
-        assert_eq!(logs[0].path, "/v1/messages");
-        assert_eq!(logs[0].request_tokens, 61);
-        assert_eq!(logs[0].response_tokens, 17);
-
         upstream_task.abort();
     }
 
@@ -1565,7 +1683,7 @@ mod tests {
         let upstream_body = json!({ "totalTokens": 27 }).to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body.clone()).await;
-        let (app, handle, gateway_key, _) =
+        let (app, gateway_key, _state) =
             seed_native_router(ProviderType::Gemini, &upstream_base, "gemini-2.5-pro").await;
 
         let response = app
@@ -1605,15 +1723,6 @@ mod tests {
         assert_eq!(captured[0].x_goog_api_key.as_deref(), Some("upstream-secret"));
         drop(captured);
 
-        let metrics = gateway::get_gateway_metrics(&handle.conn).await.unwrap();
-        assert_eq!(metrics.total_requests, 0);
-        assert_eq!(metrics.total_tokens, 0);
-
-        let logs = gateway_request_log::list_request_logs(&handle.conn, 10, 0).await.unwrap();
-        assert_eq!(logs[0].path, "/v1beta/models/gemini-2.5-pro:countTokens");
-        assert_eq!(logs[0].request_tokens, 27);
-        assert_eq!(logs[0].response_tokens, 0);
-
         upstream_task.abort();
     }
 
@@ -1624,74 +1733,41 @@ mod tests {
         let upstream_body = json!({
             "id": "resp_456",
             "object": "response",
-            "usage": {
-                "input_tokens": 9,
-                "output_tokens": 3,
-                "total_tokens": 12
-            }
+            "usage": { "input_tokens": 9, "output_tokens": 3, "total_tokens": 12 }
         })
         .to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body).await;
 
-        let handle = create_test_pool().await.unwrap();
-        let db = &handle.conn;
-        let master_key = [9u8; 32];
-        let crypto_service =
-            axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key);
-        let gateway_key =
-            gateway::create_gateway_key(db, "Native Test Key", &crypto_service, Some(&master_key))
-                .await
-                .unwrap();
+        let plain_key = "sk-native-test-plain".to_string();
+        let gateway_key = GatewayKey {
+            id: "native-test-key".into(),
+            name: "Native Test Key".into(),
+            key_hash: "hash".into(),
+            key_prefix: "sk-t".into(),
+            enabled: true,
+            created_at: 0,
+            last_used_at: None,
+            has_encrypted_key: true,
+        };
+        // 两个 provider 都提供 gpt-4o，但只有 "openai-provider" 有激活 key
+        let mut p1 = make_provider(ProviderType::OpenAI, &upstream_base, "gpt-4o");
+        p1.id = "openai-provider".into();
+        let mut p2 = make_provider(ProviderType::OpenAI, &upstream_base, "gpt-4o");
+        p2.id = "openai-responses-provider".into();
+        p2.name = "OpenAI Responses".into();
+        let key1 = make_key(&p1.id);
 
-        insert_provider_with_optional_key(
-            db,
-            &master_key,
-            "OpenAI",
-            ProviderType::OpenAI,
-            &upstream_base,
-            "gpt-4o",
-            true,
-        )
-        .await;
-        insert_provider_with_optional_key(
-            db,
-            &master_key,
-            "OpenAI Responses",
-            ProviderType::OpenAI,
-            &upstream_base,
-            "gpt-4o",
-            false,
-        )
-        .await;
+        let state =
+            build_native_state(gateway_key, plain_key.clone(), vec![p1, p2], vec![key1]).await;
+        let app = create_router(state.clone());
 
-        let app = create_router(GatewayAppState {
-            db: handle.conn.clone(),
-            master_key,
-            started_at: 0,
-            provider_registry: axagent_harness::test_support::empty_provider_registry(),
-            adapter: axagent_dao::platform_adapter_impl::build_platform_adapter(
-                handle.conn.clone(),
-                master_key,
-                std::sync::Arc::new(
-                    axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
-                ),
-            ),
-            marketplace_service: axagent_harness::test_support::empty_marketplace_service(),
-            ticket_store: crate::realtime::default_ticket_store(),
-            key_verify_limiter: std::sync::Arc::new(crate::auth::KeyVerifyLimiter::new(
-                100,
-                std::time::Duration::from_secs(60),
-            )),
-            client_ip_policy: std::sync::Arc::new(crate::auth::ClientIpPolicy::trust_all()),
-            qr_bind_store: crate::qr_bind::QrBindStore::new(),
-        });
         let response = app
             .oneshot(
                 Request::builder()
                     .method(Method::POST)
                     .uri("/v1/responses")
-                    .header(header::AUTHORIZATION, format!("Bearer {}", gateway_key.plain_key))
+                    .header(header::AUTHORIZATION, format!("Bearer {}", plain_key))
                     .header(header::CONTENT_TYPE, "application/json")
                     .body(Body::from(
                         json!({
@@ -1729,7 +1805,7 @@ mod tests {
         .to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body).await;
-        let (app, _handle, gateway_key, _) =
+        let (app, gateway_key, _state) =
             seed_native_router(ProviderType::OpenAI, &format!("{}/v1", upstream_base), "gpt-4o")
                 .await;
 

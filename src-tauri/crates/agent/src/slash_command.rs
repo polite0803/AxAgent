@@ -1,12 +1,10 @@
-// SPDX-License-Identifier: AGPL-3.0-only
-
-pub use axagent_kit::slash_command::{
-    SlashCommandAction, SlashCommandPreprocessed, SlashCommandRouter, apply_slash_command_to_input,
-    load_bundle_content, load_skill_content, process_slash_command, switch_personality,
+use axagent_harness::kit_bridge::{
+    KitSlashCommandProcessor, SlashCommandAction, SlashCommandPreprocessed,
 };
 
 use crate::personality::PersonalityManager;
 
+/// Handle a `/personality` slash command using the local PersonalityManager.
 pub fn handle_switch_personality(name: &str) -> Result<String, String> {
     PersonalityManager::set_active(name)?;
     let personality = PersonalityManager::load(name)?;
@@ -21,8 +19,12 @@ pub fn handle_switch_personality(name: &str) -> Result<String, String> {
     ))
 }
 
-pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
-    let Some(action) = process_slash_command(text) else {
+/// Process a user input string for slash commands, returning the preprocessed result.
+pub fn apply_slash_command_for_agent(
+    text: &str,
+    processor: &dyn KitSlashCommandProcessor,
+) -> SlashCommandPreprocessed {
+    let Some(action) = processor.process(text) else {
         return SlashCommandPreprocessed {
             modified_text: text.to_string(),
             personality_prompt: None,
@@ -32,7 +34,7 @@ pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
 
     match action {
         SlashCommandAction::LoadBundle { name, args } => {
-            let modified_text = if let Some(content) = load_bundle_content(&name, &args) {
+            let modified_text = if let Some(content) = processor.load_bundle_content(&name, &args) {
                 let user_request = if args.is_empty() {
                     name.clone()
                 } else {
@@ -48,7 +50,7 @@ pub fn apply_slash_command_for_agent(text: &str) -> SlashCommandPreprocessed {
             SlashCommandPreprocessed { modified_text, personality_prompt: None, is_builtin: false }
         },
         SlashCommandAction::LoadSkill { name, args } => {
-            let modified_text = if let Some(content) = load_skill_content(&name, &args) {
+            let modified_text = if let Some(content) = processor.load_skill_content(&name, &args) {
                 let user_request = if args.is_empty() {
                     name.clone()
                 } else {

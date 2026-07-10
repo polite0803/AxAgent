@@ -121,7 +121,6 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             context.variables.get(super::WORKFLOW_PROVIDER_ID_VAR).and_then(|v| v.as_str());
 
         let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
-            &self.db,
             &self.master_key,
             self.provider_registry.as_ref(),
             node_model,
@@ -177,12 +176,16 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             store: None,
         };
 
-        let response = adapter.chat(&req_ctx, request.clone()).await.map_err(|e| {
-            NodeError::exec_failed(
-                error_code::UNSUPPORTED_PROVIDER,
-                format!("LLM classifier call failed: {e}"),
-            )
-        })?;
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response =
+            axagent_harness::execute_llm(&*adapter, &req_ctx, request.clone(), &llm_config)
+                .await
+                .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::UNSUPPORTED_PROVIDER,
+                    format!("LLM classifier call failed: {e}"),
+                )
+            })?;
 
         // ── 结果一致性检查 ──
         if let Some(ref cc_config) = c.consistency_check
@@ -202,7 +205,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             let secondary_response = adapter.chat(&req_ctx, secondary_request).await;
             if let Ok(sec_resp) = secondary_response {
                 use axagent_harness::consistency_check::check_consistency;
-                let primary_val = serde_json::json!(response.content);
+                let primary_val = serde_json::json!(response.response.content);
                 let secondary_val = serde_json::json!(sec_resp.content);
                 let cc_result =
                     check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
@@ -220,13 +223,13 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
 
         // ── 置信度检查 ──
         let raw_category = if let Some(threshold) = c.confidence_threshold {
-            let parsed: serde_json::Value =
-                serde_json::from_str(response.content.trim()).map_err(|e| {
+            let parsed: serde_json::Value = serde_json::from_str(response.response.content.trim())
+                .map_err(|e| {
                     NodeError::exec_failed(
                         error_code::VALIDATION_FAILED,
                         format!(
                             "LlmClassifier: 无法解析 LLM JSON 响应: {e}, raw: {}",
-                            response.content.trim()
+                            response.response.content.trim()
                         ),
                     )
                 })?;
@@ -246,7 +249,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                 label
             }
         } else {
-            response.content.trim().to_string()
+            response.response.content.trim().to_string()
         };
 
         let matched = c

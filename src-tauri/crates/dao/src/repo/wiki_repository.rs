@@ -98,4 +98,18 @@ impl WikiRepository for DaoWikiRepository {
 
         Ok(())
     }
+
+    async fn update_schema_version(&self, wiki_id: &str, version: &str) -> Result<(), String> {
+        let model = wikis::Entity::find_by_id(wiki_id)
+            .one(self.db.as_ref())
+            .await
+            .map_err(|e| format!("DB error: {}", e))?
+            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+
+        let mut am = model.into_active_model();
+        am.schema_version = Set(version.to_string());
+        am.updated_at = Set(chrono::Utc::now().timestamp());
+        am.update(self.db.as_ref()).await.map_err(|e| format!("DB error: {}", e))?;
+        Ok(())
+    }
 }

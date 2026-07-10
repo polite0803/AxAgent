@@ -5,6 +5,12 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square)
 
+<p align="center">
+  <a href="./media/poster-axagent.svg">
+    <img src="./media/poster-axagent.svg" alt="AxAgent Poster" width="80%" />
+  </a>
+</p>
+
 **AxAgent**는 **Windows / macOS / Linux / Android / iOS** 5개 플랫폼을 지원하는 오픈소스 크로스 플랫폼 AI 어시스턴트 데스크톱 클라이언트입니다. 단순한 채팅 인터페이스가 아니라 ReAct 에이전트 엔진, 시각적 워크플로우 오케스트레이션, 로컬 RAG 지식 베이스, MCP 프로토콜 확장, 멀티 모델 통합 게이트웨이, 브라우저 자동화, 컴퓨터 제어 등을 통합하여 일상적인 개발, 연구, 지식 관리, 자동화 작업을 위한 AI 워크스테이션으로 기능합니다.
 
 > **언어**: [简体中文](./README.md) | [English](./README-EN.md) | [繁體中文](./README-ZH-TW.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)

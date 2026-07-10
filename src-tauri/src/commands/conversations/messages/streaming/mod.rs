@@ -192,7 +192,32 @@ pub(super) fn spawn_stream_task(
                     store: None,
                 };
 
-                let mut stream = adapter.chat_stream(&ctx, request, None);
+                let llm_config = axagent_runtime_core::LlmCallConfig {
+                    session_id: Some(conversation_id.clone()),
+                    ..Default::default()
+                };
+                let mut stream = match axagent_runtime_core::execute_llm_stream(
+                    &*adapter,
+                    &ctx,
+                    request,
+                    &llm_config,
+                    None,
+                )
+                .await
+                {
+                    Ok(s) => s,
+                    Err(e) => {
+                        let _ = app.emit(
+                            "chat-stream-error",
+                            ChatStreamErrorEvent {
+                                conversation_id: conversation_id.clone(),
+                                message_id: assistant_message_id.clone(),
+                                error: e,
+                            },
+                        );
+                        break;
+                    },
+                };
                 let suppress_thinking = thinking_budget == Some(0);
                 let (content, usage, tool_calls, stream_error, iter_tps, iter_ttft) =
                     consume_stream(

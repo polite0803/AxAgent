@@ -8,11 +8,14 @@
 use std::sync::{Arc, OnceLock, RwLock};
 
 use crate::repositories::{
-    ConversationRepository, DatabaseInitializer, GeneratedToolRepository, LoopCheckpointRepository,
-    MemoryRepository, MessageRepository, NoteBacklinkRepository, NoteRepository,
-    PlatformConfigRepository, ProviderRepository, SessionRepository, SettingsRepository,
-    SkillDirsProvider, ToolExecutionRepository, WikiPageRepository, WikiRepository,
-    WikiSourceRepository, WorkflowExecutionRepository, WorkflowTemplateRepository,
+    AgencyExpertRepository, AgentProfileRepository, AgentRoleRepository, BackgroundTaskRepository,
+    ConversationRepository, DatabaseInitializer, GeneratedToolRepository,
+    KnowledgeDocumentRepository, KnowledgeEntityRepository, KnowledgeFlowRepository,
+    KnowledgeInterfaceRepository, LoopCheckpointRepository, MemoryRepository, MessageRepository,
+    NoteBacklinkRepository, NoteRepository, PlatformConfigRepository, ProviderRepository,
+    SessionRepository, SettingsRepository, SkillDirsProvider, StoredFileRepository,
+    ToolExecutionRepository, TrajectoryRepository, WikiOperationRepository, WikiPageRepository,
+    WikiRepository, WikiSourceRepository, WorkflowExecutionRepository, WorkflowTemplateRepository,
 };
 
 /// 全局服务注册表 —— 集中管理所有 repository 和 provider 的 DI 注入点。
@@ -24,6 +27,7 @@ pub struct ServiceRegistry {
     pub wiki_repo: OnceLock<RwLock<Option<Arc<dyn WikiRepository>>>>,
     pub wiki_page_repo: OnceLock<RwLock<Option<Arc<dyn WikiPageRepository>>>>,
     pub wiki_source_repo: OnceLock<RwLock<Option<Arc<dyn WikiSourceRepository>>>>,
+    pub wiki_operation_repo: OnceLock<RwLock<Option<Arc<dyn WikiOperationRepository>>>>,
     pub backlink_repo: OnceLock<RwLock<Option<Arc<dyn NoteBacklinkRepository>>>>,
     pub settings_repo: OnceLock<RwLock<Option<Arc<dyn SettingsRepository>>>>,
     pub session_repo: OnceLock<RwLock<Option<Arc<dyn SessionRepository>>>>,
@@ -37,6 +41,16 @@ pub struct ServiceRegistry {
     pub workflow_execution_repo: OnceLock<RwLock<Option<Arc<dyn WorkflowExecutionRepository>>>>,
     pub loop_checkpoint_repo: OnceLock<RwLock<Option<Arc<dyn LoopCheckpointRepository>>>>,
     pub workflow_template_repo: OnceLock<RwLock<Option<Arc<dyn WorkflowTemplateRepository>>>>,
+    pub background_task_repo: OnceLock<RwLock<Option<Arc<dyn BackgroundTaskRepository>>>>,
+    pub stored_file_repo: OnceLock<RwLock<Option<Arc<dyn StoredFileRepository>>>>,
+    pub knowledge_entity_repo: OnceLock<RwLock<Option<Arc<dyn KnowledgeEntityRepository>>>>,
+    pub knowledge_flow_repo: OnceLock<RwLock<Option<Arc<dyn KnowledgeFlowRepository>>>>,
+    pub knowledge_interface_repo: OnceLock<RwLock<Option<Arc<dyn KnowledgeInterfaceRepository>>>>,
+    pub knowledge_document_repo: OnceLock<RwLock<Option<Arc<dyn KnowledgeDocumentRepository>>>>,
+    pub trajectory_repo: OnceLock<RwLock<Option<Arc<dyn TrajectoryRepository>>>>,
+    pub agent_profile_repo: OnceLock<RwLock<Option<Arc<dyn AgentProfileRepository>>>>,
+    pub agency_expert_repo: OnceLock<RwLock<Option<Arc<dyn AgencyExpertRepository>>>>,
+    pub agent_role_repo: OnceLock<RwLock<Option<Arc<dyn AgentRoleRepository>>>>,
     pub db_init: OnceLock<RwLock<Option<Arc<dyn DatabaseInitializer>>>>,
     pub skill_dirs: OnceLock<RwLock<Option<Arc<dyn SkillDirsProvider>>>>,
 }
@@ -48,6 +62,7 @@ impl ServiceRegistry {
             wiki_repo: OnceLock::new(),
             wiki_page_repo: OnceLock::new(),
             wiki_source_repo: OnceLock::new(),
+            wiki_operation_repo: OnceLock::new(),
             backlink_repo: OnceLock::new(),
             settings_repo: OnceLock::new(),
             session_repo: OnceLock::new(),
@@ -61,6 +76,16 @@ impl ServiceRegistry {
             workflow_execution_repo: OnceLock::new(),
             loop_checkpoint_repo: OnceLock::new(),
             workflow_template_repo: OnceLock::new(),
+            background_task_repo: OnceLock::new(),
+            stored_file_repo: OnceLock::new(),
+            knowledge_entity_repo: OnceLock::new(),
+            knowledge_flow_repo: OnceLock::new(),
+            knowledge_interface_repo: OnceLock::new(),
+            knowledge_document_repo: OnceLock::new(),
+            trajectory_repo: OnceLock::new(),
+            agent_profile_repo: OnceLock::new(),
+            agency_expert_repo: OnceLock::new(),
+            agent_role_repo: OnceLock::new(),
             db_init: OnceLock::new(),
             skill_dirs: OnceLock::new(),
         }
@@ -121,6 +146,21 @@ impl ServiceRegistry {
             .unwrap()
             .clone()
             .expect("WikiSourceRepository not initialized.")
+    }
+
+    // ── WikiOperationRepository ──
+
+    pub fn set_wiki_operation_repository(&self, repo: Arc<dyn WikiOperationRepository>) {
+        self.wiki_operation_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn wiki_operation_repository(&self) -> Arc<dyn WikiOperationRepository> {
+        self.wiki_operation_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("WikiOperationRepository not initialized.")
     }
 
     // ── NoteBacklinkRepository ──
@@ -354,6 +394,164 @@ impl ServiceRegistry {
             .unwrap()
             .clone()
             .expect("MemoryRepository not initialized.")
+    }
+
+    // ── BackgroundTaskRepository ──
+
+    pub fn set_background_task_repository(&self, repo: Arc<dyn BackgroundTaskRepository>) {
+        self.background_task_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn background_task_repository(&self) -> Arc<dyn BackgroundTaskRepository> {
+        self.background_task_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("BackgroundTaskRepository not initialized.")
+    }
+
+    // ── StoredFileRepository ──
+
+    pub fn set_stored_file_repository(&self, repo: Arc<dyn StoredFileRepository>) {
+        self.stored_file_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn stored_file_repository(&self) -> Arc<dyn StoredFileRepository> {
+        self.stored_file_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("StoredFileRepository not initialized.")
+    }
+
+    // ── KnowledgeEntityRepository ──
+
+    pub fn set_knowledge_entity_repository(&self, repo: Arc<dyn KnowledgeEntityRepository>) {
+        self.knowledge_entity_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn knowledge_entity_repository(&self) -> Arc<dyn KnowledgeEntityRepository> {
+        self.knowledge_entity_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("KnowledgeEntityRepository not initialized.")
+    }
+
+    // ── KnowledgeFlowRepository ──
+
+    pub fn set_knowledge_flow_repository(&self, repo: Arc<dyn KnowledgeFlowRepository>) {
+        self.knowledge_flow_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn knowledge_flow_repository(&self) -> Arc<dyn KnowledgeFlowRepository> {
+        self.knowledge_flow_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("KnowledgeFlowRepository not initialized.")
+    }
+
+    // ── KnowledgeInterfaceRepository ──
+
+    pub fn set_knowledge_interface_repository(&self, repo: Arc<dyn KnowledgeInterfaceRepository>) {
+        self.knowledge_interface_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap()
+            .replace(repo);
+    }
+
+    pub fn knowledge_interface_repository(&self) -> Arc<dyn KnowledgeInterfaceRepository> {
+        self.knowledge_interface_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("KnowledgeInterfaceRepository not initialized.")
+    }
+
+    // ── KnowledgeDocumentRepository ──
+
+    pub fn set_knowledge_document_repository(&self, repo: Arc<dyn KnowledgeDocumentRepository>) {
+        self.knowledge_document_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap()
+            .replace(repo);
+    }
+
+    pub fn knowledge_document_repository(&self) -> Arc<dyn KnowledgeDocumentRepository> {
+        self.knowledge_document_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("KnowledgeDocumentRepository not initialized.")
+    }
+
+    // ── TrajectoryRepository ──
+
+    pub fn set_trajectory_repository(&self, repo: Arc<dyn TrajectoryRepository>) {
+        self.trajectory_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn trajectory_repository(&self) -> Arc<dyn TrajectoryRepository> {
+        self.trajectory_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("TrajectoryRepository not initialized.")
+    }
+
+    // ── AgentProfileRepository ──
+
+    pub fn set_agent_profile_repository(&self, repo: Arc<dyn AgentProfileRepository>) {
+        self.agent_profile_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn agent_profile_repository(&self) -> Arc<dyn AgentProfileRepository> {
+        self.agent_profile_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("AgentProfileRepository not initialized.")
+    }
+
+    // ── AgencyExpertRepository ──
+
+    pub fn set_agency_expert_repository(&self, repo: Arc<dyn AgencyExpertRepository>) {
+        self.agency_expert_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn agency_expert_repository(&self) -> Arc<dyn AgencyExpertRepository> {
+        self.agency_expert_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("AgencyExpertRepository not initialized.")
+    }
+
+    // ── AgentRoleRepository ──
+
+    pub fn set_agent_role_repository(&self, repo: Arc<dyn AgentRoleRepository>) {
+        self.agent_role_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn agent_role_repository(&self) -> Arc<dyn AgentRoleRepository> {
+        self.agent_role_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("AgentRoleRepository not initialized.")
     }
 }
 

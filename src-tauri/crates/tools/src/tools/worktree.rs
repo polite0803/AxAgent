@@ -9,10 +9,10 @@ use async_trait::async_trait;
 use serde_json::{Value, json};
 use std::process::Command;
 
-fn fire_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
-    let runner =
-        axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
-    let _ = runner.run_event(event, &data.to_string());
+fn fire_hook(event: &str, data: &serde_json::Value) {
+    if let Some(firer) = crate::tools::agent::HOOK_FIRER.get() {
+        firer.fire_hook(event, &data.to_string());
+    }
 }
 
 fn git_root() -> Result<String, ToolError> {
@@ -149,7 +149,7 @@ impl Tool for EnterWorktreeTool {
             return Err(ToolError::execution_failed(format!("创建 worktree 失败: {}", err)));
         }
         fire_hook(
-            axagent_runtime_core::HookEvent::ConfigChange,
+            "ConfigChange",
             &json!({
                 "name": sanitized, "branch": branch_name, "path": worktree_path, "root": root,
             }),
@@ -187,7 +187,7 @@ impl Tool for ExitWorktreeTool {
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let action = i["action"].as_str().unwrap_or("keep");
         if action != "remove" {
-            fire_hook(axagent_runtime_core::HookEvent::ConfigChange, &json!({"action": "keep"}));
+            fire_hook("ConfigChange", &json!({"action": "keep"}));
             return Ok(ToolResult::success("📤 已离开 worktree（文件已保留）"));
         }
         let discard = i["discard_changes"].as_bool().unwrap_or(false);
@@ -232,7 +232,7 @@ impl Tool for ExitWorktreeTool {
                 Command::new("git").args(["branch", "-D", &wt_branch]).current_dir(&root).output();
         }
         fire_hook(
-            axagent_runtime_core::HookEvent::ConfigChange,
+            "ConfigChange",
             &json!({
                 "action": "remove", "path": wt_path, "branch": wt_branch, "discard_changes": discard,
             }),

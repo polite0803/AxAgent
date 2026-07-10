@@ -17,6 +17,7 @@ use tokio::sync::Mutex;
 use axagent_harness::Persistence;
 use axagent_harness::ProviderAdapter;
 use axagent_harness::registry::ProviderRegistry as ProviderRegistryTrait;
+use axagent_harness::types::{ProviderConfig, provider_model::provider_registry_key};
 
 /// 统一容器：管理核心服务的创建与注入
 #[derive(Clone)]
@@ -93,6 +94,30 @@ impl RuntimeHarness {
             Some(adapter)
         } else {
             None
+        }
+    }
+
+    /// 获取指定 provider 的适配器，按 ProviderConfig.tool_adaptation 决定是否包裹
+    /// ManagedToolAdapter（托管式工具调用）。只有 `"managed"` 才包裹，默认 `None` 走原生。
+    pub async fn get_adapter_for_provider(
+        &self,
+        provider_config: &ProviderConfig,
+    ) -> Option<Arc<dyn ProviderAdapter>> {
+        let registry_key = provider_registry_key(&provider_config.provider_type);
+        let base = self.get_adapter(registry_key).await?;
+        if provider_config.tool_adaptation.as_deref() == Some("managed") {
+            let prefix = provider_config
+                .tool_adaptation_marker_prefix
+                .as_deref()
+                .filter(|s| !s.is_empty())
+                .unwrap_or("CHAT2API");
+            Some(Arc::new(
+                axagent_providers::managed_tool_adapter::ManagedToolAdapter::with_prefix(
+                    base, prefix,
+                ),
+            ))
+        } else {
+            Some(base)
         }
     }
 

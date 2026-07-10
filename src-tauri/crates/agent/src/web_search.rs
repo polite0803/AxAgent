@@ -3,8 +3,9 @@
 use crate::research_state::{SearchQuery, SearchResult, SourceType};
 use crate::search_provider::{ContentMetadata, ExtractedContent, RelevanceScorer, SearchProvider};
 use async_trait::async_trait;
-use axagent_kit::html_cleaner::HtmlCleaner;
+use axagent_harness::kit_bridge::KitHtmlCleaner;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,21 +25,29 @@ impl Default for WebSearchConfig {
 pub struct WebSearchProvider {
     config: WebSearchConfig,
     http_client: reqwest::Client,
+    cleaner: Arc<dyn KitHtmlCleaner>,
 }
 
 impl WebSearchProvider {
-    pub fn new() -> Self {
-        Self::with_config(WebSearchConfig::default())
+    pub fn new(cleaner: Arc<dyn KitHtmlCleaner>) -> Self {
+        Self::with_config(WebSearchConfig::default(), cleaner)
     }
 
-    pub fn with_config(config: WebSearchConfig) -> Self {
+    pub fn with_config(config: WebSearchConfig, cleaner: Arc<dyn KitHtmlCleaner>) -> Self {
         let timeout = Duration::from_secs(config.timeout_secs);
         let client = reqwest::Client::builder()
             .timeout(timeout)
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build()
             .unwrap_or_default();
-        Self { config, http_client: client }
+        Self { config, http_client: client, cleaner }
+    }
+
+    /// Test-only: creates a concrete cleaner from kit.
+    #[cfg(test)]
+    pub fn new_test() -> Self {
+        let cleaner: Arc<dyn KitHtmlCleaner> = Arc::new(crate::noop_kit::NoopHtmlCleaner);
+        Self::new(cleaner)
     }
 
     pub fn with_api_key(mut self, api_key: impl Into<String>) -> Self {
@@ -291,7 +300,8 @@ impl WebSearchProvider {
 
 impl Default for WebSearchProvider {
     fn default() -> Self {
-        Self::new()
+        let cleaner: Arc<dyn KitHtmlCleaner> = Arc::new(crate::noop_kit::NoopHtmlCleaner);
+        Self::new(cleaner)
     }
 }
 
@@ -353,9 +363,8 @@ impl SearchProvider for WebSearchProvider {
             ));
         }
 
-        let cleaner = HtmlCleaner::new();
-        let (title, body_text, links) = cleaner.extract_readability(&html);
-        let lang = HtmlCleaner::detect_language(&body_text);
+        let (title, body_text, links) = self.cleaner.extract_readability(&html);
+        let lang = self.cleaner.detect_language(&body_text);
 
         Ok(ExtractedContent::new(url.to_string(), title, body_text)
             .with_links(links)
@@ -386,8 +395,14 @@ pub struct WebSearchProviderBuilder {
 }
 
 impl WebSearchProviderBuilder {
-    pub fn new() -> Self {
-        Self { provider: WebSearchProvider::new() }
+    pub fn new(cleaner: Arc<dyn KitHtmlCleaner>) -> Self {
+        Self { provider: WebSearchProvider::new(cleaner) }
+    }
+
+    /// Test-only convenience.
+    #[cfg(test)]
+    pub fn new_test() -> Self {
+        Self::new(Arc::new(crate::noop_kit::NoopHtmlCleaner))
     }
 
     pub fn api_key(mut self, key: impl Into<String>) -> Self {
@@ -417,7 +432,8 @@ impl WebSearchProviderBuilder {
 
 impl Default for WebSearchProviderBuilder {
     fn default() -> Self {
-        Self::new()
+        let cleaner: Arc<dyn KitHtmlCleaner> = Arc::new(crate::noop_kit::NoopHtmlCleaner);
+        Self::new(cleaner)
     }
 }
 
@@ -781,7 +797,7 @@ mod tests {
 
     #[test]
     fn test_builder_new() {
-        let builder = WebSearchProviderBuilder::new();
+        let builder = WebSearchProviderBuilder::new_test();
         let provider = builder.build();
         assert_eq!(provider.source_type(), SourceType::Web);
     }
@@ -795,31 +811,32 @@ mod tests {
 
     #[test]
     fn test_builder_with_api_key() {
-        let provider = WebSearchProviderBuilder::new().api_key("my-api-key").build();
+        let provider = WebSearchProviderBuilder::new_test().api_key("my-api-key").build();
         assert_eq!(provider.config.api_key, Some("my-api-key".to_string()));
     }
 
     #[test]
     fn test_builder_with_endpoint() {
-        let provider = WebSearchProviderBuilder::new().endpoint("https://search.api.com").build();
+        let provider =
+            WebSearchProviderBuilder::new_test().endpoint("https://search.api.com").build();
         assert_eq!(provider.config.endpoint, Some("https://search.api.com".to_string()));
     }
 
     #[test]
     fn test_builder_with_timeout() {
-        let provider = WebSearchProviderBuilder::new().timeout(60).build();
+        let provider = WebSearchProviderBuilder::new_test().timeout(60).build();
         assert_eq!(provider.config.timeout_secs, 60);
     }
 
     #[test]
     fn test_builder_with_rate_limit() {
-        let provider = WebSearchProviderBuilder::new().rate_limit(100).build();
+        let provider = WebSearchProviderBuilder::new_test().rate_limit(100).build();
         assert_eq!(provider.config.rate_limit_per_minute, Some(100));
     }
 
     #[test]
     fn test_builder_full_configuration() {
-        let provider = WebSearchProviderBuilder::new()
+        let provider = WebSearchProviderBuilder::new_test()
             .api_key("key123")
             .endpoint("https://api.example.com")
             .timeout(45)

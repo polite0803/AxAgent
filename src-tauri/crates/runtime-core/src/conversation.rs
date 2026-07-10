@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::collections::BTreeMap;
-use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
+use crate::session::ConversationMessageExt;
+use crate::session::{SessionExt, session_load_from_path};
 use axagent_harness::SessionTracer;
 use axagent_harness::prompt_provider::NoopPromptProvider;
 use serde_json::{Map, Value};
@@ -88,59 +89,10 @@ impl Default for PauseState {
     }
 }
 
-/// Fully assembled request payload sent to the upstream model client.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ApiRequest {
-    pub system_prompt: Vec<String>,
-    pub messages: Vec<ConversationMessage>,
-}
-
-/// Streamed events emitted while processing a single assistant turn.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AssistantEvent {
-    TextDelta(String),
-    ThinkingDelta(String),
-    ToolUse { id: String, name: String, input: String },
-    Usage(TokenUsage),
-    PromptCache(PromptCacheEvent),
-    MessageStop,
-}
-
-/// Prompt-cache telemetry captured from the provider response stream.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
-pub struct PromptCacheEvent {
-    pub unexpected: bool,
-    pub reason: String,
-    pub previous_cache_read_input_tokens: u32,
-    pub current_cache_read_input_tokens: u32,
-    pub token_drop: u32,
-}
-
-/// Minimal streaming API contract required by [`ConversationRuntime`].
-pub trait ApiClient {
-    fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError>;
-}
-
-/// Trait implemented by tool dispatchers that execute model-requested tools.
-/// 注意：使用 `&mut self`。对于并发场景，外层通过 `Arc<Mutex<T>>` 包装。
-/// StaticToolExecutor 内部已使用 Mutex 实现内部可变性。
-pub trait ToolExecutor: Send {
-    fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError>;
-
-    /// 批量执行工具调用。默认实现串行逐个执行，子类型可覆盖为并发编排。
-    fn execute_batch(
-        &mut self,
-        requests: &[(String, String, String)], // (tool_use_id, tool_name, input)
-    ) -> Vec<(String, String, Result<String, ToolError>)> {
-        requests
-            .iter()
-            .map(|(id, name, input)| {
-                let result = self.execute(name, input);
-                (id.clone(), name.clone(), result)
-            })
-            .collect()
-    }
-}
+// ── 类型定义已上移至 axagent-harness ──
+pub use axagent_harness::runtime_types::conversation::{
+    ApiClient, ApiRequest, AssistantEvent, PromptCacheEvent, RuntimeError, ToolExecutor,
+};
 
 /// 为 StaticToolExecutor 实现 HarnessToolExecutor 契约
 impl axagent_harness::HarnessToolExecutor for StaticToolExecutor {
@@ -159,44 +111,11 @@ impl axagent_harness::HarnessToolExecutor for StaticToolExecutor {
 /// 工具错误类型 — 从 axagent-harness 导入的契约定义
 pub use axagent_harness::{ToolError, ToolErrorKind};
 
-/// Error returned when a conversation turn cannot be completed.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RuntimeError {
-    message: String,
-}
+/// Summary of one completed runtime turn — 从 harness 导入
+pub use axagent_harness::runtime_types::conversation::TurnSummary;
 
-impl RuntimeError {
-    #[must_use]
-    pub fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
-    }
-}
-
-impl Display for RuntimeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl std::error::Error for RuntimeError {}
-
-/// Summary of one completed runtime turn, including tool results and usage.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
-pub struct TurnSummary {
-    pub assistant_messages: Vec<ConversationMessage>,
-    pub tool_results: Vec<ConversationMessage>,
-    pub prompt_cache_events: Vec<PromptCacheEvent>,
-    pub iterations: usize,
-    pub usage: TokenUsage,
-    pub auto_compaction: Option<AutoCompactionEvent>,
-    pub thinking: String,
-}
-
-/// Details about automatic session compaction applied during a turn.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
-pub struct AutoCompactionEvent {
-    pub removed_message_count: usize,
-}
+/// Details about automatic session compaction — 从 harness 导入
+pub use axagent_harness::runtime_types::conversation::AutoCompactionEvent;
 
 /// Coordinates the model loop, tool execution, hooks, and session updates.
 pub struct ConversationRuntime<C, T> {
@@ -732,7 +651,7 @@ where
 
                 if *repeat_count == MAX_IDENTICAL_CALLS {
                     // Soft warning: inject a hint into the session so the LLM sees it
-                    let warning_msg = ConversationMessage::assistant(vec![ContentBlock::Text {
+                    let warning_msg = ConversationMessageExt::assistant(vec![ContentBlock::Text {
                         text: format!(
                             "[System] You have called '{}' {} times with the same arguments. \
                                           If it keeps failing, try a different approach or respond directly to the user.",
@@ -791,7 +710,7 @@ where
                     )
                 };
 
-                let result_message = match permission_outcome {
+                let result_message: crate::session::ConversationMessage = match permission_outcome {
                     PermissionOutcome::Allow => {
                         self.record_tool_started(iterations, &tool_name);
 
@@ -947,9 +866,14 @@ where
                             progress.end_tool(is_error, Some(&output));
                         }
 
-                        ConversationMessage::tool_result(tool_use_id, tool_name, output, is_error)
+                        ConversationMessageExt::tool_result(
+                            tool_use_id,
+                            tool_name,
+                            output,
+                            is_error,
+                        )
                     },
-                    PermissionOutcome::Deny { reason } => ConversationMessage::tool_result(
+                    PermissionOutcome::Deny { reason } => ConversationMessageExt::tool_result(
                         tool_use_id,
                         tool_name,
                         merge_hook_feedback(pre_hook_result.messages(), reason, true),
@@ -1361,7 +1285,7 @@ fn build_assistant_message(
             // a complete assistant turn and continue (potentially retrying
             // or asking the user)
             return Ok((
-                ConversationMessage::assistant_with_usage(blocks, usage),
+                ConversationMessageExt::assistant_with_usage(blocks, usage),
                 usage,
                 prompt_cache_events,
                 thinking,
@@ -1376,7 +1300,7 @@ fn build_assistant_message(
     }
 
     Ok((
-        ConversationMessage::assistant_with_usage(blocks, usage),
+        ConversationMessageExt::assistant_with_usage(blocks, usage),
         usage,
         prompt_cache_events,
         thinking,
@@ -1928,7 +1852,7 @@ mod tests {
         }
 
         let mut session = Session::new();
-        session.messages.push(crate::session::ConversationMessage::assistant_with_usage(
+        session.messages.push(crate::session::ConversationMessageExt::assistant_with_usage(
             vec![ContentBlock::Text { text: "earlier".to_string() }],
             Some(TokenUsage {
                 input_tokens: 11,
@@ -2009,7 +1933,7 @@ mod tests {
 
         runtime.run_turn("persist this turn", None).expect("turn should succeed");
 
-        let restored = Session::load_from_path(&path).expect("persisted session should reload");
+        let restored = session_load_from_path(&path).expect("persisted session should reload");
         fs::remove_file(&path).expect("temp session file should be removable");
 
         assert_eq!(restored.messages.len(), 2);
@@ -2088,31 +2012,31 @@ mod tests {
 
         let mut session = Session::new();
         session.messages = vec![
-            crate::session::ConversationMessage::user_text("one"),
-            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+            crate::session::ConversationMessageExt::user_text("one"),
+            crate::session::ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "two".to_string(),
             }]),
-            crate::session::ConversationMessage::user_text("three"),
-            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+            crate::session::ConversationMessageExt::user_text("three"),
+            crate::session::ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "four".to_string(),
             }]),
-            crate::session::ConversationMessage::user_text("five"),
-            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+            crate::session::ConversationMessageExt::user_text("five"),
+            crate::session::ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "six".to_string(),
             }]),
-            crate::session::ConversationMessage::user_text("seven"),
-            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+            crate::session::ConversationMessageExt::user_text("seven"),
+            crate::session::ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "eight".to_string(),
             }]),
-            crate::session::ConversationMessage::user_text("nine"),
-            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+            crate::session::ConversationMessageExt::user_text("nine"),
+            crate::session::ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "ten".to_string(),
             }]),
-            crate::session::ConversationMessage::user_text("eleven"),
-            crate::session::ConversationMessage::assistant(vec![ContentBlock::Text {
+            crate::session::ConversationMessageExt::user_text("eleven"),
+            crate::session::ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "twelve".to_string(),
             }]),
-            crate::session::ConversationMessage::user_text("thirteen"),
+            crate::session::ConversationMessageExt::user_text("thirteen"),
         ];
 
         let mut runtime = ConversationRuntime::new(
@@ -2223,13 +2147,13 @@ mod tests {
         let mut session = Session::new();
         session.push_user_text("Hello, assistant!").unwrap();
         session
-            .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
+            .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "Hi there! How can I help you?".to_string(),
             }]))
             .unwrap();
-        session.push_message(ConversationMessage::user_text("What is 2+2?")).unwrap();
+        session.push_message(ConversationMessageExt::user_text("What is 2+2?")).unwrap();
         session
-            .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
+            .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "2+2 = 4".to_string(),
             }]))
             .unwrap();
@@ -2244,7 +2168,7 @@ mod tests {
     #[test]
     fn turn_summary_snapshot() {
         let summary = TurnSummary {
-            assistant_messages: vec![ConversationMessage::assistant(vec![ContentBlock::Text {
+            assistant_messages: vec![ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "Hello!".to_string(),
             }])],
             tool_results: vec![],
@@ -2474,4 +2398,68 @@ mod tests {
         // then
         assert_eq!(error.to_string(), "upstream failed");
     }
+}
+
+// ── Harness ConversationRuntimeHost 实现 ──
+impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
+    axagent_harness::runtime_types::conversation::ConversationRuntimeHost
+    for ConversationRuntime<C, T>
+{
+    fn run_turn(
+        &mut self,
+        user_input: &str,
+        prompter: Option<&mut dyn axagent_harness::runtime_types::permissions::PermissionPrompter>,
+    ) -> Result<axagent_harness::runtime_types::conversation::TurnSummary, RuntimeError> {
+        ConversationRuntime::run_turn(self, user_input, prompter)
+    }
+
+    fn set_max_iterations(&mut self, max: usize) {
+        self.max_iterations = max;
+    }
+
+    fn set_auto_compaction_threshold(&mut self, threshold: u32) {
+        self.auto_compaction_input_tokens_threshold = threshold;
+    }
+
+    fn set_cancel_token(&mut self, token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>) {
+        self.cancel_token = token;
+    }
+
+    fn set_progress(&mut self, progress: std::sync::Arc<AgentExecutionProgress>) {
+        self.progress = Some(progress);
+    }
+
+    fn set_hook_progress_reporter(
+        &mut self,
+        reporter: Box<dyn axagent_harness::runtime_types::hooks::HookProgressReporter>,
+    ) {
+        self.hook_progress_reporter = Some(reporter);
+    }
+
+    fn into_session(self: Box<Self>) -> axagent_harness::runtime_types::session::Session {
+        self.session
+    }
+}
+
+// ── Factory ──
+
+/// 构造一个 ConversationRuntime 并返回 Box<dyn ConversationRuntimeHost>。
+/// agent crate 用此函数代替直接引用 ConversationRuntime 类型，消除依赖。
+pub fn create_conversation_runtime(
+    session: axagent_harness::runtime_types::session::Session,
+    api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
+    tool_executor: Box<
+        dyn axagent_harness::runtime_types::conversation::ToolExecutor + Send + 'static,
+    >,
+    permission_policy: crate::permissions::PermissionPolicy,
+    system_prompt: Vec<String>,
+) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
+    let rt = ConversationRuntime::new(
+        session,
+        api_client,
+        tool_executor,
+        permission_policy,
+        system_prompt,
+    );
+    Box::new(rt)
 }

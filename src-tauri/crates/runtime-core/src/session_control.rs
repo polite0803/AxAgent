@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use crate::session::{Session, SessionError};
+use crate::session::{Session, SessionError, SessionExt, session_load_from_path};
 
 /// Per-worktree session store that namespaces on-disk session files by
 /// workspace fingerprint so that parallel `opencode serve` instances never
@@ -111,7 +111,7 @@ impl SessionStore {
                 if !path.exists() {
                     continue;
                 }
-                let session = Session::load_from_path(&path)?;
+                let session = session_load_from_path(&path)?;
                 self.validate_loaded_session(&path, &session)?;
                 return Ok(path);
             }
@@ -141,7 +141,7 @@ impl SessionStore {
         reference: &str,
     ) -> Result<LoadedManagedSession, SessionControlError> {
         let handle = self.resolve_reference(reference)?;
-        let session = Session::load_from_path(&handle.path)?;
+        let session = session_load_from_path(&handle.path)?;
         self.validate_loaded_session(&handle.path, &session)?;
         Ok(LoadedManagedSession {
             handle: SessionHandle { id: session.session_id.clone(), path: handle.path },
@@ -216,7 +216,7 @@ impl SessionStore {
                 .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
                 .map(|duration| duration.as_millis())
                 .unwrap_or_default();
-            let summary = match Session::load_from_path(&path) {
+            let summary = match session_load_from_path(&path) {
                 Ok(session) => {
                     if self.validate_loaded_session(&path, &session).is_err() {
                         continue;

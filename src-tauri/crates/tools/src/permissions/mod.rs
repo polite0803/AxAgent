@@ -139,7 +139,7 @@ pub struct PermissionPolicy {
     pub denial_tracker: tracker::DenialTracker,
 }
 
-pub use axagent_runtime_core::permissions::PermissionMode;
+pub use axagent_harness::runtime_types::permissions::PermissionMode;
 
 /// Explicit permission mode rank for reliable comparison.
 /// Lower rank = more restrictive.

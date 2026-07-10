@@ -32,6 +32,12 @@ pub struct ProviderConfig {
     pub models: Vec<Model>,
     pub keys: Vec<ProviderKey>,
     pub proxy_config: Option<ProviderProxyConfig>,
+    /// 工具调用模式：None=按 provider_type 推断；"native"=模型原生 function calling；
+    /// "managed"=由 AxAgent 通过提示词注入 + 文本解析模拟（用于 Chat2API 等无原生 tool 接口的网关）
+    pub tool_adaptation: Option<String>,
+    /// 托管模式下的 marker 前缀（仅 tool_adaptation="managed" 时生效）。
+    /// None 或空字符串 = 使用默认值 "CHAT2API"。
+    pub tool_adaptation_marker_prefix: Option<String>,
     pub custom_headers: Option<String>,
     pub icon: Option<String>,
     pub builtin_id: Option<String>,
@@ -149,6 +155,10 @@ pub struct UpdateProviderInput {
     pub api_path: Option<Option<String>>,
     pub enabled: Option<bool>,
     pub proxy_config: Option<ProviderProxyConfig>,
+    #[serde(default)]
+    pub tool_adaptation: Option<Option<String>>,
+    #[serde(default)]
+    pub tool_adaptation_marker_prefix: Option<Option<String>>,
     pub custom_headers: Option<Option<String>>,
     pub icon: Option<Option<String>>,
     pub sort_order: Option<i32>,

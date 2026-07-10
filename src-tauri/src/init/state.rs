@@ -13,6 +13,8 @@ use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::state::{BrowserClientField, LearningState, SandboxExecutorField, ToolState};
+use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
+use axagent_harness::AgentSessionRepository;
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
@@ -201,7 +203,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let agent_prompters: Arc<
         Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
-    let agent_session_manager = Arc::new(axagent_agent::SessionManager::new(sea_db.clone()));
+    let agent_session_repo: Arc<dyn AgentSessionRepository> =
+        Arc::new(DaoAgentSessionRepository::new(Arc::new(sea_db.clone())));
+    let agent_session_manager = Arc::new(axagent_agent::SessionManager::new(agent_session_repo));
     let agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>> = Arc::new(DashMap::new());
     let agent_paused: Arc<Mutex<std::collections::HashSet<String>>> =
         Arc::new(Mutex::new(std::collections::HashSet::new()));

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::sync::Mutex;
 
-use axagent_kit::utils::gen_id;
+use axagent_harness::util_fns::gen_id;
 
 use crate::ingest_pipeline::{IngestPipeline, IngestResult, IngestSource};
 
@@ -453,7 +453,7 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
         let temp_dir =
             std::env::temp_dir().join(format!("ingest_queue_test_{}", uuid::Uuid::new_v4()));
         IngestQueue::new(pipeline, temp_dir.to_string_lossy().to_string())

@@ -8,12 +8,12 @@ use serde::{Deserialize, Serialize};
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::note_dtos::{CreateNoteInput, Note, UpdateNoteInput, calculate_content_hash};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::util_fns::gen_id;
 use axagent_harness::wiki_dtos::{
     NoteRepository, WikiOperation, WikiOperationRepository, WikiPage, WikiPageRepository,
     WikiRepository, WikiSource, WikiSourceRepository,
 };
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_kit::utils::gen_id;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledPage {
@@ -286,10 +286,16 @@ impl WikiCompiler {
                         .content;
                     axagent_harness::types::ChatResponse { content, ..Default::default() }
                 } else {
-                    self.llm_adapter
-                        .chat(&self.llm_ctx, request)
-                        .await
-                        .map_err(|e| format!("LLM call failed: {}", e))?
+                    let llm_config = axagent_harness::LlmCallConfig::default();
+                    axagent_harness::execute_llm(
+                        &*self.llm_adapter,
+                        &self.llm_ctx,
+                        request,
+                        &llm_config,
+                    )
+                    .await
+                    .map_err(|e| format!("LLM call failed: {}", e))?
+                    .response
                 };
 
             let raw_text = response.content;
@@ -408,11 +414,16 @@ impl WikiCompiler {
                         .map(|r| r.content)
                         .map_err(|e| format!("LLM call failed: {}", e))
                 } else {
-                    self.llm_adapter
-                        .chat(&self.llm_ctx, request)
-                        .await
-                        .map(|r| r.content)
-                        .map_err(|e| format!("LLM call failed: {}", e))
+                    let llm_config = axagent_harness::LlmCallConfig::default();
+                    axagent_harness::execute_llm(
+                        &*self.llm_adapter,
+                        &self.llm_ctx,
+                        request,
+                        &llm_config,
+                    )
+                    .await
+                    .map(|r| r.response.content)
+                    .map_err(|e| format!("LLM call failed: {}", e))
                 };
 
             match result {
@@ -1191,8 +1202,16 @@ impl WikiCompiler {
                 },
             }
         } else {
-            match self.llm_adapter.chat(&self.llm_ctx, request).await {
-                Ok(response) => response.content,
+            let llm_config = axagent_harness::LlmCallConfig::default();
+            match axagent_harness::execute_llm(
+                &*self.llm_adapter,
+                &self.llm_ctx,
+                request,
+                &llm_config,
+            )
+            .await
+            {
+                Ok(result) => result.response.content,
                 Err(e) => {
                     tracing::warn!("LLM quality evaluation failed: {}", e);
                     return None;

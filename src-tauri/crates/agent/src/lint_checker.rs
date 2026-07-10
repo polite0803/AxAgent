@@ -3,11 +3,11 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use axagent_harness::kit_bridge::{KitMarkdownParser, MdParsedNote};
 use axagent_harness::note_dtos::{Note, UpdateNoteInput};
 use axagent_harness::wiki_dtos::{
     NoteBacklinkRepository, NoteRepository, WikiPageRepository, WikiRepository,
 };
-use axagent_kit::markdown_parser::MarkdownParser;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,7 +46,7 @@ pub struct LintChecker {
     wiki_repo: Arc<dyn WikiRepository>,
     wiki_page_repo: Arc<dyn WikiPageRepository>,
     backlink_repo: Arc<dyn NoteBacklinkRepository>,
-    parser: MarkdownParser,
+    parser: Box<dyn KitMarkdownParser>,
 }
 
 impl LintChecker {
@@ -55,8 +55,9 @@ impl LintChecker {
         wiki_repo: Arc<dyn WikiRepository>,
         wiki_page_repo: Arc<dyn WikiPageRepository>,
         backlink_repo: Arc<dyn NoteBacklinkRepository>,
+        parser: Box<dyn KitMarkdownParser>,
     ) -> Self {
-        Self { note_repo, wiki_repo, wiki_page_repo, backlink_repo, parser: MarkdownParser::new() }
+        Self { note_repo, wiki_repo, wiki_page_repo, backlink_repo, parser }
     }
 
     pub async fn lint_note(&self, note_id: &str) -> Result<LintResult, String> {

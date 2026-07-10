@@ -425,7 +425,9 @@ pub fn to_compaction_result(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{ContentBlock, ConversationMessage, Session};
+    use crate::session::{
+        ContentBlock, ContentBlockExt, ConversationMessage, ConversationMessageExt, Session,
+    };
 
     fn make_test_memories() -> Vec<StructuredMemory> {
         vec![
@@ -458,10 +460,12 @@ mod tests {
             // 创建足够大的消息以确保 token 估算值超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session.push_message(ConversationMessage::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
+                    .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
                     .unwrap();
             }
         }
@@ -537,7 +541,7 @@ mod tests {
         let tool_id = "call_001";
         // Assistant with ToolUse
         session
-            .push_message(ConversationMessage::assistant(vec![ContentBlock::ToolUse {
+            .push_message(ConversationMessageExt::assistant(vec![ContentBlock::ToolUse {
                 id: tool_id.to_string(),
                 name: "read_file".to_string(),
                 input: "main.rs".to_string(),
@@ -545,7 +549,7 @@ mod tests {
             .unwrap();
         // Tool result
         session
-            .push_message(ConversationMessage::tool_result(
+            .push_message(ConversationMessageExt::tool_result(
                 tool_id,
                 "read_file",
                 "contents here",
@@ -554,7 +558,7 @@ mod tests {
             .unwrap();
         // More messages
         for i in 0..5 {
-            session.push_message(ConversationMessage::user_text(&format!("msg {}", i))).unwrap();
+            session.push_message(ConversationMessageExt::user_text(&format!("msg {}", i))).unwrap();
         }
 
         // 尝试在 tool_result 处切割

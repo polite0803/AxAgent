@@ -4,6 +4,7 @@
 //!
 //! MCP 客户端连接池、发现工具、健康检查、OAuth 认证。
 
+pub mod client_service_impl;
 pub mod mcp_client;
 pub mod mcp_health;
 pub mod mcp_oauth;

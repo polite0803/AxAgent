@@ -5,23 +5,28 @@
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
-use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 use axagent_harness::AgentSessionRepository;
+use axagent_harness::ConversationMessage;
+use axagent_harness::compact_session::compact_session;
 use axagent_harness::conversation_model::{
     ContentBlock as HarnessContentBlock, ConversationMessage as HarnessConversationMessage,
     MessageRole as HarnessMessageRole, TokenUsage as HarnessTokenUsage,
 };
 use axagent_harness::prompt_provider::NoopPromptProvider;
-use axagent_harness::{TaskComplexity, TrajectoryService};
-use axagent_runtime_core::{
-    AgentExecutionProgress, CompactionConfig, ConversationMessage, ConversationRuntime, HookEvent,
-    HookProgressEvent, HookProgressReporter, PermissionMode, PermissionPolicy,
-    PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
-    ToolExecutor, compact_session, should_compact,
+use axagent_harness::runtime_types::compact::CompactionConfig;
+use axagent_harness::runtime_types::compact::should_compact;
+use axagent_harness::runtime_types::conversation::RuntimeError;
+use axagent_harness::runtime_types::conversation::{ConversationRuntimeHost, TurnSummary};
+use axagent_harness::runtime_types::execution_progress::AgentExecutionProgress;
+use axagent_harness::runtime_types::hooks::{HookEvent, HookProgressEvent, HookProgressReporter};
+use axagent_harness::runtime_types::permissions::{
+    PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
+    PermissionRequest,
 };
+use axagent_harness::runtime_types::session::Session;
+use axagent_harness::{TaskComplexity, TrajectoryService};
 
 const NP: &NoopPromptProvider = &NoopPromptProvider;
-use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -117,18 +122,14 @@ pub fn append_user_message(session: &mut Session, text: &str) -> Result<(), Stri
         Some(guard) => guard.process_user_input(text)?,
         None => text.to_string(),
     };
-    // 直接推送已处理的消息，避免 push_user_text 的二次包装
-    // 注意：Session::push_message 接受 runtime_core::ConversationMessage，
-    // 此处通过 serde 转换（harness DTO 与 runtime-core DTO 结构一致）。
-    let harness_msg = HarnessConversationMessage {
-        role: HarnessMessageRole::User,
-        blocks: vec![HarnessContentBlock::Text { text: processed }],
-        usage: None,
-    };
-    let rt_msg: ConversationMessage =
-        serde_json::from_value(serde_json::to_value(&harness_msg).map_err(|e| e.to_string())?)
-            .map_err(|e| e.to_string())?;
-    session.push_message(rt_msg).map_err(|e| e.to_string())
+    // 直接创建 harness ConversationMessage 并推送（无需 serde 转换）
+    session
+        .push_message(ConversationMessage {
+            role: axagent_harness::conversation_model::MessageRole::User,
+            blocks: vec![axagent_harness::ContentBlock::Text { text: processed }],
+            usage: None,
+        })
+        .map_err(|e| e.to_string())
 }
 
 /// Agent Session wrapper
@@ -252,10 +253,7 @@ const MAX_CACHED_SESSIONS: usize = 100;
 const SESSION_TTL_SECS: u64 = 24 * 60 * 60;
 
 impl SessionManager {
-    pub fn new(db: DatabaseConnection) -> Self {
-        let db = Arc::new(db);
-        let agent_session_repo: Arc<dyn AgentSessionRepository> =
-            Arc::new(DaoAgentSessionRepository::new(db));
+    pub fn new(agent_session_repo: Arc<dyn AgentSessionRepository>) -> Self {
         Self {
             sessions: Mutex::new(std::collections::HashMap::new()),
             conversation_index: Mutex::new(std::collections::HashMap::new()),
@@ -266,6 +264,15 @@ impl SessionManager {
             trajectory: None,
             agent_session_repo,
         }
+    }
+
+    /// Test-only constructor: creates DAO repos from a DB connection.
+    #[cfg(test)]
+    pub fn new_for_test(db: sea_orm::DatabaseConnection) -> Self {
+        let db = Arc::new(db);
+        let repo: Arc<dyn AgentSessionRepository> =
+            Arc::new(axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository::new(db));
+        Self::new(repo)
     }
 
     pub async fn set_default_workspace_dir(&self, dir: Option<String>) {
@@ -382,7 +389,7 @@ impl SessionManager {
         &self,
         conversation_id: &str,
         updated_session: Session,
-        usage: Option<axagent_runtime_core::TokenUsage>,
+        usage: Option<axagent_harness::conversation_model::TokenUsage>,
     ) {
         let mut sessions = self.sessions.lock().await;
         let conv_index = self.conversation_index.lock().await;
@@ -500,25 +507,21 @@ impl SessionManager {
     /// - Session state persistence and DB updates
     ///
     /// The caller is responsible for:
-    /// - Building the `AxAgentApiClient` with tools, model, params, and streaming callbacks
+    /// - Creating the base runtime via `axagent_runtime_core::create_conversation_runtime`
     /// - Persisting user/assistant messages to the DB
     /// - Emitting Tauri events
     #[allow(clippy::too_many_arguments)]
-    pub async fn run_turn_with_tools<T: ToolExecutor + Send + 'static>(
+    pub async fn run_turn_with_tools(
         &self,
         session_id: &str,
         user_input: String,
-        api_client: AxAgentApiClient,
-        tool_executor: T,
-        system_prompt: Vec<String>,
+        mut runtime: Box<dyn ConversationRuntimeHost>,
         conversation_id: String,
-        permission_mode: PermissionMode,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
         prompters: Arc<
             tokio::sync::Mutex<std::collections::HashMap<String, ChannelPermissionPrompter>>,
         >,
-        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-    ) -> Result<(axagent_runtime_core::TurnSummary, axagent_runtime_core::Session), RuntimeError>
-    {
+    ) -> Result<(TurnSummary, Session), RuntimeError> {
         let session = self
             .get_session(session_id)
             .await
@@ -539,23 +542,21 @@ impl SessionManager {
                 .enumerate()
                 .map(|(i, m)| {
                     let role_str = match m.role {
-                        axagent_runtime_core::MessageRole::System => "system",
-                        axagent_runtime_core::MessageRole::User => "user",
-                        axagent_runtime_core::MessageRole::Assistant => "assistant",
-                        axagent_runtime_core::MessageRole::Tool => "tool",
+                        axagent_harness::conversation_model::MessageRole::System => "system",
+                        axagent_harness::conversation_model::MessageRole::User => "user",
+                        axagent_harness::conversation_model::MessageRole::Assistant => "assistant",
+                        axagent_harness::conversation_model::MessageRole::Tool => "tool",
                     };
                     let content: String = m
                         .blocks
                         .iter()
                         .map(|b| match b {
-                            axagent_runtime_core::ContentBlock::Text { text } => text.clone(),
-                            axagent_runtime_core::ContentBlock::ToolUse { name, input, .. } => {
+                            axagent_harness::ContentBlock::Text { text } => text.clone(),
+                            axagent_harness::ContentBlock::ToolUse { name, input, .. } => {
                                 format!("[ToolUse: {} {}]", name, input)
                             },
-                            axagent_runtime_core::ContentBlock::ToolResult {
-                                tool_name,
-                                output,
-                                ..
+                            axagent_harness::ContentBlock::ToolResult {
+                                tool_name, output, ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
                         .collect();
@@ -574,23 +575,21 @@ impl SessionManager {
                 .enumerate()
                 .map(|(i, m)| {
                     let role_str = match m.role {
-                        axagent_runtime_core::MessageRole::System => "system",
-                        axagent_runtime_core::MessageRole::User => "user",
-                        axagent_runtime_core::MessageRole::Assistant => "assistant",
-                        axagent_runtime_core::MessageRole::Tool => "tool",
+                        axagent_harness::conversation_model::MessageRole::System => "system",
+                        axagent_harness::conversation_model::MessageRole::User => "user",
+                        axagent_harness::conversation_model::MessageRole::Assistant => "assistant",
+                        axagent_harness::conversation_model::MessageRole::Tool => "tool",
                     };
                     let content: String = m
                         .blocks
                         .iter()
                         .map(|b| match b {
-                            axagent_runtime_core::ContentBlock::Text { text } => text.clone(),
-                            axagent_runtime_core::ContentBlock::ToolUse { name, input, .. } => {
+                            axagent_harness::ContentBlock::Text { text } => text.clone(),
+                            axagent_harness::ContentBlock::ToolUse { name, input, .. } => {
                                 format!("[ToolUse: {} {}]", name, input)
                             },
-                            axagent_runtime_core::ContentBlock::ToolResult {
-                                tool_name,
-                                output,
-                                ..
+                            axagent_harness::ContentBlock::ToolResult {
+                                tool_name, output, ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
                         .collect();
@@ -639,39 +638,7 @@ impl SessionManager {
             session
         };
 
-        // Create permission policy from the provided mode
-        let permission_policy = PermissionPolicy::new(permission_mode);
-
-        // Get app handle for event emission
-        let app_handle = self.app_handle.lock().await.clone();
-
-        // Create runtime with ToolRegistry and progress reporter
-        let mut runtime = ConversationRuntime::new(
-            session.session().clone(),
-            api_client,
-            tool_executor,
-            permission_policy,
-            system_prompt,
-        )
-        .with_max_iterations(dynamic_max_iterations(
-            &self
-                .trajectory
-                .as_ref()
-                .map(|s| s.estimate_complexity(&user_input))
-                .unwrap_or(TaskComplexity::Medium),
-        ))
-        .with_auto_compaction_input_tokens_threshold(AUTO_COMPACTION_TOKEN_THRESHOLD as u32);
-
-        // Attach cancel token if provided
-        if let Some(token) = cancel_token {
-            runtime = runtime.with_cancel_token(token);
-        }
-
-        // Create execution progress tracker for frontend panels.
-        // The runtime updates it synchronously during run_turn(); the
-        // agent_runtime_stats IPC reads it asynchronously.
-        // Also shared with TauriHookProgressReporter so agent-status events
-        // carry rich progress data (currentTool, iteration, toolCount, errors).
+        // Compute dynamic config from trajectory, then configure runtime
         let max_iters = dynamic_max_iterations(
             &self
                 .trajectory
@@ -679,22 +646,30 @@ impl SessionManager {
                 .map(|s| s.estimate_complexity(&user_input))
                 .unwrap_or(TaskComplexity::Medium),
         );
+        runtime.set_max_iterations(max_iters);
+        runtime.set_auto_compaction_threshold(AUTO_COMPACTION_TOKEN_THRESHOLD as u32);
+
+        // Attach cancel token if provided
+        if let Some(token) = cancel_token {
+            runtime.set_cancel_token(Some(token));
+        }
+
+        // Create execution progress tracker for frontend panels.
         let progress = Arc::new(AgentExecutionProgress::new(max_iters));
-        runtime = runtime.with_progress(progress.clone());
+        runtime.set_progress(progress.clone());
         {
             let mut trackers = self.progress_trackers.write().await;
             trackers.insert(conversation_id.clone(), progress.clone());
         }
 
-        // Add Tauri event reporter for tool progress — wired to the shared
-        // progress tracker so agent-status events include live execution data.
-        if let Some(handle) = app_handle {
+        // Add Tauri event reporter for tool progress.
+        if let Some(handle) = self.app_handle.lock().await.clone() {
             let reporter = Box::new(TauriHookProgressReporter::with_progress(
                 handle,
                 conversation_id.clone(),
                 progress,
             ));
-            runtime = runtime.with_hook_progress_reporter(reporter);
+            runtime.set_hook_progress_reporter(reporter);
         }
 
         // Run turn with prompter if available for this conversation
@@ -719,9 +694,9 @@ impl SessionManager {
         let (tx, rx) = tokio::sync::oneshot::channel();
         tokio::task::spawn_blocking(move || {
             let result = if let Some(ref mut p) = prompter_opt {
-                runtime.run_turn(user_input, Some(p))
+                runtime.run_turn(&user_input, Some(p))
             } else {
-                runtime.run_turn(user_input, None)
+                runtime.run_turn(&user_input, None)
             };
             let payload = result.map(|summary| (summary, runtime.into_session()));
             let _ = tx.send(payload);
@@ -891,7 +866,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
         // Fine-grained enforcement checks before prompting the user.
         // These catch operations that should be hard-denied regardless of user choice
         // (e.g., writing outside workspace, dangerous bash commands in read-only mode).
-        let enforcer = axagent_runtime_core::permission_enforcer::PermissionEnforcer::new(
+        let enforcer = axagent_harness::runtime_types::permission_enforcer::PermissionEnforcer::new(
             PermissionPolicy::new(request.current_mode),
         );
         let tool_name_lower = request.tool_name.to_lowercase();
@@ -916,7 +891,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                         self.inner.workspace_root.lock().map(|s| s.clone()).unwrap_or_default();
                     if !workspace_root.is_empty() {
                         let result = enforcer.check_file_write(path, &workspace_root);
-                        if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
+                        if let axagent_harness::runtime_types::permission_enforcer::EnforcementResult::Denied {
                             reason,
                             ..
                         } = result
@@ -942,7 +917,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
             let command = input_val.get("command").and_then(|v| v.as_str()).unwrap_or("");
             if !command.is_empty() {
                 let result = enforcer.check_bash(command);
-                if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
+                if let axagent_harness::runtime_types::permission_enforcer::EnforcementResult::Denied {
                     reason,
                     ..
                 } = result
@@ -1193,6 +1168,7 @@ impl HookProgressReporter for TauriHookProgressReporter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sea_orm::DatabaseConnection;
 
     #[test]
     fn test_estimate_tokens_from_text() {
@@ -1496,7 +1472,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_new() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         assert_eq!(mgr.session_count().await, 0);
         assert!(!mgr.has_app_handle().await);
     }
@@ -1504,7 +1480,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_set_default_workspace_dir() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string())).await;
         let default_dir = mgr.default_workspace_dir.lock().await;
         assert_eq!(*default_dir, Some("/tmp/workspace".to_string()));
@@ -1513,7 +1489,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_set_default_workspace_dir_none() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string())).await;
         mgr.set_default_workspace_dir(None).await;
         let default_dir = mgr.default_workspace_dir.lock().await;
@@ -1523,14 +1499,14 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_has_app_handle_initially_false() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         assert!(!mgr.has_app_handle().await);
     }
 
     #[tokio::test]
     async fn test_session_manager_get_session_not_found() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         let result = mgr.get_session("nonexistent").await;
         assert!(result.is_none());
     }
@@ -1538,7 +1514,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_remove_session_not_found() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         let result = mgr.remove_session("nonexistent").await;
         assert!(result.is_none());
     }
@@ -1546,7 +1522,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_create_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         let session =
             mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         assert_eq!(session.provider_id(), "provider-1");
@@ -1558,7 +1534,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_create_and_get_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         let session =
             mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = session.session().session_id.clone();
@@ -1570,7 +1546,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_create_and_remove_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         let session =
             mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = session.session().session_id.clone();
@@ -1584,7 +1560,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_get_or_create_session_new() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         let session = mgr
             .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
             .await
@@ -1596,7 +1572,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_get_or_create_session_existing() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         let session1 = mgr
             .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
             .await
@@ -1612,7 +1588,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_clear_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         assert_eq!(mgr.session_count().await, 1);
         mgr.clear_session("conv-1").await;
@@ -1622,7 +1598,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_clear_session_nonexistent() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         mgr.clear_session("nonexistent").await;
         assert_eq!(mgr.session_count().await, 1);
@@ -1631,7 +1607,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_multiple_sessions() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         mgr.create_session("p2".to_string(), "conv-2".to_string()).await.unwrap();
         mgr.create_session("p3".to_string(), "conv-3".to_string()).await.unwrap();
@@ -1641,7 +1617,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_conversation_index() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         let conv_index = mgr.conversation_index.lock().await;
         assert!(conv_index.contains_key("conv-1"));
@@ -1650,7 +1626,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_session_last_access_updated() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new(db);
+        let mgr = SessionManager::new_for_test(db);
         mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = {
             let conv_index = mgr.conversation_index.lock().await;

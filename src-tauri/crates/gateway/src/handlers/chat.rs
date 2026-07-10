@@ -13,8 +13,8 @@ use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 
 use axagent_harness::types::*;
+use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_providers::url_utils::resolve_base_url_for_type;
 
 use crate::auth::AuthenticatedKey;
 use crate::handlers::error::{error_response, provider_type_to_str, record_log};
@@ -380,7 +380,12 @@ pub(crate) async fn handle_stream(
     start_time: Instant,
 ) -> axum::response::Response {
     let model_str = model_id.to_string();
-    let mut stream = adapter.chat_stream(ctx, request, None);
+    let llm_config = axagent_harness::LlmCallConfig::default();
+    let mut stream =
+        match axagent_harness::execute_llm_stream(adapter, ctx, request, &llm_config, None).await {
+            Ok(s) => s,
+            Err(e) => return error_response(StatusCode::BAD_REQUEST, &e),
+        };
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(32);
     let platform_adapter = state.adapter.clone();

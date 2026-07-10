@@ -248,7 +248,6 @@ impl ConditionExecutor {
         confidence_threshold: Option<f64>,
     ) -> Result<bool, String> {
         let (prov, _key, model, adapter, api_key) = super::resolve_provider_and_adapter(
-            &self.db,
             &self.master_key,
             self.provider_registry.as_ref(),
             node_model,
@@ -327,10 +326,12 @@ impl ConditionExecutor {
             store: None,
         };
 
-        let response =
-            adapter.chat(&req_ctx, request).await.map_err(|e| format!("LLM 调用失败: {e}"))?;
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response = axagent_harness::execute_llm(&**adapter, &req_ctx, request, &llm_config)
+            .await
+            .map_err(|e| format!("LLM 调用失败: {e}"))?;
 
-        let text = response.content.trim().to_lowercase();
+        let text = response.response.content.trim().to_lowercase();
 
         // ── 置信度检查 ──
         if let Some(threshold) = confidence_threshold {

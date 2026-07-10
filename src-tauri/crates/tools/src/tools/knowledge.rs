@@ -7,17 +7,9 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_entities::{
-    knowledge_documents, knowledge_entities, knowledge_flows, knowledge_interfaces,
-};
-use sea_orm::{ActiveModelTrait, Set};
 use serde_json::Value;
 
 // ── 辅助函数 ──
-
-fn sea_db() -> Result<std::sync::Arc<sea_orm::DatabaseConnection>, ToolError> {
-    crate::global_state::get_sea_db().ok_or_else(|| ToolError::execution_failed("数据库未初始化"))
-}
 
 fn db_path() -> Result<String, ToolError> {
     crate::global_state::get_db_path()
@@ -26,10 +18,6 @@ fn db_path() -> Result<String, ToolError> {
 
 fn generate_uuid() -> String {
     uuid::Uuid::new_v4().to_string()
-}
-
-fn current_timestamp() -> i64 {
-    chrono::Utc::now().timestamp()
 }
 
 // ── ListKnowledgeBasesTool ─────────────────────────────────────────────────
@@ -261,44 +249,34 @@ impl Tool for CreateKnowledgeEntityTool {
             return Ok(ToolResult::error("Error: name 是必需的"));
         }
 
-        let db = sea_db()?;
-        let id = generate_uuid();
-        let now = current_timestamp();
-
-        let am = knowledge_entities::ActiveModel {
-            id: Set(id.clone()),
-            knowledge_base_id: Set(kb_id.to_string()),
-            name: Set(name.to_string()),
-            entity_type: Set(input
+        let repo = axagent_harness::repositories::knowledge_entity_repository();
+        let input = axagent_harness::repo_dtos::CreateKnowledgeEntityInput {
+            knowledge_base_id: kb_id.to_string(),
+            name: name.to_string(),
+            entity_type: input
                 .get("entity_type")
                 .and_then(|v| v.as_str())
                 .unwrap_or("entity")
-                .to_string()),
-            description: Set(input
-                .get("description")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())),
-            source_path: Set(input
+                .to_string(),
+            description: input.get("description").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            source_path: input
                 .get("source_path")
                 .and_then(|v| v.as_str())
                 .unwrap_or_default()
-                .to_string()),
-            source_language: Set(input
+                .to_string(),
+            source_language: input
                 .get("source_language")
                 .and_then(|v| v.as_str())
-                .map(|s| s.to_string())),
-            properties: Set(input.get("properties").cloned().unwrap_or(Value::Null)),
-            lifecycle: Set(input.get("lifecycle").cloned()),
-            behaviors: Set(input.get("behaviors").cloned()),
-            metadata: Set(None),
-            created_at: Set(now),
-            updated_at: Set(now),
+                .map(|s| s.to_string()),
+            properties: input.get("properties").cloned().unwrap_or(Value::Null),
+            lifecycle: input.get("lifecycle").cloned(),
+            behaviors: input.get("behaviors").cloned(),
         };
 
-        match am.insert(db.as_ref()).await {
-            Ok(_) => Ok(ToolResult::success(format!(
+        match repo.insert_entity(input).await {
+            Ok(dto) => Ok(ToolResult::success(format!(
                 "已创建知识实体 '{}' (id: {}) 在知识库 '{}' 中",
-                name, id, kb_id
+                name, dto.id, kb_id
             ))),
             Err(e) => Ok(ToolResult::error(format!("创建知识实体失败: {}", e))),
         }
@@ -353,42 +331,32 @@ impl Tool for CreateKnowledgeFlowTool {
             return Ok(ToolResult::error("Error: name 是必需的"));
         }
 
-        let db = sea_db()?;
-        let id = generate_uuid();
-        let now = current_timestamp();
-
-        let am = knowledge_flows::ActiveModel {
-            id: Set(id.clone()),
-            knowledge_base_id: Set(kb_id.to_string()),
-            name: Set(name.to_string()),
-            flow_type: Set(input
+        let repo = axagent_harness::repositories::knowledge_flow_repository();
+        let flow_input = axagent_harness::repo_dtos::CreateKnowledgeFlowInput {
+            knowledge_base_id: kb_id.to_string(),
+            name: name.to_string(),
+            flow_type: input
                 .get("flow_type")
                 .and_then(|v| v.as_str())
                 .unwrap_or("process")
-                .to_string()),
-            description: Set(input
-                .get("description")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())),
-            source_path: Set(input
+                .to_string(),
+            description: input.get("description").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            source_path: input
                 .get("source_path")
                 .and_then(|v| v.as_str())
                 .unwrap_or_default()
-                .to_string()),
-            steps: Set(input.get("steps").cloned().unwrap_or(Value::Null)),
-            decision_points: Set(input.get("decision_points").cloned()),
-            error_handling: Set(input.get("error_handling").cloned()),
-            preconditions: Set(input.get("preconditions").cloned()),
-            postconditions: Set(input.get("postconditions").cloned()),
-            metadata: Set(None),
-            created_at: Set(now),
-            updated_at: Set(now),
+                .to_string(),
+            steps: input.get("steps").cloned().unwrap_or(Value::Null),
+            decision_points: input.get("decision_points").cloned(),
+            error_handling: input.get("error_handling").cloned(),
+            preconditions: input.get("preconditions").cloned(),
+            postconditions: input.get("postconditions").cloned(),
         };
 
-        match am.insert(db.as_ref()).await {
-            Ok(_) => Ok(ToolResult::success(format!(
+        match repo.insert_flow(flow_input).await {
+            Ok(dto) => Ok(ToolResult::success(format!(
                 "已创建知识流程 '{}' (id: {}) 在知识库 '{}' 中",
-                name, id, kb_id
+                name, dto.id, kb_id
             ))),
             Err(e) => Ok(ToolResult::error(format!("创建知识流程失败: {}", e))),
         }
@@ -442,45 +410,34 @@ impl Tool for CreateKnowledgeInterfaceTool {
             return Ok(ToolResult::error("Error: name 是必需的"));
         }
 
-        let db = sea_db()?;
-        let id = generate_uuid();
-        let now = current_timestamp();
-
-        let am = knowledge_interfaces::ActiveModel {
-            id: Set(id.clone()),
-            knowledge_base_id: Set(kb_id.to_string()),
-            name: Set(name.to_string()),
-            interface_type: Set(input
+        let repo = axagent_harness::repositories::knowledge_interface_repository();
+        let if_input = axagent_harness::repo_dtos::CreateKnowledgeInterfaceInput {
+            knowledge_base_id: kb_id.to_string(),
+            name: name.to_string(),
+            interface_type: input
                 .get("interface_type")
                 .and_then(|v| v.as_str())
                 .unwrap_or("api")
-                .to_string()),
-            description: Set(input
-                .get("description")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())),
-            source_path: Set(input
+                .to_string(),
+            description: input.get("description").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            source_path: input
                 .get("source_path")
                 .and_then(|v| v.as_str())
                 .unwrap_or_default()
-                .to_string()),
-            input_schema: Set(input.get("input_schema").cloned().unwrap_or(Value::Null)),
-            output_schema: Set(input.get("output_schema").cloned().unwrap_or(Value::Null)),
-            error_codes: Set(input.get("error_codes").cloned()),
-            communication_pattern: Set(input
+                .to_string(),
+            input_schema: input.get("input_schema").cloned().unwrap_or(Value::Null),
+            output_schema: input.get("output_schema").cloned().unwrap_or(Value::Null),
+            error_codes: input.get("error_codes").cloned(),
+            communication_pattern: input
                 .get("communication_pattern")
                 .and_then(|v| v.as_str())
-                .map(|s| s.to_string())),
-            version: Set(None),
-            metadata: Set(None),
-            created_at: Set(now),
-            updated_at: Set(now),
+                .map(|s| s.to_string()),
         };
 
-        match am.insert(db.as_ref()).await {
-            Ok(_) => Ok(ToolResult::success(format!(
+        match repo.insert_interface(if_input).await {
+            Ok(dto) => Ok(ToolResult::success(format!(
                 "已创建知识接口 '{}' (id: {}) 在知识库 '{}' 中",
-                name, id, kb_id
+                name, dto.id, kb_id
             ))),
             Err(e) => Ok(ToolResult::error(format!("创建知识接口失败: {}", e))),
         }
@@ -532,8 +489,6 @@ impl Tool for AddKnowledgeDocumentTool {
             return Ok(ToolResult::error("Error: content 是必需的"));
         }
 
-        let db = sea_db()?;
-
         let temp_dir = std::env::temp_dir();
         let doc_id = generate_uuid();
         let file_path = temp_dir.join(format!("kb_doc_{}.md", doc_id));
@@ -541,29 +496,22 @@ impl Tool for AddKnowledgeDocumentTool {
         std::fs::write(&file_path, content)
             .map_err(|e| ToolError::execution_failed(format!("写入临时文件失败: {}", e)))?;
 
-        let id = generate_uuid();
-        let now = current_timestamp();
         let file_path_str = file_path.to_string_lossy().to_string();
 
-        let am = knowledge_documents::ActiveModel {
-            id: Set(id.clone()),
-            knowledge_base_id: Set(kb_id.to_string()),
-            title: Set(title.to_string()),
-            source_path: Set(file_path_str),
-            mime_type: Set("text/markdown".to_string()),
-            size_bytes: Set(content.len() as i64),
-            indexing_status: Set("pending".to_string()),
-            doc_type: Set("markdown".to_string()),
-            index_error: Set(None),
-            source_conversation_id: Set(None),
-            created_at: Set(now),
-            updated_at: Set(now),
+        let repo = axagent_harness::repositories::knowledge_document_repository();
+        let doc_input = axagent_harness::repo_dtos::CreateKnowledgeDocumentInput {
+            knowledge_base_id: kb_id.to_string(),
+            title: title.to_string(),
+            source_path: file_path_str,
+            mime_type: "text/markdown".to_string(),
+            size_bytes: content.len() as i64,
+            doc_type: "markdown".to_string(),
         };
 
-        match am.insert(db.as_ref()).await {
-            Ok(_) => Ok(ToolResult::success(format!(
+        match repo.insert_document(doc_input).await {
+            Ok(dto) => Ok(ToolResult::success(format!(
                 "已添加文档 '{}' (id: {}) 到知识库 '{}'",
-                title, id, kb_id
+                title, dto.id, kb_id
             ))),
             Err(e) => Ok(ToolResult::error(format!("添加知识文档失败: {}", e))),
         }

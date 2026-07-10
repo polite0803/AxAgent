@@ -152,4 +152,15 @@ impl NoteRepository for DaoNoteRepository {
 
         Ok(Self::model_to_note(model))
     }
+
+    async fn find_link_target_ids(&self, note_id: &str) -> Result<Vec<String>, String> {
+        use axagent_entities::note_links;
+
+        let links = note_links::Entity::find()
+            .filter(note_links::Column::SourceNoteId.eq(note_id.to_string()))
+            .all(self.db.as_ref())
+            .await
+            .map_err(|e| format!("DB error: {}", e))?;
+        Ok(links.into_iter().map(|l| l.target_note_id).collect())
+    }
 }

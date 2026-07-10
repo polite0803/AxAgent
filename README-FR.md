@@ -5,6 +5,12 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square)
 
+<p align="center">
+  <a href="./media/poster-axagent.svg">
+    <img src="./media/poster-axagent.svg" alt="AxAgent Poster" width="80%" />
+  </a>
+</p>
+
 **AxAgent** est un client de bureau AI assistant open source multiplateforme, prenant en charge **Windows / macOS / Linux / Android / iOS**. Bien plus qu'une simple interface de chat, il intègre un moteur d'agent ReAct, une orchestration visuelle de workflows, une base de connaissances RAG locale, l'extension du protocole MCP, une passerelle multi-modèles unifiée, l'automatisation du navigateur, le contrôle de l'ordinateur, et bien plus encore, servant de poste de travail AI pour le développement quotidien, la recherche, la gestion des connaissances et l'automatisation.
 
 > **Langues** : [简体中文](./README.md) | [English](./README-EN.md) | [繁體中文](./README-ZH-TW.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)

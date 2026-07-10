@@ -22,6 +22,8 @@ export interface ProviderConfig {
   models: Model[];
   keys: ProviderKey[];
   proxy_config: ProviderProxyConfig | null;
+  tool_adaptation: string | null;
+  tool_adaptation_marker_prefix: string | null;
   custom_headers: string | null;
   icon: string | null;
   builtin_id: string | null;
@@ -63,6 +65,8 @@ export interface UpdateProviderInput {
   api_path?: string | null;
   enabled?: boolean;
   proxy_config?: ProviderProxyConfig;
+  tool_adaptation?: string | null;
+  tool_adaptation_marker_prefix?: string | null;
   custom_headers?: string | null;
   icon?: string | null;
   sort_order?: number;

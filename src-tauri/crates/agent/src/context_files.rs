@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::kit_bridge::KitSkillDirs;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -114,10 +115,14 @@ impl ContextFileResolver {
     }
 }
 
-pub async fn resolve_references(content: &str, base_dir: &Path) -> String {
+pub async fn resolve_references(
+    content: &str,
+    base_dir: &Path,
+    skill_dirs: &dyn KitSkillDirs,
+) -> String {
     let content = resolve_file_references(content, base_dir);
     let content = resolve_url_references(&content).await;
-    let content = resolve_skill_references(&content);
+    let content = resolve_skill_references(&content, skill_dirs);
     strip_conditional_sections(&content)
 }
 
@@ -183,9 +188,9 @@ async fn fetch_url_content(url: &str) -> Result<String, String> {
     }
 }
 
-fn resolve_skill_references(content: &str) -> String {
+fn resolve_skill_references(content: &str, skill_dirs: &dyn KitSkillDirs) -> String {
     let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").unwrap();
-    let dirs = axagent_kit::skill_dirs::skill_dirs();
+    let dirs = skill_dirs.skill_dirs();
 
     re.replace_all(content, |caps: &regex::Captures| {
         let skill_name = &caps[1];

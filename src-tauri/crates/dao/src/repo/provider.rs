@@ -82,6 +82,8 @@ fn provider_from_entity(
         models,
         keys,
         proxy_config: row.proxy_config.and_then(|s| serde_json::from_str(&s).ok()),
+        tool_adaptation: row.tool_adaptation,
+        tool_adaptation_marker_prefix: row.tool_adaptation_marker_prefix,
         custom_headers: row.custom_headers,
         icon: row.icon,
         builtin_id: row.builtin_id,
@@ -235,6 +237,8 @@ pub async fn create_provider(
         api_path: Set(input.api_path),
         enabled: Set(if input.enabled { 1 } else { 0 }),
         proxy_config: Set(None),
+        tool_adaptation: Set(None),
+        tool_adaptation_marker_prefix: Set(None),
         custom_headers: Set(None),
         icon: Set(None),
         builtin_id: Set(input.builtin_id),
@@ -276,6 +280,12 @@ pub async fn update_provider(
     am.provider_type = Set(provider_type_str(&provider_type).to_string());
     am.enabled = Set(if enabled { 1 } else { 0 });
     am.proxy_config = Set(proxy_json);
+    if let Some(tool_adaptation) = input.tool_adaptation {
+        am.tool_adaptation = Set(tool_adaptation);
+    }
+    if let Some(marker_prefix) = input.tool_adaptation_marker_prefix {
+        am.tool_adaptation_marker_prefix = Set(marker_prefix);
+    }
     if let Some(api_path) = input.api_path {
         am.api_path = Set(api_path);
     }
@@ -778,6 +788,8 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
                     models: default_models,
                     keys: vec![],
                     proxy_config: None,
+                    tool_adaptation: None,
+                    tool_adaptation_marker_prefix: None,
                     custom_headers: None,
                     icon: None,
                     builtin_id: Some(String::from(bp.builtin_id)),

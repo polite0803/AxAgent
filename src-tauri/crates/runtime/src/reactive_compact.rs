@@ -144,7 +144,9 @@ pub fn classify_trigger(error_text: &str) -> Option<ReactiveTrigger> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_runtime_core::session::{ContentBlock, ConversationMessage, Session};
+    use axagent_runtime_core::session::{
+        ContentBlock, ContentBlockExt, ConversationMessage, ConversationMessageExt, Session,
+    };
 
     fn make_large_session(message_count: usize) -> Session {
         let mut session = Session::new();
@@ -152,10 +154,12 @@ mod tests {
             // 创建足够大的消息（~2500 tokens per message）以确保超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session.push_message(ConversationMessage::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
+                    .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
                     .unwrap();
             }
         }

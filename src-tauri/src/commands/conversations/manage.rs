@@ -361,7 +361,7 @@ pub async fn archive_workflow_session(
 pub(crate) async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
-        Box<dyn futures::Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send>,
+        Box<dyn futures::Stream<Item = std::result::Result<ChatStreamChunk, String>> + Send>,
     >,
     params: StreamConsumptionParams<'_>,
 ) -> (

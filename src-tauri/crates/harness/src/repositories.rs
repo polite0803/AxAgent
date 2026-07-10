@@ -10,6 +10,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::repo_dtos::*;
+// wiki 域 repository trait 以 wiki_dtos 为唯一权威定义（dao 实现、agent 消费、test_support 替身均认它），
+// 此处仅 re-export，避免与内联重复定义造成两套不兼容类型。
 use crate::service_registry::get_service_registry;
 use crate::types::AppSettings;
 use crate::types::Conversation;
@@ -17,21 +19,11 @@ use crate::types::Message;
 use crate::types::MessageRole;
 use crate::types::ProviderConfig;
 use crate::types::ProviderKey;
+pub use crate::wiki_dtos::{
+    NoteBacklinkRepository, NoteRepository, WikiOperationRepository, WikiPageRepository,
+    WikiRepository, WikiSourceRepository,
+};
 use std::collections::HashMap;
-
-// ── NoteRepository ─────────────────────────────
-
-#[async_trait]
-pub trait NoteRepository: Send + Sync {
-    async fn list_notes(&self, wiki_id: &str) -> Result<Vec<Note>, String>;
-    async fn get_note_by_id(&self, id: &str) -> Result<Option<Note>, String>;
-    async fn get_note_by_title(&self, wiki_id: &str, title: &str) -> Result<Option<Note>, String>;
-    async fn create_note(&self, input: CreateNoteInput) -> Result<Note, String>;
-    async fn update_note(&self, input: UpdateNoteInput) -> Result<Note, String>;
-    async fn delete_note(&self, id: &str) -> Result<(), String>;
-    async fn search_notes(&self, wiki_id: &str, query: &str) -> Result<Vec<Note>, String>;
-    async fn count_notes(&self, wiki_id: &str) -> Result<i64, String>;
-}
 
 pub fn set_note_repository(repo: Arc<dyn NoteRepository>) {
     get_service_registry().read().unwrap().set_note_repository(repo);
@@ -39,16 +31,6 @@ pub fn set_note_repository(repo: Arc<dyn NoteRepository>) {
 
 pub fn note_repository() -> Arc<dyn NoteRepository> {
     get_service_registry().read().unwrap().note_repository()
-}
-
-// ── WikiRepository ─────────────────────────────
-
-#[async_trait]
-pub trait WikiRepository: Send + Sync {
-    async fn list_wikis(&self) -> Result<Vec<Wiki>, String>;
-    async fn get_wiki_by_id(&self, id: &str) -> Result<Option<Wiki>, String>;
-    async fn create_wiki(&self, name: &str, description: Option<String>) -> Result<Wiki, String>;
-    async fn delete_wiki(&self, id: &str) -> Result<(), String>;
 }
 
 pub fn set_wiki_repository(repo: Arc<dyn WikiRepository>) {
@@ -59,47 +41,12 @@ pub fn wiki_repository() -> Arc<dyn WikiRepository> {
     get_service_registry().read().unwrap().wiki_repository()
 }
 
-// ── WikiPageRepository ─────────────────────────
-
-#[async_trait]
-pub trait WikiPageRepository: Send + Sync {
-    async fn list_pages(&self, wiki_id: &str) -> Result<Vec<WikiPage>, String>;
-    async fn get_page_by_id(&self, id: &str) -> Result<Option<WikiPage>, String>;
-    async fn get_page_by_title(
-        &self,
-        wiki_id: &str,
-        title: &str,
-    ) -> Result<Option<WikiPage>, String>;
-    async fn create_page(
-        &self,
-        wiki_id: &str,
-        title: &str,
-        content: &str,
-    ) -> Result<WikiPage, String>;
-    async fn update_page(&self, id: &str, content: Option<String>) -> Result<WikiPage, String>;
-    async fn delete_page(&self, id: &str) -> Result<(), String>;
-}
-
 pub fn set_wiki_page_repository(repo: Arc<dyn WikiPageRepository>) {
     get_service_registry().read().unwrap().set_wiki_page_repository(repo);
 }
 
 pub fn wiki_page_repository() -> Arc<dyn WikiPageRepository> {
     get_service_registry().read().unwrap().wiki_page_repository()
-}
-
-// ── WikiSourceRepository ───────────────────────
-
-#[async_trait]
-pub trait WikiSourceRepository: Send + Sync {
-    async fn list_sources(&self, wiki_id: &str) -> Result<Vec<WikiSource>, String>;
-    async fn create_source(
-        &self,
-        wiki_id: &str,
-        url: &str,
-        title: Option<String>,
-    ) -> Result<WikiSource, String>;
-    async fn delete_source(&self, id: &str) -> Result<(), String>;
 }
 
 pub fn set_wiki_source_repository(repo: Arc<dyn WikiSourceRepository>) {
@@ -110,25 +57,22 @@ pub fn wiki_source_repository() -> Arc<dyn WikiSourceRepository> {
     get_service_registry().read().unwrap().wiki_source_repository()
 }
 
-// ── NoteBacklinkRepository ─────────────────────
-
-#[async_trait]
-pub trait NoteBacklinkRepository: Send + Sync {
-    async fn list_backlinks(&self, note_id: &str) -> Result<Vec<NoteBacklink>, String>;
-    async fn create_backlink(
-        &self,
-        source_note_id: &str,
-        target_note_id: &str,
-        context: Option<String>,
-    ) -> Result<NoteBacklink, String>;
-}
-
 pub fn set_note_backlink_repository(repo: Arc<dyn NoteBacklinkRepository>) {
     get_service_registry().read().unwrap().set_note_backlink_repository(repo);
 }
 
 pub fn note_backlink_repository() -> Arc<dyn NoteBacklinkRepository> {
     get_service_registry().read().unwrap().note_backlink_repository()
+}
+
+// ── WikiOperationRepository ───────────────────
+
+pub fn set_wiki_operation_repository(repo: Arc<dyn WikiOperationRepository>) {
+    get_service_registry().read().unwrap().set_wiki_operation_repository(repo);
+}
+
+pub fn wiki_operation_repository() -> Arc<dyn WikiOperationRepository> {
+    get_service_registry().read().unwrap().wiki_operation_repository()
 }
 
 // ── ProviderRepository ────────────────────────
@@ -212,6 +156,15 @@ pub struct CreateMessageInput {
 #[async_trait]
 pub trait MessageRepository: Send + Sync {
     async fn create_message(&self, input: CreateMessageInput) -> Result<Message, String>;
+    /// List all messages with id and attachments JSON (for migration / admin use).
+    /// Returns `Vec<(message_id, attachments_json)>`.
+    async fn list_all_message_attachments(&self) -> Result<Vec<(String, String)>, String>;
+    /// Update the attachments JSON column.
+    async fn update_message_attachments(
+        &self,
+        message_id: &str,
+        attachments_json: &str,
+    ) -> Result<(), String>;
 }
 
 pub fn set_message_repository(repo: Arc<dyn MessageRepository>) {
@@ -431,4 +384,181 @@ pub fn set_workflow_template_repository(repo: Arc<dyn WorkflowTemplateRepository
 
 pub fn workflow_template_repository() -> Arc<dyn WorkflowTemplateRepository> {
     get_service_registry().read().unwrap().workflow_template_repository()
+}
+
+// ── AgentProfileRepository ─────────────────────
+
+#[async_trait]
+pub trait AgentProfileRepository: Send + Sync {
+    async fn get_agent_profile(
+        &self,
+        id: &str,
+    ) -> Result<Option<crate::types::AgentProfile>, String>;
+}
+
+pub fn set_agent_profile_repository(repo: Arc<dyn AgentProfileRepository>) {
+    get_service_registry().read().unwrap().set_agent_profile_repository(repo);
+}
+
+pub fn agent_profile_repository() -> Arc<dyn AgentProfileRepository> {
+    get_service_registry().read().unwrap().agent_profile_repository()
+}
+
+// ── AgencyExpertRepository ─────────────────────
+
+#[async_trait]
+pub trait AgencyExpertRepository: Send + Sync {
+    async fn get_agency_expert(&self, id: &str) -> Result<Option<AgencyExpertDto>, String>;
+}
+
+pub fn set_agency_expert_repository(repo: Arc<dyn AgencyExpertRepository>) {
+    get_service_registry().read().unwrap().set_agency_expert_repository(repo);
+}
+
+pub fn agency_expert_repository() -> Arc<dyn AgencyExpertRepository> {
+    get_service_registry().read().unwrap().agency_expert_repository()
+}
+
+// ── AgentRoleRepository ────────────────────────
+
+#[async_trait]
+pub trait AgentRoleRepository: Send + Sync {
+    async fn get_agent_role(&self, id: &str) -> Result<Option<AgentRoleDto>, String>;
+}
+
+pub fn set_agent_role_repository(repo: Arc<dyn AgentRoleRepository>) {
+    get_service_registry().read().unwrap().set_agent_role_repository(repo);
+}
+
+pub fn agent_role_repository() -> Arc<dyn AgentRoleRepository> {
+    get_service_registry().read().unwrap().agent_role_repository()
+}
+
+// ── BackgroundTaskRepository ──────────────────
+
+#[async_trait]
+pub trait BackgroundTaskRepository: Send + Sync {
+    async fn spawn_task(&self, input: CreateBackgroundTaskInput) -> Result<BackgroundTask, String>;
+    async fn get_task(&self, id: &str) -> Result<Option<BackgroundTask>, String>;
+    async fn list_tasks(&self) -> Result<Vec<BackgroundTask>, String>;
+    async fn stop_task(&self, id: &str) -> Result<(), String>;
+    async fn update_status(&self, id: &str, status: &str) -> Result<(), String>;
+    async fn get_output(&self, id: &str) -> Result<Option<String>, String>;
+}
+
+pub fn set_background_task_repository(repo: Arc<dyn BackgroundTaskRepository>) {
+    get_service_registry().read().unwrap().set_background_task_repository(repo);
+}
+
+pub fn background_task_repository() -> Arc<dyn BackgroundTaskRepository> {
+    get_service_registry().read().unwrap().background_task_repository()
+}
+
+// ── StoredFileRepository ──────────────────────
+
+#[async_trait]
+pub trait StoredFileRepository: Send + Sync {
+    async fn create_stored_file(&self, input: CreateStoredFileInput) -> Result<StoredFile, String>;
+    async fn get_stored_file(&self, id: &str) -> Result<StoredFile, String>;
+    async fn list_all_stored_files(&self) -> Result<Vec<StoredFile>, String>;
+    async fn update_storage_path(&self, id: &str, storage_path: &str) -> Result<(), String>;
+}
+
+pub fn set_stored_file_repository(repo: Arc<dyn StoredFileRepository>) {
+    get_service_registry().read().unwrap().set_stored_file_repository(repo);
+}
+
+pub fn stored_file_repository() -> Arc<dyn StoredFileRepository> {
+    get_service_registry().read().unwrap().stored_file_repository()
+}
+
+// ── KnowledgeEntityRepository ─────────────────
+
+#[async_trait]
+pub trait KnowledgeEntityRepository: Send + Sync {
+    async fn insert_entity(
+        &self,
+        input: CreateKnowledgeEntityInput,
+    ) -> Result<KnowledgeEntityDto, String>;
+}
+
+pub fn set_knowledge_entity_repository(repo: Arc<dyn KnowledgeEntityRepository>) {
+    get_service_registry().read().unwrap().set_knowledge_entity_repository(repo);
+}
+
+pub fn knowledge_entity_repository() -> Arc<dyn KnowledgeEntityRepository> {
+    get_service_registry().read().unwrap().knowledge_entity_repository()
+}
+
+// ── KnowledgeFlowRepository ───────────────────
+
+#[async_trait]
+pub trait KnowledgeFlowRepository: Send + Sync {
+    async fn insert_flow(
+        &self,
+        input: CreateKnowledgeFlowInput,
+    ) -> Result<KnowledgeFlowDto, String>;
+}
+
+pub fn set_knowledge_flow_repository(repo: Arc<dyn KnowledgeFlowRepository>) {
+    get_service_registry().read().unwrap().set_knowledge_flow_repository(repo);
+}
+
+pub fn knowledge_flow_repository() -> Arc<dyn KnowledgeFlowRepository> {
+    get_service_registry().read().unwrap().knowledge_flow_repository()
+}
+
+// ── KnowledgeInterfaceRepository ──────────────
+
+#[async_trait]
+pub trait KnowledgeInterfaceRepository: Send + Sync {
+    async fn insert_interface(
+        &self,
+        input: CreateKnowledgeInterfaceInput,
+    ) -> Result<KnowledgeInterfaceDto, String>;
+}
+
+pub fn set_knowledge_interface_repository(repo: Arc<dyn KnowledgeInterfaceRepository>) {
+    get_service_registry().read().unwrap().set_knowledge_interface_repository(repo);
+}
+
+pub fn knowledge_interface_repository() -> Arc<dyn KnowledgeInterfaceRepository> {
+    get_service_registry().read().unwrap().knowledge_interface_repository()
+}
+
+// ── KnowledgeDocumentRepository ───────────────
+
+#[async_trait]
+pub trait KnowledgeDocumentRepository: Send + Sync {
+    async fn insert_document(
+        &self,
+        input: CreateKnowledgeDocumentInput,
+    ) -> Result<KnowledgeDocumentDto, String>;
+}
+
+pub fn set_knowledge_document_repository(repo: Arc<dyn KnowledgeDocumentRepository>) {
+    get_service_registry().read().unwrap().set_knowledge_document_repository(repo);
+}
+
+pub fn knowledge_document_repository() -> Arc<dyn KnowledgeDocumentRepository> {
+    get_service_registry().read().unwrap().knowledge_document_repository()
+}
+
+// ── TrajectoryRepository ──────────────────────
+
+/// 轨迹仓储 trait —— 封装所有 trajectory SeaORM 实体的 CRUD。
+/// 使用 `DatabaseConnection` 作为后端，但 consumer 不直接引用 `axagent_entities`。
+#[async_trait]
+pub trait TrajectoryRepository: Send + Sync {
+    /// 获取底层的数据库连接（供 trajectory/storage.rs 内部使用，
+    /// 直到所有子操作迁移到 trait 方法）。
+    fn db_connection(&self) -> &sea_orm::DatabaseConnection;
+}
+
+pub fn set_trajectory_repository(repo: Arc<dyn TrajectoryRepository>) {
+    get_service_registry().read().unwrap().set_trajectory_repository(repo);
+}
+
+pub fn trajectory_repository() -> Arc<dyn TrajectoryRepository> {
+    get_service_registry().read().unwrap().trajectory_repository()
 }

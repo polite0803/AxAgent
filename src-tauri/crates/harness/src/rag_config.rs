@@ -5,6 +5,7 @@
 //! 纯数据 DTO，不依赖重型实现模块。
 //! 被 `axagent-core::types` re-export。
 
+pub use crate::note_dtos::Note;
 use serde::{Deserialize, Serialize};
 
 /// Rerank 配置
@@ -58,31 +59,6 @@ impl Default for SelfRagConfig {
             max_retry_rounds: 2,
         }
     }
-}
-
-/// 笔记数据结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Note {
-    pub id: String,
-    pub vault_id: String,
-    pub title: String,
-    pub file_path: String,
-    pub content: String,
-    pub content_hash: String,
-    pub author: String,
-    pub page_type: Option<String>,
-    pub source_refs: Option<Vec<String>>,
-    pub related_pages: Option<Vec<String>>,
-    pub quality_score: Option<f64>,
-    pub last_linted_at: Option<i64>,
-    pub last_compiled_at: Option<i64>,
-    pub compiled_source_hash: Option<String>,
-    pub user_edited: bool,
-    pub user_edited_at: Option<i64>,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub is_deleted: bool,
 }
 
 /// 全局 RAG 管线配置

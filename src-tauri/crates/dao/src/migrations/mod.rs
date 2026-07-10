@@ -29,9 +29,11 @@ pub mod v004_dynamic_ui;
 pub mod v005_index_queue;
 pub mod v006_vec_collections;
 pub mod v007_dynamic_ui_version;
+pub mod v008_credentials_and_rl_policies;
+pub mod v009_tool_adaptation;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 7;
+pub const CURRENT_VERSION: i32 = 9;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -92,6 +94,16 @@ const MIGRATIONS: &[Migration] = &[
         version: 7,
         description: "v007_dynamic_ui_version: add version to dynamic_ui_schemas, create dynamic_ui_schema_versions table",
         up: |db| Box::pin(v007_dynamic_ui_version::up(db)),
+    },
+    Migration {
+        version: 8,
+        description: "v008_credentials_and_rl_policies: create credentials and rl_policies tables",
+        up: |db| Box::pin(v008_credentials_and_rl_policies::up(db)),
+    },
+    Migration {
+        version: 9,
+        description: "v009_tool_adaptation: add tool_adaptation column to providers table",
+        up: |db| Box::pin(v009_tool_adaptation::up(db)),
     },
 ];
 

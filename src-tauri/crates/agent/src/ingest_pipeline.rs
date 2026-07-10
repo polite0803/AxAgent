@@ -7,18 +7,14 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::fs;
 
-use axagent_dao::repo::note_repository::DaoNoteRepository;
-use axagent_dao::repo::wiki_repository::DaoWikiRepository;
-use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
 use axagent_harness::note_dtos::CreateNoteInput;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::util_fns::gen_id;
 use axagent_harness::util_fns::truncate_to_char_boundary;
 use axagent_harness::wiki_dtos::{
     InsertWikiSourceInput, NoteRepository, WikiRepository, WikiSource, WikiSourceRepository,
 };
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_kit::utils::gen_id;
-use sea_orm::DatabaseConnection;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum IngestSourceType {
@@ -164,14 +160,15 @@ pub struct IngestPipeline {
 }
 
 impl IngestPipeline {
-    pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(db.clone()));
-        let wiki_source_repo: Arc<dyn WikiSourceRepository> =
-            Arc::new(DaoWikiSourceRepository::new(db.clone()));
+    pub fn new(
+        wiki_repo: Arc<dyn WikiRepository>,
+        wiki_source_repo: Arc<dyn WikiSourceRepository>,
+        note_repo: Arc<dyn NoteRepository>,
+    ) -> Self {
         Self {
             wiki_repo,
             wiki_source_repo,
-            note_repo: Arc::new(DaoNoteRepository::new(db)),
+            note_repo,
             llm_adapter: None,
             llm_ctx: None,
             llm_model: None,
@@ -188,6 +185,19 @@ impl IngestPipeline {
         self.llm_ctx = Some(ctx);
         self.llm_model = Some(model);
         self
+    }
+
+    /// Test-only convenience constructor: creates daos from a DB connection.
+    #[cfg(test)]
+    pub fn new_for_test(db: Arc<sea_orm::DatabaseConnection>) -> Self {
+        use axagent_dao::repo::note_repository::DaoNoteRepository;
+        use axagent_dao::repo::wiki_repository::DaoWikiRepository;
+        use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
+        Self::new(
+            Arc::new(DaoWikiRepository::new(db.clone())),
+            Arc::new(DaoWikiSourceRepository::new(db.clone())),
+            Arc::new(DaoNoteRepository::new(db)),
+        )
     }
 
     pub async fn ingest(
@@ -435,12 +445,12 @@ Output ONLY valid JSON inside a ```json fenced code block."#
             store: None,
         };
 
-        let response = adapter
-            .chat(ctx, request)
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response = axagent_harness::execute_llm(adapter, ctx, request, &llm_config)
             .await
             .map_err(|e| format!("Analysis LLM call failed: {}", e))?;
 
-        Self::parse_analysis_json(&response.content)
+        Self::parse_analysis_json(&response.response.content)
     }
 
     fn parse_analysis_json(raw_text: &str) -> Result<SourceAnalysis, String> {
@@ -548,12 +558,12 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             store: None,
         };
 
-        let response = adapter
-            .chat(ctx, request)
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response = axagent_harness::execute_llm(adapter, ctx, request, &llm_config)
             .await
             .map_err(|e| format!("Generation LLM call failed: {}", e))?;
 
-        let pages = self.parse_pages_from_response(&response.content, source_id)?;
+        let pages = self.parse_pages_from_response(&response.response.content, source_id)?;
         let count = pages.len();
 
         let mut note_ids = Vec::new();
@@ -920,7 +930,7 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        IngestPipeline::new(db)
+        IngestPipeline::new_for_test(db)
     }
 
     #[test]

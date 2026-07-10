@@ -13,10 +13,12 @@ use std::sync::{Arc, PoisonError};
 use std::time::Duration;
 
 use async_trait::async_trait;
+use axagent_harness::repositories::{
+    AgencyExpertRepository, AgentProfileRepository, AgentRoleRepository,
+};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, RagContextResult};
 use axagent_harness::workflow_types::WorkflowNode;
 use futures::StreamExt;
-use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use tokio::sync::Mutex;
 
@@ -60,7 +62,7 @@ pub(crate) type ProviderCache = Option<(
     Arc<dyn axagent_harness::ProviderAdapter>,
     String,
 )>;
-pub(crate) type ProfileCache = HashMap<String, axagent_entities::agent_profiles::Model>;
+pub(crate) type ProfileCache = HashMap<String, axagent_harness::types::AgentProfile>;
 
 pub type RagCallback = Arc<
     dyn Fn(
@@ -134,7 +136,6 @@ pub struct PlanStepEvent {
 // ── AgentExecutor ──
 
 pub struct AgentExecutor {
-    db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
     /// RAG 知识源检索回调（由 WorkEngine.set_rag_callback 共享注入，None = 未启用）
     rag_callback: Arc<std::sync::Mutex<Option<RagCallback>>>,
@@ -166,15 +167,14 @@ pub struct AgentExecutor {
 }
 
 impl AgentExecutor {
-    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self::empty(db, master_key)
+    pub fn new(master_key: [u8; 32]) -> Self {
+        Self::empty(master_key)
     }
 
     /// 内部 helper：构造不带任何注入状态的实例（所有 slot 都为 None）。
     /// 一般不应直接调用，外部请用 `with_shared_caches` + `set_provider_registry` (via HasProviderRegistry trait)。
-    fn empty(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
+    fn empty(master_key: [u8; 32]) -> Self {
         Self {
-            db,
             master_key,
             rag_callback: Arc::new(std::sync::Mutex::new(None)),
             engine: Arc::new(std::sync::Mutex::new(None)),
@@ -253,12 +253,11 @@ impl AgentExecutor {
 
     /// 构造使用共享缓存的 executor（WorkEngine 内部使用，跨执行复用缓存）。
     pub fn with_shared_caches(
-        db: Arc<DatabaseConnection>,
         master_key: [u8; 32],
         default_provider_cache: Arc<Mutex<ProviderCache>>,
         profile_cache: Arc<Mutex<ProfileCache>>,
     ) -> Self {
-        let mut s = Self::empty(db, master_key);
+        let mut s = Self::empty(master_key);
         s.default_provider_cache = default_provider_cache;
         s.profile_cache = profile_cache;
         s
@@ -267,7 +266,7 @@ impl AgentExecutor {
 
 impl Default for AgentExecutor {
     fn default() -> Self {
-        Self::empty(Arc::new(DatabaseConnection::default()), [0u8; 32])
+        Self::empty([0u8; 32])
     }
 }
 
@@ -299,8 +298,7 @@ impl NodeExecutorTrait for AgentExecutor {
         };
 
         // 1. 加载 agent profile（带缓存）
-        use axagent_entities::agent_profiles;
-        use sea_orm::EntityTrait;
+        // 1. 加载 agent profile（带缓存，经 harness repository 抽象，不直接依赖 entities）
         let profile = if let Some(ref pid) = an.config.agent_profile_id {
             // 先查缓存
             {
@@ -309,8 +307,8 @@ impl NodeExecutorTrait for AgentExecutor {
                     Some(cached.clone())
                 } else {
                     drop(cache);
-                    let result = agent_profiles::Entity::find_by_id(pid.as_str())
-                        .one(self.db.as_ref())
+                    let result = axagent_harness::repositories::agent_profile_repository()
+                        .get_agent_profile(pid.as_str())
                         .await
                         .map_err(|e| {
                             NodeError::exec_failed(
@@ -381,17 +379,18 @@ impl NodeExecutorTrait for AgentExecutor {
         if let Some(ref p) = profile {
             // 解析 Role 的提示词
             if let Some(ref role_name) = p.agent_role
-                && let Some(resolved) = crate::AgentRole::resolve(self.db.as_ref(), role_name).await
+                && let Ok(Some(resolved)) = axagent_harness::repositories::agent_role_repository()
+                    .get_agent_role(role_name)
+                    .await
                 && !resolved.system_prompt.is_empty()
             {
                 all_segments.extend(compile_prompt(&resolved.system_prompt).segments);
             }
             // 解析 Expert 的提示词
             if let Some(ref expert_id) = p.expert_id
-                && let Ok(Some(expert)) =
-                    axagent_entities::agency_experts::Entity::find_by_id(expert_id)
-                        .one(self.db.as_ref())
-                        .await
+                && let Ok(Some(expert)) = axagent_harness::repositories::agency_expert_repository()
+                    .get_agency_expert(expert_id)
+                    .await
                 && !expert.system_prompt.is_empty()
             {
                 all_segments.extend(compile_prompt(&expert.system_prompt).segments);
@@ -731,8 +730,22 @@ impl NodeExecutorTrait for AgentExecutor {
                 store: None,
             };
 
-            // 流式调用 LLM，聚合增量块
-            let mut stream = adapter.chat_stream(&req_ctx, request, None);
+            // 流式调用 LLM（经统一入口 execute_llm_stream，获得 PromptGuard/截断/缓存/审计）
+            let llm_config = axagent_harness::LlmCallConfig::default();
+            let mut stream = axagent_harness::execute_llm_stream(
+                adapter.as_ref(),
+                &req_ctx,
+                request,
+                &llm_config,
+                None,
+            )
+            .await
+            .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::UNSUPPORTED_PROVIDER,
+                    format!("Agent LLM stream 初始化失败: {e}"),
+                )
+            })?;
             let mut stream_content = String::new();
             let mut stream_thinking: Option<String> = None;
             let mut stream_tool_calls: Option<Vec<axagent_harness::types::ToolCall>> = None;
@@ -1142,39 +1155,41 @@ impl AgentExecutor {
             previous_response_id: None,
             store_response: None,
         };
-        let resp = adapter
-            .chat(
-                &plan_ctx,
-                axagent_harness::types::ChatRequest {
-                    model: model.to_string(),
-                    messages: vec![axagent_harness::types::ChatMessage {
-                        role: "user".to_string(),
-                        content: axagent_harness::types::ChatContent::Text(plan_prompt),
-                        tool_calls: None,
-                        tool_call_id: None,
-                        thinking: None,
-                    }],
-                    stream: false,
-                    temperature: Some(0.0),
-                    max_tokens: Some(4096),
-                    top_p: None,
-                    tools: None,
-                    thinking_budget: None,
-                    use_max_completion_tokens: None,
-                    thinking_param_style: None,
-                    api_mode: None,
-                    instructions: None,
-                    conversation: None,
-                    previous_response_id: None,
-                    store: None,
-                },
-            )
-            .await
-            .map_err(|e| {
-                NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, format!("Plan LLM: {e}"))
-            })?;
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let resp = axagent_harness::execute_llm(
+            &**adapter,
+            &plan_ctx,
+            axagent_harness::types::ChatRequest {
+                model: model.to_string(),
+                messages: vec![axagent_harness::types::ChatMessage {
+                    role: "user".to_string(),
+                    content: axagent_harness::types::ChatContent::Text(plan_prompt),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    thinking: None,
+                }],
+                stream: false,
+                temperature: Some(0.0),
+                max_tokens: Some(4096),
+                top_p: None,
+                tools: None,
+                thinking_budget: None,
+                use_max_completion_tokens: None,
+                thinking_param_style: None,
+                api_mode: None,
+                instructions: None,
+                conversation: None,
+                previous_response_id: None,
+                store: None,
+            },
+            &llm_config,
+        )
+        .await
+        .map_err(|e| {
+            NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, format!("Plan LLM: {e}"))
+        })?;
 
-        let text = resp.content.trim();
+        let text = resp.response.content.trim();
         let json = axagent_kit::utils::extract_json_from_llm_response(text);
         let plan: Plan = serde_json::from_str(json).map_err(|e| {
             let preview = &json[..200.min(json.len())];
@@ -1524,7 +1539,6 @@ impl AgentExecutor {
         }
 
         let result = super::resolve_provider_and_adapter(
-            &self.db,
             &self.master_key,
             self.provider_registry.as_ref(),
             node_model,
@@ -1549,7 +1563,7 @@ impl AgentExecutor {
 /// 解析角色描述：从 AgentProfile 获取，无 Profile 时默认 "executor"
 fn resolve_role(
     _config: &axagent_harness::workflow_types::AgentNodeConfig,
-    profile: Option<&axagent_entities::agent_profiles::Model>,
+    profile: Option<&axagent_harness::types::AgentProfile>,
 ) -> String {
     if let Some(p) = profile
         && let Some(ref role) = p.agent_role

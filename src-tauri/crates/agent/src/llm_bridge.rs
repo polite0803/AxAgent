@@ -287,6 +287,8 @@ impl ProviderLlmBridge {
         }
 
         // 第一步：尝试主适配器
+        // TODO P1: migrate to execute_llm() — currently blocked by custom caching + provider fallback logic
+        // that needs to be adapted to LlmCallConfig.cache + RetryPolicy before migration
         let start = Instant::now();
         match self.adapter.chat(&self.ctx, request.clone()).await {
             Ok(resp) => {
@@ -341,6 +343,7 @@ impl ProviderLlmBridge {
                 let mut fb_request = request;
                 fb_request.model = fallback_entry.model_id.clone();
                 let fb_start = Instant::now();
+                // TODO P1: migrate to execute_llm() — fallback adapter call, needs RetryPolicy integration
                 match fb_adapter.chat(&self.ctx, fb_request).await {
                     Ok(resp) => {
                         let latency = fb_start.elapsed().as_millis() as u64;

@@ -5,6 +5,12 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square)
 
+<p align="center">
+  <a href="./media/poster-axagent.svg">
+    <img src="./media/poster-axagent.svg" alt="AxAgent Poster" width="80%" />
+  </a>
+</p>
+
 **AxAgent** 是一款开源的跨平台 AI 助手桌面客户端，支持 **Windows / macOS / Linux / Android / iOS** 五大平台。它不只是聊天界面——集成了 ReAct 智能体引擎、可视化工作流编排、本地 RAG 知识库、MCP 协议扩展、多模型统一网关、浏览器自动化、计算机控制等能力，可作为日常开发、研究、知识管理和自动化工作的 AI 工作台。
 
 > **语言版本**: [English](./README-EN.md) | [繁體中文](./README-ZH-TW.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
