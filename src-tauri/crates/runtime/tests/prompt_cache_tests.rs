@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_runtime::prompt_cache::PromptCache;
+use axagent_runtime::PromptCache;
 
 #[tokio::test]
 async fn test_prompt_cache_new_is_cache_invalid() {

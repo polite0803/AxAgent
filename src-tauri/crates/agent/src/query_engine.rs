@@ -393,6 +393,7 @@ impl QueryEngine {
         use std::collections::HashMap;
         use std::sync::Mutex;
 
+        #[allow(dead_code)] // mock 仓库,字段仅占位
         struct MockNoteRepo(Mutex<HashMap<String, Note>>);
         #[async_trait::async_trait]
         impl NoteRepository for MockNoteRepo {

@@ -144,9 +144,7 @@ pub fn classify_trigger(error_text: &str) -> Option<ReactiveTrigger> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_runtime_core::session::{
-        ContentBlock, ContentBlockExt, ConversationMessage, ConversationMessageExt, Session,
-    };
+    use axagent_runtime_core::session::{ContentBlock, ConversationMessageExt, Session};
 
     fn make_large_session(message_count: usize) -> Session {
         let mut session = Session::new();

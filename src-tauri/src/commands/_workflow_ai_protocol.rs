@@ -282,6 +282,7 @@ pub enum InjectContextMarker {
     Custom(serde_json::Value),
 }
 
+#[allow(dead_code)] // 仅被 #[allow(dead_code)] 的 InjectContextMarker 引用
 fn default_history_limit() -> u32 {
     5
 }
