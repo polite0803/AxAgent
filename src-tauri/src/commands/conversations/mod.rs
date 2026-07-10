@@ -18,6 +18,7 @@ use crate::commands::proactive::ProactiveService;
 use crate::commands::spawn_guard::catch_unwind_logged;
 #[cfg(test)]
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
+#[cfg(test)]
 use axagent_harness::AgentSessionRepository;
 use axagent_harness::types::*;
 use axagent_harness::url_utils::resolve_base_url_for_type;
@@ -1484,7 +1485,7 @@ pub(crate) async fn execute_tool_call(
         _ => {
             // Fallback: try local tool registry (Skill, Read, Write, etc.)
             {
-                let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
+                let registry = axagent_tools::registry::UnifiedToolRegistry::new();
                 let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
                     .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
                 let input_str = serde_json::to_string(&args).unwrap_or_default();
@@ -1515,7 +1516,7 @@ pub(crate) async fn execute_tool_call(
     let result = match server.transport.as_str() {
         "builtin" => {
             let input_str = serde_json::to_string(&arguments).unwrap_or_default();
-            let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
+            let reg = axagent_tools::registry::UnifiedToolRegistry::new();
             match tokio::time::timeout(
                 timeout_duration,
                 reg.execute(&tool_call.function.name, &input_str),

@@ -69,7 +69,10 @@ impl rag::AsyncEmbedFn for ProviderEmbedFn {
 
 /// Build a `LlmCallFn` from the first enabled provider in the DB.
 /// Used by the RAG pipeline for query enhancement LLM calls.
-pub async fn build_rag_llm_fn(db: &DatabaseConnection, master_key: &[u8; 32]) -> Option<LlmCallFn> {
+pub async fn build_rag_llm_fn(
+    _db: &DatabaseConnection,
+    master_key: &[u8; 32],
+) -> Option<LlmCallFn> {
     let bridge = axagent_runtime::llm_bridge::build_llm_bridge_from_db(master_key).await?;
 
     Some(Arc::new(move |prompt: String| {

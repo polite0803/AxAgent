@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
+axagent-dao = { path = "../dao" }
 axagent-harness = { path = "../harness" }
 
 backon = "1.6"
@@ -35,7 +36,6 @@ urlencoding = "2.1"
 uuid = { version = "1.6.1", features = ["v4"] }
 
 [dev-dependencies]
-axagent-dao = { path = "../dao" }
 axagent-kit = { path = "../kit" }
 axagent-migration = { path = "../migration" }
 axagent-tools = { path = "../tools" }

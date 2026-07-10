@@ -494,7 +494,7 @@ pub async fn confirm_decomposition(
 
 #[tauri::command]
 pub async fn generate_missing_tool(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     name: String,
     description: String,
     input_schema: serde_json::Value,

@@ -9,9 +9,7 @@ use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
 use axagent_agent::AxAgentApiClient;
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
-use axagent_harness::types::{
-    Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole, ProviderProxyConfig,
-};
+use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use axagent_runtime_core::create_conversation_runtime;
 use axagent_runtime_core::execution_progress::AgentExecutionProgressSnapshot;

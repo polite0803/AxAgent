@@ -16,7 +16,6 @@ use crate::commands::error_code::workflow as workflow_err;
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,
-    ProviderProxyConfig,
 };
 use axagent_runtime_core::create_conversation_runtime;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};

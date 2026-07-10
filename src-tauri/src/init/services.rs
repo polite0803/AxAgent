@@ -476,7 +476,7 @@ fn start_rl_reward_computation(state: &AppState) {
     let rl_engine = state.rl_engine.clone();
     let insight_system = state.insight_system.clone();
     let process_reward_model = state.process_reward_model.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
@@ -695,7 +695,7 @@ fn start_skill_evolution(state: &AppState) {
     let constitution = state.constitution.clone();
     let intrinsic_motivation = state.intrinsic_motivation.clone();
     let coevolution_env = state.coevolution_env.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
@@ -962,7 +962,7 @@ fn start_memory_decay_tick(state: &AppState) {
 fn start_auto_tool_observation(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let auto_tool_creator = state.auto_tool_creator.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
@@ -1035,7 +1035,7 @@ fn start_auto_tool_observation(state: &AppState) {
 fn start_text_grad_analysis(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let text_grad_engine = state.text_grad_engine.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
@@ -1147,7 +1147,7 @@ fn start_cron_scheduler(state: &AppState) {
                             std::sync::Arc::new(move |tn: String, args: serde_json::Value| {
                                 let registry = registry.clone();
                                 Box::pin(async move {
-                                    let mut reg = registry.lock().await;
+                                    let reg = registry.lock().await;
                                     let input_str = serde_json::to_string(&args)
                                         .unwrap_or_else(|_| "{}".to_string());
                                     match reg.execute(&tn, &input_str).await {

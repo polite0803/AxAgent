@@ -267,7 +267,7 @@ impl SessionManager {
     }
 
     /// Test-only constructor: creates DAO repos from a DB connection.
-    #[cfg(test)]
+    #[doc(hidden)]
     pub fn new_for_test(db: sea_orm::DatabaseConnection) -> Self {
         let db = Arc::new(db);
         let repo: Arc<dyn AgentSessionRepository> =

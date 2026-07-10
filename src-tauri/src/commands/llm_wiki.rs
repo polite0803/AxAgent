@@ -13,7 +13,7 @@ use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
 use axagent_entities::wiki_sync_queue;
 use axagent_harness::kit_bridge::KitMarkdownParser;
 use axagent_harness::repositories;
-use axagent_harness::types::{ProviderProxyConfig, ProviderType};
+use axagent_harness::types::ProviderType;
 use axagent_harness::wiki_dtos::{
     NoteBacklinkRepository, NoteRepository, WikiRepository, WikiSourceRepository,
 };
@@ -642,7 +642,7 @@ impl query_engine::VectorSearch for WikiVectorSearchAdapter {
 
 #[tauri::command]
 pub async fn llm_wiki_lint(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     note_id: String,
 ) -> Result<lint_checker::LintResult, String> {
     let parser: Box<dyn KitMarkdownParser> =
@@ -659,7 +659,7 @@ pub async fn llm_wiki_lint(
 
 #[tauri::command]
 pub async fn llm_wiki_lint_update_score(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     note_id: String,
 ) -> Result<f64, String> {
     let parser: Box<dyn KitMarkdownParser> =
@@ -770,7 +770,7 @@ pub async fn llm_wiki_delete_schema(
 
 #[tauri::command]
 pub async fn llm_wiki_lint_vault(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<Vec<lint_checker::LintResult>, String> {
     let parser: Box<dyn KitMarkdownParser> =
@@ -787,7 +787,7 @@ pub async fn llm_wiki_lint_vault(
 
 #[tauri::command]
 pub async fn llm_wiki_auto_fix(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     wiki_id: String,
     note_id: Option<String>,
 ) -> Result<Vec<String>, String> {
