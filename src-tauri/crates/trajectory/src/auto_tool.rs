@@ -357,6 +357,7 @@ pub fn slugify(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_harness::trajectory_scorer::GeneratedToolRecorder;
 
     struct MockLlmProvider;
 
@@ -430,11 +431,11 @@ mod tests {
     #[test]
     fn test_generated_tool_record_success() {
         let mut tool = GeneratedTool::new("t", "c", "d");
-        tool.record_success();
+        GeneratedToolRecorder::record_success(&mut tool);
         assert_eq!(tool.usage_count, 1);
         assert_eq!(tool.success_rate, 1.0);
 
-        tool.record_failure();
+        GeneratedToolRecorder::record_failure(&mut tool);
         assert_eq!(tool.usage_count, 2);
         assert!((tool.success_rate - 0.5).abs() < f64::EPSILON);
     }
@@ -442,7 +443,7 @@ mod tests {
     #[test]
     fn test_generated_tool_record_failure() {
         let mut tool = GeneratedTool::new("t", "c", "d");
-        tool.record_failure();
+        GeneratedToolRecorder::record_failure(&mut tool);
         assert_eq!(tool.usage_count, 1);
         assert_eq!(tool.success_rate, 0.0);
     }

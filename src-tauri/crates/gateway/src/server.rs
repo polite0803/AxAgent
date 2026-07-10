@@ -174,6 +174,7 @@ pub struct GatewayServer {
 
 impl GatewayServer {
     /// Start the gateway with a pre-built ProviderRegistry (from RuntimeHarness)
+    #[allow(clippy::too_many_arguments)]
     pub async fn start_with_registry(
         pool: DatabaseConnection,
         master_key: [u8; 32],

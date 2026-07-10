@@ -103,7 +103,7 @@ fn distilled_knowledge_to_skill(knowledge: &DistilledKnowledge) -> Skill {
     let name = format!(
         "{:?}-{}",
         knowledge.knowledge_type,
-        &knowledge.content.chars().take(30).collect::<String>()
+        knowledge.content.chars().take(30).collect::<String>()
     );
     let description: String = knowledge.content.chars().take(200).collect();
     Skill::new(

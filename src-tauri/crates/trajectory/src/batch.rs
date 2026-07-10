@@ -316,7 +316,7 @@ impl BatchProcessor {
             ExportFormat::RlTraining => {
                 let entries: Vec<RLTrainingEntry> = filtered
                     .iter()
-                    .map(|t| axagent_harness::trajectory_scorer::TrajectoryScorer::export_as_rl(t))
+                    .map(axagent_harness::trajectory_scorer::TrajectoryScorer::export_as_rl)
                     .collect();
                 let jsonl: Vec<String> =
                     entries.iter().map(|e| serde_json::to_string(e).unwrap_or_default()).collect();
