@@ -39,10 +39,8 @@ async fn run_migration(legacy_dir: &Path, target_root: &Path) -> Result<Migratio
     let mut path_map: HashMap<String, String> = HashMap::new();
 
     // 2. Query all stored_files
-    let rows = stored_file_repository()
-        .list_all_stored_files()
-        .await
-        .map_err(|e| AxAgentError::Internal(e))?;
+    let rows =
+        stored_file_repository().list_all_stored_files().await.map_err(AxAgentError::Internal)?;
 
     // 3. Process each stored file
     for row in rows {
@@ -83,14 +81,13 @@ async fn run_migration(legacy_dir: &Path, target_root: &Path) -> Result<Migratio
         stored_file_repository()
             .update_storage_path(&row.id, &new_rel)
             .await
-            .map_err(|e| AxAgentError::Internal(e))?;
+            .map_err(AxAgentError::Internal)?;
         report.db_records_updated += 1;
     }
 
     // 4. Update message attachment paths
     let msg_repo = message_repository();
-    let msgs =
-        msg_repo.list_all_message_attachments().await.map_err(|e| AxAgentError::Internal(e))?;
+    let msgs = msg_repo.list_all_message_attachments().await.map_err(AxAgentError::Internal)?;
 
     for (msg_id, attachments_json) in msgs {
         if attachments_json == "[]" || attachments_json.is_empty() {
@@ -135,7 +132,7 @@ async fn run_migration(legacy_dir: &Path, target_root: &Path) -> Result<Migratio
             msg_repo
                 .update_message_attachments(&msg_id, &json)
                 .await
-                .map_err(|e| AxAgentError::Internal(e))?;
+                .map_err(AxAgentError::Internal)?;
             report.messages_updated += 1;
         }
     }

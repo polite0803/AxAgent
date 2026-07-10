@@ -408,12 +408,11 @@ impl FileAuthorizer {
 
         // NTFS 备用数据流：冒号出现在盘符之后的位置即视为风险。
         // 合法形式：`C:\...` (冒号在位置 1)；其余位置的冒号均为可疑。
-        if let Some(colon_pos) = path_str.find(':') {
-            if colon_pos != 1
-                || !path_str.as_bytes().get(0).map_or(false, |b| b.is_ascii_alphabetic())
-            {
-                return true;
-            }
+        if let Some(colon_pos) = path_str.find(':')
+            && (colon_pos != 1
+                || !path_str.as_bytes().first().is_some_and(|b| b.is_ascii_alphabetic()))
+        {
+            return true;
         }
         false
     }
