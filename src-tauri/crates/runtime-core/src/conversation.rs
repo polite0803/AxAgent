@@ -7,7 +7,7 @@ use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
 use crate::session::ConversationMessageExt;
-use crate::session::{SessionExt, session_load_from_path};
+use crate::session::SessionExt;
 use axagent_harness::SessionTracer;
 use axagent_harness::prompt_provider::NoopPromptProvider;
 use serde_json::{Map, Value};
@@ -1383,6 +1383,70 @@ impl ToolExecutor for StaticToolExecutor {
     }
 }
 
+// ── Harness ConversationRuntimeHost 实现 ──
+impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
+    axagent_harness::runtime_types::conversation::ConversationRuntimeHost
+    for ConversationRuntime<C, T>
+{
+    fn run_turn(
+        &mut self,
+        user_input: &str,
+        prompter: Option<&mut dyn axagent_harness::runtime_types::permissions::PermissionPrompter>,
+    ) -> Result<axagent_harness::runtime_types::conversation::TurnSummary, RuntimeError> {
+        ConversationRuntime::run_turn(self, user_input, prompter)
+    }
+
+    fn set_max_iterations(&mut self, max: usize) {
+        self.max_iterations = max;
+    }
+
+    fn set_auto_compaction_threshold(&mut self, threshold: u32) {
+        self.auto_compaction_input_tokens_threshold = threshold;
+    }
+
+    fn set_cancel_token(&mut self, token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>) {
+        self.cancel_token = token;
+    }
+
+    fn set_progress(&mut self, progress: std::sync::Arc<AgentExecutionProgress>) {
+        self.progress = Some(progress);
+    }
+
+    fn set_hook_progress_reporter(
+        &mut self,
+        reporter: Box<dyn axagent_harness::runtime_types::hooks::HookProgressReporter>,
+    ) {
+        self.hook_progress_reporter = Some(reporter);
+    }
+
+    fn into_session(self: Box<Self>) -> axagent_harness::runtime_types::session::Session {
+        self.session
+    }
+}
+
+// ── Factory ──
+
+/// 构造一个 ConversationRuntime 并返回 Box<dyn ConversationRuntimeHost>。
+/// agent crate 用此函数代替直接引用 ConversationRuntime 类型，消除依赖。
+pub fn create_conversation_runtime(
+    session: axagent_harness::runtime_types::session::Session,
+    api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
+    tool_executor: Box<
+        dyn axagent_harness::runtime_types::conversation::ToolExecutor + Send + 'static,
+    >,
+    permission_policy: crate::permissions::PermissionPolicy,
+    system_prompt: Vec<String>,
+) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
+    let rt = ConversationRuntime::new(
+        session,
+        api_client,
+        tool_executor,
+        permission_policy,
+        system_prompt,
+    );
+    Box::new(rt)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -1398,7 +1462,10 @@ mod tests {
         PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
         PermissionRequest,
     };
-    use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
+    use crate::session::{
+        ContentBlock, ConversationMessageExt, MessageRole, Session, SessionExt,
+        session_load_from_path,
+    };
     use crate::usage::TokenUsage;
     use axagent_telemetry::{MemoryTelemetrySink, TelemetryEvent};
     use std::fs;
@@ -1979,8 +2046,7 @@ mod tests {
 
     #[cfg(windows)]
     fn shell_snippet(script: &str) -> String {
-        let script = script.replace("printf '", "echo ").replace('\'', "").replace(";", "&");
-        script
+        script.replace("printf '", "echo ").replace('\'', "").replace(";", "&")
     }
 
     #[cfg(not(windows))]
@@ -2398,68 +2464,4 @@ mod tests {
         // then
         assert_eq!(error.to_string(), "upstream failed");
     }
-}
-
-// ── Harness ConversationRuntimeHost 实现 ──
-impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
-    axagent_harness::runtime_types::conversation::ConversationRuntimeHost
-    for ConversationRuntime<C, T>
-{
-    fn run_turn(
-        &mut self,
-        user_input: &str,
-        prompter: Option<&mut dyn axagent_harness::runtime_types::permissions::PermissionPrompter>,
-    ) -> Result<axagent_harness::runtime_types::conversation::TurnSummary, RuntimeError> {
-        ConversationRuntime::run_turn(self, user_input, prompter)
-    }
-
-    fn set_max_iterations(&mut self, max: usize) {
-        self.max_iterations = max;
-    }
-
-    fn set_auto_compaction_threshold(&mut self, threshold: u32) {
-        self.auto_compaction_input_tokens_threshold = threshold;
-    }
-
-    fn set_cancel_token(&mut self, token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>) {
-        self.cancel_token = token;
-    }
-
-    fn set_progress(&mut self, progress: std::sync::Arc<AgentExecutionProgress>) {
-        self.progress = Some(progress);
-    }
-
-    fn set_hook_progress_reporter(
-        &mut self,
-        reporter: Box<dyn axagent_harness::runtime_types::hooks::HookProgressReporter>,
-    ) {
-        self.hook_progress_reporter = Some(reporter);
-    }
-
-    fn into_session(self: Box<Self>) -> axagent_harness::runtime_types::session::Session {
-        self.session
-    }
-}
-
-// ── Factory ──
-
-/// 构造一个 ConversationRuntime 并返回 Box<dyn ConversationRuntimeHost>。
-/// agent crate 用此函数代替直接引用 ConversationRuntime 类型，消除依赖。
-pub fn create_conversation_runtime(
-    session: axagent_harness::runtime_types::session::Session,
-    api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
-    tool_executor: Box<
-        dyn axagent_harness::runtime_types::conversation::ToolExecutor + Send + 'static,
-    >,
-    permission_policy: crate::permissions::PermissionPolicy,
-    system_prompt: Vec<String>,
-) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
-    let rt = ConversationRuntime::new(
-        session,
-        api_client,
-        tool_executor,
-        permission_policy,
-        system_prompt,
-    );
-    Box::new(rt)
 }

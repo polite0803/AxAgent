@@ -238,9 +238,7 @@ pub fn recommended_compaction_config(session: &Session, effective_window: u64) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{
-        ContentBlock, ContentBlockExt, ConversationMessage, ConversationMessageExt, Session,
-    };
+    use crate::session::{ContentBlock, ConversationMessageExt, Session};
 
     fn make_session_with_token_estimate(approx_tokens: usize) -> Session {
         let mut session = Session::new();

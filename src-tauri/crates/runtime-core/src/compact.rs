@@ -516,7 +516,6 @@ fn truncate_summary(content: &str, max_chars: usize) -> String {
 /// Uses character-based heuristics: ~4 chars per token for text,
 /// with per-block computation for structured content.
 #[must_use]
-
 fn extract_tag_block(content: &str, tag: &str) -> Option<String> {
     let start = format!("<{tag}>");
     let end = format!("</{tag}>");
@@ -789,7 +788,9 @@ mod tests {
         CompactionConfig, collect_key_files, compact_session, format_compact_summary,
         get_compact_continuation_message, infer_pending_work, should_compact,
     };
-    use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
+    use crate::session::{
+        ContentBlock, ConversationMessage, ConversationMessageExt, MessageRole, Session,
+    };
     use axagent_harness::prompt_provider::NoopPromptProvider;
 
     const NP: &NoopPromptProvider = &NoopPromptProvider;

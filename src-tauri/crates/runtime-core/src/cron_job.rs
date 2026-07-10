@@ -345,7 +345,7 @@ impl From<axagent_harness::tool_service::CronJobData> for CronJob {
                 CronJobStatus::Paused
             },
             recurring: true,
-            run_count: data.run_count as u32,
+            run_count: data.run_count,
             last_run_at: None,
             last_result: None,
             next_run_at: None,
@@ -373,8 +373,7 @@ impl From<&CronJob> for axagent_harness::tool_service::CronJobData {
 impl axagent_harness::tool_service::CronJobStore for CronJobStore {
     async fn add(&self, job: axagent_harness::tool_service::CronJobData) -> String {
         let cron_job: CronJob = job.into();
-        let id = CronJobStore::add(self, cron_job).await;
-        id
+        CronJobStore::add(self, cron_job).await
     }
 
     async fn remove(&self, id: &str) -> bool {

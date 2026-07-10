@@ -86,9 +86,7 @@ pub fn select_top_messages(messages: &[ConversationMessage], keep_count: usize) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{
-        ContentBlock, ContentBlockExt, ConversationMessage, ConversationMessageExt, MessageRole,
-    };
+    use crate::session::{ContentBlock, ConversationMessage, ConversationMessageExt, MessageRole};
 
     #[test]
     fn user_messages_score_higher() {

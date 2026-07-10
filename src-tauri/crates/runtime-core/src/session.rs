@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::collections::BTreeMap;
-use std::fmt::{Display, Formatter};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::json::{JsonError, JsonValue};
+use crate::json::JsonValue;
 use crate::usage::TokenUsage;
-use axagent_harness::PromptGuard;
 
 const SESSION_VERSION: u32 = 1;
 const ROTATE_AFTER_BYTES: u64 = 256 * 1024;
@@ -136,9 +133,7 @@ impl SessionExt for Session {
         );
         object.insert(
             "messages".to_string(),
-            JsonValue::Array(
-                self.messages.iter().map(|msg| ConversationMessageExt::to_json(msg)).collect(),
-            ),
+            JsonValue::Array(self.messages.iter().map(ConversationMessageExt::to_json).collect()),
         );
         if let Some(compaction) = &self.compaction {
             object.insert("compaction".to_string(), session_compaction_to_json(compaction)?);
@@ -182,7 +177,7 @@ pub fn session_from_json(value: &JsonValue) -> Result<Session, SessionError> {
         .and_then(JsonValue::as_array)
         .ok_or_else(|| SessionError::Format("missing messages".to_string()))?
         .iter()
-        .map(|v| ConversationMessageExt::from_json(v))
+        .map(ConversationMessageExt::from_json)
         .collect::<Result<Vec<_>, _>>()?;
     let now = current_time_millis();
     let session_id = object
@@ -386,7 +381,7 @@ impl ConversationMessageExt for ConversationMessage {
         );
         object.insert(
             "blocks".to_string(),
-            JsonValue::Array(self.blocks.iter().map(|cb| ContentBlockExt::to_json(cb)).collect()),
+            JsonValue::Array(self.blocks.iter().map(ContentBlockExt::to_json).collect()),
         );
         if let Some(usage) = self.usage {
             object.insert("usage".to_string(), usage_to_json(usage));
@@ -416,7 +411,7 @@ impl ConversationMessageExt for ConversationMessage {
             .and_then(JsonValue::as_array)
             .ok_or_else(|| SessionError::Format("missing blocks".to_string()))?
             .iter()
-            .map(|v| <ContentBlock as ContentBlockExt>::from_json(v))
+            .map(<ContentBlock as ContentBlockExt>::from_json)
             .collect::<Result<Vec<_>, _>>()?;
         let usage = object.get("usage").map(usage_from_json).transpose()?;
         Ok(Self { role, blocks, usage })
@@ -575,17 +570,6 @@ fn i64_from_usize(value: usize, key: &str) -> Result<i64, SessionError> {
 fn workspace_root_to_string(path: &Path) -> Result<String, SessionError> {
     path.to_str().map(ToOwned::to_owned).ok_or_else(|| {
         SessionError::Format(format!("workspace_root is not valid UTF-8: {}", path.display()))
-    })
-}
-
-fn normalize_optional_string(value: Option<String>) -> Option<String> {
-    value.and_then(|value| {
-        let trimmed = value.trim();
-        if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        }
     })
 }
 
@@ -849,12 +833,17 @@ fn session_prompt_entry_from_json_opt(value: &JsonValue) -> Option<SessionPrompt
     })
 }
 
+#[cfg(test)]
 mod tests {
     use super::{
         ContentBlock, ConversationMessage, MessageRole, Session, SessionFork, cleanup_rotated_logs,
         current_time_millis, rotate_session_file_if_needed,
     };
     use crate::json::JsonValue;
+    use crate::session::{
+        ContentBlockExt, ConversationMessageExt, SessionExt, session_from_json,
+        session_load_from_path,
+    };
     use crate::usage::TokenUsage;
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -916,7 +905,7 @@ mod tests {
                 ("version".to_string(), JsonValue::Number(1)),
                 (
                     "messages".to_string(),
-                    JsonValue::Array(vec![ConversationMessageExt::user_text("legacy").to_json()]),
+                    JsonValue::Array(vec![ConversationMessage::user_text("legacy").to_json()]),
                 ),
             ]
             .into_iter()

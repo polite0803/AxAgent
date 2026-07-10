@@ -521,7 +521,7 @@ mod tests {
         list_managed_sessions_for, load_managed_session_for, resolve_session_reference_for,
         workspace_fingerprint,
     };
-    use crate::session::Session;
+    use crate::session::{Session, SessionExt};
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
