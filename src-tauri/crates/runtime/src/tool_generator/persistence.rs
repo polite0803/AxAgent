@@ -27,5 +27,5 @@ pub async fn persist_to_db(tool: &GeneratedTool) -> Result<()> {
             created_at: tool.source_info.generated_at,
         })
         .await
-        .map_err(|e| axagent_harness::core_error::AxAgentError::Internal(e))
+        .map_err(axagent_harness::core_error::AxAgentError::Internal)
 }
