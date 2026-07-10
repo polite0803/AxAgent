@@ -177,11 +177,8 @@ impl Tool for ConfigTool {
         match action {
             "get" => {
                 let repo = axagent_harness::repositories::settings_repository();
-                match repo.get_setting(key).await {
-                    Ok(Some(value)) => {
-                        return Ok(ToolResult::success(format!("⚙️ {} = {}", key, value)));
-                    },
-                    _ => {},
+                if let Ok(Some(value)) = repo.get_setting(key).await {
+                    return Ok(ToolResult::success(format!("⚙️ {} = {}", key, value)));
                 }
                 // 回退到环境变量
                 if let Ok(env_val) = std::env::var(key) {

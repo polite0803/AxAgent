@@ -115,7 +115,7 @@ pub fn parse_markdown(text: &str) -> MdDocument {
 
             Event::End(tag) => match tag {
                 TagEnd::Heading(_) => {
-                    if let Some(MdBlock::Heading { text: _, .. }) = &mut current_block {
+                    if let Some(MdBlock::Heading { .. }) = &mut current_block {
                         flush_and_store(&mut current_block, &mut doc);
                     }
                 },

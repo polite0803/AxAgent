@@ -273,17 +273,17 @@ impl ManagedToolStream {
             if let Some(close_pos) = after_open.find(&self.block_close) {
                 let block = &after_open[..close_pos + self.block_close.len()];
                 let pm = self.pm();
-                if let Ok(calls) = parse_tool_calls_block(block, &self.allowed_tool_names, &pm) {
-                    if !calls.is_empty() {
-                        self.pending.push_back(ChatStreamChunk {
-                            content: None,
-                            thinking: None,
-                            done: false,
-                            is_final: None,
-                            usage: None,
-                            tool_calls: Some(calls),
-                        });
-                    }
+                if let Ok(calls) = parse_tool_calls_block(block, &self.allowed_tool_names, &pm)
+                    && !calls.is_empty()
+                {
+                    self.pending.push_back(ChatStreamChunk {
+                        content: None,
+                        thinking: None,
+                        done: false,
+                        is_final: None,
+                        usage: None,
+                        tool_calls: Some(calls),
+                    });
                 }
                 let block_end = open_pos + close_pos + self.block_close.len();
                 self.buffer = self.buffer[block_end..].to_string();
@@ -337,24 +337,24 @@ impl Stream for ManagedToolStream {
                 Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(e))),
                 Poll::Ready(Some(Ok(mut chunk))) => {
                     let thinking_text = chunk.thinking.clone();
-                    if let Some(ref t) = thinking_text {
-                        if !t.is_empty() {
-                            this.pending.push_back(ChatStreamChunk {
-                                content: None,
-                                thinking: thinking_text,
-                                done: false,
-                                is_final: None,
-                                usage: None,
-                                tool_calls: None,
-                            });
-                        }
+                    if let Some(ref t) = thinking_text
+                        && !t.is_empty()
+                    {
+                        this.pending.push_back(ChatStreamChunk {
+                            content: None,
+                            thinking: thinking_text,
+                            done: false,
+                            is_final: None,
+                            usage: None,
+                            tool_calls: None,
+                        });
                     }
                     chunk.thinking = None;
 
-                    if let Some(content) = chunk.content.take() {
-                        if !content.is_empty() {
-                            this.buffer.push_str(&content);
-                        }
+                    if let Some(content) = chunk.content.take()
+                        && !content.is_empty()
+                    {
+                        this.buffer.push_str(&content);
                     }
 
                     this.process_buffer();
@@ -390,11 +390,11 @@ fn inject_tool_prompt(messages: &mut Vec<ChatMessage>, tools: &[ChatTool], pm: &
     let prompt = pm.render_prompt(&rendered);
 
     for msg in messages.iter_mut() {
-        if msg.role == "system" {
-            if let ChatContent::Text(ref mut text) = msg.content {
-                text.push_str(&prompt);
-                return;
-            }
+        if msg.role == "system"
+            && let ChatContent::Text(ref mut text) = msg.content
+        {
+            text.push_str(&prompt);
+            return;
         }
     }
     messages.insert(
@@ -430,7 +430,7 @@ fn render_tool_list(tools: &[ChatTool]) -> String {
         .join("\n")
 }
 
-fn translate_tool_history(messages: &mut Vec<ChatMessage>, pm: &PromptMarkers) {
+fn translate_tool_history(messages: &mut [ChatMessage], pm: &PromptMarkers) {
     for msg in messages.iter_mut() {
         if msg.role == "tool" {
             let content = crate::extract_text_content(&msg.content);
@@ -441,20 +441,19 @@ fn translate_tool_history(messages: &mut Vec<ChatMessage>, pm: &PromptMarkers) {
             msg.tool_calls = None;
             msg.tool_call_id = None;
             msg.thinking = None;
-        } else if msg.role == "assistant" {
-            if let Some(ref calls) = msg.tool_calls {
-                if !calls.is_empty() {
-                    let xml = format_tool_calls_xml(calls, pm);
-                    let text = crate::extract_text_content(&msg.content);
-                    let new_content = if text.is_empty() {
-                        xml
-                    } else {
-                        format!("{text}\n{xml}")
-                    };
-                    msg.content = ChatContent::Text(new_content);
-                    msg.tool_calls = None;
-                }
-            }
+        } else if msg.role == "assistant"
+            && let Some(ref calls) = msg.tool_calls
+            && !calls.is_empty()
+        {
+            let xml = format_tool_calls_xml(calls, pm);
+            let text = crate::extract_text_content(&msg.content);
+            let new_content = if text.is_empty() {
+                xml
+            } else {
+                format!("{text}\n{xml}")
+            };
+            msg.content = ChatContent::Text(new_content);
+            msg.tool_calls = None;
         }
     }
 }

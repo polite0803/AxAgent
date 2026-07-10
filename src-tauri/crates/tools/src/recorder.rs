@@ -20,6 +20,12 @@ impl ToolExecutionRecorder {
     }
 }
 
+impl Default for ToolExecutionRecorder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl ToolExecutionAudit for ToolExecutionRecorder {
     async fn record_start(
