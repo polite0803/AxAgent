@@ -26,7 +26,7 @@ tracing = { workspace = true }
 url = "2"
 uuid = { workspace = true }
 
-cron = "0.12"
+cron = "0.17"
 hex = { workspace = true }
 hmac = "0.12"
 jsonschema = "0.46"
