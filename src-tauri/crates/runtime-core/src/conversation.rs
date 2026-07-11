@@ -2226,9 +2226,17 @@ mod tests {
             }]))
             .unwrap();
 
-        // JSON 序列化用于持久化，格式变更需审慎
-        let serialized = serde_json::to_string_pretty(&session).expect("serialize session");
-        insta::assert_snapshot!("session_serialization", serialized);
+        // JSON 序列化用于持久化，格式变更需审慎。
+        // session_id / 时间戳每次运行不同，剥离后再做快照比较。
+        let serialized = serde_json::to_value(&session).expect("serialize session");
+        let mut value = serialized;
+        if let Some(obj) = value.as_object_mut() {
+            obj.remove("session_id");
+            obj.remove("created_at_ms");
+            obj.remove("updated_at_ms");
+        }
+        let stable = serde_json::to_string_pretty(&value).expect("re-serialize session");
+        insta::assert_snapshot!("session_serialization", stable);
     }
 
     /// 快照测试：验证 TurnSummary 输出的稳定性。

@@ -1,58 +1,55 @@
 ---
 source: crates/runtime-core/src/conversation.rs
-expression: serialized
+expression: stable
 ---
 {
-  "version": 1,
-  "session_id": "session-1783758250912-30",
-  "created_at_ms": 1783758250911,
-  "updated_at_ms": 1783758250916,
+  "compaction": null,
+  "fork": null,
+  "last_health_check_ms": null,
   "messages": [
     {
-      "role": "user",
       "blocks": [
         {
           "Text": {
             "text": "Hello, assistant!"
           }
         }
-      ]
+      ],
+      "role": "user"
     },
     {
-      "role": "assistant",
       "blocks": [
         {
           "Text": {
             "text": "Hi there! How can I help you?"
           }
         }
-      ]
+      ],
+      "role": "assistant"
     },
     {
-      "role": "user",
       "blocks": [
         {
           "Text": {
             "text": "What is 2+2?"
           }
         }
-      ]
+      ],
+      "role": "user"
     },
     {
-      "role": "assistant",
       "blocks": [
         {
           "Text": {
             "text": "2+2 = 4"
           }
         }
-      ]
+      ],
+      "role": "assistant"
     }
   ],
-  "compaction": null,
-  "fork": null,
-  "workspace_root": null,
+  "model": null,
   "prompt_history": [],
-  "last_health_check_ms": null,
-  "model": null
+  "version": 1,
+  "workspace_root": null
 }
