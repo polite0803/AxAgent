@@ -20,8 +20,10 @@ use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use axagent_harness::registry::ProviderRegistry;
-use axagent_harness::repositories::{set_workflow_execution_repository, WorkflowExecutionRepository};
 use axagent_harness::repo_dtos::WorkflowExecutionData;
+use axagent_harness::repositories::{
+    WorkflowExecutionRepository, set_workflow_execution_repository,
+};
 use axagent_harness::workflow_types::{
     EdgeType, Position, RetryConfig, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode,
     TriggerType, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
@@ -39,15 +41,29 @@ struct MockWorkflowExecRepo;
 #[async_trait]
 impl WorkflowExecutionRepository for MockWorkflowExecRepo {
     async fn create_workflow_execution(
-        &self, _id: &str, _workflow_id: &str, _input_params: Option<&str>,
-    ) -> Result<(), String> { Ok(()) }
+        &self,
+        _id: &str,
+        _workflow_id: &str,
+        _input_params: Option<&str>,
+    ) -> Result<(), String> {
+        Ok(())
+    }
     async fn update_workflow_execution_status(
-        &self, _id: &str, _status: &str, _output_result: Option<&str>,
-        _node_executions: Option<&str>, _total_time_ms: Option<i32>,
-    ) -> Result<bool, String> { Ok(true) }
+        &self,
+        _id: &str,
+        _status: &str,
+        _output_result: Option<&str>,
+        _node_executions: Option<&str>,
+        _total_time_ms: Option<i32>,
+    ) -> Result<bool, String> {
+        Ok(true)
+    }
     async fn list_workflow_executions(
-        &self, _workflow_id: &str,
-    ) -> Result<Vec<WorkflowExecutionData>, String> { Ok(vec![]) }
+        &self,
+        _workflow_id: &str,
+    ) -> Result<Vec<WorkflowExecutionData>, String> {
+        Ok(vec![])
+    }
 }
 
 static MOCK_WF_EXEC_REPO: OnceLock<()> = OnceLock::new();
