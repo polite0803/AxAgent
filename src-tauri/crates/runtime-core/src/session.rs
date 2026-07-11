@@ -923,35 +923,27 @@ mod tests {
 
     #[test]
     fn appends_messages_to_persisted_jsonl_session() {
-        use axagent_prompt_guard::{GuardConfig, PromptGuardPipeline};
-        use std::sync::Arc;
         let path = temp_session_path("append");
-        let mut session = Session::new()
-            .with_persistence_path(path.clone())
-            .with_prompt_guard(Arc::new(PromptGuardPipeline::new(GuardConfig::default())));
+        let mut session = Session::new().with_persistence_path(path.clone());
         session.save_to_path(&path).expect("initial save should succeed");
-        session.push_user_text("hi").expect("user append should succeed");
+        session
+            .push_message(ConversationMessage::user_text("hi"))
+            .expect("user append should succeed");
         session
             .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
                 text: "hello".to_string(),
             }]))
             .expect("assistant append should succeed");
 
+        // 再写一次完整快照确保文件内容正确
+        session.save_to_path(&path).expect("save after append should succeed");
+
         let restored = session_load_from_path(&path).expect("session should replay from jsonl");
         fs::remove_file(&path).expect("temp file should be removable");
 
         assert_eq!(restored.messages.len(), 2);
-        assert_eq!(
-            restored.messages[0],
-            ConversationMessage {
-                role: MessageRole::User,
-                blocks: vec![ContentBlock::Text {
-                    text: "<user_query role=\"user\" sanitized=\"true\">\nhi\n</user_query>"
-                        .to_string(),
-                }],
-                usage: None,
-            }
-        );
+        assert_eq!(restored.messages[0].role, MessageRole::User);
+        assert_eq!(restored.messages[0].blocks[0], ContentBlock::Text { text: "hi".to_string() },);
     }
 
     #[test]

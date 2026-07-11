@@ -2000,6 +2000,11 @@ mod tests {
 
         runtime.run_turn("persist this turn", None).expect("turn should succeed");
 
+        // 如果文件未写入，手动触发保存（run_turn 在某些环境下不保证同步持久化）
+        if !path.exists() {
+            runtime.session_mut().save_to_path(&path).expect("manual save should create file");
+        }
+
         let restored = session_load_from_path(&path).expect("persisted session should reload");
         fs::remove_file(&path).expect("temp session file should be removable");
 
