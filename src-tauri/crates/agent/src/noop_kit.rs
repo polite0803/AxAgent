@@ -5,7 +5,8 @@
 
 use axagent_harness::kit_bridge::{
     KitHtmlCleaner, KitMarkdownParser, KitSkillDirs, KitSlashCommandProcessor,
-    KitTokenBudgetDecision, KitTokenBudgetTracker, MdParsedNote, SlashCommandAction,
+    KitTokenBudgetDecision, KitTokenBudgetTracker, MdParsedFrontmatter, MdParsedNote,
+    SlashCommandAction,
 };
 
 // ── NoopTokenBudgetTracker ────────────────────────────────────
@@ -61,12 +62,54 @@ pub struct NoopMarkdownParser;
 
 impl KitMarkdownParser for NoopMarkdownParser {
     fn parse(&self, content: &str) -> MdParsedNote {
+        // 降级模式仍解析 YAML frontmatter 的基础字段（title/author/tags），
+        // 使 lint_checker 等消费者在缺少真实 kit 解析器时，行为与生产解析器一致。
+        let mut frontmatter = MdParsedFrontmatter::default();
+
+        if let Some(body) = extract_frontmatter_block(content) {
+            for line in body.lines() {
+                let line = line.trim();
+                if let Some(rest) = line.strip_prefix("title:") {
+                    frontmatter.title = Some(rest.trim().to_string());
+                } else if let Some(rest) = line.strip_prefix("author:") {
+                    frontmatter.author = Some(rest.trim().to_string());
+                } else if let Some(rest) = line.strip_prefix("tags:") {
+                    frontmatter.tags = parse_yaml_tags(rest.trim());
+                }
+            }
+        }
+
         MdParsedNote {
-            frontmatter: Default::default(),
+            frontmatter,
             content: content.to_string(),
             links: Vec::new(),
             raw_links: Vec::new(),
         }
+    }
+}
+
+/// 提取 `---` 包裹的 frontmatter 主体（不含定界符）。
+fn extract_frontmatter_block(content: &str) -> Option<String> {
+    let stripped = content.strip_prefix("---\n").or_else(|| content.strip_prefix("---\r\n"))?;
+    let end = stripped.find("\n---").or_else(|| stripped.find("\r\n---"))?;
+    Some(stripped[..end].to_string())
+}
+
+/// 解析 YAML `tags` 值：支持内联数组 `[a, b]` 与单个值。
+fn parse_yaml_tags(value: &str) -> Vec<String> {
+    let value = value.trim();
+    if value.is_empty() {
+        return Vec::new();
+    }
+    if value.starts_with('[') && value.ends_with(']') {
+        let inner = &value[1..value.len() - 1];
+        inner
+            .split(',')
+            .map(|s| s.trim().trim_matches('"').trim_matches('\'').to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
+    } else {
+        vec![value.to_string()]
     }
 }
 
