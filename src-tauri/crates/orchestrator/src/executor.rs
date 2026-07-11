@@ -368,6 +368,8 @@ impl OrchestratorExecutor {
             DecompositionPlan::new(format!("[REPLAN] {}", old_plan.mission), old_plan.strategy);
         new_plan.max_parallel = old_plan.max_parallel;
         new_plan.max_replans = old_plan.max_replans;
+        // 保留复计划数，否则每次 replan 会新建 replan_count=0 的 plan 覆盖
+        new_plan.replan_count = old_plan.replan_count;
 
         // Collect failed and not-yet-completed tasks for replanning
         for st in &old_plan.sub_tasks {

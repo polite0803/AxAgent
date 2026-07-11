@@ -2837,7 +2837,17 @@ export async function handleCommand<T>(
         is_editable: true,
         is_public: false,
         trigger_config: { type: "manual", config: {} },
-        nodes: input.nodes || [],
+        nodes: input.nodes?.length
+          ? input.nodes
+          : [
+            {
+              id: genId(),
+              type: "trigger",
+              label: "触发器",
+              config: { trigger_type: "manual" },
+              position: { x: 100, y: 100 },
+            },
+          ],
         edges: input.edges || [],
         created_at: now,
         updated_at: now,
