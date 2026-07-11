@@ -231,7 +231,8 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
         while i < all_messages.len() {
             if all_messages[i].role == "user" {
                 let prompt_tokens = all_messages[i].prompt_tokens.unwrap_or(0) as f64;
-                let completion = all_messages.get(i + 1).and_then(|m| m.completion_tokens).unwrap_or(0) as f64;
+                let completion =
+                    all_messages.get(i + 1).and_then(|m| m.completion_tokens).unwrap_or(0) as f64;
                 cost += prompt_tokens * input_per_token + completion * output_per_token;
                 i += 2;
             } else {
@@ -290,7 +291,8 @@ pub async fn get_cost_by_provider(
         .map(|r| {
             let request_tokens: u64 = r.try_get("", "request_tokens").unwrap_or(0);
             let response_tokens: u64 = r.try_get("", "response_tokens").unwrap_or(0);
-            let cost = request_tokens as f64 * input_per_token + response_tokens as f64 * output_per_token;
+            let cost =
+                request_tokens as f64 * input_per_token + response_tokens as f64 * output_per_token;
             axagent_harness::types::CostByProvider {
                 provider_id: r.try_get("", "provider_id").unwrap_or_default(),
                 request_count: r.try_get("", "request_count").unwrap_or(0),
@@ -310,7 +312,5 @@ pub async fn get_usage_trend(
 ) -> Result<Vec<axagent_harness::types::DailyUsage>, String> {
     let db = state.harness.db();
     let days = days.unwrap_or(30);
-    axagent_dao::repo::message::get_daily_message_usage(db, days)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::message::get_daily_message_usage(db, days).await.map_err(|e| e.to_string())
 }

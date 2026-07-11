@@ -147,8 +147,7 @@ pub fn build_learning_graph(
     }
 
     // 4. Compute edges between memory ↔ skill (lexical overlap)
-    let skill_nodes: Vec<&GraphNode> =
-        nodes.iter().filter(|n| n.kind == NodeKind::Skill).collect();
+    let skill_nodes: Vec<&GraphNode> = nodes.iter().filter(|n| n.kind == NodeKind::Skill).collect();
     let memory_nodes: Vec<&GraphNode> =
         nodes.iter().filter(|n| n.kind == NodeKind::Memory).collect();
 
@@ -172,19 +171,15 @@ pub fn build_learning_graph(
         }
     }
 
-    let linked: HashSet<String> = edges
-        .iter()
-        .flat_map(|e| [e.source.clone(), e.target.clone()])
-        .collect();
+    let linked: HashSet<String> =
+        edges.iter().flat_map(|e| [e.source.clone(), e.target.clone()]).collect();
 
     let mut cat_map: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     for n in &nodes {
         *cat_map.entry(n.category.clone()).or_insert(0) += 1;
     }
-    let categories: Vec<CategoryCount> = cat_map
-        .into_iter()
-        .map(|(category, count)| CategoryCount { category, count })
-        .collect();
+    let categories: Vec<CategoryCount> =
+        cat_map.into_iter().map(|(category, count)| CategoryCount { category, count }).collect();
 
     let total_skills = nodes.iter().filter(|n| n.kind == NodeKind::Skill).count();
     let total_memories = nodes.iter().filter(|n| n.kind == NodeKind::Memory).count();

@@ -29,14 +29,7 @@ pub async fn get_learning_graph(
             .await
             .map_err(|e| format!("Failed to load skills: {}", e))?;
         rows.into_iter()
-            .map(|r| {
-                axagent_trajectory::Skill::new(
-                    r.name,
-                    r.description,
-                    r.content,
-                    r.category,
-                )
-            })
+            .map(|r| axagent_trajectory::Skill::new(r.name, r.description, r.content, r.category))
             .collect()
     };
 

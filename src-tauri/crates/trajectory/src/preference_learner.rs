@@ -55,12 +55,8 @@ impl PreferenceLearner {
         };
         let cutoff_ms = cutoff.timestamp_millis();
 
-        let mut filtered: Vec<ProfileUpdate> = self
-            .preference_history
-            .iter()
-            .filter(|u| u.timestamp >= cutoff_ms)
-            .cloned()
-            .collect();
+        let mut filtered: Vec<ProfileUpdate> =
+            self.preference_history.iter().filter(|u| u.timestamp >= cutoff_ms).cloned().collect();
         filtered.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         filtered.truncate(limit);
         filtered

@@ -41,7 +41,14 @@ fn extract_hour_minute(text: &str) -> Option<(u32, u32)> {
     for i in 0..len {
         if chars[i] == '点' {
             // 提取点前面的数字
-            let hour_str: String = chars[..i].iter().rev().take_while(|c| c.is_ascii_digit()).collect::<String>().chars().rev().collect();
+            let hour_str: String = chars[..i]
+                .iter()
+                .rev()
+                .take_while(|c| c.is_ascii_digit())
+                .collect::<String>()
+                .chars()
+                .rev()
+                .collect();
             let hour: u32 = hour_str.parse().ok()?;
 
             // 检查后面是否有 "半" 或 "分"
@@ -51,8 +58,16 @@ fn extract_hour_minute(text: &str) -> Option<(u32, u32)> {
             }
 
             // 提取分钟数字
-            let min_str: String = after.iter().skip_while(|c| !c.is_ascii_digit()).take_while(|c| c.is_ascii_digit()).collect();
-            let min: u32 = if min_str.is_empty() { 0 } else { min_str.parse().ok()? };
+            let min_str: String = after
+                .iter()
+                .skip_while(|c| !c.is_ascii_digit())
+                .take_while(|c| c.is_ascii_digit())
+                .collect();
+            let min: u32 = if min_str.is_empty() {
+                0
+            } else {
+                min_str.parse().ok()?
+            };
             return Some((hour, min));
         }
     }
@@ -104,14 +119,23 @@ fn weekly_cron(text: &str) -> Result<String, String> {
         "1-5"
     } else if text.contains("周末") {
         "6,0"
-    } else if text.contains("周一") { "1" }
-    else if text.contains("周二") { "2" }
-    else if text.contains("周三") { "3" }
-    else if text.contains("周四") { "4" }
-    else if text.contains("周五") { "5" }
-    else if text.contains("周六") { "6" }
-    else if text.contains("周日") || text.contains("星期天") || text.contains("星期日") { "0" }
-    else { "*" };
+    } else if text.contains("周一") {
+        "1"
+    } else if text.contains("周二") {
+        "2"
+    } else if text.contains("周三") {
+        "3"
+    } else if text.contains("周四") {
+        "4"
+    } else if text.contains("周五") {
+        "5"
+    } else if text.contains("周六") {
+        "6"
+    } else if text.contains("周日") || text.contains("星期天") || text.contains("星期日") {
+        "0"
+    } else {
+        "*"
+    };
 
     if let Some((hour, min)) = extract_hour_minute(text) {
         let hour = adjust_hour(text, hour);
@@ -136,7 +160,11 @@ fn monthly_cron(text: &str) -> Result<String, String> {
             days.push(num_str);
         }
     }
-    let days_str = if days.is_empty() { "1".to_string() } else { days.join(",") };
+    let days_str = if days.is_empty() {
+        "1".to_string()
+    } else {
+        days.join(",")
+    };
 
     if let Some((hour, min)) = extract_hour_minute(text) {
         let hour = adjust_hour(text, hour);

@@ -527,10 +527,8 @@ where
 
             // 注入 nudge 上下文（从 NudgeService 提取的记忆提醒，在每次 LLM 调用前注入）
             if !self.nudge_lines.is_empty() {
-                let nudge_block = format!(
-                    "<memory_context>\n{}\n</memory_context>",
-                    self.nudge_lines.join("\n")
-                );
+                let nudge_block =
+                    format!("<memory_context>\n{}\n</memory_context>", self.nudge_lines.join("\n"));
                 system_prompt.push(nudge_block);
             }
 

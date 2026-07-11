@@ -1756,7 +1756,8 @@ pub async fn agent_query(
                             ..
                         } = block
                         {
-                            if !is_error && tool_name == "MemoryFlush" && !result_content.is_empty() {
+                            if !is_error && tool_name == "MemoryFlush" && !result_content.is_empty()
+                            {
                                 let mem = app_state.memory_service.write().await;
                                 let _ = mem.add_memory("agent", result_content).await;
                                 tracing::debug!(

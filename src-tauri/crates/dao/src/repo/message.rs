@@ -7,7 +7,9 @@ use std::collections::HashSet;
 use axagent_entities::messages;
 use axagent_harness::constants;
 use axagent_harness::core_error::{AxAgentError, Result};
-use axagent_harness::types::{Attachment, ConversationStats, DailyUsage, Message, MessagePage, MessageRole};
+use axagent_harness::types::{
+    Attachment, ConversationStats, DailyUsage, Message, MessagePage, MessageRole,
+};
 use axagent_harness::util_fns::{gen_id, now_ts};
 
 fn parse_role(s: &str) -> MessageRole {
