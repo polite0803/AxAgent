@@ -57,17 +57,16 @@ impl KitHtmlCleaner for NoopHtmlCleaner {
             let tag = &html[a_start..a_start + tag_len];
             if let Some(href_pos) = tag.find("href=") {
                 let after = &tag[href_pos + 5..];
-                let quote = after.chars().next();
-                if let Some(q) = quote {
+                if let Some(q) = after.chars().next() {
                     let q = q.to_string();
-                    if q == "\"" || q == "'" {
-                        if let Some(end) = after[1..].find(&q) {
-                            let href = &after[1..1 + end];
-                            if (href.starts_with("http://") || href.starts_with("https://"))
-                                && !links.contains(&href.to_string())
-                            {
-                                links.push(href.to_string());
-                            }
+                    if (q == "\"" || q == "'")
+                        && let Some(end) = after[1..].find(q.as_str())
+                    {
+                        let href = &after[1..1 + end];
+                        if (href.starts_with("http://") || href.starts_with("https://"))
+                            && !links.iter().any(|l| l == href)
+                        {
+                            links.push(href.to_string());
                         }
                     }
                 }
@@ -81,7 +80,8 @@ impl KitHtmlCleaner for NoopHtmlCleaner {
     fn detect_language(&self, text: &str) -> &'static str {
         // 镜像 kit::HtmlCleaner::detect_language 的基础启发式，
         // 使降级实现与真实实现在语言检测上行为一致（CJK 占比 >30% 判为中文）。
-        let sample: String = text.chars().take(500).collect();
+        let end = text.char_indices().nth(500).map(|(i, _)| i).unwrap_or(text.len());
+        let sample = &text[..end];
         let cjk_count = sample
             .chars()
             .filter(|c| {
