@@ -35,8 +35,24 @@ impl KitHtmlCleaner for NoopHtmlCleaner {
     fn extract_readability(&self, _html: &str) -> (String, String, Vec<String>) {
         Default::default()
     }
-    fn detect_language(&self, _text: &str) -> &'static str {
-        "unknown"
+    fn detect_language(&self, text: &str) -> &'static str {
+        // 镜像 kit::HtmlCleaner::detect_language 的基础启发式，
+        // 使降级实现与真实实现在语言检测上行为一致（CJK 占比 >30% 判为中文）。
+        let sample: String = text.chars().take(500).collect();
+        let cjk_count = sample
+            .chars()
+            .filter(|c| {
+                ('\u{4E00}'..='\u{9FFF}').contains(c)
+                    || ('\u{3040}'..='\u{309F}').contains(c)
+                    || ('\u{AC00}'..='\u{D7AF}').contains(c)
+            })
+            .count();
+        let total = sample.chars().count().max(1);
+        if cjk_count as f32 / total as f32 > 0.3 {
+            "zh"
+        } else {
+            "en"
+        }
     }
 }
 
