@@ -149,10 +149,6 @@ struct GeminiUsageMetadata {
     /// Gemini 上下文缓存命中 token 数 (cachedContentTokenCount).
     #[serde(default)]
     cached_content_token_count: Option<u32>,
-    /// 推理模型思考 token 数 (thoughtsTokenCount). P2 计费用.
-    #[allow(dead_code)]
-    #[serde(default)]
-    thoughts_token_count: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -810,7 +806,8 @@ impl ProviderAdapter for GeminiAdapter {
             .map(|m| {
                 let model_id = m.name.strip_prefix("models/").unwrap_or(&m.name).to_string();
                 let name = m.display_name.unwrap_or_else(|| model_id.clone());
-                let model_type = ModelType::detect(&model_id);
+                let model_type =
+                    axagent_harness::types::provider_model::detect_model_type(&model_id);
                 let mut caps = match model_type {
                     ModelType::Chat => vec![ModelCapability::TextChat],
                     ModelType::Embedding => vec![],

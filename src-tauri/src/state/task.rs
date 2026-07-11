@@ -3,9 +3,10 @@
 //! Owns the background-task bookkeeping: the central task manager, the
 //! individual `JoinHandle` slots for the named long-running tasks
 //! (auto-backup, webdav sync, API server, trajectory cleanup), the global
-//! shutdown token, and the per-stream cancel/coordination maps used by
-//! streaming endpoints.
+//! shutdown token, the per-stream cancel/coordination maps used by
+//! streaming endpoints, and the frontend steer-input queue.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
@@ -31,6 +32,8 @@ pub struct TaskState {
         Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
     pub agent_prompters:
         Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
+    /// M1: 前端 SteerInput 指令队列，按 conversationId 分组
+    pub steer_queue: Arc<tokio::sync::Mutex<HashMap<String, Vec<String>>>>,
 }
 
 #[allow(dead_code)]
@@ -57,6 +60,7 @@ impl TaskState {
         agent_prompters: Arc<
             Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>,
         >,
+        steer_queue: Arc<tokio::sync::Mutex<HashMap<String, Vec<String>>>>,
     ) -> Self {
         Self {
             task_manager,
@@ -71,6 +75,7 @@ impl TaskState {
             agent_ask_senders,
             agent_always_allowed,
             agent_prompters,
+            steer_queue,
         }
     }
 }

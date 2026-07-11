@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 1080" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#0F1B33"/>
+      <stop offset="100%" stop-color="#060912"/>
+    </radialGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#00D4FF" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#00D4FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00D4FF"/>
+      <stop offset="100%" stop-color="#4A80E0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#182850" stroke-width="0.5" stroke-opacity="0.4"/>
+    </pattern>
+  </defs>
+
+  <!-- Background layers -->
+  <rect x="0" y="0" width="680" height="1080" fill="url(#bgGlow)"/>
+  <rect x="0" y="0" width="680" height="1080" fill="url(#centerGlow)"/>
+  <rect x="0" y="0" width="680" height="1080" fill="url(#grid)"/>
+
+  <!-- Top & bottom accent lines -->
+  <rect x="0" y="0" width="680" height="3" fill="url(#accentGrad)"/>
+  <rect x="0" y="1077" width="680" height="3" fill="url(#accentGrad)"/>
+
+  <!-- Neural network: connecting lines -->
+  <g stroke="#1A3A6B" stroke-width="0.8" stroke-opacity="0.6">
+    <line x1="200" y1="240" x2="340" y2="160"/>
+    <line x1="340" y1="160" x2="480" y2="240"/>
+    <line x1="200" y1="240" x2="340" y2="300"/>
+    <line x1="480" y1="240" x2="340" y2="300"/>
+    <line x1="200" y1="240" x2="120" y2="340"/>
+    <line x1="480" y1="240" x2="560" y2="340"/>
+    <line x1="340" y1="300" x2="240" y2="400"/>
+    <line x1="340" y1="300" x2="440" y2="400"/>
+    <line x1="240" y1="400" x2="340" y2="460"/>
+    <line x1="440" y1="400" x2="340" y2="460"/>
+    <line x1="120" y1="340" x2="70" y2="450"/>
+    <line x1="560" y1="340" x2="610" y2="450"/>
+    <line x1="340" y1="460" x2="340" y2="530"/>
+    <line x1="340" y1="460" x2="200" y2="530"/>
+    <line x1="340" y1="460" x2="480" y2="530"/>
+    <line x1="200" y1="530" x2="340" y2="580"/>
+    <line x1="480" y1="530" x2="340" y2="580"/>
+  </g>
+
+  <!-- Neural network: glowing nodes -->
+  <g filter="url(#glow)">
+    <!-- Center hub -->
+    <circle cx="340" cy="160" r="8" fill="#00D4FF" opacity="0.9"/>
+    <circle cx="340" cy="160" r="14" fill="none" stroke="#00D4FF" stroke-width="1" opacity="0.3"/>
+    <circle cx="340" cy="160" r="22" fill="none" stroke="#00D4FF" stroke-width="0.5" opacity="0.15"/>
+    <!-- Ring 1 -->
+    <circle cx="200" cy="240" r="6" fill="#4A80E0" opacity="0.8"/>
+    <circle cx="200" cy="240" r="11" fill="none" stroke="#4A80E0" stroke-width="0.8" opacity="0.25"/>
+    <circle cx="480" cy="240" r="6" fill="#4A80E0" opacity="0.8"/>
+    <circle cx="480" cy="240" r="11" fill="none" stroke="#4A80E0" stroke-width="0.8" opacity="0.25"/>
+    <circle cx="340" cy="300" r="7" fill="#00D4FF" opacity="0.7"/>
+    <circle cx="340" cy="300" r="12" fill="none" stroke="#00D4FF" stroke-width="0.8" opacity="0.2"/>
+    <!-- Ring 2 -->
+    <circle cx="120" cy="340" r="4" fill="#4A80E0" opacity="0.6"/>
+    <circle cx="560" cy="340" r="4" fill="#4A80E0" opacity="0.6"/>
+    <circle cx="240" cy="400" r="5" fill="#00D4FF" opacity="0.6"/>
+    <circle cx="240" cy="400" r="9" fill="none" stroke="#00D4FF" stroke-width="0.5" opacity="0.15"/>
+    <circle cx="440" cy="400" r="5" fill="#00D4FF" opacity="0.6"/>
+    <circle cx="440" cy="400" r="9" fill="none" stroke="#00D4FF" stroke-width="0.5" opacity="0.15"/>
+    <!-- Ring 3 -->
+    <circle cx="340" cy="460" r="6" fill="#00D4FF" opacity="0.7"/>
+    <circle cx="340" cy="460" r="11" fill="none" stroke="#00D4FF" stroke-width="0.8" opacity="0.2"/>
+    <circle cx="70" cy="450" r="3" fill="#4A80E0" opacity="0.5"/>
+    <circle cx="610" cy="450" r="3" fill="#4A80E0" opacity="0.5"/>
+    <!-- Ring 4 -->
+    <circle cx="340" cy="530" r="5" fill="#4A80E0" opacity="0.6"/>
+    <circle cx="200" cy="530" r="4" fill="#00D4FF" opacity="0.5"/>
+    <circle cx="480" cy="530" r="4" fill="#00D4FF" opacity="0.5"/>
+    <circle cx="340" cy="580" r="5" fill="#4A80E0" opacity="0.5"/>
+  </g>
+
+  <!-- Decorative hex outlines -->
+  <g fill="none" stroke="#00D4FF" stroke-opacity="0.08" stroke-width="1">
+    <polygon points="340,60 400,95 400,165 340,200 280,165 280,95" transform="scale(1.2) translate(-60, -20)"/>
+    <polygon points="340,60 400,95 400,165 340,200 280,165 280,95" transform="scale(0.8) translate(85, 300)"/>
+    <polygon points="340,60 400,95 400,165 340,200 280,165 280,95" transform="scale(0.6) translate(-20, 500)"/>
+  </g>
+
+  <!-- Title -->
+  <text x="340" y="660" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="84" font-weight="700" fill="#FFFFFF" letter-spacing="4">AxAgent</text>
+
+  <!-- Subtitle -->
+  <text x="340" y="710" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="30" font-weight="400" fill="#8AA4D0" letter-spacing="6">AI · 原 · 生 · 操 · 作 · 系 · 统</text>
+
+  <!-- Divider -->
+  <line x1="240" y1="740" x2="440" y2="740" stroke="url(#accentGrad)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Feature tags grid -->
+  <g transform="translate(340, 785)">
+    <!-- Row 1 -->
+    <rect x="-155" y="-16" width="145" height="34" rx="17" fill="#0D1B30" stroke="#1A3A6B" stroke-width="1"/>
+    <text x="-82" y="5" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#7EB8F0">智能体推理</text>
+    <rect x="10" y="-16" width="145" height="34" rx="17" fill="#0D1B30" stroke="#1A3A6B" stroke-width="1"/>
+    <text x="82" y="5" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#7EB8F0">多 Agent 协作</text>
+    <!-- Row 2 -->
+    <rect x="-155" y="32" width="145" height="34" rx="17" fill="#0D1B30" stroke="#1A3A6B" stroke-width="1"/>
+    <text x="-82" y="53" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#7EB8F0">自学习系统</text>
+    <rect x="10" y="32" width="145" height="34" rx="17" fill="#0D1B30" stroke="#1A3A6B" stroke-width="1"/>
+    <text x="82" y="53" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#7EB8F0">知识 RAG</text>
+    <!-- Row 3 -->
+    <rect x="-155" y="80" width="145" height="34" rx="17" fill="#0D1B30" stroke="#1A3A6B" stroke-width="1"/>
+    <text x="-82" y="101" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#7EB8F0">安全防护</text>
+    <rect x="10" y="80" width="145" height="34" rx="17" fill="#0D1B30" stroke="#1A3A6B" stroke-width="1"/>
+    <text x="82" y="101" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#7EB8F0">工具生态</text>
+  </g>
+
+  <!-- Stats row -->
+  <g transform="translate(340, 930)">
+    <text text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#667BA0">
+      <tspan fill="#00D4FF" font-weight="600">56.3万</tspan> 行代码 ·
+      <tspan fill="#00D4FF" font-weight="600">20</tspan> Rust Crates ·
+      <tspan fill="#00D4FF" font-weight="600">10</tspan> 大功能域 ·
+      <tspan fill="#00D4FF" font-weight="600">5</tspan> 平台原生覆盖
+    </text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="340" y="985" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="400" fill="#3A5A8A" letter-spacing="3">一人公司的超级引擎</text>
+
+  <!-- Bottom accent -->
+  <rect x="260" y="1010" width="160" height="1" fill="#182850" opacity="0.6"/>
+</svg>

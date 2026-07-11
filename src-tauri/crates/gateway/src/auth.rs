@@ -111,17 +111,73 @@ pub fn extract_client_ip<B>(
 ///   计数足以防御爆破；sliding window 实现复杂度没价值。
 /// - 成功验证后**清空**该 IP 的 entry —— 正常用户不该被冷启动流量
 ///   影响。
-/// - 内存以 (count, first_ts) tuple + IP 字符串计，上限约 100KB
-///   （10k IPs × 32 bytes），对正常 API gateway 体量可控。
+///
+/// 🔒 M4 加固（防内存耗尽）:
+/// - `max_entries`: HashMap 最大容量（默认 10,000），超出时淘汰最旧条目。
+/// - `entry_ttl`: 条目过期时间（默认 15 分钟），超时未访问的条目自动清理。
+/// - 后台清理任务：每 5 分钟扫描一次，清除超过 TTL 的过期条目。
+/// - 限制单线程内存上限约 320 KB（10k × 32 bytes）。
 pub struct KeyVerifyLimiter {
     failures: Mutex<HashMap<String, (u32, Instant)>>,
     max_failures: u32,
     cooldown: Duration,
+    max_entries: usize,
+    entry_ttl: Duration,
 }
 
 impl KeyVerifyLimiter {
     pub fn new(max_failures: u32, cooldown: Duration) -> Self {
-        Self { failures: Mutex::new(HashMap::new()), max_failures, cooldown }
+        Self {
+            failures: Mutex::new(HashMap::new()),
+            max_failures,
+            cooldown,
+            max_entries: 10_000,
+            entry_ttl: Duration::from_secs(15 * 60),
+        }
+    }
+
+    /// 设置最大条目数，超出时淘汰最旧条目。
+    pub fn with_max_entries(mut self, max: usize) -> Self {
+        self.max_entries = max;
+        self
+    }
+
+    /// 设置条目 TTL（超时未访问则被后台清理）。
+    pub fn with_entry_ttl(mut self, ttl: Duration) -> Self {
+        self.entry_ttl = ttl;
+        self
+    }
+
+    /// 启动后台清理任务。每 `interval` 扫描一次 HashMap，移除超过 `entry_ttl`
+    /// 未被访问的条目。返回 JoinHandle，调用方可 `.abort()` 停止。
+    pub fn spawn_cleanup(self: &Arc<Self>, interval: Duration) -> tokio::task::JoinHandle<()> {
+        let limiter = Arc::clone(self);
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(interval).await;
+                limiter.purge_expired();
+            }
+        })
+    }
+
+    /// 移除所有超过 entry_ttl 未被访问的条目（最近访问时间以 first_attempt_at 为近似）。
+    fn purge_expired(&self) {
+        let mut map = self.failures.lock();
+        let cutoff = Instant::now() - self.entry_ttl;
+        map.retain(|_, (_, first_at)| *first_at > cutoff);
+    }
+
+    /// 淘汰最旧的条目以满足容量限制。
+    fn evict_if_needed(&self, map: &mut HashMap<String, (u32, Instant)>) {
+        while map.len() > self.max_entries {
+            // 找到 first_attempt_at 最早的条目
+            let oldest = map.iter().min_by_key(|(_, (_, ts))| *ts).map(|(k, _)| k.clone());
+            if let Some(key) = oldest {
+                map.remove(&key);
+            } else {
+                break;
+            }
+        }
     }
 
     /// 检查 IP 是否仍在冷却期内（被 ban）。返回 `true` 表示允许请求。
@@ -142,6 +198,13 @@ impl KeyVerifyLimiter {
 
     /// 记录一次失败。冷却期内被 ban 时，刷新 first_ts（防重置攻击）。
     pub fn record_failure(&self, ip: &str) {
+        // 先检查容量，必要时淘汰（在外层释放锁，闭包内不持有 map）
+        {
+            let mut map = self.failures.lock();
+            if map.len() >= self.max_failures as usize {
+                self.evict_if_needed(&mut map);
+            }
+        }
         let mut map = self.failures.lock();
         let now = Instant::now();
         let entry = map.entry(ip.to_string()).or_insert((0, now));

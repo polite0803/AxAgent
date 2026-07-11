@@ -29,7 +29,7 @@ export const CodeEditorView: React.FC<DynamicUIProps> = ({ schema }) => {
             value={value}
             readOnly={readOnly}
             rows={15}
-            style={{ fontFamily: "monospace" }}
+            style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
           />
         }
       >
@@ -62,7 +62,7 @@ const LazyMonacoEditor = lazy(
           value={value}
           readOnly={readOnly}
           rows={Math.max(5, Math.min(30, parseInt(height) / 20 || 15))}
-          style={{ fontFamily: "monospace" }}
+          style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
         />
       ),
     })) as Promise<{

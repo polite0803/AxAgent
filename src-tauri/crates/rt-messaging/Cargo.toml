@@ -8,7 +8,6 @@ publish = false
 anyhow = { workspace = true }
 async-trait = "0.1"
 axagent-crypto = { path = "../crypto" }
-axagent-dao = { path = "../dao" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 chrono = { workspace = true }

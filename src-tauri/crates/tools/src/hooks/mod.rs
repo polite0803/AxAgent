@@ -10,7 +10,7 @@ pub mod registry;
 
 use serde::{Deserialize, Serialize};
 
-pub use axagent_runtime_core::HookEvent as HookEventType;
+pub use axagent_harness::runtime_types::hooks::HookEvent as HookEventType;
 
 /// Hook 配置
 #[derive(Debug, Clone, Serialize, Deserialize)]

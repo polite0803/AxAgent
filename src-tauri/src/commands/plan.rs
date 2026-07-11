@@ -13,10 +13,11 @@ use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use crate::commands::error_code::workflow as workflow_err;
+use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,
-    ProviderProxyConfig,
 };
+use axagent_runtime_core::create_conversation_runtime;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -244,7 +245,9 @@ async fn generate_plan_via_llm(
         .map_err(|e| format!("Failed to load provider: {}", e))?;
 
     // Resolve provider adapter
-    let registry_key = provider_config.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+        &provider_config.provider_type,
+    );
 
     let adapter = state.harness.provider_registry().get(&registry_key).ok_or_else(|| {
         ErrorResponse::err_with_detail(
@@ -491,7 +494,10 @@ async fn build_agent_context(
         provider_id: prov.id.clone(),
         base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
         api_path: prov.api_path.clone(),
-        proxy_config: ProviderProxyConfig::resolve(&prov.proxy_config, &settings),
+        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(
+            &prov.proxy_config,
+            &settings,
+        ),
         custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
@@ -499,29 +505,10 @@ async fn build_agent_context(
         store_response: None,
     };
 
-    let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        axagent_harness::types::ProviderType::OpenAI => {
-            Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        },
-        axagent_harness::types::ProviderType::OpenAIResponses => {
-            Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Anthropic => {
-            Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Gemini => {
-            Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        },
-        axagent_harness::types::ProviderType::OpenClaw => {
-            Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Hermes => {
-            Arc::new(axagent_providers::hermes::HermesAdapter::new())
-        },
-        axagent_harness::types::ProviderType::Ollama => {
-            Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        },
-    };
+    let adapter: Arc<dyn ProviderAdapter> =
+        state.harness.get_adapter_for_provider(&prov).await.ok_or_else(|| {
+            format!("No adapter available for provider type {:?}", prov.provider_type)
+        })?;
 
     let conversation = axagent_dao::repo::conversation::get_conversation(db, conversation_id)
         .await
@@ -661,17 +648,23 @@ async fn execute_step_with_agent(
     // Build fresh api_client + tool_registry for this step
     let (api_client, tool_registry) = build_step_tools(agent_ctx, state.harness.db()).await;
 
+    // Build runtime via factory
+    let runtime = create_conversation_runtime(
+        session.session().clone(),
+        Box::new(api_client),
+        Box::new(tool_registry),
+        PermissionPolicy::new(axagent_runtime::PermissionMode::Prompt),
+        system_prompt,
+    );
+
     let result = session_manager
         .run_turn_with_tools(
             &session_id,
             format!("Execute this plan step: {}\n\nContext: {}", step.title, step.description),
-            api_client,
-            tool_registry,
-            system_prompt,
+            runtime,
             conversation_id.to_string(),
-            axagent_runtime::PermissionMode::Prompt,
-            state.agent_prompters.clone(),
             None,
+            state.agent_prompters.clone(),
         )
         .await;
 
@@ -916,8 +909,9 @@ pub async fn plan_execute(
     if use_dag_execution {
         // 转换 PlanStep → HierarchicalPlanner Plan → compile_plan_to_dag → WorkEngine 执行
         use axagent_agent::hierarchical_planner::{
-            Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus, compile_plan_to_dag,
+            Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
         };
+        use axagent_kit::plan_compiler::compile_plan_to_dag;
 
         let mut phases: Vec<Phase> = Vec::new();
         let mut step_id_to_phase: std::collections::HashMap<String, String> =

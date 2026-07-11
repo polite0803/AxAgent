@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::kit_bridge::KitSkillDirs;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -114,10 +115,14 @@ impl ContextFileResolver {
     }
 }
 
-pub async fn resolve_references(content: &str, base_dir: &Path) -> String {
+pub async fn resolve_references(
+    content: &str,
+    base_dir: &Path,
+    skill_dirs: &dyn KitSkillDirs,
+) -> String {
     let content = resolve_file_references(content, base_dir);
     let content = resolve_url_references(&content).await;
-    let content = resolve_skill_references(&content);
+    let content = resolve_skill_references(&content, skill_dirs);
     strip_conditional_sections(&content)
 }
 
@@ -183,9 +188,9 @@ async fn fetch_url_content(url: &str) -> Result<String, String> {
     }
 }
 
-fn resolve_skill_references(content: &str) -> String {
+fn resolve_skill_references(content: &str, skill_dirs: &dyn KitSkillDirs) -> String {
     let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").unwrap();
-    let dirs = axagent_kit::skill_dirs::skill_dirs();
+    let dirs = skill_dirs.skill_dirs();
 
     re.replace_all(content, |caps: &regex::Captures| {
         let skill_name = &caps[1];
@@ -498,7 +503,7 @@ mod tests {
     #[test]
     fn test_resolve_skill_references_not_found() {
         let content = "@skill:nonexistent-skill-xyz";
-        let result = resolve_skill_references(content);
+        let result = resolve_skill_references(content, &crate::noop_kit::NoopSkillDirs);
         assert!(result.contains("[Skill 'nonexistent-skill-xyz' not found]"));
     }
 
@@ -514,7 +519,7 @@ mod tests {
     #[test]
     fn test_strip_conditional_sections_platform_no_match() {
         let content = "before<!-- if:platform:nonexistent -->should be removed<!-- endif -->after";
-        let result = strip_conditional_sections(&content);
+        let result = strip_conditional_sections(content);
         assert_eq!(result, "beforeafter");
     }
 
@@ -585,7 +590,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("ref.txt"), "resolved content").unwrap();
         let content = "Hello @file:ref.txt world";
-        let result = resolve_references(&content, dir.path()).await;
+        let result = resolve_references(content, dir.path(), &crate::noop_kit::NoopSkillDirs).await;
         assert_eq!(result, "Hello resolved content world");
     }
 
@@ -597,7 +602,8 @@ mod tests {
             "@file:data.md <!-- if:platform:{} -->platform-specific<!-- endif -->",
             std::env::consts::OS
         );
-        let result = resolve_references(&content, dir.path()).await;
+        let result =
+            resolve_references(&content, dir.path(), &crate::noop_kit::NoopSkillDirs).await;
         assert!(result.contains("data payload"));
         assert!(result.contains("platform-specific"));
     }

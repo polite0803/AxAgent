@@ -1281,8 +1281,7 @@ mod tests {
 
     #[test]
     fn test_error_rate_exceeds_threshold() {
-        let mut config = VerificationConfig::default();
-        config.max_error_rate = 0.2;
+        let config = VerificationConfig { max_error_rate: 0.2, ..Default::default() };
         let verifier = ParallelExecutionVerifier::new(config);
         let tasks = vec![
             make_completed_task("t1", Some("r1"), None, None, 100),
@@ -1306,8 +1305,7 @@ mod tests {
 
     #[test]
     fn test_output_size_exceeds_limit() {
-        let mut config = VerificationConfig::default();
-        config.max_result_size_bytes = 5;
+        let config = VerificationConfig { max_result_size_bytes: 5, ..Default::default() };
         let verifier = ParallelExecutionVerifier::new(config);
         let tasks = vec![make_completed_task("t1", Some("too long"), None, None, 100)];
         let exec = make_execution(tasks);
@@ -1452,6 +1450,6 @@ mod tests {
         let exec = make_execution(Vec::new());
         let result = verifier.verify(&exec);
         assert!(!result.execution_id.is_empty());
-        assert!(result.checks.len() >= 1);
+        assert!(!result.checks.is_empty());
     }
 }

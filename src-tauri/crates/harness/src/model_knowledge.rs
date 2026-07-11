@@ -14,12 +14,3 @@ pub trait ModelKnowledgeProvider: Send + Sync {
     /// Returns `None` if the model is not recognized.
     fn get_model_context_window(&self, model_id: &str) -> Option<u32>;
 }
-
-/// A no-op implementation that returns `None` for all models.
-pub struct NoopModelKnowledgeProvider;
-
-impl ModelKnowledgeProvider for NoopModelKnowledgeProvider {
-    fn get_model_context_window(&self, _model_id: &str) -> Option<u32> {
-        None
-    }
-}

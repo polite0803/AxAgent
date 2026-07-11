@@ -12,8 +12,8 @@ import type { Attachment } from "@/types";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const ATTACHMENT_IMG_STYLE: React.CSSProperties = {
-  maxWidth: 200,
-  maxHeight: 160,
+  maxWidth: "min(200px, 40vw)",
+  maxHeight: "min(160px, 30vh)",
   borderRadius: 8,
   objectFit: "cover" as const,
 };

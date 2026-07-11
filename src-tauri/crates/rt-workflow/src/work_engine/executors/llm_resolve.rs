@@ -6,7 +6,6 @@
 
 use axagent_harness::types::{ProviderConfig, ProviderKey};
 use axagent_harness::{ProviderAdapter, registry::ProviderRegistry};
-use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::work_engine::node_executor_trait::{NodeError, error_code};
@@ -15,14 +14,13 @@ use crate::work_engine::node_executor_trait::{NodeError, error_code};
 ///
 /// 调用方传 node_model / session_model / session_provider_id / profile_suggested，
 /// helper 内部完成：
-/// 1. `axagent_dao::repo::provider::resolve_model_for_node` 拿到 (prov, key, model)
+/// 1. `axagent_harness::repositories::ProviderRepository::resolve_model_for_node` 拿到 (prov, key, model)
 /// 2. `axagent_crypto::crypto::decrypt_key` 解密 api key
 /// 3. `provider_registry.get(prov.provider_type.registry_key())` 拿 adapter
 ///
 /// 返回值 `(prov, key, model, adapter, api_key)` 供调用方继续构建 request。
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn resolve_provider_and_adapter(
-    db: &DatabaseConnection,
     master_key: &[u8; 32],
     provider_registry: Option<&Arc<dyn ProviderRegistry>>,
     node_model: Option<&str>,
@@ -31,15 +29,15 @@ pub(crate) async fn resolve_provider_and_adapter(
     profile_suggested_provider: Option<&str>,
     executor_label: &str,
 ) -> Result<(ProviderConfig, ProviderKey, String, Arc<dyn ProviderAdapter>, String), NodeError> {
-    let (prov, key, model) = axagent_dao::repo::provider::resolve_model_for_node(
-        db,
-        node_model,
-        session_model,
-        session_provider_id,
-        profile_suggested_provider,
-    )
-    .await
-    .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
+    let (prov, key, model) = axagent_harness::repositories::provider_repository()
+        .resolve_model_for_node(
+            node_model,
+            session_model,
+            session_provider_id,
+            profile_suggested_provider,
+        )
+        .await
+        .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
 
     let api_key =
         axagent_crypto::crypto::decrypt_key(&key.key_encrypted, master_key).map_err(|e| {
@@ -49,7 +47,8 @@ pub(crate) async fn resolve_provider_and_adapter(
             )
         })?;
 
-    let registry_key = prov.provider_type.registry_key();
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&prov.provider_type);
     let adapter: Arc<dyn ProviderAdapter> =
         provider_registry.and_then(|reg| reg.get(registry_key)).ok_or_else(|| {
             NodeError::exec_failed(

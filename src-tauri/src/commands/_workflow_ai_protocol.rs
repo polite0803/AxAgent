@@ -260,33 +260,6 @@ pub struct DiagnosticReportV2 {
 }
 
 // ============================================================
-// 上下文注入 marker
-// ============================================================
-
-/// 调用方在 user message 末尾追加的 JSON 块
-/// 已知 key:`version_history` / `diagnostic`;未知 key 走 `Custom` 透传到注入处理器
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "inject_context", rename_all = "snake_case")]
-#[allow(dead_code)] // 真实消费场景在 chat 路径(解析 user message 末尾的 `[[inject:...]]` marker),待 chat 接入后移除
-pub enum InjectContextMarker {
-    /// 注入最近 N 个版本的 diff 摘要
-    VersionHistory {
-        template_id: String,
-        #[serde(default = "default_history_limit")]
-        limit: u32,
-    },
-    /// 注入诊断结果
-    Diagnostic { template_id: String },
-    /// 其它 caller_defined 的 marker,透传
-    #[serde(untagged)]
-    Custom(serde_json::Value),
-}
-
-fn default_history_limit() -> u32 {
-    5
-}
-
-// ============================================================
 // 校验辅助函数
 // ============================================================
 
@@ -607,28 +580,5 @@ mod tests {
         let s = r#"{"summary":"ok","issues":[],"suggestions":[],"fixes":[],"auto_apply":true}"#;
         let r: DiagnosticReportV2 = serde_json::from_str(s).unwrap();
         assert!(validate_report(&r).is_err());
-    }
-
-    // ── InjectContextMarker ────────────────────────────────
-
-    #[test]
-    fn parse_inject_version_history() {
-        let s = r#"{"inject_context":"version_history","template_id":"t","limit":3}"#;
-        let m: InjectContextMarker = serde_json::from_str(s).unwrap();
-        assert!(matches!(m, InjectContextMarker::VersionHistory { limit: 3, .. }));
-    }
-
-    #[test]
-    fn parse_inject_diagnostic() {
-        let s = r#"{"inject_context":"diagnostic","template_id":"t"}"#;
-        let m: InjectContextMarker = serde_json::from_str(s).unwrap();
-        assert!(matches!(m, InjectContextMarker::Diagnostic { .. }));
-    }
-
-    #[test]
-    fn parse_inject_unknown_passes_through() {
-        let s = r#"{"inject_context":"reflection","reflection_id":"u-1"}"#;
-        let m: InjectContextMarker = serde_json::from_str(s).unwrap();
-        assert!(matches!(m, InjectContextMarker::Custom(_)));
     }
 }

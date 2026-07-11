@@ -78,6 +78,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: "1.97.0"
           components: rustfmt, clippy
 
       - name: Free disk space
@@ -133,6 +134,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.97.0"
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
@@ -205,6 +208,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.97.0"
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
@@ -230,6 +235,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.97.0"
 
       - name: Install cargo-deny
         run: cargo install cargo-deny

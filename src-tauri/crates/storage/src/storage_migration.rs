@@ -5,13 +5,9 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
-
 use crate::storage_paths::{build_relative_path, documents_root};
-use axagent_entities::{messages, stored_files};
-#[cfg(test)]
-use axagent_harness::constants;
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::repositories::{message_repository, stored_file_repository};
 
 /// Summary of what the migration did.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -26,20 +22,13 @@ pub struct MigrationReport {
 /// Migrates files from legacy ~/.axagent/files/ to ~/Documents/axagent/{images,files}/
 /// Updates stored_files.storage_path and messages.attachments JSON in the database.
 /// Idempotent: safe to run multiple times.
-pub async fn migrate_to_documents_root(
-    db: &DatabaseConnection,
-    legacy_files_dir: &Path,
-) -> Result<MigrationReport> {
+pub async fn migrate_to_documents_root(legacy_files_dir: &Path) -> Result<MigrationReport> {
     let target = documents_root();
-    run_migration(db, legacy_files_dir, &target).await
+    run_migration(legacy_files_dir, &target).await
 }
 
 /// Internal entry point with an explicit target root, for testability.
-async fn run_migration(
-    db: &DatabaseConnection,
-    legacy_dir: &Path,
-    target_root: &Path,
-) -> Result<MigrationReport> {
+async fn run_migration(legacy_dir: &Path, target_root: &Path) -> Result<MigrationReport> {
     // 1. Ensure target directories
     for sub in &["images", "files"] {
         std::fs::create_dir_all(target_root.join(sub))
@@ -50,11 +39,12 @@ async fn run_migration(
     let mut path_map: HashMap<String, String> = HashMap::new();
 
     // 2. Query all stored_files
-    let rows = stored_files::Entity::find().all(db).await.map_err(AxAgentError::Database)?;
+    let rows =
+        stored_file_repository().list_all_stored_files().await.map_err(AxAgentError::Internal)?;
 
     // 3. Process each stored file
     for row in rows {
-        // a. Already in new format — skip
+        // a. Already in new format �?skip
         if row.storage_path.starts_with("images/") || row.storage_path.starts_with("files/") {
             report.files_skipped += 1;
             continue;
@@ -88,22 +78,22 @@ async fn run_migration(
         }
 
         // Update DB record (even when source is missing, for consistency)
-        let mut am: stored_files::ActiveModel = row.into();
-        am.storage_path = Set(new_rel);
-        am.update(db).await.map_err(AxAgentError::Database)?;
+        stored_file_repository()
+            .update_storage_path(&row.id, &new_rel)
+            .await
+            .map_err(AxAgentError::Internal)?;
         report.db_records_updated += 1;
     }
 
     // 4. Update message attachment paths
-    let msgs = messages::Entity::find()
-        .filter(messages::Column::Attachments.ne("[]"))
-        .filter(messages::Column::Attachments.ne(""))
-        .all(db)
-        .await
-        .map_err(AxAgentError::Database)?;
+    let msg_repo = message_repository();
+    let msgs = msg_repo.list_all_message_attachments().await.map_err(AxAgentError::Internal)?;
 
-    for msg in msgs {
-        let Ok(mut atts) = serde_json::from_str::<Vec<serde_json::Value>>(&msg.attachments) else {
+    for (msg_id, attachments_json) in msgs {
+        if attachments_json == "[]" || attachments_json.is_empty() {
+            continue;
+        }
+        let Ok(mut atts) = serde_json::from_str::<Vec<serde_json::Value>>(&attachments_json) else {
             continue;
         };
 
@@ -139,9 +129,10 @@ async fn run_migration(
         if changed {
             let json = serde_json::to_string(&atts)
                 .map_err(|e| AxAgentError::Internal(format!("serialize attachments: {}", e)))?;
-            let mut am: messages::ActiveModel = msg.into();
-            am.attachments = Set(json);
-            am.update(db).await.map_err(AxAgentError::Database)?;
+            msg_repo
+                .update_message_attachments(&msg_id, &json)
+                .await
+                .map_err(AxAgentError::Internal)?;
             report.messages_updated += 1;
         }
     }
@@ -152,8 +143,16 @@ async fn run_migration(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::{ConnectionTrait, Database, DbBackend, Statement};
+    use axagent_entities::{messages, stored_files};
+    use axagent_harness::repositories::{set_message_repository, set_stored_file_repository};
+    use sea_orm::{
+        ActiveModelTrait, ConnectionTrait, Database, DatabaseConnection, DbBackend, EntityTrait,
+        Set, Statement,
+    };
     use std::fs;
+
+    #[cfg(test)]
+    use axagent_harness::constants;
 
     const CREATE_STORED_FILES: &str = "
         CREATE TABLE stored_files (
@@ -200,6 +199,12 @@ mod tests {
         for ddl in [CREATE_STORED_FILES, CREATE_MESSAGES] {
             db.execute_raw(Statement::from_string(DbBackend::Sqlite, ddl)).await.unwrap();
         }
+        // Wire up DAO repositories so run_migration works
+        let stored_repo =
+            axagent_dao::stored_file_repository::DaoStoredFileRepository::new(db.clone());
+        let msg_repo = axagent_dao::message_repository::DaoMessageRepository::new(db.clone());
+        set_stored_file_repository(std::sync::Arc::new(stored_repo));
+        set_message_repository(std::sync::Arc::new(msg_repo));
         db
     }
 
@@ -272,9 +277,9 @@ mod tests {
 
     #[tokio::test]
     async fn empty_db_is_noop() {
-        let db = test_db().await;
+        let _db = test_db().await;
         let dirs = test_dirs();
-        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r, MigrationReport::default());
     }
 
@@ -295,7 +300,7 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_skipped, 2);
         assert_eq!(r.files_moved, 0);
         assert_eq!(r.db_records_updated, 0);
@@ -321,7 +326,7 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_moved, 1);
         assert_eq!(r.db_records_updated, 1);
 
@@ -358,7 +363,7 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_moved, 1);
 
         let expected = dirs.target.join("files/fedcba654321_report.pdf");
@@ -373,7 +378,7 @@ mod tests {
         let db = test_db().await;
         let dirs = test_dirs();
 
-        // No file on disk — only a DB record
+        // No file on disk �?only a DB record
         insert_stored_file(
             &db,
             "f1",
@@ -385,7 +390,7 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.files_missing, 1);
         assert_eq!(r.files_moved, 0);
         assert_eq!(r.db_records_updated, 1);
@@ -414,11 +419,11 @@ mod tests {
         )
         .await;
 
-        let r1 = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r1 = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r1.files_moved, 1);
         assert_eq!(r1.db_records_updated, 1);
 
-        let r2 = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r2 = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r2.files_skipped, 1);
         assert_eq!(r2.files_moved, 0);
         assert_eq!(r2.db_records_updated, 0);
@@ -447,7 +452,7 @@ mod tests {
         let att_json = r#"[{"id":"a1","file_type":"image/png","file_name":"photo.png","file_path":"conv1/abcdef123456789.png","file_size":100}]"#;
         insert_message(&db, "m1", "conv1", att_json).await;
 
-        let r = run_migration(&db, &dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
         assert_eq!(r.messages_updated, 1);
 
         let m = messages::Entity::find_by_id("m1").one(&db).await.unwrap().unwrap();

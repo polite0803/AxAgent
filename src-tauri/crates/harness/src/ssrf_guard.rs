@@ -34,20 +34,3 @@ pub trait SsrFGuard: Send + Sync {
     fn config(&self) -> &SsrFConfig;
     async fn safe_client(&self) -> Result<reqwest::Client, String>;
 }
-
-#[derive(Default)]
-pub struct NoopSsrFGuard {
-    config: SsrFConfig,
-}
-#[async_trait]
-impl SsrFGuard for NoopSsrFGuard {
-    async fn check_url(&self, _: &str) -> UrlSafety {
-        UrlSafety::Safe
-    }
-    fn config(&self) -> &SsrFConfig {
-        &self.config
-    }
-    async fn safe_client(&self) -> Result<reqwest::Client, String> {
-        reqwest::Client::builder().build().map_err(|e| e.to_string())
-    }
-}

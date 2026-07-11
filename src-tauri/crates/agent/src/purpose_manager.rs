@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use sea_orm::{DatabaseConnection, EntityTrait};
+use axagent_harness::wiki_dtos::WikiRepository;
 
 pub const DEFAULT_PURPOSE_TEMPLATE: &str = r#"# {wiki_name}
 
@@ -31,11 +31,10 @@ pub const DEFAULT_PURPOSE_TEMPLATE: &str = r#"# {wiki_name}
 pub struct PurposeManager;
 
 impl PurposeManager {
-    pub async fn load(db: &DatabaseConnection, wiki_id: &str) -> Result<String, String> {
-        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
-            .one(db)
-            .await
-            .map_err(|e| format!("DB error: {}", e))?
+    pub async fn load(wiki_repo: &dyn WikiRepository, wiki_id: &str) -> Result<String, String> {
+        let wiki = wiki_repo
+            .find_by_id(wiki_id)
+            .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");
@@ -48,11 +47,14 @@ impl PurposeManager {
         }
     }
 
-    pub async fn save(db: &DatabaseConnection, wiki_id: &str, content: &str) -> Result<(), String> {
-        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
-            .one(db)
-            .await
-            .map_err(|e| format!("DB error: {}", e))?
+    pub async fn save(
+        wiki_repo: &dyn WikiRepository,
+        wiki_id: &str,
+        content: &str,
+    ) -> Result<(), String> {
+        let wiki = wiki_repo
+            .find_by_id(wiki_id)
+            .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");
@@ -67,7 +69,7 @@ impl PurposeManager {
     }
 
     pub async fn initialize(
-        db: &DatabaseConnection,
+        wiki_repo: &dyn WikiRepository,
         wiki_id: &str,
         wiki_name: &str,
     ) -> Result<(), String> {
@@ -75,14 +77,13 @@ impl PurposeManager {
             .replace("{wiki_name}", wiki_name)
             .replace("{date}", &chrono::Utc::now().format("%Y-%m-%d").to_string());
 
-        Self::save(db, wiki_id, &content).await
+        Self::save(wiki_repo, wiki_id, &content).await
     }
 
-    pub async fn exists(db: &DatabaseConnection, wiki_id: &str) -> Result<bool, String> {
-        let wiki = axagent_entities::wikis::Entity::find_by_id(wiki_id)
-            .one(db)
-            .await
-            .map_err(|e| format!("DB error: {}", e))?
+    pub async fn exists(wiki_repo: &dyn WikiRepository, wiki_id: &str) -> Result<bool, String> {
+        let wiki = wiki_repo
+            .find_by_id(wiki_id)
+            .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
         let purpose_path = std::path::Path::new(&wiki.root_path).join("purpose.md");

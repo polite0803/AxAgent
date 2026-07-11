@@ -95,27 +95,34 @@ fn apply_value_path(
     }
     if segments.len() == 1 {
         if root_value.is_object() {
-            root_value.as_object_mut().unwrap().insert(segments[0].to_string(), value);
+            root_value
+                .as_object_mut()
+                .ok_or_else(|| "root_value is not an object".to_string())?
+                .insert(segments[0].to_string(), value);
         } else {
             *root_value = serde_json::json!({segments[0].to_string(): value});
         }
         return Ok(());
     }
     // 嵌套路径:在 root_value 内沿路径下钻
-    let (last, head) = segments.split_last().unwrap();
+    let (last, head) = segments
+        .split_last()
+        .ok_or_else(|| "unreachable: segments should not be empty".to_string())?;
     let mut cur = root_value;
     for seg in head {
         if !cur.is_object() {
             // 中间层不是 object,自动建为 object
             *cur = serde_json::json!({});
         }
-        let obj = cur.as_object_mut().unwrap();
+        let obj = cur.as_object_mut().ok_or_else(|| "cur is not an object".to_string())?;
         cur = obj.entry((*seg).to_string()).or_insert(serde_json::json!({}));
     }
     if !cur.is_object() {
         *cur = serde_json::json!({});
     }
-    cur.as_object_mut().unwrap().insert((*last).to_string(), value);
+    cur.as_object_mut()
+        .ok_or_else(|| "cur is not an object".to_string())?
+        .insert((*last).to_string(), value);
     Ok(())
 }
 

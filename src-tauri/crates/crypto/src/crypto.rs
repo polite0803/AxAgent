@@ -70,7 +70,8 @@ pub fn decrypt_key(encrypted: &str, master_key: &[u8; 32]) -> Result<String> {
 pub fn sha256_hash(input: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(input.as_bytes());
-    format!("{:x}", hasher.finalize())
+    // m1: 使用 {:064x} 确保固定 64 字符 hex 输出，不省略前导零
+    format!("{:064x}", hasher.finalize())
 }
 
 /// SECURITY (H7): 真正从 key 中提取可识别前缀。
@@ -237,6 +238,7 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// Legacy decrypt for v1 backups (SHA256 KDF, fixed salt).
+///
 /// ⚠️ **已弃用**: v1 使用弱 KDF（无盐 SHA256），存在已知安全缺陷：
 ///   - 无盐哈希：同一密码总是生成相同密钥，易受彩虹表攻击
 ///   - 固定字符串 KDF：密钥空间小，暴力破解成本低
@@ -244,6 +246,15 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 ///
 /// **迁移计划**: 2026-Q3 移除 v1 支持，启动时自动检测并升级 v1 备份到 v2 (Argon2id)。
 /// 请尽快重新加密为 v2 格式。
+///
+/// **此函数仅为读取历史遗留 v1 备份数据而保留，不应用于新备份。**
+/// 读取后应通过 [`auto_upgrade_backup_to_v2`] 立即迁移到 v2。
+#[deprecated(
+    since = "2.8.2",
+    note = "v1 backup KDF (unsalted SHA256) is insecure. This function exists only for \
+            reading legacy v1 backups; new backups MUST use v2 (Argon2id). \
+            Call auto_upgrade_backup_to_v2() to migrate legacy data immediately."
+)]
 #[cfg(feature = "backup_v1_compat")]
 fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
     tracing::warn!(

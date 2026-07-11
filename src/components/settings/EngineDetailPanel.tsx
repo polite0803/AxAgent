@@ -198,7 +198,14 @@ export function EngineDetailPanel({ engineName, open, onClose }: EngineDetailPan
               </span>
             ),
             children: (
-              <div style={{ maxHeight: 400, overflow: "auto", fontFamily: "monospace", fontSize: 12 }}>
+              <div
+                style={{
+                  maxHeight: 400,
+                  overflow: "auto",
+                  fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
+                  fontSize: 12,
+                }}
+              >
                 {engine.logs.length === 0 ? <Text type="secondary">{t("settings.evolution.noLogs")}</Text> : (
                   engine.logs.map((log, i) => (
                     // FIXME: 日志项无稳定唯一标识，使用前缀+索引

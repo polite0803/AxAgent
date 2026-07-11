@@ -32,6 +32,12 @@ pub struct ProviderConfig {
     pub models: Vec<Model>,
     pub keys: Vec<ProviderKey>,
     pub proxy_config: Option<ProviderProxyConfig>,
+    /// 工具调用模式：None=按 provider_type 推断；"native"=模型原生 function calling；
+    /// "managed"=由 AxAgent 通过提示词注入 + 文本解析模拟（用于 Chat2API 等无原生 tool 接口的网关）
+    pub tool_adaptation: Option<String>,
+    /// 托管模式下的 marker 前缀（仅 tool_adaptation="managed" 时生效）。
+    /// None 或空字符串 = 使用默认值 "CHAT2API"。
+    pub tool_adaptation_marker_prefix: Option<String>,
     pub custom_headers: Option<String>,
     pub icon: Option<String>,
     pub builtin_id: Option<String>,
@@ -54,22 +60,24 @@ pub enum ProviderType {
 }
 
 impl ProviderType {
-    /// ProviderType → ProviderRegistry 内部 key 的唯一权威映射。
-    ///
-    /// 注册表 key 由 `axagent_providers::registry::ProviderRegistry::create_default`
-    /// 决定；新增 ProviderType 变体时必须同步在此实现，否则编译期立刻暴露
-    /// (match 必须穷尽所有变体)。所有调用方统一用 `pt.registry_key()`，
-    /// 不允许再定义私有副本。
-    pub fn registry_key(&self) -> &'static str {
-        match self {
-            ProviderType::OpenAI => "openai",
-            ProviderType::OpenAIResponses => "openai_responses",
-            ProviderType::Anthropic => "anthropic",
-            ProviderType::Gemini => "gemini",
-            ProviderType::OpenClaw => "openclaw",
-            ProviderType::Hermes => "hermes",
-            ProviderType::Ollama => "ollama",
-        }
+    // Business methods extracted to free functions below.
+}
+
+/// ProviderType → ProviderRegistry 内部 key 的唯一权威映射。
+///
+/// 注册表 key 由 `axagent_providers::registry::ProviderRegistry::create_default`
+/// 决定；新增 ProviderType 变体时必须同步在此实现，否则编译期立刻暴露
+/// (match 必须穷尽所有变体)。所有调用方统一用 `provider_registry_key(pt)`，
+/// 不允许再定义私有副本。
+pub fn provider_registry_key(pt: &ProviderType) -> &'static str {
+    match pt {
+        ProviderType::OpenAI => "openai",
+        ProviderType::OpenAIResponses => "openai_responses",
+        ProviderType::Anthropic => "anthropic",
+        ProviderType::Gemini => "gemini",
+        ProviderType::OpenClaw => "openclaw",
+        ProviderType::Hermes => "hermes",
+        ProviderType::Ollama => "ollama",
     }
 }
 
@@ -94,32 +102,37 @@ pub struct ProviderProxyConfig {
 }
 
 impl ProviderProxyConfig {
-    /// Resolve effective proxy: provider-level overrides global.
-    /// If provider has explicit proxy_type, use it (even "none" to disable).
-    /// Otherwise fall back to global settings.
-    pub fn resolve(provider: &Option<Self>, global_settings: &AppSettings) -> Option<Self> {
-        if let Some(config) = provider
-            && config.proxy_type.is_some()
-        {
-            if config.proxy_type.as_deref() == Some("none") {
-                return None;
-            }
-            return Some(config.clone());
+    // Business methods extracted to free functions below.
+}
+
+/// Resolve effective proxy: provider-level overrides global.
+/// If provider has explicit proxy_type, use it (even "none" to disable).
+/// Otherwise fall back to global settings.
+pub fn resolve_provider_proxy(
+    provider: &Option<ProviderProxyConfig>,
+    global_settings: &AppSettings,
+) -> Option<ProviderProxyConfig> {
+    if let Some(config) = provider
+        && config.proxy_type.is_some()
+    {
+        if config.proxy_type.as_deref() == Some("none") {
+            return None;
         }
-        // Fall back to global proxy
-        match global_settings.proxy_type.as_deref() {
-            Some("none") | None => None,
-            Some("system") => Some(Self {
-                proxy_type: Some(constants::role::SYSTEM.to_string()),
-                proxy_address: None,
-                proxy_port: None,
-            }),
-            _ => Some(Self {
-                proxy_type: global_settings.proxy_type.clone(),
-                proxy_address: global_settings.proxy_address.clone(),
-                proxy_port: global_settings.proxy_port,
-            }),
-        }
+        return Some(config.clone());
+    }
+    // Fall back to global proxy
+    match global_settings.proxy_type.as_deref() {
+        Some("none") | None => None,
+        Some("system") => Some(ProviderProxyConfig {
+            proxy_type: Some(constants::role::SYSTEM.to_string()),
+            proxy_address: None,
+            proxy_port: None,
+        }),
+        _ => Some(ProviderProxyConfig {
+            proxy_type: global_settings.proxy_type.clone(),
+            proxy_address: global_settings.proxy_address.clone(),
+            proxy_port: global_settings.proxy_port,
+        }),
     }
 }
 
@@ -142,6 +155,10 @@ pub struct UpdateProviderInput {
     pub api_path: Option<Option<String>>,
     pub enabled: Option<bool>,
     pub proxy_config: Option<ProviderProxyConfig>,
+    #[serde(default)]
+    pub tool_adaptation: Option<Option<String>>,
+    #[serde(default)]
+    pub tool_adaptation_marker_prefix: Option<Option<String>>,
     pub custom_headers: Option<Option<String>>,
     pub icon: Option<Option<String>>,
     pub sort_order: Option<i32>,
@@ -178,20 +195,22 @@ pub enum ModelType {
 }
 
 impl ModelType {
-    /// Auto-detect model type from model_id string
-    pub fn detect(model_id: &str) -> Self {
-        let id = model_id.to_lowercase();
-        if id.contains("embed") {
-            ModelType::Embedding
-        } else if id.contains("realtime")
-            || id.contains("tts")
-            || id.contains("whisper")
-            || id.contains("audio")
-        {
-            ModelType::Voice
-        } else {
-            ModelType::Chat
-        }
+    // Business methods extracted to free functions below.
+}
+
+/// Auto-detect model type from model_id string
+pub fn detect_model_type(model_id: &str) -> ModelType {
+    let id = model_id.to_lowercase();
+    if id.contains("embed") {
+        ModelType::Embedding
+    } else if id.contains("realtime")
+        || id.contains("tts")
+        || id.contains("whisper")
+        || id.contains("audio")
+    {
+        ModelType::Voice
+    } else {
+        ModelType::Chat
     }
 }
 

@@ -11,31 +11,26 @@
 
 use axagent_agent::ProviderLlmBridge;
 use axagent_crypto::crypto;
-use axagent_dao::repo::provider;
 use axagent_harness::registry::ProviderRegistry;
-use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use sea_orm::DatabaseConnection;
+use axagent_providers::url_utils::resolve_base_url_for_type;
 use std::sync::Arc;
 
 /// 从数据库构建 LLM Bridge（自动选择首个启用的 provider；使用默认 registry）
-pub async fn build_llm_bridge_from_db(
-    db: &DatabaseConnection,
-    master_key: &[u8; 32],
-) -> Option<ProviderLlmBridge> {
+pub async fn build_llm_bridge_from_db(master_key: &[u8; 32]) -> Option<ProviderLlmBridge> {
     let registry = default_registry();
-    build_llm_bridge_from_db_with(db, master_key, &registry, None, None).await
+    build_llm_bridge_from_db_with(master_key, &registry, None, None).await
 }
 
 /// 从数据库构建 LLM Bridge（指定 provider 和 model；调用方提供 registry）
 pub async fn build_llm_bridge_from_db_with(
-    db: &DatabaseConnection,
     master_key: &[u8; 32],
     provider_registry: &Arc<dyn ProviderRegistry>,
     preferred_provider_id: Option<&str>,
     preferred_model_id: Option<&str>,
 ) -> Option<ProviderLlmBridge> {
-    let providers = provider::list_providers(db).await.ok()?;
+    let providers =
+        axagent_harness::repositories::provider_repository().list_providers().await.ok()?;
 
     let prov = if let Some(pid) = preferred_provider_id {
         providers
@@ -49,7 +44,8 @@ pub async fn build_llm_bridge_from_db_with(
     let api_key = crypto::decrypt_key(&key.key_encrypted, master_key).ok()?;
 
     // 单源查表：用 ProviderRegistry 取代手写 match
-    let registry_key = prov.provider_type.registry_key();
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&prov.provider_type);
     let adapter: Arc<dyn ProviderAdapter> = provider_registry.get(registry_key)?;
 
     let ctx = ProviderRequestContext {

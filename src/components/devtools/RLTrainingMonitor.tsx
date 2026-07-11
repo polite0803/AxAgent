@@ -90,21 +90,21 @@ export function RLTrainingMonitor() {
 
       {/* Info stats */}
       <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
-        <Statistic title={t("rl.monitor.currentStep")} value={currentStep} valueStyle={{ fontSize: 16 }} />
+        <Statistic title={t("rl.monitor.currentStep")} value={currentStep} styles={{ content: { fontSize: 16 } }} />
         <Statistic
           title={t("rl.monitor.loss")}
           value={currentMetrics?.loss?.toFixed(4) ?? "-"}
-          valueStyle={{ fontSize: 16 }}
+          styles={{ content: { fontSize: 16 } }}
         />
         <Statistic
           title={t("rl.monitor.reward")}
           value={currentMetrics?.reward?.toFixed(4) ?? "-"}
-          valueStyle={{ fontSize: 16 }}
+          styles={{ content: { fontSize: 16 } }}
         />
         <Statistic
           title={t("rl.monitor.speed")}
           value={`${stepsPerSec.toFixed(1)} steps/s`}
-          valueStyle={{ fontSize: 16 }}
+          styles={{ content: { fontSize: 16 } }}
         />
       </div>
 

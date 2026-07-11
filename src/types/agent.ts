@@ -51,6 +51,7 @@ export interface ToolResultEvent {
   toolName: string;
   content: string;
   isError: boolean;
+  input?: Record<string, unknown>;
   /** Server-side timestamp (ms since epoch) when tool execution began */
   startedAt?: number;
 }

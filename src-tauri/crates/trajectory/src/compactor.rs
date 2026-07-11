@@ -62,12 +62,6 @@ impl Ord for ImportanceOrd {
     }
 }
 
-#[allow(dead_code)]
-fn estimate_token_count(text: &str) -> usize {
-    text.len().div_ceil(4)
-}
-
-#[allow(dead_code)]
 fn extract_key_terms(text: &str) -> Vec<String> {
     let stop_words: HashSet<&str> = [
         "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
@@ -99,7 +93,6 @@ fn extract_key_terms(text: &str) -> Vec<String> {
     entries.into_iter().take(20).map(|(w, _)| w).collect()
 }
 
-#[allow(dead_code)]
 fn score_message_importance(message: &MessageRecord) -> MessageImportance {
     let mut score: f64 = 0.0;
     let mut reasons: Vec<String> = Vec::new();
@@ -148,7 +141,6 @@ fn score_message_importance(message: &MessageRecord) -> MessageImportance {
     MessageImportance { message: message.clone(), score, reasons }
 }
 
-#[allow(dead_code)]
 pub struct SessionCompactor {
     preserve_top_n: usize,
     min_importance_score: f64,
@@ -160,7 +152,6 @@ impl Default for SessionCompactor {
     }
 }
 
-#[allow(dead_code)]
 impl SessionCompactor {
     pub fn new() -> Self {
         Self { preserve_top_n: 50, min_importance_score: 1.0 }

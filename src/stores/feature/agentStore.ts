@@ -28,7 +28,7 @@ import type {
 import type { ToolExecution } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
-import { setupExecutionEventListeners } from "./executionStore";
+import { setupExecutionEventListeners, useExecutionStore } from "./executionStore";
 
 interface QueryStats {
   numTurns?: number;
@@ -593,7 +593,12 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     }));
     // Auto-clear after the retry duration
     const clearAfter = event.retryAfterMs > 0 ? event.retryAfterMs : 5000;
-    setTimeout(() => {
+    // Clear any existing timer for this conversation
+    if (_rateLimitTimers[event.conversationId]) {
+      clearTimeout(_rateLimitTimers[event.conversationId]);
+    }
+    _rateLimitTimers[event.conversationId] = setTimeout(() => {
+      delete _rateLimitTimers[event.conversationId];
       set((s) => {
         const rest = { ...s.rateLimitInfo };
         delete rest[event.conversationId];
@@ -676,9 +681,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
         // Historical records still showing pending/running means the agent
         // was interrupted or a duplicate record was left behind.
-        // Treat them as success to avoid perpetual loading spinners.
+        // Treat them as cancelled to differentiate from actually completed executions.
         if (executionStatus === "queued" || executionStatus === "running") {
-          executionStatus = "success";
+          executionStatus = "cancelled";
         }
 
         let approvalStatus: ToolCallState["approvalStatus"] | undefined;
@@ -720,11 +725,18 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   clearConversation: (conversationId) => {
+    // Delegate toolCalls/agentPool/agentStatus cleanup to executionStore
+    useExecutionStore.getState().clearConversation(conversationId);
+
+    // Clear rate-limit timer for this conversation
+    if (_rateLimitTimers[conversationId]) {
+      clearTimeout(_rateLimitTimers[conversationId]);
+      delete _rateLimitTimers[conversationId];
+    }
+
     set((s) => {
       const sessions = { ...s.sessions };
       delete sessions[conversationId];
-      const agentStatus = { ...s.agentStatus };
-      delete agentStatus[conversationId];
 
       const pendingPermissions: Record<string, PermissionRequestEvent> = {};
       for (const [id, pr] of Object.entries(s.pendingPermissions)) {
@@ -740,9 +752,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         }
       }
 
-      // ToolCallState doesn't carry conversationId directly, but we can identify
-      // related tool calls via the pendingPermissions that were already filtered above.
-      // Collect toolUseIds from the removed permissions, then remove those from toolCalls.
+      // Clean up sdkIdToExecId mappings (toolCalls/agentPool/agentStatus handled by executionStore)
       const removedPermKeys = new Set<string>();
       for (const [id, pr] of Object.entries(s.pendingPermissions)) {
         if (pr.conversationId === conversationId) {
@@ -750,14 +760,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           removedPermKeys.add(pr.toolUseId);
         }
       }
-      const toolCalls: Record<string, ToolCallState> = {};
-      for (const [id, tc] of Object.entries(s.toolCalls)) {
-        if (!removedPermKeys.has(id) && !removedPermKeys.has(tc.toolUseId)) {
-          toolCalls[id] = tc;
-        }
-      }
-
-      // Also clean up sdkIdToExecId mappings for removed tool calls
       const sdkIdToExecId: Record<string, string> = {};
       for (const [sdkId, execId] of Object.entries(s.sdkIdToExecId)) {
         if (!removedPermKeys.has(sdkId) && !removedPermKeys.has(execId)) {
@@ -780,10 +782,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       delete subAgentCards[conversationId];
       return {
         sessions,
-        agentStatus,
         pendingPermissions,
         pendingAskUser,
-        toolCalls,
         sdkIdToExecId,
         rateLimitInfo,
         pausedConversations,
@@ -832,9 +832,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 }));
 
-// ── Event listener setup ─────────────────────────────────────────────────
+// Rate-limit timer tracking for cleanup
+const _rateLimitTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
-let _listenersSetup = false;
+let _agentListenerRefCount = 0;
 
 /**
  * 注册 agentStore 独有的 Tauri 事件监听器。
@@ -842,10 +843,12 @@ let _listenersSetup = false;
  * 委托给 setupExecutionEventListeners 处理，避免重复。
  */
 export function setupAgentEventListeners(): () => void {
-  if (_listenersSetup) {
-    return () => {};
+  _agentListenerRefCount++;
+  if (_agentListenerRefCount > 1) {
+    return () => {
+      _agentListenerRefCount--;
+    };
   }
-  _listenersSetup = true;
 
   // 执行事件由 executionStore 统一接管
   const execCleanup = setupExecutionEventListeners();
@@ -920,10 +923,13 @@ export function setupAgentEventListeners(): () => void {
   );
 
   return () => {
-    _listenersSetup = false;
-    execCleanup();
-    for (const p of unlisteners) {
-      p.then((u) => u());
+    _agentListenerRefCount--;
+    if (_agentListenerRefCount <= 0) {
+      _agentListenerRefCount = 0;
+      execCleanup();
+      for (const p of unlisteners) {
+        p.then((u) => u());
+      }
     }
   };
 }

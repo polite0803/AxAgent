@@ -276,7 +276,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                     size="small"
                     value={rule.schema}
                     onChange={(e) => updateRule(rule.id, { schema: e.target.value })}
-                    style={{ fontFamily: "monospace", fontSize: 11 }}
+                    style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 11 }}
                   />
                 </div>
               )}

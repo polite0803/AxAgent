@@ -236,8 +236,6 @@ fn worker_main(
 
 #[cfg(not(target_os = "android"))]
 struct CandleModel {
-    #[allow(dead_code)]
-    kind: ModelKind,
     model: candle_transformers::models::quantized_llama::ModelWeights,
     tokenizer: tokenizers::Tokenizer,
 }
@@ -278,7 +276,7 @@ fn load_candle_model(gguf: &Path, tok: &Path, kind: ModelKind) -> Option<CandleM
                 },
             };
             tracing::info!("Loaded LLaMA judge model from {}", gguf.display());
-            Some(CandleModel { kind, model, tokenizer })
+            Some(CandleModel { model, tokenizer })
         },
         ModelKind::Reranker => {
             tracing::info!("Reranker: heuristic mode (candle BERT GGUF requires 0.9+)");

@@ -72,7 +72,7 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
           rows={5}
           size="small"
           placeholder={t("workflow.props.queryPlaceholder")}
-          style={{ fontFamily: "monospace", fontSize: 11 }}
+          style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 11 }}
         />
       </div>
       <div>

@@ -18,7 +18,6 @@ use std::sync::{LockResult, MutexGuard, PoisonError};
 /// This mirrors the `try_unwrap_or_log!` macro in the main binary's
 /// `util` module, but specialised for `LockResult` so it preserves
 /// the typed guard.
-#[allow(dead_code)]
 pub fn lock_or_recover<'a, T>(
     result: LockResult<MutexGuard<'a, T>>,
     lock_name: &'static str,

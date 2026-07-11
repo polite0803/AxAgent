@@ -317,7 +317,7 @@ export const useExecutionStore = create<ExecutionStore>()(
                   assistantMessageId: event.assistantMessageId || "",
                 }),
                 executionStatus: "running",
-                startedAt: Date.now(),
+                startedAt: existing?.startedAt ?? Date.now(),
               },
             };
             // Also add to agentPool so AgentPoolPanel / ExecutionTimeline
@@ -352,7 +352,37 @@ export const useExecutionStore = create<ExecutionStore>()(
           (s) => {
             const existing = s.toolCalls[event.toolUseId];
             if (!existing) {
-              return {};
+              console.warn(
+                `[executionStore] Tool result for unknown toolUseId: ${event.toolUseId}`,
+              );
+              const fallback: ToolCallState = {
+                toolUseId: event.toolUseId,
+                toolName: event.toolName || "unknown",
+                input: event.input ?? {},
+                assistantMessageId: event.assistantMessageId || "",
+                executionStatus: event.isError ? "failed" : "success",
+                output: event.content,
+                isError: event.isError,
+              };
+              // 2.1: Sync fallback to agentPool so clearConversation can clean it up
+              const pool = [...(s.agentPool[event.conversationId] || [])];
+              const poolIdx = pool.findIndex((p) => p.id === poolId);
+              const poolItem: AgentPoolItem = {
+                id: poolId,
+                conversationId: event.conversationId,
+                type: "worker",
+                name: event.toolName || "unknown",
+                status: event.isError ? "failed" : "completed",
+                summary: event.content?.slice(0, 200),
+                error: event.isError ? (event.content ?? "Tool failed") : undefined,
+                messageId: event.assistantMessageId || _latestMessageIdByConv[event.conversationId],
+              };
+              if (poolIdx >= 0) { pool[poolIdx] = { ...pool[poolIdx], ...poolItem }; }
+              else { pool.push(poolItem); }
+              return {
+                toolCalls: { ...s.toolCalls, [event.toolUseId]: fallback },
+                agentPool: { ...s.agentPool, [event.conversationId]: pool },
+              };
             }
             const updates: Record<string, ToolCallState> = {
               [event.toolUseId]: {
@@ -362,6 +392,16 @@ export const useExecutionStore = create<ExecutionStore>()(
                 isError: event.isError,
               },
             };
+            // 2.3: Sync executionId key via sdkIdToExecId map
+            const execId = s.sdkIdToExecId[event.toolUseId];
+            if (execId && s.toolCalls[execId]) {
+              updates[execId] = {
+                ...s.toolCalls[execId],
+                executionStatus: event.isError ? "failed" : "success",
+                output: event.content,
+                isError: event.isError,
+              };
+            }
             const currentToolCall = s.currentToolCall?.toolUseId === event.toolUseId
               ? null
               : s.currentToolCall;
@@ -374,9 +414,9 @@ export const useExecutionStore = create<ExecutionStore>()(
                 status: event.isError ? "failed" : "completed",
                 summary: event.content?.slice(0, 200),
                 error: event.isError ? (event.content ?? "Tool failed") : undefined,
-                duration: pool[idx].startedAt
+                duration: pool[idx].startedAt != null
                   ? Date.now() - pool[idx].startedAt
-                  : 0,
+                  : undefined,
               };
             }
             return {
@@ -427,7 +467,7 @@ export const useExecutionStore = create<ExecutionStore>()(
                   ? event.content
                   : existing.error,
                 messages: [...(existing.messages || []), msg],
-                duration: existing.startedAt
+                duration: existing.startedAt != null
                   ? Date.now() - existing.startedAt
                   : undefined,
               };
@@ -654,6 +694,46 @@ export const useExecutionStore = create<ExecutionStore>()(
             const restTraj = { ...s.trajectoriesByConversation };
             delete restTraj[conversationId];
             delete _latestMessageIdByConv[conversationId];
+
+            // Identify tool call IDs belonging to this conversation via agentPool
+            // 2.2: Track both tool- and worker- prefixed pool items
+            const removedToolUseIds = new Set<string>();
+            for (const item of (s.agentPool[conversationId] || [])) {
+              if (item.id.startsWith("tool-")) {
+                removedToolUseIds.add(item.id.replace("tool-", ""));
+              } else if (item.id.startsWith("worker-")) {
+                removedToolUseIds.add(item.id.replace("worker-", ""));
+              }
+            }
+            // 2.2: Scan toolCalls for orphan entries whose assistantMessageId
+            // matches _latestMessageIdByConv (was already deleted above), or
+            // whose ids match removed pool items
+            const poolMessageIds = new Set(
+              (s.agentPool[conversationId] || [])
+                .map((item) => item.messageId)
+                .filter(Boolean) as string[],
+            );
+            for (const [id, tc] of Object.entries(s.toolCalls)) {
+              if (
+                tc.assistantMessageId && poolMessageIds.has(tc.assistantMessageId)
+              ) {
+                removedToolUseIds.add(id);
+                removedToolUseIds.add(tc.toolUseId);
+              }
+            }
+            const restToolCalls: Record<string, ToolCallState> = {};
+            for (const [id, tc] of Object.entries(s.toolCalls)) {
+              if (!removedToolUseIds.has(id) && !removedToolUseIds.has(tc.toolUseId)) {
+                restToolCalls[id] = tc;
+              }
+            }
+            const restSdkIdToExecId: Record<string, string> = {};
+            for (const [sdkId, execId] of Object.entries(s.sdkIdToExecId)) {
+              if (!removedToolUseIds.has(sdkId) && !removedToolUseIds.has(execId)) {
+                restSdkIdToExecId[sdkId] = execId;
+              }
+            }
+
             return {
               phases: restPhases,
               agentStatus: restStatus,
@@ -662,6 +742,8 @@ export const useExecutionStore = create<ExecutionStore>()(
               currentToolCall: s.currentToolCall?.conversationId === conversationId
                 ? null
                 : s.currentToolCall,
+              toolCalls: restToolCalls,
+              sdkIdToExecId: restSdkIdToExecId,
             };
           },
           false,
@@ -687,13 +769,15 @@ export const useExecutionStore = create<ExecutionStore>()(
 
 // ── 事件监听器注册 ──
 
-let _listenersSetup = false;
+let _listenerRefCount = 0;
 
 export function setupExecutionEventListeners(): () => void {
-  if (_listenersSetup) {
-    return () => {};
+  _listenerRefCount++;
+  if (_listenerRefCount > 1) {
+    return () => {
+      _listenerRefCount--;
+    };
   }
-  _listenersSetup = true;
 
   const unlisteners: Promise<UnlistenFn>[] = [];
   const store = useExecutionStore.getState();
@@ -817,7 +901,10 @@ export function setupExecutionEventListeners(): () => void {
   );
 
   return () => {
-    _listenersSetup = false;
-    unlisteners.forEach((u) => u.then((f) => f()));
+    _listenerRefCount--;
+    if (_listenerRefCount <= 0) {
+      _listenerRefCount = 0;
+      unlisteners.forEach((u) => u.then((f) => f()));
+    }
   };
 }

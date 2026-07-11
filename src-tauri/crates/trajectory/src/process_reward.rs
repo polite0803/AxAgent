@@ -2,6 +2,7 @@
 
 pub use axagent_harness::trajectory_types::{PrmLlmProvider, RewardCategory, StepReward};
 
+use crate::trajectory_impl::RewardCategoryExt;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
@@ -31,7 +32,6 @@ pub struct ProcessRewardResult {
 }
 
 pub struct DefaultPrmProvider {
-    #[allow(dead_code)]
     task_context: String,
 }
 

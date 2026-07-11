@@ -323,3 +323,78 @@ impl CronJobStore {
         *store = jobs;
     }
 }
+
+// ── Harness trait 实现 ──
+
+impl From<axagent_harness::tool_service::CronJobData> for CronJob {
+    fn from(data: axagent_harness::tool_service::CronJobData) -> Self {
+        let now = now_millis();
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: data.name,
+            description: data.description,
+            schedule: data.schedule,
+            prompt: data.prompt,
+            workflow_id: None,
+            task_type: None,
+            platform: None,
+            enabled_toolsets: None,
+            status: if data.is_active {
+                CronJobStatus::Active
+            } else {
+                CronJobStatus::Paused
+            },
+            recurring: true,
+            run_count: data.run_count,
+            last_run_at: None,
+            last_result: None,
+            next_run_at: None,
+            config: TaskConfig::default(),
+            created_at: now,
+            updated_at: now,
+        }
+    }
+}
+
+impl From<&CronJob> for axagent_harness::tool_service::CronJobData {
+    fn from(job: &CronJob) -> Self {
+        Self {
+            name: job.name.clone(),
+            schedule: job.schedule.clone(),
+            prompt: job.prompt.clone(),
+            description: job.description.clone(),
+            is_active: job.is_active(),
+            run_count: job.run_count,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::tool_service::CronJobStore for CronJobStore {
+    async fn add(&self, job: axagent_harness::tool_service::CronJobData) -> String {
+        let cron_job: CronJob = job.into();
+        CronJobStore::add(self, cron_job).await
+    }
+
+    async fn remove(&self, id: &str) -> bool {
+        CronJobStore::remove(self, id).await
+    }
+
+    async fn get(&self, id: &str) -> Option<axagent_harness::tool_service::CronJobData> {
+        CronJobStore::get(self, id)
+            .await
+            .map(|job| axagent_harness::tool_service::CronJobData::from(&job))
+    }
+
+    async fn list(&self) -> Vec<axagent_harness::tool_service::CronJobData> {
+        CronJobStore::list(self)
+            .await
+            .into_iter()
+            .map(|job| axagent_harness::tool_service::CronJobData::from(&job))
+            .collect()
+    }
+
+    async fn count(&self) -> usize {
+        CronJobStore::count(self).await
+    }
+}

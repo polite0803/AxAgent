@@ -6,9 +6,9 @@
 //! 触发紧急压缩并重试，而非直接返回硬错误。
 //! 移植自 claude-code-main 的 reactiveCompact.ts。
 
-use crate::compact::{CompactionConfig, CompactionResult, compact_session};
-use crate::session::Session;
 use axagent_harness::prompt_provider::NoopPromptProvider;
+use axagent_runtime_core::compact::{CompactionConfig, CompactionResult, compact_session};
+use axagent_runtime_core::session::Session;
 
 const NP: &NoopPromptProvider = &NoopPromptProvider;
 
@@ -144,7 +144,7 @@ pub fn classify_trigger(error_text: &str) -> Option<ReactiveTrigger> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{ContentBlock, ConversationMessage, Session};
+    use axagent_runtime_core::session::{ContentBlock, ConversationMessageExt, Session};
 
     fn make_large_session(message_count: usize) -> Session {
         let mut session = Session::new();
@@ -152,10 +152,12 @@ mod tests {
             // 创建足够大的消息（~2500 tokens per message）以确保超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session.push_message(ConversationMessage::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
+                    .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
                     .unwrap();
             }
         }

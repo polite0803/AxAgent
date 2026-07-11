@@ -328,7 +328,12 @@ export function ShortcutSettings() {
                       onKeyDown={(event) => {
                         void onCaptureKeyDown(action, event);
                       }}
-                      style={{ width: 140, maxWidth: 200, fontFamily: "monospace", textAlign: "center" }}
+                      style={{
+                        width: 140,
+                        maxWidth: 200,
+                        fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
+                        textAlign: "center",
+                      }}
                     />
                     <Button
                       type={recordingAction === action ? "primary" : "default"}

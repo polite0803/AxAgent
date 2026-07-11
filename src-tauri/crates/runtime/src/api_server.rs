@@ -6,6 +6,7 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
@@ -18,7 +19,10 @@ fn get_api_token() -> &'static str {
     API_TOKEN.get_or_init(|| {
         std::env::var("AXAGENT_API_TOKEN").unwrap_or_else(|_| {
             let token = uuid::Uuid::new_v4().to_string();
-            tracing::info!(
+            let hash = Sha256::digest(&token);
+            let hash_hex = format!("{:x}", hash);
+            tracing::debug!(
+                token_hash = %&hash_hex[..8],
                 "Generated random API token (set AXAGENT_API_TOKEN env var to customize)"
             );
             token

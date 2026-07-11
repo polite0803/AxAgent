@@ -58,7 +58,7 @@ impl OllamaAdapter {
     fn effective_chat_url(ctx: &ProviderRequestContext) -> String {
         let base = Self::base_url(ctx);
         let path = ctx.api_path.as_deref().unwrap_or(DEFAULT_OLLAMA_PATH);
-        axagent_harness::url_utils::resolve_chat_url(&base, Some(path), DEFAULT_OLLAMA_PATH)
+        crate::url_utils::resolve_chat_url(&base, Some(path), DEFAULT_OLLAMA_PATH)
     }
 
     /// Build an HTTP client, respecting proxy configuration.
@@ -144,7 +144,7 @@ impl ProviderAdapter for OllamaAdapter {
             .models
             .into_iter()
             .map(|m| {
-                let model_type = ModelType::detect(&m.name);
+                let model_type = axagent_harness::types::provider_model::detect_model_type(&m.name);
                 let mut caps = match model_type {
                     ModelType::Chat => vec![ModelCapability::TextChat],
                     ModelType::Embedding => vec![],

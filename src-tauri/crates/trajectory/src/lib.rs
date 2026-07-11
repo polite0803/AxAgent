@@ -64,6 +64,7 @@ mod text_grad;
 mod training_env;
 mod trajectory;
 mod trajectory_compressor;
+mod trajectory_impl;
 mod user_profile;
 
 // ── Explicit re-exports (only types used externally) ──────────────────
@@ -192,3 +193,7 @@ pub use trajectory::{
 };
 
 pub use user_profile::{ExpertiseLevel, UserProfile};
+
+// ── Extension methods migrated from harness ──────────────────────────
+
+pub use trajectory_impl::{ReplayContextExt, RewardCategoryExt, TrajectoryBuilderExt};

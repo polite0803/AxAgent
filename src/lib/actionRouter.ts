@@ -36,6 +36,48 @@ export type DeclarativeExecutor = (
 
 const MAX_CHAIN_DEPTH = 20;
 
+/** Reserved DOM events that emit must not trigger (prevents clickjacking / form hijacking). */
+const RESERVED_DOM_EVENTS = new Set([
+  "click",
+  "dblclick",
+  "mousedown",
+  "mouseup",
+  "mousemove",
+  "keydown",
+  "keyup",
+  "keypress",
+  "focus",
+  "blur",
+  "change",
+  "input",
+  "submit",
+  "reset",
+  "scroll",
+  "resize",
+  "load",
+  "unload",
+  "beforeunload",
+  "touchstart",
+  "touchend",
+  "touchmove",
+  "pointerdown",
+  "pointerup",
+  "pointermove",
+  "drag",
+  "dragstart",
+  "dragend",
+  "drop",
+  "wheel",
+  "contextmenu",
+  "select",
+  "copy",
+  "cut",
+  "paste",
+]);
+
+/** Characters that indicate path traversal or directory crossing. */
+const PATH_TRAVERSAL_PATTERNS = ["..", "//", "\\\\"];
+
 const VALID_ACTION_TYPES = new Set<string>([
   "invoke",
   "navigate",
@@ -292,6 +334,15 @@ export class ActionRouter {
       if (action.type !== "navigate") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
       }
+      // Reject paths containing traversal patterns (1.3 — path traversal prevention)
+      for (const pattern of PATH_TRAVERSAL_PATTERNS) {
+        if (action.path.includes(pattern)) {
+          return {
+            success: false,
+            error: i18n.t("actionRouter.navigatePathTraversal", { path: action.path }),
+          };
+        }
+      }
       if (ctx.permissions) {
         const allowed = isWildcardMatch(
           action.path,
@@ -313,6 +364,19 @@ export class ActionRouter {
     this.declarativeExecutors.set("emit", async (action, ctx) => {
       if (action.type !== "emit") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
+      }
+      // Require namespace prefix (1.4 — reserved DOM event protection)
+      if (!action.event.includes(":")) {
+        return {
+          success: false,
+          error: i18n.t("actionRouter.emitMissingNamespace", { event: action.event }),
+        };
+      }
+      if (RESERVED_DOM_EVENTS.has(action.event)) {
+        return {
+          success: false,
+          error: i18n.t("actionRouter.emitReservedEvent", { event: action.event }),
+        };
       }
       if (ctx.permissions) {
         const allowed = isWildcardMatch(
@@ -348,6 +412,24 @@ export class ActionRouter {
           success: false,
           error: i18n.t("actionRouter.unknownStoreOp", { operation }),
         };
+      }
+      // Payload structure validation (1.5)
+      if (operation === "set") {
+        if (!action.payload || typeof action.payload !== "object" || Array.isArray(action.payload)) {
+          return {
+            success: false,
+            error: i18n.t("actionRouter.storeSetPayloadInvalid"),
+          };
+        }
+      }
+      if (operation === "get") {
+        const payload = action.payload as Record<string, unknown> | undefined;
+        if (payload && "selector" in payload && typeof payload.selector !== "string") {
+          return {
+            success: false,
+            error: i18n.t("actionRouter.storeGetSelectorInvalid"),
+          };
+        }
       }
       if (ctx.permissions) {
         const isRead = operation === "get";

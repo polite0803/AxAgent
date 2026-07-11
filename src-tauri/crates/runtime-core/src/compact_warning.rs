@@ -328,7 +328,7 @@ mod tests {
     fn test_reset() {
         let mut state = CompactWarningState::new();
         state.suppress();
-        assert!(state.should_warn(15000, 10000) == false); // should NOT warn when suppressed
+        assert!(!state.should_warn(15000, 10000)); // should NOT warn when suppressed
         state.reset();
         assert!(!state.suppressed);
         assert!(state.last_warning_at.is_none());

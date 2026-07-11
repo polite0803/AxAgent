@@ -5,22 +5,22 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_runtime_core::CronJobStore;
+use axagent_harness::tool_service::{CronJobData, CronJobStore, NoopCronJobStore};
 use serde_json::Value;
 use std::sync::{Arc, OnceLock};
 
 const MAX_TASKS: usize = 50;
 
-static SHARED_CRON_STORE: OnceLock<Arc<CronJobStore>> = OnceLock::new();
+static SHARED_CRON_STORE: OnceLock<Arc<dyn CronJobStore>> = OnceLock::new();
 
 /// 初始化共享 CronJobStore（由 runtime init 调用）
-pub fn init_cron_store(store: Arc<CronJobStore>) {
+pub fn init_cron_store(store: Arc<dyn CronJobStore>) {
     let _ = SHARED_CRON_STORE.set(store);
 }
 
 /// 获取共享 CronJobStore
-fn cron_store() -> Arc<CronJobStore> {
-    SHARED_CRON_STORE.get().cloned().unwrap_or_else(|| Arc::new(CronJobStore::new_ephemeral()))
+fn cron_store() -> Arc<dyn CronJobStore> {
+    SHARED_CRON_STORE.get().cloned().unwrap_or_else(|| Arc::new(NoopCronJobStore))
 }
 
 pub struct CronCreateTool;
@@ -76,7 +76,14 @@ impl Tool for CronCreateTool {
             )));
         }
 
-        let job = axagent_runtime_core::CronJob::new(&id, &schedule, &prompt, &desc);
+        let job = CronJobData {
+            name: id.clone(),
+            schedule: schedule.clone(),
+            prompt: prompt.clone(),
+            description: desc.clone(),
+            is_active: true,
+            run_count: 0,
+        };
         store.add(job).await;
 
         Ok(ToolResult::success(format!(
@@ -144,7 +151,7 @@ impl Tool for CronListTool {
         }
         let mut out = String::from("## 定时任务\n\n");
         for job in &jobs {
-            let status = if job.is_active() { "✅" } else { "⏸️" };
+            let status = if job.is_active { "✅" } else { "⏸️" };
             out.push_str(&format!(
                 "- {} **{}**: {} ({}, 已执行 {} 次)\n",
                 status, job.name, job.description, job.schedule, job.run_count

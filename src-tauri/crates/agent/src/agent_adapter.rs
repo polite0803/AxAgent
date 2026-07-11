@@ -4,6 +4,7 @@ use crate::coordinator::{
     AgentConfig, AgentError, AgentImpl, AgentInput, AgentStatus, CoordinatorOutput,
 };
 use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
+use axagent_harness::HarnessToolExecutor;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -12,8 +13,7 @@ pub struct AgentImplAdapter {
     config: RwLock<Option<AgentConfig>>,
     event_bus: Arc<AgentEventBus>,
     /// 可选的工具执行器 — 由 Harness 在运行时注入
-    tool_executor:
-        Option<Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor + Send>>>>,
+    tool_executor: Option<Arc<tokio::sync::Mutex<Box<dyn HarnessToolExecutor + Send>>>>,
 }
 
 impl AgentImplAdapter {
@@ -29,7 +29,7 @@ impl AgentImplAdapter {
     /// 设置工具执行器（由 Harness 在注入具体实现时调用）
     pub fn with_tool_executor(
         mut self,
-        executor: Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor + Send>>>,
+        executor: Arc<tokio::sync::Mutex<Box<dyn HarnessToolExecutor + Send>>>,
     ) -> Self {
         self.tool_executor = Some(executor);
         self

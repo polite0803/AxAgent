@@ -49,8 +49,9 @@ impl DecompositionCache {
 }
 
 lazy_static::lazy_static! {
-    pub static ref DECOMPOSITION_CACHE: tokio::sync::Mutex<DecompositionCache> =
-        tokio::sync::Mutex::new(DecompositionCache::new(300));
+    /// P3-2.24: 使用 RwLock 替代 Mutex，读操作不互斥，仅写操作（set/cleanup）互斥
+    pub static ref DECOMPOSITION_CACHE: tokio::sync::RwLock<DecompositionCache> =
+        tokio::sync::RwLock::new(DecompositionCache::new(300));
 }
 
 fn compute_content_hash(content: &str) -> String {
@@ -342,8 +343,10 @@ pub async fn preview_decomposition(
     let content_hash = compute_content_hash(&request.content);
 
     {
-        let mut cache = DECOMPOSITION_CACHE.lock().await;
-        cache.cleanup_expired();
+        DECOMPOSITION_CACHE.write().await.cleanup_expired();
+    }
+    {
+        let cache = DECOMPOSITION_CACHE.read().await;
         if let Some(cached) = cache.get(&content_hash) {
             let dep_results = ToolResolver::check_tool_dependencies(
                 &cached.result.tool_dependencies,
@@ -402,7 +405,7 @@ pub async fn preview_decomposition(
     let cache_id = uuid::Uuid::new_v4().to_string();
 
     {
-        let mut cache = DECOMPOSITION_CACHE.lock().await;
+        let mut cache = DECOMPOSITION_CACHE.write().await;
         cache.set(
             content_hash,
             CachedDecomposition {
@@ -491,7 +494,7 @@ pub async fn confirm_decomposition(
 
 #[tauri::command]
 pub async fn generate_missing_tool(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     name: String,
     description: String,
     input_schema: serde_json::Value,
@@ -512,9 +515,7 @@ pub async fn generate_missing_tool(
             .map_err(|e| e.to_string())?;
 
     // Persist to database
-    axagent_runtime::tool_generator::persist_to_db(&tool, state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    axagent_runtime::tool_generator::persist_to_db(&tool).await.map_err(|e| e.to_string())?;
 
     Ok(serde_json::json!({
         "tool_name": tool.tool_name,

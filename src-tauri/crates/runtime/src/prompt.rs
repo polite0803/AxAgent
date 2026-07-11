@@ -5,8 +5,8 @@ use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::config::{ConfigError, ConfigLoader, RuntimeConfig};
 use crate::git_context::GitContext;
+use axagent_runtime_core::config::{ConfigError, ConfigLoader, RuntimeConfig};
 
 /// Errors raised while assembling the final system prompt.
 #[derive(Debug)]
@@ -635,7 +635,7 @@ mod tests {
         collapse_blank_lines, display_context_path, normalize_instruction_content,
         render_instruction_content, render_instruction_files, truncate_instruction_content,
     };
-    use crate::config::ConfigLoader;
+    use axagent_runtime_core::config::ConfigLoader;
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};

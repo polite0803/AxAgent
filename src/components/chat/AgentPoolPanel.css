@@ -107,6 +107,7 @@
 .pool-item--running {
   border-style: solid;
   animation: pool-item-pulse 2s ease-in-out infinite;
+  will-change: box-shadow;
 }
 
 .pool-item--completed {
@@ -186,6 +187,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 /* 错误 */

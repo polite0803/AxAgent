@@ -182,9 +182,6 @@ type WorkflowTemplate = (Vec<WorkflowNode>, Vec<(String, String)>);
 pub struct WorkflowBenchRunner {
     /// 已注册的模板缓存
     templates: HashMap<String, WorkflowTemplate>,
-    /// mock 数据库连接（benchmark 模式不使用实际数据库）
-    #[allow(dead_code)]
-    db: Option<String>,
     /// 历史结果
     results: Vec<WorkflowBenchResult>,
 }
@@ -192,7 +189,7 @@ pub struct WorkflowBenchRunner {
 impl WorkflowBenchRunner {
     /// 创建新的运行器，自动注册内置模板
     pub fn new() -> Self {
-        let mut runner = Self { templates: HashMap::new(), db: None, results: Vec::new() };
+        let mut runner = Self { templates: HashMap::new(), results: Vec::new() };
         // 注册内置模板
         runner.register_builtin_templates();
         runner

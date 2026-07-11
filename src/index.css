@@ -40,6 +40,19 @@
   --ease: cubic-bezier(0.32,0.72,0,1);
   --ease-spring: cubic-bezier(0.32,0.72,0,1);
   --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
+
+  /* ── 通用字体回退链 ── */
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* ── Z-Index 层级体系 ── */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 500;
+  --z-modal: 1000;
+  --z-tooltip: 1100;
+  --z-notification: 1200;
 }
 
 /* ═══ THEME: 深色暮色 (默认 dark) ═══ */
@@ -178,9 +191,6 @@
   --shadow-brutalist: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 1px 2px -1px rgba(0, 0, 0, 1);
   --shadow-brutalist-md: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 2px 4px -1px rgba(0, 0, 0, 1);
   --shadow-brutalist-lg: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 4px 6px -1px rgba(0, 0, 0, 1);
-  --font-mono-preferred: "Geist Mono", ui-monospace, monospace;
-  --font-sans-preferred: "Geist", ui-sans-serif, sans-serif, system-ui;
-  --tracking-tight: -0.05em;
 }
 
 /* ═══ THEME: 21th 亮色 ═══ */
@@ -214,20 +224,300 @@
   --shadow-brutalist: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 1px 2px -1px rgba(0, 0, 0, 1);
   --shadow-brutalist-md: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 2px 4px -1px rgba(0, 0, 0, 1);
   --shadow-brutalist-lg: 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 4px 6px -1px rgba(0, 0, 0, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   21th 全局样式覆盖 — neo-brutalist 质感
+   当 data-theme-preset 含 "21th" 时激活，覆盖全局基础样式
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme-preset*="21th"] {
+  /* ── 全局零圆角 ── */
+  --radius: 0px !important;
+  --radius-lg: 0px !important;
+  --ant-border-radius: 0px;
+  /* 21th 字体变量 */
   --font-mono-preferred: "Geist Mono", ui-monospace, monospace;
   --font-sans-preferred: "Geist", ui-sans-serif, sans-serif, system-ui;
   --tracking-tight: -0.05em;
 }
 
+/* 21th 字体：等宽优先 */
+[data-theme-preset*="21th"] body,
+[data-theme-preset*="21th"] .app-shell {
+  font-family: var(--font-mono-preferred, "Geist Mono", ui-monospace, monospace);
+  letter-spacing: var(--tracking-tight, -0.05em);
+}
+
+/* 21th Ant Design 组件覆盖：零圆角 + brutalist 阴影 */
+[data-theme-preset*="21th"] .ant-btn {
+  border-radius: 0 !important;
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  font-family: inherit;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  border-width: 1px;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+[data-theme-preset*="21th"] .ant-btn:not(:disabled):hover {
+  transform: translate(1px, 1px);
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+[data-theme-preset*="21th"] .ant-btn:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+[data-theme-preset*="21th"] .ant-input,
+[data-theme-preset*="21th"] .ant-select-selector,
+[data-theme-preset*="21th"] .ant-input-affix-wrapper {
+  border-radius: 0 !important;
+  border-width: 1px;
+  font-family: inherit;
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+[data-theme-preset*="21th"] .ant-input:focus,
+[data-theme-preset*="21th"] .ant-input-focused,
+[data-theme-preset*="21th"] .ant-input-affix-wrapper-focused {
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+
+[data-theme-preset*="21th"] .ant-card {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+
+[data-theme-preset*="21th"] .ant-modal-content {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-lg, 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 4px 6px -1px rgba(0, 0, 0, 1));
+}
+
+[data-theme-preset*="21th"] .ant-tag {
+  border-radius: 0 !important;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-width: 1px;
+}
+
+[data-theme-preset*="21th"] .ant-tabs-tab {
+  font-family: inherit;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+[data-theme-preset*="21th"] .ant-divider {
+  border-color: var(--border-color);
+  border-width: 1px;
+}
+
+[data-theme-preset*="21th"] .ant-tooltip-inner {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  font-family: inherit;
+  font-size: 11px;
+}
+
+[data-theme-preset*="21th"] .ant-popover-inner {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+
+[data-theme-preset*="21th"] .ant-dropdown-menu {
+  border-radius: 0 !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-md, 2px 2px 0px 0px rgba(0, 0, 0, 1), 2px 2px 4px -1px rgba(0, 0, 0, 1));
+}
+
+/* 21th 消息气泡 — brutalist 质感 */
+[data-theme-preset*="21th"] .msg-row {
+  gap: 6px;
+}
+[data-theme-preset*="21th"] .msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  background: var(--color-primary);
+  color: var(--bg);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  font-size: 11px;
+}
+[data-theme-preset*="21th"] .msg-content {
+  font-size: 13px;
+  line-height: 1.6;
+}
+[data-theme-preset*="21th"] .msg-content code {
+  border-radius: 0;
+  padding: 1px 4px;
+  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+}
+[data-theme-preset*="21th"] .msg-content pre {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+[data-theme-preset*="21th"] .msg-content.bubble-outlined {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+}
+[data-theme-preset*="21th"] .msg-content.bubble-shadow {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  padding: 8px 12px;
+}
+[data-theme-preset*="21th"] .msg-content.bubble-filled {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+}
+[data-theme-preset*="21th"] .msg-row.user .msg-content {
+  max-width: 85%;
+  background: var(--color-primary);
+  color: var(--bg);
+  border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+[data-theme-preset*="21th"] .msg-row.assistant .msg-content.bubble-outlined {
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0;
+  border-top: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* 21th 输入框 — brutalist 硬边 */
+[data-theme-preset*="21th"] .chat-input-area {
+  border-top: 1px solid var(--border-color);
+  padding: 4px 16px 6px;
+}
+[data-theme-preset*="21th"] .chat-input-box {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  padding: 4px 8px;
+  background: var(--bg);
+  font-family: var(--font-mono-preferred, "Geist Mono", ui-monospace, monospace);
+}
+[data-theme-preset*="21th"] .chat-input-box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-brutalist, 2px 2px 0px 0px rgba(0, 0, 0, 1));
+}
+[data-theme-preset*="21th"] .chat-input-box textarea {
+  font-family: var(--font-mono-preferred, "Geist Mono", ui-monospace, monospace);
+  font-size: 13px;
+}
+[data-theme-preset*="21th"] .chat-input-tools .ant-btn {
+  box-shadow: none;
+  border: 1px solid transparent;
+}
+[data-theme-preset*="21th"] .chat-input-tools .ant-btn:hover {
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+  transform: translate(1px, 1px);
+}
+
+/* 21th 侧边栏 — 精密仪表盘 */
+[data-theme-preset*="21th"] .ax-chat-sidebar {
+  border-right: 1px solid var(--border-color);
+}
+[data-theme-preset*="21th"] .ax-chat-sidebar .ant-btn-text {
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] .ax-chat-sidebar .ant-input {
+  border-radius: 0;
+}
+
+/* 21th 标题栏 — 结构线条感 */
+[data-theme-preset*="21th"] .titlebar {
+  border-bottom: 1px solid var(--border-color);
+}
+[data-theme-preset*="21th"] .titlebar-btn {
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] .titlebar-btn:hover {
+  background: var(--color-surface);
+  border: 1px solid var(--border-color);
+}
+
+/* 21th 状态栏 — 数据仪表感 */
+[data-theme-preset*="21th"] .global-status-bar {
+  border-top: 1px solid var(--border-color);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* 21th 工具调用卡片 */
+[data-theme-preset*="21th"] .tool-call-card,
+[data-theme-preset*="21th"] .tool-call-node {
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-brutalist-sm, 2px 2px 0px 0px rgba(0, 0, 0, 0.5));
+}
+
+/* 21th 表格 — crisp 网格 */
+[data-theme-preset*="21th"] .ant-table {
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] .ant-table-cell {
+  border-color: var(--border-color);
+}
+[data-theme-preset*="21th"] .ant-table-thead > tr > th {
+  border-bottom: 2px solid var(--color-primary);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  background: var(--bg);
+}
+
+/* 21th Slider / Switch */
+[data-theme-preset*="21th"] .ant-slider-handle {
+  border-radius: 0;
+  border: 2px solid var(--color-primary);
+}
+[data-theme-preset*="21th"] .ant-switch {
+  border-radius: 0;
+}
+
+/* 21th 滚动条 — 细线风格 */
+[data-theme-preset*="21th"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-theme-preset*="21th"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme-preset*="21th"] ::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 0;
+}
+[data-theme-preset*="21th"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
 /* ── Cyberpunk preset 覆盖 ── */
 [data-theme-preset*="cyber"],
 [data-theme-preset*="neon"] {
-  --accent: #00f0ff;
+  --accent: oklch(70% 0.18 195);
   --accent-soft: oklch(62% 0.16 195 / 0.18);
   --accent-bg: oklch(62% 0.16 195 / 0.10);
   --accent-dim: oklch(62% 0.16 195 / 0.06);
-  --purple: #7b2ff7;
-  --teal: #00f0ff;
+  --purple: oklch(52% 0.22 295);
+  --teal: oklch(70% 0.18 195);
   --cyber-grid-color: rgba(0, 240, 255, 0.03);
   --cyber-glow-sm: 0 0 8px rgba(0, 240, 255, 0.15);
   --cyber-glow-md: 0 0 16px rgba(0, 240, 255, 0.2), 0 0 4px rgba(0, 240, 255, 0.1);
@@ -762,8 +1052,30 @@ code,
   height: 0 !important;
 }
 
-/* Override antd CSS-in-JS font-weight for all components */
-[class*="ant-"] {
+/* Override antd CSS-in-JS font-weight for common text-containing components */
+.ant-typography,
+.ant-btn,
+.ant-tag,
+.ant-tabs-tab,
+.ant-table,
+.ant-descriptions,
+.ant-modal-content,
+.ant-dropdown-menu-item,
+.ant-select-item,
+.ant-input,
+.ant-picker,
+.ant-cascader,
+.ant-tree-treenode,
+.ant-menu-item,
+.ant-breadcrumb,
+.ant-pagination-item,
+.ant-steps-item,
+.ant-collapse-header,
+.ant-tooltip-inner,
+.ant-popover-inner,
+.ant-drawer-body,
+.ant-notification-notice,
+.ant-message-notice {
   font-weight: var(--font-weight, 400) !important;
 }
 
@@ -993,13 +1305,13 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* ── Switch 启用/禁用高对比度 ──────── */
 .ant-switch.ant-switch-checked {
-  background-color: var(--ant-color-primary, #52c41a) !important;
+  background-color: var(--ant-color-primary, var(--accent)) !important;
 }
 .ant-switch.ant-switch-checked:hover:not(.ant-switch-disabled) {
   background-color: var(--ant-color-primary-hover, #73d13d) !important;
 }
 .ant-switch.ant-switch-small.ant-switch-checked {
-  background-color: var(--ant-color-primary, #52c41a) !important;
+  background-color: var(--ant-color-primary, var(--accent)) !important;
 }
 .ant-switch:not(.ant-switch-checked) {
   background-color: rgba(0, 0, 0, 0.25) !important;
@@ -1044,7 +1356,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   color: var(--color-primary);
   font-weight: 500;
 }
-.nav-label { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-label { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nav-shortcut { margin-left: auto; font-size: 10px; color: var(--color-text-secondary); flex-shrink: 0; }
 
 /* ── TitleBar window controls ──────── */
@@ -1066,7 +1378,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   color: var(--color-text);
 }
 .ax-titlebar-winctrl--close:hover {
-  background-color: #e81123;
+  background-color: var(--red);
   color: #ffffff;
   box-shadow: 0 0 12px rgba(232, 17, 35, 0.4);
 }
@@ -1113,7 +1425,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* ── 小屏/平板：侧栏默认折叠 + 展开时 overlay ──────── */
-@media (max-width: 600px) {
+@media (max-width: 899px) {
   .nav-sidebar {
     width: 44px !important;
     min-width: 44px !important;
@@ -1141,42 +1453,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
     display: block;
   }
   /* overlay 背景遮罩 */
-  .nav-sidebar.expanded::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.35);
-    z-index: -1;
-  }
-}
-
-@media (min-width: 601px) and (max-width: 899px) {
-  .nav-sidebar {
-    width: 44px !important;
-    min-width: 44px !important;
-    padding: 8px 2px 8px !important;
-  }
-  .nav-label,
-  .ax-sidebar-section-header,
-  .sidebar-user-name {
-    display: none;
-  }
-  /* 展开时 overlay 模式 */
-  .nav-sidebar.expanded {
-    position: absolute !important;
-    top: 0; left: 0; bottom: 0;
-    z-index: 200;
-    width: 220px !important;
-    min-width: 220px !important;
-    padding: 8px 6px !important;
-    align-items: stretch;
-    box-shadow: 4px 0 24px rgba(0,0,0,.3);
-  }
-  .nav-sidebar.expanded .nav-label,
-  .nav-sidebar.expanded .ax-sidebar-section-header,
-  .nav-sidebar.expanded .sidebar-user-name {
-    display: block;
-  }
   .nav-sidebar.expanded::after {
     content: '';
     position: fixed;
@@ -1579,7 +1855,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   border-radius: 6px;
   background: var(--color-bg-elevated);
   color: var(--color-text);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -1692,14 +1968,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* 布局尺寸变量 — 与原型 v3 一致 */
 :root {
-  --nav-w: 40px;
-  --title-h: 32px;
-  --tab-h: 36px;
-  --status-h: 26px;
-  --radius: 6px;
-  --radius-lg: 10px;
-  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-  /* 流体页面内边距 — 400px→10px, 600px→15px, 900px→22px, 1120px→28px */
   --content-px: clamp(10px, 2.5vw, 28px);
   --content-py: clamp(8px, 1.8vw, 20px);
 }
@@ -1832,7 +2100,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .nav-item.active::before {
   content: "";
   position: absolute;
-  left: -7px;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
@@ -2114,7 +2382,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   outline: none;
   resize: none;
   background: transparent;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   min-height: 22px;
   max-height: 110px;
@@ -2144,10 +2412,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* ── 消息气泡 ── */
-.msg-group { margin-bottom: 18px; }
+.msg-group { margin-bottom: 8px; }
 .msg-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
   flex-shrink: 0;
 }
@@ -2177,10 +2445,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   margin-bottom: 2px;
 }
 .msg-content {
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.65;
   color: var(--color-text);
   word-wrap: break-word;
+  overflow-wrap: anywhere;
   overflow: hidden;
   min-width: 0;
 }
@@ -2189,7 +2458,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .msg-content code {
   font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 12.5px;
-  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   padding: 1px 5px;
   border-radius: 4px;
   color: var(--color-primary);
@@ -2286,6 +2555,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ── AI 消息折叠 ── */
 .ai-content-wrapper {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 .ai-content-collapsed {
   max-height: calc(1.65em * 3);
@@ -2298,6 +2569,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   right: 0;
   height: 3em;
   background: linear-gradient(transparent, var(--color-bg-container));
+  -webkit-mask-image: linear-gradient(to top, transparent, black 3em);
+  mask-image: linear-gradient(to top, transparent, black 3em);
   cursor: pointer;
   display: flex;
   align-items: flex-end;
@@ -2323,7 +2596,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   border-radius: 4px;
 }
 .ai-collapse-toggle:hover {
-  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   color: var(--color-primary);
 }
 .context-clear-bubble.msg-row {
@@ -2432,7 +2705,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 999;
+  z-index: var(--z-overlay);
   animation: rp-fade-in 0.12s ease;
 }
 
@@ -2440,10 +2713,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   position: fixed;
   top: 0;
   right: 0;
-  width: 380px;
+  width: clamp(300px, 85vw, 380px);
   height: 100%;
-  background: var(--bg-primary, #1a1a2e);
-  z-index: 1000;
+  background: var(--bg);
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   animation: rp-drawer-in 0.14s ease;
@@ -2465,7 +2738,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border-color, #333);
+  border-bottom: 1px solid var(--border-color, var(--border));
   flex-shrink: 0;
 }
 
@@ -2691,7 +2964,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   cursor: pointer;
   transition: all 0.12s;
 }
-.btn-primary { background: var(--color-primary); color: var(--color-bg, #fff); }
+.btn-primary { background: var(--color-primary); color: var(--color-bg, var(--surface)); }
 .btn-primary:hover { filter: brightness(1.12); }
 .btn-secondary { background: var(--color-surface, var(--color-bg-container)); border: 1px solid var(--border-color); color: var(--color-text); }
 .btn-secondary:hover { background: color-mix(in srgb, var(--accent-deco) 8%, transparent); border-color: var(--color-primary); color: var(--color-primary); }
@@ -2869,7 +3142,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   top: 2px;
   left: 2px;
   transition: transform 0.2s;
@@ -3210,7 +3483,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .gw-toggle-btn { width: 32px; height: 17px; border-radius: 10px; cursor: pointer; position: relative; transition: background 0.2s; }
 .gw-toggle-btn.on { background: var(--accent); }
 .gw-toggle-btn.off { background: var(--border); }
-.gw-toggle-btn::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.gw-toggle-btn::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--surface); transition: transform 0.2s; }
 .gw-toggle-btn.on::after { transform: translateX(15px); }
 .gw-cli-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .gw-cli-card { padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); display: flex; flex-direction: column; gap: 6px; }
@@ -3223,12 +3496,12 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .term-backend-select { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 12px; color: var(--fg); cursor: pointer; background: var(--bg); height: 28px; }
 .term-backend-select:hover { border-color: var(--accent); }
 .term-backend-select svg { width: 14px; height: 14px; color: var(--accent); }
-.term-main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: #0d0d0d; position: relative; }
-.term-toolbar { display: flex; align-items: center; padding: 6px 10px; background: oklch(14% 0.006 55); border-bottom: 1px solid oklch(22% 0.008 55); gap: 4px; flex-shrink: 0; }
-.term-toolbar .term-title { font-size: 11.5px; color: oklch(65% 0.005 70); margin-right: auto; display: flex; align-items: center; gap: 6px; }
+.term-main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); position: relative; }
+.term-toolbar { display: flex; align-items: center; padding: 6px 10px; background: var(--surface); border-bottom: 1px solid var(--border); gap: 4px; flex-shrink: 0; }
+.term-toolbar .term-title { font-size: 11.5px; color: var(--muted); margin-right: auto; display: flex; align-items: center; gap: 6px; }
 .term-toolbar .term-title svg { width: 14px; height: 14px; }
-.term-session-select { padding: 2px 6px; border-radius: 4px; border: 1px solid oklch(25% 0.008 55); background: oklch(16% 0.006 55); font-size: 11px; color: oklch(80% 0.005 70); outline: none; }
-.term-content { flex: 1; overflow: hidden; position: relative; font-family: var(--font-mono, monospace); font-size: 13px; line-height: 1.45; padding: 12px 14px; color: oklch(85% 0.005 70); background: #0d0d0d; }
+.term-session-select { padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); font-size: 11px; color: var(--fg-2); outline: none; }
+.term-content { flex: 1; overflow: hidden; position: relative; font-family: var(--font-mono, monospace); font-size: 13px; line-height: 1.45; padding: 12px 14px; color: var(--fg); background: var(--bg); }
 .term-content .prompt { color: var(--green); margin-right: 6px; }
 .term-content .cursor-blink { display: inline-block; width: 7px; height: 14px; background: var(--accent); animation: blink 1s step-end infinite; margin-left: 2px; }
 @keyframes blink { 50% { opacity: 0; } }
@@ -3237,21 +3510,21 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .term-line.success { color: var(--green); }
 .term-line.error { color: var(--red); }
 .term-line.warn { color: var(--amber); }
-.term-line.output { color: oklch(75% 0.005 70); }
-.term-statusbar { display: flex; align-items: center; padding: 4px 10px; background: oklch(14% 0.006 55); border-top: 1px solid oklch(22% 0.008 55); font-size: 10.5px; color: oklch(55% 0.005 70); gap: 12px; flex-shrink: 0; }
+.term-line.output { color: var(--fg-2); }
+.term-statusbar { display: flex; align-items: center; padding: 4px 10px; background: var(--surface); border-top: 1px solid var(--border); font-size: 10.5px; color: var(--muted); gap: 12px; flex-shrink: 0; }
 .term-statusbar .ts-left { display: flex; align-items: center; gap: 10px; flex: 1; }
 .term-statusbar .ts-right { display: flex; align-items: center; gap: 10px; }
 .term-maximized {
   position: fixed !important;
   inset: 0;
-  z-index: 500;
+  z-index: var(--z-overlay);
 }
 .ts-item { display: flex; align-items: center; gap: 4px; }
 .ts-item svg { width: 12px; height: 12px; }
 .ts-item .ts-dot { width: 5px; height: 5px; border-radius: 50%; }
 .ts-item .ts-dot.green { background: var(--green); }
 .ts-item .ts-dot.amber { background: var(--amber); }
-.ts-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: oklch(22% 0.008 55); color: oklch(60% 0.005 70); }
+.ts-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--surface-2); color: var(--muted); }
 
 /* ═══════════════════════════════════════════════════════════════
    ── Files 页面 (fl-layout / fl-*) ─────────────────────────────
@@ -3302,7 +3575,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .fl-thumb { width: 36px; height: 36px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); display: grid; place-items: center; background: var(--surface-2); flex-shrink: 0; }
 .fl-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .fl-thumb svg { width: 16px; height: 16px; color: var(--muted); }
-.fl-name { font-weight: 500; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-name { font-weight: 500; max-width: min(260px, 35%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fl-size { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
 .fl-date { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .fl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 8px; padding: 40px; }
@@ -3377,7 +3650,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── KB modal overlay ──────────────────────────────────────────
    ═══════════════════════════════════════════════════════════════ */
-.kb-modal-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; }
+.kb-modal-overlay { position: fixed; inset: 0; z-index: var(--z-overlay); background: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; }
 .kb-modal-overlay.open { display: flex; }
 .kb-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4); }
 .kb-modal-header { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
@@ -3390,7 +3663,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── Gateway modal overlay ─────────────────────────────────────
    ═══════════════════════════════════════════════════════════════ */
-.gw-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 1000; display: none; place-items: center; }
+.gw-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: var(--z-modal); display: none; place-items: center; }
 .gw-modal-overlay.open { display: grid; }
 .gw-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; width: 420px; max-width: 90vw; max-height: 80vh; overflow-y: auto; }
 .gw-modal h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--fg); }
@@ -3398,7 +3671,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── Terminal modal overlay ────────────────────────────────────
    ═══════════════════════════════════════════════════════════════ */
-.term-docker-modal, .term-ssh-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 1000; display: none; place-items: center; }
+.term-docker-modal, .term-ssh-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: var(--z-modal); display: none; place-items: center; }
 .term-docker-modal.open, .term-ssh-modal.open { display: grid; }
 .term-config-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; width: 380px; max-width: 90vw; }
 .term-config-form h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--fg); }
@@ -3434,7 +3707,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
    ═══════════════════════════════════════════════════════════════ */
 .tooltip-content {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--z-tooltip);
   padding: 4px 10px;
   border-radius: var(--radius);
   background: var(--fg);
@@ -3888,7 +4161,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* 工作流节点执行状态脉冲动画 */
-@keyframes nodePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.4); } 50% { box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.2); } }
+@keyframes nodePulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 40%, transparent); } 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent); } }
 
 /* 工作流边数据流动画 */
 @keyframes dash { to { stroke-dashoffset: -12; } }
@@ -3939,8 +4212,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* 选框样式 */
 .react-flow__selection {
-  background: rgba(22, 119, 255, 0.08) !important;
-  border: 1px solid rgba(22, 119, 255, 0.4) !important;
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent) !important;
   border-radius: 4px !important;
 }
 
@@ -3958,7 +4231,15 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* DnD drop zone indicator — 拖拽节点入容器时的高亮 */
 .workflow-dnd-drop-target > div:first-child {
-  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.5), 0 0 16px rgba(22, 119, 255, 0.3) !important;
-  border-color: var(--blue-6, #1677ff) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 50%, transparent), 0 0 16px color-mix(in srgb, var(--color-primary) 30%, transparent) !important;
+  border-color: var(--color-primary) !important;
   transition: box-shadow 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+/* ── 宽屏消息内容约束 ─────────────────────────────────── */
+@media (min-width: 1440px) {
+  .chat-main {
+    max-width: 800px;
+    margin: 0 auto;
+  }
 }

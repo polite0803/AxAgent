@@ -28,27 +28,6 @@ pub trait PromptGuard: fmt::Debug + Send + Sync {
     fn process_external_data(&self, content: &str, source_label: &str, source_id: &str) -> String;
 }
 
-/// 空实现 PromptGuard — 什么也不做，直接透传输入。
-///
-/// 在未配置 prompt-guard 时作为默认 fallback 使用。
-#[derive(Debug)]
-pub struct NoopPromptGuard;
-
-impl PromptGuard for NoopPromptGuard {
-    fn process_user_input(&self, input: &str) -> Result<String, String> {
-        Ok(input.to_string())
-    }
-
-    fn process_external_data(
-        &self,
-        content: &str,
-        _source_label: &str,
-        _source_id: &str,
-    ) -> String {
-        content.to_string()
-    }
-}
-
 /// 基于正则模式的 Prompt 注入防护实现。
 ///
 /// 对已知注入攻击模式做匹配并阻断，作为 `axagent-prompt-guard` crate
@@ -133,6 +112,7 @@ impl PromptGuard for PatternPromptGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopPromptGuard;
 
     #[test]
     fn noop_passes_through() {

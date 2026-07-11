@@ -46,14 +46,3 @@ pub trait BenchmarkRunner: Send + Sync {
     async fn run_task(&self, task: &BenchmarkTask) -> Result<TaskResult, String>;
     async fn run_suite(&self, tasks: &[BenchmarkTask]) -> Result<BenchmarkReport, String>;
 }
-#[derive(Default)]
-pub struct NoopBenchmarkRunner;
-#[async_trait]
-impl BenchmarkRunner for NoopBenchmarkRunner {
-    async fn run_task(&self, _: &BenchmarkTask) -> Result<TaskResult, String> {
-        Err("not configured".into())
-    }
-    async fn run_suite(&self, _: &[BenchmarkTask]) -> Result<BenchmarkReport, String> {
-        Err("not configured".into())
-    }
-}

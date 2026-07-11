@@ -472,12 +472,9 @@ fn slugify(text: &str) -> String {
         .join("-")
 }
 
-#[allow(dead_code)]
 pub(crate) struct SkillOptimizer {
     min_usages_for_analysis: u32,
-    #[allow(dead_code)]
     improvement_threshold: f64,
-    #[allow(dead_code)]
     quality_threshold: f64,
 }
 
@@ -487,7 +484,6 @@ impl Default for SkillOptimizer {
     }
 }
 
-#[allow(dead_code)]
 impl SkillOptimizer {
     pub fn new() -> Self {
         Self::default()
@@ -640,14 +636,12 @@ impl SkillOptimizer {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub(crate) enum Impact {
     High,
     Medium,
     Low,
 }
 
-#[allow(dead_code)]
 impl Impact {
     fn to_confidence(self) -> f64 {
         match self {
@@ -659,7 +653,6 @@ impl Impact {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillAnalysis {
     pub skill_id: String,
     pub suggestions: Vec<String>,
@@ -668,7 +661,6 @@ pub(crate) struct SkillAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillAnalytics {
     pub total_executions: u32,
     pub success_rate: f64,
@@ -676,7 +668,6 @@ pub(crate) struct SkillAnalytics {
     pub recent_executions: u32,
 }
 
-#[allow(dead_code)]
 pub(crate) struct SkillCreator {
     min_tool_calls: usize,
     complexity_threshold: TaskComplexity,
@@ -688,7 +679,6 @@ impl Default for SkillCreator {
     }
 }
 
-#[allow(dead_code)]
 impl SkillCreator {
     pub(crate) fn new() -> Self {
         Self::default()
@@ -709,7 +699,6 @@ impl SkillCreator {
         complexity >= self.complexity_threshold
     }
 
-    #[allow(dead_code)]
     fn assess_complexity(&self, trajectory: &Trajectory) -> TaskComplexity {
         let tool_count: usize =
             trajectory.steps.iter().filter_map(|s| s.tool_calls.as_ref().map(|c| c.len())).sum();
@@ -758,7 +747,6 @@ impl SkillCreator {
         }
     }
 
-    #[allow(dead_code)]
     fn generate_skill_name(&self, topic: &str) -> String {
         let words: Vec<&str> = topic.split_whitespace().take(3).collect();
         let base = words.join("-");

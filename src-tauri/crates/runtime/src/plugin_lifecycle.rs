@@ -4,8 +4,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::RuntimePluginConfig;
 use crate::mcp_tool_bridge::{McpResourceInfo, McpToolInfo};
+use axagent_runtime_core::config::RuntimePluginConfig;
 
 fn now_secs() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()

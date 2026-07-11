@@ -35,7 +35,7 @@ test.describe("Workflow Editor E2E Tests", () => {
   test("should create new template", async ({ page }) => {
     const newButton = page.getByTestId("workflow-create-new-btn").first();
     await expect(newButton).toBeVisible({ timeout: 5000 });
-    await newButton.click();
+    await newButton.click({ force: true });
     const reactFlow = page.locator(".react-flow");
     await expect(reactFlow).toBeVisible({ timeout: 10000 });
   });

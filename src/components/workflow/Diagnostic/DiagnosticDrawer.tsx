@@ -147,9 +147,11 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
                       </span>
                     }
                     value={summary[sev]}
-                    valueStyle={{
-                      fontSize: 18,
-                      color: sev === "error" ? "#ef4444" : sev === "warning" ? "#f59e0b" : "#3b82f6",
+                    styles={{
+                      content: {
+                        fontSize: 18,
+                        color: sev === "error" ? "#ef4444" : sev === "warning" ? "#f59e0b" : "#3b82f6",
+                      },
                     }}
                   />
                 </div>

@@ -44,6 +44,8 @@ export function SkillSandboxContainer({
   const apiBridgeRef = useRef<HostApiBridge | null>(null);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
+  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  const rpcHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +90,17 @@ export function SkillSandboxContainer({
         message: string,
         type: "info" | "success" | "warning" | "error" = "info",
       ): void => {
-        notification[type]({ message, placement: "bottomRight" });
+        // P3-2.25: 对齐 antd NotificationArgsProps：error 类型将 message
+        // 作为 description 传递，避免标题截断；其他类型使用 message 作为标题
+        if (type === "error") {
+          notification.error({
+            message: i18n.t("skill.error") || "Error",
+            description: message,
+            placement: "bottomRight",
+          });
+        } else {
+          notification[type]({ message, placement: "bottomRight" });
+        }
       },
       getTheme: (): "light" | "dark" => {
         try {
@@ -247,23 +259,25 @@ export function SkillSandboxContainer({
           window.removeEventListener("message", messageHandler);
           window.addEventListener("message", handleRpc);
         } else if (msg?.type === "skill:error") {
-          logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
+          logIpcError(i18n.t("skill.runtimeError", { name: skillName }))(msg.error);
         }
       };
+      messageHandlerRef.current = messageHandler;
 
       const handleRpc = (event: MessageEvent) => {
         const msg = event.data;
         if (msg?.type === "rpc:request" && apiBridgeRef.current) {
           apiBridgeRef.current.handleRpcRequest(msg);
         } else if (msg?.type === "skill:error") {
-          logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
+          logIpcError(i18n.t("skill.runtimeError", { name: skillName }))(msg.error);
         }
       };
+      rpcHandlerRef.current = handleRpc;
 
       window.addEventListener("message", messageHandler);
       iframe.srcdoc = finalHtml;
     } catch (e) {
-      logIpcError(`加载 Skill "${skillName}"`)(e);
+      logIpcError(i18n.t("skill.loadFailed", { name: skillName }))(e);
       setError(String(e));
       setLoading(false);
       if (loadTimerRef.current) {
@@ -282,6 +296,14 @@ export function SkillSandboxContainer({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSandbox();
     return () => {
+      if (messageHandlerRef.current) {
+        window.removeEventListener("message", messageHandlerRef.current);
+        messageHandlerRef.current = null;
+      }
+      if (rpcHandlerRef.current) {
+        window.removeEventListener("message", rpcHandlerRef.current);
+        rpcHandlerRef.current = null;
+      }
       if (bridgeRef.current) {
         bridgeRef.current.destroy();
       }

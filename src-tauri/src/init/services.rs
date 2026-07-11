@@ -476,11 +476,11 @@ fn start_rl_reward_computation(state: &AppState) {
     let rl_engine = state.rl_engine.clone();
     let insight_system = state.insight_system.clone();
     let process_reward_model = state.process_reward_model.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             {
                 let mut rl = rl_engine.write().await;
@@ -695,13 +695,13 @@ fn start_skill_evolution(state: &AppState) {
     let constitution = state.constitution.clone();
     let intrinsic_motivation = state.intrinsic_motivation.clone();
     let coevolution_env = state.coevolution_env.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
-            let mut engine = skill_evolution_engine.lock().await;
+            let engine = skill_evolution_engine.lock().await;
             engine.set_llm_provider(std::sync::Arc::new(bridge));
             drop(engine);
             tracing::info!("[evolution] LLM provider injected into SkillEvolutionEngine");
@@ -962,11 +962,11 @@ fn start_memory_decay_tick(state: &AppState) {
 fn start_auto_tool_observation(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let auto_tool_creator = state.auto_tool_creator.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             let mut atc = auto_tool_creator.lock().await;
             atc.set_llm_provider(Box::new(bridge));
@@ -1035,11 +1035,11 @@ fn start_auto_tool_observation(state: &AppState) {
 fn start_text_grad_analysis(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let text_grad_engine = state.text_grad_engine.clone();
-    let db = state.harness.db().clone();
+    let _db = state.harness.db().clone();
     let master_key = state.harness.master_key_owned();
     tauri::async_runtime::spawn(async move {
         if let Some(bridge) =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&db, &master_key).await
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             let mut engine = text_grad_engine.lock().await;
             engine.set_provider(bridge);
@@ -1088,7 +1088,7 @@ fn start_text_grad_analysis(state: &AppState) {
                                 format!(
                                     "Task failed: {} - last step: {}",
                                     topic,
-                                    &last_step.content.chars().take(100).collect::<String>()
+                                    last_step.content.chars().take(100).collect::<String>()
                                 )
                             },
                             axagent_trajectory::TrajectoryOutcome::Partial => {
@@ -1147,7 +1147,7 @@ fn start_cron_scheduler(state: &AppState) {
                             std::sync::Arc::new(move |tn: String, args: serde_json::Value| {
                                 let registry = registry.clone();
                                 Box::pin(async move {
-                                    let mut reg = registry.lock().await;
+                                    let reg = registry.lock().await;
                                     let input_str = serde_json::to_string(&args)
                                         .unwrap_or_else(|_| "{}".to_string());
                                     match reg.execute(&tn, &input_str).await {

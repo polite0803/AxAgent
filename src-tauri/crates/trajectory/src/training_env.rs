@@ -73,12 +73,10 @@ pub struct EvaluationResult {
     pub metadata: HashMap<String, serde_json::Value>,
 }
 
-#[allow(dead_code)]
 pub(crate) struct TrainingEnv {
     tasks: Vec<TaskDefinition>,
 }
 
-#[allow(dead_code)]
 impl TrainingEnv {
     pub(crate) fn new(tasks: Vec<TaskDefinition>) -> Self {
         Self { tasks }

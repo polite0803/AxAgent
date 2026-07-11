@@ -62,7 +62,7 @@ impl TerminalBackend for LocalBackend {
 
     async fn disconnect(&self) -> anyhow::Result<()> {
         let sessions = self.sessions.read().await;
-        for (_, session) in sessions.iter() {
+        for session in sessions.values() {
             let mut s = session.lock().await;
             let _ = s.child.kill();
         }

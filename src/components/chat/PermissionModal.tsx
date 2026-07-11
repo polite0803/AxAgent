@@ -360,7 +360,7 @@ export const PermissionModal: React.FC = () => {
                 margin: 0,
                 padding: 10,
                 fontSize: 12,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                 backgroundColor: "var(--ant-color-fill-tertiary)",
                 borderRadius: 6,
                 whiteSpace: "pre-wrap",
@@ -379,7 +379,7 @@ export const PermissionModal: React.FC = () => {
               ellipsis={{ rows: 2 }}
               style={{
                 fontSize: 12,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                 backgroundColor: "var(--ant-color-fill-tertiary)",
                 padding: "6px 10px",
                 borderRadius: 6,

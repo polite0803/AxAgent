@@ -16,11 +16,12 @@ use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
 use crate::{Tool, ToolCategory, ToolError, ToolErrorKind, ToolInfo, ToolResult};
 use async_trait::async_trait;
-use axagent_runtime_core::ToolExecutor as RuntimeToolExecutor;
+use axagent_harness::ToolExecutionAudit;
+use axagent_harness::runtime_types::conversation::ToolExecutor as RuntimeToolExecutor;
 // serde_json::Value used for JSON Schema in MCP tool configs
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 pub type SkillToolHandler = Box<dyn Fn(&str) -> Result<String, crate::ToolError> + Send + Sync>;
@@ -359,7 +360,10 @@ pub struct UnifiedToolRegistry {
     /// 使用统计
     pub usage_stats: ToolUsageStats,
     /// 权限策略（集成到执行路径）
-    pub permission_policy: PermissionPolicy,
+    ///
+    /// 用 `Arc<Mutex<..>>` 包裹以支持 `&self` 执行路径：trait `ToolRegistry::execute_tool`
+    /// 仅持有 `&self`，而 `PermissionPolicy::authorize` 需可变访问内部 `DenialTracker`。
+    pub permission_policy: Arc<Mutex<PermissionPolicy>>,
     /// Hook 注册表（集成到执行路径）
     pub hook_registry: HookRegistry,
     /// 工具调用审计器
@@ -468,7 +472,9 @@ impl UnifiedToolRegistry {
             groups: ToolGroupManager::new(),
             recorder: None,
             usage_stats: ToolUsageStats::new(),
-            permission_policy: PermissionPolicy::new(PermissionMode::WorkspaceWrite),
+            permission_policy: Arc::new(Mutex::new(PermissionPolicy::new(
+                PermissionMode::WorkspaceWrite,
+            ))),
             hook_registry: HookRegistry::new(),
             auditor: Arc::new(ToolAuditor::default()),
             sandbox: Self::default_sandbox(&working_dir),
@@ -491,17 +497,19 @@ impl UnifiedToolRegistry {
         crate::tools::register_all(&mut self.tools);
 
         // 配置默认工具级权限要求
-        self.permission_policy = PermissionPolicy::new(PermissionMode::WorkspaceWrite)
-            .with_tool_requirement("FileRead", PermissionMode::ReadOnly)
-            .with_tool_requirement("Glob", PermissionMode::ReadOnly)
-            .with_tool_requirement("Grep", PermissionMode::ReadOnly)
-            .with_tool_requirement("WebFetch", PermissionMode::ReadOnly)
-            .with_tool_requirement("WebSearch", PermissionMode::ReadOnly)
-            .with_tool_requirement("FileWrite", PermissionMode::WorkspaceWrite)
-            .with_tool_requirement("FileEdit", PermissionMode::WorkspaceWrite)
-            .with_tool_requirement("Bash", PermissionMode::DangerFullAccess)
-            .with_tool_requirement("NotebookEdit", PermissionMode::WorkspaceWrite)
-            .with_tool_requirement("ComputerUse", PermissionMode::DangerFullAccess);
+        self.permission_policy = Arc::new(Mutex::new(
+            PermissionPolicy::new(PermissionMode::WorkspaceWrite)
+                .with_tool_requirement("FileRead", PermissionMode::ReadOnly)
+                .with_tool_requirement("Glob", PermissionMode::ReadOnly)
+                .with_tool_requirement("Grep", PermissionMode::ReadOnly)
+                .with_tool_requirement("WebFetch", PermissionMode::ReadOnly)
+                .with_tool_requirement("WebSearch", PermissionMode::ReadOnly)
+                .with_tool_requirement("FileWrite", PermissionMode::WorkspaceWrite)
+                .with_tool_requirement("FileEdit", PermissionMode::WorkspaceWrite)
+                .with_tool_requirement("Bash", PermissionMode::DangerFullAccess)
+                .with_tool_requirement("NotebookEdit", PermissionMode::WorkspaceWrite)
+                .with_tool_requirement("ComputerUse", PermissionMode::DangerFullAccess),
+        ));
     }
 
     /// 已启用工具总数（排除禁用的）
@@ -523,8 +531,8 @@ impl UnifiedToolRegistry {
     /// 之前在 `commands/agent.rs`、`commands/plan.rs` 都有
     /// `with_recorder(ToolExecutionRecorder::new(Arc::new(db.clone())))` 的 2 步链重复。
     /// 收敛为单步。
-    pub fn with_recorder_from_db(mut self, db: &sea_orm::DatabaseConnection) -> Self {
-        self.recorder = Some(ToolExecutionRecorder::new(Arc::new(db.clone())));
+    pub fn with_recorder_from_db(mut self, _db: &sea_orm::DatabaseConnection) -> Self {
+        self.recorder = Some(ToolExecutionRecorder::new());
         self
     }
 
@@ -666,10 +674,10 @@ impl UnifiedToolRegistry {
     }
 
     /// 从 DB 加载工具组启用状态及单工具禁用列表
-    pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
+    pub async fn load_enabled_state(&mut self, _db: &sea_orm::DatabaseConnection) {
         // 加载分类启用状态
         let key = "tool_groups_enabled";
-        let result = axagent_dao::repo::settings::get_setting(db, key).await;
+        let result = axagent_harness::repositories::settings_repository().get_setting(key).await;
 
         if let Ok(Some(value)) = result
             && let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&value)
@@ -679,7 +687,8 @@ impl UnifiedToolRegistry {
 
         // 加载单工具禁用列表
         let dt_key = "disabled_tools";
-        let dt_result = axagent_dao::repo::settings::get_setting(db, dt_key).await;
+        let dt_result =
+            axagent_harness::repositories::settings_repository().get_setting(dt_key).await;
 
         if let Ok(Some(value)) = dt_result
             && let Ok(list) = serde_json::from_str::<Vec<String>>(&value)
@@ -741,7 +750,7 @@ impl UnifiedToolRegistry {
     /// 切换工具组启用状态并持久化到 DB
     pub async fn toggle_group(
         &mut self,
-        db: &sea_orm::DatabaseConnection,
+        _db: &sea_orm::DatabaseConnection,
         gid: &str,
     ) -> Result<bool, String> {
         let current = self.groups.group_enabled.get(gid).copied().unwrap_or(true);
@@ -751,7 +760,8 @@ impl UnifiedToolRegistry {
         let key = "tool_groups_enabled";
         let serialized =
             serde_json::to_string(&self.groups.group_enabled).map_err(|e| e.to_string())?;
-        axagent_dao::repo::settings::set_setting(db, key, &serialized)
+        axagent_harness::repositories::settings_repository()
+            .set_setting(key, &serialized)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -761,7 +771,7 @@ impl UnifiedToolRegistry {
     /// 切换单个工具启用状态并持久化到 DB
     pub async fn toggle_tool(
         &mut self,
-        db: &sea_orm::DatabaseConnection,
+        _db: &sea_orm::DatabaseConnection,
         tool_name: &str,
     ) -> Result<bool, String> {
         let currently_disabled = self.groups.disabled_tools.contains(tool_name);
@@ -777,7 +787,8 @@ impl UnifiedToolRegistry {
         let serialized =
             serde_json::to_string(&self.groups.disabled_tools.iter().collect::<Vec<_>>())
                 .map_err(|e| e.to_string())?;
-        axagent_dao::repo::settings::set_setting(db, key, &serialized)
+        axagent_harness::repositories::settings_repository()
+            .set_setting(key, &serialized)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -896,7 +907,7 @@ impl UnifiedToolRegistry {
 
     /// 执行工具（统一入口，集成权限 + Hook）
     pub async fn execute(
-        &mut self,
+        &self,
         tool_name: &str,
         input: &str,
     ) -> Result<ToolResult, crate::ToolError> {
@@ -912,7 +923,8 @@ impl UnifiedToolRegistry {
         let sanitized_input = self.auditor.sanitize_input(input);
 
         // ── 权限检查（集成 PermissionPolicy） ──
-        let decision = self.permission_policy.authorize(tool_name, &sanitized_input);
+        let decision =
+            self.permission_policy.lock().unwrap().authorize(tool_name, &sanitized_input);
         if decision.is_denied() {
             return Err(ToolError::permission_denied(tool_name, &decision.reason));
         }
@@ -1181,14 +1193,14 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
         match tokio::runtime::Handle::try_current() {
             Ok(handle) => tokio::task::block_in_place(|| {
                 handle.block_on(async {
-                    match self.execute(tool_name, input).await {
+                    match UnifiedToolRegistry::execute(self, tool_name, input).await {
                         Ok(r) => Ok(r.content),
                         Err(e) => Err(e),
                     }
                 })
             }),
             Err(_) => fallback_runtime().block_on(async {
-                match self.execute(tool_name, input).await {
+                match UnifiedToolRegistry::execute(self, tool_name, input).await {
                     Ok(r) => Ok(r.content),
                     Err(e) => Err(e),
                 }
@@ -1201,7 +1213,23 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
 // Harness ToolRegistry trait 实现（含 MCP + 禁用状态）
 // ============================================================
 
+#[async_trait::async_trait]
 impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
+    /// 重写 `execute_tool`：委托到完整 `execute`（含限流 / 输入脱敏 / 权限 /
+    /// PreToolUse·PostToolUse Hook / 审计），覆盖 harness 默认薄实现。
+    ///
+    /// 修复 rt-workflow / agent 等资源经 `Arc<dyn ToolRegistry>` 调用时
+    /// 缺失横切安全能力的问题（P4）。
+    async fn execute_tool(
+        &self,
+        name: &str,
+        input: serde_json::Value,
+        _ctx: &axagent_harness::tool::ToolContext,
+    ) -> Result<ToolResult, crate::ToolError> {
+        let input_str = input.to_string();
+        self.execute(name, &input_str).await
+    }
+
     fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
         self.tools.get(name)
     }

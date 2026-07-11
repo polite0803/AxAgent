@@ -16,85 +16,11 @@ fn compact_direct_resume_instruction(provider: &dyn PromptProvider) -> &'static 
     provider.get("compact.resume_instruction", PromptLang::EnUS)
 }
 
-/// Thresholds controlling when and how a session is compacted.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CompactionConfig {
-    pub preserve_recent_messages: usize,
-    pub max_estimated_tokens: usize,
-    /// Whether to extract per-turn summaries during compaction.
-    pub enable_turn_summaries: bool,
-    /// Whether to apply distance-based relevance decay when scoring messages.
-    pub enable_distance_decay: bool,
-    /// Whether to automatically clean up context after a task boundary is detected.
-    pub enable_task_boundary_cleanup: bool,
-    /// Maximum age (in turns from the end) before messages are aggressively pruned.
-    pub max_turn_age: Option<usize>,
-}
-
-impl Default for CompactionConfig {
-    fn default() -> Self {
-        Self {
-            // Preserve 12 recent messages (up from 4) to keep enough context
-            // for multi-step agent workflows. 4 messages could lose critical
-            // decisions or file paths from just one tool-call round.
-            preserve_recent_messages: 12,
-            // Raise threshold to 80K tokens (from 10K). Modern LLMs have
-            // 128K-200K context windows; 10K was too aggressive and caused
-            // premature compaction that lost important context.
-            max_estimated_tokens: 80_000,
-            enable_turn_summaries: true,
-            enable_distance_decay: true,
-            enable_task_boundary_cleanup: true,
-            max_turn_age: Some(50),
-        }
-    }
-}
-
-/// 紧急压缩配置：熔断器触发后的超激进模式。
-///
-/// 仅保留 1 条最近消息，目标 5K tokens，尽可能腾出空间。
-/// 参考 nomifun-tauri 的 emergency/micro 三级压缩设计。
-#[must_use]
-pub fn emergency_compaction_config() -> CompactionConfig {
-    CompactionConfig {
-        preserve_recent_messages: 1,
-        max_estimated_tokens: 5_000,
-        enable_turn_summaries: true,
-        enable_distance_decay: true,
-        enable_task_boundary_cleanup: true,
-        max_turn_age: Some(5),
-    }
-}
-
-/// Result of compacting a session into a summary plus preserved tail messages.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompactionResult {
-    pub summary: String,
-    pub formatted_summary: String,
-    pub compacted_session: Session,
-    pub removed_message_count: usize,
-}
-
-/// Roughly estimates the token footprint of the current session transcript.
-#[must_use]
-pub fn estimate_session_tokens(session: &Session) -> usize {
-    session.messages.iter().map(estimate_message_tokens).sum()
-}
-
-/// Returns `true` when the session exceeds the configured compaction budget.
-#[must_use]
-pub fn should_compact(
-    session: &Session,
-    config: CompactionConfig,
-    provider: &dyn PromptProvider,
-) -> bool {
-    let start = compacted_summary_prefix_len(session, provider);
-    let compactable = &session.messages[start..];
-
-    compactable.len() > config.preserve_recent_messages
-        && compactable.iter().map(estimate_message_tokens).sum::<usize>()
-            >= config.max_estimated_tokens
-}
+/// CompactionConfig — 权威源在 `axagent_harness::runtime_types::compact`
+pub use axagent_harness::runtime_types::compact::{
+    CompactionConfig, CompactionResult, emergency_compaction_config, estimate_message_tokens,
+    estimate_session_tokens, should_compact,
+};
 
 /// 使用多层阈值系统判断是否需要压缩（增强版）。
 ///
@@ -362,16 +288,6 @@ pub fn compact_session(
     result
 }
 
-fn compacted_summary_prefix_len(session: &Session, provider: &dyn PromptProvider) -> usize {
-    usize::from(
-        session
-            .messages
-            .first()
-            .and_then(|msg| extract_existing_compacted_summary(msg, provider))
-            .is_some(),
-    )
-}
-
 fn summarize_messages(messages: &[ConversationMessage]) -> String {
     let user_messages = messages.iter().filter(|message| message.role == MessageRole::User).count();
     let assistant_messages =
@@ -600,20 +516,6 @@ fn truncate_summary(content: &str, max_chars: usize) -> String {
 /// Uses character-based heuristics: ~4 chars per token for text,
 /// with per-block computation for structured content.
 #[must_use]
-pub fn estimate_message_tokens(message: &ConversationMessage) -> usize {
-    message
-        .blocks
-        .iter()
-        .map(|block| match block {
-            ContentBlock::Text { text } => text.len() / 4 + 1,
-            ContentBlock::ToolUse { name, input, .. } => (name.len() + input.len()) / 4 + 1,
-            ContentBlock::ToolResult { tool_name, output, .. } => {
-                (tool_name.len() + output.len()) / 4 + 1
-            },
-        })
-        .sum()
-}
-
 fn extract_tag_block(content: &str, tag: &str) -> Option<String> {
     let start = format!("<{tag}>");
     let end = format!("</{tag}>");
@@ -886,7 +788,9 @@ mod tests {
         CompactionConfig, collect_key_files, compact_session, format_compact_summary,
         get_compact_continuation_message, infer_pending_work, should_compact,
     };
-    use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
+    use crate::session::{
+        ContentBlock, ConversationMessage, ConversationMessageExt, MessageRole, Session,
+    };
     use axagent_harness::prompt_provider::NoopPromptProvider;
 
     const NP: &NoopPromptProvider = &NoopPromptProvider;

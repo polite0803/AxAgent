@@ -189,7 +189,10 @@ export function WikiRetrievalNode(
               </span>
               {item.id && <span style={{ opacity: 0.5 }}>#{item.id.slice(0, 6)}</span>}
               <span
-                style={{ color: token.colorPrimary, fontFamily: "monospace" }}
+                style={{
+                  color: token.colorPrimary,
+                  fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
+                }}
               >
                 {(1 / (1 + item.score)).toFixed(3)}
               </span>

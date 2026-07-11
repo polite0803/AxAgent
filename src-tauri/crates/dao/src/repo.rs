@@ -3,6 +3,7 @@
 pub mod agent_profile;
 pub mod agent_role;
 pub mod agent_session;
+pub mod agent_session_repo;
 pub mod artifact;
 pub mod backup;
 pub mod cli_config;
@@ -42,5 +43,11 @@ pub mod workflow_template;
 
 pub mod louvain;
 pub mod note;
+pub mod note_backlink_repository;
 pub mod note_graph;
+pub mod note_repository;
 pub mod wiki;
+pub mod wiki_operation_repository;
+pub mod wiki_page_repository;
+pub mod wiki_repository;
+pub mod wiki_source_repository;

@@ -58,6 +58,47 @@ import { WorkflowSuggestionCard } from "./WorkflowSuggestionCard";
 
 import { useChatViewMessages } from "./ChatViewMessages";
 import { StreamingStyles } from "./ChatViewStreaming";
+
+// Memoized to ensure style tags inject only once
+const MemoizedStreamingStyles = React.memo(StreamingStyles);
+
+/** IntersectionObserver-based lazy bubble wrapper for long message lists */
+const LAZY_BUBBLE_ROOT_MARGIN = "300px";
+const LAZY_BUBBLE_MIN_HEIGHT = 60;
+
+const LazyBubble = React.memo(function LazyBubble({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: LAZY_BUBBLE_ROOT_MARGIN },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} style={{ minHeight: visible ? undefined : LAZY_BUBBLE_MIN_HEIGHT }}>
+      {visible ? children : null}
+    </div>
+  );
+});
 import { ChatViewToolbar } from "./ChatViewToolbar";
 import { ChatViewWelcome } from "./ChatViewWelcome";
 import { FilePermissionDialog } from "./FilePermissionDialog";
@@ -319,7 +360,7 @@ function ChatViewInner({
 
   return (
     <div className="ax-cyber-grid flex flex-col h-full min-h-0">
-      <StreamingStyles />
+      <MemoizedStreamingStyles />
       {/* BubbleStyleOverrides removed — using native CSS */}
 
       <ChatViewToolbar
@@ -407,6 +448,7 @@ function ChatViewInner({
         role="log"
         aria-live="polite"
         aria-atomic="false"
+        aria-relevant="additions"
         aria-label={t("chat.messageArea")}
         style={{ display: "flex", flexDirection: "column" }}
       >
@@ -450,13 +492,13 @@ function ChatViewInner({
                   minHeight: 0,
                   padding: settings.chat_minimap_enabled
                       && settings.chat_minimap_style === "sticky"
-                    ? "50px 24px 16px 24px"
-                    : "16px 24px",
+                    ? "40px 16px 8px 16px"
+                    : "8px 16px",
                   overflowX: "hidden",
                   overflowY: "auto",
                   display: "flex",
                   flexDirection: "column-reverse",
-                  gap: 10,
+                  gap: "4px",
                 }}
               >
                 {msgState.visibleBubbleItems.map((item) => {
@@ -464,7 +506,7 @@ function ChatViewInner({
                   if (!roleFn) { return null; }
                   const rendered = roleFn(item);
                   const variantClass = rendered.variant ? `bubble-${rendered.variant}` : "";
-                  return (
+                  const bubbleNode = (
                     <div
                       key={item.key}
                       className={rendered.className ?? `msg-row ${rendered.placement === "end" ? "user" : "assistant"}`}
@@ -484,6 +526,15 @@ function ChatViewInner({
                       </div>
                     </div>
                   );
+                  // Only use lazy rendering for large lists (>20 items)
+                  if (messages.length > 20) {
+                    return (
+                      <LazyBubble key={item.key}>
+                        {bubbleNode}
+                      </LazyBubble>
+                    );
+                  }
+                  return bubbleNode;
                 })}
                 {activeConversation?.session_type === "workflow"
                   && activeConversation?.workflow_status === "completed" && (

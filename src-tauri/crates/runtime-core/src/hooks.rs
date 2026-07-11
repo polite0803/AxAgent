@@ -10,7 +10,6 @@ use std::sync::{
 use std::thread;
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::config::{RuntimeFeatureConfig, RuntimeHookConfig};
@@ -18,116 +17,14 @@ use crate::permissions::PermissionOverride;
 
 pub type HookPermissionDecision = PermissionOverride;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum HookEvent {
-    // 已有 — 工具生命周期
-    PreToolUse,
-    PostToolUse,
-    PostToolUseFailure,
-    // 已有 — 通用
-    Notification,
-    UserPromptSubmit,
-    SessionStart,
-    SessionEnd,
-    Stop,
-    // 新增 — 子 Agent 生命周期
-    SubagentStart,
-    SubagentStop,
-    // 新增 — 上下文管理
-    PreCompact,
-    PostCompact,
-    // 新增 — 队友事件
-    TeammateIdle,
-    // 新增 — 任务事件
-    TaskCreated,
-    TaskCompleted,
-    // 新增 — 交互事件
-    Elicitation,
-    ElicitationResult,
-    // 新增 — 配置事件
-    ConfigChange,
-    // 新增 — 指令事件
-    InstructionsLoaded,
-    // 新增 — 文件监控
-    FileChanged,
-    CwdChanged,
-    // 新增 — 权限事件
-    PermissionRequest,
-    PermissionDenied,
-    // 新增 — Worktree 事件
-    WorktreeCreate,
-    WorktreeRemove,
-    // 新增 — 失败事件
-    StopFailure,
-}
+// HookEvent — 权威源在 `axagent_harness::runtime_types::hooks`
+pub use axagent_harness::runtime_types::hooks::HookEvent;
 
-impl HookEvent {
-    #[must_use]
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::PreToolUse => "PreToolUse",
-            Self::PostToolUse => "PostToolUse",
-            Self::PostToolUseFailure => "PostToolUseFailure",
-            Self::Notification => "Notification",
-            Self::UserPromptSubmit => "UserPromptSubmit",
-            Self::SessionStart => "SessionStart",
-            Self::SessionEnd => "SessionEnd",
-            Self::Stop => "Stop",
-            Self::StopFailure => "StopFailure",
-            Self::SubagentStart => "SubagentStart",
-            Self::SubagentStop => "SubagentStop",
-            Self::PreCompact => "PreCompact",
-            Self::PostCompact => "PostCompact",
-            Self::TeammateIdle => "TeammateIdle",
-            Self::TaskCreated => "TaskCreated",
-            Self::TaskCompleted => "TaskCompleted",
-            Self::Elicitation => "Elicitation",
-            Self::ElicitationResult => "ElicitationResult",
-            Self::ConfigChange => "ConfigChange",
-            Self::InstructionsLoaded => "InstructionsLoaded",
-            Self::FileChanged => "FileChanged",
-            Self::CwdChanged => "CwdChanged",
-            Self::PermissionRequest => "PermissionRequest",
-            Self::PermissionDenied => "PermissionDenied",
-            Self::WorktreeCreate => "WorktreeCreate",
-            Self::WorktreeRemove => "WorktreeRemove",
-        }
-    }
+// HookProgressEvent — 权威源在 harness
+pub use axagent_harness::runtime_types::hooks::HookProgressEvent;
 
-    /// 是否为工具相关事件
-    #[must_use]
-    pub fn is_tool_event(self) -> bool {
-        matches!(self, Self::PreToolUse | Self::PostToolUse | Self::PostToolUseFailure)
-    }
-
-    /// 是否为会话生命周期事件
-    #[must_use]
-    pub fn is_session_event(self) -> bool {
-        matches!(self, Self::SessionStart | Self::SessionEnd)
-    }
-
-    /// 是否为子 agent 事件
-    #[must_use]
-    pub fn is_subagent_event(self) -> bool {
-        matches!(self, Self::SubagentStart | Self::SubagentStop)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HookProgressEvent {
-    Started { event: HookEvent, tool_name: String, command: String, tool_use_id: Option<String> },
-    Completed { event: HookEvent, tool_name: String, command: String, tool_use_id: Option<String> },
-    Cancelled { event: HookEvent, tool_name: String, command: String, tool_use_id: Option<String> },
-}
-
-pub trait HookProgressReporter: Send + Sync {
-    fn on_event(&mut self, event: &HookProgressEvent);
-
-    /// Called periodically during agent execution to report overall progress.
-    /// The frontend uses this to reset its watchdog timer.
-    /// Default implementation is a no-op for backward compatibility.
-    fn on_progress(&mut self, _message: &str, _iteration: usize, _total: usize) {}
-}
+// HookProgressReporter — 权威源在 harness
+pub use axagent_harness::runtime_types::hooks::HookProgressReporter;
 
 #[derive(Debug, Clone, Default)]
 pub struct HookAbortSignal {

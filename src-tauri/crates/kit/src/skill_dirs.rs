@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::path::PathBuf;
-use std::sync::LazyLock;
+use std::sync::RwLock;
 
 const SKILL_DIR_PRIORITY: &[&str] =
     &["axagent", "claude", "trae", "codebuddy", "workbuddy", "agents"];
-
-static EXTERNAL_DIRS: LazyLock<Vec<PathBuf>> = LazyLock::new(load_external_dirs_from_config);
 
 fn load_external_dirs_from_config() -> Vec<PathBuf> {
     let home = dirs::home_dir().unwrap_or_default();
@@ -46,7 +44,7 @@ fn expand_path(input: &str) -> PathBuf {
     PathBuf::from(env_expanded)
 }
 
-static SKILL_DIRS: LazyLock<Vec<(String, PathBuf)>> = LazyLock::new(|| {
+fn compute_skill_dirs(external_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
     let home = dirs::home_dir().unwrap_or_default();
     let mut dirs: Vec<(String, PathBuf)> = SKILL_DIR_PRIORITY
         .iter()
@@ -60,7 +58,7 @@ static SKILL_DIRS: LazyLock<Vec<(String, PathBuf)>> = LazyLock::new(|| {
         })
         .collect();
 
-    for ext_dir in EXTERNAL_DIRS.iter() {
+    for ext_dir in external_dirs {
         let label = ext_dir
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -69,16 +67,64 @@ static SKILL_DIRS: LazyLock<Vec<(String, PathBuf)>> = LazyLock::new(|| {
     }
 
     dirs
-});
+}
 
-pub fn skill_dirs() -> Vec<(&'static str, PathBuf)> {
-    SKILL_DIRS.iter().map(|(label, dir)| (label.as_str(), dir.clone())).collect()
+/// RwLock-backed skill directory registry supporting hot reload.
+/// Replaces the previous `LazyLock` static with a mutable store so that
+/// external directories can be re-scanned without restarting.
+static SKILL_DIRS: RwLock<Option<Vec<(String, PathBuf)>>> = RwLock::new(None);
+static EXTERNAL_DIRS: RwLock<Option<Vec<PathBuf>>> = RwLock::new(None);
+
+fn init_if_needed() {
+    {
+        let dirs = SKILL_DIRS.read().unwrap();
+        if dirs.is_some() {
+            return;
+        }
+    }
+    let mut dirs = SKILL_DIRS.write().unwrap();
+    if dirs.is_some() {
+        return;
+    }
+    let ext = load_external_dirs_from_config();
+    *EXTERNAL_DIRS.write().unwrap() = Some(ext.clone());
+    *dirs = Some(compute_skill_dirs(&ext));
+}
+
+/// Reload skill directories from config. Useful when new skill sources are
+/// added at runtime (e.g., marketplace installs a skill into a new directory)
+/// without restarting the application.
+///
+/// Returns the new set of (label, path) pairs.
+pub fn reload_skill_dirs() -> Vec<(String, PathBuf)> {
+    let ext = load_external_dirs_from_config();
+    let computed = compute_skill_dirs(&ext);
+    *EXTERNAL_DIRS.write().unwrap() = Some(ext);
+    *SKILL_DIRS.write().unwrap() = Some(computed.clone());
+    computed
+}
+
+pub fn skill_dirs() -> Vec<(String, PathBuf)> {
+    init_if_needed();
+    SKILL_DIRS
+        .read()
+        .unwrap()
+        .as_ref()
+        .map(|d| d.iter().map(|(label, dir)| (label.clone(), dir.clone())).collect())
+        .unwrap_or_default()
 }
 
 pub fn all_skills_dirs() -> Vec<PathBuf> {
-    SKILL_DIRS.iter().map(|(_, dir)| dir.clone()).collect()
+    init_if_needed();
+    SKILL_DIRS
+        .read()
+        .unwrap()
+        .as_ref()
+        .map(|d| d.iter().map(|(_, dir)| dir.clone()).collect())
+        .unwrap_or_default()
 }
 
 pub fn external_skill_dirs() -> Vec<PathBuf> {
-    EXTERNAL_DIRS.clone()
+    init_if_needed();
+    EXTERNAL_DIRS.read().unwrap().clone().unwrap_or_default()
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::config::{McpServerConfig, ScopedMcpServerConfig};
+use axagent_runtime_core::config::{McpServerConfig, ScopedMcpServerConfig};
 
 const CLAUDEAI_SERVER_PREFIX: &str = "claude.ai ";
 const CCR_PROXY_PATH_MARKERS: [&str; 2] = ["/v2/session_ingress/shttp/mcp/", "/v2/ccr-sessions/"];
@@ -127,7 +127,7 @@ fn render_env_signature(map: &std::collections::BTreeMap<String, String>) -> Str
     map.iter().map(|(key, value)| format!("{key}={value}")).collect::<Vec<_>>().join(";")
 }
 
-fn render_oauth_signature(oauth: Option<&crate::config::McpOAuthConfig>) -> String {
+fn render_oauth_signature(oauth: Option<&axagent_runtime_core::config::McpOAuthConfig>) -> String {
     oauth.map_or_else(String::new, |oauth| {
         format!(
             "{}|{}|{}|{}",
@@ -169,7 +169,7 @@ fn collapse_underscores(value: &str) -> String {
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::config::{
+    use axagent_runtime_core::config::{
         ConfigSource, McpRemoteServerConfig, McpServerConfig, McpStdioServerConfig,
         McpWebSocketServerConfig, ScopedMcpServerConfig,
     };

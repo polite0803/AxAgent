@@ -7,11 +7,8 @@ publish = false
 [dependencies]
 async-trait = "0.1"
 axagent-dao = { path = "../dao" }
-axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
-axagent-kit = { path = "../kit" }
 
-axagent-runtime-core = { path = "../runtime-core" }
 backon = "1.6"
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
@@ -39,6 +36,7 @@ urlencoding = "2.1"
 uuid = { version = "1.6.1", features = ["v4"] }
 
 [dev-dependencies]
+axagent-kit = { path = "../kit" }
 axagent-migration = { path = "../migration" }
 axagent-tools = { path = "../tools" }
 insta = { workspace = true }

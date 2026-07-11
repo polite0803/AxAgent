@@ -27,30 +27,3 @@ pub trait ToolMetricsCollector: Send + Sync {
     async fn tool_stats(&self, tool_name: &str) -> Result<ToolMetricsSnapshot, String>;
     async fn reset(&self);
 }
-#[derive(Default)]
-pub struct NoopToolMetricsCollector;
-#[async_trait]
-impl ToolMetricsCollector for NoopToolMetricsCollector {
-    async fn record_call(&self, _: ToolCallRecord) {}
-    async fn snapshot(&self) -> ToolMetricsSnapshot {
-        ToolMetricsSnapshot {
-            total_calls: 0,
-            success_count: 0,
-            error_count: 0,
-            avg_duration_ms: 0.0,
-            p99_duration_ms: 0.0,
-            calls_by_tool: Vec::new(),
-        }
-    }
-    async fn tool_stats(&self, _: &str) -> Result<ToolMetricsSnapshot, String> {
-        Ok(ToolMetricsSnapshot {
-            total_calls: 0,
-            success_count: 0,
-            error_count: 0,
-            avg_duration_ms: 0.0,
-            p99_duration_ms: 0.0,
-            calls_by_tool: Vec::new(),
-        })
-    }
-    async fn reset(&self) {}
-}

@@ -114,7 +114,7 @@ impl Tool for MemoryFlushTool {
             return Ok(ToolResult::error("Error: content 是必需的"));
         }
 
-        let db = match crate::global_state::get_sea_db() {
+        let _db = match crate::global_state::get_sea_db() {
             Some(db) => db,
             None => {
                 tracing::warn!("MemoryFlush: database not available, content not persisted");
@@ -125,7 +125,7 @@ impl Tool for MemoryFlushTool {
             },
         };
 
-        let namespaces = axagent_dao::repo::memory::list_namespaces(&db).await;
+        let namespaces = axagent_harness::repositories::memory_repository().list_namespaces().await;
         let ns_id = match &namespaces {
             Ok(list) => list
                 .iter()
@@ -151,7 +151,7 @@ impl Tool for MemoryFlushTool {
             source: Some(format!("agent_flush:{}", category)),
         };
 
-        match axagent_dao::repo::memory::add_item(&db, input).await {
+        match axagent_harness::repositories::memory_repository().add_item(input).await {
             Ok(item) => {
                 tracing::info!(
                     "MemoryFlush: persisted item {} to namespace {}",

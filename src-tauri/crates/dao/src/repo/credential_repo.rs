@@ -4,7 +4,7 @@
 //!
 //! The `data_encrypted` column stores the full `Credential` struct as
 //! an AES-256-GCM encrypted JSON blob. Encryption/decryption is handled
-//! by `axagent_harness::credential::CredentialStore`, not here.
+//! by `axagent_credential::CredentialStore`, not here.
 
 use sea_orm::*;
 

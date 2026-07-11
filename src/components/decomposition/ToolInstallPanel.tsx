@@ -96,7 +96,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
                 padding: 8,
                 background: "#f5f5f5",
                 borderRadius: 4,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                 fontSize: 12,
                 whiteSpace: "pre-wrap",
               }}

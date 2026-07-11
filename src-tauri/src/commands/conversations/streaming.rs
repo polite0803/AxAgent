@@ -63,7 +63,9 @@ fn spawn_stream_task(
 
         let future = std::panic::AssertUnwindSafe(async {
             // --- 原始 stream task 主体 ---
-            let registry_key = provider.provider_type.registry_key();
+            let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+                &provider.provider_type,
+            );
             let adapter = match harness.provider_registry().get(registry_key) {
                 Some(a) => a,
                 None => {
@@ -176,7 +178,32 @@ fn spawn_stream_task(
                     store: None,
                 };
 
-                let mut stream = adapter.chat_stream(&ctx, request, None);
+                let llm_config = axagent_runtime_core::LlmCallConfig {
+                    session_id: Some(conversation_id.clone()),
+                    ..Default::default()
+                };
+                let mut stream = match axagent_runtime_core::execute_llm_stream(
+                    &*adapter,
+                    &ctx,
+                    request,
+                    &llm_config,
+                    None,
+                )
+                .await
+                {
+                    Ok(s) => s,
+                    Err(e) => {
+                        let _ = app.emit(
+                            "chat-stream-error",
+                            ChatStreamErrorEvent {
+                                conversation_id: conversation_id.clone(),
+                                message_id: assistant_message_id.clone(),
+                                error: e,
+                            },
+                        );
+                        break;
+                    },
+                };
                 let suppress_thinking = thinking_budget == Some(0);
                 let (content, usage, tool_calls, stream_error, iter_tps, iter_ttft) =
                     consume_stream(
@@ -921,7 +948,10 @@ pub async fn send_message(
     // Resolve proxy config early (needed for both summary generation and main request)
     let global_settings =
         axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &global_settings,
+    );
 
     // Get model info for token budget and param overrides
     // Get model context window for token budget (resolved_model fetched earlier)
@@ -1393,7 +1423,10 @@ pub async fn regenerate_message(
 
     let global_settings =
         axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &global_settings,
+    );
 
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
@@ -1769,7 +1802,10 @@ pub async fn regenerate_with_model(
     let assistant_message_id = axagent_kit::utils::gen_id();
     let global_settings =
         axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &global_settings,
+    );
 
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,

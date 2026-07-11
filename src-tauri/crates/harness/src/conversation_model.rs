@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Conversation model DTOs — dependency-inversion boundary for agent ↔ runtime-core.
+//! Conversation model DTOs — Authoritative source of shared data types.
 //!
-//! These DTOs mirror `axagent_runtime_core` types for `ConversationMessage`,
-//! `ContentBlock`, `TokenUsage`, etc., allowing the agent crate to reference
-//! them without depending on `axagent-runtime-core`.
+//! These are the **canonical** definitions of `ConversationMessage`,
+//! `ContentBlock`, `TokenUsage`, etc.  Downstream crates (runtime-core, agent)
+//! MUST `pub use axagent_harness::*` instead of repeating the definitions.
 //!
-//! Field layouts intentionally match the runtime-core counterparts so that
-//! dependents can migrate with minimal friction.  When the runtime-core types
-//! evolve, these DTOs must be updated together.
+//! Field layouts are the single source of truth.  When the business model
+//! evolves, change them here first.
 
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +20,7 @@ pub use crate::types::MessageRole;
 
 // ── ContentBlock ─────────────────────────────────────────────────────────────
 
-/// Mirrors `axagent_runtime_core::session::ContentBlock`.
+/// Authoritative definition of a content block (text / tool-use / tool-result).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContentBlock {
     Text { text: String },
@@ -31,7 +30,7 @@ pub enum ContentBlock {
 
 // ── ConversationMessage ──────────────────────────────────────────────────────
 
-/// Mirrors `axagent_runtime_core::session::ConversationMessage`.
+/// Authoritative definition of a conversation message (role + content + optional usage).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConversationMessage {
     pub role: MessageRole,
@@ -42,7 +41,13 @@ pub struct ConversationMessage {
 
 // ── TokenUsage ───────────────────────────────────────────────────────────────
 
-/// Mirrors `axagent_runtime_core::usage::TokenUsage`.
+/// Authoritative definition of per-turn / per-session token counters.
+///
+/// Field semantics match runtime-core conventions (DeepSeek-style fields).
+/// - `input_tokens`, `output_tokens`: provider-chargeable totals
+/// - `cache_creation_input_tokens`: prompt caching write tokens
+/// - `cache_read_input_tokens`: prompt caching hit tokens
+/// - `cache_miss_input_tokens`: optional true miss value (DeepSeek-specific)
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TokenUsage {
     pub input_tokens: u32,
@@ -54,10 +59,16 @@ pub struct TokenUsage {
 }
 
 impl TokenUsage {
-    /// Total tokens consumed = input + output.
+    /// Total tokens consumed = input + output + cache_creation + cache_read.
+    ///
+    /// This is the canonical aggregate across the entire codebase.  Downstream
+    /// crates must NOT redefine this method.
     #[must_use]
     pub fn total_tokens(&self) -> u32 {
-        self.input_tokens + self.output_tokens
+        self.input_tokens
+            + self.output_tokens
+            + self.cache_creation_input_tokens
+            + self.cache_read_input_tokens
     }
 }
 
@@ -72,15 +83,4 @@ pub struct SessionInfo {
     pub created_at: i64,
     pub updated_at: i64,
     pub token_usage: Option<TokenUsage>,
-}
-
-// ── TurnSummary ──────────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TurnSummary {
-    pub turn_id: String,
-    pub session_id: String,
-    pub summary: String,
-    pub tool_calls: Vec<String>,
-    pub token_usage: TokenUsage,
 }

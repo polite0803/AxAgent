@@ -67,15 +67,15 @@ impl SecurityAnalyzer {
         // 文本编辑
         allowed.extend(["nano", "vim", "vi", "code", "idea"]);
         // Windows 命令
+        // NOTE: `del` 和 `rmdir` 不在白名单中 —— 沙箱内禁止任意路径的删除操作。
+        // 若确实需要清理能力，应通过专用的临时目录清理接口实现，而非开放通用删除命令。
         allowed.extend([
             "dir",
             "type",
             "findstr",
             "copy",
             "move",
-            "del",
             "mkdir",
-            "rmdir",
             "tasklist",
             "systeminfo",
         ]);

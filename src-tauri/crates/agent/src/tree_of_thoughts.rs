@@ -3,8 +3,8 @@
 use axagent_harness::core_error::AxAgentError;
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::util_fns::estimate_tokens;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
-use axagent_kit::token_counter::estimate_tokens;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -657,13 +657,12 @@ impl DefaultToTReasoningProvider {
                 };
             }
 
-            // ── 旧路径：直接 adapter.chat() ──
-            let response = adapter
-                .chat(ctx, request)
-                .await
-                .map_err(|e| AxAgentError::Provider(e.to_string()))?;
-
-            Ok(response.content)
+            // ── 旧路径：通过 execute_llm() 统一入口 ──
+            let llm_config = axagent_harness::LlmCallConfig::default();
+            match axagent_harness::execute_llm(&**adapter, ctx, request, &llm_config).await {
+                Ok(result) => Ok(result.response.content),
+                Err(e) => Err(AxAgentError::Provider(e)),
+            }
         } else {
             Ok(self.heuristic_response(user_prompt))
         }
@@ -786,10 +785,11 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             };
         }
 
-        // ── 旧路径 ──
-        match self.adapter.chat(&self.ctx, request).await {
-            Ok(response) => Ok(response.content),
-            Err(e) => Err(AxAgentError::Provider(e.to_string())),
+        // ── 旧路径：通过 execute_llm() 统一入口 ──
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        match axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config).await {
+            Ok(result) => Ok(result.response.content),
+            Err(e) => Err(AxAgentError::Provider(e)),
         }
     }
 
@@ -837,10 +837,11 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             };
         }
 
-        // ── 旧路径 ──
-        match self.adapter.chat(&self.ctx, request).await {
-            Ok(response) => Ok(response.content),
-            Err(e) => Err(AxAgentError::Provider(e.to_string())),
+        // ── 旧路径：通过 execute_llm() 统一入口 ──
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        match axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config).await {
+            Ok(result) => Ok(result.response.content),
+            Err(e) => Err(AxAgentError::Provider(e)),
         }
     }
 }

@@ -1,299 +1,209 @@
-[简体中文](./README.md) | [繁體中文](./README-ZH-TW.md) | **English** | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
+# AxAgent
 
-[![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
-
-<p align="center">
-  <a href="https://www.producthunt.com/products/axagent?embed=true&amp&utm_source=badge-featured&amp&utm_medium=badge&amp&amp;#10;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
-</p>
-
-<p align="center">
-  <strong>Cross-Platform AI Desktop/Mobile Client | Multi-Agent Collaboration | Local-First</strong>
-</p>
+[![Release](https://img.shields.io/github/v/release/polite0803/AxAgent?style=flat-square)](https://github.com/polite0803/AxAgent/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/polite0803/AxAgent/release.yml?style=flat-square)](https://github.com/polite0803/AxAgent/actions)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square)
+![License](https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square)
 
 <p align="center">
-  <a href="https://github.com/polite0803/AxAgent/releases" target="_blank">
-    <img src="https://img.shields.io/github/v/release/polite0803/AxAgent?style=flat-square" alt="Release">
+  <a href="./media/poster-axagent.svg">
+    <img src="./media/poster-axagent.svg" alt="AxAgent Poster" width="80%" />
   </a>
-  <a href="https://github.com/polite0803/AxAgent/actions" target="_blank">
-    <img src="https://img.shields.io/github/actions/workflow/status/polite0803/AxAgent/release.yml?style=flat-square" alt="Build">
-  </a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square" alt="Platform">
-  <img src="https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square" alt="License">
 </p>
 
----
+**AxAgent** is an open-source cross-platform AI assistant desktop client supporting **Windows / macOS / Linux / Android / iOS**. It goes beyond a chat interface — integrating a ReAct agent engine, visual workflow orchestration, local RAG knowledge bases, MCP protocol extensions, a unified multi-model gateway, browser automation, and computer control, serving as an AI workstation for daily development, research, knowledge management, and automation.
 
-## What is AxAgent?
-
-AxAgent v2.0 is a comprehensive cross-platform AI desktop/mobile application that combines advanced AI agent capabilities with a rich set of developer tools. It features multi-provider model support, autonomous agent execution, visual workflow orchestration, local knowledge management, and a built-in API gateway, covering Windows / macOS / Linux / Android / iOS platforms.
+> **Languages**: [English](./README-EN.md) | [繁體中文](./README-ZH-TW.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
 
 ---
 
-## Screenshots
+## What AxAgent Solves
 
-|     Chat & Model Selection      |      Multi-Agent Dashboard      |
-| :-----------------------------: | :-----------------------------: |
-| ![](.github/images/s1-0412.png) | ![](.github/images/s5-0412.png) |
+AxAgent addresses three core problems:
 
-|       Knowledge Base RAG        |        Memory & Context         |
-| :-----------------------------: | :-----------------------------: |
-| ![](.github/images/s3-0412.png) | ![](.github/images/s4-0412.png) |
-
-|         Workflow Editor         |           API Gateway            |
-| :-----------------------------: | :------------------------------: |
-| ![](.github/images/s9-0412.png) | ![](.github/images/s10-0412.png) |
+1. **Unified Multi-Model Orchestration**: Use OpenAI, Anthropic Claude, Google Gemini, Ollama local models, and any OpenAI-compatible API in a single interface, with multi-key rotation, intelligent model routing, and streaming comparison
+2. **AI Capability Operationalization**: Extend AI from "conversation" to "execution" — through 47+ built-in tools, visual workflows, MCP extensions, browser automation, and computer control, enabling AI to directly manipulate files, run code, manage Git, and schedule tasks
+3. **Local-First Data Sovereignty**: AI conversations, knowledge bases, memories, and configuration files are all stored in a local SQLite database. API Keys are encrypted with AES-256-GCM. Core functionality runs without any third-party cloud services.
 
 ---
 
-## Features
+## Core Capabilities
 
-### 🤖 AI Model Support
+### Multi-Model Engine
 
-- **Multi-Provider Support** — Native integration with OpenAI, Anthropic Claude, Google Gemini, Ollama, OpenClaw, Hermes and all OpenAI-compatible APIs
-- **Multi-Key Rotation** — Configure multiple API keys per provider with automatic rotation to distribute rate limits
-- **Local Model Support** — Full support for Ollama local models with GGUF/GGML file management
-- **Candle Inference Engine** — Built-in Candle local inference with rerank/judge interfaces and on-demand GGUF downloads
-- **Model Management** — Remote model list fetching, customizable parameters (temperature, max tokens, top-p, etc.)
-- **Streaming Output** — Real-time token-by-token rendering with collapsible thinking blocks (Claude extended thinking)
-- **Multi-Model Comparison** — Ask the same question to multiple models simultaneously with side-by-side comparison
-- **Function Calling** — Structured function calling across all supported providers
-- **OpenAI Responses API** — Support for OpenAI Responses format streaming
-- **Realtime API** — WebSocket event push compatible with OpenAI Realtime API
-- **AI Image Generation** — DALL-E 3 and Flux (Replicate) support, multiple size presets (1:1/16:9/9:16/4:3), negative prompts
-- **Smart Model Routing** — Auto-route to different models by task type (code review/summarization/translation), custom routing rules
-- **Voice Call** — Real-time voice conversation via OpenAI Realtime API, connect/speaking/listening state switching
+- **9 Provider Adapters**: OpenAI (Chat Completions + Responses + Realtime), Anthropic Claude, Google Gemini, Ollama (with GGUF management), OpenClaw, Hermes, and all OpenAI-compatible APIs
+- **Multi-Key Rotation**: Configure multiple API keys per provider with automatic quota-based rotation to avoid rate-limit interruptions
+- **Intelligent Routing**: Automatically select the most suitable model by task type (code review / summarization / translation / general), with customizable routing rules
+- **Provider Health Monitoring**: Real-time tracking of success rates, latency, and availability per provider, with tiered automatic fallback (ProviderTier)
+- **AI Image Generation**: DALL-E 3 and Flux (Replicate) with multi-size presets
+- **Real-Time Voice**: WebSocket voice conversations based on OpenAI Realtime API, supporting interruption and streaming transcription
 
-### 🔐 AI Agent System
+### Agent System
 
-The agent system is built on a sophisticated architecture featuring:
+The entire agent system is built on a **ReAct (Reasoning + Acting) engine**, with the following implemented subsystems:
 
-- **ReAct Reasoning Engine** — Integrates reasoning and action with self-verification for reliable task execution
-- **Hierarchical Planner** — Decomposes complex tasks into structured plans with phases and dependencies
-- **Task Decomposer** — Automatic breakdown of complex tasks into executable sub-tasks
-- **Deep Research** — Multi-source search orchestration, citation tracking, and credibility assessment
-- **Fact Checking** — AI-driven fact verification with source classification
-- **Search Orchestration** — Multi-search provider coordination with search planning and result synthesis
-- **Academic Search** — Academic literature retrieval and citation analysis
-- **Computer Control** — AI-controlled mouse clicks, keyboard input, screen scrolling with vision model analysis
-- **Screen Perception** — Screenshot capture and visual model analysis for UI element identification
-- **Three Permission Levels** — Default (approval required), Accept Edits (auto-approve), Full Access (no prompts)
-- **Sandbox Isolation** — Agent operations strictly confined to specified working directory
-- **Tool Approval Panel** — Real-time display of tool call requests with per-item review
-- **Cost Tracking** — Real-time token usage and cost statistics per session
-- **Pause/Resume** — Pause agent execution anytime and resume later
-- **Checkpoint System** — Persistent checkpoints for crash recovery and session resumption
-- **Error Recovery Engine** — Automatic error classification and recovery strategy execution
-- **Loop Detection** — Automatic detection and interruption of cyclic behavior in agent reasoning
-- **Thought Chain** — Reasoning visualization for agent decision-making with step-by-step breakdown
-- **Proactive Mode** — Agent can proactively offer suggestions and execute actions
-- **Purpose Management** — Maintain and track agent execution purpose and context
-- **Agent Pool Panel** — Visualize sub-agent/Worker/workflow step real-time status with expandable details
-- **Agent Reflection Panel** — Post-task quality scoring, efficiency analysis, error patterns and improvement suggestions
-- **Expert Selector** — Import/export/customize expert roles, category filtering, built-in presets and Agency experts
-- **Agent Hierarchy Tree** — Visualize hierarchical relationships and collaboration topology between agents
-- **Intent Classifier** — Automatically identify user input intent type for optimized routing and response strategy
-- **Belief State Management** — Maintain agent's understanding state of current context
-- **Goal Evaluator** — Assess task goal completion and quality
-- **Context Window Management** — Intelligently manage conversation context window, optimize token usage
-- **Project Memory** — Cross-session project-level knowledge persistence and retrieval
-- **Knowledge Base Management** — Knowledge base CRUD operations
-- **Note System** — Structured note storage and retrieval within agents
+- **Hierarchical Planner** (`hierarchical_planner`): Decomposes complex tasks into Phase → Task structured plans with dependency relationships, compiled into DAG topological execution
+- **Deep Research** (`deep_research`): Multi-source search orchestration including search planning (`search_planner`), search execution (`search_orchestrator`), content synthesis (`content_synthesizer`), and citation tracking (`citation_tracker`)
+- **Fact Checker** (`fact_checker`): AI-driven fact verification with source classifier (`source_classifier`), source validator (`source_validator`), and credibility evaluator (`credibility_evaluator`)
+- **Tree of Thoughts** (`tree_of_thoughts`): Multi-path reasoning exploration with branch evaluation and backtracking
+- **Reflector** (`reflector`): Post-task self-assessment and improvement suggestions
+- **Self-Verifier** (`self_verifier`): Automatic validation of reasoning results with cycle detection (`cycle_detector`) to prevent infinite loops
+- **Error Recovery** (`error_recovery_engine`): Classify error types → select recovery strategy → auto-retry or adjust plan, with exponential backoff
+- **A/B Testing** (`ab_testing`): Comparative evaluation of different reasoning strategies
+- **Evaluation System** (`evaluator`): Built-in benchmark framework supporting datasets, metrics, and report generation
+- **LoRA Fine-Tuning** (`fine_tune`): Built-in training pipeline with LoRA adapter management
+- **RL Optimizer** (`rl_optimizer`): Experience-feedback-based policy reinforcement learning with experience replay and policy gradients
+- **Tool Recommender** (`tool_recommender`): Context-based tool usage pattern analysis and recommendations
 
-### 👥 Multi-Agent Collaboration
+**Multi-Agent Collaboration**:
 
-- **Sub-Agent Coordination** — Master-slave architecture supporting multiple collaborative agents
-- **Parallel Execution** — Multiple agents processing tasks in parallel with dependency-aware scheduling
-- **Adversarial Debate** — Pro/Con debate rounds with argument strength scoring and refutation tracking
-- **Agent Roles** — Predefined roles (researcher, planner, developer, reviewer, synthesizer) for team collaboration
-- **Agent Orchestrator** — Centralized message routing and state management for multi-agent teams
-- **Communication Graph** — Visual representation of agent interactions and message flow
-- **Swarm Cluster** — Multi-process agent cluster with permission sync and auto-reconnect
-- **Buddy System** — Configurable agent buddies with species and attribute definitions
-- **Shared Memory** — Cross-agent shared memory space with statistics and queries
-- **Team Cron Registry** — Team-level scheduled task coordination
-- **Collaboration Panel** — Real-time collaboration session management, invite code sharing, participant roles (Owner/Editor/Viewer), permission control
-- **Session Sharing** — One-click share link generation, terminal/file/model access permission configuration
+- Master-slave coordination architecture (`coordinator`) with parallel sub-agent execution and dependency-aware scheduling
+- Shared Blackboard (`shared_blackboard`) for inter-agent information exchange
+- Adversarial debate mode with Pro/Con rounds and argument strength scoring
+- Swarm cluster mode with multi-process agent clusters supporting permission sync and auto-reconnect
+- Proactive mode (`proactive_mode`): Agents can proactively propose suggestions and actions
 
-### ⭐ Skills System
+**Computer Control**: AI-driven mouse clicks, keyboard input, screen scrolling with three-level permissions (Default / Accept Edits / Full Access) and sandbox path isolation
 
-- **Skills Marketplace** — Built-in marketplace for browsing and installing community-contributed skills
-- **Skill Creation** — Auto-create skills from proposals with Markdown editor
-- **Skill Evolution** — AI-powered automatic analysis and improvement of existing skills based on execution feedback
-- **Skill Evolution Panel** — Visualize evolution generation, best/average fitness, convergence status
-- **Skill Matching** — Semantic matching to recommend relevant skills for conversation contexts
-- **Skill Decomposition** — Automatic breakdown of complex tasks into executable atomic skills (LLM-assisted/multi-turn/workflow validation)
-- **Generated Tools** — AI auto-generates and registers new tools to expand agent capabilities
-- **Skills Hub** — Centralized management interface for skill discovery and configuration
-- **Skills Hub Client** — Integration with remote skills hub for community sharing
-- **Skill Dependency Check** — Automatic detection of skill dependencies and tool availability
-- **Skill Sandbox Container** — Skills execute safely in an isolated environment
+**Browser Automation**: Browser control via CDP protocol supporting navigation, screenshots, clicks, form filling, text extraction, and page state monitoring
 
-### 🔄 Workflow System
+### Skill System
 
-The workflow engine implements a DAG-based task orchestration system:
+- **Skill Marketplace**: Browse and install community skills
+- **AI-Assisted Creation**: Auto-create skill structures from natural language proposals
+- **Skill Evolution** (`evolution_engine`): Automatically analyze and improve skills based on execution feedback
+- **Semantic Matching** (`skill`): Semantically match and auto-recommend relevant skills based on conversation context
+- **Skill Decomposition** (`skill_decomposition`): Auto-decompose complex tasks into atomic skill combinations
+- **Generated Tools** (`generated_tool`): AI-generated and registered new tools
+- **Sandbox Execution** (`sandbox`): Skills execute safely in isolated sandbox environments
 
-- **Visual Workflow Editor** — Drag-and-drop workflow designer with node connection and configuration
-- **Rich Node Types** — 15 node types: Trigger, Agent, LLM, Condition, Parallel, Loop, Merge, Delay, Tool, Code, SubWorkflow, VectorRetrieve, DocumentParser, Validation, End
-- **Workflow Templates** — Built-in presets: Code Review, Bug Fix, Documentation, Testing, Refactoring, Exploration, Performance, Security, Feature Development
-- **DAG Execution** — Kahn's algorithm for topological sorting with cycle detection
-- **Parallel Dispatch** — Pipeline-style execution where fast steps don't wait for slow ones
-- **Retry Policy** — Exponential backoff with configurable max retries per step
-- **Partial Completion** — Failed steps don't block independent downstream steps
-- **Version Management** — Workflow template versioning with rollback support
-- **Execution History** — Detailed recording with status tracking and debugging
-- **AI Assistance** — AI-assisted workflow design, node recommendation, and agent prompt optimization
-- **Semantic Check** — Workflow semantic validation to detect potential issues
-- **n8n Import** — Support importing workflows from n8n directory
-- **Debug Panel** — Real-time debugging and status viewing during workflow execution
+### Visual Workflow
 
-### 📚 Knowledge & Memory
+Drag-and-drop DAG workflow editor based on ReactFlow 12:
 
-- **Knowledge Base (RAG)** — Multi-knowledgebase support with document upload, automatic parsing, chunking, and vector indexing
-- **Hybrid Search** — Combines vector similarity search with BM25 full-text ranking
-- **Self-RAG** — Self-retrieval augmented generation, intelligently determine retrieval necessity and result relevance
-- **Reranking** — Cross-encoder reranking for improved retrieval precision
-- **Three-Level Recall Pipeline** — Multi-level recall mechanism with AST index + vector search + FTS5
-- **Knowledge Graph** — Entity relationship visualization of knowledge connections (entities, attributes, relations, flows, interfaces)
-- **Wiki System** — LLM Wiki compiler and validator with knowledge graph visualization and incremental sync
-- **Wiki Notes** — Bidirectional linked notes system with graph view and auto-link sync
-- **Memory System** — Multi-namespace memory with manual entry or AI-powered automatic extraction
-- **Closed-Loop Memory** — Integration with Honcho and Mem0 for persistent memory providers
-- **FTS5 Full-Text Search** — Fast retrieval across conversations, files, and memories
-- **Session Search** — Advanced search across all conversation sessions
-- **Context Management** — Flexible attachment of files, search results, knowledge snippets, memories, tool outputs
-- **Document Parser** — Multi-format document automatic parsing and content extraction
-- **Incremental Indexer** — Incremental index updates for file changes
+- **17 Node Types**: Trigger, Agent, LLM Call, Conditional Branch, Parallel Fork, Loop, Merge, Delay, Tool Call, Code Execution, Sub-workflow, Vector Retrieval, Document Parsing, Validation, End, Business Rule, Agent Role
+- **Kahn Topological Sort Execution**: Automatic cyclic dependency detection with parallel pipeline scheduling
+- **Built-in Templates**: Code Review, Bug Fix, Document Generation, Testing, Refactoring, Exploration, Performance Analysis, Security Audit, Feature Development
+- **YAML Serialization**: Workflow definitions support YAML import/export
+- **Version Management**: Workflow template version control
+- **AI Assistance**: AI-assisted workflow design and node recommendations
 
-### 🌐 API Gateway
+### Knowledge Management
 
-- **Local API Server** — Built-in OpenAI-compatible, Claude, and Gemini interface server
-- **External Links** — One-click integration with Claude CLI, OpenCode with automatic API key and model sync
-- **Key Management** — Generate, revoke, enable/disable access keys with descriptions
-- **Usage Analytics** — Request volume and token usage by key, provider, and date
-- **SSL/TLS Support** — Built-in self-signed certificates with custom certificate support
-- **Request Logging** — Complete recording of all API requests and responses
-- **Configuration Templates** — Pre-built templates for Claude, Codex, OpenCode, Gemini
-- **Realtime API** — WebSocket event push compatible with OpenAI Realtime API
-- **Platform Integrations** — Support for DingTalk, Feishu, QQ, Slack, WeChat, WhatsApp, Telegram, Discord
-- **Gateway Diagnostics** — Connection diagnostics and program policy management
-- **Rate Limiter** — API request rate limiting and traffic control
-- **Persistent Queue** — Request persistent queue management
+- **Multi-KB RAG**: Document upload → auto parsing (PDF/DOCX/XLSX/PPTX/TXT) → chunking → vector indexing
+- **Hybrid Retrieval**: Vector similarity (sqlite-vec + candle local embeddings) + BM25 full-text search (FTS5) with hybrid ranking
+- **Self-RAG**: Self-retrieval-augmented generation with automatic retrieval result reflection and verification
+- **Re-ranking**: Cross-encoder result re-ranking for improved precision
+- **Knowledge Graph**: Entity extraction (`EntityExtractor`) → relationship construction → visual graph
+- **File Watching**: Real-time file change monitoring via `notify` with automatic incremental indexing
+- **LLM Wiki**: AI-assisted Wiki compiler and validator with Wiki clipping browser extension
 
-### 🔧 Tools & Extensions
+### Memory System
 
-- **MCP Protocol** — Full Model Context Protocol implementation with stdio and HTTP/WebSocket transports
-- **OAuth Authentication** — OAuth flow support for MCP servers
-- **MCP Autostart** — MCP server auto-start and lifecycle management
-- **MCP Tool Bridge** — Bridge between MCP tools and agent tool system
-- **Plugin System** — OpenClaw-compatible three-tier plugin architecture (builtin/bundled/external) with npm package installation, tool registration, hooks, and lifecycle management
-- **Plugin Marketplace** — Built-in marketplace UI with npm search, install, and confirmation dialogs
-- **Built-in Tools** — Comprehensive tool set for file operations (read/write/edit), code execution, search (Grep/Glob), Bash, Web search, Web fetch, plan management, Cron scheduling, REPL, LSP, context management, computer control, messaging, todo items, and more
-- **Tool Permission System** — Tool permission classification, rule management, and usage tracking
-- **Bash Security** — Command parsing, path validation, and sandbox security controls
-- **LSP Client** — Built-in Language Server Protocol for code completion and diagnostics
-- **AST Index** — Code file AST parsing and index building
-- **Terminal Backends** — Support for Local, Docker, and SSH terminal connections
-- **Browser Automation** — Integrated browser control via CDP (navigation, screenshots, clicks, form filling, text extraction, etc.)
-- **UI Automation** — Cross-platform UI element identification and control
-- **Git Tools** — Git operations with branch detection and conflict awareness
-- **Git Commit Panel** — Visual Git diff statistics, AI-generated commit messages, one-click staging and commit
-- **Tool Recommendation** — Context-aware intelligent tool recommendation engine
-- **Tool Orchestration** — Multi-tool coordinated execution with streaming output
-- **Tool Stats** — Tool usage frequency and performance statistics
+- **Multi-Namespace Memory**: Isolated by project/topic, supporting manual entry and AI auto-extraction
+- **Persistence Integration**: Honcho and Mem0 closed-loop memory
+- **User Profile** (`user_profile` / `profile`): Auto-learn coding style (indentation/naming/comments), tech stack preferences, and communication style
+- **Style Transfer** (`style`): Extract code style features → apply to AI-generated code
+- **Dream Integration** (`dream`): Background auto-consolidation of memory fragments and behavioral patterns into structured knowledge
+- **Project Memory** (`project_memory`): Per-project contextual persistence
 
-### 📊 Content Rendering
+### API Gateway
 
-- **Markdown Rendering** — Full support for code highlighting, LaTeX math, tables, task lists
-- **Monaco Code Editor** — Embedded editor with syntax highlighting, copy, diff preview
-- **Diagram Rendering** — Mermaid flowcharts, D2 architecture diagrams, ECharts interactive charts
-- **Artifact Panel** — Code snippets, HTML drafts, React components, Markdown notes with live preview
-- **Four Preview Modes** — Code (editor), Split (side-by-side), Preview (rendered only), React component preview
-- **Session Inspector** — Tree view of session structure for quick navigation
-- **Citation Panel** — Track and display source citations with credibility scoring
-- **Infographic Rendering** — Support for infographic visualization display
-- **Chart Interpreter** — AI-powered chart data analysis and visualization, bar/line/pie/scatter/area charts, auto-generated insights and statistics
-- **Diff Viewer** — Conversation version comparison, per-file Accept/Reject, automatic language detection
-- **Context Classification Bar** — Segmented display of context token usage by category (messages/system prompt/knowledge/memory/tools/skills)
-- **Context Graph** — ReactFlow visualization of conversation context relationships (conversation/model/knowledge/memory/MCP/search/skill nodes)
-- **Command Suggest** — Auto-suggest available commands during input
-- **Citation Manager** — Track and classify citation sources (Web/academic/Wikipedia/GitHub/docs/news/blog/forum), credibility scoring
-- **Credibility Badge** — Five-star rating visualization of source credibility
+Built-in HTTP + WebSocket gateway server based on `axum`:
 
-### 🛡️ Data & Security
+- **Compatible Endpoints**: OpenAI `/v1/chat/completions`, Claude Messages API, Gemini API, plus OpenAI Responses and Realtime WebSocket
+- **Key Management**: Generate, revoke, enable/disable access keys with expiration support
+- **Usage Tracking**: Per-key, per-provider, per-date request counts and token consumption statistics with Prometheus metrics export
+- **Rate Limiting**: Token bucket algorithm via `governor` with configurable rate limit policies
+- **SSL/TLS**: Built-in self-signed certificates (`rcgen`) with custom certificate support
+- **External Linking**: One-click integration with Claude CLI, OpenCode, and other external tools with auto API key sync
+- **Real-Time Tickets**: HMAC-based temporary authentication tickets for secure WebSocket real-time connection handoff
 
-- **AES-256 Encryption** — API keys and sensitive data encrypted with AES-256-GCM
-- **Isolated Storage** — Application state in `~/.axagent/`, user files in `~/Documents/axagent/`
-- **Auto Backup** — Scheduled backups to local directories or WebDAV storage
-- **Cloud Workspace** — S3 and WebDAV cloud storage sync, conflict detection and resolution, bidirectional sync
-- **Backup Restore** — One-click restore from historical backups
-- **Export Options** — PNG screenshots, Markdown, plain text, JSON formats
-- **Storage Management** — Visual disk usage display with cleanup tools
-- **File Authorization** — File access authorization and revocation management
-- **Operation Audit** — Audit logging for critical operations
+### Messaging Platform Integration
 
-### 🖥️ Desktop Experience
+Messaging platform gateway implemented via the `rt-messaging` crate, supporting:
 
-- **Responsive Layout** — Desktop/tablet/mobile three-tier auto-adaptation (600px/900px breakpoints), real-time window resize switching
-- **Theme Engine** — Dark/light themes with system-follow or manual preference
-- **Interface Languages** — 11 languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Spanish, Russian, Hindi, Arabic
-- **System Tray** — Minimize to tray without interrupting background services
-- **Always on Top** — Pin window above others
-- **Global Shortcuts** — Customizable shortcuts to summon main window
-- **QuickBar** — Quick access floating bar, one-click summon
-- **Auto Start** — Optional launch on system startup
-- **Proxy Support** — HTTP and SOCKS5 proxy configuration
-- **Auto Update** — Automatic version checking with update prompts
-- **Command Palette** — `Cmd/Ctrl+K` for quick command access
-- **Onboarding Wizard** — Interactive first-use guide with Ollama detection
-- **Notification Center** — Unified in-app notification management
+DingTalk, Feishu, QQ, Slack, WeChat, WhatsApp, Telegram, Discord
 
-### 🔬 Advanced Features
+Supports Webhook message reception, command parsing, and automatic AI reply delivery.
 
-- **Deep Research** — Multi-source search, citation tracking, credibility assessment, and content synthesis
-- **Fact Checking** — AI-driven fact verification with source classification
-- **Cron Scheduler** — Automated task scheduling with daily, weekly, monthly templates and custom cron expressions
-- **Webhook System** — Event subscriptions for tool completion, agent errors, session end notifications
-- **User Profiling** — Automatic learning of coding style, naming conventions, indentation, comment style, communication preferences
-- **RL Optimizer** — Reinforcement learning for tool selection and task strategy optimization
-- **LoRA Fine-Tuning** — Custom model adaptation with local training using LoRA
-- **Proactive Suggestions** — Context-aware nudges based on conversation content and user patterns
-- **Context Prediction** — Predict user's next action and prefetch relevant resources
-- **Dream Consolidation** — Background auto-consolidation of memories and patterns for long-term knowledge optimization
-- **Dream Status Indicator** — Real-time display of background Dream consolidation status and results (memory count/pattern count)
-- **Error Recovery** — Automatic error classification, root cause analysis, and recovery suggestions
-- **DevTools** — Trace, span, timeline visualization for debugging and performance analysis
-- **Benchmark System** — SWE-bench / Terminal-bench task performance evaluation and metrics with score cards
-- **Style Transfer** — Apply learned coding style preferences to generated code
-- **Dashboard Plugins** — Extensible dashboard with custom panels and widgets
-- **Collaboration** — CRDT-based real-time collaboration and one-click session sharing
-- **Browser Extension** — Wiki Clipper browser extension for quick web clipping to LLM Wiki
-- **Python SDK** — Python SDK for integration with AxAgent
-- **Smart Router** — Intelligent request routing and classification
-- **Semantic Cache** — Semantic-based response caching to reduce redundant computation
-- **Context Compression** — Automatic compression of long contexts to optimize token usage
-- **Message Batching** — Message batch sending and optimization
-- **Connection Pool** — Database and API connection pool management
-- **Feature Flags** — Configurable feature flag system
-- **Policy Engine** — Centralized management of permission and operation policies
-- **Resource Governor** — Agent resource usage limits and governance
-- **LAN Transfer** — Local area network file transfer capability
+### Tool System
 
-### 🛡️ Prompt Injection Protection (Prompt-Guard)
+47 built-in tools, all uniformly registered via the `Tool` trait:
 
-- **Four-Level Protection** — L1 pattern detection (high-risk block + medium-risk flag) → L2 delimiter escaping → L3 XML wrapper → L4 trust tags
-- **Pipeline Orchestrator** — Multi-level detection pipeline with customizable risk thresholds
-- **Token Smuggling Detection** — Specialized detection for encoding obfuscation and token smuggling attacks
-- **Strict Mode** — Strict mode testing + medium-risk reason naming + custom mode documentation
-- **Full Pipeline Integration** — Integrated into session / prompt / git / RAG workflows
+| Category         | Tools                                                                                                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File Operations  | `file_read`, `file_write`, `file_edit`, `file_system` (list/search/metadata)                                                                                                                               |
+| Code Execution   | `bash`, `repl`                                                                                                                                                                                             |
+| Search           | `grep`, `glob`                                                                                                                                                                                             |
+| Browser          | `browser` (CDP control)                                                                                                                                                                                    |
+| Computer Control | `computer_use` (mouse/keyboard/screenshot)                                                                                                                                                                 |
+| Web              | `web_search`, `web_fetch`                                                                                                                                                                                  |
+| Knowledge Base   | `knowledge`, `document` (document parsing)                                                                                                                                                                 |
+| Git              | `git` (commit/push/branch/diff)                                                                                                                                                                            |
+| Dev Tools        | `lsp` (Language Server Protocol), `workspace`                                                                                                                                                              |
+| Task Management  | `plan`, `task_system`, `todo_write`, `cron`                                                                                                                                                                |
+| Notifications    | `push_notification`, `messaging`                                                                                                                                                                           |
+| Database         | `database`                                                                                                                                                                                                 |
+| Storage          | `storage`                                                                                                                                                                                                  |
+| Other            | `agent`, `agent_memory`, `context`, `export`, `integration`, `media`, `media_delivery`, `migration_tool`, `monitor`, `obsidian`, `ocr`, `personality`, `shared_path`, `system_info`, `testing`, `worktree` |
 
-### 📱 Mobile Support
+### MCP Protocol
 
-- **Android Native** — APK/AAB builds, supporting arm64-v8a / armeabi-v7a / x86_64
-- **iOS Native** — IPA builds, supporting arm64
-- **Adaptive Layout** — Desktop/tablet/mobile three-tier auto-adaptation (600px/900px CSS breakpoints, real-time window resize switching)
-- **Mobile Navigation** — Drawer slide-out navigation + bottom nav bar + flash floating action button
-- **Safe Area Adaptation** — Android system status bar/navigation bar CSS env() adaptation
-- **CSP Optimization** — Android WebView CSP protocol whitelist
+Complete MCP (Model Context Protocol) implementation based on the `rmcp` crate:
+
+- **Transport Layer**: stdio subprocess + Streamable HTTP + WebSocket
+- **OAuth Authentication**: OAuth authorization flow support for MCP servers
+- **Tool Discovery**: Auto-discover and register tools exposed by MCP servers
+- **MCP Manager**: Server lifecycle management, health checks, auto-reconnect
+
+### Plugin System
+
+OpenClaw-compatible three-tier plugin architecture (Built-in / Bundled / External), supporting:
+
+- npm package installation with built-in marketplace UI for search and install
+- Plugin manifest definition, permission declarations, sandbox-isolated execution
+- Custom tool registration, Agent providers, Hook interception
+- Skill installer: install skills from plugin packages into the skill system
+
+### Security
+
+- **AES-256-GCM Encryption**: Local encrypted storage for API keys and sensitive configuration (`crypto` crate)
+- **Prompt Injection Protection**: Four-level defense pipeline (`prompt-guard`) — pattern detection → delimiter escaping → XML wrapper → trust labels, integrated into sessions, prompt construction, Git, and RAG across the full pipeline
+- **SSRF Protection** (`ssrf_guard`): URL safety checks blocking requests to internal network addresses
+- **Content Filtering** (`content_filter`): Multi-type content safety filtering
+- **Rate Limiting** (`rate_limiter`): Token bucket rate limiting for tool calls and API requests
+- **Circuit Breaker** (`circuit_breaker`): Automatic circuit-breaking on consecutive failures to protect system stability
+- **Access Control** (`tool_access`): Policy-based tool access permission control
+- **Sandbox Isolation**: Execution environment isolation for agents and skills
+
+### Developer Experience
+
+- **Distributed Tracing** (`telemetry`): OpenTelemetry integration with Span/Trace visualization
+- **Telemetry** (`telemetry`): Structured logging, runtime metrics, performance event collection
+- **Replay Debugging**: Agent execution trajectory recording (`trajectory_recorder`) and replay
+- **DevTools Panel**: Built-in frontend Trace/Span timeline viewer
+- **Benchmark Framework**: Criterion benchmarks (tool_exec / llm_call / search), SWE-bench and Terminal-bench evaluation
+
+### Desktop & Mobile Experience
+
+- **Responsive Layout**: CSS breakpoints adaptive to desktop / tablet / mobile (600px / 900px)
+- **11 Languages**: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Spanish, Russian, Hindi, Arabic
+- **Theme Engine** (`rt-theme`): Dark/Light theme following system preference or manual toggle, deeply customized Ant Design 6
+- **Monaco Editor**: Built-in code editor with syntax highlighting, diff preview, multi-language support
+- **xterm.js Terminal**: Built-in terminal emulator supporting WebLinks, Unicode 11, search
+- **D2 / Mermaid / ECharts**: Architecture diagrams, flowcharts, and interactive chart rendering
+- **Session Sharing**: One-click share link generation with configurable access permissions
+- **System Tray + Global Hotkeys + Auto-Start**: Non-intrusive background operation
+- **Auto-Update**: Automatic GitHub Releases version update detection
+- **Proxy Support**: HTTP and SOCKS5 proxy configuration
+- **Cloud Workspace**: S3 and WebDAV storage sync with conflict detection and bidirectional sync
+
+### Mobile
+
+- Android APK/AAB (arm64-v8a, armeabi-v7a, x86_64)
+- iOS IPA (arm64)
+- Mobile-specific adaptations: safe area adaptation, bottom navigation bar, Drawer navigation
 
 ---
 
@@ -301,248 +211,196 @@ The workflow engine implements a DAG-based task orchestration system:
 
 ### Tech Stack
 
-| Layer           | Technology                                             |
-| --------------- | ------------------------------------------------------ |
-| **Framework**   | Tauri 2 + React 19 + TypeScript 6                      |
-| **UI**          | Ant Design 6 + TailwindCSS 4                           |
-| **State**       | Zustand 5                                              |
-| **Routing**     | React Router 7                                         |
-| **i18n**        | i18next + react-i18next                                |
-| **Backend**     | Rust + SeaORM 2 + SQLite                               |
-| **Vector DB**   | sqlite-vec                                             |
-| **Code Editor** | Monaco Editor                                          |
-| **Diagrams**    | Mermaid + D2 + ECharts (CDN)                           |
-| **Terminal**    | xterm.js 6                                             |
-| **Workflow**    | ReactFlow 11                                           |
-| **Build**       | Vite 8 + npm                                           |
-| **Infographic** | @antv/infographic                                      |
-| **Icons**       | Iconify + Lucide                                       |
-| **Drag & Drop** | @dnd-kit                                               |
-| **Testing**     | Vitest + Playwright + cargo-nextest                    |
-| **Formatting**  | dprint (TS/JSON) + rustfmt                             |
-| **Lint**        | TS: eslint + oxlint / Rust: clippy + cargo-deny        |
-| **Mobile**      | Tauri Android + iOS native builds                      |
-| **Desktop**     | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+| Layer                | Technology                               |
+| -------------------- | ---------------------------------------- |
+| Desktop Framework    | Tauri 2.11                               |
+| Frontend Framework   | React 19 + TypeScript                    |
+| UI Library           | Ant Design 6 + TailwindCSS 4             |
+| State Management     | Zustand 5                                |
+| Routing              | React Router 7                           |
+| Code Editor          | Monaco Editor                            |
+| Terminal             | xterm.js 6                               |
+| Workflow Editor      | ReactFlow 12                             |
+| Charts               | D2 + Mermaid + Recharts + ECharts        |
+| Virtual Scrolling    | @tanstack/react-virtual + react-virtuoso |
+| Drag & Drop          | @dnd-kit                                 |
+| Markdown Rendering   | markstream-react + stream-markdown       |
+| Internationalization | i18next + react-i18next                  |
+| Build Tool           | Vite 8                                   |
+| Testing              | Vitest + Playwright + cargo-nextest      |
+| Formatting           | dprint (TS/JSON/Markdown/TOML) + rustfmt |
+| Linting              | ESLint + Oxlint + Clippy + cargo-deny    |
 
-### Platform Support
+### Backend Architecture: Harness Dependency Injection Pattern
 
-| Platform | Architectures                             |
-| -------- | ----------------------------------------- |
-| Windows  | x86_64, ARM64                             |
-| macOS    | Apple Silicon (arm64), Intel (x86_64)     |
-| Linux    | x86_64, ARM64                             |
-| Android  | arm64-v8a, armeabi-v7a, x86_64 (emulator) |
-| iOS      | arm64                                     |
+The backend uses a Rust workspace architecture with **32 crates**, following the **Harness Architecture Pattern**:
 
-### Rust Backend Architecture
+```
+All crates are decoupled through trait interfaces defined in axagent-harness.
+The runtime (axagent-runtime) assembles and injects dependencies at runtime.
 
-The backend is organized as a Rust workspace with 18 specialized crates:
+Dependency direction: Concrete implementations → harness ← Callers
+```
+
+**harness** is the architectural cornerstone — zero business logic, zero concrete implementations, containing only trait definitions, pure data DTOs, constants, and unified error types. It is depended upon by all other crates and depends on no other axagent-* crate.
 
 ```
 src-tauri/crates/
-├── agent/            # AI Agent core (ReAct engine, coordination, planning, deep research, fact-checking, etc.)
-├── core/             # Core utilities (database, RAG, crypto, MCP, browser automation, AST index, etc.)
-├── providers/        # Model provider adapters (OpenAI, Anthropic, Gemini, Ollama, OpenClaw, etc.)
-├── runtime-core/     # Runtime abstraction layer (common types, trait definitions, config)
-├── runtime/          # Runtime services (session management, MCP, terminal, rate limiting, webhooks, permissions, etc.)
-├── rt-workflow/      # Workflow engine (DAG orchestration, node executors, scheduler)
-├── rt-messaging/     # Message gateway (DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord integrations)
-├── rt-webhook/       # Webhook server & dispatching
-├── rt-dashboard/     # Dashboard plugin system
-├── rt-theme/         # Theme engine
-├── gateway/          # API Gateway (HTTP server, auth, routes, OpenAI-compatible interface)
-├── tools/            # Tool system (registry, orchestration, streaming, 40+ built-in tools)
-├── trajectory/       # Learning system (memory, skills, RL, user profiling, dream consolidation)
-├── telemetry/        # Telemetry & distributed tracing
-├── plugins/          # Plugin system (OpenClaw-compatible, npm package installation)
-├── prompt-guard/     # Prompt injection protection (L1-L4 multi-level detection & defense)
+├── harness/          # Architectural cornerstone — trait interfaces, DTOs, unified error types, DI contracts
+│                     #   200+ trait definitions covering: Agent/Provider/Tool/RAG/Storage/
+│                     #   MCP/Plugins/Security/Observability/Memory/Learning/Browser/Messaging
+│
+├── entities/         # SeaORM entity models
+├── dao/              # Data access layer (CRUD)
 ├── migration/        # Database migrations
-├── npm/              # npm package parsing & registry
-└── code_engine/      # Candle local inference engine (deprecated, merged into core)
+│
+├── crypto/           # AES-256-GCM encryption/decryption and key management
+├── credential/       # Secure credential storage (API keys etc.)
+├── storage/          # File storage abstraction (Local / S3 / WebDAV), ZIP read/write support
+├── cache/            # Generic caching layer (in-memory)
+├── disk-cache/       # Disk-based file caching
+├── search/           # Search engine (FTS5 + sqlite-vec + candle embeddings)
+├── document-parser/  # Document text extraction (PDF/DOCX/XLSX/PPTX)
+├── kit/              # Utility toolkit — path/encoding/hash/date helpers
+│
+├── runtime-core/     # Runtime common types, config constants
+├── runtime/          # Runtime service orchestration — assembles all 30+ crates, the DI runtime container
+│                     #   Manages: sessions/terminals/webhooks/rate-limiting/permissions/SSRF/event bus/state
+├── rt-workflow/      # Workflow engine — DAG orchestration, node executors, YAML serialization
+├── rt-messaging/     # Messaging platform gateway — DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord
+├── rt-webhook/       # Generic webhook server and event dispatch
+├── rt-dashboard/     # Dashboard plugin framework
+├── rt-theme/         # Theme engine — dark/light switching logic
+│
+├── agent/            # AI agent core — 80+ modules
+│                     #   ReAct engine/hierarchical planning/deep research/fact checking/tree of thoughts/
+│                     #   reflection/self-verification/error recovery/RL optimization/LoRA fine-tuning/
+│                     #   evaluation/tool recommendation/A-B testing/coordinator/blackboard/vision pipeline/
+│                     #   web search/academic search/wiki compilation and more
+│
+├── orchestrator/     # Agent orchestration — multi-agent scheduling, DAG decomposition, dynamic subgraph execution
+├── providers/        # Model provider adapters — OpenAI/Anthropic/Gemini/Ollama/
+│                     #   OpenClaw/Hermes/Image Generation (DALL-E/Flux)/Realtime/Responses
+├── tools/            # Tool system — Tool trait/registry/orchestration/streaming/sandbox/47+ built-in tools
+├── gateway/          # API gateway — axum HTTP/WS server, OAuth, rate limiting, Prometheus
+├── mcp/              # MCP protocol — stdio + Streamable HTTP, based on rmcp
+├── trajectory/       # Learning system — memory/skill evolution/user profile/dream integration
+├── plugins/          # Plugin system — OpenClaw compatible, npm package installation, marketplace
+├── telemetry/        # Observability — OpenTelemetry, structured logging, runtime metrics
+├── prompt-guard/     # Prompt injection protection — L1-L4 multi-level detection pipeline
+├── npm/              # npm registry client
+└── schema-gen/       # Database schema generation tool
 ```
 
 ### Frontend Architecture
 
 ```
 src/
-├── stores/                    # Zustand state management
-│   ├── domain/               # Core business state
-│   │   ├── conversationStore.ts
-│   │   ├── messageStore.ts
-│   │   ├── streamStore.ts
-│   │   ├── multiModelStore.ts
-│   │   ├── preferenceStore.ts
-│   │   └── compressStore.ts
-│   ├── feature/              # Feature module state (30+ stores)
-│   │   ├── agentStore.ts
-│   │   ├── agentProfileStore.ts
-│   │   ├── appConfigStore.ts
-│   │   ├── backupStore.ts
-│   │   ├── buddyStore.ts
-│   │   ├── categoryStore.ts
-│   │   ├── decompositionStore.ts
-│   │   ├── dreamStore.ts
-│   │   ├── executionStore.ts
-│   │   ├── expertStore.ts
-│   │   ├── fileStore.ts
-│   │   ├── gatewayStore.ts
-│   │   ├── gatewayLinkStore.ts
-│   │   ├── generatedToolStore.ts
-│   │   ├── helpStore.ts
-│   │   ├── knowledgeStore.ts
-│   │   ├── llmWikiStore.ts
-│   │   ├── localToolStore.ts
-│   │   ├── memoryStore.ts
-│   │   ├── mcpStore.ts
-│   │   ├── nudgeStore.ts
-│   │   ├── onboardingStore.ts
-│   │   ├── planStore.ts
-│   │   ├── platformStore.ts
-│   │   ├── proactiveStore.ts
-│   │   ├── promptTemplateStore.ts
-│   │   ├── providerStore.ts
-│   │   ├── searchStore.ts
-│   │   ├── settingsStore.ts
-│   │   ├── skillExtensionStore.ts
-│   │   ├── skillStore.ts
-│   │   ├── styleStore.ts
-│   │   ├── terminalStore.ts
-│   │   ├── themeStore.ts
-│   │   ├── trajectoryStore.ts
-│   │   ├── userProfileStore.ts
-│   │   ├── wikiStore.ts
-│   │   ├── workEngineStore.ts
-│   │   └── workflowEditorStore.ts
-│   ├── devtools/             # DevTools state
-│   │   ├── tracerStore.ts
-│   │   ├── evaluatorStore.ts
-│   │   ├── rlStore.ts
-│   │   ├── fineTuneStore.ts
-│   │   └── recommendationStore.ts
-│   └── shared/               # Shared state
-│       ├── artifactStore.ts
-│       ├── chatWorkspaceStore.ts
-│       ├── tabStore.ts
-│       └── uiStore.ts
+├── pages/            # 22 pages
+│   ├── ChatPage          # Main chat interface
+│   ├── WorkflowPage      # Workflow editor
+│   ├── GatewayPage       # API gateway management
+│   ├── KnowledgeHubPage  # Knowledge base management
+│   ├── MemoryPage        # Memory management
+│   ├── SkillsPage        # Skill marketplace
+│   ├── SettingsPage      # Settings panel
+│   ├── DashboardPage     # Data dashboard
+│   ├── TerminalPage      # Terminal
+│   ├── FilesPage         # File management
+│   ├── GatewayLinkPage   # External link management
+│   ├── LinkPage          # Integration links
+│   ├── WikiEditorPage    # Wiki editor
+│   ├── WikiEditPage      # Wiki editing
+│   ├── WikiGraphPage     # Wiki knowledge graph
+│   ├── FineTunePage      # LoRA fine-tuning
+│   ├── PersonaPage       # Persona management
+│   ├── QuickBarPage      # Quick bar
+│   ├── IngestPage        # Document ingestion
+│   ├── WorkflowMarketplace # Workflow marketplace
+│   ├── DynamicUIManagerPage # Dynamic UI management
+│   └── DynamicPageViewer    # Dynamic page viewer
 │
-├── components/                # React components (24 modules)
-│   ├── chat/                # Chat interface (90+ components)
-│   ├── workflow/            # Workflow editor (nodes/panels/templates/AI assist)
-│   ├── gateway/             # API gateway UI
-│   ├── settings/            # Settings panels (40+ components)
-│   ├── terminal/            # Terminal UI
-│   ├── skill/               # Skill editor & renderer
-│   ├── benchmark/           # Benchmark panels
-│   ├── decomposition/       # Skill decomposition & tool generation
-│   ├── files/               # File management page
-│   ├── fine-tune/           # LoRA fine-tuning config
-│   ├── link/                # External link management
-│   ├── llm-wiki/            # LLM Wiki editor
-│   ├── proactive/           # Proactive suggestion system
-│   ├── recommendation/      # Tool recommendation panel
-│   ├── wiki/                # Wiki management
-│   ├── devtools/            # Trace/Span timeline
-│   ├── style/               # Code style transfer
-│   ├── layout/              # Layout components (titlebar/sidebar/command palette)
-│   ├── help/                # Help panel
-│   ├── onboarding/          # Onboarding wizard
-│   ├── notification/        # Notification center
-│   ├── search/              # Session search
-│   ├── common/              # Common components
-│   └── shared/              # Shared components
+├── components/       # 24 modules, 200+ components
+│   ├── chat/         # Chat UI (message stream/input/attachments/tool calls/artifacts/thinking blocks)
+│   ├── workflow/     # Workflow editor (nodes/edges/panels/templates/AI assistance)
+│   ├── gateway/      # API gateway management UI
+│   ├── settings/     # Settings panel (40+ sub-components)
+│   ├── skill/        # Skill editor and renderer
+│   ├── benchmark/    # Benchmark panel
+│   ├── decomposition/# Skill decomposition and tool generation
+│   ├── devtools/     # Trace/Span timeline
+│   ├── layout/       # Layout (title bar/sidebar/command palette)
+│   └── ...
 │
-├── pages/                    # Page components (22 pages)
-│   ├── ChatPage.tsx
-│   ├── KnowledgePage.tsx
-│   ├── KnowledgeHubPage.tsx
-│   ├── MemoryPage.tsx
-│   ├── WorkflowPage.tsx
-│   ├── WorkflowMarketplace.tsx
-│   ├── GatewayPage.tsx
-│   ├── GatewayLinkPage.tsx
-│   ├── LinkPage.tsx
-│   ├── FilesPage.tsx
-│   ├── FineTunePage.tsx
-│   ├── SkillsPage.tsx
-│   ├── WikiPage.tsx
-│   ├── WikiEditorPage.tsx
-│   ├── WikiGraphPage.tsx
-│   ├── LlmWikiPage.tsx
-│   ├── LlmWikiEditorPage.tsx
-│   ├── IngestPage.tsx
-│   ├── QuickBarPage.tsx
-│   ├── SettingsPage.tsx
-│   └── DevTools/
-│       ├── TraceExplorer.tsx
-│       ├── BenchmarkRunner.tsx
-│       └── ToolRecommender.tsx
+├── stores/           # 62 Zustand stores
+│   ├── domain/       # Core business state
+│   ├── feature/      # Feature module state (44)
+│   └── devtools/     # DevTools state
 │
-├── hooks/                    # React hooks (10)
-├── lib/                      # Utility functions (with Web Worker)
-├── types/                    # TypeScript definitions (22)
-├── sdk/                      # SDK (including Python SDK)
-└── i18n/                     # 11 language translations
+├── hooks/            # React Hooks
+├── lib/              # Utility functions + Web Workers
+├── types/            # TypeScript type definitions
+├── sdk/              # External integration SDK
+└── i18n/             # 11 language translations (zh-CN/zh-TW/en-US/ja/ko/fr/de/es/ru/hi/ar)
 ```
 
-## Getting Started
+---
 
-### Download Pre-built
+## Data Directory
 
-Visit the [Releases](https://github.com/polite0803/AxAgent/releases) page and download the installer for your platform.
+```
+~/.axagent/                    # Application configuration
+├── axagent.db                 # SQLite main database (SeaORM)
+├── master.key                 # AES-256 master key
+├── vector_db/                 # sqlite-vec vector index
+└── ssl/                       # Self-signed SSL certificates
 
-### Build from Source
+~/Documents/axagent/          # User files
+├── images/                   # Image attachments
+├── files/                    # File attachments
+└── backups/                  # Auto backups
+```
 
-#### Prerequisites
+---
+
+## Quick Start
+
+### Requirements
 
 - [Node.js](https://nodejs.org/) 20+
-- [Rust](https://www.rust-lang.org/) 1.75+
+- [Rust](https://www.rust-lang.org/) 1.75+, edition 2024
 - [npm](https://www.npmjs.com/) 10+
-- Windows: [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) + Rust MSVC targets
+- Windows: [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (MSVC + Windows SDK)
+- macOS: Xcode Command Line Tools
+- Linux: `build-essential` + `libwebkit2gtk-4.1-dev` + `libssl-dev`
 
-#### Build Steps
+### Build
 
 ```bash
-# Clone repository
 git clone https://github.com/polite0803/AxAgent.git
 cd AxAgent
-
-# Install dependencies
 npm install
-
-# Development mode
-npm run tauri dev
-
-# Build frontend only
-npm run build
-
-# Build desktop application
-npm run tauri build
+npm run tauri dev      # Development mode
+npm run tauri build    # Production build
 ```
 
-Build artifacts are located in `src-tauri/target/release/`.
+Build artifacts are located at `src-tauri/target/release/`.
 
 ### Testing
 
 ```bash
-# Unit tests
-npm run test          # Vitest watch
-npm run test:run      # Vitest single run
-
-# E2E tests
-npm run test:e2e      # Playwright
-npm run test:e2e:ui   # Playwright UI mode
+npm run test           # Frontend unit tests (Vitest watch)
+npm run test:run       # Frontend unit tests (single run)
+npm run test:e2e       # E2E tests (Playwright)
 
 # Rust backend tests
-cd src-tauri && cargo nextest run   # cargo-nextest (2-3x faster)
-cd src-tauri && cargo test          # Standard tests
+cd src-tauri && cargo nextest run
+cd src-tauri && cargo test
 
-# Type checking
-npm run typecheck     # TypeScript
-cd src-tauri && cargo clippy -- -D warnings  # Rust
-
-# Code formatting
-npm run format        # dprint
-cd src-tauri && cargo fmt
+# Type checking & Linting
+npm run typecheck
+cd src-tauri && cargo clippy -- -D warnings
+npm run format
 
 # CI full check
 npm run ci:check
@@ -550,122 +408,35 @@ npm run ci:check
 
 ---
 
-## Project Structure
+## Platform Support
 
-```
-AxAgent/
-├── src/                         # Frontend source (React + TypeScript)
-│   ├── components/              # React components (24 modules)
-│   │   ├── chat/               # Chat interface (90+ components)
-│   │   ├── workflow/           # Workflow editor components
-│   │   ├── gateway/            # API gateway components
-│   │   ├── settings/           # Settings panels (40+ components)
-│   │   ├── terminal/           # Terminal components
-│   │   ├── skill/              # Skill editor & renderer
-│   │   ├── benchmark/          # Benchmark
-│   │   ├── decomposition/      # Skill decomposition
-│   │   ├── files/              # File management
-│   │   ├── fine-tune/          # LoRA fine-tuning
-│   │   ├── link/               # External links
-│   │   ├── llm-wiki/           # LLM Wiki
-│   │   ├── proactive/          # Proactive suggestions
-│   │   ├── recommendation/     # Tool recommendation
-│   │   ├── wiki/               # Wiki management
-│   │   ├── devtools/           # DevTools
-│   │   ├── style/              # Code style
-│   │   ├── layout/             # Layout components
-│   │   ├── help/               # Help panel
-│   │   ├── onboarding/         # Onboarding wizard
-│   │   ├── notification/       # Notification center
-│   │   ├── search/             # Session search
-│   │   ├── common/             # Common components
-│   │   └── shared/             # Shared components
-│   ├── pages/                   # Page components (22 pages)
-│   ├── stores/                  # Zustand state management (62 stores)
-│   │   ├── domain/            # Core business state (9 stores)
-│   │   ├── feature/           # Feature module state (44 stores)
-│   │   ├── devtools/          # DevTools state (5 stores)
-│   │   └── shared/            # Shared state (4 stores)
-│   ├── hooks/                   # React hooks (10)
-│   ├── lib/                     # Utility functions (with Web Worker)
-│   ├── types/                   # TypeScript definitions (22)
-│   ├── sdk/                     # SDK (including Python SDK)
-│   └── i18n/                    # 11 language translations
-│
-├── src-tauri/                    # Backend source (Rust)
-│   ├── crates/                  # Rust workspace (18 crates)
-│   │   ├── agent/             # AI Agent core
-│   │   ├── core/              # Database, crypto, RAG, MCP
-│   │   ├── providers/         # Model provider adapters
-│   │   ├── runtime-core/      # Runtime abstraction layer
-│   │   ├── runtime/           # Runtime services
-│   │   ├── rt-workflow/       # Workflow engine
-│   │   ├── rt-messaging/      # Message gateway
-│   │   ├── rt-webhook/        # Webhook server
-│   │   ├── rt-dashboard/      # Dashboard plugin
-│   │   ├── rt-theme/          # Theme engine
-│   │   ├── gateway/           # API gateway server
-│   │   ├── tools/             # Tool system
-│   │   ├── trajectory/        # Memory & learning
-│   │   ├── telemetry/         # Tracing & metrics
-│   │   ├── plugins/           # Plugin system
-│   │   ├── prompt-guard/      # Prompt injection protection
-│   │   ├── migration/         # Database migrations
-│   │   └── npm/               # npm package parsing
-│   └── src/                    # Tauri entry point (70+ command modules)
-│
-├── extension/                  # Browser extension (Wiki Clipper)
-├── e2e/                        # Playwright E2E tests
-├── scripts/                    # Build & utility scripts
-└── website/                    # Project website (VitePress)
-```
-
-## Data Directories
-
-```
-~/.axagent/                      # Configuration directory
-├── axagent.db                   # SQLite database
-├── master.key                   # AES-256 master key
-├── vector_db/                   # Vector database (sqlite-vec)
-└── ssl/                         # SSL certificates
-
-~/Documents/axagent/            # User files directory
-├── images/                      # Image attachments
-├── files/                       # File attachments
-└── backups/                     # Backup files
-```
+| Platform | Architecture                              |
+| -------- | ----------------------------------------- |
+| Windows  | x86_64, ARM64                             |
+| macOS    | Apple Silicon (arm64), Intel (x86_64)     |
+| Linux    | x86_64, ARM64                             |
+| Android  | arm64-v8a, armeabi-v7a, x86_64 (emulator) |
+| iOS      | arm64                                     |
 
 ---
-
-## FAQ
-
-### macOS: "App Is Damaged" or "Cannot Verify Developer"
-
-Since the application is not signed by Apple:
-
-**1. Allow apps from "Anywhere"**
-
-```bash
-sudo spctl --master-disable
-```
-
-Then go to **System Settings → Privacy & Security → Security** and select **Anywhere**.
-
-**2. Remove quarantine attribute**
-
-```bash
-sudo xattr -dr com.apple.quarantine /Applications/AxAgent.app
-```
-
-**3. macOS Ventura+ additional step**
-Go to **System Settings → Privacy & Security**, click **Open Anyway**.
-
----
-
-## Community
-
-- [LinuxDO](https://linux.do)
 
 ## License
 
-This project is licensed under the [AGPL-3.0](LICENSE) License.
+This project is open-sourced under the [AGPL-3.0-only](LICENSE) license.
+
+---
+
+## Acknowledgments
+
+AxAgent is built upon many outstanding open-source projects, including but not limited to:
+
+- [Tauri](https://tauri.app/) — Cross-platform desktop framework
+- [React](https://react.dev/) + [Ant Design](https://ant.design/) — Frontend UI
+- [SeaORM](https://www.sea-ql.org/SeaORM/) — Rust ORM
+- [sqlite-vec](https://github.com/asg017/sqlite-vec) — Vector search
+- [candle](https://github.com/huggingface/candle) — Local embedding inference
+- [rmcp](https://github.com/nicholasxjy/rmcp) — Rust MCP SDK
+- [ReactFlow](https://reactflow.dev/) — Visual workflow editor
+- [axum](https://github.com/tokio-rs/axum) — HTTP framework
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/) — Code editor
+- [xterm.js](https://xtermjs.org/) — Terminal emulator

@@ -14,6 +14,8 @@ pub struct Model {
     pub api_path: Option<String>,
     pub enabled: i32,
     pub proxy_config: Option<String>,
+    pub tool_adaptation: Option<String>,
+    pub tool_adaptation_marker_prefix: Option<String>,
     pub custom_headers: Option<String>,
     pub icon: Option<String>,
     pub builtin_id: Option<String>,

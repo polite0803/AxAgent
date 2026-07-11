@@ -10,16 +10,19 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Utc;
-use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use axagent_harness::workflow_types::{
-    CompensationStrategy, DegradeStrategy, EdgeType, JsonSchema, OnFailureAction, Variable,
-    WorkflowEdge, WorkflowNode,
+    BackoffType, CompensationStrategy, DegradeStrategy, EdgeType, JsonSchema, OnFailureAction,
+    RetryConfig, Variable, WorkflowEdge, WorkflowNode,
 };
 
 use axagent_harness::RhaiEngineAdapter;
+use axagent_harness::repo_dtos::WorkflowExecutionData;
+use axagent_harness::repositories::{
+    loop_checkpoint_repository, workflow_execution_repository, workflow_template_repository,
+};
 use rhai::{EvalAltResult, Position};
 
 pub mod dag_store;
@@ -191,7 +194,6 @@ impl RunOptions {
 #[derive(Clone)]
 
 pub struct WorkEngine {
-    db: Arc<DatabaseConnection>,
     executions: Arc<Mutex<HashMap<String, ExecutionState>>>,
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
     /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
@@ -226,7 +228,7 @@ pub struct WorkEngine {
     /// 硬约束，在执行层直接拦截违规操作。
     /// 通过 `set_business_rule_engine` 注入。
     business_rule_engine:
-        Arc<std::sync::Mutex<Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>>>>,
+        Arc<std::sync::Mutex<Option<Arc<crate::business_rules::BusinessRuleEngine>>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
@@ -563,16 +565,14 @@ impl WorkEngine {
     /// 多次调用：后者覆盖前者（标准 setter 语义）。
     pub async fn set_business_rule_engine(
         &self,
-        engine: Arc<axagent_harness::business_rules::BusinessRuleEngine>,
+        engine: Arc<crate::business_rules::BusinessRuleEngine>,
     ) {
         *self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned") =
             Some(engine);
     }
 
     /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
-    fn business_rule_engine(
-        &self,
-    ) -> Option<Arc<axagent_harness::business_rules::BusinessRuleEngine>> {
+    fn business_rule_engine(&self) -> Option<Arc<crate::business_rules::BusinessRuleEngine>> {
         self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned").clone()
     }
 
@@ -589,7 +589,6 @@ impl WorkEngine {
 
 impl WorkEngine {
     pub fn new(
-        db: Arc<DatabaseConnection>,
         master_key: [u8; 32],
         provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
     ) -> Self {
@@ -601,17 +600,16 @@ impl WorkEngine {
         // 统一走 HasProviderRegistry trait，避免 5 个 executor 各自实现 with_provider_registry。
         use axagent_harness::HasProviderRegistry;
 
-        let mut llm_exec = LlmExecutor::new(db.clone(), master_key);
+        let mut llm_exec = LlmExecutor::new(master_key);
         // 唯一构造路径：创建 Arc<AgentExecutor>，dispatcher 与 WorkEngine.agent_executor
         // 共享同一个实例。运行期不再 register(E) 重新注册，避免丢失 provider_registry。
         let mut agent_exec = AgentExecutor::with_shared_caches(
-            db.clone(),
             master_key,
             agent_provider_cache.clone(),
             agent_profile_cache.clone(),
         );
-        let mut cond_exec = ConditionExecutor::new(db.clone(), master_key);
-        let mut classifier_exec = LlmClassifierExecutor::new(db.clone(), master_key);
+        let mut cond_exec = ConditionExecutor::new(master_key);
+        let mut classifier_exec = LlmClassifierExecutor::new(master_key);
 
         llm_exec.set_provider_registry(provider_registry.clone());
         agent_exec.set_provider_registry(provider_registry.clone());
@@ -630,7 +628,6 @@ impl WorkEngine {
 
         // Self { ... }
         Self {
-            db,
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
@@ -667,7 +664,7 @@ impl WorkEngine {
     ///
     /// 外部调用方式：
     /// ```ignore
-    /// let engine = Arc::new(WorkEngine::new(db, master_key, registry));
+    /// let engine = Arc::new(WorkEngine::new(master_key, registry));
     /// rt.block_on(engine.init_trigger_manager());
     /// ```
     pub async fn init_trigger_manager(self: &Arc<Self>) {
@@ -995,16 +992,10 @@ impl WorkEngine {
                     .collect()
             };
             for exec_id in &running_exec_ids {
-                axagent_dao::repo::workflow_execution::update_workflow_execution_status(
-                    &self.db,
-                    exec_id,
-                    "cancelled",
-                    None,
-                    None,
-                    None,
-                )
-                .await
-                .ok();
+                workflow_execution_repository()
+                    .update_workflow_execution_status(exec_id, "cancelled", None, None, None)
+                    .await
+                    .ok();
             }
         }
 
@@ -1084,15 +1075,9 @@ impl WorkEngine {
             // 持久化失败状态（status="failed"），便于审计与前端展示。
             // 注意：workflow_executions 表当前没有 error_message 字段，错误细节
             // 仅记入日志；后续若加字段再透传。
-            if let Err(e) = axagent_dao::repo::workflow_execution::update_workflow_execution_status(
-                &self.db,
-                &execution_id,
-                "failed",
-                None,
-                None,
-                None,
-            )
-            .await
+            if let Err(e) = workflow_execution_repository()
+                .update_workflow_execution_status(&execution_id, "failed", None, None, None)
+                .await
             {
                 tracing::error!(
                     "[rt-workflow] 持久化校验失败状态失败: {e} (execution_id={execution_id})"
@@ -1772,16 +1757,10 @@ impl WorkEngine {
                                         .build()
                                         .expect("failed to build sub-workflow runtime");
                                     rt.block_on(async move {
-                                        use axagent_dao::repo::workflow_template;
-
                                         let result: Result<(String, serde_json::Value), String> =
                                             async {
-                                                let db = &engine.db;
-                                                let template =
-                                                    workflow_template::get_workflow_template(
-                                                        db,
-                                                        &sub_workflow_id,
-                                                    )
+                                                let template = workflow_template_repository()
+                                                    .get_workflow_template(&sub_workflow_id)
                                                     .await
                                                     .map_err(|e| e.to_string())?
                                                     .ok_or_else(|| {
@@ -1851,7 +1830,7 @@ impl WorkEngine {
                         tool_fallback,
                         subworkflow: Some(sub_cb),
                         loop_body_dispatch: Some(build_loop_body_dispatch(self.clone())),
-                        loop_checkpoint: Some(build_loop_checkpoint_ops(self.db.clone())),
+                        loop_checkpoint: Some(build_loop_checkpoint_ops()),
                     });
                 }
 
@@ -2020,18 +1999,37 @@ impl WorkEngine {
                             .record_failure(current_epoch_ms());
 
                         let err_msg = err.to_string();
-                        let retry_cfg = nr.node.base_retry();
-                        let current_attempts = {
+                        let node_retry_cfg = nr.node.base_retry().clone();
+                        let (current_attempts, wf_retry_policy) = {
                             let workflows = self.workflows.read().await;
-                            workflows
-                                .get(workflow_id)
+                            let wf = workflows.get(workflow_id);
+                            let attempts = wf
                                 .and_then(|wf| {
                                     wf.node_states.get(nr.node_id.as_str()).map(|s| s.attempts)
                                 })
-                                .unwrap_or(0)
+                                .unwrap_or(0);
+                            let rp = wf
+                                .and_then(|wf| wf.error_config.as_ref())
+                                .and_then(|ec| ec.retry_policy.clone());
+                            (attempts, rp)
                         };
 
-                        if retry_cfg.enabled && current_attempts < retry_cfg.max_retries {
+                        // 确定生效的重试配置：节点级 > 工作流级 retry_policy 回退
+                        let effective_retry = if node_retry_cfg.enabled {
+                            Some(node_retry_cfg)
+                        } else {
+                            wf_retry_policy.map(|rp| RetryConfig {
+                                enabled: true,
+                                max_retries: rp.max_retries,
+                                backoff_type: BackoffType::Exponential,
+                                base_delay_ms: rp.base_delay_ms,
+                                max_delay_ms: rp.max_delay_ms,
+                            })
+                        };
+
+                        if let Some(ref retry_cfg) = effective_retry
+                            && current_attempts < retry_cfg.max_retries
+                        {
                             tracing::info!(
                                 workflow_id = %workflow_id,
                                 node_id = %nr.node_id,
@@ -2715,14 +2713,10 @@ impl WorkEngine {
         state.business_rule_engine = self.business_rule_engine();
         state.tool_registry = self.tool_registry();
         let input_params = serde_json::to_string(&input).ok();
-        axagent_dao::repo::workflow_execution::create_workflow_execution(
-            &self.db,
-            &execution_id,
-            workflow_id,
-            input_params.as_deref(),
-        )
-        .await
-        .map_err(|e| WorkEngineError::Db(e.to_string()))?;
+        workflow_execution_repository()
+            .create_workflow_execution(&execution_id, workflow_id, input_params.as_deref())
+            .await
+            .map_err(WorkEngineError::Db)?;
         // 为本次执行预创建 partial_result 广播器（容量 256，足够 Loop
         // 万级迭代的扇出，前端订阅者可拿到完整历史）。
         let (partial_tx, _) = tokio::sync::broadcast::channel(256);
@@ -2781,11 +2775,8 @@ impl WorkEngine {
                 }
             }
             // 取消时清理 Loop 检查点（避免脏数据遗留）
-            if let Err(e) =
-                axagent_dao::repo::loop_checkpoint::delete_loop_checkpoints_for_execution(
-                    &self.db,
-                    execution_id,
-                )
+            if let Err(e) = loop_checkpoint_repository()
+                .delete_loop_checkpoints_for_execution(execution_id)
                 .await
             {
                 tracing::warn!("[Loop] 取消时清理检查点失败: {e} (execution_id={execution_id})");
@@ -2795,16 +2786,10 @@ impl WorkEngine {
                 sig.notify_waiters();
             }
             self.loop_partial_txs.lock().await.remove(execution_id);
-            axagent_dao::repo::workflow_execution::update_workflow_execution_status(
-                &self.db,
-                execution_id,
-                "cancelled",
-                None,
-                None,
-                None,
-            )
-            .await
-            .map_err(|e| WorkEngineError::Db(e.to_string()))?;
+            workflow_execution_repository()
+                .update_workflow_execution_status(execution_id, "cancelled", None, None, None)
+                .await
+                .map_err(WorkEngineError::Db)?;
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -2876,12 +2861,8 @@ impl WorkEngine {
         &self,
         execution_id: &str,
         node_id: &str,
-    ) -> Result<
-        Option<axagent_harness::workflow_types::LoopCheckpoint>,
-        axagent_harness::core_error::AxAgentError,
-    > {
-        axagent_dao::repo::loop_checkpoint::load_loop_checkpoint(&self.db, execution_id, node_id)
-            .await
+    ) -> Result<Option<axagent_harness::workflow_types::LoopCheckpoint>, String> {
+        loop_checkpoint_repository().load_loop_checkpoint(execution_id, node_id).await
     }
 
     pub async fn get_status(&self, execution_id: &str) -> Result<ExecutionState, WorkEngineError> {
@@ -2895,10 +2876,11 @@ impl WorkEngine {
     pub async fn list_executions(
         &self,
         workflow_id: &str,
-    ) -> Result<Vec<axagent_entities::workflow_executions::Model>, WorkEngineError> {
-        axagent_dao::repo::workflow_execution::list_workflow_executions(&self.db, workflow_id)
+    ) -> Result<Vec<WorkflowExecutionData>, WorkEngineError> {
+        workflow_execution_repository()
+            .list_workflow_executions(workflow_id)
             .await
-            .map_err(|e| WorkEngineError::Db(e.to_string()))
+            .map_err(WorkEngineError::Db)
     }
 
     pub async fn record_node_execution(
@@ -2986,16 +2968,16 @@ impl WorkEngine {
                 ExecutionStatus::PartiallyCompleted => "partially_completed",
                 _ => "completed",
             };
-            axagent_dao::repo::workflow_execution::update_workflow_execution_status(
-                &self.db,
-                execution_id,
-                db_status,
-                output_result.as_deref(),
-                node_executions.as_deref(),
-                Some(total_time_ms as i32),
-            )
-            .await
-            .map_err(|e| WorkEngineError::Db(e.to_string()))?;
+            workflow_execution_repository()
+                .update_workflow_execution_status(
+                    execution_id,
+                    db_status,
+                    output_result.as_deref(),
+                    node_executions.as_deref(),
+                    Some(total_time_ms as i32),
+                )
+                .await
+                .map_err(WorkEngineError::Db)?;
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -3080,34 +3062,29 @@ pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::L
 }
 
 /// 构造 LoopExecutor 用的 `loop_checkpoint` 回调（save/load/delete）。
-pub fn build_loop_checkpoint_ops(
-    db: Arc<DatabaseConnection>,
-) -> super::execution_state::LoopCheckpointOps {
+pub fn build_loop_checkpoint_ops() -> super::execution_state::LoopCheckpointOps {
     use super::execution_state::LoopCheckpointOps;
-    let db_for_save = db.clone();
-    let db_for_load = db.clone();
-    let db_for_delete = db.clone();
     LoopCheckpointOps {
-        save: Arc::new(move |cp: axagent_harness::workflow_types::LoopCheckpoint| {
-            let db = db_for_save.clone();
+        save: Arc::new(|cp: axagent_harness::workflow_types::LoopCheckpoint| {
             Box::pin(async move {
-                axagent_dao::repo::loop_checkpoint::save_loop_checkpoint(&db, &cp)
+                loop_checkpoint_repository()
+                    .save_loop_checkpoint(&cp)
                     .await
                     .map_err(|e| format!("save_loop_checkpoint failed: {e}"))
             })
         }),
-        load: Arc::new(move |eid: String, nid: String| {
-            let db = db_for_load.clone();
+        load: Arc::new(|eid: String, nid: String| {
             Box::pin(async move {
-                axagent_dao::repo::loop_checkpoint::load_loop_checkpoint(&db, &eid, &nid)
+                loop_checkpoint_repository()
+                    .load_loop_checkpoint(&eid, &nid)
                     .await
                     .map_err(|e| format!("load_loop_checkpoint failed: {e}"))
             })
         }),
-        delete: Arc::new(move |eid: String, nid: String| {
-            let db = db_for_delete.clone();
+        delete: Arc::new(|eid: String, nid: String| {
             Box::pin(async move {
-                axagent_dao::repo::loop_checkpoint::delete_loop_checkpoint(&db, &eid, &nid)
+                loop_checkpoint_repository()
+                    .delete_loop_checkpoint(&eid, &nid)
                     .await
                     .map_err(|e| format!("delete_loop_checkpoint failed: {e}"))
             })
@@ -3117,7 +3094,7 @@ pub fn build_loop_checkpoint_ops(
 
 // ── Condition 节点分支跳过辅助 ──
 
-/// Condition 节点完成后，将不匹配分支上的所有下游节点标记为 Skipped。
+// Condition 节点完成后，将不匹配分支上的所有下游节点标记为 Skipped。
 
 // ── 测试 ──
 
@@ -3139,15 +3116,10 @@ mod tests {
     }
 
     /// 构造一个仅用于桥接测试的 WorkEngine。
-    /// - `DatabaseConnection::default()`：sea-orm 的零值连接，不发起实际查询
     /// - master_key `[0u8; 32]`：占位密钥，桥接测试不涉及解密
     /// - `EmptyProviderRegistry`：空实现，桥接测试不查 provider
     fn make_test_engine() -> WorkEngine {
-        WorkEngine::new(
-            Arc::new(sea_orm::DatabaseConnection::default()),
-            [0u8; 32],
-            Arc::new(EmptyProviderRegistry),
-        )
+        WorkEngine::new([0u8; 32], Arc::new(EmptyProviderRegistry))
     }
 
     #[tokio::test]

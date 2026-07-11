@@ -14,6 +14,8 @@ export type ProviderConfig = {
   models: Array<Model>;
   keys: Array<ProviderKey>;
   proxy_config: ProviderProxyConfig | null;
+  tool_adaptation: string | null;
+  tool_adaptation_marker_prefix: string | null;
   custom_headers: string | null;
   icon: string | null;
   builtin_id: string | null;

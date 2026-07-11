@@ -49,6 +49,7 @@ pub mod interrupt;
 pub mod lint_checker;
 pub mod llm_bridge;
 pub mod metrics;
+pub mod noop_kit;
 pub mod outline_builder;
 pub mod personality;
 pub mod pre_validator;
@@ -117,9 +118,7 @@ pub use recovery_strategies::{
 };
 
 // hierarchical_planner — 外部引用：commands/plan
-pub use hierarchical_planner::{
-    Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus, compile_plan_to_dag,
-};
+pub use hierarchical_planner::{Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus};
 
 // insight_generator — 外部引用：commands/reflection
 pub use insight_generator::{Insight, InsightCategory, InsightStats};
@@ -182,4 +181,3 @@ pub use reasoning_router::{
 pub fn clean_output(content: &str) -> String {
     content.trim_end().to_string()
 }
-pub use axagent_runtime_core::AgentExecutionProgressSnapshot;

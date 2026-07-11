@@ -5,7 +5,6 @@
 //! 使用方式：
 //! - rl.rs 通过 SHARED_OPTIMIZER 访问 RLOptimizer
 //! - tracer.rs 通过 SHARED_PIPELINE / SHARED_ORCHESTRATOR 摄入反馈
-//! - 在 app 启动时调用 init_shared_state() 初始化
 
 use axagent_agent::rl_optimizer::RLOptimizer;
 use axagent_agent::{ExperiencePipeline, FeedbackOrchestrator};
@@ -31,15 +30,4 @@ lazy_static::lazy_static! {
     pub static ref SHARED_ORCHESTRATOR: Arc<FeedbackOrchestrator> = {
         Arc::new(FeedbackOrchestrator::new())
     };
-}
-
-/// App 启动时调用（预留，当前 lazy_static 已自动初始化）。
-#[allow(dead_code)]
-pub fn init_shared_state() {
-    lazy_static::initialize(&SHARED_OPTIMIZER);
-    lazy_static::initialize(&SHARED_PIPELINE);
-    lazy_static::initialize(&SHARED_ORCHESTRATOR);
-    tracing::info!(
-        "[shared_state] RLOptimizer + ExperiencePipeline + FeedbackOrchestrator initialized"
-    );
 }

@@ -146,7 +146,7 @@ export function FrontendEditorModal({
                   value={jsonText}
                   onChange={(e) => handleJsonChange(e.target.value)}
                   rows={18}
-                  style={{ fontFamily: "monospace", fontSize: 13 }}
+                  style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 13 }}
                 />
                 {jsonError && (
                   <Text type="danger" style={{ fontSize: 12 }}>
@@ -165,7 +165,7 @@ export function FrontendEditorModal({
                   maxHeight: 400,
                   overflow: "auto",
                   fontSize: 12,
-                  fontFamily: "monospace",
+                  fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                   background: "var(--color-fill-secondary)",
                   padding: 12,
                   borderRadius: 6,

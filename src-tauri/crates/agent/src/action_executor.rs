@@ -3,6 +3,7 @@
 use crate::pre_validator::PreExecutionValidator;
 use crate::reasoning_state::ActionType;
 use crate::thought_chain::{Action, ThoughtStep};
+use axagent_harness::HarnessToolExecutor;
 use chrono::Utc;
 use serde_json::Value;
 use std::sync::Arc;
@@ -12,7 +13,7 @@ pub struct ActionExecutor {
     _private: (),
     pre_validator: Option<PreExecutionValidator>,
     /// 外部传入的工具注册表（避免每次新建）
-    external_registry: Option<Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor>>>>,
+    external_registry: Option<Arc<tokio::sync::Mutex<Box<dyn HarnessToolExecutor>>>>,
 }
 
 impl Default for ActionExecutor {
@@ -33,7 +34,7 @@ impl ActionExecutor {
 
     pub fn with_registry(
         mut self,
-        registry: Arc<tokio::sync::Mutex<Box<dyn axagent_runtime_core::ToolExecutor>>>,
+        registry: Arc<tokio::sync::Mutex<Box<dyn HarnessToolExecutor>>>,
     ) -> Self {
         self.external_registry = Some(registry);
         self

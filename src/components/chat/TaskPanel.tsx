@@ -269,7 +269,7 @@ export function TaskPanel() {
                       padding: "8px 12px",
                       maxHeight: 300,
                       overflow: "auto",
-                      fontFamily: "monospace",
+                      fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                       fontSize: 12,
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-all",

@@ -110,6 +110,7 @@
     "editMessage": "编辑消息",
     "saveOnly": "仅保存",
     "saveAndResend": "保存并重发",
+    "expandMessage": "展开消息",
     "partial": "主动停止",
     "like": "赞",
     "dislike": "踩",
@@ -1575,6 +1576,10 @@
     "apiPath": "API 路径",
     "urlHintExclamation": "末尾加 ! 可强制使用原始地址，不自动补全 /v1",
     "urlPreviewLabel": "实际请求：",
+    "toolCallingMode": "工具调用模式",
+    "toolCallingModeNative": "原生（模型自带 function calling）",
+    "toolCallingModeManaged": "托管（AxAgent 通过提示词模拟，适用于 Chat2API 等网关）",
+    "toolCallingModeDesc": "选择该供应商的工具调用方式",
     "apiKeys": "API 密钥",
     "models": "模型列表",
     "modelName": "模型名称",
@@ -2601,7 +2606,9 @@
       "statusConnecting": "连接中",
       "lastActivity": "最后活跃",
       "activeSessions": "活跃会话数",
-      "noStatuses": "暂无连接状态"
+      "noStatuses": "暂无连接状态",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）"
     },
     "advanced": "高级设置",
     "evolution": {
@@ -6207,6 +6214,7 @@
     "exported": "技能已导出",
     "hasUI": "含 UI 扩展",
     "timeoutError": "沙箱加载超时，请重试",
+    "runtimeError": "Skill \"{{name}}\" 运行时错误",
     "entryFileEmpty": "入口文件 \"{{entry}}\" 为空或不存在",
     "iframeNotReady": "iframe ref 未就绪",
     "storeNotFound": "Store \"{{name}}\" 未找到",

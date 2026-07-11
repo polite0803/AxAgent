@@ -314,7 +314,7 @@ export function GlobalCopyMenu() {
         position: "fixed",
         left: menuPos.x,
         top: menuPos.y,
-        zIndex: 9999,
+        zIndex: "var(--z-tooltip)",
         backgroundColor: token.colorBgElevated,
         borderRadius: 8,
         boxShadow: token.boxShadowSecondary,

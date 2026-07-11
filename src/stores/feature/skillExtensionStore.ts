@@ -126,6 +126,9 @@ interface SkillExtensionState {
   handlers: Record<string, SkillHandler>;
 
   fetchSkills: () => Promise<void>;
+  /** 从内存中的 skills 数组直接合并扩展，消除重复 IPC 调用。
+   *  由 skillStore 在加载完技能后调用。 */
+  syncFromSkills: (skills: Skill[]) => void;
   getHandler: (name: string) => SkillHandler | undefined;
   refreshSkill: (skillName: string) => Promise<void>;
   registerCustomComponent: (skillName: string, entry: ComponentRegistryEntry) => void;
@@ -421,7 +424,6 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
         set({ skills, ...merged, loading: false });
       } catch (e) {
         logIpcError(i18n.t("skillExtension.fetchFailed"))(e);
-        // 重置为空白状态，避免 UI 与真实状态不同步
         set({
           loading: false,
           skills: [],
@@ -438,25 +440,16 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
       }
     },
 
+    syncFromSkills: (skills: Skill[]) => {
+      const merged = mergeExtensions(skills);
+      set({ skills, ...merged, loading: false });
+    },
+
     getHandler: (name: string) => get().handlers[name],
 
-    refreshSkill: async (skillName: string) => {
+    refreshSkill: async (_skillName: string) => {
       const skills = await invoke<Skill[]>("list_skills");
-      // 增量更新：只合并变化的 skill，保留其他 skill 的扩展数据
-      const currentSkills = get().skills;
-      const skillMap = new Map(currentSkills.map((cs) => [cs.name, cs]));
-
-      // 使用最新数据覆盖匹配的 skill，保留不匹配的旧数据
-      const updatedSkills = skills.map((s) => {
-        const existing = skillMap.get(s.name);
-        return existing && s.name !== skillName ? existing : s;
-      });
-      if (!updatedSkills.some((s) => s.name === skillName)) {
-        const newSkill = skills.find((s) => s.name === skillName);
-        if (newSkill) {
-          updatedSkills.push(newSkill);
-        }
-      }
+      // 直接使用后端最新 skills 列表，以 skill ID 为权威数据源
       const merged = mergeExtensions(skills);
       set({ skills, ...merged });
     },

@@ -221,7 +221,7 @@ pub async fn regenerate_message(
     let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
@@ -627,7 +627,7 @@ pub async fn regenerate_with_model(
     let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,

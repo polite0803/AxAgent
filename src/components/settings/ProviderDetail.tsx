@@ -1433,6 +1433,62 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         </Form>
       </Card>
 
+      {/* Tool Calling Mode */}
+      <Card title={t("settings.toolCallingMode")} size="small">
+        <Form layout="horizontal" colon={false} labelCol={{ flex: "110px" }} wrapperCol={{ flex: 1 }}>
+          <Form.Item
+            label={t("settings.toolCallingMode")}
+            style={{ marginBottom: 0 }}
+          >
+            <Select
+              value={provider?.tool_adaptation ?? "native"}
+              onChange={(val) => {
+                if (val === "native") {
+                  updateProvider(providerId, { tool_adaptation: null });
+                } else {
+                  updateProvider(providerId, { tool_adaptation: val });
+                }
+              }}
+              options={[
+                { label: t("settings.toolCallingModeNative"), value: "native" },
+                { label: t("settings.toolCallingModeManaged"), value: "managed" },
+              ]}
+            />
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 12,
+                color: token.colorTextQuaternary,
+              }}
+            >
+              {t("settings.toolCallingModeDesc")}
+            </div>
+            {provider?.tool_adaptation === "managed" && (
+              <div style={{ marginTop: 8 }}>
+                <Input
+                  size="small"
+                  placeholder={t("settings.markerPrefixPlaceholder")}
+                  value={provider?.tool_adaptation_marker_prefix ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value || null;
+                    updateProvider(providerId, { tool_adaptation_marker_prefix: val });
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: 2,
+                    fontSize: 11,
+                    color: token.colorTextQuaternary,
+                  }}
+                >
+                  {t("settings.markerPrefixDesc")}
+                </div>
+              </div>
+            )}
+          </Form.Item>
+        </Form>
+      </Card>
+
       {/* Models List */}
       {modelListFullscreen && (
         <div

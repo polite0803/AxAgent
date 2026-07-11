@@ -186,25 +186,24 @@ impl VisionPipeline {
             store: None,
         };
 
-        let response = self
-            .adapter
-            .chat(&self.ctx, request)
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let result = axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config)
             .await
             .map_err(|e| format!("Vision analysis failed: {}", e))?;
 
         let text_content = if matches!(task, VisionTask::Ocr | VisionTask::CodeScreenshotReading) {
-            Some(response.content.clone())
+            Some(result.response.content.clone())
         } else {
             None
         };
 
         Ok(VisionResult {
             task,
-            description: response.content,
+            description: result.response.content.clone(),
             elements: vec![],
             text_content,
             confidence: 0.0,
-            model: response.model,
+            model: result.response.model,
         })
     }
 }

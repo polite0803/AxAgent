@@ -5,10 +5,9 @@
 //! 将分散在各 executor 中的约束（PromptGuard、业务规则、权限校验、输出校验、
 //! 一致性检查等）统一为可编排的拦截器链。每个拦截器声明自己关注的拦截点，
 //! 由 `InterceptorChain` 按点串行执行。
+//!
+//! 具体拦截器实现位于 `axagent_runtime_core::interceptors`。
 
-use crate::business_rules::{BusinessRuleEngine, RuleEvaluationOutcome};
-use crate::consistency_check::ConsistencyCheckConfig;
-use crate::prompt_guard::PromptGuard;
 use std::sync::Arc;
 
 /// 拦截点
@@ -130,30 +129,9 @@ impl InterceptorChain {
         self.interceptors.push(interceptor);
     }
 
-    /// 在指定拦截点执行所有匹配的拦截器
-    ///
-    /// - `Continue`：继续执行下一个拦截器
-    /// - `SkipRemaining`：跳过后续拦截器，但视为通过
-    /// - `Block`：立即阻断，返回错误
-    /// - `Degrade`：立即降级，返回 fallback 值
-    pub async fn execute(
-        &self,
-        point: InterceptPoint,
-        ctx: &mut InterceptorContext,
-    ) -> InterceptorResult {
-        for interceptor in &self.interceptors {
-            if interceptor.intercept_points().contains(&point) {
-                let result = interceptor.intercept(point, ctx).await;
-                match &result {
-                    InterceptorResult::Continue => continue,
-                    InterceptorResult::SkipRemaining => break,
-                    InterceptorResult::Block { .. } | InterceptorResult::Degrade { .. } => {
-                        return result;
-                    },
-                }
-            }
-        }
-        InterceptorResult::Continue
+    /// 获取内部拦截器切片
+    pub fn interceptors(&self) -> &[Arc<dyn HarnessInterceptor>] {
+        &self.interceptors
     }
 
     /// 获取所有拦截器 ID
@@ -162,216 +140,9 @@ impl InterceptorChain {
     }
 }
 
-// ── 内置拦截器实现 ──
-
-/// 业务规则拦截器 — 在工作流节点执行前检查业务规则
-#[derive(Debug)]
-pub struct BusinessRuleInterceptor {
-    engine: Arc<BusinessRuleEngine>,
-}
-
-impl BusinessRuleInterceptor {
-    pub fn new(engine: Arc<BusinessRuleEngine>) -> Self {
-        Self { engine }
-    }
-}
-
-#[async_trait::async_trait]
-impl HarnessInterceptor for BusinessRuleInterceptor {
-    fn id(&self) -> &'static str {
-        "business_rule"
-    }
-
-    fn intercept_points(&self) -> Vec<InterceptPoint> {
-        vec![InterceptPoint::BeforeNodeExecute]
-    }
-
-    async fn intercept(
-        &self,
-        _point: InterceptPoint,
-        ctx: &mut InterceptorContext,
-    ) -> InterceptorResult {
-        let node_type = ctx.node_id.as_deref().unwrap_or("unknown");
-        let input = ctx.request.clone().unwrap_or(serde_json::Value::Null);
-
-        match self.engine.evaluate(node_type, &input) {
-            RuleEvaluationOutcome::Pass => InterceptorResult::Continue,
-            RuleEvaluationOutcome::Violation { reason, action: _, .. } => {
-                InterceptorResult::Block { reason: format!("[业务规则] {reason}") }
-            },
-            RuleEvaluationOutcome::RequiresApproval { reason, .. } => {
-                // RequireApproval 视为阻断（当前层级无法通过，需要上层处理）
-                InterceptorResult::Block { reason: format!("[需审批] {reason}") }
-            },
-        }
-    }
-}
-
-/// PromptGuard 拦截器 — 在 LLM 调用前过滤用户输入
-#[derive(Debug)]
-pub struct PromptGuardInterceptor {
-    guard: Arc<dyn PromptGuard>,
-}
-
-impl PromptGuardInterceptor {
-    pub fn new(guard: Arc<dyn PromptGuard>) -> Self {
-        Self { guard }
-    }
-}
-
-#[async_trait::async_trait]
-impl HarnessInterceptor for PromptGuardInterceptor {
-    fn id(&self) -> &'static str {
-        "prompt_guard"
-    }
-
-    fn intercept_points(&self) -> Vec<InterceptPoint> {
-        vec![InterceptPoint::BeforeLlmCall]
-    }
-
-    async fn intercept(
-        &self,
-        _point: InterceptPoint,
-        ctx: &mut InterceptorContext,
-    ) -> InterceptorResult {
-        let request = match ctx.request.as_ref() {
-            Some(v) => v.clone(),
-            None => return InterceptorResult::Continue,
-        };
-
-        // 从序列化的请求中提取消息内容并过滤
-        let messages = match request.get("messages").and_then(|v| v.as_array()) {
-            Some(msgs) if !msgs.is_empty() => msgs,
-            _ => return InterceptorResult::Continue,
-        };
-
-        // 对每个消息的 content 做 PromptGuard 过滤
-        for msg in messages {
-            let content = match msg.get("content") {
-                Some(serde_json::Value::String(text)) => text.clone(),
-                _ => continue,
-            };
-
-            match self.guard.process_user_input(&content) {
-                Ok(safe) => {
-                    // 更新请求中的消息内容
-                    if safe != content {
-                        tracing::debug!("[PromptGuardInterceptor] 已过滤消息内容");
-                    }
-                },
-                Err(blocked) => {
-                    let reason = format!("PromptGuard 阻断: {blocked}");
-                    tracing::warn!("[PromptGuardInterceptor] {reason}");
-                    ctx.error = Some(reason.clone());
-                    return InterceptorResult::Block { reason };
-                },
-            }
-        }
-
-        InterceptorResult::Continue
-    }
-}
-
-/// 输出校验拦截器 — 在 LLM 调用后校验响应格式
-#[derive(Debug)]
-pub struct OutputValidationInterceptor {
-    schema: serde_json::Value,
-}
-
-impl OutputValidationInterceptor {
-    pub fn new(schema: serde_json::Value) -> Self {
-        Self { schema }
-    }
-}
-
-#[async_trait::async_trait]
-impl HarnessInterceptor for OutputValidationInterceptor {
-    fn id(&self) -> &'static str {
-        "output_validation"
-    }
-
-    fn intercept_points(&self) -> Vec<InterceptPoint> {
-        vec![InterceptPoint::AfterLlmCall]
-    }
-
-    async fn intercept(
-        &self,
-        _point: InterceptPoint,
-        ctx: &mut InterceptorContext,
-    ) -> InterceptorResult {
-        let response = match ctx.response.as_ref() {
-            Some(v) => v,
-            None => return InterceptorResult::Continue,
-        };
-
-        // 简化校验：检查 response 是否包含 schema 中要求的字段
-        if let Some(required_fields) = self.schema.get("required").and_then(|v| v.as_array()) {
-            for field in required_fields {
-                let field_name = match field.as_str() {
-                    Some(name) => name,
-                    None => continue,
-                };
-                if response.get(field_name).is_none() {
-                    return InterceptorResult::Block {
-                        reason: format!("输出校验失败: 缺少必需字段 '{field_name}'"),
-                    };
-                }
-            }
-        }
-
-        InterceptorResult::Continue
-    }
-}
-
-/// 一致性检查拦截器 — 在 LLM 调用后检查输出一致性
-#[derive(Debug)]
-pub struct ConsistencyCheckInterceptor {
-    config: ConsistencyCheckConfig,
-}
-
-impl ConsistencyCheckInterceptor {
-    pub fn new(config: ConsistencyCheckConfig) -> Self {
-        Self { config }
-    }
-}
-
-#[async_trait::async_trait]
-impl HarnessInterceptor for ConsistencyCheckInterceptor {
-    fn id(&self) -> &'static str {
-        "consistency_check"
-    }
-
-    fn intercept_points(&self) -> Vec<InterceptPoint> {
-        if self.config.enabled {
-            vec![InterceptPoint::AfterLlmCall]
-        } else {
-            vec![]
-        }
-    }
-
-    async fn intercept(
-        &self,
-        _point: InterceptPoint,
-        ctx: &mut InterceptorContext,
-    ) -> InterceptorResult {
-        let _response = match ctx.response.as_ref() {
-            Some(v) => v.clone(),
-            None => return InterceptorResult::Continue,
-        };
-
-        // 一致性检查需要第二结果做对比，这里只有单次结果就通过
-        // 实际使用中需要提供 secondary 结果
-        tracing::debug!("[ConsistencyCheckInterceptor] 需要二次结果进行对比，当前单次结果跳过检查");
-
-        InterceptorResult::Continue
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::business_rules::{BusinessRule, RuleAction, RuleResult};
-    use futures::executor::block_on;
 
     #[test]
     fn test_intercept_point_equality() {
@@ -382,47 +153,13 @@ mod tests {
     #[test]
     fn test_interceptor_chain_empty() {
         let chain = InterceptorChain::new();
-        let mut ctx = InterceptorContext::before_llm(None);
-        let result = block_on(chain.execute(InterceptPoint::BeforeLlmCall, &mut ctx));
-        assert!(matches!(result, InterceptorResult::Continue));
+        assert!(chain.interceptors().is_empty());
     }
 
     #[test]
     fn test_interceptor_chain_ids_empty() {
         let chain = InterceptorChain::new();
         assert!(chain.interceptor_ids().is_empty());
-    }
-
-    #[test]
-    fn test_business_rule_interceptor_block() {
-        let rule = BusinessRule {
-            name: "test_block".into(),
-            description: "测试阻断".into(),
-            evaluate: Arc::new(|_, _| RuleResult::Violation { reason: "测试违规".into() }),
-            action: RuleAction::Block("阻断".into()),
-        };
-        let engine = Arc::new(BusinessRuleEngine::new(vec![rule]));
-        let interceptor = BusinessRuleInterceptor::new(engine);
-
-        let mut ctx = InterceptorContext::before_node(
-            "test_node".into(),
-            Some(serde_json::json!({"key": "value"})),
-        );
-        let result = block_on(interceptor.intercept(InterceptPoint::BeforeNodeExecute, &mut ctx));
-        assert!(matches!(result, InterceptorResult::Block { .. }));
-    }
-
-    #[test]
-    fn test_business_rule_interceptor_pass() {
-        let engine = Arc::new(BusinessRuleEngine::empty());
-        let interceptor = BusinessRuleInterceptor::new(engine);
-
-        let mut ctx = InterceptorContext::before_node(
-            "test_node".into(),
-            Some(serde_json::json!({"key": "value"})),
-        );
-        let result = block_on(interceptor.intercept(InterceptPoint::BeforeNodeExecute, &mut ctx));
-        assert!(matches!(result, InterceptorResult::Continue));
     }
 
     #[test]
@@ -444,9 +181,7 @@ mod tests {
     #[test]
     fn test_interceptor_chain_skip_remaining() {
         let chain = InterceptorChain::new();
-        let mut ctx = InterceptorContext::before_llm(None);
-        let result = block_on(chain.execute(InterceptPoint::BeforeLlmCall, &mut ctx));
-        assert!(matches!(result, InterceptorResult::Continue));
+        assert_eq!(chain.interceptors().len(), 0);
     }
 
     #[test]

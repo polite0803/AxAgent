@@ -6,7 +6,6 @@ use crate::commands::error_code::skill as skill_err;
 use crate::commands::error_code::skill_op_err;
 use crate::paths::axagent_home;
 use axagent_harness::types::*;
-use axagent_plugins::PluginManager;
 use axagent_trajectory::{HermesMetadata, Skill, SkillMetadata};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -42,19 +41,6 @@ pub(super) fn home_dir() -> PathBuf {
 
 pub(super) fn skills_dir() -> PathBuf {
     axagent_home().join("skills")
-}
-
-fn all_skills_dirs() -> Vec<PathBuf> {
-    axagent_kit::skill_dirs::all_skills_dirs()
-}
-
-#[allow(dead_code)]
-fn create_plugin_manager_with_skill_dirs() -> Result<PluginManager, String> {
-    let home = home_dir();
-    let config_home = home.join(".claw");
-    let mut config = axagent_plugins::PluginManagerConfig::new(config_home);
-    config.external_dirs = all_skills_dirs();
-    Ok(PluginManager::new(config))
 }
 
 #[derive(Debug, Clone)]

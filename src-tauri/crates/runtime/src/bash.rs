@@ -10,11 +10,11 @@ use tokio::process::Command as TokioCommand;
 use tokio::runtime::Builder;
 use tokio::time::timeout;
 
-use crate::sandbox::{
+use axagent_runtime_core::ConfigLoader;
+use axagent_runtime_core::sandbox::{
     FilesystemIsolationMode, SandboxConfig, SandboxStatus, build_linux_sandbox_command,
     resolve_sandbox_status_for_request,
 };
-use axagent_runtime_core::ConfigLoader;
 
 /// Input schema for the built-in bash execution tool.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -307,7 +307,7 @@ fn prepare_sandbox_dirs(cwd: &std::path::Path) {
 #[cfg(test)]
 mod tests {
     use super::{BashCommandInput, execute_bash};
-    use crate::sandbox::FilesystemIsolationMode;
+    use axagent_runtime_core::sandbox::FilesystemIsolationMode;
 
     #[test]
     fn executes_simple_command() {

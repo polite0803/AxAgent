@@ -597,7 +597,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                     readOnly
                     rows={10}
                     style={{
-                      fontFamily: "Monaco, Consolas, monospace",
+                      fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                       fontSize: 12,
                       background: token.colorBgElevated,
                     }}
@@ -673,7 +673,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               onChange={(e) => setImportData(e.target.value)}
               rows={8}
               style={{
-                fontFamily: "Monaco, Consolas, monospace",
+                fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                 fontSize: 12,
                 background: token.colorBgElevated,
               }}

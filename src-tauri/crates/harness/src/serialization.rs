@@ -11,99 +11,11 @@ use serde_json::Value;
 ///
 /// 校验 `output` 是否匹配 `schema` 定义。
 /// 返回 `Ok(())` 或 `Err`（包含所有错误信息列表）。
+///
+/// 实际逻辑已委托给 `crate::json_schema::validate_ok`，
+/// 本函数保留以维持旧 API 兼容性。
 pub fn validate_output_against_schema(output: &Value, schema: &Value) -> Result<(), Vec<String>> {
-    let mut errors = Vec::new();
-    validate_value("root", output, schema, &mut errors);
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
-}
-
-fn validate_value(path: &str, val: &Value, schema: &Value, errors: &mut Vec<String>) {
-    // 如果 schema 是 true/false，对应 any/not-any
-    if let Some(b) = schema.as_bool() {
-        if !b {
-            errors.push(format!("{path}: 不允许任何值"));
-        }
-        return;
-    }
-
-    // type 检查
-    if let Some(expected_type) = schema.get("type").and_then(|t| t.as_str()) {
-        match expected_type {
-            "object" => {
-                if !val.is_object() {
-                    errors.push(format!("{path}: 期望 object，实际 {}", type_name(val)));
-                    return;
-                }
-                if let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) {
-                    for (key, prop_schema) in properties {
-                        let child_path = format!("{path}.{key}");
-                        if let Some(child_val) = val.get(key) {
-                            if !child_val.is_null() {
-                                validate_value(&child_path, child_val, prop_schema, errors);
-                            }
-                        } else if is_required(prop_schema) {
-                            errors.push(format!("{child_path}: 缺少必填字段"));
-                        }
-                    }
-                }
-                // additionalProperties 检查
-                if let Some(additional) = schema.get("additionalProperties")
-                    && additional.as_bool() == Some(false)
-                    && let Some(obj) = val.as_object()
-                    && let Some(properties) = schema.get("properties").and_then(|p| p.as_object())
-                {
-                    for key in obj.keys() {
-                        if !properties.contains_key(key) {
-                            errors.push(format!("{path}.{key}: 未定义的字段"));
-                        }
-                    }
-                }
-            },
-            "array" => {
-                if !val.is_array() {
-                    errors.push(format!("{path}: 期望 array，实际 {}", type_name(val)));
-                    return;
-                }
-                if let Some(items_schema) = schema.get("items")
-                    && let Some(arr) = val.as_array()
-                {
-                    for (i, item) in arr.iter().enumerate() {
-                        validate_value(&format!("{path}[{i}]"), item, items_schema, errors);
-                    }
-                }
-            },
-            "string" if !val.is_string() => {
-                errors.push(format!("{path}: 期望 string"));
-            },
-            "number" | "integer" if !val.is_number() => {
-                errors.push(format!("{path}: 期望 number"));
-            },
-            "boolean" if !matches!(val, Value::Bool(_)) => {
-                errors.push(format!("{path}: 期望 boolean"));
-            },
-            _ => {},
-        }
-    }
-}
-
-fn type_name(val: &Value) -> &'static str {
-    match val {
-        Value::Null => "null",
-        Value::Bool(_) => "bool",
-        Value::Number(_) => "number",
-        Value::String(_) => "string",
-        Value::Array(_) => "array",
-        Value::Object(_) => "object",
-    }
-}
-
-fn is_required(schema: &Value) -> bool {
-    // 没有 default 值的字段视为必需的
-    schema.get("default").is_none()
+    crate::json_schema::validate_ok(output, schema)
 }
 
 #[cfg(test)]
@@ -128,6 +40,7 @@ mod tests {
     fn test_missing_required_field() {
         let schema = json!({
             "type": "object",
+            "required": ["name"],
             "properties": {
                 "name": { "type": "string" }
             }

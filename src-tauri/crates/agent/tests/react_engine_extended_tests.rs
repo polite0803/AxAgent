@@ -56,7 +56,8 @@ async fn test_react_engine_reset_and_rerun() {
     let mut engine = ReActEngine::new();
     let r1 = engine.run("Task one").await;
     let r2 = engine.run("Task two").await;
-    // Multiple runs should each produce results without panic
-    assert!(r1.success || r1.total_duration_ms > 0);
-    assert!(r2.success || r2.total_duration_ms > 0);
+    // 连续两次 run 都应成功完成，验证 engine 可重置后重跑（reset and rerun）。
+    // 引擎已修复 CycleDetector 对空工具名的误判，默认配置下 run 也能跑通。
+    assert!(r1.success, "第一次 run 未成功: {:?}", r1);
+    assert!(r2.success, "第二次 run 未成功: {:?}", r2);
 }

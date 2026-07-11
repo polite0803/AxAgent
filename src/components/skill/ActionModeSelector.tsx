@@ -156,7 +156,7 @@ function DeclarativeEditor({
                   /* ignore */
                 }
               }}
-              style={{ fontFamily: "monospace", fontSize: 12 }}
+              style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 12 }}
             />
           </Form.Item>
         </>
@@ -209,7 +209,7 @@ function DeclarativeEditor({
                   /* ignore */
                 }
               }}
-              style={{ fontFamily: "monospace", fontSize: 12 }}
+              style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 12 }}
             />
           </Form.Item>
         </>
@@ -267,7 +267,7 @@ function DeclarativeEditor({
                   /* ignore */
                 }
               }}
-              style={{ fontFamily: "monospace", fontSize: 12 }}
+              style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 12 }}
             />
           </Form.Item>
         </>

@@ -43,6 +43,7 @@ mod windows_utils;
 
 #[allow(clippy::disallowed_types)]
 mod app_state;
+mod config_validator;
 
 use tauri::{Emitter, Manager};
 
@@ -58,14 +59,26 @@ where
     T: Send + 'static,
 {
     std::thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap_or_else(
-            |e| {
-                android_utils::report_fatal_error(&format!(
-                    "Failed to create tokio runtime for {task_name}: {e}"
-                ));
-                panic!("Fatal: tokio runtime creation failed for {task_name}: {e}");
+        let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
+            Ok(rt) => rt,
+            Err(e) => {
+                let msg = format!("Fatal: tokio runtime creation failed for {task_name}: {e}");
+                // m6: 非 Android 平台 report_fatal_error 可能为空实现，
+                // 额外写入 crash 日志文件确保崩溃原因可追溯。
+                android_utils::report_fatal_error(&msg);
+                #[cfg(not(target_os = "android"))]
+                {
+                    eprintln!("{msg}");
+                    if let Ok(mut log_dir) =
+                        std::env::var("APPDATA").or_else(|_| std::env::var("HOME"))
+                    {
+                        log_dir.push_str("/axagent-crash.log");
+                        let _ = std::fs::write(&log_dir, &msg);
+                    }
+                }
+                panic!("{msg}");
             },
-        );
+        };
         rt.block_on(f)
     })
     .join()
@@ -216,7 +229,7 @@ pub fn run() {
 
             android_utils::mark_startup_phase("db_init_start");
 
-            let db_result = match spawn_block_on("db_init", init::init_database_with_dir(app_dir)) {
+            let db_result = match spawn_block_on("db_init", init::init_database_with_dir(app_dir.clone())) {
                 Ok(Ok(result)) => result,
                 Ok(Err(e)) => {
                     tracing::error!("Database initialization failed: {}", e);
@@ -268,6 +281,15 @@ pub fn run() {
 
             // Initialize pricing configuration from pricing.toml
             commands::agent::init_pricing_config(app.handle());
+
+            // m7: validate agent_roles.yaml schema at startup
+            {
+                let config_dir = app_dir.join("config");
+                let roles_path = config_dir.join("agent_roles.yaml");
+                if roles_path.exists() {
+                    config_validator::validate_agent_roles(&roles_path.to_string_lossy());
+                }
+            }
 
             if let Some(home) = dirs::home_dir() {
                 let user_md_path = home.join(".axinvest").join("USER.md");

@@ -39,13 +39,15 @@ pub mod feature_flags;
 pub mod fork_bridge;
 pub mod hook_chain;
 pub mod hooks;
+pub mod interceptor_chain;
+pub mod interceptors;
 pub mod json;
 pub mod message_importance;
 pub mod permission_enforcer;
 pub mod retry_policy;
 pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
 pub mod llm_executor;
-pub use llm_executor::{LlmCallConfig, execute_llm};
+pub use llm_executor::{LlmCallConfig, execute_llm, execute_llm_stream};
 pub mod permissions;
 pub mod plugin_hooks;
 pub mod prompt_cache;
@@ -95,7 +97,7 @@ pub use config::{
 pub use conversation::{
     ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
     PromptCacheEvent, RuntimeError, StaticToolExecutor, ToolError, ToolErrorKind, ToolExecutor,
-    TurnSummary, auto_compaction_threshold_from_env,
+    TurnSummary, auto_compaction_threshold_from_env, create_conversation_runtime,
 };
 
 pub use execution_progress::{

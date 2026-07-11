@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::repo_dtos::WorkflowExecutionData;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 
@@ -67,8 +68,8 @@ pub struct ExecutionSummaryResponse {
     pub created_at: i64,
 }
 
-impl From<axagent_entities::workflow_executions::Model> for ExecutionSummaryResponse {
-    fn from(m: axagent_entities::workflow_executions::Model) -> Self {
+impl From<WorkflowExecutionData> for ExecutionSummaryResponse {
+    fn from(m: WorkflowExecutionData) -> Self {
         Self {
             id: m.id,
             workflow_id: m.workflow_id,

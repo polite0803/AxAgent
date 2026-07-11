@@ -274,27 +274,6 @@ impl AgentMailbox {
             })
             .len()
     }
-
-    #[allow(dead_code)]
-    pub fn is_empty(&self) -> bool {
-        self.messages
-            .read()
-            .unwrap_or_else(|e| {
-                tracing::warn!(
-                    "Mailbox lock poisoned for agent {}, recovering: {}",
-                    self.agent_id,
-                    e
-                );
-                e.into_inner()
-            })
-            .is_empty()
-    }
-
-    #[allow(dead_code)]
-    #[allow(dead_code)]
-    pub fn agent_id(&self) -> &str {
-        &self.agent_id
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -877,7 +856,6 @@ impl Default for TaskDeduplicator {
     }
 }
 
-#[allow(dead_code)]
 impl TaskDeduplicator {
     pub(crate) fn new(similarity_threshold: f64) -> Self {
         Self { similarity_threshold, known_tasks: Vec::new(), max_capacity: 10_000 }

@@ -63,7 +63,6 @@ pub struct WorkHabitPreference {
 
 pub struct SuggestionEngine {
     config: SuggestionEngineConfig,
-    #[allow(dead_code)]
     suggestion_templates: HashMap<SuggestionType, Vec<SuggestionTemplate>>,
 }
 
@@ -89,7 +88,6 @@ impl Default for SuggestionEngineConfig {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct SuggestionTemplate {
     suggestion_type: SuggestionType,
     title_template: String,

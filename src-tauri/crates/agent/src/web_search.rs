@@ -3,8 +3,9 @@
 use crate::research_state::{SearchQuery, SearchResult, SourceType};
 use crate::search_provider::{ContentMetadata, ExtractedContent, RelevanceScorer, SearchProvider};
 use async_trait::async_trait;
-use axagent_kit::html_cleaner::HtmlCleaner;
+use axagent_harness::kit_bridge::KitHtmlCleaner;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,21 +25,29 @@ impl Default for WebSearchConfig {
 pub struct WebSearchProvider {
     config: WebSearchConfig,
     http_client: reqwest::Client,
+    cleaner: Arc<dyn KitHtmlCleaner>,
 }
 
 impl WebSearchProvider {
-    pub fn new() -> Self {
-        Self::with_config(WebSearchConfig::default())
+    pub fn new(cleaner: Arc<dyn KitHtmlCleaner>) -> Self {
+        Self::with_config(WebSearchConfig::default(), cleaner)
     }
 
-    pub fn with_config(config: WebSearchConfig) -> Self {
+    pub fn with_config(config: WebSearchConfig, cleaner: Arc<dyn KitHtmlCleaner>) -> Self {
         let timeout = Duration::from_secs(config.timeout_secs);
         let client = reqwest::Client::builder()
             .timeout(timeout)
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build()
             .unwrap_or_default();
-        Self { config, http_client: client }
+        Self { config, http_client: client, cleaner }
+    }
+
+    /// Test-only: creates a concrete cleaner from kit.
+    #[cfg(test)]
+    pub fn new_test() -> Self {
+        let cleaner: Arc<dyn KitHtmlCleaner> = Arc::new(crate::noop_kit::NoopHtmlCleaner);
+        Self::new(cleaner)
     }
 
     pub fn with_api_key(mut self, api_key: impl Into<String>) -> Self {
@@ -291,7 +300,8 @@ impl WebSearchProvider {
 
 impl Default for WebSearchProvider {
     fn default() -> Self {
-        Self::new()
+        let cleaner: Arc<dyn KitHtmlCleaner> = Arc::new(crate::noop_kit::NoopHtmlCleaner);
+        Self::new(cleaner)
     }
 }
 
@@ -353,9 +363,8 @@ impl SearchProvider for WebSearchProvider {
             ));
         }
 
-        let cleaner = HtmlCleaner::new();
-        let (title, body_text, links) = cleaner.extract_readability(&html);
-        let lang = HtmlCleaner::detect_language(&body_text);
+        let (title, body_text, links) = self.cleaner.extract_readability(&html);
+        let lang = self.cleaner.detect_language(&body_text);
 
         Ok(ExtractedContent::new(url.to_string(), title, body_text)
             .with_links(links)
@@ -386,8 +395,14 @@ pub struct WebSearchProviderBuilder {
 }
 
 impl WebSearchProviderBuilder {
-    pub fn new() -> Self {
-        Self { provider: WebSearchProvider::new() }
+    pub fn new(cleaner: Arc<dyn KitHtmlCleaner>) -> Self {
+        Self { provider: WebSearchProvider::new(cleaner) }
+    }
+
+    /// Test-only convenience.
+    #[cfg(test)]
+    pub fn new_test() -> Self {
+        Self::new(Arc::new(crate::noop_kit::NoopHtmlCleaner))
     }
 
     pub fn api_key(mut self, key: impl Into<String>) -> Self {
@@ -417,7 +432,8 @@ impl WebSearchProviderBuilder {
 
 impl Default for WebSearchProviderBuilder {
     fn default() -> Self {
-        Self::new()
+        let cleaner: Arc<dyn KitHtmlCleaner> = Arc::new(crate::noop_kit::NoopHtmlCleaner);
+        Self::new(cleaner)
     }
 }
 
@@ -436,7 +452,7 @@ mod tests {
 
     #[test]
     fn test_web_search_provider_new() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         assert_eq!(provider.source_type(), SourceType::Web);
         assert_eq!(provider.display_name(), "Web Search");
     }
@@ -449,13 +465,15 @@ mod tests {
 
     #[test]
     fn test_web_search_provider_with_api_key() {
-        let provider = WebSearchProvider::new().with_api_key("test-key-123");
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner))
+            .with_api_key("test-key-123");
         assert_eq!(provider.config.api_key, Some("test-key-123".to_string()));
     }
 
     #[test]
     fn test_web_search_provider_with_endpoint() {
-        let provider = WebSearchProvider::new().with_endpoint("https://api.example.com/search");
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner))
+            .with_endpoint("https://api.example.com/search");
         assert_eq!(provider.config.endpoint, Some("https://api.example.com/search".to_string()));
     }
 
@@ -467,14 +485,15 @@ mod tests {
             timeout_secs: 10,
             rate_limit_per_minute: Some(30),
         };
-        let provider = WebSearchProvider::with_config(config);
+        let provider =
+            WebSearchProvider::with_config(config, Arc::new(crate::noop_kit::NoopHtmlCleaner));
         assert_eq!(provider.config.timeout_secs, 10);
         assert_eq!(provider.config.rate_limit_per_minute, Some(30));
     }
 
     #[test]
     fn test_calculate_relevance_title_match() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.calculate_relevance("Rust Programming Guide", "some snippet", "rust");
         assert!(score > 0.0);
         assert!(score <= 1.0);
@@ -482,14 +501,14 @@ mod tests {
 
     #[test]
     fn test_calculate_relevance_snippet_match() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.calculate_relevance("Some Title", "learn rust programming", "rust");
         assert!(score > 0.0);
     }
 
     #[test]
     fn test_calculate_relevance_both_match() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.calculate_relevance("Rust Guide", "rust programming language", "rust");
         let title_only = provider.calculate_relevance("Rust Guide", "unrelated content", "rust");
         assert!(score > title_only);
@@ -497,14 +516,14 @@ mod tests {
 
     #[test]
     fn test_calculate_relevance_no_match() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.calculate_relevance("Python Tutorial", "learn python", "rust");
         assert_eq!(score, 0.0);
     }
 
     #[test]
     fn test_calculate_relevance_capped_at_one() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.calculate_relevance(
             "rust rust rust rust rust",
             "rust rust rust rust rust",
@@ -515,7 +534,7 @@ mod tests {
 
     #[test]
     fn test_calculate_relevance_multi_word_query() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.calculate_relevance(
             "Rust Programming Language",
             "Learn rust programming",
@@ -526,84 +545,84 @@ mod tests {
 
     #[test]
     fn test_calculate_relevance_case_insensitive() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.calculate_relevance("RUST PROGRAMMING", "RUST SNIPPET", "rust");
         assert!(score > 0.0);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_arxiv() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://arxiv.org/abs/2103.00001");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_github() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://github.com/user/repo");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_stackoverflow() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://stackoverflow.com/questions/123");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_wikipedia() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://en.wikipedia.org/wiki/Rust");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_pubmed() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://pubmed.gov/123456/");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_nature() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://nature.com/articles/s41586");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_science() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://science.org/doi/10.1126");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_high_credibility_doi() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://doi.org/10.1234/test");
         assert_eq!(score, 0.9);
     }
 
     #[test]
     fn test_estimate_credibility_normal_domain() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("https://example.com/page");
         assert_eq!(score, 0.7);
     }
 
     #[test]
     fn test_estimate_credibility_empty_domain() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let score = provider.estimate_credibility("no-slash-url");
         assert_eq!(score, 0.5);
     }
 
     #[test]
     fn test_parse_ddg_html_with_results() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let html = r#"
         <html><body>
         <div class="result__a" href="https://example.com/rust">Rust Programming</div>
@@ -624,7 +643,7 @@ mod tests {
 
     #[test]
     fn test_parse_ddg_html_respects_max_results() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let html = r#"
         <html><body>
         <div class="result__a" href="https://a.com">Result A</div>
@@ -643,7 +662,7 @@ mod tests {
 
     #[test]
     fn test_parse_ddg_html_skips_empty_links() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let html = r#"
         <html><body>
         <div class="result__a" href="">Empty Link</div>
@@ -662,7 +681,7 @@ mod tests {
 
     #[test]
     fn test_parse_ddg_html_no_snippet() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let html = r#"
         <html><body>
         <div class="result__a" href="https://example.com">No Snippet Result</div>
@@ -682,7 +701,7 @@ mod tests {
         <html><head><title>Test Page</title></head>
         <body><main><p>Hello world example content</p></main></body></html>
         "#;
-        let cleaner = HtmlCleaner::new();
+        let cleaner = crate::noop_kit::NoopHtmlCleaner;
         let (title, body_text, links) = cleaner.extract_readability(html);
         assert_eq!(title, "Test Page");
         assert!(body_text.contains("Hello world"));
@@ -699,7 +718,7 @@ mod tests {
             <a href="/relative">Relative</a>
         </article></body></html>
         "#;
-        let cleaner = HtmlCleaner::new();
+        let cleaner = crate::noop_kit::NoopHtmlCleaner;
         let (title, _, links) = cleaner.extract_readability(html);
         assert_eq!(title, "Link Page");
         assert_eq!(links.len(), 2);
@@ -710,7 +729,7 @@ mod tests {
     #[test]
     fn test_extract_readability_no_title() {
         let html = r#"<html><body><p>No title page</p></body></html>"#;
-        let cleaner = HtmlCleaner::new();
+        let cleaner = crate::noop_kit::NoopHtmlCleaner;
         let (title, body_text, _) = cleaner.extract_readability(html);
         assert_eq!(title, "");
         assert!(body_text.contains("No title page"));
@@ -719,32 +738,32 @@ mod tests {
     #[test]
     fn test_detect_language_english() {
         let text = "This is a sample English text for language detection testing purposes";
-        assert_eq!(HtmlCleaner::detect_language(text), "en");
+        assert_eq!(crate::noop_kit::NoopHtmlCleaner.detect_language(text), "en");
     }
 
     #[test]
     fn test_detect_language_chinese() {
         let text = "这是一段用于语言检测的中文文本内容测试";
-        assert_eq!(HtmlCleaner::detect_language(text), "zh");
+        assert_eq!(crate::noop_kit::NoopHtmlCleaner.detect_language(text), "zh");
     }
 
     #[tokio::test]
     async fn test_extract_content_empty_url() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let result = provider.extract_content("").await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_extract_content_invalid_url() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let result = provider.extract_content("not-a-url").await;
         assert!(result.is_err());
     }
 
     #[test]
     fn test_rate_limit_with_config() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let rate_limit = provider.rate_limit();
         assert!(rate_limit.is_some());
         let duration = rate_limit.unwrap();
@@ -754,14 +773,16 @@ mod tests {
     #[test]
     fn test_rate_limit_none_when_not_set() {
         let config = WebSearchConfig { rate_limit_per_minute: None, ..Default::default() };
-        let provider = WebSearchProvider::with_config(config);
+        let provider =
+            WebSearchProvider::with_config(config, Arc::new(crate::noop_kit::NoopHtmlCleaner));
         assert!(provider.rate_limit().is_none());
     }
 
     #[test]
     fn test_rate_limit_custom() {
         let config = WebSearchConfig { rate_limit_per_minute: Some(120), ..Default::default() };
-        let provider = WebSearchProvider::with_config(config);
+        let provider =
+            WebSearchProvider::with_config(config, Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let rate_limit = provider.rate_limit();
         assert!(rate_limit.is_some());
         assert_eq!(rate_limit.unwrap().as_secs(), 30);
@@ -769,19 +790,19 @@ mod tests {
 
     #[test]
     fn test_source_type_is_web() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         assert_eq!(provider.source_type(), SourceType::Web);
     }
 
     #[test]
     fn test_display_name() {
-        let provider = WebSearchProvider::new();
+        let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         assert_eq!(provider.display_name(), "Web Search");
     }
 
     #[test]
     fn test_builder_new() {
-        let builder = WebSearchProviderBuilder::new();
+        let builder = WebSearchProviderBuilder::new_test();
         let provider = builder.build();
         assert_eq!(provider.source_type(), SourceType::Web);
     }
@@ -795,31 +816,32 @@ mod tests {
 
     #[test]
     fn test_builder_with_api_key() {
-        let provider = WebSearchProviderBuilder::new().api_key("my-api-key").build();
+        let provider = WebSearchProviderBuilder::new_test().api_key("my-api-key").build();
         assert_eq!(provider.config.api_key, Some("my-api-key".to_string()));
     }
 
     #[test]
     fn test_builder_with_endpoint() {
-        let provider = WebSearchProviderBuilder::new().endpoint("https://search.api.com").build();
+        let provider =
+            WebSearchProviderBuilder::new_test().endpoint("https://search.api.com").build();
         assert_eq!(provider.config.endpoint, Some("https://search.api.com".to_string()));
     }
 
     #[test]
     fn test_builder_with_timeout() {
-        let provider = WebSearchProviderBuilder::new().timeout(60).build();
+        let provider = WebSearchProviderBuilder::new_test().timeout(60).build();
         assert_eq!(provider.config.timeout_secs, 60);
     }
 
     #[test]
     fn test_builder_with_rate_limit() {
-        let provider = WebSearchProviderBuilder::new().rate_limit(100).build();
+        let provider = WebSearchProviderBuilder::new_test().rate_limit(100).build();
         assert_eq!(provider.config.rate_limit_per_minute, Some(100));
     }
 
     #[test]
     fn test_builder_full_configuration() {
-        let provider = WebSearchProviderBuilder::new()
+        let provider = WebSearchProviderBuilder::new_test()
             .api_key("key123")
             .endpoint("https://api.example.com")
             .timeout(45)

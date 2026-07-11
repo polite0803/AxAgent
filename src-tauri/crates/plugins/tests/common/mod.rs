@@ -30,7 +30,6 @@ impl TempDir {
     }
 
     /// 写入一个恶意 plugin.json（语法错误或 JSON 不合法）。
-    #[allow(dead_code)]
     pub fn write_malformed_plugin_json(&self) -> PathBuf {
         let plugin_dir = self.path.join("malformed-plugin");
         std::fs::create_dir_all(&plugin_dir).expect("failed to create malformed dir");
@@ -48,7 +47,6 @@ impl Drop for TempDir {
 }
 
 /// 生成一个最小有效的 plugin.json content
-#[allow(dead_code)]
 pub fn minimal_plugin_json(name: &str, version: &str) -> String {
     let json = json!({
         "name": name,
@@ -64,7 +62,6 @@ pub fn minimal_plugin_json(name: &str, version: &str) -> String {
 }
 
 /// 尝试从 fixture 目录加载 manifest 并返回 result。
-#[allow(dead_code)]
 pub fn load_manifest(dir: &Path) -> Result<PluginManifest, axagent_plugins::PluginError> {
     axagent_plugins::load_plugin_from_directory(dir)
 }

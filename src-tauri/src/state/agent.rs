@@ -13,7 +13,6 @@ use tokio::sync::{Mutex, RwLock as TokioRwLock};
 // AgentState 通过 Arc<AgentState> 在 AppState 中使用，Rust 编译器认为 struct 本身和 impl
 // 都是"死代码"因为它们是间接引用（不通过直接类型引用）。实际上 AppState 持有 Box/Arc 指针。
 // 这些字段被 Tauri 命令通过 app_state.agent_state.field 路径访问。
-#[allow(dead_code)]
 pub struct AgentState {
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
     pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
@@ -28,7 +27,6 @@ pub struct AgentState {
 
 // #[allow(dead_code)] 原因同上：impl 块虽然内部方法都被调用，但 struct 本身通过
 // Arc<AgentState> 间接引用，编译器标记整个 impl 为 dead code。
-#[allow(dead_code)]
 impl AgentState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(

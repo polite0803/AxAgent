@@ -19,29 +19,6 @@ pub trait PlatformManager: Send + Sync {
     async fn get_connections(&self) -> Result<Vec<PlatformConnectionInfo>, String>;
     async fn send_message(&self, platform: &str, chat_id: &str, text: &str) -> Result<(), String>;
 }
-#[derive(Default)]
-pub struct NoopPlatformManager;
-#[async_trait]
-impl PlatformManager for NoopPlatformManager {
-    async fn start_all(&self) -> Result<(), String> {
-        Err("not configured".into())
-    }
-    async fn stop_all(&self) -> Result<(), String> {
-        Ok(())
-    }
-    async fn start_platform(&self, _: &str) -> Result<(), String> {
-        Err("not configured".into())
-    }
-    async fn stop_platform(&self, _: &str) -> Result<(), String> {
-        Ok(())
-    }
-    async fn get_connections(&self) -> Result<Vec<PlatformConnectionInfo>, String> {
-        Ok(Vec::new())
-    }
-    async fn send_message(&self, _: &str, _: &str, _: &str) -> Result<(), String> {
-        Err("not configured".into())
-    }
-}
 
 #[async_trait]
 pub trait PlatformMessageHandler: Send + Sync {

@@ -129,9 +129,14 @@ function MonacoDiffEditor({
         if (models.modified.getValue() !== modified) {
           models.modified.setValue(modified);
         }
+        // Update model language when file extension changes
+        if (window.monaco) {
+          window.monaco.editor.setModelLanguage(models.original, language);
+          window.monaco.editor.setModelLanguage(models.modified, language);
+        }
       }
     }
-  }, [original, modified]);
+  }, [original, modified, language]);
 
   return (
     <div
@@ -304,7 +309,9 @@ export const FileChangeCard = React.memo(function FileChangeCard({
             : isDeleted
             ? <FileCode size={14} style={{ color: token.colorError }} />
             : <FileDiff size={14} style={{ color: token.colorWarning }} />}
-          <Typography.Text style={{ fontSize: 13, fontFamily: "monospace" }}>
+          <Typography.Text
+            style={{ fontSize: 13, fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)" }}
+          >
             {change.filePath}
           </Typography.Text>
           {isNew && (
@@ -385,7 +392,7 @@ export const FileChangeCard = React.memo(function FileChangeCard({
                   maxHeight: 300,
                   overflow: "auto",
                   fontSize: 12,
-                  fontFamily: "monospace",
+                  fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                   whiteSpace: "pre-wrap",
                 }}
               >
@@ -425,7 +432,7 @@ export const FileChangeCard = React.memo(function FileChangeCard({
             maxHeight: 300,
             overflow: "auto",
             fontSize: 12,
-            fontFamily: "monospace",
+            fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
             whiteSpace: "pre-wrap",
             color: token.colorError,
           }}
@@ -534,7 +541,7 @@ export const FileChangeList = React.memo(function FileChangeList({
 export function extractFileChanges(
   toolCalls: {
     toolName: string;
-    input: Record<string, unknown>;
+    input: Record<string, unknown> | string;
     output?: string;
   }[],
 ): FileChange[] {
@@ -546,21 +553,33 @@ export function extractFileChanges(
       continue;
     }
 
-    const filePath = (tc.input.file_path
-      ?? tc.input.path
-      ?? tc.input.filePath
+    // Normalize input: may be object or serialized JSON string
+    let inputObj: Record<string, unknown>;
+    if (typeof tc.input === "string") {
+      try {
+        inputObj = JSON.parse(tc.input) as Record<string, unknown>;
+      } catch {
+        continue;
+      }
+    } else {
+      inputObj = tc.input;
+    }
+
+    const filePath = (inputObj.file_path
+      ?? inputObj.path
+      ?? inputObj.filePath
       ?? "") as string;
     if (!filePath) {
       continue;
     }
 
-    const modifiedContent = (tc.input.content
-      ?? tc.input.contents
-      ?? tc.input.text
+    const modifiedContent = (inputObj.content
+      ?? inputObj.contents
+      ?? inputObj.text
       ?? "") as string;
-    const originalContent = (tc.input.original_content
-      ?? tc.input.old_content
-      ?? tc.input.old_str
+    const originalContent = (inputObj.original_content
+      ?? inputObj.old_content
+      ?? inputObj.old_str
       ?? "") as string;
 
     changes.push({

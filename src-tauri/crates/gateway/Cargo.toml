@@ -5,12 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-crypto = { path = "../crypto" }
-axagent-dao = { path = "../dao" }
-axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
-axagent-kit = { path = "../kit" }
-axagent-mcp = { path = "../mcp" }
 axum = { version = "0.8", features = ["ws"] }
 axum-server = { version = "0.7", features = ["tls-rustls"] }
 futures = "0.3"
@@ -35,4 +30,4 @@ url = "2"
 uuid = { workspace = true }
 
 [dev-dependencies]
-axagent-crypto = { path = "../crypto" }
+async-trait = "0.1"

@@ -3,11 +3,10 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use axagent_entities::{notes, wiki_pages, wikis};
-use axagent_kit::markdown_parser::MarkdownParser;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    Set,
+use axagent_harness::kit_bridge::KitMarkdownParser;
+use axagent_harness::note_dtos::{Note, UpdateNoteInput};
+use axagent_harness::wiki_dtos::{
+    NoteBacklinkRepository, NoteRepository, WikiPageRepository, WikiRepository,
 };
 use serde::{Deserialize, Serialize};
 
@@ -43,23 +42,31 @@ pub enum LintIssueType {
 }
 
 pub struct LintChecker {
-    db: Arc<DatabaseConnection>,
-    parser: MarkdownParser,
+    note_repo: Arc<dyn NoteRepository>,
+    wiki_repo: Arc<dyn WikiRepository>,
+    wiki_page_repo: Arc<dyn WikiPageRepository>,
+    backlink_repo: Arc<dyn NoteBacklinkRepository>,
+    parser: Box<dyn KitMarkdownParser>,
 }
 
 impl LintChecker {
-    pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self { db, parser: MarkdownParser::new() }
+    pub fn new(
+        note_repo: Arc<dyn NoteRepository>,
+        wiki_repo: Arc<dyn WikiRepository>,
+        wiki_page_repo: Arc<dyn WikiPageRepository>,
+        backlink_repo: Arc<dyn NoteBacklinkRepository>,
+        parser: Box<dyn KitMarkdownParser>,
+    ) -> Self {
+        Self { note_repo, wiki_repo, wiki_page_repo, backlink_repo, parser }
     }
 
     pub async fn lint_note(&self, note_id: &str) -> Result<LintResult, String> {
-        let note_model = notes::Entity::find_by_id(note_id)
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?
+        let note = self
+            .note_repo
+            .find_by_id(note_id)
+            .await?
             .ok_or_else(|| format!("Note {} not found", note_id))?;
 
-        let note = axagent_dao::repo::note::model_to_note(note_model);
         let mut issues = Vec::new();
 
         self.check_frontmatter(&note, &mut issues);
@@ -73,32 +80,25 @@ impl LintChecker {
     }
 
     pub async fn lint_vault(&self, wiki_id: &str) -> Result<Vec<LintResult>, String> {
-        let db_notes = notes::Entity::find()
-            .filter(notes::Column::VaultId.eq(wiki_id))
-            .filter(notes::Column::IsDeleted.eq(0))
-            .all(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
+        let db_notes = self.note_repo.find_by_vault(wiki_id, false).await?;
 
         let mut results = Vec::new();
         let mut all_titles: HashSet<String> = HashSet::new();
         let mut linked_titles: HashSet<String> = HashSet::new();
         let mut note_ids: Vec<String> = Vec::new();
 
-        for n in &db_notes {
-            let note = axagent_dao::repo::note::model_to_note(n.clone());
+        for note in &db_notes {
             all_titles.insert(note.title.clone());
             note_ids.push(note.id.clone());
         }
 
-        for n in &db_notes {
-            let note = axagent_dao::repo::note::model_to_note(n.clone());
+        for note in &db_notes {
             let mut issues = Vec::new();
 
-            self.check_frontmatter(&note, &mut issues);
-            self.check_links(&note, &mut issues).await?;
-            self.check_structure(&note, &mut issues);
-            self.check_content_quality(&note, &mut issues);
+            self.check_frontmatter(note, &mut issues);
+            self.check_links(note, &mut issues).await?;
+            self.check_structure(note, &mut issues);
+            self.check_content_quality(note, &mut issues);
 
             let parsed = self.parser.parse(&note.content);
             for link in &parsed.links {
@@ -117,7 +117,7 @@ impl LintChecker {
         Ok(results)
     }
 
-    fn check_frontmatter(&self, note: &axagent_dao::repo::note::Note, issues: &mut Vec<LintIssue>) {
+    fn check_frontmatter(&self, note: &Note, issues: &mut Vec<LintIssue>) {
         if note.title.is_empty() {
             issues.push(LintIssue {
                 severity: IssueSeverity::Error,
@@ -147,11 +147,7 @@ impl LintChecker {
         }
     }
 
-    async fn check_links(
-        &self,
-        note: &axagent_dao::repo::note::Note,
-        issues: &mut Vec<LintIssue>,
-    ) -> Result<(), String> {
+    async fn check_links(&self, note: &Note, issues: &mut Vec<LintIssue>) -> Result<(), String> {
         let parsed = self.parser.parse(&note.content);
 
         for link in &parsed.links {
@@ -159,14 +155,9 @@ impl LintChecker {
                 continue;
             }
 
-            let target_exists = notes::Entity::find()
-                .filter(notes::Column::VaultId.eq(&note.vault_id))
-                .filter(notes::Column::Title.eq(&link.target))
-                .filter(notes::Column::IsDeleted.eq(0))
-                .one(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?
-                .is_some();
+            let target_result =
+                self.note_repo.find_by_vault_and_title(&note.vault_id, &link.target, false).await?;
+            let target_exists = !target_result.is_empty();
 
             if !target_exists {
                 issues.push(LintIssue {
@@ -178,12 +169,7 @@ impl LintChecker {
             }
         }
 
-        let backlink_count = axagent_entities::note_backlinks::Entity::find()
-            .filter(axagent_entities::note_backlinks::Column::TargetNoteId.eq(&note.id))
-            .all(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?
-            .len();
+        let backlink_count = self.backlink_repo.count_by_target_note_id(&note.id).await?;
 
         if backlink_count == 0 && note.author == "llm" {
             issues.push(LintIssue {
@@ -197,7 +183,7 @@ impl LintChecker {
         Ok(())
     }
 
-    fn check_structure(&self, note: &axagent_dao::repo::note::Note, issues: &mut Vec<LintIssue>) {
+    fn check_structure(&self, note: &Note, issues: &mut Vec<LintIssue>) {
         if note.content.len() < 100 {
             issues.push(LintIssue {
                 severity: IssueSeverity::Warning,
@@ -227,11 +213,7 @@ impl LintChecker {
         }
     }
 
-    fn check_content_quality(
-        &self,
-        note: &axagent_dao::repo::note::Note,
-        issues: &mut Vec<LintIssue>,
-    ) {
+    fn check_content_quality(&self, note: &Note, issues: &mut Vec<LintIssue>) {
         let lower = note.content.to_lowercase();
 
         for phrase in &["unknown", "not sure", "cannot determine", "i don't know", "todo"] {
@@ -261,10 +243,10 @@ impl LintChecker {
         all_titles: &HashSet<String>,
         results: &mut Vec<LintResult>,
     ) -> Result<(), String> {
-        let wiki = wikis::Entity::find_by_id(wiki_id)
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?
+        let wiki = self
+            .wiki_repo
+            .find_by_id(wiki_id)
+            .await?
             .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
 
         let index_path = std::path::Path::new(&wiki.root_path).join("notes").join("index.md");
@@ -329,13 +311,9 @@ impl LintChecker {
         results: &mut Vec<LintResult>,
     ) -> Result<(), String> {
         for note_id in note_ids {
-            let note = notes::Entity::find_by_id(note_id.as_str())
-                .one(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?;
+            let note_ref = self.note_repo.find_by_id(note_id).await?;
 
-            if let Some(n) = note {
-                let note_ref = axagent_dao::repo::note::model_to_note(n);
+            if let Some(note_ref) = note_ref {
                 if note_ref.title == "Index"
                     || note_ref.title == "Operation Log"
                     || note_ref.title == "Overview"
@@ -344,15 +322,7 @@ impl LintChecker {
                 }
 
                 if note_ref.author == "llm" && !linked_titles.contains(&note_ref.title) {
-                    let backlinks = axagent_entities::note_backlinks::Entity::find()
-                        .filter(
-                            axagent_entities::note_backlinks::Column::TargetNoteId
-                                .eq(note_id.as_str()),
-                        )
-                        .all(self.db.as_ref())
-                        .await
-                        .map_err(|e| e.to_string())?
-                        .len();
+                    let backlinks = self.backlink_repo.count_by_target_note_id(note_id).await?;
 
                     if backlinks == 0 {
                         results.push(LintResult {
@@ -393,18 +363,9 @@ impl LintChecker {
     pub async fn update_quality_score(&self, note_id: &str) -> Result<f64, String> {
         let result = self.lint_note(note_id).await?;
 
-        let wiki_page = wiki_pages::Entity::find()
-            .filter(wiki_pages::Column::NoteId.eq(note_id))
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
-
-        if let Some(wp) = wiki_page {
-            let mut am = wp.into_active_model();
-            am.quality_score = Set(Some(result.score));
-            am.last_linted_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(self.db.as_ref()).await.map_err(|e| e.to_string())?;
-        }
+        self.wiki_page_repo
+            .update_lint_result(note_id, Some(result.score), Some(chrono::Utc::now().timestamp()))
+            .await?;
 
         Ok(result.score)
     }
@@ -422,21 +383,17 @@ impl LintChecker {
                 regex::Regex::new(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]").map_err(|e| e.to_string())?;
             for issue in &result.issues {
                 if issue.code == "broken-link" {
-                    let note = axagent_dao::repo::note::get_note(self.db.as_ref(), nid)
-                        .await
-                        .map_err(|e| e.to_string())?;
+                    let note = self
+                        .note_repo
+                        .find_by_id(nid)
+                        .await?
+                        .ok_or_else(|| format!("Note {} not found", nid))?;
 
                     let mut content = note.content.clone();
 
-                    let valid_titles: HashSet<String> = notes::Entity::find()
-                        .filter(notes::Column::VaultId.eq(&note.vault_id))
-                        .filter(notes::Column::IsDeleted.eq(0))
-                        .all(self.db.as_ref())
-                        .await
-                        .map_err(|e| e.to_string())?
-                        .iter()
-                        .map(|n| n.title.clone())
-                        .collect();
+                    let all_notes = self.note_repo.find_by_vault(&note.vault_id, false).await?;
+                    let valid_titles: HashSet<String> =
+                        all_notes.iter().map(|n| n.title.clone()).collect();
 
                     content = link_re
                         .replace_all(&content, |caps: &regex::Captures| {
@@ -456,15 +413,13 @@ impl LintChecker {
                         .to_string();
 
                     if content != note.content {
-                        let input = axagent_dao::repo::note::UpdateNoteInput {
+                        let input = UpdateNoteInput {
                             title: None,
                             content: Some(content),
                             page_type: None,
                             related_pages: None,
                         };
-                        axagent_dao::repo::note::update_note(self.db.as_ref(), nid, input)
-                            .await
-                            .map_err(|e| e.to_string())?;
+                        self.note_repo.update_note(nid, input).await?;
                         fixed.push(format!("Fixed broken links in {}", nid));
                     }
                 }
@@ -490,7 +445,7 @@ impl LintChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_dao::repo::note::Note;
+    use axagent_harness::note_dtos::Note;
 
     fn make_note(title: &str, author: &str, content: &str) -> Note {
         Note {
@@ -517,8 +472,18 @@ mod tests {
     }
 
     async fn make_lint_checker() -> LintChecker {
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        LintChecker::new(Arc::new(db))
+        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        LintChecker::new(
+            Arc::new(axagent_dao::repo::note_repository::DaoNoteRepository::new(db.clone())),
+            Arc::new(axagent_dao::repo::wiki_repository::DaoWikiRepository::new(db.clone())),
+            Arc::new(axagent_dao::repo::wiki_page_repository::DaoWikiPageRepository::new(
+                db.clone(),
+            )),
+            Arc::new(axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository::new(
+                db.clone(),
+            )),
+            Box::new(crate::noop_kit::NoopMarkdownParser),
+        )
     }
 
     #[test]

@@ -230,16 +230,6 @@ pub struct MemoryUsage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub(crate) struct SearchResult {
-    pub session_id: String,
-    pub session_title: String,
-    pub message_content: String,
-    pub match_type: String,
-    pub score: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryActionResult {
     pub success: bool,
     pub message: String,

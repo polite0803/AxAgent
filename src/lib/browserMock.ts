@@ -1325,18 +1325,28 @@ export async function handleCommand<T>(
     }
     case "regenerate_message": {
       const regenRaw = (args as { params?: unknown }).params ?? args;
-      const { conversationId: regenConvId } = regenRaw as {
+      const { conversationId: regenConvId, userMessageId: regenUserMsgId } = regenRaw as {
         conversationId?: string;
+        userMessageId?: string;
       };
       const regenMsgs = getStore<Message[]>("messages", []);
       const convMsgs = regenMsgs.filter(
         (m) => m.conversation_id === regenConvId,
       );
       let lastUserMsg: Message | null = null;
-      for (let i = convMsgs.length - 1; i >= 0; i--) {
-        if (convMsgs[i].role === "user") {
-          lastUserMsg = convMsgs[i];
-          break;
+      if (regenUserMsgId) {
+        // Fix: when userMessageId is explicitly specified, only use that exact message;
+        // do NOT silently fall back to the last user message if not found.
+        lastUserMsg = convMsgs.find(
+          (m) => m.id === regenUserMsgId && m.role === "user",
+        ) ?? null;
+      } else {
+        // Fallback: no specific userMessageId → find the last user message
+        for (let i = convMsgs.length - 1; i >= 0; i--) {
+          if (convMsgs[i].role === "user") {
+            lastUserMsg = convMsgs[i];
+            break;
+          }
         }
       }
       if (lastUserMsg) {
@@ -2827,7 +2837,17 @@ export async function handleCommand<T>(
         is_editable: true,
         is_public: false,
         trigger_config: { type: "manual", config: {} },
-        nodes: input.nodes || [],
+        nodes: input.nodes?.length
+          ? input.nodes
+          : [
+            {
+              id: genId(),
+              type: "trigger",
+              label: "触发器",
+              config: { trigger_type: "manual" },
+              position: { x: 100, y: 100 },
+            },
+          ],
         edges: input.edges || [],
         created_at: now,
         updated_at: now,

@@ -34,22 +34,3 @@ pub trait RateLimiter: Send + Sync {
     async fn reset(&self, key: &str);
     async fn status(&self, key: &str) -> Result<RateLimitStatus, String>;
 }
-#[derive(Default)]
-pub struct NoopRateLimiter;
-#[async_trait]
-impl RateLimiter for NoopRateLimiter {
-    async fn check(&self, _: &str) -> RateLimitResult {
-        RateLimitResult::Allowed
-    }
-    async fn record(&self, _: &str) {}
-    async fn reset(&self, _: &str) {}
-    async fn status(&self, _: &str) -> Result<RateLimitStatus, String> {
-        Ok(RateLimitStatus {
-            current_count: 0,
-            max_requests: 0,
-            window_secs: 0,
-            remaining: 0,
-            reset_after_secs: 0,
-        })
-    }
-}

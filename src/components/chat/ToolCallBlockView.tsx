@@ -87,7 +87,10 @@ export const ToolCallBlockView = React.memo(
                   <div className="tc-desc">
                     <Typography.Text
                       type="secondary"
-                      style={{ fontSize: 12, fontFamily: "monospace" }}
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
+                      }}
                       ellipsis
                     >
                       {getInputSummary(inputDisplay)}
@@ -113,7 +116,7 @@ export const ToolCallBlockView = React.memo(
                             margin: "4px 0 0",
                             padding: 8,
                             fontSize: 12,
-                            fontFamily: "monospace",
+                            fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                             backgroundColor: token.colorBgTextHover,
                             borderRadius: token.borderRadius,
                             whiteSpace: "pre-wrap",
@@ -127,7 +130,7 @@ export const ToolCallBlockView = React.memo(
                       </details>
 
                       {/* Expandable output detail */}
-                      {hasResult && result!.output && (
+                      {hasResult && result && result.output && (
                         <details style={{ margin: "4px 0 0" }}>
                           <summary
                             style={{
@@ -144,7 +147,7 @@ export const ToolCallBlockView = React.memo(
                               margin: "4px 0 0",
                               padding: 8,
                               fontSize: 12,
-                              fontFamily: "monospace",
+                              fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                               backgroundColor: token.colorBgTextHover,
                               borderRadius: token.borderRadius,
                               whiteSpace: "pre-wrap",
@@ -157,14 +160,14 @@ export const ToolCallBlockView = React.memo(
                               ? (
                                 <Alert
                                   message={t("chat.inspector.toolError")}
-                                  description={result!.output}
+                                  description={result.output}
                                   type="error"
                                   showIcon
                                   style={{ margin: 0, fontSize: 12 }}
                                   banner
                                 />
                               )
-                              : result!.output}
+                              : result.output}
                           </div>
                         </details>
                       )}

@@ -8,19 +8,31 @@ publish = false
 anyhow = "1"
 async-trait = "0.1"
 axagent-agent = { path = "../agent" }
+axagent-cache = { path = "../cache" }
 axagent-crypto = { path = "../crypto" }
 axagent-dao = { path = "../dao" }
+axagent-disk-cache = { path = "../disk-cache" }
+axagent-document-parser = { path = "../document-parser" }
+axagent-entities = { path = "../entities" }
+axagent-gateway = { path = "../gateway" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 axagent-mcp = { path = "../mcp" }
+axagent-migration = { path = "../migration" }
+axagent-orchestrator = { path = "../orchestrator" }
 axagent-plugins = { path = "../plugins" }
 axagent-prompt-guard = { path = "../prompt-guard" }
 axagent-providers = { path = "../providers" }
 axagent-rt-dashboard = { path = "../rt-dashboard" }
 axagent-rt-messaging = { path = "../rt-messaging" }
 axagent-rt-theme = { path = "../rt-theme" }
+axagent-rt-webhook = { path = "../rt-webhook" }
 axagent-rt-workflow = { path = "../rt-workflow" }
 axagent-runtime-core = { path = "../runtime-core" }
+axagent-search = { path = "../search" }
+axagent-storage = { path = "../storage" }
+axagent-telemetry = { path = "../telemetry" }
+axagent-tools = { path = "../tools" }
 axagent-trajectory = { path = "../trajectory" }
 axum = "0.8"
 chrono = { workspace = true }

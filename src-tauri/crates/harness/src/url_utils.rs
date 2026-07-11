@@ -24,10 +24,6 @@ pub fn default_version_for_type(provider_type: &ProviderType) -> &'static str {
 
 /// Resolve `api_host` into a usable base URL, using the provider type to
 /// determine the default version path (e.g. `/v1` for OpenAI, `/v1beta` for Gemini).
-///
-/// - Trailing `!` → force mode: strip `!`, return as-is.
-/// - Already ends with a versioned path (e.g. `/v1`, `/v1beta`) → return as-is.
-/// - Otherwise → append the default version path for this provider type.
 pub fn resolve_base_url_for_type(api_host: &str, provider_type: &ProviderType) -> String {
     let default_version = default_version_for_type(provider_type);
     resolve_base_url_inner(api_host, default_version)

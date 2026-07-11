@@ -107,7 +107,7 @@ pub(crate) async fn do_compress(
                     let dk = axagent_crypto::decrypt_key(&k.key_encrypted, master_key)
                         .map_err(|e| e.to_string())?;
                     let kid = k.id.clone();
-                    let proxy = ProviderProxyConfig::resolve(&p.proxy_config, settings);
+                    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&p.proxy_config, settings);
                     let override_umc = axagent_dao::repo::provider::get_model(db, pid, mid)
                         .await
                         .ok()
@@ -207,7 +207,7 @@ pub(crate) async fn do_compress(
         store_response: None,
     };
 
-    let registry_key = comp_provider.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(&comp_provider.provider_type);
     let adapter = harness
         .provider_registry()
         .get(registry_key)
@@ -265,7 +265,7 @@ pub async fn compress_context(
     let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     // Load messages after last marker
     let db_messages =
@@ -698,7 +698,7 @@ mod tests_conversation {
             agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
-            agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
+            agent_session_manager: Arc::new(axagent_agent::SessionManager::new_for_test(db.clone())),
             agent_cancel_tokens: Arc::new(DashMap::new()),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -781,7 +781,6 @@ mod tests_conversation {
                 axagent_tools::registry::UnifiedToolRegistry::new(),
             )),
             work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                Arc::new(db.clone()),
                 [0; 32],
                 Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                     as Arc<dyn axagent_harness::registry::ProviderRegistry>,
@@ -904,9 +903,10 @@ mod tests_conversation {
                 Arc::new(Mutex::new(std::collections::HashMap::new())),
                 Arc::new(Mutex::new(std::collections::HashMap::new())),
                 Arc::new(Mutex::new(std::collections::HashMap::new())),
+                Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             ),
             agent: crate::state::AgentState::new(
-                Arc::new(axagent_agent::SessionManager::new(db.clone())),
+                Arc::new(axagent_agent::SessionManager::new_for_test(db.clone())),
                 Arc::new(DashMap::new()),
                 Arc::new(Mutex::new(std::collections::HashSet::new())),
                 Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -923,7 +923,6 @@ mod tests_conversation {
                     axagent_tools::registry::UnifiedToolRegistry::new(),
                 )),
                 Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                    Arc::new(db.clone()),
                     [0; 32],
                     Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                         as Arc<dyn axagent_harness::registry::ProviderRegistry>,
@@ -1014,6 +1013,26 @@ mod tests_conversation {
                     axagent_trajectory::ConstitutionConfig::default(),
                 )),
                 Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
+            ),
+            learning: crate::state::LearningState::new(
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
+                    axagent_trajectory::ComputationGraph::new(),
+                    axagent_trajectory::TextGradConfig::default(),
+                ))),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::IntrinsicMotivationEngine::new(
+                    axagent_trajectory::IntrinsicMotivationConfig::default(),
+                ))),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::CoevolutionEnvironment::new(
+                    axagent_trajectory::CoevolutionConfig::default(),
+                ))),
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"))),
+            ),
+            tool: crate::state::ToolState::new(
+                Arc::new(tokio::sync::Mutex::new(axagent_trajectory::AutoToolCreator::new(
+                    axagent_trajectory::AutoToolCreatorConfig::default(),
+                    Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
+                    Box::new(axagent_trajectory::DefaultSandboxToolTester),
+                ))),
             ),
         };
 

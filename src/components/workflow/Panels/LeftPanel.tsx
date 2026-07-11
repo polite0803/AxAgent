@@ -415,7 +415,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
             style={{
               position: "fixed",
               pointerEvents: "none",
-              zIndex: 99999,
+              zIndex: "var(--z-tooltip)",
               padding: "6px 12px",
               background: token.colorBorderSecondary,
               color: token.colorText,

@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_harness::SharedFeatureFlagProvider;
-use axagent_runtime_core::{
-    ApiClient, ConversationRuntime, PermissionMode, PermissionPolicy, PermissionPrompter, Session,
-    ToolExecutor,
-};
+use axagent_harness::runtime_types::conversation::ConversationRuntimeHost;
+use axagent_harness::runtime_types::permissions::PermissionPrompter;
+use axagent_harness::runtime_types::session::Session;
 use tokio::sync::broadcast;
 
 use crate::proactive_mode::ProactiveMode;
@@ -60,84 +59,23 @@ impl Default for AgentRuntimeConfig {
     }
 }
 
-pub struct AgentRuntime<C, T>
-where
-    C: ApiClient + Send,
-    T: ToolExecutor + Send + 'static,
-{
+pub struct AgentRuntime {
     session: Session,
-    conversation_runtime: ConversationRuntime<C, T>,
+    conversation_runtime: Box<dyn ConversationRuntimeHost>,
     config: AgentRuntimeConfig,
     event_sender: broadcast::Sender<AgentEvent>,
     /// 主动模式（可选）
     proactive: Option<ProactiveMode>,
 }
 
-impl<C, T> AgentRuntime<C, T>
-where
-    C: ApiClient + Send,
-    T: ToolExecutor + Send + 'static,
-{
+impl AgentRuntime {
     pub fn new(
         config: AgentRuntimeConfig,
         session: Session,
-        api_client: C,
-        tool_executor: T,
+        runtime_host: Box<dyn ConversationRuntimeHost>,
         feature_flags: SharedFeatureFlagProvider,
     ) -> Self {
         let (event_sender, _) = broadcast::channel(100);
-
-        let permission_policy = PermissionPolicy::new(PermissionMode::WorkspaceWrite);
-
-        // Fork session 重建：检查是否有父 agent 的 fork 上下文
-        let mut forked_session = session.clone();
-        let system_prompts = if let Some(fork_data) =
-            axagent_runtime_core::fork_bridge::take_fork_session(&forked_session.session_id)
-        {
-            let mut sp = fork_data.parent_system_prompt;
-            if let Some(child_sp) = fork_data.child_system_prompt {
-                sp.push(child_sp);
-            }
-            if !fork_data.parent_messages_json.is_empty()
-                && let Ok(parent_msgs) = serde_json::from_str::<
-                    Vec<axagent_runtime_core::ConversationMessage>,
-                >(&fork_data.parent_messages_json)
-            {
-                forked_session.messages = parent_msgs;
-            }
-            sp
-        } else if config.system_prompt.is_empty() {
-            let personality_prompt = crate::personality::PersonalityManager::get_active()
-                .ok()
-                .flatten()
-                .map(|p| p.system_prompt_injection())
-                .unwrap_or_default();
-            if personality_prompt.is_empty() {
-                Vec::new()
-            } else {
-                vec![personality_prompt]
-            }
-        } else {
-            let personality_prompt = crate::personality::PersonalityManager::get_active()
-                .ok()
-                .flatten()
-                .map(|p| p.system_prompt_injection())
-                .unwrap_or_default();
-            if personality_prompt.is_empty() {
-                vec![config.system_prompt.clone()]
-            } else {
-                vec![personality_prompt, config.system_prompt.clone()]
-            }
-        };
-
-        let conversation_runtime = ConversationRuntime::new(
-            forked_session,
-            api_client,
-            tool_executor,
-            permission_policy,
-            system_prompts,
-        )
-        .with_max_iterations(config.max_iterations);
 
         // 根据 feature flag 启用主动模式
         let proactive = if ProactiveMode::is_enabled_static(&*feature_flags) {
@@ -148,7 +86,7 @@ where
             None
         };
 
-        Self { session, conversation_runtime, config, event_sender, proactive }
+        Self { session, conversation_runtime: runtime_host, config, event_sender, proactive }
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<AgentEvent> {
@@ -214,7 +152,8 @@ where
             },
         }
 
-        let preprocessed = crate::slash_command::apply_slash_command_for_agent(input);
+        let processor = crate::noop_kit::NoopSlashCommandProcessor;
+        let preprocessed = crate::slash_command::apply_slash_command_for_agent(input, &processor);
 
         // 主动模式：检查是否应该注入 tick
         let effective_input = if let Some(ref mut proactive) = self.proactive {
@@ -260,7 +199,7 @@ where
                     .last()
                     .and_then(|msg| {
                         msg.blocks.iter().find_map(|block| {
-                            if let axagent_runtime_core::ContentBlock::Text { text } = block {
+                            if let axagent_harness::ContentBlock::Text { text } = block {
                                 Some(text.clone())
                             } else {
                                 None

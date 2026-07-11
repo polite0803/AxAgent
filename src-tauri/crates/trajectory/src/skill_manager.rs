@@ -11,11 +11,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-#[allow(dead_code)]
 static SKILL_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillSummary {
     pub id: String,
     pub name: String,
@@ -26,7 +24,6 @@ pub(crate) struct SkillSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillCreationParams {
     pub name: String,
     pub description: String,
@@ -37,7 +34,6 @@ pub(crate) struct SkillCreationParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillUpdateParams {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -48,14 +44,12 @@ pub(crate) struct SkillUpdateParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillFilter {
     pub category: Option<String>,
     pub tag: Option<String>,
     pub platform: Option<String>,
 }
 
-#[allow(dead_code)]
 pub(crate) fn create_skill_from_params(params: SkillCreationParams) -> Skill {
     let category = params.category.unwrap_or_else(|| "general".to_string());
     let tags = params.tags.unwrap_or_default();
@@ -81,7 +75,6 @@ pub(crate) fn create_skill_from_params(params: SkillCreationParams) -> Skill {
     skill
 }
 
-#[allow(dead_code)]
 pub(crate) fn update_skill_from_params(skill: &mut Skill, params: SkillUpdateParams) {
     let now = Utc::now();
 
@@ -122,7 +115,6 @@ pub(crate) fn patch_skill_content(
     Ok(())
 }
 
-#[allow(dead_code)]
 pub(crate) fn skill_to_summary(skill: &Skill) -> SkillSummary {
     SkillSummary {
         id: skill.id.clone(),
@@ -134,7 +126,6 @@ pub(crate) fn skill_to_summary(skill: &Skill) -> SkillSummary {
     }
 }
 
-#[allow(dead_code)]
 pub(crate) fn increment_skill_usage(skill: &mut Skill, success: bool) {
     skill.total_usages += 1;
     if success {
@@ -144,14 +135,12 @@ pub(crate) fn increment_skill_usage(skill: &mut Skill, success: bool) {
     skill.last_used_at = Some(Utc::now());
 }
 
-#[allow(dead_code)]
 fn generate_skill_id() -> String {
     let timestamp = Utc::now().timestamp_millis();
-    let counter = SKILL_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let counter = SKILL_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
     format!("skill_{}_{}", timestamp, counter)
 }
 
-#[allow(dead_code)]
 fn detect_os() -> String {
     #[cfg(target_os = "windows")]
     return "windows".to_string();
@@ -163,7 +152,6 @@ fn detect_os() -> String {
     return "unknown".to_string();
 }
 
-#[allow(dead_code)]
 pub(crate) struct SkillManager {
     skills: HashMap<String, Skill>,
     name_index: HashMap<String, String>,
@@ -175,7 +163,6 @@ impl Default for SkillManager {
     }
 }
 
-#[allow(dead_code)]
 impl SkillManager {
     pub(crate) fn new() -> Self {
         Self { skills: HashMap::new(), name_index: HashMap::new() }
@@ -198,7 +185,6 @@ impl SkillManager {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn patch_skill_content(
         &mut self,
         id: &str,
@@ -350,7 +336,6 @@ impl SkillManager {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) enum SkillContentResult {
     List(Vec<SkillSummary>),
     Formatted(String),
@@ -358,7 +343,6 @@ pub(crate) enum SkillContentResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillStats {
     #[serde(rename = "totalSkills")]
     pub total_skills: usize,

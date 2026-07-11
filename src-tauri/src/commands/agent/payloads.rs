@@ -69,20 +69,6 @@ pub struct AgentErrorPayload {
     pub message: String,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentToolStartPayload {
-    #[serde(rename = "conversationId")]
-    pub conversation_id: String,
-    #[serde(rename = "assistantMessageId")]
-    pub assistant_message_id: String,
-    #[serde(rename = "toolUseId")]
-    pub tool_use_id: String,
-    #[serde(rename = "toolName")]
-    pub tool_name: String,
-    pub input: Value,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentToolUsePayload {
     #[serde(rename = "conversationId")]
@@ -94,24 +80,6 @@ pub struct AgentToolUsePayload {
     #[serde(rename = "toolName")]
     pub tool_name: String,
     pub input: Value,
-    #[serde(rename = "executionId")]
-    pub execution_id: Option<String>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentToolResultPayload {
-    #[serde(rename = "conversationId")]
-    pub conversation_id: String,
-    #[serde(rename = "assistantMessageId")]
-    pub assistant_message_id: String,
-    #[serde(rename = "toolUseId")]
-    pub tool_use_id: String,
-    #[serde(rename = "toolName")]
-    pub tool_name: String,
-    pub input: Value,
-    pub output: String,
-    pub is_error: bool,
     #[serde(rename = "executionId")]
     pub execution_id: Option<String>,
 }
@@ -146,39 +114,6 @@ pub struct PromptCachePayload {
     pub cache_read_input_tokens: u32,
     #[serde(rename = "tokenDrop")]
     pub token_drop: u32,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentPermissionPayload {
-    #[serde(rename = "conversationId")]
-    pub conversation_id: String,
-    #[serde(rename = "assistantMessageId")]
-    pub assistant_message_id: String,
-    #[serde(rename = "toolName")]
-    pub tool_name: String,
-    pub input: Value,
-    #[serde(rename = "riskLevel")]
-    pub risk_level: String,
-    #[serde(rename = "requestId")]
-    pub request_id: String,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SubAgentCardPayload {
-    #[serde(rename = "conversationId")]
-    pub conversation_id: String,
-    #[serde(rename = "agentType")]
-    pub agent_type: String,
-    #[serde(rename = "agentName")]
-    pub agent_name: String,
-    pub description: String,
-    pub status: String,
-    #[serde(rename = "childConversationId")]
-    pub child_conversation_id: Option<String>,
-    #[serde(rename = "childSessionId")]
-    pub child_session_id: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -314,9 +249,6 @@ pub struct AgentGetSessionResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct AgentEnsureWorkspaceRequest {
-    #[serde(rename = "conversationId")]
-    #[allow(dead_code)]
-    pub conversation_id: String,
     #[serde(rename = "workspaceUri")]
     pub workspace_uri: Option<String>,
 }

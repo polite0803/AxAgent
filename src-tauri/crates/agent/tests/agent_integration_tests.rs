@@ -248,15 +248,40 @@ struct MockCoordinatorAgent {
     fail_on_execute: bool,
     pause_count: usize,
     resume_count: usize,
+    /// execute 期间的挂起时长；用于让协调器可靠停留在 Running 态以测试 cancel/pause。
+    execute_delay: Duration,
 }
 
 impl MockCoordinatorAgent {
     fn new() -> Self {
-        Self { status: AgentStatus::Idle, fail_on_execute: false, pause_count: 0, resume_count: 0 }
+        Self {
+            status: AgentStatus::Idle,
+            fail_on_execute: false,
+            pause_count: 0,
+            resume_count: 0,
+            execute_delay: Duration::ZERO,
+        }
     }
 
     fn with_failure() -> Self {
-        Self { status: AgentStatus::Idle, fail_on_execute: true, pause_count: 0, resume_count: 0 }
+        Self {
+            status: AgentStatus::Idle,
+            fail_on_execute: true,
+            pause_count: 0,
+            resume_count: 0,
+            execute_delay: Duration::ZERO,
+        }
+    }
+
+    /// 构造一个 execute 会挂起 `delay` 的 mock，使协调器在此期间保持 Running 态。
+    fn with_execute_delay(delay: Duration) -> Self {
+        Self {
+            status: AgentStatus::Idle,
+            fail_on_execute: false,
+            pause_count: 0,
+            resume_count: 0,
+            execute_delay: delay,
+        }
     }
 }
 
@@ -272,6 +297,11 @@ impl AgentImpl for MockCoordinatorAgent {
             return Err(AgentError::ExecutionFailed("simulated failure".to_string()));
         }
         self.status = AgentStatus::Running;
+        // 可选挂起：让协调器在 execute 期间稳定停留在 Running 态，
+        // 供 cancel/pause 等并发测试可靠命中该状态（默认 0 不影响其他用例）。
+        if !self.execute_delay.is_zero() {
+            tokio::time::sleep(self.execute_delay).await;
+        }
         Ok(CoordinatorOutput::success(input.content, 1))
     }
 
@@ -504,23 +534,6 @@ mod test_hierarchical_planner_dynamic_replanning {
 
     fn make_task(desc: &str, action: &str) -> axagent_agent::hierarchical_planner::PlannedTask {
         TaskBuilder::new(desc, action).with_max_retries(1).build()
-    }
-
-    #[allow(dead_code)]
-    fn make_phase(
-        name: &str,
-        desc: &str,
-        deps: Vec<String>,
-        tasks: Vec<axagent_agent::hierarchical_planner::PlannedTask>,
-    ) -> axagent_agent::hierarchical_planner::Phase {
-        axagent_agent::hierarchical_planner::Phase {
-            id: format!("id_{}", name),
-            name: name.to_string(),
-            description: desc.to_string(),
-            tasks,
-            dependencies: deps,
-            status: axagent_agent::hierarchical_planner::PhaseStatus::Pending,
-        }
     }
 
     #[test]
@@ -1423,7 +1436,11 @@ mod test_agent_coordinator_lifecycle {
 
     #[tokio::test]
     async fn test_coordinator_cancel_from_running() {
-        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::new()));
+        // mock execute 挂起 200ms，确保协调器在此期间稳定停留在 Running 态，
+        // 避免瞬时 execute 抢先走到 Completed 导致 cancel 的状态守卫拒绝（竞态）。
+        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::with_execute_delay(
+            Duration::from_millis(200),
+        )));
         let coordinator = Arc::new(AgentCoordinator::new(agent, None, noop_cache(), noop_hook()));
 
         // 在一个独立任务中执行，使其保持 Running 状态
@@ -1433,8 +1450,8 @@ mod test_agent_coordinator_lifecycle {
             coord.execute(input).await
         });
 
-        // 给 execute 一点时间进入 Running 状态
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+        // 给 execute 一点时间进入 Running 状态（远小于 200ms 的挂起时长）
+        tokio::time::sleep(Duration::from_millis(10)).await;
 
         let cancel_result = coordinator.cancel().await;
         assert!(cancel_result.is_ok(), "cancel should succeed: {:?}", cancel_result);

@@ -132,7 +132,9 @@ export function ToolSemanticCheck() {
     if (!selectedTool) {
       return;
     }
-    setTimeout(() => checkSemanticMatches(selectedTool), 0);
+    // 3.4: Replace setTimeout(0) anti-pattern with requestAnimationFrame
+    const frameId = requestAnimationFrame(() => checkSemanticMatches(selectedTool));
+    return () => cancelAnimationFrame(frameId);
   }, [selectedTool, checkSemanticMatches]);
 
   const handleUpgradeTool = useCallback(async () => {
@@ -146,8 +148,20 @@ export function ToolSemanticCheck() {
         existing_tool_name: selectedMatch.match.tool_name,
         existing_tool_description: selectedMatch.match.description,
         existing_tool_type: selectedMatch.match.tool_type,
+        existing_input_schema: (selectedMatch.match as unknown as Record<string, unknown>).input_schema as
+          | Record<string, unknown>
+          | undefined,
+        existing_output_schema: (selectedMatch.match as unknown as Record<string, unknown>).output_schema as
+          | Record<string, unknown>
+          | undefined,
         generated_name: selectedMatch.source.name,
         generated_description: selectedMatch.source.description,
+        generated_input_schema: (selectedMatch.source as unknown as Record<string, unknown>).input_schema as
+          | Record<string, unknown>
+          | undefined,
+        generated_output_schema: (selectedMatch.source as unknown as Record<string, unknown>).output_schema as
+          | Record<string, unknown>
+          | undefined,
       };
 
       const response: ToolUpgradeResponse = await invoke(

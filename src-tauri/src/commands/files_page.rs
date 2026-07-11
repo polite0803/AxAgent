@@ -579,9 +579,13 @@ mod tests {
 
     #[test]
     fn test_open_attachment_accepts_existing_file() {
-        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
-        // Absolute paths pass through resolve_storage_path unchanged
-        assert!(open_attachment_file_validate(&existing).is_ok());
+        let dir = axagent_storage::storage_paths::documents_root();
+        let _ = std::fs::create_dir_all(&dir);
+        let test_file = dir.join("__axagent_test_open_attachment__.txt");
+        std::fs::write(&test_file, b"content").unwrap();
+        let validated = open_attachment_file_validate(test_file.to_str().unwrap());
+        let _ = std::fs::remove_file(&test_file);
+        assert!(validated.is_ok(), "expected Ok, got {:?}", validated);
     }
 
     // ── cleanup: entry-id parsing ────────────────────────────────────────────

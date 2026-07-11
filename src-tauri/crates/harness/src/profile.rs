@@ -133,18 +133,3 @@ pub trait UserProfileService: Send + Sync {
     async fn update_profile(&self, update: ProfileUpdate) -> Result<(), String>;
     async fn reset_profile(&self) -> Result<(), String>;
 }
-
-#[derive(Default)]
-pub struct NoopUserProfileService;
-#[async_trait]
-impl UserProfileService for NoopUserProfileService {
-    async fn get_profile(&self) -> Result<UserProfile, String> {
-        Err("user profile not configured".to_string())
-    }
-    async fn update_profile(&self, _update: ProfileUpdate) -> Result<(), String> {
-        Err("user profile not configured".to_string())
-    }
-    async fn reset_profile(&self) -> Result<(), String> {
-        Err("user profile not configured".to_string())
-    }
-}

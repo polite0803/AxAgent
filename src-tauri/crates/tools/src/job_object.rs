@@ -16,6 +16,7 @@ pub mod windows_impl {
     /// 持有 Job Object 句柄，Drop 时自动清理
     pub struct JobObject {
         handle: std::ptr::NonNull<std::ffi::c_void>,
+        released: std::sync::atomic::AtomicBool,
     }
 
     // Job Object 句柄可以跨线程安全使用
@@ -84,6 +85,10 @@ pub mod windows_impl {
 
     impl Drop for JobObject {
         fn drop(&mut self) {
+            // 检查句柄是否已被释放，防止 double-free
+            if self.released.swap(true, std::sync::atomic::Ordering::AcqRel) {
+                return;
+            }
             // 关闭 Job 句柄触发 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
             unsafe {
                 windows_sys::Win32::Foundation::CloseHandle(self.handle.as_ptr());

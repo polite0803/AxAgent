@@ -7,11 +7,9 @@ publish = false
 [dependencies]
 async-trait = "0.1"
 axagent-crypto = { path = "../crypto" }
-axagent-dao = { path = "../dao" }
-axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
-axagent-runtime-core = { path = "../runtime-core" }
+axagent-providers = { path = "../providers" }
 chrono = { workspace = true }
 chrono-tz = "0.8"
 futures = "0.3"
@@ -42,6 +40,7 @@ tiny_http = "0.12"
 
 [dev-dependencies]
 async-trait = "0.1"
+axagent-dao = { path = "../dao" }
 tokio = { workspace = true, features = ["full"] }
 
 [lints]

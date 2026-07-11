@@ -416,7 +416,7 @@ const SchemaEditorModal: React.FC<{
           if (error) { setError(null); }
         }}
         rows={16}
-        style={{ fontFamily: "monospace", fontSize: 12 }}
+        style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 12 }}
         spellCheck={false}
       />
       {error && <div style={{ color: "#ff4d4f", fontSize: 12, marginTop: 6 }}>{error}</div>}

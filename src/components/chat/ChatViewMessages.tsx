@@ -622,8 +622,7 @@ export function useChatViewMessages({
   const [summaryModalText, setSummaryModalText] = useState("");
 
   // ── AI 消息折叠状态 ──
-  const [collapsedAiIds, setCollapsedAiIds] = useState<Set<string>>(new Set());
-  const [, setCollapseTick] = useState(0);
+  const [collapsedAiIds, setCollapsedAiIds] = useState<Record<string, boolean>>({});
   const prevStreamingRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -632,11 +631,10 @@ export function useChatViewMessages({
     if (prev === curr) { return; }
     prevStreamingRef.current = curr;
 
-    setCollapsedAiIds((prevSet) => {
-      const next = new Set(prevSet);
-      if (prev && !next.has(prev)) { next.add(prev); }
-      if (curr && next.has(curr)) { next.delete(curr); }
-      setCollapseTick((t) => t + 1);
+    setCollapsedAiIds((prevMap) => {
+      const next = { ...prevMap };
+      if (prev) { next[prev] = true; }
+      if (curr) { delete next[curr]; }
       return next;
     });
   }, [streamingMessageId]);
@@ -839,7 +837,7 @@ export function useChatViewMessages({
       }
 
       const stableKey = msg.parent_message_id
-        ? `ai:${msg.parent_message_id}`
+        ? `ai:${msg.parent_message_id}:${msg.id}`
         : msg.id;
       if (nextCache.has(stableKey)) {
         continue;
@@ -861,6 +859,7 @@ export function useChatViewMessages({
   }, [activeMessages, thinkingActiveMessageIds, userSearchContentById, bubbleItemCache]);
 
   const [expertSwitchBubble, setExpertSwitchBubble] = useState<BubbleItemType | null>(null);
+  const expertSwitchCounterRef = useRef(0);
   useEffect(() => {
     if (!activeConversationId) {
       return;
@@ -873,7 +872,7 @@ export function useChatViewMessages({
     const name = role?.name ?? t("chat.generalAssistant");
     const icon = role?.icon ?? "\uD83E\uDD16";
     setExpertSwitchBubble({
-      key: `__expert-switch__${sw.roleId}__${Date.now()}`,
+      key: `__expert-switch__${sw.roleId}__${++expertSwitchCounterRef.current}`,
       role: "expert-switch",
       content: JSON.stringify({ icon, name: t("chat.switchedTo", { name }) }),
       variant: "borderless" as const,
@@ -1007,7 +1006,15 @@ export function useChatViewMessages({
 
   const formatTime = useCallback((ts: number) => {
     const d = new Date(ts);
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const now = new Date();
+    const isToday = d.getFullYear() === now.getFullYear()
+      && d.getMonth() === now.getMonth()
+      && d.getDate() === now.getDate();
+    const timeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    if (isToday) {
+      return timeStr;
+    }
+    return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${timeStr}`;
   }, []);
 
   const getModelDisplayInfo = useCallback(
@@ -1036,9 +1043,9 @@ export function useChatViewMessages({
     } => {
       switch (bubbleStyle) {
         case "compact":
-          return { variant: "borderless" };
+          return { variant: "borderless", style: { borderLeft: "2px solid var(--color-primary)", padding: "4px 8px" } };
         case "minimal":
-          return { variant: "borderless", style: { padding: "4px 8px" } };
+          return { variant: "borderless", style: { padding: "4px 8px", borderLeft: "2px solid var(--color-primary)" } };
         case "modern":
         default:
           return { variant: isUser ? "shadow" : "outlined" };
@@ -1468,19 +1475,7 @@ export function useChatViewMessages({
             );
           }
 
-          if (isMultiModelMsg && rawBubbleLoading) {
-            return (
-              <>
-                {msgMarker}
-                <span className="axagent-streaming-dots" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </>
-            );
-          }
-
+          // Compute agent permissions/askUsers early for unified loading decision
           const isAgentMode = activeConversation?.mode === "agent";
           const msgPermissions = isAgentMode && msg && activeConversationId
             ? Object.values(agentPendingPermissions).filter(
@@ -1501,12 +1496,8 @@ export function useChatViewMessages({
             )
             : [];
 
-          if (
-            isAgentMsg
-            && rawBubbleLoading
-            && msgPermissions.length === 0
-            && msgAskUsers.length === 0
-          ) {
+          // Unified loading dots: show unless Agent mode has pending permissions/askUsers
+          if (rawBubbleLoading && (!isAgentMsg || (msgPermissions.length === 0 && msgAskUsers.length === 0))) {
             return (
               <>
                 {msgMarker}
@@ -1521,7 +1512,29 @@ export function useChatViewMessages({
 
           // ── AI 消息折叠 ──
           const msgId = msg?.id;
-          const isCollapsed = !!msgId && !isStreaming && collapsedAiIds.has(msgId);
+          const isCollapsed = !!msgId && !isStreaming && collapsedAiIds[msgId];
+
+          const handleToggleCollapse = () => {
+            if (!msgId) { return; }
+            setCollapsedAiIds((prev) => {
+              const next = { ...prev };
+              if (next[msgId]) {
+                delete next[msgId];
+              } else {
+                next[msgId] = true;
+              }
+              return next;
+            });
+          };
+
+          const handleExpand = () => {
+            if (!msgId) { return; }
+            setCollapsedAiIds((prev) => {
+              const next = { ...prev };
+              delete next[msgId];
+              return next;
+            });
+          };
 
           return (
             <>
@@ -1540,14 +1553,7 @@ export function useChatViewMessages({
                 {isCollapsed && (
                   <div
                     className="ai-collapse-overlay"
-                    onClick={() => {
-                      setCollapsedAiIds((prev) => {
-                        const next = new Set(prev);
-                        next.delete(msgId);
-                        setCollapseTick((t) => t + 1);
-                        return next;
-                      });
-                    }}
+                    onClick={handleExpand}
                   >
                     <span className="ai-collapse-label">{t("chat.expandMessage")}</span>
                   </div>
@@ -1555,15 +1561,7 @@ export function useChatViewMessages({
                 {!isStreaming && !!msgId && (
                   <button
                     className="ai-collapse-toggle"
-                    onClick={() => {
-                      setCollapsedAiIds((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(msgId)) { next.delete(msgId); }
-                        else { next.add(msgId); }
-                        setCollapseTick((t) => t + 1);
-                        return next;
-                      });
-                    }}
+                    onClick={handleToggleCollapse}
                   >
                     {isCollapsed ? t("common.expand") : t("common.collapse")}
                   </button>

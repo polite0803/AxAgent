@@ -8,22 +8,21 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::{CompareOperator, LogicalOperator, WorkflowNode};
-use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
+#[derive(Default)]
 pub struct ConditionExecutor {
-    db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
     /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl ConditionExecutor {
-    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self { db, master_key, provider_registry: None }
+    pub fn new(master_key: [u8; 32]) -> Self {
+        Self { master_key, provider_registry: None }
     }
 }
 
@@ -33,16 +32,6 @@ impl axagent_harness::HasProviderRegistry for ConditionExecutor {
         registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
     ) {
         self.provider_registry = Some(registry);
-    }
-}
-
-impl Default for ConditionExecutor {
-    fn default() -> Self {
-        Self {
-            db: Arc::new(DatabaseConnection::default()),
-            master_key: [0u8; 32],
-            provider_registry: None,
-        }
     }
 }
 
@@ -248,7 +237,6 @@ impl ConditionExecutor {
         confidence_threshold: Option<f64>,
     ) -> Result<bool, String> {
         let (prov, _key, model, adapter, api_key) = super::resolve_provider_and_adapter(
-            &self.db,
             &self.master_key,
             self.provider_registry.as_ref(),
             node_model,
@@ -275,7 +263,7 @@ impl ConditionExecutor {
         confidence_threshold: Option<f64>,
     ) -> Result<bool, String> {
         use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
-        use axagent_harness::url_utils::resolve_base_url_for_type;
+        use axagent_providers::url_utils::resolve_base_url_for_type;
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
         let req_ctx = axagent_harness::ProviderRequestContext {
@@ -327,10 +315,12 @@ impl ConditionExecutor {
             store: None,
         };
 
-        let response =
-            adapter.chat(&req_ctx, request).await.map_err(|e| format!("LLM 调用失败: {e}"))?;
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response = axagent_harness::execute_llm(&**adapter, &req_ctx, request, &llm_config)
+            .await
+            .map_err(|e| format!("LLM 调用失败: {e}"))?;
 
-        let text = response.content.trim().to_lowercase();
+        let text = response.response.content.trim().to_lowercase();
 
         // ── 置信度检查 ──
         if let Some(threshold) = confidence_threshold {

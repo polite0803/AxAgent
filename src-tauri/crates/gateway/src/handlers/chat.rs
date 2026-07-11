@@ -104,7 +104,10 @@ pub async fn chat_completions(
     let provider_type_str = provider_type_to_str(&provider.provider_type);
 
     let global_settings = state.adapter.settings().get_settings().await.unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &global_settings,
+    );
 
     let ctx = ProviderRequestContext {
         api_key,
@@ -113,7 +116,11 @@ pub async fn chat_completions(
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path.clone(),
         proxy_config: resolved_proxy,
-        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| {
+            serde_json::from_str(s)
+                .map_err(|e| tracing::warn!(error = %e, "Failed to parse custom headers"))
+                .ok()
+        }),
         api_mode: request.api_mode.clone(),
         conversation: request.conversation.clone(),
         previous_response_id: request.previous_response_id.clone(),
@@ -294,74 +301,6 @@ pub(crate) async fn handle_non_stream_with_failover(
 }
 
 #[allow(clippy::too_many_arguments)]
-/// Inner non-streaming handler (no failover — kept for potential direct-use scenarios).
-#[allow(dead_code)]
-pub(crate) async fn handle_non_stream(
-    adapter: &dyn ProviderAdapter,
-    ctx: &ProviderRequestContext,
-    request: ChatRequest,
-    state: &GatewayAppState,
-    gateway_key: &GatewayKey,
-    provider_id: &str,
-    model_id: &str,
-    start_time: Instant,
-) -> axum::response::Response {
-    match adapter.chat(ctx, request).await {
-        Ok(response) => {
-            // Record usage
-            let _ = state
-                .adapter
-                .gateway_keys()
-                .record_usage(
-                    &gateway_key.id,
-                    provider_id,
-                    Some(model_id),
-                    response.usage.prompt_tokens as u64,
-                    response.usage.completion_tokens as u64,
-                    response.usage.cache_read_tokens.unwrap_or(0) as u64,
-                )
-                .await;
-
-            let elapsed = start_time.elapsed().as_millis() as i32;
-            record_log!(
-                &state.adapter,
-                gateway_key,
-                "POST",
-                "/v1/chat/completions",
-                Some(model_id),
-                provider_id,
-                200,
-                elapsed,
-                response.usage.prompt_tokens as i64,
-                response.usage.completion_tokens as i64,
-                None
-            );
-
-            Json(build_non_stream_response_body(&response)).into_response()
-        },
-        Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
-            record_log!(
-                &state.adapter,
-                gateway_key,
-                "POST",
-                "/v1/chat/completions",
-                Some(model_id),
-                provider_id,
-                502,
-                elapsed,
-                0,
-                0,
-                Some(&e.to_string())
-            );
-
-            tracing::error!(error = %e, provider = %provider_id, model = %model_id, "Chat completion request failed");
-            error_response(StatusCode::BAD_GATEWAY, "Chat completion request failed")
-        },
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn handle_stream(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
@@ -373,7 +312,12 @@ pub(crate) async fn handle_stream(
     start_time: Instant,
 ) -> axum::response::Response {
     let model_str = model_id.to_string();
-    let mut stream = adapter.chat_stream(ctx, request, None);
+    let llm_config = axagent_harness::LlmCallConfig::default();
+    let mut stream =
+        match axagent_harness::execute_llm_stream(adapter, ctx, request, &llm_config, None).await {
+            Ok(s) => s,
+            Err(e) => return error_response(StatusCode::BAD_REQUEST, &e),
+        };
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(32);
     let platform_adapter = state.adapter.clone();

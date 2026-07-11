@@ -138,7 +138,7 @@ export function EvolutionSettings() {
                       <Statistic
                         title={s.label}
                         value={s.value}
-                        valueStyle={{ fontSize: 14 }}
+                        styles={{ content: { fontSize: 14 } }}
                       />
                     </Col>
                   ))}

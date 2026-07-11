@@ -58,31 +58,11 @@ impl TaskComplexity {
 }
 
 /// 空实现 — 提供默认降级行为
-#[derive(Debug)]
-pub struct NoopTrajectoryService;
-
-impl TrajectoryService for NoopTrajectoryService {
-    fn extract_entities(&self, _messages: &[serde_json::Value]) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn verify_compression_integrity(
-        &self,
-        _original: &[serde_json::Value],
-        _compressed: &[serde_json::Value],
-        _key_entities: &[String],
-    ) -> IntegrityResult {
-        IntegrityResult { is_valid: true, checks: Vec::new() }
-    }
-
-    fn estimate_complexity(&self, _input: &str) -> TaskComplexity {
-        TaskComplexity::Medium
-    }
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopTrajectoryService;
 
     #[test]
     fn noop_returns_defaults() {

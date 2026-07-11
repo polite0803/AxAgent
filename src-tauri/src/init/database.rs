@@ -102,6 +102,10 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
     // 注册 SeaORM 连接
     axagent_tools::global_state::set_sea_db(std::sync::Arc::new(db_handle.conn.clone()));
 
+    // 将 dao 实现的 agent / workflow 系列 repository 注册进 harness 全局服务注册表，
+    // 供 consumer crate（rt-workflow 等）通过 trait 访问器获取，避免直接依赖 axagent-entities。
+    axagent_dao::agent_repositories::register_repositories(&db_handle.conn);
+
     Ok(DatabaseInitResult { db_handle, db_path, master_key, app_dir })
 }
 

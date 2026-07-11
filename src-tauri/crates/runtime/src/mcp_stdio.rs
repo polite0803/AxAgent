@@ -26,12 +26,12 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::time::timeout;
 
-use crate::config::{McpTransport, RuntimeConfig, ScopedMcpServerConfig};
 use crate::mcp::mcp_tool_name;
 use crate::mcp_client::{McpClientBootstrap, McpClientTransport, McpStdioTransport};
 use crate::mcp_lifecycle_hardened::{
     McpDegradedReport, McpErrorSurface, McpFailedServer, McpLifecyclePhase,
 };
+use axagent_runtime_core::config::{McpTransport, RuntimeConfig, ScopedMcpServerConfig};
 
 #[cfg(test)]
 const MCP_INITIALIZE_TIMEOUT_MS: u64 = 200;
@@ -1333,12 +1333,12 @@ mod tests {
     use serde_json::json;
     use tokio::runtime::Builder;
 
-    use crate::config::{
+    use crate::mcp::mcp_tool_name;
+    use crate::mcp_client::McpClientBootstrap;
+    use axagent_runtime_core::config::{
         ConfigSource, McpRemoteServerConfig, McpSdkServerConfig, McpServerConfig,
         McpStdioServerConfig, McpWebSocketServerConfig, ScopedMcpServerConfig,
     };
-    use crate::mcp::mcp_tool_name;
-    use crate::mcp_client::McpClientBootstrap;
 
     use super::{
         JsonRpcId, JsonRpcRequest, JsonRpcResponse, McpInitializeClientInfo, McpInitializeParams,
@@ -1495,7 +1495,7 @@ mod tests {
     fn rejects_non_stdio_bootstrap() {
         let config = ScopedMcpServerConfig {
             scope: ConfigSource::Local,
-            config: McpServerConfig::Sdk(crate::config::McpSdkServerConfig {
+            config: McpServerConfig::Sdk(axagent_runtime_core::config::McpSdkServerConfig {
                 name: "sdk-server".to_string(),
             }),
         };

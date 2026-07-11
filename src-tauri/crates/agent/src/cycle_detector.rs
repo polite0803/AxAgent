@@ -120,7 +120,12 @@ impl CycleDetector {
     ) -> Vec<CycleAlert> {
         let mut alerts = Vec::new();
 
-        if let Some(alert) = self.check_repeated_call(tool_name, tool_input, iteration) {
+        // 空工具名代表非工具调用（如 Plan/Analyze/Reflect/Synthesize 等元动作），
+        // 不应参与循环调用检测，否则无工具的 provider（如 DefaultReasoningProvider）
+        // 会被误判为「循环调用 ''」。状态收敛检测仍照常进行。
+        if !tool_name.trim().is_empty()
+            && let Some(alert) = self.check_repeated_call(tool_name, tool_input, iteration)
+        {
             alerts.push(alert);
         }
 

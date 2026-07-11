@@ -8,14 +8,28 @@ use crate::agent_def_types::{AgentDefSource, AgentDefinition};
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_harness::PluginAgentProvider;
+use axagent_harness::feature_flag_provider::SharedFeatureFlagProvider;
+use axagent_harness::tool_service::HookEventFirer;
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock, Mutex, OnceLock, RwLock};
 
-static PLUGIN_PROVIDER: OnceLock<Arc<dyn PluginAgentProvider>> = OnceLock::new();
+pub(crate) static PLUGIN_PROVIDER: OnceLock<Arc<dyn PluginAgentProvider>> = OnceLock::new();
+pub(crate) static HOOK_FIRER: OnceLock<Arc<dyn HookEventFirer>> = OnceLock::new();
+pub(crate) static FEATURE_FLAG: OnceLock<SharedFeatureFlagProvider> = OnceLock::new();
 
 /// 注入 `PluginAgentProvider` trait object（由 wiring 层在初始化时调用一次）
 pub fn set_plugin_agent_provider(provider: Arc<dyn PluginAgentProvider>) {
     let _ = PLUGIN_PROVIDER.set(provider);
+}
+
+/// 注入 `HookEventFirer`（由 wiring 层在初始化时调用一次）
+pub fn set_hook_firer(firer: Arc<dyn HookEventFirer>) {
+    let _ = HOOK_FIRER.set(firer);
+}
+
+/// 注入 `FeatureFlagProvider`（由 wiring 层在初始化时调用一次）
+pub fn set_feature_flag_provider(provider: SharedFeatureFlagProvider) {
+    let _ = FEATURE_FLAG.set(provider);
 }
 
 fn plugin_provider() -> &'static Arc<dyn PluginAgentProvider> {
@@ -39,11 +53,10 @@ fn store_pending_card(parent_id: &str, child_id: &str, agent_type: &str, descrip
 }
 
 /// 触发 HookEvent（best-effort，失败不影响主流程）
-fn fire_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
-    let runner =
-        axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
-    let data_str = data.to_string();
-    let _ = runner.run_event(event, &data_str);
+fn fire_hook(event: &str, data: &serde_json::Value) {
+    if let Some(firer) = HOOK_FIRER.get() {
+        firer.fire_hook(event, &data.to_string());
+    }
 }
 
 /// 全局 Agent 注册表 — 包含内置 + 动态加载的 agent 定义
@@ -245,9 +258,7 @@ impl Tool for AgentTool {
 
         // Verification Agent 需要启用 VERIFICATION_AGENT feature flag
         if agent_type == "Verification"
-            && !axagent_runtime_core::feature_flags::global_feature_flags()
-                .verification_agent()
-                .await
+            && !FEATURE_FLAG.get().is_some_and(|f| f.is_enabled("verification_agent"))
         {
             return Err(ToolError::new(
                 "Verification Agent 未启用（设置 AXAGENT_FF_VERIFICATION_AGENT=1 或 features.VerificationAgent=true）",
@@ -257,7 +268,7 @@ impl Tool for AgentTool {
         // 查找 Agent 定义
         let agent_def = if agent_type.is_empty() {
             // 如启用 FORK_SUBAGENT，则隐式 fork
-            if axagent_runtime_core::feature_flags::global_feature_flags().fork_subagent().await {
+            if FEATURE_FLAG.get().is_some_and(|f| f.is_enabled("fork_subagent")) {
                 return handle_fork_subagent(description, prompt, ctx).await;
             }
             // 默认使用 general-purpose
@@ -324,7 +335,7 @@ impl Tool for AgentTool {
 
         // 触发 SubagentStart hook (best-effort)
         fire_hook(
-            axagent_runtime_core::HookEvent::SubagentStart,
+            "SubagentStart",
             &json!({
                 "agent_type": resolved_type,
                 "description": description,
@@ -350,17 +361,17 @@ async fn handle_fork_subagent(
 
     // 存储 fork 上下文 — 子 agent 启动时读取以继承父 agent 消息历史
     // ForkSessionData 在 runtime::fork_bridge 中，父 agent 填入 session 数据后子 agent 可加载
-    axagent_runtime_core::fork_bridge::store_fork_session(
-        axagent_runtime_core::fork_bridge::ForkSessionData {
+    axagent_harness::runtime_types::fork_bridge::store_fork_session(
+        axagent_harness::runtime_types::fork_bridge::ForkSessionData {
             parent_conversation_id: parent_id.to_string(),
             description: description.to_string(),
             prompt: prompt.to_string(),
             created_at: chrono::Utc::now().to_rfc3339(),
             parent_system_prompt: Vec::new(),
             parent_messages_json: String::new(),
-            child_system_prompt: Some(axagent_runtime_core::fork_bridge::build_fork_child_prompt(
-                prompt,
-            )),
+            child_system_prompt: Some(
+                axagent_harness::runtime_types::fork_bridge::build_fork_child_prompt(prompt),
+            ),
         },
     );
     store_pending_card(parent_id, parent_id, "fork", description);
@@ -384,7 +395,7 @@ async fn handle_fork_subagent(
 
     // 触发 SubagentStart hook — fork 类型 (best-effort)
     fire_hook(
-        axagent_runtime_core::HookEvent::SubagentStart,
+        "SubagentStart",
         &json!({
             "agent_type": "fork",
             "description": description,
@@ -424,7 +435,7 @@ impl Tool for RemoteTriggerTool {
         let sid = i["session_id"].as_str().unwrap_or("?");
         let prompt = i["prompt"].as_str().unwrap_or("");
         fire_hook(
-            axagent_runtime_core::HookEvent::SubagentStart,
+            "SubagentStart",
             &serde_json::json!({
                 "agent_type": "remote",
                 "session_id": sid,

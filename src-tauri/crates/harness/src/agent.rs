@@ -52,25 +52,6 @@ pub trait Agent: Send + Sync + fmt::Debug {
     async fn plan(&self, goal: &str) -> Result<AgentPlan, String>;
 }
 
-#[derive(Debug)]
-pub struct NoopAgent;
-
-#[async_trait]
-impl Agent for NoopAgent {
-    fn name(&self) -> &str {
-        "noop"
-    }
-    fn capabilities(&self) -> Vec<AgentCapability> {
-        vec![]
-    }
-    async fn execute(&self, _req: AgentExecuteRequest) -> Result<AgentResult, String> {
-        Err("NoopAgent cannot execute".to_string())
-    }
-    async fn plan(&self, _goal: &str) -> Result<AgentPlan, String> {
-        Err("NoopAgent cannot plan".to_string())
-    }
-}
-
 use std::collections::HashMap;
 
 pub struct AgentRegistry {

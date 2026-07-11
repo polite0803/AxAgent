@@ -16,6 +16,10 @@ use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use crate::commands::spawn_guard::catch_unwind_logged;
+#[cfg(test)]
+use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
+#[cfg(test)]
+use axagent_harness::AgentSessionRepository;
 use axagent_harness::types::*;
 use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_providers::{ProviderRequestContext, extract_reasoning_from_text};
@@ -942,9 +946,7 @@ pub async fn archive_workflow_session(
 pub(crate) async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
-        Box<
-            dyn futures::Stream<Item = axagent_harness::core_error::Result<ChatStreamChunk>> + Send,
-        >,
+        Box<dyn futures::Stream<Item = std::result::Result<ChatStreamChunk, String>> + Send>,
     >,
     params: StreamConsumptionParams<'_>,
 ) -> (String, Option<TokenUsage>, Option<Vec<ToolCall>>, Option<String>, Option<f64>, Option<i64>) {
@@ -1199,7 +1201,7 @@ pub(crate) async fn consume_stream(
                 }
             },
             Err(e) => {
-                let err_msg = format!("{}", e);
+                let err_msg = e.to_string();
                 let _ = app.emit(
                     "chat-stream-error",
                     ChatStreamErrorEvent {
@@ -1483,7 +1485,7 @@ pub(crate) async fn execute_tool_call(
         _ => {
             // Fallback: try local tool registry (Skill, Read, Write, etc.)
             {
-                let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
+                let registry = axagent_tools::registry::UnifiedToolRegistry::new();
                 let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
                     .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
                 let input_str = serde_json::to_string(&args).unwrap_or_default();
@@ -1514,7 +1516,7 @@ pub(crate) async fn execute_tool_call(
     let result = match server.transport.as_str() {
         "builtin" => {
             let input_str = serde_json::to_string(&arguments).unwrap_or_default();
-            let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
+            let reg = axagent_tools::registry::UnifiedToolRegistry::new();
             match tokio::time::timeout(
                 timeout_duration,
                 reg.execute(&tool_call.function.name, &input_str),
@@ -1794,7 +1796,10 @@ pub(crate) async fn generate_ai_title(
                 .await;
             },
         };
-        let proxy = ProviderProxyConfig::resolve(&provider.proxy_config, settings);
+        let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+            &provider.proxy_config,
+            settings,
+        );
         let ctx = ProviderRequestContext {
             api_key: dk,
             key_id: key_row.id.clone(),
@@ -1878,7 +1883,8 @@ pub(crate) async fn generate_ai_title_with(
         store: None,
     };
 
-    let registry_key = provider.provider_type.registry_key();
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&provider.provider_type);
     let adapter = harness.provider_registry().get(registry_key).ok_or_else(|| {
         let err = format!("Adapter not found for provider type: {}", registry_key);
         tracing::error!("[title-gen] {}", err);
@@ -1973,7 +1979,10 @@ pub async fn regenerate_conversation_title(
     let global_settings =
         axagent_dao::repo::settings::get_settings(&db).await.map_err(|e| e.to_string())?;
 
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &global_settings,
+    );
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id.clone(),
@@ -2516,7 +2525,11 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         agent_ask_senders: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_always_allowed: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_prompters: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
-        agent_session_manager: Arc::new(axagent_agent::SessionManager::new(db.clone())),
+        agent_session_manager: {
+            let repo: Arc<dyn AgentSessionRepository> =
+                Arc::new(DaoAgentSessionRepository::new(Arc::new(db.clone())));
+            Arc::new(axagent_agent::SessionManager::new(repo))
+        },
         agent_cancel_tokens: Arc::new(DashMap::new()),
         agent_paused: Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -2594,7 +2607,6 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             axagent_tools::registry::UnifiedToolRegistry::new(),
         )),
         work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-            Arc::new(db.clone()),
             [0; 32],
             Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                 as Arc<dyn axagent_harness::registry::ProviderRegistry>,
@@ -2709,9 +2721,10 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         ),
         agent: crate::state::AgentState::new(
-            Arc::new(axagent_agent::SessionManager::new(db.clone())),
+            Arc::new(axagent_agent::SessionManager::new_for_test(db.clone())),
             Arc::new(DashMap::new()),
             Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
             Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -2724,7 +2737,6 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             )),
             Arc::new(tokio::sync::Mutex::new(axagent_tools::registry::UnifiedToolRegistry::new())),
             Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                Arc::new(db.clone()),
                 [0; 32],
                 Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                     as Arc<dyn axagent_harness::registry::ProviderRegistry>,
@@ -2812,6 +2824,28 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             )),
             Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         ),
+        learning: crate::state::LearningState::new(
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
+                axagent_trajectory::ComputationGraph::new(),
+                axagent_trajectory::TextGradConfig::default(),
+            ))),
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::IntrinsicMotivationEngine::new(
+                axagent_trajectory::IntrinsicMotivationConfig::default(),
+            ))),
+            Arc::new(tokio::sync::Mutex::new(axagent_trajectory::CoevolutionEnvironment::new(
+                axagent_trajectory::CoevolutionConfig::default(),
+            ))),
+            Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"),
+            )),
+        ),
+        tool: crate::state::ToolState::new(Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::AutoToolCreator::new(
+                axagent_trajectory::AutoToolCreatorConfig::default(),
+                Box::new(axagent_trajectory::DefaultLlmToolProvider::new()),
+                Box::new(axagent_trajectory::DefaultSandboxToolTester),
+            ),
+        ))),
     };
 
     let attachments = vec![AttachmentInput {

@@ -74,7 +74,7 @@ async fn build_vision_context(
         .map_err(|e| e.to_string())?;
 
     let global_settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
-    let resolved_proxy = axagent_harness::types::ProviderProxyConfig::resolve(
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
         &provider.proxy_config,
         &global_settings,
     );

@@ -9,8 +9,8 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
+use crate::url_utils::resolve_chat_url;
 use crate::{ProviderAdapter, ProviderRequestContext, build_http_client};
-use axagent_harness::url_utils::resolve_chat_url;
 
 const DEFAULT_BASE_URL: &str = default_url::OPENAI_BASE;
 
@@ -115,24 +115,12 @@ struct ResponsesUsage {
     total_tokens: u32,
     #[serde(default)]
     input_tokens_details: Option<ResponsesInputTokensDetails>,
-    // 预留: 推理/音频输出细节, P2 计费用
-    #[allow(dead_code)]
-    #[serde(default)]
-    output_tokens_details: Option<ResponsesOutputTokensDetails>,
 }
 
 #[derive(Deserialize, Default)]
 struct ResponsesInputTokensDetails {
     #[serde(default)]
     cached_tokens: Option<u32>,
-}
-
-#[derive(Deserialize, Default)]
-struct ResponsesOutputTokensDetails {
-    // 预留: 推理 token, P2 思考/输出分离计费
-    #[allow(dead_code)]
-    #[serde(default)]
-    reasoning_tokens: Option<u32>,
 }
 
 impl ResponsesUsage {
@@ -994,7 +982,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
             .data
             .into_iter()
             .map(|m| {
-                let model_type = ModelType::detect(&m.id);
+                let model_type = axagent_harness::types::provider_model::detect_model_type(&m.id);
                 let mut caps = match model_type {
                     ModelType::Chat => vec![ModelCapability::TextChat],
                     ModelType::Embedding => vec![],

@@ -575,7 +575,9 @@ pub async fn extract_expert_structure(
         ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
     })?;
 
-    let registry_key = provider_config.provider_type.registry_key();
+    let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+        &provider_config.provider_type,
+    );
 
     let adapter = state.harness.provider_registry().get(&registry_key).ok_or_else(|| {
         ErrorResponse::new(expert_err::VENDOR_NOT_FOUND)

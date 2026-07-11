@@ -778,6 +778,7 @@ dependencies = [
  "async-trait",
  "axagent-agent",
  "axagent-cache",
+ "axagent-credential",
  "axagent-crypto",
  "axagent-dao",
  "axagent-disk-cache",
@@ -859,11 +860,9 @@ version = "2.8.2"
 dependencies = [
  "async-trait",
  "axagent-dao",
- "axagent-entities",
  "axagent-harness",
  "axagent-kit",
  "axagent-migration",
- "axagent-runtime-core",
  "axagent-tools",
  "backon",
  "base64 0.22.1",
@@ -903,6 +902,25 @@ dependencies = [
  "quick_cache",
  "serde",
  "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "axagent-credential"
+version = "2.8.2"
+dependencies = [
+ "aes-gcm",
+ "async-trait",
+ "axagent-harness",
+ "base64 0.22.1",
+ "chrono",
+ "hex",
+ "rand 0.8.6",
+ "reqwest 0.13.4",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
  "tracing",
 ]
 
@@ -976,12 +994,8 @@ dependencies = [
 name = "axagent-gateway"
 version = "2.8.2"
 dependencies = [
- "axagent-crypto",
- "axagent-dao",
- "axagent-entities",
+ "async-trait",
  "axagent-harness",
- "axagent-kit",
- "axagent-mcp",
  "axum",
  "axum-server",
  "futures",
@@ -1010,13 +1024,10 @@ dependencies = [
 name = "axagent-harness"
 version = "2.8.2"
 dependencies = [
- "aes-gcm",
  "async-trait",
- "base64 0.22.1",
  "chrono",
  "futures",
  "hex",
- "rand 0.8.6",
  "regex",
  "reqwest 0.13.4",
  "schemars 0.8.22",
@@ -1065,6 +1076,7 @@ dependencies = [
 name = "axagent-mcp"
 version = "2.8.2"
 dependencies = [
+ "async-trait",
  "axagent-harness",
  "dirs 5.0.1",
  "futures",
@@ -1181,7 +1193,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axagent-crypto",
- "axagent-dao",
  "axagent-harness",
  "axagent-kit",
  "chrono",
@@ -1235,10 +1246,9 @@ dependencies = [
  "async-trait",
  "axagent-crypto",
  "axagent-dao",
- "axagent-entities",
  "axagent-harness",
  "axagent-kit",
- "axagent-runtime-core",
+ "axagent-providers",
  "chrono",
  "chrono-tz",
  "cron",
@@ -1274,20 +1284,31 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axagent-agent",
+ "axagent-cache",
  "axagent-crypto",
  "axagent-dao",
+ "axagent-disk-cache",
+ "axagent-document-parser",
+ "axagent-entities",
+ "axagent-gateway",
  "axagent-harness",
  "axagent-kit",
  "axagent-mcp",
+ "axagent-migration",
+ "axagent-orchestrator",
  "axagent-plugins",
  "axagent-prompt-guard",
  "axagent-providers",
  "axagent-rt-dashboard",
  "axagent-rt-messaging",
  "axagent-rt-theme",
+ "axagent-rt-webhook",
  "axagent-rt-workflow",
  "axagent-runtime-core",
  "axagent-search",
+ "axagent-storage",
+ "axagent-telemetry",
+ "axagent-tools",
  "axagent-trajectory",
  "axum",
  "chrono",
@@ -1324,6 +1345,7 @@ dependencies = [
  "axagent-harness",
  "axagent-prompt-guard",
  "axagent-telemetry",
+ "futures",
  "hex",
  "insta",
  "reqwest 0.13.4",
@@ -1373,6 +1395,7 @@ name = "axagent-storage"
 version = "2.8.2"
 dependencies = [
  "async-trait",
+ "axagent-dao",
  "axagent-entities",
  "axagent-harness",
  "chrono",
@@ -1415,13 +1438,10 @@ name = "axagent-tools"
 version = "2.8.2"
 dependencies = [
  "async-trait",
- "axagent-dao",
  "axagent-document-parser",
- "axagent-entities",
  "axagent-harness",
  "axagent-kit",
  "axagent-mcp",
- "axagent-runtime-core",
  "axagent-search",
  "base64 0.22.1",
  "chrono",

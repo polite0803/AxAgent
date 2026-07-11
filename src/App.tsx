@@ -410,13 +410,17 @@ function AppRoot() {
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--font-weight", String(fontWeight));
-    const resolvedFont = fontFamily
-      || "'Geist Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    // 21th 预设时默认使用等宽字体，其他预设使用无衬线字体
+    const is21th = themePreset?.includes("21th") ?? false;
+    const defaultFont = is21th
+      ? "'Geist Mono', ui-monospace, monospace"
+      : "'Geist Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    const resolvedFont = fontFamily || defaultFont;
     const resolvedCode = codeFontFamily || "'JetBrains Mono Variable', ui-monospace, monospace";
     root.style.setProperty("--font-family", resolvedFont);
     document.body.style.fontFamily = resolvedFont;
     root.style.setProperty("--code-font-family", resolvedCode);
-  }, [fontWeight, fontFamily, codeFontFamily]);
+  }, [fontWeight, fontFamily, codeFontFamily, themePreset]);
 
   const themeConfig = useShadcnTheme(
     isDark,

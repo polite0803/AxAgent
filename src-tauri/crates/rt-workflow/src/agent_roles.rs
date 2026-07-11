@@ -6,7 +6,6 @@
 //! Custom roles imported from Open Agent Spec or other sources are stored in the DB
 //! and take precedence over the hardcoded 8 variants.
 
-use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -483,9 +482,9 @@ impl AgentRole {
 }
 
 impl AgentRole {
-    /// DB-first role resolver: check DB → fall back to enum.
-    pub async fn resolve(db: &DatabaseConnection, role_name: &str) -> Option<ResolvedRole> {
-        if let Ok(Some(row)) = get_role_from_db(db, role_name).await {
+    /// DB-first role resolver: check DB (via harness repository) → fall back to enum.
+    pub async fn resolve(role_name: &str) -> Option<ResolvedRole> {
+        if let Ok(Some(row)) = get_role_from_db(role_name).await {
             return Some(ResolvedRole {
                 name: row.name,
                 system_prompt: if row.system_prompt.is_empty() {
@@ -511,14 +510,13 @@ impl AgentRole {
         })
     }
 
-    /// 三级查找：DB → 文件注册表 → 内置枚举。
+    /// 三级查找：DB (via harness repository) → 文件注册表 → 内置枚举。
     pub async fn resolve_with_file_registry(
-        db: &DatabaseConnection,
         file_registry: &FileRoleRegistry,
         role_name: &str,
     ) -> Option<ResolvedRole> {
         // 1) DB
-        if let Ok(Some(row)) = get_role_from_db(db, role_name).await {
+        if let Ok(Some(row)) = get_role_from_db(role_name).await {
             return Some(ResolvedRole {
                 name: row.name,
                 system_prompt: if row.system_prompt.is_empty() {
@@ -561,9 +559,9 @@ pub struct ResolvedRole {
     pub source: String,
 }
 
-/// DB accessor
+/// DB accessor —— 经 harness `AgentRoleRepository` 抽象，不直接依赖 axagent-entities。
 pub mod db_access {
-    use sea_orm::{DatabaseConnection, EntityTrait};
+    use axagent_harness::repo_dtos::AgentRoleDto;
 
     pub struct AgentRoleRow {
         pub name: String,
@@ -574,26 +572,16 @@ pub mod db_access {
         pub source: String,
     }
 
-    pub async fn get_role_from_db(
-        db: &DatabaseConnection,
-        role_id: &str,
-    ) -> Result<Option<AgentRoleRow>, sea_orm::DbErr> {
-        use axagent_entities::agent_roles;
-        let row = agent_roles::Entity::find_by_id(role_id).one(db).await?;
-        Ok(row.map(|r| {
-            let tools: Vec<String> = r
-                .default_tools
-                .as_deref()
-                .and_then(|s| serde_json::from_str(s).ok())
-                .unwrap_or_default();
-            AgentRoleRow {
-                name: r.name,
-                system_prompt: r.system_prompt,
-                default_tools: tools,
-                max_concurrent: r.max_concurrent,
-                timeout_seconds: r.timeout_seconds,
-                source: r.source,
-            }
+    pub async fn get_role_from_db(role_id: &str) -> Result<Option<AgentRoleRow>, String> {
+        let dto: Option<AgentRoleDto> =
+            axagent_harness::repositories::agent_role_repository().get_agent_role(role_id).await?;
+        Ok(dto.map(|r| AgentRoleRow {
+            name: r.name,
+            system_prompt: r.system_prompt,
+            default_tools: r.default_tools,
+            max_concurrent: r.max_concurrent,
+            timeout_seconds: r.timeout_seconds,
+            source: r.source,
         }))
     }
 }

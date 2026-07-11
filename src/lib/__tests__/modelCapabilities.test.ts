@@ -40,6 +40,8 @@ const mockProvider = (
   ],
   keys: [],
   proxy_config: null,
+  tool_adaptation: null,
+  tool_adaptation_marker_prefix: null,
   custom_headers: null,
   icon: null,
   builtin_id: null,

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+#![allow(clippy::await_holding_lock)]
 
 //! Skill Evolution System - GEPA-inspired skill improvement through genetic algorithms
 //!
@@ -22,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvolutionConfig {
@@ -318,7 +320,6 @@ fn serialize_steps(steps: &[ProcedureStep]) -> String {
     content
 }
 
-#[allow(dead_code)]
 pub(crate) struct DefaultLlmEvolutionProvider;
 
 impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
@@ -345,11 +346,15 @@ impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
         })
     }
 
+    /// ⚠️ 此实现仅为测试/演示用途的后备评估函数。
+    /// 基于内容长度和关键词的简单启发式评分，不反映实际技能质量。
+    /// 生产环境应在 ExternalLlmEvolutionProvider 中替换为真实的 LLM 评估。
     fn evaluate_quality(
         &self,
         content: &str,
         _context: &str,
     ) -> Pin<Box<dyn Future<Output = Result<f64, String>> + Send + '_>> {
+        // 简单启发式评分：仅用于测试/演示，不反映实际质量
         let score = (content.len() as f64 / 500.0).min(1.0) * 0.3
             + if content.contains("error") || content.contains("Error") {
                 0.3
@@ -381,11 +386,20 @@ pub trait SandboxExecutor: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<SandboxValidationResult, String>> + Send + 'a>>;
 }
 
+/// Minimum number of trajectories required before the evolution engine
+/// performs any mutation. This guard prevents the engine from overfitting
+/// on a tiny sample and keeps it dormant for short-lived sessions.
+const MIN_TRAJECTORIES_FOR_EVOLUTION: usize = 10;
+
 pub struct SkillEvolutionEngine {
     config: EvolutionConfig,
     population: Option<EvolutionPopulation>,
-    llm_provider: Option<Arc<dyn LlmEvolutionProvider>>,
-    sandbox: Option<Arc<dyn SandboxExecutor>>,
+    /// Lazy-initialized LLM provider behind Arc+RwLock so it can be
+    /// injected after construction and swapped at runtime without
+    /// rebuilding the entire engine.
+    llm_provider: Arc<RwLock<Option<Arc<dyn LlmEvolutionProvider>>>>,
+    /// Lazy-initialized sandbox executor, same pattern as llm_provider.
+    sandbox: Arc<RwLock<Option<Arc<dyn SandboxExecutor>>>>,
 }
 
 impl Default for SkillEvolutionEngine {
@@ -399,22 +413,27 @@ impl SkillEvolutionEngine {
         Self {
             config: EvolutionConfig::default(),
             population: None,
-            llm_provider: None,
-            sandbox: None,
+            llm_provider: Arc::new(RwLock::new(None)),
+            sandbox: Arc::new(RwLock::new(None)),
         }
     }
 
     pub fn with_config(config: EvolutionConfig) -> Self {
-        Self { config, population: None, llm_provider: None, sandbox: None }
+        Self {
+            config,
+            population: None,
+            llm_provider: Arc::new(RwLock::new(None)),
+            sandbox: Arc::new(RwLock::new(None)),
+        }
     }
 
-    pub fn set_llm_provider(&mut self, provider: Arc<dyn LlmEvolutionProvider>) {
-        self.llm_provider = Some(provider);
+    pub fn set_llm_provider(&self, provider: Arc<dyn LlmEvolutionProvider>) {
+        *self.llm_provider.write().unwrap() = Some(provider);
     }
 
     pub fn set_sandbox(&mut self, executor: Arc<dyn SandboxExecutor>) {
         self.config.use_execution_validation = true;
-        self.sandbox = Some(executor);
+        *self.sandbox.write().unwrap() = Some(executor);
     }
 
     pub fn skill_count(&self) -> usize {
@@ -422,11 +441,11 @@ impl SkillEvolutionEngine {
     }
 
     pub fn has_llm_provider(&self) -> bool {
-        self.llm_provider.is_some()
+        self.llm_provider.read().unwrap().is_some()
     }
 
     pub fn has_sandbox(&self) -> bool {
-        self.sandbox.is_some()
+        self.sandbox.read().unwrap().is_some()
     }
 
     pub fn initialize(&mut self, skill: &Skill) {
@@ -464,6 +483,12 @@ impl SkillEvolutionEngine {
         &mut self,
         test_trajectories: &[&Trajectory],
     ) -> Option<SkillGenome> {
+        // Trajectory count guard: skip evolution when there isn't enough
+        // data to produce meaningful mutations.
+        if test_trajectories.len() < MIN_TRAJECTORIES_FOR_EVOLUTION {
+            return self.population.as_ref().and_then(|p| p.best_individual()).cloned();
+        }
+
         let should_evolve = if let Some(ref pop) = self.population {
             pop.generation < self.config.max_generations as u32 && !pop.is_converged(&self.config)
         } else {
@@ -475,59 +500,59 @@ impl SkillEvolutionEngine {
         }
 
         if let Some(ref mut pop) = self.population {
-            if self.config.use_llm_mutation
-                && let Some(ref provider) = self.llm_provider
-            {
-                for individual in &mut pop.individuals {
-                    let failure_evidence: Vec<String> = test_trajectories
-                        .iter()
-                        .filter(|t| {
-                            matches!(
-                                t.outcome,
-                                TrajectoryOutcome::Failure | TrajectoryOutcome::Abandoned
-                            ) && t
-                                .topic
-                                .to_lowercase()
-                                .contains(&individual.description.to_lowercase())
-                        })
-                        .map(|t| t.summary.clone())
-                        .take(5)
-                        .collect();
-
-                    let success_evidence: Vec<String> = test_trajectories
-                        .iter()
-                        .filter(|t| {
-                            matches!(t.outcome, TrajectoryOutcome::Success)
-                                && t.topic
+            if self.config.use_llm_mutation {
+                let llm_provider = self.llm_provider.read().unwrap().clone();
+                if let Some(ref provider) = llm_provider {
+                    for individual in &mut pop.individuals {
+                        let failure_evidence: Vec<String> = test_trajectories
+                            .iter()
+                            .filter(|t| {
+                                matches!(
+                                    t.outcome,
+                                    TrajectoryOutcome::Failure | TrajectoryOutcome::Abandoned
+                                ) && t
+                                    .topic
                                     .to_lowercase()
                                     .contains(&individual.description.to_lowercase())
-                        })
-                        .map(|t| t.summary.clone())
-                        .take(5)
-                        .collect();
+                            })
+                            .map(|t| t.summary.clone())
+                            .take(5)
+                            .collect();
 
-                    let request = LlmMutationRequest {
-                        skill_name: individual.description.clone(),
-                        current_steps: individual.steps.clone(),
-                        failure_evidence,
-                        success_evidence,
-                    };
+                        let success_evidence: Vec<String> = test_trajectories
+                            .iter()
+                            .filter(|t| {
+                                matches!(t.outcome, TrajectoryOutcome::Success)
+                                    && t.topic
+                                        .to_lowercase()
+                                        .contains(&individual.description.to_lowercase())
+                            })
+                            .map(|t| t.summary.clone())
+                            .take(5)
+                            .collect();
 
-                    if let Ok(response) = provider.generate_mutation(&request).await
-                        && response.confidence > 0.5
-                    {
-                        // P1-8: 保留变异前快照，若新 fitness 更低则回滚
-                        let snapshot_steps = individual.steps.clone();
-                        let snapshot_content = individual.content.clone();
-                        let snapshot_fitness = individual.fitness;
-                        individual.steps = response.revised_steps;
-                        individual.content = serialize_steps(&individual.steps);
-                        Self::evaluate_fitness_static(individual, test_trajectories);
-                        if individual.fitness < snapshot_fitness {
-                            // 新 fitness 倒退，回滚
-                            individual.steps = snapshot_steps;
-                            individual.content = snapshot_content;
-                            individual.fitness = snapshot_fitness;
+                        let request = LlmMutationRequest {
+                            skill_name: individual.description.clone(),
+                            current_steps: individual.steps.clone(),
+                            failure_evidence,
+                            success_evidence,
+                        };
+
+                        if let Ok(response) = provider.generate_mutation(&request).await
+                            && response.confidence > 0.5
+                        {
+                            // P1-8: 保留变异前快照，若新 fitness 更低则回滚
+                            let snapshot_steps = individual.steps.clone();
+                            let snapshot_content = individual.content.clone();
+                            let snapshot_fitness = individual.fitness;
+                            individual.steps = response.revised_steps;
+                            individual.content = serialize_steps(&individual.steps);
+                            Self::evaluate_fitness_static(individual, test_trajectories);
+                            if individual.fitness < snapshot_fitness {
+                                individual.steps = snapshot_steps;
+                                individual.content = snapshot_content;
+                                individual.fitness = snapshot_fitness;
+                            }
                         }
                     }
                 }
@@ -537,23 +562,26 @@ impl SkillEvolutionEngine {
                 Self::evaluate_fitness_static(individual, test_trajectories);
             }
 
-            if self.config.use_execution_validation
-                && let Some(ref sandbox) = self.sandbox
-            {
-                for individual in &mut pop.individuals.iter_mut() {
-                    let mut total_success = 0.0;
-                    let mut rounds = 0;
-                    for trajectory in test_trajectories.iter().take(self.config.validation_rounds) {
-                        if let Ok(result) =
-                            sandbox.execute_skill(individual, &trajectory.topic).await
+            if self.config.use_execution_validation {
+                let sandbox = self.sandbox.read().unwrap().clone();
+                if let Some(ref sandbox) = sandbox {
+                    for individual in &mut pop.individuals.iter_mut() {
+                        let mut total_success = 0.0;
+                        let mut rounds = 0;
+                        for trajectory in
+                            test_trajectories.iter().take(self.config.validation_rounds)
                         {
-                            total_success += result.success_rate;
-                            rounds += 1;
+                            if let Ok(result) =
+                                sandbox.execute_skill(individual, &trajectory.topic).await
+                            {
+                                total_success += result.success_rate;
+                                rounds += 1;
+                            }
                         }
-                    }
-                    if rounds > 0 {
-                        individual.fitness =
-                            individual.fitness * 0.6 + (total_success / rounds as f64) * 0.4;
+                        if rounds > 0 {
+                            individual.fitness =
+                                individual.fitness * 0.6 + (total_success / rounds as f64) * 0.4;
+                        }
                     }
                 }
             }
@@ -787,8 +815,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_engine_with_llm_provider() {
-        let mut engine = SkillEvolutionEngine::new();
+        let engine = SkillEvolutionEngine::new();
         engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider));
-        assert!(engine.llm_provider.is_some());
+        assert!(engine.llm_provider.read().unwrap().is_some());
     }
 }

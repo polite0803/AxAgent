@@ -425,7 +425,7 @@ pub fn to_compaction_result(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{ContentBlock, ConversationMessage, Session};
+    use crate::session::{ContentBlock, ConversationMessageExt, Session};
 
     fn make_test_memories() -> Vec<StructuredMemory> {
         vec![
@@ -458,10 +458,12 @@ mod tests {
             // 创建足够大的消息以确保 token 估算值超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session.push_message(ConversationMessage::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
             } else {
                 session
-                    .push_message(ConversationMessage::assistant(vec![ContentBlock::Text { text }]))
+                    .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
+                        text,
+                    }]))
                     .unwrap();
             }
         }
@@ -537,7 +539,7 @@ mod tests {
         let tool_id = "call_001";
         // Assistant with ToolUse
         session
-            .push_message(ConversationMessage::assistant(vec![ContentBlock::ToolUse {
+            .push_message(ConversationMessageExt::assistant(vec![ContentBlock::ToolUse {
                 id: tool_id.to_string(),
                 name: "read_file".to_string(),
                 input: "main.rs".to_string(),
@@ -545,7 +547,7 @@ mod tests {
             .unwrap();
         // Tool result
         session
-            .push_message(ConversationMessage::tool_result(
+            .push_message(ConversationMessageExt::tool_result(
                 tool_id,
                 "read_file",
                 "contents here",
@@ -554,7 +556,7 @@ mod tests {
             .unwrap();
         // More messages
         for i in 0..5 {
-            session.push_message(ConversationMessage::user_text(&format!("msg {}", i))).unwrap();
+            session.push_message(ConversationMessageExt::user_text(format!("msg {}", i))).unwrap();
         }
 
         // 尝试在 tool_result 处切割
@@ -601,10 +603,12 @@ mod tests {
 
     #[test]
     fn test_record_usage_and_effective() {
-        let mut config = SessionMemoryCompactConfig::default();
-        config.adaptive = true;
-        config.max_tokens = 100_000;
-        config.min_tokens = 10_000;
+        let mut config = SessionMemoryCompactConfig {
+            adaptive: true,
+            max_tokens: 100_000,
+            min_tokens: 10_000,
+            ..Default::default()
+        };
 
         // 记录低使用率
         config.record_usage(10_000, 128_000); // ~8%
@@ -627,10 +631,12 @@ mod tests {
 
     #[test]
     fn test_high_usage_causes_more_compression() {
-        let mut config = SessionMemoryCompactConfig::default();
-        config.adaptive = true;
-        config.max_tokens = 100_000;
-        config.min_tokens = 10_000;
+        let mut config = SessionMemoryCompactConfig {
+            adaptive: true,
+            max_tokens: 100_000,
+            min_tokens: 10_000,
+            ..Default::default()
+        };
 
         // 模拟高使用率
         config.record_usage(100_000, 128_000); // ~78%
@@ -645,10 +651,12 @@ mod tests {
 
     #[test]
     fn test_rising_trend_triggers_tighter_compression() {
-        let mut config = SessionMemoryCompactConfig::default();
-        config.adaptive = true;
-        config.max_tokens = 100_000;
-        config.min_tokens = 10_000;
+        let mut config = SessionMemoryCompactConfig {
+            adaptive: true,
+            max_tokens: 100_000,
+            min_tokens: 10_000,
+            ..Default::default()
+        };
 
         // 模拟使用率快速上升趋势
         config.record_usage(10_000, 128_000);
@@ -663,10 +671,12 @@ mod tests {
 
     #[test]
     fn test_adaptive_disabled_uses_base_values() {
-        let mut config = SessionMemoryCompactConfig::default();
-        config.adaptive = false; // 显式禁用
-        config.max_tokens = 100_000;
-        config.min_tokens = 10_000;
+        let mut config = SessionMemoryCompactConfig {
+            adaptive: false, // 显式禁用
+            max_tokens: 100_000,
+            min_tokens: 10_000,
+            ..Default::default()
+        };
 
         // 即使有历史数据也不影响
         config.record_usage(110_000, 128_000);
@@ -679,9 +689,8 @@ mod tests {
 
     #[test]
     fn test_effective_min_tokens_scaling() {
-        let mut config = SessionMemoryCompactConfig::default();
-        config.adaptive = true;
-        config.min_tokens = 10_000;
+        let mut config =
+            SessionMemoryCompactConfig { adaptive: true, min_tokens: 10_000, ..Default::default() };
 
         // 高使用率 → min_tokens 上浮
         config.record_usage(100_000, 128_000);
@@ -692,9 +701,8 @@ mod tests {
         assert!(eff_min > 10_000, "expected higher min_tokens under high usage, got {eff_min}");
 
         // 低使用率 → min_tokens 下降
-        let mut config2 = SessionMemoryCompactConfig::default();
-        config2.adaptive = true;
-        config2.min_tokens = 10_000;
+        let mut config2 =
+            SessionMemoryCompactConfig { adaptive: true, min_tokens: 10_000, ..Default::default() };
         config2.record_usage(10_000, 128_000);
         config2.record_usage(12_000, 128_000);
         config2.record_usage(8_000, 128_000);

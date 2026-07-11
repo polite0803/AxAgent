@@ -13,7 +13,7 @@ export type ExecutionPhase =
 
 export const PHASE_TRANSITIONS: Record<ExecutionPhase, ExecutionPhase[]> = {
   idle: ["planning", "executing", "completed", "failed", "cancelled"],
-  planning: ["executing", "failed", "cancelled"],
+  planning: ["executing", "waiting_permission", "failed", "cancelled"],
   executing: [
     "executing",
     "waiting_permission",

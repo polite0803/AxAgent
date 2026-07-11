@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::error::{CommandError, ErrorCategory};
 use axagent_dao::repo::agent_profile;
 use axagent_harness::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
@@ -20,7 +21,9 @@ pub async fn list_agent_profiles(
     source: Option<String>,
 ) -> Result<Vec<AgentProfile>, String> {
     let db = app_state.harness.db();
-    agent_profile::list_agent_profiles(db, source.as_deref()).await.map_err(|e| e.to_string())
+    Ok(agent_profile::list_agent_profiles(db, source.as_deref())
+        .await
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 /// 根据 ID 获取智能体能力集
@@ -30,7 +33,9 @@ pub async fn get_agent_profile(
     id: String,
 ) -> Result<AgentProfile, String> {
     let db = app_state.harness.db();
-    agent_profile::get_agent_profile(db, &id).await.map_err(|e| e.to_string())
+    Ok(agent_profile::get_agent_profile(db, &id)
+        .await
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 /// 创建新的智能体能力集
@@ -43,7 +48,7 @@ pub async fn create_agent_profile(
     let id = format!("custom-{}", axagent_kit::utils::now_ts());
 
     let tags = input.tags.unwrap_or_default();
-    agent_profile::upsert_agent_profile(
+    Ok(agent_profile::upsert_agent_profile(
         db,
         &id,
         &input.name,
@@ -65,7 +70,7 @@ pub async fn create_agent_profile(
         None, // expert_id is set via import or manual binding
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 /// 更新智能体能力集
@@ -76,7 +81,7 @@ pub async fn update_agent_profile(
     input: UpdateAgentProfileInput,
 ) -> Result<AgentProfile, String> {
     let db = app_state.harness.db();
-    agent_profile::update_agent_profile(
+    Ok(agent_profile::update_agent_profile(
         db,
         &id,
         input.name.as_deref(),
@@ -88,7 +93,7 @@ pub async fn update_agent_profile(
         input.is_enabled,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 /// 删除智能体能力集
@@ -98,7 +103,9 @@ pub async fn delete_agent_profile(
     id: String,
 ) -> Result<(), String> {
     let db = app_state.harness.db();
-    agent_profile::delete_agent_profile(db, &id).await.map_err(|e| e.to_string())
+    Ok(agent_profile::delete_agent_profile(db, &id)
+        .await
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
 /// 从 agency_experts 导入到 agent_profiles（兼容导入）
@@ -114,7 +121,7 @@ pub async fn import_agent_profiles_from_agency(
         .filter(axagent_entities::agency_experts::Column::IsEnabled.eq(1))
         .all(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?;
 
     for row in rows {
         let agent_profile_id = row.id.clone();

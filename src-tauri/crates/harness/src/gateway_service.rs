@@ -27,17 +27,3 @@ pub trait GatewayService: Send + Sync {
         self.start().await
     }
 }
-#[derive(Default)]
-pub struct NoopGatewayService;
-#[async_trait]
-impl GatewayService for NoopGatewayService {
-    async fn start(&self) -> Result<(), String> {
-        Err("not configured".into())
-    }
-    async fn stop(&self) -> Result<(), String> {
-        Ok(())
-    }
-    async fn status(&self) -> Result<GatewayStatus, String> {
-        Ok(GatewayStatus::Stopped)
-    }
-}

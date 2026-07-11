@@ -44,21 +44,6 @@ pub trait ChunkProvider: Send + Sync {
         config: &IndexConfig,
     ) -> Result<Vec<DocumentChunk>, String>;
 }
-#[derive(Default)]
-pub struct NoopChunkProvider;
-#[async_trait]
-impl ChunkProvider for NoopChunkProvider {
-    async fn chunk(&self, _: &str, _: &IndexConfig) -> Result<Vec<DocumentChunk>, String> {
-        Ok(Vec::new())
-    }
-    async fn chunk_batch(
-        &self,
-        _: &[(String, String)],
-        _: &IndexConfig,
-    ) -> Result<Vec<DocumentChunk>, String> {
-        Ok(Vec::new())
-    }
-}
 
 #[async_trait]
 pub trait DocumentIndexer: Send + Sync {
@@ -75,30 +60,4 @@ pub trait DocumentIndexer: Send + Sync {
     ) -> Result<IndexJobStatus, String>;
     async fn delete_index(&self, collection: &str) -> Result<(), String>;
     async fn get_stats(&self, collection: &str) -> Result<serde_json::Value, String>;
-}
-#[derive(Default)]
-pub struct NoopDocumentIndexer;
-#[async_trait]
-impl DocumentIndexer for NoopDocumentIndexer {
-    async fn index_document(
-        &self,
-        _: &str,
-        _: &str,
-        _: &IndexConfig,
-    ) -> Result<IndexJobStatus, String> {
-        Err("not configured".into())
-    }
-    async fn index_batch(
-        &self,
-        _: &[(String, String)],
-        _: &IndexConfig,
-    ) -> Result<IndexJobStatus, String> {
-        Err("not configured".into())
-    }
-    async fn delete_index(&self, _: &str) -> Result<(), String> {
-        Ok(())
-    }
-    async fn get_stats(&self, _: &str) -> Result<serde_json::Value, String> {
-        Ok(serde_json::json!({"status":"not configured"}))
-    }
 }

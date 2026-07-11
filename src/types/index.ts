@@ -22,6 +22,8 @@ export interface ProviderConfig {
   models: Model[];
   keys: ProviderKey[];
   proxy_config: ProviderProxyConfig | null;
+  tool_adaptation: string | null;
+  tool_adaptation_marker_prefix: string | null;
   custom_headers: string | null;
   icon: string | null;
   builtin_id: string | null;
@@ -63,6 +65,8 @@ export interface UpdateProviderInput {
   api_path?: string | null;
   enabled?: boolean;
   proxy_config?: ProviderProxyConfig;
+  tool_adaptation?: string | null;
+  tool_adaptation_marker_prefix?: string | null;
   custom_headers?: string | null;
   icon?: string | null;
   sort_order?: number;
@@ -1576,3 +1580,15 @@ export type {
   TradeSide,
 } from "./quant";
 export { BUILTIN_STRATEGY_IDS, DEFAULT_RHAI_TEMPLATE, DEFAULT_STRATEGY_PARAMS } from "./quant";
+
+export interface DashboardStats {
+  total_conversations: number;
+  total_messages: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_agent_sessions: number;
+  completed_agent_sessions: number;
+  failed_agent_sessions: number;
+  total_agent_tokens: number;
+}

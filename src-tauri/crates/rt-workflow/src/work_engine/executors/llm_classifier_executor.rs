@@ -2,7 +2,6 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::WorkflowNode;
-use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
@@ -10,16 +9,16 @@ use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
 };
 
+#[derive(Default)]
 pub struct LlmClassifierExecutor {
-    db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
     /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
 
 impl LlmClassifierExecutor {
-    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
-        Self { db, master_key, provider_registry: None }
+    pub fn new(master_key: [u8; 32]) -> Self {
+        Self { master_key, provider_registry: None }
     }
 }
 
@@ -29,16 +28,6 @@ impl axagent_harness::HasProviderRegistry for LlmClassifierExecutor {
         registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
     ) {
         self.provider_registry = Some(registry);
-    }
-}
-
-impl Default for LlmClassifierExecutor {
-    fn default() -> Self {
-        Self {
-            db: Arc::new(DatabaseConnection::default()),
-            master_key: [0u8; 32],
-            provider_registry: None,
-        }
     }
 }
 
@@ -121,7 +110,6 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             context.variables.get(super::WORKFLOW_PROVIDER_ID_VAR).and_then(|v| v.as_str());
 
         let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
-            &self.db,
             &self.master_key,
             self.provider_registry.as_ref(),
             node_model,
@@ -177,12 +165,16 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             store: None,
         };
 
-        let response = adapter.chat(&req_ctx, request.clone()).await.map_err(|e| {
-            NodeError::exec_failed(
-                error_code::UNSUPPORTED_PROVIDER,
-                format!("LLM classifier call failed: {e}"),
-            )
-        })?;
+        let llm_config = axagent_harness::LlmCallConfig::default();
+        let response =
+            axagent_harness::execute_llm(&*adapter, &req_ctx, request.clone(), &llm_config)
+                .await
+                .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::UNSUPPORTED_PROVIDER,
+                    format!("LLM classifier call failed: {e}"),
+                )
+            })?;
 
         // ── 结果一致性检查 ──
         if let Some(ref cc_config) = c.consistency_check
@@ -202,7 +194,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             let secondary_response = adapter.chat(&req_ctx, secondary_request).await;
             if let Ok(sec_resp) = secondary_response {
                 use axagent_harness::consistency_check::check_consistency;
-                let primary_val = serde_json::json!(response.content);
+                let primary_val = serde_json::json!(response.response.content);
                 let secondary_val = serde_json::json!(sec_resp.content);
                 let cc_result =
                     check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
@@ -220,13 +212,13 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
 
         // ── 置信度检查 ──
         let raw_category = if let Some(threshold) = c.confidence_threshold {
-            let parsed: serde_json::Value =
-                serde_json::from_str(response.content.trim()).map_err(|e| {
+            let parsed: serde_json::Value = serde_json::from_str(response.response.content.trim())
+                .map_err(|e| {
                     NodeError::exec_failed(
                         error_code::VALIDATION_FAILED,
                         format!(
                             "LlmClassifier: 无法解析 LLM JSON 响应: {e}, raw: {}",
-                            response.content.trim()
+                            response.response.content.trim()
                         ),
                     )
                 })?;
@@ -246,7 +238,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                 label
             }
         } else {
-            response.content.trim().to_string()
+            response.response.content.trim().to_string()
         };
 
         let matched = c
@@ -320,10 +312,46 @@ fn value_to_input_text(v: serde_json::Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_harness::repositories::{
+        ProviderRepository as RepoProviderRepo, set_provider_repository,
+    };
+    use axagent_harness::types::{ProviderConfig, ProviderKey};
     use axagent_harness::workflow_types::{
         LlmClassifierNode, LlmClassifierNodeConfig, WorkflowNodeBase,
     };
     use std::collections::HashMap;
+    use std::sync::OnceLock;
+
+    /// Mock ProviderRepository，resolve_model_for_node 返回 Err（模拟未配置 provider）。
+    struct MockProviderRepo;
+    #[async_trait]
+    impl RepoProviderRepo for MockProviderRepo {
+        async fn list_providers(&self) -> Result<Vec<ProviderConfig>, String> {
+            Ok(vec![])
+        }
+        async fn get_provider(&self, _id: &str) -> Result<ProviderConfig, String> {
+            Err("mock".into())
+        }
+        async fn get_active_key(&self, _id: &str) -> Result<ProviderKey, String> {
+            Err("mock".into())
+        }
+        async fn resolve_model_for_node(
+            &self,
+            _a: Option<&str>,
+            _b: Option<&str>,
+            _c: Option<&str>,
+            _d: Option<&str>,
+        ) -> Result<(ProviderConfig, ProviderKey, String), String> {
+            Err("mock: no provider".to_string())
+        }
+    }
+
+    static PROVIDER_REPO_INIT: OnceLock<()> = OnceLock::new();
+    fn init_mock_provider_repo() {
+        PROVIDER_REPO_INIT.get_or_init(|| {
+            set_provider_repository(Arc::new(MockProviderRepo));
+        });
+    }
 
     // ── resolve_var_path 单元测试 ──────────────────────────────────────
 
@@ -443,13 +471,9 @@ mod tests {
 
     /// 负向用例不需要真实 DB（VALIDATION_FAILED 早于 provider 解析）。
     fn make_executor() -> LlmClassifierExecutor {
+        // 初始化 mock ProviderRepository，防止通过 input 校验后 provider 解析 panic
+        init_mock_provider_repo();
         LlmClassifierExecutor::default()
-    }
-
-    /// 正向用例需要真实 DB 才能跑过 `resolve_provider_and_adapter`。
-    async fn make_executor_with_db() -> LlmClassifierExecutor {
-        let handle = axagent_dao::db::create_test_pool().await.expect("create_test_pool");
-        LlmClassifierExecutor::new(Arc::new(handle.conn), [0u8; 32])
     }
 
     fn make_classifier_node(input_var: &str) -> WorkflowNode {
@@ -517,7 +541,7 @@ mod tests {
         //                  → 修复后正确下钻到 "output" 字段 → input_text 非空
         // 后续会被 provider 解析拦住（ProviderRegistry 为空走 UNSUPPORTED_PROVIDER），
         // 但**关键证据**是 error code 不是 VALIDATION_FAILED。
-        let exec = make_executor_with_db().await;
+        let exec = make_executor();
         let node = make_classifier_node("t-risk.output");
         let ctx = make_context(&[(
             "t-risk",
@@ -535,7 +559,7 @@ mod tests {
     async fn execute_top_level_key_path_passes_validation() {
         // input_var: "t-risk"（不带点）→ 修复前/后行为一致：整 key 查到 → 非空
         // 同样应在 provider 解析处失败，但 error code 不是 VALIDATION_FAILED。
-        let exec = make_executor_with_db().await;
+        let exec = make_executor();
         let node = make_classifier_node("t-risk");
         let ctx = make_context(&[("t-risk", serde_json::json!("hello"))]);
         let err = exec.execute(&node, &ctx).await.unwrap_err();

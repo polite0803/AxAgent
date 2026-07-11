@@ -88,7 +88,7 @@ pub async fn file_authorize(
     state: State<'_, AppState>,
     request: AuthorizationRequest,
 ) -> Result<AuthorizationResponse, String> {
-    let response = state.file_authorizer.request_authorization(request);
+    let response = state.file_authorizer.request_authorization(request).await;
     Ok(response)
 }
 
@@ -99,7 +99,7 @@ pub async fn file_check_authorization(
     path: String,
     level: PermissionLevel,
 ) -> Result<bool, String> {
-    Ok(state.file_authorizer.check_authorization(&path, &level))
+    Ok(state.file_authorizer.check_authorization(&path, &level).await)
 }
 
 /// 撤销文件授权
@@ -108,7 +108,7 @@ pub async fn file_revoke_authorization(
     state: State<'_, AppState>,
     auth_id: String,
 ) -> Result<(), String> {
-    if state.file_authorizer.revoke_authorization(&auth_id) {
+    if state.file_authorizer.revoke_authorization(&auth_id).await {
         Ok(())
     } else {
         Err(format!("Authorization not found: {}", auth_id))

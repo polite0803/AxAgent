@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::collections::hash_map::DefaultHasher;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
 use tracing::info;
@@ -58,12 +60,19 @@ impl SkillInstaller {
     }
 }
 
-/// 将 plugin_id (如 "@clawd/ths@external") 转换为安全的文件系统名称
+/// 将 plugin_id (如 "@clawd/ths@external") 转换为安全的文件系统名称。
+/// 使用原始 ID 的哈希后缀避免不同插件 ID 映射到相同目录名。
 fn sanitize_for_path(id: &str) -> String {
-    id.chars()
+    let sanitized: String = id
+        .chars()
         .map(|ch| match ch {
             '/' | '\\' | '@' | ':' => '-',
             other => other,
         })
-        .collect()
+        .collect();
+    // 附加哈希后缀以避免碰撞（如 "@clawd/ths@external" 和 "-clawd-ths-external"）
+    let mut hasher = DefaultHasher::new();
+    id.hash(&mut hasher);
+    let hash = hasher.finish();
+    format!("{}-{:016x}", sanitized, hash)
 }

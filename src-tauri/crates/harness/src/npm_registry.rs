@@ -23,22 +23,6 @@ pub trait NpmRegistryService: fmt::Debug + Send + Sync {
     ) -> Result<(), String>;
 }
 
-/// 空实现 — 总是失败（npm 包安装不可用）
-#[derive(Debug)]
-pub struct NoopNpmRegistryService;
-
-#[async_trait]
-impl NpmRegistryService for NoopNpmRegistryService {
-    async fn download_package(
-        &self,
-        _name: &str,
-        _version: Option<&str>,
-        _dest: &Path,
-    ) -> Result<(), String> {
-        Err("npm registry service is not configured".to_string())
-    }
-}
-
 /// 解析 npm 包规范字符串，返回 (package_name, optional_version)。
 /// 支持格式："pkg"、"pkg@1.0.0"、"@scope/pkg"、"@scope/pkg@1.0.0"
 pub fn parse_npm_package_spec(spec: &str) -> (&str, Option<&str>) {
@@ -57,6 +41,7 @@ pub fn parse_npm_package_spec(spec: &str) -> (&str, Option<&str>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopNpmRegistryService;
 
     #[test]
     fn parses_scoped_package_with_version() {

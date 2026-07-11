@@ -117,8 +117,6 @@ impl Trajectory {
         steps: Vec<TrajectoryStep>,
     ) -> Self {
         let id = Uuid::new_v4().to_string();
-        let quality = Self::compute_quality(&steps, outcome);
-        let value_score = Self::compute_value_score(quality.overall, outcome, &steps);
 
         Self {
             id,
@@ -128,8 +126,8 @@ impl Trajectory {
             summary,
             outcome,
             duration_ms,
-            quality,
-            value_score,
+            quality: TrajectoryQuality::default(),
+            value_score: 0.5,
             patterns: Vec::new(),
             rewards: Vec::new(),
             steps,
@@ -137,91 +135,6 @@ impl Trajectory {
             replay_count: 0,
             last_replay_at: None,
         }
-    }
-
-    fn compute_quality(steps: &[TrajectoryStep], outcome: TrajectoryOutcome) -> TrajectoryQuality {
-        let task_completion = match outcome {
-            TrajectoryOutcome::Success => 1.0,
-            TrajectoryOutcome::Partial => 0.5,
-            TrajectoryOutcome::Failure => 0.0,
-            TrajectoryOutcome::Abandoned => 0.2,
-        };
-
-        let tool_count = steps.iter().filter(|s| s.tool_calls.is_some()).count();
-        let successful_tools = steps
-            .iter()
-            .filter(|s| {
-                s.tool_results.as_ref().map(|r| !r.iter().any(|tr| tr.is_error)).unwrap_or(false)
-            })
-            .count();
-        let tool_efficiency = if tool_count > 0 {
-            successful_tools as f64 / tool_count as f64
-        } else {
-            0.5
-        };
-
-        let reasoning_count = steps.iter().filter(|s| s.reasoning.is_some()).count();
-        let reasoning_quality = if !steps.is_empty() {
-            reasoning_count as f64 / steps.len() as f64 * 0.5 + 0.25
-        } else {
-            0.25
-        };
-
-        let user_satisfaction = match outcome {
-            TrajectoryOutcome::Success => 0.9,
-            TrajectoryOutcome::Partial => 0.5,
-            TrajectoryOutcome::Failure => 0.1,
-            TrajectoryOutcome::Abandoned => 0.3,
-        };
-
-        let overall = task_completion * 0.4
-            + tool_efficiency * 0.2
-            + reasoning_quality * 0.15
-            + user_satisfaction * 0.25;
-
-        TrajectoryQuality {
-            overall: overall.clamp(0.0, 1.0),
-            task_completion,
-            tool_efficiency,
-            reasoning_quality,
-            user_satisfaction,
-        }
-    }
-
-    fn compute_value_score(
-        quality: f64,
-        outcome: TrajectoryOutcome,
-        steps: &[TrajectoryStep],
-    ) -> f64 {
-        let mut score = quality * 0.5;
-
-        match outcome {
-            TrajectoryOutcome::Success => score += 0.35,
-            TrajectoryOutcome::Partial => score += 0.15,
-            TrajectoryOutcome::Failure => score -= 0.2,
-            TrajectoryOutcome::Abandoned => score -= 0.3,
-        }
-
-        let has_reasoning = steps.iter().any(|s| s.reasoning.is_some());
-        if has_reasoning {
-            score += 0.1;
-        }
-
-        let step_count = steps.len();
-        if (3..=30).contains(&step_count) {
-            score += 0.05;
-        }
-
-        score.clamp(0.0, 1.0)
-    }
-
-    pub fn add_reward(&mut self, reward: RewardSignal) {
-        self.rewards.push(reward);
-    }
-
-    pub fn increment_replay(&mut self) {
-        self.replay_count += 1;
-        self.last_replay_at = Some(Utc::now());
     }
 }
 
@@ -307,33 +220,6 @@ impl TrajectoryPattern {
             created_at: Utc::now(),
         }
     }
-
-    pub fn update_from_trajectory(&mut self, trajectory: &Trajectory) {
-        if !self.trajectory_ids.contains(&trajectory.id) {
-            self.trajectory_ids.push(trajectory.id.clone());
-        }
-
-        self.frequency = self.trajectory_ids.len() as u32;
-
-        let prev_total = (self.frequency - 1) as f64;
-        let success = match trajectory.outcome {
-            TrajectoryOutcome::Success => 1.0,
-            TrajectoryOutcome::Partial => 0.5,
-            _ => 0.0,
-        };
-
-        self.success_rate = if prev_total > 0.0 {
-            (self.success_rate * prev_total + success) / self.frequency as f64
-        } else {
-            success
-        };
-
-        let quality_delta = trajectory.quality.overall - self.average_quality;
-        self.average_quality += quality_delta / self.frequency as f64;
-
-        let value_delta = trajectory.value_score - self.average_value_score;
-        self.average_value_score += value_delta / self.frequency as f64;
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -358,27 +244,6 @@ impl ReplayContext {
             next_suggested_action: None,
             accumulated_reward: 0.0,
         }
-    }
-
-    pub fn evaluate(&mut self) {
-        let mut score = 0.5;
-
-        if self.deviations.is_empty() {
-            score += 0.3;
-        } else {
-            score -= (self.deviations.len() as f64 * 0.05).min(0.25);
-        }
-
-        let step_progress =
-            self.current_step as f64 / self.original_trajectory.steps.len().max(1) as f64;
-
-        if step_progress > 0.5 && self.original_trajectory.outcome == TrajectoryOutcome::Success {
-            score += 0.2;
-        }
-
-        score += self.accumulated_reward * 0.1;
-
-        self.evaluation = score.clamp(0.0, 1.0);
     }
 }
 
@@ -458,43 +323,10 @@ pub struct RLTrainingEntry {
     pub rewards: Vec<RewardSignal>,
 }
 
-impl Trajectory {
-    pub fn export_as_rl(&self) -> RLTrainingEntry {
-        let prompt = self
-            .steps
-            .iter()
-            .filter(|s| s.role == MessageRole::User)
-            .map(|s| s.content.clone())
-            .collect::<Vec<_>>()
-            .join("\n\n");
-
-        let mut completion = String::new();
-        for step in self.steps.iter().filter(|s| s.role == MessageRole::Assistant) {
-            completion.push_str(&step.content);
-            if let Some(ref tool_calls) = step.tool_calls {
-                completion.push_str("\n\n<tool_calls>\n");
-                completion.push_str(&serde_json::to_string(tool_calls).unwrap_or_default());
-                completion.push_str("\n</tool_calls>\n");
-            }
-            completion.push_str("\n\n");
-        }
-
-        RLTrainingEntry {
-            prompt: prompt.chars().take(4000).collect(),
-            completion: completion.chars().take(4000).collect(),
-            trajectory_id: self.id.clone(),
-            topic: self.topic.clone(),
-            quality: self.quality.overall,
-            value_score: self.value_score,
-            rewards: self.rewards.clone(),
-        }
-    }
-}
-
 pub struct TrajectoryBuilder {
-    session_id: String,
-    user_id: String,
-    steps: Vec<TrajectoryStep>,
+    pub session_id: String,
+    pub user_id: String,
+    pub steps: Vec<TrajectoryStep>,
 }
 
 impl TrajectoryBuilder {
@@ -505,24 +337,6 @@ impl TrajectoryBuilder {
     pub fn add_step(mut self, step: TrajectoryStep) -> Self {
         self.steps.push(step);
         self
-    }
-
-    pub fn build(
-        self,
-        topic: String,
-        summary: String,
-        outcome: TrajectoryOutcome,
-        duration_ms: u64,
-    ) -> Trajectory {
-        Trajectory::new(
-            self.session_id,
-            self.user_id,
-            topic,
-            summary,
-            outcome,
-            duration_ms,
-            self.steps,
-        )
     }
 }
 
@@ -673,18 +487,6 @@ impl GeneratedTool {
             success_rate: 0.0,
         }
     }
-
-    pub fn record_success(&mut self) {
-        self.usage_count += 1;
-        let total = self.usage_count as f64;
-        self.success_rate = self.success_rate * ((total - 1.0) / total) + 1.0 / total;
-    }
-
-    pub fn record_failure(&mut self) {
-        self.usage_count += 1;
-        let total = self.usage_count as f64;
-        self.success_rate *= (total - 1.0) / total;
-    }
 }
 
 impl ToolCreationRequest {
@@ -693,28 +495,6 @@ impl ToolCreationRequest {
             pattern_description: pattern_description.to_string(),
             context: context.to_string(),
             available_tools,
-        }
-    }
-}
-
-impl RewardCategory {
-    pub fn weight(&self) -> f64 {
-        match self {
-            RewardCategory::Correctness => 0.30,
-            RewardCategory::Coherence => 0.20,
-            RewardCategory::Completeness => 0.25,
-            RewardCategory::Efficiency => 0.15,
-            RewardCategory::Safety => 0.10,
-        }
-    }
-
-    pub fn label(&self) -> &'static str {
-        match self {
-            RewardCategory::Correctness => "correctness",
-            RewardCategory::Coherence => "coherence",
-            RewardCategory::Completeness => "completeness",
-            RewardCategory::Efficiency => "efficiency",
-            RewardCategory::Safety => "safety",
         }
     }
 }

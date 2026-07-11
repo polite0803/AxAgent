@@ -49,19 +49,6 @@ pub trait PromptProvider: Send + Sync {
     fn get_all_languages(&self, key: &str) -> HashMap<String, &'static str>;
 }
 
-/// A no-op PromptProvider that returns empty strings for all keys.
-pub struct NoopPromptProvider;
-
-impl PromptProvider for NoopPromptProvider {
-    fn get(&self, _key: &str, _lang: PromptLang) -> &'static str {
-        ""
-    }
-
-    fn get_all_languages(&self, _key: &str) -> HashMap<String, &'static str> {
-        HashMap::new()
-    }
-}
-
 /// Static PromptProvider backed by a compiled-in registry.
 ///
 /// Used when a real registry is available at compile time
@@ -89,3 +76,6 @@ impl PromptProvider for StaticPromptProvider {
         (self.all_fn)(key)
     }
 }
+
+// Re-export NoopPromptProvider from test_support for runtime-core usage
+pub use crate::test_support::NoopPromptProvider;

@@ -238,7 +238,7 @@ export function ChatPage() {
           backgroundColor: token.colorBgContainer,
           flexShrink: 0,
           overflow: "hidden",
-          ...(isMobile ? { position: "absolute", zIndex: 50, height: "100%" } : {}),
+          ...(isMobile ? { position: "absolute", zIndex: 102, height: "100%" } : {}),
         }}
       >
         {(!sidebarCollapsed || !isMobile) && <ChatSidebar onCollapseChange={setSidebarCollapsed} />}
@@ -252,7 +252,7 @@ export function ChatPage() {
             position: "absolute",
             left: 8,
             top: 52,
-            zIndex: 51,
+            zIndex: 110,
             width: 32,
             height: 32,
             display: "flex",
@@ -359,7 +359,7 @@ export function ChatPage() {
             right: 8,
             top: "50%",
             transform: "translateY(-50%)",
-            zIndex: 30,
+            zIndex: 101,
             width: 32,
             height: 32,
             display: "flex",
@@ -397,7 +397,7 @@ export function ChatPage() {
             top: isSmallScreen ? 0 : undefined,
             right: isSmallScreen ? 0 : undefined,
             bottom: isSmallScreen ? 0 : undefined,
-            zIndex: isSmallScreen ? 40 : undefined,
+            zIndex: isSmallScreen ? 101 : undefined,
             boxShadow: isSmallScreen && !rightPanelCollapsed
               ? `-4px 0 16px ${token.colorBgMask}`
               : "none",

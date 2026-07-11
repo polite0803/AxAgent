@@ -5,6 +5,7 @@ members = [
   "crates/astock-data",
   "crates/cache",
   "crates/core",
+  "crates/credential",
   "crates/crypto",
   "crates/dao",
   "crates/disk-cache",
@@ -40,7 +41,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.8.0"
+version = "2.8.3"
 edition = "2024"
 license = "AGPL-3.0-only"
 
@@ -72,7 +73,7 @@ xcap = "0.9.4"
 
 [package]
 name = "axagent"
-version = "2.8.0"
+version = "2.8.3"
 authors = ["刘小平 <polite0803@outlook.com>"]
 default-run = "AxInvest"
 edition = "2024"
@@ -113,7 +114,9 @@ tauri-build = { version = "2", features = [] }
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
 axagent-astock-data = { path = "crates/astock-data" }
+axagent-cache = { path = "crates/cache" }
 axagent-core = { path = "crates/core" }
+axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
 axagent-document-parser = { path = "crates/document-parser" }

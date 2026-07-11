@@ -51,49 +51,11 @@ pub trait PlannerAdapter: fmt::Debug + Send + Sync {
 }
 
 /// 空实现 — 总是失败（规划器未配置）
-#[derive(Debug)]
-pub struct NoopPlannerAdapter;
-
-impl PlannerAdapter for NoopPlannerAdapter {
-    fn create_plan(&mut self, _goal: &str, _phases_json: &[JsonValue]) -> Result<(), String> {
-        Err("Planner is not configured".to_string())
-    }
-
-    fn start_execution(&mut self) -> Result<(), String> {
-        Err("Planner is not configured".to_string())
-    }
-
-    fn current_plan(&self) -> Option<JsonValue> {
-        None
-    }
-
-    fn request_replan(&mut self, _reason: &str, _actions_json: &[JsonValue]) -> Result<(), String> {
-        Err("Planner is not configured".to_string())
-    }
-
-    fn is_completed(&self) -> bool {
-        false
-    }
-
-    fn mark_task_completed(&mut self, _phase_index: usize, _task_index: usize, _result: JsonValue) {
-    }
-
-    fn mark_phase_completed(&mut self, _phase_index: usize) -> Result<(), String> {
-        Err("Planner is not configured".to_string())
-    }
-
-    fn get_failed_steps(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn get_pending_steps(&self) -> Vec<String> {
-        Vec::new()
-    }
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::NoopPlannerAdapter;
 
     #[test]
     fn noop_never_creates_plan() {

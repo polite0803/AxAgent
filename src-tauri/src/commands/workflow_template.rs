@@ -1412,7 +1412,7 @@ async fn convert_n8n_to_axagent(
         ensure_agent_profile(
             db,
             agent_profile_id,
-            &format!("n8n: {}", &node_name),
+            &format!("n8n: {}", node_name),
             agent_role,
             expert_id,
             expert_prompt,

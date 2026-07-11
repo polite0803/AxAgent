@@ -76,7 +76,7 @@ pub(super) fn spawn_stream_task(
 
         let future = std::panic::AssertUnwindSafe(async {
             // --- 原始 stream task 主体 ---
-            let registry_key = provider.provider_type.registry_key();
+            let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider.provider_type);
             let adapter = match harness.provider_registry().get(registry_key) {
                 Some(a) => a,
                 None => {
@@ -192,7 +192,32 @@ pub(super) fn spawn_stream_task(
                     store: None,
                 };
 
-                let mut stream = adapter.chat_stream(&ctx, request, None);
+                let llm_config = axagent_runtime_core::LlmCallConfig {
+                    session_id: Some(conversation_id.clone()),
+                    ..Default::default()
+                };
+                let mut stream = match axagent_runtime_core::execute_llm_stream(
+                    &*adapter,
+                    &ctx,
+                    request,
+                    &llm_config,
+                    None,
+                )
+                .await
+                {
+                    Ok(s) => s,
+                    Err(e) => {
+                        let _ = app.emit(
+                            "chat-stream-error",
+                            ChatStreamErrorEvent {
+                                conversation_id: conversation_id.clone(),
+                                message_id: assistant_message_id.clone(),
+                                error: e,
+                            },
+                        );
+                        break;
+                    },
+                };
                 let suppress_thinking = thinking_budget == Some(0);
                 let (content, usage, tool_calls, stream_error, iter_tps, iter_ttft) =
                     consume_stream(
@@ -210,8 +235,18 @@ pub(super) fn spawn_stream_task(
                     .await;
 
                 total_content.push_str(&content);
-                if usage.is_some() {
-                    total_usage = usage;
+                if let Some(u) = usage {
+                    total_usage = match total_usage {
+                        Some(acc) => Some(TokenUsage {
+                            prompt_tokens: acc.prompt_tokens + u.prompt_tokens,
+                            completion_tokens: acc.completion_tokens + u.completion_tokens,
+                            total_tokens: acc.total_tokens + u.total_tokens,
+                            cache_creation_tokens: u.cache_creation_tokens.or(acc.cache_creation_tokens),
+                            cache_read_tokens: u.cache_read_tokens.or(acc.cache_read_tokens),
+                            cache_miss_tokens: u.cache_miss_tokens.or(acc.cache_miss_tokens),
+                        }),
+                        None => Some(u),
+                    };
                 }
                 // Keep first iteration's TTFT, last iteration's TPS
                 if final_first_token_latency_ms.is_none() {
@@ -958,7 +993,7 @@ pub async fn send_message(
     let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
         .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
 
     // Get model info for token budget and param overrides
     // Get model context window for token budget (resolved_model fetched earlier)

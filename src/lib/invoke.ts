@@ -16,6 +16,25 @@ export type UnlistenFn = () => void;
 /** Default timeout for Tauri invoke calls (5 minutes). Set to 0 to disable. */
 export const DEFAULT_INVOKE_TIMEOUT_MS = 5 * 60 * 1000;
 
+/**
+ * Error thrown when an IPC call exceeds its timeout.
+ * Unlike transient network errors, timeout indicates the operation is too heavy
+ * and should NOT be retried automatically.
+ */
+export class TimeoutError extends Error {
+  constructor(
+    public readonly cmdName: string,
+    public readonly timeoutMs: number,
+  ) {
+    super(
+      `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. `
+        + `The backend operation may still be running. `
+        + `Consider increasing the timeout or optimizing the operation.`,
+    );
+    this.name = "TimeoutError";
+  }
+}
+
 // ─── 指数退避重试 ───
 
 /** 默认重试配置 */
@@ -32,23 +51,12 @@ export interface RetryOptions {
   timeoutMs?: number;
 }
 
-/** 可重试的瞬时错误模式 */
-const RETRYABLE_ERROR_PATTERNS = [
-  /connection.*refused/i,
-  /connection.*reset/i,
-  /network.*error/i,
-  /timeout/i,
-  /temporarily/i,
-  /econnrefused/i,
-  /econnreset/i,
-  /etimedout/i,
-  /socket.*hang.*up/i,
-  /broken.*pipe/i,
-] as const;
-
 function isRetryableError(error: unknown): boolean {
-  const msg = error instanceof Error ? error.message : String(error);
-  return RETRYABLE_ERROR_PATTERNS.some((pattern) => pattern.test(msg));
+  // TimeoutError should NEVER be retried — it indicates the operation is too heavy.
+  if (error instanceof TimeoutError) {
+    return false;
+  }
+  return classifyIpcError(error) === "transient";
 }
 
 /**
@@ -91,12 +99,12 @@ export async function invokeWithRetry<T>(
         throw e;
       }
 
-      // 指数退避（带 10% 抖动）
+      // 2.7: jitter range expanded from ±5% to ±25% to spread high-concurrency spikes
       const delay = Math.min(
         baseDelayMs * Math.pow(multiplier, attempt),
         maxDelayMs,
       );
-      const jitter = delay * 0.1 * (Math.random() - 0.5);
+      const jitter = delay * 0.5 * (Math.random() - 0.5);
       const actualDelay = Math.round(delay + jitter);
 
       console.warn(
@@ -113,6 +121,71 @@ export async function invokeWithRetry<T>(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── 统一 IPC 错误分类 (3.5) ───
+
+/** IPC error category for unified error handling. */
+export type IpcErrorCategory = "connection" | "transient" | "other";
+
+/** Connection-level error patterns — the backend is unreachable. */
+const CONNECTION_ERROR_PATTERNS = [
+  /connection.*refused/i,
+  /connection.*reset/i,
+  /connection.*closed/i,
+  /connection.*aborted/i,
+  /fetch.*failed/i,
+  /network.*error/i,
+  /econnrefused/i,
+  /econnreset/i,
+  /socket.*hang.*up/i,
+  /broken.*pipe/i,
+  /protocol.*error/i,
+] as const;
+
+/** Transient error patterns that warrant a retry. */
+const TRANSIENT_ERROR_PATTERNS = [
+  /temporarily/i,
+  /etimedout/i,
+  /eagain/i,
+  /resource.*busy/i,
+  /too many.*requests/i,
+] as const;
+
+/**
+ * Classify an IPC error into one of three categories.
+ * Checks structured Error.code first, then falls back to message pattern matching.
+ */
+export function classifyIpcError(error: unknown): IpcErrorCategory {
+  // Check structured error codes first (Tauri v2 sets .code on IPC errors)
+  const code = (error as { code?: string } | undefined)?.code;
+  if (code) {
+    const lowered = code.toLowerCase();
+    if (
+      lowered.includes("connection")
+      || lowered.includes("refused")
+      || lowered.includes("reset")
+    ) {
+      return "connection";
+    }
+    if (lowered.includes("timeout") || lowered.includes("temporary")) {
+      return "transient";
+    }
+  }
+
+  const msg = error instanceof Error ? error.message : String(error);
+  if (CONNECTION_ERROR_PATTERNS.some((p) => p.test(msg))) {
+    return "connection";
+  }
+  if (TRANSIENT_ERROR_PATTERNS.some((p) => p.test(msg))) {
+    return "transient";
+  }
+  return "other";
+}
+
+/** True if the error indicates a connection-level failure (backend unreachable). */
+export function isConnectionError(error: unknown): boolean {
+  return classifyIpcError(error) === "connection";
 }
 
 // ─── Invocation monitoring / metrics ───
@@ -309,12 +382,7 @@ function recordDiag(
       });
     }
     if (!success && error) {
-      const msg = error.toLowerCase();
-      if (
-        msg.includes("connection")
-        || msg.includes("refused")
-        || msg.includes("fetch")
-      ) {
+      if (classifyIpcError(new Error(error)) === "connection") {
         if (diag.connectionErrors.length < 50) {
           // SAFE: checking for Tauri runtime internals on window object
           const internalsObj = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
@@ -407,8 +475,15 @@ export async function invoke<T>(
 }
 
 /**
- * Wrap a Tauri invoke call with a timeout.
- * If the call takes longer than `timeoutMs`, it rejects with a descriptive error.
+ * Wrap a Tauri invoke call with a timeout, implementing soft cancellation.
+ *
+ * - On timeout: throws `TimeoutError`, and the cancellation token prevents
+ *   the original promise result from ever being processed (even if it resolves
+ *   after the timeout, the result is discarded).
+ * - The backend operation continues running (Tauri v2 IPC has no abort
+ *   mechanism), but the frontend will not update state with stale results.
+ * - TimeoutError is NOT retried by `invokeWithRetry` — the operation is too
+ *   heavy or the backend is stuck, and retrying would only compound the problem.
  */
 async function withTimeout<T>(
   fn: () => Promise<T>,
@@ -420,34 +495,30 @@ async function withTimeout<T>(
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let timedOut = false;
+  const cancelled = { value: false };
 
-  const timeoutPromise = new Promise<never>((_, reject) => {
+  // Wrap fn() so that if it resolves after timeout, the result is discarded.
+  const guardedFn = fn().then((result) => {
+    if (cancelled.value) {
+      // Silently discard — the caller already received a TimeoutError.
+      return new Promise<never>(() => {});
+    }
+    return result;
+  });
+
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
-      timedOut = true;
-      reject(
-        new Error(
-          `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. `
-            + `The operation may still be running in the backend. `
-            + `Consider using a longer timeout or checking backend logs.`,
-        ),
-      );
+      cancelled.value = true;
+      reject(new TimeoutError(cmdName, timeoutMs));
     }, timeoutMs);
   });
 
   try {
-    const result = await Promise.race([fn(), timeoutPromise]);
+    const result = await Promise.race([guardedFn, timeoutPromise]);
     return result;
   } catch (e) {
-    const msg = String(e).toLowerCase();
-    if (
-      !timedOut
-      && (msg.includes("connection")
-        || msg.includes("refused")
-        || msg.includes("fetch")
-        || msg.includes("ipc")
-        || msg.includes("protocol"))
-    ) {
+    // Only attempt connection-error rewrapping for non-timeout errors.
+    if (!cancelled.value && isConnectionError(e)) {
       throw new Error(
         `Backend connection failed for "${cmdName}". The AxAgent backend may not be running or has crashed. Please restart the application using 'npm run tauri dev'.`,
         { cause: e },
@@ -476,13 +547,14 @@ export function logIpcError(
     console.warn(`[IPC] ${context}: ${message}`);
 
     if (options?.notify) {
-      import("@/stores/shared/errorNotificationStore").then(({ useErrorNotificationStore }) => {
+      (async () => {
+        const { useErrorNotificationStore } = await import("@/stores/shared/errorNotificationStore");
         useErrorNotificationStore.getState().pushError({
           message,
           context,
           retryFn: options.retryFn,
         });
-      }).catch((err) => {
+      })().catch((err) => {
         console.warn("[invoke]", err);
       });
     }

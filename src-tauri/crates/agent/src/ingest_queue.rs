@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tokio::sync::Mutex;
 
-use axagent_kit::utils::gen_id;
+use axagent_harness::util_fns::gen_id;
 
 use crate::ingest_pipeline::{IngestPipeline, IngestResult, IngestSource};
 
@@ -97,7 +97,9 @@ impl IngestQueue {
 
         let id = task.id.clone();
         self.tasks.lock().await.push(task);
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
         id
     }
 
@@ -123,23 +125,24 @@ impl IngestQueue {
             self.tasks.lock().await.push(task);
         }
 
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
         ids
     }
 
     pub async fn process_next(&self) -> Option<IngestResult> {
         let task_id = {
             let mut tasks = self.tasks.lock().await;
-            if let Some(idx) = tasks.iter().position(|t| t.status == IngestTaskStatus::Pending) {
-                tasks[idx].status = IngestTaskStatus::Processing;
-                tasks[idx].started_at = Some(chrono::Utc::now().timestamp());
-                tasks[idx].id.clone()
-            } else {
-                return None;
-            }
+            let idx = tasks.iter().position(|t| t.status == IngestTaskStatus::Pending)?;
+            tasks[idx].status = IngestTaskStatus::Processing;
+            tasks[idx].started_at = Some(chrono::Utc::now().timestamp());
+            tasks[idx].id.clone()
         };
 
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
 
         let result = self
             .pipeline
@@ -189,7 +192,9 @@ impl IngestQueue {
             }
         }
 
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
 
         result.ok()
     }
@@ -233,7 +238,9 @@ impl IngestQueue {
         {
             task.status = IngestTaskStatus::Cancelled;
             task.completed_at = Some(chrono::Utc::now().timestamp());
-            self.save_to_disk().await.ok();
+            if let Err(e) = self.save_to_disk().await {
+                tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+            }
             return true;
         }
         false
@@ -247,7 +254,9 @@ impl IngestQueue {
             task.status = IngestTaskStatus::Pending;
             task.retry_count = 0;
             task.error_message = None;
-            self.save_to_disk().await.ok();
+            if let Err(e) = self.save_to_disk().await {
+                tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+            }
             return true;
         }
         false
@@ -280,7 +289,9 @@ impl IngestQueue {
             t.status != IngestTaskStatus::Completed && t.status != IngestTaskStatus::Cancelled
         });
         let removed = before - tasks.len();
-        self.save_to_disk().await.ok();
+        if let Err(e) = self.save_to_disk().await {
+            tracing::error!(error = %e, "Failed to persist ingest queue to disk");
+        }
         removed
     }
 
@@ -439,7 +450,7 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        let pipeline = Arc::new(IngestPipeline::new(db));
+        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
         let temp_dir =
             std::env::temp_dir().join(format!("ingest_queue_test_{}", uuid::Uuid::new_v4()));
         IngestQueue::new(pipeline, temp_dir.to_string_lossy().to_string())
@@ -580,12 +591,12 @@ mod tests {
 
         {
             let mut tasks = queue.tasks.lock().await;
-            if let Some(task) = tasks.iter_mut().find(|t| t.id == id) {
-                if task.status == IngestTaskStatus::Failed {
-                    task.status = IngestTaskStatus::Pending;
-                    task.retry_count = 0;
-                    task.error_message = None;
-                }
+            if let Some(task) = tasks.iter_mut().find(|t| t.id == id)
+                && task.status == IngestTaskStatus::Failed
+            {
+                task.status = IngestTaskStatus::Pending;
+                task.retry_count = 0;
+                task.error_message = None;
             }
         }
 

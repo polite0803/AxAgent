@@ -33,6 +33,10 @@ pub struct GatewayAppState {
     /// 平台层 trait 聚合（provider / settings / gateway_key / request_log / crypto）。
     /// 由 wiring 层构造，把 gateway 与 dao + crypto 解耦。
     pub adapter: Arc<dyn axagent_harness::PlatformAdapter>,
+    /// MCP server 元数据查询（消除 gateway→axagent-entities/SeaORM 违规）。
+    pub mcp_store: Arc<dyn axagent_harness::mcp_service::McpServerStore>,
+    /// MCP 工具发现与调用（消除 gateway→axagent-mcp 违规）。
+    pub mcp_client: Arc<dyn axagent_harness::mcp_service::McpClientService>,
     /// Marketplace review service（消除 gateway→kit→dao 违规链）。
     pub marketplace_service: Arc<dyn axagent_harness::marketplace::MarketplaceService>,
     /// In-memory store of single-use tickets for `/v1/realtime` WS auth
@@ -90,9 +94,9 @@ pub(crate) fn client_ip_policy_from_env_or_default() -> ClientIpPolicy {
 
     let Some(raw) = raw else {
         tracing::warn!(
-            "TRUSTED_PROXIES 未设置，client_ip_policy 回退到 trust_all()；生产部署建议显式配置"
+            "TRUSTED_PROXIES 未设置，client_ip_policy 使用默认值（不信任任何代理）；生产部署建议显式配置 TRUSTED_PROXIES"
         );
-        return ClientIpPolicy::trust_all();
+        return ClientIpPolicy::default();
     };
 
     let mut proxies: Vec<std::net::IpAddr> = Vec::new();
@@ -170,6 +174,7 @@ pub struct GatewayServer {
 
 impl GatewayServer {
     /// Start the gateway with a pre-built ProviderRegistry (from RuntimeHarness)
+    #[allow(clippy::too_many_arguments)]
     pub async fn start_with_registry(
         pool: DatabaseConnection,
         master_key: [u8; 32],
@@ -177,6 +182,8 @@ impl GatewayServer {
         provider_registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
         adapter: Arc<dyn axagent_harness::PlatformAdapter>,
         marketplace_service: Arc<dyn axagent_harness::marketplace::MarketplaceService>,
+        mcp_store: Arc<dyn axagent_harness::mcp_service::McpServerStore>,
+        mcp_client: Arc<dyn axagent_harness::mcp_service::McpClientService>,
     ) -> Result<Self> {
         let started_at = axagent_harness::util_fns::now_ts();
         let app_state = GatewayAppState {
@@ -186,6 +193,8 @@ impl GatewayServer {
             provider_registry,
             adapter,
             marketplace_service,
+            mcp_store,
+            mcp_client,
             ticket_store: crate::realtime::default_ticket_store(),
             qr_bind_store: crate::qr_bind::QrBindStore::new(),
             // SECURITY (Phase 2 Task 2.3): 5 失败 → 60s 冷却。

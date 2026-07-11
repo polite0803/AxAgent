@@ -57,33 +57,3 @@ pub trait DreamConsolidator: Send + Sync {
     async fn should_consolidate(&self) -> Result<bool, String>;
     fn config(&self) -> DreamConsolidationConfig;
 }
-
-#[derive(Default)]
-pub struct NoopConsolidationDataProvider;
-#[async_trait]
-impl ConsolidationDataProvider for NoopConsolidationDataProvider {
-    async fn fetch_new_experiences(&self, _limit: usize) -> Result<Vec<ExperienceRecord>, String> {
-        Ok(Vec::new())
-    }
-    async fn fetch_replay_samples(&self, _limit: usize) -> Result<Vec<ReplaySample>, String> {
-        Ok(Vec::new())
-    }
-    async fn store_distilled(&self, _knowledge: DistilledKnowledge) -> Result<(), String> {
-        Ok(())
-    }
-}
-
-#[derive(Default)]
-pub struct NoopDreamConsolidator;
-#[async_trait]
-impl DreamConsolidator for NoopDreamConsolidator {
-    async fn consolidate(&self) -> Result<DreamConsolidationResult, String> {
-        Err("dream consolidator not configured".to_string())
-    }
-    async fn should_consolidate(&self) -> Result<bool, String> {
-        Ok(false)
-    }
-    fn config(&self) -> DreamConsolidationConfig {
-        DreamConsolidationConfig::default()
-    }
-}

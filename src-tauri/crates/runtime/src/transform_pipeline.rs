@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use super::hook_chain::HookChain;
+use axagent_runtime_core::hook_chain::HookChain;
 
 pub struct TransformPipeline {
     hook_chain: Arc<HookChain>,

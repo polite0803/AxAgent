@@ -5,8 +5,8 @@
 //! `axagent-harness` re-export 此 trait + `DatabaseConnection`，
 //! 业务组件 `use axagent_harness::Persistence` 即可，无需直接依赖 sea-orm。
 //!
-//! 注：`impl Persistence for DbHandle` 留在 `axagent-core` 中
-//!（因为 DbHandle 定义在那里，满足 Rust orphan rule）。
+//! 注：trait 由下层连接句柄类型实现（trait 与实现类型分属不同 crate，
+//! 满足 Rust orphan rule），运行时注入。
 
 use std::sync::Arc;
 
@@ -15,8 +15,7 @@ pub use sea_orm::DatabaseConnection;
 
 /// 持久化层抽象接口
 ///
-/// 由 `axagent_dao::db::DbHandle` 实现（见下方）。
-/// 在 `axagent-runtime` 启动时注入。
+/// 由具体的数据库连接句柄类型实现，并在运行时注入。
 pub trait Persistence: Send + Sync {
     /// 拿到底层连接句柄。
     /// 返回 sea-orm 的 `DatabaseConnection` 引用，消费者应当仅用它做查询，

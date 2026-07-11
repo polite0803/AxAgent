@@ -27,7 +27,8 @@ pub async fn workflow_ai_chat_stream(
 ) -> Result<(), String> {
     let resolved = resolve_ai_provider(&state).await?;
 
-    let registry_key = resolved.provider_type.registry_key();
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&resolved.provider_type);
     let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
         ErrorResponse::err_with_detail(
             provider_err::ADAPTER_NOT_FOUND,
@@ -203,7 +204,19 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
         }),
     );
 
-    let mut stream = adapter.chat_stream(&resolved.ctx, request, None);
+    let llm_config = axagent_runtime_core::LlmCallConfig {
+        session_id: Some(session_id.clone()),
+        ..Default::default()
+    };
+    let mut stream = axagent_runtime_core::execute_llm_stream(
+        &*adapter,
+        &resolved.ctx,
+        request,
+        &llm_config,
+        None,
+    )
+    .await
+    .map_err(|e| format!("LLM 初始化失败: {e}"))?;
     let message_id = format!("wf-ai-{}", uuid::Uuid::new_v4());
 
     while let Some(result) = stream.next().await {
@@ -261,7 +274,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
                     ChatStreamErrorEvent {
                         conversation_id: session_id.clone(),
                         message_id: message_id.clone(),
-                        error: format!("{}", e),
+                        error: e.to_string(),
                     },
                 );
                 break;

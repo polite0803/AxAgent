@@ -46,7 +46,7 @@ pub type ToolCallHandler =
 /// Configuration for an [`McpServer`] instance.
 ///
 /// Named `McpServerSpec` rather than `McpServerConfig` to avoid colliding
-/// with the existing client-side [`crate::config::McpServerConfig`] that
+/// with the existing client-side [`axagent_runtime_core::config::McpServerConfig`] that
 /// describes *remote* MCP servers the runtime connects to.
 pub struct McpServerSpec {
     /// Name advertised in the `serverInfo` field of the `initialize` response.

@@ -47,7 +47,6 @@ pub struct SkillState {
     pub proactive_service: Arc<tokio::sync::RwLock<crate::commands::proactive::ProactiveService>>,
 }
 
-#[allow(dead_code)]
 impl SkillState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -124,7 +123,6 @@ impl SkillState {
 /// between desktop and Android builds.  Callers construct the right
 /// variant from `create_app_state` (where the `cfg` arms are already
 /// handled) and pass it into [`SkillState::new`].
-#[allow(dead_code)]
 pub enum SandboxExecutorField {
     Real(Arc<axagent_trajectory::SkillSandboxExecutor>),
     Dummy,
@@ -132,7 +130,6 @@ pub enum SandboxExecutorField {
 
 /// Cross-platform wrapper for the browser-client type, which differs
 /// between desktop and Android builds.
-#[allow(dead_code)]
 pub enum BrowserClientField {
     #[cfg(not(target_os = "android"))]
     Real(Arc<tokio::sync::Mutex<Option<axagent_kit::browser_automation::PlaywrightClient>>>),

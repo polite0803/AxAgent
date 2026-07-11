@@ -86,7 +86,7 @@ pub fn select_top_messages(messages: &[ConversationMessage], keep_count: usize) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::{ContentBlock, ConversationMessage, MessageRole};
+    use crate::session::{ContentBlock, ConversationMessage, ConversationMessageExt, MessageRole};
 
     #[test]
     fn user_messages_score_higher() {
@@ -189,10 +189,10 @@ mod tests {
     #[test]
     fn select_top_messages_respects_count() {
         let messages = vec![
-            ConversationMessage::user_text("重要问题"),
-            ConversationMessage::user_text("ok"),
-            ConversationMessage::user_text("另外一个重要问题"),
-            ConversationMessage::user_text("嗯"),
+            ConversationMessageExt::user_text("重要问题"),
+            ConversationMessageExt::user_text("ok"),
+            ConversationMessageExt::user_text("另外一个重要问题"),
+            ConversationMessageExt::user_text("嗯"),
         ];
         // 保留前 2 条
         let indices = select_top_messages(&messages, 2);
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn select_top_messages_keep_count_exceeds_len() {
-        let messages = vec![ConversationMessage::user_text("hi")];
+        let messages = vec![ConversationMessageExt::user_text("hi")];
         let indices = select_top_messages(&messages, 10);
         assert_eq!(indices.len(), 1);
     }

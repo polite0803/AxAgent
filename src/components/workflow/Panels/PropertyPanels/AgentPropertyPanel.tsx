@@ -889,7 +889,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                       rows={4}
                       style={{
                         width: "100%",
-                        fontFamily: "monospace",
+                        fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
                         fontSize: 11,
                       }}
                       placeholder={t("workflow.props.toolParametersPlaceholder")}
@@ -1070,7 +1070,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           value={promptEditor.prompt}
           onChange={(e) => setPromptEditor((prev) => ({ ...prev, prompt: e.target.value }))}
           rows={12}
-          style={{ fontFamily: "monospace", fontSize: 13 }}
+          style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 13 }}
         />
       </Modal>
 

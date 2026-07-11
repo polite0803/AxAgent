@@ -3,6 +3,11 @@
 import i18n from "@/i18n";
 import type { SkillPermissions } from "@/types";
 
+// ── 权限声明区分 sentinel ─────────────────────────────────────────
+
+/** 区分 "undefined（未声明）" vs "{}（声明了但为空）" 的 sentinel 值 */
+export const __NO_PERMISSIONS_DECLARED__ = Symbol("NO_PERMISSIONS_DECLARED");
+
 // ── 权限声明签名校验（P3 #21） ──────────────────────────────────────
 
 /** 存储各 skill 的权限 manifest 哈希 */
@@ -15,7 +20,9 @@ const permissionHashStore = new Map<string, string>();
 async function computePermissionHash(
   permissions: SkillPermissions | undefined,
 ): Promise<string> {
-  const payload = JSON.stringify(permissions ?? {}, Object.keys(permissions ?? {}).sort());
+  const payload = permissions === undefined
+    ? `__NO_PERMISSIONS_DECLARED__:${String(__NO_PERMISSIONS_DECLARED__)}`
+    : JSON.stringify(permissions, Object.keys(permissions).sort());
   const encoder = new TextEncoder();
   const data = encoder.encode(payload);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -109,6 +116,9 @@ function isStorePermCovered(
     return (
       fieldPath === parsed.fieldPath
       || fieldPath.startsWith(parsed.fieldPath + ".")
+      // Support array index notation: "items.0.name" is a child of "items"
+      || (parsed.fieldPath.split(".").every((seg) => /^\d+$/.test(seg) || /^[a-zA-Z_]\w*$/.test(seg))
+        && fieldPath.startsWith(parsed.fieldPath + "."))
     );
   });
 }
@@ -137,6 +147,11 @@ export function isStoreWriteCovered(
  * - 支持通配符 "read_*" 匹配
  * - 返回完整的违规列表
  *
+ * 职责边界：此函数为声明时静态校验，仅能检查 manifest 中显式声明的内容（commands）。
+ * storeRead/storeWrite/navigate/network 的操作目标在声明时不可知，需在运行时
+ * per-call 白名单检查中强制。实现在 RPC 桥接层
+ * （SkillSandboxContainer → createHostApiBridge / actionRouter.ts）。
+ *
  * @param permissions Skill 声明的权限
  * @param requiredCommands Skill 实际需要的命令列表（从 manifest.capabilities 提取）
  * @returns 校验结果
@@ -150,9 +165,11 @@ export function validateSkillPermissions(
 ): PermissionValidationResult {
   const violations: string[] = [];
 
-  if (!permissions) {
+  if (permissions === undefined) {
     violations.push(
-      `${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.undeclaredPermissions")}`,
+      `${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.undeclaredPermissions")} (${
+        String(__NO_PERMISSIONS_DECLARED__)
+      })`,
     );
     return { valid: false, violations };
   }

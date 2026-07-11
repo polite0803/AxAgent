@@ -5,9 +5,18 @@ use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_agent::{
     ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler,
 };
+use axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository;
+use axagent_dao::repo::note_repository::DaoNoteRepository;
 use axagent_dao::repo::wiki;
+use axagent_dao::repo::wiki_repository::DaoWikiRepository;
+use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
 use axagent_entities::wiki_sync_queue;
-use axagent_harness::types::{ProviderProxyConfig, ProviderType};
+use axagent_harness::kit_bridge::KitMarkdownParser;
+use axagent_harness::repositories;
+use axagent_harness::types::ProviderType;
+use axagent_harness::wiki_dtos::{
+    NoteBacklinkRepository, NoteRepository, WikiRepository, WikiSourceRepository,
+};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
@@ -173,7 +182,12 @@ pub async fn llm_wiki_ingest(
     state: State<'_, AppState>,
     input: IngestSourceInput,
 ) -> Result<IngestResultOutput, String> {
-    let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.harness.db().clone()));
+    let db = Arc::new(state.harness.db().clone());
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(db.clone()));
+    let wiki_source_repo: Arc<dyn WikiSourceRepository> =
+        Arc::new(DaoWikiSourceRepository::new(db.clone()));
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(db));
+    let pipeline = ingest_pipeline::IngestPipeline::new(wiki_repo, wiki_source_repo, note_repo);
 
     let source = ingest_pipeline::IngestSource {
         source_type: match input.source_type.as_str() {
@@ -337,7 +351,10 @@ async fn build_llm_adapter(
         provider_id: provider.id.clone(),
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: provider.api_path,
-        proxy_config: ProviderProxyConfig::resolve(&provider.proxy_config, &settings),
+        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(
+            &provider.proxy_config,
+            &settings,
+        ),
         custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         api_mode: None,
         conversation: None,
@@ -368,8 +385,16 @@ pub async fn llm_wiki_compile(
         build_llm_adapter(state.harness.db(), state.harness.master_key(), &embedding_provider)
             .await?;
 
-    let compiler =
-        wiki_compiler::WikiCompiler::new(Arc::new(state.harness.db().clone()), adapter, ctx, model);
+    let compiler = wiki_compiler::WikiCompiler::new(
+        repositories::note_repository(),
+        repositories::wiki_repository(),
+        repositories::wiki_page_repository(),
+        repositories::wiki_source_repository(),
+        repositories::wiki_operation_repository(),
+        adapter,
+        ctx,
+        model,
+    );
 
     let result = compiler.compile(&input.wiki_id, input.source_ids).await?;
 
@@ -514,7 +539,12 @@ pub async fn llm_wiki_query(
         offset: input.offset.unwrap_or(0),
     };
 
-    let engine = query_engine::QueryEngine::new(Arc::new(state.harness.db().clone()));
+    let db = state.harness.db().clone();
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db.clone())));
+    let backlink_repo: Arc<dyn NoteBacklinkRepository> =
+        Arc::new(DaoNoteBacklinkRepository::new(Arc::new(db)));
+    let engine = query_engine::QueryEngine::new(note_repo, wiki_repo, backlink_repo);
 
     let result = if let Some(ref ep) = wiki.embedding_provider {
         match generate_query_embedding(&state, ep, &input.query, wiki.embedding_dimensions).await {
@@ -612,19 +642,35 @@ impl query_engine::VectorSearch for WikiVectorSearchAdapter {
 
 #[tauri::command]
 pub async fn llm_wiki_lint(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     note_id: String,
 ) -> Result<lint_checker::LintResult, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
+    let parser: Box<dyn KitMarkdownParser> =
+        Box::new(axagent_kit::markdown_parser::MarkdownParser::new());
+    let checker = lint_checker::LintChecker::new(
+        repositories::note_repository(),
+        repositories::wiki_repository(),
+        repositories::wiki_page_repository(),
+        repositories::note_backlink_repository(),
+        parser,
+    );
     checker.lint_note(&note_id).await
 }
 
 #[tauri::command]
 pub async fn llm_wiki_lint_update_score(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     note_id: String,
 ) -> Result<f64, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
+    let parser: Box<dyn KitMarkdownParser> =
+        Box::new(axagent_kit::markdown_parser::MarkdownParser::new());
+    let checker = lint_checker::LintChecker::new(
+        repositories::note_repository(),
+        repositories::wiki_repository(),
+        repositories::wiki_page_repository(),
+        repositories::note_backlink_repository(),
+        parser,
+    );
     checker.update_quality_score(&note_id).await
 }
 
@@ -633,7 +679,10 @@ pub async fn llm_wiki_get_schema(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<String, String> {
-    let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
+    let db = state.harness.db().clone();
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db)));
+    let manager = schema_manager::SchemaManager::new(note_repo, wiki_repo);
     manager.get_current_schema(&wiki_id).await.map_err(|e| e.to_string())
 }
 
@@ -649,7 +698,10 @@ pub async fn llm_wiki_validate_frontmatter(
     state: State<'_, AppState>,
     input: ValidateFrontmatterInput,
 ) -> Result<Vec<String>, String> {
-    let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
+    let db = state.harness.db().clone();
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db)));
+    let manager = schema_manager::SchemaManager::new(note_repo, wiki_repo);
     manager
         .validate_frontmatter(&input.wiki_id, &input.frontmatter)
         .await
@@ -663,7 +715,10 @@ pub async fn llm_wiki_create_schema_version(
     version: String,
     description: Option<String>,
 ) -> Result<schema_manager::SchemaVersion, String> {
-    let manager = schema_manager::SchemaManager::new(Arc::new(state.harness.db().clone()));
+    let db = state.harness.db().clone();
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db)));
+    let manager = schema_manager::SchemaManager::new(note_repo, wiki_repo);
     manager.create_schema_version(&wiki_id, &version, description).await.map_err(|e| e.to_string())
 }
 
@@ -715,20 +770,36 @@ pub async fn llm_wiki_delete_schema(
 
 #[tauri::command]
 pub async fn llm_wiki_lint_vault(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<Vec<lint_checker::LintResult>, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
+    let parser: Box<dyn KitMarkdownParser> =
+        Box::new(axagent_kit::markdown_parser::MarkdownParser::new());
+    let checker = lint_checker::LintChecker::new(
+        repositories::note_repository(),
+        repositories::wiki_repository(),
+        repositories::wiki_page_repository(),
+        repositories::note_backlink_repository(),
+        parser,
+    );
     checker.lint_vault(&wiki_id).await
 }
 
 #[tauri::command]
 pub async fn llm_wiki_auto_fix(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     wiki_id: String,
     note_id: Option<String>,
 ) -> Result<Vec<String>, String> {
-    let checker = lint_checker::LintChecker::new(Arc::new(state.harness.db().clone()));
+    let parser: Box<dyn KitMarkdownParser> =
+        Box::new(axagent_kit::markdown_parser::MarkdownParser::new());
+    let checker = lint_checker::LintChecker::new(
+        repositories::note_repository(),
+        repositories::wiki_repository(),
+        repositories::wiki_page_repository(),
+        repositories::note_backlink_repository(),
+        parser,
+    );
     checker.auto_fix(&wiki_id, note_id.as_deref()).await
 }
 
@@ -751,7 +822,12 @@ pub async fn llm_wiki_ask(
         build_llm_adapter(state.harness.db(), state.harness.master_key(), &embedding_provider)
             .await?;
 
-    let engine = query_engine::QueryEngine::new(Arc::new(state.harness.db().clone()))
+    let db = state.harness.db().clone();
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db.clone())));
+    let backlink_repo: Arc<dyn NoteBacklinkRepository> =
+        Arc::new(DaoNoteBacklinkRepository::new(Arc::new(db)));
+    let engine = query_engine::QueryEngine::new(note_repo, wiki_repo, backlink_repo)
         .with_llm(adapter, ctx, model);
 
     engine.ask(&wiki_id, &question).await
@@ -780,13 +856,25 @@ pub async fn write_base64_to_file(
     let raw_dir = std::path::PathBuf::from(&wiki.root_path).join("raw");
     tokio::fs::create_dir_all(&raw_dir).await.map_err(|e| e.to_string())?;
 
+    if input.file_name.contains("..")
+        || input.file_name.contains('/')
+        || input.file_name.contains('\\')
+    {
+        return Err(format!("Invalid file name: {}", input.file_name));
+    }
+
     let file_path = raw_dir.join(&input.file_name);
     tokio::fs::write(&file_path, &bytes).await.map_err(|e| e.to_string())?;
 
     let _source_content =
         String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
 
-    let pipeline = ingest_pipeline::IngestPipeline::new(Arc::new(state.harness.db().clone()));
+    let db = Arc::new(state.harness.db().clone());
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(db.clone()));
+    let wiki_source_repo: Arc<dyn WikiSourceRepository> =
+        Arc::new(DaoWikiSourceRepository::new(db.clone()));
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(db));
+    let pipeline = ingest_pipeline::IngestPipeline::new(wiki_repo, wiki_source_repo, note_repo);
     let source = ingest_pipeline::IngestSource {
         source_type: match input.source_type.as_str() {
             "web" => ingest_pipeline::IngestSourceType::WebArticle,
@@ -1057,7 +1145,9 @@ pub async fn llm_wiki_get_purpose(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<String, String> {
-    purpose_manager::PurposeManager::load(state.harness.db(), &wiki_id).await
+    let wiki_repo: Arc<dyn WikiRepository> =
+        Arc::new(DaoWikiRepository::new(Arc::new(state.harness.db().clone())));
+    purpose_manager::PurposeManager::load(&*wiki_repo, &wiki_id).await
 }
 
 #[tauri::command]
@@ -1066,5 +1156,7 @@ pub async fn llm_wiki_update_purpose(
     wiki_id: String,
     content: String,
 ) -> Result<(), String> {
-    purpose_manager::PurposeManager::save(state.harness.db(), &wiki_id, &content).await
+    let wiki_repo: Arc<dyn WikiRepository> =
+        Arc::new(DaoWikiRepository::new(Arc::new(state.harness.db().clone())));
+    purpose_manager::PurposeManager::save(&*wiki_repo, &wiki_id, &content).await
 }

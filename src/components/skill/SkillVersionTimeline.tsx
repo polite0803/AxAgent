@@ -102,7 +102,7 @@ export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
         width={700}
       >
         {selectedDiff && (
-          <div style={{ fontFamily: "monospace", fontSize: 12 }}>
+          <div style={{ fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)", fontSize: 12 }}>
             <div
               style={{
                 background: token.colorErrorBg ?? "#fff1f0",
@@ -113,7 +113,9 @@ export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
             >
               <Text type="danger" strong>
                 {t("skill.evolution.oldVersion", {
-                  version: versions.findIndex((v) => v.promptDiff?.old === selectedDiff.old) + 1,
+                  version: versions.findIndex((v) =>
+                    v.promptDiff?.old === selectedDiff.old
+                  ) + 1,
                 })}
               </Text>
               <pre style={{ whiteSpace: "pre-wrap", margin: "4px 0" }}>{selectedDiff.old}</pre>

@@ -6,6 +6,19 @@ publish = false
 
 [features]
 default = []
+
+# ⚠️ LEGACY COMPATIBILITY ONLY — DO NOT USE FOR NEW BACKUPS
+#
+# backup_v1_compat 启用基于无盐 SHA256 的 v1 备份密钥 KDF。
+# 此格式存在已知安全缺陷：
+#   - 无盐哈希：同一输入总是生成相同密钥，易受彩虹表攻击
+#   - 固定字符串 KDF：密钥空间小，暴力破解成本低
+#   - 无密钥拉伸：单次 SHA256 极快，无法抵抗 GPU 暴力搜索
+#
+# 新备份应始终使用 v2 格式（Argon2id + 随机盐 + 机器指纹绑定）。
+# 此 feature 仅为读取历史遗留的 v1 备份数据而保留，
+# 读取后应通过 auto_upgrade_backup_to_v2() 立即迁移到 v2。
+# 计划于 2026-Q3 完全移除。
 backup_v1_compat = []
 
 [dependencies]

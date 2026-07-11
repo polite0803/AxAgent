@@ -38,7 +38,7 @@ struct SmtpConfig {
     tls: bool,
 }
 
-fn resolve_smtp_config(
+async fn resolve_smtp_config(
     ctx: &ExecutionState,
     credential_id: Option<&str>,
     host: Option<&str>,
@@ -55,6 +55,7 @@ fn resolve_smtp_config(
         })?;
         let sc = cm
             .get_smtp_config(cid)
+            .await
             .map_err(|e| NodeError::exec_failed("EMAIL_CREDENTIAL_FAILED", e.to_string()))?;
         Ok(SmtpConfig { host: sc.host, port: sc.port, user: sc.user, pass: sc.pass, tls: sc.tls })
     } else {
@@ -99,7 +100,8 @@ impl NodeExecutorTrait for EmailExecutor {
             c.smtp_port,
             c.smtp_user.as_deref(),
             c.smtp_pass.as_deref(),
-        )?;
+        )
+        .await?;
 
         tracing::info!(
             host = %smtp.host,

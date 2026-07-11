@@ -119,3 +119,9 @@ design-prototype.html
 design-spec.html
 axagent-layout-v4.html
 *.output.txt
+
+# Temp debug output (Rust)
+/src-tauri/temp/
+
+# Generated output files
+output/

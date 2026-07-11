@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use axagent_runtime_core::context_contributor::{ContextContributor, ContextRequest};
+use axagent_harness::context_contributor::{ContextContributor, ContextRequest};
 
 /// 从 `SteerManager` 获取 pending steer 指令的 contributor。
 pub struct SteerContributor {

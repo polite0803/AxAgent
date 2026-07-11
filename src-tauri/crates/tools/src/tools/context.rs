@@ -228,11 +228,9 @@ impl Tool for SnipTool {
             "message_id": ctx.message_id,
         });
 
-        let runner = axagent_runtime_core::HookRunner::new(
-            axagent_runtime_core::RuntimeHookConfig::default(),
-        );
-        let _ =
-            runner.run_event(axagent_runtime_core::HookEvent::PreCompact, &hook_data.to_string());
+        if let Some(firer) = crate::tools::agent::HOOK_FIRER.get() {
+            firer.fire_hook("PreCompact", &hook_data.to_string());
+        }
 
         let removed = end - start + 1;
         Ok(ToolResult::success(format!(

@@ -19,28 +19,6 @@ pub fn current_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
-/// 按字符安全边界截断 UTF-8 字符串到最多 `max_bytes` 字节。
-///
-/// `&s[..N]` 直接按字节切片，当 N 落在 UTF-8 多字节字符中间时会
-/// `byte index N is not a char boundary` panic。该工具函数回退
-/// 到最近的字符边界，保证：
-///
-/// - 不会 panic
-/// - 返回的 `&str` 仍是合法 UTF-8
-/// - 长度永远不超过 `max_bytes` 字节
-/// - 输入长度不足时返回原文
-///
-/// ## 用法
-///
-/// ```ignore
-/// let preview = truncate_to_char_boundary(content, 2000);
-/// format!("{}...[已截断]", preview);
-/// ```
-///
-/// ## 性能
-///
-/// 字符串长度在 4 KB 级别时回退循环最多迭代 3 次（UTF-8 最大 4 字节/字符），
-/// 实测延迟 < 100 ns，可放心用于热路径。
 pub fn truncate_to_char_boundary(s: &str, max_bytes: usize) -> &str {
     if s.len() <= max_bytes {
         return s;
@@ -50,6 +28,53 @@ pub fn truncate_to_char_boundary(s: &str, max_bytes: usize) -> &str {
         end -= 1;
     }
     &s[..end]
+}
+
+/// Estimate the number of tokens in a text string.
+///
+/// Heuristic:
+/// - ASCII / Latin characters: ~4 characters per token
+/// - CJK / fullwidth characters: ~1.5 characters per token
+pub fn estimate_tokens(text: &str) -> usize {
+    if text.is_empty() {
+        return 0;
+    }
+
+    let mut ascii_chars: usize = 0;
+    let mut cjk_chars: usize = 0;
+
+    for ch in text.chars() {
+        if is_cjk(ch) {
+            cjk_chars += 1;
+        } else {
+            ascii_chars += 1;
+        }
+    }
+
+    let ascii_tokens = ascii_chars.div_ceil(4);
+    let cjk_tokens = (cjk_chars * 2).div_ceil(3);
+
+    ascii_tokens + cjk_tokens
+}
+
+/// Estimate tokens for an entire chat message (content + role overhead).
+pub fn estimate_message_tokens(role: &str, content: &str) -> usize {
+    const PER_MESSAGE_OVERHEAD: usize = 4;
+    estimate_tokens(role) + estimate_tokens(content) + PER_MESSAGE_OVERHEAD
+}
+
+/// Check if a character is in a CJK Unicode block.
+fn is_cjk(ch: char) -> bool {
+    matches!(ch,
+        '\u{4E00}'..='\u{9FFF}'
+        | '\u{3400}'..='\u{4DBF}'
+        | '\u{F900}'..='\u{FAFF}'
+        | '\u{3000}'..='\u{303F}'
+        | '\u{FF00}'..='\u{FFEF}'
+        | '\u{AC00}'..='\u{D7AF}'
+        | '\u{3040}'..='\u{309F}'
+        | '\u{30A0}'..='\u{30FF}'
+    )
 }
 
 #[cfg(test)]

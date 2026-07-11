@@ -3,11 +3,10 @@
 #![cfg(feature = "computer-use")]
 
 use anyhow::Result;
-use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
-use serde::{Deserialize, Serialize};
-
 #[cfg(target_os = "android")]
 use axagent_harness::constants::android_msg;
+use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UIElement {

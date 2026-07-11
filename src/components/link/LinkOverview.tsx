@@ -148,7 +148,7 @@ export function LinkOverview({ link }: LinkOverviewProps) {
               value={link.last_sync_at
                 ? new Date(link.last_sync_at * 1000).toLocaleString()
                 : "-"}
-              valueStyle={{ fontSize: 14 }}
+              styles={{ content: { fontSize: 14 } }}
               prefix={<Clock size={14} />}
             />
           </Card>

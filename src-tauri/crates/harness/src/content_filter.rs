@@ -42,14 +42,3 @@ pub trait ContentFilter: Send + Sync {
     ) -> Result<FilterAction, String>;
     async fn is_safe(&self, content: &str, content_type: ContentType) -> Result<bool, String>;
 }
-#[derive(Default)]
-pub struct NoopContentFilter;
-#[async_trait]
-impl ContentFilter for NoopContentFilter {
-    async fn filter(&self, _: &str, _: ContentType) -> Result<FilterAction, String> {
-        Ok(FilterAction::Allow)
-    }
-    async fn is_safe(&self, _: &str, _: ContentType) -> Result<bool, String> {
-        Ok(true)
-    }
-}

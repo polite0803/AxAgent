@@ -219,7 +219,7 @@ async fn test_coordinator_event_bus_access() {
 #[tokio::test]
 async fn test_coordinator_cache_integration() {
     let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
-    let coordinator = make_coordinator(agent);
+    let _coordinator = make_coordinator(agent);
 
     // prompt_cache 已重构为 cache_service，以下测试需适配新 API
     // coordinator.prompt_cache.record_system_prompt("test prompt").await;

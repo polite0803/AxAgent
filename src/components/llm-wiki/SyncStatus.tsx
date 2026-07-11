@@ -186,7 +186,7 @@ export function SyncStatus({
             <Statistic
               title={t("wiki.sync.failed")}
               value={failedCount}
-              valueStyle={{ color: failedCount > 0 ? "#ff4d4f" : undefined }}
+              styles={{ content: { color: failedCount > 0 ? "#ff4d4f" : undefined } }}
               prefix={failedCount > 0 ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
             />
           </Col>

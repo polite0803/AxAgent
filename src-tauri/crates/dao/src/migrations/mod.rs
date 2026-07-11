@@ -29,9 +29,11 @@ pub mod v004_dynamic_ui;
 pub mod v005_index_queue;
 pub mod v006_vec_collections;
 pub mod v007_dynamic_ui_version;
+pub mod v008_credentials_and_rl_policies;
+pub mod v009_tool_adaptation;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 7;
+pub const CURRENT_VERSION: i32 = 9;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -92,6 +94,16 @@ const MIGRATIONS: &[Migration] = &[
         version: 7,
         description: "v007_dynamic_ui_version: add version to dynamic_ui_schemas, create dynamic_ui_schema_versions table",
         up: |db| Box::pin(v007_dynamic_ui_version::up(db)),
+    },
+    Migration {
+        version: 8,
+        description: "v008_credentials_and_rl_policies: create credentials and rl_policies tables",
+        up: |db| Box::pin(v008_credentials_and_rl_policies::up(db)),
+    },
+    Migration {
+        version: 9,
+        description: "v009_tool_adaptation: add tool_adaptation column to providers table",
+        up: |db| Box::pin(v009_tool_adaptation::up(db)),
     },
 ];
 
@@ -225,7 +237,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应只有 5 行
+        // schema_version 表应只有 CURRENT_VERSION 行（与迁移数量一致）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
@@ -235,7 +247,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 7, "schema_version should have exactly 7 rows");
+        assert_eq!(cnt, 9, "schema_version should have exactly 9 rows");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

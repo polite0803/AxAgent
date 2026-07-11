@@ -270,11 +270,11 @@ fn validate_origin(raw: &str) -> Result<http::HeaderValue, &'static str> {
 mod tests {
     use super::*;
     use crate::auth::ClientIpPolicy;
-    use axagent_dao::db::create_test_pool;
     use axum::{
         body::Body,
         http::{Method, Request, StatusCode},
     };
+    use sea_orm::Database;
     use tower::ServiceExt;
 
     fn test_state(db: sea_orm::DatabaseConnection) -> GatewayAppState {
@@ -285,6 +285,8 @@ mod tests {
             provider_registry: axagent_harness::test_support::empty_provider_registry(),
             adapter: axagent_harness::test_support::empty_platform_adapter(),
             marketplace_service: axagent_harness::test_support::empty_marketplace_service(),
+            mcp_store: std::sync::Arc::new(axagent_harness::test_support::NoopMcpServerStore),
+            mcp_client: std::sync::Arc::new(axagent_harness::test_support::NoopMcpClientService),
             ticket_store: crate::realtime::default_ticket_store(),
             // SECURITY (Phase 2 Task 2.3): 路由层测试用宽阈值 limiter，
             // 避免和限流本身的目的混在一起。
@@ -298,8 +300,8 @@ mod tests {
     }
 
     async fn assert_protected_route_exists(method: Method, uri: &str) {
-        let handle = create_test_pool().await.unwrap();
-        let app = create_router(test_state(handle.conn));
+        let db = Database::connect("sqlite::memory:?mode=rwc").await.unwrap();
+        let app = create_router(test_state(db));
         let response = app
             .oneshot(Request::builder().method(method).uri(uri).body(Body::empty()).unwrap())
             .await

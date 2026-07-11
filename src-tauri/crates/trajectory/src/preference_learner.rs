@@ -42,18 +42,6 @@ impl PreferenceLearner {
         &mut self.profile
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn process_event(&mut self, event: BehaviorEvent) -> Vec<ProfileUpdate> {
-        self.event_buffer.push(event);
-        self.profile.learning_state.increment_interactions();
-
-        if self.event_buffer.len() >= self.batch_size {
-            self.analyze_and_update()
-        } else {
-            Vec::new()
-        }
-    }
-
     pub fn analyze_and_update(&mut self) -> Vec<ProfileUpdate> {
         let mut updates = Vec::new();
         let events: Vec<BehaviorEvent> = self.event_buffer.drain(..).collect();

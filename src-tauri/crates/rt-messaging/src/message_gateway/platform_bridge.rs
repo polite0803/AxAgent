@@ -2,28 +2,29 @@
 
 use std::sync::Arc;
 
-use sea_orm::DatabaseConnection;
-
 use crate::message_gateway::platform_manager::{PlatformManager, PlatformMessageCallback};
 use axagent_harness::build_provider_request_context;
+use axagent_harness::repositories::{
+    CreateConversationInput, CreateMessageInput, conversation_repository, message_repository,
+    platform_config_repository, provider_repository, settings_repository,
+};
 
 async fn persist_session_route(
-    db: &DatabaseConnection,
     platform: &str,
     user_id: &str,
     agent_session_id: &str,
 ) -> anyhow::Result<()> {
-    let mut routes = axagent_dao::repo::platform_config::load_session_routes(db).await;
+    let mut routes = platform_config_repository().load_session_routes().await;
     let key = format!("{}_{}", platform, user_id);
     routes.insert(key, agent_session_id.to_string());
-    axagent_dao::repo::platform_config::save_session_routes(db, &routes)
+    platform_config_repository()
+        .save_session_routes(&routes)
         .await
         .map_err(|e| anyhow::anyhow!("{}", e))?;
     Ok(())
 }
 
 pub struct PlatformBridge {
-    db: DatabaseConnection,
     master_key: [u8; 32],
     platform_manager: Arc<PlatformManager>,
     webhook_dispatcher: Option<Arc<dyn crate::webhook_subscription::WebhookDispatch>>,
@@ -33,11 +34,11 @@ pub struct PlatformBridge {
 
 impl PlatformBridge {
     pub fn new(
-        db: DatabaseConnection,
+        _db: sea_orm::DatabaseConnection,
         master_key: [u8; 32],
         platform_manager: Arc<PlatformManager>,
     ) -> Self {
-        Self { db, master_key, platform_manager, webhook_dispatcher: None, provider_registry: None }
+        Self { master_key, platform_manager, webhook_dispatcher: None, provider_registry: None }
     }
 
     /// 设置 Webhook 派发器，用于在收到平台消息时触发 webhook 事件
@@ -54,11 +55,14 @@ impl PlatformBridge {
         model_id: &str,
         messages: Vec<axagent_harness::types::ChatMessage>,
     ) -> anyhow::Result<String> {
-        use axagent_dao::repo::provider;
+        let provider_config = provider_repository()
+            .get_provider(provider_id)
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-        let provider_config = provider::get_provider(&self.db, provider_id).await?;
-
-        let registry_key = provider_config.provider_type.registry_key();
+        let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+            &provider_config.provider_type,
+        );
         let registry = self.provider_registry.as_ref().ok_or_else(|| {
             anyhow::anyhow!(
                 "PlatformBridge 未注入 ProviderRegistry（请调用 HasProviderRegistry::set_provider_registry）"
@@ -68,7 +72,10 @@ impl PlatformBridge {
             .get(registry_key)
             .ok_or_else(|| anyhow::anyhow!("Provider adapter not found: {}", registry_key))?;
 
-        let key_row = provider::get_active_key(&self.db, provider_id).await?;
+        let key_row = provider_repository()
+            .get_active_key(provider_id)
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
         let api_key =
             axagent_crypto::crypto::decrypt_key(&key_row.key_encrypted, &self.master_key)?;
@@ -188,10 +195,7 @@ impl PlatformMessageCallback for PlatformBridge {
     }
 
     async fn save_cursor(&self, platform: &str, cursor: i64) {
-        if let Err(e) =
-            axagent_dao::repo::platform_config::save_platform_cursor(&self.db, platform, cursor)
-                .await
-        {
+        if let Err(e) = platform_config_repository().save_platform_cursor(platform, cursor).await {
             tracing::error!("[PlatformBridge] cursor save failed for {}: {}", platform, e);
         }
     }
@@ -207,14 +211,14 @@ impl PlatformBridge {
         _chat_id: &str,
         text: &str,
     ) -> anyhow::Result<Option<String>> {
-        use axagent_dao::repo::{conversation, message, settings};
         use axagent_harness::types::MessageRole;
         use axagent_kit::slash_command::apply_slash_command_to_input;
 
         let preprocessed = apply_slash_command_to_input(text);
         let effective_text = &preprocessed.modified_text;
 
-        let app_settings = settings::get_settings(&self.db).await?;
+        let app_settings =
+            settings_repository().get_settings().await.map_err(|e| anyhow::anyhow!("{}", e))?;
         let provider_id = app_settings
             .default_provider_id
             .as_deref()
@@ -226,11 +230,13 @@ impl PlatformBridge {
 
         // 尝试复用已有对话：查找已关联的 agent_session
         let conv_title = format!("[{}] {}", platform, username.unwrap_or(user_id));
-        let existing_conv_id =
-            self.platform_manager.get_linked_agent_session(platform, user_id, Some(&self.db)).await;
+        let existing_conv_id = self
+            .platform_manager
+            .get_linked_agent_session(platform, user_id, None::<&sea_orm::DatabaseConnection>)
+            .await;
 
         let conv = if let Some(ref existing_id) = existing_conv_id {
-            match conversation::get_conversation(&self.db, existing_id).await {
+            match conversation_repository().get_conversation(existing_id).await {
                 Ok(c) => {
                     tracing::info!(
                         "[PlatformBridge] reusing existing conversation {} for {} {}",
@@ -242,34 +248,43 @@ impl PlatformBridge {
                 },
                 Err(_) => {
                     // 对话已删除或不存在，创建新对话
-                    conversation::create_conversation(
-                        &self.db,
-                        &conv_title,
-                        model_id,
-                        provider_id,
-                        None,
-                    )
-                    .await?
+                    conversation_repository()
+                        .create_conversation(CreateConversationInput {
+                            title: conv_title,
+                            model_id: model_id.to_string(),
+                            provider_id: provider_id.to_string(),
+                            system_prompt: None,
+                        })
+                        .await
+                        .map_err(|e| anyhow::anyhow!("{}", e))?
                 },
             }
         } else {
             // 没有已有会话，创建新对话
-            conversation::create_conversation(&self.db, &conv_title, model_id, provider_id, None)
-                .await?
+            conversation_repository()
+                .create_conversation(CreateConversationInput {
+                    title: conv_title,
+                    model_id: model_id.to_string(),
+                    provider_id: provider_id.to_string(),
+                    system_prompt: None,
+                })
+                .await
+                .map_err(|e| anyhow::anyhow!("{}", e))?
         };
 
-        message::create_message(
-            &self.db,
-            &conv.id,
-            MessageRole::User,
-            effective_text,
-            &[],
-            None,
-            0,
-        )
-        .await?;
+        message_repository()
+            .create_message(CreateMessageInput {
+                conversation_id: conv.id.clone(),
+                role: MessageRole::User,
+                content: effective_text.to_string(),
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-        conversation::increment_message_count(&self.db, &conv.id).await?;
+        conversation_repository()
+            .increment_message_count(&conv.id)
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
         let safe_username: String = username
             .unwrap_or("unknown")
@@ -305,23 +320,24 @@ impl PlatformBridge {
 
         let reply_content = self.call_llm(provider_id, model_id, messages).await?;
 
-        message::create_message(
-            &self.db,
-            &conv.id,
-            MessageRole::Assistant,
-            &reply_content,
-            &[],
-            None,
-            0,
-        )
-        .await?;
+        message_repository()
+            .create_message(CreateMessageInput {
+                conversation_id: conv.id.clone(),
+                role: MessageRole::Assistant,
+                content: reply_content.clone(),
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-        conversation::increment_message_count(&self.db, &conv.id).await?;
+        conversation_repository()
+            .increment_message_count(&conv.id)
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
         self.platform_manager.link_agent_session(platform, user_id, &conv.id).await;
 
         // 持久化会话路由
-        if let Err(e) = persist_session_route(&self.db, platform, user_id, &conv.id).await {
+        if let Err(e) = persist_session_route(platform, user_id, &conv.id).await {
             tracing::warn!("[PlatformBridge] session route persist failed: {}", e);
         }
 

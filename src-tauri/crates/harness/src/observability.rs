@@ -23,19 +23,3 @@ pub trait ObservabilityProvider: Send + Sync {
     async fn export_traces(&self) -> Result<String, String>;
     async fn export_metrics(&self) -> Result<String, String>;
 }
-#[derive(Default)]
-pub struct NoopObservabilityProvider;
-#[async_trait]
-impl ObservabilityProvider for NoopObservabilityProvider {
-    async fn start_span(&self, _: &str, _: SpanType, _: Map<String, Value>) {}
-    async fn end_span(&self, _: Map<String, Value>) {}
-    async fn record_event(&self, _: &str, _: Map<String, Value>) {}
-    async fn record_metric(&self, _: &str, _: f64, _: Map<String, Value>) {}
-    async fn record_error(&self, _: &str, _: Map<String, Value>) {}
-    async fn export_traces(&self) -> Result<String, String> {
-        Ok("[]".into())
-    }
-    async fn export_metrics(&self) -> Result<String, String> {
-        Ok("{}".into())
-    }
-}

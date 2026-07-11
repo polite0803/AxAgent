@@ -69,7 +69,7 @@ fn normalize_sql(sql: &str) -> String {
 /// Build the connection string, preferring credential manager when
 /// `credential_id` is set, otherwise falling back to `connection_name`
 /// (which may reference an environment variable).
-fn resolve_connection_string(
+async fn resolve_connection_string(
     ctx: &ExecutionState,
     credential_id: Option<&str>,
     connection_name: Option<&str>,
@@ -82,6 +82,7 @@ fn resolve_connection_string(
             )
         })?;
         cm.get_database_connection_string(cid)
+            .await
             .map_err(|e| NodeError::exec_failed("DATABASE_CREDENTIAL_FAILED", e.to_string()))
     } else if let Some(name) = connection_name {
         // Interpret as env var name (e.g. DATABASE_URL)
@@ -119,7 +120,8 @@ impl NodeExecutorTrait for DatabaseQueryExecutor {
             ctx,
             c.credential_id.as_deref(),
             c.connection_name.as_deref(),
-        )?;
+        )
+        .await?;
 
         let pool = AnyPoolOptions::new()
             .max_connections(1)
