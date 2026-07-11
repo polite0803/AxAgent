@@ -32,8 +32,51 @@ impl KitTokenBudgetTracker for NoopTokenBudgetTracker {
 pub struct NoopHtmlCleaner;
 
 impl KitHtmlCleaner for NoopHtmlCleaner {
-    fn extract_readability(&self, _html: &str) -> (String, String, Vec<String>) {
-        Default::default()
+    fn extract_readability(&self, html: &str) -> (String, String, Vec<String>) {
+        // 降级实现：用轻量字符串解析提供与真实 kit 解析器一致的基础结果
+        // （title / 去标签正文 / 绝对链接），使 web_search 等消费者在缺少
+        // 真实 kit 解析器时行为合理。不引入 HTML 解析依赖。
+        let title = html
+            .lines()
+            .find_map(|line| {
+                if let Some(pos) = line.find("<title>") {
+                    let rest = &line[pos + 7..];
+                    if let Some(end) = rest.find("</title>") {
+                        return Some(rest[..end].trim().to_string());
+                    }
+                }
+                None
+            })
+            .unwrap_or_default();
+
+        let mut links = Vec::new();
+        let mut cursor = 0;
+        while let Some(a_pos) = html[cursor..].find("<a ") {
+            let a_start = cursor + a_pos;
+            let tag_len = html[a_start..].find('>').unwrap_or(html.len() - a_start);
+            let tag = &html[a_start..a_start + tag_len];
+            if let Some(href_pos) = tag.find("href=") {
+                let after = &tag[href_pos + 5..];
+                let quote = after.chars().next();
+                if let Some(q) = quote {
+                    let q = q.to_string();
+                    if q == "\"" || q == "'" {
+                        if let Some(end) = after[1..].find(&q) {
+                            let href = &after[1..1 + end];
+                            if (href.starts_with("http://") || href.starts_with("https://"))
+                                && !links.contains(&href.to_string())
+                            {
+                                links.push(href.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            cursor = a_start + tag_len + 1;
+        }
+
+        let body_text = strip_html_tags(html);
+        (title, body_text, links)
     }
     fn detect_language(&self, text: &str) -> &'static str {
         // 镜像 kit::HtmlCleaner::detect_language 的基础启发式，
@@ -127,6 +170,21 @@ fn parse_yaml_tags(value: &str) -> Vec<String> {
     } else {
         vec![value.to_string()]
     }
+}
+
+/// 去除 HTML 标签，保留可见文本（降级解析用，不处理实体与嵌套转义）。
+fn strip_html_tags(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut in_tag = false;
+    for ch in html.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => out.push(ch),
+            _ => {},
+        }
+    }
+    out
 }
 
 // ── NoopSkillDirs ─────────────────────────────────────────────
