@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "Smart Workspace",
-    "description": "AI-Powered Work Assistant"
+    "description": "AI-Powered Work Assistant",
+    "newSkillProposal": "New skill suggestion: {name}"
   },
   "appHeader": {
     "knowledgeContext": "Knowledge Base Overview",
@@ -8698,5 +8699,8 @@
     "useCount": "Use count: {count}",
     "detail": "Details",
     "lexicalOverlap": "Related"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Failed to toggle skill state"
   }
 }

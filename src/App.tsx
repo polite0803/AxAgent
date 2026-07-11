@@ -187,7 +187,7 @@ function AppInner() {
       useSkillStore.getState().addSkillProposal(proposal);
       // 弹出通知，点击跳转到技能页面
       message.info({
-        content: `发现新的技能建议: ${proposal.suggested_name}`,
+        content: t("app.newSkillProposal", { name: proposal.suggested_name }),
         duration: 8,
         onClick: () => navigate("/skills"),
       });
@@ -195,7 +195,7 @@ function AppInner() {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [navigate]);
+  }, [navigate, t]);
 
   useEffect(() => {
     const root = document.documentElement;

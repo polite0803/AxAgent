@@ -11,6 +11,8 @@ import type {
 } from "@/types";
 import { create } from "zustand";
 
+import i18n from "@/i18n";
+
 interface SkillState {
   skills: Skill[];
   marketplaceSkills: MarketplaceSkill[];
@@ -128,7 +130,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       }
       syncExtensionStore(get().skills);
     } catch (e) {
-      logIpcError("切换 skill 状态失败")(e);
+      logIpcError(i18n.t("skillStore.toggleSkillFailed"))(e);
       // 版本检查：如果已被更新的操作覆盖，不执行回滚
       if (toggleVersion.get(name) !== version) {
         return;

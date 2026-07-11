@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "スマートワークスペース",
-    "description": "AI駆動のワークアシスタント"
+    "description": "AI駆動のワークアシスタント",
+    "newSkillProposal": "新しいスキル提案: {name}"
   },
   "artifact": {
     "copiedToClipboard": "クリップボードにコピーしました",
@@ -8625,5 +8626,8 @@
     "useCount": "使用回数: {count}",
     "detail": "詳細",
     "lexicalOverlap": "関連"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "スキル状態の切り替えに失敗しました"
   }
 }

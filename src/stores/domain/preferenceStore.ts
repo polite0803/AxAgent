@@ -360,19 +360,5 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
   },
 }));
 
-// ── 注入自身 + 同步初始状态（微任务推迟，等所有模块初始化完再执行）──
-// 避免循环 import 导致的暂时性死区（TDZ）问题。
-queueMicrotask(() => {
-  _injectPreferenceStore(usePreferenceStore);
-  const prefState = usePreferenceStore.getState();
-  useConversationStore.setState({
-    searchEnabled: prefState.searchEnabled,
-    searchProviderId: prefState.searchProviderId,
-    thinkingBudget: prefState.thinkingBudget,
-    mcpMode: prefState.mcpMode,
-    enabledMcpServerIds: prefState.enabledMcpServerIds,
-    enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
-    activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
-    enabledWikiIds: prefState.enabledWikiIds,
-  });
-});
+// ── 注入自身──
+_injectPreferenceStore(usePreferenceStore);

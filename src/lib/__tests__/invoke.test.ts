@@ -204,7 +204,7 @@ describe("invoke.ts", () => {
 
     it("fetch 相关错误应转换为友好提示", async () => {
       enableTauriMode();
-      mockTauriInvoke.mockRejectedValueOnce(new Error("Fetch error occurred"));
+      mockTauriInvoke.mockRejectedValueOnce(new Error("Fetch failed"));
 
       await expect(invoke("fetch_cmd")).rejects.toThrow(
         "Backend connection failed",

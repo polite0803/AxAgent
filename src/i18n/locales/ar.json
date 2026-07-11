@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "مساحة العمل الذكية",
-    "description": "مساعد عمل يعمل بالذكاء الاصطناعي"
+    "description": "مساعد عمل يعمل بالذكاء الاصطناعي",
+    "newSkillProposal": "New skill suggestion: {name}"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8591,5 +8592,8 @@
     "useCount": "Use count: {count}",
     "detail": "Details",
     "lexicalOverlap": "Related"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Failed to toggle skill state"
   }
 }

@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "Умное рабочее пространство",
-    "description": "Рабочий ассистент на основе ИИ"
+    "description": "Рабочий ассистент на основе ИИ",
+    "newSkillProposal": "Новое предложение навыка: {name}"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8591,5 +8592,8 @@
     "useCount": "Количество использований: {count}",
     "detail": "Подробности",
     "lexicalOverlap": "Связано"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Не удалось переключить состояние навыка"
   }
 }

@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "智聊助手",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "newSkillProposal": "发现新的技能建议: {name}"
   },
   "artifact": {
     "copiedToClipboard": "已复制到剪贴板",
@@ -8724,5 +8725,8 @@
     "useCount": "使用次数: {count}",
     "detail": "详情",
     "lexicalOverlap": "关联"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "切换 skill 状态失败"
   }
 }

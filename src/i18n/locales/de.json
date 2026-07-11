@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "Intelligenter Arbeitsbereich",
-    "description": "KI-gestützter Arbeitsassistent"
+    "description": "KI-gestützter Arbeitsassistent",
+    "newSkillProposal": "Neuer Fähigkeitsvorschlag: {name}"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8588,5 +8589,8 @@
     "useCount": "Nutzungen: {count}",
     "detail": "Details",
     "lexicalOverlap": "Verwandt"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Fehler beim Umschalten des Skill-Status"
   }
 }

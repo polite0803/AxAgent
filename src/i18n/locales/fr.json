@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "Espace de Travail Intelligent",
-    "description": "Assistant de Travail Alimenté par IA"
+    "description": "Assistant de Travail Alimenté par IA",
+    "newSkillProposal": "Nouvelle suggestion de compétence: {name}"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8588,5 +8589,8 @@
     "useCount": "Nombre d'utilisations: {count}",
     "detail": "Détails",
     "lexicalOverlap": "Lié"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Échec de la bascule de l'état de la compétence"
   }
 }

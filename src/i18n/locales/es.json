@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "Espacio de Trabajo Inteligente",
-    "description": "Asistente de Trabajo Impulsado por IA"
+    "description": "Asistente de Trabajo Impulsado por IA",
+    "newSkillProposal": "Nueva sugerencia de habilidad: {name}"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8588,5 +8589,8 @@
     "useCount": "Veces usado: {count}",
     "detail": "Detalles",
     "lexicalOverlap": "Relacionado"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Error al cambiar el estado de la habilidad"
   }
 }

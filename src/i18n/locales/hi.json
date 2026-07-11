@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "स्मार्ट वर्कस्पेस",
-    "description": "AI-संचालित वर्क असिस्टेंट"
+    "description": "AI-संचालित वर्क असिस्टेंट",
+    "newSkillProposal": "New skill suggestion: {name}"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8591,5 +8592,8 @@
     "useCount": "Use count: {count}",
     "detail": "Details",
     "lexicalOverlap": "Related"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Failed to toggle skill state"
   }
 }

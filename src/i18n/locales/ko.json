@@ -2,7 +2,8 @@
   "app": {
     "name": "AxAgent",
     "title": "스마트 워크스페이스",
-    "description": "AI 기반 워크 어시스턴트"
+    "description": "AI 기반 워크 어시스턴트",
+    "newSkillProposal": "새 스킬 제안: {name}"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -8625,5 +8626,8 @@
     "useCount": "사용 횟수: {count}",
     "detail": "상세",
     "lexicalOverlap": "관련"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "스킬 상태 전환 실패"
   }
 }
