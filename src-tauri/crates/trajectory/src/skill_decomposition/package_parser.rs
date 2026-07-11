@@ -4,10 +4,8 @@ use super::multi_turn::{CodeBlock, FileReference, FileType, ReferenceType, Skill
 use regex::Regex;
 use std::path::Path;
 
-#[allow(dead_code)]
 pub(crate) struct SkillPackageParser;
 
-#[allow(dead_code)]
 impl SkillPackageParser {
     pub fn parse_files(files: Vec<(String, String)>) -> Vec<SkillFile> {
         files.into_iter().map(|(path, content)| Self::parse_file(&path, &content)).collect()
@@ -259,14 +257,12 @@ impl SkillPackageParser {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FileGraph {
     pub nodes: Vec<FileNode>,
     pub edges: Vec<FileEdge>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FileNode {
     pub path: String,
     pub file_type: FileType,
@@ -275,14 +271,12 @@ pub(crate) struct FileNode {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FileEdge {
     pub from: String,
     pub to: String,
     pub edge_type: String,
 }
 
-#[allow(dead_code)]
 pub(crate) fn infer_content_type(language: &Option<String>) -> &'static str {
     match language.as_deref().map(|s| s.to_lowercase()).as_deref() {
         Some("python") | Some("py") => "script",

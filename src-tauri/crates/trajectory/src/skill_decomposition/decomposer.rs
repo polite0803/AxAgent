@@ -17,7 +17,6 @@ pub struct CodeBlock {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum SkillContentType {
     Metadata,
     TextualInstruction,

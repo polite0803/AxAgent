@@ -23,7 +23,6 @@ pub(crate) struct CodingPatternMatch {
     pub pattern_type: PatternType,
     pub value: String,
     pub confidence: f32,
-    #[allow(dead_code)]
     pub occurrences: u32,
 }
 
@@ -32,9 +31,7 @@ pub(crate) enum PatternType {
     Naming,
     Indentation,
     Comment,
-    #[allow(dead_code)]
     ModuleStructure,
-    #[allow(dead_code)]
     ErrorHandling,
 }
 

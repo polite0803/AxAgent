@@ -320,7 +320,6 @@ fn serialize_steps(steps: &[ProcedureStep]) -> String {
     content
 }
 
-#[allow(dead_code)]
 pub(crate) struct DefaultLlmEvolutionProvider;
 
 impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {

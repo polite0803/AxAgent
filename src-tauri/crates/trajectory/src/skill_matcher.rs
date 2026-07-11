@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillMatch {
     pub skill: MatchedSkill,
     #[serde(rename = "matchScore")]
@@ -21,7 +20,6 @@ pub(crate) struct SkillMatch {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct MatchedSkill {
     pub id: String,
     pub name: String,
@@ -32,7 +30,6 @@ pub(crate) struct MatchedSkill {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[allow(dead_code)]
 pub(crate) enum MatchSource {
     Installed,
     Marketplace,
@@ -40,7 +37,6 @@ pub(crate) enum MatchSource {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct MatchingResult {
     pub matches: Vec<SkillMatch>,
     #[serde(rename = "bestMatch")]
@@ -59,10 +55,8 @@ pub enum Complexity {
     High,
 }
 
-#[allow(dead_code)]
 struct KeywordPatterns;
 
-#[allow(dead_code)]
 impl KeywordPatterns {
     fn get() -> HashMap<&'static str, Vec<&'static str>> {
         let mut patterns = HashMap::new();
@@ -118,13 +112,11 @@ impl ComplexityIndicators {
         vec!["create", "generate", "process", "convert", "extract", "manage"]
     }
 
-    #[allow(dead_code)]
     fn get_low() -> Vec<&'static str> {
         vec!["show", "tell", "what is", "how to", "find", "search"]
     }
 }
 
-#[allow(dead_code)]
 fn calculate_match_score(
     user_input: &str,
     skill_id: &str,
@@ -205,7 +197,6 @@ pub fn estimate_complexity_public(user_input: &str) -> Complexity {
     estimate_complexity(user_input)
 }
 
-#[allow(dead_code)]
 pub(crate) struct SkillMatcher {
     min_score_threshold: f64,
 }
@@ -216,7 +207,6 @@ impl Default for SkillMatcher {
     }
 }
 
-#[allow(dead_code)]
 impl SkillMatcher {
     pub(crate) fn new() -> Self {
         Self { min_score_threshold: 0.1 }
@@ -285,7 +275,6 @@ impl SkillMatcher {
         }
     }
 
-    #[allow(dead_code)]
     fn suggest_marketplace_skills(&self, user_input: &str) -> Vec<String> {
         let input_lower = user_input.to_lowercase();
         let mut suggestions = Vec::new();
@@ -310,7 +299,6 @@ impl SkillMatcher {
     }
 }
 
-#[allow(dead_code)]
 impl Skill {
     pub(crate) fn to_matched_skill(&self) -> MatchedSkill {
         MatchedSkill {

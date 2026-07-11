@@ -60,10 +60,8 @@ pub struct MemoryExtractionResult {
 }
 
 pub struct AutoMemoryExtractor {
-    #[allow(dead_code)]
     storage: Arc<TrajectoryStorage>,
     memory_service: Arc<tokio::sync::RwLock<MemoryService>>,
-    #[allow(dead_code)]
     pattern_learner: Arc<tokio::sync::RwLock<PatternLearner>>,
     recent_extractions: Vec<ExtractedMemory>,
     extraction_cache: HashMap<String, Vec<ExtractedMemory>>,

@@ -292,12 +292,6 @@ impl DefaultTextGradProvider {
         Self { max_gradient_length: 2000 }
     }
 
-    #[allow(dead_code)]
-    pub fn with_max_length(mut self, max_length: usize) -> Self {
-        self.max_gradient_length = max_length;
-        self
-    }
-
     fn heuristic_gradient(node_content: &str, output_feedback: &str) -> String {
         let mut suggestions = Vec::new();
 

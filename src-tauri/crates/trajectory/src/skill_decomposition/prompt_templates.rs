@@ -3,17 +3,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct LlmPromptTemplate {
     pub system: String,
     pub user_template: String,
     pub expected_schema: serde_json::Value,
 }
 
-#[allow(dead_code)]
 pub(crate) struct PromptTemplates;
 
-#[allow(dead_code)]
 const ATOMIC_SKILL_SCHEMA: &str = r#"{
   "name": "string (必填) - 技能唯一名称，格式: snake_case",
   "description": "string (必填) - 技能功能描述",
@@ -36,7 +33,6 @@ const ATOMIC_SKILL_SCHEMA: &str = r#"{
   }
 }"#;
 
-#[allow(dead_code)]
 const WORKFLOW_NODE_TYPES: &str = r#"节点类型 (node.type):
 - trigger: 触发器节点，config: { type: "manual"|"schedule"|"webhook"|"event", config: {} }
 - agent: Agent节点，config: { role: "researcher"|"planner"|"developer"|"reviewer"|"synthesizer"|"executor", system_prompt, context_sources, output_var, tools, output_mode }
@@ -51,7 +47,6 @@ const WORKFLOW_NODE_TYPES: &str = r#"节点类型 (node.type):
 - atomicSkill: 工作流步骤节点，config: { skill_id, skill_name, entry_type, input_mapping, output_var }
 - end: 结束节点，config: { output_var }"#;
 
-#[allow(dead_code)]
 const WORKFLOW_EDGE_TYPES: &str = r#"边类型 (edge.edge_type):
 - direct: 直接边
 - conditionTrue: 条件为真
@@ -61,14 +56,12 @@ const WORKFLOW_EDGE_TYPES: &str = r#"边类型 (edge.edge_type):
 - merge: 合并边
 - error: 错误边"#;
 
-#[allow(dead_code)]
 const TOOL_ENTRY_TYPES: &str = r#"工具入口类型 (entry_type):
 - builtin: 内置工具
 - mcp: MCP协议工具
 - local: 本地工具
 - plugin: 插件工具"#;
 
-#[allow(dead_code)]
 impl PromptTemplates {
     pub(crate) fn turn1_understand() -> LlmPromptTemplate {
         LlmPromptTemplate {

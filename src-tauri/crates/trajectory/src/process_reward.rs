@@ -32,7 +32,6 @@ pub struct ProcessRewardResult {
 }
 
 pub struct DefaultPrmProvider {
-    #[allow(dead_code)]
     task_context: String,
 }
 

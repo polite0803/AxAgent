@@ -60,7 +60,6 @@ impl Default for PrefetchResults {
 pub struct TaskPrefetcher {
     config: PrefetcherConfig,
     cache: HashMap<String, PrefetchResult>,
-    #[allow(dead_code)]
     pending_prefetches: HashMap<String, PrefetchTask>,
 }
 
@@ -306,7 +305,6 @@ impl TaskPrefetcher {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct PrefetchTask {
     resource_id: String,
     prefetch_type: PrefetchType,

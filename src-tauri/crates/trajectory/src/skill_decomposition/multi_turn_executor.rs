@@ -8,7 +8,6 @@ use crate::skill_decomposition::DecompositionResult;
 use tokio::sync::mpsc;
 use tokio::time::{Duration, sleep};
 
-#[allow(dead_code)]
 pub(crate) trait LlmClient: Send + Sync {
     fn chat(
         &self,
@@ -17,18 +16,15 @@ pub(crate) trait LlmClient: Send + Sync {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub(crate) struct ChatMessageInput {
     pub role: String,
     pub content: String,
 }
 
-#[allow(dead_code)]
 pub(crate) struct MultiTurnDecomposer<C: LlmClient> {
     llm_client: C,
 }
 
-#[allow(dead_code)]
 impl<C: LlmClient> MultiTurnDecomposer<C> {
     pub(crate) fn new(llm_client: C) -> Self {
         Self { llm_client }
@@ -141,7 +137,6 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
         Self::parse_final_result(&final_json)
     }
 
-    #[allow(dead_code)]
     fn build_file_list(files: &[super::multi_turn::SkillFile]) -> String {
         files
             .iter()
@@ -150,7 +145,6 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
             .join("\n")
     }
 
-    #[allow(dead_code)]
     fn build_file_summaries(files: &[super::multi_turn::SkillFile]) -> String {
         files
             .iter()
@@ -169,7 +163,6 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
             .join("\n")
     }
 
-    #[allow(dead_code)]
     fn build_file_contents_for_classify(files: &[super::multi_turn::SkillFile]) -> String {
         files
             .iter()
@@ -198,7 +191,6 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
             .join("\n\n")
     }
 
-    #[allow(dead_code)]
     fn detect_primary_language(files: &[super::multi_turn::SkillFile]) -> String {
         let mut language_counts: std::collections::HashMap<String, usize> =
             std::collections::HashMap::new();
@@ -217,7 +209,6 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
             .unwrap_or_else(|| "python".to_string())
     }
 
-    #[allow(dead_code)]
     fn extract_code_from_files(files: &[super::multi_turn::SkillFile]) -> String {
         files
             .iter()
@@ -227,7 +218,6 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
             .join("\n\n")
     }
 
-    #[allow(dead_code)]
     fn turn_name(turn: u32) -> &'static str {
         match turn {
             1 => "文件理解",
@@ -239,12 +229,10 @@ impl<C: LlmClient> MultiTurnDecomposer<C> {
         }
     }
 
-    #[allow(dead_code)]
     fn build_final_result(results: &[String]) -> String {
         results.last().cloned().unwrap_or_else(|| "{}".to_string())
     }
 
-    #[allow(dead_code)]
     fn parse_final_result(json: &serde_json::Value) -> Result<DecompositionResult, String> {
         let validation_result = WorkflowValidator::validate(json);
 

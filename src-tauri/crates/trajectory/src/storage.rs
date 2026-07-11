@@ -534,26 +534,6 @@ impl TrajectoryStorage {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    pub(crate) async fn get_skill_analytics(&self, sid: &str) -> Result<SkillAnalytics> {
-        let all_execs = trajectory_skill_executions::Entity::find()
-            .filter(trajectory_skill_executions::Column::SkillId.eq(sid))
-            .all(self.db.as_ref())
-            .await?;
-        let total = all_execs.len() as u64;
-        let successes = all_execs.iter().filter(|e| e.success != 0).count() as u64;
-        Ok(SkillAnalytics {
-            total_executions: total as u32,
-            success_rate: if total > 0 {
-                successes as f64 / total as f64
-            } else {
-                0.0
-            },
-            avg_execution_time_ms: 0.0,
-            recent_executions: std::cmp::Ord::min(total, 100) as u32,
-        })
-    }
-
     // ── Entities ──
 
     pub async fn save_entity(&self, e: &Entity) -> Result<()> {
@@ -1370,100 +1350,6 @@ fn model_to_msg(m: &trajectory_messages::Model) -> Message {
         created_at: chrono::DateTime::parse_from_rfc3339(&m.created_at)
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now()),
-    }
-}
-
-// ── TrajectoryQueue ──
-
-use std::collections::VecDeque;
-use tokio::sync::mpsc::{self, Sender};
-
-#[allow(dead_code)]
-pub(crate) struct TrajectoryQueue {
-    storage: Arc<TrajectoryStorage>,
-    sender: Sender<Trajectory>,
-    handle: tokio::task::JoinHandle<()>,
-    shutdown_tx: Option<tokio::sync::oneshot::Sender<()>>,
-}
-
-#[allow(dead_code)]
-impl TrajectoryQueue {
-    pub(crate) fn new(storage: Arc<TrajectoryStorage>, buffer_size: usize) -> Self {
-        let (tx, mut rx) = mpsc::channel::<Trajectory>(buffer_size);
-        let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel::<()>();
-        let sc = storage.clone();
-        let handle = tokio::spawn(async move {
-            let mut batch: VecDeque<Trajectory> = VecDeque::with_capacity(32);
-            let mut fi = tokio::time::interval(tokio::time::Duration::from_secs(1));
-            loop {
-                tokio::select! {
-                    Some(t) = rx.recv() => { batch.push_back(t); if batch.len() >= 32 { flush(&sc, &mut batch).await; } }
-                    _ = fi.tick() => { if !batch.is_empty() { flush(&sc, &mut batch).await; } }
-                    _ = &mut shutdown_rx => { flush(&sc, &mut batch).await; break; }
-                }
-            }
-        });
-        Self { storage, sender: tx, handle, shutdown_tx: Some(shutdown_tx) }
-    }
-
-    /// P1-6: try_enqueue 失败时落盘（直接调用 storage.save_trajectory），
-    /// 不再静默丢弃。同时仍返回是否入队成功供上层判断。
-    pub(crate) fn try_enqueue(&self, t: Trajectory) -> bool {
-        if self.sender.try_send(t.clone()).is_ok() {
-            return true;
-        }
-        // 队列满或关闭：降级为直接落盘，避免数据丢失
-        let storage = self.storage.clone();
-        tokio::spawn(async move {
-            let _ = AssertUnwindSafe(async {
-                if let Err(e) = storage.save_trajectory(&t).await {
-                    warn!("[TrajectoryQueue] fallback persistence failed: {}", e);
-                }
-            })
-            .catch_unwind()
-            .await;
-        });
-        // 入队失败但已落盘
-        true
-    }
-    pub(crate) async fn enqueue(
-        &self,
-        t: Trajectory,
-    ) -> Result<(), tokio::sync::mpsc::error::TrySendError<Trajectory>> {
-        match self.sender.send(t.clone()).await {
-            Ok(()) => Ok(()),
-            Err(_) => {
-                // 通道已关闭：直接落盘
-                let storage = self.storage.clone();
-                let t_for_persist = t.clone();
-                tokio::spawn(async move {
-                    let _ = AssertUnwindSafe(async {
-                        let _ = storage.save_trajectory(&t_for_persist).await;
-                    })
-                    .catch_unwind()
-                    .await;
-                });
-                Err(tokio::sync::mpsc::error::TrySendError::Closed(t))
-            },
-        }
-    }
-    pub(crate) fn storage(&self) -> &Arc<TrajectoryStorage> {
-        &self.storage
-    }
-    pub(crate) async fn shutdown(self) {
-        if let Some(tx) = self.shutdown_tx {
-            let _ = tx.send(());
-        }
-        let _ = self.handle.await;
-    }
-}
-
-#[allow(dead_code)]
-async fn flush(storage: &Arc<TrajectoryStorage>, batch: &mut VecDeque<Trajectory>) {
-    while let Some(t) = batch.pop_front() {
-        if let Err(e) = storage.save_trajectory(&t).await {
-            warn!("[TrajectoryQueue] failed: {}", e);
-        }
     }
 }
 

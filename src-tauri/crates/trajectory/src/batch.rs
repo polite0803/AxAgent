@@ -64,7 +64,6 @@ pub enum SamplingStrategy {
 
 pub struct BatchProcessor {
     storage: Arc<TrajectoryStorage>,
-    #[allow(dead_code)]
     config: BatchConfig,
 }
 

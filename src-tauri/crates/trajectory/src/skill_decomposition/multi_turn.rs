@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum MessageType {
     Thinking,
     Observation,
@@ -20,7 +19,6 @@ pub(crate) enum MessageType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum TurnStatus {
     Pending,
     InProgress,
@@ -29,7 +27,6 @@ pub(crate) enum TurnStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct AgentMessage {
     pub id: String,
     pub turn: u32,
@@ -43,7 +40,6 @@ pub(crate) struct AgentMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum MessageStatus {
     Streaming,
     Completed,
@@ -51,7 +47,6 @@ pub(crate) enum MessageStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct MessageMetadata {
     pub file: Option<String>,
     pub function: Option<String>,
@@ -60,7 +55,6 @@ pub(crate) struct MessageMetadata {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct TurnContext {
     pub turn_id: u32,
     pub turn_name: String,
@@ -69,7 +63,6 @@ pub(crate) struct TurnContext {
     pub result: Option<serde_json::Value>,
 }
 
-#[allow(dead_code)]
 impl TurnContext {
     pub(crate) fn new(turn_id: u32, turn_name: &str) -> Self {
         Self {
@@ -83,7 +76,6 @@ impl TurnContext {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FileReference {
     pub from_file: String,
     pub to_file: String,
@@ -93,7 +85,6 @@ pub(crate) struct FileReference {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum ReferenceType {
     Import,
     Include,
@@ -102,7 +93,6 @@ pub(crate) enum ReferenceType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillFile {
     pub path: String,
     pub file_type: FileType,
@@ -113,7 +103,6 @@ pub(crate) struct SkillFile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum FileType {
     Markdown,
     Python,
@@ -134,7 +123,6 @@ pub(crate) enum FileType {
     Other,
 }
 
-#[allow(dead_code)]
 impl FileType {
     pub(crate) fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
@@ -191,7 +179,6 @@ impl FileType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct CodeBlock {
     pub id: String,
     pub language: Option<String>,
@@ -201,7 +188,6 @@ pub(crate) struct CodeBlock {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct SkillPackage {
     pub files: Vec<SkillFile>,
     pub main_file: Option<String>,
@@ -209,7 +195,6 @@ pub(crate) struct SkillPackage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct PackageMetadata {
     pub name: Option<String>,
     pub version: Option<String>,
@@ -217,7 +202,6 @@ pub(crate) struct PackageMetadata {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct ConversationTurn {
     pub role: MessageRole,
     pub content: String,
@@ -226,14 +210,12 @@ pub(crate) struct ConversationTurn {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum MessageRole {
     System,
     User,
     Assistant,
 }
 
-#[allow(dead_code)]
 pub(crate) struct DecompositionSession {
     pub session_id: String,
     pub package: Option<SkillPackage>,
@@ -248,7 +230,6 @@ pub(crate) struct DecompositionSession {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum SessionState {
     Initializing,
     AwaitingFiles,
@@ -261,7 +242,6 @@ pub(crate) enum SessionState {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct PartialResults {
     pub file_structure: Option<FileStructure>,
     pub content_classifications: Vec<FileClassification>,
@@ -270,7 +250,6 @@ pub(crate) struct PartialResults {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FileStructure {
     pub main_file: String,
     pub supporting_files: Vec<String>,
@@ -278,7 +257,6 @@ pub(crate) struct FileStructure {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FileRelationship {
     pub from_file: String,
     pub to_file: String,
@@ -286,7 +264,6 @@ pub(crate) struct FileRelationship {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FileClassification {
     pub file: String,
     pub types: Vec<String>,
@@ -294,7 +271,6 @@ pub(crate) struct FileClassification {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct FunctionAnalysis {
     pub name: String,
     pub function_type: String,
@@ -307,14 +283,12 @@ pub(crate) struct FunctionAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct ParamInfo {
     pub name: String,
     pub param_type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct WorkflowDesign {
     pub workflow_type: String,
     pub nodes: Vec<WorkflowNode>,
@@ -323,7 +297,6 @@ pub(crate) struct WorkflowDesign {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct WorkflowNode {
     pub id: String,
     pub node_type: String,
@@ -332,7 +305,6 @@ pub(crate) struct WorkflowNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct WorkflowEdge {
     pub from_node: String,
     pub to_node: String,
@@ -340,7 +312,6 @@ pub(crate) struct WorkflowEdge {
     pub data_mapping: HashMap<String, String>,
 }
 
-#[allow(dead_code)]
 impl DecompositionSession {
     pub(crate) fn new(session_id: String) -> Self {
         Self {
@@ -389,7 +360,6 @@ impl DecompositionSession {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct DecompositionEvent {
     pub event_type: EventType,
     pub turn: u32,
@@ -400,7 +370,6 @@ pub(crate) struct DecompositionEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
 pub(crate) enum EventType {
     TurnStart,
     TurnProgress,
@@ -412,7 +381,6 @@ pub(crate) enum EventType {
     Error,
 }
 
-#[allow(dead_code)]
 impl DecompositionEvent {
     pub(crate) fn turn_start(turn: u32, content: &str) -> Self {
         Self {

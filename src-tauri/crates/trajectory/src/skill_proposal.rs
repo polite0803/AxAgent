@@ -20,7 +20,6 @@ const MIN_SUCCESSFUL_TRAJECTORIES: usize = 2;
 const MAX_PROPOSALS_STORED: usize = 50;
 
 pub struct SkillProposalService {
-    #[allow(dead_code)]
     storage: Arc<TrajectoryStorage>,
     recent_proposals: Vec<SkillProposal>,
     topic_trajectory_count: HashMap<String, usize>,
@@ -224,7 +223,6 @@ fn truncate_args(args: &str, max_len: usize) -> String {
     }
 }
 
-#[allow(dead_code)]
 pub(crate) fn create_skill_from_proposal(proposal: &SkillProposal) -> SkillCreationParams {
     SkillCreationParams {
         name: proposal.suggested_name.clone(),

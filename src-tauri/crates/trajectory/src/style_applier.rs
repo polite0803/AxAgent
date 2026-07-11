@@ -19,9 +19,6 @@ static MULTI_LINE_COMMENT_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("MULTI_LINE_COMMENT_RE is valid"));
 static HEADING_MARKUP_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^#+\s+").expect("HEADING_MARKUP_RE is valid"));
-#[allow(dead_code)]
-static BOLD_HEADERS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.+)$").expect("BOLD_HEADERS_RE is valid"));
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeStyleTemplate {
@@ -477,85 +474,5 @@ impl StyleApplier {
 impl Default for StyleApplier {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[allow(dead_code)]
-pub(crate) struct DocumentStyleApplicator {
-    pub profile: DocumentStyleProfile,
-}
-
-#[allow(dead_code)]
-impl DocumentStyleApplicator {
-    pub fn new(profile: DocumentStyleProfile) -> Self {
-        Self { profile }
-    }
-
-    pub fn apply_to_message(&self, message: &str) -> String {
-        let mut result = message.to_string();
-
-        result = self.apply_formatting(&result);
-        result = self.apply_structure(&result);
-
-        result
-    }
-
-    fn apply_formatting(&self, content: &str) -> String {
-        match self.profile.preferred_format {
-            DocumentFormat::Markdown => self.apply_markdown_formatting(content),
-            DocumentFormat::Structured => self.apply_structured_formatting(content),
-            DocumentFormat::PlainText => content.to_string(),
-        }
-    }
-
-    fn apply_markdown_formatting(&self, content: &str) -> String {
-        let mut result = content.to_string();
-
-        if self.profile.formality_level > 0.7 && !result.contains("**") {
-            result = self.make_bold_headers(&result);
-        }
-
-        result
-    }
-
-    fn apply_structured_formatting(&self, content: &str) -> String {
-        let mut result = Vec::new();
-
-        for line in content.lines() {
-            let trimmed = line.trim();
-            if !trimmed.is_empty() && !trimmed.starts_with('-') && !trimmed.starts_with('*') {
-                result.push(format!("- {}", trimmed));
-            } else {
-                result.push(line.to_string());
-            }
-        }
-
-        result.join("\n")
-    }
-
-    fn apply_structure(&self, content: &str) -> String {
-        if self.profile.structure_level < 0.3 {
-            return content.to_string();
-        }
-
-        let lines: Vec<&str> = content.lines().collect();
-
-        if lines.len() > 3 && !lines[0].starts_with('#') {
-            let title = lines[0];
-            let formatted_title = format!("# {}", title);
-            return format!("{}\n{}", formatted_title, content);
-        }
-
-        content.to_string()
-    }
-
-    fn make_bold_headers(&self, content: &str) -> String {
-        BOLD_HEADERS_RE
-            .replace_all(content, |caps: &regex::Captures| {
-                let hashes = &caps[1];
-                let title = &caps[2];
-                format!("{} **{}**", hashes, title)
-            })
-            .to_string()
     }
 }

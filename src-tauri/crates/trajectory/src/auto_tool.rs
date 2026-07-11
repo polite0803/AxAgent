@@ -49,7 +49,6 @@ impl Default for AutoToolCreatorConfig {
 }
 
 pub struct DefaultLlmToolProvider {
-    #[allow(dead_code)]
     template_prefix: String,
 }
 

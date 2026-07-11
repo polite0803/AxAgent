@@ -110,16 +110,6 @@ impl TrajectoryCompressor {
             compression_ratio,
         }
     }
-
-    #[allow(dead_code)]
-    pub fn to_jsonl(
-        &self,
-        trajectories: &[CompressedTrajectory],
-    ) -> Result<String, serde_json::Error> {
-        let lines: Result<Vec<String>, _> =
-            trajectories.iter().map(serde_json::to_string).collect();
-        Ok(lines?.join("\n"))
-    }
 }
 
 fn summarize(content: &str, max_len: usize) -> String {
