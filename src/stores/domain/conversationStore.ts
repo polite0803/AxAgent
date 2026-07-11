@@ -68,7 +68,7 @@ function syncPrefState(): void {
         enabledWikiIds: prefState.enabledWikiIds,
       });
     } catch {
-      /* 模块仍在初始化中 */
+      /* module still initializing */
     }
   })();
 }
