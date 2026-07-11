@@ -11,6 +11,7 @@
     "dist/**/*",
     "target/**/*",
     "public/**/*",
+    "output/**/*",
     "**/CHANGELOG.md",
     "src-tauri/schema-gen/**/*"
   ],
