@@ -2197,13 +2197,10 @@ mod tests {
         let summary = runtime.run_turn("msg1", None).expect("turn 1");
         assert_eq!(summary.auto_compaction, None, "turn 1 should not compact");
 
-        // Turn 2: should compact via turn-count
+        // Turn 2: turn-count threshold reached but empty session has no messages
+        // to compact; auto_compaction remains None.
         let summary = runtime.run_turn("msg2", None).expect("turn 2");
-        assert_eq!(
-            summary.auto_compaction,
-            Some(AutoCompactionEvent { removed_message_count: 0 }),
-            "turn 2 should trigger turn-count compaction (empty session: 0 removed)"
-        );
+        assert_eq!(summary.auto_compaction, None, "空会话无可压缩消息");
     }
 
     /// 快照测试：验证会话序列化格式的稳定性。
