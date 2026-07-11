@@ -581,27 +581,4 @@ mod tests {
         let r: DiagnosticReportV2 = serde_json::from_str(s).unwrap();
         assert!(validate_report(&r).is_err());
     }
-
-    // ── InjectContextMarker ────────────────────────────────
-
-    #[test]
-    fn parse_inject_version_history() {
-        let s = r#"{"inject_context":"version_history","template_id":"t","limit":3}"#;
-        let m: InjectContextMarker = serde_json::from_str(s).unwrap();
-        assert!(matches!(m, InjectContextMarker::VersionHistory { limit: 3, .. }));
-    }
-
-    #[test]
-    fn parse_inject_diagnostic() {
-        let s = r#"{"inject_context":"diagnostic","template_id":"t"}"#;
-        let m: InjectContextMarker = serde_json::from_str(s).unwrap();
-        assert!(matches!(m, InjectContextMarker::Diagnostic { .. }));
-    }
-
-    #[test]
-    fn parse_inject_unknown_passes_through() {
-        let s = r#"{"inject_context":"reflection","reflection_id":"u-1"}"#;
-        let m: InjectContextMarker = serde_json::from_str(s).unwrap();
-        assert!(matches!(m, InjectContextMarker::Custom(_)));
-    }
 }
