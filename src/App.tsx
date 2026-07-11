@@ -29,10 +29,11 @@ import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri, listen } from "@/lib/invoke";
-import { useAgentPanelStore, useSettingsStore, useStreamStore, useUIStore } from "@/stores";
+import { useAgentPanelStore, useSettingsStore, useSkillStore, useStreamStore, useUIStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
-import { App as AntdApp, ConfigProvider, theme } from "antd";
+import type { SkillProposal } from "@/types";
+import { App as AntdApp, ConfigProvider, message, theme } from "antd";
 import { setDefaultI18nMap } from "markstream-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -174,6 +175,27 @@ function AppInner() {
       unlisten.then((fn) => fn());
     };
   }, [handleCloseRequested]);
+
+  // 监听后端子技能提案事件，自动弹出通知
+  useEffect(() => {
+    if (!isTauri()) {
+      return;
+    }
+    const unlisten = listen<SkillProposal>("skill-proposal", (event) => {
+      const proposal = event.payload;
+      // 将提案添加到 store，供 SkillsPage 的 SkillProposalPanel 展示
+      useSkillStore.getState().addSkillProposal(proposal);
+      // 弹出通知，点击跳转到技能页面
+      message.info({
+        content: t("app.newSkillProposal", { name: proposal.suggested_name }),
+        duration: 8,
+        onClick: () => navigate("/skills"),
+      });
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [navigate, t]);
 
   useEffect(() => {
     const root = document.documentElement;

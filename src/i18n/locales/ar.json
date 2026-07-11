@@ -10071,5 +10071,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "Learning Graph",
+    "skills": "Skills",
+    "memories": "Memories",
+    "insights": "Insights",
+    "edges": "Edges",
+    "searchPlaceholder": "Search nodes...",
+    "all": "All",
+    "refresh": "Refresh",
+    "emptyDescription": "No data yet. Complete tasks to generate learning graph",
+    "useCount": "Use count: {count}",
+    "detail": "Details",
+    "lexicalOverlap": "Related"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Failed to toggle skill state"
   }
 }

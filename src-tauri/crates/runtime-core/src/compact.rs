@@ -562,13 +562,24 @@ fn extract_existing_compacted_summary(
     }
 
     let text = first_text_block(message)?;
-    let summary = text.strip_prefix(compact_continuation_preamble(provider))?;
-    let summary = summary
-        .split_once(&("\n\n".to_string() + compact_recent_messages_note(provider)))
-        .map_or(summary, |(value, _)| value);
-    let summary = summary
-        .split_once(&("\n".to_string() + compact_direct_resume_instruction(provider)))
-        .map_or(summary, |(value, _)| value);
+    let preamble = compact_continuation_preamble(provider);
+    let summary = text.strip_prefix(preamble)?;
+
+    // 仅当后缀文本非空时才做剥离（如 NoopPromptProvider 返回空字符串时
+    // 拆分符退化为纯 "\n"，会误截整个 formatted_summary 的第一行）。
+    let note = compact_recent_messages_note(provider);
+    let summary = if !note.is_empty() {
+        summary.split_once(&("\n\n".to_string() + note)).map_or(summary, |(value, _)| value)
+    } else {
+        summary
+    };
+    let instruction = compact_direct_resume_instruction(provider);
+    let summary = if !instruction.is_empty() {
+        summary.split_once(&("\n".to_string() + instruction)).map_or(summary, |(value, _)| value)
+    } else {
+        summary
+    };
+
     Some(summary.trim().to_string())
 }
 

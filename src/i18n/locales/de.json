@@ -10068,5 +10068,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "Lerngraph",
+    "skills": "Fähigkeiten",
+    "memories": "Erinnerungen",
+    "insights": "Einblicke",
+    "edges": "Verbindungen",
+    "searchPlaceholder": "Knoten suchen...",
+    "all": "Alle",
+    "refresh": "Aktualisieren",
+    "emptyDescription": "Noch keine Daten. Erledigen Sie Aufgaben, um einen Lerngraphen zu generieren",
+    "useCount": "Nutzungen: {count}",
+    "detail": "Details",
+    "lexicalOverlap": "Verwandt"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Fehler beim Umschalten des Skill-Status"
   }
 }

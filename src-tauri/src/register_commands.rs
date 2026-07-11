@@ -271,6 +271,9 @@ macro_rules! register_all_commands {
             commands::dashboard::dashboard_open_plugins_folder,
             commands::dashboard::dashboard_install_plugin,
             commands::dashboard::get_dashboard_stats,
+            commands::dashboard::get_usage_trend,
+            commands::dashboard::get_cost_by_provider,
+            commands::learning_graph::get_learning_graph,
             #[cfg(not(mobile))]
             commands::computer_control::grant_computer_control_permission,
             #[cfg(not(mobile))]
@@ -665,6 +668,8 @@ macro_rules! register_all_commands {
             commands::tracer::tracer_submit_feedback,
             commands::tracer::tracer_get_feedback,
             commands::tracer::telemetry_report_error,
+            // NL to Cron
+            commands::nl_to_cron::nl_to_cron,
             // RL Training commands
             commands::rl_training::start_rl_training,
             commands::rl_training::stop_rl_training,

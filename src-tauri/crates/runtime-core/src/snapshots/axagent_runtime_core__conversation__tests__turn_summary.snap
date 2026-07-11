@@ -1,0 +1,39 @@
+---
+source: crates/runtime-core/src/conversation.rs
+assertion_line: 2257
+expression: serialized
+---
+{
+  "assistant_messages": [
+    {
+      "role": "assistant",
+      "blocks": [
+        {
+          "Text": {
+            "text": "Hello!"
+          }
+        }
+      ]
+    }
+  ],
+  "tool_results": [],
+  "prompt_cache_events": [
+    {
+      "unexpected": false,
+      "reason": "cache read",
+      "previous_cache_read_input_tokens": 1000,
+      "current_cache_read_input_tokens": 800,
+      "token_drop": 200
+    }
+  ],
+  "iterations": 1,
+  "usage": {
+    "input_tokens": 100,
+    "output_tokens": 10,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 800,
+    "cache_miss_input_tokens": null
+  },
+  "auto_compaction": null,
+  "thinking": ""
+}

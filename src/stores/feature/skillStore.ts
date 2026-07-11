@@ -11,6 +11,8 @@ import type {
 } from "@/types";
 import { create } from "zustand";
 
+import i18n from "@/i18n";
+
 interface SkillState {
   skills: Skill[];
   marketplaceSkills: MarketplaceSkill[];
@@ -53,6 +55,7 @@ interface SkillState {
   patchSkill: (name: string, content: string) => Promise<string>;
   editSkill: (name: string, content: string) => Promise<string>;
   loadSkillProposals: () => Promise<SkillProposal[]>;
+  addSkillProposal: (proposal: SkillProposal) => void;
   createSkillFromProposal: (
     name: string,
     description: string,
@@ -127,7 +130,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       }
       syncExtensionStore(get().skills);
     } catch (e) {
-      logIpcError("切换 skill 状态失败")(e);
+      logIpcError(i18n.t("skillStore.toggleSkillFailed"))(e);
       // 版本检查：如果已被更新的操作覆盖，不执行回滚
       if (toggleVersion.get(name) !== version) {
         return;
@@ -318,6 +321,16 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
     syncExtensionStore(get().skills);
     return result;
+  },
+
+  addSkillProposal: (proposal: SkillProposal) => {
+    set((s) => {
+      // 避免重复添加
+      if (s.skillProposals.some((p) => p.suggested_name === proposal.suggested_name)) {
+        return s;
+      }
+      return { skillProposals: [...s.skillProposals, proposal] };
+    });
   },
 }));
 

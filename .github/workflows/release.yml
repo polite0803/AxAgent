@@ -412,6 +412,14 @@ jobs:
           ref: master
           submodules: recursive
 
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/powershell 2>/dev/null || true
+          sudo docker image prune -af 2>/dev/null || true
+          df -h /
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:

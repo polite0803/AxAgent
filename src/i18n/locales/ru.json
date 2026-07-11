@@ -10071,5 +10071,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "Граф обучения",
+    "skills": "Навыки",
+    "memories": "Воспоминания",
+    "insights": "Инсайты",
+    "edges": "Связи",
+    "searchPlaceholder": "Поиск узлов...",
+    "all": "Все",
+    "refresh": "Обновить",
+    "emptyDescription": "Пока нет данных. Выполняйте задачи для создания графа обучения",
+    "useCount": "Количество использований: {count}",
+    "detail": "Подробности",
+    "lexicalOverlap": "Связано"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Не удалось переключить состояние навыка"
   }
 }

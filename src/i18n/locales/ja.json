@@ -10105,5 +10105,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "学習グラフ",
+    "skills": "スキル",
+    "memories": "記憶",
+    "insights": "洞察",
+    "edges": "関連",
+    "searchPlaceholder": "ノード検索...",
+    "all": "すべて",
+    "refresh": "更新",
+    "emptyDescription": "データがありません。タスクを完了すると学習グラフが生成されます",
+    "useCount": "使用回数: {count}",
+    "detail": "詳細",
+    "lexicalOverlap": "関連"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "スキル状態の切り替えに失敗しました"
   }
 }

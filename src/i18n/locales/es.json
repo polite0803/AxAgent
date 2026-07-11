@@ -10068,5 +10068,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "Gráfico de aprendizaje",
+    "skills": "Habilidades",
+    "memories": "Recuerdos",
+    "insights": "Perspectivas",
+    "edges": "Conexiones",
+    "searchPlaceholder": "Buscar nodos...",
+    "all": "Todos",
+    "refresh": "Actualizar",
+    "emptyDescription": "Aún no hay datos. Complete tareas para generar el gráfico",
+    "useCount": "Veces usado: {count}",
+    "detail": "Detalles",
+    "lexicalOverlap": "Relacionado"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Error al cambiar el estado de la habilidad"
   }
 }

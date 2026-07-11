@@ -1,0 +1,55 @@
+---
+source: crates/runtime-core/src/conversation.rs
+expression: stable
+---
+{
+  "compaction": null,
+  "fork": null,
+  "last_health_check_ms": null,
+  "messages": [
+    {
+      "blocks": [
+        {
+          "Text": {
+            "text": "Hello, assistant!"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "blocks": [
+        {
+          "Text": {
+            "text": "Hi there! How can I help you?"
+          }
+        }
+      ],
+      "role": "assistant"
+    },
+    {
+      "blocks": [
+        {
+          "Text": {
+            "text": "What is 2+2?"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "blocks": [
+        {
+          "Text": {
+            "text": "2+2 = 4"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "model": null,
+  "prompt_history": [],
+  "version": 1,
+  "workspace_root": null
+}

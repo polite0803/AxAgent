@@ -10101,5 +10101,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "學習圖",
+    "skills": "技能",
+    "memories": "記憶",
+    "insights": "洞察",
+    "edges": "關聯",
+    "searchPlaceholder": "搜索節點...",
+    "all": "全部",
+    "refresh": "刷新",
+    "emptyDescription": "暫無數據，完成任務後會自動生成學習圖",
+    "useCount": "使用次數: {count}",
+    "detail": "詳情",
+    "lexicalOverlap": "關聯"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "切換 skill 狀態失敗"
   }
 }

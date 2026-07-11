@@ -174,6 +174,7 @@ pub struct DashboardStats {
     pub completed_agent_sessions: i64,
     pub failed_agent_sessions: i64,
     pub total_agent_tokens: i64,
+    pub total_cost_usd: f64,
 }
 
 #[tauri::command]
@@ -199,6 +200,12 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
 
     let total_prompt_tokens: i64 = rows.iter().filter_map(|m| m.prompt_tokens).sum();
     let total_completion_tokens: i64 = rows.iter().filter_map(|m| m.completion_tokens).sum();
+    // 兜底: 若 prompt/completion 全部为 None, 尝试用 token_count
+    let total_tokens_from_messages = if total_prompt_tokens == 0 && total_completion_tokens == 0 {
+        rows.iter().filter_map(|m| m.token_count).sum::<i64>()
+    } else {
+        0
+    };
 
     let agent_sessions = axagent_entities::agent_sessions::Entity::find()
         .all(db)
@@ -211,16 +218,99 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
         agent_sessions.iter().filter(|s| s.runtime_status == "completed").count() as i64;
     let failed_agent_sessions =
         agent_sessions.iter().filter(|s| s.runtime_status == "failed").count() as i64;
+    let total_cost_usd: f64 = agent_sessions.iter().map(|s| s.total_cost_usd).sum();
+
+    // Estimate conversation message costs using sonnet-tier pricing ($3/M input, $15/M output)
+    let msg_cost: f64 = {
+        let input_per_token = 3.0 / 1_000_000.0;
+        let output_per_token = 15.0 / 1_000_000.0;
+        let all_messages = rows; // already loaded above
+        // Pair user messages (prompt) and assistant messages (completion)
+        let mut i = 0;
+        let mut cost = 0.0_f64;
+        while i < all_messages.len() {
+            if all_messages[i].role == "user" {
+                let prompt_tokens = all_messages[i].prompt_tokens.unwrap_or(0) as f64;
+                let completion =
+                    all_messages.get(i + 1).and_then(|m| m.completion_tokens).unwrap_or(0) as f64;
+                cost += prompt_tokens * input_per_token + completion * output_per_token;
+                i += 2;
+            } else {
+                i += 1;
+            }
+        }
+        cost
+    };
+
+    let total_tokens = if total_prompt_tokens > 0 || total_completion_tokens > 0 {
+        total_prompt_tokens + total_completion_tokens
+    } else {
+        total_tokens_from_messages
+    };
 
     Ok(DashboardStats {
         total_conversations: total_conversations as i64,
         total_messages: total_messages as i64,
         total_prompt_tokens,
         total_completion_tokens,
-        total_tokens: total_prompt_tokens + total_completion_tokens,
+        total_tokens,
         total_agent_sessions,
         completed_agent_sessions,
         failed_agent_sessions,
         total_agent_tokens,
+        total_cost_usd: total_cost_usd + msg_cost,
     })
+}
+
+#[tauri::command]
+pub async fn get_cost_by_provider(
+    state: State<'_, AppState>,
+) -> Result<Vec<axagent_harness::types::CostByProvider>, String> {
+    let db = state.harness.db();
+    let input_per_token = 3.0 / 1_000_000.0;
+    let output_per_token = 15.0 / 1_000_000.0;
+
+    let rows = db
+        .query_all_raw(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Sqlite,
+            "SELECT gu.provider_id, \
+             COUNT(*) as request_count, \
+             COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count, \
+             COALESCE(SUM(gu.request_tokens), 0) as request_tokens, \
+             COALESCE(SUM(gu.response_tokens), 0) as response_tokens \
+             FROM gateway_usage gu \
+             GROUP BY gu.provider_id \
+             ORDER BY token_count DESC",
+            vec![],
+        ))
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let results: Vec<axagent_harness::types::CostByProvider> = rows
+        .iter()
+        .map(|r| {
+            let request_tokens: u64 = r.try_get("", "request_tokens").unwrap_or(0);
+            let response_tokens: u64 = r.try_get("", "response_tokens").unwrap_or(0);
+            let cost =
+                request_tokens as f64 * input_per_token + response_tokens as f64 * output_per_token;
+            axagent_harness::types::CostByProvider {
+                provider_id: r.try_get("", "provider_id").unwrap_or_default(),
+                request_count: r.try_get("", "request_count").unwrap_or(0),
+                token_count: r.try_get("", "token_count").unwrap_or(0),
+                cost_usd: (cost * 100.0).round() / 100.0,
+            }
+        })
+        .collect();
+
+    Ok(results)
+}
+
+#[tauri::command]
+pub async fn get_usage_trend(
+    state: State<'_, AppState>,
+    days: Option<u32>,
+) -> Result<Vec<axagent_harness::types::DailyUsage>, String> {
+    let db = state.harness.db();
+    let days = days.unwrap_or(30);
+    axagent_dao::repo::message::get_daily_message_usage(db, days).await.map_err(|e| e.to_string())
 }

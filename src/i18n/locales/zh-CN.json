@@ -10177,5 +10177,22 @@
     "exportUnsupportedFormat": "不支持的格式: {{format}}",
     "stockName": "股票名称",
     "stockCode": "股票代码"
+  },
+  "learningGraph": {
+    "title": "学习图",
+    "skills": "技能",
+    "memories": "记忆",
+    "insights": "洞察",
+    "edges": "关联",
+    "searchPlaceholder": "搜索节点...",
+    "all": "全部",
+    "refresh": "刷新",
+    "emptyDescription": "暂无数据，完成任务后会自动生成学习图",
+    "useCount": "使用次数: {count}",
+    "detail": "详情",
+    "lexicalOverlap": "关联"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "切换 skill 状态失败"
   }
 }

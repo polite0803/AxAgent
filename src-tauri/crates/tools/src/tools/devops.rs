@@ -6,22 +6,25 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::Value;
 use std::process::Command;
 
 fn run_cmd(cmd: &str, args: &[&str], cwd: &str) -> Result<String, String> {
-    let output = Command::new(cmd)
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .map_err(|e| format!("命令执行失败: {}", e))?;
+    let mut c = Command::new(cmd);
+    c.args(args).current_dir(cwd);
+    hide_window(&mut c);
+    let output = c.output().map_err(|e| format!("命令执行失败: {}", e))?;
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
     Ok(format!("{}\n{}", stdout, stderr).trim().to_string())
 }
 
 fn has_gh() -> bool {
-    Command::new("gh").args(["--version"]).output().map(|o| o.status.success()).unwrap_or(false)
+    let mut cmd = Command::new("gh");
+    cmd.args(["--version"]);
+    hide_window(&mut cmd);
+    cmd.output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 // ── SecurityAuditTool ──
@@ -286,10 +289,11 @@ impl Tool for IssueCreateTool {
                 args.extend(["--assignee", assignee_str]);
             }
         }
-        let output = Command::new("gh")
-            .args(&args)
-            .output()
-            .map_err(|e| ToolError::execution_failed(format!("gh 命令失败: {}", e)))?;
+        let mut cmd = Command::new("gh");
+        cmd.args(&args);
+        hide_window(&mut cmd);
+        let output =
+            cmd.output().map_err(|e| ToolError::execution_failed(format!("gh 命令失败: {}", e)))?;
         if output.status.success() {
             let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
             Ok(ToolResult::success(format!("✅ Issue 已创建: {}", url)))
@@ -348,10 +352,11 @@ impl Tool for IssueListTool {
                 args.extend(["--assignee", assignee_str]);
             }
         }
-        let output = Command::new("gh")
-            .args(&args)
-            .output()
-            .map_err(|e| ToolError::execution_failed(format!("gh 命令失败: {}", e)))?;
+        let mut cmd = Command::new("gh");
+        cmd.args(&args);
+        hide_window(&mut cmd);
+        let output =
+            cmd.output().map_err(|e| ToolError::execution_failed(format!("gh 命令失败: {}", e)))?;
         let text = String::from_utf8_lossy(&output.stdout).to_string();
         Ok(ToolResult::success(format!("## Issues ({})\n\n```\n{}\n```", state, text)))
     }

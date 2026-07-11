@@ -4,6 +4,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::Value;
 use std::process::Command;
 
@@ -49,13 +50,16 @@ impl Tool for REPLTool {
                     std::env::temp_dir().join(format!("axagent_repl_{}.rs", uuid::Uuid::new_v4()));
                 std::fs::write(&tmp, code)
                     .map_err(|e| ToolError::execution_failed(format!("写入临时文件失败: {}", e)))?;
-                let output =
-                    Command::new("rustc").arg(&tmp).arg("-o").arg(tmp.with_extension("")).output();
+                let mut cmd = Command::new("rustc");
+                hide_window(&mut cmd);
+                let output = cmd.arg(&tmp).arg("-o").arg(tmp.with_extension("")).output();
                 let _ = std::fs::remove_file(&tmp);
                 match output {
                     Ok(o) if o.status.success() => {
                         let exe = tmp.with_extension("");
-                        match Command::new(&exe).output() {
+                        let mut cmd = Command::new(&exe);
+                        hide_window(&mut cmd);
+                        match cmd.output() {
                             Ok(out) => {
                                 let _ = std::fs::remove_file(&exe);
                                 return Ok(ToolResult::success(format!(
@@ -84,9 +88,11 @@ impl Tool for REPLTool {
         };
 
         if lang != "rust" {
+            let mut cmd = tokio::process::Command::new(runner);
+            hide_window(cmd.as_std_mut());
             let output = tokio::time::timeout(
                 std::time::Duration::from_secs(timeout),
-                tokio::process::Command::new(runner).arg(arg).arg(code).output(),
+                cmd.arg(arg).arg(code).output(),
             )
             .await;
 

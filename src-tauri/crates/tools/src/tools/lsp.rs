@@ -4,6 +4,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::Value;
 use std::process::Command;
 
@@ -66,7 +67,9 @@ impl Tool for LSPTool {
             )));
         }
 
-        let available = Command::new(lsp).arg("--version").output().is_ok();
+        let mut cmd = Command::new(lsp);
+        hide_window(&mut cmd);
+        let available = cmd.arg("--version").output().is_ok();
         let status = if available { "✅" } else { "⚠️ 未安装" };
 
         // 根据操作类型返回不同结果

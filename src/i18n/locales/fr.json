@@ -10068,5 +10068,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "Graphe d'apprentissage",
+    "skills": "Compétences",
+    "memories": "Souvenirs",
+    "insights": "Informations",
+    "edges": "Liens",
+    "searchPlaceholder": "Rechercher des nœuds...",
+    "all": "Tout",
+    "refresh": "Actualiser",
+    "emptyDescription": "Aucune donnée pour le moment. Terminez des tâches pour générer le graphe",
+    "useCount": "Nombre d'utilisations: {count}",
+    "detail": "Détails",
+    "lexicalOverlap": "Lié"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "Échec de la bascule de l'état de la compétence"
   }
 }

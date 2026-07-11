@@ -142,6 +142,11 @@ pub trait ConversationRuntimeHost: Send {
     /// 设置 hook 进度报告器。
     fn set_hook_progress_reporter(&mut self, _reporter: Box<dyn HookProgressReporter>) {}
 
+    /// 注入 nudge 上下文行（每次 run_turn 前调用）。
+    /// nudge 文本会被注入到 system_prompt 中，使 LLM 感知记忆提醒。
+    /// 默认实现为空操作（保持向后兼容）。
+    fn set_nudge_lines(&mut self, _lines: Vec<String>) {}
+
     /// 消费 runtime，提取 Session。
     fn into_session(self: Box<Self>) -> Session;
 }
@@ -173,6 +178,10 @@ impl<T: ?Sized + ConversationRuntimeHost> ConversationRuntimeHost for Box<T> {
 
     fn set_hook_progress_reporter(&mut self, reporter: Box<dyn HookProgressReporter>) {
         (**self).set_hook_progress_reporter(reporter)
+    }
+
+    fn set_nudge_lines(&mut self, lines: Vec<String>) {
+        (**self).set_nudge_lines(lines)
     }
 
     fn into_session(self: Box<Self>) -> Session {

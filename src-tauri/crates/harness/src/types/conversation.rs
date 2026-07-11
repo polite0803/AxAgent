@@ -144,6 +144,24 @@ pub struct ConversationStats {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DailyUsage {
+    pub date: String,
+    pub message_count: u64,
+    pub total_prompt_tokens: u64,
+    pub total_completion_tokens: u64,
+    pub total_tokens: u64,
+    pub total_cost_usd: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CostByProvider {
+    pub provider_id: String,
+    pub request_count: u64,
+    pub token_count: u64,
+    pub cost_usd: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessagePage {
     pub messages: Vec<Message>,
     pub has_older: bool,

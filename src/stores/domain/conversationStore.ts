@@ -40,15 +40,45 @@ interface PrefStoreHandle {
   setState(state: unknown): void;
 }
 
-let _prefStore: PrefStoreHandle | null = null;
+// eslint-disable-next-line no-var
+var _prefStore: PrefStoreHandle | null = null; // NOSONAR
+let _prefStateSynced = false;
 
+/**
+ * 注入 preferenceStore 引用。在测试中也可直接调用以注入 mock。
+ */
 export function _injectPreferenceStore(store: PrefStoreHandle): void {
   _prefStore = store;
+}
+
+function syncPrefState(): void {
+  if (_prefStateSynced || !_prefStore) { return; }
+  _prefStateSynced = true;
+  (async () => {
+    try {
+      const prefState = _prefStore!.getState();
+      useConversationStore.setState({
+        searchEnabled: prefState.searchEnabled,
+        searchProviderId: prefState.searchProviderId,
+        thinkingBudget: prefState.thinkingBudget,
+        mcpMode: prefState.mcpMode,
+        enabledMcpServerIds: prefState.enabledMcpServerIds,
+        enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
+        activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
+        enabledWikiIds: prefState.enabledWikiIds,
+      });
+    } catch {
+      /* module still initializing */
+    }
+  })();
 }
 
 function getPref(): PrefStoreHandle {
   if (!_prefStore) {
     throw new Error("preferenceStore_not_initialized");
+  }
+  if (!_prefStateSynced) {
+    syncPrefState();
   }
   return _prefStore;
 }

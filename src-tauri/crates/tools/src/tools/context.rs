@@ -4,6 +4,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
@@ -17,7 +18,9 @@ pub struct SnipTool;
 pub struct ContextResolveTool;
 
 fn git_root() -> Option<String> {
-    let output = Command::new("git").args(["rev-parse", "--show-toplevel"]).output().ok()?;
+    let mut cmd = Command::new("git");
+    hide_window(&mut cmd);
+    let output = cmd.args(["rev-parse", "--show-toplevel"]).output().ok()?;
     if output.status.success() {
         String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string())
     } else {
@@ -53,8 +56,9 @@ fn dir_size_mb(dir: &str) -> f64 {
 }
 
 fn git_branch() -> String {
-    Command::new("git")
-        .args(["branch", "--show-current"])
+    let mut cmd = Command::new("git");
+    hide_window(&mut cmd);
+    cmd.args(["branch", "--show-current"])
         .output()
         .ok()
         .and_then(|o| {
@@ -68,8 +72,9 @@ fn git_branch() -> String {
 }
 
 fn git_commit_count() -> String {
-    Command::new("git")
-        .args(["rev-list", "--count", "HEAD"])
+    let mut cmd = Command::new("git");
+    hide_window(&mut cmd);
+    cmd.args(["rev-list", "--count", "HEAD"])
         .output()
         .ok()
         .and_then(|o| {
@@ -143,7 +148,9 @@ impl Tool for CtxInspectTool {
         if is_full {
             lines.push(String::new());
             lines.push("### 最近 Git 日志".to_string());
-            if let Ok(output) = Command::new("git").args(["log", "--oneline", "-5"]).output()
+            let mut cmd = Command::new("git");
+            hide_window(&mut cmd);
+            if let Ok(output) = cmd.args(["log", "--oneline", "-5"]).output()
                 && output.status.success()
                 && let Ok(text) = String::from_utf8(output.stdout)
             {

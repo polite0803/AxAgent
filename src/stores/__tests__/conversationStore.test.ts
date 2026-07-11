@@ -15,7 +15,11 @@ vi.mock("@/lib/invoke", () => ({
   logIpcError: vi.fn(() => vi.fn()),
 }));
 
-import { useConversationStore } from "../domain/conversationStore";
+import { usePreferenceStore } from "@/stores/domain/preferenceStore";
+import { _injectPreferenceStore, useConversationStore } from "../domain/conversationStore";
+
+// 注入 preferenceStore 引用（Vitest 模块加载器下循环依赖不会自动触发注入）
+_injectPreferenceStore(usePreferenceStore);
 
 function makeMessage(index: number, conversationId = "conv-1"): Message {
   return {

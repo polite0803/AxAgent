@@ -2608,6 +2608,30 @@ export function InputArea() {
                 }, 0);
               }
             }}
+            onExecute={async (actionId) => {
+              setShowSuggest(false);
+              switch (actionId) {
+                case "compact":
+                  try {
+                    await compressContext();
+                    messageApi.success(t("chat.compressSuccess"));
+                  } catch {
+                    messageApi.error(t("chat.compressFailed"));
+                  }
+                  break;
+                case "clear":
+                  await clearAllMessages();
+                  messageApi.success(t("chat.clearHistoryDone"));
+                  break;
+                case "new":
+                  if (!activeConversationId) { return; }
+                  await createConversation("", "", "", { mode: "chat" });
+                  break;
+                case "stop":
+                  cancelCurrentStream(activeConversationId ?? undefined);
+                  break;
+              }
+            }}
             visible={showSuggest}
           />
           <textarea

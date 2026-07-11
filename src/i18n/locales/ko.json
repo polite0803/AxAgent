@@ -10105,5 +10105,22 @@
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
     "stockAnalysis.workflow.vValidate": "验证"
+  },
+  "learningGraph": {
+    "title": "학습 그래프",
+    "skills": "스킬",
+    "memories": "기억",
+    "insights": "통찰",
+    "edges": "연결",
+    "searchPlaceholder": "노드 검색...",
+    "all": "전체",
+    "refresh": "새로고침",
+    "emptyDescription": "데이터가 없습니다. 작업을 완료하면 학습 그래프가 생성됩니다",
+    "useCount": "사용 횟수: {count}",
+    "detail": "상세",
+    "lexicalOverlap": "관련"
+  },
+  "skillStore": {
+    "toggleSkillFailed": "스킬 상태 전환 실패"
   }
 }

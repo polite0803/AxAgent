@@ -71,7 +71,8 @@ pub fn safe_spawn(cmd: &mut Command) -> std::io::Result<std::process::Child> {
 /// 是可接受的。
 #[cfg(not(unix))]
 pub fn safe_spawn(cmd: &mut Command) -> std::io::Result<std::process::Child> {
-    cmd.spawn()
+    use std::os::windows::process::CommandExt;
+    cmd.creation_flags(0x08000000).spawn()
 }
 
 #[cfg(test)]

@@ -240,6 +240,22 @@ export interface ConversationStats {
   avg_response_time_ms: number | null;
 }
 
+export interface DailyUsage {
+  date: string;
+  message_count: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_cost_usd: number;
+}
+
+export interface CostByProvider {
+  provider_id: string;
+  request_count: number;
+  token_count: number;
+  cost_usd: number;
+}
+
 export interface Attachment {
   id: string;
   file_type: string;
@@ -858,6 +874,48 @@ export interface SkillSimilarInfo {
   scenarios: string[];
   success_rate: number;
   similarity_score: number;
+}
+
+// ── Learning Graph Types ──
+
+export type NodeKind = "skill" | "memory" | "insight";
+
+export interface GraphNode {
+  id: string;
+  label: string;
+  kind: NodeKind;
+  category: string;
+  timestampMs: number;
+  useCount: number;
+  state: string;
+  detail: string | null;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  weight: number;
+  relation: string;
+}
+
+export interface CategoryCount {
+  category: string;
+  count: number;
+}
+
+export interface GraphStats {
+  totalSkills: number;
+  totalMemories: number;
+  totalInsights: number;
+  totalEdges: number;
+  linkedNodes: number;
+  categories: CategoryCount[];
+}
+
+export interface LearningGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  stats: GraphStats;
 }
 
 // ── Skill Manifest ──
@@ -1591,4 +1649,5 @@ export interface DashboardStats {
   completed_agent_sessions: number;
   failed_agent_sessions: number;
   total_agent_tokens: number;
+  total_cost_usd: number;
 }

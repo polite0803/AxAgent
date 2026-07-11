@@ -2,6 +2,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::Value;
 
 pub struct PingTool;
@@ -61,19 +62,14 @@ impl Tool for PingTool {
             ("-c", "-W", timeout.to_string())
         };
 
-        let output = tokio::time::timeout(
-            std::time::Duration::from_secs(timeout + 5),
-            tokio::process::Command::new("ping")
-                .arg(count_flag)
-                .arg(count.to_string())
-                .arg(timeout_flag)
-                .arg(&timeout_val)
-                .arg(&host)
-                .output(),
-        )
-        .await
-        .map_err(|_| ToolError::execution_failed("Ping 超时".to_string()))?
-        .map_err(|e| ToolError::execution_failed(format!("执行 ping 失败: {}", e)))?;
+        let mut cmd = tokio::process::Command::new("ping");
+        cmd.arg(count_flag).arg(count.to_string()).arg(timeout_flag).arg(&timeout_val).arg(&host);
+        hide_window(cmd.as_std_mut());
+        let output =
+            tokio::time::timeout(std::time::Duration::from_secs(timeout + 5), cmd.output())
+                .await
+                .map_err(|_| ToolError::execution_failed("Ping 超时".to_string()))?
+                .map_err(|e| ToolError::execution_failed(format!("执行 ping 失败: {}", e)))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -220,15 +216,15 @@ impl Tool for DnsLookupTool {
                 };
 
                 let output = if which::which("nslookup").is_ok() {
-                    tokio::process::Command::new("nslookup")
-                        .args(["-type", qtype, &hostname])
-                        .output()
-                        .await
+                    let mut cmd = tokio::process::Command::new("nslookup");
+                    cmd.args(["-type", qtype, &hostname]);
+                    hide_window(cmd.as_std_mut());
+                    cmd.output().await
                 } else {
-                    tokio::process::Command::new("dig")
-                        .args([&hostname, qtype, "+short"])
-                        .output()
-                        .await
+                    let mut cmd = tokio::process::Command::new("dig");
+                    cmd.args([&hostname, qtype, "+short"]);
+                    hide_window(cmd.as_std_mut());
+                    cmd.output().await
                 };
 
                 match output {
