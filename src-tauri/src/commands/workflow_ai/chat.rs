@@ -274,7 +274,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
                     ChatStreamErrorEvent {
                         conversation_id: session_id.clone(),
                         message_id: message_id.clone(),
-                        error: format!("{}", e),
+                        error: e.to_string(),
                     },
                 );
                 break;

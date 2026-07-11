@@ -405,7 +405,7 @@ async fn wiki_notes_search_hybrid(
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
         let score = hybrid_result.combined_score as f64;
 
-        results.push(NoteSearchResult { note: note.into(), snippet, score });
+        results.push(NoteSearchResult { note, snippet, score });
     }
 
     Ok(results)
@@ -453,7 +453,7 @@ async fn wiki_notes_search_keyword(
 
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
 
-        results.push(NoteSearchResult { note: note.into(), snippet, score });
+        results.push(NoteSearchResult { note, snippet, score });
     }
 
     results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
@@ -651,7 +651,7 @@ pub async fn sync_knowledge_document_to_wiki(
             axagent_document_parser::extract_text(path, &doc.mime_type)
                 .map_err(|e| format!("Failed to extract text: {}", e))?
         } else {
-            let collection_name = format!("kb_{}", &doc.knowledge_base_id);
+            let collection_name = format!("kb_{}", doc.knowledge_base_id);
             match state.vector_store.list_document_chunks(&collection_name, &doc.id).await {
                 Ok(chunks) if !chunks.is_empty() => {
                     chunks.into_iter().map(|c| c.content).collect::<Vec<_>>().join("\n\n")

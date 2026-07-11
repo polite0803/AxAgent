@@ -1088,7 +1088,7 @@ fn start_text_grad_analysis(state: &AppState) {
                                 format!(
                                     "Task failed: {} - last step: {}",
                                     topic,
-                                    &last_step.content.chars().take(100).collect::<String>()
+                                    last_step.content.chars().take(100).collect::<String>()
                                 )
                             },
                             axagent_trajectory::TrajectoryOutcome::Partial => {

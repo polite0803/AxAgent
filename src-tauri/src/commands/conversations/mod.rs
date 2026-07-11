@@ -1201,7 +1201,7 @@ pub(crate) async fn consume_stream(
                 }
             },
             Err(e) => {
-                let err_msg = format!("{}", e);
+                let err_msg = e.to_string();
                 let _ = app.emit(
                     "chat-stream-error",
                     ChatStreamErrorEvent {
