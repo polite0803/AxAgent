@@ -237,7 +237,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应只有 5 行
+        // schema_version 表应只有 CURRENT_VERSION 行（与迁移数量一致）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
@@ -247,7 +247,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 7, "schema_version should have exactly 7 rows");
+        assert_eq!(cnt, 9, "schema_version should have exactly 9 rows");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。
