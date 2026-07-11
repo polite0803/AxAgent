@@ -19,7 +19,6 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, Str
 }
 
 #[tauri::command]
-#[allow(unused_variables)]
 pub async fn save_settings(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -40,6 +39,7 @@ pub async fn save_settings(
     }
     #[cfg(mobile)]
     {
+        let _ = &app;
         Ok(())
     }
 }

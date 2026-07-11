@@ -6,12 +6,10 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[allow(dead_code)]
 pub struct ToolState {
     pub auto_tool_creator: Arc<Mutex<axagent_trajectory::AutoToolCreator>>,
 }
 
-#[allow(dead_code)]
 impl ToolState {
     pub fn new(auto_tool_creator: Arc<Mutex<axagent_trajectory::AutoToolCreator>>) -> Self {
         Self { auto_tool_creator }

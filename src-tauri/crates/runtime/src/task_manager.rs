@@ -87,12 +87,6 @@ impl TaskManager {
             }
         }
     }
-
-    /// 返回当前注册的任务数。
-    #[allow(dead_code)]
-    pub fn task_count(&self) -> usize {
-        self.handles.lock().unwrap_or_else(|e| e.into_inner()).len()
-    }
 }
 
 #[cfg(test)]

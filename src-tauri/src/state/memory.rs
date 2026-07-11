@@ -8,7 +8,6 @@
 use std::sync::Arc;
 use tokio::sync::RwLock as TokioRwLock;
 
-#[allow(dead_code)]
 pub struct MemoryState {
     pub shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>>,
     pub sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>>,
@@ -34,7 +33,6 @@ pub struct MemoryState {
     pub session_share_manager: crate::app_state::SessionShareStore,
 }
 
-#[allow(dead_code)]
 impl MemoryState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(

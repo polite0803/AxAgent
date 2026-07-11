@@ -115,24 +115,12 @@ struct ResponsesUsage {
     total_tokens: u32,
     #[serde(default)]
     input_tokens_details: Option<ResponsesInputTokensDetails>,
-    // 预留: 推理/音频输出细节, P2 计费用
-    #[allow(dead_code)]
-    #[serde(default)]
-    output_tokens_details: Option<ResponsesOutputTokensDetails>,
 }
 
 #[derive(Deserialize, Default)]
 struct ResponsesInputTokensDetails {
     #[serde(default)]
     cached_tokens: Option<u32>,
-}
-
-#[derive(Deserialize, Default)]
-struct ResponsesOutputTokensDetails {
-    // 预留: 推理 token, P2 思考/输出分离计费
-    #[allow(dead_code)]
-    #[serde(default)]
-    reasoning_tokens: Option<u32>,
 }
 
 impl ResponsesUsage {

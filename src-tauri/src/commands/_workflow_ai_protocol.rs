@@ -260,34 +260,6 @@ pub struct DiagnosticReportV2 {
 }
 
 // ============================================================
-// 上下文注入 marker
-// ============================================================
-
-/// 调用方在 user message 末尾追加的 JSON 块
-/// 已知 key:`version_history` / `diagnostic`;未知 key 走 `Custom` 透传到注入处理器
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "inject_context", rename_all = "snake_case")]
-#[allow(dead_code)] // 真实消费场景在 chat 路径(解析 user message 末尾的 `[[inject:...]]` marker),待 chat 接入后移除
-pub enum InjectContextMarker {
-    /// 注入最近 N 个版本的 diff 摘要
-    VersionHistory {
-        template_id: String,
-        #[serde(default = "default_history_limit")]
-        limit: u32,
-    },
-    /// 注入诊断结果
-    Diagnostic { template_id: String },
-    /// 其它 caller_defined 的 marker,透传
-    #[serde(untagged)]
-    Custom(serde_json::Value),
-}
-
-#[allow(dead_code)] // 仅被 #[allow(dead_code)] 的 InjectContextMarker 引用
-fn default_history_limit() -> u32 {
-    5
-}
-
-// ============================================================
 // 校验辅助函数
 // ============================================================
 

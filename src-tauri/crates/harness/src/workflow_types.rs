@@ -17,11 +17,6 @@ pub struct Position {
     pub y: f64,
 }
 
-#[allow(dead_code)]
-fn default_parallel_kind() -> String {
-    "executable".to_string()
-}
-
 impl Default for Position {
     fn default() -> Self {
         Self { x: 0.0, y: 0.0 }
@@ -1254,11 +1249,6 @@ pub struct DebateNode {
 }
 
 fn default_swarm_rounds() -> u32 {
-    3
-}
-
-#[allow(dead_code)] // 预留供 SwarmNodeConfig 后续使用（participants_count 等字段可复用此默认值）
-fn default_swarm_size() -> u32 {
     3
 }
 

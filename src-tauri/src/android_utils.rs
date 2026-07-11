@@ -7,28 +7,19 @@
 //!
 //! 这等效于 windows_utils.rs 对 Windows 的作用。
 
-#[allow(unused_imports)]
-use std::path::PathBuf;
-
 #[cfg(target_os = "android")]
-fn crash_log_path() -> Option<PathBuf> {
+fn crash_log_path() -> Option<std::path::PathBuf> {
     let dir = crate::paths::axagent_home();
     std::fs::create_dir_all(&dir).ok()?;
     Some(dir.join("crash.log"))
-}
-
-#[cfg(not(target_os = "android"))]
-#[allow(dead_code)]
-pub(crate) fn crash_log_path() -> Option<PathBuf> {
-    None
 }
 
 /// 尝试写入外部可访问的路径（用户可通过文件管理器读取）。
 /// 在 Android 10+ 上，`/sdcard/Android/data/<package>/files/` 目录
 /// 无需额外权限即可写入，且可通过系统文件管理器或「设置→存储」查看。
 #[cfg(target_os = "android")]
-fn external_diagnostic_paths() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
+fn external_diagnostic_paths() -> Vec<std::path::PathBuf> {
+    let mut paths: Vec<std::path::PathBuf> = Vec::new();
 
     // 尝试多个常用路径，只要一个可用即可
     let external_candidates = [
@@ -39,7 +30,7 @@ fn external_diagnostic_paths() -> Vec<PathBuf> {
     ];
 
     for candidate in &external_candidates {
-        let p = PathBuf::from(candidate);
+        let p = std::path::PathBuf::from(candidate);
         if p.exists() || std::fs::create_dir_all(&p).is_ok() {
             paths.push(p.join("axagent-crash.log"));
             break; // 找到一个可用的就够

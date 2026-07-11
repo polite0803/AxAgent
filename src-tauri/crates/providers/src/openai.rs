@@ -283,7 +283,6 @@ struct OpenAIUsage {
     #[serde(default)]
     prompt_cache_hit_tokens: Option<u32>,
     // P1/P2 使用: DeepSeek 缓存未命中计数, 用于命中率埋点
-    #[allow(dead_code)]
     #[serde(default)]
     prompt_cache_miss_tokens: Option<u32>,
     // Kimi 风格: 顶层 cached_tokens (与 prompt_tokens_details.cached_tokens 不同位置)
@@ -292,10 +291,6 @@ struct OpenAIUsage {
     // OpenAI / MiMo 风格: 嵌套 prompt_tokens_details.cached_tokens
     #[serde(default)]
     prompt_tokens_details: Option<PromptTokensDetails>,
-    // P2 使用: 推理 token / 音频 token 等细节
-    #[allow(dead_code)]
-    #[serde(default)]
-    completion_tokens_details: Option<CompletionTokensDetails>,
 }
 
 #[derive(Deserialize, Default)]
@@ -303,30 +298,6 @@ struct OpenAIUsage {
 struct PromptTokensDetails {
     #[serde(default)]
     cached_tokens: Option<u32>,
-    // 预留: 音频输入 token, P2 审计使用
-    #[allow(dead_code)]
-    #[serde(default)]
-    audio_tokens: Option<u32>,
-}
-
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-struct CompletionTokensDetails {
-    // 预留: 推理 token, P2 思考/输出分离计费
-    #[allow(dead_code)]
-    #[serde(default)]
-    reasoning_tokens: Option<u32>,
-    // 预留: 音频输出 token
-    #[allow(dead_code)]
-    #[serde(default)]
-    audio_tokens: Option<u32>,
-    // 预留: 投机解码接受/拒绝 token
-    #[allow(dead_code)]
-    #[serde(default)]
-    accepted_prediction_tokens: Option<u32>,
-    #[allow(dead_code)]
-    #[serde(default)]
-    rejected_prediction_tokens: Option<u32>,
 }
 
 impl OpenAIUsage {
@@ -340,20 +311,6 @@ impl OpenAIUsage {
             return Some(cached);
         }
         self.prompt_cache_hit_tokens
-    }
-
-    /// 归一化缓存未命中 token 数: 优先取 DeepSeek 顶层 miss,
-    /// 否则用 prompt_tokens - cache_read_tokens 推算 (reasonix 模式),
-    /// 都没有则 None. P2 命中率埋点会用到.
-    #[allow(dead_code)]
-    fn cache_miss_tokens(&self) -> Option<u32> {
-        if let Some(miss) = self.prompt_cache_miss_tokens {
-            return Some(miss);
-        }
-        match (self.prompt_tokens, self.cache_read_tokens()) {
-            (prompt, Some(hit)) if prompt > 0 => Some(prompt.saturating_sub(hit)),
-            _ => None,
-        }
     }
 
     fn to_token_usage(&self) -> TokenUsage {
@@ -432,10 +389,6 @@ struct GeminiCompatUsageMetadata {
     /// Gemini 上下文缓存命中 token 数 (cachedContentTokenCount).
     #[serde(default)]
     cached_content_token_count: Option<u32>,
-    /// 推理模型思考 token 数 (thoughtsTokenCount). P2 计费用.
-    #[allow(dead_code)]
-    #[serde(default)]
-    thoughts_token_count: Option<u32>,
 }
 
 // --- Embedding types ---

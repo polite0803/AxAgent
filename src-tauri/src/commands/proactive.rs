@@ -207,7 +207,6 @@ pub struct ProactiveService {
     assistant: ProactiveAssistant,
     predictor: ContextPredictor,
     suggestion_engine: SuggestionEngine,
-    #[allow(dead_code)]
     prefetcher: TaskPrefetcher,
 }
 

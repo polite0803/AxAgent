@@ -2180,7 +2180,6 @@ fn insert_missing_colon(s: &str) -> String {
 /// 扁平 JSON 模式下不再需要复杂的未闭合字符串修复。
 /// flat JSON schema（最多 5 字段、无嵌套数组）的 LLM 输出极少出现此类错误。
 /// 保留此函数仅为兼容旧模板过渡期；后续可删除。
-#[allow(dead_code)]
 fn repair_unclosed_json_strings() -> Option<String> {
     None
 }

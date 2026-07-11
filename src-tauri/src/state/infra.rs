@@ -12,7 +12,6 @@ use axagent_runtime::harness::RuntimeHarness;
 use axagent_search::vector_store::VectorStore;
 use axagent_storage::file_authorizer::FileAuthorizer;
 
-#[allow(dead_code)]
 pub struct InfraState {
     /// Harness 容器（统一管理核心基础设施注入）
     pub harness: RuntimeHarness,
@@ -22,7 +21,6 @@ pub struct InfraState {
     pub app_data_dir: PathBuf,
 }
 
-#[allow(dead_code)]
 impl InfraState {
     pub fn new(
         harness: RuntimeHarness,

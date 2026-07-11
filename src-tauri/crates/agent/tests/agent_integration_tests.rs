@@ -536,23 +536,6 @@ mod test_hierarchical_planner_dynamic_replanning {
         TaskBuilder::new(desc, action).with_max_retries(1).build()
     }
 
-    #[allow(dead_code)]
-    fn make_phase(
-        name: &str,
-        desc: &str,
-        deps: Vec<String>,
-        tasks: Vec<axagent_agent::hierarchical_planner::PlannedTask>,
-    ) -> axagent_agent::hierarchical_planner::Phase {
-        axagent_agent::hierarchical_planner::Phase {
-            id: format!("id_{}", name),
-            name: name.to_string(),
-            description: desc.to_string(),
-            tasks,
-            dependencies: deps,
-            status: axagent_agent::hierarchical_planner::PhaseStatus::Pending,
-        }
-    }
-
     #[test]
     fn test_planner_with_three_phases_and_five_tasks() {
         let mut planner = HierarchicalPlanner::new();

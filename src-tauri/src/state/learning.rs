@@ -7,7 +7,6 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[allow(dead_code)]
 pub struct LearningState {
     pub text_grad_engine: Arc<Mutex<axagent_trajectory::TextGradEngine>>,
     pub intrinsic_motivation: Arc<Mutex<axagent_trajectory::IntrinsicMotivationEngine>>,
@@ -15,7 +14,6 @@ pub struct LearningState {
     pub process_reward_model: Arc<Mutex<axagent_trajectory::ProcessRewardModel>>,
 }
 
-#[allow(dead_code)]
 impl LearningState {
     pub fn new(
         text_grad_engine: Arc<Mutex<axagent_trajectory::TextGradEngine>>,

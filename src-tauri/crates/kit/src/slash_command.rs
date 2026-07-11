@@ -172,7 +172,6 @@ fn list_personality_names() -> Vec<String> {
 
 #[derive(Deserialize)]
 struct BundleNameOnly {
-    #[allow(dead_code)]
     name: String,
 }
 

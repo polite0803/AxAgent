@@ -3,7 +3,7 @@
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Component, Path};
 
 /// SECURITY (C4): 工作区边界与"危险路径"的真白名单。
 const DEVICE_FILE_BLACKLIST: &[&str] = &[
@@ -362,11 +362,6 @@ fn strip_html(s: &str) -> String {
         }
     }
     out
-}
-
-#[allow(dead_code)]
-fn _unused_pathbuf() -> PathBuf {
-    PathBuf::new()
 }
 
 #[cfg(test)]
