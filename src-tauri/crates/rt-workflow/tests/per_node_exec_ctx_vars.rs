@@ -16,9 +16,12 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use axagent_harness::registry::ProviderRegistry;
+use axagent_harness::repositories::{set_workflow_execution_repository, WorkflowExecutionRepository};
+use axagent_harness::repo_dtos::WorkflowExecutionData;
 use axagent_harness::workflow_types::{
     EdgeType, Position, RetryConfig, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode,
     TriggerType, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
@@ -28,6 +31,31 @@ use axagent_harness::{
 };
 
 use axagent_rt_workflow::work_engine::{RunOptions, WorkEngine};
+
+// ── Mock WorkflowExecutionRepository ────────────────────────────────────
+// run_workflow → start_workflow 需要此 repo，测试不关心实际持久化。
+
+struct MockWorkflowExecRepo;
+#[async_trait]
+impl WorkflowExecutionRepository for MockWorkflowExecRepo {
+    async fn create_workflow_execution(
+        &self, _id: &str, _workflow_id: &str, _input_params: Option<&str>,
+    ) -> Result<(), String> { Ok(()) }
+    async fn update_workflow_execution_status(
+        &self, _id: &str, _status: &str, _output_result: Option<&str>,
+        _node_executions: Option<&str>, _total_time_ms: Option<i32>,
+    ) -> Result<bool, String> { Ok(true) }
+    async fn list_workflow_executions(
+        &self, _workflow_id: &str,
+    ) -> Result<Vec<WorkflowExecutionData>, String> { Ok(vec![]) }
+}
+
+static MOCK_WF_EXEC_REPO: OnceLock<()> = OnceLock::new();
+fn init_mock_workflow_exec_repo() {
+    MOCK_WF_EXEC_REPO.get_or_init(|| {
+        set_workflow_execution_repository(Arc::new(MockWorkflowExecRepo));
+    });
+}
 
 // ── 最小 ProviderRegistry 实现 ──────────────────────────────────────────
 //
@@ -140,6 +168,7 @@ fn make_edge(source: &str, target: &str) -> WorkflowEdge {
 ///
 /// WorkEngine 当前不持有数据库连接，仅依赖 ProviderRegistry 完成节点分发。
 async fn new_engine() -> Arc<WorkEngine> {
+    init_mock_workflow_exec_repo();
     let engine = Arc::new(WorkEngine::new([0u8; 32], Arc::new(EmptyProviderRegistry)));
     // 必须调用 init_dispatcher 注册内置 executor（Trigger/Tool/Agent/etc.），
     // 否则 dispatch 节点时会 panic "FallbackExecutor must be registered"。
