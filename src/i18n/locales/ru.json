@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "Разговор очищен"
   },
   "gateway": {
     "title": "Шлюз",
@@ -6276,7 +6277,9 @@
     "referenceFile": "Ссылка на файл или путь",
     "commands": "Команды",
     "mentions": "Упоминания",
-    "filterHint": "Введите для фильтра, ↑↓ для выбора, Enter для подтверждения"
+    "filterHint": "Введите для фильтра, ↑↓ для выбора, Enter для подтверждения",
+    "newConversation": "Новый разговор",
+    "stopGeneration": "Остановить генерацию"
   },
   "onboarding": {
     "welcome": "Добро пожаловать в AxAgent",
@@ -8557,12 +8560,36 @@
     "agentFailed": "Ошибок",
     "modelProviderSummary": "Сводка по моделям и провайдерам",
     "totalProviders": "Провайдеры",
-    "totalModels": "Модели"
+    "totalModels": "Модели",
+    "usageTrend": "Ежедневная тенденция использования",
+    "noUsageData": "Пока нет данных об использовании. Начните разговор, чтобы увидеть ежедневные тенденции использования токенов",
+    "inputTokens": "Входные токены",
+    "outputTokens": "Выходные токены",
+    "costOverview": "Обзор затрат",
+    "totalCost": "Общая стоимость (USD)",
+    "avgCostPerSession": "Средняя стоимость/сессия",
+    "totalAgentTokens": "Всего токенов агента",
+    "dailyAvgCost": "Среднедневные затраты",
+    "costByProvider": "Затраты по провайдерам"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "Граф обучения",
+    "skills": "Навыки",
+    "memories": "Воспоминания",
+    "insights": "Инсайты",
+    "edges": "Связи",
+    "searchPlaceholder": "Поиск узлов...",
+    "all": "Все",
+    "refresh": "Обновить",
+    "emptyDescription": "Пока нет данных. Выполняйте задачи для создания графа обучения",
+    "useCount": "Количество использований: {count}",
+    "detail": "Подробности",
+    "lexicalOverlap": "Связано"
   }
 }

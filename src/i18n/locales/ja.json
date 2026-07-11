@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "会話をクリアしました"
   },
   "gateway": {
     "title": "ゲートウェイ",
@@ -6276,7 +6277,9 @@
     "referenceFile": "ファイルまたはパスを参照",
     "commands": "コマンド",
     "mentions": "メンション",
-    "filterHint": "入力して絞り込み、↑↓で選択、Enterで確定"
+    "filterHint": "入力して絞り込み、↑↓で選択、Enterで確定",
+    "newConversation": "新しい会話",
+    "stopGeneration": "生成を停止"
   },
   "onboarding": {
     "welcome": "AxAgent へようこそ",
@@ -8591,12 +8594,36 @@
     "agentFailed": "失敗",
     "modelProviderSummary": "モデル/プロバイダー概要",
     "totalProviders": "プロバイダー数",
-    "totalModels": "モデル数"
+    "totalModels": "モデル数",
+    "usageTrend": "日次使用量トレンド",
+    "noUsageData": "使用量データがありません。会話を開始すると、日次のトークン使用量トレンドが表示されます",
+    "inputTokens": "入力トークン",
+    "outputTokens": "出力トークン",
+    "costOverview": "コスト概要",
+    "totalCost": "総費用 (USD)",
+    "avgCostPerSession": "セッションあたりの平均コスト",
+    "totalAgentTokens": "エージェント総トークン数",
+    "dailyAvgCost": "1日あたりの平均コスト",
+    "costByProvider": "プロバイダー別コスト"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "学習グラフ",
+    "skills": "スキル",
+    "memories": "記憶",
+    "insights": "洞察",
+    "edges": "関連",
+    "searchPlaceholder": "ノード検索...",
+    "all": "すべて",
+    "refresh": "更新",
+    "emptyDescription": "データがありません。タスクを完了すると学習グラフが生成されます",
+    "useCount": "使用回数: {count}",
+    "detail": "詳細",
+    "lexicalOverlap": "関連"
   }
 }

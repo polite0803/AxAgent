@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use axagent_entities::messages;
 use axagent_harness::constants;
 use axagent_harness::core_error::{AxAgentError, Result};
-use axagent_harness::types::{Attachment, ConversationStats, Message, MessagePage, MessageRole};
+use axagent_harness::types::{Attachment, ConversationStats, DailyUsage, Message, MessagePage, MessageRole};
 use axagent_harness::util_fns::{gen_id, now_ts};
 
 fn parse_role(s: &str) -> MessageRole {
@@ -664,6 +664,60 @@ pub async fn get_conversation_stats(
             .and_then(|r| r.try_get("", "avg_first_token_latency_ms").ok()),
         avg_response_time_ms: r.and_then(|r| r.try_get("", "avg_response_time_ms").ok()),
     })
+}
+
+pub async fn get_daily_message_usage(
+    db: &DatabaseConnection,
+    days: u32,
+) -> Result<Vec<DailyUsage>> {
+    use sea_orm::Statement;
+
+    let since = chrono::Utc::now()
+        .checked_sub_signed(chrono::Duration::days(days as i64))
+        .unwrap_or(chrono::DateTime::UNIX_EPOCH)
+        .timestamp_millis();
+
+    let rows = db
+        .query_all_raw(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            r#"
+                SELECT
+                    date(created_at / 1000, 'unixepoch') as date,
+                    COUNT(*) as message_count,
+                    COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens,
+                    COALESCE(SUM(completion_tokens), 0) as total_completion_tokens,
+                    COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0) as total_tokens
+                FROM messages
+                WHERE is_active = 1 AND created_at >= ?
+                GROUP BY date
+                ORDER BY date ASC
+            "#,
+            vec![since.into()],
+        ))
+        .await?;
+
+    let usage = rows
+        .iter()
+        .filter_map(|r| {
+            let date: Option<String> = r.try_get("", "date").ok();
+            date.map(|d| {
+                let prompt: u64 = r.try_get("", "total_prompt_tokens").unwrap_or(0);
+                let completion: u64 = r.try_get("", "total_completion_tokens").unwrap_or(0);
+                // Sonnet-tier pricing: $3/M input, $15/M output
+                let cost_usd = (prompt as f64 * 3.0 + completion as f64 * 15.0) / 1_000_000.0;
+                DailyUsage {
+                    date: d,
+                    message_count: r.try_get("", "message_count").unwrap_or(0),
+                    total_prompt_tokens: prompt,
+                    total_completion_tokens: completion,
+                    total_tokens: r.try_get("", "total_tokens").unwrap_or(0),
+                    total_cost_usd: (cost_usd * 100.0).round() / 100.0, // round to cents
+                }
+            })
+        })
+        .collect();
+
+    Ok(usage)
 }
 
 #[cfg(test)]

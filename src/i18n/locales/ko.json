@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "대화가 지워졌습니다"
   },
   "gateway": {
     "title": "게이트웨이",
@@ -6276,7 +6277,9 @@
     "referenceFile": "파일 또는 경로 참조",
     "commands": "명령",
     "mentions": "멘션",
-    "filterHint": "입력하여 필터, ↑↓로 선택, Enter로 확인"
+    "filterHint": "입력하여 필터, ↑↓로 선택, Enter로 확인",
+    "newConversation": "새 대화",
+    "stopGeneration": "생성 중지"
   },
   "onboarding": {
     "welcome": "AxAgent에 오신 것을 환영합니다",
@@ -8591,12 +8594,36 @@
     "agentFailed": "uc2e4패",
     "modelProviderSummary": "모덼/공급자 요약",
     "totalProviders": "공급자",
-    "totalModels": "모덼"
+    "totalModels": "모덼",
+    "usageTrend": "일일 사용량 추세",
+    "noUsageData": "사용량 데이터가 없습니다. 대화를 시작하면 일일 토큰 사용량 추세가 표시됩니다",
+    "inputTokens": "입력 토큰",
+    "outputTokens": "출력 토큰",
+    "costOverview": "비용 개요",
+    "totalCost": "총 비용 (USD)",
+    "avgCostPerSession": "세션당 평균 비용",
+    "totalAgentTokens": "에이전트 총 토큰 수",
+    "dailyAvgCost": "일평균 비용",
+    "costByProvider": "공급자별 비용"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "학습 그래프",
+    "skills": "스킬",
+    "memories": "기억",
+    "insights": "통찰",
+    "edges": "연결",
+    "searchPlaceholder": "노드 검색...",
+    "all": "전체",
+    "refresh": "새로고침",
+    "emptyDescription": "데이터가 없습니다. 작업을 완료하면 학습 그래프가 생성됩니다",
+    "useCount": "사용 횟수: {count}",
+    "detail": "상세",
+    "lexicalOverlap": "관련"
   }
 }

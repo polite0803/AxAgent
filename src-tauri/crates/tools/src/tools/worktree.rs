@@ -6,6 +6,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::{Value, json};
 use std::process::Command;
 
@@ -16,7 +17,9 @@ fn fire_hook(event: &str, data: &serde_json::Value) {
 }
 
 fn git_root() -> Result<String, ToolError> {
-    let output = Command::new("git")
+    let mut cmd = Command::new("git");
+    hide_window(&mut cmd);
+    let output = cmd
         .args(["rev-parse", "--show-toplevel"])
         .output()
         .map_err(|e| ToolError::execution_failed(format!("git 命令执行失败: {}", e)))?;
@@ -31,7 +34,9 @@ fn git_root() -> Result<String, ToolError> {
 }
 
 fn default_branch() -> String {
-    let output = Command::new("git").args(["branch", "-a"]).output().ok().and_then(|o| {
+    let mut cmd = Command::new("git");
+    hide_window(&mut cmd);
+    let output = cmd.args(["branch", "-a"]).output().ok().and_then(|o| {
         if o.status.success() {
             String::from_utf8(o.stdout).ok()
         } else {
@@ -49,7 +54,9 @@ fn default_branch() -> String {
 }
 
 fn list_worktrees() -> Result<Vec<(String, String, String)>, ToolError> {
-    let output = Command::new("git")
+    let mut cmd = Command::new("git");
+    hide_window(&mut cmd);
+    let output = cmd
         .args(["worktree", "list", "--porcelain"])
         .output()
         .map_err(|e| ToolError::execution_failed(format!("git worktree list 失败: {}", e)))?;
@@ -126,7 +133,9 @@ impl Tool for EnterWorktreeTool {
         if existing.iter().any(|(p, _, _)| p == &worktree_path) {
             return Err(ToolError::invalid_input(format!("worktree '{}' 已存在", sanitized)));
         }
-        let branch_status = Command::new("git")
+        let mut branch_cmd = Command::new("git");
+        hide_window(&mut branch_cmd);
+        let branch_status = branch_cmd
             .args(["branch", &branch_name, &base])
             .current_dir(&root)
             .output()
@@ -135,17 +144,18 @@ impl Tool for EnterWorktreeTool {
             let err = String::from_utf8_lossy(&branch_status.stderr);
             return Err(ToolError::execution_failed(format!("创建分支失败: {}", err)));
         }
-        let output = Command::new("git")
+        let mut worktree_cmd = Command::new("git");
+        hide_window(&mut worktree_cmd);
+        let output = worktree_cmd
             .args(["worktree", "add", &worktree_path, &branch_name])
             .current_dir(&root)
             .output()
             .map_err(|e| ToolError::execution_failed(format!("git worktree add 失败: {}", e)))?;
         if !output.status.success() {
             let err = String::from_utf8_lossy(&output.stderr);
-            let _ = Command::new("git")
-                .args(["branch", "-D", &branch_name])
-                .current_dir(&root)
-                .output();
+            let mut cleanup_cmd = Command::new("git");
+            hide_window(&mut cleanup_cmd);
+            let _ = cleanup_cmd.args(["branch", "-D", &branch_name]).current_dir(&root).output();
             return Err(ToolError::execution_failed(format!("创建 worktree 失败: {}", err)));
         }
         fire_hook(
@@ -214,8 +224,10 @@ impl Tool for ExitWorktreeTool {
         if discard {
             args.push("--force");
         }
+        let mut remove_cmd = Command::new("git");
+        hide_window(&mut remove_cmd);
         let output =
-            Command::new("git").args(&args).current_dir(&root).output().map_err(|e| {
+            remove_cmd.args(&args).current_dir(&root).output().map_err(|e| {
                 ToolError::execution_failed(format!("git worktree remove 失败: {}", e))
             })?;
         if !output.status.success() {
@@ -228,8 +240,9 @@ impl Tool for ExitWorktreeTool {
             return Err(ToolError::execution_failed(format!("删除失败: {}{}", err, hint)));
         }
         if wt_branch != "detached" {
-            let _ =
-                Command::new("git").args(["branch", "-D", &wt_branch]).current_dir(&root).output();
+            let mut del_branch_cmd = Command::new("git");
+            hide_window(&mut del_branch_cmd);
+            let _ = del_branch_cmd.args(["branch", "-D", &wt_branch]).current_dir(&root).output();
         }
         fire_hook(
             "ConfigChange",

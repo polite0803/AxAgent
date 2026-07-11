@@ -11,6 +11,8 @@ pub struct PreferenceLearner {
     analyzer: PatternAnalyzer,
     last_analysis: DateTime<Utc>,
     batch_size: usize,
+    /// 偏好变更历史记录，用于时间线展示
+    preference_history: Vec<ProfileUpdate>,
 }
 
 impl PreferenceLearner {
@@ -21,6 +23,7 @@ impl PreferenceLearner {
             analyzer: PatternAnalyzer::new(),
             last_analysis: Utc::now(),
             batch_size: 50,
+            preference_history: Vec::new(),
         }
     }
 
@@ -31,6 +34,7 @@ impl PreferenceLearner {
             analyzer: PatternAnalyzer::new(),
             last_analysis: Utc::now(),
             batch_size: 50,
+            preference_history: Vec::new(),
         }
     }
 
@@ -42,6 +46,26 @@ impl PreferenceLearner {
         &mut self.profile
     }
 
+    /// 获取偏好变更历史（按时间倒序，限制最近 N 条）
+    pub fn get_preference_history(&self, limit: usize, since_hours: i64) -> Vec<ProfileUpdate> {
+        let cutoff = if since_hours > 0 {
+            Utc::now() - chrono::Duration::hours(since_hours)
+        } else {
+            DateTime::from_timestamp(0, 0).unwrap_or(Utc::now())
+        };
+        let cutoff_ms = cutoff.timestamp_millis();
+
+        let mut filtered: Vec<ProfileUpdate> = self
+            .preference_history
+            .iter()
+            .filter(|u| u.timestamp >= cutoff_ms)
+            .cloned()
+            .collect();
+        filtered.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        filtered.truncate(limit);
+        filtered
+    }
+
     pub fn analyze_and_update(&mut self) -> Vec<ProfileUpdate> {
         let mut updates = Vec::new();
         let events: Vec<BehaviorEvent> = self.event_buffer.drain(..).collect();
@@ -51,6 +75,7 @@ impl PreferenceLearner {
         }
 
         let patterns = self.analyzer.analyze(&events);
+        let now_ts = Utc::now().timestamp_millis();
 
         let old_coding = self.profile.coding_style.clone();
         let new_coding = self.analyzer.infer_coding_profile(&patterns.coding_patterns);
@@ -62,6 +87,7 @@ impl PreferenceLearner {
                 new_value: serde_json::to_value(&new_coding).unwrap_or_default(),
                 confidence_change,
                 source: UpdateSource::Inferred,
+                timestamp: now_ts,
             });
             self.profile.coding_style = new_coding;
         }
@@ -76,6 +102,7 @@ impl PreferenceLearner {
                 new_value: serde_json::to_value(&new_comm).unwrap_or_default(),
                 confidence_change,
                 source: UpdateSource::Inferred,
+                timestamp: now_ts,
             });
             self.profile.communication = new_comm;
         }
@@ -93,6 +120,7 @@ impl PreferenceLearner {
                 new_value: serde_json::to_value(&new_work).unwrap_or_default(),
                 confidence_change,
                 source: UpdateSource::Inferred,
+                timestamp: now_ts,
             });
             self.profile.work_habits = new_work;
         }
@@ -101,6 +129,12 @@ impl PreferenceLearner {
 
         self.last_analysis = Utc::now();
         self.profile.update_timestamp();
+
+        // 将本次更新追加到历史记录中，上限 200 条
+        self.preference_history.extend(updates.clone());
+        if self.preference_history.len() > 200 {
+            self.preference_history.drain(0..self.preference_history.len() - 200);
+        }
 
         updates
     }
@@ -208,6 +242,7 @@ impl PreferenceLearner {
             new_value: value,
             confidence_change: 0.1,
             source: UpdateSource::Explicit,
+            timestamp: Utc::now().timestamp_millis(),
         }
     }
 

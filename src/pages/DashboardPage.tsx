@@ -3,11 +3,23 @@
 import { Icon } from "@/components/common/Icon";
 import { invoke } from "@/lib/invoke";
 import { useConversationStore, useGatewayStore, useProviderStore } from "@/stores";
-import { DashboardStats } from "@/types";
+import { CostByProvider, DailyUsage, DashboardStats } from "@/types";
 import { Card, Col, Flex, Row, Spin, Statistic, theme } from "antd";
 import { Bot, Cpu, Database, Globe, MessageSquare, TrendingUp, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 // ── Types ──
 
@@ -134,6 +146,65 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
 
 // ── Main Component ──
 
+function DailyUsageChart({ data, loading }: { data: DailyUsage[]; loading: boolean }) {
+  const { token } = theme.useToken();
+  const { t } = useTranslation();
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
+        <Spin size="small" />
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div style={{ padding: "24px 0", textAlign: "center", color: token.colorTextQuaternary, fontSize: 13 }}>
+        {t("dashboard.noUsageData")}
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
+        <XAxis
+          dataKey="date"
+          tick={{ fontSize: 11, fill: token.colorTextSecondary }}
+          tickLine={false}
+          axisLine={{ stroke: token.colorBorderSecondary }}
+        />
+        <YAxis
+          tick={{ fontSize: 11, fill: token.colorTextSecondary }}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`}
+        />
+        <Tooltip
+          contentStyle={{
+            background: token.colorBgElevated,
+            border: `1px solid ${token.colorBorder}`,
+            borderRadius: 8,
+            fontSize: 12,
+          }}
+          formatter={(value: number, name: string) => [
+            value.toLocaleString(),
+            name === "total_prompt_tokens"
+              ? t("dashboard.inputTokens")
+              : name === "total_completion_tokens"
+              ? t("dashboard.outputTokens")
+              : t("dashboard.totalTokens"),
+          ]}
+        />
+        <Bar dataKey="total_prompt_tokens" stackId="a" fill="#1677ff" radius={[2, 2, 0, 0]} />
+        <Bar dataKey="total_completion_tokens" stackId="a" fill="#52c41a" radius={[2, 2, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 export function DashboardPage() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -147,18 +218,27 @@ export function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [backendStats, setBackendStats] = useState<DashboardStats | null>(null);
+  const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
+  const [costByProvider, setCostByProvider] = useState<CostByProvider[]>([]);
+  const [usageLoading, setUsageLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [stats] = await Promise.all([
+      setUsageLoading(true);
+      const [stats, usage, cost] = await Promise.all([
         invoke<DashboardStats>("get_dashboard_stats").catch(() => null),
+        invoke<DailyUsage[]>("get_usage_trend", { days: 30 }).catch(() => []),
+        invoke<CostByProvider[]>("get_cost_by_provider").catch(() => []),
         fetchGatewayMetrics().catch(() => {}),
         fetchProviders().catch(() => {}),
         fetchConversations().catch(() => {}),
       ]);
       setBackendStats(stats);
+      setDailyUsage(usage);
+      setCostByProvider(cost);
       setLoading(false);
+      setUsageLoading(false);
     };
     load();
   }, [fetchGatewayMetrics, fetchProviders, fetchConversations]);
@@ -497,6 +577,136 @@ export function DashboardPage() {
           </Card>
         </Col>
       </Row>
+
+      {/* ── Daily Usage Trend ── */}
+      <div>
+        <SectionHeader
+          title={t("dashboard.usageTrend")}
+          icon={<TrendingUp size={14} color={token.colorTextSecondary} />}
+        />
+        <Card
+          size="small"
+          styles={{ body: { padding: "16px 20px" } }}
+          style={{
+            borderColor: token.colorBorderSecondary,
+            background: token.colorBgContainer,
+          }}
+        >
+          <DailyUsageChart data={dailyUsage} loading={usageLoading} />
+        </Card>
+      </div>
+
+      {/* ── Cost Overview ── */}
+      <div>
+        <SectionHeader
+          title={t("dashboard.costOverview")}
+          icon={<Zap size={14} color={token.colorTextSecondary} />}
+        />
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <StatCard
+              icon={<Zap size={18} />}
+              title={t("dashboard.totalCost")}
+              value={`$${backendStats?.total_cost_usd.toFixed(2) ?? "0.00"}`}
+              color="#ff4d4f"
+              loading={isLoading}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <StatCard
+              icon={<TrendingUp size={18} />}
+              title={t("dashboard.avgCostPerSession")}
+              value={backendStats && backendStats.total_agent_sessions > 0
+                ? `$${(backendStats.total_cost_usd / backendStats.total_agent_sessions).toFixed(4)}`
+                : "$0.00"}
+              color="#1677ff"
+              loading={isLoading}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <StatCard
+              icon={<Database size={18} />}
+              title={t("dashboard.totalAgentTokens")}
+              value={formatNumber(backendStats?.total_agent_tokens ?? 0)}
+              color="#722ed1"
+              loading={isLoading}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <StatCard
+              icon={<MessageSquare size={18} />}
+              title={t("dashboard.dailyAvgCost")}
+              value={dailyUsage.length > 0
+                ? `$${(dailyUsage.reduce((s, d) => s + d.total_cost_usd, 0) / dailyUsage.length).toFixed(2)}`
+                : "$0.00"}
+              color="#52c41a"
+              loading={usageLoading}
+            />
+          </Col>
+        </Row>
+      </div>
+
+      {/* ── Cost by Provider ── */}
+      {costByProvider.length > 0 && (
+        <div>
+          <SectionHeader
+            title={t("dashboard.costByProvider")}
+            icon={<Cpu size={14} color={token.colorTextSecondary} />}
+          />
+          <Card
+            size="small"
+            styles={{ body: { padding: "16px 20px" } }}
+            style={{
+              borderColor: token.colorBorderSecondary,
+              background: token.colorBgContainer,
+            }}
+          >
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={costByProvider}
+                  dataKey="cost_usd"
+                  nameKey="provider_id"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label={({ provider_id, cost_usd }: { provider_id: string; cost_usd: number }) =>
+                    `${provider_id}: $${cost_usd.toFixed(2)}`}
+                  labelLine
+                >
+                  {costByProvider.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={[
+                        "#1677ff",
+                        "#52c41a",
+                        "#faad14",
+                        "#ff4d4f",
+                        "#722ed1",
+                        "#13c2c2",
+                        "#eb2f96",
+                        "#fa8c16",
+                      ][i % 8]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number, name: string) => [
+                    `$${value.toFixed(2)}`,
+                    name,
+                  ]}
+                  contentStyle={{
+                    background: token.colorBgElevated,
+                    border: `1px solid ${token.colorBorder}`,
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

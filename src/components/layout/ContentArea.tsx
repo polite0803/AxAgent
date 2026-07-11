@@ -62,6 +62,9 @@ const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => (
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 const LazyTerminalPage = lazy(() => import("@/pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
 const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ default: m.FilesPage })));
+const LazyLearningGraphPage = lazy(() =>
+  import("@/pages/LearningGraphPage").then((m) => ({ default: m.LearningGraphPage }))
+);
 const LazyDynamicUIManagerPage = lazy(() =>
   import("@/pages/DynamicUIManagerPage").then((m) => ({ default: m.DynamicUIManagerPage }))
 );
@@ -355,6 +358,15 @@ export const ContentArea = memo(function ContentArea() {
           {/* 技能声明式动态路由 */}
           {pluginRoutes}
 
+          {/* 学习图 */}
+          <Route
+            path="/learning-graph"
+            element={
+              <PageContextProvider page="learning-graph">
+                <SafeLazyPage Page={LazyLearningGraphPage} />
+              </PageContextProvider>
+            }
+          />
           {/* 技能 catch-all 路由 */}
           <Route
             path="/skill/:skillName"

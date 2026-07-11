@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "會話已清空"
   },
   "gateway": {
     "title": "閘道",
@@ -6276,7 +6277,9 @@
     "referenceFile": "引用文件或路徑",
     "commands": "命令",
     "mentions": "提及",
-    "filterHint": "輸入篩選，↑↓ 選擇，Enter 確認"
+    "filterHint": "輸入篩選，↑↓ 選擇，Enter 確認",
+    "newConversation": "新建會話",
+    "stopGeneration": "停止生成"
   },
   "onboarding": {
     "welcome": "歡迎使用 AxAgent",
@@ -8588,12 +8591,36 @@
     "agentFailed": "失敗",
     "modelProviderSummary": "模型/提供商概覽",
     "totalProviders": "提供商數",
-    "totalModels": "模型數"
+    "totalModels": "模型數",
+    "usageTrend": "每日用量趨勢",
+    "noUsageData": "暫無用量數據，開始對話後將在此顯示每日 Token 用量趨勢",
+    "inputTokens": "輸入 Token",
+    "outputTokens": "輸出 Token",
+    "costOverview": "成本概覽",
+    "totalCost": "總費用 (USD)",
+    "avgCostPerSession": "每會話平均費用",
+    "totalAgentTokens": "Agent 總 Token 數",
+    "dailyAvgCost": "日均費用",
+    "costByProvider": "按供應商成本分佈"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "學習圖",
+    "skills": "技能",
+    "memories": "記憶",
+    "insights": "洞察",
+    "edges": "關聯",
+    "searchPlaceholder": "搜索節點...",
+    "all": "全部",
+    "refresh": "刷新",
+    "emptyDescription": "暫無數據，完成任務後會自動生成學習圖",
+    "useCount": "使用次數: {count}",
+    "detail": "詳情",
+    "lexicalOverlap": "關聯"
   }
 }

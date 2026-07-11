@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "تم مسح المحادثة"
   },
   "gateway": {
     "title": "البوابة",
@@ -6276,7 +6277,9 @@
     "referenceFile": "الإشارة إلى ملف أو مسار",
     "commands": "أوامر",
     "mentions": "إشارات",
-    "filterHint": "اكتب للتصفية، ↑↓ للاختيار، Enter للتأكيد"
+    "filterHint": "اكتب للتصفية، ↑↓ للاختيار، Enter للتأكيد",
+    "newConversation": "محادثة جديدة",
+    "stopGeneration": "إيقاف التوليد"
   },
   "onboarding": {
     "welcome": "مرحبًا بك في AxAgent",
@@ -8557,12 +8560,36 @@
     "agentFailed": "فشل",
     "modelProviderSummary": "ملخص النماذج والمزودين",
     "totalProviders": "المزودون",
-    "totalModels": "النماذج"
+    "totalModels": "النماذج",
+    "usageTrend": "اتجاه الاستخدام اليومي",
+    "noUsageData": "لا توجد بيانات استخدام حتى الآن. ابدأ محادثة لرؤية اتجاهات استخدام الرموز اليومية",
+    "inputTokens": "رموز الإدخال",
+    "outputTokens": "رموز الإخراج",
+    "costOverview": "Cost Overview",
+    "totalCost": "Total Cost (USD)",
+    "avgCostPerSession": "Avg Cost / Session",
+    "totalAgentTokens": "Agent Total Tokens",
+    "dailyAvgCost": "Daily Avg Cost",
+    "costByProvider": "Cost by Provider"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "Learning Graph",
+    "skills": "Skills",
+    "memories": "Memories",
+    "insights": "Insights",
+    "edges": "Edges",
+    "searchPlaceholder": "Search nodes...",
+    "all": "All",
+    "refresh": "Refresh",
+    "emptyDescription": "No data yet. Complete tasks to generate learning graph",
+    "useCount": "Use count: {count}",
+    "detail": "Details",
+    "lexicalOverlap": "Related"
   }
 }

@@ -3,6 +3,7 @@
 import { SyncOutlined } from "@ant-design/icons";
 import {
   ArrowDownRight,
+  ArrowsInSimple,
   ArrowUpRight,
   Brain,
   ChartBar,
@@ -23,7 +24,7 @@ import type { GlobalToken, InputRef } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useConversationStore } from "@/stores";
+import { useCompressStore, useConversationStore } from "@/stores";
 import type { ConversationStats } from "@/types";
 
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
@@ -301,6 +302,8 @@ export function ChatViewToolbar({
   const { t } = useTranslation();
   const updateConversation = useConversationStore((s) => s.updateConversation);
   const fetchConversation = useConversationStore((s) => s.fetchConversations);
+  const compressing = useCompressStore((s) => s.compressing);
+  const compressContext = useCompressStore((s) => s.compressContext);
 
   return (
     <div className="flex items-center gap-2 p-3 flex-wrap">
@@ -493,6 +496,21 @@ export function ChatViewToolbar({
                 />
               </Tooltip>
             </Popover>
+            <Tooltip title={t("chat.manualCompress")}>
+              <Button
+                type="text"
+                size="small"
+                icon={compressing ? <SyncOutlined spin /> : <ArrowsInSimple size={14} />}
+                onClick={async () => {
+                  try {
+                    await compressContext();
+                  } catch {
+                    // Error is handled in store
+                  }
+                }}
+                disabled={!activeConversationId || !!streamingMessageId || compressing}
+              />
+            </Tooltip>
             <DropdownMenu items={(exportMenuItems ?? []) as DropdownItem[]} trigger={["click"]}>
               <Button type="text" icon={<ShareNetwork size={14} />} size="small" />
             </DropdownMenu>

@@ -53,6 +53,7 @@ interface SkillState {
   patchSkill: (name: string, content: string) => Promise<string>;
   editSkill: (name: string, content: string) => Promise<string>;
   loadSkillProposals: () => Promise<SkillProposal[]>;
+  addSkillProposal: (proposal: SkillProposal) => void;
   createSkillFromProposal: (
     name: string,
     description: string,
@@ -318,6 +319,16 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
     syncExtensionStore(get().skills);
     return result;
+  },
+
+  addSkillProposal: (proposal: SkillProposal) => {
+    set((s) => {
+      // 避免重复添加
+      if (s.skillProposals.some((p) => p.suggested_name === proposal.suggested_name)) {
+        return s;
+      }
+      return { skillProposals: [...s.skillProposals, proposal] };
+    });
   },
 }));
 

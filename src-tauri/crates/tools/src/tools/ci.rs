@@ -6,11 +6,15 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::Value;
 use std::process::Command;
 
 fn has_gh_cli() -> bool {
-    Command::new("gh").args(["--version"]).output().map(|o| o.status.success()).unwrap_or(false)
+    let mut cmd = Command::new("gh");
+    cmd.args(["--version"]);
+    hide_window(&mut cmd);
+    cmd.output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 // ── CiStatusTool ──
@@ -66,8 +70,10 @@ impl Tool for CiStatusTool {
             args.extend(["--branch", b]);
         }
 
-        let output = Command::new("gh")
-            .args(&args)
+        let mut cmd = Command::new("gh");
+        cmd.args(&args);
+        hide_window(&mut cmd);
+        let output = cmd
             .output()
             .map_err(|e| ToolError::execution_failed(format!("gh 命令执行失败: {}", e)))?;
 
@@ -131,8 +137,10 @@ impl Tool for CiTriggerTool {
             .ok_or_else(|| ToolError::invalid_input("缺少 workflow 参数"))?;
         let git_ref = input["ref"].as_str().unwrap_or("HEAD");
 
-        let output = Command::new("gh")
-            .args(["workflow", "run", workflow, "--ref", git_ref])
+        let mut cmd = Command::new("gh");
+        cmd.args(["workflow", "run", workflow, "--ref", git_ref]);
+        hide_window(&mut cmd);
+        let output = cmd
             .output()
             .map_err(|e| ToolError::execution_failed(format!("触发 CI 失败: {}", e)))?;
 
@@ -177,8 +185,10 @@ impl Tool for CiListWorkflowsTool {
             ));
         }
 
-        let output = Command::new("gh")
-            .args(["workflow", "list"])
+        let mut cmd = Command::new("gh");
+        cmd.args(["workflow", "list"]);
+        hide_window(&mut cmd);
+        let output = cmd
             .output()
             .map_err(|e| ToolError::execution_failed(format!("gh 命令执行失败: {}", e)))?;
 

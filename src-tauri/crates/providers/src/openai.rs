@@ -579,11 +579,10 @@ fn build_request(
         (request.max_tokens.filter(|&v| v > 0), None)
     };
 
-    // 兼容性: 非标准 OpenAI 提供商(各类中转/网关)不支持 stream_options.include_usage
-    let is_standard_openai = base_url.contains("api.openai.com")
-        || base_url.contains("api.deepseek.com")
-        || is_siliconflow;
-    let stream_options = if stream && is_standard_openai {
+    // 始终发送 include_usage，确保流式响应中返回 token 用量。
+    // 标准 OpenAI / DeepSeek / SiliconFlow 原生支持；
+    // 其他兼容提供商(含 CC Switch 等自定义网关)通常忽略未知字段，不会报错。
+    let stream_options = if stream {
         Some(StreamOptions { include_usage: true })
     } else {
         None

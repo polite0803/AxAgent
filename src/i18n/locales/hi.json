@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "वार्तालाप साफ़ हो गया"
   },
   "gateway": {
     "title": "गेटवे",
@@ -6276,7 +6277,9 @@
     "referenceFile": "फ़ाइल या पथ संदर्भित करें",
     "commands": "कमांड",
     "mentions": "मेंशन",
-    "filterHint": "फ़िल्टर करने के लिए टाइप करें, ↑↓ चुनने के लिए, Enter पुष्टि करने के लिए"
+    "filterHint": "फ़िल्टर करने के लिए टाइप करें, ↑↓ चुनने के लिए, Enter पुष्टि करने के लिए",
+    "newConversation": "नया वार्तालाप",
+    "stopGeneration": "जनन रोकें"
   },
   "onboarding": {
     "welcome": "AxAgent में आपका स्वागत है",
@@ -8557,12 +8560,36 @@
     "agentFailed": "विफल",
     "modelProviderSummary": "मॉडल/प्रदाता सारांश",
     "totalProviders": "प्रदाता",
-    "totalModels": "मॉडल"
+    "totalModels": "मॉडल",
+    "usageTrend": "दैनिक उपयोग प्रवृत्ति",
+    "noUsageData": "अभी तक कोई उपयोग डेटा नहीं। टोकन उपयोग रुझान देखने के लिए बातचीत शुरू करें",
+    "inputTokens": "इनपुट टोकन",
+    "outputTokens": "आउटपुट टोकन",
+    "costOverview": "Cost Overview",
+    "totalCost": "Total Cost (USD)",
+    "avgCostPerSession": "Avg Cost / Session",
+    "totalAgentTokens": "Agent Total Tokens",
+    "dailyAvgCost": "Daily Avg Cost",
+    "costByProvider": "Cost by Provider"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "Learning Graph",
+    "skills": "Skills",
+    "memories": "Memories",
+    "insights": "Insights",
+    "edges": "Edges",
+    "searchPlaceholder": "Search nodes...",
+    "all": "All",
+    "refresh": "Refresh",
+    "emptyDescription": "No data yet. Complete tasks to generate learning graph",
+    "useCount": "Use count: {count}",
+    "detail": "Details",
+    "lexicalOverlap": "Related"
   }
 }

@@ -2,7 +2,7 @@
 
 import i18n from "@/i18n";
 import { useMcpStore } from "@/stores";
-import { BookOpen, FileText, FolderOpen, Globe, Terminal, Wrench } from "lucide-react";
+import { BookOpen, FileText, FolderOpen, Globe, MessageSquarePlus, Square, Terminal, Wrench } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 
 interface Suggestion {
@@ -11,6 +11,8 @@ interface Suggestion {
   description: string;
   replacement: string;
   icon: React.ReactNode;
+  /** When set, selecting this command calls onExecute(actionId) instead of inserting text */
+  actionId?: string;
 }
 
 interface ToolDescriptor {
@@ -22,17 +24,11 @@ interface ToolDescriptor {
 const SLASH_COMMANDS: Suggestion[] = [
   {
     type: "command",
-    label: "/search",
-    description: i18n.t("commandSuggest.searchWeb"),
-    replacement: "/search ",
-    icon: <Globe size={14} />,
-  },
-  {
-    type: "command",
     label: "/compact",
     description: i18n.t("commandSuggest.compressContext"),
     replacement: "/compact",
     icon: <FileText size={14} />,
+    actionId: "compact",
   },
   {
     type: "command",
@@ -40,6 +36,30 @@ const SLASH_COMMANDS: Suggestion[] = [
     description: i18n.t("commandSuggest.clearHistory"),
     replacement: "/clear",
     icon: <Terminal size={14} />,
+    actionId: "clear",
+  },
+  {
+    type: "command",
+    label: "/new",
+    description: i18n.t("commandSuggest.newConversation"),
+    replacement: "/new",
+    icon: <MessageSquarePlus size={14} />,
+    actionId: "new",
+  },
+  {
+    type: "command",
+    label: "/stop",
+    description: i18n.t("commandSuggest.stopGeneration"),
+    replacement: "/stop",
+    icon: <Square size={14} />,
+    actionId: "stop",
+  },
+  {
+    type: "command",
+    label: "/search",
+    description: i18n.t("commandSuggest.searchWeb"),
+    replacement: "/search ",
+    icon: <Globe size={14} />,
   },
   {
     type: "command",
@@ -61,6 +81,7 @@ interface CommandSuggestProps {
   value: string;
   cursorPosition: number;
   onSelect: (replacement: string) => void;
+  onExecute?: (actionId: string) => void;
   visible: boolean;
 }
 
@@ -68,6 +89,7 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
   value,
   cursorPosition,
   onSelect,
+  onExecute,
   visible,
 }) => {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -190,7 +212,11 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
         e.preventDefault();
         const selected = suggestions[selectedIndex];
         if (selected) {
-          onSelect(selected.replacement);
+          if (selected.actionId && onExecute) {
+            onExecute(selected.actionId);
+          } else {
+            onSelect(selected.replacement);
+          }
         }
         return true;
       }
@@ -200,7 +226,7 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
       }
       return false;
     },
-    [suggestions, selectedIndex, onSelect],
+    [suggestions, selectedIndex, onSelect, onExecute],
   );
 
   // Expose key handler — FIXME: mutating React component prototype to expose a method.
@@ -231,7 +257,13 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
               ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
               : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
           }`}
-          onClick={() => onSelect(suggestion.replacement)}
+          onClick={() => {
+            if (suggestion.actionId && onExecute) {
+              onExecute(suggestion.actionId);
+            } else {
+              onSelect(suggestion.replacement);
+            }
+          }}
           onMouseEnter={() => setSelectedIndex(index)}
         >
           <span className="shrink-0 text-zinc-400">{suggestion.icon}</span>

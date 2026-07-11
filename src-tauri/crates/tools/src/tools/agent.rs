@@ -475,8 +475,10 @@ impl Tool for SuggestBackgroundPRTool {
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let branch = i["branch"].as_str().unwrap_or("main");
         // 尝试获取 diff 统计
-        let diff_info = std::process::Command::new("git")
-            .args(["diff", "--stat", &format!("origin/{}..HEAD", branch)])
+        let mut cmd = std::process::Command::new("git");
+        cmd.args(["diff", "--stat", &format!("origin/{}..HEAD", branch)]);
+        axagent_kit::utils::hide_window(&mut cmd);
+        let diff_info = cmd
             .output()
             .ok()
             .and_then(|o| {

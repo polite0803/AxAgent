@@ -1209,7 +1209,8 @@
     },
     "proactiveInsights": "Proactive Insights & Reminders",
     "error": "Chat error",
-    "loadError": "Failed to load"
+    "loadError": "Failed to load",
+    "clearHistoryDone": "Conversation cleared"
   },
   "gateway": {
     "title": "Gateway",
@@ -6455,7 +6456,9 @@
     "referenceFile": "Reference file or path",
     "commands": "Commands",
     "mentions": "Mentions",
-    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm",
+    "newConversation": "New conversation",
+    "stopGeneration": "Stop generation"
   },
   "onboarding": {
     "welcome": "Welcome to AxAgent",
@@ -8664,12 +8667,36 @@
     "agentFailed": "Failed",
     "modelProviderSummary": "Model / Provider Summary",
     "totalProviders": "Providers",
-    "totalModels": "Models"
+    "totalModels": "Models",
+    "usageTrend": "Daily Usage Trend",
+    "noUsageData": "No usage data yet. Start a conversation to see daily token usage trends",
+    "inputTokens": "Input Tokens",
+    "outputTokens": "Output Tokens",
+    "costOverview": "Cost Overview",
+    "totalCost": "Total Cost (USD)",
+    "avgCostPerSession": "Avg Cost / Session",
+    "totalAgentTokens": "Agent Total Tokens",
+    "dailyAvgCost": "Daily Avg Cost",
+    "costByProvider": "Cost by Provider"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "Learning Graph",
+    "skills": "Skills",
+    "memories": "Memories",
+    "insights": "Insights",
+    "edges": "Edges",
+    "searchPlaceholder": "Search nodes...",
+    "all": "All",
+    "refresh": "Refresh",
+    "emptyDescription": "No data yet. Complete tasks to generate learning graph",
+    "useCount": "Use count: {count}",
+    "detail": "Details",
+    "lexicalOverlap": "Related"
   }
 }

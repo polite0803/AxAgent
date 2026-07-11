@@ -271,6 +271,9 @@ macro_rules! register_all_commands {
             commands::dashboard::dashboard_open_plugins_folder,
             commands::dashboard::dashboard_install_plugin,
             commands::dashboard::get_dashboard_stats,
+            commands::dashboard::get_usage_trend,
+            commands::dashboard::get_cost_by_provider,
+            commands::learning_graph::get_learning_graph,
             #[cfg(not(mobile))]
             commands::computer_control::grant_computer_control_permission,
             #[cfg(not(mobile))]

@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "Konversation gelöscht"
   },
   "gateway": {
     "title": "Gateway",
@@ -6276,7 +6277,9 @@
     "referenceFile": "Datei oder Pfad referenzieren",
     "commands": "Befehle",
     "mentions": "Erwähnungen",
-    "filterHint": "Tippen zum Filtern, ↑↓ zum Auswählen, Enter zum Bestätigen"
+    "filterHint": "Tippen zum Filtern, ↑↓ zum Auswählen, Enter zum Bestätigen",
+    "newConversation": "Neue Konversation",
+    "stopGeneration": "Generierung stoppen"
   },
   "onboarding": {
     "welcome": "Willkommen bei AxAgent",
@@ -8554,12 +8557,36 @@
     "agentFailed": "Fehlgeschlagen",
     "modelProviderSummary": "Modell-/Anbieter-Zusammenfassung",
     "totalProviders": "Anbieter",
-    "totalModels": "Modelle"
+    "totalModels": "Modelle",
+    "usageTrend": "Täglicher Nutzungstrend",
+    "noUsageData": "Noch keine Nutzungsdaten. Starten Sie ein Gespräch, um tägliche Token-Nutzungstrends zu sehen",
+    "inputTokens": "Eingabe-Token",
+    "outputTokens": "Ausgabe-Token",
+    "costOverview": "Kostenübersicht",
+    "totalCost": "Gesamtkosten (USD)",
+    "avgCostPerSession": "Durchschnittskosten/Sitzung",
+    "totalAgentTokens": "Agent Gesamt-Token",
+    "dailyAvgCost": "Tägliche Durchschnittskosten",
+    "costByProvider": "Kosten nach Anbieter"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "Lerngraph",
+    "skills": "Fähigkeiten",
+    "memories": "Erinnerungen",
+    "insights": "Einblicke",
+    "edges": "Verbindungen",
+    "searchPlaceholder": "Knoten suchen...",
+    "all": "Alle",
+    "refresh": "Aktualisieren",
+    "emptyDescription": "Noch keine Daten. Erledigen Sie Aufgaben, um einen Lerngraphen zu generieren",
+    "useCount": "Nutzungen: {count}",
+    "detail": "Details",
+    "lexicalOverlap": "Verwandt"
   }
 }

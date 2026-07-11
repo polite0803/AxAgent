@@ -57,6 +57,7 @@ mod storage;
 mod style_applier;
 mod style_extractor;
 mod style_vectorizer;
+mod learning_graph;
 mod sub_agent;
 mod suggestion_engine;
 mod task_prefetcher;
@@ -112,6 +113,10 @@ pub use dream_data_provider::TrajectoryDreamDataProvider;
 pub use fts5::{FTS5Config, FTS5Query, FTS5Result, FTS5Search};
 
 pub use insight::{InsightCategory, LearningInsight, LearningInsightSystem};
+
+pub use learning_graph::{
+    CategoryCount, GraphEdge, GraphNode, GraphStats, LearningGraph, NodeKind, build_learning_graph,
+};
 
 pub use intrinsic_reward::{IntrinsicMotivationConfig, IntrinsicMotivationEngine};
 
@@ -192,7 +197,7 @@ pub use trajectory::{
     TrajectoryToolResult,
 };
 
-pub use user_profile::{ExpertiseLevel, UserProfile};
+pub use user_profile::{ExpertiseLevel, ProfileUpdate, UpdateSource, UserProfile};
 
 // ── Extension methods migrated from harness ──────────────────────────
 

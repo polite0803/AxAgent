@@ -4237,9 +4237,4 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* ── 宽屏消息内容约束 ─────────────────────────────────── */
-@media (min-width: 1440px) {
-  .chat-main {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-}
+/* 移除 max-width 硬限制，让 chat-main 通过 flex: 1 自动扩展至可用宽度 */

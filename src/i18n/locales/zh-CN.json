@@ -1175,7 +1175,8 @@
       "ask": "问答",
       "plan": "计划",
       "title": "切换模式"
-    }
+    },
+    "clearHistoryDone": "会话已清空"
   },
   "gateway": {
     "title": "网关",
@@ -6424,7 +6425,9 @@
     "referenceFile": "引用文件或路径",
     "commands": "命令",
     "mentions": "提及",
-    "filterHint": "输入筛选，↑↓ 选择，Enter 确认"
+    "filterHint": "输入筛选，↑↓ 选择，Enter 确认",
+    "newConversation": "新建会话",
+    "stopGeneration": "停止生成"
   },
   "onboarding": {
     "welcome": "欢迎使用 AxAgent",
@@ -8690,12 +8693,36 @@
     "agentFailed": "失败",
     "modelProviderSummary": "模型/提供商概览",
     "totalProviders": "提供商数",
-    "totalModels": "模型数"
+    "totalModels": "模型数",
+    "usageTrend": "每日用量趋势",
+    "noUsageData": "暂无用量数据，开始对话后将在此显示每日 Token 用量趋势",
+    "inputTokens": "输入 Token",
+    "outputTokens": "输出 Token",
+    "costOverview": "成本概览",
+    "totalCost": "总费用 (USD)",
+    "avgCostPerSession": "每会话平均费用",
+    "totalAgentTokens": "Agent 总 Token 数",
+    "dailyAvgCost": "日均费用",
+    "costByProvider": "按供应商成本分布"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" 未注册",
     "apiRequestFailed": "API 请求失败：{{statusText}}",
     "agentDataNotFound": "Agent 生成数据 \"{{generationId}}\" 在执行存储中未找到",
     "unknownSourceType": "未知数据源类型：{{type}}"
+  },
+  "learningGraph": {
+    "title": "学习图",
+    "skills": "技能",
+    "memories": "记忆",
+    "insights": "洞察",
+    "edges": "关联",
+    "searchPlaceholder": "搜索节点...",
+    "all": "全部",
+    "refresh": "刷新",
+    "emptyDescription": "暂无数据，完成任务后会自动生成学习图",
+    "useCount": "使用次数: {count}",
+    "detail": "详情",
+    "lexicalOverlap": "关联"
   }
 }

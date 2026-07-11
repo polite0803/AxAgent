@@ -830,6 +830,40 @@ pub async fn send_message(
         tracing::info!("[send_message] model={} NO system prompt", &conversation.model_id);
     }
 
+    // Inject workspace directory from agent session (if any)
+    {
+        let db_session = axagent_dao::repo::agent_session::get_agent_session_by_conversation_id(
+            state.harness.db(),
+            &conversation_id,
+        )
+        .await
+        .ok()
+        .flatten();
+        if let Some(ref workspace_root) = db_session.as_ref().and_then(|s| s.cwd.as_ref()) {
+            if !workspace_root.is_empty() {
+                tracing::info!(
+                    "[send_message] injecting workspace root into context: {}",
+                    workspace_root
+                );
+                let workspace_msg = format!(
+                    "<workspace>\nYour current working directory is: {}\nAll file operations (read, write, execute) should be performed relative to or within this directory unless the user explicitly provides another path.\n</workspace>",
+                    workspace_root
+                );
+                chat_messages.push(ChatMessage {
+                    role: if no_system_role {
+                        "user".to_string()
+                    } else {
+                        "system".to_string()
+                    },
+                    content: ChatContent::Text(workspace_msg),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    thinking: None,
+                });
+            }
+        }
+    }
+
     // Inject current date + search hint
     {
         let now = chrono::Local::now();

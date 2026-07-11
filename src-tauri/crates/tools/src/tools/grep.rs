@@ -4,6 +4,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_kit::utils::hide_window;
 use serde_json::Value;
 use std::process::Command;
 
@@ -123,6 +124,7 @@ impl Tool for GrepTool {
         cmd.arg(pattern);
         cmd.arg(search_path);
 
+        hide_window(&mut cmd);
         let output = match cmd.output() {
             Ok(o) => o,
             Err(e) => return Err(ToolError::execution_failed(format!("grep 执行失败: {}", e))),

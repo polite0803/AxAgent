@@ -140,6 +140,8 @@ pub struct ConversationRuntime<C, T> {
     progress: Option<Arc<AgentExecutionProgress>>,
     /// 动态上下文注入器列表（每次 LLM 调用前执行）。
     context_contributors: Vec<Box<dyn ContextContributor>>,
+    /// Nudge 上下文行（从 NudgeService 提取，每次 run_turn 前设置）。
+    nudge_lines: Vec<String>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -194,6 +196,7 @@ where
             pause_state: None,
             progress: None,
             context_contributors: Vec::new(),
+            nudge_lines: Vec::new(),
         }
     }
 
@@ -521,6 +524,15 @@ where
                 }
             }
             system_prompt.extend(extra_blocks);
+
+            // 注入 nudge 上下文（从 NudgeService 提取的记忆提醒，在每次 LLM 调用前注入）
+            if !self.nudge_lines.is_empty() {
+                let nudge_block = format!(
+                    "<memory_context>\n{}\n</memory_context>",
+                    self.nudge_lines.join("\n")
+                );
+                system_prompt.push(nudge_block);
+            }
 
             let request = ApiRequest { system_prompt, messages: self.session.messages.clone() };
             let events = match self.api_client.stream(request) {
@@ -1417,6 +1429,10 @@ impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
         reporter: Box<dyn axagent_harness::runtime_types::hooks::HookProgressReporter>,
     ) {
         self.hook_progress_reporter = Some(reporter);
+    }
+
+    fn set_nudge_lines(&mut self, lines: Vec<String>) {
+        self.nudge_lines = lines;
     }
 
     fn into_session(self: Box<Self>) -> axagent_harness::runtime_types::session::Session {

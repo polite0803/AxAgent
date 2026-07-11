@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "Conversación borrada"
   },
   "gateway": {
     "title": "Pasarela",
@@ -6276,7 +6277,9 @@
     "referenceFile": "Referenciar archivo o ruta",
     "commands": "Comandos",
     "mentions": "Menciones",
-    "filterHint": "Escriba para filtrar, ↑↓ para seleccionar, Enter para confirmar"
+    "filterHint": "Escriba para filtrar, ↑↓ para seleccionar, Enter para confirmar",
+    "newConversation": "Nueva conversación",
+    "stopGeneration": "Detener generación"
   },
   "onboarding": {
     "welcome": "Bienvenido a AxAgent",
@@ -8554,12 +8557,36 @@
     "agentFailed": "Fallido",
     "modelProviderSummary": "Resumen de modelos/proveedores",
     "totalProviders": "Proveedores",
-    "totalModels": "Modelos"
+    "totalModels": "Modelos",
+    "usageTrend": "Tendencia de uso diario",
+    "noUsageData": "Aún no hay datos de uso. Inicie una conversación para ver las tendencias diarias de uso de tokens",
+    "inputTokens": "Tokens de entrada",
+    "outputTokens": "Tokens de salida",
+    "costOverview": "Resumen de costos",
+    "totalCost": "Costo total (USD)",
+    "avgCostPerSession": "Costo promedio / sesión",
+    "totalAgentTokens": "Total tokens del agente",
+    "dailyAvgCost": "Costo promedio diario",
+    "costByProvider": "Costo por proveedor"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "Gráfico de aprendizaje",
+    "skills": "Habilidades",
+    "memories": "Recuerdos",
+    "insights": "Perspectivas",
+    "edges": "Conexiones",
+    "searchPlaceholder": "Buscar nodos...",
+    "all": "Todos",
+    "refresh": "Actualizar",
+    "emptyDescription": "Aún no hay datos. Complete tareas para generar el gráfico",
+    "useCount": "Veces usado: {count}",
+    "detail": "Detalles",
+    "lexicalOverlap": "Relacionado"
   }
 }

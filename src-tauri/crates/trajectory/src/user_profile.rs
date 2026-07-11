@@ -497,6 +497,8 @@ pub struct ProfileUpdate {
     pub new_value: serde_json::Value,
     pub confidence_change: f32,
     pub source: UpdateSource,
+    /// 更新时间戳（毫秒），用于偏好漂移时间线
+    pub timestamp: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

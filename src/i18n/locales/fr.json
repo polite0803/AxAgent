@@ -1174,7 +1174,8 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "Conversation effacée"
   },
   "gateway": {
     "title": "Passerelle",
@@ -6276,7 +6277,9 @@
     "referenceFile": "Référencer un fichier ou un chemin",
     "commands": "Commandes",
     "mentions": "Mentions",
-    "filterHint": "Tapez pour filtrer, ↑↓ pour sélectionner, Entrée pour confirmer"
+    "filterHint": "Tapez pour filtrer, ↑↓ pour sélectionner, Entrée pour confirmer",
+    "newConversation": "Nouvelle conversation",
+    "stopGeneration": "Arrêter la génération"
   },
   "onboarding": {
     "welcome": "Bienvenue dans AxAgent",
@@ -8554,12 +8557,36 @@
     "agentFailed": "Échec",
     "modelProviderSummary": "Résumé modèles/fournisseurs",
     "totalProviders": "Fournisseurs",
-    "totalModels": "Modèles"
+    "totalModels": "Modèles",
+    "usageTrend": "Tendance d'utilisation quotidienne",
+    "noUsageData": "Aucune donnée d'utilisation pour le moment. Démarrez une conversation pour voir les tendances quotidiennes d'utilisation des tokens",
+    "inputTokens": "Tokens d'entrée",
+    "outputTokens": "Tokens de sortie",
+    "costOverview": "Aperçu des coûts",
+    "totalCost": "Coût total (USD)",
+    "avgCostPerSession": "Coût moyen / session",
+    "totalAgentTokens": "Total tokens agent",
+    "dailyAvgCost": "Coût quotidien moyen",
+    "costByProvider": "Coût par fournisseur"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "unknownSourceType": "Unknown data source type: {{type}}"
+  },
+  "learningGraph": {
+    "title": "Graphe d'apprentissage",
+    "skills": "Compétences",
+    "memories": "Souvenirs",
+    "insights": "Informations",
+    "edges": "Liens",
+    "searchPlaceholder": "Rechercher des nœuds...",
+    "all": "Tout",
+    "refresh": "Actualiser",
+    "emptyDescription": "Aucune donnée pour le moment. Terminez des tâches pour générer le graphe",
+    "useCount": "Nombre d'utilisations: {count}",
+    "detail": "Détails",
+    "lexicalOverlap": "Lié"
   }
 }
