@@ -312,10 +312,46 @@ fn value_to_input_text(v: serde_json::Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_harness::repositories::{
+        ProviderRepository as RepoProviderRepo, set_provider_repository,
+    };
+    use axagent_harness::types::{ProviderConfig, ProviderKey};
     use axagent_harness::workflow_types::{
         LlmClassifierNode, LlmClassifierNodeConfig, WorkflowNodeBase,
     };
     use std::collections::HashMap;
+    use std::sync::OnceLock;
+
+    /// Mock ProviderRepository，resolve_model_for_node 返回 Err（模拟未配置 provider）。
+    struct MockProviderRepo;
+    #[async_trait]
+    impl RepoProviderRepo for MockProviderRepo {
+        async fn list_providers(&self) -> Result<Vec<ProviderConfig>, String> {
+            Ok(vec![])
+        }
+        async fn get_provider(&self, _id: &str) -> Result<ProviderConfig, String> {
+            Err("mock".into())
+        }
+        async fn get_active_key(&self, _id: &str) -> Result<ProviderKey, String> {
+            Err("mock".into())
+        }
+        async fn resolve_model_for_node(
+            &self,
+            _a: Option<&str>,
+            _b: Option<&str>,
+            _c: Option<&str>,
+            _d: Option<&str>,
+        ) -> Result<(ProviderConfig, ProviderKey, String), String> {
+            Err("mock: no provider".to_string())
+        }
+    }
+
+    static PROVIDER_REPO_INIT: OnceLock<()> = OnceLock::new();
+    fn init_mock_provider_repo() {
+        PROVIDER_REPO_INIT.get_or_init(|| {
+            set_provider_repository(Arc::new(MockProviderRepo));
+        });
+    }
 
     // ── resolve_var_path 单元测试 ──────────────────────────────────────
 
@@ -435,6 +471,8 @@ mod tests {
 
     /// 负向用例不需要真实 DB（VALIDATION_FAILED 早于 provider 解析）。
     fn make_executor() -> LlmClassifierExecutor {
+        // 初始化 mock ProviderRepository，防止通过 input 校验后 provider 解析 panic
+        init_mock_provider_repo();
         LlmClassifierExecutor::default()
     }
 
