@@ -1236,7 +1236,7 @@ pub async fn agent_query(
         "[agent_query] workspace_root_for_prompt from DB: {:?} (session exists: {}, will inject into system_prompt: {})",
         workspace_root_for_prompt,
         db_session.is_some(),
-        workspace_root_for_prompt.as_ref().map_or(false, |c| !c.is_empty()),
+        workspace_root_for_prompt.as_ref().is_some_and(|c| !c.is_empty()),
     );
 
     // 将 workspace cwd 注入工具注册表，确保工具执行时使用正确的工作目录

@@ -668,6 +668,8 @@ macro_rules! register_all_commands {
             commands::tracer::tracer_submit_feedback,
             commands::tracer::tracer_get_feedback,
             commands::tracer::telemetry_report_error,
+            // NL to Cron
+            commands::nl_to_cron::nl_to_cron,
             // RL Training commands
             commands::rl_training::start_rl_training,
             commands::rl_training::stop_rl_training,
