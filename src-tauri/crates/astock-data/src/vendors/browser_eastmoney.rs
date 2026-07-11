@@ -57,9 +57,7 @@ impl BrowserEastMoneyVendor {
     }
 
     pub fn with_fetcher(fetcher: Arc<dyn BrowserHttpFetch>) -> Self {
-        Self {
-            fetcher: Some(fetcher),
-        }
+        Self { fetcher: Some(fetcher) }
     }
 }
 
@@ -92,13 +90,10 @@ async fn browser_fetch(
     // ── 惰性预热：仅首次请求执行，后续跳过 ──
     ensure_warmed_up(f.as_ref()).await;
 
-    let result = f
-        .fetch_text(url)
-        .await
-        .map_err(|e| DataError::VendorError {
-            vendor: "browser_eastmoney".into(),
-            message: format!("browser fetch failed: {e}"),
-        })?;
+    let result = f.fetch_text(url).await.map_err(|e| DataError::VendorError {
+        vendor: "browser_eastmoney".into(),
+        message: format!("browser fetch failed: {e}"),
+    })?;
 
     // 诊断信息
     let navigated_url = result["navigatedUrl"].as_str().unwrap_or("unknown");
@@ -156,11 +151,7 @@ impl StockVendor for BrowserEastMoneyVendor {
 
         Ok(StockQuote {
             code: stock_code.to_string(),
-            name: data
-                .get("f58")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
+            name: data.get("f58").and_then(|v| v.as_str()).unwrap_or("").to_string(),
             price: g("f43"),
             pre_close: g("f44"),
             open: g("f46"),
@@ -245,10 +236,7 @@ impl StockVendor for BrowserEastMoneyVendor {
         for item in items {
             let g = |k: &str| -> f64 {
                 item.get(k)
-                    .and_then(|v| {
-                        v.as_f64()
-                            .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
-                    })
+                    .and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
                     .unwrap_or(0.0)
             };
             result.push(FinancialReport {
@@ -294,12 +282,7 @@ impl StockVendor for BrowserEastMoneyVendor {
             .iter()
             .map(|item| NewsItem {
                 title: item["title"].as_str().unwrap_or("").to_string(),
-                summary: item["content"]
-                    .as_str()
-                    .unwrap_or("")
-                    .chars()
-                    .take(200)
-                    .collect(),
+                summary: item["content"].as_str().unwrap_or("").chars().take(200).collect(),
                 source: item["source"].as_str().unwrap_or("东方财富").to_string(),
                 url: item["url"].as_str().unwrap_or("").to_string(),
                 publish_time: item["date"].as_str().unwrap_or("").to_string(),

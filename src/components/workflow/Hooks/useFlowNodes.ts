@@ -42,6 +42,8 @@ export function useFlowNodes(params: UseFlowNodesParams) {
   } = params;
 
   const expandedSubWorkflows = useWorkflowEditorStore((s) => s.expandedSubWorkflows);
+  // 提取 only token 中实际用到的值，避免整个 token 对象作为 useMemo 依赖（引用随渲染变化）
+  const fallbackColor = token.colorTextQuaternary;
 
   return useMemo(() => {
     const errorNodeIds = new Set<string>();
@@ -87,7 +89,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     const flowNodes: Node[] = nodes.map((node: WorkflowNode) => {
       const typeInfo = NODE_TYPE_MAP[node.type] || {
         labelKey: "",
-        color: token.colorTextQuaternary,
+        color: fallbackColor,
       };
       const nodeType = NODE_TYPE_MAP[node.type] ? node.type : "base";
 
@@ -382,7 +384,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       // 能把它们映射到父容器，外部边才能重写到折叠容器上；hidden 节点不会被渲染。
       for (const subNode of subGraph.nodes) {
         const existingIdx = flowNodeIndexMap.get(subNode.id);
-        const subTypeInfo = NODE_TYPE_MAP[subNode.type] || { color: token.colorTextQuaternary };
+        const subTypeInfo = NODE_TYPE_MAP[subNode.type] || { color: fallbackColor };
         const subData = {
           ...subNode,
           label: subNode.title,
@@ -641,7 +643,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     validationResult,
     frontendValidation,
     validationMsgMap,
-    token,
     expandedSubWorkflows,
+    fallbackColor,
   ]);
 }

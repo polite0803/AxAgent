@@ -2,8 +2,8 @@
 //! 推荐在未来什么时间以什么价格挂出哪些持仓股票。
 
 use axagent_astock_data::indicators::compute_indicators;
-use axagent_astock_data::AStockClient;
 use axagent_entities::{portfolio_holdings, stock_analyses};
+use axagent_harness::market_data::MarketDataProvider;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 use std::sync::Arc;
 
@@ -99,7 +99,7 @@ const SCORE_RISK_PARITY: f64 = 8.0;
 /// 获取所有持仓的退出建议
 pub async fn get_exit_recommendations(
     db: &DatabaseConnection,
-    astock_client: &Arc<AStockClient>,
+    astock_client: &Arc<dyn MarketDataProvider>,
 ) -> Result<ExitSummary, String> {
     // 1. 获取所有持仓
     let holdings = portfolio_holdings::Entity::find()
@@ -133,27 +133,15 @@ pub async fn get_exit_recommendations(
 
     // 按紧迫度降序排列
     recommendations.sort_by(|a, b| {
-        b.exit_score
-            .partial_cmp(&a.exit_score)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        b.exit_score.partial_cmp(&a.exit_score).unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    let urgent = recommendations
-        .iter()
-        .filter(|r| matches!(r.action, ExitAction::SellNow))
-        .count();
-    let limit = recommendations
-        .iter()
-        .filter(|r| matches!(r.action, ExitAction::SellAtLimit))
-        .count();
-    let stop = recommendations
-        .iter()
-        .filter(|r| matches!(r.action, ExitAction::SetStopLoss))
-        .count();
-    let hold = recommendations
-        .iter()
-        .filter(|r| matches!(r.action, ExitAction::Hold))
-        .count();
+    let urgent = recommendations.iter().filter(|r| matches!(r.action, ExitAction::SellNow)).count();
+    let limit =
+        recommendations.iter().filter(|r| matches!(r.action, ExitAction::SellAtLimit)).count();
+    let stop =
+        recommendations.iter().filter(|r| matches!(r.action, ExitAction::SetStopLoss)).count();
+    let hold = recommendations.iter().filter(|r| matches!(r.action, ExitAction::Hold)).count();
 
     Ok(ExitSummary {
         total_positions: holdings.len(),
@@ -169,7 +157,7 @@ pub async fn get_exit_recommendations(
 
 async fn evaluate_position(
     db: &DatabaseConnection,
-    astock_client: &Arc<AStockClient>,
+    astock_client: &Arc<dyn MarketDataProvider>,
     holding: &portfolio_holdings::Model,
     total_mv: f64,
     sector_exposure: &[(String, f64)],
@@ -278,10 +266,7 @@ async fn evaluate_position(
     // --- Signal 2: 技术指标检查 ---
     if current_price_f64 > 0.0 {
         // 获取 K 线数据计算技术指标
-        let klines = astock_client
-            .get_klines(&holding.stock_code, "daily", 120)
-            .await
-            .ok();
+        let klines = astock_client.get_klines(&holding.stock_code, "daily", 120, None).await.ok();
 
         if let Some(ref klines) = klines {
             let indicators = compute_indicators(&holding.stock_code, klines);
@@ -421,9 +406,7 @@ async fn evaluate_position(
         } else {
             action = ExitAction::SellAtLimit;
             // 建议价：取 targetPrice / stopLoss / 当前价 * 1.005 三者的最优
-            let limit = target_price
-                .or(stop_loss)
-                .unwrap_or(current_price_f64 * 1.005);
+            let limit = target_price.or(stop_loss).unwrap_or(current_price_f64 * 1.005);
             suggested_price = Some(limit);
             timeframe = "本周内".into();
         }
@@ -493,12 +476,9 @@ async fn evaluate_position(
 /// 计算持仓总市值
 async fn get_total_portfolio_value(
     db: &DatabaseConnection,
-    astock_client: &Arc<AStockClient>,
+    astock_client: &Arc<dyn MarketDataProvider>,
 ) -> f64 {
-    let holdings = portfolio_holdings::Entity::find()
-        .all(db)
-        .await
-        .unwrap_or_default();
+    let holdings = portfolio_holdings::Entity::find().all(db).await.unwrap_or_default();
     let mut total = 0.0;
     for h in &holdings {
         if let Ok(quote) = astock_client.get_quote(&h.stock_code).await {
@@ -513,12 +493,9 @@ async fn get_total_portfolio_value(
 /// 计算行业暴露分布
 async fn get_sector_exposure(
     db: &DatabaseConnection,
-    astock_client: &Arc<AStockClient>,
+    astock_client: &Arc<dyn MarketDataProvider>,
 ) -> Vec<(String, f64)> {
-    let holdings = portfolio_holdings::Entity::find()
-        .all(db)
-        .await
-        .unwrap_or_default();
+    let holdings = portfolio_holdings::Entity::find().all(db).await.unwrap_or_default();
     let mut sectors: Vec<(String, f64)> = Vec::new();
     for h in &holdings {
         let mv = if let Ok(quote) = astock_client.get_quote(&h.stock_code).await {

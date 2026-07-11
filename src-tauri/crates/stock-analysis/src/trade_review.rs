@@ -81,12 +81,10 @@ pub async fn get_trade_review(db: &DatabaseConnection) -> Result<TradeReviewSumm
 
         // 获取分析预测对比
         let (target, stop, deviation) = if let Some(analysis) =
-            axagent_core::entity::stock_analyses::Entity::find()
-                .filter(
-                    axagent_core::entity::stock_analyses::Column::StockCode.eq(&sell.stock_code),
-                )
-                .filter(axagent_core::entity::stock_analyses::Column::Status.eq("completed"))
-                .order_by_desc(axagent_core::entity::stock_analyses::Column::CreatedAt)
+            axagent_entities::stock_analyses::Entity::find()
+                .filter(axagent_entities::stock_analyses::Column::StockCode.eq(&sell.stock_code))
+                .filter(axagent_entities::stock_analyses::Column::Status.eq("completed"))
+                .order_by_desc(axagent_entities::stock_analyses::Column::CreatedAt)
                 .one(db)
                 .await
                 .ok()

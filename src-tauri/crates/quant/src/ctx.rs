@@ -54,10 +54,7 @@ pub struct StrategyCtx {
 
 impl StrategyCtx {
     pub fn new(initial_cash: f64) -> Self {
-        Self {
-            cash: initial_cash,
-            ..Default::default()
-        }
+        Self { cash: initial_cash, ..Default::default() }
     }
 
     /// 当前总权益 = 现金 + 持仓市值

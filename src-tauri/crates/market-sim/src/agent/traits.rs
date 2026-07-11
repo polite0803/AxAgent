@@ -74,12 +74,7 @@ pub struct AgentMessage {
 
 impl AgentMessage {
     pub fn new(source: String, target: String, sent_at: SimTimestamp, body: MessageBody) -> Self {
-        Self {
-            source,
-            target,
-            sent_at,
-            body,
-        }
+        Self { source, target, sent_at, body }
     }
 }
 
@@ -98,10 +93,7 @@ pub enum MessageBody {
     /// 订单成交通知
     OrderFilled { order_id: OrderId, fill: FillResult },
     /// 撤单确认
-    OrderCancelled {
-        order_id: OrderId,
-        remaining: Quantity,
-    },
+    OrderCancelled { order_id: OrderId, remaining: Quantity },
     /// 限价单已挂单确认
     OrderPlaced { order_id: OrderId },
 
@@ -128,10 +120,7 @@ pub enum AgentAction {
     /// 延迟后唤醒自己（延迟相对于当前模拟时间）
     WakeupAfter(SimTimestamp),
     /// 向多个 Agent 广播同一消息
-    Broadcast {
-        targets: Vec<String>,
-        body: MessageBody,
-    },
+    Broadcast { targets: Vec<String>, body: MessageBody },
 }
 
 // ── Agent 上下文 ──
@@ -160,21 +149,12 @@ impl AgentContext {
         reference_price: Price,
         agent_id: String,
     ) -> Self {
-        Self {
-            current_time,
-            stock_code,
-            reference_price,
-            agent_id,
-            actions: Vec::new(),
-        }
+        Self { current_time, stock_code, reference_price, agent_id, actions: Vec::new() }
     }
 
     /// 向目标 Agent 发送消息
     pub fn send(&mut self, target: &str, body: MessageBody) {
-        self.actions.push(AgentAction::SendMessage {
-            target: target.to_string(),
-            body,
-        });
+        self.actions.push(AgentAction::SendMessage { target: target.to_string(), body });
     }
 
     /// 延迟后唤醒自己（ns）

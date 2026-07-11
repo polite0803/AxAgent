@@ -15,10 +15,7 @@ pub struct L1Config {
 
 impl Default for L1Config {
     fn default() -> Self {
-        Self {
-            max_capacity: 4096,
-            default_ttl: Duration::from_secs(60),
-        }
+        Self { max_capacity: 4096, default_ttl: Duration::from_secs(60) }
     }
 }
 
@@ -28,10 +25,8 @@ pub struct L1Cache {
 
 impl L1Cache {
     pub fn new(cfg: L1Config) -> Arc<Self> {
-        let inner = Cache::builder()
-            .max_capacity(cfg.max_capacity)
-            .time_to_live(cfg.default_ttl)
-            .build();
+        let inner =
+            Cache::builder().max_capacity(cfg.max_capacity).time_to_live(cfg.default_ttl).build();
         Arc::new(Self { inner })
     }
 
@@ -97,12 +92,10 @@ impl L2Cache {
                 vendor: "redb".into(),
                 message: format!("open_table: {e}"),
             })?;
-            table
-                .insert(key, value)
-                .map_err(|e| DataError::VendorError {
-                    vendor: "redb".into(),
-                    message: format!("insert: {e}"),
-                })?;
+            table.insert(key, value).map_err(|e| DataError::VendorError {
+                vendor: "redb".into(),
+                message: format!("insert: {e}"),
+            })?;
         }
         txn.commit().map_err(|e| DataError::VendorError {
             vendor: "redb".into(),
@@ -164,9 +157,7 @@ impl TwoTierCache {
         }
         if let Some(l2) = &self.l2 {
             if let Some(v) = l2.get(key) {
-                self.l1
-                    .set(key.to_string(), v.clone(), Duration::from_secs(60))
-                    .await;
+                self.l1.set(key.to_string(), v.clone(), Duration::from_secs(60)).await;
                 return Some(v);
             }
         }
@@ -209,8 +200,7 @@ mod tests {
     #[tokio::test]
     async fn l1_basic_set_get() {
         let l1 = L1Cache::new(L1Config::default());
-        l1.set("k1".into(), "v1".into(), Duration::from_secs(10))
-            .await;
+        l1.set("k1".into(), "v1".into(), Duration::from_secs(10)).await;
         assert_eq!(l1.get("k1").await.as_deref(), Some("v1"));
         assert!(l1.get("missing").await.is_none());
     }

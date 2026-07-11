@@ -297,11 +297,8 @@ impl ValueInvestingEngine {
         }
 
         // 2. 毛利率稳定性 (20分)
-        let gm_values: Vec<f64> = financials
-            .iter()
-            .take(5)
-            .filter_map(|r| r.gross_margin)
-            .collect();
+        let gm_values: Vec<f64> =
+            financials.iter().take(5).filter_map(|r| r.gross_margin).collect();
         let gm_count = gm_values.len() as f64;
         let avg_gm = if gm_count > 0.0 {
             gm_values.iter().sum::<f64>() / gm_count
@@ -327,10 +324,7 @@ impl ValueInvestingEngine {
         }
 
         // 4. 盈利稳定性 (15分)
-        let all_profitable = financials
-            .iter()
-            .take(5)
-            .all(|r| r.net_profit.unwrap_or(-1.0) > 0.0);
+        let all_profitable = financials.iter().take(5).all(|r| r.net_profit.unwrap_or(-1.0) > 0.0);
         if all_profitable {
             score += 15;
         }

@@ -187,10 +187,7 @@ impl StockVendor for EastMoneyVendor {
             limit_up,
             limit_down,
             is_st,
-            timestamp: d["f171"]
-                .as_i64()
-                .map(|t| t.to_string())
-                .unwrap_or_default(),
+            timestamp: d["f171"].as_i64().map(|t| t.to_string()).unwrap_or_default(),
         })
     }
 
@@ -226,9 +223,8 @@ impl StockVendor for EastMoneyVendor {
         let mut klines: Vec<KLine> = klines_raw
             .iter()
             .map(|v| {
-                let s = v
-                    .as_str()
-                    .ok_or_else(|| DataError::ParseError("kline not string".into()))?;
+                let s =
+                    v.as_str().ok_or_else(|| DataError::ParseError("kline not string".into()))?;
                 let parts: Vec<&str> = s.split(',').collect();
                 if parts.len() < 11 {
                     return Err(DataError::ParseError(format!(
@@ -900,26 +896,17 @@ impl StockVendor for EastMoneyVendor {
                 let mut eps_forecast = Vec::new();
                 if let Some(eps) = r["predictThisYearEps"].as_str() {
                     if let Ok(val) = eps.parse::<f64>() {
-                        eps_forecast.push(EpsForecast {
-                            year: "今年".into(),
-                            eps: Some(val),
-                        });
+                        eps_forecast.push(EpsForecast { year: "今年".into(), eps: Some(val) });
                     }
                 }
                 if let Some(eps) = r["predictNextYearEps"].as_str() {
                     if let Ok(val) = eps.parse::<f64>() {
-                        eps_forecast.push(EpsForecast {
-                            year: "明年".into(),
-                            eps: Some(val),
-                        });
+                        eps_forecast.push(EpsForecast { year: "明年".into(), eps: Some(val) });
                     }
                 }
                 if let Some(eps) = r["predictNextTwoYearEps"].as_str() {
                     if let Ok(val) = eps.parse::<f64>() {
-                        eps_forecast.push(EpsForecast {
-                            year: "后年".into(),
-                            eps: Some(val),
-                        });
+                        eps_forecast.push(EpsForecast { year: "后年".into(), eps: Some(val) });
                     }
                 }
 
@@ -1011,12 +998,7 @@ impl StockVendor for EastMoneyVendor {
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_string());
 
-                Some(ClsFlashItem {
-                    title,
-                    content,
-                    publish_time,
-                    source,
-                })
+                Some(ClsFlashItem { title, content, publish_time, source })
             })
             .collect())
     }
@@ -1160,11 +1142,8 @@ impl StockVendor for EastMoneyVendor {
     }
 
     async fn get_index_quotes(&self) -> Result<Vec<IndexQuote>, DataError> {
-        let indices = [
-            ("1.000001", "上证指数"),
-            ("0.399001", "深证成指"),
-            ("0.399006", "创业板指"),
-        ];
+        let indices =
+            [("1.000001", "上证指数"), ("0.399001", "深证成指"), ("0.399006", "创业板指")];
         let mut results = Vec::with_capacity(indices.len());
         for (secid, name) in &indices {
             let url = format!(
@@ -1451,18 +1430,15 @@ impl StockVendor for EastMoneyVendor {
         let as_of = crate::as_of::current_as_of()
             .ok_or_else(|| DataError::ParseError("no as_of context".into()))?;
         let end_date = as_of.as_of_date.format("%Y-%m-%d").to_string();
-        let begin_date = (as_of.as_of_date - chrono::Duration::days(365))
-            .format("%Y-%m-%d")
-            .to_string();
+        let begin_date =
+            (as_of.as_of_date - chrono::Duration::days(365)).format("%Y-%m-%d").to_string();
         let url = format!(
             "https://np-anotice-stock.eastmoney.com/api/security/ann?cb=jQuery&sr=-1&page_size=20&page_index=1&ann_type=A&client_source=web&stock_list={stock_code}&f_node=0&s_node=0&begin_time={begin_date}&end_time={end_date}"
         );
         let resp = self.em_get(&url).await?;
         let body = resp.text().await.unwrap_or_default();
-        let json_str = body
-            .trim_start_matches("jQuery(")
-            .trim_end_matches(')')
-            .trim_end_matches(';');
+        let json_str =
+            body.trim_start_matches("jQuery(").trim_end_matches(')').trim_end_matches(';');
         let json: Value = serde_json::from_str(json_str).unwrap_or(Value::Null);
         let items = match json["data"]["list"].as_array() {
             Some(arr) => arr,
@@ -1503,9 +1479,8 @@ impl StockVendor for EastMoneyVendor {
         let as_of = crate::as_of::current_as_of()
             .ok_or_else(|| DataError::ParseError("no as_of context".into()))?;
         let end_time = as_of.as_of_date.format("%Y-%m-%d").to_string();
-        let begin_time = (as_of.as_of_date - chrono::Duration::days(365))
-            .format("%Y-%m-%d")
-            .to_string();
+        let begin_time =
+            (as_of.as_of_date - chrono::Duration::days(365)).format("%Y-%m-%d").to_string();
         let url = format!(
             "https://reportapi.eastmoney.com/report/list?industryCode=*&pageSize=20&\
             industry=%2A&rating=&ratingChange=&\
@@ -1584,9 +1559,8 @@ impl StockVendor for EastMoneyVendor {
         let mut klines: Vec<KLine> = klines_raw
             .iter()
             .map(|v| {
-                let s = v
-                    .as_str()
-                    .ok_or_else(|| DataError::ParseError("kline not string".into()))?;
+                let s =
+                    v.as_str().ok_or_else(|| DataError::ParseError("kline not string".into()))?;
                 let parts: Vec<&str> = s.split(',').collect();
                 if parts.len() < 7 {
                     return Err(DataError::ParseError(format!(
@@ -1724,10 +1698,7 @@ mod asof_capability_tests {
     use super::*;
 
     fn make_vendor() -> EastMoneyVendor {
-        EastMoneyVendor {
-            http: reqwest::Client::new(),
-            proxy_http: None,
-        }
+        EastMoneyVendor { http: reqwest::Client::new(), proxy_http: None }
     }
 
     #[test]
@@ -1764,12 +1735,8 @@ mod asof_capability_tests {
     #[test]
     fn no_historical_semantic_methods() {
         let v = make_vendor();
-        for m in &[
-            "get_hot_stocks",
-            "get_industry_ranking",
-            "get_cls_flash",
-            "get_concept_blocks",
-        ] {
+        for m in &["get_hot_stocks", "get_industry_ranking", "get_cls_flash", "get_concept_blocks"]
+        {
             assert_eq!(
                 v.asof_capability(m),
                 AsOfCapability::NoHistoricalSemantic,

@@ -17,19 +17,13 @@ pub struct CapitalStrategy {
 
 impl CapitalStrategy {
     pub const fn ultra_short() -> Self {
-        Self {
-            period: Period::UltraShort,
-        }
+        Self { period: Period::UltraShort }
     }
     pub const fn short() -> Self {
-        Self {
-            period: Period::Short,
-        }
+        Self { period: Period::Short }
     }
     pub const fn mid() -> Self {
-        Self {
-            period: Period::Mid,
-        }
+        Self { period: Period::Mid }
     }
     // as-of K线代理回退
 
@@ -118,9 +112,7 @@ impl CapitalStrategy {
     }
 
     pub const fn long() -> Self {
-        Self {
-            period: Period::Long,
-        }
+        Self { period: Period::Long }
     }
 
     async fn scan_one(
@@ -150,23 +142,16 @@ impl CapitalStrategy {
 
         // eastmoney 资金流向被反爬拦截，或 vendor 返回零值空壳数据时回退到 K 线量价检测
         if mf.as_ref().is_none_or(|m| !mf_is_effective(m)) {
-            return self
-                .scan_from_klines(client, code, name, sector, vars)
-                .await;
+            return self.scan_from_klines(client, code, name, sector, vars).await;
         }
 
         // 三个资金数据源在 as-of 下可能全部不可用，回退到 K 线量价检测
         if nb.is_none() && dt.as_ref().is_none_or(|e| e.is_empty()) {
-            return self
-                .scan_from_klines(client, code, name, sector, vars)
-                .await;
+            return self.scan_from_klines(client, code, name, sector, vars).await;
         }
 
         // 主力净流入
-        let main_inflow_wan = mf
-            .as_ref()
-            .map(|m| m.main_net_inflow / 10_000.0)
-            .unwrap_or(0.0);
+        let main_inflow_wan = mf.as_ref().map(|m| m.main_net_inflow / 10_000.0).unwrap_or(0.0);
         // 北向持仓占比
         let nb_ratio = nb.as_ref().map(|n| n.holding_ratio).unwrap_or(0.0);
         // 龙虎榜净买入
@@ -346,10 +331,7 @@ impl RecommendStrategy for CapitalStrategy {
         let mut picks = Vec::new();
         for (code, name, sector) in ctx.seed {
             let _g = ctx.per_code_locks.lock_for(code).await;
-            if let Some(p) = self
-                .scan_one(ctx.client, code, name, sector.clone(), ctx.vars)
-                .await
-            {
+            if let Some(p) = self.scan_one(ctx.client, code, name, sector.clone(), ctx.vars).await {
                 picks.push(p);
             }
         }

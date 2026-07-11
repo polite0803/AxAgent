@@ -7,7 +7,7 @@ use crate::recommender::indicators;
 use crate::recommender::scoring::{calc_confidence, calc_position};
 use crate::recommender::types::{Period, RecoPick, Style};
 use async_trait::async_trait;
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -17,31 +17,25 @@ pub struct ReversionStrategy {
 
 impl ReversionStrategy {
     pub const fn ultra_short() -> Self {
-        Self {
-            period: Period::UltraShort,
-        }
+        Self { period: Period::UltraShort }
     }
     pub const fn short() -> Self {
-        Self {
-            period: Period::Short,
-        }
+        Self { period: Period::Short }
     }
     pub const fn mid() -> Self {
-        Self {
-            period: Period::Mid,
-        }
+        Self { period: Period::Mid }
     }
 
     async fn scan_one(
         &self,
-        client: &AStockClient,
+        client: &dyn MarketDataProvider,
         code: &str,
         name: &str,
         sector: Option<String>,
         vars: &HashMap<String, Value>,
     ) -> Option<RecoPick> {
         let kline_limit = read_f64(vars, "rev_kline_limit", 250.0) as u32;
-        let klines = client.get_klines(code, "daily", kline_limit).await.ok()?;
+        let klines = client.get_klines(code, "daily", kline_limit, None).await.ok()?;
         let min_kline_len = read_f64(vars, "rev_min_kline_len", 30.0) as usize;
         if klines.len() < min_kline_len {
             return None;
@@ -176,10 +170,7 @@ impl RecommendStrategy for ReversionStrategy {
         let mut picks = Vec::new();
         for (code, name, sector) in ctx.seed {
             let _g = ctx.per_code_locks.lock_for(code).await;
-            if let Some(p) = self
-                .scan_one(ctx.client, code, name, sector.clone(), ctx.vars)
-                .await
-            {
+            if let Some(p) = self.scan_one(ctx.client, code, name, sector.clone(), ctx.vars).await {
                 picks.push(p);
             }
         }

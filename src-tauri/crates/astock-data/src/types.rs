@@ -1,129 +1,47 @@
 pub use axagent_harness::market_data::{KLine, StockQuote, StockSearchResult};
+// 以下来自 harness as_of DTO 契约
+pub use axagent_harness::as_of::{
+    AsOfContext, AsOfDataKind, AsOfDataScope, AsOfSource, DegradationEntry,
+};
+// 财务报告 DTO — 权威定义在 harness
+pub use axagent_harness::market_data::FinancialReport;
+// A 股市场工具函数 — 权威定义在 harness
+pub use axagent_harness::market_data::{
+    detect_market_type, get_price_limit_pct, get_st_price_limit_pct,
+};
+
+/// 创建行业均值估算的财务报告（所有 API 数据源均失败时的 fallback）
+pub fn estimated_financial_report(stock_code: &str) -> FinancialReport {
+    let today = crate::as_of::current_date_or_now();
+    let market_type = detect_market_type(stock_code);
+    let (eps, bps, roe, debt_ratio, gross_margin, net_margin) = match market_type {
+        "star" | "chinext" => (0.35, 5.0, 6.0, 35.0, 35.0, 8.0),
+        "bj" => (0.20, 3.0, 5.0, 40.0, 30.0, 5.0),
+        _ => (0.50, 6.0, 8.0, 50.0, 25.0, 10.0),
+    };
+    FinancialReport {
+        stock_code: stock_code.to_string(),
+        report_date: today,
+        revenue: Some(eps * 20.0 * 100_000_000.0),
+        net_profit: Some(eps * 100_000_000.0),
+        eps: Some(eps),
+        bps: Some(bps),
+        roe: Some(roe),
+        debt_ratio: Some(debt_ratio),
+        gross_margin: Some(gross_margin),
+        net_margin: Some(net_margin),
+        revenue_yoy: Some(5.0),
+        profit_yoy: Some(3.0),
+        total_assets: Some(bps * 100_000_000.0),
+        operating_cash_flow: None,
+        capital_expenditure: None,
+        free_cash_flow: None,
+        current_ratio: Some(1.5),
+        quick_ratio: Some(1.0),
+    }
+}
+
 use serde::{Deserialize, Serialize};
-
-/// 判断A股市场类型
-///
-/// 根据股票代码前缀识别市场板块：
-/// - `6` 开头且 "688" → 科创板 (star)
-/// - `6` 开头（非688） → 上海主板 (main_sh)
-/// - `0` 开头 → 深圳主板 (main_sz)
-/// - `3` 开头 → 创业板 (chinext)
-/// - `8` 开头 → 北交所 (bj)
-pub fn detect_market_type(code: &str) -> &str {
-    match code.chars().next() {
-        Some('6') if code.starts_with("688") => "star",
-        Some('6') => "main_sh",
-        Some('0') => "main_sz",
-        Some('3') => "chinext",
-        Some('8') => "bj",
-        Some('4') => "neeq",
-        Some('9') => "b_share",
-        _ => "unknown",
-    }
-}
-
-/// 获取A股各板块涨跌停幅度（百分比）
-///
-/// - 科创板/创业板: ±20%
-/// - 北交所: ±30%
-/// - 主板: ±10%
-pub fn get_price_limit_pct(market_type: &str) -> f64 {
-    match market_type {
-        "star" | "chinext" => 20.0,
-        "bj" => 30.0,
-        _ => 10.0,
-    }
-}
-
-/// 获取ST股票的涨跌停幅度
-///
-/// ST股票统一±5%，非ST按板块规则
-pub fn get_st_price_limit_pct(is_st: bool, market_type: &str) -> f64 {
-    if is_st {
-        5.0
-    } else {
-        get_price_limit_pct(market_type)
-    }
-}
-
-/// 财务报告
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FinancialReport {
-    pub stock_code: String,
-    pub report_date: String,
-    pub revenue: Option<f64>,
-    pub net_profit: Option<f64>,
-    pub eps: Option<f64>,
-    pub bps: Option<f64>,
-    pub roe: Option<f64>,
-    pub debt_ratio: Option<f64>,
-    pub gross_margin: Option<f64>,
-    pub net_margin: Option<f64>,
-    pub revenue_yoy: Option<f64>,
-    pub profit_yoy: Option<f64>,
-    #[serde(default)]
-    pub total_assets: Option<f64>,
-    #[serde(default)]
-    pub operating_cash_flow: Option<f64>,
-    #[serde(default)]
-    pub capital_expenditure: Option<f64>,
-    #[serde(default)]
-    pub free_cash_flow: Option<f64>,
-    #[serde(default)]
-    pub current_ratio: Option<f64>,
-    #[serde(default)]
-    pub quick_ratio: Option<f64>,
-}
-
-impl FinancialReport {
-    /// 检查该记录是否包含有效的核心财务数据
-    /// 过滤掉供应商返回的字段全空记录（有日期占位但所有指标为 null）
-    pub fn has_valid_data(&self) -> bool {
-        self.revenue.is_some()
-            || self.net_profit.is_some()
-            || self.eps.is_some()
-            || self.bps.is_some()
-            || self.roe.is_some()
-            || self.debt_ratio.is_some()
-            || self.gross_margin.is_some()
-            || self.net_margin.is_some()
-            || self.revenue_yoy.is_some()
-            || self.profit_yoy.is_some()
-    }
-
-    /// 创建行业均值估算的财务报告（所有 API 数据源均失败时的 fallback）
-    pub fn estimated(stock_code: &str) -> Self {
-        // 优先使用 as-of 上下文时间，避免时间泄露
-        let today = crate::as_of::current_date_or_now();
-        let market_type = detect_market_type(stock_code);
-        let (eps, bps, roe, debt_ratio, gross_margin, net_margin) = match market_type {
-            "star" | "chinext" => (0.35, 5.0, 6.0, 35.0, 35.0, 8.0),
-            "bj" => (0.20, 3.0, 5.0, 40.0, 30.0, 5.0),
-            _ => (0.50, 6.0, 8.0, 50.0, 25.0, 10.0),
-        };
-        Self {
-            stock_code: stock_code.to_string(),
-            report_date: today,
-            revenue: Some(eps * 20.0 * 100_000_000.0),
-            net_profit: Some(eps * 100_000_000.0),
-            eps: Some(eps),
-            bps: Some(bps),
-            roe: Some(roe),
-            debt_ratio: Some(debt_ratio),
-            gross_margin: Some(gross_margin),
-            net_margin: Some(net_margin),
-            revenue_yoy: Some(5.0),
-            profit_yoy: Some(3.0),
-            total_assets: Some(bps * 100_000_000.0),
-            operating_cash_flow: None,
-            capital_expenditure: None,
-            free_cash_flow: None,
-            current_ratio: Some(1.5),
-            quick_ratio: Some(1.0),
-        }
-    }
-}
 
 /// 新闻/公告条目
 #[derive(Debug, Clone, Serialize, Deserialize)]

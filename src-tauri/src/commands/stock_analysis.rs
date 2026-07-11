@@ -4,7 +4,7 @@ use axagent_astock_data::batch::{BatchRequest, BatchResult, BatchRunner, MarketB
 use axagent_astock_data::fundamentals_report::{FundamentalsAnalyzer, FundamentalsReport};
 use axagent_astock_data::two_tier_cache::CacheStats;
 use axagent_astock_data::{FinancialReport, StockQuote};
-use axagent_core::entity::{
+use axagent_entities::{
     financial_snapshots, portfolio_holdings, price_alerts, reco_picks, stock_analyses, trades,
     watchlist_items,
 };
@@ -863,7 +863,7 @@ async fn load_value_config(
     db: &sea_orm::DatabaseConnection,
 ) -> axagent_stock_analysis::decision::ValueConfig {
     if let Ok(Some(v)) =
-        axagent_core::repo::settings::get_setting(db, "stock_analysis_config").await
+        axagent_dao::repo::settings::get_setting(db, "stock_analysis_config").await
     {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&v) {
             if let Some(value_section) = parsed.get("value") {
@@ -1367,7 +1367,7 @@ pub async fn toggle_trading_enabled(
     enabled: bool,
 ) -> Result<(), String> {
     tracing::info!("Trading system {}abled", if enabled { "en" } else { "dis" });
-    axagent_core::repo::settings::set_setting(
+    axagent_dao::repo::settings::set_setting(
         state.harness.db(),
         "trading_enabled",
         &enabled.to_string(),
@@ -1464,7 +1464,7 @@ pub async fn screen_stocks(
     criteria: ScreenCriteria,
 ) -> Result<Vec<ScreenResult>, String> {
     let watchlist: Vec<(String, String)> =
-        match axagent_core::entity::watchlist_items::Entity::find()
+        match axagent_entities::watchlist_items::Entity::find()
             .all(state.harness.db())
             .await
         {
@@ -1515,7 +1515,7 @@ pub async fn refresh_trading_calendar() -> Result<Vec<String>, String> {
 /// 生成每日收盘复盘报告
 #[tauri::command]
 pub async fn generate_daily_review(state: State<'_, AppState>) -> Result<DailyReview, String> {
-    let watchlist: Vec<(String, String)> = axagent_core::entity::watchlist_items::Entity::find()
+    let watchlist: Vec<(String, String)> = axagent_entities::watchlist_items::Entity::find()
         .all(state.harness.db())
         .await
         .map_err(|e| e.to_string())?
@@ -1681,7 +1681,7 @@ pub async fn preview_adjust_reco_weights(
     state: State<'_, AppState>,
     as_of_date: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use axagent_stock_analysis::backtest_strategy::adjust_strategy_weights;
     use std::collections::BTreeMap;
 
@@ -1759,7 +1759,7 @@ pub async fn apply_reco_weights(
     state: State<'_, AppState>,
     weights: Option<Vec<serde_json::Value>>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use sea_orm::sea_query::Expr;
     use sea_orm::{EntityTrait, QueryFilter};
     use std::collections::BTreeMap;
@@ -2587,7 +2587,7 @@ pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> 
     // 对需要 token/密钥的 vendor，先从数据库加载凭据到内存
     if vendor == "xueqiu" || vendor == "iwencai" || vendor == "neodata" {
         let template =
-            axagent_core::entity::workflow_template::Entity::find_by_id("stock-analysis")
+            axagent_entities::workflow_template::Entity::find_by_id("stock-analysis")
                 .one(state.harness.db())
                 .await
                 .map_err(|e| e.to_string())?;
@@ -2651,7 +2651,7 @@ pub async fn save_neodata_token(state: State<'_, AppState>, token: String) -> Re
     }
 
     // 3) 持久化到数据库（设置页下次加载时自动读取）
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use sea_orm::EntityTrait;
     if let Some(t) = workflow_template::Entity::find_by_id("stock-analysis")
         .one(state.harness.db())
@@ -2680,7 +2680,7 @@ pub async fn save_neodata_token(state: State<'_, AppState>, token: String) -> Re
             vars.push(token_val);
         }
         let json_str = serde_json::to_string(&vars).unwrap_or_default();
-        use axagent_core::entity::workflow_template::ActiveModel;
+        use axagent_entities::workflow_template::ActiveModel;
         use sea_orm::ActiveModelTrait;
         let mut am: ActiveModel = t.into();
         am.variables = sea_orm::ActiveValue::Set(Some(json_str));
@@ -2707,7 +2707,7 @@ pub async fn sweep_daily_snapshots(state: State<'_, AppState>) -> Result<String,
     let mut stock_count = 0u32;
 
     // 获取自选股列表作为个股遍历的候选池
-    let watchlist_codes: Vec<String> = axagent_core::entity::watchlist_items::Entity::find()
+    let watchlist_codes: Vec<String> = axagent_entities::watchlist_items::Entity::find()
         .all(state.harness.db())
         .await
         .map_err(|e| format!("读取自选股失败: {e}"))?
@@ -2831,7 +2831,7 @@ pub async fn recommend_stocks(
     let as_of_ctx = AsOfContext::parse_optional(as_of_date.as_deref())?;
 
     // 读取 workflow template 变量用于 vendor 启用检测
-    let template = axagent_core::entity::workflow_template::Entity::find_by_id("stock-analysis")
+    let template = axagent_entities::workflow_template::Entity::find_by_id("stock-analysis")
         .one(state.harness.db())
         .await
         .map_err(|e| e.to_string())?;
@@ -3174,7 +3174,7 @@ pub async fn get_latest_analyses_for_stocks(
 
 /// 从 workflow_template 实体提取 (name, value) 列表
 fn extract_template_vars(
-    t: &axagent_core::entity::workflow_template::Model,
+    t: &axagent_entities::workflow_template::Model,
 ) -> Vec<(String, serde_json::Value)> {
     use axagent_harness::workflow_types::Variable;
     let raw = match t.variables.as_ref() {
@@ -3434,7 +3434,7 @@ pub async fn list_reflections(
     stock_code: Option<String>,
     limit: Option<u32>,
 ) -> Result<Vec<serde_json::Value>, String> {
-    use axagent_core::entity::stock_reflections;
+    use axagent_entities::stock_reflections;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     let db = state.harness.db();
@@ -3481,7 +3481,7 @@ pub async fn delete_reflection(
     state: State<'_, AppState>,
     reflection_id: String,
 ) -> Result<(), String> {
-    use axagent_core::entity::stock_reflections;
+    use axagent_entities::stock_reflections;
     use sea_orm::EntityTrait;
     stock_reflections::Entity::delete_by_id(&reflection_id)
         .exec(state.harness.db())
@@ -3559,7 +3559,7 @@ pub async fn list_param_suggestions(
     state: State<'_, AppState>,
     stock_code: Option<String>,
 ) -> Result<Vec<serde_json::Value>, String> {
-    use axagent_core::entity::stock_reflections;
+    use axagent_entities::stock_reflections;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     let db = state.harness.db();
@@ -3603,7 +3603,7 @@ pub async fn apply_param_suggestions(
     state: State<'_, AppState>,
     updates: Vec<serde_json::Value>,
 ) -> Result<(), String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use sea_orm::sea_query::Expr;
     use sea_orm::{EntityTrait, QueryFilter};
 
@@ -3711,7 +3711,7 @@ pub async fn get_agreement_score_history(
     state: State<'_, AppState>,
     limit: Option<u32>,
 ) -> Result<Vec<serde_json::Value>, String> {
-    use axagent_core::entity::strategy_performance;
+    use axagent_entities::strategy_performance;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     let limit = limit.unwrap_or(50) as u64;
@@ -3876,7 +3876,7 @@ pub async fn import_portfolio_from_vlm(
     raw_vlm_output: String,
     replace_existing: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_core::entity::portfolio_holdings;
+    use axagent_entities::portfolio_holdings;
     use axagent_stock_analysis::vlm_import::{holdings_to_import_params, parse_vlm_output};
     use sea_orm::{EntityTrait, Set};
 

@@ -27,8 +27,8 @@
 //! - **T+N 默认值**：[5, 20, 60]（短/中/长三个窗口）
 //! - **K 线拉取**：复用 astock_client.get_klines，自动 vendor failover + 缓存
 
-use axagent_core::entity::decision_validations;
-use axagent_core::entity::reco_picks;
+use axagent_entities::decision_validations;
+use axagent_entities::reco_picks;
 use axagent_stock_analysis::hit_rate_backtest::{
     HitRateReport, PickValidation, build_pick_validation, compute_hit_rate_report,
 };

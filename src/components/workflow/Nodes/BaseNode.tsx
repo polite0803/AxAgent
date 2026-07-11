@@ -35,9 +35,8 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  const nodeStatuses = useWorkEngineStore((s) => s.nodeStatuses);
   const breakpoints = useWorkEngineStore((s) => s.breakpoints);
-  const runtimeStatus = nodeStatuses[bd.id];
+  const runtimeStatus = useWorkEngineStore((s) => s.nodeStatuses[bd.id]);
   const hasBreakpoint = breakpoints.includes(bd.id);
 
   const effectiveExecState = runtimeStatus || bd.executionState;

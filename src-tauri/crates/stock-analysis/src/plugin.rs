@@ -79,11 +79,7 @@ impl AnalystPluginManager {
             return None;
         }
 
-        let id = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown")
-            .to_string();
+        let id = path.file_stem().and_then(|s| s.to_str()).unwrap_or("unknown").to_string();
 
         Some(CustomAnalyst {
             id,

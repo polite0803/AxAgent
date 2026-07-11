@@ -76,10 +76,7 @@ fn test_is_trading_day() {
 fn test_data_error_display() {
     let err = DataError::NotFound("600000".into());
     assert!(err.to_string().contains("600000"));
-    let err = DataError::VendorError {
-        vendor: "test".into(),
-        message: "fail".into(),
-    };
+    let err = DataError::VendorError { vendor: "test".into(), message: "fail".into() };
     assert!(err.to_string().contains("test"));
 }
 

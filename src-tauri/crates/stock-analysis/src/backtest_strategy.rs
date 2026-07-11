@@ -16,7 +16,7 @@
 
 use crate::recommender::indicators;
 use crate::recommender::types::Period;
-use axagent_astock_data::{AStockClient, KLine};
+use axagent_harness::market_data::{KLine, MarketDataProvider};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
@@ -389,18 +389,8 @@ fn detect_value_ultra_short(klines: &[KLine], vars: &serde_json::Value) -> Optio
         return None;
     } // 价格低于短均
       // 低波幅确认（不是单纯暴跌）
-    let high5 = klines
-        .iter()
-        .rev()
-        .take(5)
-        .map(|k| k.high)
-        .fold(0.0_f64, f64::max);
-    let low5 = klines
-        .iter()
-        .rev()
-        .take(5)
-        .map(|k| k.low)
-        .fold(f64::MAX, f64::min);
+    let high5 = klines.iter().rev().take(5).map(|k| k.high).fold(0.0_f64, f64::max);
+    let low5 = klines.iter().rev().take(5).map(|k| k.low).fold(f64::MAX, f64::min);
     if high5 - low5 > low5 * 0.08 {
         return None;
     } // 5日振幅 > 8% 则跳过（太剧烈）
@@ -573,7 +563,7 @@ pub(crate) fn get_strategy_def(sid: &str) -> Option<&'static StratDef> {
 ///
 /// `stock_codes` 可选过滤：传入非空列表时只分析这些股票；None 时从 reco_picks 种子池读。
 pub async fn run_signal_history(
-    client: Arc<AStockClient>,
+    client: Arc<dyn MarketDataProvider>,
     sid: &str,
     stock_codes: Option<&[(String, String)]>,
 ) -> Result<Vec<StrategySignalResult>, String> {
@@ -588,7 +578,7 @@ pub async fn run_signal_history(
 
     let mut results = Vec::new();
     for (code, name) in &stocks {
-        let klines = match client.get_klines(code, "daily", kline_limit).await {
+        let klines = match client.get_klines(code, "daily", kline_limit, None).await {
             Ok(k) if k.len() >= strat.warmup => k,
             _ => continue,
         };
@@ -614,7 +604,7 @@ pub async fn run_signal_history(
 ///
 /// `stock_codes`: `[(code, name)]`
 pub async fn backtest_two_groups(
-    client: Arc<AStockClient>,
+    client: Arc<dyn MarketDataProvider>,
     positive_stocks: &[(String, String)],
     negative_stocks: &[(String, String)],
 ) -> Result<BacktestComparisonResponse, String> {
@@ -631,7 +621,7 @@ pub async fn backtest_two_groups(
 }
 
 async fn run_group(
-    client: Arc<AStockClient>,
+    client: Arc<dyn MarketDataProvider>,
     label: &str,
     stocks: &[(String, String)],
 ) -> GroupBacktestResult {
@@ -645,12 +635,10 @@ async fn run_group(
     }
     let mut loaded = Vec::new();
     for (code, name) in stocks {
-        match client.get_klines(code, "daily", kline_limit).await {
-            Ok(k) if k.len() >= 60 => loaded.push(StockWithKlines {
-                code: code.clone(),
-                name: name.clone(),
-                klines: k,
-            }),
+        match client.get_klines(code, "daily", kline_limit, None).await {
+            Ok(k) if k.len() >= 60 => {
+                loaded.push(StockWithKlines { code: code.clone(), name: name.clone(), klines: k })
+            },
             _ => {},
         }
     }
@@ -687,11 +675,7 @@ async fn run_group(
             .insert(strat.id.to_string(), aggregate(strat.id, strat.style, strat.period, sigs));
     }
 
-    GroupBacktestResult {
-        label: label.to_string(),
-        stock_count: loaded.len() as u32,
-        strategies,
-    }
+    GroupBacktestResult { label: label.to_string(), stock_count: loaded.len() as u32, strategies }
 }
 
 // ── 滑动窗口扫描 ──
@@ -766,12 +750,7 @@ fn aggregate(sid: &str, style: &str, period: &str, sigs: &[StrategySignalResult]
     let (wr, avg_ret, total_ret, avg_dd) = if total > 0 {
         let s_ret: f64 = sigs.iter().map(|s| s.return_pct).sum();
         let s_dd: f64 = sigs.iter().map(|s| s.max_drawdown_pct).sum();
-        (
-            wins as f64 / total as f64 * 100.0,
-            s_ret / total as f64,
-            s_ret,
-            s_dd / total as f64,
-        )
+        (wins as f64 / total as f64 * 100.0, s_ret / total as f64, s_ret, s_dd / total as f64)
     } else {
         (0.0, 0.0, 0.0, 0.0)
     };
@@ -811,16 +790,8 @@ fn aggregate(sid: &str, style: &str, period: &str, sigs: &[StrategySignalResult]
     };
 
     let pf = if total > 0 && losses > 0 {
-        let tw: f64 = sigs
-            .iter()
-            .filter(|s| s.was_profitable)
-            .map(|s| s.return_pct.abs())
-            .sum();
-        let tl: f64 = sigs
-            .iter()
-            .filter(|s| !s.was_profitable)
-            .map(|s| s.return_pct.abs())
-            .sum();
+        let tw: f64 = sigs.iter().filter(|s| s.was_profitable).map(|s| s.return_pct.abs()).sum();
+        let tl: f64 = sigs.iter().filter(|s| !s.was_profitable).map(|s| s.return_pct.abs()).sum();
         if tl > 0.0 && tw > 0.0 {
             Some(tw / tl)
         } else {
@@ -883,9 +854,7 @@ pub fn adjust_strategy_weights(
         } else {
             -(50.0 - stats.win_rate_pct) / 100.0 * 0.8
         };
-        let extra_penalty = stats
-            .sharpe_ratio
-            .map_or(0.0, |s| if s < 0.3 { -0.05 } else { 0.0 });
+        let extra_penalty = stats.sharpe_ratio.map_or(0.0, |s| if s < 0.3 { -0.05 } else { 0.0 });
         let weight = (1.0 + offset + extra_penalty).clamp(0.5, 1.5);
         // 保留两位小数
         weights.insert(sid.clone(), (weight * 100.0).round() / 100.0);
@@ -921,13 +890,10 @@ static SIGNAL_QUALITY_CACHE: LazyLock<RwLock<HashMap<(String, String), SignalQua
 /// 从回测 groups 结果更新信号质量缓存（自动注入 as-of 后缀隔离 live/replay）
 pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStats>) {
     let suffix = axagent_astock_data::as_of::cache_suffix();
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as u64;
-    let mut cache = SIGNAL_QUALITY_CACHE
-        .write()
-        .unwrap_or_else(|e| e.into_inner());
+    let now =
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()
+            as u64;
+    let mut cache = SIGNAL_QUALITY_CACHE.write().unwrap_or_else(|e| e.into_inner());
     for (sid, stats) in positive_stats {
         if stats.total_signals < 5 {
             continue;
@@ -949,9 +915,7 @@ pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStat
 /// 查询策略信号质量（自动注入 as-of 后缀隔离 live/replay）
 pub fn get_signal_quality(strategy_id: &str) -> Option<SignalQualityStats> {
     let suffix = axagent_astock_data::as_of::cache_suffix();
-    let cache = SIGNAL_QUALITY_CACHE
-        .read()
-        .unwrap_or_else(|e| e.into_inner());
+    let cache = SIGNAL_QUALITY_CACHE.read().unwrap_or_else(|e| e.into_inner());
     cache.get(&(strategy_id.to_string(), suffix)).cloned()
 }
 
@@ -1042,9 +1006,8 @@ mod tests {
 
     #[test]
     fn momentum_strategies_no_signal_on_flat() {
-        let klines: Vec<KLine> = (0..50)
-            .map(|i| k(10.0, &format!("d{}", i % 28 + 1), 10_000_000.0))
-            .collect();
+        let klines: Vec<KLine> =
+            (0..50).map(|i| k(10.0, &format!("d{}", i % 28 + 1), 10_000_000.0)).collect();
         assert!(detect_trend_short(&klines, &serde_json::Value::Null).is_none());
         assert!(detect_reversion_short(&klines, &serde_json::Value::Null).is_none());
         // 资金策略需要放量，平盘不放量也为 None
@@ -1053,9 +1016,8 @@ mod tests {
 
     #[test]
     fn value_strategy_signals_on_flat() {
-        let klines: Vec<KLine> = (0..50)
-            .map(|i| k(10.0, &format!("d{}", i % 28 + 1), 10_000_000.0))
-            .collect();
+        let klines: Vec<KLine> =
+            (0..50).map(|i| k(10.0, &format!("d{}", i % 28 + 1), 10_000_000.0)).collect();
         // 平盘 = 低波幅+均线附近 = 价值股典型 K 线特征
         assert!(detect_value_short(&klines, &serde_json::Value::Null).is_some());
     }
@@ -1063,9 +1025,8 @@ mod tests {
     #[test]
     fn capital_needs_volume_spike() {
         // 第 1 部分：平盘无放量 → None
-        let flat: Vec<KLine> = (0..50)
-            .map(|i| k(10.0, &format!("d{}", i % 28 + 1), 10_000_000.0))
-            .collect();
+        let flat: Vec<KLine> =
+            (0..50).map(|i| k(10.0, &format!("d{}", i % 28 + 1), 10_000_000.0)).collect();
         assert!(detect_capital_short(&flat, &serde_json::Value::Null).is_none());
 
         // 第 2 部分：最后一日放量 + 上涨 → 有信号

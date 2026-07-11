@@ -37,11 +37,7 @@ struct PriceLevel {
 
 impl PriceLevel {
     fn new(price: Price) -> Self {
-        Self {
-            price,
-            orders: VecDeque::new(),
-            total_quantity: 0,
-        }
+        Self { price, orders: VecDeque::new(), total_quantity: 0 }
     }
 
     fn push(&mut self, order: LimitOrder) {
@@ -195,15 +191,9 @@ impl OrderBook {
         }
 
         if fill.filled_quantity > 0 && fill.unfilled_quantity > 0 {
-            Ok(OrderResult::PartialFill {
-                order_id: order.id,
-                fill,
-            })
+            Ok(OrderResult::PartialFill { order_id: order.id, fill })
         } else if fill.filled_quantity > 0 {
-            Ok(OrderResult::FullFill {
-                order_id: order.id,
-                fill,
-            })
+            Ok(OrderResult::FullFill { order_id: order.id, fill })
         } else {
             // 无成交（对手盘为空）
             Ok(OrderResult::PartialFill {
@@ -258,10 +248,8 @@ impl OrderBook {
     ///
     /// 返回撤单时剩余的未成交数量。已全部成交的订单返回错误。
     pub fn cancel_order(&mut self, order_id: OrderId) -> Result<OrderResult, SimError> {
-        let locator = self
-            .order_index
-            .remove(&order_id)
-            .ok_or(SimError::OrderNotFound(order_id))?;
+        let locator =
+            self.order_index.remove(&order_id).ok_or(SimError::OrderNotFound(order_id))?;
 
         let remaining = match locator {
             OrderLocator::Bid(price) => {
@@ -294,10 +282,7 @@ impl OrderBook {
             },
         };
 
-        Ok(OrderResult::Cancelled {
-            order_id,
-            remaining,
-        })
+        Ok(OrderResult::Cancelled { order_id, remaining })
     }
 
     // ── 查询方法 ──
@@ -364,12 +349,7 @@ impl OrderBook {
 
         let last_trade_price = self.trade_history.last().map(|t| t.price);
 
-        BookSnapshot {
-            bids,
-            asks,
-            last_trade_price,
-            timestamp: self.current_time,
-        }
+        BookSnapshot { bids, asks, last_trade_price, timestamp: self.current_time }
     }
 
     /// 订单簿完整统计
@@ -446,11 +426,8 @@ impl OrderBook {
 
             while remaining > 0 && !level.is_empty() {
                 // 禁止自成交：先检查，再移除
-                let is_self = level
-                    .orders
-                    .front()
-                    .map(|o| o.agent_id == buyer_agent_id)
-                    .unwrap_or(false);
+                let is_self =
+                    level.orders.front().map(|o| o.agent_id == buyer_agent_id).unwrap_or(false);
                 if is_self {
                     if let Some(removed) = level.orders.pop_front() {
                         level.total_quantity =
@@ -527,11 +504,8 @@ impl OrderBook {
 
             while remaining > 0 && !level.is_empty() {
                 // 禁止自成交
-                let is_self = level
-                    .orders
-                    .front()
-                    .map(|o| o.agent_id == seller_agent_id)
-                    .unwrap_or(false);
+                let is_self =
+                    level.orders.front().map(|o| o.agent_id == seller_agent_id).unwrap_or(false);
                 if is_self {
                     if let Some(removed) = level.orders.pop_front() {
                         level.total_quantity =
@@ -673,11 +647,8 @@ impl OrderBook {
             consumed += 1;
 
             while remaining > 0 && !level.is_empty() {
-                let is_self = level
-                    .orders
-                    .front()
-                    .map(|o| o.agent_id == buyer_agent_id)
-                    .unwrap_or(false);
+                let is_self =
+                    level.orders.front().map(|o| o.agent_id == buyer_agent_id).unwrap_or(false);
                 if is_self {
                     if let Some(removed) = level.orders.pop_front() {
                         level.total_quantity =
@@ -751,11 +722,8 @@ impl OrderBook {
             consumed += 1;
 
             while remaining > 0 && !level.is_empty() {
-                let is_self = level
-                    .orders
-                    .front()
-                    .map(|o| o.agent_id == seller_agent_id)
-                    .unwrap_or(false);
+                let is_self =
+                    level.orders.front().map(|o| o.agent_id == seller_agent_id).unwrap_or(false);
                 if is_self {
                     if let Some(removed) = level.orders.pop_front() {
                         level.total_quantity =
@@ -809,9 +777,7 @@ impl OrderBook {
     /// 挂单（无条件挂入，不检查是否可立即成交）
     fn place_order(&mut self, order: LimitOrder) -> Result<OrderResult, SimError> {
         self.place_order_internal(order);
-        Ok(OrderResult::Placed {
-            order_id: self.id_counter - 1,
-        })
+        Ok(OrderResult::Placed { order_id: self.id_counter - 1 })
     }
 
     fn place_order_internal(&mut self, order: LimitOrder) {
@@ -821,18 +787,13 @@ impl OrderBook {
 
         match side {
             OrderSide::Buy => {
-                let level = self
-                    .bids
-                    .entry(Reverse(price))
-                    .or_insert_with(|| PriceLevel::new(price));
+                let level =
+                    self.bids.entry(Reverse(price)).or_insert_with(|| PriceLevel::new(price));
                 level.push(order);
                 self.order_index.insert(order_id, OrderLocator::Bid(price));
             },
             OrderSide::Sell => {
-                let level = self
-                    .asks
-                    .entry(price)
-                    .or_insert_with(|| PriceLevel::new(price));
+                let level = self.asks.entry(price).or_insert_with(|| PriceLevel::new(price));
                 level.push(order);
                 self.order_index.insert(order_id, OrderLocator::Ask(price));
             },
@@ -883,11 +844,8 @@ impl OrderBook {
         if total_qty == 0 {
             return 0.0;
         }
-        let total_value: f64 = fill
-            .trades
-            .iter()
-            .map(|t| (t.price as f64) * (t.quantity as f64))
-            .sum();
+        let total_value: f64 =
+            fill.trades.iter().map(|t| (t.price as f64) * (t.quantity as f64)).sum();
         total_value / total_qty as f64
     }
 }
@@ -923,13 +881,7 @@ mod tests {
     }
 
     fn make_market(id: OrderId, side: OrderSide, qty: Quantity, agent: &str) -> MarketOrder {
-        MarketOrder {
-            id,
-            side,
-            quantity: qty,
-            agent_id: agent.to_string(),
-            timestamp: 0,
-        }
+        MarketOrder { id, side, quantity: qty, agent_id: agent.to_string(), timestamp: 0 }
     }
 
     #[test]
@@ -967,13 +919,11 @@ mod tests {
         let mut ob = OrderBook::new();
 
         // 挂卖单 @ 1000
-        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "trader_b"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "trader_b")).unwrap();
 
         // 挂买单 @ 1001（优于最低卖价 1000 → 立即成交）
-        let result = ob
-            .submit_limit_order(make_limit(2, OrderSide::Buy, 1001, 50, "trader_a"))
-            .unwrap();
+        let result =
+            ob.submit_limit_order(make_limit(2, OrderSide::Buy, 1001, 50, "trader_a")).unwrap();
 
         assert!(matches!(result, OrderResult::FullFill { .. }));
         if let OrderResult::FullFill { ref fill, .. } = result {
@@ -988,13 +938,11 @@ mod tests {
         let mut ob = OrderBook::new();
 
         // 挂卖单 50 股 @ 1000
-        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "trader_b"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "trader_b")).unwrap();
 
         // 市价买 100 股 → 50 成交 + 50 无对手
-        let result = ob
-            .submit_market_order(make_market(2, OrderSide::Buy, 100, "trader_a"))
-            .unwrap();
+        let result =
+            ob.submit_market_order(make_market(2, OrderSide::Buy, 100, "trader_a")).unwrap();
 
         assert!(matches!(result, OrderResult::PartialFill { .. }));
         if let OrderResult::PartialFill { ref fill, .. } = result {
@@ -1009,17 +957,12 @@ mod tests {
         let mut ob = OrderBook::new();
 
         // 挂 3 档卖盘
-        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 30, "mm"))
-            .unwrap();
-        ob.submit_limit_order(make_limit(2, OrderSide::Sell, 1001, 40, "mm"))
-            .unwrap();
-        ob.submit_limit_order(make_limit(3, OrderSide::Sell, 1002, 50, "mm"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 30, "mm")).unwrap();
+        ob.submit_limit_order(make_limit(2, OrderSide::Sell, 1001, 40, "mm")).unwrap();
+        ob.submit_limit_order(make_limit(3, OrderSide::Sell, 1002, 50, "mm")).unwrap();
 
         // 市价买 80 股 → 30+40+10=80，恰好完全成交
-        let result = ob
-            .submit_market_order(make_market(4, OrderSide::Buy, 80, "trader"))
-            .unwrap();
+        let result = ob.submit_market_order(make_market(4, OrderSide::Buy, 80, "trader")).unwrap();
 
         if let OrderResult::FullFill { ref fill, .. } = result {
             assert_eq!(fill.filled_quantity, 80);
@@ -1043,10 +986,8 @@ mod tests {
         let mut ob = OrderBook::new();
 
         // 同一 agent 挂双边：卖单先进入订单簿，买单优于卖单但自成交禁止
-        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "trader"))
-            .unwrap();
-        ob.submit_limit_order(make_limit(2, OrderSide::Buy, 1001, 50, "trader"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "trader")).unwrap();
+        ob.submit_limit_order(make_limit(2, OrderSide::Buy, 1001, 50, "trader")).unwrap();
 
         // 自成交禁止后：卖单被移除，买单挂入 → 只剩 1 个买单
         assert_eq!(ob.order_count(), 1);
@@ -1060,11 +1001,9 @@ mod tests {
         let mut ob = OrderBook::new();
 
         // 不同 agent 挂双边 → 正常成交
-        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "agent_a"))
-            .unwrap();
-        let result = ob
-            .submit_limit_order(make_limit(2, OrderSide::Buy, 1001, 30, "agent_b"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "agent_a")).unwrap();
+        let result =
+            ob.submit_limit_order(make_limit(2, OrderSide::Buy, 1001, 30, "agent_b")).unwrap();
 
         assert!(matches!(result, OrderResult::FullFill { .. }));
         assert_eq!(ob.order_count(), 1); // agent_a 剩余 20 股
@@ -1075,17 +1014,12 @@ mod tests {
     fn test_cancel_order() {
         let mut ob = OrderBook::new();
 
-        ob.submit_limit_order(make_limit(1, OrderSide::Buy, 1000, 100, "trader"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Buy, 1000, 100, "trader")).unwrap();
         assert_eq!(ob.order_count(), 1);
 
         let result = ob.cancel_order(1).unwrap();
         assert!(matches!(result, OrderResult::Cancelled { .. }));
-        if let OrderResult::Cancelled {
-            order_id,
-            remaining,
-        } = result
-        {
+        if let OrderResult::Cancelled { order_id, remaining } = result {
             assert_eq!(order_id, 1);
             assert_eq!(remaining, 100);
         }
@@ -1103,10 +1037,8 @@ mod tests {
     fn test_mid_price_and_spread() {
         let mut ob = OrderBook::new();
 
-        ob.submit_limit_order(make_limit(1, OrderSide::Buy, 995, 100, "trader"))
-            .unwrap();
-        ob.submit_limit_order(make_limit(2, OrderSide::Sell, 1005, 100, "trader"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Buy, 995, 100, "trader")).unwrap();
+        ob.submit_limit_order(make_limit(2, OrderSide::Sell, 1005, 100, "trader")).unwrap();
 
         assert!((ob.mid_price().unwrap() - 1000.0).abs() < 0.01);
         assert_eq!(ob.spread(), Some(10)); // 10 分 = 0.10 元
@@ -1120,13 +1052,10 @@ mod tests {
         let mut ob = OrderBook::new();
 
         // 2 档卖盘
-        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "mm"))
-            .unwrap();
-        ob.submit_limit_order(make_limit(2, OrderSide::Sell, 1002, 100, "mm"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "mm")).unwrap();
+        ob.submit_limit_order(make_limit(2, OrderSide::Sell, 1002, 100, "mm")).unwrap();
         // 买单制造中间价
-        ob.submit_limit_order(make_limit(3, OrderSide::Buy, 998, 50, "trader"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(3, OrderSide::Buy, 998, 50, "trader")).unwrap();
 
         // mid = (998 + 1000) / 2 = 999
         let (vwap, impact) = ob.market_impact_estimate(OrderSide::Buy, 80).unwrap();
@@ -1148,12 +1077,9 @@ mod tests {
     #[test]
     fn test_book_stats() {
         let mut ob = OrderBook::new();
-        ob.submit_limit_order(make_limit(1, OrderSide::Buy, 995, 100, "a"))
-            .unwrap();
-        ob.submit_limit_order(make_limit(2, OrderSide::Buy, 994, 200, "b"))
-            .unwrap();
-        ob.submit_limit_order(make_limit(3, OrderSide::Sell, 1005, 150, "c"))
-            .unwrap();
+        ob.submit_limit_order(make_limit(1, OrderSide::Buy, 995, 100, "a")).unwrap();
+        ob.submit_limit_order(make_limit(2, OrderSide::Buy, 994, 200, "b")).unwrap();
+        ob.submit_limit_order(make_limit(3, OrderSide::Sell, 1005, 150, "c")).unwrap();
 
         let stats = ob.stats();
         assert_eq!(stats.bid_depth, 300);

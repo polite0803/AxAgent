@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::decision::ScoringWeights;
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 use sea_orm::DatabaseConnection;
 
 /// 回测结果
@@ -97,7 +97,7 @@ impl BacktestEngine {
     /// 从 API 获取 `holding_days + 10` 根日 K 线以覆盖分析日之后的数据。
     #[allow(clippy::too_many_arguments)]
     pub async fn backtest_decision(
-        client: &axagent_astock_data::AStockClient,
+        client: &dyn MarketDataProvider,
         stock_code: &str,
         analysis_date: &str,
         decision_action: &str,
@@ -109,7 +109,7 @@ impl BacktestEngine {
         // 取最近 500 日K线（约两个交易年），最大化覆盖 analysis_date 的概率
         // 注：get_klines 返回最近 N 根K线（按时间升序），若 analysis_date 超出范围则回测失败
         let klines = client
-            .get_klines(stock_code, "daily", 500)
+            .get_klines(stock_code, "daily", 500, None)
             .await
             .map_err(|e| format!("获取K线失败: {e}"))?;
         if klines.iter().all(|k| k.date.as_str() < analysis_date) {
@@ -126,9 +126,8 @@ impl BacktestEngine {
             None => return Err(format!("{stock_code} 在 {analysis_date} 无K线数据，无法回测")),
         };
 
-        let exit_idx = entry_idx
-            .map(|i| (i + holding_days as usize).min(klines.len() - 1))
-            .unwrap();
+        let exit_idx =
+            entry_idx.map(|i| (i + holding_days as usize).min(klines.len() - 1)).unwrap();
         let exit_price = klines[exit_idx].close;
 
         // 计算持有期间最大回撤
@@ -191,15 +190,13 @@ impl BacktestEngine {
     /// 优先使用每条记录的 `expected_holding_days`（个性化持有期），
     /// 仅当该字段为 None 时回退到统一的 `default_holding_days`。
     pub async fn backtest_history(
-        client: &axagent_astock_data::AStockClient,
+        client: &dyn MarketDataProvider,
         analyses: Vec<HistoricalAnalysis>,
         default_holding_days: u32,
     ) -> Result<Vec<BacktestResult>, String> {
         let mut results = Vec::new();
         for analysis in analyses {
-            let holding_days = analysis
-                .expected_holding_days
-                .unwrap_or(default_holding_days);
+            let holding_days = analysis.expected_holding_days.unwrap_or(default_holding_days);
             match Self::backtest_decision(
                 client,
                 &analysis.stock_code,
@@ -309,14 +306,14 @@ impl BacktestEngine {
 
     /// 对比沪深300基准计算超额收益
     pub async fn benchmark_against_csi300(
-        client: &axagent_astock_data::AStockClient,
+        client: &dyn MarketDataProvider,
         start_date: &str,
         end_date: &str,
         stock_return_pct: f64,
     ) -> Result<BenchmarkResult, String> {
         // 获取沪深300 (000300) 同期表现
         let klines = client
-            .get_klines("000300", "daily", 500)
+            .get_klines("000300", "daily", 500, None)
             .await
             .map_err(|e| format!("获取沪深300K线失败: {e}"))?;
 
@@ -348,7 +345,7 @@ impl BacktestEngine {
 
 /// 同时运行回测和CSI 300基准对比的便捷函数
 pub async fn backtest_with_benchmark(
-    client: &axagent_astock_data::AStockClient,
+    client: &dyn MarketDataProvider,
     analyses: Vec<HistoricalAnalysis>,
     holding_days: u32,
 ) -> Result<(BacktestStats, Option<BenchmarkResult>), String> {
@@ -380,11 +377,11 @@ pub async fn backtest_with_benchmark(
 
 /// 基于回测结果优化评分权重
 pub async fn optimize_weights(
-    _client: &AStockClient,
+    _client: &dyn MarketDataProvider,
     db: &DatabaseConnection,
 ) -> Result<ScoringWeights, String> {
     // 简化版：从所有已完成分析中获取平均得分分布
-    use axagent_core::entity::stock_analyses;
+    use axagent_entities::stock_analyses;
     use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
 
     let completed = stock_analyses::Entity::find()

@@ -22,14 +22,10 @@ pub struct SerenityStrategy {
 impl SerenityStrategy {
     /// Serenity 只做中长期（Mid / Long），不做短/超短
     pub const fn mid() -> Self {
-        Self {
-            period: Period::Mid,
-        }
+        Self { period: Period::Mid }
     }
     pub const fn long() -> Self {
-        Self {
-            period: Period::Long,
-        }
+        Self { period: Period::Long }
     }
 
     async fn scan_one(
@@ -53,14 +49,9 @@ impl SerenityStrategy {
         };
         let serenity_score = detail["serenity_score"].as_f64().unwrap_or(0.0);
         let catalysts = detail["catalysts"].as_array().cloned().unwrap_or_default();
-        let exit_signals = detail["exit_signals"]
-            .as_object()
-            .cloned()
-            .unwrap_or_default();
-        let _attention_metrics = detail["attention_metrics"]
-            .as_object()
-            .cloned()
-            .unwrap_or_default();
+        let exit_signals = detail["exit_signals"].as_object().cloned().unwrap_or_default();
+        let _attention_metrics =
+            detail["attention_metrics"].as_object().cloned().unwrap_or_default();
 
         // 1. 获取财务数据验证护城河
         let financials = client.get_financials(code).await.ok()?;
@@ -208,10 +199,8 @@ impl SerenityStrategy {
         let conf_workflow = 0.5 + (serenity_score / 200.0).min(0.5);
         // 催化剂加分：每个催化剂 confidence >= 70 加 0.05
         let conf_catalyst = (0.05
-            * catalysts
-                .iter()
-                .filter(|c| c["confidence"].as_f64().unwrap_or(0.0) >= 70.0)
-                .count() as f64)
+            * catalysts.iter().filter(|c| c["confidence"].as_f64().unwrap_or(0.0) >= 70.0).count()
+                as f64)
             .min(0.15);
 
         let consistency = conf_quality * 0.25
@@ -273,10 +262,7 @@ impl SerenityStrategy {
             }
         }
         // 退出信号
-        if let Some(urgency) = exit_signals
-            .get("overall_exit_urgency")
-            .and_then(|v| v.as_str())
-        {
+        if let Some(urgency) = exit_signals.get("overall_exit_urgency").and_then(|v| v.as_str()) {
             if urgency == "caution" {
                 risk_notes.push("⚠ 退出信号：6-12月内关注退出条件".to_string());
             } else if urgency == "watch" {
@@ -284,9 +270,8 @@ impl SerenityStrategy {
             }
         }
         // 技术替代风险
-        if let Some(tech_risk) = exit_signals
-            .get("technology_disruption_risk")
-            .and_then(|v| v.as_str())
+        if let Some(tech_risk) =
+            exit_signals.get("technology_disruption_risk").and_then(|v| v.as_str())
         {
             if !tech_risk.is_empty() && !tech_risk.eq_ignore_ascii_case("null") {
                 risk_notes.push(format!("技术替代风险: {}", tech_risk));
@@ -350,10 +335,7 @@ impl RecommendStrategy for SerenityStrategy {
         let mut picks = Vec::new();
         for (code, name, sector) in ctx.seed {
             let _g = ctx.per_code_locks.lock_for(code).await;
-            if let Some(p) = self
-                .scan_one(ctx.client, code, name, sector.clone(), ctx.vars)
-                .await
-            {
+            if let Some(p) = self.scan_one(ctx.client, code, name, sector.clone(), ctx.vars).await {
                 picks.push(p);
             }
         }

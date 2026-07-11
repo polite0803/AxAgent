@@ -53,22 +53,17 @@ pub struct LatencyMatrix {
 
 impl LatencyMatrix {
     pub fn new() -> Self {
-        Self {
-            entries: HashMap::new(),
-            type_entries: HashMap::new(),
-        }
+        Self { entries: HashMap::new(), type_entries: HashMap::new() }
     }
 
     /// 设置两个特定 Agent 之间的延迟
     pub fn set(&mut self, source: &str, target: &str, latency_ns: SimTimestamp) {
-        self.entries
-            .insert((source.to_string(), target.to_string()), latency_ns);
+        self.entries.insert((source.to_string(), target.to_string()), latency_ns);
     }
 
     /// 设置两种 Agent 类型之间的默认延迟
     pub fn set_type(&mut self, source_type: &str, target_type: &str, latency_ns: SimTimestamp) {
-        self.type_entries
-            .insert((source_type.to_string(), target_type.to_string()), latency_ns);
+        self.type_entries.insert((source_type.to_string(), target_type.to_string()), latency_ns);
     }
 
     /// 查询延迟：精确匹配 > 类型匹配 > default_latency_ns

@@ -43,6 +43,21 @@ pub mod workflow_types;
 #[macro_use]
 pub mod reliability;
 
+// ── 市场数据契约（DTO + Trait + 工具函数）──
+pub mod market_data;
+pub use market_data::{
+    AdjType, FinancialReport, KLine, MarketDataProvider, StockQuote, StockSearchResult,
+    detect_market_type, get_price_limit_pct, get_st_price_limit_pct,
+};
+
+// ── 时间旅行(As-Of) DTO 契约 ──
+pub mod as_of;
+pub use as_of::{AsOfContext, AsOfDataKind, AsOfDataScope, AsOfSource, DegradationEntry};
+
+// ── 高级股票数据服务契约（让 stock-analysis 不依赖 astock-data 实现）──
+pub mod stock_data_service;
+pub use stock_data_service::StockDataService;
+
 // ── Persistence 契约 ──
 /// `Persistence` trait（实际定义在 `persistence_mod`）
 pub use persistence_mod::{DatabaseConnection, Persistence, SharedPersistence};

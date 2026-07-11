@@ -97,11 +97,10 @@ fn test_stock_quote_default_values() {
 
 #[test]
 fn test_stock_search_result_serialization() {
-    let result = StockSearchResult {
-        code: "600519".into(),
-        name: "贵州茅台".into(),
-        market: "SH".into(),
-    };
+    let result =
+        StockSearchResult {
+            code: "600519".into(), name: "贵州茅台".into(), market: "SH".into()
+        };
     let json = serde_json::to_string(&result).unwrap();
     let parsed: StockSearchResult = serde_json::from_str(&json).unwrap();
     assert_eq!(parsed.code, "600519");

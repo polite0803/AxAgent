@@ -63,10 +63,7 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
     // 最近 N 日斜率（用线性回归简化：最后5日 vs 之前5日）
     let slope = if closes.len() >= 10 {
         let recent_5: f64 = closes[closes.len() - 5..].iter().sum::<f64>() / 5.0;
-        let prev_5: f64 = closes[closes.len() - 10..closes.len() - 5]
-            .iter()
-            .sum::<f64>()
-            / 5.0;
+        let prev_5: f64 = closes[closes.len() - 10..closes.len() - 5].iter().sum::<f64>() / 5.0;
         (recent_5 - prev_5) / prev_5
     } else {
         0.0
@@ -74,11 +71,8 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
 
     // 布林带宽度（波动率）：20日收盘价标准差 / ma20
     let (bollinger_pct, vol_str) = if closes.len() >= 20 {
-        let variance = closes[closes.len() - 20..]
-            .iter()
-            .map(|c| (c - ma20).powi(2))
-            .sum::<f64>()
-            / 20.0;
+        let variance =
+            closes[closes.len() - 20..].iter().map(|c| (c - ma20).powi(2)).sum::<f64>() / 20.0;
         let std_dev = variance.sqrt();
         let bbp = if ma20 > 0.0 { std_dev / ma20 } else { 0.0 };
         let vs = if bbp > 0.20 {
@@ -132,12 +126,7 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
         )
     };
 
-    MarketRegime {
-        regime,
-        confidence,
-        volatility: vol_str,
-        description: desc,
-    }
+    MarketRegime { regime, confidence, volatility: vol_str, description: desc }
 }
 
 /// 简单移动平均

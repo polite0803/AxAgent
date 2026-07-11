@@ -1,7 +1,7 @@
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use std::sync::Arc;
 
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 
 /// 关键价位快照
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -40,11 +40,11 @@ pub struct KeyLevelSnapshot {
 /// 关键价位追踪器
 pub struct KeyLevelTracker {
     db: Arc<DatabaseConnection>,
-    client: Arc<AStockClient>,
+    client: Arc<dyn MarketDataProvider>,
 }
 
 impl KeyLevelTracker {
-    pub fn new(db: Arc<DatabaseConnection>, client: Arc<AStockClient>) -> Self {
+    pub fn new(db: Arc<DatabaseConnection>, client: Arc<dyn MarketDataProvider>) -> Self {
         Self { db, client }
     }
 
@@ -65,7 +65,7 @@ impl KeyLevelTracker {
         let id = uuid::Uuid::new_v4().to_string();
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
 
-        use axagent_core::entity::stock_analyses;
+        use axagent_entities::stock_analyses;
         let analysis = stock_analyses::Entity::find_by_id(analysis_id)
             .one(self.db.as_ref())
             .await
@@ -106,7 +106,7 @@ impl KeyLevelTracker {
         _lookback_days: u32,
         cfg: &BacktestConfig,
     ) -> Result<KeyLevelBacktestStats, String> {
-        use axagent_core::entity::stock_analyses;
+        use axagent_entities::stock_analyses;
         let analyses = stock_analyses::Entity::find()
             .filter(stock_analyses::Column::Status.eq("completed"))
             .filter(stock_analyses::Column::BlackboardSnapshot.is_not_null())
@@ -116,10 +116,8 @@ impl KeyLevelTracker {
             .await
             .map_err(|e| e.to_string())?;
 
-        let mut stats = KeyLevelBacktestStats {
-            total_snapshots: analyses.len() as u32,
-            ..Default::default()
-        };
+        let mut stats =
+            KeyLevelBacktestStats { total_snapshots: analyses.len() as u32, ..Default::default() };
 
         for analysis in analyses {
             if let Some(snapshot_str) = analysis.blackboard_snapshot.as_deref() {
@@ -134,13 +132,11 @@ impl KeyLevelTracker {
                     // 获取快照日期之后的K线
                     if let Ok(klines) = self
                         .client
-                        .get_klines(&analysis.stock_code, "daily", cfg.klines_count)
+                        .get_klines(&analysis.stock_code, "daily", cfg.klines_count, None)
                         .await
                     {
-                        let future: Vec<_> = klines
-                            .iter()
-                            .filter(|k| k.date.as_str() > snapshot_date)
-                            .collect();
+                        let future: Vec<_> =
+                            klines.iter().filter(|k| k.date.as_str() > snapshot_date).collect();
 
                         let day1 = future.get(cfg.day1_offset);
                         let day3 = future.get(cfg.day3_offset);
@@ -193,8 +189,7 @@ impl KeyLevelTracker {
         &self,
         lookback_days: u32,
     ) -> Result<KeyLevelBacktestStats, String> {
-        self.backtest_key_levels_with_config(lookback_days, &BacktestConfig::default())
-            .await
+        self.backtest_key_levels_with_config(lookback_days, &BacktestConfig::default()).await
     }
 }
 
@@ -209,13 +204,7 @@ pub struct BacktestConfig {
 
 impl Default for BacktestConfig {
     fn default() -> Self {
-        Self {
-            query_limit: 100,
-            klines_count: 500,
-            day1_offset: 0,
-            day3_offset: 2,
-            day5_offset: 4,
-        }
+        Self { query_limit: 100, klines_count: 500, day1_offset: 0, day3_offset: 2, day5_offset: 4 }
     }
 }
 

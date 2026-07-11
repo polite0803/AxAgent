@@ -51,11 +51,7 @@ pub struct WeightDecayConfig {
 
 impl Default for WeightDecayConfig {
     fn default() -> Self {
-        Self {
-            lookback_days: 30,
-            ewma_alpha: 0.3,
-            sample_saturation: 20,
-        }
+        Self { lookback_days: 30, ewma_alpha: 0.3, sample_saturation: 20 }
     }
 }
 
@@ -164,10 +160,7 @@ mod tests {
 
     #[test]
     fn all_rows_outside_lookback_are_filtered() {
-        let cfg = WeightDecayConfig {
-            lookback_days: 30,
-            ..Default::default()
-        };
+        let cfg = WeightDecayConfig { lookback_days: 30, ..Default::default() };
         let history = vec![row("trend", "short", 1, 60)];
         let w = compute_adjusted_weights(&history, &cfg, &HashMap::new());
         assert!(w.is_empty(), "应被 lookback 窗口过滤");
@@ -191,11 +184,7 @@ mod tests {
 
     #[test]
     fn low_win_rate_lowers_weight() {
-        let cfg = WeightDecayConfig {
-            lookback_days: 30,
-            ewma_alpha: 1.0,
-            ..Default::default()
-        };
+        let cfg = WeightDecayConfig { lookback_days: 30, ewma_alpha: 1.0, ..Default::default() };
         let history: Vec<_> = (0..30).map(|_| row("value", "mid", 0, 5)).collect();
         let w = compute_adjusted_weights(&history, &cfg, &HashMap::new());
         let key = ("value".to_string(), "mid".to_string());
@@ -236,11 +225,7 @@ mod tests {
 
     #[test]
     fn ewma_smooths_toward_current_weight() {
-        let cfg = WeightDecayConfig {
-            lookback_days: 30,
-            ewma_alpha: 0.3,
-            ..Default::default()
-        };
+        let cfg = WeightDecayConfig { lookback_days: 30, ewma_alpha: 0.3, ..Default::default() };
         let history: Vec<_> = (0..30).map(|_| row("trend", "short", 1, 5)).collect();
 
         // raw new ≈ 0.97, 但传 current=0.5 → EWMA 应当拉低
@@ -260,11 +245,7 @@ mod tests {
 
     #[test]
     fn multiple_strategies_independent() {
-        let cfg = WeightDecayConfig {
-            lookback_days: 30,
-            ewma_alpha: 1.0,
-            ..Default::default()
-        };
+        let cfg = WeightDecayConfig { lookback_days: 30, ewma_alpha: 1.0, ..Default::default() };
         let history = vec![
             row("trend", "short", 1, 5),
             row("trend", "short", 1, 5),
@@ -280,11 +261,7 @@ mod tests {
 
     #[test]
     fn weight_clamped_to_min_floor() {
-        let cfg = WeightDecayConfig {
-            lookback_days: 30,
-            ewma_alpha: 1.0,
-            ..Default::default()
-        };
+        let cfg = WeightDecayConfig { lookback_days: 30, ewma_alpha: 1.0, ..Default::default() };
         let history: Vec<_> = (0..50).map(|_| row("bad", "short", 0, 5)).collect();
         let w = compute_adjusted_weights(&history, &cfg, &HashMap::new());
         let aw = w.get(&("bad".to_string(), "short".to_string())).unwrap();
@@ -294,11 +271,7 @@ mod tests {
 
     #[test]
     fn rationale_message_reflects_sample_size() {
-        let cfg = WeightDecayConfig {
-            lookback_days: 30,
-            ewma_alpha: 1.0,
-            ..Default::default()
-        };
+        let cfg = WeightDecayConfig { lookback_days: 30, ewma_alpha: 1.0, ..Default::default() };
         let history: Vec<_> = (0..3).map(|_| row("trend", "short", 1, 5)).collect();
         let w = compute_adjusted_weights(&history, &cfg, &HashMap::new());
         let aw = w.get(&("trend".to_string(), "short".to_string())).unwrap();

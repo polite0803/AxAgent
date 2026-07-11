@@ -1,7 +1,10 @@
-//! 时间旅行（As-Of）上下文
+//! 时间旅行（As-Of）上下文 — 运行时实现
+//!
+//! DTO 类型（AsOfContext、AsOfSource 等）的权威定义在 `axagent_harness::as_of`，
+//! 本模块 re-export 它们并附加运行时状态管理。
 //!
 //! 通过 `tokio::task_local!` 注入当前任务的 `AsOfContext`，所有 vendor 调用
-//! 都可以隐式读取截止日，从而过滤或降级数据。Live 模式下该 task-local 为 None。
+//! 都可以隐式读取截止日，从而过滤或降级数据。Live 模式下该 task-local 为 None.
 //!
 //! # 双层存储：task_local + 进程级全局回退
 //!
@@ -88,16 +91,9 @@ impl AsOfContext {
     pub fn new(date: NaiveDate, source: AsOfSource) -> Result<Self, AsOfError> {
         let today = Local::now().date_naive();
         if date > today {
-            return Err(AsOfError::FutureDate {
-                date: date.to_string(),
-                today: today.to_string(),
-            });
+            return Err(AsOfError::FutureDate { date: date.to_string(), today: today.to_string() });
         }
-        Ok(Self {
-            as_of_date: date,
-            source,
-            data_scope: AsOfDataScope::All,
-        })
+        Ok(Self { as_of_date: date, source, data_scope: AsOfDataScope::All })
     }
 
     /// 创建带数据范围的 AsOfContext
@@ -109,14 +105,10 @@ impl AsOfContext {
     /// 解析 'YYYY-MM-DD' 字符串；空字符串视为非法
     pub fn parse(s: &str) -> Result<Self, AsOfError> {
         if s.is_empty() {
-            return Err(AsOfError::InvalidFormat {
-                reason: "empty string".into(),
-            });
+            return Err(AsOfError::InvalidFormat { reason: "empty string".into() });
         }
-        let date =
-            NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|e| AsOfError::InvalidFormat {
-                reason: e.to_string(),
-            })?;
+        let date = NaiveDate::parse_from_str(s, "%Y-%m-%d")
+            .map_err(|e| AsOfError::InvalidFormat { reason: e.to_string() })?;
         Self::new(date, AsOfSource::UserReplay)
     }
 
@@ -124,9 +116,7 @@ impl AsOfContext {
     pub fn parse_optional(s: Option<&str>) -> Result<Option<Self>, String> {
         match s.map(str::trim).filter(|s| !s.is_empty()) {
             None => Ok(None),
-            Some(s) => Self::parse(s)
-                .map(Some)
-                .map_err(|e| format!("as_of_date 解析失败: {e}")),
+            Some(s) => Self::parse(s).map(Some).map_err(|e| format!("as_of_date 解析失败: {e}")),
         }
     }
 
@@ -286,9 +276,7 @@ pub async fn with_degradation_log<F, T>(f: F) -> T
 where
     F: std::future::Future<Output = T>,
 {
-    DEGRADATION_LOG
-        .scope(std::cell::RefCell::new(Vec::new()), f)
-        .await
+    DEGRADATION_LOG.scope(std::cell::RefCell::new(Vec::new()), f).await
 }
 
 /// 当前数据新鲜度描述(供工作流 prompt `{{data_freshness}}` 变量注入)
@@ -394,18 +382,13 @@ where
 /// 消费并清空当前任务的降级日志。返回累积的降级条目。
 /// 必须在 with_degradation_log scope 内调用，否则返回空 Vec。
 pub fn take_asof_degradation_report() -> Vec<DegradationEntry> {
-    DEGRADATION_LOG
-        .try_with(|cell| std::mem::take(&mut *cell.borrow_mut()))
-        .unwrap_or_default()
+    DEGRADATION_LOG.try_with(|cell| std::mem::take(&mut *cell.borrow_mut())).unwrap_or_default()
 }
 
 /// 仅快照全局降级日志(不清空,供前端 poll 显示)。
 /// 返回按时间顺序排列(旧 → 新)的最近 256 条。
 pub fn peek_global_degradation_report() -> Vec<DegradationEntry> {
-    GLOBAL_DEGRADATION_LOG
-        .lock()
-        .map(|g| g.iter().cloned().collect())
-        .unwrap_or_default()
+    GLOBAL_DEGRADATION_LOG.lock().map(|g| g.iter().cloned().collect()).unwrap_or_default()
 }
 
 /// 当前累计降级总数(从进程启动起算,跨 live/replay 切换)。
@@ -547,9 +530,8 @@ mod tests {
         let result = AS_OF
             .scope(Some(outer), async {
                 let outer_val = current_as_of().unwrap().as_of_date;
-                let inner_val = AS_OF
-                    .scope(Some(inner), async { current_as_of().unwrap().as_of_date })
-                    .await;
+                let inner_val =
+                    AS_OF.scope(Some(inner), async { current_as_of().unwrap().as_of_date }).await;
                 // 内层 scope 结束后，外层值恢复
                 let after_inner = current_as_of().unwrap().as_of_date;
                 (outer_val, inner_val, after_inner)
@@ -607,9 +589,7 @@ mod tests {
         let task_ctx = AsOfContext::new(task_date, AsOfSource::UserReplay).unwrap();
         let global_ctx = AsOfContext::new(global_date, AsOfSource::ScheduledReplay).unwrap();
         set_global_asof(Some(global_ctx));
-        let got = AS_OF
-            .scope(Some(task_ctx), async { current_as_of().unwrap() })
-            .await;
+        let got = AS_OF.scope(Some(task_ctx), async { current_as_of().unwrap() }).await;
         assert_eq!(got.as_of_date, task_date, "task_local 必须胜过全局");
         assert_eq!(got.source, AsOfSource::UserReplay);
         let _ = clear_global_asof();
@@ -640,9 +620,7 @@ mod tests {
         // 仅有 task_local，无全局：scope 内读到值
         let date = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::BacktestSweep).unwrap();
-        let in_scope = AS_OF
-            .scope(Some(ctx), async { current_as_of().is_some() })
-            .await;
+        let in_scope = AS_OF.scope(Some(ctx), async { current_as_of().is_some() }).await;
         assert!(in_scope);
         // scope 外（且全局已清空）应返回 None
         assert!(current_as_of().is_none());
@@ -824,9 +802,7 @@ mod tests {
         let _ = clear_global_asof();
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let s = AS_OF
-            .scope(Some(ctx), async { data_freshness_description() })
-            .await;
+        let s = AS_OF.scope(Some(ctx), async { data_freshness_description() }).await;
         assert!(s.contains("2026-06-01"), "All 文案必须含日期: {s}");
         assert!(s.contains("全数据"), "All 文案必须含『全数据』: {s}");
     }
@@ -839,9 +815,7 @@ mod tests {
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay)
             .unwrap()
             .with_data_scope(AsOfDataScope::Structured);
-        let s = AS_OF
-            .scope(Some(ctx), async { data_freshness_description() })
-            .await;
+        let s = AS_OF.scope(Some(ctx), async { data_freshness_description() }).await;
         assert!(s.contains("2026-06-01"));
         assert!(s.contains("新闻"), "Structured 文案必须说明新闻是实时的: {s}");
     }

@@ -104,9 +104,7 @@ impl SimAgent for NoiseAgent {
             let max_noise = (self.reference_price as f64 * self.price_noise_bps as f64 / 10000.0)
                 .round() as Price;
             let offset = rng.gen_range(-max_noise..=max_noise);
-            let price = (self.reference_price as f64 + offset as f64)
-                .round()
-                .max(1.0) as Price;
+            let price = (self.reference_price as f64 + offset as f64).round().max(1.0) as Price;
 
             let id = self.next_id;
             self.next_id += 1;

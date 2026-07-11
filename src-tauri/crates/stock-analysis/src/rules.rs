@@ -138,11 +138,6 @@ impl RuleEngine {
             None
         };
 
-        RuleCheckResult {
-            passed: violations.is_empty(),
-            violations,
-            corrections,
-            force_signal,
-        }
+        RuleCheckResult { passed: violations.is_empty(), violations, corrections, force_signal }
     }
 }

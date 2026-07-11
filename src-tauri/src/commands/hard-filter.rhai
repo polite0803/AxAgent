@@ -93,7 +93,8 @@ fn main() {
             continue;
         }
 
-        let serenity_score = safe_float(c["serenity_score"], 0.0);
+        // V54 修复: 默认值 100（无数据时不触发过滤），避免缺失字段导致误杀
+        let serenity_score = safe_float(c["serenity_score"], 100.0);
 
         // S-202: PE 超标（含高增长豁免）
         let pe = safe_float(c["pe_ttm"], safe_float(c["pe"], 0.0));

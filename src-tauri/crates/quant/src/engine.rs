@@ -161,10 +161,7 @@ impl BacktestEngine {
             ctx.current_date = bar.date.clone();
 
             // 4.2 push bar 到 history
-            ctx.bar_history
-                .entry(bar.code.clone())
-                .or_default()
-                .push(bar.clone());
+            ctx.bar_history.entry(bar.code.clone()).or_default().push(bar.clone());
 
             // 4.3 更新 last_price / market_value / unrealized_pnl
             if let Some(pos) = ctx.positions.get_mut(&bar.code) {
@@ -277,22 +274,19 @@ fn apply_fill(ctx: &mut StrategyCtx, fill: &Fill) {
             ctx.commission_paid += fill.commission;
             ctx.stamp_tax_paid += fill.stamp_tax;
             ctx.slippage_paid += fill.slippage;
-            let pos = ctx
-                .positions
-                .entry(order.code.clone())
-                .or_insert_with(|| Position {
-                    code: order.code.clone(),
-                    name: None,
-                    side: Side::Long,
-                    quantity: 0,
-                    cost_basis: 0.0,
-                    last_price: fill.fill_price,
-                    market_value: 0.0,
-                    unrealized_pnl: 0.0,
-                    realized_pnl: 0.0,
-                    entry_date: order.timestamp.clone(),
-                    entry_timestamp: order.timestamp.clone(),
-                });
+            let pos = ctx.positions.entry(order.code.clone()).or_insert_with(|| Position {
+                code: order.code.clone(),
+                name: None,
+                side: Side::Long,
+                quantity: 0,
+                cost_basis: 0.0,
+                last_price: fill.fill_price,
+                market_value: 0.0,
+                unrealized_pnl: 0.0,
+                realized_pnl: 0.0,
+                entry_date: order.timestamp.clone(),
+                entry_timestamp: order.timestamp.clone(),
+            });
             let new_qty = pos.quantity + order.quantity;
             pos.cost_basis = if new_qty > 0 {
                 (pos.cost_basis * pos.quantity as f64 + fill.fill_price * order.quantity as f64)

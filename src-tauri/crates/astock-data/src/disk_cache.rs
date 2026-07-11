@@ -81,10 +81,7 @@ impl DiskCache {
     }
 
     fn now_unix() -> i64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs() as i64)
-            .unwrap_or(0)
+        SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
     }
 
     /// 查缓存;命中且未过期返回 Some(value),否则 None(顺便清理过期项)。
@@ -119,10 +116,8 @@ impl DiskCache {
         // 容量满时 LRU 淘汰
         if inner.len() >= self.capacity {
             let to_evict = ((self.capacity as f64) * EVICT_RATIO).ceil() as usize;
-            let mut entries: Vec<(String, i64)> = inner
-                .iter()
-                .map(|(k, v)| (k.clone(), v.last_access))
-                .collect();
+            let mut entries: Vec<(String, i64)> =
+                inner.iter().map(|(k, v)| (k.clone(), v.last_access)).collect();
             entries.sort_by_key(|(_, la)| *la);
             for (k, _) in entries.into_iter().take(to_evict) {
                 inner.remove(&k);
@@ -134,14 +129,7 @@ impl DiskCache {
             );
         }
 
-        inner.insert(
-            key,
-            CacheEntry {
-                value,
-                expires_at,
-                last_access: now,
-            },
-        );
+        inner.insert(key, CacheEntry { value, expires_at, last_access: now });
         self.dirty_count.fetch_add(1, Ordering::Relaxed);
     }
 
@@ -163,9 +151,7 @@ impl DiskCache {
             Ok(g) => g,
             Err(e) => e.into_inner(),
         };
-        let snap = DiskSnapshot {
-            entries: inner.clone(),
-        };
+        let snap = DiskSnapshot { entries: inner.clone() };
         match serde_json::to_string(&snap) {
             Ok(json) => {
                 if let Some(parent) = self.path.parent() {
@@ -182,8 +168,7 @@ impl DiskCache {
                     return;
                 }
                 self.dirty_count.store(0, Ordering::Relaxed);
-                self.last_flush_unix
-                    .store(Self::now_unix(), Ordering::Relaxed);
+                self.last_flush_unix.store(Self::now_unix(), Ordering::Relaxed);
                 tracing::debug!("[l2] flushed {} entries to disk", inner.len());
             },
             Err(e) => tracing::warn!("[l2] serialize failed: {}", e),

@@ -28,18 +28,11 @@ pub struct ValidationReport {
 
 impl ValidationReport {
     pub fn passed() -> Self {
-        Self {
-            ok: true,
-            ..Default::default()
-        }
+        Self { ok: true, ..Default::default() }
     }
 
     pub fn block(missing: Vec<String>) -> Self {
-        Self {
-            ok: false,
-            missing,
-            ..Default::default()
-        }
+        Self { ok: false, missing, ..Default::default() }
     }
 
     pub fn add_warning(&mut self, w: impl Into<String>) {

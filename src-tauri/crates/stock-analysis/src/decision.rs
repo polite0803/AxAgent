@@ -33,41 +33,15 @@ pub struct StockDecision {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload", rename_all = "camelCase")]
 pub enum AnalysisEvent {
-    Started {
-        stock_code: String,
-        stock_name: String,
-        date: String,
-    },
-    DataLoaded {
-        kline_count: usize,
-        news_count: usize,
-    },
-    AnalystProgress {
-        expert_id: String,
-        status: String,
-        progress_pct: u8,
-    },
-    AnalystReport {
-        expert_id: String,
-        report_text: String,
-    },
-    DebateRound {
-        round: u32,
-        bull_argument: String,
-        bear_argument: String,
-    },
-    RiskAssessment {
-        risk_type: String,
-        report: String,
-    },
-    InvestmentPlan {
-        plan: String,
-    },
+    Started { stock_code: String, stock_name: String, date: String },
+    DataLoaded { kline_count: usize, news_count: usize },
+    AnalystProgress { expert_id: String, status: String, progress_pct: u8 },
+    AnalystReport { expert_id: String, report_text: String },
+    DebateRound { round: u32, bull_argument: String, bear_argument: String },
+    RiskAssessment { risk_type: String, report: String },
+    InvestmentPlan { plan: String },
     Decision(StockDecision),
-    Error {
-        stage: String,
-        message: String,
-    },
+    Error { stage: String, message: String },
 }
 
 /// 可配置的评分权重

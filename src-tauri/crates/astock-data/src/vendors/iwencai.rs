@@ -11,9 +11,7 @@ pub struct IwencaiVendor {
 }
 
 fn val_to_f64(v: &Value) -> Option<f64> {
-    v.as_str()
-        .and_then(|s| s.parse().ok())
-        .or_else(|| v.as_f64())
+    v.as_str().and_then(|s| s.parse().ok()).or_else(|| v.as_f64())
 }
 
 impl IwencaiVendor {
@@ -150,11 +148,7 @@ impl StockVendor for IwencaiVendor {
                     return None;
                 }
 
-                Some(StockSearchResult {
-                    code: code.to_string(),
-                    name: name.to_string(),
-                    market,
-                })
+                Some(StockSearchResult { code: code.to_string(), name: name.to_string(), market })
             })
             .collect())
     }
@@ -174,10 +168,8 @@ impl StockVendor for IwencaiVendor {
             .or_else(|| item.get("consensus_eps"))
             .or_else(|| item.get("预测EPS"))
             .and_then(val_to_f64);
-        let rating_count = item
-            .get("rating_count")
-            .or_else(|| item.get("预测机构数"))
-            .and_then(|v| {
+        let rating_count =
+            item.get("rating_count").or_else(|| item.get("预测机构数")).and_then(|v| {
                 v.as_str()
                     .and_then(|s| s.parse::<i32>().ok())
                     .or_else(|| v.as_i64().map(|i| i as i32))
@@ -225,10 +217,7 @@ impl StockVendor for IwencaiVendor {
             .and_then(|v| v.as_str())
             .map(|s| {
                 s.split(',')
-                    .map(|t| BlockItem {
-                        name: t.trim().to_string(),
-                        change_pct: None,
-                    })
+                    .map(|t| BlockItem { name: t.trim().to_string(), change_pct: None })
                     .collect()
             })
             .unwrap_or_default();
@@ -260,10 +249,8 @@ impl StockVendor for IwencaiVendor {
                     .or_else(|| item.get("涨跌幅"))
                     .and_then(val_to_f64)
                     .unwrap_or(0.0);
-                let turnover_rate = item
-                    .get("turnover_ratio")
-                    .or_else(|| item.get("换手率"))
-                    .and_then(val_to_f64);
+                let turnover_rate =
+                    item.get("turnover_ratio").or_else(|| item.get("换手率")).and_then(val_to_f64);
                 let sector = item
                     .get("industry")
                     .or_else(|| item.get("行业"))
@@ -346,21 +333,13 @@ mod capability_tests {
     use super::*;
 
     fn make_vendor() -> IwencaiVendor {
-        IwencaiVendor {
-            http: reqwest::Client::new(),
-            api_key: "test".into(),
-        }
+        IwencaiVendor { http: reqwest::Client::new(), api_key: "test".into() }
     }
 
     #[test]
     fn iwencai_no_historical_methods() {
         let v = make_vendor();
-        for m in &[
-            "search_stock",
-            "get_concept_blocks",
-            "get_hot_stocks",
-            "get_sector_info",
-        ] {
+        for m in &["search_stock", "get_concept_blocks", "get_hot_stocks", "get_sector_info"] {
             assert_eq!(v.asof_capability(m), AsOfCapability::NoHistoricalSemantic);
         }
     }

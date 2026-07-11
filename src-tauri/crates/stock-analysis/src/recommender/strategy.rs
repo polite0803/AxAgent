@@ -26,10 +26,7 @@ pub struct RecoContext<'a> {
 /// 从模板变量映射表中读取 f64 值，不存在或无法解析时返回 `default`
 pub fn read_f64(vars: &HashMap<String, Value>, key: &str, default: f64) -> f64 {
     vars.get(key)
-        .and_then(|v| {
-            v.as_f64()
-                .or_else(|| v.as_str().and_then(|s| s.parse::<f64>().ok()))
-        })
+        .and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse::<f64>().ok())))
         .unwrap_or(default)
 }
 
@@ -51,9 +48,7 @@ impl PerCodeLocks {
     pub async fn lock_for(&self, code: &str) -> OwnedMutexGuard<()> {
         let code_lock: Arc<Mutex<()>> = {
             let mut g = self.map.lock().await;
-            g.entry(code.to_string())
-                .or_insert_with(|| Arc::new(Mutex::new(())))
-                .clone()
+            g.entry(code.to_string()).or_insert_with(|| Arc::new(Mutex::new(()))).clone()
         };
         code_lock.lock_owned().await
     }

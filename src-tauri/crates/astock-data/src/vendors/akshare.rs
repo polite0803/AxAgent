@@ -10,9 +10,7 @@ pub struct AkshareVendor {
 }
 
 fn val_to_f64(v: &Value) -> Option<f64> {
-    v.as_str()
-        .and_then(|s| s.parse().ok())
-        .or_else(|| v.as_f64())
+    v.as_str().and_then(|s| s.parse().ok()).or_else(|| v.as_f64())
 }
 
 #[async_trait]
@@ -174,14 +172,7 @@ impl StockVendor for AkshareVendor {
                     .unwrap_or("")
                     .to_string();
 
-                Some(NewsItem {
-                    title,
-                    summary,
-                    source,
-                    url,
-                    publish_time,
-                    sentiment_score: None,
-                })
+                Some(NewsItem { title, summary, source, url, publish_time, sentiment_score: None })
             })
             .collect())
     }
@@ -254,12 +245,7 @@ impl StockVendor for AkshareVendor {
                     .or_else(|| item.get("author"))
                     .and_then(|v| v.as_str().map(|s| s.to_string()));
 
-                Some(ClsFlashItem {
-                    title,
-                    content,
-                    publish_time,
-                    source,
-                })
+                Some(ClsFlashItem { title, content, publish_time, source })
             })
             .collect())
     }
@@ -297,9 +283,7 @@ impl StockVendor for AkshareVendor {
             .to_string();
         let consensus_eps = latest.get("avg").and_then(val_to_f64);
         let rating_count = latest.get("num").and_then(|v| {
-            v.as_str()
-                .and_then(|s| s.parse::<i32>().ok())
-                .or_else(|| v.as_i64().map(|i| i as i32))
+            v.as_str().and_then(|s| s.parse::<i32>().ok()).or_else(|| v.as_i64().map(|i| i as i32))
         });
 
         if consensus_eps.is_none() && rating_count.is_none() {
@@ -333,9 +317,7 @@ mod capability_tests {
     use super::*;
 
     fn make_vendor() -> AkshareVendor {
-        AkshareVendor {
-            http: reqwest::Client::new(),
-        }
+        AkshareVendor { http: reqwest::Client::new() }
     }
 
     #[test]
@@ -347,12 +329,7 @@ mod capability_tests {
     #[test]
     fn akshare_others_are_fallthrough() {
         let v = make_vendor();
-        for m in &[
-            "get_financials",
-            "get_news",
-            "get_consensus_eps",
-            "get_quote",
-        ] {
+        for m in &["get_financials", "get_news", "get_consensus_eps", "get_quote"] {
             assert_eq!(v.asof_capability(m), AsOfCapability::Fallthrough);
         }
     }

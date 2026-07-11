@@ -119,7 +119,8 @@ fn classify_source(source_type) {
 
 // ── 主计算 ──
 let events = [];
-let now_hours = if present(now_timestamp) { now_timestamp } else { 0.0 };
+// 注意: now_timestamp 未从 DAG 注入（无节点提供 Unix 时间戳），
+// 各事件使用自身的 hours_elapsed 字段做时间衰减，无需全局 now。
 
 // 解析输入事件（来自 LLM a-catalyst / a-news 节点）
 if present(llm_events) && type_of(llm_events) == "string" && llm_events != "" {

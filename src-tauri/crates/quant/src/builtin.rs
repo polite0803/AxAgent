@@ -106,10 +106,7 @@ pub struct MaCrossStrategy {
 
 impl MaCrossStrategy {
     pub fn new(short_period: usize, long_period: usize) -> Self {
-        Self {
-            short_period,
-            long_period,
-        }
+        Self { short_period, long_period }
     }
 }
 
@@ -136,16 +133,12 @@ impl Strategy for MaCrossStrategy {
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
         match key {
             "short_period" => {
-                self.short_period = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.short_period =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "long_period" => {
-                self.long_period = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.long_period =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             _ => return Err(QuantError::Param(key.to_string())),
         }
@@ -237,22 +230,16 @@ impl Strategy for MacdStrategy {
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
         match key {
             "fast" => {
-                self.fast = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.fast =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "slow" => {
-                self.slow = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.slow =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "signal" => {
-                self.signal = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.signal =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             _ => return Err(QuantError::Param(key.to_string())),
         }
@@ -271,11 +258,8 @@ impl Strategy for MacdStrategy {
         let cs = closes(history);
         let ema_fast = ema_series(&cs, self.fast);
         let ema_slow = ema_series(&cs, self.slow);
-        let dif_series: Vec<f64> = ema_fast
-            .iter()
-            .zip(ema_slow.iter())
-            .map(|(a, b)| a - b)
-            .collect();
+        let dif_series: Vec<f64> =
+            ema_fast.iter().zip(ema_slow.iter()).map(|(a, b)| a - b).collect();
         let dea_series = ema_series(&dif_series, self.signal);
         if dif_series.len() < 2 || dea_series.len() < 2 {
             return Ok(vec![]);
@@ -321,11 +305,7 @@ pub struct RsiStrategy {
 
 impl RsiStrategy {
     pub fn new(period: usize, overbought: f64, oversold: f64) -> Self {
-        Self {
-            period,
-            overbought,
-            oversold,
-        }
+        Self { period, overbought, oversold }
     }
 }
 
@@ -353,20 +333,15 @@ impl Strategy for RsiStrategy {
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
         match key {
             "period" => {
-                self.period = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.period =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "overbought" => {
-                self.overbought = value
-                    .as_f64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
+                self.overbought =
+                    value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
             },
             "oversold" => {
-                self.oversold = value
-                    .as_f64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
+                self.oversold = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
             },
             _ => return Err(QuantError::Param(key.to_string())),
         }
@@ -449,15 +424,11 @@ impl Strategy for BollStrategy {
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
         match key {
             "period" => {
-                self.period = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.period =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "stddev" => {
-                self.stddev = value
-                    .as_f64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
+                self.stddev = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
             },
             _ => return Err(QuantError::Param(key.to_string())),
         }
@@ -521,13 +492,7 @@ impl TurtleStrategy {
         atr_period: usize,
         atr_multiplier: f64,
     ) -> Self {
-        Self {
-            entry_period,
-            exit_period,
-            atr_period,
-            atr_multiplier,
-            entry_price: None,
-        }
+        Self { entry_period, exit_period, atr_period, atr_multiplier, entry_price: None }
     }
 }
 
@@ -556,27 +521,20 @@ impl Strategy for TurtleStrategy {
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
         match key {
             "entry_period" => {
-                self.entry_period = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.entry_period =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "exit_period" => {
-                self.exit_period = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.exit_period =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "atr_period" => {
-                self.atr_period = value
-                    .as_u64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
-                    as usize
+                self.atr_period =
+                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
             },
             "atr_multiplier" => {
-                self.atr_multiplier = value
-                    .as_f64()
-                    .ok_or_else(|| QuantError::Param(key.to_string()))?
+                self.atr_multiplier =
+                    value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
             },
             _ => return Err(QuantError::Param(key.to_string())),
         }

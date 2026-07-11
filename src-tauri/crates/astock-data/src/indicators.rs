@@ -201,10 +201,7 @@ pub fn compute_indicators_with_config(
     let latest_date = latest.map(|k| k.date.clone()).unwrap_or_default();
     let latest_close = latest.map(|k| k.close).unwrap_or(0.0);
     let latest_volume = latest.map(|k| k.volume).unwrap_or(0.0);
-    let prev_close = klines
-        .get(klines.len().saturating_sub(2))
-        .map(|k| k.close)
-        .unwrap_or(0.0);
+    let prev_close = klines.get(klines.len().saturating_sub(2)).map(|k| k.close).unwrap_or(0.0);
     let price_change = latest_close - prev_close;
 
     // MA — 计算配置中所有周期，按 period 值映射到命名域
@@ -339,9 +336,7 @@ pub fn compute_indicators_with_config(
 
     // Volume ratio — 取最近 volume_lookback 日均量
     let avg_vol = if volumes.len() > cfg.volume_lookback {
-        volumes[volumes.len() - cfg.volume_lookback - 1..volumes.len() - 1]
-            .iter()
-            .sum::<f64>()
+        volumes[volumes.len() - cfg.volume_lookback - 1..volumes.len() - 1].iter().sum::<f64>()
             / cfg.volume_lookback as f64
     } else if volumes.len() >= 2 {
         volumes[..volumes.len() - 1].iter().sum::<f64>() / (volumes.len() - 1) as f64

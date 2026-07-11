@@ -6,13 +6,14 @@
 
 pub mod seed_serenity;
 pub mod seed_stock_analysis;
+pub mod seed_variables;
 
 // 股票分析专家/角色/Profile 自动种子化到 agency_experts/agent_roles/agent_profiles 表。
 // 使用 include_str! 编译期嵌入 .md 内容，打包后无需文件 I/O。
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_setup;
-use axagent_core::repo;
+use axagent_dao::repo;
 use seed_serenity::seed_serenity_screening_workflow_template;
 use seed_stock_analysis::seed_stock_analysis_workflow_template;
 
@@ -501,7 +502,7 @@ pub async fn ensure_stock_analysis_experts_seeded(
 ///   （如 value-investor 应连到 `bear-r{debate_max_rounds}`，详见 P0 修复）。
 /// ───────────────────────────────────────────────────────────────────────
 async fn seed_agency_experts(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
-    use axagent_core::entity::agency_experts;
+    use axagent_entities::agency_experts;
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
     let mut count = 0u32;
@@ -566,7 +567,7 @@ async fn seed_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String
 }
 
 async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
-    use axagent_core::entity::agent_profiles;
+    use axagent_entities::agent_profiles;
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
     // Profile → 工具映射（从模块级 PROFILE_TOOLS 构建）
@@ -837,15 +838,135 @@ pub(crate) fn merge_variable_values(
 ///
 /// 运行时 portfolio-manager 通过 `{{actual_outcome}}` 变量切换到反思模式。
 async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use axagent_harness::workflow_types::{
-        AgentNode, AgentNodeConfig, EdgeType, OutputMode, Position, RetryConfig, StorageNode,
-        StorageNodeConfig, SubWorkflowNode, SubWorkflowNodeConfig, TriggerConfig, TriggerNode,
-        TriggerType, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
+        AgentNode, AgentNodeConfig, CodeNode, CodeNodeConfig, EdgeType, OutputMode, Position,
+        RetryConfig, StorageNode, StorageNodeConfig, SubWorkflowNode, SubWorkflowNodeConfig,
+        ToolDef, TriggerConfig, TriggerNode, TriggerType, Variable, WorkflowEdge, WorkflowNode,
+        WorkflowNodeBase,
     };
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
     let now = chrono::Utc::now().timestamp_millis();
+
+    // ── 反思 Agent 可用工具定义（仅 K 线 + 公告全文，不暴露交易类工具）──
+    let refl_tools: Vec<ToolDef> = {
+        let mut kline_props = std::collections::HashMap::new();
+        kline_props.insert(
+            "stock_code".into(),
+            axagent_harness::workflow_types::JsonSchemaProperty {
+                schema_type: "string".into(),
+                description: Some("6位股票代码".into()),
+                default: None,
+                enum_values: None,
+                format: None,
+            },
+        );
+        kline_props.insert(
+            "period".into(),
+            axagent_harness::workflow_types::JsonSchemaProperty {
+                schema_type: "string".into(),
+                description: Some("K线周期: daily(日线)/weekly(周线)/monthly(月线)".into()),
+                default: Some(serde_json::json!("daily")),
+                enum_values: None,
+                format: None,
+            },
+        );
+        kline_props.insert(
+            "limit".into(),
+            axagent_harness::workflow_types::JsonSchemaProperty {
+                schema_type: "integer".into(),
+                description: Some("K线数量".into()),
+                default: Some(serde_json::json!(120)),
+                enum_values: None,
+                format: None,
+            },
+        );
+        let td_kline = ToolDef {
+            name: "get_stock_kline".into(),
+            description: Some("获取K线数据：OHLCV，可指定周期和数量，用于事后对比走势".into()),
+            parameters: Some(axagent_harness::workflow_types::JsonSchema {
+                schema_type: "object".into(),
+                description: None,
+                properties: Some(kline_props),
+                required: Some(vec!["stock_code".into()]),
+                items: None,
+            }),
+        };
+        let td_announce = ToolDef {
+            name: "get_announcement_content".into(),
+            description: Some("获取公司公告PDF全文内容，用于事后查阅分析期间发布的新公告".into()),
+            parameters: Some(axagent_harness::workflow_types::JsonSchema {
+                schema_type: "object".into(),
+                description: None,
+                properties: Some(
+                    [(
+                        "stock_code".into(),
+                        axagent_harness::workflow_types::JsonSchemaProperty {
+                            schema_type: "string".into(),
+                            description: Some("6位股票代码".into()),
+                            default: None,
+                            enum_values: None,
+                            format: None,
+                        },
+                    )]
+                    .into_iter()
+                    .collect(),
+                ),
+                required: Some(vec!["stock_code".into()]),
+                items: None,
+            }),
+        };
+        vec![td_kline, td_announce]
+    };
+
+    // ── CodeNode: 定量对比脚本（sub-analysis → reflection-comparator → reflection-agent）──
+    let comparator_code = include_str!("../reflection-comparator.rhai").to_string();
+    let comparator_node = WorkflowNode::Code(CodeNode {
+        base: WorkflowNodeBase {
+            id: "reflection-comparator".into(),
+            title: "预测vs实际定量对比".into(),
+            description: Some("对比分析师预测与实际走势，输出结构化偏差报告".into()),
+            position: Position { x: 20.0, y: 260.0 },
+            retry: RetryConfig::default(),
+            timeout: Some(10),
+            enabled: true,
+            parent_id: None,
+            compensation: None,
+            continue_on_fail: true, // 对比失败不阻塞反思
+        },
+        config: CodeNodeConfig {
+            language: "rhai".into(),
+            code: comparator_code,
+            output_var: "reflection-comparator".into(),
+            tool_name: None,
+            execute_directly: true,
+            input_mapping: [
+                ("trader_action", "sub-analysis.trader.content.action"),
+                ("trader_target_price", "sub-analysis.trader.content.targetPrice"),
+                ("trader_confidence", "sub-analysis.trader.content.confidence"),
+                ("portfolio_action", "sub-analysis.portfolio-mgr.action"),
+                ("portfolio_posterior", "sub-analysis.portfolio-mgr.posterior"),
+                ("debate_consensus", "sub-analysis.debate-convergence.content.consensus_score"),
+                ("total_score", "sub-analysis.t-scoring.result.totalScore"),
+                ("raw_return_pct", "raw_return_pct"),
+                ("alpha_return_pct", "alpha_return_pct"),
+                ("holding_days", "holding_days"),
+                ("original_time_horizon", "original_time_horizon"),
+                ("original_holding_days", "original_holding_days"),
+                // __untrusted 标记（从子工作流各 Agent 节点提取）
+                ("u_trader", "sub-analysis.trader.__untrusted"),
+                ("u_research_mgr", "sub-analysis.research-mgr.__untrusted"),
+                ("u_catalyst", "sub-analysis.a-catalyst.__untrusted"),
+                ("u_debate_cnv", "sub-analysis.debate-convergence.__untrusted"),
+                ("u_data_quality", "sub-analysis.data-quality.__untrusted"),
+                ("u_risk_cnv", "sub-analysis.risk-convergence.__untrusted"),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect(),
+        },
+    });
 
     // ── 节点定义（与 stock-analysis 同款：Rust 类型构造，编译期校验必填字段）──
     let nodes: Vec<WorkflowNode> = vec![
@@ -914,19 +1035,21 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 sub_graph: None,
             },
         }),
-        // 3. 反思复盘 Agent：注入实际走势结果 + 反思深度，驱动 portfolio-manager 切反思模式
+        // 3. 反思复盘 Agent：注入实际走势结果 + 反思深度 + 定量对比报告
+        //    注: comparator_node 在 nodes vec 外部构造(见前文),这里追加到 vec 末尾
+        comparator_node,
         WorkflowNode::Agent(AgentNode {
             base: WorkflowNodeBase {
                 id: "reflection-agent".into(),
                 title: "反思复盘".into(),
-                description: Some("基于实际走势结果对历史分析做反思复盘".into()),
-                position: Position { x: 20.0, y: 260.0 },
+                description: Some("基于实际走势+偏差报告+数据工具做反思复盘".into()),
+                position: Position { x: 20.0, y: 380.0 },
                 retry: RetryConfig {
                     enabled: true,
                     max_retries: 2,
                     ..Default::default()
                 },
-                timeout: Some(600), // V40: 与 step_timeout=600s 对齐
+                timeout: Some(600),
                 enabled: true,
                 parent_id: None,
                 compensation: None,
@@ -942,15 +1065,30 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                     实际持有天数: {{holding_days}} 天\n\
                     基准名称: {{benchmark_name}}\n\
                     反思深度: {{reflection_depth}}（light = 简要；deep = 详细推理链）\n\n\
+                    ——定量偏差报告（reflection-comparator 输出）——\n\
+                    详见下方【输入上下文】的 deviation_report 字段。\n\
+                    包含方向匹配度(direction_match)/收益分类(return_category)/时间维度检查。\n\
+                    分析前务必先阅读，direction_match=false 说明方向误判需深入分析错因。\n\n\
                     历史反思教训（避免重蹈覆辙）:\n\
                     {{stock_lessons}}\n\n\
+                    可用工具：\n\
+                    - get_stock_kline: 获取实际操作期间的K线数据，对比预测走势与实际价格运动\n\
+                    - get_announcement_content: 获取分析日期之后发布的新公告PDF全文，\n\
+                      用于检查是否有影响走势的关键公告被遗漏\n\n\
+                    使用工具的原则：\n\
+                    1. 先分析 deviation_report 中的定量发现，确认方向是否一致\n\
+                    2. 如有必要，调用 get_stock_kline 查看实际K线走势验证\n\
+                    3. 如果公告数据在原始分析后发生变化，调用 get_announcement_content 查阅\n\
+                    4. 工具调用结论应与定量对比报告交叉验证\n\n\
                     重要原则：\n\
                     1. 必须严格基于 actual_outcome 提供的实际走势与上游分析结论做对比，识别错因。\n\
-                    2. 严禁输出空结果或只列 data_gaps。\n\
-                    3. 强制简短：lesson_summary 字段必须 ≤200 字符、≤2 句。\n\
-                    4. 反思深度=deep 时给出可执行的检查清单（具体指标阈值、信号确认步骤）。\n\
-                    5. 用 verdict 字段标记本次反思判定（correct/partial/wrong 三选一）。\n\
-                    6. 如果复盘发现本可优化决策，在 alpha_cited 字段说明关键 alpha 信号。\n\n\
+                    2. 结合 deviation_report 的定量发现验证而非替代 LLM 判断。\n\
+                    3. 严禁输出空结果或只列 data_gaps。\n\
+                    4. 强制简短：lesson_summary 字段必须 ≤200 字符、≤2 句。\n\
+                    5. 反思深度=deep 时给出可执行的检查清单（具体指标阈值、信号确认步骤）。\n\
+                    6. 用 verdict 字段标记本次反思判定（correct/partial/wrong 三选一）。\n\
+                    7. 如果复盘发现本可优化决策，在 alpha_cited 字段说明关键 alpha 信号。\n\
+                    8. 不要输出交易决策（买入/卖出/持有），不要输出 confidence/positionPct。\n\n\
                     你必须输出严格 JSON 格式（不要 Markdown 代码块，不要多余文本），字段如下：\n\
                     {\n\
                       \"verdict\": \"correct | partial | wrong\",\n\
@@ -962,7 +1100,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                       \"params_suggestion\": {\"参数名\": \"调整建议\"}\n\
                     }"
                 .into(),
-                context_sources: vec!["sub-analysis".into()],
+                context_sources: vec!["sub-analysis".into(), "reflection-comparator".into()],
                 input_mapping: [
                     ("stock_code".to_string(), "trigger".to_string()),
                     ("stock_name".to_string(), "trigger".to_string()),
@@ -973,6 +1111,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                     ("holding_days".to_string(), "trigger".to_string()),
                     ("benchmark_name".to_string(), "trigger".to_string()),
                     ("stock_lessons".to_string(), "trigger".to_string()),
+                    ("deviation_report".to_string(), "reflection-comparator".to_string()),
                 ]
                 .into_iter()
                 .collect(),
@@ -980,16 +1119,25 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 model: None,
                 temperature: Some(0.3),
                 max_tokens: Some(32768),
-                tools: vec![],
+                tools: refl_tools,
                 exposed_tools: vec![],
                 output_mode: OutputMode::Json,
                 agent_profile_id: Some("stock-reflection".into()),
-                max_tool_rounds: None,
+                max_tool_rounds: Some(3), // 限制工具调用轮数，防止过度拉数据
                 execution_mode: None,
-                rag_source_ids: vec![],
+                // 从 stock_reflections 记忆空间检索语义相似的历史反思
+                rag_source_ids: vec!["memory:stock_reflections".into()],
                 model_role: Some("decision-maker".into()),
-                consistency_check: None,
-                hallucination_guard: None,
+                consistency_check: Some(axagent_harness::ConsistencyCheckConfig {
+                    enabled: true,
+                    mode: axagent_harness::ConsistencyMode::SameModelRepeated,
+                    secondary_model: None,
+                    deviation_threshold: 0.3,
+                }),
+                hallucination_guard: Some(axagent_harness::HallucinationGuardConfig {
+                    enabled: true,
+                    match_threshold: 0.4,
+                }),
                 stream_chunk_timeout_secs: Some(300),
             },
         }),
@@ -999,7 +1147,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 id: "store-ref".into(),
                 title: "反思记录持久化".into(),
                 description: Some("写入反思记录到 stock_reflections 表".into()),
-                position: Position { x: 20.0, y: 400.0 },
+                position: Position { x: 20.0, y: 500.0 },
                 retry: RetryConfig {
                     enabled: true,
                     max_retries: 2,
@@ -1033,8 +1181,17 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
             label: None,
         },
         WorkflowEdge {
-            id: "e-sub-analysis-reflection".into(),
+            id: "e-sub-analysis-comparator".into(),
             source: "sub-analysis".into(),
+            source_handle: None,
+            target: "reflection-comparator".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
+        WorkflowEdge {
+            id: "e-comparator-reflection".into(),
+            source: "reflection-comparator".into(),
             source_handle: None,
             target: "reflection-agent".into(),
             target_handle: None,
@@ -1074,7 +1231,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
 
     // 版本检查：已有同版本或更新的记录则跳过
     if let Some(ref existing) =
-        axagent_core::entity::workflow_template::Entity::find_by_id("stock-reflection")
+        axagent_entities::workflow_template::Entity::find_by_id("stock-reflection")
             .one(db)
             .await
             .map_err(|e| {
@@ -1090,7 +1247,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
         }
         // 旧版本 → 保存快照
         let ver_id = format!("stock-reflection_v{}", existing.version);
-        if axagent_core::entity::workflow_template_version::Entity::find_by_id(&ver_id)
+        if axagent_entities::workflow_template_version::Entity::find_by_id(&ver_id)
             .one(db)
             .await
             .map_err(|e| {
@@ -1100,7 +1257,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
         {
             use crate::commands::error::ErrorResponse;
             use sea_orm::ActiveModelTrait;
-            let snapshot = axagent_core::entity::workflow_template_version::ActiveModel {
+            let snapshot = axagent_entities::workflow_template_version::ActiveModel {
                 id: Set(ver_id.clone()),
                 template_id: Set("stock-reflection".to_string()),
                 name: Set(existing.name.clone()),

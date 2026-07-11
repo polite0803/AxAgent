@@ -121,10 +121,7 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
     // 1. 按 analyst_id + time_horizon 分组统计
     let mut grouped: HashMap<(String, String), Vec<&AnalysisParticipation>> = HashMap::new();
     for p in &input.participations {
-        grouped
-            .entry((p.analyst_id.clone(), p.time_horizon.clone()))
-            .or_default()
-            .push(p);
+        grouped.entry((p.analyst_id.clone(), p.time_horizon.clone())).or_default().push(p);
     }
 
     // 2. 计算每位分析师的表现
@@ -140,14 +137,10 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
             };
 
             // 方向偏差: bullish占比 - bearish占比
-            let bullish_count = participations
-                .iter()
-                .filter(|p| p.stance == "bullish")
-                .count() as f64;
-            let bearish_count = participations
-                .iter()
-                .filter(|p| p.stance == "bearish")
-                .count() as f64;
+            let bullish_count =
+                participations.iter().filter(|p| p.stance == "bullish").count() as f64;
+            let bearish_count =
+                participations.iter().filter(|p| p.stance == "bearish").count() as f64;
             let direction_bias = if total > 0 {
                 (bullish_count - bearish_count) / total as f64
             } else {
@@ -202,36 +195,20 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
         .collect();
 
     // 3. 排序：按准确率降序
-    performances.sort_by(|a, b| {
-        b.accuracy
-            .partial_cmp(&a.accuracy)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    performances
+        .sort_by(|a, b| b.accuracy.partial_cmp(&a.accuracy).unwrap_or(std::cmp::Ordering::Equal));
 
     // 4. 找最好和最差（不考虑 insufficient_data）
-    let meaningful: Vec<&AnalystBacktestPerformance> = performances
-        .iter()
-        .filter(|p| p.total_participations >= 5)
-        .collect();
-    let top_performers: Vec<String> = meaningful
-        .iter()
-        .take(3)
-        .map(|p| p.analyst_id.clone())
-        .collect();
-    let bottom_performers: Vec<String> = meaningful
-        .iter()
-        .rev()
-        .take(3)
-        .map(|p| p.analyst_id.clone())
-        .collect();
+    let meaningful: Vec<&AnalystBacktestPerformance> =
+        performances.iter().filter(|p| p.total_participations >= 5).collect();
+    let top_performers: Vec<String> =
+        meaningful.iter().take(3).map(|p| p.analyst_id.clone()).collect();
+    let bottom_performers: Vec<String> =
+        meaningful.iter().rev().take(3).map(|p| p.analyst_id.clone()).collect();
 
     // 5. 计算整体准确率
     let total_samples = input.participations.len() as u32;
-    let total_correct = input
-        .participations
-        .iter()
-        .filter(|p| p.was_correct)
-        .count() as u32;
+    let total_correct = input.participations.iter().filter(|p| p.was_correct).count() as u32;
     let overall_accuracy = if total_samples > 0 {
         total_correct as f64 / total_samples as f64
     } else {
@@ -239,9 +216,7 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
     };
 
     // 6. 是否需要调整
-    let requires_adjustment = performances
-        .iter()
-        .any(|p| p.suggestion.suggestion_type != "none");
+    let requires_adjustment = performances.iter().any(|p| p.suggestion.suggestion_type != "none");
 
     BacktestFeedbackReport {
         total_samples,
@@ -364,9 +339,7 @@ mod tests {
 
     #[test]
     fn empty_input_returns_empty_report() {
-        let report = analyze_backtest_feedback(FeedbackInput {
-            participations: vec![],
-        });
+        let report = analyze_backtest_feedback(FeedbackInput { participations: vec![] });
         assert_eq!(report.total_samples, 0);
         assert!(report.analyst_performances.is_empty());
         assert!(!report.requires_adjustment);
@@ -378,11 +351,8 @@ mod tests {
             .map(|i| participation("a-technical", "short", "bullish", 0.8, i % 3 != 0, i))
             .collect();
         let report = analyze_backtest_feedback(FeedbackInput { participations });
-        let tech = report
-            .analyst_performances
-            .iter()
-            .find(|p| p.analyst_id == "a-technical")
-            .unwrap();
+        let tech =
+            report.analyst_performances.iter().find(|p| p.analyst_id == "a-technical").unwrap();
         // 30 次中约 20 次正确(~66% 准确率)
         assert!(tech.accuracy > 0.5, "高准确率应 > 0.5, 实际={}", tech.accuracy);
         assert!(
@@ -398,11 +368,8 @@ mod tests {
             .map(|i| participation("bad-analyst", "mid", "bullish", 0.9, false, i))
             .collect();
         let report = analyze_backtest_feedback(FeedbackInput { participations });
-        let bad = report
-            .analyst_performances
-            .iter()
-            .find(|p| p.analyst_id == "bad-analyst")
-            .unwrap();
+        let bad =
+            report.analyst_performances.iter().find(|p| p.analyst_id == "bad-analyst").unwrap();
         assert!(bad.accuracy < 0.3, "故意设错应低于 0.3, 实际={}", bad.accuracy);
         assert_eq!(bad.suggestion.suggestion_type, "review_logic", "极低准确率应触发 review_logic");
     }
@@ -414,11 +381,8 @@ mod tests {
             .map(|i| participation("overconfident", "short", "bullish", 0.95, i % 2 == 0, i))
             .collect();
         let report = analyze_backtest_feedback(FeedbackInput { participations });
-        let oc = report
-            .analyst_performances
-            .iter()
-            .find(|p| p.analyst_id == "overconfident")
-            .unwrap();
+        let oc =
+            report.analyst_performances.iter().find(|p| p.analyst_id == "overconfident").unwrap();
         // 50% 准确率,但置信度 0.95 → 校准偏移 0.45
         assert!(
             oc.confidence_calibration > 0.3,
@@ -439,11 +403,8 @@ mod tests {
             participations.push(participation("declining", "long", "bullish", 0.7, false, 10 - i));
         }
         let report = analyze_backtest_feedback(FeedbackInput { participations });
-        let decl = report
-            .analyst_performances
-            .iter()
-            .find(|p| p.analyst_id == "declining")
-            .unwrap();
+        let decl =
+            report.analyst_performances.iter().find(|p| p.analyst_id == "declining").unwrap();
         assert_eq!(decl.trend, "declining", "下降趋势应被检测, 实际={}", decl.trend);
         assert!(decl.suggestion.suggested_weight < 1.0, "下降趋势应降权");
     }
@@ -455,11 +416,7 @@ mod tests {
             participation("newbie", "short", "bullish", 0.7, false, 2),
         ];
         let report = analyze_backtest_feedback(FeedbackInput { participations });
-        let n = report
-            .analyst_performances
-            .iter()
-            .find(|p| p.analyst_id == "newbie")
-            .unwrap();
+        let n = report.analyst_performances.iter().find(|p| p.analyst_id == "newbie").unwrap();
         assert_eq!(n.suggestion.suggestion_type, "none");
     }
 

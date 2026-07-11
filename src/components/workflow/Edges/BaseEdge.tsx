@@ -6,9 +6,6 @@ import { EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { theme } from "antd";
 import React from "react";
 
-const ORANGE_BASE = "#fa8c16";
-const PURPLE_BASE = "#722ed1";
-
 const MIN_CTRL = 40;
 const MAX_CTRL = 120;
 const BEND_AMOUNT = 60;
@@ -129,12 +126,12 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
 }) => {
   const { token } = theme.useToken();
 
-  const nodeStatuses = useWorkEngineStore((s) => s.nodeStatuses);
   const isDebugRunning = useWorkEngineStore((s) => s.isDebugRunning);
-
-  const sourceRunning = nodeStatuses[source] === "running" || nodeStatuses[source] === "completed";
-  const targetActive = nodeStatuses[target!] === "running" || nodeStatuses[target!] === "completed";
-  const showFlowAnimation = isDebugRunning && (sourceRunning || targetActive);
+  const sourceStatus = useWorkEngineStore((s) => s.nodeStatuses[source]);
+  const targetStatus = useWorkEngineStore((s) => s.nodeStatuses[target!]);
+  const showFlowAnimation = isDebugRunning
+    && (sourceStatus === "running" || sourceStatus === "completed"
+      || targetStatus === "running" || targetStatus === "completed");
 
   // 正交路由：使用 SmoothStep 替代 Bezier
   // 对 parallel 子节点做 port 偏移，使边出口/入口分散
@@ -153,26 +150,6 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
   const edgeColor = selected ? token.colorPrimary : token.colorBorderSecondary;
   const isAnimated = data?.edgeType === "loopBack";
   const isGrouping = data?.edgeType === "grouping";
-
-  const getMarkerColor = (edgeType?: string): string => {
-    switch (edgeType) {
-      case "conditionTrue":
-        return token.colorSuccess;
-      case "conditionFalse":
-      case "error":
-        return token.colorError;
-      case "loopBack":
-        return `var(--orange, ${ORANGE_BASE})`;
-      case "parallelBranch":
-        return `var(--purple, ${PURPLE_BASE})`;
-      case "merge":
-        return token.colorPrimary;
-      case "grouping":
-        return "none";
-      default:
-        return edgeColor;
-    }
-  };
 
   const getEdgeStroke = () => {
     if (isGrouping) { return token.colorTextQuaternary; }
@@ -240,96 +217,6 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
           </div>
         </EdgeLabelRenderer>
       )}
-      <defs>
-        <marker
-          id="arrow-default"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("default")} />
-        </marker>
-        <marker
-          id="arrow-direct"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("direct")} />
-        </marker>
-        <marker
-          id="arrow-conditionTrue"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("conditionTrue")} />
-        </marker>
-        <marker
-          id="arrow-conditionFalse"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("conditionFalse")} />
-        </marker>
-        <marker
-          id="arrow-loopBack"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("loopBack")} />
-        </marker>
-        <marker
-          id="arrow-error"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("error")} />
-        </marker>
-        <marker
-          id="arrow-parallelBranch"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("parallelBranch")} />
-        </marker>
-        <marker
-          id="arrow-merge"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("merge")} />
-        </marker>
-      </defs>
     </>
   );
 };

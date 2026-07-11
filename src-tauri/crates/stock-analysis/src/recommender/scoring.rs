@@ -15,12 +15,7 @@ pub struct ScoringWeights {
 
 impl Default for ScoringWeights {
     fn default() -> Self {
-        Self {
-            consistency: 0.45,
-            signal_strength: 0.35,
-            liquidity: 0.15,
-            price_momentum: 0.05,
-        }
+        Self { consistency: 0.45, signal_strength: 0.35, liquidity: 0.15, price_momentum: 0.05 }
     }
 }
 
@@ -33,10 +28,7 @@ static ADAPTIVE_WEIGHTS: RwLock<ScoringWeights> = RwLock::new(ScoringWeights {
 
 /// 读取当前自适应权重
 pub fn get_scoring_weights() -> ScoringWeights {
-    ADAPTIVE_WEIGHTS
-        .read()
-        .unwrap_or_else(|e| e.into_inner())
-        .clone()
+    ADAPTIVE_WEIGHTS.read().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
 /// 更新自适应权重（EWMA: new = old × 0.7 + suggested × 0.3）

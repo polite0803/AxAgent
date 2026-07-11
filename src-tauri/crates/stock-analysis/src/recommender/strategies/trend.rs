@@ -5,7 +5,7 @@ use crate::recommender::indicators;
 use crate::recommender::scoring::{calc_confidence, calc_position};
 use crate::recommender::types::{Period, RecoPick, Style};
 use async_trait::async_trait;
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -15,29 +15,21 @@ pub struct TrendStrategy {
 
 impl TrendStrategy {
     pub const fn ultra_short() -> Self {
-        Self {
-            period: Period::UltraShort,
-        }
+        Self { period: Period::UltraShort }
     }
     pub const fn short() -> Self {
-        Self {
-            period: Period::Short,
-        }
+        Self { period: Period::Short }
     }
     pub const fn mid() -> Self {
-        Self {
-            period: Period::Mid,
-        }
+        Self { period: Period::Mid }
     }
     pub const fn long() -> Self {
-        Self {
-            period: Period::Long,
-        }
+        Self { period: Period::Long }
     }
 
     async fn scan_one(
         &self,
-        client: &AStockClient,
+        client: &dyn MarketDataProvider,
         code: &str,
         name: &str,
         sector: Option<String>,
@@ -50,7 +42,7 @@ impl TrendStrategy {
             Period::Mid => read_f64(vars, "trend_mid_kline_limit", 150.0) as u32,
             Period::Long => read_f64(vars, "trend_long_kline_limit", 300.0) as u32,
         };
-        let klines = client.get_klines(code, "daily", kline_limit).await.ok()?;
+        let klines = client.get_klines(code, "daily", kline_limit, None).await.ok()?;
         // 修复 V51：min_kline_len 按周期差异化，避免 UltraShort 拉取 20 根却要求 30 根的矛盾
         let min_kline_len = match self.period {
             Period::UltraShort => read_f64(vars, "trend_ultra_short_min_kline_len", 15.0) as usize,
@@ -274,10 +266,7 @@ impl RecommendStrategy for TrendStrategy {
         let mut picks = Vec::new();
         for (code, name, sector) in ctx.seed {
             let _g = ctx.per_code_locks.lock_for(code).await;
-            if let Some(p) = self
-                .scan_one(ctx.client, code, name, sector.clone(), ctx.vars)
-                .await
-            {
+            if let Some(p) = self.scan_one(ctx.client, code, name, sector.clone(), ctx.vars).await {
                 picks.push(p);
             }
         }

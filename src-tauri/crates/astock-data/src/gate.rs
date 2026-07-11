@@ -35,9 +35,7 @@ pub struct DomainGuard {
 
 impl DomainGuard {
     fn new(permit: OwnedSemaphorePermit) -> Self {
-        Self {
-            _permit: Some(permit),
-        }
+        Self { _permit: Some(permit) }
     }
 }
 
@@ -47,30 +45,20 @@ impl DomainGate {
         for (name, capacity) in CAPACITIES {
             gates.insert(*name, Arc::new(Semaphore::new(*capacity)));
         }
-        Self {
-            gates,
-            default: Arc::new(Semaphore::new(5)),
-        }
+        Self { gates, default: Arc::new(Semaphore::new(5)) }
     }
 
     /// 获取指定供应商的并发许可证（异步等待直到有空位）
     pub async fn acquire(&self, vendor_name: &str) -> DomainGuard {
         let sem = self.gates.get(vendor_name).unwrap_or(&self.default);
-        let permit = sem
-            .clone()
-            .acquire_owned()
-            .await
-            .expect("DomainGate semaphore closed");
+        let permit = sem.clone().acquire_owned().await.expect("DomainGate semaphore closed");
         DomainGuard::new(permit)
     }
 
     /// 尝试获取许可证，不等待，失败返回 None
     pub fn try_acquire(&self, vendor_name: &str) -> Option<DomainGuard> {
         let sem = self.gates.get(vendor_name).unwrap_or(&self.default);
-        sem.clone()
-            .try_acquire_owned()
-            .ok()
-            .map(|p| DomainGuard::new(p))
+        sem.clone().try_acquire_owned().ok().map(|p| DomainGuard::new(p))
     }
 }
 

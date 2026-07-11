@@ -96,10 +96,7 @@ impl SimAgent for MomentumAgent {
 
     fn on_init(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         vec![
-            AgentAction::SendMessage {
-                target: "exchange".into(),
-                body: MessageBody::RequestQuote,
-            },
+            AgentAction::SendMessage { target: "exchange".into(), body: MessageBody::RequestQuote },
             AgentAction::WakeupAfter(self.wakeup_interval_ns),
         ]
     }
@@ -164,10 +161,7 @@ impl SimAgent for MomentumAgent {
 
     fn on_wakeup(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         vec![
-            AgentAction::SendMessage {
-                target: "exchange".into(),
-                body: MessageBody::RequestQuote,
-            },
+            AgentAction::SendMessage { target: "exchange".into(), body: MessageBody::RequestQuote },
             AgentAction::WakeupAfter(self.wakeup_interval_ns),
         ]
     }

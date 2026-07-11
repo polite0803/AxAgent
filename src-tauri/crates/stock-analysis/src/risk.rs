@@ -54,12 +54,7 @@ pub fn sharpe_ratio_with_annualization(
 ) -> SharpeResult {
     let n = returns.len();
     if n < 2 {
-        return SharpeResult {
-            sharpe: 0.0,
-            annualized: 0.0,
-            mean_return: 0.0,
-            stddev: 0.0,
-        };
+        return SharpeResult { sharpe: 0.0, annualized: 0.0, mean_return: 0.0, stddev: 0.0 };
     }
     let mean: f64 = returns.iter().sum::<f64>() / n as f64;
     let variance: f64 = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
@@ -89,21 +84,14 @@ pub struct SharpeResult {
 pub fn value_at_risk(returns: &[f64], confidence: f64) -> VarResult {
     let n = returns.len();
     if n < 5 {
-        return VarResult {
-            var_pct: 0.0,
-            confidence,
-            cvar_pct: 0.0,
-        };
+        return VarResult { var_pct: 0.0, confidence, cvar_pct: 0.0 };
     }
     let mut sorted = returns.to_vec();
     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let idx = ((1.0 - confidence) * (n as f64 + 1.0)).floor() as usize;
     let var_idx = if idx == 0 { 0 } else { idx - 1 };
     let var_val = if var_idx < n { -sorted[var_idx] } else { 0.0 };
-    let tail: f64 = sorted[..=var_idx.min(n - 1)]
-        .iter()
-        .map(|r| -r)
-        .sum::<f64>();
+    let tail: f64 = sorted[..=var_idx.min(n - 1)].iter().map(|r| -r).sum::<f64>();
     let cvar = tail / (var_idx + 1) as f64;
     VarResult {
         var_pct: (var_val * 100.0).round() / 100.0,
@@ -165,12 +153,7 @@ pub struct PEPercentileResult {
 /// PEG = PE / 增长率。增长率以 % 表示（如 25 表示 25%）。
 pub fn peg_ratio(pe: f64, growth_rate: f64) -> PEGResult {
     if growth_rate <= 0.0 {
-        return PEGResult {
-            peg: f64::INFINITY,
-            level: "无意义".into(),
-            pe,
-            growth_rate,
-        };
+        return PEGResult { peg: f64::INFINITY, level: "无意义".into(), pe, growth_rate };
     }
     let peg = pe / growth_rate;
     let level = if peg < 0.5 {
@@ -182,12 +165,7 @@ pub fn peg_ratio(pe: f64, growth_rate: f64) -> PEGResult {
     } else {
         "高估"
     };
-    PEGResult {
-        peg: (peg * 100.0).round() / 100.0,
-        level: level.into(),
-        pe,
-        growth_rate,
-    }
+    PEGResult { peg: (peg * 100.0).round() / 100.0, level: level.into(), pe, growth_rate }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -264,18 +242,13 @@ pub struct KellyResult {
 pub fn risk_parity_weights(volatilities: &[f64], correlations_json: &str) -> RiskParityResult {
     let n = volatilities.len();
     if n == 0 {
-        return RiskParityResult {
-            weights: vec![],
-            divers_ratio: 0.0,
-        };
+        return RiskParityResult { weights: vec![], divers_ratio: 0.0 };
     }
     let corr_matrix: Option<Vec<Vec<f64>>> = serde_json::from_str(correlations_json)
         .ok()
         .filter(|m: &Vec<Vec<f64>>| m.len() == n && m.iter().all(|r| r.len() == n));
-    let inv_vols: Vec<f64> = volatilities
-        .iter()
-        .map(|&v| if v > 0.0 { 1.0 / v } else { 0.0 })
-        .collect();
+    let inv_vols: Vec<f64> =
+        volatilities.iter().map(|&v| if v > 0.0 { 1.0 / v } else { 0.0 }).collect();
     let total: f64 = inv_vols.iter().sum();
     let weights = if let Some(corr) = corr_matrix {
         let mut w: Vec<f64> = inv_vols.clone();
@@ -311,10 +284,7 @@ pub fn risk_parity_weights(volatilities: &[f64], correlations_json: &str) -> Ris
         }
         w.iter().map(|&x| (x * 10000.0).round() / 10000.0).collect()
     } else if total > 0.0 {
-        inv_vols
-            .iter()
-            .map(|&w| (w / total * 10000.0).round() / 10000.0)
-            .collect()
+        inv_vols.iter().map(|&w| (w / total * 10000.0).round() / 10000.0).collect()
     } else {
         vec![1.0 / n as f64; n]
     };
@@ -324,10 +294,7 @@ pub fn risk_parity_weights(volatilities: &[f64], correlations_json: &str) -> Ris
     } else {
         1.0
     };
-    RiskParityResult {
-        weights,
-        divers_ratio: (divers_ratio * 100.0).round() / 100.0,
-    }
+    RiskParityResult { weights, divers_ratio: (divers_ratio * 100.0).round() / 100.0 }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -363,9 +330,7 @@ mod tests {
 
     #[test]
     fn test_var() {
-        let returns = vec![
-            0.01, -0.02, 0.03, -0.01, -0.03, 0.02, -0.01, 0.01, -0.05, 0.02,
-        ];
+        let returns = vec![0.01, -0.02, 0.03, -0.01, -0.03, 0.02, -0.01, 0.01, -0.05, 0.02];
         let r = value_at_risk(&returns, 0.95);
         assert!(r.var_pct > 0.0);
         assert!(r.cvar_pct >= r.var_pct);

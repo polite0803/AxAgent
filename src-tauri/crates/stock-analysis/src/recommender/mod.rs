@@ -98,10 +98,7 @@ pub fn get_serenity_candidate_detail(code: &str) -> Option<serde_json::Value> {
     if !is_serenity_cache_fresh() {
         return None;
     }
-    SERENITY_CANDIDATE_CACHE
-        .read()
-        .ok()
-        .and_then(|g| g.get(code).cloned())
+    SERENITY_CANDIDATE_CACHE.read().ok().and_then(|g| g.get(code).cloned())
 }
 
 /// 清空候选全量数据缓存（同时清时间戳）
@@ -476,10 +473,7 @@ pub async fn recommend_stocks(
         let period_val = period;
         let vars_for_future = vars_map.clone();
         // 复盘→进化：该 (style, period) 当前的权重
-        let style_weight = strategy_weights
-            .get(&(s.style(), period))
-            .copied()
-            .unwrap_or(1.0);
+        let style_weight = strategy_weights.get(&(s.style(), period)).copied().unwrap_or(1.0);
         let fut = async move {
             let ctx = RecoContext {
                 client: &client_ref,
@@ -741,9 +735,7 @@ mod tests {
         // 3) replay scope 内读应当 miss
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let got_in_replay = as_of::AS_OF
-            .scope(Some(ctx), async { cache_get(Period::Short) })
-            .await;
+        let got_in_replay = as_of::AS_OF.scope(Some(ctx), async { cache_get(Period::Short) }).await;
         assert!(
             got_in_replay.is_none(),
             "live cache must not leak into replay scope (got generated_at={:?})",

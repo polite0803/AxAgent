@@ -113,10 +113,7 @@ fn compute_factor_series(
             _ => 1.0,
         };
 
-        result.push(AdjFactorPoint {
-            date: k.date.clone(),
-            factor,
-        });
+        result.push(AdjFactorPoint { date: k.date.clone(), factor });
     }
 
     // 前复权归一化: 末端 factor → 1
@@ -206,11 +203,7 @@ pub fn filter_events_by_asof(
     as_of_date: Option<&str>,
 ) -> Vec<AdjustmentEvent> {
     match as_of_date {
-        Some(cutoff) => events
-            .iter()
-            .filter(|e| e.ex_date.as_str() <= cutoff)
-            .cloned()
-            .collect(),
+        Some(cutoff) => events.iter().filter(|e| e.ex_date.as_str() <= cutoff).cloned().collect(),
         None => events.to_vec(),
     }
 }
@@ -258,11 +251,8 @@ mod tests {
     #[test]
     fn forward_adj_normalizes_to_1_at_last() {
         // 10送2 在 2025-01-15 → 1/1.2 倍率
-        let klines = vec![
-            kline("2025-01-01", 12.0),
-            kline("2025-01-15", 12.0),
-            kline("2025-02-01", 14.4),
-        ];
+        let klines =
+            vec![kline("2025-01-01", 12.0), kline("2025-01-15", 12.0), kline("2025-02-01", 14.4)];
         let events = vec![event("2025-01-15", 0.2, 0.0)];
         let f = compute_adj_factors(&klines, &events, AdjType::Forward);
         // 最后一日归一化到 1
@@ -273,11 +263,8 @@ mod tests {
 
     #[test]
     fn backward_adj_normalizes_to_1_at_first() {
-        let klines = vec![
-            kline("2025-01-01", 12.0),
-            kline("2025-01-15", 12.0),
-            kline("2025-02-01", 14.4),
-        ];
+        let klines =
+            vec![kline("2025-01-01", 12.0), kline("2025-01-15", 12.0), kline("2025-02-01", 14.4)];
         let events = vec![event("2025-01-15", 0.2, 0.0)];
         let f = compute_adj_factors(&klines, &events, AdjType::Backward);
         // 始端归一化到 1
@@ -373,11 +360,8 @@ mod tests {
     #[test]
     fn multiple_bonus_events_accumulate() {
         // 两次 10送1 (bonus=0.1): 总倍率 = 1/(1.1 * 1.1) = 1/1.21
-        let klines = vec![
-            kline("2025-01-01", 10.0),
-            kline("2025-02-01", 11.0),
-            kline("2025-03-01", 12.1),
-        ];
+        let klines =
+            vec![kline("2025-01-01", 10.0), kline("2025-02-01", 11.0), kline("2025-03-01", 12.1)];
         let events = vec![event("2025-01-15", 0.1, 0.0), event("2025-02-15", 0.1, 0.0)];
         let f = compute_adj_factors(&klines, &events, AdjType::Forward);
         // 末端归一: factor[2] = 1

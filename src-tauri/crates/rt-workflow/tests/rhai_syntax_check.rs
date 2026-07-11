@@ -16,10 +16,7 @@ fn bottleneck_calc_v9_compiles() {
         }
     });
     engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-        arr.iter()
-            .map(|i| i.to_string())
-            .collect::<Vec<_>>()
-            .join(sep)
+        arr.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(sep)
     });
     engine.register_fn("json_parse", |_s: &str| -> rhai::Dynamic { rhai::Dynamic::UNIT });
     let mut scope = Scope::new();

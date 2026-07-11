@@ -80,10 +80,7 @@ impl VendorHealth {
     /// 只读计算窗口内有效失败数（不需要 &mut self，用于 read-lock 路径）
     fn window_failure_count(&self, now: i64) -> usize {
         let cutoff = now - (FAILURE_WINDOW_SECS as i64 * 1000);
-        self.window_failures
-            .iter()
-            .filter(|&&ts| ts >= cutoff)
-            .count()
+        self.window_failures.iter().filter(|&&ts| ts >= cutoff).count()
     }
 }
 
@@ -161,9 +158,7 @@ impl VendorHealthTracker {
     pub async fn record_success(&self, name: &str) {
         let mut vendors = self.vendors.write().await;
         let now = chrono::Utc::now().timestamp_millis();
-        let entry = vendors
-            .entry(name.to_string())
-            .or_insert_with(|| VendorHealth::new(name));
+        let entry = vendors.entry(name.to_string()).or_insert_with(|| VendorHealth::new(name));
         entry.consecutive_failures = 0;
         entry.total_successes += 1;
         entry.last_success_at = Some(now);
@@ -185,9 +180,7 @@ impl VendorHealthTracker {
     pub async fn record_failure(&self, name: &str, error: &str) -> bool {
         let mut vendors = self.vendors.write().await;
         let now = chrono::Utc::now().timestamp_millis();
-        let entry = vendors
-            .entry(name.to_string())
-            .or_insert_with(|| VendorHealth::new(name));
+        let entry = vendors.entry(name.to_string()).or_insert_with(|| VendorHealth::new(name));
         entry.consecutive_failures += 1;
         entry.total_failures += 1;
         entry.last_error = Some(error.to_string());
@@ -333,9 +326,8 @@ mod tests {
     async fn healthy_vendor_available() {
         let tracker = VendorHealthTracker::new(VendorHealthConfig::default());
         tracker.record_success("tencent").await;
-        let healthy = tracker
-            .get_healthy_vendors(&["tencent".to_string(), "sina".to_string()])
-            .await;
+        let healthy =
+            tracker.get_healthy_vendors(&["tencent".to_string(), "sina".to_string()]).await;
         assert!(healthy.contains(&"tencent".to_string()));
     }
 
@@ -346,9 +338,7 @@ mod tests {
         for _ in 0..8 {
             tracker.record_failure("bad-vendor", "timeout").await;
         }
-        let healthy = tracker
-            .get_healthy_vendors(&["bad-vendor".to_string()])
-            .await;
+        let healthy = tracker.get_healthy_vendors(&["bad-vendor".to_string()]).await;
         assert!(healthy.is_empty(), "降级后的 vendor 不应出现在健康列表");
     }
 
@@ -384,9 +374,7 @@ mod tests {
     #[tokio::test]
     async fn tracks_fallback_path() {
         let tracker = VendorHealthTracker::new(VendorHealthConfig::default());
-        tracker
-            .record_fallback("quotes", "000001", "tencent", "sina", "timeout")
-            .await;
+        tracker.record_fallback("quotes", "000001", "tencent", "sina", "timeout").await;
         let log = tracker.get_fallback_log().await;
         assert_eq!(log.len(), 1);
         assert_eq!(log[0].primary_vendor, "tencent");

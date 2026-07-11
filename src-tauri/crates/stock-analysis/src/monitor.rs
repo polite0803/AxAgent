@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{interval, Duration};
 
-use axagent_astock_data::{AStockClient, StockQuote};
+use axagent_harness::market_data::{MarketDataProvider, StockQuote};
 use tauri::Emitter;
 
 /// T+0 自动重跑配置 (P2-6)
@@ -80,7 +80,7 @@ pub struct MonitorAlert {
 
 /// 实时监控引擎
 pub struct RealtimeMonitor {
-    client: Arc<AStockClient>,
+    client: Arc<dyn MarketDataProvider>,
     configs: RwLock<HashMap<String, MonitorConfig>>,
     alert_tx: tokio::sync::broadcast::Sender<MonitorAlert>,
     running: RwLock<bool>,
@@ -96,7 +96,7 @@ pub struct RealtimeMonitor {
 }
 
 impl RealtimeMonitor {
-    pub fn new(client: Arc<AStockClient>) -> Self {
+    pub fn new(client: Arc<dyn MarketDataProvider>) -> Self {
         let (alert_tx, _) = tokio::sync::broadcast::channel(128);
         Self {
             client,
@@ -394,8 +394,7 @@ impl RealtimeMonitor {
         // - 必须有 alert 触发 (没触发就不重跑,避免每分钟空转)
         // - 必须通过 cooldown 检查 (同一只股票两次触发间隔 ≥ min_interval_minutes)
         if !alerts.is_empty() {
-            self.maybe_trigger_t0(&alerts, &config.stock_code, quote)
-                .await;
+            self.maybe_trigger_t0(&alerts, &config.stock_code, quote).await;
         }
     }
 

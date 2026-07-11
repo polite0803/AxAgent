@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use axagent_astock_data::calendar;
-use axagent_astock_data::AStockClient;
-use axagent_core::entity::stock_analyses;
+use axagent_entities::stock_analyses;
+use axagent_harness::market_data::MarketDataProvider;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 
 /// 收盘复盘报告
@@ -65,7 +65,7 @@ impl PostCloseReview {
     /// `triggered_alerts` 为 stock_code -> alert descriptions 的映射，
     /// `db` 用于查询 `stock_analyses` 以做决策对比。
     pub async fn generate(
-        client: &AStockClient,
+        client: &dyn MarketDataProvider,
         watchlist: &[(String, String)],
         triggered_alerts: &HashMap<String, Vec<String>>,
         db: &DatabaseConnection,
@@ -91,11 +91,7 @@ impl PostCloseReview {
                 Err(_) => continue,
             };
 
-            let klines = client
-                .get_klines(code, "daily", 6)
-                .await
-                .ok()
-                .unwrap_or_default();
+            let klines = client.get_klines(code, "daily", 6, None).await.ok().unwrap_or_default();
             let vol_ratio = if klines.len() >= 6 {
                 let avg_vol_5 = klines.iter().rev().take(5).map(|k| k.volume).sum::<f64>() / 5.0;
                 Some(klines.last().map(|k| k.volume).unwrap_or(0.0) / avg_vol_5)
@@ -165,11 +161,7 @@ async fn fetch_latest_analysis_decision(
         .ok()
         .flatten()?;
 
-    let action = row
-        .decision_action
-        .as_deref()
-        .unwrap_or("uncertain")
-        .to_string();
+    let action = row.decision_action.as_deref().unwrap_or("uncertain").to_string();
     let target = row.decision_json.as_ref().and_then(|raw| {
         serde_json::from_str::<serde_json::Value>(raw)
             .ok()
@@ -185,12 +177,7 @@ async fn fetch_latest_analysis_decision(
     let days_since = chrono::NaiveDate::parse_from_str(&row.analysis_date, "%Y-%m-%d")
         .ok()
         .and_then(|d| {
-            chrono::Utc::now()
-                .date_naive()
-                .signed_duration_since(d)
-                .num_days()
-                .try_into()
-                .ok()
+            chrono::Utc::now().date_naive().signed_duration_since(d).num_days().try_into().ok()
         })
         .unwrap_or(0);
 
@@ -202,24 +189,20 @@ async fn fetch_latest_analysis_decision(
     // 从 DB 列或 decision_json 提取时间维度
     let time_horizon = row.decision_time_horizon.or_else(|| {
         row.decision_json.as_ref().and_then(|raw| {
-            serde_json::from_str::<serde_json::Value>(raw)
-                .ok()
-                .and_then(|v| {
-                    v.get("timeHorizon")
-                        .or_else(|| v.get("time_horizon"))
-                        .and_then(|s| s.as_str().map(|s| s.to_string()))
-                })
+            serde_json::from_str::<serde_json::Value>(raw).ok().and_then(|v| {
+                v.get("timeHorizon")
+                    .or_else(|| v.get("time_horizon"))
+                    .and_then(|s| s.as_str().map(|s| s.to_string()))
+            })
         })
     });
     let expected_holding_days = row.decision_expected_holding_days.or_else(|| {
         row.decision_json.as_ref().and_then(|raw| {
-            serde_json::from_str::<serde_json::Value>(raw)
-                .ok()
-                .and_then(|v| {
-                    v.get("expectedHoldingDays")
-                        .or_else(|| v.get("expected_holding_days"))
-                        .and_then(|n| n.as_u64().map(|n| n as u32))
-                })
+            serde_json::from_str::<serde_json::Value>(raw).ok().and_then(|v| {
+                v.get("expectedHoldingDays")
+                    .or_else(|| v.get("expected_holding_days"))
+                    .and_then(|n| n.as_u64().map(|n| n as u32))
+            })
         })
     });
 

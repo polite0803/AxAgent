@@ -18,6 +18,7 @@ pub mod gate;
 pub mod indicators;
 pub mod mcp_tools;
 pub mod regime;
+pub mod scoring;
 pub mod two_tier_cache;
 pub mod types;
 pub mod validation;
@@ -117,9 +118,7 @@ type VendorRef = (String, Box<dyn StockVendor>);
 /// 检查 HTTP 响应状态码，429 → DataError::RateLimited
 pub fn check_response_429(resp: &reqwest::Response, vendor: &str) -> Result<(), DataError> {
     if resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-        Err(DataError::RateLimited {
-            vendor: vendor.to_string(),
-        })
+        Err(DataError::RateLimited { vendor: vendor.to_string() })
     } else {
         Ok(())
     }
@@ -373,10 +372,7 @@ impl AStockClient {
         client.register_vendor("baidu_stock", Box::new(BaiduStockVendor { http: http.clone() }));
         client.register_vendor(
             "iwencai",
-            Box::new(IwencaiVendor {
-                http: http.clone(),
-                api_key: String::new(),
-            }),
+            Box::new(IwencaiVendor { http: http.clone(), api_key: String::new() }),
         );
         client.register_vendor("akshare", Box::new(AkshareVendor { http: http.clone() }));
         client.register_vendor("mootdx", Box::new(MootdxVendor::new()));
@@ -384,21 +380,13 @@ impl AStockClient {
         // NeoData Financial Search — 末位 fallback vendor，覆盖美股/宏观/外汇/期货等
         let neodata_token = Arc::new(RwLock::new(String::new()));
         client.neodata_token = Some(neodata_token.clone());
-        client.register_vendor(
-            "neodata",
-            Box::new(NeoDataVendor {
-                token: neodata_token,
-            }),
-        );
+        client.register_vendor("neodata", Box::new(NeoDataVendor { token: neodata_token }));
         // 雪球数据源（始终注册，token 通过共享 Arc 运行时注入）
         let xq_token = Arc::new(RwLock::new(String::new()));
         client.xq_token = Some(xq_token.clone());
         client.register_vendor(
             "xueqiu",
-            Box::new(XueqiuVendor {
-                http: http.clone(),
-                token: xq_token,
-            }),
+            Box::new(XueqiuVendor { http: http.clone(), token: xq_token }),
         );
 
         client
@@ -438,11 +426,7 @@ impl AStockClient {
     pub fn with_browser_fetcher(mut self, fetcher: Arc<dyn BrowserHttpFetch>) -> Self {
         self.browser_fetcher = Some(fetcher.clone());
         // 替换已注册的 browser_eastmoney vendor，使其持有 fetcher
-        if let Some(pos) = self
-            .vendors
-            .iter()
-            .position(|(name, _)| name == "browser_eastmoney")
-        {
+        if let Some(pos) = self.vendors.iter().position(|(name, _)| name == "browser_eastmoney") {
             self.vendors[pos] = (
                 "browser_eastmoney".into(),
                 Box::new(BrowserEastMoneyVendor::with_fetcher(fetcher)),
@@ -471,9 +455,7 @@ impl AStockClient {
         if let Some(l2) = &self.l2 {
             if let Some(val) = l2.get(key) {
                 let expires_at = chrono::Utc::now().timestamp() + 3600;
-                self.cache
-                    .insert(key.to_string(), (expires_at, val.clone()))
-                    .await;
+                self.cache.insert(key.to_string(), (expires_at, val.clone())).await;
                 return Some(val);
             }
         }
@@ -491,9 +473,7 @@ impl AStockClient {
             ttl_secs
         };
         let expires_at = chrono::Utc::now().timestamp() + ttl_secs;
-        self.cache
-            .insert(key.clone(), (expires_at, value.clone()))
-            .await;
+        self.cache.insert(key.clone(), (expires_at, value.clone())).await;
         // L2 同样写
         if let Some(l2) = &self.l2 {
             l2.set(key, value, ttl_secs);
@@ -546,10 +526,8 @@ impl AStockClient {
             .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         let before = klines.len();
-        let filtered: Vec<KLine> = klines
-            .into_iter()
-            .filter(|k| k.date.as_str() <= cutoff.as_str())
-            .collect();
+        let filtered: Vec<KLine> =
+            klines.into_iter().filter(|k| k.date.as_str() <= cutoff.as_str()).collect();
         let truncated = before - filtered.len();
         if truncated > 0 {
             tracing::warn!(
@@ -601,10 +579,7 @@ impl AStockClient {
         let ctx = crate::as_of::current_as_of()
             .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
-        reports
-            .into_iter()
-            .filter(|r| r.report_date.as_str() <= cutoff.as_str())
-            .collect()
+        reports.into_iter().filter(|r| r.report_date.as_str() <= cutoff.as_str()).collect()
     }
 
     /// 按当前 AsOfContext 截断 DragonTigerEntry：保留 date <= as_of_date 的项。
@@ -616,10 +591,7 @@ impl AStockClient {
         let ctx = crate::as_of::current_as_of()
             .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
-        entries
-            .into_iter()
-            .filter(|e| e.date.as_str() <= cutoff.as_str())
-            .collect()
+        entries.into_iter().filter(|e| e.date.as_str() <= cutoff.as_str()).collect()
     }
 
     /// 按当前 AsOfContext 截断 Announcement：保留 announce_date <= as_of_date 的项。
@@ -778,10 +750,7 @@ impl AStockClient {
             );
             prev.format("%Y-%m-%d").to_string()
         };
-        let last = klines
-            .iter()
-            .rev()
-            .find(|k| k.date.as_str() <= effective.as_str())?;
+        let last = klines.iter().rev().find(|k| k.date.as_str() <= effective.as_str())?;
         Some(StockQuote {
             code: stock_code.to_string(),
             name: stock_code.to_string(),
@@ -806,10 +775,7 @@ impl AStockClient {
     }
 
     fn find_vendor(&self, name: &str) -> Option<&dyn StockVendor> {
-        self.vendors
-            .iter()
-            .find(|(n, _)| n == name)
-            .map(|(_, v)| v.as_ref())
+        self.vendors.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_ref())
     }
 
     // ── H1 修复: 通用 vendor 遍历 + 健康追踪 + 指数退避重试 ──
@@ -908,9 +874,7 @@ impl AStockClient {
                                     );
                                 },
                                 _ => {
-                                    self.health_tracker
-                                        .record_failure(name, &e.to_string())
-                                        .await;
+                                    self.health_tracker.record_failure(name, &e.to_string()).await;
                                 },
                             }
                             last_err = Some(e);
@@ -1053,9 +1017,7 @@ impl AStockClient {
         if !daily_snapshot::SNAPSHOT_METHODS.contains(&method) {
             return None;
         }
-        self.daily_snapshot
-            .as_ref()
-            .and_then(|c| c.get(method, date))
+        self.daily_snapshot.as_ref().and_then(|c| c.get(method, date))
     }
 
     /// 设置每日快照（全市场方法），供 Tauri command 写入
@@ -1074,12 +1036,10 @@ impl AStockClient {
 
     /// 检查指定 vendor 的连接可用性（按实际能力选择探针方法）
     pub async fn check_vendor_health(&self, vendor_name: &str) -> Result<(), DataError> {
-        let vendor = self
-            .find_vendor(vendor_name)
-            .ok_or_else(|| DataError::VendorError {
-                vendor: vendor_name.into(),
-                message: "vendor not registered".into(),
-            })?;
+        let vendor = self.find_vendor(vendor_name).ok_or_else(|| DataError::VendorError {
+            vendor: vendor_name.into(),
+            message: "vendor not registered".into(),
+        })?;
         // 按 vendor 实际能力选择探测方法，避免用未实现的方法误判
         match vendor_name {
             "eastmoney" => {
@@ -1114,19 +1074,15 @@ impl AStockClient {
         // vendor.get_quote（返回今日实时数据，时间泄露）。
         if crate::as_of::is_asof_active() {
             // 遍历 vendors_for("klines") ，NativeDateParam vendor 调 _with_asof
-            let kline_names: Vec<String> = self
-                .routing
-                .vendors_for("klines", &self.routing.klines)
-                .clone();
+            let kline_names: Vec<String> =
+                self.routing.vendors_for("klines", &self.routing.klines).clone();
             let mut last_err: Option<DataError> = None;
             for name in &kline_names {
                 if let Some(vendor) = self.find_vendor(name) {
                     let cap = self.vendor_asof_capability(name, "get_klines");
                     let ks_result = match cap {
                         AsOfCapability::NativeDateParam => {
-                            vendor
-                                .get_klines_with_asof(stock_code, "daily", 5, None)
-                                .await
+                            vendor.get_klines_with_asof(stock_code, "daily", 5, None).await
                         },
                         _ => vendor.get_klines(stock_code, "daily", 5, None).await,
                     };
@@ -1238,8 +1194,7 @@ impl AStockClient {
         period: &str,
         limit: u32,
     ) -> Result<Vec<KLine>, DataError> {
-        self.get_klines_with_adj(stock_code, period, limit, None)
-            .await
+        self.get_klines_with_adj(stock_code, period, limit, None).await
     }
 
     /// K 线查询，支持复权方式 (R3-A 接口, P1-4 vendor 接入后真正用上)
@@ -1289,11 +1244,7 @@ impl AStockClient {
                                 .get_klines_with_asof(&sc, &period, fetch_limit, _adj_type)
                                 .await?
                         },
-                        _ => {
-                            vendor
-                                .get_klines(&sc, &period, fetch_limit, _adj_type)
-                                .await?
-                        },
+                        _ => vendor.get_klines(&sc, &period, fetch_limit, _adj_type).await?,
                     };
                     if klines.is_empty() {
                         return Err(DataError::VendorError {
@@ -1347,12 +1298,8 @@ impl AStockClient {
             }
         }
         // 使用通用 try_vendors_retry 完成 vendor 遍历 + 健康追踪 + 指数退避重试
-        let vendor_names: Vec<String> = self
-            .routing
-            .financials
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.financials.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(stock_code, "financials", &vendor_names, 2, |name, vendor| {
@@ -1386,7 +1333,7 @@ impl AStockClient {
             Err(_) => {
                 // C: fallback — 全部数据源失败时返回行业均值估计值
                 tracing::warn!("[C-fallback] 为 {stock_code} 使用行业估算财务数据");
-                Ok(vec![FinancialReport::estimated(stock_code)])
+                Ok(vec![crate::types::estimated_financial_report(stock_code)])
             },
         }
     }
@@ -1456,10 +1403,7 @@ impl AStockClient {
         // P4: 按 vendor 申报的 capability 决策
         // 目前所有 vendor 均为 Fallthrough(不支持 as-of 参数),as-of 模式返回 None
         if crate::as_of::is_asof_active() {
-            for name in self
-                .routing
-                .vendors_for("money_flow", &self.routing.money_flow)
-            {
+            for name in self.routing.vendors_for("money_flow", &self.routing.money_flow) {
                 if let Some(vendor) = self.find_vendor(name) {
                     match vendor.asof_capability("get_money_flow") {
                         AsOfCapability::NativeDateParam => {
@@ -1540,12 +1484,8 @@ impl AStockClient {
             }
         }
         // 使用通用 try_vendors_retry 完成 vendor 遍历 + 健康追踪 + 指数退避重试
-        let vendor_names: Vec<String> = self
-            .routing
-            .dragon_tiger
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.dragon_tiger.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(stock_code, "dragon_tiger", &vendor_names, 2, |name, vendor| {
@@ -1706,12 +1646,8 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // live 模式:走 vendor + 自动 upsert
-        let vendor_names: Vec<String> = self
-            .routing
-            .search_news
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.search_news.iter().map(|n| n.to_string()).collect();
         let kw = keyword.to_string();
         let limit_owned = limit;
         match self
@@ -1738,8 +1674,7 @@ impl AStockClient {
                         .cloned()
                         .collect();
                     if !filtered.is_empty() {
-                        sink.upsert("search_news", None, Some(keyword), &filtered)
-                            .await;
+                        sink.upsert("search_news", None, Some(keyword), &filtered).await;
                     }
                 }
                 Ok(result)
@@ -1879,12 +1814,8 @@ impl AStockClient {
                 }
             }
         }
-        let vendor_names: Vec<String> = self
-            .routing
-            .north_bound
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.north_bound.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(stock_code, "north_bound", &vendor_names, 2, |name, vendor| {
@@ -1961,13 +1892,10 @@ impl AStockClient {
             .try_vendors_retry(stock_code, "sector", &vendor_names, 2, |name, vendor| {
                 let sc = sc.clone();
                 Box::pin(async move {
-                    vendor
-                        .get_sector_info(&sc)
-                        .await?
-                        .ok_or_else(|| DataError::VendorError {
-                            vendor: name.to_string(),
-                            message: "行业分类数据为空".into(),
-                        })
+                    vendor.get_sector_info(&sc).await?.ok_or_else(|| DataError::VendorError {
+                        vendor: name.to_string(),
+                        message: "行业分类数据为空".into(),
+                    })
                 })
             })
             .await
@@ -2025,12 +1953,8 @@ impl AStockClient {
         &self,
         stock_code: &str,
     ) -> Result<Vec<DividendRecord>, DataError> {
-        let vendor_names: Vec<String> = self
-            .routing
-            .dividend
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.dividend.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(stock_code, "dividend", &vendor_names, 2, |name, vendor| {
@@ -2061,9 +1985,7 @@ impl AStockClient {
         // - NativeDateParam: vendor 支持 beginTime/endTime,走 _with_asof 真正按 as_of 窗口拉取
         // - 其他: as-of 模式记降级,跳过(避免泄漏 2030-01-01 全量窗口)
         if crate::as_of::is_asof_active() {
-            for name in self
-                .routing
-                .vendors_for("research_reports", &self.routing.research_reports)
+            for name in self.routing.vendors_for("research_reports", &self.routing.research_reports)
             {
                 if let Some(vendor) = self.find_vendor(name) {
                     match vendor.asof_capability("get_research_reports") {
@@ -2137,10 +2059,7 @@ impl AStockClient {
         // P4: 按 vendor 申报的 capability 决策
         // 所有 vendor 均为 Fallthrough(as-of 模式跳过,不执行 C-fallback 估算)
         if crate::as_of::is_asof_active() {
-            for name in self
-                .routing
-                .vendors_for("consensus_eps", &self.routing.consensus_eps)
-            {
+            for name in self.routing.vendors_for("consensus_eps", &self.routing.consensus_eps) {
                 if let Some(vendor) = self.find_vendor(name) {
                     match vendor.asof_capability("get_consensus_eps") {
                         AsOfCapability::NativeDateParam => {
@@ -2285,24 +2204,17 @@ impl AStockClient {
             );
             return Ok(None);
         }
-        let vendor_names: Vec<String> = self
-            .routing
-            .concept_blocks
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.concept_blocks.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(stock_code, "concept_blocks", &vendor_names, 2, |name, vendor| {
                 let sc = sc.clone();
                 Box::pin(async move {
-                    vendor
-                        .get_concept_blocks(&sc)
-                        .await?
-                        .ok_or_else(|| DataError::VendorError {
-                            vendor: name.to_string(),
-                            message: "概念板块数据为空".into(),
-                        })
+                    vendor.get_concept_blocks(&sc).await?.ok_or_else(|| DataError::VendorError {
+                        vendor: name.to_string(),
+                        message: "概念板块数据为空".into(),
+                    })
                 })
             })
             .await
@@ -2316,10 +2228,8 @@ impl AStockClient {
         &self,
         stock_code: &str,
     ) -> Result<Vec<Announcement>, DataError> {
-        let vendor_names: Vec<String> = self
-            .routing
-            .vendors_for("announcements", &self.routing.announcements)
-            .clone();
+        let vendor_names: Vec<String> =
+            self.routing.vendors_for("announcements", &self.routing.announcements).clone();
         // 缓存检查
         {
             let cache_key = Self::cache_key_for("announcements", stock_code);
@@ -2378,9 +2288,8 @@ impl AStockClient {
         // vendor trait 大重构 P1.5:as-of 模式下按 vendor 申报的 capability 决策
         // D 档修复:replay 模式现在能拿到 as_of_date 当日的数据(原 bug:无守卫返回 today)
         if crate::as_of::is_asof_active() {
-            for name in self
-                .routing
-                .vendors_for("market_dragon_tiger", &self.routing.market_dragon_tiger)
+            for name in
+                self.routing.vendors_for("market_dragon_tiger", &self.routing.market_dragon_tiger)
             {
                 if let Some(vendor) = self.find_vendor(name) {
                     if vendor.asof_capability("get_market_dragon_tiger")
@@ -2489,12 +2398,8 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // ── live 模式 ──
-        let vendor_names: Vec<String> = self
-            .routing
-            .hot_stocks
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.hot_stocks.iter().map(|n| n.to_string()).collect();
         match self
             .try_vendors_retry("", "hot_stocks", &vendor_names, 2, |name, vendor| {
                 Box::pin(async move {
@@ -2579,12 +2484,8 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // ── live 模式 ──
-        let vendor_names: Vec<String> = self
-            .routing
-            .industry_ranking
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.industry_ranking.iter().map(|n| n.to_string()).collect();
         match self
             .try_vendors_retry("", "industry_ranking", &vendor_names, 2, |name, vendor| {
                 Box::pin(async move {
@@ -2664,12 +2565,8 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // ── live 模式 ──
-        let vendor_names: Vec<String> = self
-            .routing
-            .cls_flash
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.cls_flash.iter().map(|n| n.to_string()).collect();
         match self
             .try_vendors_retry("", "cls_flash", &vendor_names, 2, |_, vendor| {
                 Box::pin(async move {
@@ -2701,13 +2598,10 @@ impl AStockClient {
         match self
             .try_vendors_retry("", "north_bound_flow", &vendor_names, 2, |_, vendor| {
                 Box::pin(async move {
-                    vendor
-                        .get_north_bound_flow()
-                        .await?
-                        .ok_or_else(|| DataError::VendorError {
-                            vendor: "__market__".into(),
-                            message: "北向资金流向数据为空".into(),
-                        })
+                    vendor.get_north_bound_flow().await?.ok_or_else(|| DataError::VendorError {
+                        vendor: "__market__".into(),
+                        message: "北向资金流向数据为空".into(),
+                    })
                 })
             })
             .await
@@ -2728,12 +2622,8 @@ impl AStockClient {
 
     pub async fn get_block_trades(&self, stock_code: &str) -> Result<Vec<BlockTrade>, DataError> {
         // ── live 模式 ──
-        let vendor_names: Vec<String> = self
-            .routing
-            .block_trades
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.block_trades.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(stock_code, "block_trades", &vendor_names, 2, |name, vendor| {
@@ -2773,12 +2663,8 @@ impl AStockClient {
         stock_code: &str,
     ) -> Result<Vec<InstitutionalVisit>, DataError> {
         // ── live 模式 ──
-        let vendor_names: Vec<String> = self
-            .routing
-            .institutional_visits
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.institutional_visits.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(
@@ -2825,14 +2711,8 @@ impl AStockClient {
         &self,
         stock_code: &str,
     ) -> Result<serde_json::Value, DataError> {
-        let lockup = self
-            .get_lockup_schedule(stock_code)
-            .await
-            .unwrap_or_default();
-        let trades = self
-            .get_shareholder_trades(stock_code)
-            .await
-            .unwrap_or_default();
+        let lockup = self.get_lockup_schedule(stock_code).await.unwrap_or_default();
+        let trades = self.get_shareholder_trades(stock_code).await.unwrap_or_default();
         let block = self.get_block_trades(stock_code).await.unwrap_or_default();
         Ok(serde_json::json!({
             "lockup_schedule": lockup,
@@ -2851,12 +2731,8 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // ── live 模式 ──
-        let vendor_names: Vec<String> = self
-            .routing
-            .index_quotes
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.index_quotes.iter().map(|n| n.to_string()).collect();
         match self
             .try_vendors_retry("", "index_quotes", &vendor_names, 2, |_, vendor| {
                 Box::pin(async move {
@@ -2985,12 +2861,8 @@ impl AStockClient {
             return Ok(None);
         }
         // ── live 模式 ──
-        let vendor_names: Vec<String> = self
-            .routing
-            .option_pcr
-            .iter()
-            .map(|n| n.to_string())
-            .collect();
+        let vendor_names: Vec<String> =
+            self.routing.option_pcr.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
         match self
             .try_vendors_retry(stock_code, "option_pcr", &vendor_names, 2, |name, vendor| {
@@ -3238,7 +3110,7 @@ impl axagent_harness::market_data::MarketDataProvider for AStockClient {
     > {
         self.get_quote(stock_code)
             .await
-            .map_err(|e| axagent_harness::core_error::AxAgentError::DataSource(e.to_string()))
+            .map_err(|e| axagent_harness::core_error::AxAgentError::Provider(e.to_string()))
     }
 
     async fn get_klines(
@@ -3253,7 +3125,7 @@ impl axagent_harness::market_data::MarketDataProvider for AStockClient {
     > {
         self.get_klines_with_adj(stock_code, period, limit, adj_type)
             .await
-            .map_err(|e| axagent_harness::core_error::AxAgentError::DataSource(e.to_string()))
+            .map_err(|e| axagent_harness::core_error::AxAgentError::Provider(e.to_string()))
     }
 
     async fn search_stock(
@@ -3265,7 +3137,7 @@ impl axagent_harness::market_data::MarketDataProvider for AStockClient {
     > {
         self.search_stock(keyword)
             .await
-            .map_err(|e| axagent_harness::core_error::AxAgentError::DataSource(e.to_string()))
+            .map_err(|e| axagent_harness::core_error::AxAgentError::Provider(e.to_string()))
     }
 }
 
@@ -3393,11 +3265,7 @@ mod asof_truncate_tests {
     #[test]
     #[serial(asof)]
     fn truncate_klines_live_passthrough() {
-        let ks = vec![
-            kline("2026-05-30"),
-            kline("2026-06-01"),
-            kline("2026-06-02"),
-        ];
+        let ks = vec![kline("2026-05-30"), kline("2026-06-01"), kline("2026-06-02")];
         let out = AStockClient::truncate_klines_by_asof(ks.clone());
         assert_eq!(out.len(), 3);
     }
@@ -3405,16 +3273,10 @@ mod asof_truncate_tests {
     #[tokio::test]
     async fn truncate_klines_drops_future_dates() {
         use crate::as_of::AS_OF;
-        let ks = vec![
-            kline("2026-05-30"),
-            kline("2026-06-01"),
-            kline("2026-06-05"),
-        ];
+        let ks = vec![kline("2026-05-30"), kline("2026-06-01"), kline("2026-06-05")];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_klines_by_asof(ks) })
-            .await;
+        let out = AS_OF.scope(Some(ctx), async { AStockClient::truncate_klines_by_asof(ks) }).await;
         assert_eq!(out.len(), 2);
         assert!(out.iter().all(|k| k.date.as_str() <= "2026-06-01"));
     }
@@ -3429,9 +3291,8 @@ mod asof_truncate_tests {
         ];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) }).await;
         assert_eq!(out.len(), 2);
     }
 
@@ -3441,9 +3302,8 @@ mod asof_truncate_tests {
         let items = vec![news("2026-06-01 10:00:00"), news("not-a-date")];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) }).await;
         assert_eq!(out.len(), 1);
     }
 
@@ -3453,9 +3313,8 @@ mod asof_truncate_tests {
         let rs = vec![fin("2025-12-31"), fin("2026-03-31"), fin("2026-06-30")];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_financials_by_asof(rs) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_financials_by_asof(rs) }).await;
         assert_eq!(out.len(), 2);
     }
 
@@ -3465,9 +3324,8 @@ mod asof_truncate_tests {
         let es = vec![dt("2026-05-20"), dt("2026-05-30"), dt("2026-06-05")];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_dragon_tiger_by_asof(es) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_dragon_tiger_by_asof(es) }).await;
         assert_eq!(out.len(), 2);
     }
 
@@ -3482,18 +3340,12 @@ mod asof_truncate_tests {
     async fn truncate_klines_structured_scope_still_truncates() {
         use crate::as_of::AS_OF;
         let _ = crate::as_of::clear_global_asof();
-        let ks = vec![
-            kline("2026-05-30"),
-            kline("2026-06-01"),
-            kline("2026-06-05"),
-        ];
+        let ks = vec![kline("2026-05-30"), kline("2026-06-01"), kline("2026-06-05")];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay)
             .unwrap()
             .with_data_scope(crate::as_of::AsOfDataScope::Structured);
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_klines_by_asof(ks) })
-            .await;
+        let out = AS_OF.scope(Some(ctx), async { AStockClient::truncate_klines_by_asof(ks) }).await;
         assert_eq!(out.len(), 2, "Structured 模式下 K 线仍应截断到 2026-06-01");
         let _ = crate::as_of::clear_global_asof();
     }
@@ -3513,9 +3365,8 @@ mod asof_truncate_tests {
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay)
             .unwrap()
             .with_data_scope(crate::as_of::AsOfDataScope::Structured);
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) }).await;
         assert_eq!(out.len(), 3, "Structured 模式下新闻应放行,保留全部 3 条(含未来日期)");
         let _ = crate::as_of::clear_global_asof();
     }
@@ -3534,9 +3385,8 @@ mod asof_truncate_tests {
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         // 默认 All 行为,无须 with_data_scope
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) }).await;
         assert_eq!(out.len(), 2, "All 模式下新闻仍应按 as_of 截断,与历史行为一致");
         let _ = crate::as_of::clear_global_asof();
     }
@@ -3552,9 +3402,8 @@ mod asof_truncate_tests {
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay)
             .unwrap()
             .with_data_scope(crate::as_of::AsOfDataScope::Structured);
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_financials_by_asof(rs) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_financials_by_asof(rs) }).await;
         assert_eq!(out.len(), 2, "Structured 模式下财报仍截断");
         let _ = crate::as_of::clear_global_asof();
     }
@@ -3570,9 +3419,8 @@ mod asof_truncate_tests {
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay)
             .unwrap()
             .with_data_scope(crate::as_of::AsOfDataScope::Structured);
-        let out = AS_OF
-            .scope(Some(ctx), async { AStockClient::truncate_dragon_tiger_by_asof(es) })
-            .await;
+        let out =
+            AS_OF.scope(Some(ctx), async { AStockClient::truncate_dragon_tiger_by_asof(es) }).await;
         assert_eq!(out.len(), 2, "Structured 模式下龙虎榜仍截断");
         let _ = crate::as_of::clear_global_asof();
     }
@@ -3616,11 +3464,8 @@ mod asof_realtime_degrade_tests {
     #[tokio::test]
     async fn quote_from_klines_uses_last_kline_on_or_before_asof() {
         use crate::as_of::AS_OF;
-        let ks = vec![
-            kline("2026-05-28", 9.5),
-            kline("2026-05-30", 10.0),
-            kline("2026-06-05", 11.0),
-        ];
+        let ks =
+            vec![kline("2026-05-28", 9.5), kline("2026-05-30", 10.0), kline("2026-06-05", 11.0)];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
         let q = AS_OF
@@ -3637,9 +3482,8 @@ mod asof_realtime_degrade_tests {
         let ks = vec![kline("2026-06-05", 11.0)];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let q = AS_OF
-            .scope(Some(ctx), async { AStockClient::quote_from_klines("000001", &ks) })
-            .await;
+        let q =
+            AS_OF.scope(Some(ctx), async { AStockClient::quote_from_klines("000001", &ks) }).await;
         assert!(q.is_none());
     }
 
@@ -3648,9 +3492,8 @@ mod asof_realtime_degrade_tests {
         use crate::as_of::AS_OF;
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let q = AS_OF
-            .scope(Some(ctx), async { AStockClient::quote_from_klines("000001", &[]) })
-            .await;
+        let q =
+            AS_OF.scope(Some(ctx), async { AStockClient::quote_from_klines("000001", &[]) }).await;
         assert!(q.is_none());
     }
 
@@ -3712,15 +3555,11 @@ mod asof_realtime_degrade_tests {
     async fn vendors_for_replay_with_override() {
         use crate::as_of::AS_OF;
         let mut routing = VendorRouting::default_routing();
-        routing
-            .replay
-            .insert("quote", vec!["baidu_stock".into(), "eastmoney".into()]);
+        routing.replay.insert("quote", vec!["baidu_stock".into(), "eastmoney".into()]);
         let default = vec!["tencent".into(), "mootdx".into()];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let chosen = AS_OF
-            .scope(Some(ctx), async { routing.vendors_for("quote", &default) })
-            .await;
+        let chosen = AS_OF.scope(Some(ctx), async { routing.vendors_for("quote", &default) }).await;
         assert_eq!(
             chosen,
             &vec!["baidu_stock".to_string(), "eastmoney".to_string()],
@@ -3797,9 +3636,7 @@ mod asof_realtime_degrade_tests {
         let client = AStockClient::new();
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let r = AS_OF
-            .scope(Some(ctx), async { client.get_hot_stocks().await })
-            .await;
+        let r = AS_OF.scope(Some(ctx), async { client.get_hot_stocks().await }).await;
         assert!(r.is_ok());
         assert!(r.unwrap().is_empty(), "replay 模式必须返回空列表");
     }
@@ -3810,9 +3647,7 @@ mod asof_realtime_degrade_tests {
         let client = AStockClient::new();
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let r = AS_OF
-            .scope(Some(ctx), async { client.get_industry_ranking().await })
-            .await;
+        let r = AS_OF.scope(Some(ctx), async { client.get_industry_ranking().await }).await;
         assert!(r.is_ok());
         assert!(r.unwrap().is_empty(), "replay 模式必须返回空列表");
     }
@@ -3823,9 +3658,7 @@ mod asof_realtime_degrade_tests {
         let client = AStockClient::new();
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let r = AS_OF
-            .scope(Some(ctx), async { client.get_cls_flash().await })
-            .await;
+        let r = AS_OF.scope(Some(ctx), async { client.get_cls_flash().await }).await;
         assert!(r.is_ok());
         assert!(r.unwrap().is_empty(), "replay 模式必须返回空列表");
     }
@@ -3846,10 +3679,7 @@ mod asof_realtime_degrade_tests {
         use crate::vendors::StockVendor;
         // 用一个 EastMoneyVendor 实例调 asof_capability
         // (EastMoneyVendor 还没 override,所以默认是 Fallthrough,等 P1 改完后变其他变体)
-        let vendor = EastMoneyVendor {
-            http: reqwest::Client::new(),
-            proxy_http: None,
-        };
+        let vendor = EastMoneyVendor { http: reqwest::Client::new(), proxy_http: None };
         let cap = vendor.asof_capability("get_quote");
         assert!(
             cap == AsOfCapability::Fallthrough
@@ -3873,9 +3703,7 @@ mod asof_realtime_degrade_tests {
         let client = AStockClient::new();
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
-        let r = AS_OF
-            .scope(Some(ctx), async { client.should_use_asof() })
-            .await;
+        let r = AS_OF.scope(Some(ctx), async { client.should_use_asof() }).await;
         assert!(r, "replay 模式 should_use_asof = true");
     }
 
@@ -3936,9 +3764,7 @@ mod asof_realtime_degrade_tests {
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
         // 重置全局降级日志
         crate::as_of::reset_global_degradation_log();
-        let r = AS_OF
-            .scope(Some(ctx), async { client.get_market_dragon_tiger().await })
-            .await;
+        let r = AS_OF.scope(Some(ctx), async { client.get_market_dragon_tiger().await }).await;
         // 网络在测试中失败,返回 Ok(vec![]) 是允许的(走完 live 兜底路径)
         assert!(r.is_ok(), "replay 模式调用应成功(网络失败时仍返回空)");
         // 验证:eastmoney 的 with_asof 路径被走过(因为它申报了 NativeDateParam)
@@ -3947,9 +3773,6 @@ mod asof_realtime_degrade_tests {
         // 但验证降级日志确实被触发了
         let report = peek_global_degradation_report();
         let has_asof_entry = report.iter().any(|e| e.method == "get_market_dragon_tiger");
-        assert!(
-            has_asof_entry,
-            "D 档修复后,as-of 模式应至少记录一次 get_market_dragon_tiger 降级"
-        );
+        assert!(has_asof_entry, "D 档修复后,as-of 模式应至少记录一次 get_market_dragon_tiger 降级");
     }
 }

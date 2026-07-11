@@ -11,12 +11,8 @@ pub struct SinaVendor {
 impl SinaVendor {
     /// 带 429 检测的 GET 请求
     async fn sina_get(&self, url: &str) -> Result<reqwest::Response, DataError> {
-        let resp = self
-            .http
-            .get(url)
-            .header("Referer", "https://finance.sina.com.cn/")
-            .send()
-            .await?;
+        let resp =
+            self.http.get(url).header("Referer", "https://finance.sina.com.cn/").send().await?;
         crate::check_response_429(&resp, "sina")?;
         Ok(resp)
     }
@@ -178,12 +174,7 @@ impl StockVendor for SinaVendor {
         let url = format!(
             "https://quotes.money.163.com/service/chddata.html?code={market}{stock_code}&start=20200101&end=20500101&fields=TCLOSE;HIGH;LOW;TOPEN;LCLOSE;VOTURNOVER;VATURNOVER"
         );
-        let resp = self
-            .http
-            .get(&url)
-            .header("Referer", "https://money.163.com/")
-            .send()
-            .await?;
+        let resp = self.http.get(&url).header("Referer", "https://money.163.com/").send().await?;
         crate::check_response_429(&resp, "sina")?;
         let body = resp.text().await?;
         let mut klines = Vec::new();
@@ -224,12 +215,7 @@ impl StockVendor for SinaVendor {
         let url = format!(
             "https://quotes.money.163.com/service/zycwzb_{market}{stock_code}.html?type=report&start=2020&end=2026"
         );
-        let resp = self
-            .http
-            .get(&url)
-            .header("Referer", "https://money.163.com/")
-            .send()
-            .await?;
+        let resp = self.http.get(&url).header("Referer", "https://money.163.com/").send().await?;
         crate::check_response_429(&resp, "sina")?;
         let body = resp.text().await?;
         let mut reports = Vec::new();
@@ -330,10 +316,7 @@ impl StockVendor for SinaVendor {
         let json: serde_json::Value = resp.json().await?;
 
         let parse = |key: &str| -> f64 {
-            json.get(key)
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0.0)
+            json.get(key).and_then(|v| v.as_str()).and_then(|s| s.parse().ok()).unwrap_or(0.0)
         };
 
         let r0_in = parse("r0_in");
@@ -389,9 +372,7 @@ mod capability_tests {
     use super::*;
 
     fn make_vendor() -> SinaVendor {
-        SinaVendor {
-            http: reqwest::Client::new(),
-        }
+        SinaVendor { http: reqwest::Client::new() }
     }
 
     #[test]

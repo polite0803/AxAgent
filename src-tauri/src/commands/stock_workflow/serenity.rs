@@ -3,7 +3,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_astock_data::as_of::{self};
-use axagent_core::entity::reco_picks;
+use axagent_entities::reco_picks;
 use axagent_harness::response_normalizer::ResponseNormalizer;
 use axagent_harness::types::{ChatResponse, ContentBlock};
 use axagent_rt_workflow::work_engine::{ProgressCallback, RunOptions, StepProgressEvent};
@@ -17,7 +17,7 @@ use tauri::{Emitter, State};
 /// 优先顺序：
 ///   1) 顶层 `params` 字段
 ///   2) 顶层 `output` / `result` / `data` / `candidates` / `trends` 字段
-///   3) 顶层 `content` 字符串：直接用 `axagent_core::extract_json_from_llm_response`
+///   3) 顶层 `content` 字符串：直接用 `axagent_kit::utils::extract_json_from_llm_response`
 ///      解析（不经过 ResponseNormalizer——它针对工具调用场景，会将 ````json` 块
 ///      误识别为 ToolUse）
 ///   4) 原始包装对象（兜底）
@@ -39,7 +39,7 @@ pub(crate) async fn extract_agent_output(raw: serde_json::Value) -> serde_json::
     // 3) 直接从 content 提取 JSON：找到第一个 { 或 [，找匹配闭合，解析。
     //    不依赖 extract_json_from_llm_response 的 fence 剥离（在复杂嵌套场景可能失效）。
     if let Some(content) = obj.get("content").and_then(|c| c.as_str()) {
-        let candidate = axagent_core::extract_json_from_llm_response(content);
+        let candidate = axagent_kit::utils::extract_json_from_llm_response(content);
         // 诊断：打印 candidate 前后各 200 字符
         let preview: String = candidate.chars().take(200).collect();
         let tail: String = candidate
@@ -120,7 +120,7 @@ pub(crate) async fn extract_agent_output(raw: serde_json::Value) -> serde_json::
 
 /// 通过 `ResponseNormalizer` 把 `content` 字符串规范化为 IR 块，再从 IR 中
 /// 提取结构化 JSON。优先取 `ContentBlock::ToolUse.input`（通常是 JSON 串），
-/// 文本块拼接后走 `axagent_core::extract_json_from_llm_response` 兜底。
+/// 文本块拼接后走 `axagent_kit::utils::extract_json_from_llm_response` 兜底。
 ///
 /// 注意：`extract_agent_output` 不再调用此函数（改用 `extract_json_from_llm_response` 直接提取）。
 /// 此函数保留供测试和未来工具调用场景复用。
@@ -158,7 +158,7 @@ async fn extract_via_normalizer(content: &str) -> Option<serde_json::Value> {
         .collect::<Vec<_>>()
         .join("\n");
     if !joined.trim().is_empty() {
-        let candidate = axagent_core::extract_json_from_llm_response(&joined);
+        let candidate = axagent_kit::utils::extract_json_from_llm_response(&joined);
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(candidate) {
             return Some(v);
         }
@@ -424,7 +424,7 @@ fn parse_loose_json(s: &str) -> Option<serde_json::Value> {
         return Some(v);
     }
     // 兼容：input 有时是单引号 / 带尾逗号 / 缺外层花括号，这里走 IR 文本块的抽取
-    let candidate = axagent_core::extract_json_from_llm_response(trimmed);
+    let candidate = axagent_kit::utils::extract_json_from_llm_response(trimmed);
     serde_json::from_str(candidate).ok()
 }
 
@@ -613,7 +613,7 @@ fn serenity_extract_from_node(raw: &serde_json::Value) -> serde_json::Value {
             return serde_json::Value::Null;
         },
     };
-    let extracted = axagent_core::extract_json_from_llm_response(content);
+    let extracted = axagent_kit::utils::extract_json_from_llm_response(content);
     let parsed: serde_json::Value = match serde_json::from_str(extracted) {
         Ok(v) => v,
         Err(e) => {
@@ -1232,7 +1232,7 @@ pub async fn refresh_serenity_exit_signals(
 }
 
 async fn do_refresh_exit_signals(state: &State<'_, AppState>) -> Result<serde_json::Value, String> {
-    use axagent_core::entity::reco_picks;
+    use axagent_entities::reco_picks;
 
     let db = state.harness.db();
     // 加载最近 50 条 Serenity 候选（按 created_at 降序）
@@ -1333,7 +1333,7 @@ pub async fn refresh_serenity_feedback(
 }
 
 async fn do_feedback_loop(state: &State<'_, AppState>) -> Result<serde_json::Value, String> {
-    use axagent_core::entity::reco_picks;
+    use axagent_entities::reco_picks;
 
     let db = state.harness.db();
     // 固定取过去 30 天的 Serenity 候选，避免新工作流产出的记录不断顶替旧样本

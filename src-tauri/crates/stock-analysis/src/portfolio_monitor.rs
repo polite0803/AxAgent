@@ -24,7 +24,7 @@ use sea_orm::Set;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 
 use super::position_limits::PositionLimits;
 use super::trading::PositionSummary;
@@ -182,14 +182,8 @@ pub fn compute_beta(portfolio_returns: &[f64], market_returns: &[f64]) -> Option
 
 /// 集中度（refactored from portfolio_risk::compute_from_positions）
 pub fn compute_concentration(positions: &[PositionSummary]) -> (f64, HashMap<String, f64>, f64) {
-    let total_mv: f64 = positions
-        .iter()
-        .map(|p| p.market_value.unwrap_or(0.0))
-        .sum();
-    let max_mv = positions
-        .iter()
-        .map(|p| p.market_value.unwrap_or(0.0))
-        .fold(0.0_f64, f64::max);
+    let total_mv: f64 = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
+    let max_mv = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).fold(0.0_f64, f64::max);
     let top_pct = if total_mv > 0.0 {
         (max_mv / total_mv) * 100.0
     } else {
@@ -271,10 +265,7 @@ pub fn run_stress_scenario(
     sector_exposure: &HashMap<String, f64>,
     scenario: StressScenario,
 ) -> StressTestResult {
-    let total_mv: f64 = positions
-        .iter()
-        .map(|p| p.market_value.unwrap_or(0.0))
-        .sum();
+    let total_mv: f64 = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
     if total_mv <= 0.0 || positions.is_empty() {
         return StressTestResult {
             scenario: scenario.code().to_string(),
@@ -397,18 +388,9 @@ pub fn compute_dashboard(
     is_historical: bool,
     as_of_date: Option<String>,
 ) -> PortfolioDashboard {
-    let total_mv: f64 = positions
-        .iter()
-        .map(|p| p.market_value.unwrap_or(0.0))
-        .sum();
-    let total_pnl: f64 = positions
-        .iter()
-        .map(|p| p.unrealized_pnl.unwrap_or(0.0))
-        .sum();
-    let total_cost: f64 = positions
-        .iter()
-        .map(|p| p.avg_cost * p.total_shares as f64)
-        .sum();
+    let total_mv: f64 = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
+    let total_pnl: f64 = positions.iter().map(|p| p.unrealized_pnl.unwrap_or(0.0)).sum();
+    let total_cost: f64 = positions.iter().map(|p| p.avg_cost * p.total_shares as f64).sum();
     let total_pnl_pct = if total_cost > 0.0 {
         (total_pnl / total_cost) * 100.0
     } else {
@@ -491,10 +473,7 @@ pub async fn refresh_metrics(
         stress_test_json: Set(Some(stress_json)),
         created_at: Set(now),
     };
-    new_row
-        .insert(db)
-        .await
-        .map_err(|e| format!("insert portfolio_metrics_daily: {e}"))?;
+    new_row.insert(db).await.map_err(|e| format!("insert portfolio_metrics_daily: {e}"))?;
     Ok((id, 1))
 }
 
@@ -532,9 +511,7 @@ pub async fn get_dashboard(
                 .unwrap_or_default();
             Ok(PortfolioDashboard {
                 is_historical: as_of_date.is_some(),
-                as_of_date: as_of_date
-                    .map(|s| s.to_string())
-                    .or(Some(m.snapshot_date.clone())),
+                as_of_date: as_of_date.map(|s| s.to_string()).or(Some(m.snapshot_date.clone())),
                 total_market_value: m.total_market_value,
                 total_pnl: m.total_pnl,
                 total_pnl_pct: m.total_pnl_pct,
@@ -586,7 +563,7 @@ pub async fn get_dashboard(
 /// 计算并落库两两相关性（拉 K 线、pearson、写库）
 pub async fn refresh_correlation(
     db: &DatabaseConnection,
-    client: &AStockClient,
+    client: &dyn MarketDataProvider,
     positions: &[PositionSummary],
     lookback_days: u32,
     as_of_date: Option<&str>,
@@ -635,7 +612,7 @@ pub async fn refresh_correlation(
     // 拉每只股票的 K 线
     let mut series: HashMap<String, Vec<f64>> = HashMap::new();
     for code in &codes {
-        match client.get_klines(code, "daily", lookback_days).await {
+        match client.get_klines(code, "daily", lookback_days, None).await {
             Ok(ks) => {
                 let closes: Vec<f64> = ks.iter().map(|k| k.close).collect();
                 if closes.len() >= 5 {
@@ -721,11 +698,7 @@ pub async fn get_correlation_snapshot(
         .map_err(|e| format!("query corr rows: {e}"))?;
     Ok(rows
         .into_iter()
-        .map(|r| CorrelationCell {
-            code_a: r.code_a,
-            code_b: r.code_b,
-            correlation: r.correlation,
-        })
+        .map(|r| CorrelationCell { code_a: r.code_a, code_b: r.code_b, correlation: r.correlation })
         .collect())
 }
 

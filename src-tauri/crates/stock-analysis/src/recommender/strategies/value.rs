@@ -4,7 +4,7 @@ use super::super::strategy::{read_f64, RecoContext, RecommendStrategy};
 use crate::recommender::scoring::{calc_confidence, calc_position};
 use crate::recommender::types::{Period, RecoPick, Style};
 use async_trait::async_trait;
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -14,29 +14,21 @@ pub struct ValueStrategy {
 
 impl ValueStrategy {
     pub const fn short() -> Self {
-        Self {
-            period: Period::Short,
-        }
+        Self { period: Period::Short }
     }
     pub const fn mid() -> Self {
-        Self {
-            period: Period::Mid,
-        }
+        Self { period: Period::Mid }
     }
     pub const fn long() -> Self {
-        Self {
-            period: Period::Long,
-        }
+        Self { period: Period::Long }
     }
     pub const fn ultra_short() -> Self {
-        Self {
-            period: Period::UltraShort,
-        }
+        Self { period: Period::UltraShort }
     }
 
     async fn scan_one(
         &self,
-        client: &AStockClient,
+        client: &dyn MarketDataProvider,
         code: &str,
         name: &str,
         sector: Option<String>,
@@ -57,7 +49,7 @@ impl ValueStrategy {
                     return None;
                 }
                 let kline_limit = read_f64(vars, "val_ultra_short_kline_limit", 10.0) as u32;
-                let klines = client.get_klines(code, "daily", kline_limit).await.ok()?;
+                let klines = client.get_klines(code, "daily", kline_limit, None).await.ok()?;
                 let min_kline_len = read_f64(vars, "val_ultra_short_min_kline_len", 5.0) as usize;
                 if klines.len() < min_kline_len {
                     return None;
@@ -85,7 +77,7 @@ impl ValueStrategy {
                     return None;
                 }
                 let kline_limit = read_f64(vars, "val_short_kline_limit", 30.0) as u32;
-                let klines = client.get_klines(code, "daily", kline_limit).await.ok()?;
+                let klines = client.get_klines(code, "daily", kline_limit, None).await.ok()?;
                 let min_kline_len = read_f64(vars, "val_short_min_kline_len", 20.0) as usize;
                 if klines.len() < min_kline_len {
                     return None;
@@ -187,7 +179,7 @@ impl ValueStrategy {
         // 长线要求股价在 60 日均线之上（趋势过滤）
         if matches!(self.period, Period::Long) {
             let long_kline_limit = read_f64(vars, "val_long_kline_limit", 70.0) as u32;
-            if let Ok(klines) = client.get_klines(code, "daily", long_kline_limit).await {
+            if let Ok(klines) = client.get_klines(code, "daily", long_kline_limit, None).await {
                 let ma_period = read_f64(vars, "val_long_ma_period", 60.0) as usize;
                 if let Some(ma60) = crate::recommender::indicators::sma(
                     &klines.iter().map(|k| k.close).collect::<Vec<_>>(),
@@ -263,10 +255,7 @@ impl RecommendStrategy for ValueStrategy {
         let mut picks = Vec::new();
         for (code, name, sector) in ctx.seed {
             let _g = ctx.per_code_locks.lock_for(code).await;
-            if let Some(p) = self
-                .scan_one(ctx.client, code, name, sector.clone(), ctx.vars)
-                .await
-            {
+            if let Some(p) = self.scan_one(ctx.client, code, name, sector.clone(), ctx.vars).await {
                 picks.push(p);
             }
         }

@@ -10,7 +10,7 @@
 
 use std::sync::Arc;
 
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 
 use super::types::{Period, RecoPick};
 use super::{recommend_stocks, RecoResponse};
@@ -25,7 +25,7 @@ use super::{recommend_stocks, RecoResponse};
 /// 5. 按 confidence 降序
 /// 6. 截取前 `top_n` 条
 pub async fn run_recommendation_scan(
-    client: Arc<AStockClient>,
+    client: Arc<dyn MarketDataProvider>,
     periods: &[Period],
     template_vars: &[(String, serde_json::Value)],
     min_confidence: u8,

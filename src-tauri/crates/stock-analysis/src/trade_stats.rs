@@ -84,19 +84,11 @@ pub async fn get_trade_stats(db: &DatabaseConnection) -> Result<TradeStatsSummar
 
     // 统计基础
     let buys: Vec<_> = all_trades.iter().filter(|t| t.direction == "buy").collect();
-    let sells: Vec<_> = all_trades
-        .iter()
-        .filter(|t| t.direction == "sell")
-        .collect();
+    let sells: Vec<_> = all_trades.iter().filter(|t| t.direction == "sell").collect();
     let total_realized: f64 = sells.iter().filter_map(|t| t.realized_pnl).sum();
-    let wins: Vec<_> = sells
-        .iter()
-        .filter(|t| t.realized_pnl.is_some_and(|p| p > 0.0))
-        .collect();
-    let losses: Vec<_> = sells
-        .iter()
-        .filter(|t| t.realized_pnl.is_some_and(|p| p <= 0.0))
-        .collect();
+    let wins: Vec<_> = sells.iter().filter(|t| t.realized_pnl.is_some_and(|p| p > 0.0)).collect();
+    let losses: Vec<_> =
+        sells.iter().filter(|t| t.realized_pnl.is_some_and(|p| p <= 0.0)).collect();
 
     let win_count = wins.len();
     let loss_count = losses.len();
@@ -126,14 +118,8 @@ pub async fn get_trade_stats(db: &DatabaseConnection) -> Result<TradeStatsSummar
     };
 
     // 税费估算（印花税 = 卖出金额 × 0.001，佣金 = 成交额 × 0.00025）
-    let total_stamp: f64 = sells
-        .iter()
-        .map(|t| t.price * t.quantity as f64 * 0.001)
-        .sum();
-    let total_fees: f64 = all_trades
-        .iter()
-        .map(|t| t.price * t.quantity as f64 * 0.00025)
-        .sum();
+    let total_stamp: f64 = sells.iter().map(|t| t.price * t.quantity as f64 * 0.001).sum();
+    let total_fees: f64 = all_trades.iter().map(|t| t.price * t.quantity as f64 * 0.00025).sum();
 
     // 持有期分布（仅已配对卖出的交易）
     let mut holding_days: Vec<(i64, f64)> = Vec::new();
@@ -176,10 +162,7 @@ pub async fn get_trade_stats(db: &DatabaseConnection) -> Result<TradeStatsSummar
     let holding_days_dist: Vec<HoldingDaysBucket> = buckets
         .into_iter()
         .map(|(label, range)| {
-            let filtered: Vec<_> = holding_days
-                .iter()
-                .filter(|(d, _)| range.contains(d))
-                .collect();
+            let filtered: Vec<_> = holding_days.iter().filter(|(d, _)| range.contains(d)).collect();
             HoldingDaysBucket {
                 label: label.to_string(),
                 count: filtered.len(),

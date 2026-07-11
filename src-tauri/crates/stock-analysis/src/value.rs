@@ -102,10 +102,7 @@ impl ValueAssessment {
             },
             moat_score: metrics.moat_score,
             moat_type: metrics.moat_level.clone(),
-            details: vec![format!(
-                "护城河{}/100({})",
-                metrics.moat_score, metrics.moat_level
-            )],
+            details: vec![format!("护城河{}/100({})", metrics.moat_score, metrics.moat_level)],
         };
 
         let buffett_verdict = if metrics.moat_score >= 70
@@ -306,14 +303,7 @@ impl ValueEngine {
             _ => "差".to_string(),
         };
 
-        FScore {
-            profitability,
-            leverage,
-            efficiency,
-            total,
-            grade,
-            details,
-        }
+        FScore { profitability, leverage, efficiency, total, grade, details }
     }
 
     /// ── 护城河量化评估 ──
@@ -321,10 +311,7 @@ impl ValueEngine {
         let mut details = Vec::new();
 
         // ROE 一致性
-        let roe_years_above_15 = financials
-            .iter()
-            .filter(|f| f.roe.unwrap_or(0.0) >= 15.0)
-            .count();
+        let roe_years_above_15 = financials.iter().filter(|f| f.roe.unwrap_or(0.0) >= 15.0).count();
         if roe_years_above_15 >= 3 {
             details.push(format!("ROE连续{}年>15%", roe_years_above_15));
         } else {
@@ -359,20 +346,13 @@ impl ValueEngine {
         }
 
         // FCF/净利润
-        let net_values: Vec<f64> = financials
-            .iter()
-            .filter_map(|f| f.net_profit)
-            .take(3)
-            .collect();
+        let net_values: Vec<f64> = financials.iter().filter_map(|f| f.net_profit).take(3).collect();
         let avg_net = if net_values.is_empty() {
             0.0
         } else {
             net_values.iter().sum::<f64>() / net_values.len() as f64
         };
-        let latest_debt_ratio = financials
-            .first()
-            .and_then(|f| f.debt_ratio)
-            .unwrap_or(50.0);
+        let latest_debt_ratio = financials.first().and_then(|f| f.debt_ratio).unwrap_or(50.0);
         let est_fcf = financials
             .first()
             .and_then(|f| f.free_cash_flow)
@@ -384,10 +364,7 @@ impl ValueEngine {
                 } else {
                     0.95
                 };
-                financials
-                    .first()
-                    .and_then(|f| f.net_profit)
-                    .map(|np| np * capex_ratio)
+                financials.first().and_then(|f| f.net_profit).map(|np| np * capex_ratio)
             })
             .unwrap_or(0.0);
         let fcf_ratio = if avg_net > 0.0 {
@@ -638,16 +615,10 @@ impl ValueEngine {
 
         // DCF
         let dcf = if fcf > 0.0 && shares_outstanding > 0.0 {
-            let growth_rate = value_config
-                .map(|c| c.dcf_growth_rate / 100.0)
-                .unwrap_or(0.08)
-                .max(0.0);
-            let terminal_rate = value_config
-                .map(|c| c.dcf_perpetual_rate / 100.0)
-                .unwrap_or(0.03);
-            let discount_rate = value_config
-                .map(|c| c.dcf_discount_rate / 100.0)
-                .unwrap_or(0.10);
+            let growth_rate =
+                value_config.map(|c| c.dcf_growth_rate / 100.0).unwrap_or(0.08).max(0.0);
+            let terminal_rate = value_config.map(|c| c.dcf_perpetual_rate / 100.0).unwrap_or(0.03);
+            let discount_rate = value_config.map(|c| c.dcf_discount_rate / 100.0).unwrap_or(0.10);
             Some(Self::dcf_valuation(
                 fcf,
                 growth_rate,

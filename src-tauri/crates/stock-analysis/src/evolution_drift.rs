@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use axagent_core::entity::{strategy_performance, strategy_weight_history};
+use axagent_entities::{strategy_performance, strategy_weight_history};
 
 use crate::weight_decay::{
     compute_adjusted_weights, format_rationale, StrategyPerformanceRow, WeightDecayConfig,
@@ -114,9 +114,7 @@ pub async fn load_performance_window(
         // Replay 模式：以 as_of_date 当作"今天"
         let date = chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
             .map_err(|e| format!("as_of_date 格式错误: {e}"))?;
-        let dt = date
-            .and_hms_opt(0, 0, 0)
-            .ok_or_else(|| "无效日期".to_string())?;
+        let dt = date.and_hms_opt(0, 0, 0).ok_or_else(|| "无效日期".to_string())?;
         dt.and_utc().timestamp_millis() - (lookback_days as i64) * 86_400_000
     } else {
         Utc::now().timestamp_millis() - (lookback_days as i64) * 86_400_000
@@ -194,10 +192,8 @@ pub async fn recalc_and_persist(
     }
 
     info!("[evolution_drift] 触发={trigger} 写入 {written} 条权重调整");
-    let weight_only: HashMap<(String, String), f64> = new_map
-        .iter()
-        .map(|(k, v)| (k.clone(), v.new_weight))
-        .collect();
+    let weight_only: HashMap<(String, String), f64> =
+        new_map.iter().map(|(k, v)| (k.clone(), v.new_weight)).collect();
     Ok((written, weight_only))
 }
 
@@ -284,9 +280,7 @@ pub async fn get_dashboard(
     // strategy_summary: 按 strategy_id 聚合
     let mut summary_map: HashMap<String, (f64, u32, f64, u32)> = HashMap::new(); // (sum_weight, sum_samples, sum_win, count)
     for s in &stats {
-        let entry = summary_map
-            .entry(s.strategy_id.clone())
-            .or_insert((0.0, 0, 0.0, 0));
+        let entry = summary_map.entry(s.strategy_id.clone()).or_insert((0.0, 0, 0.0, 0));
         entry.0 += s.new_weight;
         entry.1 += s.sample_size;
         entry.2 += s.win_rate;
@@ -318,10 +312,8 @@ pub async fn get_dashboard(
         })
         .collect();
 
-    let weight_only: HashMap<(String, String), f64> = new_map
-        .iter()
-        .map(|(k, v)| (k.clone(), v.new_weight))
-        .collect();
+    let weight_only: HashMap<(String, String), f64> =
+        new_map.iter().map(|(k, v)| (k.clone(), v.new_weight)).collect();
 
     Ok(EvolutionDriftDashboard {
         current_weights: weight_only,

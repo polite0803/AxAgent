@@ -354,19 +354,13 @@ pub async fn execute_mcp_tool(
     match tool_name {
         "search_stock" => {
             let keyword = arguments["keyword"].as_str().unwrap_or("");
-            let results = client
-                .search_stock(keyword)
-                .await
-                .map_err(|e| e.to_string())?;
+            let results = client.search_stock(keyword).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&results).map_err(|e| e.to_string())
         },
         "search_news" => {
             let keyword = arguments["keyword"].as_str().unwrap_or("");
             let limit = arguments["limit"].as_u64().unwrap_or(10) as u32;
-            let results = client
-                .search_news(keyword, limit)
-                .await
-                .map_err(|e| e.to_string())?;
+            let results = client.search_news(keyword, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&results).map_err(|e| e.to_string())
         },
         "get_stock_quote" => {
@@ -378,146 +372,92 @@ pub async fn execute_mcp_tool(
             let code = arguments["stock_code"].as_str().unwrap_or("");
             let period = arguments["period"].as_str().unwrap_or("daily");
             let limit = arguments["limit"].as_u64().unwrap_or(120).min(500) as u32;
-            let klines = client
-                .get_klines(code, period, limit)
-                .await
-                .map_err(|e| e.to_string())?;
+            let klines = client.get_klines(code, period, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&klines).map_err(|e| e.to_string())
         },
         "get_stock_financials" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let financials = client
-                .get_financials(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&financials).map_err(|e| e.to_string())
         },
         "get_stock_news" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
             let limit = arguments["limit"].as_u64().unwrap_or(30).min(100) as u32;
-            let news = client
-                .get_news(code, limit)
-                .await
-                .map_err(|e| e.to_string())?;
+            let news = client.get_news(code, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&news).map_err(|e| e.to_string())
         },
         "get_stock_money_flow" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let flow = client
-                .get_money_flow(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let flow = client.get_money_flow(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&flow).map_err(|e| e.to_string())
         },
         "get_stock_dragon_tiger" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let dt = client
-                .get_dragon_tiger(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let dt = client.get_dragon_tiger(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&dt).map_err(|e| e.to_string())
         },
         "get_stock_margin_data" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let margin = client
-                .get_margin_data(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let margin = client.get_margin_data(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&margin).map_err(|e| e.to_string())
         },
         "get_stock_sector_info" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let sector = client
-                .get_sector_info(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let sector = client.get_sector_info(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&sector).map_err(|e| e.to_string())
         },
         "get_stock_north_bound" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let nb = client
-                .get_north_bound_holding(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let nb = client.get_north_bound_holding(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&nb).map_err(|e| e.to_string())
         },
         "get_stock_lockup" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let lockup = client
-                .get_lockup_schedule(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let lockup = client.get_lockup_schedule(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&lockup).map_err(|e| e.to_string())
         },
         "get_stock_shareholder_trades" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let trades = client
-                .get_shareholder_trades(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let trades = client.get_shareholder_trades(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&trades).map_err(|e| e.to_string())
         },
         "get_stock_dividend_records" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let dividends = client
-                .get_dividend_records(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let dividends = client.get_dividend_records(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&dividends).map_err(|e| e.to_string())
         },
         "get_stock_research_reports" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let reports = client
-                .get_research_reports(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let reports = client.get_research_reports(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&reports).map_err(|e| e.to_string())
         },
         "get_stock_consensus_eps" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let eps = client
-                .get_consensus_eps(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let eps = client.get_consensus_eps(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&eps).map_err(|e| e.to_string())
         },
         "get_stock_concept_blocks" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let blocks = client
-                .get_concept_blocks(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let blocks = client.get_concept_blocks(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&blocks).map_err(|e| e.to_string())
         },
         "get_stock_announcements" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let anns = client
-                .get_announcements(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let anns = client.get_announcements(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&anns).map_err(|e| e.to_string())
         },
         "get_stock_block_trades" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let bt = client
-                .get_block_trades(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let bt = client.get_block_trades(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&bt).map_err(|e| e.to_string())
         },
         "get_stock_institutional_visits" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let visits = client
-                .get_institutional_visits(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let visits = client.get_institutional_visits(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&visits).map_err(|e| e.to_string())
         },
         "get_market_dragon_tiger" => {
-            let dt = client
-                .get_market_dragon_tiger()
-                .await
-                .map_err(|e| e.to_string())?;
+            let dt = client.get_market_dragon_tiger().await.map_err(|e| e.to_string())?;
             serde_json::to_string(&dt).map_err(|e| e.to_string())
         },
         "get_hot_stocks" => {
@@ -525,10 +465,7 @@ pub async fn execute_mcp_tool(
             serde_json::to_string(&hot).map_err(|e| e.to_string())
         },
         "get_industry_ranking" => {
-            let ranking = client
-                .get_industry_ranking()
-                .await
-                .map_err(|e| e.to_string())?;
+            let ranking = client.get_industry_ranking().await.map_err(|e| e.to_string())?;
             serde_json::to_string(&ranking).map_err(|e| e.to_string())
         },
         "get_cls_flash" => {
@@ -536,10 +473,7 @@ pub async fn execute_mcp_tool(
             serde_json::to_string(&flash).map_err(|e| e.to_string())
         },
         "get_north_bound_flow" => {
-            let flow = client
-                .get_north_bound_flow()
-                .await
-                .map_err(|e| e.to_string())?;
+            let flow = client.get_north_bound_flow().await.map_err(|e| e.to_string())?;
             serde_json::to_string(&flow).map_err(|e| e.to_string())
         },
         "get_index_quotes" => {
@@ -553,10 +487,7 @@ pub async fn execute_mcp_tool(
         },
         "get_stock_option_pcr" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
-            let pcr = client
-                .get_option_pcr(code)
-                .await
-                .map_err(|e| e.to_string())?;
+            let pcr = client.get_option_pcr(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&pcr).map_err(|e| e.to_string())
         },
         _ => Err(format!("Unknown MCP tool: {tool_name}")),

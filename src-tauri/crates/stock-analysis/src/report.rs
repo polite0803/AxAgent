@@ -97,18 +97,9 @@ pub fn generate_html_report(
         for p in peers.iter().take(8) {
             let code = p["stockCode"].as_str().unwrap_or("-");
             let name = p["stockName"].as_str().unwrap_or("-");
-            let pe = p["pe"]
-                .as_f64()
-                .map(|v| format!("{v:.1}"))
-                .unwrap_or("-".into());
-            let pb = p["pb"]
-                .as_f64()
-                .map(|v| format!("{v:.1}"))
-                .unwrap_or("-".into());
-            let roe = p["roe"]
-                .as_f64()
-                .map(|v| format!("{v:.1}%"))
-                .unwrap_or("-".into());
+            let pe = p["pe"].as_f64().map(|v| format!("{v:.1}")).unwrap_or("-".into());
+            let pb = p["pb"].as_f64().map(|v| format!("{v:.1}")).unwrap_or("-".into());
+            let roe = p["roe"].as_f64().map(|v| format!("{v:.1}%")).unwrap_or("-".into());
             let pct = p["changePct"].as_f64().unwrap_or(0.0);
             let color = if pct >= 0.0 { "#3fb950" } else { "#f85149" };
             let sign = if pct >= 0.0 { "+" } else { "" };

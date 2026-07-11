@@ -89,9 +89,8 @@ impl RhaiStrategy {
         let name = name.into();
         let script = script.into();
         let engine = build_engine();
-        let ast = engine
-            .compile(&script)
-            .map_err(|e| QuantError::Script(format!("编译失败: {}", e)))?;
+        let ast =
+            engine.compile(&script).map_err(|e| QuantError::Script(format!("编译失败: {}", e)))?;
         Ok(Self {
             name,
             version: version.into(),
@@ -130,10 +129,8 @@ impl Strategy for RhaiStrategy {
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
         self.params.insert(key.to_string(), value.clone());
         // 重新调用 init(params) 让用户脚本感知新参数
-        let engine = self
-            .engine
-            .lock()
-            .map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
+        let engine =
+            self.engine.lock().map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
         let ast = self.ast.clone();
         let params_map = json_value_to_rhai(&value);
         // 调用 init(params) - 用户脚本可选实现
@@ -165,10 +162,8 @@ impl Strategy for RhaiStrategy {
 
     async fn on_init(&mut self, _ctx: &mut StrategyCtx) -> Result<(), QuantError> {
         // 用当前 params 调一次 init（让用户脚本初始化全局变量）
-        let engine = self
-            .engine
-            .lock()
-            .map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
+        let engine =
+            self.engine.lock().map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
         let ast = self.ast.clone();
         let params_value = serde_json::to_value(&self.params).unwrap_or(Value::Null);
         let params_map = json_value_to_rhai(&params_value);
@@ -179,10 +174,8 @@ impl Strategy for RhaiStrategy {
     }
 
     async fn on_finish(&mut self, _ctx: &mut StrategyCtx) -> Result<(), QuantError> {
-        let engine = self
-            .engine
-            .lock()
-            .map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
+        let engine =
+            self.engine.lock().map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
         let ast = self.ast.clone();
         let mut scope = Scope::new();
         let _: Result<(), Box<rhai::EvalAltResult>> =
@@ -247,15 +240,11 @@ fn ctx_to_rhai(ctx: &StrategyCtx, bar: &Bar) -> Map {
     let history = ctx.bar_history.get(&bar.code);
     let history_len = history.map(|h| h.len()).unwrap_or(0);
     m.insert("history_len".into(), (history_len as i64).into());
-    let closes: Array = history
-        .map(|h| h.iter().map(|b| b.close.into()).collect())
-        .unwrap_or_default();
+    let closes: Array =
+        history.map(|h| h.iter().map(|b| b.close.into()).collect()).unwrap_or_default();
     m.insert("closes".into(), closes.into());
     // 当前 bar.code 的持仓
-    let pos_qty = ctx
-        .position(&bar.code)
-        .map(|p| p.quantity as i64)
-        .unwrap_or(0);
+    let pos_qty = ctx.position(&bar.code).map(|p| p.quantity as i64).unwrap_or(0);
     m.insert("position_qty".into(), pos_qty.into());
     let pos_cost = ctx.position(&bar.code).map(|p| p.cost_basis).unwrap_or(0.0);
     m.insert("position_cost".into(), pos_cost.into());
@@ -282,14 +271,9 @@ fn rhai_array_to_signals(arr: Array) -> Result<Vec<Signal>, QuantError> {
             "hold" => SignalAction::Hold,
             other => return Err(QuantError::Script(format!("signal action 非法: {}", other))),
         };
-        let strength = m
-            .get("strength")
-            .and_then(|v| v.clone().try_cast::<f64>())
-            .unwrap_or(0.5);
-        let reason = m
-            .get("reason")
-            .and_then(|v| v.clone().try_cast::<String>())
-            .unwrap_or_default();
+        let strength = m.get("strength").and_then(|v| v.clone().try_cast::<f64>()).unwrap_or(0.5);
+        let reason =
+            m.get("reason").and_then(|v| v.clone().try_cast::<String>()).unwrap_or_default();
         let close_reason = m
             .get("close_reason")
             .and_then(|v| v.clone().try_cast::<String>())
@@ -302,14 +286,7 @@ fn rhai_array_to_signals(arr: Array) -> Result<Vec<Signal>, QuantError> {
                 "manual" => Some(CloseReason::Manual),
                 _ => None,
             });
-        out.push(Signal {
-            code,
-            action,
-            strength,
-            reason,
-            target_weight: None,
-            close_reason,
-        });
+        out.push(Signal { code, action, strength, reason, target_weight: None, close_reason });
     }
     Ok(out)
 }
@@ -350,10 +327,7 @@ fn sma_rhai(values: Array, period: i64) -> f64 {
         return 0.0;
     }
     let start = values.len() - period as usize;
-    let sum: f64 = values[start..]
-        .iter()
-        .filter_map(|v| v.clone().try_cast::<f64>())
-        .sum();
+    let sum: f64 = values[start..].iter().filter_map(|v| v.clone().try_cast::<f64>()).sum();
     if period == 0 {
         0.0
     } else {
@@ -378,10 +352,7 @@ fn rsi_rhai(values: Array, period: i64) -> f64 {
     if values.len() < (period as usize + 1) || period <= 0 {
         return 50.0;
     }
-    let closes: Vec<f64> = values
-        .iter()
-        .filter_map(|v| v.clone().try_cast::<f64>())
-        .collect();
+    let closes: Vec<f64> = values.iter().filter_map(|v| v.clone().try_cast::<f64>()).collect();
     let mut avg_gain = 0.0;
     let mut avg_loss = 0.0;
     for i in 1..=period as usize {

@@ -123,11 +123,7 @@ pub struct FillResult {
 pub fn fill_missing(prices_json: &str, method: &str) -> FillResult {
     let prices: Vec<Option<f64>> = serde_json::from_str(prices_json).unwrap_or_default();
     if prices.is_empty() {
-        return FillResult {
-            filled: vec![],
-            filled_count: 0,
-            method: method.into(),
-        };
+        return FillResult { filled: vec![], filled_count: 0, method: method.into() };
     }
     match method {
         "linear" => fill_linear(&prices),
@@ -147,11 +143,7 @@ fn fill_forward(prices: &[Option<f64>]) -> FillResult {
             count += 1;
         }
     }
-    FillResult {
-        filled: result,
-        filled_count: count,
-        method: "forward".into(),
-    }
+    FillResult { filled: result, filled_count: count, method: "forward".into() }
 }
 
 fn fill_linear(prices: &[Option<f64>]) -> FillResult {
@@ -161,11 +153,7 @@ fn fill_linear(prices: &[Option<f64>]) -> FillResult {
     // 找第一个有效值
     let first_valid = result.iter().position(|v| v.is_some());
     if first_valid.is_none() {
-        return FillResult {
-            filled: result,
-            filled_count: 0,
-            method: "linear".into(),
-        };
+        return FillResult { filled: result, filled_count: 0, method: "linear".into() };
     }
     let first = first_valid.unwrap();
     // 前向填充头部
@@ -204,11 +192,7 @@ fn fill_linear(prices: &[Option<f64>]) -> FillResult {
             }
         }
     }
-    FillResult {
-        filled: result,
-        filled_count: count,
-        method: "linear".into(),
-    }
+    FillResult { filled: result, filled_count: count, method: "linear".into() }
 }
 
 // ── 复权计算 ──
@@ -256,10 +240,7 @@ pub fn adjust_prices(klines_json: &str, dividends_json: &str) -> AdjustResult {
     let dividends: Vec<Dividend> = serde_json::from_str(dividends_json).unwrap_or_default();
 
     if klines.is_empty() {
-        return AdjustResult {
-            adjusted_klines: vec![],
-            adjustment_factor: 1.0,
-        };
+        return AdjustResult { adjusted_klines: vec![], adjustment_factor: 1.0 };
     }
 
     // 按日期排序（最新在前）

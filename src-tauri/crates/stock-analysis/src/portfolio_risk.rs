@@ -26,10 +26,7 @@ impl PortfolioRiskManager {
     pub fn compute_from_positions(positions: &[PositionSummary]) -> PortfolioRiskMetrics {
         let (top_concentration_pct, sector_exposure, max_sector_pct) =
             crate::portfolio_monitor::compute_concentration(positions);
-        let total_market_value: f64 = positions
-            .iter()
-            .map(|p| p.market_value.unwrap_or(0.0))
-            .sum();
+        let total_market_value: f64 = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
         let n = positions.len();
 
         let risk_level =

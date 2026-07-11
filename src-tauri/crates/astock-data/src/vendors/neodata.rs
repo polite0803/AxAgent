@@ -36,11 +36,7 @@ async fn neodata_query(query: &str, token: Option<&str>) -> Result<Value, DataEr
     // 构造脚本路径（优先工作目录，回退到 skill 目录）
     let script_path = find_script();
     let mut cmd = tokio::process::Command::new(python_cmd());
-    cmd.arg(&script_path)
-        .arg("--query")
-        .arg(query)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.arg(&script_path).arg("--query").arg(query).stdout(Stdio::piped()).stderr(Stdio::piped());
     // 如果有 token，传入 --token 参数（让 Python 脚本使用而非读缓存文件）
     if let Some(t) = token {
         if !t.is_empty() {
@@ -157,22 +153,16 @@ fn parse_kv_text(text: &str) -> Vec<(String, String)> {
 
 /// 从 kv 列表中提取指定 key 的 f64 值
 fn kv_f64(pairs: &[(String, String)], key: &str) -> Option<f64> {
-    pairs
-        .iter()
-        .find(|(k, _v)| k.contains(key))
-        .and_then(|(_, v)| {
-            // 处理 "+0.56%" 格式
-            let cleaned = v.replace(['%', ','], "");
-            cleaned.parse::<f64>().ok()
-        })
+    pairs.iter().find(|(k, _v)| k.contains(key)).and_then(|(_, v)| {
+        // 处理 "+0.56%" 格式
+        let cleaned = v.replace(['%', ','], "");
+        cleaned.parse::<f64>().ok()
+    })
 }
 
 /// 从 kv 列表中提取指定 key 的字符串值
 fn kv_str<'a>(pairs: &'a [(String, String)], key: &str) -> Option<&'a str> {
-    pairs
-        .iter()
-        .find(|(k, _)| k.contains(key))
-        .map(|(_, v)| v.as_str())
+    pairs.iter().find(|(k, _)| k.contains(key)).map(|(_, v)| v.as_str())
 }
 
 /// 从文本中提取股票代码（"股票代码:600519" 格式）
@@ -256,21 +246,13 @@ impl StockVendor for NeoDataVendor {
         let text = self.query_content(&query, "basic_info").await?;
         let pairs = parse_kv_text(&text);
 
-        let price = kv_f64(&pairs, "最新价")
-            .or_else(|| kv_f64(&pairs, "价格"))
-            .unwrap_or(0.0);
+        let price = kv_f64(&pairs, "最新价").or_else(|| kv_f64(&pairs, "价格")).unwrap_or(0.0);
         let pre_close = kv_f64(&pairs, "昨收").unwrap_or(0.0);
-        let open = kv_f64(&pairs, "今开")
-            .or_else(|| kv_f64(&pairs, "开盘"))
-            .unwrap_or(0.0);
+        let open = kv_f64(&pairs, "今开").or_else(|| kv_f64(&pairs, "开盘")).unwrap_or(0.0);
         let high = kv_f64(&pairs, "最高").unwrap_or(0.0);
         let low = kv_f64(&pairs, "最低").unwrap_or(0.0);
-        let change_pct = kv_f64(&pairs, "涨跌幅")
-            .or_else(|| kv_f64(&pairs, "涨跌"))
-            .unwrap_or(0.0);
-        let volume = kv_f64(&pairs, "成交量")
-            .or_else(|| kv_f64(&pairs, "成交"))
-            .unwrap_or(0.0);
+        let change_pct = kv_f64(&pairs, "涨跌幅").or_else(|| kv_f64(&pairs, "涨跌")).unwrap_or(0.0);
+        let volume = kv_f64(&pairs, "成交量").or_else(|| kv_f64(&pairs, "成交")).unwrap_or(0.0);
         let amount = kv_f64(&pairs, "成交额").unwrap_or(0.0);
         let turnover_rate = kv_f64(&pairs, "换手率");
         let pe = kv_f64(&pairs, "PE").or_else(|| kv_f64(&pairs, "市盈率"));
@@ -515,10 +497,7 @@ impl StockVendor for NeoDataVendor {
         for line in text.lines() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 3 {
-                let price = parts
-                    .get(1)
-                    .and_then(|s| s.parse::<f64>().ok())
-                    .unwrap_or(0.0);
+                let price = parts.get(1).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0);
                 let change_pct = parts
                     .last()
                     .and_then(|s| s.replace('%', "").parse::<f64>().ok())

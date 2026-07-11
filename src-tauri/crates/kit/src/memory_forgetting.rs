@@ -118,18 +118,12 @@ impl MemoryForgettingEngine {
         }
 
         entries.sort_by(|a, b| {
-            b.memory_strength
-                .partial_cmp(&a.memory_strength)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.memory_strength.partial_cmp(&a.memory_strength).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let to_remove_count = entries.len() - self.config.max_memories_per_namespace;
-        let forgotten: Vec<String> = entries
-            .iter()
-            .rev()
-            .take(to_remove_count)
-            .map(|e| e.id.clone())
-            .collect();
+        let forgotten: Vec<String> =
+            entries.iter().rev().take(to_remove_count).map(|e| e.id.clone()).collect();
 
         entries.truncate(self.config.max_memories_per_namespace);
         forgotten
@@ -139,11 +133,7 @@ impl MemoryForgettingEngine {
         let total = entries.len();
         let (to_forget, retained) = self.evaluate_forgetting(entries);
         let avg_strength = if total > 0 {
-            entries
-                .iter()
-                .map(|e| self.calculate_strength(e))
-                .sum::<f64>()
-                / total as f64
+            entries.iter().map(|e| self.calculate_strength(e)).sum::<f64>() / total as f64
         } else {
             0.0
         };
@@ -182,11 +172,7 @@ mod tests {
         let engine = MemoryForgettingEngine::with_default_config();
         let entry = make_entry("1", 0.9, 1, 5);
         let strength = engine.calculate_strength(&entry);
-        assert!(
-            strength > 0.5,
-            "Recent important memory should have high strength: {}",
-            strength
-        );
+        assert!(strength > 0.5, "Recent important memory should have high strength: {}", strength);
     }
 
     #[test]
@@ -223,10 +209,7 @@ mod tests {
 
     #[test]
     fn test_prune_namespace() {
-        let config = ForgettingConfig {
-            max_memories_per_namespace: 2,
-            ..Default::default()
-        };
+        let config = ForgettingConfig { max_memories_per_namespace: 2, ..Default::default() };
         let engine = MemoryForgettingEngine::new(config);
         let mut entries = vec![
             make_entry("1", 0.9, 1, 5),

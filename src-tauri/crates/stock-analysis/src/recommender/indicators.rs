@@ -63,11 +63,7 @@ pub fn macd(klines: &[KLine], fast: usize, slow: usize, signal: usize) -> Option
     }
     let emas_fast = ema_series(&cs, fast);
     let emas_slow = ema_series(&cs, slow);
-    let difs: Vec<f64> = emas_fast
-        .iter()
-        .zip(emas_slow.iter())
-        .map(|(a, b)| a - b)
-        .collect();
+    let difs: Vec<f64> = emas_fast.iter().zip(emas_slow.iter()).map(|(a, b)| a - b).collect();
     let deas = ema_series(&difs, signal);
     let dif = *difs.last()?;
     let dea = *deas.last()?;
@@ -176,12 +172,8 @@ mod tests {
 
     #[test]
     fn drawdown_calc() {
-        let klines: Vec<KLine> = vec![
-            make_kline(100.0),
-            make_kline(120.0),
-            make_kline(110.0),
-            make_kline(90.0),
-        ];
+        let klines: Vec<KLine> =
+            vec![make_kline(100.0), make_kline(120.0), make_kline(110.0), make_kline(90.0)];
         // make_kline 把 high 设为 close*1.01，所以 4 根内最高 = 120*1.01 = 121.2
         // 当前 90 → 回撤 (121.2 - 90) / 121.2 ≈ 25.74%
         let dd = drawdown_from_high(&klines, 4).unwrap();

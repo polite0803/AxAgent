@@ -1,5 +1,6 @@
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_astock_data::regime::MarketRegime;
 use axagent_astock_data::{AStockClient, KLine};
 use chrono::Local;
 use serde_json::{Value, json};
@@ -531,8 +532,6 @@ impl Tool for ComputeScoringTool {
         let w_support = tv_f64(&input, "scoring_support", 10.0);
 
         // ── 从 _template_vars 读取催化剂维度（由 a-catalyst 节点注入） ──
-        // 修复：compute_scoring 之前只算纯技术分，a-catalyst 报告再强也加不进 base
-        // 默认 50 表示中性；a-catalyst 输出 bull_score (0-100) 直接作为分值
         let catalyst_score = tv_f64(&input, "catalyst_analyst_score", 50.0);
         let catalyst_level = input
             .get("_template_vars")
@@ -547,68 +546,26 @@ impl Tool for ComputeScoringTool {
             .unwrap_or("无")
             .to_string();
 
-        let trend_score = match indicators.ma_alignment.as_str() {
-            "多头排列" => 90.0,
-            "弱多头" => 70.0,
-            "缠绕/交叉" => 50.0,
-            "空头排列" => 30.0,
-            _ => 50.0,
+        // ── 使用 ScoringEngine（已下沉到 astock-data crate）做客观评分 ──
+        use axagent_astock_data::scoring::{ScoringEngine, ScoringWeights};
+        let user_weights = ScoringWeights {
+            trend: w_trend,
+            deviation: w_deviation,
+            macd: w_macd,
+            volume: w_volume,
+            rsi: w_rsi,
+            support: w_support,
+            ..Default::default()
         };
+        let obj_score = ScoringEngine::score(&indicators, quote.price, Some(&user_weights));
 
-        let bias_avg = (indicators.bias_ma5.abs() + indicators.bias_ma20.abs()) / 2.0;
-        let deviation_score = if bias_avg < 2.0 {
-            80.0
-        } else if bias_avg < 5.0 {
-            60.0
-        } else if bias_avg < 10.0 {
-            40.0
-        } else {
-            20.0
-        };
-
-        let macd_score = match indicators.macd_signal.as_str() {
-            "金叉" => 90.0,
-            "多头运行" => 70.0,
-            "死叉" => 30.0,
-            "空头运行" => 20.0,
-            _ => 50.0,
-        };
-
-        let volume_score = match indicators.volume_signal.as_str() {
-            "放量突破" => 95.0, // 新增：突破型最高分（与 scoring.rs 保持一致）
-            "放量上涨" => 90.0,
-            "缩量回调" => 60.0,
-            "正常" => 50.0,
-            "缩量上涨" => 40.0,
-            "放量下跌" => 20.0,
-            _ => 50.0,
-        };
-
-        let rsi_score = if indicators.rsi6 > 80.0 {
-            25.0
-        } else if indicators.rsi6 > 70.0 {
-            45.0
-        } else if indicators.rsi6 > 50.0 {
-            75.0
-        } else if indicators.rsi6 > 30.0 {
-            55.0
-        } else {
-            80.0
-        };
-
-        let support_score =
-            if !indicators.support_levels.is_empty() && !indicators.resistance_levels.is_empty() {
-                let dist_support = (quote.price - indicators.support_levels[0]).abs();
-                let dist_resist = (indicators.resistance_levels[0] - quote.price).abs();
-                let total = dist_support + dist_resist;
-                if total > 0.0 {
-                    (dist_support / total) * 100.0
-                } else {
-                    50.0
-                }
-            } else {
-                50.0
-            };
+        // 映射 ObjectiveScore（0-100 分档）到前端期望的 0-100 浮点数格式
+        let trend_score = obj_score.trend_score as f64 / 30.0 * 100.0;
+        let deviation_score = obj_score.deviation_score as f64 / 20.0 * 100.0;
+        let macd_score = obj_score.macd_score as f64 / 15.0 * 100.0;
+        let volume_score = obj_score.volume_score as f64 / 15.0 * 100.0;
+        let rsi_score = obj_score.rsi_score as f64 / 10.0 * 100.0;
+        let support_score = obj_score.support_score as f64 / 5.0 * 100.0;
 
         // 基本面修正（从 _template_vars 读取估值阈值）
         let pe_low = tv_f64(&input, "val_pe_low", 15.0);
@@ -926,58 +883,56 @@ fn compute_factor_backtest_stats(klines: &[KLine], forecast: usize, lookback: us
 
 // ── P2: 市场状态分类 ──
 
-/// 基于最近 60 日 K 线判断市场状态，输出先验概率。
-/// V38 修复: 增加波动率维度；调整 prior 更接近 A 股现实（牛市上涨概率≈65%，熊市下跌概率≈60%）；
-///          "弱多头"不再视为牛市（仅短期偏多，不改变 prior）。
+/// 基于 K 线判断市场状态，输出先验概率。
+/// P1-3 统一: 委托给 axagent_astock_data::regime::RegimeDetector::detect（计分制高级实现），
+///           替代原内联的简单均线排列匹配，获得连涨连跌/布林带/年化波动率等额外维度。
+/// V38 修复（已迁移）: 增加波动率维度；调整 prior 更接近 A 股现实。
+/// 保持输出格式向后兼容（state/prior/reason/ma_alignment/volatility/vol_value）。
 fn compute_market_regime(klines: &[KLine]) -> Value {
+    use axagent_astock_data::regime::RegimeDetector;
     let n = klines.len();
-    if n < 60 {
+    if n < 20 {
         return json!({"state":"neutral","prior":0.50,"reason":"数据不足"});
     }
-    let ind = axagent_astock_data::indicators::compute_indicators("", &klines[n - 60..]);
-    let ma_alignment = ind.ma_alignment.as_str();
+    let report = RegimeDetector::detect(klines);
     let closes: Vec<f64> = klines.iter().map(|k| k.close).collect();
 
-    // 波动率：最近20日收益率标准差
-    let (volatility, vol_str) = if closes.len() >= 20 {
-        let c = &closes[closes.len() - 21..];
-        let returns: Vec<f64> = c.windows(2).map(|w| (w[1] - w[0]) / w[0]).collect();
-        let mean = returns.iter().sum::<f64>() / returns.len() as f64;
-        let variance =
-            returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / returns.len() as f64;
-        let std_dev = variance.sqrt();
-        let vs = if std_dev > 0.04 {
-            "high"
-        } else if std_dev < 0.02 {
-            "low"
-        } else {
-            "normal"
-        };
-        (std_dev, vs.to_string())
-    } else {
-        (0.0, "normal".to_string())
-    };
+    // 均线排列
+    let ma_alignment = if let (Some(ma20), Some(ma60)) = (report.ma20, report.ma60) {
+        if ma20 > ma60 * 1.02 { "多头排列" }
+        else if ma60 > ma20 * 1.02 { "空头排列" }
+        else { "缠绕/交叉" }
+    } else { "数据不足" };
 
-    let (state, prior, reason) = match ma_alignment {
-        "多头排列" => {
-            if volatility > 0.04 {
+    // state: RegimeDetector 的枚举映射 + 波动率修正
+    let vol_pct = report.volatility_20d.unwrap_or(30.0);
+    let vol_str = if vol_pct > 50.0 { "high" } else if vol_pct < 15.0 { "low" } else { "normal" };
+
+    let (state, prior, reason) = match report.regime {
+        MarketRegime::Bull => {
+            if vol_pct > 50.0 {
                 ("bull_high_vol", 0.60, "上升趋势（高波动预警）")
             } else {
                 ("bull", 0.65, "中长期上升趋势")
             }
         },
-        "弱多头" => ("neutral", 0.50, "短期偏多，方向不明确"),
-        "空头排列" => {
-            if volatility > 0.04 {
+        MarketRegime::Bear => {
+            if vol_pct > 50.0 {
                 ("bear_high_vol", 0.40, "下降趋势（高波动加速）")
             } else {
                 ("bear", 0.40, "中长期下降趋势")
             }
         },
-        _ => ("neutral", 0.50, "震荡趋势"),
+        MarketRegime::Sideways => ("neutral", 0.50, "震荡趋势"),
+        MarketRegime::Volatile => ("neutral", 0.50, "高波动环境，方向不明确"),
+        MarketRegime::Unknown => ("neutral", 0.50, "数据不足"),
     };
+
     json!({"state": state, "prior": prior, "reason": reason,
-           "ma_alignment": ma_alignment, "volatility": vol_str, "vol_value": (volatility*1000.0).round()/10.0})
+           "ma_alignment": ma_alignment, "volatility": vol_str,
+           "vol_value": (vol_pct*100.0).round()/100.0,
+           "triggered_rules": report.triggered_rules,
+           "confidence": report.confidence})
 }
 
 /// 因子回测工具——用历史 K 线回测各技术因子的预测能力。

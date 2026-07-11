@@ -4,7 +4,6 @@ members = [
   "crates/agent",
   "crates/astock-data",
   "crates/cache",
-  "crates/core",
   "crates/credential",
   "crates/crypto",
   "crates/dao",
@@ -81,8 +80,9 @@ license = "AGPL-3.0-only"
 description = "AxInvest - AI Investment Desktop App"
 
 [features]
-default = ["notification"]
+default = ["notification", "computer-use"]
 notification = ["dep:tauri-plugin-notification"]
+computer-use = ["axagent-kit/computer-use", "axagent-providers/computer-use"]
 
 [package.metadata.cargo-machete]
 # All declared axagent-* path deps are referenced in src/app_state.rs as
@@ -115,13 +115,15 @@ async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
 axagent-astock-data = { path = "crates/astock-data" }
 axagent-cache = { path = "crates/cache" }
-axagent-core = { path = "crates/core" }
 axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
 axagent-document-parser = { path = "crates/document-parser" }
+axagent-entities = { path = "crates/entities" }
 axagent-gateway = { path = "crates/gateway" }
 axagent-harness = { path = "crates/harness" }
+axagent-kit = { path = "crates/kit" }
+axagent-mcp = { path = "crates/mcp" }
 axagent-migration = { path = "crates/migration" }
 axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }
@@ -137,6 +139,7 @@ axagent-runtime = { path = "crates/runtime" }
 axagent-runtime-core = { path = "crates/runtime-core" }
 axagent-search = { path = "crates/search" }
 axagent-stock-analysis = { path = "crates/stock-analysis" }
+axagent-storage = { path = "crates/storage" }
 axagent-telemetry = { path = "crates/telemetry" }
 axagent-tools = { path = "crates/tools" }
 axagent-trajectory = { path = "crates/trajectory" }

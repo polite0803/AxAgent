@@ -2,7 +2,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_astock_data::as_of::AsOfContext;
-use axagent_core::entity::stock_analyses;
+use axagent_entities::stock_analyses;
 use axagent_harness::workflow_types::{JsonSchema, Variable, WorkflowEdge, WorkflowNode};
 use axagent_rt_workflow::Workflow;
 use sea_orm::sea_query::Expr;
@@ -164,6 +164,12 @@ pub(crate) async fn data_quality_precheck(
         Ok(_) => SourceCheck::Partial("无限售解禁数据".into()),
         Err(e) => SourceCheck::Failed(format!("限售解禁数据源全部获取失败: {e}")),
     };
+    // PACE 集成: 补充 dragon_tiger 预检（筹码面 f10 增强所需的机构席位数据）
+    let dragon_tiger_check = match client.get_dragon_tiger(stock_code).await {
+        Ok(entries) if !entries.is_empty() => SourceCheck::Ok,
+        Ok(_) => SourceCheck::Partial("无龙虎榜数据".into()),
+        Err(e) => SourceCheck::Failed(format!("龙虎榜数据源全部获取失败: {e}")),
+    };
 
     // 全部数据源统一由 aggregate_precheck 判定：
     // - 任一数据源 Failed（所有 Vendor 降级链均失败）→ 整体 Insufficient，阻断工作流
@@ -179,6 +185,7 @@ pub(crate) async fn data_quality_precheck(
         ("concept_blocks", concept_check),
         ("sector_info", sector_check),
         ("lockup_schedule", lockup_check),
+        ("dragon_tiger", dragon_tiger_check),
     ])
 }
 
@@ -259,7 +266,7 @@ pub(crate) async fn load_and_inject_template(
     _stock_name: &str,
     template_id: &str,
 ) -> Result<LoadedTemplate, String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
 
     let template = workflow_template::Entity::find_by_id(template_id)
         .one(db)
@@ -1127,8 +1134,8 @@ pub async fn rerun_decision(
     }
 
     // 3. 加载工作流模板 → 提取 portfolio-mgr CodeNode
-    let template = axagent_core::entity::workflow_template::Entity::find()
-        .filter(axagent_core::entity::workflow_template::Column::Id.eq("stock-analysis"))
+    let template = axagent_entities::workflow_template::Entity::find()
+        .filter(axagent_entities::workflow_template::Column::Id.eq("stock-analysis"))
         .one(db)
         .await
         .map_err(|e| {

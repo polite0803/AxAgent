@@ -26,18 +26,12 @@ pub struct MootdxVendor {
 impl MootdxVendor {
     pub fn new() -> Self {
         let (host, port) = TDX_SERVERS[0];
-        Self {
-            host: host.to_string(),
-            port,
-        }
+        Self { host: host.to_string(), port }
     }
 
     #[allow(dead_code)]
     pub fn with_server(host: &str, port: u16) -> Self {
-        Self {
-            host: host.to_string(),
-            port,
-        }
+        Self { host: host.to_string(), port }
     }
 
     async fn connect(&self) -> Result<TdxConnection, DataError> {
@@ -97,12 +91,10 @@ struct TdxConnection {
 
 impl TdxConnection {
     async fn setup(&mut self) -> Result<(), DataError> {
-        let setup1: Vec<u8> = vec![
-            0x0c, 0x02, 0x18, 0x93, 0x00, 0x01, 0x03, 0x00, 0x03, 0x00, 0x0d, 0x00, 0x01,
-        ];
-        let setup2: Vec<u8> = vec![
-            0x0c, 0x02, 0x18, 0x94, 0x00, 0x01, 0x03, 0x00, 0x03, 0x00, 0x0d, 0x00, 0x02,
-        ];
+        let setup1: Vec<u8> =
+            vec![0x0c, 0x02, 0x18, 0x93, 0x00, 0x01, 0x03, 0x00, 0x03, 0x00, 0x0d, 0x00, 0x01];
+        let setup2: Vec<u8> =
+            vec![0x0c, 0x02, 0x18, 0x94, 0x00, 0x01, 0x03, 0x00, 0x03, 0x00, 0x0d, 0x00, 0x02];
         let setup3: Vec<u8> = vec![
             0x0c, 0x03, 0x18, 0x99, 0x00, 0x01, 0x20, 0x00, 0x20, 0x00, 0xdb, 0x0f, 0xd5, 0xd0,
             0xc9, 0xcc, 0xd6, 0xa4, 0xa8, 0xaf, 0x00, 0x00, 0x00, 0x8f, 0xc2, 0x25, 0x40, 0x13,
@@ -197,9 +189,8 @@ impl TdxConnection {
             pos += 1;
 
             let code_end = (pos + 6).min(body.len());
-            let code = String::from_utf8_lossy(&body[pos..code_end])
-                .trim_end_matches('\0')
-                .to_string();
+            let code =
+                String::from_utf8_lossy(&body[pos..code_end]).trim_end_matches('\0').to_string();
             pos += 6;
 
             let _active1 = u16::from_le_bytes([body[pos], body[pos + 1]]);
@@ -531,12 +522,8 @@ fn parse_datetime(category: u16, buffer: &[u8], pos: usize) -> (u32, u32, u32, u
         let minute = (tminutes as u32) % 60;
         (year, month, day, hour, minute)
     } else {
-        let zipday = u32::from_le_bytes([
-            buffer[pos],
-            buffer[pos + 1],
-            buffer[pos + 2],
-            buffer[pos + 3],
-        ]);
+        let zipday =
+            u32::from_le_bytes([buffer[pos], buffer[pos + 1], buffer[pos + 2], buffer[pos + 3]]);
         let year = zipday / 10000;
         let month = (zipday % 10000) / 100;
         let day = zipday % 100;
@@ -561,10 +548,7 @@ impl StockVendor for MootdxVendor {
         let market = Self::market_code(stock_code);
         let mut last_err = None;
         for (host, port) in TDX_SERVERS.iter() {
-            let vendor = MootdxVendor {
-                host: host.to_string(),
-                port: *port,
-            };
+            let vendor = MootdxVendor { host: host.to_string(), port: *port };
             match vendor.connect().await {
                 Ok(mut conn) => {
                     let stocks = vec![(market, stock_code)];
@@ -633,10 +617,7 @@ impl StockVendor for MootdxVendor {
         let category = Self::kline_category(period);
         let mut last_err = None;
         for (host, port) in TDX_SERVERS.iter() {
-            let vendor = MootdxVendor {
-                host: host.to_string(),
-                port: *port,
-            };
+            let vendor = MootdxVendor { host: host.to_string(), port: *port };
             match vendor.connect().await {
                 Ok(mut conn) => {
                     match conn

@@ -102,10 +102,7 @@ impl RegimeDetector {
         }
 
         let closes: Vec<f64> = klines.iter().map(|k| k.close).collect();
-        let mut report = RegimeReport {
-            samples: closes.len(),
-            ..Default::default()
-        };
+        let mut report = RegimeReport { samples: closes.len(), ..Default::default() };
 
         // 1. 均线
         if let Some(ma20) = Self::sma(&closes, 20) {
@@ -272,11 +269,8 @@ impl RegimeDetector {
             (MarketRegime::Sideways, sideways_score),
             (MarketRegime::Volatile, volatile_score),
         ];
-        let (regime, _top_score) = scores
-            .iter()
-            .max_by_key(|(_, s)| *s)
-            .copied()
-            .unwrap_or((MarketRegime::Unknown, 0));
+        let (regime, _top_score) =
+            scores.iter().max_by_key(|(_, s)| *s).copied().unwrap_or((MarketRegime::Unknown, 0));
 
         // 信心度:基于最高分与次高分的差距
         let mut sorted: Vec<i32> = scores.iter().map(|(_, s)| *s).collect();
@@ -347,9 +341,7 @@ mod tests {
     #[test]
     fn detects_sideways_when_range_bound() {
         // 60 日震荡 [10.0, 10.05] 微小振幅,真正无趋势
-        let prices: Vec<f64> = (0..70)
-            .map(|i| 10.0 + (i as f64 * 0.628).sin() * 0.025)
-            .collect();
+        let prices: Vec<f64> = (0..70).map(|i| 10.0 + (i as f64 * 0.628).sin() * 0.025).collect();
         let r = RegimeDetector::detect(&kline_series(&prices));
         // 震荡市特征: ma20 ≈ ma60 (差距 < 0.05)
         if let (Some(m20), Some(m60)) = (r.ma20, r.ma60) {
@@ -360,9 +352,7 @@ mod tests {
     #[test]
     fn detects_volatile_when_big_swings() {
         // 大幅震荡
-        let prices: Vec<f64> = (0..30)
-            .map(|i| 10.0 + (i as f64 * 0.7).sin() * 3.0)
-            .collect();
+        let prices: Vec<f64> = (0..30).map(|i| 10.0 + (i as f64 * 0.7).sin() * 3.0).collect();
         let r = RegimeDetector::detect(&kline_series(&prices));
         // 高波动场景
         assert!(r.bollinger_width.unwrap_or(0.0) > 0.1 || r.volatility_20d.unwrap_or(0.0) > 30.0);
@@ -390,12 +380,9 @@ mod tests {
 
     #[test]
     fn regime_label_and_prompt_bias_present() {
-        for r in [
-            MarketRegime::Bull,
-            MarketRegime::Bear,
-            MarketRegime::Sideways,
-            MarketRegime::Volatile,
-        ] {
+        for r in
+            [MarketRegime::Bull, MarketRegime::Bear, MarketRegime::Sideways, MarketRegime::Volatile]
+        {
             assert!(!r.label().is_empty());
             assert!(!r.prompt_bias().is_empty());
             assert!(!r.emoji().is_empty());

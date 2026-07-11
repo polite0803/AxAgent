@@ -222,10 +222,7 @@ impl WalkForward {
         if folds.is_empty() {
             return Err(QuantError::WalkForward("未生成任何 fold（数据不足以切分）".to_string()));
         }
-        Ok(WalkForwardSplit {
-            config: self.config.clone(),
-            folds,
-        })
+        Ok(WalkForwardSplit { config: self.config.clone(), folds })
     }
 
     /// 跑 Walk-Forward 验证
@@ -300,10 +297,7 @@ impl WalkForward {
 
         let aggregated_oos_metrics = MetricsReport::from_equity_curve(
             &all_oos_points,
-            &windows
-                .iter()
-                .flat_map(|w| w.test_result.trades.iter().cloned())
-                .collect::<Vec<_>>(),
+            &windows.iter().flat_map(|w| w.test_result.trades.iter().cloned()).collect::<Vec<_>>(),
             self.config.risk_free_annual,
             252.0,
         );
@@ -439,10 +433,7 @@ mod tests {
 
     #[test]
     fn test_force_off_disables() {
-        let cfg = WalkForwardConfig {
-            force_off: true,
-            ..Default::default()
-        };
+        let cfg = WalkForwardConfig { force_off: true, ..Default::default() };
         assert!(!cfg.is_enabled());
     }
 

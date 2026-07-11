@@ -7,7 +7,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     db: &sea_orm::DatabaseConnection,
 ) -> Result<(), String> {
     use crate::commands::error::ErrorResponse;
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use axagent_harness::HallucinationGuardConfig;
     use axagent_harness::workflow_types::{
         AgentNode, AgentNodeConfig, CodeNode, CodeNodeConfig, EdgeType, JsonSchema,

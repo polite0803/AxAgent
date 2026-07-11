@@ -105,12 +105,7 @@ pub fn metric_band_from(samples: &[Option<f64>], current: Option<f64>) -> Metric
     }
     let percentiles = compute_percentiles(&values, &PERCENTILE_KEYS);
     let current_percentile = current.map(|c| current_percentile(&values, c));
-    MetricBand {
-        percentiles,
-        current,
-        current_percentile,
-        sample_size,
-    }
+    MetricBand { percentiles, current, current_percentile, sample_size }
 }
 
 /// 从历史快照 + 当前快照,计算完整估值带。
@@ -129,14 +124,8 @@ pub fn compute_valuation_band<S: FinancialSnapshotLike>(
     let pb = metric_band_from(&pb_vals, current.and_then(|c| c.pb()));
     let ps = metric_band_from(&ps_vals, current.and_then(|c| c.ps_ttm()));
 
-    let sample_start = historical
-        .iter()
-        .map(|s| s.snapshot_date().to_string())
-        .min();
-    let sample_end = historical
-        .iter()
-        .map(|s| s.snapshot_date().to_string())
-        .max();
+    let sample_start = historical.iter().map(|s| s.snapshot_date().to_string()).min();
+    let sample_end = historical.iter().map(|s| s.snapshot_date().to_string()).max();
 
     let verdict = if pe.sample_size < 20 || pb.sample_size < 20 {
         "insufficient"

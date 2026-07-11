@@ -42,11 +42,7 @@ pub fn record_decision(record: &DecisionRecord) {
     }
     if let Ok(json) = serde_json::to_string(record) {
         use std::io::Write;
-        if let Ok(mut file) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&path)
-        {
+        if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
             let _ = writeln!(file, "{json}");
         }
     }
@@ -59,19 +55,13 @@ pub fn load_records() -> Vec<DecisionRecord> {
         Ok(c) => c,
         Err(_) => return vec![],
     };
-    content
-        .lines()
-        .filter_map(|line| serde_json::from_str::<DecisionRecord>(line).ok())
-        .collect()
+    content.lines().filter_map(|line| serde_json::from_str::<DecisionRecord>(line).ok()).collect()
 }
 
 /// 计算指定股票的历史推荐准确率
 pub fn accuracy_for_stock(stock_code: &str) -> Option<(usize, usize, f64)> {
     let records = load_records();
-    let stock_records: Vec<_> = records
-        .iter()
-        .filter(|r| r.stock_code == stock_code)
-        .collect();
+    let stock_records: Vec<_> = records.iter().filter(|r| r.stock_code == stock_code).collect();
     if stock_records.is_empty() {
         return None;
     }

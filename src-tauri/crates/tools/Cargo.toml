@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
+axagent-astock-data = { path = "../astock-data" }
 axagent-document-parser = { path = "../document-parser" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }

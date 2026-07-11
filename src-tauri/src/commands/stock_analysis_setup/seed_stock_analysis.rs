@@ -7,7 +7,7 @@ use crate::commands::error_code::stock_setup;
 pub(crate) async fn seed_stock_analysis_workflow_template(
     db: &sea_orm::DatabaseConnection,
 ) -> Result<(), String> {
-    use axagent_core::entity::workflow_template;
+    use axagent_entities::workflow_template;
     use axagent_harness::hallucination_guard::HallucinationGuardConfig;
     use axagent_harness::workflow_types::{
         AgentNode, AgentNodeConfig, AggregatorNode, AggregatorNodeConfig, BackoffType, Branch,
@@ -24,8 +24,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
 
     const TEMPLATE_ID: &str = "stock-analysis";
 
-    // v42: V42 风险重构 — posterior 不再截断，用 risk_bias 左移 action 阈值 + 仓位上限
-    const TEMPLATE_VERSION: i32 = 1;
+    // V55: 最新版本 — 包含 hallucination_guard、untrusted 哨兵、f9/f10/f11 因子体系、
+    // 算法风险分类、校准一致性、权重坍缩修复等技术债修复。
+    // 每次修改 DAG 拓扑/节点配置/input_mapping 后必须递增此常量。
+    const TEMPLATE_VERSION: i32 = 55;
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
@@ -51,7 +53,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         );
         // 写版本快照（复用 update_workflow_template 的 snapshot 机制）
         let ver_id = format!("{}_v{}", TEMPLATE_ID, existing.version);
-        if axagent_core::entity::workflow_template_version::Entity::find_by_id(&ver_id)
+        if axagent_entities::workflow_template_version::Entity::find_by_id(&ver_id)
             .one(db)
             .await
             .map_err(|e| {
@@ -60,7 +62,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             .is_none()
         {
             use sea_orm::ActiveModelTrait;
-            let snapshot = axagent_core::entity::workflow_template_version::ActiveModel {
+            let snapshot = axagent_entities::workflow_template_version::ActiveModel {
                 id: Set(ver_id.clone()),
                 template_id: Set(TEMPLATE_ID.to_string()),
                 name: Set(existing.name.clone()),
@@ -423,20 +425,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 items: None,
             })
         },
-    };
-    let mut beta_props = std::collections::HashMap::new();
-    beta_props.insert("stock_returns_json".into(), sc_prop("个股收益率JSON数组"));
-    beta_props.insert("market_returns_json".into(), sc_prop("大盘收益率JSON数组"));
-    let _td_beta = ToolDef {
-        name: "calc_beta".into(),
-        description: Some("计算 Beta 系数".into()),
-        parameters: Some(JsonSchema {
-            schema_type: "object".into(),
-            description: None,
-            properties: Some(beta_props),
-            required: None,
-            items: None,
-        }),
     };
     // ── P2: 事件检测 + 组合分析 ToolDef ──
     let mut earn_props = std::collections::HashMap::new();
@@ -815,10 +803,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         // 修复: t-sentiment-data 原调用 get_hot_stocks（热门股票列表，非个股新闻），
         // 导致情绪面分析师拿不到个股新闻舆情数据。改为 get_stock_news。
         ("t-sentiment-data", "获取新闻+热门", "get_stock_news", "stock_code"),
-        // 修复: t-news-data 原调用 get_announcements（公告），导致消息面分析师
-        // 拿不到个股新闻数据。改为 get_stock_news 与 a-news 的 data_sources 匹配。
-        // 公告数据已由 t-catalyst-data 负责获取。
-        ("t-news-data", "获取新闻+公告", "get_stock_news", "stock_code"),
+        // 修复(2026-07-11): t-news-data 不再重复调用 get_stock_news，
+        // 改为 get_stock_announcements 获取公司公告全文。a-news 简报分析
+        // 师可在执行时通过 PROFILE_TOOLS 调用 get_stock_news 补充新闻数据。
+        // 历史: 原切换为 get_stock_news 是因为 a-news 拿不到新闻，现已解耦。
+        ("t-news-data", "获取公司公告", "get_stock_announcements", "stock_code"),
         // 修复 P1: 基本面分析师前置数据改用 get_stock_financials（财报）而非
         // get_consensus_eps（一致预期），让 a-fundamentals 启动时就能拿到
         // 营收/利润/资产负债等核心财务数据。
@@ -839,12 +828,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         // get_announcements（公告）。新闻覆盖宏观/产业政策动态更广，
         // 与 a-news 的公告视角形成互补。
         //
-        // F-4 待办: 当前 get_stock_news 与 t-sentiment-data 完全重复调用,
-        //   实际差异化靠 a-policy 的 system_prompt 提示词过滤"政策类"新闻。
-        //   理想方案: 在 src-tauri/src/tools/finance.rs 注册新工具
-        //   `get_policy_news`,接受参数 category=policy 走单独数据源(政府/官媒/
-        //   监管公告),此处把 tool_name 改为 "get_policy_news" 即可。
-        //   本次仅修 title 让 a-policy 与 a-sentiment 在画布上可区分。
+        // TODO(2026-07-11): 当前 get_stock_news 与 t-sentiment-data 重复调用,
+        //   理想方案: 在 tools/finance.rs 注册新工具 `get_policy_news`,
+        //   接受参数 category=policy 走单独数据源(政府/官媒/监管公告)。
+        //   当前保留 get_stock_news 作为冷启动数据，a-policy 的分析师 prompt
+        //   负责从新闻中过滤政策相关内容。
         ("t-policy-data", "获取政策新闻", "get_stock_news", "stock_code"),
         // F-8 重排: a-hot-money 前置改为资金流向工具
         ("t-hotmoney-data", "获取资金流向", "get_stock_money_flow", "stock_code"),
@@ -1794,93 +1782,60 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     }));
     edges.push(edge("e-cls-risk-v-validate", "cls-risk-level", "v-validate"));
 
-    // ── P3 (real-nodes): data-quality 数据质量检查 Agent ──
-    // 等待 v-validate 完成（在 cls-risk-level + t-* algo 全跑完后），
-    // 然后评估所有分析师报告的覆盖度、字数、占位检测、一致性。
-    // 与 research-mgr 并行启动，输出通过 portfolio-mgr.context_sources 注入
-    // 最终决策（见 portfolio-mgr 节点的 context_sources 配置）。
-    //
-    // F-6 修复: data-quality 是有意"仅靠 context_sources 消费"的终态。
-    //   data-quality 是慢速 LLM agent（约 5-10s）,与 research-mgr → trader 链路
-    //   并行执行。如果加 e-data-quality-portfolio-mgr 显式边,调度器会强制
-    //   portfolio-mgr 等待 data-quality 完成,串行化整条路径,引入不必要的延迟。
-    //   正确做法是保持 context_sources 消费模式,允许并行。
-    //   画布上 data-quality 看似"断头"是预期设计,非真实 bug。
-    //
-    //   注: 如果未来上游 validate_workflow 把 data-quality 标为 data_blackhole
-    //       或 orphan,可考虑给节点加 kind="context_sink" 标记让校验跳过。
+    // ── P1-4 修复: data-quality 确定性评分（CodeNode + Rhai，替代原 LLM Agent）──
+    // 原 LLM Agent 需 5-10 秒 + token 消耗，改为 Rhai 确定性脚本 <10ms。
+    // 基于 10 个分析师的 confidence + data_gaps 布尔值做聚合评分，
+    // 输出 grade(A-F) + score(0-100) 与 Agent 版本格式一致。
+    // 下游 quality-gate SwitchNode 和 portfolio-mgr 无需修改。
     {
         let dq_id = "data-quality";
-        let dq_title = "数据质量评估：覆盖度、字数、占位检测，输出 JSON 格式 grade/score";
-        let dq_y = 3300.0;
-        let mut dq = agent(dq_id, dq_title, "data-quality-inspector", None, 840.0, dq_y);
-        if let WorkflowNode::Agent(ref mut a) = dq {
-            a.config.context_sources = vec![
-                "a-market-analyst".into(),
-                "a-sentiment".into(),
-                "a-news".into(),
-                "a-fundamentals".into(),
-                "a-policy".into(),
-                "a-hot-money".into(),
-                "a-lockup".into(),
-                "a-research".into(),
-                "a-sector".into(),
-                "a-catalyst".into(),
-                // 注入算法工具节点的 credibility 元数据，支持数据质量检查员
-                // 评估工具可信度分的 4 个维度（freshness/completeness/warnings/source）
-                "t-scoring".into(),
-                "t-valuation".into(),
-                "t-risk".into(),
-            ];
-            // ── 结构化参数注入（结构化参数方案 Phase 2）──
-            // 注入各分析师的 confidence 结构化值，使 DQI 可直接判断
-            // "信心低迷（confidence < 30）" 条件，无需从文本中重新提取。
-            //
-            // 路径规则（V29 修复）：AgentNode 输出包裹在 {role, content: <json_string>, ...} 中，
-            // resolve_var_path 遇到 Value::String 会自动 from_str 解析后再继续下钻，
-            // 因此必须用 `.content.field` 路径访问业务字段。
-            a.config.input_mapping = [
-                ("mk_confidence", "a-market-analyst.content.confidence"),
-                ("sent_confidence", "a-sentiment.content.confidence"),
-                ("news_confidence", "a-news.content.confidence"),
-                ("fund_confidence", "a-fundamentals.content.confidence"),
-                ("pol_confidence", "a-policy.content.confidence"),
-                ("hm_confidence", "a-hot-money.content.confidence"),
-                ("lk_confidence", "a-lockup.content.confidence"),
-                ("res_confidence", "a-research.content.confidence"),
-                ("sec_confidence", "a-sector.content.confidence"),
-                ("cat_confidence", "a-catalyst.content.confidence"),
-                // 注入各分析师的 if_data_gaps 布尔值，无需扫描全文检查缺失项
-                ("mk_data_gaps", "a-market-analyst.content.if_data_gaps"),
-                ("sent_data_gaps", "a-sentiment.content.if_data_gaps"),
-                ("news_data_gaps", "a-news.content.if_data_gaps"),
-                ("fund_data_gaps", "a-fundamentals.content.if_data_gaps"),
-                ("pol_data_gaps", "a-policy.content.if_data_gaps"),
-                ("hm_data_gaps", "a-hot-money.content.if_data_gaps"),
-                ("lk_data_gaps", "a-lockup.content.if_data_gaps"),
-                ("res_data_gaps", "a-research.content.if_data_gaps"),
-                ("sec_data_gaps", "a-sector.content.if_data_gaps"),
-                ("cat_data_gaps", "a-catalyst.content.if_data_gaps"),
-            ]
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-            a.config.output_mode = OutputMode::Json; // V36: 改为 JSON 输出模式，确保 grade/score 被 resolve_var_path 正确解析
-            a.config.model_role = Some("stock-analyst".into());
-            let tool_names = PROFILE_TOOLS
-                .iter()
-                .find(|(k, _)| *k == "data-quality-inspector")
-                .map(|(_, v)| *v)
-                .unwrap_or(&[]);
-            a.config.tools = tool_names
-                .iter()
-                .filter_map(|&tn| tool_def_map.get(tn).cloned())
-                .collect();
-            a.config.exposed_tools = tool_names.iter().map(|&tn| tn.to_string()).collect();
-            a.config.system_prompt =
-                format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
-        }
-        nodes.push(dq);
+        let dq_code = include_str!("../data-quality.rhai").to_string();
+        nodes.push(WorkflowNode::Code(CodeNode {
+            base: WorkflowNodeBase {
+                id: dq_id.into(),
+                title: "数据质量确定性评分".into(),
+                description: Some("基于分析师信心+数据缺口做确定性评分，输出 grade/score".into()),
+                position: Position { x: 840.0, y: 3300.0 },
+                retry: RetryConfig::default(),
+                timeout: Some(10),
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: false,
+            },
+            config: CodeNodeConfig {
+                language: "rhai".into(),
+                code: dq_code,
+                output_var: dq_id.into(),
+                tool_name: None,
+                execute_directly: true,
+                input_mapping: [
+                    ("mk_confidence", "a-market-analyst.content.confidence"),
+                    ("sent_confidence", "a-sentiment.content.confidence"),
+                    ("news_confidence", "a-news.content.confidence"),
+                    ("fund_confidence", "a-fundamentals.content.confidence"),
+                    ("pol_confidence", "a-policy.content.confidence"),
+                    ("hm_confidence", "a-hot-money.content.confidence"),
+                    ("lk_confidence", "a-lockup.content.confidence"),
+                    ("res_confidence", "a-research.content.confidence"),
+                    ("sec_confidence", "a-sector.content.confidence"),
+                    ("cat_confidence", "a-catalyst.content.confidence"),
+                    ("mk_data_gaps", "a-market-analyst.content.if_data_gaps"),
+                    ("sent_data_gaps", "a-sentiment.content.if_data_gaps"),
+                    ("news_data_gaps", "a-news.content.if_data_gaps"),
+                    ("fund_data_gaps", "a-fundamentals.content.if_data_gaps"),
+                    ("pol_data_gaps", "a-policy.content.if_data_gaps"),
+                    ("hm_data_gaps", "a-hot-money.content.if_data_gaps"),
+                    ("lk_data_gaps", "a-lockup.content.if_data_gaps"),
+                    ("res_data_gaps", "a-research.content.if_data_gaps"),
+                    ("sec_data_gaps", "a-sector.content.if_data_gaps"),
+                    ("cat_data_gaps", "a-catalyst.content.if_data_gaps"),
+                ]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            },
+        }));
         edges.push(edge("e-v-validate-data-quality", "v-validate", dq_id));
     }
 
@@ -2016,7 +1971,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             ("risk_disagreement", "risk-convergence.content.disagreement_score"),
             // P2 修复: 注入数据质量评分，使 trader 知道当前数据覆盖度
             // dqi_score 0-100，低分时 trader 应保守操作
-            ("dqi_score", "data-quality.content.score"),
+            ("dqi_score", "data-quality.score"),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2067,13 +2022,18 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("totalScore", "t-scoring.result.totalScore"),
                 // AgentNode 输出包裹在 {role, content: <json_string>, ...} 中
                 // V29 修复: data-quality 是 AgentNode，无 .result 字段，必须走 .content.
-                ("dqi_score", "data-quality.content.score"),
+                ("dqi_score", "data-quality.score"),
                 // P1/P2: 因子回测数据（compute_scoring 工具附加输出）
                 ("factor_weights", "t-scoring.result.factor_backtest.factors"),
+                // P1-1: 市场状态权重调节（regime-weights.rhai）替代纯回测权重
+                // 牛市→趋势↑, 熊市→估值/风险↑, 高波动→全降权
+                ("regime_factor_weights", "regime-weights.factor_weights"),
                 ("market_regime_prior", "t-scoring.result.market_regime.prior"),
                 ("market_regime_state", "t-scoring.result.market_regime.state"),
-                // LlmClassifierNode 输出 {category, model, ...}
-                ("overall_risk", "risk-level.category"),
+                // P1-7 修复: LLM 风险分类器作为算法分类的 fallback
+                // Rhai 脚本先基于 t-risk stockRiskProfile 做确定性算法分类，
+                // 仅当数据缺失时回退到此 LLM 分类结果。
+                ("overall_risk_llm", "risk-level.category"),
                 // AgentNode(Json mode) 输出包裹在 {role, content: <json_string>, ...} 中
                 ("catalyst_level", "a-catalyst.content.catalyst_level"),
                 ("consensusScore", "debate-convergence.content.consensus_score"),
@@ -2140,6 +2100,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("untrusted_debate_conv", "debate-convergence.__untrusted"),
                 ("untrusted_data_quality", "data-quality.__untrusted"),
                 ("untrusted_risk_conv", "risk-convergence.__untrusted"),
+                // ── PACE 情绪因子 f11: pace-calc CodeNode 输出 pace_signal ──
+                ("pace_signal", "pace-calc.pace_signal"),
             ]
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2149,6 +2111,44 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     nodes.push(pm);
     edges.push(edge("e-trader-portfolio-mgr", "trader", "portfolio-mgr"));
     edges.push(edge("e-research-mgr-portfolio-mgr", "research-mgr", "portfolio-mgr"));
+
+    // ── P1-1: regime-weights 市场状态权重调节（CodeNode + Rhai）──
+    // 在 portfolio-mgr 之前运行，输出调节后的因子权重。
+    // 牛市→趋势+资金面权重↑，熊市→估值+风险权重↑，高波动→所有因子降权
+    {
+        let rw_code = include_str!("../regime-weights.rhai").to_string();
+        nodes.push(WorkflowNode::Code(CodeNode {
+            base: WorkflowNodeBase {
+                id: "regime-weights".into(),
+                title: "市场状态权重调节".into(),
+                description: Some("基于市场状态动态调节因子权重".into()),
+                position: Position { x: 20.0, y: 4200.0 },
+                retry: RetryConfig::default(),
+                timeout: Some(5),
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: true,
+            },
+            config: CodeNodeConfig {
+                language: "rhai".into(),
+                code: rw_code,
+                output_var: "regime-weights".into(),
+                tool_name: None,
+                execute_directly: true,
+                input_mapping: [
+                    ("market_regime_state", "t-scoring.result.market_regime.state"),
+                    ("market_regime_prior", "t-scoring.result.market_regime.prior"),
+                ]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            },
+        }));
+        edges.push(edge("e-t-scoring-regime-weights", "t-scoring", "regime-weights"));
+        edges.push(edge("e-regime-weights-portfolio-mgr", "regime-weights", "portfolio-mgr"));
+    }
+
     // debate-convergence → portfolio-mgr: 显式边确保 consensus_score 在公式执行前就绪
     edges.push(edge(
         "e-debate-convergence-portfolio-mgr",
@@ -2186,6 +2186,58 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // ── P2 新增: 公告数据源 → portfolio-mgr 显式边 ──
     // t-catalyst-data 输出公司公告列表，用于公告关键词风险检测
     edges.push(edge("e-t-catalyst-data-portfolio-mgr", "t-catalyst-data", "portfolio-mgr"));
+
+    // ── PACE 情绪因子（f11）: pace-calc.rhai — 基于公告的四维情绪向量计算 ──
+    // pace-calc.rhai 已实现完整的 PACE 计算逻辑（Polarity/Actuality/Credibility/Expectation），
+    // 基于 t-catalyst-data 的公告数据输出 pace_signal（[-1, 1]）。
+    // 输出: {pace_vector:{P,A,C,E}, pace_signal, ...}
+    // portfolio-mgr 消费 pace_signal 作为 f11_signal。
+    {
+        let pace_id = "pace-calc";
+        let pace_code = include_str!("../pace-calc.rhai").to_string();
+        nodes.push(WorkflowNode::Code(CodeNode {
+            base: WorkflowNodeBase {
+                id: pace_id.into(),
+                title: "PACE 情绪因子计算（f11）".into(),
+                description: Some("基于公告数据计算四维情绪向量，输出 pace_signal 作为 f11 因子信号".into()),
+                // 放在 portfolio-mgr 左侧同一行，与 regime-weights 对称
+                position: Position { x: 460.0, y: 4200.0 },
+                retry: RetryConfig::default(),
+                timeout: Some(10),
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: true, // PACE 失败不应阻断主流程
+            },
+            config: CodeNodeConfig {
+                language: "rhai".into(),
+                code: pace_code,
+                output_var: pace_id.into(),
+                tool_name: None,
+                execute_directly: true,
+                input_mapping: [
+                    // 主事件源：公告数据（fallback 路径，pace-calc 会从中提取 event_type）
+                    ("announcement_events", "t-catalyst-data.result"),
+                    // 资金流向数据（用于背离修正）
+                    // t-hotmoney-data.result 的 JSON 结构含 main_net_inflow / daily_avg_volume
+                    ("money_flow_net", "t-hotmoney-data.result.main_net_inflow"),
+                    ("daily_avg_volume", "t-hotmoney-data.result.daily_avg_volume"),
+                    // 板块 ETF 资金流向（用于协同增强）- 暂未接入
+                    ("sector_etf_direction", ""),
+                    // 历史 P 值 - 暂未接入（需要 upstream LLM 长期输出）
+                    ("p_history", ""),
+                ]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            },
+        }));
+        // pace-calc 依赖 t-catalyst-data 和 t-hotmoney-data
+        edges.push(edge("e-t-catalyst-data-pace-calc", "t-catalyst-data", pace_id));
+        edges.push(edge("e-t-hotmoney-data-pace-calc", "t-hotmoney-data", pace_id));
+        // pace-calc → portfolio-mgr: pace_signal 作为 f11 输入
+        edges.push(edge("e-pace-calc-portfolio-mgr", pace_id, "portfolio-mgr"));
+    }
 
     // ── P3 (real-nodes): rule-check 规则检查 Agent ──
     // 在 portfolio-mgr 完成后启动，对照硬性规则阈值（RSI/乖离率/止损/放量下跌/空头排列）
@@ -2249,7 +2301,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // V36 修复: data-quality 已改为 JSON 模式，输出包裹在 {role, content: <json_string>} 中，
             // resolve_var_path 自动解析 JSON 字符串后导航到 grade 字段。
             // 不能用 .params.grade — params 不是 AgentNode 输出的顶层字段。
-            input_var: "data-quality.content.grade".into(),
+            input_var: "data-quality.grade".into(),
             cases: vec![SwitchCase {
                 value: "_value == \"A\" || _value == \"B\" || _value == \"C\"".into(),
                 label: "acceptable".into(),
@@ -2574,6 +2626,16 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             format: None,
         },
     );
+    output_props.insert(
+        "riskSource".to_string(),
+        JsonSchemaProperty {
+            schema_type: "string".to_string(),
+            description: Some("风险分类来源: 算法/LLM回退/无数据".to_string()),
+            default: None,
+            enum_values: None,
+            format: None,
+        },
+    );
     let output_schema_val = serde_json::to_string(&JsonSchema {
         schema_type: "object".to_string(),
         description: Some("股票分析最终决策输出".to_string()),
@@ -2583,1145 +2645,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     })
     .unwrap();
 
-    let variables: Vec<Variable> = vec![
-        // ── 分析流程参数 ──
-        Variable {
-            name: "analysis_depth".into(),
-            var_type: "enum".into(),
-            value: serde_json::json!("standard"),
-            description: Some("分析深度: quick / standard / deep".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "debate_rounds".into(),
-            var_type: "number".into(),
-            // 与 seed 时使用的常量保持一致（seed 函数里硬编码 3）。
-            // 用户在「股票分析设置 → 参数」里调成 6 后，下次模板升级会
-            // 用 merge_variable_values 保留用户的 6，并据此展开 DAG。
-            value: serde_json::json!(3),
-            description: Some("多空辩论轮数 (1-10)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "screening_source".into(),
-            var_type: "string".into(),
-            value: serde_json::json!(""),
-            description: Some("筛选来源标记：serenity(瓶颈掘金) / ''(直接分析)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "max_concurrent".into(),
-            var_type: "number".into(),
-            // v8.1: 从 12 降至 5，避免 10 个 Agent 同批次打满 LLM provider 并发限流。
-            // 之前 12 导致 001313 等小盘股分析卡死（所有新闻源全空 → LLM 响应极慢
-            // → stream.next() 无内部超时 → JoinSet 阻塞整个引擎 5 分钟）。
-            value: serde_json::json!(5),
-            description: Some("并行分析的 Agent 数量上限".into()),
-            is_secret: false,
-        },
-        // ── 数据源参数 ──
-        Variable {
-            name: "kline_period".into(),
-            var_type: "enum".into(),
-            value: serde_json::json!("daily"),
-            description: Some("K线周期: daily / weekly / monthly".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "kline_limit".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(120),
-            description: Some("K线获取根数 (1-500)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "news_limit".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30),
-            description: Some("新闻获取条数 (1-100)".into()),
-            is_secret: false,
-        },
-        // ── Agent 节点 LLM 参数 ──
-        Variable {
-            name: "agent_temperature".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.3),
-            description: Some("所有 Agent 节点 LLM 温度 (0-2)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "agent_max_tokens".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(4096),
-            description: Some("所有 Agent 节点最大输出 token 数".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "agent_timeout_secs".into(),
-            var_type: "number".into(),
-            // v8.1: 从 300s 降至 120s，配合 max_concurrent=5，单 Agent 最多等 2 分钟。
-            // 之前 300s 在 10 个 Agent 同批次场景下，任一挂起即阻塞引擎 5 分钟。
-            value: serde_json::json!(120),
-            description: Some("每个 Agent 节点执行超时秒数 (v8.1: 120s)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "agent_retry_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(2),
-            description: Some("每个 Agent 节点最大重试次数".into()),
-            is_secret: false,
-        },
-        // ── Tool 节点参数 ──
-        Variable {
-            name: "tool_timeout_secs".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30),
-            description: Some("每个 Tool 节点执行超时秒数".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "tool_retry_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(2),
-            description: Some("每个 Tool 节点最大重试次数".into()),
-            is_secret: false,
-        },
-        // ── 评分权重 (ScoringWeights) ──
-        Variable {
-            name: "scoring_trend".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30.0),
-            description: Some("趋势评分权重 (0-100)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "scoring_deviation".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("偏离度评分权重 (0-100)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "scoring_macd".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(15.0),
-            description: Some("MACD 评分权重 (0-100)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "scoring_volume".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(15.0),
-            description: Some("成交量评分权重 (0-100)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "scoring_rsi".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("RSI 评分权重 (0-100)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "scoring_support".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("支撑阻力评分权重 (0-100)".into()),
-            is_secret: false,
-        },
-        // 补全：decision.rs:75 的 ScoringWeights 里有这个字段，但模板里漏了种子化
-        Variable {
-            name: "scoring_boll".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("布林带评分权重 (0-100)".into()),
-            is_secret: false,
-        },
-        // ── 规则引擎阈值 (RuleConfig) ──
-        Variable {
-            name: "rule_rsi_overbought".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(80.0),
-            description: Some("RSI 超买阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rule_rsi_oversold".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("RSI 超卖阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rule_bias_limit_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("均线偏离极限 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rule_volume_signal_block".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("成交量异常时是否阻塞信号".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rule_bear_low_score".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30),
-            description: Some("空方低分阈值 (低于此分数触发警告)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rule_auto_stop_loss_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("自动止损线 (%)".into()),
-            is_secret: false,
-        },
-        // ── 仓位限制 (PositionLimitsConfig) ──
-        Variable {
-            name: "pos_max_single_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("单只股票最大仓位占比 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "pos_max_total".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10),
-            description: Some("最大持仓数量".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "pos_max_sector_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(40.0),
-            description: Some("最大行业暴露占比 (%)".into()),
-            is_secret: false,
-        },
-        // ── 估值参数 (ValueConfig) ──
-        Variable {
-            name: "value_dcf_growth_rate".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(8.0),
-            description: Some("DCF 增长率 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "value_dcf_perpetual_rate".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(3.0),
-            description: Some("DCF 永续增长率 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "value_dcf_discount_rate".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("DCF 折现率 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "value_moat_threshold".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(60),
-            description: Some("护城河评分阈值 (0-100)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "value_fscore_buy".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(7),
-            description: Some("F-Score 买入阈值 (0-9)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "value_safety_margin".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("安全边际最低折扣 (%)".into()),
-            is_secret: false,
-        },
-        // ── 监控参数 (MonitorConfig) ──
-        Variable {
-            name: "monitor_poll_interval_secs".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30),
-            description: Some("监控轮询间隔秒数".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "monitor_change_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("价格异动提醒阈值 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "monitor_turnover".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("换手率异动提醒阈值 (%)".into()),
-            is_secret: false,
-        },
-        // ── 置信度参数 ──
-        Variable {
-            name: "min_confidence".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(60),
-            description: Some("最低置信度阈值 (低于此值建议观望)".into()),
-            is_secret: false,
-        },
-        // ── 数据源 (vendor_ 前缀，健康检查关联) ──
-        Variable {
-            name: "vendor_tencent".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("腾讯财经 — 报价数据".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_eastmoney".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("东方财富 — 财务/K线数据".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_sina".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("新浪财经 — 新闻数据".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_ths".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("同花顺 — 综合数据".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_cninfo".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("巨潮资讯 — 信息披露".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_baidu_stock".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("百度股票 — 数据".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_iwencai".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("问财 — 选股数据".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_akshare".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("AKShare — 开源数据".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "vendor_mootdx".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("Mootdx — 本地行情接口".into()),
-            is_secret: false,
-        },
-        // ── 金融模型参数（通过 prompt 模板 {{var}} 传入 agent）──
-        Variable {
-            name: "risk_free_rate".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.03),
-            description: Some("无风险利率".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "var_confidence".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.95),
-            description: Some("VaR 置信度 (0-1)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "outlier_method".into(),
-            var_type: "enum".into(),
-            value: serde_json::json!("zscore"),
-            description: Some("异常值检测方法: zscore / iqr".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "outlier_threshold".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(2.0),
-            description: Some("异常值 Z-score 阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "kelly_fraction".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.5),
-            description: Some("凯利仓位系数 (建议仓位 = half_kelly × 此系数)".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：凯利前置条件（risk.rs:188-198）──
-        Variable {
-            name: "kelly_min_win_rate".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.4),
-            description: Some("凯利最低胜率要求 (0-1)，低于此值返回不适用".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "kelly_min_odds".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.0),
-            description: Some("凯利最低赔率要求 (avg_win/avg_loss)，低于此值降权".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：组合风控（trading.rs:200 / risk.rs）──
-        Variable {
-            name: "risk_max_drawdown_limit".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(15.0),
-            description: Some("组合最大回撤熔断线 (%)，超过则暂停新开仓".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "risk_max_daily_loss_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(3.0),
-            description: Some("单日最大亏损 (%)，超过则停手".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "risk_correlation_lookback_days".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(60),
-            description: Some("风险平价 / 相关性矩阵的回看窗口 (交易日)".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：仓位限制扩展（position_limits.rs）──
-        Variable {
-            name: "pos_min_cash_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("最低现金比例 (%)，低于则禁止新开仓".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "pos_max_turnover_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(100.0),
-            description: Some("单期最大换手率 (%)，超过则分批调仓".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：护城河量化阈值（value.rs:320-434）──
-        Variable {
-            name: "moat_roe_years_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(3),
-            description: Some("ROE>15% 最少连续年数 (0-10)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "moat_avg_gross_margin_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("平均毛利率下限 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "moat_margin_stable_std_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("毛利率稳定性标准差上限 (σ，%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "moat_fcf_ratio_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.5),
-            description: Some("FCF/净利润 比率下限 (0-1)".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：选股筛选（screener.rs:8 ScreenCriteria）──
-        Variable {
-            name: "screener_min_change_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(-30.0),
-            description: Some("选股最小涨跌幅下限 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "screener_max_change_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30.0),
-            description: Some("选股最大涨跌幅上限 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "screener_main_inflow_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.0),
-            description: Some("主力净流入下限 (万元)，0=不限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "screener_northbound_ratio_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.0),
-            description: Some("北向持仓占比下限 (%)，0=不限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "screener_turnover_rate_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.0),
-            description: Some("换手率下限 (%)，0=不限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "screener_rsi_oversold".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(false),
-            description: Some("选股时要求 RSI 超卖 (<30)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "screener_rsi_overbought".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(false),
-            description: Some("选股时要求 RSI 超买 (>70)".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：信号检测（signals.rs detect_ma_cross / detect_breakout）──
-        Variable {
-            name: "signal_ma_fast".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5),
-            description: Some("MA 金叉检测快线周期 (3-30)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "signal_ma_slow".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20),
-            description: Some("MA 金叉检测慢线周期 (10-120)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "signal_breakout_volume_mult".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.5),
-            description: Some("突破/破位放量倍数阈值 (1.0-3.0)".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：关键价位（key_levels.rs KeyLevelTracker）──
-        Variable {
-            name: "keylevel_lookback_days".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(60),
-            description: Some("关键价位回看窗口 (交易日，10-250)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "keylevel_touch_tolerance_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.0),
-            description: Some("关键价位触碰容差 (%，0.1-5.0)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "keylevel_min_touches".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(2),
-            description: Some("确认支撑/阻力最少触碰次数 (1-10)".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：监控告警（monitor.rs MonitorConfig）──
-        Variable {
-            name: "monitor_alert_cooldown_secs".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(300),
-            description: Some("同一标的告警冷却时间 (秒，10-3600)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "monitor_min_severity".into(),
-            var_type: "enum".into(),
-            value: serde_json::json!("info"),
-            description: Some("最低推送告警等级: info / warn / critical".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "monitor_channels".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("in_app"),
-            description: Some("推送渠道，逗号分隔: in_app / lark / email / webhook".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：推荐器策略开关（recommender/strategies）──
-        Variable {
-            name: "reco_trend_enabled".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("启用趋势跟踪子策略".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "reco_reversion_enabled".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("启用超跌反弹子策略".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "reco_value_enabled".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("启用价值选股子策略".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "reco_capital_enabled".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("启用资金流向子策略".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "reco_watchlist_enabled".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(true),
-            description: Some("启用自选股策略".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "reco_min_confidence".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(60),
-            description: Some("推荐器最低置信度 (0-100)，低于此值不入选".into()),
-            is_secret: false,
-        },
-        // ── A 类补全：决策回溯（decision_tracker.rs）──
-        Variable {
-            name: "decision_max_history_per_stock".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(50),
-            description: Some("每只股票保留的历史决策条数 (10-200)".into()),
-            is_secret: false,
-        },
-        // ── B 类补全：技术指标周期（indicators.rs IndicatorConfig）──
-        Variable {
-            name: "macd_fast".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(12),
-            description: Some("MACD 快线周期 (5-30)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "macd_slow".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(26),
-            description: Some("MACD 慢线周期 (10-60)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "macd_signal".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(9),
-            description: Some("MACD 信号线周期 (3-20)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "boll_period".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20),
-            description: Some("布林带周期 (10-50)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "boll_stddev".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(2.0),
-            description: Some("布林带标准差倍数 (1.0-3.0)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "volume_lookback".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5),
-            description: Some("均量计算回看周期 (3-30，交易日)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "volume_surge_ratio".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.5),
-            description: Some("放量阈值 (量比 > 此值判为放量)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "volume_shrink_ratio".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.7),
-            description: Some("缩量阈值 (量比 < 此值判为缩量)".into()),
-            is_secret: false,
-        },
-        // ── B 类补全：推荐器参数（recommender/strategies）──
-        Variable {
-            name: "trend_kline_limit".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(250),
-            description: Some("趋势策略读取 K 线上限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "trend_amount_ratio_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.8),
-            description: Some("趋势策略最低量比".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rev_rsi_short_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(35.0),
-            description: Some("超跌反弹短线 RSI 上限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rev_drawdown_min_pct".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("超跌反弹中线最低回撤 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "rev_rsi_monthly_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(50.0),
-            description: Some("超跌反弹月线 RSI 上限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "val_pe_short_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(50.0),
-            description: Some("价值策略短线 PE 上限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "val_pe_mid_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(40.0),
-            description: Some("价值策略中线 PE 上限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "val_pb_mid_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(8.0),
-            description: Some("价值策略中线 PB 上限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "cap_inflow_short_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(200.0),
-            description: Some("资金策略短线主力净流入下限 (万元)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "cap_inflow_mid_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(500.0),
-            description: Some("资金策略中线主力净流入下限 (万元)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "cap_turnover_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(2.0),
-            description: Some("资金策略最低换手率 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "cap_nb_ratio_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.3),
-            description: Some("资金策略北向持仓占比下限 (%)".into()),
-            is_secret: false,
-        },
-        // ── B 类补全：交易决策（trading.rs）──
-        Variable {
-            name: "trading_price_deviation_limit".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("交易价偏离分析目标价最大容忍度 (%)".into()),
-            is_secret: false,
-        },
-        // ── B 类补全：风险模型（risk.rs）──
-        Variable {
-            name: "risk_sharpe_annualization".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(252),
-            description: Some("夏普比率年化因子（252=日频，12=月频，4=季频，1=年频）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "risk_kelly_heavy_threshold".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.25),
-            description: Some("凯利公式重仓阈值（>此值判为重仓）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "risk_kelly_medium_threshold".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.1),
-            description: Some("凯利公式中仓阈值（>此值判为中仓）".into()),
-            is_secret: false,
-        },
-        // ── B 类补全：compute_scoring / compute_valuation 工具内部参数 ──
-        Variable {
-            name: "fscore_roe_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.10),
-            description: Some("F-Score ROE 最低要求 (小数)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "fscore_gross_margin_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.30),
-            description: Some("F-Score 毛利率最低要求 (小数)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "fscore_net_margin_min".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.10),
-            description: Some("F-Score 净利率最低要求 (小数)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "fscore_debt_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.60),
-            description: Some("F-Score 负债率上限 (小数)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "fscore_pe_max".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("F-Score PE 上限".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "val_pe_low".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(15.0),
-            description: Some("基本面修正 PE 低估阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "val_pe_high".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(50.0),
-            description: Some("基本面修正 PE 高估阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "val_pb_low".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.0),
-            description: Some("基本面修正 PB 低估阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "val_pb_high".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(6.0),
-            description: Some("基本面修正 PB 高估阈值".into()),
-            is_secret: false,
-        },
-        // ── B 类补全：组合风控 compute_portfolio_risk ──
-        Variable {
-            name: "risk_hhi_concentrated".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.25),
-            description: Some("组合 HHI 高度集中阈值 (0-1)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "risk_hhi_medium".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.15),
-            description: Some("组合 HHI 中度集中阈值 (0-1)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "risk_divers_high".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(8.0),
-            description: Some("组合有效股票数充分分散阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "risk_divers_medium".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(4.0),
-            description: Some("组合有效股票数适度分散阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "analysis_dry_run".into(),
-            var_type: "boolean".into(),
-            value: serde_json::json!(false),
-            description: Some("干跑模式：不调用 LLM，用 mock 输出验证流程".into()),
-            is_secret: false,
-        },
-        // ── 业绩超预期分级阈值
-        Variable {
-            name: "earnings_th_huge_pos".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(50.0),
-            description: Some("业绩超预期: 大幅超预期下界 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "earnings_th_strong_pos".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("业绩超预期: 强超预期下界 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "earnings_th_mild_pos".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(5.0),
-            description: Some("业绩超预期: 略超预期下界 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "earnings_th_mild_neg".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(-5.0),
-            description: Some("业绩超预期: 略低于预期下界 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "earnings_th_strong_neg".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(-20.0),
-            description: Some("业绩超预期: 强低于预期下界 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "earnings_th_huge_neg".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(-50.0),
-            description: Some("业绩超预期: 大幅低于预期下界 (%)".into()),
-            is_secret: false,
-        },
-        // 质押风险分级阈值
-        Variable {
-            name: "pledge_warning_line".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(50.0),
-            description: Some("大股东质押比例预警线 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "pledge_liquidation_line".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(70.0),
-            description: Some("大股东质押比例平仓线 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "pledge_medium_line".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30.0),
-            description: Some("大股东质押中风险阈值 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "pledge_low_line".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("大股东质押低风险阈值 (%)".into()),
-            is_secret: false,
-        },
-        // 蒙特卡洛模拟默认参数
-        Variable {
-            name: "mc_default_price".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("蒙特卡洛模拟默认价格".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "mc_default_return".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.08),
-            description: Some("蒙特卡洛模拟默认年化收益".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "mc_default_volatility".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(0.3),
-            description: Some("蒙特卡洛模拟默认年化波动率".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "mc_default_days".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30),
-            description: Some("蒙特卡洛模拟默认天数".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "mc_default_simulations".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1000),
-            description: Some("蒙特卡洛模拟默认路径数".into()),
-            is_secret: false,
-        },
-        // 行业内估值/增长对比阈值
-        Variable {
-            name: "industry_pe_cheap".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.0),
-            description: Some("行业内 PE 相对低估阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "industry_pe_expensive".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.5),
-            description: Some("行业内 PE 相对高估阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "industry_growth_high".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(1.2),
-            description: Some("行业内高增长阈值".into()),
-            is_secret: false,
-        },
-        // 涨停潜力评分
-        Variable {
-            name: "limit_pct_main".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("主板涨停幅度 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_pct_star".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("创业板/科创板涨停幅度 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_pct_bj".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30.0),
-            description: Some("北交所涨停幅度 (%)".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_up_w_trend".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(40.0),
-            description: Some("涨停潜力评分 - 趋势权重".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_up_w_volume".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(20.0),
-            description: Some("涨停潜力评分 - 量能权重".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_up_w_hits".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(15.0),
-            description: Some("涨停潜力评分 - 历史涨停权重".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_up_th_high".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(60.0),
-            description: Some("涨停潜力 - 高潜力阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_up_th_med".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(30.0),
-            description: Some("涨停潜力 - 中潜力阈值".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "limit_up_th_low".into(),
-            var_type: "number".into(),
-            value: serde_json::json!(10.0),
-            description: Some("涨停潜力 - 低潜力阈值".into()),
-            is_secret: false,
-        },
-        // ── 反思复盘参数（quality-fallback / portfolio-mgr 复用 portfolio-manager 模板）──
-        Variable {
-            name: "actual_outcome".into(),
-            var_type: "string".into(),
-            value: serde_json::json!(""),
-            description: Some("实际走势结果，如 '30天跌8% → 失败'，非空时切换反思模式".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "reflection_depth".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("light"),
-            description: Some("反思深度：light(简要) / deep(详细推理链)".into()),
-            is_secret: false,
-        },
-        // ── v18 (A1 借鉴): 历史反思教训注入 ──
-        // TradingAgents 的 past_context 机制: 决策链路(trader/research-mgr/
-        // value-investor)能拿之前反思的简短教训(同 ticker 近 90 天的
-        // lesson_summary),避免重蹈覆辙。
-        // runtime 由 run_stock_workflow_inner / run_single_stock_analysis
-        // 显式注入 fetch_stock_lessons() 的查询结果;此处仅声明 schema 占位,
-        // 确保模板渲染不报 VARIABLE_NOT_FOUND。
-        Variable {
-            name: "stock_lessons".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("（暂无历史反思）"),
-            description: Some(
-                "v18: 该股最近 90 天的反思教训(lesson_summary),由 runtime 注入".into(),
-            ),
-            is_secret: false,
-        },
-    ];
+    // ── 模板变量定义（拆分到 seed_variables.rs） ──
+    use super::seed_variables::build_template_variables;
+    let variables: Vec<Variable> = build_template_variables();
+
     let variables_val = serde_json::to_string(&variables).map_err(|e| {
         ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化变量失败: {e}"))
     })?;

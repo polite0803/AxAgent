@@ -8,8 +8,8 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_astock_data::as_of::{self, AsOfContext};
-use axagent_core::entity::stock_analyses;
-use axagent_core::entity::stock_reflections;
+use axagent_entities::stock_analyses;
+use axagent_entities::stock_reflections;
 use axagent_harness::workflow_types::Variable;
 use axagent_rt_workflow::work_engine::{ProgressCallback, RunOptions, StepProgressEvent};
 use axagent_stock_analysis::blackboard::build_blackboard_snapshot;
@@ -759,6 +759,39 @@ async fn run_stock_workflow_inner(
                                 dj
                             }
                         });
+                        // ── P1-1: 如果当前股票在持仓中，计算退出紧迫度 ──
+                        // 读取 portfolio_holdings 表，判断分析结果是否触发退出建议
+                        let exit_urgency = (|| -> Option<f64> {
+                            let holding = db.blocking_find(
+                                |db| async {
+                                    use axagent_entities::portfolio_holdings;
+                                    portfolio_holdings::Entity::find()
+                                        .filter(portfolio_holdings::Column::StockCode.eq(&stock_code))
+                                        .one(db).await.ok().flatten()
+                                }
+                            ).ok()??;
+                            // 提取当前分析决策
+                            let action_str = decision_json.as_deref()
+                                .and_then(|dj| serde_json::from_str::<serde_json::Value>(dj).ok())
+                                .and_then(|v| v.get("action").and_then(|a| a.as_str()).map(String::from));
+                            match action_str.as_deref() {
+                                Some("卖出") => Some(90.0),   // 高紧迫卖出
+                                Some("减持") => Some(60.0),   // 中紧迫减持
+                                Some("观望") if holding.shares > 0 => Some(30.0), // 低紧迫（不增持）
+                                _ => None,                     // 持有/买入 → 不触发退出
+                            }
+                        })();
+                        // 将退出紧迫度注入 decision_json
+                        let decision_json = if exit_urgency.is_some() {
+                            decision_json.map(|dj| {
+                                if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(&dj) {
+                                    if let Some(obj) = v.as_object_mut() {
+                                        obj.insert("_exitUrgency".into(), serde_json::json!(exit_urgency));
+                                    }
+                                    v.to_string()
+                                } else { dj }
+                            })
+                        } else { decision_json };
                         let (
                             action,
                             position_pct,

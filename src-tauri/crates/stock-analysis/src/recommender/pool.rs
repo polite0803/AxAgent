@@ -290,19 +290,9 @@ pub fn required_vendors_for_style(
 
 /// 给后端 logs 用的：从 HashSet 序列化为 vendor → bool 表，方便调试
 pub fn vendors_to_map(enabled: &HashSet<String>) -> HashMap<String, bool> {
-    let all = [
-        "eastmoney",
-        "tencent",
-        "ths",
-        "baidu_stock",
-        "akshare",
-        "iwencai",
-        "cninfo",
-        "sina",
-    ];
-    all.iter()
-        .map(|v| (v.to_string(), enabled.contains(*v)))
-        .collect()
+    let all =
+        ["eastmoney", "tencent", "ths", "baidu_stock", "akshare", "iwencai", "cninfo", "sina"];
+    all.iter().map(|v| (v.to_string(), enabled.contains(*v))).collect()
 }
 
 #[cfg(test)]

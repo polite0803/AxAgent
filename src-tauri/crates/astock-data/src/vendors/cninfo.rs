@@ -140,9 +140,7 @@ mod capability_tests {
     use super::*;
 
     fn make_vendor() -> CninfoVendor {
-        CninfoVendor {
-            http: reqwest::Client::new(),
-        }
+        CninfoVendor { http: reqwest::Client::new() }
     }
 
     #[test]

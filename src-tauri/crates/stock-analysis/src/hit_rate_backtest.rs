@@ -244,15 +244,9 @@ pub fn compute_hit_rate_report(validations: &[PickValidation]) -> HitRateReport 
     let mut by_t_plus_n: HashMap<String, Vec<&PickValidation>> = HashMap::new();
 
     for v in validations {
-        by_action
-            .entry(v.inferred_action.clone())
-            .or_default()
-            .push(v);
+        by_action.entry(v.inferred_action.clone()).or_default().push(v);
         by_style.entry(v.style.clone()).or_default().push(v);
-        by_t_plus_n
-            .entry(v.t_plus_n.to_string())
-            .or_default()
-            .push(v);
+        by_t_plus_n.entry(v.t_plus_n.to_string()).or_default().push(v);
     }
 
     let action_stats = |group: &[&PickValidation]| -> ActionStats {
@@ -289,18 +283,9 @@ pub fn compute_hit_rate_report(validations: &[PickValidation]) -> HitRateReport 
     let mut report = HitRateReport {
         total: validations.len(),
         generated_at: chrono::Utc::now().to_rfc3339(),
-        by_action: by_action
-            .iter()
-            .map(|(k, v)| (k.clone(), action_stats(v)))
-            .collect(),
-        by_style: by_style
-            .iter()
-            .map(|(k, v)| (k.clone(), action_stats(v)))
-            .collect(),
-        by_t_plus_n: by_t_plus_n
-            .iter()
-            .map(|(k, v)| (k.clone(), action_stats(v)))
-            .collect(),
+        by_action: by_action.iter().map(|(k, v)| (k.clone(), action_stats(v))).collect(),
+        by_style: by_style.iter().map(|(k, v)| (k.clone(), action_stats(v))).collect(),
+        by_t_plus_n: by_t_plus_n.iter().map(|(k, v)| (k.clone(), action_stats(v))).collect(),
         factor_ic: HashMap::new(),
         factor_ic_ranked: Vec::new(),
         best_picks: Vec::new(),
@@ -309,24 +294,14 @@ pub fn compute_hit_rate_report(validations: &[PickValidation]) -> HitRateReport 
 
     // 计算 9 因子 IC（Spearman 等级相关系数）
     report.factor_ic = compute_factor_ic(validations);
-    let mut ranked: Vec<(String, f64)> = report
-        .factor_ic
-        .iter()
-        .map(|(k, v)| (k.clone(), *v))
-        .collect();
-    ranked.sort_by(|a, b| {
-        b.1.abs()
-            .partial_cmp(&a.1.abs())
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    let mut ranked: Vec<(String, f64)> =
+        report.factor_ic.iter().map(|(k, v)| (k.clone(), *v)).collect();
+    ranked.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
     report.factor_ic_ranked = ranked;
 
     // 排序 best / worst picks（按 final_return_pct 降序 / 升序）
-    let mut sorted: Vec<PickValidation> = validations
-        .iter()
-        .filter(|v| v.final_return_pct.is_some())
-        .cloned()
-        .collect();
+    let mut sorted: Vec<PickValidation> =
+        validations.iter().filter(|v| v.final_return_pct.is_some()).cloned().collect();
     sorted.sort_by(|a, b| {
         b.final_return_pct
             .unwrap_or(0.0)
@@ -358,10 +333,7 @@ pub fn compute_factor_ic(validations: &[PickValidation]) -> HashMap<String, f64>
         let Some(ret) = v.final_return_pct else { continue };
         let Some(ref factors) = v.factor_snapshot else { continue };
         for (factor_id, factor_val) in factors {
-            factor_to_pairs
-                .entry(factor_id.clone())
-                .or_default()
-                .push((*factor_val, ret));
+            factor_to_pairs.entry(factor_id.clone()).or_default().push((*factor_val, ret));
         }
     }
 

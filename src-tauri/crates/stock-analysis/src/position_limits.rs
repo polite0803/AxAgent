@@ -9,11 +9,7 @@ pub struct PositionLimits {
 
 impl Default for PositionLimits {
     fn default() -> Self {
-        Self {
-            max_single_stock_pct: 20.0,
-            max_total_positions: 10,
-            max_sector_exposure_pct: 40.0,
-        }
+        Self { max_single_stock_pct: 20.0, max_total_positions: 10, max_sector_exposure_pct: 40.0 }
     }
 }
 

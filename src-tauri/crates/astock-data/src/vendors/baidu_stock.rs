@@ -21,9 +21,7 @@ fn to_baidu_code(stock_code: &str) -> String {
 }
 
 fn val_to_f64(v: &Value) -> Option<f64> {
-    v.as_str()
-        .and_then(|s| s.parse().ok())
-        .or_else(|| v.as_f64())
+    v.as_str().and_then(|s| s.parse().ok()).or_else(|| v.as_f64())
 }
 
 impl BaiduStockVendor {
@@ -66,9 +64,8 @@ impl StockVendor for BaiduStockVendor {
         let open = val_to_f64(&result["open"]).unwrap_or(0.0);
         let high = val_to_f64(&result["high"]).unwrap_or(0.0);
         let low = val_to_f64(&result["low"]).unwrap_or(0.0);
-        let _close = val_to_f64(&result["close"])
-            .or(val_to_f64(&result["yestclose"]))
-            .unwrap_or(0.0);
+        let _close =
+            val_to_f64(&result["close"]).or(val_to_f64(&result["yestclose"])).unwrap_or(0.0);
         let volume = val_to_f64(&result["volume"]).unwrap_or(0.0);
         let amount = val_to_f64(&result["amount"]).unwrap_or(0.0);
         let change_pct = val_to_f64(&result["changepercent"]).unwrap_or(0.0);
@@ -205,11 +202,8 @@ impl StockVendor for BaiduStockVendor {
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
-                let source = item
-                    .get("source")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("百度股市通")
-                    .to_string();
+                let source =
+                    item.get("source").and_then(|v| v.as_str()).unwrap_or("百度股市通").to_string();
                 let url = item
                     .get("url")
                     .or_else(|| item.get("link"))
@@ -224,14 +218,7 @@ impl StockVendor for BaiduStockVendor {
                     .unwrap_or("")
                     .to_string();
 
-                Some(NewsItem {
-                    title,
-                    summary,
-                    source,
-                    url,
-                    publish_time,
-                    sentiment_score: None,
-                })
+                Some(NewsItem { title, summary, source, url, publish_time, sentiment_score: None })
             })
             .collect())
     }
@@ -444,11 +431,7 @@ impl StockVendor for BaiduStockVendor {
             .filter_map(|item| {
                 let code = item.get("code")?.as_str()?.to_string();
                 let name = item.get("name")?.as_str()?.to_string();
-                let market = item
-                    .get("market")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
+                let market = item.get("market").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 Some(StockSearchResult { code, name, market })
             })
             .collect())
@@ -545,13 +528,10 @@ impl StockVendor for BaiduStockVendor {
                 let reason_tags = item
                     .get("reasonTags")
                     .and_then(|v| {
-                        v.as_str()
-                            .map(|s| s.split(',').map(|t| t.trim().to_string()).collect())
+                        v.as_str().map(|s| s.split(',').map(|t| t.trim().to_string()).collect())
                     })
                     .unwrap_or_default();
-                let sector = item
-                    .get("industry")
-                    .and_then(|v| v.as_str().map(|s| s.to_string()));
+                let sector = item.get("industry").and_then(|v| v.as_str().map(|s| s.to_string()));
 
                 Some(HotStock {
                     stock_code: code,
@@ -587,16 +567,12 @@ impl StockVendor for BaiduStockVendor {
                     .or_else(|| item.get("changepercent"))
                     .and_then(val_to_f64)
                     .unwrap_or(0.0);
-                let turnover = item
-                    .get("turnover")
-                    .or_else(|| item.get("amount"))
-                    .and_then(val_to_f64);
-                let leader_code = item
-                    .get("leaderCode")
-                    .and_then(|v| v.as_str().map(|s| s.to_string()));
-                let leader_name = item
-                    .get("leaderName")
-                    .and_then(|v| v.as_str().map(|s| s.to_string()));
+                let turnover =
+                    item.get("turnover").or_else(|| item.get("amount")).and_then(val_to_f64);
+                let leader_code =
+                    item.get("leaderCode").and_then(|v| v.as_str().map(|s| s.to_string()));
+                let leader_name =
+                    item.get("leaderName").and_then(|v| v.as_str().map(|s| s.to_string()));
                 let leader_change_pct = item.get("leaderChangePct").and_then(val_to_f64);
 
                 Some(IndustryRank {
@@ -652,9 +628,7 @@ mod capability_tests {
     use super::*;
 
     fn make_vendor() -> BaiduStockVendor {
-        BaiduStockVendor {
-            http: reqwest::Client::new(),
-        }
+        BaiduStockVendor { http: reqwest::Client::new() }
     }
 
     #[test]

@@ -107,4 +107,28 @@ pub mod index_jobs;
 // Vector store entities
 pub mod vec_collections;
 
+// AxInvest entities (registered from orphaned files)
+pub mod decision_validations;
+pub mod divergence_logs;
+pub mod earnings_events;
+pub mod financial_snapshots;
+pub mod fund_transfers;
+pub mod news_archive;
+pub mod portfolio_correlation_snapshot;
+pub mod portfolio_holdings;
+pub mod portfolio_metrics_daily;
+pub mod price_alerts;
+pub mod quant_paper_trades;
+pub mod quant_runs;
+pub mod quant_signals;
+pub mod quant_strategies;
+pub mod reco_picks;
+pub mod reflection_lessons;
+pub mod stock_analyses;
+pub mod stock_reflections;
+pub mod strategy_performance;
+pub mod strategy_weight_history;
+pub mod trades;
+pub mod watchlist_items;
+
 pub use sea_orm;

@@ -59,9 +59,7 @@ fn to_tencent_code(stock_code: &str) -> String {
 ///   fields[47] 涨停价
 ///   fields[48] 跌停价
 fn parse_quote(raw: &str) -> Result<StockQuote, DataError> {
-    let start = raw
-        .find('"')
-        .ok_or_else(|| DataError::ParseError("no opening quote".into()))?;
+    let start = raw.find('"').ok_or_else(|| DataError::ParseError("no opening quote".into()))?;
     let end = raw[start + 1..]
         .find('"')
         .ok_or_else(|| DataError::ParseError("no closing quote".into()))?;
@@ -147,8 +145,7 @@ fn parse_klines(raw: &str, _stock_code: &str) -> Result<Vec<KLine>, DataError> {
     let code_key = data
         .as_object()
         .and_then(|obj| {
-            obj.keys()
-                .find(|k| k.starts_with("sz") || k.starts_with("sh") || k.starts_with("bj"))
+            obj.keys().find(|k| k.starts_with("sz") || k.starts_with("sh") || k.starts_with("bj"))
         })
         .cloned()
         .unwrap_or_default();
@@ -168,17 +165,12 @@ fn parse_klines(raw: &str, _stock_code: &str) -> Result<Vec<KLine>, DataError> {
 
     let mut result = Vec::new();
     for item in kline_list {
-        let arr = item
-            .as_array()
-            .ok_or_else(|| DataError::ParseError("K线项不是数组".into()))?;
+        let arr = item.as_array().ok_or_else(|| DataError::ParseError("K线项不是数组".into()))?;
         if arr.len() < 6 {
             continue;
         }
         let parse = |i: usize| -> f64 {
-            arr.get(i)
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0.0)
+            arr.get(i).and_then(|v| v.as_str()).and_then(|s| s.parse().ok()).unwrap_or(0.0)
         };
         result.push(KLine {
             date: arr[0].as_str().unwrap_or("").to_string(),
@@ -289,18 +281,11 @@ impl StockVendor for TencentVendor {
         let text = encoding_rs::GBK.decode(&bytes).0;
         // 格式: v_ff_sz000858="code~main_in~main_out~main_net~main_ratio~retail_in~retail_out~retail_net~retail_ratio~total~?~?~name~date";
         if let Some(line) = text.lines().next() {
-            let raw = line
-                .trim()
-                .trim_start_matches(|c: char| c != '"')
-                .trim_matches('"');
+            let raw = line.trim().trim_start_matches(|c: char| c != '"').trim_matches('"');
             let parts: Vec<&str> = raw.split('~').collect();
             if parts.len() >= 14 && !parts[3].is_empty() {
-                let parse = |i: usize| {
-                    parts
-                        .get(i)
-                        .and_then(|s| s.parse::<f64>().ok())
-                        .unwrap_or(0.0)
-                };
+                let parse =
+                    |i: usize| parts.get(i).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0);
                 return Ok(Some(MoneyFlow {
                     date: parts[13].to_string(),
                     main_net_inflow: parse(3),
@@ -323,16 +308,9 @@ impl StockVendor for TencentVendor {
     }
 
     async fn get_index_quotes(&self) -> Result<Vec<IndexQuote>, DataError> {
-        let indices: Vec<(&str, &str)> = vec![
-            ("sh000001", "上证指数"),
-            ("sz399001", "深证成指"),
-            ("sz399006", "创业板指"),
-        ];
-        let codes = indices
-            .iter()
-            .map(|(c, _)| *c)
-            .collect::<Vec<_>>()
-            .join(",");
+        let indices: Vec<(&str, &str)> =
+            vec![("sh000001", "上证指数"), ("sz399001", "深证成指"), ("sz399006", "创业板指")];
+        let codes = indices.iter().map(|(c, _)| *c).collect::<Vec<_>>().join(",");
         let url = format!("https://qt.gtimg.cn/q={}", codes);
         let resp = self.tencent_get(&url).await?;
         let bytes = resp.bytes().await?;
@@ -382,11 +360,8 @@ impl StockVendor for TencentVendor {
         }
 
         // 按请求顺序排序，保证面板显示顺序一致
-        let order: HashMap<&str, usize> = indices
-            .iter()
-            .enumerate()
-            .map(|(i, (c, _))| (*c, i))
-            .collect();
+        let order: HashMap<&str, usize> =
+            indices.iter().enumerate().map(|(i, (c, _))| (*c, i)).collect();
         results.sort_by_key(|q| order.get(q.code.as_str()).copied().unwrap_or(99));
 
         Ok(results)
@@ -414,9 +389,7 @@ mod capability_tests {
     use super::*;
 
     fn make_vendor() -> TencentVendor {
-        TencentVendor {
-            http: reqwest::Client::new(),
-        }
+        TencentVendor { http: reqwest::Client::new() }
     }
 
     #[test]

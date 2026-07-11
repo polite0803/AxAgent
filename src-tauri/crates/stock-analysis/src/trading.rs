@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use axagent_astock_data::AStockClient;
 use axagent_astock_data::{detect_market_type, get_st_price_limit_pct};
-use axagent_core::entity::{portfolio_holdings, stock_analyses, trades};
+use axagent_entities::{portfolio_holdings, stock_analyses, trades};
 
 /// 实际交易 vs 分析预测对比
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -61,11 +61,7 @@ pub struct PositionSummary {
 
 impl TradingEngine {
     pub fn new(db: Arc<DatabaseConnection>, astock_client: Arc<AStockClient>) -> Self {
-        Self {
-            db,
-            astock_client,
-            enabled: false,
-        }
+        Self { db, astock_client, enabled: false }
     }
 
     // ── 交易校验 ──
@@ -79,8 +75,7 @@ impl TradingEngine {
         quantity: i32,
         price: f64,
     ) -> TradeValidation {
-        self.validate_trade_impl(stock_code, direction, quantity, price, 5.0)
-            .await
+        self.validate_trade_impl(stock_code, direction, quantity, price, 5.0).await
     }
 
     /// 带自定义目标价偏离阈值的交易校验。
@@ -229,10 +224,7 @@ impl TradingEngine {
             let limits = crate::position_limits::PositionLimits::default();
             let positions = self.get_positions().await.unwrap_or_default();
             let current_count = positions.len();
-            let total_mv: f64 = positions
-                .iter()
-                .map(|p| p.market_value.unwrap_or(0.0))
-                .sum();
+            let total_mv: f64 = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
             let new_position_value = price * quantity as f64;
             if let Err(e) =
                 limits.check_new_position(new_position_value, total_mv, current_count, None, &[])
@@ -247,11 +239,7 @@ impl TradingEngine {
             warnings.push("当前非交易日，已记录但仅供参考".to_string());
         }
 
-        TradeValidation {
-            valid: errors.is_empty(),
-            errors,
-            warnings,
-        }
+        TradeValidation { valid: errors.is_empty(), errors, warnings }
     }
 
     // ── 执行交易 ──
@@ -276,7 +264,7 @@ impl TradingEngine {
     ) -> Result<trades::Model, String> {
         // 从 settings 表读取交易开关状态
         let enabled: bool =
-            axagent_core::repo::settings::get_setting(self.db.as_ref(), "trading_enabled")
+            axagent_dao::repo::settings::get_setting(self.db.as_ref(), "trading_enabled")
                 .await
                 .unwrap_or_default()
                 .map(|s| s == "true")
@@ -285,9 +273,7 @@ impl TradingEngine {
             return Err("交易功能未启用，请先在设置中开启".into());
         }
         // 校验
-        let validation = self
-            .validate_trade(stock_code, direction, quantity, price)
-            .await;
+        let validation = self.validate_trade(stock_code, direction, quantity, price).await;
         if !validation.valid {
             return Err(validation.errors.join("; "));
         }
@@ -361,10 +347,7 @@ impl TradingEngine {
         };
         let _ = analysis_id;
 
-        trade
-            .insert(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())
+        trade.insert(self.db.as_ref()).await.map_err(|e| e.to_string())
     }
 
     // ── 持仓汇总 ──

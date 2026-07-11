@@ -410,10 +410,7 @@ pub async fn batch_import_trades(
             created_at: Set(now),
         };
 
-        trade
-            .insert(db)
-            .await
-            .map_err(|e| format!("第 {} 行写入失败: {e}", row.row))?;
+        trade.insert(db).await.map_err(|e| format!("第 {} 行写入失败: {e}", row.row))?;
 
         summary.valid += 1;
     }

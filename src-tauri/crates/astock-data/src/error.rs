@@ -26,12 +26,7 @@ pub enum DataError {
     ///
     /// spec §4.1 统一降级协议
     #[error("As-Of 模式下 {vendor}::{method} 降级: {reason} (as_of={as_of})")]
-    AsOfDegraded {
-        vendor: String,
-        method: String,
-        reason: String,
-        as_of: String,
-    },
+    AsOfDegraded { vendor: String, method: String, reason: String, as_of: String },
 }
 
 #[cfg(test)]

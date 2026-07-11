@@ -410,12 +410,10 @@ fn extract_stance(analyst: &AnalystInput) -> (String, f64) {
         let mut bull_count = 0;
         let mut bear_count = 0;
 
-        let bull_kw = [
-            "买入", "增持", "看多", "看涨", "利好", "上涨", "bull", "buy", "增长", "改善",
-        ];
-        let bear_kw = [
-            "卖出", "减持", "看空", "看跌", "利空", "下跌", "bear", "sell", "下滑", "恶化",
-        ];
+        let bull_kw =
+            ["买入", "增持", "看多", "看涨", "利好", "上涨", "bull", "buy", "增长", "改善"];
+        let bear_kw =
+            ["卖出", "减持", "看空", "看跌", "利空", "下跌", "bear", "sell", "下滑", "恶化"];
 
         for kw in &bull_kw {
             if lower.contains(kw) {
@@ -625,10 +623,8 @@ pub fn compute_evidence_weights(request: EvidenceWeightRequest) -> EvidenceWeigh
             let domain = classify_domain(&analyst.analyst_id);
 
             // 时间维度基础权重
-            let horizon_w = horizon_weights
-                .get(analyst.analyst_id.as_str())
-                .copied()
-                .unwrap_or(1.0);
+            let horizon_w =
+                horizon_weights.get(analyst.analyst_id.as_str()).copied().unwrap_or(1.0);
 
             // 市场周期调节
             let regime_m = regime_modifiers.get(&domain).copied().unwrap_or(1.0);
@@ -757,16 +753,9 @@ mod tests {
             historical_weights: None,
         };
         let report = compute_evidence_weights(request);
-        let tech = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "a-technical")
-            .unwrap();
-        let fund = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "a-fundamentals")
-            .unwrap();
+        let tech = report.analyst_weights.iter().find(|a| a.analyst_id == "a-technical").unwrap();
+        let fund =
+            report.analyst_weights.iter().find(|a| a.analyst_id == "a-fundamentals").unwrap();
         // 牛市: tech regime_modifier > fund regime_modifier
         assert!(
             tech.regime_modifier > fund.regime_modifier,
@@ -789,16 +778,8 @@ mod tests {
             historical_weights: None,
         };
         let report = compute_evidence_weights(request);
-        let fund = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "fundamental")
-            .unwrap();
-        let tech = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "a-technical")
-            .unwrap();
+        let fund = report.analyst_weights.iter().find(|a| a.analyst_id == "fundamental").unwrap();
+        let tech = report.analyst_weights.iter().find(|a| a.analyst_id == "a-technical").unwrap();
         // 熊市: fund regime_modifier > tech regime_modifier
         assert!(
             fund.regime_modifier > tech.regime_modifier,
@@ -903,11 +884,7 @@ mod tests {
             historical_weights: None,
         };
         let report = compute_evidence_weights(request);
-        let tech = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "a-technical")
-            .unwrap();
+        let tech = report.analyst_weights.iter().find(|a| a.analyst_id == "a-technical").unwrap();
         // 高波动下，regime_modifier 应该低于普通牛市
         assert!(
             tech.regime_modifier < 1.3,
@@ -928,11 +905,7 @@ mod tests {
             historical_weights: Some(hist_weights),
         };
         let report = compute_evidence_weights(request);
-        let tech = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "a-technical")
-            .unwrap();
+        let tech = report.analyst_weights.iter().find(|a| a.analyst_id == "a-technical").unwrap();
         // history_modifier 应反映传入的 0.5
         assert!(
             (tech.history_modifier - 0.5).abs() < 0.01,
@@ -962,16 +935,9 @@ mod tests {
             historical_weights: None,
         };
         let report = compute_evidence_weights(request);
-        let money = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "a-hot-money")
-            .unwrap();
-        let value = report
-            .analyst_weights
-            .iter()
-            .find(|a| a.analyst_id == "value-investor")
-            .unwrap();
+        let money = report.analyst_weights.iter().find(|a| a.analyst_id == "a-hot-money").unwrap();
+        let value =
+            report.analyst_weights.iter().find(|a| a.analyst_id == "value-investor").unwrap();
         assert!(
             money.final_weight > value.final_weight,
             "超短线: 资金流权重({}) 应 > 价值权重({})",

@@ -38,11 +38,8 @@ pub const SNAPSHOT_METHODS: &[&str] = &[
 ];
 
 /// 需要遍历个股的 per-stock 快照方法（相对于全市场方法）
-pub const PER_STOCK_METHODS: &[&str] = &[
-    "get_money_flow",
-    "get_north_bound_holding",
-    "get_margin_data",
-];
+pub const PER_STOCK_METHODS: &[&str] =
+    &["get_money_flow", "get_north_bound_holding", "get_margin_data"];
 
 /// 每日快照缓存
 ///

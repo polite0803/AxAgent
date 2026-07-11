@@ -62,9 +62,7 @@ impl PartialOrd for SimEvent {
 impl Ord for SimEvent {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         // 先按时间，再按优先级（都从小到大）
-        self.scheduled_at
-            .cmp(&other.scheduled_at)
-            .then(self.priority.cmp(&other.priority))
+        self.scheduled_at.cmp(&other.scheduled_at).then(self.priority.cmp(&other.priority))
     }
 }
 
@@ -356,9 +354,7 @@ impl SimKernel {
         sent_at: SimTimestamp,
     ) {
         let target_entry = self.agents.get(target_id);
-        let target_type = target_entry
-            .map(|e| e.agent_type.as_str())
-            .unwrap_or("unknown");
+        let target_type = target_entry.map(|e| e.agent_type.as_str()).unwrap_or("unknown");
 
         let latency_ns = self.latency.get(
             source_id,
@@ -407,11 +403,7 @@ mod tests {
 
     impl EchoAgent {
         fn new(id: &str) -> Self {
-            Self {
-                id: id.to_string(),
-                reply_to: None,
-                messages_received: 0,
-            }
+            Self { id: id.to_string(), reply_to: None, messages_received: 0 }
         }
 
         fn with_reply(mut self, target: &str, body: MessageBody) -> Self {
@@ -433,10 +425,8 @@ mod tests {
             self.messages_received += 1;
             let mut actions = Vec::new();
             if let Some((ref target, ref body)) = self.reply_to {
-                actions.push(AgentAction::SendMessage {
-                    target: target.clone(),
-                    body: body.clone(),
-                });
+                actions
+                    .push(AgentAction::SendMessage { target: target.clone(), body: body.clone() });
             }
             actions
         }

@@ -48,10 +48,7 @@ impl Default for BatchRequest {
 
 impl BatchRequest {
     pub fn new(codes: Vec<String>) -> Self {
-        Self {
-            codes,
-            ..Default::default()
-        }
+        Self { codes, ..Default::default() }
     }
 
     pub fn with_per_stock_timeout(mut self, d: Duration) -> Self {
@@ -80,11 +77,7 @@ pub struct BatchResult<T> {
 
 impl<T> BatchResult<T> {
     pub fn new() -> Self {
-        Self {
-            success: HashMap::new(),
-            failures: HashMap::new(),
-            elapsed_ms: 0,
-        }
+        Self { success: HashMap::new(), failures: HashMap::new(), elapsed_ms: 0 }
     }
 
     pub fn total(&self) -> usize {
@@ -156,10 +149,7 @@ pub struct DataFrame {
 
 impl DataFrame {
     pub fn from_quotes(quotes: &[StockQuote]) -> Self {
-        let columns: Vec<String> = DATAFRAME_QUOTE_COLUMNS
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
+        let columns: Vec<String> = DATAFRAME_QUOTE_COLUMNS.iter().map(|s| s.to_string()).collect();
         let rows = quotes
             .iter()
             .map(|q| {
@@ -264,11 +254,7 @@ impl BatchRunner {
             }
         }
 
-        BatchResult {
-            success,
-            failures,
-            elapsed_ms: start.elapsed().as_millis() as u64,
-        }
+        BatchResult { success, failures, elapsed_ms: start.elapsed().as_millis() as u64 }
     }
 }
 

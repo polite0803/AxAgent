@@ -93,7 +93,7 @@ pub async fn get_reco_detail(
     generated_at: String,
     style_filter: Option<String>,
 ) -> Result<Vec<RecoDetailItem>, String> {
-    use axagent_core::entity::reco_picks;
+    use axagent_entities::reco_picks;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
     let db = state.harness.db();
@@ -132,7 +132,7 @@ pub async fn batch_delete_reco_history(
     state: State<'_, AppState>,
     generated_ats: Vec<String>,
 ) -> Result<(), String> {
-    use axagent_core::entity::reco_picks;
+    use axagent_entities::reco_picks;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
     let db = state.harness.db();
@@ -152,7 +152,7 @@ pub async fn batch_delete_reco_history(
 #[tauri::command]
 pub async fn delete_serenity_pick(state: State<'_, AppState>, id: String) -> Result<(), String> {
     use crate::commands::error::ErrorResponse;
-    use axagent_core::entity::reco_picks;
+    use axagent_entities::reco_picks;
     use sea_orm::{EntityTrait, ModelTrait};
 
     let db = state.harness.db();

@@ -5,7 +5,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_astock_data::as_of::AsOfContext;
-use axagent_core::entity::stock_analyses;
+use axagent_entities::stock_analyses;
 use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde_json::json;
@@ -39,7 +39,7 @@ pub async fn run_reflection_workflow(
     db: &DatabaseConnection,
     _client: &axagent_astock_data::AStockClient,
     engine: &Arc<axagent_rt_workflow::work_engine::WorkEngine>,
-    vector_store: &axagent_core::vector_store::VectorStore,
+    vector_store: &axagent_search::vector_store::VectorStore,
     master_key: &[u8; 32],
     stock_code: &str,
     stock_name: &str,
@@ -59,7 +59,7 @@ pub async fn run_reflection_workflow(
     reflection_id: Option<String>,
 ) -> Result<String, String> {
     use axagent_astock_data::as_of;
-    use axagent_core::entity::stock_reflections;
+    use axagent_entities::stock_reflections;
     use sea_orm::sea_query::Expr;
 
     let now_ms = chrono::Utc::now().timestamp_millis();
@@ -466,8 +466,8 @@ pub async fn run_batch_reflection(
     state: State<'_, AppState>,
     max_count: Option<u32>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_core::entity::stock_analyses;
-    use axagent_core::entity::stock_reflections;
+    use axagent_entities::stock_analyses;
+    use axagent_entities::stock_reflections;
 
     let max_count = max_count.unwrap_or(20) as usize;
     let db = state.harness.db();
@@ -634,7 +634,7 @@ async fn extract_lesson_to_rule(
     lesson_summary: &str,
     verdict: Option<&str>,
 ) -> Result<(), String> {
-    use axagent_core::entity::reflection_lessons;
+    use axagent_entities::reflection_lessons;
     use sea_orm::ActiveModelTrait;
     use sea_orm::Set;
 
@@ -685,13 +685,13 @@ pub async fn run_batch_reflection_inner(
     db: &sea_orm::DatabaseConnection,
     _client: &axagent_astock_data::AStockClient,
     _engine: &axagent_rt_workflow::work_engine::WorkEngine,
-    _vector_store: &axagent_core::vector_store::VectorStore,
+    _vector_store: &axagent_search::vector_store::VectorStore,
     _master_key: &[u8; 32],
     max_count: Option<u32>,
 ) -> Result<serde_json::Value, String> {
     use crate::commands::error::ErrorResponse;
-    use axagent_core::entity::stock_analyses;
-    use axagent_core::entity::stock_reflections;
+    use axagent_entities::stock_analyses;
+    use axagent_entities::stock_reflections;
 
     let max_count = max_count.unwrap_or(20) as usize;
     let today_ms = chrono::Utc::now().timestamp_millis();

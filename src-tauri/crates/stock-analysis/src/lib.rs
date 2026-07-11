@@ -12,6 +12,7 @@ pub mod hit_rate_backtest;
 pub mod intent_parser;
 // Phase 2: fundamentals_report 迁移到 astock-data 层(被 tools crate 依赖),
 // 此处用 pub use 保持向后兼容。
+// re-export conserved for backward compat
 pub use axagent_astock_data::fundamentals_report;
 pub mod key_levels;
 pub mod market_regime;

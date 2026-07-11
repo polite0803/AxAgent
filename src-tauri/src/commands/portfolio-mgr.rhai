@@ -32,12 +32,17 @@ let prior = if present(market_regime_prior) {
     market_regime_prior
 } else { 0.50 };
 
-// ── 因子权重：数据驱动的 IC 归一化 ──
-// factor_weights 是 JSON 对象 {trend:{weight,win_rate,ic}, macd:{...}, ...}
-// 从 Rhai 的 Map 中读取各因子权重
-let f_weights = if present(factor_weights) && type_of(factor_weights) == "map" {
+// ── 因子权重：regime-weights（市场状态调节）优先，IC 归一化权重 fallback ──
+// P1-1 修复: regime_factor_weights 来自 regime-weights.rhai（熊/牛/高波动自适应），
+//             fallback 到 t-scoring 的 factor_backtest.factors（纯回测 IC 归一化）。
+// regime_factor_weights 结构: {trend:{weight,regime_mod}, consensus:{...}, catalyst:{...}, ...}
+// factor_weights 结构: {trend:{weight,win_rate,ic}, macd:{...}, ...}
+// 优先用 regime_factor_weights（含市场状态感知），缺失时回退到回测权重。
+let f_weights = if present(regime_factor_weights) && type_of(regime_factor_weights) == "map" {
+    regime_factor_weights
+} else if present(factor_weights) && type_of(factor_weights) == "map" {
     factor_weights
-} else { #{} };  // 空 map 触发等权 fallback
+} else { #{}};  // 空 map 触发等权 fallback
 
 // 尝试从 factor_weights 读取权重；找不到则用等权 fallback
 fn get_weight(weights, factor, fallback) {
@@ -162,6 +167,74 @@ let f3_signal = if f3_weight > 0.0 {
     announcement_modifier * 0.5
 } else { 0.0 };
 
+// ── P1-7 修复: 确定性风险分类（优先算法，LLM 仅作 fallback）──
+// 基于 t-risk.stockRiskProfile 的量化指标做规则分类，结果覆盖 overall_risk，
+// 仅当 t-risk 数据完全缺失时才 fallback 到 cls-risk-level 的 LLM 分类。
+let risk_source = "算法";  // "算法"/"LLM回退"/"无数据"
+let risk_classified = false;
+
+// 定义排序整数，便于比较风险等级高低
+fn risk_rank(label) {
+    switch label {
+        "低风险"|"低" => 0,
+        "中风险"|"中" => 1,
+        "高风险"|"高" => 2,
+        "极高风险"|"极高" => 3,
+        _ => 1
+    }
+}
+
+if present(risk_volatility) && risk_volatility > 0.0 {
+    // 基于波动率/回撤/夏普的确定性分类（A 股校准 V54）
+    let vol = risk_volatility;
+    let dd = if present(risk_drawdown) { risk_drawdown } else { 0.0 };
+    let sharpe = if present(risk_sharpe) { risk_sharpe } else { 0.0 };
+    let roe = if present(risk_roe) { risk_roe } else { 100.0 };  // 无数据时不触发 ROE 惩罚
+    let debt = if present(risk_debt_ratio) { risk_debt_ratio } else { 0.0 };
+    let growth = if present(risk_revenue_growth) { risk_revenue_growth } else { 100.0 };
+
+    // 极高风险: ST/*ST 标的或财务困境
+    let is_extreme = false;
+    // 财务困境: 负债率>85% 且 营收负增长
+    if debt > 85.0 && growth < 0.0 { is_extreme = true; }
+    // 波动率极端 + 夏普极差
+    if vol > 60.0 && sharpe < -1.5 { is_extreme = true; }
+
+    // 高风险: 量化指标高波动 + 基本面无亮点
+    let is_high = false;
+    if (vol > 40.0 || sharpe < 0.0 || dd > 45.0) && (roe < 5.0 || debt > 65.0) { is_high = true; }
+    if vol > 35.0 && sharpe < 0.3 && roe < 8.0 && growth < 5.0 { is_high = true; }
+
+    // 低风险: 量化健康 + 基本面稳健
+    let is_low = false;
+    if vol < 25.0 && sharpe > 0.5 && dd < 30.0 && roe > 8.0 && debt < 55.0 && growth > 3.0 { is_low = true; }
+
+    if is_extreme {
+        overall_risk = "极高风险";
+    } else if is_high {
+        overall_risk = "高风险";
+    } else if is_low {
+        overall_risk = "低风险";
+    } else {
+        overall_risk = "中风险";
+    }
+    risk_source = "算法";
+    risk_classified = true;
+}
+
+// LLM 回退: 仅当算法无法分类时使用
+if !risk_classified && present(overall_risk_llm) {
+    overall_risk = overall_risk_llm;
+    risk_source = "LLM回退";
+    risk_classified = true;
+} else if !risk_classified {
+    overall_risk = "中风险";
+    risk_source = "无数据";
+}
+
+// A 股校准（V54 放宽）后，用风险等级的 rank 校准 f4 惩罚强度
+let risk_rank_val = risk_rank(overall_risk);
+
 // ── 因子 4: 风险 ──
 // V37 修复: 风险信号来自 LlmClassifier（risk-level.category），与技术面回测因子
 // （rsi=RSI超买超卖）语义无关，直接用默认权重，避免被 RSI 回测数据绑架。
@@ -174,16 +247,14 @@ let f3_signal = if f3_weight > 0.0 {
 //      低(20)→+0.40 中(50)→-0.10 高(80)→-0.40 极高(95)→-0.65
 //   原则: 中风险≠无风险，应有轻微负信号；跳变更均匀
 let f4_default = 0.15;
-let f4_weight = if present(overall_risk) { f4_default } else { 0.0 };
-let f4_signal = if f4_weight > 0.0 {
-    switch overall_risk {
+let f4_weight = f4_default;   // overall_risk 始终存在（算法分类确保兜底）
+let f4_signal = switch overall_risk {
         "低风险"|"低" => 0.30,
         "中风险"|"中" => -0.05,   // V51: 中风险轻微负信号（原-0.10）
         "高风险"|"高" => -0.25,   // V51: 降低过度惩罚（原-0.40→-0.25）
         "极高风险"|"极高" => -0.50, // V51: 降低极端惩罚（原-0.65→-0.50）
         _ => 0.0
-    }
-} else { 0.0 };
+    };
 
 // ── P0-2 补: 量化风险指标修正 f4_signal ──
 // t-risk ToolNode 输出 stockRiskProfile 含波动率/回撤/夏普等真实风险指标
@@ -253,11 +324,13 @@ let f5_signal = if f5_weight > 0.0 {
     // 优先用 DCF 上行空间（理论内在价值 - 当前价）/ 当前价
     // dcf_upside: 百分数（如 20.5 表示上行空间 20.5%），需要除以 100 转为十进制
     // 用 clamp 把上行空间映射到 [-1, 1]：低估→正，过高→负
+    // P2-6 修复: 分母从 50 降为 30。A 股价值投资中 DCF 上行 20%+ 是显著低估信号，
+    //            30 做分母使 20% 上行→0.67（强信号），30%+→clamp 到 1.0。
     let dcf_sig = if present(valuation_dcf_upside) {
-        clamp(valuation_dcf_upside / 50.0, -1.0, 1.0)
+        clamp(valuation_dcf_upside / 30.0, -1.0, 1.0)
     } else { 0.0 };
     let graham_sig = if present(valuation_graham_upside) {
-        clamp(valuation_graham_upside / 50.0, -1.0, 1.0)
+        clamp(valuation_graham_upside / 30.0, -1.0, 1.0)
     } else { 0.0 };
     // F-Score 加成: score >= 7（财务强劲）→ 估值信号可信度更高，信号放大 1.3x
     let fscore_mult = if present(valuation_fscore) && valuation_fscore >= 7 { 1.3 } else { 1.0 };
@@ -480,81 +553,14 @@ let f10_signal = if present(lockup_bundle) && type_of(lockup_bundle) == "string"
 // V56: 筹码因子消费 IC 代理权重（key="chip"）
 let f10_weight = if f10_signal != 0.0 { get_weight(f_weights, "chip", f10_default) } else { 0.0 };
 
-// ── P1 新增: 因子 11 — PACE 四维情绪向量（pace-calc.rhai）──
-// 输入: llm_events (来自 a-catalyst / a-news 的事件 JSON)
-//       money_flow_net / daily_avg_volume (背离修正)
-//       sector_etf_direction (协同增强)
-//       p_history (30日 P 值历史，Z-score 计算)
-// 输出: pace_signal ∈ [-1, 1]，pace_factor 含背离/协同修正
-let f11_default = 0.12;
-let f11_signal = 0.0;
-let f11_pace_vector = #{};
-let f11_divergence_flag = false;
-let f11_synergy_flag = false;
-let f11_sentiment_anomaly = false;
-
-// 调用 pace-calc.rhai 的条件：至少需要有事件数据或公告数据
-let has_pace_input = (present(llm_events) && llm_events != "") || (present(announcements) && announcements != "");
-
-if has_pace_input {
-    // 构建 pace-calc 的输入上下文（注入 pace-calc 函数依赖的变量）
-    // pace-calc 设计为独立模块，通过全局变量获取输入
-    // 转换 announcement_events 为 pace-calc 可用的格式
-    let announcement_events_str = if present(announcements) && announcements != "" && f3_has_announcement_signal {
-        // announcements 已经是 JSON 数组字符串，可直接使用
-        announcements
-    } else { "" };
-
-    // 注入 money_flow_net 和 daily_avg_volume（来自 t-hotmoney-data）
-    // 注: money_flow 是 JSON 字符串，需要解析提取
-    let money_flow_net_val = 0.0;
-    let daily_avg_volume_val = 0.0;
-    if present(money_flow) && money_flow != "" {
-        let mf = json_parse(money_flow);
-        if type_of(mf) == "map" {
-            let main_in = mf["main_net_inflow"];
-            money_flow_net_val = if type_of(main_in) == "f64" { main_in }
-                else if type_of(main_in) == "int" { main_in as f64 }
-                else {
-                    let super_in = mf["super_large_net"];
-                    let large_in = mf["large_net"];
-                    let s = if type_of(super_in) == "f64" { super_in } else { 0.0 };
-                    let l = if type_of(large_in) == "f64" { large_in } else { 0.0 };
-                    s + l
-                };
-        }
-    }
-    // sector_etf_direction 从上游注入（若存在）
-    // p_history 从上游注入（若存在）
-
-    // 通过 eval 在 pace-calc 上下文中执行
-    // pace-calc 返回 pace_result map
-    let pace_result = (||{
-        let llm_events_val = if present(llm_events) { llm_events } else { "" };
-        let now_timestamp_val = 0.0;
-        let money_flow_net = money_flow_net_val;
-        let daily_avg_volume = daily_avg_volume_val;
-        let sector_etf_direction_val = if present(sector_etf_direction) { sector_etf_direction } else { "" };
-        let p_history_val = if present(p_history) { p_history } else { [] };
-
-        // 载入 pace-calc 脚本（嵌入式执行）
-        // 注: 实际生产环境中这里应该由 Rust 端 eval_file("pace-calc.rhai") 执行
-        // 此处为 Rhai 内联代码的简化模拟：从 pace-calc 逻辑抽取关键计算
-        // 完整版本在 Rust core.rs 中通过 eval_file 调用 pace-calc.rhai
-        0.0  // 占位：真实值由 Rust 端注入 pace_signal
-    })();
-
-    // 生产环境中 pace_signal 由 Rust 端计算后注入
-    if present(pace_signal_raw) && type_of(pace_signal_raw) == "f64" {
-        f11_signal = clamp(pace_signal_raw, -1.0, 1.0);
-    }
-    if present(pace_vector) && type_of(pace_vector) == "map" {
-        f11_pace_vector = pace_vector;
-    }
-    if present(pace_divergence_flag) { f11_divergence_flag = pace_divergence_flag; }
-    if present(pace_synergy_flag) { f11_synergy_flag = pace_synergy_flag; }
-    if present(pace_sentiment_anomaly) { f11_sentiment_anomaly = pace_sentiment_anomaly; }
-}
+// ── f11: PACE 情绪因子 — 基于公告的四维情绪向量 ──
+// pace-calc.rhai 基于 t-catalyst-data 公告数据计算 PACE 信号（Polarity/Actuality/Credibility/Expectation），
+// 输出 pace_signal ∈ [-1, 1]，通过 input_mapping "pace-calc.pace_signal" 注入。
+// f11 权重 0.08（与 f9/f10 同级补充因子），仅在 pace_signal 非零时激活。
+let f11_default = 0.08;
+let f11_signal = if present(pace_signal) && type_of(pace_signal) == "f64" && pace_signal != 0.0 {
+    clamp(pace_signal, -1.0, 1.0)
+} else { 0.0 };
 let f11_weight = if f11_signal != 0.0 { f11_default } else { 0.0 };
 
 // ── P1 新增: 技术面硬约束否决（technical-veto.rhai）──
@@ -628,7 +634,7 @@ if weights_collapsed {
     decision_trail.push(#{
         "rule_id": "R-203",
         "status": "DOWNGRADED",
-        "detail": `因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,强制观望`,
+        "detail": `因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,置信度×0.7`,
         "timestamp": 0.0,
     });
 }
@@ -701,7 +707,8 @@ if trader_data_valid {
 }
 
 // ── 贝叶斯融合 ──
-// V51: 因子数 7（f1~f7），P1 扩展至 10 因子（新增 f9 资金面 + f10 筹码面 + f11 PACE 情绪）
+// V51: 因子数 7（f1~f7），P1 扩展至 10 因子（新增 f9 资金面 + f10 筹码面）
+// PACE 集成: 新增 f11 情绪因子 → 11 因子, total_weight 包含 f11
 let total_weight = f1_weight + f2_weight + f3_weight + f4_weight + f5_weight + f6_weight + f7_weight + f9_weight + f10_weight + f11_weight;
 let weighted_signal = f1_weight*f1_signal + f2_weight*f2_signal
                     + f3_weight*f3_signal + f4_weight*f4_adjusted
@@ -767,15 +774,13 @@ let evidence_scale = if total_weight < 0.3 {
 	//   权威定义 (Nature Neurosci 2016): confidence = P(决策正确 | 证据), 是后验概率。
 	//   posterior 已通过 f4_signal 综合风险因子, confidence = posterior × 100 即可。
 	//   "高风险 + 高置信度看多 + action=持有" 是自洽的风险管理, 不是矛盾。
-	let risk_bias = if present(overall_risk) {
-	    switch overall_risk {
-	        "极高" => -0.15,      // 极高风险 → 卖出门槛下降
-	        "高风险"|"高" => -0.08, // 高风险 → 减持门槛下降
-	        "中风险"|"中" => 0.0,
-	        "低风险"|"低" => 0.05,
-	        _ => 0.0
-	    }
-	} else { 0.0 };
+	let risk_bias = switch overall_risk {
+	    "极高风险"|"极高" => -0.15,      // 极高风险 → 卖出门槛下降
+	    "高风险"|"高" => -0.08,         // 高风险 → 减持门槛下降
+	    "中风险"|"中" => 0.0,
+	    "低风险"|"低" => 0.05,
+	    _ => 0.0
+	};
 	let effective_posterior = clamp(posterior + risk_bias, 0.0, 1.0);
 
 	// ── 无 f7 版本 effective_posterior 与 action（消除自指）──
@@ -813,11 +818,11 @@ let evidence_scale = if total_weight < 0.3 {
 	    0.0
 	} else {
 	    let kelly_pos = clamp(kelly_raw / 2.0 * 100.0, 0.0, 95.0);
-	    if present(overall_risk) && overall_risk == "极高" {
+	    if overall_risk == "极高风险" || overall_risk == "极高" {
 	        clamp(kelly_pos, 0.0, 10.0)   // 极高风险: 仓位≤10%
-	    } else if present(overall_risk) && (overall_risk == "高风险" || overall_risk == "高") {
+	    } else if overall_risk == "高风险" || overall_risk == "高" {
 	        clamp(kelly_pos, 0.0, 35.0)   // 高风险: 仓位≤35%
-	    } else if present(overall_risk) && (overall_risk == "中风险" || overall_risk == "中") {
+	    } else if overall_risk == "中风险" || overall_risk == "中" {
 	        clamp(kelly_pos, 0.0, 50.0)   // 中风险: 仓位≤50%
 	    } else {
 	        kelly_pos
@@ -846,16 +851,21 @@ let evidence_scale = if total_weight < 0.3 {
 	let disagreement_mod = if present(risk_disagreement) {
 	    clamp((100.0 - risk_disagreement) / 100.0, 0.3, 1.0)
 	} else { 1.0 };
-	let final_confidence = clamp(posterior * 100.0 * disagreement_mod, 0.0, 100.0);
+	// P1 修复: confidence 应与 action 使用一致的 effective_posterior（含 risk_bias）
+	// 原: posterior * 100.0 × disagreement_mod — 与 action 阈值不一致（action 用 effective_posterior）
+	// 改: effective_posterior * 100.0 × disagreement_mod — 确保数字与 action 语义一致
+	// 高风险例子: posterior=0.70, risk_bias=-0.08 → effective=0.62 → confidence=62%
+	//   "62% 置信度的持有" 比 "70% 置信度的持有" 更自洽
+	let final_confidence = clamp(effective_posterior * 100.0 * disagreement_mod, 0.0, 100.0);
 
 	// ── M2 修复：LLM 失败级联兜底 ──
 	// V55 扩展: 上游 AgentNode 走 strict_mode 兜底时（LLM 输出无法解析为合法 JSON），
 	//   agent_executor 会注入 __untrusted=true 标记。下游若读到任一上游不可信，
 	//   视为严重数据异常：强制 weights_collapsed（观望+空仓+confidence 对半），
 	//   避免"50/50 中性兜底"被当成有效信号继续融合。
-	// V56 优化: 分级降级 — 单点失败不应全盘观望。
+	// V56 优化 + V54 修复: 分级降级 — 单点失败不应全盘观望。
 	//   level 2 全盘降级 (weights_collapsed): total_weight<0.3 或 untrusted_count>=2
-	//     → 空仓 + 观望 + confidence×0.5
+	//     → 仅置信度×0.7，不强制空仓+观望（让 posterior 自然决定 action）
 	//   level 1 部分降级 (partial_degraded): untrusted_count==1
 	//     → 禁止买入/增持（降级为持有） + confidence×0.7，不强制空仓
 	//   理由: 6 个上游 Agent 中任一失败就全盘降级过于保守，
@@ -863,8 +873,9 @@ let evidence_scale = if total_weight < 0.3 {
 	let weights_collapsed = total_weight < 0.3 || untrusted_count >= 2;
 	let partial_degraded = untrusted_count == 1;
 	if weights_collapsed {
-	    position_pct = 0.0;
-	    final_confidence = clamp(final_confidence / 2.0, 0.0, 100.0);
+	    // V54 修复: 不再强制空仓+观望，仅降置信度
+	    let old_conf = final_confidence;
+	    final_confidence = clamp(final_confidence * 0.7, 0.0, 100.0);
 	} else if partial_degraded {
 	    final_confidence = clamp(final_confidence * 0.7, 0.0, 100.0);
 	}
@@ -894,13 +905,11 @@ let evidence_scale = if total_weight < 0.3 {
 	    base_action = "减持";
 	}
 
-	// ── 最终 action：sanity 不通过或权重坍缩则强制降级 ──
+	// ── 最终 action：sanity 不通过则强制降级 ──
+	// V54 修复: weights_collapsed 不再强制"观望"，让 posterior 自然决定 action
 	let final_action = if !trader_data_valid {
 	    // 数据异常时：根据 posterior 决定是"观望"还是"卖出"
 	    if posterior < 0.45 { "卖出" } else { "观望" }
-	} else if weights_collapsed {
-	    // 权重坍缩：大部分因子缺失或≥2个上游不可信，强制"观望"
-	    "观望"
 	} else if partial_degraded && (base_action == "买入" || base_action == "增持") {
 	    // V56: 单点不可信 — 禁止加仓，降级为"持有"（可继续持仓但不追加）
 	    "持有"
@@ -920,17 +929,15 @@ let evidence_scale = if total_weight < 0.3 {
 	// 注意: 必须在仓位对齐之前执行, 使降级后的 action 正确触发仓位调整
 	let risk_downgraded = false;
 	let risk_downgrade_note = "";
-	if present(overall_risk) {
-	    if overall_risk == "极高" && (final_action == "买入" || final_action == "增持" || final_action == "持有") {
-	        risk_downgraded = true;
-	        risk_downgrade_note = ` | ⚠️极高风险风控否决:${base_action}→观望(极高风险不应继续持仓)`;
-	        final_action = "观望";
-	    } else if (overall_risk == "高风险" || overall_risk == "高") && (final_action == "买入" || final_action == "增持") {
-	        risk_downgraded = true;
-	        risk_downgrade_note = ` | ⚠️高风险风控否决:${base_action}→持有(高风险禁止加仓)`;
-	        final_action = "持有";
-	    }
-	}
+	if overall_risk == "极高风险" && (final_action == "买入" || final_action == "增持" || final_action == "持有") {
+        risk_downgraded = true;
+        risk_downgrade_note = ` | ⚠️极高风险风控否决:${base_action}→观望(极高风险不应继续持仓)`;
+        final_action = "观望";
+    } else if (overall_risk == "高风险" || overall_risk == "高") && (final_action == "买入" || final_action == "增持") {
+        risk_downgraded = true;
+        risk_downgrade_note = ` | ⚠️高风险风控否决:${base_action}→持有(高风险禁止加仓)`;
+        final_action = "持有";
+    }
 
 	// ── V47 新增: 空头 trader 预测否决 ──
 	// 当 trader 预测 targetPrice 显著低于 currentPrice（≥15%）时，意味着系统自身
@@ -970,9 +977,9 @@ let evidence_scale = if total_weight < 0.3 {
 	    ` | ⚠️仓位修正:action=${final_action}仓位调至${position_pct}%`
 	} else { "" };
 
-	// M2 兜底：权重坍缩时在 reasoning 中标记
+	// V54 修复: 权重坍缩不再强制观望+空仓，仅降置信度
 let collapse_note = if weights_collapsed {
-    ` | ⚠️因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,强制观望+空仓`
+    ` | ⚠️因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,置信度×0.7`
 } else if partial_degraded {
     ` | ⚠️单点上游不可信(untrusted_count=1),禁止加仓+置信度×0.7`
 } else { "" };
@@ -981,13 +988,13 @@ let collapse_note = if weights_collapsed {
 	//   (如 21%)强行抬高到风险上限(35%), 违背"高风险限制仓位上限"的语义。
 	//   风控是上限不是强制值, 低仓位不应被抬高。
 	// V43: 去掉"action阈值左移"描述, 因风险 action 约束已改为硬性否决(见上方 risk_downgrade)
-	let risk_note = if present(overall_risk) && overall_risk == "极高" {
+	let risk_note = if overall_risk == "极高风险" {
 	    if position_pct > 10.0 { position_pct = 10.0; }
 	    ` | ⚠️极高风险:仓位≤10%`
-	} else if present(overall_risk) && (overall_risk == "高风险" || overall_risk == "高") {
+	} else if overall_risk == "高风险" || overall_risk == "高" {
 	    if position_pct > 35.0 { position_pct = 35.0; }
 	    ` | ⚠️高风险:仓位≤35%`
-	} else if present(overall_risk) && (overall_risk == "中风险" || overall_risk == "中") && position_pct > 50.0 {
+	} else if (overall_risk == "中风险" || overall_risk == "中") && position_pct > 50.0 {
 	    position_pct = 50.0;
 	    ` | ⚠️中风险:仓位上限50%`
 	} else { "" };
@@ -997,14 +1004,16 @@ let data_gaps = [];
 if !present(totalScore) { data_gaps.push("技术服务评分(t-scoring)"); }
 if !present(consensusScore) { data_gaps.push("辩论共识分数(debate-convergence)"); }
 if !present(catalyst_level) || catalyst_level == "" { data_gaps.push("催化剂评估(a-catalyst)"); }
-if !present(overall_risk) { data_gaps.push("风险等级(risk-level)"); }
+// overall_risk 始终存在（算法分类确保兜底）
 if !present(money_flow) { data_gaps.push("资金流向(t-hotmoney-data)"); }
 if !present(lockup_bundle) { data_gaps.push("筹码面数据(t-lockup-data)"); }
 if !present(dragon_tiger) { data_gaps.push("龙虎榜数据(t-dragon-tiger-data)"); }
 if !present(announcements) { data_gaps.push("公告数据(t-catalyst-data)"); }
-// P2-1: evidence_pct 分母用 10 因子的理论最大权重和
-// 10 因子默认权重: f1=0.15 + f2=0.25 + f3=0.20 + f4=0.15 + f5=0.15 + f6=0.15 + f7=0.15 + f9=0.08 + f10=0.08 + f11=0.12 = 1.48
-let max_weight = 0.15 + 0.25 + 0.20 + 0.15 + 0.15 + 0.15 + 0.15 + 0.08 + 0.08 + 0.12;
+if !present(pace_signal) { data_gaps.push("PACE情绪因子(pace-calc)"); }
+// evidence_pct 分母用 10 因子的理论最大权重和（f11=0.08 是 PACE 情绪因子）
+// 10 活跃因子默认权重（PACE 集成后 f11 激活: f11=0.08）:
+//   f1=0.15 + f2=0.25 + f3=0.20 + f4=0.15 + f5=0.15 + f6=0.15 + f7=0.15 + f9=0.08 + f10=0.08 + f11=0.08 = 1.44
+let max_weight = 0.15 + 0.25 + 0.20 + 0.15 + 0.15 + 0.15 + 0.15 + 0.08 + 0.08 + 0.08;
 let evidence_pct_raw = (total_weight / max_weight * 100.0).to_int();
 let evidence_pct = if evidence_pct_raw > 100 { 100 } else { evidence_pct_raw };
 
@@ -1035,7 +1044,8 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
     "action": final_action,
     "positionPct": (position_pct * 10.0).round() / 10.0,
     "confidence": (final_confidence * 10.0).round() / 10.0,
-    "riskLevel": if present(overall_risk) { overall_risk } else { "未知" },
+    "riskLevel": overall_risk,
+    "riskSource": risk_source,
     "stopLossPct": if position_pct > 0.0 { switch time_horizon {
         "ultra_short"=>3.0,"short"=>5.0,"mid"=>8.0,"long"=>12.0,_=>5.0
     }} else { 0.0 },
@@ -1068,13 +1078,6 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
         "vetoed": tech_vetoed,
         "rule_id": tech_veto_rule,
         "reason": tech_veto_reason,
-    },
-    "pace_summary": #{
-        "signal": (f11_signal*100.0).round()/100.0,
-        "divergence_flag": f11_divergence_flag,
-        "synergy_flag": f11_synergy_flag,
-        "sentiment_anomaly": f11_sentiment_anomaly,
-        "pace_vector": f11_pace_vector,
     },
     "computation_logs": `prior=${prior}${prior_src} post=${(posterior*100.0).round()/100.0} sig=${(avg_signal*100.0).round()/10.0} w=${total_weight} odds=${(odds*10.0).round()/10.0} k=${(kelly_raw*1000.0).round()/1000.0} pos=${position_pct} f9=${(f9_signal*100.0).round()/100.0} f10=${(f10_signal*100.0).round()/100.0} f11=${(f11_signal*100.0).round()/100.0} ann=${(announcement_modifier*100.0).round()/100.0}`,
     "f7_free": #{

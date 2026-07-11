@@ -8,29 +8,15 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum FallbackStep {
-    VendorQuote {
-        vendor: String,
-        timeout_ms: u64,
-    },
-    KlinesSynthesize {
-        vendor: String,
-        period: String,
-        limit: u32,
-    },
-    FillFinancials {
-        vendor: String,
-    },
-    Fail {
-        reason: String,
-    },
+    VendorQuote { vendor: String, timeout_ms: u64 },
+    KlinesSynthesize { vendor: String, period: String, limit: u32 },
+    FillFinancials { vendor: String },
+    Fail { reason: String },
 }
 
 impl FallbackStep {
     pub fn vendor(v: impl Into<String>) -> Self {
-        Self::VendorQuote {
-            vendor: v.into(),
-            timeout_ms: 8000,
-        }
+        Self::VendorQuote { vendor: v.into(), timeout_ms: 8000 }
     }
 }
 
@@ -43,11 +29,7 @@ pub struct FallbackChain {
 
 impl FallbackChain {
     pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            steps: Vec::new(),
-            total_timeout_ms: 30000,
-        }
+        Self { name: name.into(), steps: Vec::new(), total_timeout_ms: 30000 }
     }
 
     pub fn then(mut self, step: FallbackStep) -> Self {
@@ -81,16 +63,9 @@ impl FallbackChain {
 
     pub fn a_share_financials() -> Self {
         Self::new("a_share_financials")
-            .then(FallbackStep::VendorQuote {
-                vendor: "tencent".into(),
-                timeout_ms: 5000,
-            })
-            .then(FallbackStep::FillFinancials {
-                vendor: "eastmoney".into(),
-            })
-            .then(FallbackStep::FillFinancials {
-                vendor: "xueqiu".into(),
-            })
+            .then(FallbackStep::VendorQuote { vendor: "tencent".into(), timeout_ms: 5000 })
+            .then(FallbackStep::FillFinancials { vendor: "eastmoney".into() })
+            .then(FallbackStep::FillFinancials { vendor: "xueqiu".into() })
             .with_total_timeout(30_000)
     }
 }
@@ -143,10 +118,7 @@ impl ChainExecutor {
         step: &FallbackStep,
     ) -> Result<Option<StockQuote>, DataError> {
         match step {
-            FallbackStep::VendorQuote {
-                vendor: _,
-                timeout_ms,
-            } => {
+            FallbackStep::VendorQuote { vendor: _, timeout_ms } => {
                 let _ = timeout_ms;
                 match self.client.get_quote(code).await {
                     Ok(q) => {
@@ -159,11 +131,7 @@ impl ChainExecutor {
                     Err(_) => Ok(None),
                 }
             },
-            FallbackStep::KlinesSynthesize {
-                vendor,
-                period,
-                limit,
-            } => {
+            FallbackStep::KlinesSynthesize { vendor, period, limit } => {
                 let _ = (vendor, period, limit);
                 Ok(None)
             },
@@ -171,10 +139,9 @@ impl ChainExecutor {
                 let _ = vendor;
                 Ok(None)
             },
-            FallbackStep::Fail { reason } => Err(DataError::VendorError {
-                vendor: "chain".into(),
-                message: reason.clone(),
-            }),
+            FallbackStep::Fail { reason } => {
+                Err(DataError::VendorError { vendor: "chain".into(), message: reason.clone() })
+            },
         }
     }
 }
@@ -206,17 +173,12 @@ mod tests {
     #[test]
     fn chain_financials_uses_fill_step() {
         let c = FallbackChain::a_share_financials();
-        assert!(c
-            .steps
-            .iter()
-            .any(|s| matches!(s, FallbackStep::FillFinancials { .. })));
+        assert!(c.steps.iter().any(|s| matches!(s, FallbackStep::FillFinancials { .. })));
     }
 
     #[test]
     fn fail_step_serializes() {
-        let step = FallbackStep::Fail {
-            reason: "test".into(),
-        };
+        let step = FallbackStep::Fail { reason: "test".into() };
         let json = serde_json::to_string(&step).unwrap();
         assert!(json.contains("\"type\":\"fail\""));
         assert!(json.contains("\"reason\":\"test\""));

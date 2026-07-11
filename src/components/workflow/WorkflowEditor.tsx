@@ -45,6 +45,7 @@ import { DebugPanel } from "./DebugPanel";
 import { DiagnosticDrawer } from "./Diagnostic";
 import { clearDragPayload, getDragPayload } from "./dndState";
 import { BaseEdge } from "./Edges/BaseEdge";
+import EdgeMarkerDefs from "./Edges/EdgeMarkerDefs";
 import { EditorHeader } from "./Header/EditorHeader";
 import { useFlowNodes } from "./Hooks/useFlowNodes";
 import { useKeyboardShortcuts } from "./Hooks/useKeyboardShortcuts";
@@ -349,7 +350,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       }
       setValidationMsgMap(msgMap);
-    }, 300);
+    }, 500);
     return () => {
       if (validationTimerRef.current) { clearTimeout(validationTimerRef.current); }
     };
@@ -1987,6 +1988,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 }}
                 connectionLineType={ConnectionLineType.SmoothStep}
                 multiSelectionKeyCode="Shift"
+                onlyRenderVisibleElements
               >
                 <Background
                   variant={BackgroundVariant.Lines}
@@ -1995,6 +1997,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   size={1}
                   style={{ opacity: 0.4 }}
                 />
+                <EdgeMarkerDefs />
                 <Controls style={{ borderRadius: 8 }} />
                 <MiniMap
                   nodeColor={(node: Node) => (node.data as { color?: string })?.color || token.colorTextQuaternary}

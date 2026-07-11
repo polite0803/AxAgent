@@ -12,7 +12,7 @@ use crate::recommender::pool::SeedItem;
 use crate::recommender::scoring::{calc_confidence, calc_position};
 use crate::recommender::types::{Period, RecoPick, Style};
 use async_trait::async_trait;
-use axagent_astock_data::AStockClient;
+use axagent_harness::market_data::MarketDataProvider;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -23,29 +23,21 @@ pub struct WatchlistStrategy {
 
 impl WatchlistStrategy {
     pub const fn ultra_short() -> Self {
-        Self {
-            period: Period::UltraShort,
-        }
+        Self { period: Period::UltraShort }
     }
     pub const fn short() -> Self {
-        Self {
-            period: Period::Short,
-        }
+        Self { period: Period::Short }
     }
     pub const fn mid() -> Self {
-        Self {
-            period: Period::Mid,
-        }
+        Self { period: Period::Mid }
     }
     pub const fn long() -> Self {
-        Self {
-            period: Period::Long,
-        }
+        Self { period: Period::Long }
     }
 
     async fn scan_one(
         &self,
-        client: &AStockClient,
+        client: &dyn MarketDataProvider,
         code: &str,
         name: &str,
         sector: Option<String>,
@@ -196,10 +188,7 @@ impl RecommendStrategy for WatchlistStrategy {
         // 限制扫描范围减少冗余 quote API 调用，降低 vendor 压力
         for (code, name, sector) in ctx.seed.iter().take(30) {
             let _g = ctx.per_code_locks.lock_for(code).await;
-            if let Some(p) = self
-                .scan_one(ctx.client, code, name, sector.clone(), ctx.vars)
-                .await
-            {
+            if let Some(p) = self.scan_one(ctx.client, code, name, sector.clone(), ctx.vars).await {
                 picks.push(p);
             }
         }
@@ -230,7 +219,7 @@ mod tests {
 /// 合成 pick 的 `reasons` 明确标注"信号缺失，按现价合成"，方便用户区分
 /// 真实信号 vs 兜底。`confidence` 偏低（0.45），让真实 pick 排序优先。
 pub async fn emit_synthetic_picks(
-    client: Arc<AStockClient>,
+    client: Arc<dyn MarketDataProvider>,
     style: Style,
     period: Period,
     raw_seed: &[SeedItem],
@@ -252,7 +241,7 @@ pub async fn emit_synthetic_picks(
 }
 
 async fn scan_synthetic_one(
-    client: &AStockClient,
+    client: &dyn MarketDataProvider,
     code: &str,
     name: &str,
     sector: Option<String>,

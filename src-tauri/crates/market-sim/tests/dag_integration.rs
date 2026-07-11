@@ -16,12 +16,9 @@ use axagent_market_sim::{
 
 #[test]
 fn v1_strategy_mode_produces_valid_results() {
-    for (action, desc) in &[
-        ("买入", "买入模式"),
-        ("持有", "持有模式"),
-        ("观望", "观望模式"),
-        ("卖出", "卖出模式"),
-    ] {
+    for (action, desc) in
+        &[("买入", "买入模式"), ("持有", "持有模式"), ("观望", "观望模式"), ("卖出", "卖出模式")]
+    {
         let result = run_validation_sim(action, 1050, 950, 500, 500_000_000);
 
         assert!(result.total_events > 50, "{}: events={} 应 >50", desc, result.total_events);
@@ -290,9 +287,5 @@ fn v8_quant_strategy_produces_events() {
     let result = kernel.run().unwrap();
     assert!(result.total_events > 50);
     assert!(result.stats.agent_count >= 3);
-    eprintln!(
-        "[V8] quant_strategy: events={} trades={}",
-        result.total_events,
-        result.trades.len()
-    );
+    eprintln!("[V8] quant_strategy: events={} trades={}", result.total_events, result.trades.len());
 }

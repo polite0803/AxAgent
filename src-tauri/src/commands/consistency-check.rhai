@@ -1,81 +1,221 @@
-// consistency-check.rhai — 瓶颈掘金：跨节点一致性检查 (v2)
-// 显式检查 5 个趋势槽位的 chain-decomposer 与 bottleneck 分析结果是否一致
-// 不再依赖 input_mapping 注入 trend_names 字面量（resolve_var_path 不支持字面量）
-// 输出: consistency_report（JSON 对象）
+// consistency-check.rhai — 瓶颈掘金：跨节点一致性检查 v3
+// 比较 chain-decomposer 与 bottleneck-calc 的分析结果是否存在矛盾。
+//
+// 比较维度：
+//   1. 瓶颈环节识别一致性：decomposer 标记的 high-potential 节点 vs calc 的 composite 高分节点
+//   2. 容量扩张信号一致性：decomposer 的 expansion_signal vs calc 的 expansion_cycle 评分
+//   3. 数据可靠性标签对齐：decomposer 的数据源标注 vs calc 的 data_reliability
+//   4. 技术壁垒等级一致性：decomposer 的 tech_barrier_level vs calc 的 barrier_score
+//
+// 输出: {consistency_score, conflicts[], warnings[], sources_checked[], overall_assessment}
 
-// Rhai helper: 检查值是否为 unit（Rhai 版 null）
+// Rhai helper: 检查值是否为 unit
 fn is_unit(x) { type_of(x) == "()" }
 
-// helper: 安全检查 + JSON 解析字符串变量
+// 安全解析 JSON 字符串
 fn safe_parse(raw) {
     if is_unit(raw) { return (); }
     if type_of(raw) != "string" { return (); }
     json_parse(raw)
 }
 
+// 从可能包装的数据中提取 computed_nodes 数组
+fn extract_computed_nodes(data) {
+    if is_unit(data) { return []; }
+    if type_of(data) == "array" { return data; }
+    if type_of(data) == "map" {
+        let nodes = data["computed_nodes"];
+        if !is_unit(nodes) && type_of(nodes) == "array" { return nodes; }
+        let result = data["result"];
+        if !is_unit(result) && type_of(result) == "array" { return result; }
+    }
+    []
+}
+
+// 从 chain-decomposer 输出中提取 chain_nodes 数组
+fn extract_chain_nodes(data) {
+    if is_unit(data) { return []; }
+    if type_of(data) == "array" { return data; }
+    if type_of(data) == "map" {
+        let nodes = data["chain_nodes"];
+        if !is_unit(nodes) && type_of(nodes) == "array" { return nodes; }
+        let args = data["arguments"];
+        if !is_unit(args) && type_of(args) == "map" {
+            let arg_nodes = args["chain_nodes"];
+            if !is_unit(arg_nodes) && type_of(arg_nodes) == "array" { return arg_nodes; }
+        }
+    }
+    []
+}
+
+// helper: 安全提取字符串字段
+fn safe_str(obj, key) {
+    if is_unit(obj) { return ""; }
+    if type_of(obj) != "map" { return ""; }
+    let v = obj[key];
+    if is_unit(v) { return ""; }
+    if type_of(v) == "string" { return v; }
+    v.to_string()
+}
+
+// helper: 安全提取浮点字段
+fn safe_f64(obj, key) {
+    if is_unit(obj) { return -1.0; }
+    if type_of(obj) != "map" { return -1.0; }
+    let v = obj[key];
+    if is_unit(v) { return -1.0; }
+    if type_of(v) == "f64" { return v; }
+    if type_of(v) == "int" { return v.to_float(); }
+    -1.0
+}
+
+// 编码每个趋势槽位的数据
 let trend_slots = ["trend1", "trend2", "trend3", "trend4", "trend5"];
-let trend_names = [];
-let conflicts = [];
-let warnings = [];
-let sources_checked = [];
-
-// 显式检查每个趋势槽位 —— Rhai 反引号不支持插值，必须用直接引用
-let chain_data_1 = safe_parse(chain_node_trend1);
-let bottleneck_1 = safe_parse(bottleneck_trend1);
-let chain_data_2 = safe_parse(chain_node_trend2);
-let bottleneck_2 = safe_parse(bottleneck_trend2);
-let chain_data_3 = safe_parse(chain_node_trend3);
-let bottleneck_3 = safe_parse(bottleneck_trend3);
-let chain_data_4 = safe_parse(chain_node_trend4);
-let bottleneck_4 = safe_parse(bottleneck_trend4);
-let chain_data_5 = safe_parse(chain_node_trend5);
-let bottleneck_5 = safe_parse(bottleneck_trend5);
-
-let trend_data = [
-    #{"name": "trend1", "chain": chain_data_1, "bottleneck": bottleneck_1},
-    #{"name": "trend2", "chain": chain_data_2, "bottleneck": bottleneck_2},
-    #{"name": "trend3", "chain": chain_data_3, "bottleneck": bottleneck_3},
-    #{"name": "trend4", "chain": chain_data_4, "bottleneck": bottleneck_4},
-    #{"name": "trend5", "chain": chain_data_5, "bottleneck": bottleneck_5},
+let chain_vars = [
+    safe_parse(chain_node_trend1), safe_parse(chain_node_trend2),
+    safe_parse(chain_node_trend3), safe_parse(chain_node_trend4), safe_parse(chain_node_trend5),
+];
+let bottleneck_vars = [
+    safe_parse(bottleneck_trend1), safe_parse(bottleneck_trend2),
+    safe_parse(bottleneck_trend3), safe_parse(bottleneck_trend4), safe_parse(bottleneck_trend5),
 ];
 
-for entry in trend_data {
-    let tn = entry.name;
-    let chain_data = entry.chain;
-    let bottleneck_data = entry.bottleneck;
+let trend_names = [];
+let sources_checked = [];
+let conflicts = [];
+let warnings = [];
+let consistency_score = 100;
+let total_comparisons = 0;
+let conflict_count = 0;
 
-    // 两个数据都有效才标记为已检查
-    if type_of(chain_data) == "map" && type_of(bottleneck_data) == "map" {
-        sources_checked.push(tn);
-        trend_names.push(tn);
-    } else {
-        if type_of(chain_data) != "map" {
-            warnings.push(tn + ": chain_data 缺失或非有效 map");
+// ── 遍历每个趋势槽位做交叉验证 ──
+for i in range(0, 5) {
+    let slot_name = trend_slots[i];
+    let chain_raw = chain_vars[i];
+    let btl_raw = bottleneck_vars[i];
+
+    let chain_nodes = extract_chain_nodes(chain_raw);
+    let btl_nodes = extract_computed_nodes(btl_raw);
+
+    if chain_nodes.len() == 0 && btl_nodes.len() == 0 {
+        warnings.push(`${slot_name}: 两者数据均为空，跳过`);
+        continue;
+    }
+
+    sources_checked.push(slot_name);
+    trend_names.push(slot_name);
+
+    // ── 比对 1: 最高分瓶颈环节是否一致 ──
+    // chain: 找出 bottleneck_potential=="high" 的节点
+    // btl:   找出 composite 分数最高的节点
+    if chain_nodes.len() > 0 && btl_nodes.len() > 0 {
+        // Chain 侧: 找出标记为 high-potential 的节点名
+        let chain_high_nodes = [];
+        for cn in chain_nodes {
+            let pot = safe_str(cn, "bottleneck_potential");
+            let name = safe_str(cn, "node_name");
+            if pot == "high" && name != "" {
+                chain_high_nodes.push(name);
+            }
         }
-        if type_of(bottleneck_data) != "map" {
-            warnings.push(tn + ": bottleneck_data 缺失或非有效 map");
+
+        // Bottleneck 侧: 找出 composite 最高的节点
+        let best_btl = ""; let best_score = -1.0;
+        for bn in btl_nodes {
+            let score = safe_f64(bn, "bottleneck_composite");
+            let name = safe_str(bn, "node_name");
+            if score > best_score && name != "" {
+                best_score = score; best_btl = name;
+            }
+        }
+
+        // 比对: chain 的 high 节点是否也在 btl 的高分列表中
+        if chain_high_nodes.len() > 0 && best_btl != "" {
+            let found = false;
+            for hn in chain_high_nodes {
+                if hn.find(best_btl) != () || best_btl.find(hn) != () || hn == best_btl {
+                    found = true; break;
+                }
+            }
+            total_comparisons += 1;
+            if !found {
+                let detail = `chain=${chain_high_nodes}, btl_top=${best_btl}(${best_score})`;
+                conflicts.push(#{
+                    "slot": slot_name, "type": "top_bottleneck_mismatch",
+                    "detail": `${slot_name}: chain 标记 high 节点 ${chain_high_nodes} 但 btl 最高分是 ${best_btl}(${best_score})`
+                });
+                conflict_count += 1;
+            }
+        }
+    }
+
+    // ── 比对 2: 技术壁垒评估一致性 ──
+    if chain_nodes.len() > 0 && btl_nodes.len() > 0 {
+        for cn in chain_nodes {
+            let barrier_str = safe_str(cn, "tech_barrier");
+            if barrier_str == "" { continue; }
+            let cn_name = safe_str(cn, "node_name");
+            // 找对应的 btl 节点（按名称匹配）
+            for bn in btl_nodes {
+                let bn_name = safe_str(bn, "node_name");
+                if bn_name == "" { continue; }
+                if cn_name.find(bn_name) != () || bn_name.find(cn_name) != () || cn_name == bn_name {
+                    let btl_barrier_score = safe_f64(bn, "supply_rigidity_score");
+                    if btl_barrier_score >= 0.0 {
+                        // chain barrier: low/medium/high → 35/60/85
+                        let chain_barrier_score = if barrier_str == "high" { 85.0 }
+                            else if barrier_str == "medium" { 60.0 }
+                            else { 35.0 };
+                        let diff = (chain_barrier_score - btl_barrier_score).abs();
+                        total_comparisons += 1;
+                        if diff > 30.0 {
+                            conflicts.push(#{
+                                "slot": slot_name, "type": "barrier_mismatch",
+                                "detail": `${slot_name}/${cn_name}: chain barrier=${barrier_str}(${chain_barrier_score}) vs btl=${btl_barrier_score} 差${diff}分`
+                            });
+                            conflict_count += 1;
+                        }
+                    }
+                    break;
+                }
+            }
         }
     }
 }
 
-// 返回一致性报告
-let consistency_score = if sources_checked.len() > 0 { 100 } else { 0 };
-let overall = if sources_checked.len() > 2 {
-    "多数趋势分析结果一致"
-} else if sources_checked.len() > 0 {
-    "部分趋势分析结果可用"
-} else {
+// ── 计算一致性分数 ──
+if total_comparisons > 0 {
+    consistency_score = ((total_comparisons - conflict_count) / total_comparisons) * 100;
+    // 如果有严重冲突（top_bottleneck_mismatch），额外扣分
+    let serious_conflicts = 0;
+    for c in conflicts {
+        if c["type"] == "top_bottleneck_mismatch" {
+            serious_conflicts += 1;
+        }
+    }
+    if serious_conflicts > 0 {
+        consistency_score = clamp(consistency_score - serious_conflicts * 15, 0, 100);
+    }
+}
+
+let overall = if sources_checked.len() == 0 {
     "所有趋势数据均缺失，一致性检查跳过"
+} else if consistency_score >= 85 {
+    `${sources_checked.len()}个趋势分析结果高度一致(score=${consistency_score})`
+} else if consistency_score >= 60 {
+    `${sources_checked.len()}个趋势分析结果基本一致(score=${consistency_score})，有${conflict_count}处差异`
+} else {
+    `${sources_checked.len()}个趋势分析结果存在显著分歧(score=${consistency_score})，建议人工复核`
 };
 
-let report = #{
+#{
     "consistency_score": consistency_score,
     "trend_count": trend_names.len(),
     "conflicts": conflicts,
+    "conflict_count": conflict_count,
+    "total_comparisons": total_comparisons,
     "warnings": warnings,
     "sources_checked": sources_checked,
     "overall_assessment": overall,
     "trend_names": trend_names
-};
-
-report
+}

@@ -300,9 +300,7 @@ fn extract_action(input: &str) -> &'static str {
         }
     }
     // 再检查"分析类"动作（深度）
-    for kw in &[
-        "调研", "分析", "研究", "评估", "评价", "诊断", "扫描", "监测",
-    ] {
+    for kw in &["调研", "分析", "研究", "评估", "评价", "诊断", "扫描", "监测"] {
         if input.contains(kw) {
             return "research";
         }

@@ -159,12 +159,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anes"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
-
-[[package]]
 name = "annotate-snippets"
 version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -460,6 +454,18 @@ dependencies = [
  "event-listener-strategy",
  "futures-core",
  "pin-project-lite",
+]
+
+[[package]]
+name = "async-compression"
+version = "0.4.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e79b3f8a79cccc2898f31920fc69f304859b3bd567490f75ebf51ae1c792a9ac"
+dependencies = [
+ "compression-codecs",
+ "compression-core",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -772,16 +778,16 @@ dependencies = [
 
 [[package]]
 name = "axagent"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "android_logger",
  "async-trait",
  "axagent-agent",
+ "axagent-astock-data",
  "axagent-cache",
  "axagent-credential",
  "axagent-crypto",
  "axagent-dao",
- "axagent-disk-cache",
  "axagent-document-parser",
  "axagent-entities",
  "axagent-gateway",
@@ -793,6 +799,7 @@ dependencies = [
  "axagent-plugins",
  "axagent-prompt-guard",
  "axagent-providers",
+ "axagent-quant",
  "axagent-rt-dashboard",
  "axagent-rt-messaging",
  "axagent-rt-theme",
@@ -801,13 +808,13 @@ dependencies = [
  "axagent-runtime",
  "axagent-runtime-core",
  "axagent-search",
+ "axagent-stock-analysis",
  "axagent-storage",
  "axagent-telemetry",
  "axagent-tools",
  "axagent-trajectory",
  "base64 0.22.1",
  "chrono",
- "criterion",
  "dashmap",
  "dirs 5.0.1",
  "font-kit",
@@ -822,6 +829,7 @@ dependencies = [
  "openssl",
  "rcgen",
  "reqwest 0.13.4",
+ "rhai",
  "rusqlite",
  "rustls",
  "sea-orm",
@@ -856,7 +864,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-dao",
@@ -895,8 +903,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-astock-data"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axagent-harness",
+ "chrono",
+ "encoding_rs",
+ "flate2",
+ "futures",
+ "moka",
+ "redb",
+ "reqwest 0.13.4",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "urlencoding",
+]
+
+[[package]]
 name = "axagent-cache"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "quick_cache",
@@ -907,7 +937,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-credential"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -926,7 +956,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-crypto"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -941,7 +971,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-dao"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-entities",
@@ -964,7 +994,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-disk-cache"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "rusqlite",
  "serde",
@@ -972,7 +1002,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-document-parser"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "pdf-extract 0.7.12",
@@ -981,18 +1011,20 @@ dependencies = [
 
 [[package]]
 name = "axagent-entities"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "chrono",
+ "hex",
  "sea-orm",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
 name = "axagent-gateway"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1022,7 +1054,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-harness"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1044,7 +1076,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-kit"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "anyhow",
  "axagent-harness",
@@ -1073,8 +1105,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-market-sim"
+version = "2.8.3"
+dependencies = [
+ "axagent-harness",
+ "chrono",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "axagent-mcp"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1091,7 +1136,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-migration"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-dao",
  "axagent-harness",
@@ -1105,7 +1150,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-npm"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1119,7 +1164,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-orchestrator"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1134,7 +1179,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-plugins"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "serde",
@@ -1147,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-prompt-guard"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "regex",
@@ -1158,7 +1203,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-providers"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1176,8 +1221,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-quant"
+version = "2.8.3"
+dependencies = [
+ "async-trait",
+ "axagent-harness",
+ "chrono",
+ "rhai",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "axagent-rt-dashboard"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "serde",
@@ -1188,7 +1248,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-messaging"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1216,7 +1276,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-theme"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -1224,7 +1284,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-webhook"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "axum",
@@ -1241,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-workflow"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-crypto",
@@ -1279,7 +1339,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1338,7 +1398,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime-core"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1362,7 +1422,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-search"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1391,8 +1451,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-stock-analysis"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axagent-astock-data",
+ "axagent-dao",
+ "axagent-entities",
+ "axagent-harness",
+ "chrono",
+ "csv",
+ "futures",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "axagent-storage"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
  "axagent-dao",
@@ -1417,7 +1498,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-telemetry"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "chrono",
@@ -1435,9 +1516,10 @@ dependencies = [
 
 [[package]]
 name = "axagent-tools"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "async-trait",
+ "axagent-astock-data",
  "axagent-document-parser",
  "axagent-harness",
  "axagent-kit",
@@ -1480,7 +1562,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-trajectory"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2073,12 +2155,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cast"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
-
-[[package]]
 name = "castaway"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2226,33 +2302,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e4de3bc4ea267985becf712dc6d9eed8b04c953b3fcfb339ebc87acd9804901"
 
 [[package]]
-name = "ciborium"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42e69ffd6f0917f5c029256a24d0161db17cea3997d185db0d35926308770f0e"
-dependencies = [
- "ciborium-io",
- "ciborium-ll",
- "serde",
-]
-
-[[package]]
-name = "ciborium-io"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05afea1e0a06c9be33d539b876f1ce3692f4afea2cb41f740e7743225ed1c757"
-
-[[package]]
-name = "ciborium-ll"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57663b653d948a338bfb3eeba9bb2fd5fcfaecb9e199e87e1eda4d9e8b240fd9"
-dependencies = [
- "ciborium-io",
- "half",
-]
-
-[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2272,31 +2321,6 @@ dependencies = [
  "libc",
  "libloading 0.8.9",
 ]
-
-[[package]]
-name = "clap"
-version = "4.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ddb117e43bbf7dacf0a4190fef4d345b9bad68dfc649cb349e7d17d28428e51"
-dependencies = [
- "clap_builder",
-]
-
-[[package]]
-name = "clap_builder"
-version = "4.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "714a53001bf66416adb0e2ef5ac857140e7dc3a0c48fb28b2f10762fc4b5069f"
-dependencies = [
- "anstyle",
- "clap_lex",
-]
-
-[[package]]
-name = "clap_lex"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "clipboard-win"
@@ -2352,6 +2376,23 @@ dependencies = [
  "serde",
  "static_assertions",
 ]
+
+[[package]]
+name = "compression-codecs"
+version = "0.4.38"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce2548391e9c1929c21bf6aa2680af86fe4c1b33e6cea9ac1cfeec0bd11218cf"
+dependencies = [
+ "compression-core",
+ "flate2",
+ "memchr",
+]
+
+[[package]]
+name = "compression-core"
+version = "0.4.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc14f565cf027a105f7a44ccf9e5b424348421a1d8952a8fc9d499d313107789"
 
 [[package]]
 name = "concurrent-queue"
@@ -2579,42 +2620,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "criterion"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2b12d017a929603d80db1831cd3a24082f8137ce19c69e6447f54f5fc8d692f"
-dependencies = [
- "anes",
- "cast",
- "ciborium",
- "clap",
- "criterion-plot",
- "is-terminal",
- "itertools 0.10.5",
- "num-traits",
- "once_cell",
- "oorandom",
- "plotters",
- "rayon",
- "regex",
- "serde",
- "serde_derive",
- "serde_json",
- "tinytemplate",
- "walkdir",
-]
-
-[[package]]
-name = "criterion-plot"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
-dependencies = [
- "cast",
- "itertools 0.10.5",
-]
-
-[[package]]
 name = "cron"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2728,6 +2733,27 @@ checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
 dependencies = [
  "quote",
  "syn 2.0.118",
+]
+
+[[package]]
+name = "csv"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52cd9d68cf7efc6ddfaaee42e7288d3a99d613d4b50f76ce9827ae0c6e14f938"
+dependencies = [
+ "csv-core",
+ "itoa",
+ "ryu",
+ "serde_core",
+]
+
+[[package]]
+name = "csv-core"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704a3c26996a80471189265814dbc2c257598b96b8a7feae2d31ace646bb9782"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -5429,17 +5455,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "is-terminal"
-version = "0.4.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
-dependencies = [
- "hermit-abi 0.5.2",
- "libc",
- "windows-sys 0.61.2",
-]
-
-[[package]]
 name = "is-wsl"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5447,15 +5462,6 @@ checksum = "173609498df190136aa7dea1a91db051746d339e18476eed5ca40521f02d7aa5"
 dependencies = [
  "is-docker",
  "once_cell",
-]
-
-[[package]]
-name = "itertools"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-dependencies = [
- "either",
 ]
 
 [[package]]
@@ -6321,6 +6327,26 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "moka"
+version = "0.12.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "957228ad12042ee839f93c8f257b62b4c0ab5eaae1d4fa60de53b27c9d7c5046"
+dependencies = [
+ "async-lock 3.4.2",
+ "crossbeam-channel",
+ "crossbeam-epoch",
+ "crossbeam-utils",
+ "equivalent",
+ "event-listener 5.4.1",
+ "futures-util",
+ "parking_lot",
+ "portable-atomic",
+ "smallvec",
+ "tagptr",
+ "uuid",
 ]
 
 [[package]]
@@ -7332,12 +7358,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oorandom"
-version = "11.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
-
-[[package]]
 name = "opaque-debug"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8019,34 +8039,6 @@ dependencies = [
  "quick-xml 0.41.0",
  "serde",
  "time",
-]
-
-[[package]]
-name = "plotters"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aeb6f403d7a4911efb1e33402027fc44f29b5bf6def3effcc22d7bb75f2b747"
-dependencies = [
- "num-traits",
- "plotters-backend",
- "plotters-svg",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "plotters-backend"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df42e13c12958a16b3f7f4386b9ab1f3e7933914ecea48da7139435263a4172a"
-
-[[package]]
-name = "plotters-svg"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51bae2ac328883f7acdfea3d66a7c35751187f870bc81f94563733a154d7a670"
-dependencies = [
- "plotters-backend",
 ]
 
 [[package]]
@@ -8899,6 +8891,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03251193000f4bd3b042892be858ee50e8b3719f2b08e5833ac4353724632430"
 
 [[package]]
+name = "redb"
+version = "2.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eca1e9d98d5a7e9002d0013e18d5a9b000aee942eb134883a82f06ebffb6c01"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9063,7 +9064,6 @@ dependencies = [
  "bytes",
  "cookie",
  "cookie_store",
- "encoding_rs",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -9077,7 +9077,6 @@ dependencies = [
  "hyper-util",
  "js-sys",
  "log",
- "mime",
  "mime_guess",
  "native-tls",
  "percent-encoding",
@@ -9145,6 +9144,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "rhai_codegen",
+ "serde",
  "smallvec",
  "smartstring",
  "thin-vec",
@@ -9505,7 +9505,7 @@ dependencies = [
 
 [[package]]
 name = "schema-gen"
-version = "2.8.2"
+version = "2.8.3"
 dependencies = [
  "axagent-harness",
  "schemars 0.8.22",
@@ -10074,6 +10074,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "serial_test"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "699f4197115b8a7e7ff19c9a315a4bd6fffec26cc4626ef45ecaea389e081c6d"
+dependencies = [
+ "futures-executor",
+ "futures-util",
+ "log",
+ "once_cell",
+ "parking_lot",
+ "serial_test_derive",
+]
+
+[[package]]
+name = "serial_test_derive"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94e153fc76e1c6a068703d6d29c508a0b15c061c4b7e43da59cc097bc342673c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
+]
+
+[[package]]
 name = "serialize-to-javascript"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10279,6 +10304,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fb72c633efbaa2dd666986505016c32c3044395ceaf881518399d2f4127ee29"
 dependencies = [
  "autocfg",
+ "serde",
  "static_assertions",
  "version_check",
 ]
@@ -11026,6 +11052,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "tagptr"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b2093cf4c8eb1e67749a6762251bc9cd836b6fc171623bd0a9d324d37af2417"
+
+[[package]]
 name = "tao"
 version = "0.35.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11601,6 +11633,9 @@ name = "thin-vec"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0f7e269b48f0a7dd0146680fa24b50cc67fc0373f086a5b2f99bd084639b482"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "thiserror"
@@ -11724,16 +11759,6 @@ checksum = "c8323304221c2a851516f22236c5722a72eaa19749016521d6dff0824447d96d"
 dependencies = [
  "displaydoc",
  "zerovec",
-]
-
-[[package]]
-name = "tinytemplate"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be4d6b5f19ff7664e8c98d03e2139cb510db9b0a60b55f8e8709b689d939b6bc"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -12065,12 +12090,17 @@ version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
 dependencies = [
+ "async-compression",
  "bitflags 2.13.0",
  "bytes",
+ "futures-core",
  "futures-util",
  "http",
  "http-body",
+ "http-body-util",
  "pin-project-lite",
+ "tokio",
+ "tokio-util",
  "tower",
  "tower-layer",
  "tower-service",

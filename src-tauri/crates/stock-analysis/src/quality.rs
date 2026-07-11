@@ -93,11 +93,7 @@ pub fn check_report_quality(
     // 硬检查 3: 必采清单覆盖率
     let covered = required_items
         .iter()
-        .filter(|group| {
-            group
-                .iter()
-                .any(|keyword| text.contains(&keyword.to_lowercase()))
-        })
+        .filter(|group| group.iter().any(|keyword| text.contains(&keyword.to_lowercase())))
         .count();
     let total = required_items.len();
     if total == 0 {
@@ -222,10 +218,8 @@ pub fn run_quality_gate(reports: &HashMap<String, String>) -> QualityCheck {
     }
 
     let total_count = grades.len();
-    let fail_count = grades
-        .iter()
-        .filter(|(_, g)| *g == QualityGrade::F || *g == QualityGrade::D)
-        .count();
+    let fail_count =
+        grades.iter().filter(|(_, g)| *g == QualityGrade::F || *g == QualityGrade::D).count();
 
     // 失败率分级阈值: 0%→A, ≤20%且≤1个→B, ≤50%→C, ≤80%→D, >80%→F
     let overall = if total_count == 0 {
@@ -262,11 +256,7 @@ pub fn run_quality_gate(reports: &HashMap<String, String>) -> QualityCheck {
         }
     );
 
-    QualityCheck {
-        grade: overall,
-        summary,
-        warnings,
-    }
+    QualityCheck { grade: overall, summary, warnings }
 }
 
 #[cfg(test)]
@@ -300,13 +290,7 @@ mod tests {
         let grade = check_report_quality(
             "market-analyst",
             &report,
-            &[
-                vec!["趋势"],
-                vec!["形态"],
-                vec!["指标"],
-                vec!["支撑"],
-                vec!["压力"],
-            ],
+            &[vec!["趋势"], vec!["形态"], vec!["指标"], vec!["支撑"], vec!["压力"]],
         );
         assert_eq!(grade, QualityGrade::A);
     }
@@ -317,13 +301,7 @@ mod tests {
         let grade = check_report_quality(
             "market-analyst",
             &report,
-            &[
-                vec!["趋势"],
-                vec!["形态"],
-                vec!["指标"],
-                vec!["支撑"],
-                vec!["压力"],
-            ],
+            &[vec!["趋势"], vec!["形态"], vec!["指标"], vec!["支撑"], vec!["压力"]],
         );
         assert!(grade == QualityGrade::C || grade == QualityGrade::B);
     }

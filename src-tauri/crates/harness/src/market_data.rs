@@ -81,6 +81,52 @@ pub struct StockSearchResult {
     pub market: String,
 }
 
+/// 财务报告 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FinancialReport {
+    pub stock_code: String,
+    pub report_date: String,
+    pub revenue: Option<f64>,
+    pub net_profit: Option<f64>,
+    pub eps: Option<f64>,
+    pub bps: Option<f64>,
+    pub roe: Option<f64>,
+    pub debt_ratio: Option<f64>,
+    pub gross_margin: Option<f64>,
+    pub net_margin: Option<f64>,
+    pub revenue_yoy: Option<f64>,
+    pub profit_yoy: Option<f64>,
+    #[serde(default)]
+    pub total_assets: Option<f64>,
+    #[serde(default)]
+    pub operating_cash_flow: Option<f64>,
+    #[serde(default)]
+    pub capital_expenditure: Option<f64>,
+    #[serde(default)]
+    pub free_cash_flow: Option<f64>,
+    #[serde(default)]
+    pub current_ratio: Option<f64>,
+    #[serde(default)]
+    pub quick_ratio: Option<f64>,
+}
+
+impl FinancialReport {
+    /// 检查该记录是否包含有效的核心财务数据
+    pub fn has_valid_data(&self) -> bool {
+        self.revenue.is_some()
+            || self.net_profit.is_some()
+            || self.eps.is_some()
+            || self.bps.is_some()
+            || self.roe.is_some()
+            || self.debt_ratio.is_some()
+            || self.gross_margin.is_some()
+            || self.net_margin.is_some()
+            || self.revenue_yoy.is_some()
+            || self.profit_yoy.is_some()
+    }
+}
+
 // ── MarketDataProvider Trait ─────────────────────────────────────────────
 
 /// 市场数据提供者接口
@@ -105,4 +151,38 @@ pub trait MarketDataProvider: Send + Sync {
 
     /// 搜索股票
     async fn search_stock(&self, keyword: &str) -> Result<Vec<StockSearchResult>>;
+}
+
+// ── A 股市场工具函数 ────────────────────────────────────────────
+
+/// 根据股票代码前缀识别市场板块
+pub fn detect_market_type(code: &str) -> &str {
+    match code.chars().next() {
+        Some('6') if code.starts_with("688") => "star",
+        Some('6') => "main_sh",
+        Some('0') => "main_sz",
+        Some('3') => "chinext",
+        Some('8') => "bj",
+        Some('4') => "neeq",
+        Some('9') => "b_share",
+        _ => "unknown",
+    }
+}
+
+/// 获取A股各板块涨跌停幅度（百分比）
+pub fn get_price_limit_pct(market_type: &str) -> f64 {
+    match market_type {
+        "star" | "chinext" => 20.0,
+        "bj" => 30.0,
+        _ => 10.0,
+    }
+}
+
+/// 获取ST股票的涨跌停幅度
+pub fn get_st_price_limit_pct(is_st: bool, market_type: &str) -> f64 {
+    if is_st {
+        5.0
+    } else {
+        get_price_limit_pct(market_type)
+    }
 }

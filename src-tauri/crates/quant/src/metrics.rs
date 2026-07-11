@@ -200,12 +200,8 @@ fn sortino_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f6
     let excess: Vec<f64> = rets.iter().map(|r| r - daily_rf).collect();
     let mean = excess.iter().sum::<f64>() / excess.len() as f64;
     // 下行方差（仅 r < rf 时计算）
-    let downside_var = excess
-        .iter()
-        .filter(|&&r| r < 0.0)
-        .map(|r| r.powi(2))
-        .sum::<f64>()
-        / excess.len() as f64;
+    let downside_var =
+        excess.iter().filter(|&&r| r < 0.0).map(|r| r.powi(2)).sum::<f64>() / excess.len() as f64;
     let downside_std = downside_var.sqrt();
     if downside_std < 1e-10 {
         return 0.0;
@@ -311,12 +307,7 @@ mod tests {
     use crate::types::Side;
 
     fn make_eq(date: &str, equity: f64) -> EquityPoint {
-        EquityPoint {
-            date: date.to_string(),
-            equity,
-            cash: equity,
-            position_value: 0.0,
-        }
+        EquityPoint { date: date.to_string(), equity, cash: equity, position_value: 0.0 }
     }
 
     fn make_trade(pnl: f64) -> Trade {

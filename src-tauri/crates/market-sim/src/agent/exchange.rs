@@ -86,10 +86,7 @@ impl SimAgent for ExchangeAgent {
                             // 通知买方（自己）
                             ctx.send(
                                 &source,
-                                MessageBody::OrderFilled {
-                                    order_id,
-                                    fill: fill.clone(),
-                                },
+                                MessageBody::OrderFilled { order_id, fill: fill.clone() },
                             );
                             self.total_trades += fill.trades.len() as u64;
                             self.total_volume += fill.filled_quantity;
@@ -110,10 +107,7 @@ impl SimAgent for ExchangeAgent {
                             // 通知自己
                             ctx.send(
                                 &source,
-                                MessageBody::OrderFilled {
-                                    order_id,
-                                    fill: fill.clone(),
-                                },
+                                MessageBody::OrderFilled { order_id, fill: fill.clone() },
                             );
                             self.total_trades += fill.trades.len() as u64;
                             self.total_volume += fill.filled_quantity;
@@ -165,10 +159,7 @@ impl SimAgent for ExchangeAgent {
                             // 通知自己
                             ctx.send(
                                 &source,
-                                MessageBody::OrderFilled {
-                                    order_id,
-                                    fill: fill.clone(),
-                                },
+                                MessageBody::OrderFilled { order_id, fill: fill.clone() },
                             );
                             self.total_trades += fill.trades.len() as u64;
                             self.total_volume += fill.filled_quantity;
@@ -190,18 +181,8 @@ impl SimAgent for ExchangeAgent {
                 let source = ctx.agent_id().to_string();
                 match self.orderbook.cancel_order(*order_id) {
                     Ok(result) => {
-                        if let OrderResult::Cancelled {
-                            order_id,
-                            remaining,
-                        } = result
-                        {
-                            ctx.send(
-                                &source,
-                                MessageBody::OrderCancelled {
-                                    order_id,
-                                    remaining,
-                                },
-                            );
+                        if let OrderResult::Cancelled { order_id, remaining } = result {
+                            ctx.send(&source, MessageBody::OrderCancelled { order_id, remaining });
                         }
                     },
                     Err(_) => {

@@ -63,10 +63,7 @@ pub fn asof_system_prompt(as_of_date: &str) -> String {
 /// 判断角色名是否为 stock-analysis 工作流下注入了 A 股约束的 5 个角色。
 /// 与 `agent_executor.rs` 4a-pre 的 matches! 完全一致。
 pub fn is_stock_role(role: &str) -> bool {
-    matches!(
-        role,
-        "stock-analyst" | "debater" | "risk-evaluator" | "trader" | "decision-maker"
-    )
+    matches!(role, "stock-analyst" | "debater" | "risk-evaluator" | "trader" | "decision-maker")
 }
 
 #[cfg(test)]
@@ -88,12 +85,8 @@ mod asof_prompt_tests {
         let expected_prefix = "## 时间锚定（最高优先级，禁止违反）\n";
         assert!(p.starts_with(expected_prefix));
         // 关键否定词都在
-        for kw in [
-            "严格禁止",
-            "假设/条件/概率",
-            "已经/正在/将/预期",
-            "截至 2026-06-01",
-        ] {
+        for kw in ["严格禁止", "假设/条件/概率", "已经/正在/将/预期", "截至 2026-06-01"]
+        {
             assert!(p.contains(kw), "asof prompt missing keyword: {kw}");
         }
     }

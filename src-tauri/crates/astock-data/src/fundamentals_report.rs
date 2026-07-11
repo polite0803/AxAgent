@@ -506,9 +506,6 @@ mod tests {
         let report = FundamentalsAnalyzer::generate("600519", &q, &f);
         let md = report.to_markdown();
         assert!(md.contains("资产负债率"));
-        assert!(report
-            .key_takeaways
-            .iter()
-            .any(|t| t.contains("资产负债率偏高")));
+        assert!(report.key_takeaways.iter().any(|t| t.contains("资产负债率偏高")));
     }
 }

@@ -134,8 +134,5 @@ pub enum OrderResult {
     /// 限价单或市价单：完全成交
     FullFill { order_id: OrderId, fill: FillResult },
     /// 撤单成功
-    Cancelled {
-        order_id: OrderId,
-        remaining: Quantity,
-    },
+    Cancelled { order_id: OrderId, remaining: Quantity },
 }
