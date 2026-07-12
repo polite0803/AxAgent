@@ -374,7 +374,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
                         marginBottom: 2,
                       }}
                     >
-                      {t("workflow.props.branchTimeoutMs", { defaultValue: "Timeout (ms)" })}
+                      {t("workflow.props.branchTimeoutMs")}
                     </label>
                     <Input
                       type="number"

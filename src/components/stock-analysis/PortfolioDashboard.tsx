@@ -82,16 +82,31 @@ export function PortfolioDashboard() {
       );
       if (result.success && result.holdings.length > 0) {
         setVlmResult(result.holdings);
-        // 批量导入
+        // 批量导入：逐条执行并收集成功/失败明细，避免中途失败后静默部分写入且无提示
+        const ok: string[] = [];
+        const failed: { code: string; reason: string }[] = [];
         for (const h of result.holdings) {
-          await invoke("add_portfolio_holding", {
-            stockCode: h.stockCode,
-            stockName: h.stockName,
-            shares: h.shares,
-            avgCost: h.avgCost,
-          });
+          try {
+            await invoke("add_portfolio_holding", {
+              stockCode: h.stockCode,
+              stockName: h.stockName,
+              shares: h.shares,
+              avgCost: h.avgCost,
+            });
+            ok.push(h.stockCode);
+          } catch (err) {
+            failed.push({ code: h.stockCode, reason: String(err) });
+          }
         }
-        message.success(t("portfolio.importSuccess", { count: result.holdings.length }));
+        if (failed.length === 0) {
+          message.success(t("portfolio.importSuccess", { count: ok.length }));
+        } else {
+          // 部分失败时给出明细，让用户知道哪些成功、哪些失败
+          message.warning(
+            t("portfolio.importPartial", { ok: ok.length, failed: failed.length }),
+          );
+          console.warn("[PortfolioDashboard] VLM 导入部分失败:", failed);
+        }
         setVlmModalOpen(false);
         setVlmRaw("");
         loadHoldings();

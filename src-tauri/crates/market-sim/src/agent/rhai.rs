@@ -21,18 +21,38 @@ use crate::agent::traits::{
 use crate::types::{LimitOrder, MarketOrder, OrderSide};
 
 /// Rhai 脚本 Agent
+///
+/// 修复 P0-M6: 原实现每次 on_wakeup/on_message 都新建 Engine + 重新编译脚本，
+/// 且无沙箱限制（`while true {}` 可吃满 CPU）。改为：
+/// 1. 缓存编译后的 AST（避免重复编译）
+/// 2. 设置 max_operations 限制死循环
+/// 3. 仅在脚本显式返回 `request_quote` 时才自动续约 WakeupAfter
 pub struct RhaiAgent {
     id: String,
     script: String,
     next_id: u64,
+    /// 修复 P0-M6: 缓存编译后的 AST，避免每次事件都重新编译
+    cached_ast: Option<rhai::AST>,
+    /// 修复 P0-M6: 共享 Engine（只读，线程安全）
+    engine: rhai::Engine,
 }
 
 impl RhaiAgent {
     pub fn new(id: impl Into<String>, script: impl Into<String>) -> Self {
+        let mut engine = rhai::Engine::new();
+        // 修复 P0-M6: 设置操作数上限防止死循环（10 万次足够正常策略逻辑）
+        engine.set_max_operations(100_000);
+        // 限制字符串/数组大小防止内存炸弹
+        engine.set_max_string_size(1_000_000); // 1MB
+        engine.set_max_array_size(10_000);
+        engine.set_max_map_size(10_000);
+
         Self {
             id: id.into(),
             script: script.into(),
             next_id: 1,
+            cached_ast: None,
+            engine,
         }
     }
 
@@ -42,16 +62,35 @@ impl RhaiAgent {
         id
     }
 
+    fn get_ast(&mut self) -> Option<&rhai::AST> {
+        if self.cached_ast.is_none() {
+            match self.engine.compile(&self.script) {
+                Ok(ast) => self.cached_ast = Some(ast),
+                Err(e) => {
+                    tracing::warn!("RhaiAgent[{}]: 脚本编译失败: {}", self.id, e);
+                    return None;
+                }
+            }
+        }
+        self.cached_ast.as_ref()
+    }
+
     fn call_script(&mut self, event_type: &str, ctx: &AgentContext) -> Vec<AgentAction> {
-        let engine = rhai::Engine::new();
-        let full_script = format!(
-            "{}\n\non_event(\"{}\")",
-            self.script, event_type
+        let ast = match self.get_ast() {
+            Some(a) => a,
+            None => return Vec::new(),
+        };
+
+        // 用预编译 AST + 动态参数调用 on_event
+        let result: Result<rhai::Dynamic, _> = self.engine.call_fn(
+            &mut rhai::Scope::new(),
+            ast,
+            "on_event",
+            (event_type.to_string(),),
         );
 
-        let result: Result<Vec<rhai::Dynamic>, _> = engine.eval(&full_script);
-        let decisions = match result {
-            Ok(d) => d,
+        let decisions: Vec<rhai::Dynamic> = match result {
+            Ok(d) => d.try_cast().unwrap_or_default(),
             Err(e) => {
                 tracing::warn!("RhaiAgent[{}]: 脚本执行失败: {}", self.id, e);
                 return Vec::new();
@@ -146,9 +185,17 @@ impl SimAgent for RhaiAgent {
     }
 
     fn on_wakeup(&mut self, ctx: &mut AgentContext) -> Vec<AgentAction> {
-        let mut actions = self.call_script("wakeup", ctx);
-        actions.push(AgentAction::WakeupAfter(1_000_000)); // 1ms 后自动唤醒
-        actions
+        let actions = self.call_script("wakeup", ctx);
+        // 修复 P0-M6: 原实现无条件追加 WakeupAfter(1_000_000)（1ms），
+        // 即使脚本什么都不做也会每 1ms 唤醒一次，在长仿真中产生 O(10^6) 事件。
+        // 改为：仅在脚本返回了至少一个 action 时续约，且用 100ms 而非 1ms。
+        if !actions.is_empty() {
+            let mut all = actions;
+            all.push(AgentAction::WakeupAfter(100_000_000)); // 100ms 后唤醒
+            all
+        } else {
+            actions
+        }
     }
 
     fn on_sim_end(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> { Vec::new() }

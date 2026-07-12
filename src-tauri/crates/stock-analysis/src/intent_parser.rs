@@ -178,7 +178,7 @@ pub fn parse_analysis_intent(input: &str) -> ParsedIntent {
             description: format!(
                 "代码识别: {} ({}){}",
                 name.as_deref().unwrap_or(&code),
-                &code,
+                code,
                 horizon.map(|h| format!(", {}", h)).unwrap_or_default()
             ),
         };

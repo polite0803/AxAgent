@@ -124,6 +124,7 @@ axagent-gateway = { path = "crates/gateway" }
 axagent-harness = { path = "crates/harness" }
 axagent-kit = { path = "crates/kit" }
 axagent-mcp = { path = "crates/mcp" }
+axagent-market-sim = { path = "crates/market-sim" }
 axagent-migration = { path = "crates/migration" }
 axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }

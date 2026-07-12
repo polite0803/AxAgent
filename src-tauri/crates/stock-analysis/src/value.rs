@@ -198,65 +198,102 @@ impl ValueEngine {
     }
 
     /// ── Piotroski F-Score (9分制) ──
-    /// 基于最近两份年报计算
+    /// 严格按 Piotroski (2000) 9 项标准实现，基于最近两份年报
+    ///
+    /// 盈利能力(4): ROA>0 | CFO>0 | ΔROA>0 | CFO>ROA(应计测试)
+    /// 杠杆/流动性(3): Δ负债率≤0 | Δ流动比率≥0 | 无增发稀释
+    /// 运营效率(2): Δ毛利率≥0 | Δ资产周转率≥0
     pub fn f_score(current: &FinancialReport, previous: &FinancialReport) -> FScore {
         let mut details = Vec::new();
         let mut profitability = 0u32;
         let mut leverage = 0u32;
         let mut efficiency = 0u32;
 
+        // ROA = 净利润 / 总资产；无总资产数据时退化为净利润（两年同口径）
+        let use_real_roa = matches!(
+            (current.total_assets, previous.total_assets),
+            (Some(tc), Some(tp)) if tc > 0.0 && tp > 0.0
+        );
+        let roa_curr = if use_real_roa {
+            current.net_profit.unwrap_or(0.0) / current.total_assets.unwrap()
+        } else {
+            current.net_profit.unwrap_or(0.0)
+        };
+        let roa_prev = if use_real_roa {
+            previous.net_profit.unwrap_or(0.0) / previous.total_assets.unwrap()
+        } else {
+            previous.net_profit.unwrap_or(0.0)
+        };
+
         // 盈利能力 (4分)
-        if current.net_profit.unwrap_or(0.0) > 0.0 {
+        // 1. ROA > 0
+        if roa_curr > 0.0 {
             profitability += 1;
-            details.push("净利润>0 ✓".into());
+            details.push(if use_real_roa {
+                "ROA>0 ✓".into()
+            } else {
+                "净利润>0 ✓(无总资产,以净利代理ROA)".into()
+            });
         } else {
-            details.push("净利润≤0 ✗".into());
+            details.push("ROA≤0 ✗".into());
         }
 
-        if current.net_profit.unwrap_or(0.0) > previous.net_profit.unwrap_or(0.0) {
+        // 2. CFO > 0（经营现金流为正）
+        let cfo_curr = current.operating_cash_flow.unwrap_or(0.0);
+        if cfo_curr > 0.0 {
             profitability += 1;
-            details.push("净利润增长 ✓".into());
+            details.push("CFO>0 ✓".into());
         } else {
-            details.push("净利润未增长 ✗".into());
+            details.push("CFO≤0 ✗".into());
         }
 
-        if current.roe.unwrap_or(0.0) > previous.roe.unwrap_or(0.0) {
+        // 3. ΔROA > 0（ROA 同比增长）
+        if roa_curr > roa_prev {
             profitability += 1;
-            details.push("ΔROE>0 ✓".into());
+            details.push("ΔROA>0 ✓".into());
         } else {
             details.push("ΔROA≤0 ✗".into());
         }
 
-        if current.revenue.unwrap_or(0.0) > 0.0
-            && current.net_margin.unwrap_or(0.0) > 0.0
-            && current.net_margin.unwrap_or(0.0) < current.roe.unwrap_or(0.0) * 2.0
-        {
-            profitability += 1;
-            details.push("盈利质量好 ✓".into());
+        // 4. 应计测试：CFO/总资产 > ROA ⟺ CFO > 净利润（同口径）
+        let np_curr = current.net_profit.unwrap_or(0.0);
+        let accrual_ok = if use_real_roa {
+            cfo_curr / current.total_assets.unwrap() > roa_curr
         } else {
-            details.push("盈利质量差 ✗".into());
+            cfo_curr > np_curr
+        };
+        if accrual_ok {
+            profitability += 1;
+            details.push("盈利质量好(CFO>ROA) ✓".into());
+        } else {
+            details.push("盈利质量差(CFO≤ROA) ✗".into());
         }
 
         // 杠杆/流动性 (3分)
-        let debt_current = current.debt_ratio.unwrap_or(100.0);
+        // 5. Δ负债率 ≤ 0（资产负债率同比下降）
+        let debt_curr = current.debt_ratio.unwrap_or(100.0);
         let debt_prev = previous.debt_ratio.unwrap_or(100.0);
-        if debt_current < debt_prev {
+        if debt_curr < debt_prev {
             leverage += 1;
             details.push("Δ负债率↓ ✓".into());
         } else {
             details.push("Δ负债率↑ ✗".into());
         }
 
-        if current.current_ratio.map(|r| r > 1.5).unwrap_or(false) {
-            leverage += 1;
-            details.push("流动比率>1.5 ✓".into());
-        } else if current.current_ratio.map(|r| r > 1.0).unwrap_or(false) {
-            details.push("流动比率一般 ✗".into());
-        } else {
-            details.push("流动比率<1.0 ✗".into());
+        // 6. Δ流动比率 ≥ 0（流动比率同比不下降，而非静态 >1.5）
+        match (current.current_ratio, previous.current_ratio) {
+            (Some(cr_c), Some(cr_p)) => {
+                if cr_c >= cr_p {
+                    leverage += 1;
+                    details.push("Δ流动比率≥0 ✓".into());
+                } else {
+                    details.push("Δ流动比率↓ ✗".into());
+                }
+            },
+            _ => details.push("流动比率数据缺失 ✗".into()),
         }
 
-        // 无增发：EPS 不稀释（用 EPS 不低于上年判断）
+        // 7. 无增发稀释（EPS 不稀释）
         if current.eps.unwrap_or(0.0) >= previous.eps.unwrap_or(0.0) {
             leverage += 1;
             details.push("无增发稀释 ✓".into());
@@ -265,6 +302,7 @@ impl ValueEngine {
         }
 
         // 运营效率 (2分)
+        // 8. Δ毛利率 ≥ 0
         let margin_curr = current.gross_margin.unwrap_or(0.0);
         let margin_prev = previous.gross_margin.unwrap_or(0.0);
         if margin_curr > margin_prev {
@@ -274,25 +312,23 @@ impl ValueEngine {
             details.push("Δ毛利率↓ ✗".into());
         }
 
-        let rev_growth = if previous.revenue.unwrap_or(0.0) > 0.0 {
-            (current.revenue.unwrap_or(0.0) - previous.revenue.unwrap_or(0.0))
-                / previous.revenue.unwrap_or(0.0)
-        } else {
-            0.0
+        // 9. Δ资产周转率 ≥ 0（营收/总资产 同比不下降；无总资产时用营收增速近似）
+        let turnover_ok = match (current.total_assets, previous.total_assets) {
+            (Some(tc), Some(tp)) if tc > 0.0 && tp > 0.0 => {
+                let tc_rev = current.revenue.unwrap_or(0.0) / tc;
+                let tp_rev = previous.revenue.unwrap_or(0.0) / tp;
+                tc_rev >= tp_rev
+            },
+            _ => match (current.revenue, previous.revenue) {
+                (Some(rc), Some(rp)) if rp > 0.0 => (rc - rp) / rp > 0.0,
+                _ => false,
+            },
         };
-        let profit_growth = if previous.net_profit.unwrap_or(0.0) > 0.0 {
-            (current.net_profit.unwrap_or(0.0) - previous.net_profit.unwrap_or(0.0))
-                / previous.net_profit.unwrap_or(0.0)
-        } else if current.net_profit.unwrap_or(0.0) > 0.0 {
-            1.0
-        } else {
-            0.0
-        };
-        if rev_growth > 0.0 && rev_growth >= profit_growth {
+        if turnover_ok {
             efficiency += 1;
-            details.push("Δ周转率↑ ✓".into());
+            details.push("Δ资产周转率↑ ✓".into());
         } else {
-            details.push("Δ周转率↓ ✗".into());
+            details.push("Δ资产周转率↓ ✗".into());
         }
 
         let total = profitability + leverage + efficiency;
@@ -718,5 +754,65 @@ impl ValueEngine {
             value_judgment,
             buffett_verdict,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axagent_astock_data::FinancialReport;
+
+    /// 构造一份年报（仅填严格 F-Score 用到的字段）
+    fn report(
+        net_profit: f64,
+        total_assets: f64,
+        ocf: f64,
+        debt: f64,
+        current_ratio: f64,
+        eps: f64,
+        gross_margin: f64,
+        revenue: f64,
+    ) -> FinancialReport {
+        FinancialReport {
+            stock_code: "TEST".into(),
+            report_date: "2024-12-31".into(),
+            revenue: Some(revenue),
+            net_profit: Some(net_profit),
+            eps: Some(eps),
+            bps: None,
+            roe: None,
+            debt_ratio: Some(debt),
+            gross_margin: Some(gross_margin),
+            net_margin: None,
+            revenue_yoy: None,
+            profit_yoy: None,
+            total_assets: Some(total_assets),
+            operating_cash_flow: Some(ocf),
+            capital_expenditure: None,
+            free_cash_flow: None,
+            current_ratio: Some(current_ratio),
+            quick_ratio: None,
+        }
+    }
+
+    #[test]
+    fn f_score_strict_strong_company_is_9() {
+        // 财务全面改善的好公司：严格 9 项应满分
+        let prev = report(80.0, 1000.0, 100.0, 50.0, 1.8, 1.0, 0.30, 1800.0);
+        let curr = report(100.0, 1000.0, 120.0, 40.0, 2.0, 1.2, 0.40, 2000.0);
+        let fs = ValueEngine::f_score(&curr, &prev);
+        assert_eq!(fs.total, 9, "严格 F-Score 应为 9/9，明细: {:?}", fs.details);
+        assert_eq!(fs.profitability, 4);
+        assert_eq!(fs.leverage, 3);
+        assert_eq!(fs.efficiency, 2);
+    }
+
+    #[test]
+    fn f_score_strict_weak_company_is_low() {
+        // 亏损 + 经营现金流为负 + 负债率上升 + 毛利率/周转率下滑
+        let prev = report(50.0, 1000.0, 60.0, 40.0, 2.0, 1.0, 0.40, 2000.0);
+        let curr = report(-20.0, 1000.0, -10.0, 60.0, 1.5, 0.8, 0.30, 1800.0);
+        let fs = ValueEngine::f_score(&curr, &prev);
+        assert!(fs.total <= 4, "差公司 F-Score 应很低，实际: {}", fs.total);
     }
 }

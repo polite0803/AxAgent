@@ -291,6 +291,18 @@ pub mod workflow {
     pub const INVALID_JSON: &str = "WORKFLOW_INVALID_JSON";
 }
 
+/// 股票工作流相关错误码
+pub mod stock_workflow {
+    /// 内部错误
+    pub const INTERNAL: &str = "STOCK_WORKFLOW_INTERNAL";
+}
+
+/// 股票分析种子数据相关错误码
+pub mod stock_setup {
+    /// 内部错误
+    pub const INTERNAL: &str = "STOCK_SETUP_INTERNAL";
+}
+
 /// 平台集成相关错误码
 pub mod platform {
     /// Telegram集成未启用

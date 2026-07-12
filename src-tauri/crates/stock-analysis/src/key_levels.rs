@@ -138,6 +138,17 @@ impl KeyLevelTracker {
                         let future: Vec<_> =
                             klines.iter().filter(|k| k.date.as_str() > snapshot_date).collect();
 
+                        // 快照日恰为最新交易日时 future 为空，静默丢样本会低估命中率 → 显式跳过并计数
+                        if future.is_empty() {
+                            tracing::debug!(
+                                "{}: 快照日 {} 无后续K线，跳过命中统计",
+                                analysis.stock_code,
+                                snapshot_date
+                            );
+                            stats.skipped_snapshots += 1;
+                            continue;
+                        }
+
                         let day1 = future.get(cfg.day1_offset);
                         let day3 = future.get(cfg.day3_offset);
                         let day5 = future.get(cfg.day5_offset);
@@ -220,4 +231,6 @@ pub struct KeyLevelBacktestStats {
     pub resistance_hit_3d: u32,
     pub support_hit_5d: u32,
     pub resistance_hit_5d: u32,
+    /// 快照日恰为最新交易日、无后续K线可回测而被跳过的快照数
+    pub skipped_snapshots: u32,
 }

@@ -41,7 +41,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
     const newNode: WorkflowNode = {
       id,
       type: "agent",
-      title: t("workflow.swarmNode.newAgent", { defaultValue: "Agent" }) + ` ${agentSteps.length + 1}`,
+      title: t("workflow.swarmNode.newAgent") + ` ${agentSteps.length + 1}`,
       position,
       config: {
         system_prompt: "",
@@ -67,7 +67,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.nodeConfig.topic_var", { defaultValue: "Topic Variable" })}
+          {t("workflow.nodeConfig.topic_var")}
         </label>
         <Input
           value={c.topic_var}
@@ -77,7 +77,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
       </div>
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.nodeConfig.max_rounds", { defaultValue: "Max Rounds" })}
+          {t("workflow.nodeConfig.max_rounds")}
         </label>
         <InputNumber
           value={c.max_rounds}
@@ -89,7 +89,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
         />
       </div>
       <Divider style={{ margin: "8px 0" }}>
-        {t("workflow.swarmNode.agents", { defaultValue: "Agents (child nodes)" })}
+        {t("workflow.swarmNode.agents")}
       </Divider>
       {childNodes.map((child) => (
         <div
@@ -123,7 +123,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
       ))}
       {agentSteps.length === 0 && (
         <div style={{ fontSize: 11, color: token.colorTextTertiary, textAlign: "center" }}>
-          {t("workflow.swarmNode.noAgentsHint", { defaultValue: "Add Agent nodes inside this container" })}
+          {t("workflow.swarmNode.noAgentsHint")}
         </div>
       )}
       <Button
@@ -133,7 +133,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
         onClick={addAgent}
         style={{ width: "100%" }}
       >
-        {t("workflow.swarmNode.addAgent", { defaultValue: "Add Agent" })}
+        {t("workflow.swarmNode.addAgent")}
       </Button>
       <div>
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>

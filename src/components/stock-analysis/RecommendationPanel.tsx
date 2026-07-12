@@ -839,7 +839,7 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
     if (applying) { return; }
     const selected = diff.filter((d) => checked.includes(d.strategyId));
     if (selected.length === 0) {
-      message.warning("请先勾选要应用的策略");
+      message.warning(t("stockAnalysis.stock-analysis_RecommendationPanel.002"));
       return;
     }
     // Bug 8 修复: 防御 weight 为 NaN / undefined,避免后端
@@ -854,7 +854,7 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
           && Number.isFinite(w.weight),
       );
     if (validPayload.length === 0) {
-      message.error("所选项的权重值无效(NaN/缺失),无法应用");
+      message.error(t("stockAnalysis.stock-analysis_RecommendationPanel.003"));
       return;
     }
     setApplying(true);
@@ -883,10 +883,10 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
         onClick={handlePreview}
         style={{ marginLeft: 4 }}
       >
-        ⚡ {t("stockAnalysis.recommendation.calibrate") ?? "权重校准"}
+        ⚡ {t("stockAnalysis.recommendation.calibrate")}
       </Button>
       <Modal
-        title="策略权重校准预览"
+        title={t("stockAnalysis.stock-analysis_RecommendationPanel.001")}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         footer={[

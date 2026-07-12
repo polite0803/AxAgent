@@ -27,10 +27,14 @@
 //! ```
 
 pub mod agent;
+pub mod calibration;
 pub mod config;
 pub mod error;
 pub mod kernel;
+pub mod monte_carlo;
+pub mod oracle;
 pub mod orderbook;
+pub mod stylized_facts;
 pub mod types;
 
 // Phase 1 re-exports
@@ -44,7 +48,10 @@ pub use types::{
 // Phase 2+3 re-exports
 pub use agent::{
     AgentAction, AgentContext, AgentMessage, AgentType, ExchangeAgent, MarketMakerAgent,
-    MessageBody, MomentumAgent, NoiseAgent, SimAgent, ValueAgent,
+    MessageBody, MomentumAgent, NoiseAgent, QuantStrategyAgent, SimAgent, StrategyAgent,
+    ValueAgent,
 };
+pub use calibration::BEST_PARAMS;
 pub use config::{LatencyMatrix, SimConfig};
 pub use kernel::{SimKernel, SimResult, SimStats};
+pub use stylized_facts::{StylizedFacts, TargetRange};

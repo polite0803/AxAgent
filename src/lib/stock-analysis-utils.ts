@@ -16,8 +16,8 @@ export interface MarketRegimeInfo {
   volatility: string;
   description: string;
   volatilityPct?: number | null;
-  consecutiveUp: number;
-  consecutiveDown: number;
+  consecutiveUp?: number;
+  consecutiveDown?: number;
 }
 
 /** 分析师输入 */
@@ -163,7 +163,10 @@ export function parseAction(raw: unknown): StockActionType {
 
 /** 解析股票风险等级（兼容英文/中文/大小写） */
 export function parseRiskLevel(raw: unknown): StockRiskLevelType {
-  if (typeof raw !== "string" && typeof raw !== "number") { return StockRiskLevel.MID; }
+  if (typeof raw !== "string" && typeof raw !== "number") {
+    console.warn("[parseRiskLevel] 无法识别的风险等级类型:", typeof raw, raw);
+    return StockRiskLevel.MID;
+  }
   const clean = String(raw).trim().toUpperCase();
   if (clean in StockRiskLevel) { return clean as StockRiskLevelType; }
   if (["低", "低风险", "L"].includes(clean)) { return StockRiskLevel.LOW; }
@@ -173,6 +176,7 @@ export function parseRiskLevel(raw: unknown): StockRiskLevelType {
   for (const [label, level] of Object.entries(STOCK_RISK_LABELS)) {
     if (String(raw).includes(label)) { return level; }
   }
+  console.warn("[parseRiskLevel] 未匹配的风险等级输入:", raw, "→ 默认返回 MID");
   return StockRiskLevel.MID;
 }
 
@@ -464,12 +468,20 @@ export function classifySentiment(report: string): "bullish" | "bearish" | "neut
     "跌破",
   ];
 
+  // 否定前缀：出现在看涨/看跌关键词前 3 字内时，抵消该关键词的情感贡献
+  const NEG_PREFIXES = ["无", "没有", "不会", "不存", "无需", "未", "难", "非", "缺乏", "不见"];
+  // 否定后缀：出现在看涨/看跌关键词之后（紧邻），将正向词转为反向语义
+  // 例如「增长放缓」「盈利承压」「回升不及」应判为空头或中性，而非多头
+  const NEG_SUFFIXES = ["放缓", "承压", "不及", "乏力", "疲软", "回落", "受阻", "不及预期", "低于预期", "下滑", "恶化"];
+
   for (const p of bullPatterns) {
     const idx = text.indexOf(p);
     if (idx !== -1) {
-      // 检查否定前缀
       const before = text.slice(Math.max(0, idx - 3), idx);
-      if (!["无", "没有", "不会", "不存", "无需"].some((neg) => before.includes(neg))) {
+      const after = text.slice(idx + p.length, idx + p.length + 4);
+      const negated = NEG_PREFIXES.some((neg) => before.includes(neg))
+        || NEG_SUFFIXES.some((neg) => after.includes(neg));
+      if (!negated) {
         bullScore++;
       }
     }
@@ -478,7 +490,10 @@ export function classifySentiment(report: string): "bullish" | "bearish" | "neut
     const idx = text.indexOf(p);
     if (idx !== -1) {
       const before = text.slice(Math.max(0, idx - 3), idx);
-      if (!["无", "没有", "不会", "不存", "无需"].some((neg) => before.includes(neg))) {
+      const after = text.slice(idx + p.length, idx + p.length + 4);
+      const negated = NEG_PREFIXES.some((neg) => before.includes(neg))
+        || NEG_SUFFIXES.some((neg) => after.includes(neg));
+      if (!negated) {
         bearScore++;
       }
     }
@@ -648,7 +663,9 @@ export async function computeEvidenceDrivenConsensus(
   timeHorizon?: string | null,
   historicalWeights?: Record<string, number> | null,
   updatedAt?: number,
-): Promise<StockConsensus & { evidenceReport?: EvidenceWeightReport }> {
+): Promise<
+  StockConsensus & { evidenceReport?: EvidenceWeightReport; evidenceFallback?: boolean }
+> {
   // marketRegime 缺失时提供默认值（避免后端校验失败）
   const defaultRegime: MarketRegimeInfo = marketRegime ?? {
     regime: "neutral",
@@ -702,7 +719,8 @@ export async function computeEvidenceDrivenConsensus(
     // fallback: 如果后端不可用，回退到前端旧版计算
     console.warn("[computeEvidenceDrivenConsensus] 后端计算失败，回退到前端简单共识:", err);
     const result = computeStockConsensus(reports, updatedAt, timeHorizon);
-    return { ...result, evidenceReport: undefined };
+    // 标记降级：前端可据此提示「证据驱动共识不可用，当前为简化版共识，仅供参考」
+    return { ...result, evidenceReport: undefined, evidenceFallback: true };
   }
 }
 

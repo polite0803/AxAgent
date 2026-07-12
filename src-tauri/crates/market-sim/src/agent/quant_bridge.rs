@@ -22,13 +22,9 @@
 //!       └─ 更新 last_price 用于 Bar 合成
 //! ```
 
-use axagent_quant::{
-    Bar, Signal, SignalAction, Strategy, StrategyCtx,
-};
+use axagent_quant::{Bar, Signal, SignalAction, Strategy, StrategyCtx};
 
-use crate::agent::traits::{
-    AgentAction, AgentContext, AgentType, MessageBody, SimAgent,
-};
+use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
 use crate::types::{FillResult, MarketOrder, OrderSide, Price, SimTimestamp, TradeRecord};
 
 /// 量化策略桥接 Agent
@@ -81,10 +77,7 @@ impl QuantStrategyAgent {
         Self {
             id: id.into(),
             strategy,
-            ctx: StrategyCtx {
-                cash: initial_cash,
-                ..Default::default()
-            },
+            ctx: StrategyCtx { cash: initial_cash, ..Default::default() },
             stock_code: code,
             wakeup_interval_ns,
             last_price: reference_price as f64,
@@ -136,11 +129,7 @@ impl QuantStrategyAgent {
         };
 
         // 推入 ctx.bar_history
-        self.ctx
-            .bar_history
-            .entry(self.stock_code.clone())
-            .or_default()
-            .push(bar.clone());
+        self.ctx.bar_history.entry(self.stock_code.clone()).or_default().push(bar.clone());
 
         // 限制缓存大小
         if let Some(bars) = self.ctx.bar_history.get_mut(&self.stock_code) {
@@ -194,12 +183,7 @@ impl QuantStrategyAgent {
             },
             SignalAction::Sell => {
                 // 卖：减当前持仓
-                let pos = self
-                    .ctx
-                    .positions
-                    .get(&self.stock_code)
-                    .map(|p| p.quantity)
-                    .unwrap_or(0);
+                let pos = self.ctx.positions.get(&self.stock_code).map(|p| p.quantity).unwrap_or(0);
                 if pos > 0 {
                     let order = MarketOrder {
                         id: self.gen_id(),
@@ -300,10 +284,7 @@ impl SimAgent for QuantStrategyAgent {
 
         // 首次启动：请求报价 + 定时唤醒
         vec![
-            AgentAction::SendMessage {
-                target: "exchange".into(),
-                body: MessageBody::RequestQuote,
-            },
+            AgentAction::SendMessage { target: "exchange".into(), body: MessageBody::RequestQuote },
             AgentAction::WakeupAfter(self.wakeup_interval_ns),
         ]
     }
@@ -320,8 +301,7 @@ impl SimAgent for QuantStrategyAgent {
         self.ctx.current_time = bar.date.clone();
 
         // 2. 调用策略的 on_bar
-        let signal_result =
-            futures::executor::block_on(self.strategy.on_bar(&bar, &mut self.ctx));
+        let signal_result = futures::executor::block_on(self.strategy.on_bar(&bar, &mut self.ctx));
         match signal_result {
             Ok(signals) => {
                 for signal in signals {
@@ -329,11 +309,7 @@ impl SimAgent for QuantStrategyAgent {
                 }
             },
             Err(e) => {
-                tracing::warn!(
-                    "QuantStrategyAgent[{}]: on_bar error: {:?}",
-                    self.id,
-                    e
-                );
+                tracing::warn!("QuantStrategyAgent[{}]: on_bar error: {:?}", self.id, e);
             },
         }
 
@@ -382,7 +358,10 @@ impl SimAgent for QuantStrategyAgent {
 mod tests {
     use super::*;
 
-    fn run_quant_sim(strategy: Box<dyn Strategy>, duration_ns: SimTimestamp) -> crate::kernel::SimResult {
+    fn run_quant_sim(
+        strategy: Box<dyn Strategy>,
+        duration_ns: SimTimestamp,
+    ) -> crate::kernel::SimResult {
         use crate::agent::*;
         use crate::config::SimConfig;
         use crate::kernel::SimKernel;
@@ -398,7 +377,12 @@ mod tests {
         kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
         kernel.register(Box::new(MarketMakerAgent::new("mm", 35, 500, 5000, 0.1, 500_000, price)));
         kernel.register(Box::new(QuantStrategyAgent::new(
-            "quant", strategy, "000001", price, 1_000_000.0, 1_000_000,
+            "quant",
+            strategy,
+            "000001",
+            price,
+            1_000_000.0,
+            1_000_000,
         )));
         kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.27, 50, 32, price)));
 
@@ -413,7 +397,9 @@ mod tests {
         assert!(result.total_events > 50, "events={}", result.total_events);
         eprintln!(
             "MaCross: events={} trades={} mid={:?}",
-            result.total_events, result.trades.len(), result.final_mid_price
+            result.total_events,
+            result.trades.len(),
+            result.final_mid_price
         );
     }
 
@@ -423,21 +409,17 @@ mod tests {
         let result = run_quant_sim(strategy, 500_000_000);
 
         assert!(result.total_events > 50);
-        eprintln!(
-            "MACD: events={} trades={}",
-            result.total_events, result.trades.len()
-        );
+        eprintln!("MACD: events={} trades={}", result.total_events, result.trades.len());
     }
 
     #[test]
     fn test_quant_rsi_produces_events() {
-        let strategy = Box::new(axagent_quant::RsiStrategy::new(14, 70.0, 30.0));
+        let strategy = Box::new(
+            axagent_quant::RsiStrategy::new(14, 70.0, 30.0).expect("RsiStrategy 阈值非法"),
+        );
         let result = run_quant_sim(strategy, 500_000_000);
 
         assert!(result.total_events > 50);
-        eprintln!(
-            "RSI: events={} trades={}",
-            result.total_events, result.trades.len()
-        );
+        eprintln!("RSI: events={} trades={}", result.total_events, result.trades.len());
     }
 }

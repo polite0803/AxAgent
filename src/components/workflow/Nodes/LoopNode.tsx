@@ -43,7 +43,7 @@ const LoopNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
       data={data}
       selected={selected}
       icon="🔁"
-      childLabel={t("workflow.loopNode.steps", { defaultValue: "Steps" })}
+      childLabel={t("workflow.loopNode.steps")}
       extraTags={
         <>
           <Tag

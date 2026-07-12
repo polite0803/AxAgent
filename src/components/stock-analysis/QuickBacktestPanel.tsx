@@ -126,7 +126,7 @@ export function QuickBacktestPanel() {
       title={
         <div className="flex items-center gap-2">
           <BarChart3 size={16} />
-          <span>{t("stockAnalysis.backtest.quickBacktest") ?? "快速回测"}</span>
+          <span>{t("stockAnalysis.backtest.quickBacktest")}</span>
         </div>
       }
     >
@@ -134,7 +134,7 @@ export function QuickBacktestPanel() {
       <div className="flex flex-wrap gap-3 mb-4 items-end">
         <div className="flex flex-col gap-1">
           <label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            {t("stockAnalysis.stockCode") ?? "股票代码"}
+            {t("stockAnalysis.stockCode")}
           </label>
           <input
             className="border rounded px-2 py-1 text-sm font-mono w-28"
@@ -170,7 +170,7 @@ export function QuickBacktestPanel() {
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            {t("stockAnalysis.backtest.sampleInterval") ?? "采样间隔"}
+            {t("stockAnalysis.backtest.sampleInterval")}
           </label>
           <InputNumber
             size="small"
@@ -183,7 +183,7 @@ export function QuickBacktestPanel() {
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            {t("stockAnalysis.backtest.holdDays") ?? "持有天数"}
+            {t("stockAnalysis.backtest.holdDays")}
           </label>
           <InputNumber
             size="small"
@@ -201,14 +201,14 @@ export function QuickBacktestPanel() {
           loading={loading}
           onClick={handleRun}
         >
-          {loading ? t("common.loading") : t("stockAnalysis.backtest.run") ?? "运行"}
+          {loading ? t("common.loading") : t("stockAnalysis.backtest.run")}
         </Button>
       </div>
 
       {/* 结果 */}
       {loading && (
         <div className="flex justify-center py-8">
-          <Spin tip={t("stockAnalysis.backtest.running") ?? "回测运行中..."}>
+          <Spin tip={t("stockAnalysis.backtest.running")}>
             <div style={{ padding: 50 }} />
           </Spin>
         </div>
@@ -221,7 +221,7 @@ export function QuickBacktestPanel() {
             <Col span={6}>
               <Card size="small">
                 <Statistic
-                  title={t("stockAnalysis.backtest.totalRuns") ?? "测试次数"}
+                  title={t("stockAnalysis.backtest.totalRuns")}
                   value={result.totalSamples}
                   prefix={<BarChart3 size={14} />}
                   valueStyle={{ fontSize: 18 }}
@@ -231,7 +231,7 @@ export function QuickBacktestPanel() {
             <Col span={6}>
               <Card size="small">
                 <Statistic
-                  title={t("stockAnalysis.backtest.winRate") ?? "胜率"}
+                  title={t("stockAnalysis.backtest.winRate")}
                   value={result.winRate}
                   precision={1}
                   suffix="%"
@@ -242,7 +242,7 @@ export function QuickBacktestPanel() {
             <Col span={6}>
               <Card size="small">
                 <Statistic
-                  title={t("stockAnalysis.backtest.avgReturn") ?? "平均收益率"}
+                  title={t("stockAnalysis.backtest.avgReturn")}
                   value={result.avgReturnPct}
                   precision={2}
                   suffix="%"
@@ -257,7 +257,7 @@ export function QuickBacktestPanel() {
             <Col span={6}>
               <Card size="small">
                 <Statistic
-                  title={t("stockAnalysis.backtest.correctCount") ?? "正确次数"}
+                  title={t("stockAnalysis.backtest.correctCount")}
                   value={`${result.correctCount}/${result.totalSamples}`}
                   prefix={<Clock size={14} />}
                   valueStyle={{ fontSize: 18 }}

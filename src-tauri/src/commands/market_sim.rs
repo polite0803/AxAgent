@@ -22,7 +22,10 @@ use serde::{Deserialize, Serialize};
 use axagent_market_sim::{
     ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, SimConfig, SimKernel, SimResult,
     ValueAgent,
+    agent::QuantStrategyAgent,
+    monte_carlo::{MonteCarloEngine, ScenarioConfig, ScenarioType},
 };
+use axagent_quant::{BollStrategy, MaCrossStrategy, MacdStrategy, RsiStrategy, TurtleStrategy};
 
 /// 前端传入的模拟请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,11 +130,11 @@ fn build_default_agents(
     for i in 0..n_mm {
         agents.push(Box::new(MarketMakerAgent::new(
             format!("mm_{}", i),
-            30,         // 30bps
-            500,        // 500 股/档
-            5000,       // 库存上限
-            0.1,        // 库存偏移敏感度
-            200_000,    // 200μs 刷新间隔
+            30,      // 30bps
+            500,     // 500 股/档
+            5000,    // 库存上限
+            0.1,     // 库存偏移敏感度
+            200_000, // 200μs 刷新间隔
             reference_price,
         )));
     }
@@ -141,11 +144,11 @@ fn build_default_agents(
     for i in 0..n_mom {
         agents.push(Box::new(MomentumAgent::new(
             format!("momentum_{}", i),
-            5,               // lookback
-            0.003,           // 0.3% 阈值
-            200,             // 200 股/次
-            2000,            // 持仓上限
-            500_000,         // 500μs 检查间隔
+            5,       // lookback
+            0.003,   // 0.3% 阈值
+            200,     // 200 股/次
+            2000,    // 持仓上限
+            500_000, // 500μs 检查间隔
             reference_price as f64,
         )));
     }
@@ -156,10 +159,10 @@ fn build_default_agents(
         agents.push(Box::new(ValueAgent::new(
             format!("value_{}", i),
             (reference_price as f64 * 1.02) as i64, // fair_value = 参考价 × 1.02
-            30,            // 30bps 阈值
-            300,           // 300 股/次
-            3000,          // 持仓上限
-            1_000_000,     // 1ms 检查间隔
+            30,                                     // 30bps 阈值
+            300,                                    // 300 股/次
+            3000,                                   // 持仓上限
+            1_000_000,                              // 1ms 检查间隔
         )));
     }
 
@@ -230,4 +233,218 @@ pub fn market_sim_defaults() -> serde_json::Value {
             "noiseAgents": 2
         }
     })
+}
+
+/// 蒙特卡洛多场景模拟请求
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McSimRequest {
+    pub stock_code: String,
+    pub reference_price: i64,
+    /// 最大模拟时间（纳秒），默认 50ms
+    pub max_sim_time_ns: Option<u64>,
+    /// 随机种子，默认 42
+    pub seed: Option<u64>,
+    /// 场景列表
+    pub scenarios: Vec<McScenarioSpec>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McScenarioSpec {
+    pub scenario: String,
+    pub paths: u32,
+}
+
+/// 蒙特卡洛模拟结果（前端展示用）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McSimResult {
+    pub stock_code: String,
+    pub reference_price: i64,
+    pub total_paths: usize,
+    pub survival_rate: f64,
+    pub consistency_score: f64,
+    pub best_scenario: String,
+    pub worst_scenario: String,
+    pub scenario_results: Vec<McScenarioResultItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McScenarioResultItem {
+    pub scenario: String,
+    pub label: String,
+    pub paths: usize,
+    pub avg_total_trades: f64,
+    pub avg_final_mid_price: Option<f64>,
+    pub price_change_pct: Option<f64>,
+}
+
+/// 运行蒙特卡洛多场景模拟
+#[tauri::command]
+pub fn market_sim_run_mc(request: McSimRequest) -> Result<McSimResult, String> {
+    let ref_price = request.reference_price;
+    let stock_code = request.stock_code.clone();
+    let max_time_ns = request.max_sim_time_ns.unwrap_or(50_000_000);
+    let seed = request.seed.unwrap_or(42);
+    let scenarios = request.scenarios.clone();
+
+    let default_agents = move |_seed: u64| -> Vec<Box<dyn axagent_market_sim::SimAgent>> {
+        vec![
+            Box::new(ExchangeAgent::with_tick_size("exchange", 1)),
+            Box::new(MarketMakerAgent::new("mm", 50, 500, 5000, 0.1, 200_000, ref_price)),
+            Box::new(MomentumAgent::new(
+                "momentum",
+                5,
+                0.003,
+                200,
+                2000,
+                500_000,
+                ref_price as f64,
+            )),
+            Box::new(ValueAgent::new(
+                "value",
+                (ref_price as f64 * 1.02) as i64,
+                30,
+                300,
+                3000,
+                1_000_000,
+            )),
+            Box::new(NoiseAgent::new("noise", 300_000, 0.3, 50, 30, ref_price)),
+        ]
+    };
+
+    let config = SimConfig {
+        max_time_ns,
+        seed,
+        stock_code: stock_code.clone(),
+        reference_price: ref_price,
+        tick_size: 1,
+        ..Default::default()
+    };
+
+    let mut engine = MonteCarloEngine::new(config, default_agents);
+    engine.scenarios = scenarios
+        .iter()
+        .map(|s| {
+            let scenario_type = match s.scenario.as_str() {
+                "bull" => ScenarioType::Bull,
+                "bear" => ScenarioType::Bear,
+                "flash_crash" => ScenarioType::FlashCrash,
+                "high_vol" => ScenarioType::HighVolatility,
+                _ => ScenarioType::Normal,
+            };
+            ScenarioConfig { scenario: scenario_type, paths: s.paths as usize }
+        })
+        .collect();
+
+    let report = engine.run();
+
+    Ok(McSimResult {
+        stock_code: report.stock_code,
+        reference_price: report.reference_price,
+        total_paths: report.total_paths,
+        survival_rate: (report.survival_rate * 1000.0).round() / 10.0,
+        consistency_score: report.consistency_score,
+        best_scenario: report.best_scenario,
+        worst_scenario: report.worst_scenario,
+        scenario_results: report
+            .scenario_results
+            .into_iter()
+            .map(|sr| McScenarioResultItem {
+                scenario: format!("{:?}", sr.scenario),
+                label: sr.label,
+                paths: sr.paths,
+                avg_total_trades: (sr.avg_total_trades * 10.0).round() / 10.0,
+                avg_final_mid_price: sr.avg_final_mid_price.map(|p| (p * 100.0).round() / 100.0),
+                price_change_pct: sr.price_change_pct.map(|p| (p * 100.0).round() / 100.0),
+            })
+            .collect(),
+    })
+}
+
+/// 量化策略模拟请求
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuantSimRequest {
+    pub stock_code: String,
+    pub reference_price: i64,
+    pub strategy_name: String,
+    pub max_sim_time_ms: Option<u64>,
+    pub seed: Option<u64>,
+}
+
+/// 量化策略模拟结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuantSimRunResult {
+    pub total_events: u64,
+    pub total_trades: u64,
+    pub final_mid_price: Option<f64>,
+    pub wall_clock_ms: u64,
+    pub strategy_name: String,
+}
+
+/// 运行量化策略模拟（在 DES 市场环境中运行 quant crate 策略）
+#[tauri::command]
+pub fn market_sim_run_strategy(request: QuantSimRequest) -> Result<QuantSimRunResult, String> {
+    let strategy: Box<dyn axagent_quant::Strategy> = match request.strategy_name.as_str() {
+        "ma_cross" => Box::new(MaCrossStrategy::new(5, 20)),
+        "macd" => Box::new(MacdStrategy::new(12, 26, 9)),
+        "rsi" => Box::new(RsiStrategy::new(14, 70.0, 30.0).map_err(|e| e.to_string())?),
+        "boll" => Box::new(BollStrategy::new(20, 2.0)),
+        "turtle" => Box::new(TurtleStrategy::new(20, 10, 20, 2.0)),
+        _ => return Err(format!("未知策略: {}", request.strategy_name)),
+    };
+
+    let config = SimConfig {
+        max_time_ns: request.max_sim_time_ms.unwrap_or(500) * 1_000_000,
+        seed: request.seed.unwrap_or(42),
+        stock_code: request.stock_code.clone(),
+        reference_price: request.reference_price,
+        tick_size: 1,
+        ..Default::default()
+    };
+
+    let mut kernel = SimKernel::new(config);
+    kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
+    kernel.register(Box::new(MarketMakerAgent::new(
+        "mm",
+        50,
+        500,
+        5000,
+        0.1,
+        200_000,
+        request.reference_price,
+    )));
+    kernel.register(Box::new(NoiseAgent::new(
+        "noise",
+        300_000,
+        0.3,
+        50,
+        30,
+        request.reference_price,
+    )));
+
+    let quant_agent = QuantStrategyAgent::new(
+        "strategy",
+        strategy,
+        &request.stock_code,
+        request.reference_price,
+        100_000.0, // 10 万初始资金
+        500_000,   // 500μs 唤醒间隔
+    );
+    kernel.register(Box::new(quant_agent));
+
+    match kernel.run() {
+        Ok(result) => Ok(QuantSimRunResult {
+            total_events: result.total_events,
+            total_trades: result.stats.total_trades,
+            final_mid_price: result.final_mid_price,
+            wall_clock_ms: result.wall_clock_ms,
+            strategy_name: request.strategy_name,
+        }),
+        Err(e) => Err(format!("策略模拟失败: {}", e)),
+    }
 }

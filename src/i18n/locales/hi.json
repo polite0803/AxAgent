@@ -1642,6 +1642,7 @@
       "importParseError": "अमान्य JSON प्रारूप",
       "importEmpty": "कोई मान्य MCP सर्वर कॉन्फ़िग नहीं मिला",
       "importSuccess": "{{count}} सर्वर सफलतापूर्वक आयात किए गए",
+      "importPartial": "Import done: {ok} succeeded, {failed} failed (failed items not written; check codes and retry)",
       "notConfigured": "कोई कनेक्शन कॉन्फ़िगर नहीं किया गया",
       "builtinServer": "अंतर्निहित सर्वर",
       "toolCount": "{{count}} उपकरण"
@@ -7795,6 +7796,8 @@
     "pnl": "P&L",
     "recorded": "Recorded",
     "fillRequired": "Fill required fields",
+    "quickRecordInvalid": "Invalid decision params, target price/position ignored, please fill manually",
+    "quickRecordHint": "Quick fill: target price and position % must be valid (position 0–100%)",
     "toggleFailed": "Toggle failed",
     "limitsBlocked": "Position limits blocked",
     "agentRole.coordinator": "Coordinator",
@@ -8895,8 +8898,8 @@
           "mainInflow": "Main Inflow ≥",
           "dragonTiger": "Dragon&Tiger ≥",
           "northbound": "Northbound ≥",
-          "rsiOversold": "RSI Oversold",
-          "rsiOverbought": "RSI Overbought"
+          "rsiOversold": "RSI Oversold (<30)",
+          "rsiOverbought": "RSI Overbought (>70)"
         },
         "unit10k": "10k"
       },
@@ -10070,7 +10073,12 @@
     "stockAnalysis.workflow.riskConvergence": "风险收敛",
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
-    "stockAnalysis.workflow.vValidate": "验证"
+    "stockAnalysis.workflow.vValidate": "验证",
+    "settings_StockAnalysisSettings.001": "定时",
+    "stock-analysis_RecommendationPanel.001": "title",
+    "stock-analysis_RecommendationPanel.002": "请先勾选要应用的策略",
+    "stock-analysis_RecommendationPanel.003": "所选项的权重值无效(NaN/缺失),无法应用",
+    "stock-analysis_StockAnalysisPage.001": "title"
   },
   "learningGraph": {
     "title": "Learning Graph",

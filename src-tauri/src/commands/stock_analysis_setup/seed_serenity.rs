@@ -21,10 +21,8 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     // 每次修改 Rhai 脚本或节点拓扑后+1，强制模板重新写入
     const TEMPLATE_VERSION: i32 = 3; // v3: 重写 consistency-check.rhai（去掉字面量注入+模板字符串），修复 null/# 语法错误
     // 检查模板版本，只有需要更新时才会重种子
-    if let Some(existing) = workflow_template::Entity::find_by_id(TEMPLATE_ID)
-        .one(db)
-        .await
-        .map_err(|e| {
+    if let Some(existing) =
+        workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {
             ErrorResponse::new(stock_setup::INTERNAL)
                 .with_detail(format!("查询工作流模板失败: {e}"))
         })?
@@ -40,13 +38,9 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             existing.version
         );
         // 删除旧记录，后续 insert 会创建新版
-        workflow_template::Entity::delete_by_id(TEMPLATE_ID)
-            .exec(db)
-            .await
-            .map_err(|e| {
-                ErrorResponse::new(stock_setup::INTERNAL)
-                    .with_detail(format!("删除旧模板失败: {e}"))
-            })?;
+        workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await.map_err(|e| {
+            ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("删除旧模板失败: {e}"))
+        })?;
         tracing::info!("[stock_analysis_setup] 旧模板已删除，准备创建新版本");
     } else {
         tracing::info!("[stock_analysis_setup] Serenity 模板不存在，准备创建");
@@ -464,11 +458,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                 title: title.into(),
                 description: Some(format!("获取数据: {tool_name}")),
                 position: Position { x, y },
-                retry: RetryConfig {
-                    enabled: true,
-                    max_retries: 2,
-                    ..Default::default()
-                },
+                retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
                 timeout: Some(120),
                 enabled: true,
                 parent_id: None,
@@ -498,11 +488,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                 title: title.into(),
                 description: Some(format!("Serenity 分析: {expert_id}")),
                 position: Position { x, y },
-                retry: RetryConfig {
-                    enabled: true,
-                    max_retries: 1,
-                    ..Default::default()
-                },
+                retry: RetryConfig { enabled: true, max_retries: 1, ..Default::default() },
                 timeout: Some(600),
                 enabled: true,
                 parent_id: None,
@@ -533,7 +519,6 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                     enabled: true,
                     match_threshold: 0.4,
                 }),
-                stream_chunk_timeout_secs: Some(300),
             },
         })
     };
@@ -579,14 +564,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
 
     // ── Phase 0: 数据采集工具（并行） ──
     let t_names = [
-        (
-            "t-industry-rank",
-            "行业排名",
-            "get_industry_ranking",
-            "t-industry-rank",
-            240.0,
-            80.0,
-        ),
+        ("t-industry-rank", "行业排名", "get_industry_ranking", "t-industry-rank", 240.0, 80.0),
         ("t-cls-flash", "实时快讯", "get_cls_flash", "t-cls-flash", 440.0, 80.0),
         ("t-northbound", "北向资金", "get_north_bound_flow", "t-northbound", 840.0, 80.0),
     ];
@@ -673,13 +651,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         ("t-baseline-med", "医药基线", "ref_med_code", 640.0, 130.0),
         // 第二行：3 个基线
         ("t-baseline-aero", "军工基线", "ref_aero_code", 140.0, 210.0),
-        (
-            "t-baseline-consumer-elec",
-            "消费电子基线",
-            "ref_consumer_elec_code",
-            340.0,
-            210.0,
-        ),
+        ("t-baseline-consumer-elec", "消费电子基线", "ref_consumer_elec_code", 340.0, 210.0),
         ("t-baseline-auto", "汽车基线", "ref_auto_code", 540.0, 210.0),
     ];
     for (id, title, var_name, x, y) in &baseline_stocks {
@@ -876,10 +848,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                 id: code_node_id.clone(),
                 title: format!("瓶颈指标计算 #{i}"),
                 description: Some("基于产业链数据和财务数据计算客观瓶颈指标".into()),
-                position: Position {
-                    x: trend_x_positions[i] + 20.0,
-                    y: 360.0,
-                },
+                position: Position { x: trend_x_positions[i] + 20.0, y: 360.0 },
                 retry: RetryConfig::default(),
                 timeout: Some(30),
                 enabled: true,
@@ -1151,11 +1120,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     let tool_def_map: std::collections::HashMap<&str, &ToolDef> =
         tool_defs.iter().map(|td| (td.name.as_str(), td)).collect();
     let resolve_tools = |names: &[&str]| -> Vec<ToolDef> {
-        names
-            .iter()
-            .filter_map(|name| tool_def_map.get(name).cloned())
-            .cloned()
-            .collect()
+        names.iter().filter_map(|name| tool_def_map.get(name).cloned()).cloned().collect()
     };
     // 数据集工具（Phase 0）：可供趋势扫描器调用获取行业级数据
     let phase0_tools = &[
@@ -1354,9 +1319,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         })?;
 
     // ── 写入 DB ──
-    let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID)
-        .exec(db)
-        .await;
+    let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.to_string()),
         name: Set("Serenity 瓶颈筛选".to_string()),

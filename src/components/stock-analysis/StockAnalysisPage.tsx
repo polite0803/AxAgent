@@ -408,7 +408,7 @@ export function StockAnalysisPage() {
                   fontWeight: 500,
                 }}
                 onClick={() => setShowDebug(!showDebug)}
-                title="打开/关闭分析调试面板"
+                title={"打开/关闭分析调试面板"}
               >
                 🔍 {showDebug ? "隐藏 Debug" : "Debug 面板"}
               </button>

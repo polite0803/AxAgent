@@ -156,6 +156,66 @@ impl ScoringEngine {
         }
     }
 
+    /// 基本面调整：根据 PE / PB / ROE 对客观评分做增量调整
+    pub fn apply_fundamental_adjustment(
+        score: &mut ObjectiveScore,
+        pe: f64,
+        pb: f64,
+        roe: Option<f64>,
+    ) {
+        let mut adj: i32 = 0;
+        if pe > 0.0 && pe < 15.0 {
+            adj += 5;
+        } else if pe > 50.0 {
+            adj -= 5;
+        }
+        if pb > 0.0 && pb < 1.5 {
+            adj += 3;
+        } else if pb > 5.0 {
+            adj -= 3;
+        }
+        if let Some(r) = roe {
+            if r > 15.0 {
+                adj += 5;
+            } else if r < 5.0 {
+                adj -= 3;
+            }
+        }
+        score.total_adjustment += adj;
+        score.total = (score.total as i32 + adj).clamp(0, 100) as u32;
+    }
+
+    /// 行业相对估值调整：个股 PE/PB 相对行业中位数的偏离
+    pub fn apply_industry_adjustment(
+        score: &mut ObjectiveScore,
+        pe: f64,
+        industry_pe: Option<f64>,
+        pb: f64,
+        industry_pb: Option<f64>,
+    ) {
+        let mut adj: i32 = 0;
+        if let Some(ind_pe) = industry_pe {
+            if pe > 0.0 && ind_pe > 0.0 {
+                if pe < ind_pe * 0.8 {
+                    adj += 4;
+                } else if pe > ind_pe * 1.2 {
+                    adj -= 4;
+                }
+            }
+        }
+        if let Some(ind_pb) = industry_pb {
+            if pb > 0.0 && ind_pb > 0.0 {
+                if pb < ind_pb * 0.8 {
+                    adj += 3;
+                } else if pb > ind_pb * 1.2 {
+                    adj -= 3;
+                }
+            }
+        }
+        score.total_adjustment += adj;
+        score.total = (score.total as i32 + adj).clamp(0, 100) as u32;
+    }
+
     fn score_trend(alignment: &str) -> u32 {
         match alignment {
             "多头排列" => 30,

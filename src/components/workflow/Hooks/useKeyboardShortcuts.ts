@@ -192,14 +192,14 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams) {
         const containers = r.nodes.filter((n) => NODE_TYPE_MAP[n.type]?.isContainer);
         if (containers.length > 0) {
           useWorkflowEditorStore.getState().collapseAllContainers();
-          message.success(t("workflow.containersCollapsed", { defaultValue: "All containers collapsed" }));
+          message.success(t("workflow.containersCollapsed"));
         }
         return;
       }
       if (isCtrlOrCmd && e.shiftKey && e.key === "E" && !isEditing) {
         e.preventDefault();
         useWorkflowEditorStore.getState().expandAllContainers();
-        message.success(t("workflow.containersExpanded", { defaultValue: "All containers expanded" }));
+        message.success(t("workflow.containersExpanded"));
         return;
       }
       if (isCtrlOrCmd && e.key === "a" && !isEditing) {

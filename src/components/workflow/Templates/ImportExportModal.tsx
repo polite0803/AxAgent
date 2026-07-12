@@ -779,7 +779,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                       marginBottom: 8,
                     }}
                   >
-                    {t("workflow.importExport.exportYamlDesc", { defaultValue: "Export current workflow as YAML" })}
+                    {t("workflow.importExport.exportYamlDesc")}
                   </label>
                   <Button
                     type="primary"
@@ -795,13 +795,13 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                         a.click();
                         URL.revokeObjectURL(url);
                         message.success(
-                          t("workflow.importExport.yamlExportSuccess", { defaultValue: "YAML exported" }),
+                          t("workflow.importExport.yamlExportSuccess"),
                         );
                       }
                     }}
                     style={{ marginBottom: 24 }}
                   >
-                    {t("workflow.importExport.exportYamlBtn", { defaultValue: "Export YAML" })}
+                    {t("workflow.importExport.exportYamlBtn")}
                   </Button>
                 </>
               )}
@@ -816,7 +816,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                       marginBottom: 8,
                     }}
                   >
-                    {t("workflow.importExport.uploadYamlFile", { defaultValue: "Upload YAML file" })}
+                    {t("workflow.importExport.uploadYamlFile")}
                   </label>
                   <Upload.Dragger
                     accept=".yaml,.yml"
@@ -825,7 +825,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                       const ok = await onImportYaml(text);
                       if (ok) {
                         message.success(
-                          t("workflow.importExport.yamlImportSuccess", { defaultValue: "YAML imported" }),
+                          t("workflow.importExport.yamlImportSuccess"),
                         );
                         onImportComplete?.();
                       }

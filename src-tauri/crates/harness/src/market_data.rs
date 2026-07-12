@@ -132,7 +132,8 @@ impl FinancialReport {
 /// 市场数据提供者接口
 ///
 /// 实现方：`axagent-astock-data` 的 `AStockClient`
-/// 消费者：`quant`、`gateway`、`tools`、`stock-analysis`
+/// 业务实现层（implementor）：`stock-analysis`（依赖 astock-data + dao + entities，属 implementor，非 consumer）
+/// 消费者（consumer）：`quant`、`gateway`、`tools`
 #[async_trait]
 pub trait MarketDataProvider: Send + Sync {
     /// 获取实时行情（含涨跌停价、ST标记）

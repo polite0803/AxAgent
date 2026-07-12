@@ -119,7 +119,9 @@ impl Matcher {
                 Some(p) => p,
                 None => return self.reject(order, bar, "无持仓可卖"),
             };
-            if self.config.t1_enforced && pos.entry_date == order.timestamp {
+            // 取前 10 字符（YYYY-MM-DD）比较，避免 entry_date 与 timestamp 格式不一致（如一个纯日期一个含时间）
+            let same_day = pos.entry_date.get(..10) == order.timestamp.get(..10);
+            if self.config.t1_enforced && same_day {
                 return self.reject(order, bar, "T+1 当日不可卖出");
             }
             if order.quantity > pos.quantity {

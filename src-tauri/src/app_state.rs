@@ -292,6 +292,12 @@ pub struct AppState {
     pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
     pub session_share_manager: SessionShareStore,
+    /// A 股数据客户端（vendors + 缓存 + 健康追踪）
+    pub astock_client: Arc<axagent_astock_data::AStockClient>,
+    /// 交易引擎（持仓 / 回测 / 组合风险）
+    pub trading_engine: Arc<TokioRwLock<axagent_stock_analysis::trading::TradingEngine>>,
+    /// 实时监控器（T+0 / 盘口 / 异常波动），可选
+    pub stock_monitor: Option<Arc<axagent_stock_analysis::monitor::RealtimeMonitor>>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

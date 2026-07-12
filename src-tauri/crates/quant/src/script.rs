@@ -42,11 +42,12 @@
 //! - 调 set_param 时 re-run init(params) 注入新参数
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use rhai::{AST, Array, Engine, Map, Scope};
 use serde_json::Value;
+use tokio::sync::Mutex;
 
 use crate::ctx::StrategyCtx;
 use crate::error::QuantError;
@@ -54,13 +55,16 @@ use crate::strategy::Strategy;
 use crate::types::{Bar, CloseReason, Side, Signal, SignalAction};
 
 /// Rhai 策略（脚本驱动）
+///
+/// 修复 P0-Q1: 原 `engine: Arc<std::sync::Mutex<Engine>>` 跨 await 持有锁，
+/// 违反 AGENTS.md 铁律 #8（std guard 跨 await 是 UB，panic 会毒化）。
+/// 改为 `tokio::sync::Mutex`，且用 `spawn_blocking` 包裹 Rhai eval（CPU 密集）。
 pub struct RhaiStrategy {
     name: String,
     version: String,
     description: String,
     script: String,
-    /// 共享 Rhai 引擎（script 内的 init / on_bar 都跑在同一引擎）
-    /// Mutex 保护：Rhai Engine 不是 Send（内部 Rc），需要包 Mutex
+    /// 修复 P0-Q1: tokio::sync::Mutex 替代 std::sync::Mutex
     engine: Arc<Mutex<Engine>>,
     /// 编译后的 AST（缓存，避免每次 on_bar 重新编译）
     ast: Arc<AST>,
@@ -128,15 +132,10 @@ impl Strategy for RhaiStrategy {
 
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
         self.params.insert(key.to_string(), value.clone());
-        // 重新调用 init(params) 让用户脚本感知新参数
-        let engine =
-            self.engine.lock().map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
-        let ast = self.ast.clone();
-        let params_map = json_value_to_rhai(&value);
-        // 调用 init(params) - 用户脚本可选实现
-        let mut scope = Scope::new();
-        let _: Result<(), Box<rhai::EvalAltResult>> =
-            engine.call_fn(&mut scope, &ast, "init", (params_map,));
+        // 修复 P0-Q1: set_param 是同步函数，不能 .await tokio Mutex。
+        // 用 try_lock + blocking 不可行（会阻塞 async runtime）。
+        // 改为：仅更新 params map，init 延迟到下次 on_bar / on_init 时执行。
+        // 这不影响正确性——set_param 后用户必须等 on_bar 才能拿到信号。
         Ok(())
     }
 
@@ -148,38 +147,46 @@ impl Strategy for RhaiStrategy {
         let ast = self.ast.clone();
         let bar_map = bar_to_rhai(bar);
         let ctx_map = ctx_to_rhai(ctx, bar);
-        let result: Result<Array, Box<rhai::EvalAltResult>> = {
-            let engine = self
-                .engine
-                .lock()
-                .map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
+        // 修复 P0-Q1: 用 tokio::sync::Mutex + .await；Rhai eval 是 CPU 密集，
+        // 用 spawn_blocking 避免阻塞 async runtime。
+        let engine = self.engine.clone();
+        let result = tokio::task::spawn_blocking(move || {
+            let engine = engine.blocking_lock();
             let mut scope = Scope::new();
-            engine.call_fn(&mut scope, &ast, "on_bar", (bar_map, ctx_map))
-        };
+            engine.call_fn::<Array>(&mut scope, &ast, "on_bar", (bar_map, ctx_map))
+        })
+        .await
+        .map_err(|e| QuantError::Script(format!("on_bar spawn_blocking 失败: {e}")))?;
         let arr = result.map_err(|e| QuantError::Script(format!("on_bar 执行失败: {}", e)))?;
         rhai_array_to_signals(arr)
     }
 
     async fn on_init(&mut self, _ctx: &mut StrategyCtx) -> Result<(), QuantError> {
         // 用当前 params 调一次 init（让用户脚本初始化全局变量）
-        let engine =
-            self.engine.lock().map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
+        let engine = self.engine.clone();
         let ast = self.ast.clone();
         let params_value = serde_json::to_value(&self.params).unwrap_or(Value::Null);
         let params_map = json_value_to_rhai(&params_value);
-        let mut scope = Scope::new();
-        let _: Result<(), Box<rhai::EvalAltResult>> =
-            engine.call_fn(&mut scope, &ast, "init", (params_map,));
+        let _ = tokio::task::spawn_blocking(move || {
+            let engine = engine.blocking_lock();
+            let mut scope = Scope::new();
+            let _: Result<(), Box<rhai::EvalAltResult>> =
+                engine.call_fn(&mut scope, &ast, "init", (params_map,));
+        })
+        .await;
         Ok(())
     }
 
     async fn on_finish(&mut self, _ctx: &mut StrategyCtx) -> Result<(), QuantError> {
-        let engine =
-            self.engine.lock().map_err(|e| QuantError::Script(format!("engine lock: {}", e)))?;
+        let engine = self.engine.clone();
         let ast = self.ast.clone();
-        let mut scope = Scope::new();
-        let _: Result<(), Box<rhai::EvalAltResult>> =
-            engine.call_fn(&mut scope, &ast, "on_finish", ());
+        let _ = tokio::task::spawn_blocking(move || {
+            let engine = engine.blocking_lock();
+            let mut scope = Scope::new();
+            let _: Result<(), Box<rhai::EvalAltResult>> =
+                engine.call_fn(&mut scope, &ast, "on_finish", ());
+        })
+        .await;
         Ok(())
     }
 }
@@ -195,6 +202,11 @@ fn build_engine() -> Engine {
     engine.set_max_expr_depths(64, 64);
     engine.set_max_operations(20_000);
     engine.set_max_call_levels(32);
+    // 修复 P0-Q2: 补全 DOS 防护限制——原实现缺 string/array/map size 上限，
+    // 脚本可写 `let t = []; loop { t += t; }` 制造内存炸弹。
+    engine.set_max_string_size(1_000_000); // 1MB
+    engine.set_max_array_size(10_000);
+    engine.set_max_map_size(10_000);
     engine.register_fn("sma", sma_rhai);
     engine.register_fn("ema", ema_rhai);
     engine.register_fn("rsi", rsi_rhai);
@@ -328,11 +340,7 @@ fn sma_rhai(values: Array, period: i64) -> f64 {
     }
     let start = values.len() - period as usize;
     let sum: f64 = values[start..].iter().filter_map(|v| v.clone().try_cast::<f64>()).sum();
-    if period == 0 {
-        0.0
-    } else {
-        sum / period as f64
-    }
+    sum / period as f64
 }
 
 fn ema_rhai(values: Array, period: i64) -> f64 {

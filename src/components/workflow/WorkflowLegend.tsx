@@ -117,7 +117,7 @@ export const WorkflowLegend: React.FC = memo(() => {
               letterSpacing: "0.5px",
             }}
           >
-            {t("workflow.legend.title", { defaultValue: "Node Colors" })}
+            {t("workflow.legend.title")}
           </span>
         )}
         <span

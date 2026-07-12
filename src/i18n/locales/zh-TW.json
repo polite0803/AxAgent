@@ -1702,6 +1702,7 @@
       "importParseError": "JSON 格式無效",
       "importEmpty": "未找到有效的 MCP 伺服器設定",
       "importSuccess": "成功匯入 {{count}} 個伺服器",
+      "importPartial": "Import done: {ok} succeeded, {failed} failed (failed items not written; check codes and retry)",
       "notConfigured": "未設定連線",
       "builtinServer": "內建伺服器",
       "toolCount": "{{count}} 個工具"
@@ -7795,6 +7796,8 @@
     "pnl": "盈亏",
     "recorded": "已记录",
     "fillRequired": "请填写必要信息",
+    "quickRecordInvalid": "Invalid decision params, target price/position ignored, please fill manually",
+    "quickRecordHint": "Quick fill: target price and position % must be valid (position 0–100%)",
     "toggleFailed": "切换失败",
     "limitsBlocked": "Position limits blocked this order",
     "agentRole.coordinator": "协调者",
@@ -8925,8 +8928,8 @@
           "mainInflow": "主力净流入≥",
           "dragonTiger": "龙虎榜净买≥",
           "northbound": "北向持仓≥",
-          "rsiOversold": "RSI 超卖",
-          "rsiOverbought": "RSI 超买"
+          "rsiOversold": "RSI 超卖 (<30)",
+          "rsiOverbought": "RSI 超买 (>70)"
         },
         "unit10k": "万元"
       },
@@ -10100,7 +10103,12 @@
     "stockAnalysis.workflow.riskConvergence": "风险收敛",
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
-    "stockAnalysis.workflow.vValidate": "验证"
+    "stockAnalysis.workflow.vValidate": "验证",
+    "settings_StockAnalysisSettings.001": "定时",
+    "stock-analysis_RecommendationPanel.001": "title",
+    "stock-analysis_RecommendationPanel.002": "请先勾选要应用的策略",
+    "stock-analysis_RecommendationPanel.003": "所选项的权重值无效(NaN/缺失),无法应用",
+    "stock-analysis_StockAnalysisPage.001": "title"
   },
   "learningGraph": {
     "title": "學習圖",

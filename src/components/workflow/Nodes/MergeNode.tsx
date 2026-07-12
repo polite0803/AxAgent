@@ -22,7 +22,7 @@ const MergeNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
       data={data}
       selected={selected}
       icon="🔗"
-      childLabel={t("workflow.mergeNode.branches", { defaultValue: "Branches" })}
+      childLabel={t("workflow.mergeNode.branches")}
       extraTags={
         <>
           {data.mergeType && (

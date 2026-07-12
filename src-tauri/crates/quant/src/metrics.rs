@@ -138,7 +138,8 @@ fn daily_returns(curve: &[EquityPoint]) -> Vec<f64> {
     rets
 }
 
-fn approx_days(start: &str, end: &str) -> i64 {
+/// 两个 YYYY-MM-DD 日期之间的近似天数差（本 crate 内唯一实现，engine/walkforward 复用）
+pub fn approx_days(start: &str, end: &str) -> i64 {
     use chrono::NaiveDate;
     let s = NaiveDate::parse_from_str(start, "%Y-%m-%d").ok();
     let e = NaiveDate::parse_from_str(end, "%Y-%m-%d").ok();
@@ -148,7 +149,8 @@ fn approx_days(start: &str, end: &str) -> i64 {
     }
 }
 
-fn annualized(curve: &[EquityPoint], days_per_year: f64) -> f64 {
+/// 年化收益率（本 crate 内唯一实现；engine 复用）
+pub fn annualized(curve: &[EquityPoint], days_per_year: f64) -> f64 {
     if curve.len() < 2 || days_per_year <= 0.0 {
         return 0.0;
     }
@@ -168,21 +170,24 @@ fn annualized(curve: &[EquityPoint], days_per_year: f64) -> f64 {
 
 fn annual_volatility(curve: &[EquityPoint], days_per_year: f64) -> f64 {
     let rets = daily_returns(curve);
-    if rets.is_empty() {
+    if rets.len() < 2 {
         return 0.0;
     }
-    let mean = rets.iter().sum::<f64>() / rets.len() as f64;
-    let var = rets.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / rets.len() as f64;
+    let n = rets.len();
+    let mean = rets.iter().sum::<f64>() / n as f64;
+    let var = rets.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
     var.sqrt() * days_per_year.sqrt()
 }
 
-fn sharpe_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f64) -> f64 {
+/// 夏普比率（年化，样本方差 n-1；本 crate 内唯一实现；engine 复用）
+pub fn sharpe_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f64) -> f64 {
     let rets = daily_returns(curve);
-    if rets.is_empty() {
+    if rets.len() < 2 {
         return 0.0;
     }
-    let mean = rets.iter().sum::<f64>() / rets.len() as f64;
-    let var = rets.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / rets.len() as f64;
+    let n = rets.len();
+    let mean = rets.iter().sum::<f64>() / n as f64;
+    let var = rets.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
     let std = var.sqrt();
     if std < 1e-10 {
         return 0.0;
@@ -209,7 +214,8 @@ fn sortino_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f6
     mean / downside_std * days_per_year.sqrt()
 }
 
-fn max_drawdown(curve: &[EquityPoint]) -> (f64, f64) {
+/// 最大回撤（金额 + 百分比；本 crate 内唯一实现；engine 复用）
+pub fn max_drawdown(curve: &[EquityPoint]) -> (f64, f64) {
     let mut peak = f64::MIN;
     let mut max_dd = 0.0;
     let mut max_dd_pct = 0.0;
@@ -397,5 +403,25 @@ mod tests {
         let dur = max_drawdown_duration(&curve);
         // 1月15到2月10约26天
         assert!(dur > 20);
+    }
+
+    #[test]
+    fn test_sharpe_empty_curve_is_zero() {
+        // 空序列不得 panic，且返回 0（除零卫士：rets.len() < 2）
+        let empty: Vec<EquityPoint> = vec![];
+        assert_eq!(sharpe_ratio(&empty, 0.025, 252.0), 0.0);
+    }
+
+    #[test]
+    fn test_max_drawdown_empty_is_zero() {
+        // 空序列返回 (0.0, 0.0)，不得 panic 或读非法 peak
+        let empty: Vec<EquityPoint> = vec![];
+        assert_eq!(max_drawdown(&empty), (0.0, 0.0));
+    }
+
+    #[test]
+    fn test_annualized_empty_is_zero() {
+        let empty: Vec<EquityPoint> = vec![];
+        assert_eq!(annualized(&empty, 252.0), 0.0);
     }
 }

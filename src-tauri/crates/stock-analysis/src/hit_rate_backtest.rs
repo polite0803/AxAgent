@@ -191,6 +191,19 @@ pub fn compute_hit_outcome(
 ///
 /// ## 返回
 /// 返回的字段都是 Option —— 数据缺失（k 线不足）时为 None
+/// `compute_price_metrics` 的返回结果（全部为 Option，数据缺失时为 None）
+#[derive(Debug, Clone, Copy, Default)]
+pub struct PriceMetrics {
+    pub t_plus_n_price: Option<f64>,
+    pub max_price: Option<f64>,
+    pub min_price: Option<f64>,
+    pub max_return_pct: Option<f64>,
+    pub max_drawdown_pct: Option<f64>,
+    pub final_return_pct: Option<f64>,
+    pub hit_stop_loss: Option<bool>,
+    pub hit_target: Option<bool>,
+}
+
 pub fn compute_price_metrics(
     entry_price: f64,
     closes: &[f64],
@@ -198,18 +211,9 @@ pub fn compute_price_metrics(
     lows: &[f64],
     target_price: f64,
     stop_loss: f64,
-) -> (
-    Option<f64>,  /* t_plus_n_price */
-    Option<f64>,  /* max_price */
-    Option<f64>,  /* min_price */
-    Option<f64>,  /* max_return_pct */
-    Option<f64>,  /* max_drawdown_pct */
-    Option<f64>,  /* final_return_pct */
-    Option<bool>, /* hit_stop_loss */
-    Option<bool>, /* hit_target */
-) {
+) -> PriceMetrics {
     if closes.is_empty() || entry_price <= 0.0 {
-        return (None, None, None, None, None, None, None, None);
+        return PriceMetrics::default();
     }
 
     let t_plus_n_price = *closes.last().unwrap();
@@ -225,16 +229,16 @@ pub fn compute_price_metrics(
     let hit_stop_loss = min_price <= stop_loss;
     let hit_target = max_price >= target_price;
 
-    (
-        Some(t_plus_n_price),
-        Some(max_price),
-        Some(min_price),
-        Some(max_return_pct),
-        Some(max_drawdown_pct),
-        Some(final_return_pct),
-        Some(hit_stop_loss),
-        Some(hit_target),
-    )
+    PriceMetrics {
+        t_plus_n_price: Some(t_plus_n_price),
+        max_price: Some(max_price),
+        min_price: Some(min_price),
+        max_return_pct: Some(max_return_pct),
+        max_drawdown_pct: Some(max_drawdown_pct),
+        final_return_pct: Some(final_return_pct),
+        hit_stop_loss: Some(hit_stop_loss),
+        hit_target: Some(hit_target),
+    }
 }
 
 /// 聚合一组 PickValidation 生成 hit_rate 报告
@@ -250,8 +254,7 @@ pub fn compute_hit_rate_report(validations: &[PickValidation]) -> HitRateReport 
     }
 
     let action_stats = |group: &[&PickValidation]| -> ActionStats {
-        let mut stats = ActionStats::default();
-        stats.total = group.len();
+        let mut stats = ActionStats { total: group.len(), ..Default::default() };
         let mut returns: Vec<f64> = Vec::new();
         for v in group {
             match v.hit_outcome.as_deref() {
@@ -415,17 +418,10 @@ pub fn build_pick_validation(
     data_source: &str,
 ) -> PickValidation {
     let action = infer_action(pick.price, pick.target_price).to_string();
-    let (
-        t_plus_n_price,
-        max_price,
-        min_price,
-        max_return_pct,
-        max_drawdown_pct,
-        final_return_pct,
-        hit_stop_loss,
-        hit_target,
-    ) = compute_price_metrics(pick.price, closes, highs, lows, pick.target_price, pick.stop_loss);
-    let hit_outcome = compute_hit_outcome(&action, final_return_pct, hit_stop_loss, hit_target);
+    let m =
+        compute_price_metrics(pick.price, closes, highs, lows, pick.target_price, pick.stop_loss);
+    let hit_outcome =
+        compute_hit_outcome(&action, m.final_return_pct, m.hit_stop_loss, m.hit_target);
 
     PickValidation {
         pick_id: pick_id.to_string(),
@@ -441,14 +437,14 @@ pub fn build_pick_validation(
         position_pct: pick.position_pct,
         confidence: pick.confidence as i32,
         inferred_action: action,
-        t_plus_n_price,
-        max_price,
-        min_price,
-        max_return_pct,
-        max_drawdown_pct,
-        final_return_pct,
-        hit_stop_loss,
-        hit_target,
+        t_plus_n_price: m.t_plus_n_price,
+        max_price: m.max_price,
+        min_price: m.min_price,
+        max_return_pct: m.max_return_pct,
+        max_drawdown_pct: m.max_drawdown_pct,
+        final_return_pct: m.final_return_pct,
+        hit_stop_loss: m.hit_stop_loss,
+        hit_target: m.hit_target,
         hit_outcome,
         factor_snapshot: None, // TODO: 从 portfolio-mgr 节点结果中提取
         data_source: data_source.to_string(),
@@ -528,15 +524,14 @@ mod tests {
         let closes = vec![10.5, 11.0, 11.5, 12.0];
         let highs = vec![10.8, 11.2, 11.7, 12.2];
         let lows = vec![10.3, 10.9, 11.3, 11.8];
-        let (t_n, max_p, min_p, max_ret, max_dd, final_ret, _sl, target) =
-            compute_price_metrics(10.0, &closes, &highs, &lows, 12.0, 9.5);
-        assert_eq!(t_n, Some(12.0));
-        assert_eq!(max_p, Some(12.2));
-        assert_eq!(min_p, Some(10.3));
-        assert!((max_ret.unwrap() - 22.0).abs() < 1e-6);
-        assert!((max_dd.unwrap() - 3.0).abs() < 1e-6);
-        assert!((final_ret.unwrap() - 20.0).abs() < 1e-6);
-        assert_eq!(target, Some(true));
+        let m = compute_price_metrics(10.0, &closes, &highs, &lows, 12.0, 9.5);
+        assert_eq!(m.t_plus_n_price, Some(12.0));
+        assert_eq!(m.max_price, Some(12.2));
+        assert_eq!(m.min_price, Some(10.3));
+        assert!((m.max_return_pct.unwrap() - 22.0).abs() < 1e-6);
+        assert!((m.max_drawdown_pct.unwrap() - 3.0).abs() < 1e-6);
+        assert!((m.final_return_pct.unwrap() - 20.0).abs() < 1e-6);
+        assert_eq!(m.hit_target, Some(true));
     }
 
     #[test]
@@ -544,9 +539,8 @@ mod tests {
         let closes = vec![9.8, 9.5, 9.2];
         let highs = vec![10.0, 9.7, 9.4];
         let lows = vec![9.5, 9.3, 9.0]; // 9.0 < stop_loss 9.5
-        let (_, _, _, _, _, _, sl, _) =
-            compute_price_metrics(10.0, &closes, &highs, &lows, 12.0, 9.5);
-        assert_eq!(sl, Some(true));
+        let m = compute_price_metrics(10.0, &closes, &highs, &lows, 12.0, 9.5);
+        assert_eq!(m.hit_stop_loss, Some(true));
     }
 
     #[test]

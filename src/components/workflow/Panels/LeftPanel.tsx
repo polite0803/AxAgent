@@ -226,7 +226,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                   <div
                     style={{ marginBottom: 12 }}
                     role="group"
-                    aria-label={t("workflow.leftPanel.layout", { defaultValue: "Layout" })}
+                    aria-label={t("workflow.leftPanel.layout")}
                   >
                     <div
                       style={{
@@ -237,7 +237,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                         paddingLeft: 4,
                       }}
                     >
-                      {t("workflow.leftPanel.layout", { defaultValue: "Layout" })}
+                      {t("workflow.leftPanel.layout")}
                     </div>
                     <div
                       role="button"

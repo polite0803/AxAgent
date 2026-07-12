@@ -6,6 +6,9 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "./_shared/PageHeader";
 import { BacktestPanel } from "./BacktestPanel";
 import { HistoricalAnalysisPanel } from "./HistoricalAnalysisPanel";
+import { MarketSimPanel } from "./MarketSimPanel";
+import { MonteCarloPanel } from "./MonteCarloPanel";
+import { QuantSimPanel } from "./QuantSimPanel";
 import { QuickBacktestPanel } from "./QuickBacktestPanel";
 import { RecoSignalTimeline } from "./RecoSignalTimeline";
 import { RecoStrategyMatrix } from "./RecoStrategyMatrix";
@@ -31,12 +34,12 @@ export function BacktestPage() {
             items={[
               {
                 key: "quick",
-                label: t("stockAnalysis.backtest.quickBacktest") ?? "快速回测",
+                label: t("stockAnalysis.backtest.quickBacktest"),
                 children: <QuickBacktestPanel />,
               },
               {
                 key: "analysis",
-                label: t("stockAnalysis.backtest.tabAnalysis") ?? "分析回测",
+                label: t("stockAnalysis.backtest.tabAnalysis"),
                 children: (
                   <div className="space-y-4">
                     <BacktestPanel />
@@ -47,13 +50,28 @@ export function BacktestPage() {
               },
               {
                 key: "strategy",
-                label: t("stockAnalysis.backtest.tabStrategy") ?? "策略回测",
+                label: t("stockAnalysis.backtest.tabStrategy"),
                 children: (
                   <div className="space-y-4">
                     <RecoStrategyMatrix onSelectStrategy={setSelectedStrategy} />
                     {selectedStrategy && <RecoSignalTimeline strategyId={selectedStrategy} />}
                   </div>
                 ),
+              },
+              {
+                key: "simulation",
+                label: "🏭 市场模拟",
+                children: <MarketSimPanel />,
+              },
+              {
+                key: "mc",
+                label: "🎲 蒙特卡洛",
+                children: <MonteCarloPanel />,
+              },
+              {
+                key: "quant_sim",
+                label: "🤖 策略模拟",
+                children: <QuantSimPanel />,
               },
             ]}
           />

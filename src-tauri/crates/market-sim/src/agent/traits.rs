@@ -203,6 +203,11 @@ pub trait SimAgent: Send + Sync {
     /// Agent 类型
     fn agent_type(&self) -> AgentType;
 
+    /// 该 Agent 在模拟中产生的成交历史（默认空；策略类 Agent 可重写以暴露模拟成交）
+    fn trade_history(&self) -> &[TradeRecord] {
+        &[]
+    }
+
     /// 模拟初始化（在第一个事件之前调用一次）
     fn on_init(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         Vec::new()

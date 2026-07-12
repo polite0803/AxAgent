@@ -26,7 +26,9 @@ pub struct StrategyCtx {
     pub positions: HashMap<String, Position>,
     /// 每只股票的历史 K 线（按时间正序）
     pub bar_history: HashMap<String, Vec<Bar>>,
-    /// 预计算指标（key 格式 `{code}|{indicator_name}`，如 `600519|MA5`）
+    /// 预计算指标缓存（key 格式 `{code}|{indicator_name}`，如 `600519|MA5`）
+    /// 安全性前提：A 股代码为纯数字、指标名为字母数字组合，均不含 `|`，
+    /// 故分隔符不会与内容碰撞；若未来支持含 `|` 的代码/指标名需改用不可见分隔符。
     pub indicators: HashMap<String, Vec<f64>>,
     /// 当前回测/复盘日期（YYYY-MM-DD）
     pub current_date: String,

@@ -32,10 +32,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
 
-    if let Some(existing) = workflow_template::Entity::find_by_id(TEMPLATE_ID)
-        .one(db)
-        .await
-        .map_err(|e| {
+    if let Some(existing) =
+        workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {
             ErrorResponse::new(stock_setup::INTERNAL)
                 .with_detail(format!("查询工作流模板失败: {e}"))
         })?
@@ -111,11 +109,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 title: title.into(),
                 description: Some(format!("获取数据: {tool_name}")),
                 position: Position { x, y },
-                retry: RetryConfig {
-                    enabled: true,
-                    max_retries: 2,
-                    ..Default::default()
-                },
+                retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
                 timeout: Some(120),
                 enabled: true,
                 parent_id: parent_id.map(String::from),
@@ -722,7 +716,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     enabled: true,
                     match_threshold: 0.4,
                 }),
-                stream_chunk_timeout_secs: Some(300),
             },
         })
     };
@@ -765,11 +758,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
 
     // 9 个分析师 + catalyst-analyst
     let analysts = [
-        (
-            "a-market-analyst",
-            "技术面分析：K线形态、MACD/RSI、支撑阻力位",
-            "market-analyst",
-        ),
+        ("a-market-analyst", "技术面分析：K线形态、MACD/RSI、支撑阻力位", "market-analyst"),
         ("a-sentiment", "市场情绪分析：资金流向、散户/机构态度", "sentiment-analyst"),
         ("a-news", "新闻公告影响评估", "news-analyst"),
         ("a-fundamentals", "基本面估值分析：PE/PB/ROE等", "fundamentals-analyst"),
@@ -837,12 +826,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         // F-8 重排: a-hot-money 前置改为资金流向工具
         ("t-hotmoney-data", "获取资金流向", "get_stock_money_flow", "stock_code"),
         // F-8 重排: a-lockup 前置改为解禁质押工具
-        (
-            "t-lockup-data",
-            "获取解禁+增减持+大宗交易",
-            "get_stock_lockup_bundle",
-            "stock_code",
-        ),
+        ("t-lockup-data", "获取解禁+增减持+大宗交易", "get_stock_lockup_bundle", "stock_code"),
         // F-8 重排: a-research 前置改为研报工具
         ("t-research-data", "获取研报+新闻", "get_stock_research_reports", "stock_code"),
         ("t-sector-data", "获取行情+行业排名", "get_industry_ranking", "stock_code"),
@@ -928,10 +912,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 .find(|(k, _)| **k == **_expert)
                 .map(|(_, v)| *v)
                 .unwrap_or(&[]);
-            a.config.tools = tool_names
-                .iter()
-                .filter_map(|&tn| tool_def_map.get(tn).cloned())
-                .collect();
+            a.config.tools =
+                tool_names.iter().filter_map(|&tn| tool_def_map.get(tn).cloned()).collect();
             a.config.exposed_tools = vec![];
             // a-catalyst 改用 Json 输出模式，prompt 已改为纯 JSON 格式
             if *id == "a-catalyst" {
@@ -1089,15 +1071,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             description: Some(format!(
                 "{debate_max_rounds} 轮多空辩论：多方构建论点 → 空方反驳 → 循环"
             )),
-            position: Position {
-                x: DEBATE_X,
-                y: DEBATE_Y,
-            },
-            retry: RetryConfig {
-                enabled: true,
-                max_retries: 1,
-                ..Default::default()
-            },
+            position: Position { x: DEBATE_X, y: DEBATE_Y },
+            retry: RetryConfig { enabled: true, max_retries: 1, ..Default::default() },
             timeout: Some(900),
             enabled: true,
             parent_id: None,
@@ -1180,11 +1155,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             //   是单点失败主因,max_retries=0 导致整链雪崩(bear-r1 拿不到 bull-r1
             //   上下文则 R2/R3 全部"暂无数据")。1 次重试覆盖 ~95% 瞬时失败,不会
             //   把工作流时长翻倍(30s 退避)。
-            a.base.retry = RetryConfig {
-                enabled: true,
-                max_retries: 1,
-                ..Default::default()
-            };
+            a.base.retry = RetryConfig { enabled: true, max_retries: 1, ..Default::default() };
             a.base.timeout = Some(180);
             a.config.tools = bull_tools.clone();
             a.config.exposed_tools = bull_tools.iter().map(|t| t.name.clone()).collect();
@@ -1215,11 +1186,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // 同 bull_an:R1/R2/R3 空方统一用 bull_tools。
             // 修复(阶段 4):同 bull_an,加 1 次重试 + 180s 超时,避免 LLM 瞬时失败
             //   导致辩论链雪崩(详见 bull_an 注释)。
-            a.base.retry = RetryConfig {
-                enabled: true,
-                max_retries: 1,
-                ..Default::default()
-            };
+            a.base.retry = RetryConfig { enabled: true, max_retries: 1, ..Default::default() };
             a.base.timeout = Some(180);
             a.config.tools = bull_tools.clone();
             a.config.exposed_tools = bull_tools.iter().map(|t| t.name.clone()).collect();
@@ -1321,10 +1288,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 .find(|(k, _)| *k == "value-investor")
                 .map(|(_, v)| *v)
                 .unwrap_or(&[]);
-            a.config.tools = tool_names
-                .iter()
-                .filter_map(|&tn| tool_def_map.get(tn).cloned())
-                .collect();
+            a.config.tools =
+                tool_names.iter().filter_map(|&tn| tool_def_map.get(tn).cloned()).collect();
             a.config.exposed_tools = tool_names.iter().map(|&tn| tn.to_string()).collect();
             a.config.system_prompt =
                 format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
@@ -1368,10 +1333,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // 编辑器画布上无法区分视觉分组与单 tool。改为"三档风险评估分组"。
             title: "三档风险评估分组".into(),
             description: Some("三种风险偏好并行评估".into()),
-            position: Position {
-                x: RISK_X,
-                y: RISK_Y,
-            },
+            position: Position { x: RISK_X, y: RISK_Y },
             retry: RetryConfig::default(),
             timeout: Some(600),
             enabled: true,
@@ -1525,10 +1487,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "agg-risk".into(),
             title: "风险偏好聚合".into(),
             description: Some("聚合激进/保守/中性三种风险偏好评估".into()),
-            position: Position {
-                x: 300.0,
-                y: 2400.0,
-            },
+            position: Position { x: 300.0, y: 2400.0 },
             retry: RetryConfig::default(),
             timeout: Some(60),
             enabled: true,
@@ -1629,10 +1588,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "raw-data".into(),
             title: "原始数据聚合".into(),
             description: Some("聚合 13 个工具节点的原始输出（10 个数据源 + 3 个算法）".into()),
-            position: Position {
-                x: 840.0,
-                y: 2700.0,
-            },
+            position: Position { x: 840.0, y: 2700.0 },
             retry: RetryConfig::default(),
             timeout: Some(30),
             enabled: true,
@@ -1758,10 +1714,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "v-validate".into(),
             title: "结果完整性校验".into(),
             description: Some("确保分析报告包含必要字段，缺失时降级处理".into()),
-            position: Position {
-                x: 300.0,
-                y: 3300.0,
-            },
+            position: Position { x: 300.0, y: 3300.0 },
             retry: RetryConfig::default(),
             timeout: Some(60),
             enabled: true,
@@ -2000,10 +1953,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "portfolio-mgr".into(),
             title: "投资组合经理（确定性决策）".into(),
             description: Some("基于结构化参数，用确定性公式计算最终决策".into()),
-            position: Position {
-                x: 240.0,
-                y: 4200.0,
-            },
+            position: Position { x: 240.0, y: 4200.0 },
             retry: RetryConfig::default(),
             timeout: Some(30),
             enabled: true,
@@ -2037,8 +1987,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // AgentNode(Json mode) 输出包裹在 {role, content: <json_string>, ...} 中
                 ("catalyst_level", "a-catalyst.content.catalyst_level"),
                 ("consensusScore", "debate-convergence.content.consensus_score"),
-                // trader Json 模式输出：{action, targetPrice, stopLoss, ...}
+                // trader Json 模式输出：{action, targetPrice, stopLoss, timeHorizon, direction, confidence, ...}
                 ("trader_action", "trader.content.action"),
+                ("trader_direction", "trader.content.direction"),
+                ("trader_confidence", "trader.content.confidence"),
                 // currentPrice: 从 t-scoring 工具节点（get_stock_quote）获取，可靠数据源。
                 // 不用 trader.content.currentPrice，因为 LLM 不一定输出该字段。
                 ("current_price", "t-scoring.result.currentPrice"),
@@ -2102,6 +2054,42 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("untrusted_risk_conv", "risk-convergence.__untrusted"),
                 // ── PACE 情绪因子 f11: pace-calc CodeNode 输出 pace_signal ──
                 ("pace_signal", "pace-calc.pace_signal"),
+                // ── 技术否决（technical-veto）输入：从 t-scoring 的完整指标获取 ──
+                ("rsi_14", "t-scoring.result.indicators.rsi14"),
+                ("macd_dif", "t-scoring.result.indicators.macdDif"),
+                ("macd_dea", "t-scoring.result.indicators.macdDea"),
+                // ── 市场模拟门（S-501~503）：core.rs 从个股 K 线注入的模拟指标 ──
+                ("sim_stability", "sim_stability"),
+                ("sim_liquidity", "sim_liquidity"),
+                ("sim_impact", "sim_impact"),
+                // ── D7/D8: 可配置阈值参数（来自 workflow_template.variables，通过 settings 页面持久化）──
+                // action 决策阈值
+                ("action_buy_threshold", "action_buy_threshold"),
+                ("action_increase_threshold", "action_increase_threshold"),
+                ("action_hold_threshold", "action_hold_threshold"),
+                ("action_watch_threshold", "action_watch_threshold"),
+                ("action_reduce_threshold", "action_reduce_threshold"),
+                // 仓位阈值
+                ("pos_buy_min", "pos_buy_min"),
+                ("pos_increase_min", "pos_increase_min"),
+                // 风险仓位上限
+                ("pos_cap_extreme", "pos_cap_extreme"),
+                ("pos_cap_high", "pos_cap_high"),
+                ("pos_cap_mid", "pos_cap_mid"),
+                // 风险分类阈值（极高/高/低）
+                ("risk_debt_extreme", "risk_debt_extreme"),
+                ("risk_vol_extreme", "risk_vol_extreme"),
+                ("risk_sharpe_extreme", "risk_sharpe_extreme"),
+                ("risk_vol_high", "risk_vol_high"),
+                ("risk_dd_high", "risk_dd_high"),
+                ("risk_roe_high", "risk_roe_high"),
+                ("risk_debt_high", "risk_debt_high"),
+                ("risk_vol_low", "risk_vol_low"),
+                ("risk_sharpe_low", "risk_sharpe_low"),
+                ("risk_dd_low", "risk_dd_low"),
+                ("risk_roe_low", "risk_roe_low"),
+                ("risk_debt_low", "risk_debt_low"),
+                ("risk_growth_low", "risk_growth_low"),
             ]
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2150,11 +2138,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     }
 
     // debate-convergence → portfolio-mgr: 显式边确保 consensus_score 在公式执行前就绪
-    edges.push(edge(
-        "e-debate-convergence-portfolio-mgr",
-        "debate-convergence",
-        "portfolio-mgr",
-    ));
+    edges.push(edge("e-debate-convergence-portfolio-mgr", "debate-convergence", "portfolio-mgr"));
     // V29 修复: debate-convergence → research-mgr / trader 显式边
     // research-mgr 和 trader 的 input_mapping 引用 debate-convergence.content.consensus_score，
     // 加显式边确保共识分数在节点执行前就绪（符合显式依赖原则）
@@ -2178,11 +2162,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // "lockup_bundle" → "t-lockup-data.result"，需要显式边确保调度顺序
     edges.push(edge("e-t-lockup-data-portfolio-mgr", "t-lockup-data", "portfolio-mgr"));
     // ── P2 新增: 龙虎榜数据源 → portfolio-mgr 显式边 ──
-    edges.push(edge(
-        "e-t-dragon-tiger-data-portfolio-mgr",
-        "t-dragon-tiger-data",
-        "portfolio-mgr",
-    ));
+    edges.push(edge("e-t-dragon-tiger-data-portfolio-mgr", "t-dragon-tiger-data", "portfolio-mgr"));
     // ── P2 新增: 公告数据源 → portfolio-mgr 显式边 ──
     // t-catalyst-data 输出公司公告列表，用于公告关键词风险检测
     edges.push(edge("e-t-catalyst-data-portfolio-mgr", "t-catalyst-data", "portfolio-mgr"));
@@ -2199,7 +2179,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             base: WorkflowNodeBase {
                 id: pace_id.into(),
                 title: "PACE 情绪因子计算（f11）".into(),
-                description: Some("基于公告数据计算四维情绪向量，输出 pace_signal 作为 f11 因子信号".into()),
+                description: Some(
+                    "基于公告数据计算四维情绪向量，输出 pace_signal 作为 f11 因子信号".into(),
+                ),
                 // 放在 portfolio-mgr 左侧同一行，与 regime-weights 对称
                 position: Position { x: 460.0, y: 4200.0 },
                 retry: RetryConfig::default(),
@@ -2261,10 +2243,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 .find(|(k, _)| *k == "rule-checker")
                 .map(|(_, v)| *v)
                 .unwrap_or(&[]);
-            a.config.tools = tool_names
-                .iter()
-                .filter_map(|&tn| tool_def_map.get(tn).cloned())
-                .collect();
+            a.config.tools =
+                tool_names.iter().filter_map(|&tn| tool_def_map.get(tn).cloned()).collect();
             a.config.exposed_tools = tool_names.iter().map(|&tn| tn.to_string()).collect();
             a.config.system_prompt =
                 format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
@@ -2286,10 +2266,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "quality-gate".into(),
             title: "数据质量门禁".into(),
             description: Some("检查数据质量等级，A/B/C 级以上继续，D/F 走保守降级路径".into()),
-            position: Position {
-                x: 700.0,
-                y: 4500.0,
-            },
+            position: Position { x: 700.0, y: 4500.0 },
             retry: RetryConfig::default(),
             timeout: Some(10),
             enabled: true,
@@ -2337,11 +2314,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                  输出JSON格式（严格模式）：{\"action\":\"持有/减持/卖出\",\"positionPct\":0-20,\"reasoning\":\"保守决策理由\"}}\
                  只输出上述JSON对象，前后不要有任何其他文字"
                     .to_string();
-            a.config.exposed_tools = vec![
-                "get_stock_quote".into(),
-                "get_stock_kline".into(),
-                "compute_scoring".into(),
-            ];
+            a.config.exposed_tools =
+                vec!["get_stock_quote".into(), "get_stock_kline".into(), "compute_scoring".into()];
             a.config.max_tool_rounds = Some(1);
         }
         nodes.push(fq);
@@ -2453,10 +2427,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "notify-result".into(),
             title: "分析完成通知".into(),
             description: Some("股票分析完成后发送通知".into()),
-            position: Position {
-                x: 300.0,
-                y: 4500.0,
-            },
+            position: Position { x: 300.0, y: 4500.0 },
             retry: RetryConfig::default(),
             timeout: Some(10),
             enabled: true,
@@ -2483,15 +2454,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "store-result".into(),
             title: "分析结果持久化".into(),
             description: Some("写入分析结果到历史记录表".into()),
-            position: Position {
-                x: 300.0,
-                y: 4800.0,
-            },
-            retry: RetryConfig {
-                enabled: true,
-                max_retries: 2,
-                ..Default::default()
-            },
+            position: Position { x: 300.0, y: 4800.0 },
+            retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
             timeout: Some(30),
             enabled: true,
             parent_id: None,
@@ -2517,10 +2481,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             id: "end-output".into(),
             title: "最终输出".into(),
             description: Some("将 portfolio-mgr 决策结果提升到工作流输出".into()),
-            position: Position {
-                x: 300.0,
-                y: 5100.0,
-            },
+            position: Position { x: 300.0, y: 5100.0 },
             retry: RetryConfig::default(),
             timeout: None,
             enabled: true,
@@ -2528,9 +2489,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             compensation: None,
             continue_on_fail: false,
         },
-        config: EndNodeConfig {
-            output_var: Some("portfolio-mgr".into()),
-        },
+        config: EndNodeConfig { output_var: Some("portfolio-mgr".into()) },
     }));
     edges.push(edge("e-store-end", "store-result", "end-output"));
 
@@ -2882,11 +2841,8 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
             })
             .cloned()
             .collect();
-        let sub_nodes: Vec<WorkflowNode> = nodes
-            .iter()
-            .filter(|n| child_node_ids.contains(n.base_id()))
-            .cloned()
-            .collect();
+        let sub_nodes: Vec<WorkflowNode> =
+            nodes.iter().filter(|n| child_node_ids.contains(n.base_id())).cloned().collect();
         let sub_graph = SubGraph {
             // 子图节点坐标必须相对于容器（Phase 3 编辑器将 subGraph 节点视为相对偏移，
             // 计算绝对坐标时叠加 container.position）。种子数据中的坐标是绝对坐标，
@@ -2933,9 +2889,7 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
     })?;
 
     // 先删再插，避免 SeaORM .save() 对已存在记录的 update 失败
-    let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID)
-        .exec(db)
-        .await;
+    let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.to_string()),
         name: Set("A股多维度分析".to_string()),

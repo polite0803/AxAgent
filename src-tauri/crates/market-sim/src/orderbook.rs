@@ -247,16 +247,21 @@ impl OrderBook {
     /// 撤单：从订单簿中移除指定挂单
     ///
     /// 返回撤单时剩余的未成交数量。已全部成交的订单返回错误。
+    ///
+    /// 修复 P0-M8: 原 `level.orders.remove(idx).unwrap()` 在 level 已被其他
+    /// match 路径清空时会 panic。改为返回 `SimError::OrderNotFound`。
     pub fn cancel_order(&mut self, order_id: OrderId) -> Result<OrderResult, SimError> {
         let locator =
             self.order_index.remove(&order_id).ok_or(SimError::OrderNotFound(order_id))?;
 
         let remaining = match locator {
             OrderLocator::Bid(price) => {
-                let level = self.bids.get_mut(&Reverse(price)).unwrap();
+                let level =
+                    self.bids.get_mut(&Reverse(price)).ok_or(SimError::OrderNotFound(order_id))?;
                 let pos = level.orders.iter().position(|o| o.id == order_id);
                 if let Some(idx) = pos {
-                    let order = level.orders.remove(idx).unwrap();
+                    let order =
+                        level.orders.remove(idx).ok_or(SimError::OrderNotFound(order_id))?;
                     level.total_quantity = level.total_quantity.saturating_sub(order.remaining());
                     if level.is_empty() {
                         self.bids.remove(&Reverse(price));
@@ -267,10 +272,11 @@ impl OrderBook {
                 }
             },
             OrderLocator::Ask(price) => {
-                let level = self.asks.get_mut(&price).unwrap();
+                let level = self.asks.get_mut(&price).ok_or(SimError::OrderNotFound(order_id))?;
                 let pos = level.orders.iter().position(|o| o.id == order_id);
                 if let Some(idx) = pos {
-                    let order = level.orders.remove(idx).unwrap();
+                    let order =
+                        level.orders.remove(idx).ok_or(SimError::OrderNotFound(order_id))?;
                     level.total_quantity = level.total_quantity.saturating_sub(order.remaining());
                     if level.is_empty() {
                         self.asks.remove(&price);
@@ -425,16 +431,16 @@ impl OrderBook {
             consumed_levels += 1;
 
             while remaining > 0 && !level.is_empty() {
-                // 禁止自成交：先检查，再移除
+                // 修复 P0-M7: 自成交保护——跳过但不删除对方订单。
+                // 原实现 pop_front + order_index.remove 会永久踢出对手方订单，
+                // 在 calibration 100 组参数场景下订单簿被掏空。
+                // 改为：跳过该订单继续尝试下一个（用 Vec::swap_remove 不行，会打乱顺序；
+                // 用 rotate 不现实。最简单方案：遇到自成交就 break 当前 level，继续下一 level）。
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == buyer_agent_id).unwrap_or(false);
                 if is_self {
-                    if let Some(removed) = level.orders.pop_front() {
-                        level.total_quantity =
-                            level.total_quantity.saturating_sub(removed.remaining());
-                        self.order_index.remove(&removed.id);
-                    }
-                    continue;
+                    // 跳过当前 level（对手方订单保留在簿中），尝试下一价格档
+                    break;
                 }
 
                 let seller_remaining = level.orders.front().unwrap().remaining();
@@ -503,16 +509,11 @@ impl OrderBook {
             consumed_levels += 1;
 
             while remaining > 0 && !level.is_empty() {
-                // 禁止自成交
+                // 修复 P0-M7: 自成交保护——跳过但不删除对方订单
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == seller_agent_id).unwrap_or(false);
                 if is_self {
-                    if let Some(removed) = level.orders.pop_front() {
-                        level.total_quantity =
-                            level.total_quantity.saturating_sub(removed.remaining());
-                        self.order_index.remove(&removed.id);
-                    }
-                    continue;
+                    break;
                 }
 
                 let buyer_remaining = level.orders.front().unwrap().remaining();
@@ -647,15 +648,11 @@ impl OrderBook {
             consumed += 1;
 
             while remaining > 0 && !level.is_empty() {
+                // 修复 P0-M7: 自成交保护——跳过但不删除对方订单
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == buyer_agent_id).unwrap_or(false);
                 if is_self {
-                    if let Some(removed) = level.orders.pop_front() {
-                        level.total_quantity =
-                            level.total_quantity.saturating_sub(removed.remaining());
-                        self.order_index.remove(&removed.id);
-                    }
-                    continue;
+                    break;
                 }
 
                 let seller_remaining = level.orders.front().unwrap().remaining();
@@ -722,15 +719,11 @@ impl OrderBook {
             consumed += 1;
 
             while remaining > 0 && !level.is_empty() {
+                // 修复 P0-M7: 自成交保护——跳过但不删除对方订单
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == seller_agent_id).unwrap_or(false);
                 if is_self {
-                    if let Some(removed) = level.orders.pop_front() {
-                        level.total_quantity =
-                            level.total_quantity.saturating_sub(removed.remaining());
-                        self.order_index.remove(&removed.id);
-                    }
-                    continue;
+                    break;
                 }
 
                 let buyer_remaining = level.orders.front().unwrap().remaining();

@@ -95,40 +95,19 @@ pub struct CorrelationCell {
 
 // ── 纯函数：可独立测试 ──
 
-/// 把"组合 P&L 序列"折算成最大回撤（百分比）
+/// 把"组合 P&L 序列"折算成最大回撤（百分比），复用 `crate::risk::peak_trough_drawdown`。
 pub fn compute_max_drawdown_pct(equity_curve_pct: &[f64]) -> f64 {
-    if equity_curve_pct.is_empty() {
-        return 0.0;
-    }
-    let mut peak = f64::MIN;
-    let mut max_dd = 0.0_f64;
-    for &p in equity_curve_pct {
-        if p > peak {
-            peak = p;
-        }
-        if peak > 0.0 {
-            let dd = (peak - p) / peak * 100.0;
-            if dd > max_dd {
-                max_dd = dd;
-            }
-        }
-    }
-    max_dd.max(0.0)
+    // peak_trough_drawdown 返回 0~1 比例，此处转为百分比
+    crate::risk::peak_trough_drawdown(equity_curve_pct) * 100.0
 }
 
-/// Sharpe ratio（年化）—— 简化版：mean / std × sqrt(annualization)
+/// Sharpe ratio（年化）—— 复用 `crate::risk::sharpe_components`（样本方差 n-1）。
 pub fn compute_sharpe(returns_pct: &[f64], annualization: f64) -> Option<f64> {
     if returns_pct.len() < 5 {
         return None;
     }
-    let mean: f64 = returns_pct.iter().sum::<f64>() / returns_pct.len() as f64;
-    let variance: f64 =
-        returns_pct.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / returns_pct.len() as f64;
-    let std = variance.sqrt();
-    if std < 1e-9 {
-        return None;
-    }
-    Some(mean / std * annualization.sqrt())
+    // sharpe_components 返回 (sharpe, annualized, mean_return, stddev)，取 annualized
+    Some(crate::risk::sharpe_components(returns_pct, 0.0, annualization).1)
 }
 
 /// Pearson 相关系数（长度必须一致，>5 个点）

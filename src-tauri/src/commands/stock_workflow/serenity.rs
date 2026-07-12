@@ -42,14 +42,8 @@ pub(crate) async fn extract_agent_output(raw: serde_json::Value) -> serde_json::
         let candidate = axagent_kit::utils::extract_json_from_llm_response(content);
         // 诊断：打印 candidate 前后各 200 字符
         let preview: String = candidate.chars().take(200).collect();
-        let tail: String = candidate
-            .chars()
-            .rev()
-            .take(200)
-            .collect::<String>()
-            .chars()
-            .rev()
-            .collect();
+        let tail: String =
+            candidate.chars().rev().take(200).collect::<String>().chars().rev().collect();
         tracing::info!("[serenity] 提取文本 前200: {} / 后200: {}", preview, tail);
         // A: 精确解析（fence 剥离后的文本）
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&candidate) {
@@ -98,14 +92,8 @@ pub(crate) async fn extract_agent_output(raw: serde_json::Value) -> serde_json::
         let tail_start = content.chars().count().saturating_sub(200);
         let tail: String = content.chars().skip(tail_start).collect();
         let c_head: String = candidate.chars().take(1000).collect();
-        let c_tail: String = candidate
-            .chars()
-            .rev()
-            .take(200)
-            .collect::<String>()
-            .chars()
-            .rev()
-            .collect();
+        let c_tail: String =
+            candidate.chars().rev().take(200).collect::<String>().chars().rev().collect();
         tracing::warn!(
             "[serenity] content JSON 提取失败，总长度 {}, 前300: {} / 后200: {}",
             content.chars().count(),
@@ -710,9 +698,7 @@ fn serenity_extract_from_node(raw: &serde_json::Value) -> serde_json::Value {
             } else {
                 tracing::warn!(
                     "[serenity] 无法找到 candidates 字段, parsed keys={:?}",
-                    parsed
-                        .as_object()
-                        .map(|o| o.keys().cloned().collect::<Vec<_>>())
+                    parsed.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>())
                 );
                 serde_json::Value::Null
             }
@@ -740,14 +726,13 @@ pub async fn run_serenity_screening(
     // 1. 加载 serenity-screening 模板
     let loaded = load_and_inject_template(state.harness.db(), "", "", "serenity-screening").await?;
 
-    let (max_concurrent, step_timeout) = resolve_runtime_options(loaded.variables.as_deref());
+    let (max_concurrent, step_timeout, _total_timeout) =
+        resolve_runtime_options(loaded.variables.as_deref());
 
     // 2. 创建 Workflow
     let wf_name = format!("serenity-screening-{}", chrono::Utc::now().timestamp_millis());
-    let workflow = engine
-        .create_workflow(&wf_name, loaded.nodes, loaded.edges)
-        .await
-        .map_err(|e| {
+    let workflow =
+        engine.create_workflow(&wf_name, loaded.nodes, loaded.edges).await.map_err(|e| {
             ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("创建工作流失败: {e}"))
         })?;
     let wf_id = workflow.id.clone();
@@ -858,9 +843,7 @@ pub async fn run_serenity_screening(
             // 规范化：如果 extract_agent_output 返回裸候选对象（有 stock_code 但无 candidates 包装键），
             // 包装成 {"candidates": [obj]}，使下游 .get("candidates") 能正常工作。
             let candidates = if candidates.is_object()
-                && !candidates
-                    .as_object()
-                    .is_some_and(|o| o.contains_key("candidates"))
+                && !candidates.as_object().is_some_and(|o| o.contains_key("candidates"))
                 && candidates.get("stock_code").is_some()
             {
                 serde_json::json!({"candidates": [candidates]})
@@ -871,9 +854,7 @@ pub async fn run_serenity_screening(
             let raw_candidate_array = if candidates.is_array() {
                 candidates.clone()
             } else if let Some(obj) = candidates.as_object() {
-                obj.get("candidates")
-                    .cloned()
-                    .unwrap_or(serde_json::Value::Array(vec![]))
+                obj.get("candidates").cloned().unwrap_or(serde_json::Value::Array(vec![]))
             } else {
                 serde_json::Value::Array(vec![])
             };
@@ -883,10 +864,8 @@ pub async fn run_serenity_screening(
             let mut exit_now_count = 0;
             if let Some(arr) = raw_candidate_array.as_array() {
                 for c in arr {
-                    let has_code = c
-                        .get("stock_code")
-                        .and_then(|v| v.as_str())
-                        .is_some_and(|s| !s.is_empty());
+                    let has_code =
+                        c.get("stock_code").and_then(|v| v.as_str()).is_some_and(|s| !s.is_empty());
                     if !has_code {
                         dropped_count += 1;
                         tracing::warn!(
@@ -944,9 +923,7 @@ pub async fn run_serenity_screening(
                     } else {
                         "other"
                     },
-                    candidates
-                        .as_object()
-                        .map(|o| o.keys().cloned().collect::<Vec<_>>()),
+                    candidates.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>()),
                 );
                 // 兜底策略1: 从 candidates 对象的任意嵌套层搜索含 stock_code 的数组
                 let fallback = find_candidates_deep(&candidates);
@@ -956,9 +933,8 @@ pub async fn run_serenity_screening(
                 }
                 // 兜底策略2: 从原始节点输出的 content 字段中提取
                 if candidate_array.as_array().is_none_or(|a| a.is_empty()) {
-                    if let Some(content) = candidates_raw_fallback
-                        .get("content")
-                        .and_then(|c| c.as_str())
+                    if let Some(content) =
+                        candidates_raw_fallback.get("content").and_then(|c| c.as_str())
                     {
                         if let Some((found, _)) = try_extract_candidates_from_text(content) {
                             if !found.is_empty() {
@@ -991,11 +967,8 @@ pub async fn run_serenity_screening(
                 trends
             };
             // trends 可能是 { trends: [...] } 对象，也可能是原始数组
-            let trends_list = trends
-                .as_object()
-                .and_then(|obj| obj.get("trends"))
-                .cloned()
-                .unwrap_or(trends);
+            let trends_list =
+                trends.as_object().and_then(|obj| obj.get("trends")).cloned().unwrap_or(trends);
 
             tracing::info!(
                 "[serenity] candidates 提取后类型: {}, keys: {:?}; trends 提取后类型: {}",
@@ -1012,9 +985,7 @@ pub async fn run_serenity_screening(
                 } else {
                     "其他"
                 },
-                candidates
-                    .as_object()
-                    .map(|o| o.keys().cloned().collect::<Vec<_>>()),
+                candidates.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>()),
                 if trends_list.is_array() {
                     "数组"
                 } else {
@@ -1040,9 +1011,7 @@ pub async fn run_serenity_screening(
             {
                 let db = state.harness.db();
                 // 统一 generated_at 格式：与 recommend_stocks 一致(ISO 8601 带毫秒)
-                let now_str = chrono::Local::now()
-                    .format("%Y-%m-%dT%H:%M:%S%.3f")
-                    .to_string();
+                let now_str = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f").to_string();
                 let ts_ms = chrono::Utc::now().timestamp_millis();
                 // candidates 可能是 { candidates: [...] } 对象、{name, arguments: {candidates: [...]}} 格式、
                 // 也可能是原始数组
@@ -1487,26 +1456,25 @@ async fn do_feedback_loop(state: &State<'_, AppState>) -> Result<serde_json::Val
         };
 
         // 搜索该股相关新闻作为催化剂验证的 proxy
-        let catalyst_news = match client
-            .search_news(&format!("{} 财报 量产 订单", pick.stock_code), 5)
-            .await
-        {
-            Ok(news) => {
-                tracing::info!(
-                    "[serenity-feedback] pick={} search_news 成功: {} 条",
-                    pick.stock_code,
-                    news.len()
-                );
-                news
-            },
-            Err(e) => {
-                tracing::warn!(
-                    "[serenity-feedback] pick={} search_news 失败: {e:#?}",
-                    pick.stock_code
-                );
-                Vec::new()
-            },
-        };
+        let catalyst_news =
+            match client.search_news(&format!("{} 财报 量产 订单", pick.stock_code), 5).await
+            {
+                Ok(news) => {
+                    tracing::info!(
+                        "[serenity-feedback] pick={} search_news 成功: {} 条",
+                        pick.stock_code,
+                        news.len()
+                    );
+                    news
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "[serenity-feedback] pick={} search_news 失败: {e:#?}",
+                        pick.stock_code
+                    );
+                    Vec::new()
+                },
+            };
         let catalysts_verified_count = catalyst_news.len().min(catalysts_info);
 
         performances.push(serde_json::json!({
@@ -1528,16 +1496,11 @@ async fn do_feedback_loop(state: &State<'_, AppState>) -> Result<serde_json::Val
     }
 
     // 计算汇总指标
-    let profitable = performances
-        .iter()
-        .filter(|p| p["is_profitable"].as_bool().unwrap_or(false))
-        .count();
+    let profitable =
+        performances.iter().filter(|p| p["is_profitable"].as_bool().unwrap_or(false)).count();
     let total = performances.len();
     let avg_return = if total > 0 {
-        performances
-            .iter()
-            .map(|p| p["return_pct"].as_f64().unwrap_or(0.0))
-            .sum::<f64>()
+        performances.iter().map(|p| p["return_pct"].as_f64().unwrap_or(0.0)).sum::<f64>()
             / total as f64
     } else {
         0.0
@@ -1582,10 +1545,7 @@ mod serenity_extract_tests {
 ```"#;
         let v = extract_via_normalizer(content).await;
         let v = v.expect("IR 提取应成功");
-        let arr = v
-            .get("candidates")
-            .and_then(|x| x.as_array())
-            .expect("candidates 应为数组");
+        let arr = v.get("candidates").and_then(|x| x.as_array()).expect("candidates 应为数组");
         assert_eq!(arr.len(), 1);
         assert_eq!(arr[0]["stock_code"], "300285");
     }
@@ -1598,10 +1558,7 @@ mod serenity_extract_tests {
 ```"#;
         let v = extract_via_normalizer(content).await;
         let v = v.expect("纯 json 块应能解析");
-        let arr = v
-            .get("trends")
-            .and_then(|x| x.as_array())
-            .expect("trends 应为数组");
+        let arr = v.get("trends").and_then(|x| x.as_array()).expect("trends 应为数组");
         assert_eq!(arr[0]["trend_name"], "AI 算力散热");
     }
 
@@ -1641,9 +1598,7 @@ mod serenity_extract_tests {
         )
         .await;
         assert!(
-            blocks
-                .iter()
-                .any(|b| matches!(b, ContentBlock::ToolUse { .. })),
+            blocks.iter().any(|b| matches!(b, ContentBlock::ToolUse { .. })),
             "tool_json 块应被 Normalizer 解析为 ToolUse，实际：{:?}",
             blocks
         );

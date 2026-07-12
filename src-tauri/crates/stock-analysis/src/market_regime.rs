@@ -21,12 +21,13 @@ pub struct MarketRegime {
 
 /// 用沪深300近60日 K 线判断市场状态
 ///
-/// 规则（纯技术面，无需额外数据）:
-/// - 60日均线 > 120日均线 → 潜在牛市（进一步看60 > 250）
-/// - 60日均线 < 120日均线 → 潜在熊市
-/// - 60日均线在120日均线附近交叉 → 震荡
-/// - 布林带宽度 > 20% → 高波动
-/// - 布林带宽度 < 10% → 低波动
+/// 规则（纯技术面，仅用近60日数据，无需额外数据）:
+/// - 价格站上 MA60 且 MA20 多头排列 + 向上斜率 → 牛市
+/// - 价格跌破 MA60 且 MA20 空头排列 + 向下斜率 → 熊市
+/// - 其余 → 震荡
+/// - 布林带宽度（20日收盘价标准差 / MA20）> 20% → 高波动，< 10% → 低波动
+///
+/// 限制：仅取近60日K线，不计算 MA120/MA250，牛熊判定基于价格相对均线的位置与斜率。
 pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
     if klines.len() < 20 {
         return MarketRegime {
@@ -41,10 +42,17 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
 
     // 均线计算
     let ma20 = simple_moving_average(&closes, 20);
-    let ma60 = if closes.len() >= 60 {
+    let ma60_is_real = closes.len() >= 60;
+    let ma60 = if ma60_is_real {
         simple_moving_average(&closes, 60)
     } else {
         ma20
+    };
+    // len<60 时 ma60 实为 ma20，描述文案需如实反映，避免误标"60日均线"
+    let ma60_label = if ma60_is_real {
+        "60日均线"
+    } else {
+        "短期均线"
     };
 
     // 当前价格相对均线的位置
@@ -88,43 +96,44 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
     };
 
     // 决策逻辑
-    let (regime, confidence, desc) = if price_above_ma60 > 0.05
-        && price_above_ma20 > 0.02
-        && slope > 0.01
-    {
-        // 价格在 MA60 上方 5% + MA20 上方 2% + 向上斜率
-        let c = (price_above_ma60 * 2.0).clamp(0.5, 0.95);
-        let vol_note = if bollinger_pct > 0.20 {
-            "（高波动预警）"
+    let (regime, confidence, desc) =
+        if price_above_ma60 > 0.05 && price_above_ma20 > 0.02 && slope > 0.01 {
+            // 价格在 MA60 上方 5% + MA20 上方 2% + 向上斜率
+            let c = (price_above_ma60 * 2.0).clamp(0.5, 0.95);
+            let vol_note = if bollinger_pct > 0.20 {
+                "（高波动预警）"
+            } else {
+                ""
+            };
+            (
+                "bull".to_string(),
+                c,
+                format!(
+                    "沪深300站上{ma60_label}{:.1}%，短期均线多头排列{}",
+                    price_above_ma60 * 100.0,
+                    vol_note
+                ),
+            )
+        } else if price_above_ma60 < -0.03 && price_above_ma20 < -0.01 && slope < -0.005 {
+            // 价格在 MA60 下方 3% + MA20 下方 + 向下斜率
+            let c = (price_above_ma60.abs() * 2.0).clamp(0.5, 0.95);
+            (
+                "bear".to_string(),
+                c,
+                format!(
+                    "沪深300跌破{ma60_label}{:.1}%，短期均线空头排列",
+                    price_above_ma60.abs() * 100.0
+                ),
+            )
         } else {
-            ""
+            // 不满足牛/熊条件 → 震荡
+            let c = 0.5 + (slope.abs() * 3.0).min(0.3); // 斜率越大信心越高
+            (
+                "sideways".to_string(),
+                c.min(0.8),
+                format!("均线交叉/粘合，方向不明确（斜率{:.2}%）", slope * 100.0),
+            )
         };
-        (
-            "bull".to_string(),
-            c,
-            format!(
-                "沪深300站上60日均线{:.1}%，短期均线多头排列{}",
-                price_above_ma60 * 100.0,
-                vol_note
-            ),
-        )
-    } else if price_above_ma60 < -0.03 && price_above_ma20 < -0.01 && slope < -0.005 {
-        // 价格在 MA60 下方 3% + MA20 下方 + 向下斜率
-        let c = (price_above_ma60.abs() * 2.0).clamp(0.5, 0.95);
-        (
-            "bear".to_string(),
-            c,
-            format!("沪深300跌破60日均线{:.1}%，短期均线空头排列", price_above_ma60.abs() * 100.0),
-        )
-    } else {
-        // 不满足牛/熊条件 → 震荡
-        let c = 0.5 + (slope.abs() * 3.0).min(0.3); // 斜率越大信心越高
-        (
-            "sideways".to_string(),
-            c.min(0.8),
-            format!("均线交叉/粘合，方向不明确（斜率{:.2}%）", slope * 100.0),
-        )
-    };
 
     MarketRegime { regime, confidence, volatility: vol_str, description: desc }
 }

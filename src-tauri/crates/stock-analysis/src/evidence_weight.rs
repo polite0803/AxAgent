@@ -19,8 +19,22 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::debug;
 
 // ── 常量定义 ──
+
+/// 共识方向判定阈值：净得分占总权重比例超过该值才判定为明确方向（bullish/bearish）
+pub const CONSENSUS_DIRECTION_THRESHOLD: f64 = 0.15;
+/// 置信度映射基准（中性/分歧场景的基础置信度）
+pub const CONSENSUS_CONFIDENCE_BASE: f64 = 30.0;
+/// 方向明确时置信度缩放系数（净占比映射到 [BASE, DIR_MAX]）
+pub const CONSENSUS_CONFIDENCE_DIR_SCALE: f64 = 70.0;
+/// 方向明确时置信度上限
+pub const CONSENSUS_CONFIDENCE_DIR_MAX: f64 = 95.0;
+/// 分歧时置信度缩放系数（较强方占比映射到 [0, DIVIDED_MAX]）
+pub const CONSENSUS_CONFIDENCE_DIVIDED_SCALE: f64 = 50.0;
+/// 分歧时置信度上限
+pub const CONSENSUS_CONFIDENCE_DIVIDED_MAX: f64 = 60.0;
 
 /// 分析师 ID 列表（用于权重映射）
 pub const ANALYST_IDS: &[&str] = &[
@@ -527,15 +541,16 @@ fn compute_evidence_consensus(analysts: &[AnalystWeight]) -> EvidenceConsensus {
     let total_weight = bullish_score + bearish_score + neutral_score;
 
     let (consensus, confidence) = if total_weight == 0.0 {
+        debug!("共识计算边界：所有分析师权重之和为 0，回退为 neutral（无可用证据）");
         ("neutral".into(), 0.0)
     } else {
         let net = bullish_score - bearish_score;
         let max_possible = total_weight;
         // 置信度: 净得分占总权重的比例
         let raw_confidence = (net.abs() / max_possible).clamp(0.0, 1.0);
-        let consensus = if net > total_weight * 0.15 {
+        let consensus = if net > total_weight * CONSENSUS_DIRECTION_THRESHOLD {
             "bullish"
-        } else if net < -total_weight * 0.15 {
+        } else if net < -total_weight * CONSENSUS_DIRECTION_THRESHOLD {
             "bearish"
         } else if bullish_score > 0.0 && bearish_score > 0.0 {
             "divided"
@@ -546,14 +561,16 @@ fn compute_evidence_consensus(analysts: &[AnalystWeight]) -> EvidenceConsensus {
         let confidence = match consensus {
             "bullish" | "bearish" => {
                 // 方向明确时，用净占比作为信心
-                (raw_confidence * 70.0 + 30.0).min(95.0)
+                (raw_confidence * CONSENSUS_CONFIDENCE_DIR_SCALE + CONSENSUS_CONFIDENCE_BASE)
+                    .min(CONSENSUS_CONFIDENCE_DIR_MAX)
             },
             "divided" => {
                 // 分歧时，看哪方更强
                 let max_side = bullish_score.max(bearish_score);
-                (max_side / total_weight * 50.0).min(60.0)
+                (max_side / total_weight * CONSENSUS_CONFIDENCE_DIVIDED_SCALE)
+                    .min(CONSENSUS_CONFIDENCE_DIVIDED_MAX)
             },
-            _ => 30.0,
+            _ => CONSENSUS_CONFIDENCE_BASE,
         };
 
         (consensus.to_string(), confidence)

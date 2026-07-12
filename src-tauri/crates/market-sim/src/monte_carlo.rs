@@ -107,7 +107,9 @@ impl MonteCarloEngine {
             ScenarioType::Normal => Box::new(BaselineOracle::new(ref_price, 15)),
             ScenarioType::Bull => Box::new(DriftOracle::bull(ref_price)),
             ScenarioType::Bear => Box::new(DriftOracle::bear(ref_price)),
-            ScenarioType::FlashCrash => Box::new(EventOracle::flash_crash(ref_price, 60_000_000, 120_000_000)),
+            ScenarioType::FlashCrash => {
+                Box::new(EventOracle::flash_crash(ref_price, 60_000_000, 120_000_000))
+            },
             ScenarioType::HighVolatility => Box::new(EventOracle::high_volatility(ref_price)),
         }
     }
@@ -117,10 +119,7 @@ impl MonteCarloEngine {
         agent_builder: impl Fn(u64) -> Vec<Box<dyn crate::agent::traits::SimAgent>> + Send + 'static,
     ) -> Self {
         Self {
-            scenarios: vec![ScenarioConfig {
-                scenario: ScenarioType::Normal,
-                paths: 30,
-            }],
+            scenarios: vec![ScenarioConfig { scenario: ScenarioType::Normal, paths: 30 }],
             config,
             agent_builder: Box::new(agent_builder),
         }
@@ -184,16 +183,11 @@ impl MonteCarloEngine {
                 }
             }
 
-            let avg_trades = path_results
-                .iter()
-                .map(|p| p.total_trades as f64)
-                .sum::<f64>()
-                / sc.paths as f64;
+            let avg_trades =
+                path_results.iter().map(|p| p.total_trades as f64).sum::<f64>() / sc.paths as f64;
 
-            let valid_prices: Vec<f64> = path_results
-                .iter()
-                .filter_map(|p| p.final_mid_price)
-                .collect();
+            let valid_prices: Vec<f64> =
+                path_results.iter().filter_map(|p| p.final_mid_price).collect();
 
             let avg_price = if valid_prices.is_empty() {
                 None
@@ -215,10 +209,8 @@ impl MonteCarloEngine {
         }
 
         // 计算跨场景指标
-        let valid_changes: Vec<f64> = scenario_results
-            .iter()
-            .filter_map(|s| s.price_change_pct)
-            .collect();
+        let valid_changes: Vec<f64> =
+            scenario_results.iter().filter_map(|s| s.price_change_pct).collect();
 
         let survival_rate = if !valid_changes.is_empty() {
             let positive = valid_changes.iter().filter(|&&c| c > 0.0).count();
@@ -229,10 +221,7 @@ impl MonteCarloEngine {
 
         let consistency_score = if valid_changes.len() >= 2 {
             let mean = valid_changes.iter().sum::<f64>() / valid_changes.len() as f64;
-            let variance = valid_changes
-                .iter()
-                .map(|c| (c - mean).powi(2))
-                .sum::<f64>()
+            let variance = valid_changes.iter().map(|c| (c - mean).powi(2)).sum::<f64>()
                 / valid_changes.len() as f64;
             let stddev = variance.sqrt();
             if mean.abs() > 0.001 {
@@ -305,14 +294,8 @@ mod tests {
         });
 
         engine.scenarios = vec![
-            ScenarioConfig {
-                scenario: ScenarioType::Normal,
-                paths: 5,
-            },
-            ScenarioConfig {
-                scenario: ScenarioType::Bull,
-                paths: 5,
-            },
+            ScenarioConfig { scenario: ScenarioType::Normal, paths: 5 },
+            ScenarioConfig { scenario: ScenarioType::Bull, paths: 5 },
         ];
 
         let report = engine.run();

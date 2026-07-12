@@ -38,7 +38,7 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
         <label
           style={{ color: token.colorTextTertiary, fontSize: 12, marginBottom: 4, display: "block" }}
         >
-          {t("workflow.props.aggregStrategy", { defaultValue: "Aggregation Strategy" })}
+          {t("workflow.props.aggregStrategy")}
         </label>
         <Select
           value={c.strategy}
@@ -46,19 +46,19 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "all", label: t("workflow.props.aggregAll", { defaultValue: "All (array)" }) },
+            { value: "all", label: t("workflow.props.aggregAll") },
             {
               value: "concat",
-              label: t("workflow.props.aggregConcat", { defaultValue: "Concat (string)" }),
+              label: t("workflow.props.aggregConcat"),
             },
-            { value: "sum", label: t("workflow.props.aggregSum", { defaultValue: "Sum (numeric)" }) },
+            { value: "sum", label: t("workflow.props.aggregSum") },
             {
               value: "merge",
-              label: t("workflow.props.aggregMerge", { defaultValue: "Merge (object)" }),
+              label: t("workflow.props.aggregMerge"),
             },
             {
               value: "weighted",
-              label: t("workflow.props.aggregWeighted", { defaultValue: "Weighted (numeric)" }),
+              label: t("workflow.props.aggregWeighted"),
             },
             {
               value: "llm_summarize",
@@ -66,12 +66,12 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
                 defaultValue: "LLM Summarize (text)",
               }),
             },
-            { value: "count", label: t("workflow.props.aggregCount", { defaultValue: "Count" }) },
+            { value: "count", label: t("workflow.props.aggregCount") },
           ]}
         />
         <div style={{ fontSize: 11, color: token.colorTextTertiary, marginTop: 2 }}>
           {c.strategy === "concat"
-            && t("workflow.props.aggregConcatHint", { defaultValue: "Joins string values together" })}
+            && t("workflow.props.aggregConcatHint")}
           {c.strategy === "merge"
             && t("workflow.props.aggregMergeHint", {
               defaultValue: "Shallow-merges JSON objects (latter overwrites)",
@@ -96,7 +96,7 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
         }}
       >
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.props.waitForAll", { defaultValue: "Wait for all inputs" })}
+          {t("workflow.props.waitForAll")}
         </label>
         <Switch
           size="small"
@@ -125,7 +125,7 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
               display: "block",
             }}
           >
-            {t("workflow.props.weights", { defaultValue: "Weights (comma-separated)" })}
+            {t("workflow.props.weights")}
           </label>
           <Input
             value={(c.weights ?? []).join(", ")}
@@ -156,7 +156,7 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
                 display: "block",
               }}
             >
-              {t("workflow.props.summarizePrompt", { defaultValue: "Summarize prompt" })}
+              {t("workflow.props.summarizePrompt")}
             </label>
             <Input.TextArea
               value={c.summarize_prompt || ""}
@@ -177,13 +177,13 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
                 display: "block",
               }}
             >
-              {t("workflow.props.summarizeModel", { defaultValue: "Model (optional)" })}
+              {t("workflow.props.summarizeModel")}
             </label>
             <Input
               value={c.summarize_model || ""}
               onChange={(e) => sc("summarize_model", e.target.value || undefined)}
               size="small"
-              placeholder={t("workflow.props.defaultModel", { defaultValue: "Use default model" })}
+              placeholder={t("workflow.props.defaultModel")}
             />
           </div>
         </>

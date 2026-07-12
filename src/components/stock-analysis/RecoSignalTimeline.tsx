@@ -75,28 +75,28 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
 
   const columns = [
     {
-      title: t("stockAnalysis.backtest.colDate") ?? "日期",
+      title: t("stockAnalysis.backtest.colDate"),
       dataIndex: "signalDate",
       key: "signalDate",
       width: 90,
       render: (v: string) => <span className="text-xs">{v}</span>,
     },
     {
-      title: t("stockAnalysis.backtest.colCode") ?? "代码",
+      title: t("stockAnalysis.backtest.colCode"),
       dataIndex: "stockCode",
       key: "stockCode",
       width: 80,
       render: (v: string) => <span className="text-xs font-medium">{v}</span>,
     },
     {
-      title: t("stockAnalysis.backtest.colName") ?? "名称",
+      title: t("stockAnalysis.backtest.colName"),
       dataIndex: "stockName",
       key: "stockName",
       width: 80,
       render: (v: string) => <span className="text-xs">{v}</span>,
     },
     {
-      title: t("stockAnalysis.backtest.colEntry") ?? "入场",
+      title: t("stockAnalysis.backtest.colEntry"),
       dataIndex: "entryPrice",
       key: "entryPrice",
       width: 80,
@@ -104,7 +104,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
       render: (v: number) => <span className="text-xs font-mono">{v.toFixed(2)}</span>,
     },
     {
-      title: t("stockAnalysis.backtest.colExit") ?? "出场",
+      title: t("stockAnalysis.backtest.colExit"),
       dataIndex: "exitPrice",
       key: "exitPrice",
       width: 80,
@@ -112,7 +112,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
       render: (v: number) => <span className="text-xs font-mono">{v.toFixed(2)}</span>,
     },
     {
-      title: t("stockAnalysis.backtest.colReturn") ?? "收益",
+      title: t("stockAnalysis.backtest.colReturn"),
       dataIndex: "returnPct",
       key: "returnPct",
       width: 70,
@@ -124,7 +124,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
       sorter: (a: StrategySignalResult, b: StrategySignalResult) => a.returnPct - b.returnPct,
     },
     {
-      title: t("stockAnalysis.backtest.colMaxDrawdown") ?? "最大回撤",
+      title: t("stockAnalysis.backtest.colMaxDrawdown"),
       dataIndex: "maxDrawdownPct",
       key: "maxDrawdownPct",
       width: 70,
@@ -132,7 +132,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
       render: (v: number) => <span className="text-xs" style={{ color: "var(--sa-green)" }}>{v.toFixed(1)}%</span>,
     },
     {
-      title: t("stockAnalysis.backtest.colHolding") ?? "持有",
+      title: t("stockAnalysis.backtest.colHolding"),
       dataIndex: "holdingDays",
       key: "holdingDays",
       width: 50,
@@ -158,7 +158,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
       title={
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">
-            {t("stockAnalysis.backtest.signalHistory") ?? "信号时间线"}
+            {t("stockAnalysis.backtest.signalHistory")}
           </span>
           {strategyId && <Tag className="m-0 text-[10px]">{strategyId}</Tag>}
         </div>
@@ -168,7 +168,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
           <Select
             size="small"
             allowClear
-            placeholder={t("stockAnalysis.backtest.filterStock") ?? "筛选股票"}
+            placeholder={t("stockAnalysis.backtest.filterStock")}
             style={{ width: 160 }}
             options={stockOptions}
             onChange={(v) => setFilterCode(v ?? "")}
@@ -185,7 +185,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
         ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("stockAnalysis.backtest.signalSelectHint") ?? "请在策略矩阵中点击一个策略查看信号明细"}
+            description={t("stockAnalysis.backtest.signalSelectHint")}
           />
         )
         : loading
@@ -196,7 +196,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
         ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("stockAnalysis.backtest.signalEmpty") ?? "该策略暂无历史信号"}
+            description={t("stockAnalysis.backtest.signalEmpty")}
           />
         )
         : (
@@ -205,16 +205,16 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
             {stats && (
               <div className="flex items-center gap-3 mb-3 text-xs">
                 <span>
-                  {t("stockAnalysis.backtest.total") ?? "总计"}: <strong>{stats.total}</strong>
+                  {t("stockAnalysis.backtest.total")}: <strong>{stats.total}</strong>
                 </span>
                 <span>
-                  {t("stockAnalysis.backtest.colWinRate") ?? "胜率"}:{" "}
+                  {t("stockAnalysis.backtest.colWinRate")}:{" "}
                   <strong style={{ color: stats.winRate >= 55 ? "var(--sa-red)" : "var(--sa-green)" }}>
                     {stats.winRate.toFixed(1)}%
                   </strong>
                 </span>
                 <span>
-                  {t("stockAnalysis.backtest.colAvgReturn") ?? "平均收益"}:{" "}
+                  {t("stockAnalysis.backtest.colAvgReturn")}:{" "}
                   <strong style={{ color: stats.avgRet >= 0 ? "var(--sa-red)" : "var(--sa-green)" }}>
                     {stats.avgRet >= 0 ? "+" : ""}
                     {stats.avgRet.toFixed(2)}%

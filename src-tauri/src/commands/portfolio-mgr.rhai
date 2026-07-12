@@ -12,7 +12,49 @@
 //
 // 缺失因子不参与融合（不编造数据）。
 
+// ── 可配置参数（修复 D7/D8：通过 input_mapping 覆盖，默认值为 V56 校准 A 股参数）──
+// action 阈值（effective_posterior）
+let ACTION_BUY_THRESHOLD = if present(action_buy_threshold) { action_buy_threshold } else { 0.63 };
+let ACTION_INCREASE_THRESHOLD = if present(action_increase_threshold) { action_increase_threshold } else { 0.53 };
+let ACTION_HOLD_THRESHOLD = if present(action_hold_threshold) { action_hold_threshold } else { 0.48 };
+let ACTION_WATCH_THRESHOLD = if present(action_watch_threshold) { action_watch_threshold } else { 0.38 };
+let ACTION_REDUCE_THRESHOLD = if present(action_reduce_threshold) { action_reduce_threshold } else { 0.30 };
+// 仓位阈值（%）
+let POS_BUY_MIN = if present(pos_buy_min) { pos_buy_min } else { 15.0 };
+let POS_INCREASE_MIN = if present(pos_increase_min) { pos_increase_min } else { 10.0 };
+// 风险分类阈值
+let RISK_DEBT_EXTREME = if present(risk_debt_extreme) { risk_debt_extreme } else { 85.0 };
+let RISK_VOL_EXTREME = if present(risk_vol_extreme) { risk_vol_extreme } else { 60.0 };
+let RISK_SHARPE_EXTREME = if present(risk_sharpe_extreme) { risk_sharpe_extreme } else { -1.5 };
+let RISK_VOL_HIGH = if present(risk_vol_high) { risk_vol_high } else { 40.0 };
+let RISK_DD_HIGH = if present(risk_dd_high) { risk_dd_high } else { 45.0 };
+let RISK_ROE_HIGH = if present(risk_roe_high) { risk_roe_high } else { 5.0 };
+let RISK_DEBT_HIGH = if present(risk_debt_high) { risk_debt_high } else { 65.0 };
+let RISK_VOL_LOW = if present(risk_vol_low) { risk_vol_low } else { 25.0 };
+let RISK_SHARPE_LOW = if present(risk_sharpe_low) { risk_sharpe_low } else { 0.5 };
+let RISK_DD_LOW = if present(risk_dd_low) { risk_dd_low } else { 30.0 };
+let RISK_ROE_LOW = if present(risk_roe_low) { risk_roe_low } else { 8.0 };
+let RISK_DEBT_LOW = if present(risk_debt_low) { risk_debt_low } else { 55.0 };
+let RISK_GROWTH_LOW = if present(risk_growth_low) { risk_growth_low } else { 3.0 };
+// 仓位限制（%）
+let POS_CAP_EXTREME = if present(pos_cap_extreme) { pos_cap_extreme } else { 10.0 };
+let POS_CAP_HIGH = if present(pos_cap_high) { pos_cap_high } else { 35.0 };
+let POS_CAP_MID = if present(pos_cap_mid) { pos_cap_mid } else { 50.0 };
+
 fn present(x) { type_of(x) != "()" }
+
+// 安全解析 JSON：解析失败（非法 JSON / 非字符串 / 空）返回 ()（unit），
+// 避免上游脏数据（如 LLM 返回带 markdown 包裹的 JSON）导致整个工作流崩溃。
+// 调用点已有 type_of 校验，() 会自然跳过，等价于"无数据"。
+fn safe_parse(raw) {
+    if !present(raw) { return (); }
+    if type_of(raw) != "string" || raw == "" { return (); }
+    try {
+        json_parse(raw)
+    } catch (err) {
+        ()
+    }
+}
 
 // ── V55: 累加上游 strict_mode 兜底哨兵 ──
 // 任意上游 AgentNode 走 strict_mode 降级（LLM 输出无法解析为合法 JSON）时，
@@ -75,16 +117,22 @@ let f2_signal = if present(consensusScore) { (consensusScore - 50.0) / 50.0 } el
 // 与 LLM catalyst_level（f3）正交，提供额外的公告级预警
 // 注: 若 ann_type 含"风险提示"、title 含"可能下跌"等为高频预警信号
 let announcement_modifier = if present(announcements) && type_of(announcements) == "string" && announcements != "" {
-    let ann_list = json_parse(announcements);
+    let ann_list = safe_parse(announcements);
     if type_of(ann_list) == "array" && ann_list.len() > 0 {
         let risk_count = 0;
         let positive_count = 0;
         let high_risk_count = 0;
         // 风险关键词（匹配公告标题/类型）
+        // 修复 D9: 补充更多政策/监管/诉讼/ST 相关关键词
         let risk_kw = ["风险提示", "异常波动", "可能下跌", "可能快速下跌", "风险警示",
                        "退市", "立案调查", "监管函", "警示函", "减持", "业绩预亏",
                        "亏损", "ST", "*ST",
-                       "股东减持", "被动减持", "强制平仓", "违约"];
+                       "股东减持", "被动减持", "强制平仓", "违约",
+                       "暂停上市", "终止上市", "面值退市", "重大违法",
+                       "责令改正", "通报批评", "公开谴责", "行政处罚",
+                       "诉讼", "仲裁", "冻结", "查封",
+                       "商誉减值", "资产减值", "信用减值", "坏账",
+                       "st", "*st", "SST", "S*ST"];
         // 利好关键词
         let pos_kw = ["业绩预增", "扭亏为盈", "中标", "重大合同", "增持",
                       "回购", "股权激励", "分红", "送转",
@@ -195,19 +243,19 @@ if present(risk_volatility) && risk_volatility > 0.0 {
 
     // 极高风险: ST/*ST 标的或财务困境
     let is_extreme = false;
-    // 财务困境: 负债率>85% 且 营收负增长
-    if debt > 85.0 && growth < 0.0 { is_extreme = true; }
+    // 财务困境: 负债率>RISK_DEBT_EXTREME 且 营收负增长
+    if debt > RISK_DEBT_EXTREME && growth < 0.0 { is_extreme = true; }
     // 波动率极端 + 夏普极差
-    if vol > 60.0 && sharpe < -1.5 { is_extreme = true; }
+    if vol > RISK_VOL_EXTREME && sharpe < RISK_SHARPE_EXTREME { is_extreme = true; }
 
     // 高风险: 量化指标高波动 + 基本面无亮点
     let is_high = false;
-    if (vol > 40.0 || sharpe < 0.0 || dd > 45.0) && (roe < 5.0 || debt > 65.0) { is_high = true; }
+    if (vol > RISK_VOL_HIGH || sharpe < 0.0 || dd > RISK_DD_HIGH) && (roe < RISK_ROE_HIGH || debt > RISK_DEBT_HIGH) { is_high = true; }
     if vol > 35.0 && sharpe < 0.3 && roe < 8.0 && growth < 5.0 { is_high = true; }
 
     // 低风险: 量化健康 + 基本面稳健
     let is_low = false;
-    if vol < 25.0 && sharpe > 0.5 && dd < 30.0 && roe > 8.0 && debt < 55.0 && growth > 3.0 { is_low = true; }
+    if vol < RISK_VOL_LOW && sharpe > RISK_SHARPE_LOW && dd < RISK_DD_LOW && roe > RISK_ROE_LOW && debt < RISK_DEBT_LOW && growth > RISK_GROWTH_LOW { is_low = true; }
 
     if is_extreme {
         overall_risk = "极高风险";
@@ -398,7 +446,7 @@ let f7_signal = if present(trader_direction) && type_of(trader_direction) == "st
 // 零信号: 资金流向平衡或无数据
 let f9_default = 0.08;
 let f9_signal = if present(money_flow) && type_of(money_flow) == "string" && money_flow != "" {
-    let mf = json_parse(money_flow);
+    let mf = safe_parse(money_flow);
     if type_of(mf) == "map" {
         // 提取主力/超大单净流入
         let main_in = mf["main_net_inflow"];
@@ -435,7 +483,7 @@ let f9_weight = if f9_signal != 0.0 { get_weight(f_weights, "money_flow", f9_def
 //   ③ 大宗交易折溢价（折价高 = 出货意愿强 = 负信号）
 let f10_default = 0.08;
 let f10_signal = if present(lockup_bundle) && type_of(lockup_bundle) == "string" && lockup_bundle != "" {
-    let lb = json_parse(lockup_bundle);
+    let lb = safe_parse(lockup_bundle);
     if type_of(lb) == "map" {
         let chip_sig = 0.0;
         // ① 股东增减持信号（权重 0.6）
@@ -514,7 +562,7 @@ let f10_signal = if present(lockup_bundle) && type_of(lockup_bundle) == "string"
         //             游资席位主导 → 中性（短炒博弈）
         //             无龙虎榜数据 → 无信号（不扣分）
         if present(dragon_tiger) && type_of(dragon_tiger) == "string" && dragon_tiger != "" {
-            let dt = json_parse(dragon_tiger);
+            let dt = safe_parse(dragon_tiger);
             if type_of(dt) == "map" {
                 let entries = dt["entries"];
                 if type_of(entries) == "array" && entries.len() > 0 {
@@ -557,35 +605,44 @@ let f10_weight = if f10_signal != 0.0 { get_weight(f_weights, "chip", f10_defaul
 // pace-calc.rhai 基于 t-catalyst-data 公告数据计算 PACE 信号（Polarity/Actuality/Credibility/Expectation），
 // 输出 pace_signal ∈ [-1, 1]，通过 input_mapping "pace-calc.pace_signal" 注入。
 // f11 权重 0.08（与 f9/f10 同级补充因子），仅在 pace_signal 非零时激活。
+// 修复 D6: 使用 get_weight 消费 IC 代理权重（key="pace"），与 f5/f9/f10 一致
 let f11_default = 0.08;
 let f11_signal = if present(pace_signal) && type_of(pace_signal) == "f64" && pace_signal != 0.0 {
     clamp(pace_signal, -1.0, 1.0)
 } else { 0.0 };
-let f11_weight = if f11_signal != 0.0 { f11_default } else { 0.0 };
+let f11_weight = if f11_signal != 0.0 { get_weight(f_weights, "pace", f11_default) } else { 0.0 };
 
-// ── P1 新增: 技术面硬约束否决（technical-veto.rhai）──
-// 在确定 final_action 之前，先判断是否被技术面规则否决
-// 输入：rsi_14, macd_dif, macd_dea, macd_hist, llm_trade_signal,
-//       price_high_series, price_low_series, macd_hist_series
+// ── P1 新增: 技术面硬约束否决（内联计算，从 t-scoring.indicators 注入 rsi_14/macd_dif/macd_dea）──
+// 规则：
+//   R-401: RSI>80 → 否决（追高风险）
+//   R-402: RSI<20 → 否决（恐慌杀跌）
+//   R-405: RSI>80 + MACD DIF<0 → 否决（双重风险）
 let tech_vetoed = false;
 let tech_veto_rule = "";
 let tech_veto_reason = "";
 let tech_veto_trail = [];
 
-if present(rsi_14) || present(macd_dif) || present(macd_dea) {
-    // 构建技术否决的输入参数，从 Rust 端注入的 technical_veto 结果读取
-    if present(technical_veto_result) && type_of(technical_veto_result) == "map" {
-        tech_vetoed = technical_veto_result["vetoed"];
-        tech_veto_rule = if type_of(technical_veto_result["rule_id"]) == "string" {
-            technical_veto_result["rule_id"]
-        } else { "" };
-        tech_veto_reason = if type_of(technical_veto_result["reason"]) == "string" {
-            technical_veto_result["reason"]
-        } else { "" };
-        let trail = technical_veto_result["decision_trail"];
-        if type_of(trail) == "array" {
-            tech_veto_trail = trail;
-        }
+if present(rsi_14) && type_of(rsi_14) == "f64" {
+    if rsi_14 > 80.0 {
+        tech_vetoed = true;
+        tech_veto_rule = "R-401";
+        tech_veto_reason = `RSI(14)=${rsi_14}>80 超买区域，触发追高风险否决`;
+    } else if rsi_14 < 20.0 {
+        tech_vetoed = true;
+        tech_veto_rule = "R-402";
+        tech_veto_reason = `RSI(14)=${rsi_14}<20 超卖区域，触发恐慌杀跌否决`;
+    }
+    if rsi_14 > 80.0 && present(macd_dif) && macd_dif < 0.0 {
+        tech_vetoed = true;
+        tech_veto_rule = "R-405";
+        tech_veto_reason = `RSI>80 且 MACD DIF<0，技术面双重风险否决`;
+    }
+    if tech_vetoed {
+        tech_veto_trail.push(#{
+            "rule_id": tech_veto_rule,
+            "status": "VETOED",
+            "detail": tech_veto_reason,
+        });
     }
 }
 
@@ -818,12 +875,12 @@ let evidence_scale = if total_weight < 0.3 {
 	    0.0
 	} else {
 	    let kelly_pos = clamp(kelly_raw / 2.0 * 100.0, 0.0, 95.0);
-	    if overall_risk == "极高风险" || overall_risk == "极高" {
-	        clamp(kelly_pos, 0.0, 10.0)   // 极高风险: 仓位≤10%
-	    } else if overall_risk == "高风险" || overall_risk == "高" {
-	        clamp(kelly_pos, 0.0, 35.0)   // 高风险: 仓位≤35%
-	    } else if overall_risk == "中风险" || overall_risk == "中" {
-	        clamp(kelly_pos, 0.0, 50.0)   // 中风险: 仓位≤50%
+    if overall_risk == "极高风险" || overall_risk == "极高" {
+        clamp(kelly_pos, 0.0, POS_CAP_EXTREME)   // 极高风险: 仓位≤POS_CAP_EXTREME%
+    } else if overall_risk == "高风险" || overall_risk == "高" {
+        clamp(kelly_pos, 0.0, POS_CAP_HIGH)   // 高风险: 仓位≤POS_CAP_HIGH%
+    } else if overall_risk == "中风险" || overall_risk == "中" {
+        clamp(kelly_pos, 0.0, POS_CAP_MID)   // 中风险: 仓位≤POS_CAP_MID%
 	    } else {
 	        kelly_pos
 	    }
@@ -889,19 +946,19 @@ let evidence_scale = if total_weight < 0.3 {
 	//   卖出 ← <0.30
 	let base_action = "卖出";
 	// 买入区（effective_posterior≥0.63 且仓位充足）
-	if effective_posterior >= 0.63 && position_pct >= 15.0 {
+	if effective_posterior >= ACTION_BUY_THRESHOLD && position_pct >= POS_BUY_MIN {
 	    base_action = "买入";
 	// 增持区（effective_posterior≥0.53 且仓位达标）
-	} else if effective_posterior >= 0.53 && position_pct >= 10.0 {
+	} else if effective_posterior >= ACTION_INCREASE_THRESHOLD && position_pct >= POS_INCREASE_MIN {
 	    base_action = "增持";
 	// 持有区（effective_posterior≥0.48，与"观望"的模糊边界）
-	} else if effective_posterior >= 0.48 {
+	} else if effective_posterior >= ACTION_HOLD_THRESHOLD {
 	    base_action = "持有";
 	// 观望区（posterior 0.38-0.50，与"减持"的模糊边界）
-	} else if effective_posterior >= 0.38 {
+	} else if effective_posterior >= ACTION_WATCH_THRESHOLD {
 	    base_action = "观望";
 	// 减持区（posterior 0.30-0.40，与"卖出"的模糊边界）
-	} else if effective_posterior >= 0.30 {
+	} else if effective_posterior >= ACTION_REDUCE_THRESHOLD {
 	    base_action = "减持";
 	}
 
@@ -989,15 +1046,60 @@ let collapse_note = if weights_collapsed {
 	//   风控是上限不是强制值, 低仓位不应被抬高。
 	// V43: 去掉"action阈值左移"描述, 因风险 action 约束已改为硬性否决(见上方 risk_downgrade)
 	let risk_note = if overall_risk == "极高风险" {
-	    if position_pct > 10.0 { position_pct = 10.0; }
-	    ` | ⚠️极高风险:仓位≤10%`
+	    if position_pct > POS_CAP_EXTREME { position_pct = POS_CAP_EXTREME; }
+	    ` | ⚠️极高风险:仓位≤${POS_CAP_EXTREME}%`
 	} else if overall_risk == "高风险" || overall_risk == "高" {
-	    if position_pct > 35.0 { position_pct = 35.0; }
-	    ` | ⚠️高风险:仓位≤35%`
-	} else if (overall_risk == "中风险" || overall_risk == "中") && position_pct > 50.0 {
-	    position_pct = 50.0;
-	    ` | ⚠️中风险:仓位上限50%`
+	    if position_pct > POS_CAP_HIGH { position_pct = POS_CAP_HIGH; }
+	    ` | ⚠️高风险:仓位≤${POS_CAP_HIGH}%`
+	} else if (overall_risk == "中风险" || overall_risk == "中") && position_pct > POS_CAP_MID {
+	    position_pct = POS_CAP_MID;
+	    ` | ⚠️中风险:仓位上限${POS_CAP_MID}%`
 	} else { "" };
+
+// ── 模拟门（S-501~503）：基于多 Agent 市场仿真的硬性约束 ──
+// 在 final_action/position_pct 确定后执行，作为决策输出前的最后一道门。
+// 需要上游 market-sim CodeNode 注入 sim_stability/sim_liquidity/sim_impact。
+let sim_vetoed = false;
+let sim_veto_rule = "";
+let sim_veto_reason = "";
+// 记录模拟门前的原始决策状态（供前端对比展示）
+let pre_sim_action = final_action;
+let pre_sim_position_pct = position_pct;
+
+if present(sim_stability) && type_of(sim_stability) == "f64"
+   && present(sim_liquidity) && type_of(sim_liquidity) == "f64" {
+    // S-501: 价格极度不稳定 → 强制观望
+    if sim_stability < 0.3 {
+        sim_vetoed = true;
+        sim_veto_rule = "S-501";
+        sim_veto_reason = `市场模拟显示价格稳定性不足(${(sim_stability*100.0).round()}%), ${final_action}→观望`;
+        final_action = "观望";
+        position_pct = 0.0;
+    }
+    // S-502: 流动性极差 → 仓位上限减半
+    if !sim_vetoed && sim_liquidity < 0.2 {
+        sim_vetoed = true;
+        sim_veto_rule = "S-502";
+        let old_pos = position_pct;
+        position_pct = clamp(position_pct * 0.5, 0.0, 50.0);
+        sim_veto_reason = `市场模拟显示流动性不足(${(sim_liquidity*100.0).round()}%), 仓位从${old_pos}%降至${position_pct}%`;
+    }
+    // S-503: 大单冲击过大 → 仓位上限减半 + 提示
+    if !sim_vetoed && present(sim_impact) && type_of(sim_impact) == "f64" && sim_impact > 50.0 {
+        sim_vetoed = true;
+        sim_veto_rule = "S-503";
+        let old_pos = position_pct;
+        position_pct = clamp(position_pct * 0.5, 0.0, 50.0);
+        sim_veto_reason = `市场模拟显示大单冲击成本过高(${sim_impact}bps), 仓位从${old_pos}%降至${position_pct}%`;
+    }
+    if sim_vetoed {
+        decision_trail.push(#{
+            "rule_id": sim_veto_rule,
+            "status": "VETOED",
+            "detail": sim_veto_reason,
+        });
+    }
+}
 
 // ── 缺失数据 ──
 let data_gaps = [];
@@ -1074,10 +1176,22 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
         "notes": f4_quant_notes,
     },
     "decision_trail": decision_trail,
+    "pre_sim_action": pre_sim_action,
+    "pre_sim_position_pct": pre_sim_position_pct,
     "technical_veto": #{
         "vetoed": tech_vetoed,
         "rule_id": tech_veto_rule,
         "reason": tech_veto_reason,
+    },
+    "simulation_gate": #{
+        "vetoed": sim_vetoed,
+        "rule_id": sim_veto_rule,
+        "reason": sim_veto_reason,
+        "pre_sim_action": pre_sim_action,
+        "pre_sim_position_pct": pre_sim_position_pct,
+        "sim_stability": if present(sim_stability) { (sim_stability*100.0).round()/100.0 } else { () },
+        "sim_liquidity": if present(sim_liquidity) { (sim_liquidity*100.0).round()/100.0 } else { () },
+        "sim_impact": if present(sim_impact) { sim_impact } else { () },
     },
     "computation_logs": `prior=${prior}${prior_src} post=${(posterior*100.0).round()/100.0} sig=${(avg_signal*100.0).round()/10.0} w=${total_weight} odds=${(odds*10.0).round()/10.0} k=${(kelly_raw*1000.0).round()/1000.0} pos=${position_pct} f9=${(f9_signal*100.0).round()/100.0} f10=${(f10_signal*100.0).round()/100.0} f11=${(f11_signal*100.0).round()/100.0} ann=${(announcement_modifier*100.0).round()/100.0}`,
     "f7_free": #{

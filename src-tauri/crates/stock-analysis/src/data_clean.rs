@@ -248,19 +248,23 @@ pub fn adjust_prices(klines_json: &str, dividends_json: &str) -> AdjustResult {
 
     let mut factor = 1.0;
     for k in klines.iter_mut() {
-        for d in &dividends {
-            if d.date == k.date {
-                let total_return = d.cash_dividend / k.close + d.share_dividend;
-                if total_return > 0.0 {
-                    factor /= 1.0 + total_return;
-                }
-            }
-        }
+        // 1) 先保存原始收盘价（除权因子计算需要原始价）
+        let raw_close = k.close;
+        // 2) 应用当前 factor 调整价格（最新 K 线 factor=1.0，不受自身除权影响）
         k.open = (k.open * factor * 100.0).round() / 100.0;
         k.high = (k.high * factor * 100.0).round() / 100.0;
         k.low = (k.low * factor * 100.0).round() / 100.0;
         k.close = (k.close * factor * 100.0).round() / 100.0;
         k.volume = (k.volume / factor * 100.0).round() / 100.0;
+        // 3) 再检查除权事件，更新 factor 给下一条（更旧的）K 线
+        for d in &dividends {
+            if d.date == k.date {
+                let total_return = d.cash_dividend / raw_close + d.share_dividend;
+                if total_return > 0.0 {
+                    factor /= 1.0 + total_return;
+                }
+            }
+        }
     }
 
     let adjusted: Vec<AdjustedKLine> = klines

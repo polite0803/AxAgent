@@ -12,6 +12,7 @@ AxAgent Python SDK — ACP 协议客户端
 """
 
 import json
+import time
 import urllib.request
 import urllib.error
 from typing import Optional, List, Dict, Any, Iterator
@@ -20,9 +21,19 @@ from typing import Optional, List, Dict, Any, Iterator
 class AxAgentClient:
     """ACP 协议 HTTP 客户端"""
 
-    def __init__(self, base_url: str, auth_token: Optional[str] = None):
+    def __init__(
+        self,
+        base_url: str,
+        auth_token: Optional[str] = None,
+        timeout: float = 30.0,
+        max_retries: int = 3,
+        retry_backoff: float = 0.5,
+    ):
         self.base_url = base_url.rstrip("/")
         self.auth_token = auth_token
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.retry_backoff = retry_backoff
 
     def _headers(self) -> Dict[str, str]:
         h = {"Content-Type": "application/json"}
@@ -34,16 +45,36 @@ class AxAgentClient:
         url = f"{self.base_url}{path}"
         data = json.dumps(body).encode("utf-8") if body else None
         req = urllib.request.Request(url, data=data, headers=self._headers(), method=method)
-        try:
-            with urllib.request.urlopen(req) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode("utf-8")
+        last_err: Optional[Exception] = None
+        for attempt in range(self.max_retries):
             try:
-                error_data = json.loads(error_body)
-                raise Exception(error_data.get("error", {}).get("message", str(e)))
-            except json.JSONDecodeError:
-                raise Exception(f"ACP 请求失败: {e.code} {error_body}")
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    raw = resp.read().decode("utf-8")
+                    try:
+                        return json.loads(raw)
+                    except json.JSONDecodeError as e:
+                        # 响应体非合法 JSON —— 不重试，包装后抛出
+                        raise Exception(f"ACP 响应 JSON 解析失败: {e} (body={raw[:200]})") from e
+            except urllib.error.HTTPError as e:
+                # 4xx/5xx 业务错误 —— 解析错误体，不重试
+                error_body = e.read().decode("utf-8")
+                try:
+                    error_data = json.loads(error_body)
+                    raise Exception(error_data.get("error", {}).get("message", str(e)))
+                except json.JSONDecodeError:
+                    raise Exception(f"ACP 请求失败: {e.code} {error_body}")
+            except (urllib.error.URLError, TimeoutError) as e:
+                # 网络层错误（含连接失败/超时，urlopen 将 socket.timeout 包装为 URLError）—— 可重试
+                last_err = e
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_backoff * (attempt + 1))
+                    continue
+                raise Exception(
+                    f"ACP 请求失败（重试 {self.max_retries} 次仍失败）: {e}"
+                ) from e
+        if last_err is not None:
+            raise last_err
+        return None
 
     def create_session(self, work_dir: str, model: Optional[str] = None,
                        permission_mode: Optional[str] = None,

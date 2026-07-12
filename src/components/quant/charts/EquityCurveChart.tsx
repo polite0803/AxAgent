@@ -44,6 +44,7 @@ export function EquityCurveChart({
         type: "line",
         smooth: true,
         showSymbol: false,
+        sampling: "lttb",
         lineStyle: { width: 2, color: "#1677ff" },
         areaStyle: { color: "rgba(22, 119, 255, 0.12)" },
         data: equities,
@@ -57,6 +58,7 @@ export function EquityCurveChart({
         type: "line",
         smooth: true,
         showSymbol: false,
+        sampling: "lttb",
         lineStyle: { width: 1.5, color: "#999", type: "dashed" },
         data: norm.map((v) => parseFloat(v.toFixed(2))),
       });

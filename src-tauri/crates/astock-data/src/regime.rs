@@ -105,11 +105,11 @@ impl RegimeDetector {
         let mut report = RegimeReport { samples: closes.len(), ..Default::default() };
 
         // 1. 均线
-        if let Some(ma20) = Self::sma(&closes, 20) {
+        if let Some(ma20) = crate::indicators::sma(&closes, 20) {
             report.ma20 = Some(ma20);
         }
         if closes.len() >= 60 {
-            if let Some(ma60) = Self::sma(&closes, 60) {
+            if let Some(ma60) = crate::indicators::sma(&closes, 60) {
                 report.ma60 = Some(ma60);
             }
         }
@@ -137,15 +137,6 @@ impl RegimeDetector {
         report
     }
 
-    /// 简单移动平均(最后一个值为基准)
-    fn sma(closes: &[f64], n: usize) -> Option<f64> {
-        if closes.len() < n {
-            return None;
-        }
-        let sum: f64 = closes[closes.len() - n..].iter().sum();
-        Some(sum / n as f64)
-    }
-
     /// 20 日波动率(年化,%)
     /// sigma_daily * sqrt(252) * 100
     fn volatility(closes: &[f64], n: usize) -> Option<f64> {
@@ -166,7 +157,7 @@ impl RegimeDetector {
 
     /// 布林带宽度(upper - lower) / mid
     fn bollinger_width(closes: &[f64], n: usize, k: f64) -> Option<f64> {
-        Self::sma(closes, n).and_then(|mid| {
+        crate::indicators::sma(closes, n).and_then(|mid| {
             let slice = &closes[closes.len() - n..];
             let variance: f64 = slice.iter().map(|c| (c - mid).powi(2)).sum::<f64>() / n as f64;
             let std = variance.sqrt();

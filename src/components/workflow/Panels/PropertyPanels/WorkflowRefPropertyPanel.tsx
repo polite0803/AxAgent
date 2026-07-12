@@ -63,7 +63,7 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
-          {t("workflow.workflowRef.targetWorkflow", { defaultValue: "Target Workflow" })}
+          {t("workflow.workflowRef.targetWorkflow")}
         </label>
         <Select
           value={c.target_workflow_id || undefined}
@@ -78,7 +78,7 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.workflowRef.contextMode", { defaultValue: "Context Mode" })}
+          {t("workflow.workflowRef.contextMode")}
         </label>
         <Select
           value={c.context_mode || "inherit"}
@@ -86,8 +86,8 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
           size="small"
           style={{ width: 140 }}
           options={[
-            { value: "inherit", label: t("workflow.workflowRef.inherit", { defaultValue: "Inherit" }) },
-            { value: "isolated", label: t("workflow.workflowRef.isolated", { defaultValue: "Isolated" }) },
+            { value: "inherit", label: t("workflow.workflowRef.inherit") },
+            { value: "isolated", label: t("workflow.workflowRef.isolated") },
           ]}
         />
       </div>

@@ -66,10 +66,8 @@ pub async fn run_reflection_workflow(
 
     // ── [B2 借鉴] 幂等守卫: 如果 reflection_id 已 completed,直接返回 cached ──
     if let Some(ref rid) = reflection_id {
-        if let Some(existing) = stock_reflections::Entity::find_by_id(rid.clone())
-            .one(db)
-            .await
-            .map_err(|e| {
+        if let Some(existing) =
+            stock_reflections::Entity::find_by_id(rid.clone()).one(db).await.map_err(|e| {
                 ErrorResponse::new(wf_err::INTERNAL)
                     .with_detail(format!("B2 查询已存在反思失败: {e}"))
             })?
@@ -84,9 +82,7 @@ pub async fn run_reflection_workflow(
     }
 
     // ── [B3 借鉴] 原子写: reflection_id 存在则 UPDATE pending→running,否则 INSERT ──
-    let analysis_id = reflection_id
-        .clone()
-        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let analysis_id = reflection_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
     if let Some(ref rid) = reflection_id {
         let _ = stock_reflections::Entity::update_many()
@@ -141,14 +137,13 @@ pub async fn run_reflection_workflow(
 
     // 2. 加载反思复盘模板（stock-reflection，DAG 结构与 stock-analysis 一致）
     let loaded = load_and_inject_template(db, stock_code, stock_name, "stock-reflection").await?;
-    let (max_concurrent, step_timeout) = resolve_runtime_options(loaded.variables.as_deref());
+    let (max_concurrent, step_timeout, _total_timeout) =
+        resolve_runtime_options(loaded.variables.as_deref());
 
     // 3. 创建嵌套工作流
     let wf_name = format!("stock-reflection-{stock_code}");
-    let workflow = engine
-        .create_workflow(&wf_name, loaded.nodes, loaded.edges)
-        .await
-        .map_err(|e| {
+    let workflow =
+        engine.create_workflow(&wf_name, loaded.nodes, loaded.edges).await.map_err(|e| {
             ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("创建反思工作流失败: {e}"))
         })?;
     let wf_id = workflow.id.clone();
@@ -295,19 +290,15 @@ pub async fn run_reflection_workflow(
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("as_of 解析失败: {e}"))
     })?;
 
-    let result = as_of::AS_OF
-        .scope(Some(ctx), async move { engine.run_workflow(&wf_id, opts).await })
-        .await;
+    let result =
+        as_of::AS_OF.scope(Some(ctx), async move { engine.run_workflow(&wf_id, opts).await }).await;
 
     // 6. 处理结果
     match result {
         Ok(wf) => {
             // 通过 extract_agent_output 管线提取规范化 JSON（兼容多模型输出格式）
-            let reflection_raw = wf
-                .results
-                .get("reflection")
-                .cloned()
-                .unwrap_or(serde_json::Value::Null);
+            let reflection_raw =
+                wf.results.get("reflection").cloned().unwrap_or(serde_json::Value::Null);
             let reflection_json = extract_agent_output(reflection_raw).await;
             // 兜底: extract_agent_output 在某些 wrapper 格式下可能返回 JSON 字符串
             // (例如 LLM 输出被包成 `{output: "{...}"}` 时走 line 1552 分支直接 return 字符串),
@@ -496,34 +487,29 @@ pub async fn run_batch_reflection(
 
     for (i, p) in pendings.iter().take(max_count).enumerate() {
         // 2a. 读原始分析
-        let analysis = match stock_analyses::Entity::find_by_id(&p.original_analysis_id)
-            .one(db)
-            .await
-        {
-            Ok(Some(a)) => a,
-            Ok(None) => {
-                tracing::warn!(
-                    "[D1] pending reflection {} 关联 analysis_id={} 不存在,skip",
-                    p.id,
-                    p.original_analysis_id
-                );
-                skipped_young += 1;
-                continue;
-            },
-            Err(e) => {
-                tracing::error!("[D1] 查 analysis 失败: {e}");
-                failed += 1;
-                errors.push(format!("{}: 查询 analysis 失败: {e}", p.id));
-                continue;
-            },
-        };
+        let analysis =
+            match stock_analyses::Entity::find_by_id(&p.original_analysis_id).one(db).await {
+                Ok(Some(a)) => a,
+                Ok(None) => {
+                    tracing::warn!(
+                        "[D1] pending reflection {} 关联 analysis_id={} 不存在,skip",
+                        p.id,
+                        p.original_analysis_id
+                    );
+                    skipped_young += 1;
+                    continue;
+                },
+                Err(e) => {
+                    tracing::error!("[D1] 查 analysis 失败: {e}");
+                    failed += 1;
+                    errors.push(format!("{}: 查询 analysis 失败: {e}", p.id));
+                    continue;
+                },
+            };
 
         // 2b. 计算持仓期是否到达
         // 默认 28 天 = mid 决策标准持仓期(用户没指定时取 stock-analysis 模板默认)
-        let expected_days = analysis
-            .decision_expected_holding_days
-            .map(|d| d as i64)
-            .unwrap_or(28);
+        let expected_days = analysis.decision_expected_holding_days.map(|d| d as i64).unwrap_or(28);
         let analysis_date = analysis.as_of_date.as_deref().unwrap_or(&p.as_of_date);
         let analysis_ms = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d")
             .ok()
@@ -719,26 +705,21 @@ pub async fn run_batch_reflection_inner(
     let mut errors: Vec<String> = Vec::new();
 
     for p in pendings.iter().take(max_count) {
-        let analysis = match stock_analyses::Entity::find_by_id(&p.original_analysis_id)
-            .one(db)
-            .await
-        {
-            Ok(Some(a)) => a,
-            Ok(None) => {
-                skipped_young += 1;
-                continue;
-            },
-            Err(e) => {
-                failed += 1;
-                errors.push(format!("{}: 查询 analysis 失败: {e}", p.id));
-                continue;
-            },
-        };
+        let analysis =
+            match stock_analyses::Entity::find_by_id(&p.original_analysis_id).one(db).await {
+                Ok(Some(a)) => a,
+                Ok(None) => {
+                    skipped_young += 1;
+                    continue;
+                },
+                Err(e) => {
+                    failed += 1;
+                    errors.push(format!("{}: 查询 analysis 失败: {e}", p.id));
+                    continue;
+                },
+            };
 
-        let expected_days = analysis
-            .decision_expected_holding_days
-            .map(|d| d as i64)
-            .unwrap_or(28);
+        let expected_days = analysis.decision_expected_holding_days.map(|d| d as i64).unwrap_or(28);
         let analysis_date = analysis.as_of_date.as_deref().unwrap_or(&p.as_of_date);
         let analysis_ms = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d")
             .ok()

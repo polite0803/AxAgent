@@ -71,7 +71,7 @@ impl SimAgent for NoiseAgent {
     }
 
     fn on_message(&mut self, msg: &MessageBody, _ctx: &mut AgentContext) -> Vec<AgentAction> {
-        if let MessageBody::OrderFilled { fill: _, .. } = msg {
+        if let MessageBody::OrderFilled { .. } = msg {
             // 记录成交（无实际反应）
         }
         Vec::new()

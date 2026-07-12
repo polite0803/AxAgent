@@ -294,7 +294,8 @@ export function StockScreenerPanel() {
         : (
           <List
             size="small"
-            dataSource={results.slice(0, 15)}
+            dataSource={results}
+            pagination={{ pageSize: 15, showSizeChanger: false, hideOnSinglePage: true }}
             renderItem={(r) => (
               <List.Item
                 style={{ cursor: "pointer", padding: "4px 0" }}

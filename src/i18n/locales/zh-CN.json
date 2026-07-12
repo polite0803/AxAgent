@@ -1715,6 +1715,7 @@
       "importParseError": "JSON 格式无效",
       "importEmpty": "未找到有效的 MCP 服务器配置",
       "importSuccess": "成功导入 {{count}} 个服务器",
+      "importPartial": "批量导入完成：成功 {ok} 条，失败 {failed} 条（失败项未写入，请检查股票代码后重试）",
       "notConfigured": "未配置连接",
       "builtinServer": "内置服务器",
       "toolCount": "{{count}} 个工具"
@@ -7943,6 +7944,8 @@
     "pnl": "盈亏",
     "recorded": "已记录",
     "fillRequired": "请填写必要信息",
+    "quickRecordInvalid": "决策参数无效，已忽略目标价/仓位，请手动填写",
+    "quickRecordHint": "一键录入：目标价与仓位比例需为有效数值（仓位 0–100%）",
     "toggleFailed": "切换失败",
     "limitsBlocked": "Position limits blocked this order",
     "agentRole.coordinator": "协调者",
@@ -8985,7 +8988,10 @@
         "indicators": "技术指标",
         "strategyParams": "策略参数",
         "trading": "交易决策",
-        "dryRun": "干跑模式"
+        "dryRun": "干跑模式",
+        "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
+        "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
+        "simulation": "蒙特卡洛仿真"
       },
       "panels": {
         "main": "主面板",
@@ -9054,8 +9060,8 @@
           "mainInflow": "主力净流入≥",
           "dragonTiger": "龙虎榜净买≥",
           "northbound": "北向持仓≥",
-          "rsiOversold": "RSI 超卖",
-          "rsiOverbought": "RSI 超买"
+          "rsiOversold": "RSI 超卖 (<30)",
+          "rsiOverbought": "RSI 超买 (>70)"
         },
         "unit10k": "万元"
       },
@@ -10176,7 +10182,12 @@
     "pptxFilterName": "PowerPoint 演示文稿",
     "exportUnsupportedFormat": "不支持的格式: {{format}}",
     "stockName": "股票名称",
-    "stockCode": "股票代码"
+    "stockCode": "股票代码",
+    "settings_StockAnalysisSettings.001": "定时",
+    "stock-analysis_RecommendationPanel.001": "title",
+    "stock-analysis_RecommendationPanel.002": "请先勾选要应用的策略",
+    "stock-analysis_RecommendationPanel.003": "所选项的权重值无效(NaN/缺失),无法应用",
+    "stock-analysis_StockAnalysisPage.001": "title"
   },
   "learningGraph": {
     "title": "学习图",

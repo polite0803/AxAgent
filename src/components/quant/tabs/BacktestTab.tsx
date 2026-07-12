@@ -1,10 +1,16 @@
 // BacktestTab — 回测配置 + 触发运行 + 结果展示
+//
+// 本组件在 2026-07-12 重构，全面展示回测结果：
+// - MetricsReport 22 字段全展示（非仅 6 个）
+// - 集成 TradesTable 成交明细
+// - WalkForward 折叠表格 + OOS 图表 + fold 柱状图
 
 import {
   Alert,
   Button,
   Card,
   Checkbox,
+  Collapse,
   DatePicker,
   Empty,
   Form,
@@ -12,19 +18,29 @@ import {
   InputNumber,
   Space,
   Switch,
+  Table,
   Tag,
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DrawdownChart } from "@/components/quant/charts/DrawdownChart";
 import { EquityCurveChart } from "@/components/quant/charts/EquityCurveChart";
 import { QuantMetricsCard } from "@/components/quant/charts/QuantMetricsCard";
+import { WalkForwardFoldBarChart } from "@/components/quant/charts/WalkForwardFoldBarChart";
+import { TradesTable } from "@/components/quant/tables/TradesTable";
 import { StrategyForm } from "@/components/quant/tabs/StrategyForm";
 import { useBacktestStore, useStrategyStore } from "@/stores/feature/quant";
-import type { BacktestRunRequest, StrategyMeta } from "@/types";
+import type {
+  BacktestRunRequest,
+  MetricsReport,
+  StrategyMeta,
+  WalkForwardFold,
+  WalkForwardWindowResult,
+} from "@/types/quant";
+import type { ColumnsType } from "antd/es/table";
 
 const { Title, Text } = Typography;
 
@@ -86,7 +102,6 @@ export function BacktestTab() {
   };
 
   const wf = currentRun?.walkForward;
-  const overfitCount = wf?.overfitWindowCount ?? 0;
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -188,38 +203,11 @@ export function BacktestTab() {
               {currentRun.run.status}
             </Tag>
           </Title>
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-            <QuantMetricsCard
-              title={t("quant.metrics.totalReturn")}
-              value={currentRun.metrics.totalReturn * 100}
-              suffix="%"
-              positiveIsGood
-            />
-            <QuantMetricsCard
-              title={t("quant.metrics.annualizedReturn")}
-              value={currentRun.metrics.annualizedReturn * 100}
-              suffix="%"
-              positiveIsGood
-            />
-            <QuantMetricsCard
-              title={t("quant.metrics.sharpe")}
-              value={currentRun.metrics.sharpe}
-              positiveIsGood
-            />
-            <QuantMetricsCard
-              title={t("quant.metrics.maxDrawdownPct")}
-              value={currentRun.metrics.maxDrawdownPct * 100}
-              suffix="%"
-              positiveIsGood={false}
-            />
-            <QuantMetricsCard title={t("quant.metrics.winRate")} value={currentRun.metrics.winRate * 100} suffix="%" />
-            <QuantMetricsCard
-              title={t("quant.metrics.totalTrades")}
-              value={currentRun.metrics.totalTrades}
-              precision={0}
-            />
-          </div>
 
+          {/* ── 指标面板：22 字段全覆盖 ── */}
+          <MetricsPanel metrics={currentRun.metrics} />
+
+          {/* ── 权益曲线 + 回撤 ── */}
           <div style={{ marginTop: 16 }}>
             <EquityCurveChart curve={currentResult.equityCurve} />
           </div>
@@ -227,37 +215,292 @@ export function BacktestTab() {
             <DrawdownChart curve={currentResult.equityCurve} />
           </div>
 
-          {wf && (
-            <Alert
-              style={{ marginTop: 16 }}
-              type={overfitCount > 0 ? "warning" : "info"}
-              showIcon
-              title={t("quant.backtest.walkForwardTitle")}
-              description={
-                <Space direction="vertical" size={4}>
-                  <Text>
-                    {t("quant.backtest.stabilityScore")}: <b>{wf.stabilityScore.toFixed(3)}</b>
-                  </Text>
-                  <Text>
-                    folds: <b>{wf.folds.length}</b>
-                  </Text>
-                  {overfitCount > 0 && (
-                    <Text type="warning">
-                      {t("quant.backtest.overfitWarning", { count: overfitCount })}
-                    </Text>
-                  )}
-                </Space>
-              }
-            />
+          {/* ── 成交明细 ── */}
+          {currentResult.trades.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <Title level={5}>{t("quant.backtest.trades") || "成交明细"}</Title>
+              <TradesTable trades={currentResult.trades} />
+            </div>
           )}
 
+          {/* ── Walk-Forward ── */}
+          {wf && (
+            <div style={{ marginTop: 16 }}>
+              <WalkForwardPanel
+                folds={wf.folds}
+                stabilityScore={wf.stabilityScore}
+                overfitWindowCount={wf.overfitWindowCount}
+                aggregatedTestSharpe={wf.aggregatedTestSharpe}
+              />
+            </div>
+          )}
+
+          {/* ── 底部摘要 ── */}
           <div style={{ marginTop: 12, color: "var(--text-3)", fontSize: 12 }}>
-            signals: {currentRun.signalCount} · trades: {currentRun.tradeCount}
+            signals: {currentRun.signalCount} · trades: {currentRun.tradeCount} · duration:{" "}
+            {(currentResult.durationMs / 1000).toFixed(1)}s
           </div>
         </Card>
       )}
 
       {!currentRun && !isRunning && !error && <Empty description={t("quant.backtest.noResult")} />}
     </Space>
+  );
+}
+
+// ── 子组件：指标面板（覆盖 MetricsReport 22 字段） ──
+
+interface MetricItem {
+  key: string;
+  title: string;
+  value: number;
+  suffix?: string;
+  prec?: number;
+  good?: boolean;
+}
+
+function MetricsPanel({ metrics }: { metrics: MetricsReport }) {
+  const { t } = useTranslation();
+
+  const m = useMemo(() => {
+    const r1: MetricItem[] = [
+      {
+        key: "totalReturn",
+        title: t("quant.metrics.totalReturn"),
+        value: metrics.totalReturn * 100,
+        suffix: "%",
+        good: true,
+      },
+      {
+        key: "annualizedReturn",
+        title: t("quant.metrics.annualizedReturn"),
+        value: metrics.annualizedReturn * 100,
+        suffix: "%",
+        good: true,
+      },
+      { key: "sharpe", title: t("quant.metrics.sharpe"), value: metrics.sharpe, good: true },
+      {
+        key: "maxDrawdownPct",
+        title: t("quant.metrics.maxDrawdownPct"),
+        value: metrics.maxDrawdownPct * 100,
+        suffix: "%",
+        good: false,
+      },
+      { key: "winRate", title: t("quant.metrics.winRate"), value: metrics.winRate * 100, suffix: "%" },
+      { key: "totalTrades", title: t("quant.metrics.totalTrades"), value: metrics.totalTrades, prec: 0 },
+    ];
+    const r2: MetricItem[] = [
+      {
+        key: "annualizedVolatility",
+        title: t("quant.metrics.annualizedVolatility") || "年化波动率",
+        value: metrics.annualizedVolatility * 100,
+        suffix: "%",
+        good: false,
+      },
+      { key: "sortino", title: t("quant.metrics.sortino") || "索提诺比", value: metrics.sortino, good: true },
+      { key: "calmar", title: t("quant.metrics.calmar") || "卡尔玛比", value: (metrics.calmar ?? 0), good: true },
+      {
+        key: "profitFactor",
+        title: t("quant.metrics.profitFactor") || "盈亏比",
+        value: metrics.profitFactor,
+        good: true,
+      },
+      { key: "payoffRatio", title: t("quant.metrics.payoffRatio") || "赔率", value: metrics.payoffRatio, good: true },
+      {
+        key: "avgHoldingDays",
+        title: t("quant.metrics.avgHoldingDays") || "平均持仓(天)",
+        value: metrics.avgHoldingDays,
+        prec: 1,
+      },
+    ];
+    const r3: MetricItem[] = [
+      {
+        key: "maxDrawdown",
+        title: t("quant.metrics.maxDrawdown") || "最大回撤(¥)",
+        value: metrics.maxDrawdown,
+        prec: 0,
+        good: false,
+      },
+      {
+        key: "maxDrawdownDurationDays",
+        title: t("quant.metrics.maxDrawdownDuration") || "回撤持续(天)",
+        value: metrics.maxDrawdownDurationDays,
+        prec: 0,
+        good: false,
+      },
+      {
+        key: "winningTrades",
+        title: t("quant.metrics.winningTrades") || "盈利笔数",
+        value: metrics.winningTrades,
+        prec: 0,
+      },
+      {
+        key: "losingTrades",
+        title: t("quant.metrics.losingTrades") || "亏损笔数",
+        value: metrics.losingTrades,
+        prec: 0,
+      },
+      { key: "avgWin", title: t("quant.metrics.avgWin") || "平均盈利", value: metrics.avgWin, prec: 0 },
+      {
+        key: "avgLoss",
+        title: t("quant.metrics.avgLoss") || "平均亏损",
+        value: Math.abs(metrics.avgLoss),
+        prec: 0,
+        good: false,
+      },
+    ];
+    return [r1, r2, r3];
+  }, [metrics, t]);
+
+  const gridStyle: React.CSSProperties = {
+    display: "grid",
+    gap: 10,
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+      {m.map((row, ri) => (
+        <div key={ri} style={gridStyle}>
+          {row.map((x) => (
+            <QuantMetricsCard
+              key={x.key}
+              title={x.title}
+              value={x.value}
+              suffix={x.suffix}
+              precision={x.prec ?? 2}
+              positiveIsGood={x.good}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── WalkForward 查看适配：WalkForwardFold[] → WalkForwardWindowResult[] ──
+
+function foldsToWindows(folds: WalkForwardFold[]): WalkForwardWindowResult[] {
+  return folds.map((f) => ({
+    fold: f,
+    overfitFlag: f.isOverfitFold,
+    trainMetrics: { sharpe: f.trainSharpe },
+    testMetrics: { sharpe: f.testSharpe },
+    degradationRatio: f.degradationRatio,
+    totalReturnPct: 0,
+  }));
+}
+
+// ── 子组件：Walk-Forward 面板 ──
+
+interface WalkForwardPanelProps {
+  folds: WalkForwardFold[];
+  stabilityScore: number;
+  overfitWindowCount: number;
+  aggregatedTestSharpe: number;
+}
+
+function WalkForwardPanel({
+  folds,
+  stabilityScore,
+  overfitWindowCount,
+  aggregatedTestSharpe,
+}: WalkForwardPanelProps) {
+  const { t } = useTranslation();
+
+  const foldColumns: ColumnsType<WalkForwardFold> = [
+    { title: "Fold", dataIndex: "foldIndex", key: "fi", width: 60, sorter: (a, b) => a.foldIndex - b.foldIndex },
+    {
+      title: "训练区间",
+      key: "train",
+      width: 240,
+      render: (_, r) => `${r.trainStart} → ${r.trainEnd} (${r.trainBarsCount})`,
+    },
+    {
+      title: "测试区间",
+      key: "test",
+      width: 240,
+      render: (_, r) => `${r.testStart} → ${r.testEnd} (${r.testBarsCount})`,
+    },
+    {
+      title: "Train S",
+      dataIndex: "trainSharpe",
+      key: "ts",
+      width: 90,
+      align: "right",
+      render: (v: number) => v.toFixed(3),
+      sorter: (a, b) => a.trainSharpe - b.trainSharpe,
+    },
+    {
+      title: "Test S",
+      dataIndex: "testSharpe",
+      key: "tes",
+      width: 90,
+      align: "right",
+      render: (v: number) => v.toFixed(3),
+      sorter: (a, b) => a.testSharpe - b.testSharpe,
+    },
+    {
+      title: "退化",
+      dataIndex: "degradationRatio",
+      key: "deg",
+      width: 80,
+      align: "right",
+      render: (v: number) => v.toFixed(3),
+      sorter: (a, b) => a.degradationRatio - b.degradationRatio,
+    },
+    {
+      title: "过拟合",
+      key: "of",
+      width: 90,
+      render: (_, r) => r.isOverfitFold ? <Tag color="red">是</Tag> : <Tag color="green">否</Tag>,
+    },
+  ];
+
+  return (
+    <Collapse
+      size="small"
+      items={[
+        {
+          key: "wf",
+          label: (
+            <Space size="middle">
+              <Text strong>{t("quant.backtest.walkForwardTitle") || "Walk-Forward 验证"}</Text>
+              <Tag color={stabilityScore > 0.7 ? "green" : stabilityScore > 0.4 ? "orange" : "red"}>
+                稳定性 {stabilityScore.toFixed(3)}
+              </Tag>
+              <Tag color={overfitWindowCount > 0 ? "red" : "green"}>
+                {overfitWindowCount > 0 ? `过拟合 ${overfitWindowCount}/${folds.length}` : "无过拟合"}
+              </Tag>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                OOS Sharpe: {aggregatedTestSharpe.toFixed(3)} · folds: {folds.length}
+              </Text>
+            </Space>
+          ),
+          children: (
+            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <Table<WalkForwardFold>
+                size="small"
+                columns={foldColumns}
+                dataSource={folds}
+                rowKey="foldIndex"
+                pagination={false}
+                scroll={{ x: 800 }}
+              />
+              {folds.length > 0 && (
+                <Collapse
+                  size="small"
+                  items={[{
+                    key: "chart",
+                    label: "Fold Sharpe 柱状图",
+                    children: <WalkForwardFoldBarChart windows={foldsToWindows(folds)} />,
+                  }]}
+                />
+              )}
+            </Space>
+          ),
+        },
+      ]}
+    />
   );
 }

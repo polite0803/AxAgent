@@ -39,7 +39,6 @@ interface PmInputParams {
   dqiScore: number;
   overallRisk: string;
   catalystLevel: string;
-  institutionalTrace: string;
   consensusScore: number;
 }
 
@@ -52,6 +51,34 @@ interface PmDecision {
   stopLossPct: number;
   takeProfitPct: number;
   reasoning: string;
+  /** 决策追溯链（来自 portfolio-mgr.rhai 完整输出） */
+  decisionTrail?: Array<{
+    ruleId: string;
+    status: string;
+    detail?: string;
+    timestamp?: string;
+  }>;
+  /** 技术面否决详情（来自 portfolio-mgr.rhai technical_veto） */
+  technicalVeto?: {
+    vetoed: boolean;
+    ruleId?: string;
+    reason?: string;
+  };
+  /** 模拟门信息（S-501~503） */
+  simulationGate?: {
+    vetoed: boolean;
+    ruleId?: string;
+    reason?: string;
+    preSimAction: string;
+    preSimPositionPct: number;
+    simStability?: number;
+    simLiquidity?: number;
+    simImpact?: number;
+  };
+  /** 模拟门前的原始 action */
+  preSimAction?: string;
+  /** 模拟门前的原始仓位 */
+  preSimPositionPct?: number;
 }
 
 // ── 默认值 ──
@@ -61,7 +88,6 @@ const DEFAULT_PARAMS: PmInputParams = {
   dqiScore: 50,
   overallRisk: "中",
   catalystLevel: "无催化剂",
-  institutionalTrace: "无异常",
   consensusScore: 50,
 };
 
@@ -72,17 +98,24 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-async function computeDecisionBackend(params: PmInputParams): Promise<PmDecision | null> {
+async function computeDecisionBackend(
+  params: PmInputParams,
+  snapshot?: Record<string, unknown> | null,
+): Promise<PmDecision | null> {
   try {
+    const invokeParams: Record<string, unknown> = {
+      totalScore: params.totalScore,
+      dqiScore: params.dqiScore,
+      overallRisk: params.overallRisk,
+      catalystLevel: params.catalystLevel,
+      consensusScore: params.consensusScore,
+    };
+    // 携带 DAG 快照为完整公式提供上游参数
+    if (snapshot) {
+      invokeParams.blackboardSnapshot = JSON.stringify(snapshot);
+    }
     const result = await invoke("compute_what_if", {
-      params: {
-        totalScore: params.totalScore,
-        dqiScore: params.dqiScore,
-        overallRisk: params.overallRisk,
-        catalystLevel: params.catalystLevel,
-        institutionalTrace: params.institutionalTrace,
-        consensusScore: params.consensusScore,
-      },
+      params: invokeParams,
     }) as Record<string, unknown>;
     if (result) {
       return {
@@ -93,6 +126,12 @@ async function computeDecisionBackend(params: PmInputParams): Promise<PmDecision
         stopLossPct: result.stopLossPct as number,
         takeProfitPct: result.takeProfitPct as number,
         reasoning: result.reasoning as string,
+        // 这些字段当前在 compute_what_if 简化版中不可用，保留以供完整版加载
+        decisionTrail: (result as Record<string, unknown>).decisionTrail as PmDecision["decisionTrail"],
+        technicalVeto: (result as Record<string, unknown>).technicalVeto as PmDecision["technicalVeto"],
+        simulationGate: (result as Record<string, unknown>).simulationGate as PmDecision["simulationGate"],
+        preSimAction: (result as Record<string, unknown>).preSimAction as string | undefined,
+        preSimPositionPct: (result as Record<string, unknown>).preSimPositionPct as number | undefined,
       };
     }
   } catch (e) {
@@ -102,7 +141,7 @@ async function computeDecisionBackend(params: PmInputParams): Promise<PmDecision
 }
 
 function computeDecisionLocal(params: PmInputParams): PmDecision {
-  const { totalScore, dqiScore, overallRisk, catalystLevel, institutionalTrace, consensusScore } = params;
+  const { totalScore, dqiScore, overallRisk, catalystLevel, consensusScore } = params;
 
   // 辩论收敛调整
   const consensusAdj = ((consensusScore - 50) / 100) * 10;
@@ -133,16 +172,19 @@ function computeDecisionLocal(params: PmInputParams): PmDecision {
         return 6;
       case "L1普通消息":
         return 2;
+      case "L-3退市/造假级":
+        return -12;
+      case "L-2业绩暴雷级":
+        return -6;
+      case "L-1普通利空":
+        return -2;
       default:
         return 0;
     }
   })();
 
-  // 机构建仓痕迹
-  const instBonus = (institutionalTrace === "有建仓痕迹" || institutionalTrace === "疑似建仓") ? 5 : 0;
-
-  // 最终置信度
-  const adjustment = consensusAdj + dqiAdj + riskAdjustment + catalystBonus + instBonus;
+  // 最终置信度（简化版：不含 institutionalTrace，完整公式通过 blackboard 提供）
+  const adjustment = consensusAdj + dqiAdj + riskAdjustment + catalystBonus;
   const confidence = clamp(totalScore + adjustment, 0, 100);
 
   // 仓位推导
@@ -195,11 +237,9 @@ function extractParamsFromSnapshot(snapshot: Record<string, unknown>): PmInputPa
     if (typeof inputParams.dqiScore === "number") { params.dqiScore = inputParams.dqiScore; }
     if (typeof inputParams.overallRisk === "string") { params.overallRisk = inputParams.overallRisk; }
     if (typeof inputParams.catalystLevel === "string") { params.catalystLevel = inputParams.catalystLevel; }
-    if (typeof inputParams.institutionalTrace === "string") {
-      params.institutionalTrace = inputParams.institutionalTrace;
-    }
     if (typeof inputParams.consensusScore === "number") { params.consensusScore = inputParams.consensusScore; }
-    return params; // input_params 有完整快照，直接返回
+    // institutionalTrace 已整合到完整公式的 blackboard 中，不再作为简化版的显式参数
+    return params;
   }
 
   // Fallback: 从 params.portfolio-mgr result 反推
@@ -220,7 +260,6 @@ function extractParamsFromSnapshot(snapshot: Record<string, unknown>): PmInputPa
   const catParams = snapshot["params.a-catalyst"] as Record<string, unknown> | undefined;
   if (catParams) {
     if (catParams.catalyst_level) { params.catalystLevel = String(catParams.catalyst_level); }
-    if (catParams.institutional_trace) { params.institutionalTrace = String(catParams.institutional_trace); }
   }
 
   // 尝试从决策 JSON 反推 totalScore
@@ -261,6 +300,59 @@ function originalDecisionSummary(snapshot: Record<string, unknown>): PmDecision 
 
   // 从 decision_json 解析
   if (typeof result.decision === "string") {
+    // 提取 decision_trail（完整 portfolio-mgr 输出常有此字段）
+    const rawTrail = result.decision_trail ?? result.decisionTrail;
+    const decisionTrail: PmDecision["decisionTrail"] = Array.isArray(rawTrail)
+      ? rawTrail.map((t: Record<string, unknown>) => ({
+        ruleId: String(t.ruleId ?? t.rule_id ?? ""),
+        status: String(t.status ?? ""),
+        detail: t.detail as string | undefined,
+        timestamp: t.timestamp as string | undefined,
+      }))
+      : undefined;
+
+    // 提取 technical_veto
+    const rawVeto = result.technical_veto ?? result.technicalVeto;
+    const technicalVeto: PmDecision["technicalVeto"] = rawVeto && typeof rawVeto === "object"
+      ? {
+        vetoed: Boolean((rawVeto as Record<string, unknown>).vetoed),
+        ruleId: String(
+          (rawVeto as Record<string, unknown>).ruleId ?? (rawVeto as Record<string, unknown>).rule_id ?? "",
+        ),
+        reason: (rawVeto as Record<string, unknown>).reason as string | undefined,
+      }
+      : undefined;
+
+    // 提取 simulation_gate
+    const rawGate = result.simulation_gate ?? result.simulationGate;
+    const simulationGate: PmDecision["simulationGate"] = rawGate && typeof rawGate === "object"
+      ? {
+        vetoed: Boolean((rawGate as Record<string, unknown>).vetoed),
+        ruleId: String(
+          (rawGate as Record<string, unknown>).ruleId ?? (rawGate as Record<string, unknown>).rule_id ?? "",
+        ),
+        reason: (rawGate as Record<string, unknown>).reason as string | undefined,
+        preSimAction: String(
+          (rawGate as Record<string, unknown>).preSimAction ?? (rawGate as Record<string, unknown>).pre_sim_action
+            ?? "",
+        ),
+        preSimPositionPct: Number(
+          (rawGate as Record<string, unknown>).preSimPositionPct
+            ?? (rawGate as Record<string, unknown>).pre_sim_position_pct ?? 0,
+        ),
+        simStability: (rawGate as Record<string, unknown>).simStability as number | undefined
+          ?? (rawGate as Record<string, unknown>).sim_stability as number | undefined,
+        simLiquidity: (rawGate as Record<string, unknown>).simLiquidity as number | undefined
+          ?? (rawGate as Record<string, unknown>).sim_liquidity as number | undefined,
+        simImpact: (rawGate as Record<string, unknown>).simImpact as number | undefined
+          ?? (rawGate as Record<string, unknown>).sim_impact as number | undefined,
+      }
+      : undefined;
+
+    // 提取 pre_sim_action / pre_sim_position_pct（顶层字段）
+    const preSimAction = (result.pre_sim_action ?? result.preSimAction) as string | undefined;
+    const preSimPositionPct = (result.pre_sim_position_pct ?? result.preSimPositionPct) as number | undefined;
+
     return {
       decision: result.decision,
       positionPct: (result.positionPct ?? result.position_pct ?? 0) as number,
@@ -269,6 +361,11 @@ function originalDecisionSummary(snapshot: Record<string, unknown>): PmDecision 
       stopLossPct: (result.stopLossPct ?? result.stop_loss_pct ?? 0) as number,
       takeProfitPct: (result.takeProfitPct ?? result.take_profit_pct ?? 0) as number,
       reasoning: (result.reasoning ?? "") as string,
+      decisionTrail,
+      technicalVeto,
+      simulationGate,
+      preSimAction,
+      preSimPositionPct,
     };
   }
 
@@ -347,11 +444,11 @@ export function WhatIfBacktest() {
     };
   }, [selectedId]);
 
-  // 每次 params 变化时重新计算（优先后端，fallback TS）
+  // 每次 params 变化时重新计算（优先后端携带快照，fallback TS）
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const backendResult = await computeDecisionBackend(params);
+      const backendResult = await computeDecisionBackend(params, snapshot);
       if (cancelled) { return; }
       if (backendResult) {
         setResult(backendResult);
@@ -362,7 +459,7 @@ export function WhatIfBacktest() {
     return () => {
       cancelled = true;
     };
-  }, [params]);
+  }, [params, snapshot]);
 
   // 选择框的 options
   const selectOptions: SelectProps["options"] = useMemo(() => {
@@ -469,17 +566,6 @@ export function WhatIfBacktest() {
                   { value: "L3估值体系级", label: t("stockAnalysis.whatIfBacktest.catalystLevels.l3") },
                 ]}
                 onChange={(v) => setParams((p) => ({ ...p, catalystLevel: v }))}
-              />
-              <ParamSelect
-                label={t("stockAnalysis.whatIfBacktest.institutionalTraceLabel")}
-                value={params.institutionalTrace}
-                options={[
-                  { value: "无异常", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.none") },
-                  { value: "疑似建仓", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.suspectedBuilding") },
-                  { value: "有建仓痕迹", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.building") },
-                  { value: "资金出逃", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.escaping") },
-                ]}
-                onChange={(v) => setParams((p) => ({ ...p, institutionalTrace: v }))}
               />
               <ParamSlider
                 label={t("stockAnalysis.whatIfBacktest.consensusScoreLabel")}
@@ -646,6 +732,68 @@ export function WhatIfBacktest() {
                 {result.reasoning && (
                   <div className="mt-2 px-2 py-1.5 bg-gray-800/40 rounded text-[11px] text-gray-400 leading-relaxed">
                     {result.reasoning}
+                  </div>
+                )}
+
+                {/* 决策追溯链（DAG 完整输出时展示） */}
+                {result.decisionTrail && result.decisionTrail.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
+                      {t("stockAnalysis.decision.decisionTrail") ?? "决策追溯链"}
+                    </div>
+                    <div className="space-y-0.5">
+                      {result.decisionTrail.map((t, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-[11px]">
+                          <span
+                            className={`inline-block w-1.5 h-1.5 rounded-full ${
+                              t.status === "VETOED"
+                                ? "bg-red-500"
+                                : t.status === "DOWNGRADED"
+                                ? "bg-amber-500"
+                                : t.status === "PASS"
+                                ? "bg-green-500"
+                                : "bg-gray-500"
+                            }`}
+                          />
+                          <span className="text-gray-400 font-mono">{t.ruleId}</span>
+                          <span className="text-gray-500">{t.status}</span>
+                          {t.detail && <span className="text-gray-500">— {t.detail}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 技术面否决详情 */}
+                {result.technicalVeto?.vetoed && (
+                  <div className="mt-2 px-2 py-1.5 bg-red-900/20 rounded text-[11px] text-red-400">
+                    ⛔ 技术面否决: {result.technicalVeto.ruleId ?? ""}
+                    {result.technicalVeto.reason ? ` — ${result.technicalVeto.reason}` : ""}
+                  </div>
+                )}
+
+                {/* 模拟门信息（S-501~503） */}
+                {result.simulationGate?.vetoed && (
+                  <div className="mt-2">
+                    <div className="px-2 py-1.5 bg-amber-900/20 rounded text-[11px] text-amber-400">
+                      🏭 模拟门 {result.simulationGate.ruleId ?? ""}:
+                      {result.simulationGate.reason ? ` ${result.simulationGate.reason}` : ""}
+                    </div>
+                    {result.preSimAction && (
+                      <div className="mt-1 px-2 py-1 text-[10px] text-gray-500">
+                        模拟前决策: {result.preSimAction}
+                        {result.preSimPositionPct != null ? ` @ ${result.preSimPositionPct}%` : ""}
+                        {result.simulationGate.simStability != null
+                          ? ` | 稳定性 ${result.simulationGate.simStability}`
+                          : ""}
+                        {result.simulationGate.simLiquidity != null
+                          ? ` | 流动性 ${result.simulationGate.simLiquidity}`
+                          : ""}
+                        {result.simulationGate.simImpact != null
+                          ? ` | 冲击 ${result.simulationGate.simImpact}bps`
+                          : ""}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

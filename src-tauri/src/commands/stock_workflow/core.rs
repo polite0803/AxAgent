@@ -81,13 +81,9 @@ async fn run_stock_workflow_inner(
     // "serenity" 表示来自瓶颈掘金候选，允许风险分类器做评分修正。
     screening_source: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let quote = state
-        .astock_client
-        .get_quote(&stock_code)
-        .await
-        .map_err(|e| {
-            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("行情获取失败: {e}"))
-        })?;
+    let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("行情获取失败: {e}"))
+    })?;
     let now_ms = chrono::Utc::now().timestamp_millis();
 
     // 重跑分析（override 模式）：不删旧行，先用临时 ID INSERT 新行。
@@ -95,10 +91,7 @@ async fn run_stock_workflow_inner(
     // 失败则删除临时行，旧数据完好无损。
     let override_target = if let Some(ref provided) = analysis_id_override {
         // 验证旧行存在再记录，避免 Delete Nonexistent 后 ID 丢失
-        match stock_analyses::Entity::find_by_id(provided.as_str())
-            .one(state.harness.db())
-            .await
-        {
+        match stock_analyses::Entity::find_by_id(provided.as_str()).one(state.harness.db()).await {
             Ok(Some(_)) => Some(provided.clone()),
             _ => {
                 tracing::warn!(
@@ -139,9 +132,7 @@ async fn run_stock_workflow_inner(
         }),
         // 始终保存 as_of_date：live 模式用分析当日，replay 模式用用户指定日期
         as_of_date: Set(Some(
-            as_of_date
-                .clone()
-                .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string()),
+            as_of_date.clone().unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string()),
         )),
         model_version: Set(None),
         data_snapshot_id: Set(None),
@@ -160,10 +151,7 @@ async fn run_stock_workflow_inner(
     let quality_check =
         data_quality_precheck(&state.astock_client, &stock_code_for_check, &quote).await;
     match quality_check {
-        QualityPrecheckResult::Insufficient {
-            ref summary,
-            ref missing_sources,
-        } => {
+        QualityPrecheckResult::Insufficient { ref summary, ref missing_sources } => {
             tracing::warn!(
                 "[stock_workflow] 数据质量不足，跳过 DAG 执行: {summary} ({})",
                 stock_code_for_check
@@ -254,15 +242,13 @@ async fn run_stock_workflow_inner(
     let engine = Arc::clone(&state.work_engine);
 
     // ── 从模板变量中解析执行参数 ──
-    // max_concurrent / step_timeout 之前在 RunOptions 中硬编码为 9/300，
-    // 现在通过模板变量 `max_concurrent` / `agent_timeout_secs` 让用户在设置面板调整。
-    let (max_concurrent, step_timeout) = resolve_runtime_options(loaded.variables.as_deref());
+    // max_concurrent / step_timeout / total_timeout 通过模板变量让用户在设置面板调整。
+    let (max_concurrent, step_timeout, total_timeout) =
+        resolve_runtime_options(loaded.variables.as_deref());
 
     let wf_name = format!("stock-analysis-{stock_code}");
-    let workflow = engine
-        .create_workflow(&wf_name, loaded.nodes, loaded.edges)
-        .await
-        .map_err(|e| {
+    let workflow =
+        engine.create_workflow(&wf_name, loaded.nodes, loaded.edges).await.map_err(|e| {
             ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("创建工作流失败: {e}"))
         })?;
     let wf_id = workflow.id.clone();
@@ -333,12 +319,8 @@ async fn run_stock_workflow_inner(
     let vector_store = state.vector_store.clone();
     let master_key = state.harness.master_key_owned();
     // 在 spawn 前拉取市场状态（沪深300判断牛/熊/震荡），捕获到闭包中
-    let market_regime_json: Option<serde_json::Value> = state
-        .astock_client
-        .get_klines("000300", "daily", 60)
-        .await
-        .ok()
-        .and_then(|klines| {
+    let market_regime_json: Option<serde_json::Value> =
+        state.astock_client.get_klines("000300", "daily", 60).await.ok().and_then(|klines| {
             if klines.is_empty() {
                 return None;
             }
@@ -349,6 +331,63 @@ async fn run_stock_workflow_inner(
                 "volatility": r.volatility,
                 "description": r.description,
             }))
+        });
+    // 注入市场模拟指标（sim_stability/sim_liquidity/sim_impact）
+    // 从个股 K 线计算轻量版，无需额外 API 调用
+    let sim_metrics: serde_json::Value = state
+        .astock_client
+        .get_klines(&stock_code, "daily", 30)
+        .await
+        .ok()
+        .and_then(|klines| {
+            if klines.len() < 5 {
+                return None;
+            }
+            // 计算日收益率序列 → 年化波动率 → sim_stability
+            let mut returns = Vec::with_capacity(klines.len() - 1);
+            let mut total_volume: f64 = 0.0;
+            let mut avg_price: f64 = 0.0;
+            for pair in klines.windows(2) {
+                let prev_close = pair[0].close;
+                let cur = &pair[1];
+                if prev_close > 0.0 {
+                    returns.push((cur.close - prev_close) / prev_close);
+                }
+                total_volume += cur.volume;
+            }
+            avg_price = klines.last()?.close;
+            let n = returns.len() as f64;
+            if n < 3.0 {
+                return None;
+            }
+            let mean = returns.iter().sum::<f64>() / n;
+            let variance = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1.0);
+            let annual_vol = variance.sqrt() * (252.0_f64).sqrt();
+            // sim_stability: 0~1, 年化波动率 0%→1.0, 60%→0.5, 100%+→0.3
+            let sim_stability = 1.0 / (1.0 + annual_vol * 3.0).clamp(0.3, 1.0);
+            // sim_liquidity: 0~1, 从日均成交额估算
+            let avg_daily_volume = total_volume / (klines.len() as f64);
+            let daily_volume_val = avg_daily_volume * avg_price;
+            // 日均成交额 ≥ 1亿 → 0.8, 1000万→0.5, 100万→0.2
+            let sim_liquidity = (daily_volume_val / 100_000_000.0 * 0.7 + 0.1).clamp(0.1, 0.95);
+            // sim_impact: bps, 从波动率和流动性估算
+            let sim_impact =
+                (annual_vol * 100.0 * (1.0 - sim_liquidity) * 50.0 + 5.0).clamp(1.0, 200.0);
+            Some(serde_json::json!({
+                "sim_stability": (sim_stability * 100.0).round() / 100.0,
+                "sim_liquidity": (sim_liquidity * 100.0).round() / 100.0,
+                "sim_impact": (sim_impact * 10.0).round() / 10.0,
+                "sim_regime": if annual_vol > 0.4 { "high_vol" }
+                    else if annual_vol > 0.2 { "normal" } else { "low_vol" },
+            }))
+        })
+        .unwrap_or_else(|| {
+            serde_json::json!({
+                "sim_stability": serde_json::Value::Null,
+                "sim_liquidity": serde_json::Value::Null,
+                "sim_impact": serde_json::Value::Null,
+                "sim_regime": serde_json::Value::Null,
+            })
         });
     // 在 spawn 前捕获 as-of 上下文（tokio::task_local 不跨 tokio::spawn 传播）
     let captured_asof = as_of::current_as_of();
@@ -462,6 +501,34 @@ async fn run_stock_workflow_inner(
             description: Some("当前市场状态(bull/bear/sideways)+波动率+描述".into()),
             is_secret: false,
         });
+        // 注入市场模拟指标（DES 轻量版，从个股 K 线估算）
+        if let Some(stab) = sim_metrics["sim_stability"].as_f64() {
+            merged_vars.push(axagent_harness::workflow_types::Variable {
+                name: "sim_stability".into(),
+                var_type: "number".into(),
+                value: serde_json::json!(stab),
+                description: Some("市场模拟：价格稳定性(0~1, 越高越稳定)".into()),
+                is_secret: false,
+            });
+        }
+        if let Some(liq) = sim_metrics["sim_liquidity"].as_f64() {
+            merged_vars.push(axagent_harness::workflow_types::Variable {
+                name: "sim_liquidity".into(),
+                var_type: "number".into(),
+                value: serde_json::json!(liq),
+                description: Some("市场模拟：流动性深度(0~1, 越高流动性越好)".into()),
+                is_secret: false,
+            });
+        }
+        if let Some(impact) = sim_metrics["sim_impact"].as_f64() {
+            merged_vars.push(axagent_harness::workflow_types::Variable {
+                name: "sim_impact".into(),
+                var_type: "number".into(),
+                value: serde_json::json!(impact),
+                description: Some("市场模拟：大单冲击成本(bps)".into()),
+                is_secret: false,
+            });
+        }
         // 从 market_regime 派生 prompt 偏向 + 触发规则
         let regime_str = regime_value["regime"].as_str().unwrap_or("unknown");
         let vol_str = regime_value["volatility"].as_str().unwrap_or("low");
@@ -541,8 +608,47 @@ async fn run_stock_workflow_inner(
         });
         opts.variables = Some(merged_vars);
 
-        match engine.run_workflow(&wf_id, opts).await {
-            Ok(result) => {
+        // P0-T5: 整体超时兜底。step_timeout 只限单步，多步累计可能很久；
+        // 超时后调 cancel_workflow 让 WorkEngine 协作取消，避免分析永久挂起。
+        let workflow_result = tokio::time::timeout(
+            total_timeout,
+            engine.run_workflow(&wf_id, opts),
+        )
+        .await;
+
+        match workflow_result {
+            // 超时分支：主动取消工作流 + 更新 DB 状态为 timeout
+            Err(_elapsed) => {
+                tracing::warn!(%wf_id, "工作流总超时，主动取消");
+                let _ = engine.cancel_workflow(&wf_id).await;
+                let _ = app_h.emit(
+                    "workflow-error",
+                    serde_json::json!({
+                        "workflowId": wf_id,
+                        "error": format!("分析超时（超过 {} 秒）", total_timeout.as_secs())
+                    }),
+                );
+                if let Err(db_e) = stock_analyses::Entity::update_many()
+                    .col_expr(stock_analyses::Column::Status, Expr::value("timeout"))
+                    .col_expr(
+                        stock_analyses::Column::UpdatedAt,
+                        Expr::value(chrono::Utc::now().timestamp_millis()),
+                    )
+                    .filter(stock_analyses::Column::Id.eq(&aid))
+                    .exec(&db)
+                    .await
+                {
+                    tracing::error!("[DB] timeout 状态更新失败: {db_e}");
+                }
+                // 重跑超时：清理临时行，旧数据不受影响
+                if override_target_for_spawn.is_some() {
+                    let _ = stock_analyses::Entity::delete_by_id(aid.as_str())
+                        .exec(&db)
+                        .await;
+                }
+            },
+            Ok(inner_result) => match inner_result {
+                Ok(result) => {
                 let wf_status = result.status;
                 match wf_status {
                     axagent_rt_workflow::workflow_engine::WorkflowStatus::Cancelled => {
@@ -761,26 +867,24 @@ async fn run_stock_workflow_inner(
                         });
                         // ── P1-1: 如果当前股票在持仓中，计算退出紧迫度 ──
                         // 读取 portfolio_holdings 表，判断分析结果是否触发退出建议
-                        let exit_urgency = (|| -> Option<f64> {
-                            let holding = db.blocking_find(
-                                |db| async {
-                                    use axagent_entities::portfolio_holdings;
-                                    portfolio_holdings::Entity::find()
-                                        .filter(portfolio_holdings::Column::StockCode.eq(&stock_code))
-                                        .one(db).await.ok().flatten()
+                        let exit_urgency = tokio::task::block_in_place(|| {
+                            tokio::runtime::Handle::current().block_on(async {
+                                use axagent_entities::portfolio_holdings;
+                                let holding = portfolio_holdings::Entity::find()
+                                    .filter(portfolio_holdings::Column::StockCode.eq(&stock_code))
+                                    .one(&db).await.ok().flatten();
+                                // 提取当前分析决策
+                                let action_str = decision_json.as_deref()
+                                    .and_then(|dj| serde_json::from_str::<serde_json::Value>(dj).ok())
+                                    .and_then(|v| v.get("action").and_then(|a| a.as_str()).map(String::from));
+                                match action_str.as_deref() {
+                                    Some("卖出") => Some(90.0),   // 高紧迫卖出
+                                    Some("减持") => Some(60.0),   // 中紧迫减持
+                                    Some("观望") if holding.as_ref().map(|h| h.shares > 0.0).unwrap_or(false) => Some(30.0), // 低紧迫（不增持）
+                                    _ => None,                     // 持有/买入 → 不触发退出
                                 }
-                            ).ok()??;
-                            // 提取当前分析决策
-                            let action_str = decision_json.as_deref()
-                                .and_then(|dj| serde_json::from_str::<serde_json::Value>(dj).ok())
-                                .and_then(|v| v.get("action").and_then(|a| a.as_str()).map(String::from));
-                            match action_str.as_deref() {
-                                Some("卖出") => Some(90.0),   // 高紧迫卖出
-                                Some("减持") => Some(60.0),   // 中紧迫减持
-                                Some("观望") if holding.shares > 0 => Some(30.0), // 低紧迫（不增持）
-                                _ => None,                     // 持有/买入 → 不触发退出
-                            }
-                        })();
+                            })
+                        });
                         // 将退出紧迫度注入 decision_json
                         let decision_json = if exit_urgency.is_some() {
                             decision_json.map(|dj| {
@@ -931,7 +1035,8 @@ async fn run_stock_workflow_inner(
                         .await;
                 }
             },
-        }}).await  // with_degradation_log
+        } // end inner match (Ok(result) / Err(e))
+        }}).await  // end outer match + async block + with_degradation_log
     }).await // with_optional_asof
     });
 
@@ -949,16 +1054,9 @@ pub async fn cancel_stock_workflow(
     state: State<'_, AppState>,
     workflow_id: String,
 ) -> Result<(), String> {
-    state
-        .work_engine
-        .cancel_workflow(&workflow_id)
-        .await
-        .map(|_| ())
-        .map_err(|e| {
-            ErrorResponse::new(wf_err::INTERNAL)
-                .with_detail(format!("取消工作流失败: {e}"))
-                .to_string()
-        })
+    state.work_engine.cancel_workflow(&workflow_id).await.map(|_| ()).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("取消工作流失败: {e}")).to_string()
+    })
 }
 
 // ── 批量/定时分析入口（无 Tauri State 依赖，供 CronExecutor 调用）──
@@ -1017,10 +1115,7 @@ pub async fn run_single_stock_analysis(
 
     // 3. 数据质量预检
     match data_quality_precheck(client, stock_code, &quote).await {
-        QualityPrecheckResult::Insufficient {
-            summary,
-            missing_sources,
-        } => {
+        QualityPrecheckResult::Insufficient { summary, missing_sources } => {
             let missing_report: Vec<serde_json::Value> = missing_sources
                 .iter()
                 .map(|item| {
@@ -1058,7 +1153,8 @@ pub async fn run_single_stock_analysis(
     let loaded = load_and_inject_template(db, stock_code, stock_name, "stock-analysis").await?;
 
     // 5. 解析运行时参数
-    let (max_concurrent, step_timeout) = resolve_runtime_options(loaded.variables.as_deref());
+    let (max_concurrent, step_timeout, _total_timeout) =
+        resolve_runtime_options(loaded.variables.as_deref());
 
     // 5.5 [A1 借鉴] 注入历史反思教训(TradingAgents past_context 机制):
     //   批量/定时分析场景下,trader/research-mgr/value-investor 节点能看到
@@ -1100,10 +1196,8 @@ pub async fn run_single_stock_analysis(
 
     // 6. 创建并运行工作流
     let wf_name = format!("stock-analysis-{stock_code}-batch");
-    let workflow = engine
-        .create_workflow(&wf_name, loaded.nodes, loaded.edges)
-        .await
-        .map_err(|e| {
+    let workflow =
+        engine.create_workflow(&wf_name, loaded.nodes, loaded.edges).await.map_err(|e| {
             ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("创建工作流失败: {e}"))
         })?;
     let wf_id = workflow.id.clone();
@@ -1136,10 +1230,9 @@ pub async fn run_single_stock_analysis(
                 .as_deref()
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok());
 
-            let decision_action = decision_output.as_ref().and_then(|d| {
-                d.get("action")
-                    .and_then(|a| a.as_str().map(|s| s.to_string()))
-            });
+            let decision_action = decision_output
+                .as_ref()
+                .and_then(|d| d.get("action").and_then(|a| a.as_str().map(|s| s.to_string())));
 
             let _ = stock_analyses::Entity::update(stock_analyses::ActiveModel {
                 id: Set(analysis_id.clone()),
@@ -1233,9 +1326,8 @@ pub(crate) async fn fetch_similar_cases(
     db: &sea_orm::DatabaseConnection,
 ) -> Option<String> {
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
-    let three_months_ago = (chrono::Utc::now() - chrono::Duration::days(90))
-        .format("%Y-%m-%d")
-        .to_string();
+    let three_months_ago =
+        (chrono::Utc::now() - chrono::Duration::days(90)).format("%Y-%m-%d").to_string();
     let all = stock_analyses::Entity::find()
         .filter(stock_analyses::Column::StockCode.eq(stock_code))
         .filter(stock_analyses::Column::Outcome.eq("loss"))

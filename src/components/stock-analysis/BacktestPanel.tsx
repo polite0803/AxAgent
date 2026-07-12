@@ -55,8 +55,12 @@ export function BacktestPanel() {
   }, [holdingDays, scope]);
 
   useEffect(() => {
-    // Bug 4 修复: 走统一 load 入口
-    Promise.resolve().then(() => load());
+    // #14 防抖：holdingDays / scope 变化会触发 load，快速调整(如连点 InputNumber)
+    // 时不立即发请求，避免每个中间值都打一次后端；reqToken 仍负责丢弃乱序响应。
+    const timer = setTimeout(() => {
+      load();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [load]);
 
   const runStrategyBacktest = useCallback(async () => {
@@ -123,7 +127,7 @@ export function BacktestPanel() {
         />
         {/* Bug 5 修复: 持有天数可配置 —— 触发 useEffect 重拉 */}
         <span className="text-xs text-gray-500">
-          {t("stockAnalysis.backtest.holdingDays") ?? "持有天数"}
+          {t("stockAnalysis.backtest.holdingDays")}
         </span>
         <InputNumber
           size="small"

@@ -57,9 +57,7 @@ pub async fn list_reco_history(
     let items = rows
         .iter()
         .map(|row| RecoHistoryItem {
-            generated_at: row
-                .try_get::<String>("", "generated_at")
-                .unwrap_or_default(),
+            generated_at: row.try_get::<String>("", "generated_at").unwrap_or_default(),
             period: row.try_get::<String>("", "period").unwrap_or_default(),
             stock_count: row.try_get::<i64>("", "stock_count").unwrap_or(0),
             styles: row.try_get::<String>("", "styles").unwrap_or_default(),

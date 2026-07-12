@@ -6,6 +6,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult, global_state};
 use async_trait::async_trait;
+use axagent_astock_data::indicators::sma;
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -292,13 +293,6 @@ fn risk_parity(vols: &[f64], corr_json: &str) -> RpR {
             1.0
         },
     }
-}
-
-fn sma(prices: &[f64], period: usize) -> Option<f64> {
-    if period == 0 || prices.len() < period {
-        return None;
-    }
-    Some(prices[prices.len() - period..].iter().sum::<f64>() / period as f64)
 }
 
 #[derive(Serialize)]

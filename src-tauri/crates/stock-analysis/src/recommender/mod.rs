@@ -485,14 +485,25 @@ pub async fn recommend_stocks(
             let mut raw = s_ref.scan(&ctx).await?;
             // 应用自适应权重：confidence 与 position_pct 同步缩放
             for p in raw.iter_mut() {
-                let new_conf = (p.confidence as f64 * style_weight).clamp(0.0, 100.0) as u8;
-                p.confidence = new_conf;
+                let old_conf = p.confidence;
+                let new_conf = (old_conf as f64 * style_weight).clamp(0.0, 100.0) as u8;
                 // 权重缩放后仓位重新经过 calc_position（含 period_factor），
-                // 而非独立 scaling——确保缩放后的置信度与仓位参数一致
+                // 而非独立 scaling——确保缩放后的置信度与仓位参数一致。
+                //
+                // 注意：策略 scan 产出的 position_pct 已包含 period_factor
+                // （position_pct = base × old_conf/100 × period_factor）。
+                // 还原 base 时必须同时除掉 old_conf/100 与 period_factor，
+                // 否则 calc_position 会再乘一次 period_factor，导致因子被平方（×f²）。
+                let denom = (old_conf as f64 / 100.0) * period_val.factor();
+                let base = if denom > 0.0 {
+                    p.position_pct / denom
+                } else {
+                    p.position_pct
+                };
+                p.confidence = new_conf;
                 p.position_pct = crate::recommender::scoring::calc_position(
-                    p.position_pct / style_weight, // 还原 base
-                    new_conf,
-                    period_val,
+                    base, // 还原出的真实 base
+                    new_conf, period_val,
                 );
                 // 信号质量校准（贝叶斯收缩 + 反身性）：
                 //   三层框架 — 统计学(开仓勇气) × 反身性(持仓理性) × 贝叶斯(空仓定力)

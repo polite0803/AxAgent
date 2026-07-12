@@ -39,6 +39,7 @@ export function TradePanel() {
   const storeStockCode = useStockAnalysisStore((s) => s.stockCode);
   const storeStockName = useStockAnalysisStore((s) => s.stockName);
   const storeDecision = useStockAnalysisStore((s) => s.decision);
+  const storeAnalysisId = useStockAnalysisStore((s) => s.analysisId);
   // R2: 买入前 position_limits 校验
   const checkPositionLimits = useStockAnalysisStore((s) => s.checkPositionLimits);
   const [enabled, setEnabled] = useState(false);
@@ -112,16 +113,25 @@ export function TradePanel() {
     const decisionData = storeDecision as unknown as Record<string, unknown>;
     const { action, positionPct, targetPrice, stopLoss } = decisionData;
     if (!action || (action as string) === StockAction.HOLD || (action as string) === StockAction.REDUCE) { return; }
+    const tpRaw = typeof targetPrice === "number" ? targetPrice : Number(targetPrice);
+    const ppRaw = typeof positionPct === "number" ? positionPct : Number(positionPct);
+    // 校验：目标价需 >0 且为有限数；仓位比例需在 0–100 之间。
+    // 无效时静默忽略该字段（保留用户原有填写），避免把 0/负值/极大值误填进表单。
+    const validPrice = Number.isFinite(tpRaw) && tpRaw > 0 && tpRaw <= 1_000_000;
+    const validPos = Number.isFinite(ppRaw) && ppRaw > 0 && ppRaw <= 100;
+    if (!validPrice || !validPos) {
+      message.warning(t("trade.quickRecordInvalid"));
+    }
     setForm((f) => ({
       ...f,
       stockCode: storeStockCode,
       stockName: storeStockName,
       direction: action === StockAction.SELL ? "sell" : "buy",
-      price: (targetPrice as number) || 0,
-      quantity: (positionPct as number) ? Math.round(((positionPct as number) / 100) * 1000) : 100,
+      price: validPrice ? tpRaw : f.price,
+      quantity: validPos ? Math.round((ppRaw / 100) * 1000) : f.quantity,
       notes: stopLoss ? t("stockAnalysis.trade.stopLoss", { price: stopLoss }) : "",
     }));
-  }, [storeDecision, storeStockCode, storeStockName, t]);
+  }, [storeDecision, storeStockCode, storeStockName, t, message]);
 
   const handleRecord = async () => {
     if (!form.stockCode || form.price <= 0) { return message.warning(t("trade.fillRequired")); }
@@ -137,7 +147,7 @@ export function TradePanel() {
       }
     }
     const now = dayjs();
-    const analysisId = useStockAnalysisStore.getState().analysisId;
+    const analysisId = storeAnalysisId;
     try {
       await invoke("record_trade", {
         stockCode: form.stockCode,

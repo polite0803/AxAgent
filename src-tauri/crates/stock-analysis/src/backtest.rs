@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::decision::ScoringWeights;
+
+/// 回测使用的日 K 线数量（约 2 个交易年）。覆盖 analysis_date 后需有足够余量。
+const BACKTEST_KLINE_COUNT: u32 = 500;
 use axagent_harness::market_data::MarketDataProvider;
 use sea_orm::DatabaseConnection;
 
@@ -106,10 +109,10 @@ impl BacktestEngine {
         time_horizon: Option<String>,
         expected_holding_days: Option<u32>,
     ) -> Result<BacktestResult, String> {
-        // 取最近 500 日K线（约两个交易年），最大化覆盖 analysis_date 的概率
+        // 取最近 BACKTEST_KLINE_COUNT 日K线，最大化覆盖 analysis_date 的概率
         // 注：get_klines 返回最近 N 根K线（按时间升序），若 analysis_date 超出范围则回测失败
         let klines = client
-            .get_klines(stock_code, "daily", 500, None)
+            .get_klines(stock_code, "daily", BACKTEST_KLINE_COUNT, None)
             .await
             .map_err(|e| format!("获取K线失败: {e}"))?;
         if klines.iter().all(|k| k.date.as_str() < analysis_date) {
@@ -313,7 +316,7 @@ impl BacktestEngine {
     ) -> Result<BenchmarkResult, String> {
         // 获取沪深300 (000300) 同期表现
         let klines = client
-            .get_klines("000300", "daily", 500, None)
+            .get_klines("000300", "daily", BACKTEST_KLINE_COUNT, None)
             .await
             .map_err(|e| format!("获取沪深300K线失败: {e}"))?;
 

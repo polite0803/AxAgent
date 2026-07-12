@@ -9,11 +9,11 @@ import { Card, Input, Select, Space, Table, Tag } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { QuantPaperTrade, TradeSide } from "@/types";
+import type { QuantBacktestTrade, TradeSide } from "@/types";
 import type { ColumnsType } from "antd/es/table";
 
 interface TradesTableProps {
-  trades: QuantPaperTrade[];
+  trades: QuantBacktestTrade[];
 }
 
 export function TradesTable({ trades }: TradesTableProps) {
@@ -52,7 +52,7 @@ export function TradesTable({ trades }: TradesTableProps) {
   }, [trades, sideFilter, keyword]);
 
   // ── 表格列 ──
-  const columns: ColumnsType<QuantPaperTrade> = [
+  const columns: ColumnsType<QuantBacktestTrade> = [
     {
       title: t("quant.trades.time"),
       dataIndex: "timestamp",
@@ -126,7 +126,7 @@ export function TradesTable({ trades }: TradesTableProps) {
       dataIndex: "reason",
       key: "reason",
       ellipsis: true,
-      render: (v: string | null) => v ?? "—",
+      render: (v: string) => v || "—",
     },
   ];
 
@@ -201,11 +201,11 @@ export function TradesTable({ trades }: TradesTableProps) {
         />
       </Space>
 
-      <Table<QuantPaperTrade>
+      <Table<QuantBacktestTrade>
         size="small"
         columns={columns}
         dataSource={filtered}
-        rowKey="id"
+        rowKey={(_, index) => String(index)}
         pagination={{
           pageSize: 20,
           showSizeChanger: true,

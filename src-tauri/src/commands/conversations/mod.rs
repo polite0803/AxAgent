@@ -2689,6 +2689,14 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         shutdown_token: tokio_util::sync::CancellationToken::new(),
         file_authorizer: Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
         session_share_manager: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+        astock_client: Arc::new(axagent_astock_data::AStockClient::new()),
+        trading_engine: Arc::new(tokio::sync::RwLock::new(
+            axagent_stock_analysis::trading::TradingEngine::new(
+                Arc::new(db.clone()),
+                Arc::new(axagent_astock_data::AStockClient::new()),
+            ),
+        )),
+        stock_monitor: None,
         // ── Phase 3 P1 Task 3.1: domain sub-states ──
         infra: crate::state::InfraState::new(
             axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {

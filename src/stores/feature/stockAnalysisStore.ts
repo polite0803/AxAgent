@@ -30,6 +30,31 @@ import { create } from "zustand";
 // 改为 store 内 state 字段管理生命周期。
 const EARNINGS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 分钟
 
+// #11 请求去重：报价请求序列号 + 目标代码。
+// 自动刷新（30s 轮询）与手动调用 / 切股会并发触发 getStockQuote，
+// 慢响应可能覆盖快响应。仅当本请求仍是「最新一次」时才写入 store。
+let latestQuoteReqId = 0;
+let latestQuoteCode = "";
+
+// #21 工作流错误自动重试：仅对「瞬态」错误重试一次，避免无限循环与重复浪费
+const MAX_WORKFLOW_ERROR_RETRIES = 1;
+function isRetryableWorkflowError(errorCode: string, msg: string): boolean {
+  const lc = `${errorCode} ${msg}`.toLowerCase();
+  return (
+    lc.includes("timeout")
+    || lc.includes("timed out")
+    || lc.includes("network")
+    || lc.includes("econn")
+    || lc.includes("unavailable")
+    || lc.includes("503")
+    || lc.includes("502")
+    || lc.includes("504")
+    || lc.includes("temporar")
+    || lc.includes("busy")
+    || lc.includes("reset by peer")
+  );
+}
+
 /**
  * parseWorkflowResults 同款策略:从后端 blackboard snapshot 还原各分类字段。
  * snapshot 里 debate/risk/value 节点是 AgentResult 包装({content, model, role, ...}),
@@ -443,6 +468,8 @@ interface StockAnalysisState {
   _unlisten: UnlistenFn | null;
   setupEventListener: () => Promise<void>;
   _searchTimer: ReturnType<typeof setTimeout> | null;
+  /** #21 工作流错误自动重试计数（瞬态错误最多重试一次） */
+  _workflowErrorRetries: number;
 }
 
 export interface ExperimentRecord {
@@ -534,6 +561,7 @@ const initialState = {
   experiments: [],
   _lastEarningsFetch: null,
   _dryRunCache: null,
+  _workflowErrorRetries: 0,
 };
 
 export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
@@ -571,6 +599,10 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
   },
 
   getStockQuote: async (code: string) => {
+    // #11 请求去重：抢占最新序列号，慢响应(过期响应)将被丢弃
+    latestQuoteReqId += 1;
+    const myReqId = latestQuoteReqId;
+    latestQuoteCode = code;
     set({ quoteLoading: true, quoteError: null });
     try {
       // 时间旅行：从 timeAnchorStore 读 as_of_date，透传给后端（仅 replay/backtest_sweep 模式）
@@ -580,6 +612,10 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       })();
       console.log("[getStockQuote] timeAnchor:", { mode: useTimeAnchorStore.getState().mode, asOfDate });
       const quote = await invoke<StockQuote>("get_stock_quote", { stockCode: code, asOfDate });
+      // #11 去重：若已有更新的请求(或已切到别的股票)，丢弃本次过期响应
+      if (myReqId !== latestQuoteReqId || latestQuoteCode !== code) {
+        return;
+      }
       // 后端在 as-of 模式(回放历史分析)下,K线合成 quote 时
       // name 字段会 fallback 为 stock_code(见 astock-data/src/lib.rs quote_from_klines),
       // 此时应该保留 store 里已存在的 stockName(一般是 loadAnalysis 时从
@@ -604,6 +640,10 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[StockAnalysis] Failed to get stock quote:", e);
+      // #11 去重：仅当本请求仍是最新时才写入错误，避免旧错误覆盖新数据
+      if (myReqId !== latestQuoteReqId || latestQuoteCode !== code) {
+        return;
+      }
       set({ quoteError: msg, quoteLoading: false });
     }
   },
@@ -1829,6 +1869,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           progressMessage: i18n.t("stockAnalysis.progress.completed"),
           progressPct: 100,
           currentStage: 4,
+          // #21 工作流成功完成，重置自动重试计数，允许下次失败再次重试
+          _workflowErrorRetries: 0,
         });
 
         // 荐股 ↔ 分析师交叉验证：把本次的分析师投票结果缓存到 stockCodeConsensus
@@ -1912,6 +1954,23 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           progressPct: cur.progressPct,
           currentStage: cur.currentStage,
         });
+
+        // #21 自动重试：仅瞬态错误(超时/网络/服务暂不可用等)且未超过上限时，
+        // 延迟重跑同一股票的工作流一次。LLM 降级错误不重试(已走 placeholder 降级)。
+        // 重试前再次校验状态仍为同一股票的 error，避免覆盖用户后续操作或重复触发。
+        if (!isLlmError && isRetryableWorkflowError(effectiveErrorCode, msg)) {
+          const retryState = get();
+          if (retryState._workflowErrorRetries < MAX_WORKFLOW_ERROR_RETRIES) {
+            set({ _workflowErrorRetries: retryState._workflowErrorRetries + 1 });
+            const retryCode = retryState.stockCode;
+            setTimeout(() => {
+              const s = get();
+              if (s.status === "error" && s.stockCode === retryCode) {
+                s.startAnalysis(retryCode);
+              }
+            }, 2000);
+          }
+        }
       });
       unlisteners.push(u3);
     } catch (e) {

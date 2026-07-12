@@ -268,7 +268,7 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
           style={{ color: "var(--muted)", border: "none", background: "none", padding: 0, cursor: "pointer" }}
           onClick={() => setExpandedReasoning(false)}
         >
-          ▾ {t("collapseComparison") ?? "收起"}
+          ▾ {t("collapseComparison")}
         </button>
       )}
     </div>

@@ -11,6 +11,8 @@ pub mod exchange;
 pub mod market_maker;
 pub mod momentum;
 pub mod noise;
+pub mod quant_bridge;
+pub mod strategy;
 pub mod traits;
 pub mod value;
 
@@ -18,5 +20,7 @@ pub use exchange::ExchangeAgent;
 pub use market_maker::MarketMakerAgent;
 pub use momentum::MomentumAgent;
 pub use noise::NoiseAgent;
+pub use quant_bridge::QuantStrategyAgent;
+pub use strategy::StrategyAgent;
 pub use traits::{AgentAction, AgentContext, AgentMessage, AgentType, MessageBody, SimAgent};
 pub use value::ValueAgent;

@@ -182,8 +182,17 @@ impl DataFrame {
         Self { columns, rows }
     }
 
+    /// 修复 P0-A2: 序列化失败时记录错误并返回 `""`，避免污染调用方期望
+    /// （`to_dataframe_json` 仍是主要消费方，行为不变）。空串仍可被上游
+    /// 视为"渲染为空"——但错误已落 tracing，运维可据此排查。
     pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap_or_default()
+        match serde_json::to_string(self) {
+            Ok(s) => s,
+            Err(e) => {
+                tracing::error!("[batch::DataFrame] to_json 序列化失败: {e}");
+                String::new()
+            },
+        }
     }
 }
 

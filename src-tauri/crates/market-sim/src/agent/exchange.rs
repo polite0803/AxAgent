@@ -18,6 +18,10 @@ pub struct ExchangeAgent {
     total_orders: u64,
     total_trades: u64,
     total_volume: Quantity,
+    /// 修复 P0-M1: 成交历史（按时间顺序），供 Kernel.collect_results 读取。
+    /// 之前 Kernel 永远返回空 Vec，导致 stylized_facts / calibration 全部走
+    /// "成交不足 < 20"分支得 999.0 分——整个仿真"产出 0"。
+    trade_history: Vec<TradeRecord>,
 }
 
 impl ExchangeAgent {
@@ -29,6 +33,7 @@ impl ExchangeAgent {
             total_orders: 0,
             total_trades: 0,
             total_volume: 0,
+            trade_history: Vec::new(),
         }
     }
 
@@ -40,6 +45,7 @@ impl ExchangeAgent {
             total_orders: 0,
             total_trades: 0,
             total_volume: 0,
+            trade_history: Vec::new(),
         }
     }
 }
@@ -57,6 +63,11 @@ impl SimAgent for ExchangeAgent {
         AgentType::Exchange
     }
 
+    /// 修复 P0-M1: 实现 trade_history()，让 Kernel.collect_results 拿到真实成交
+    fn trade_history(&self) -> &[TradeRecord] {
+        &self.trade_history
+    }
+
     fn on_message(&mut self, msg: &MessageBody, ctx: &mut AgentContext) -> Vec<AgentAction> {
         match msg {
             // ── 限价单 ──
@@ -71,6 +82,8 @@ impl SimAgent for ExchangeAgent {
                             ctx.send(&source, MessageBody::OrderPlaced { order_id });
                         },
                         OrderResult::PartialFill { order_id, ref fill } => {
+                            // 修复 P0-M1: 收集成交历史供 Kernel 提取
+                            self.trade_history.extend(fill.trades.iter().cloned());
                             // 通知卖方
                             for trade in &fill.trades {
                                 if trade.seller_agent_id != source {
@@ -92,6 +105,8 @@ impl SimAgent for ExchangeAgent {
                             self.total_volume += fill.filled_quantity;
                         },
                         OrderResult::FullFill { order_id, ref fill } => {
+                            // 修复 P0-M1: 收集成交历史供 Kernel 提取
+                            self.trade_history.extend(fill.trades.iter().cloned());
                             // 通知对手方
                             for trade in &fill.trades {
                                 if trade.seller_agent_id != source {
@@ -136,6 +151,8 @@ impl SimAgent for ExchangeAgent {
                     Ok(result) => match result {
                         OrderResult::PartialFill { order_id, ref fill }
                         | OrderResult::FullFill { order_id, ref fill } => {
+                            // 修复 P0-M1: 收集成交历史供 Kernel 提取（市价单）
+                            self.trade_history.extend(fill.trades.iter().cloned());
                             // 通知对手方
                             for trade in &fill.trades {
                                 let counterparty = match order.side {

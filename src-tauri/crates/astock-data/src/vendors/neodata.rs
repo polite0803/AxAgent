@@ -70,7 +70,7 @@ async fn neodata_query(query: &str, token: Option<&str>) -> Result<Value, DataEr
     let json: Value = serde_json::from_str(&stdout).map_err(|e| {
         DataError::ParseError(format!(
             "NeoData JSON 解析失败: {e}, raw={}",
-            &stdout.chars().take(500).collect::<String>()
+            stdout.chars().take(500).collect::<String>()
         ))
     })?;
 

@@ -42,6 +42,7 @@ pub mod workflow_node_deserializer;
 pub mod workflow_types;
 #[macro_use]
 pub mod reliability;
+pub mod response_normalizer;
 
 // ── 市场数据契约（DTO + Trait + 工具函数）──
 pub mod market_data;

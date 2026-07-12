@@ -97,7 +97,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
     const newNode: WorkflowNode = {
       id,
       type: "agent",
-      title: t("workflow.debateNode.newDebater", { defaultValue: "Debater" }) + ` ${debaterSteps.length + 1}`,
+      title: t("workflow.debateNode.newDebater") + ` ${debaterSteps.length + 1}`,
       position,
       config: {
         system_prompt: "",
@@ -123,7 +123,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.nodeConfig.topic_var", { defaultValue: "Topic Variable" })}
+          {t("workflow.nodeConfig.topic_var")}
         </label>
         <Input
           value={c.topic_var}
@@ -133,7 +133,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       </div>
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.nodeConfig.max_rounds", { defaultValue: "Max Rounds" })}
+          {t("workflow.nodeConfig.max_rounds")}
         </label>
         <InputNumber
           value={c.max_rounds}
@@ -145,7 +145,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         />
       </div>
       <Divider style={{ margin: "8px 0" }}>
-        {t("workflow.nodeConfig.debaters", { defaultValue: "Debaters (child Agent nodes)" })}
+        {t("workflow.nodeConfig.debaters")}
       </Divider>
       {childNodes.map((child) => (
         <div
@@ -179,7 +179,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       ))}
       {debaterSteps.length === 0 && (
         <div style={{ fontSize: 11, color: token.colorTextTertiary, textAlign: "center" }}>
-          {t("workflow.debateNode.noDebatersHint", { defaultValue: "Add debater Agent nodes inside this container" })}
+          {t("workflow.debateNode.noDebatersHint")}
         </div>
       )}
       <div style={{ display: "flex", gap: 8 }}>
@@ -190,7 +190,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
           onClick={addDebater}
           style={{ flex: 1 }}
         >
-          {t("workflow.nodeConfig.add_debater", { defaultValue: "Add Debater" })}
+          {t("workflow.nodeConfig.add_debater")}
         </Button>
         <AIAssistButton
           labelKey="generate"
@@ -202,7 +202,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-            {t("workflow.nodeConfig.convergence_prompt", { defaultValue: "Convergence Prompt (optional)" })}
+            {t("workflow.nodeConfig.convergence_prompt")}
           </label>
           <AIAssistButton
             labelKey="optimize"
@@ -223,7 +223,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       </div>
       <div>
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
-          {t("workflow.nodeConfig.convergence_model_role", { defaultValue: "Convergence Model Role" })}
+          {t("workflow.nodeConfig.convergence_model_role")}
         </label>
         <Select
           value={c.convergence_model_role || ""}

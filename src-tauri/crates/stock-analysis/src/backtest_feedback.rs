@@ -155,8 +155,10 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
             };
             let confidence_calibration = avg_confidence - accuracy;
 
-            // 趋势判断（简单的一半比较）
-            let trend = if total < 5 {
+            // 趋势判断：前后半段准确率比较
+            // - total < 8: 每段样本不足 4 个，不够判断趋势
+            // - 阈值 ±0.15: 防止小幅波动误判为趋势变化
+            let trend = if total < 8 {
                 "insufficient_data"
             } else {
                 let mid = total as usize / 2;
@@ -168,9 +170,9 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
                 let early_correct = early_half.iter().filter(|p| p.was_correct).count();
                 let early_accuracy = early_correct as f64 / early_half.len() as f64;
 
-                if recent_accuracy > early_accuracy + 0.1 {
+                if recent_accuracy > early_accuracy + 0.15 {
                     "improving"
-                } else if recent_accuracy < early_accuracy - 0.1 {
+                } else if recent_accuracy < early_accuracy - 0.15 {
                     "declining"
                 } else {
                     "stable"

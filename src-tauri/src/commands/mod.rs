@@ -53,6 +53,7 @@ pub mod learning_graph;
 pub mod llm_wiki;
 pub mod local_models;
 pub mod local_tool;
+pub mod market_sim;
 pub mod mcp;
 pub mod memory;
 pub mod message_continuation;
@@ -72,6 +73,7 @@ pub mod prompt_templates;
 pub mod provider_balance;
 pub mod providers;
 pub mod pty;
+pub mod quant_backtest;
 #[cfg(not(mobile))]
 pub mod quickbar;
 pub mod reflection;
@@ -91,6 +93,9 @@ pub mod skills;
 pub mod skills_hub;
 pub mod sources;
 pub mod spawn_guard;
+pub mod stock_analysis;
+pub mod stock_analysis_setup;
+pub mod stock_workflow;
 pub mod storage;
 #[cfg(not(mobile))]
 pub mod terminal;

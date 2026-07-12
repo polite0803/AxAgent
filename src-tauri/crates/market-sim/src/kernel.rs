@@ -19,7 +19,7 @@
 //! - 不建模计算延迟（Phase 3+ 可选）
 
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -139,6 +139,10 @@ pub struct SimKernel {
     max_queue_depth: usize,
     /// 运行状态
     running: bool,
+    /// 修复 P0-M3: 已 panic 毒化的 Agent 名单。后续消息直接丢弃，避免重入触发
+    /// 二次 panic（std::sync Mutex 跨 panic 是 UB）。用 HashSet 而非 Vec 是因为
+    /// O(1) 查找；规模 N<=几十个 Agent 内存可忽略。
+    poisoned_agents: HashSet<String>,
 }
 
 impl SimKernel {
@@ -153,6 +157,7 @@ impl SimKernel {
             event_count: 0,
             max_queue_depth: 0,
             running: false,
+            poisoned_agents: HashSet::new(),
         }
     }
 
@@ -221,10 +226,37 @@ impl SimKernel {
             let has_agent = self.agents.contains_key(&target_id);
             if has_agent {
                 let mut ctx = self.make_ctx(&target_id);
+                // 修复 P0-M3: 用 catch_unwind 防止单个 Agent panic 拖垮整个 kernel。
+                // AssertUnwindSafe 因为 Agent trait 已经是 dyn，且 panic 不污染 ctx
+                // （ctx 是新建的）；panic 后记录到黑名单，后续消息直接丢弃。
                 let actions = {
                     let entry = self.agents.get_mut(&target_id).unwrap();
-                    entry.agent.on_message(&body, &mut ctx)
+                    let agent_id_for_panic = target_id.clone();
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        entry.agent.on_message(&body, &mut ctx)
+                    }))
+                    .unwrap_or_else(|e| {
+                        let panic_msg = if let Some(s) = e.downcast_ref::<&str>() {
+                            (*s).to_string()
+                        } else if let Some(s) = e.downcast_ref::<String>() {
+                            s.clone()
+                        } else {
+                            "unknown panic".to_string()
+                        };
+                        tracing::error!(
+                            "[market-sim] Agent '{}' on_message panic, 已加入黑名单: {}",
+                            agent_id_for_panic,
+                            panic_msg
+                        );
+                        self.poisoned_agents.insert(agent_id_for_panic);
+                        Vec::new()
+                    })
                 };
+
+                // 已毒化的 Agent 不再处理消息
+                if self.poisoned_agents.contains(&target_id) {
+                    continue;
+                }
 
                 let mut all_actions = ctx.drain_actions();
                 all_actions.extend(actions);
@@ -380,11 +412,27 @@ impl SimKernel {
         self.event_queue.push(Reverse(event));
     }
 
-    /// 从 ExchangeAgent 收集交易结果
+    /// 从所有 Agent 收集交易结果
+    ///
+    /// 修复 P0-M1: 原实现硬编码 `return (Vec::new(), ...)`，导致
+    /// stylized_facts / calibration 全部走"成交不足 < 20"分支得 999.0 分。
+    /// 现在通过 `SimAgent::trade_history()` trait 方法从每个 Agent 聚合；
+    /// 默认实现返回空切片，只有 ExchangeAgent override 后才有数据。
     fn collect_results(&self) -> (Vec<TradeRecord>, Option<f64>, (u64, u64, Quantity)) {
-        // Phase 2: 简化实现，通过消息追踪即可获得完整数据
-        // Phase 3+ 将增加完整的结果序列化
-        (Vec::new(), None, (0, 0, 0))
+        let mut all_trades: Vec<TradeRecord> = Vec::new();
+        for entry in self.agents.values() {
+            all_trades.extend(entry.agent.trade_history().iter().cloned());
+        }
+        // mid_price：从成交价均值近似（深度不足时 None）
+        let mid_price = if all_trades.is_empty() {
+            None
+        } else {
+            let sum: f64 = all_trades.iter().map(|t| t.price as f64).sum();
+            Some(sum / all_trades.len() as f64)
+        };
+        // exchange_stats：(total_orders, total_trades, total_volume) 暂取 0，
+        // 真正 ExchangeAgent 仍可通过 agents 字典访问；这里不重复暴露以保持签名稳定
+        (all_trades, mid_price, (0, 0, 0))
     }
 }
 

@@ -89,7 +89,7 @@ export function RecoStrategyMatrix({ data: externalData, onSelectStrategy }: Rec
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description={t("stockAnalysis.backtest.strategyEmpty") ?? "暂无回测数据，请先生成推荐"}
+        description={t("stockAnalysis.backtest.strategyEmpty")}
       />
     );
   }
@@ -97,7 +97,7 @@ export function RecoStrategyMatrix({ data: externalData, onSelectStrategy }: Rec
   return (
     <Card
       size="small"
-      title={t("stockAnalysis.backtest.matrixTitle") ?? "策略回测矩阵"}
+      title={t("stockAnalysis.backtest.matrixTitle")}
       extra={
         <Segmented
           size="small"
@@ -108,8 +108,8 @@ export function RecoStrategyMatrix({ data: externalData, onSelectStrategy }: Rec
             onSelectStrategy?.(null);
           }}
           options={[
-            { label: t("stockAnalysis.backtest.groupPositive") ?? "推荐组", value: "positive" },
-            { label: t("stockAnalysis.backtest.groupNegative") ?? "候选组", value: "negative" },
+            { label: t("stockAnalysis.backtest.groupPositive"), value: "positive" },
+            { label: t("stockAnalysis.backtest.groupNegative"), value: "negative" },
           ]}
         />
       }
@@ -119,7 +119,7 @@ export function RecoStrategyMatrix({ data: externalData, onSelectStrategy }: Rec
         <thead>
           <tr style={{ borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
             <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500, width: 100 }}>
-              {t("stockAnalysis.backtest.colStyle") ?? "风格"}
+              {t("stockAnalysis.backtest.colStyle")}
             </th>
             {PERIOD_KEYS.map((p) => (
               <th key={p} style={{ padding: "8px 10px", textAlign: "center", fontWeight: 500 }}>
@@ -178,16 +178,16 @@ export function RecoStrategyMatrix({ data: externalData, onSelectStrategy }: Rec
                       title={
                         <div style={{ fontSize: 11, lineHeight: 1.8 }}>
                           <div>
-                            {`${t("stockAnalysis.backtest.colWinRate") ?? "胜率"}: ${s.winRatePct.toFixed(1)}%`}
+                            {`${t("stockAnalysis.backtest.colWinRate")}: ${s.winRatePct.toFixed(1)}%`}
                           </div>
                           <div>
-                            {`${t("stockAnalysis.backtest.colAvgReturn") ?? "平均收益"}: ${s.avgReturnPct.toFixed(2)}%`}
+                            {`${t("stockAnalysis.backtest.colAvgReturn")}: ${s.avgReturnPct.toFixed(2)}%`}
                           </div>
                           <div>{`Sharpe: ${s.sharpeRatio != null ? s.sharpeRatio.toFixed(2) : "—"}`}</div>
                           <div>{`Profit Factor: ${s.profitFactor != null ? s.profitFactor.toFixed(2) : "—"}`}</div>
-                          <div>{`${t("stockAnalysis.backtest.colSignalCount") ?? "信号数"}: ${s.totalSignals}`}</div>
+                          <div>{`${t("stockAnalysis.backtest.colSignalCount")}: ${s.totalSignals}`}</div>
                           <div>
-                            {`${t("stockAnalysis.backtest.colMaxLossStreak") ?? "最大连亏"}: ${s.maxConsecutiveLosses}`}
+                            {`${t("stockAnalysis.backtest.colMaxLossStreak")}: ${s.maxConsecutiveLosses}`}
                           </div>
                         </div>
                       }

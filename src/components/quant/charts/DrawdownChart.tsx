@@ -5,6 +5,8 @@ import { useEffect, useRef } from "react";
 
 import type { EquityPoint } from "@/types";
 
+import { computeDrawdownPercent } from "./drawdown";
+
 interface DrawdownChartProps {
   curve: EquityPoint[];
   height?: number;
@@ -26,7 +28,8 @@ export function DrawdownChart({ curve, height = 220 }: DrawdownChartProps) {
   useEffect(() => {
     if (!instRef.current || curve.length === 0) { return; }
     const dates = curve.map((p) => p.date);
-    const data = curve.map((p) => parseFloat((p.drawdownPct * 100).toFixed(2)));
+    // 回撤由权益曲线本地推导（Rust EquityPoint 不含 drawdown 字段）
+    const data = computeDrawdownPercent(curve);
 
     instRef.current.setOption(
       {

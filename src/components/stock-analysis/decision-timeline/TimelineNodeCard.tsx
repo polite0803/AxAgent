@@ -103,7 +103,7 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
     [allViolations, node.id],
   );
   const violationCount = nodeViolations.length;
-  const markClass = t("timeTravel.violations.markClass", { defaultValue: "ax-violation-mark" });
+  const markClass = t("timeTravel.violations.markClass");
   const summaryNodes = useMemo(
     () =>
       highlightViolations(

@@ -77,7 +77,7 @@ export function ScheduledAnalysisPanel() {
 
   const handleCreate = async () => {
     if (!newStockCode.trim()) {
-      message.warning(t("stockAnalysis.scheduledAnalysis.stockCodeRequired") ?? "请输入股票代码");
+      message.warning(t("stockAnalysis.scheduledAnalysis.stockCodeRequired"));
       return;
     }
     setSubmitting(true);
@@ -118,7 +118,7 @@ export function ScheduledAnalysisPanel() {
     try {
       const holdings = await invoke<Array<{ stockCode: string; stockName: string }>>("list_portfolio");
       if (!Array.isArray(holdings) || holdings.length === 0) {
-        message.info(t("stockAnalysis.scheduledAnalysis.noPortfolioData") ?? "暂无持仓数据");
+        message.info(t("stockAnalysis.scheduledAnalysis.noPortfolioData"));
         return;
       }
       const existing = await invoke<CronJobRow[]>("list_stock_crons");
@@ -150,7 +150,7 @@ export function ScheduledAnalysisPanel() {
 
   const columns = useMemo(() => [
     {
-      title: t("stockAnalysis.stockCode") ?? "代码",
+      title: t("stockAnalysis.stockCode"),
       dataIndex: "name",
       width: 100,
       render: (v: string) => <span className="font-mono font-medium text-xs">{v}</span>,
@@ -166,7 +166,7 @@ export function ScheduledAnalysisPanel() {
           <div className="flex items-center gap-1">
             <span className="text-xs truncate">{v?.replace(/\s*failures:\d+/, "") || "-"}</span>
             {failures >= FAILURE_THRESHOLD && (
-              <Tooltip title={`${t("stockAnalysis.scheduledAnalysis.autoDisabled") ?? "连续失败已自动停用"}`}>
+              <Tooltip title={`${t("stockAnalysis.scheduledAnalysis.autoDisabled")}`}>
                 <AlertTriangle size={12} className="text-orange-500" />
               </Tooltip>
             )}
@@ -186,14 +186,14 @@ export function ScheduledAnalysisPanel() {
       render: (v: string) => <Tag className="text-xs m-0 font-mono">{v}</Tag>,
     },
     {
-      title: t("stockAnalysis.scheduledAnalysis.column.executed") ?? "执行次数",
+      title: t("stockAnalysis.scheduledAnalysis.column.executed"),
       dataIndex: "runCount",
       width: 70,
       align: "center" as const,
       render: (v: number) => <span className="text-xs">{v}</span>,
     },
     {
-      title: t("stockAnalysis.scheduledAnalysis.column.lastRun") ?? "上次执行",
+      title: t("stockAnalysis.scheduledAnalysis.column.lastRun"),
       dataIndex: "lastRunAt",
       width: 100,
       render: (v: number | null) => {
@@ -207,7 +207,7 @@ export function ScheduledAnalysisPanel() {
       },
     },
     {
-      title: t("stockAnalysis.scheduledAnalysis.column.status") ?? "状态",
+      title: t("stockAnalysis.scheduledAnalysis.column.status"),
       dataIndex: "status",
       width: 70,
       render: (v: string, record: CronJobRow) => {
@@ -229,7 +229,7 @@ export function ScheduledAnalysisPanel() {
       width: 40,
       render: (_: unknown, record: CronJobRow) => (
         <Popconfirm
-          title={t("stockAnalysis.scheduledAnalysis.confirmDeleteTitle") ?? "确认删除？"}
+          title={t("stockAnalysis.scheduledAnalysis.confirmDeleteTitle")}
           onConfirm={() => handleDelete(record.id)}
         >
           <Button size="small" type="text" danger icon={<Trash2 size={14} />} />
@@ -250,7 +250,7 @@ export function ScheduledAnalysisPanel() {
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("stockAnalysis.scheduledAnalysis.totalTasks") ?? "定时分析"}
+              title={t("stockAnalysis.scheduledAnalysis.totalTasks")}
               value={jobs.length}
               prefix={<Clock size={14} />}
               valueStyle={{ fontSize: 18 }}
@@ -260,7 +260,7 @@ export function ScheduledAnalysisPanel() {
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("stockAnalysis.scheduledAnalysis.activeTasks") ?? "运行中"}
+              title={t("stockAnalysis.scheduledAnalysis.activeTasks")}
               value={activeCount}
               valueStyle={{ fontSize: 18, color: activeCount > 0 ? "var(--color-up)" : undefined }}
             />
@@ -269,7 +269,7 @@ export function ScheduledAnalysisPanel() {
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("stockAnalysis.scheduledAnalysis.failedTasks") ?? "已停用"}
+              title={t("stockAnalysis.scheduledAnalysis.failedTasks")}
               value={failedCount}
               valueStyle={{ fontSize: 18, color: failedCount > 0 ? "var(--color-down)" : undefined }}
               prefix={failedCount > 0 ? <AlertCircle size={14} /> : undefined}
@@ -279,7 +279,7 @@ export function ScheduledAnalysisPanel() {
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("stockAnalysis.scheduledAnalysis.totalRuns") ?? "累计执行"}
+              title={t("stockAnalysis.scheduledAnalysis.totalRuns")}
               value={totalRunCount}
               prefix={<Calendar size={14} />}
               valueStyle={{ fontSize: 18 }}
@@ -291,18 +291,17 @@ export function ScheduledAnalysisPanel() {
       {/* 操作栏 */}
       <div className="flex items-center justify-between">
         <p className="text-xs m-0" style={{ color: "var(--color-text-secondary)" }}>
-          {t("stockAnalysis.scheduledAnalysis.description")
-            ?? "定时分析任务在每日指定时间自动执行，连续失败3次自动停用。"}
+          {t("stockAnalysis.scheduledAnalysis.description")}
         </p>
         <div className="flex gap-2">
           <Button size="small" icon={<Briefcase size={14} />} onClick={handleImportFromPortfolio}>
-            {t("stockAnalysis.scheduledAnalysis.importFromPortfolio") ?? "从持仓导入"}
+            {t("stockAnalysis.scheduledAnalysis.importFromPortfolio")}
           </Button>
           <Button size="small" icon={<RefreshCw size={14} />} onClick={loadJobs} loading={loading}>
             {t("common.refresh")}
           </Button>
           <Button size="small" type="primary" icon={<Plus size={14} />} onClick={() => setAddModalOpen(true)}>
-            {t("stockAnalysis.scheduledAnalysis.addTask") ?? "添加任务"}
+            {t("stockAnalysis.scheduledAnalysis.addTask")}
           </Button>
         </div>
       </div>
@@ -317,11 +316,11 @@ export function ScheduledAnalysisPanel() {
         : jobs.length === 0
         ? (
           <Empty
-            description={t("stockAnalysis.scheduledAnalysis.empty") ?? "暂无定时分析任务"}
+            description={t("stockAnalysis.scheduledAnalysis.empty")}
             className="py-8"
           >
             <Button size="small" type="primary" onClick={() => setAddModalOpen(true)}>
-              {t("stockAnalysis.scheduledAnalysis.addTask") ?? "添加任务"}
+              {t("stockAnalysis.scheduledAnalysis.addTask")}
             </Button>
           </Empty>
         )
@@ -338,7 +337,7 @@ export function ScheduledAnalysisPanel() {
 
       {/* 添加任务弹窗 */}
       <Modal
-        title={t("stockAnalysis.scheduledAnalysis.addTask") ?? "添加定时分析任务"}
+        title={t("stockAnalysis.scheduledAnalysis.addTask")}
         open={addModalOpen}
         onCancel={() => setAddModalOpen(false)}
         onOk={handleCreate}
@@ -348,7 +347,7 @@ export function ScheduledAnalysisPanel() {
       >
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium">{t("stockAnalysis.stockCode") ?? "股票代码"}</label>
+            <label className="text-xs font-medium">{t("stockAnalysis.stockCode")}</label>
             <Input
               size="small"
               placeholder="600519"
@@ -357,16 +356,16 @@ export function ScheduledAnalysisPanel() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium">{t("stockAnalysis.stockName") ?? "股票名称"}</label>
+            <label className="text-xs font-medium">{t("stockAnalysis.stockName")}</label>
             <Input
               size="small"
-              placeholder={t("stockAnalysis.scheduledAnalysis.namePlaceholder") ?? "可选，留空用代码"}
+              placeholder={t("stockAnalysis.scheduledAnalysis.namePlaceholder")}
               value={newStockName}
               onChange={(e) => setNewStockName(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium">{t("stockAnalysis.scheduledAnalysis.schedule") ?? "执行时间"}</label>
+            <label className="text-xs font-medium">{t("stockAnalysis.scheduledAnalysis.schedule")}</label>
             <Select
               size="small"
               value={newCron}

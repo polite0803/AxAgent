@@ -16,7 +16,6 @@
 //! - 单次成功不清除窗口（避免"假恢复→再降级"振荡）
 
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::warn;
@@ -120,12 +119,16 @@ impl Default for VendorHealthConfig {
 pub struct VendorHealthTracker {
     vendors: Arc<RwLock<HashMap<String, VendorHealth>>>,
     config: VendorHealthConfig,
-    /// fallback 路径记录（环形缓冲区）
-    fallback_log: Arc<RwLock<Vec<FallbackRecord>>>,
+    /// fallback 路径记录（环形缓冲区；修复 P1-13: 注释声称环形但实际是
+    /// 无界 Vec，长时间运行（如荐股扫描 200 只股票 × 多次重试）会持续
+    /// append，OOM 风险。改为 VecDeque 并设上限 1024 条，满时 pop_front）。
+    fallback_log: Arc<RwLock<VecDeque<FallbackRecord>>>,
 }
 
-// Use std::collections::HashMap inside the struct
-use std::collections::HashMap;
+/// 环形缓冲上限；超出后弹出最旧条目，避免 OOM
+const FALLBACK_LOG_CAP: usize = 1024;
+
+use std::collections::{HashMap, VecDeque};
 
 /// 一次 fallback 记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -150,7 +153,7 @@ impl VendorHealthTracker {
         Self {
             vendors: Arc::new(RwLock::new(HashMap::new())),
             config,
-            fallback_log: Arc::new(RwLock::new(Vec::with_capacity(100))),
+            fallback_log: Arc::new(RwLock::new(VecDeque::with_capacity(FALLBACK_LOG_CAP))),
         }
     }
 
@@ -263,10 +266,11 @@ impl VendorHealthTracker {
             return;
         }
         let mut log = self.fallback_log.write().await;
-        if log.len() >= 100 {
-            log.remove(0);
+        // 修复 P1-13: 用 VecDeque 真正的环形缓冲，超出上限弹出最旧
+        if log.len() >= FALLBACK_LOG_CAP {
+            log.pop_front();
         }
-        log.push(FallbackRecord {
+        log.push_back(FallbackRecord {
             data_type: data_type.to_string(),
             stock_code: stock_code.to_string(),
             primary_vendor: primary.to_string(),
@@ -276,9 +280,9 @@ impl VendorHealthTracker {
         });
     }
 
-    /// 获取 fallback 日志
+    /// 获取 fallback 日志（按时间顺序：旧 → 新）
     pub async fn get_fallback_log(&self) -> Vec<FallbackRecord> {
-        self.fallback_log.read().await.clone()
+        self.fallback_log.read().await.iter().cloned().collect()
     }
 
     /// 获取缺省 vendor 列表（Healthy 优先，再试 Degraded [窗口回落后]）

@@ -19,9 +19,10 @@ pub struct TechnicalIndicators {
     pub macd_dea: f64,
     pub macd_bar: f64,       // (DIF - DEA) × 2
     pub macd_signal: String, // "金叉", "死叉", "多头运行", "空头运行"
-    /// RSI (6/12/24)
+    /// RSI (6/12/14/24)
     pub rsi6: f64,
     pub rsi12: f64,
+    pub rsi14: f64,
     pub rsi24: f64,
     pub rsi_signal: String, // "超买", "超卖", "强势", "弱势", "中性"
     /// 布林带 (20,2)
@@ -64,7 +65,7 @@ impl Default for IndicatorConfig {
             macd_fast: 12,
             macd_slow: 26,
             macd_signal: 9,
-            rsi_periods: vec![6, 12, 24],
+            rsi_periods: vec![6, 12, 14, 24],
             boll_period: 20,
             boll_stddev: 2.0,
             volume_lookback: 5,
@@ -77,7 +78,10 @@ impl Default for IndicatorConfig {
 }
 
 /// Compute SMA (Simple Moving Average) — 取最近 period 个数据
-fn sma(data: &[f64], period: usize) -> Option<f64> {
+///
+/// 本 crate 内 SMA 的唯一实现；跨 crate（stock-analysis）通过
+/// `axagent_astock_data::indicators::sma` 复用，避免重复定义。
+pub fn sma(data: &[f64], period: usize) -> Option<f64> {
     if data.len() < period || period == 0 {
         return None;
     }
@@ -100,13 +104,19 @@ fn ema(data: &[f64], period: usize) -> f64 {
 }
 
 /// Build complete EMA series (one EMA value per input point)
-fn build_ema_series(data: &[f64], period: usize) -> Vec<f64> {
+///
+/// 本 crate 内 EMA 序列的唯一实现；跨 crate（stock-analysis）通过
+/// `axagent_astock_data::indicators::build_ema_series` 复用。
+/// 首值用前 `period` 个数据的 SMA 初始化（标准 EMA 初始化）。
+pub fn build_ema_series(data: &[f64], period: usize) -> Vec<f64> {
     if data.is_empty() || period == 0 {
         return vec![0.0];
     }
     let multiplier = 2.0 / (period as f64 + 1.0);
     let mut result = Vec::with_capacity(data.len());
-    let mut ema_val = data[0];
+    let init_n = period.min(data.len());
+    let init_sma: f64 = data[..init_n].iter().sum::<f64>() / init_n as f64;
+    let mut ema_val = init_sma;
     result.push(ema_val);
     for &val in &data[1..] {
         ema_val = (val - ema_val) * multiplier + ema_val;
@@ -116,9 +126,14 @@ fn build_ema_series(data: &[f64], period: usize) -> Vec<f64> {
 }
 
 /// Compute RSI (Wilder's smoothing method)
-fn rsi(closes: &[f64], period: usize) -> f64 {
+///
+/// 本 crate 内 RSI 的唯一实现；跨 crate 通过
+/// `axagent_astock_data::indicators::rsi` 复用。
+/// 数据不足（`len < period + 1` 或 `period == 0`）返回 `None`，
+/// 调用方自行决定中性默认值（如 50.0）。
+pub fn rsi(closes: &[f64], period: usize) -> Option<f64> {
     if closes.len() < period + 1 || period == 0 {
-        return 50.0;
+        return None;
     }
     let mut avg_gain = 0.0;
     let mut avg_loss = 0.0;
@@ -140,10 +155,10 @@ fn rsi(closes: &[f64], period: usize) -> f64 {
         avg_loss = (avg_loss * (period - 1) as f64 + loss) / period as f64;
     }
     if avg_loss < 1e-10 {
-        return 100.0;
+        return Some(100.0);
     }
     let rs = avg_gain / avg_loss;
-    100.0 - (100.0 / (1.0 + rs))
+    Some(100.0 - (100.0 / (1.0 + rs)))
 }
 
 /// Compute sample standard deviation for Bollinger Bands (n-1 denominator)
@@ -181,6 +196,7 @@ pub fn compute_indicators_with_config(
             macd_signal: "无数据".to_string(),
             rsi6: 50.0,
             rsi12: 50.0,
+            rsi14: 50.0,
             rsi24: 50.0,
             rsi_signal: "无数据".to_string(),
             boll_upper: 0.0,
@@ -274,12 +290,14 @@ pub fn compute_indicators_with_config(
     // RSI — 计算配置中所有周期，按 period 值映射到命名域
     let mut rsi6 = 50.0;
     let mut rsi12 = 50.0;
+    let mut rsi14 = 50.0;
     let mut rsi24 = 50.0;
     for &period in &cfg.rsi_periods {
-        let val = rsi(&closes, period);
+        let val = rsi(&closes, period).unwrap_or(50.0);
         match period {
             6 => rsi6 = val,
             12 => rsi12 = val,
+            14 => rsi14 = val,
             24 => rsi24 = val,
             _ => {},
         }
@@ -383,6 +401,7 @@ pub fn compute_indicators_with_config(
         macd_signal,
         rsi6,
         rsi12,
+        rsi14,
         rsi24,
         rsi_signal,
         boll_upper,
@@ -450,7 +469,7 @@ mod tests {
     #[test]
     fn test_rsi_uniform() {
         let closes = vec![10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0];
-        let result = rsi(&closes, 6);
+        let result = rsi(&closes, 6).unwrap();
         // 零波动时 avg_loss=0，RSI 为 100
         assert!((result - 100.0).abs() < 1e-6);
     }
@@ -458,7 +477,7 @@ mod tests {
     #[test]
     fn test_rsi_all_gains() {
         let closes: Vec<f64> = (0..8).map(|i| i as f64 * 10.0).collect();
-        let result = rsi(&closes, 6);
+        let result = rsi(&closes, 6).unwrap();
         assert!(result > 80.0);
     }
 

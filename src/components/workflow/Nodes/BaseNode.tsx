@@ -252,8 +252,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               whiteSpace: "nowrap",
             }}
           >
-            {t("workflow.node.inputs", { defaultValue: "In" })}: {inboundCount} |{" "}
-            {t("workflow.node.outputs", { defaultValue: "Out" })}: {outboundCount}
+            {t("workflow.node.inputs")}: {inboundCount} | {t("workflow.node.outputs")}: {outboundCount}
           </div>
         )}
       </div>
@@ -265,7 +264,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
           <>
             <div
               onClick={togglePorts}
-              title={t("workflow.node.clickToExpandPorts", { defaultValue: "Click to expand ports" })}
+              title={t("workflow.node.clickToExpandPorts")}
               style={{
                 position: "absolute",
                 top: -16,
@@ -288,7 +287,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
             </div>
             <div
               onClick={togglePorts}
-              title={t("workflow.node.clickToExpandPorts", { defaultValue: "Click to expand ports" })}
+              title={t("workflow.node.clickToExpandPorts")}
               style={{
                 position: "absolute",
                 bottom: -16,
@@ -365,7 +364,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
             {shouldCollapseByDefault && (
               <div
                 onClick={togglePorts}
-                title={t("workflow.node.clickToCollapsePorts", { defaultValue: "Click to collapse ports" })}
+                title={t("workflow.node.clickToCollapsePorts")}
                 style={{
                   position: "absolute",
                   bottom: -6,

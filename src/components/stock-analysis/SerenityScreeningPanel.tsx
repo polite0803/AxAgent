@@ -66,7 +66,9 @@ interface SerenityResult {
 ///   - Agent 包装 { content: "```json\\n{...}\\n```" } （markdown 代码块）
 ///   - Agent 包装 { content: "{ candidates: [...] }" } （content 是 JSON string）
 ///   - 任意对象中嵌套的 candidates/stocks 数组（深搜）
-function extractCandidatesList(raw: unknown): SerenityCandidate[] {
+function extractCandidatesList(raw: unknown, depth = 0): SerenityCandidate[] {
+  // 防御：LLM 可能返回多层 Agent 包装（content 套 content），限制递归深度避免栈溢出
+  if (depth > 10) { return []; }
   if (raw == null) { return []; }
   if (Array.isArray(raw)) {
     return raw as SerenityCandidate[];
@@ -96,7 +98,7 @@ function extractCandidatesList(raw: unknown): SerenityCandidate[] {
     if (typeof obj.content === "string") {
       const parsed = parseJsonFromContent(obj.content);
       if (parsed) {
-        return extractCandidatesList(parsed);
+        return extractCandidatesList(parsed, depth + 1);
       }
     }
     // 兜底：深度搜索任何属性里的数组，每个元素形如 { stock_code, ... }

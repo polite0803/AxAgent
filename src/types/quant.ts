@@ -70,25 +70,20 @@ export type CloseReason =
   | "end_of_backtest"
   | "manual";
 
-export interface QuantSignal {
-  id: string;
-  runId: string;
+export interface QuantBacktestSignal {
   code: string;
   action: SignalAction;
   strength: number;
-  reason: string | null;
-  closeReason: CloseReason | null;
-  timestamp: string;
-  createdAt: number;
+  reason: string;
+  targetWeight?: number | null;
+  closeReason?: CloseReason | null;
 }
 
 // ── 纸面成交 ──
 
 export type TradeSide = "long" | "short" | "flat";
 
-export interface QuantPaperTrade {
-  id: string;
-  runId: string;
+export interface QuantBacktestTrade {
   code: string;
   side: TradeSide;
   quantity: number;
@@ -98,8 +93,45 @@ export interface QuantPaperTrade {
   stampTax: number;
   slippage: number;
   timestamp: string;
-  reason: string | null;
+  reason: string;
   realizedPnl: number;
+}
+
+// ── 回测订单 / 成交回报（与 Rust Order / Fill 对齐） ──
+
+export type QuantOrderType =
+  | { type: "market" }
+  | { type: "limit"; price: number };
+
+export interface QuantOrder {
+  code: string;
+  side: TradeSide;
+  quantity: number;
+  orderType: QuantOrderType;
+  timestamp: string;
+  reason: string;
+}
+
+export interface QuantFill {
+  order: QuantOrder;
+  fillPrice: number;
+  fillAmount: number;
+  commission: number;
+  stampTax: number;
+  slippage: number;
+  timestamp: string;
+  matched: boolean;
+  rejectReason?: string | null;
+}
+
+// ── 回测配置（与 Rust BacktestConfig 对齐） ──
+
+export interface QuantBacktestConfig {
+  initialCash: number;
+  matcher: MatcherConfig;
+  startDate: string | null;
+  endDate: string | null;
+  codes: string[];
 }
 
 // ── 指标报告（与 Rust MetricsReport 对齐） ──
@@ -172,32 +204,45 @@ export interface EquityPoint {
   date: string;
   equity: number;
   cash: number;
-  marketValue: number;
-  drawdown: number;
-  drawdownPct: number;
+  positionValue: number;
 }
 
 // ── 回测完整结果（从 BacktestResult JSON 解析） ──
 
 export interface BacktestResult {
-  config: {
-    initialCash: number;
-    matcher: MatcherConfig;
-    startDate: string | null;
-    endDate: string | null;
-  };
-  signals: QuantSignal[];
-  trades: QuantPaperTrade[];
+  // ── 策略元信息 ──
+  strategyName: string;
+  strategyVersion: string;
+  strategyParams: Record<string, unknown>;
+
+  // ── 配置 ──
+  config: QuantBacktestConfig;
+
+  // ── 资金 ──
+  initialCash: number;
+  finalEquity: number;
+
+  // ── 绩效指标（与 Rust 顶层字段 1:1） ──
+  totalReturn: number;
+  annualizedReturn: number;
+  sharpe: number;
+  maxDrawdown: number;
+  maxDrawdownPct: number;
+  winRate: number;
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+
+  // ── 明细 ──
+  trades: QuantBacktestTrade[];
+  signals: QuantBacktestSignal[];
+  fills: QuantFill[];
   equityCurve: EquityPoint[];
-  /** 内联基础指标（MetricsReport 兼容） */
-  metrics: {
-    totalReturn: number;
-    sharpe: number;
-    maxDrawdown: number;
-    maxDrawdownPct: number;
-    annualizedReturn: number;
-    winRate: number;
-  };
+
+  // ── 时间 ──
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
 }
 
 // ── 回测请求参数 ──

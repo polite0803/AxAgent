@@ -29,7 +29,10 @@ impl SinaVendor {
         );
         let resp = self.sina_get(&url).await?;
 
-        let body = resp.text().await.unwrap_or_default();
+        // 修复 P0-A5: 原 `unwrap_or_default()` 把 HTTP body 解码错误吞为空串，
+        // 走到下面 `is_empty()` 分支报"返回空响应"丢失根因。
+        // 改用 `?` 透传原始 reqwest::Error 便于调试。
+        let body = resp.text().await?;
         let trimmed = body.trim();
 
         // 检查空响应

@@ -325,7 +325,36 @@ pub struct AStockClient {
 }
 
 impl AStockClient {
+    /// 修复 P0-A4: 原 `expect("Failed to create HTTP client")` 在 TLS 初始化
+    /// 失败时 panic，拖垮整个 Tauri 进程。改为返回 Result。
     pub fn new() -> Self {
+        Self::try_new().unwrap_or_else(|e| {
+            tracing::error!("[astock-data] HTTP client 创建失败，降级为空配置: {e}");
+            // 降级：用 reqwest 默认配置（无自定义 TLS），至少不 panic
+            let http = reqwest::Client::new();
+            Self {
+                vendors: Vec::new(),
+                routing: VendorRouting::default_routing(),
+                gate: DomainGate::new(),
+                http,
+                cache: MokaCache::builder()
+                    .max_capacity(4096)
+                    .time_to_idle(Duration::from_secs(3600))
+                    .build(),
+                health_tracker: Arc::new(VendorHealthTracker::new(VendorHealthConfig::default())),
+                l2: None,
+                daily_snapshot: None,
+                iwencai_key: RwLock::new(String::new()),
+                xq_token: None,
+                neodata_token: None,
+                news_archive_sink: None,
+                browser_fetcher: None,
+            }
+        })
+    }
+
+    /// 修复 P0-A4: 返回 Result 的构造函数，调用方可自行处理 TLS 失败
+    pub fn try_new() -> Result<Self, DataError> {
         let http = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .connect_timeout(std::time::Duration::from_secs(15))
@@ -336,7 +365,10 @@ impl AStockClient {
             .tcp_keepalive(std::time::Duration::from_secs(60))
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| DataError::VendorError {
+                vendor: "http_client".into(),
+                message: format!("Failed to create HTTP client: {e}"),
+            })?;
 
         let mut client = Self {
             vendors: Vec::new(),
@@ -389,7 +421,7 @@ impl AStockClient {
             Box::new(XueqiuVendor { http: http.clone(), token: xq_token }),
         );
 
-        client
+        Ok(client)
     }
 
     pub fn register_vendor(&mut self, name: &str, vendor: Box<dyn StockVendor>) {

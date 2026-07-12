@@ -78,6 +78,30 @@ function getDefaultVariables(): Variable[] {
   b("kelly_min_win_rate", 0.4, "凯利最低胜率要求 (0-1)，低于此值返回不适用", "number");
   b("kelly_min_odds", 1.0, "凯利最低赔率要求 (avg_win/avg_loss)", "number");
   b("risk_free_rate", 0.03, "无风险利率 (小数)", "number");
+  // portfolio-mgr 决策阈值（修复 D7/D8: 与 portfolio-mgr.rhai 顶部可配置参数一一对应）
+  b("action_buy_threshold", 0.63, "买入决策阈值 (0-1)，effective_posterior 高于此值且仓位达标则买入", "number");
+  b("action_increase_threshold", 0.53, "增持决策阈值 (0-1)，effective_posterior 高于此值且仓位达标则增持", "number");
+  b("action_hold_threshold", 0.48, "持有决策阈值 (0-1)，effective_posterior 高于此值则持有", "number");
+  b("action_watch_threshold", 0.38, "观望决策阈值 (0-1)，effective_posterior 高于此值则观望", "number");
+  b("action_reduce_threshold", 0.30, "减持决策阈值 (0-1)，effective_posterior 高于此值则减持", "number");
+  b("pos_buy_min", 15.0, "买入最低仓位 (%)，低于此仓位即使 posterior 达标也不触发买入", "number");
+  b("pos_increase_min", 10.0, "增持最低仓位 (%)", "number");
+  b("pos_cap_extreme", 10.0, "极高风险仓位上限 (%)", "number");
+  b("pos_cap_high", 35.0, "高风险仓位上限 (%)", "number");
+  b("pos_cap_mid", 50.0, "中风险仓位上限 (%)", "number");
+  b("risk_debt_extreme", 85.0, "极高风险负债率阈值 (%)，负债率超过此值且营收负增长则标记极高风险", "number");
+  b("risk_vol_extreme", 60.0, "极高风险波动率阈值 (%)，波动率超过此值且夏普极差则标记极高风险", "number");
+  b("risk_sharpe_extreme", -1.5, "极高风险夏普比率阈值，低于此值且波动率极端则标记极高风险", "number");
+  b("risk_vol_high", 40.0, "高风险波动率阈值 (%)", "number");
+  b("risk_dd_high", 45.0, "高风险回撤阈值 (%)", "number");
+  b("risk_roe_high", 5.0, "高风险 ROE 阈值 (%)，低于此值且波动率高则标记高风险", "number");
+  b("risk_debt_high", 65.0, "高风险负债率阈值 (%)", "number");
+  b("risk_vol_low", 25.0, "低风险波动率阈值 (%)，低于此值且基本面健康则标记低风险", "number");
+  b("risk_sharpe_low", 0.5, "低风险夏普阈值，高于此值且基本面健康则标记低风险", "number");
+  b("risk_dd_low", 30.0, "低风险回撤阈值 (%)", "number");
+  b("risk_roe_low", 8.0, "低风险 ROE 阈值 (%)", "number");
+  b("risk_debt_low", 55.0, "低风险负债率阈值 (%)", "number");
+  b("risk_growth_low", 3.0, "低风险营收增长阈值 (%)", "number");
   b("outlier_method", "zscore", "异常值处理方法: zscore / iqr", "enum");
   b("outlier_threshold", 2.0, "异常值 Z-Score 阈值", "number");
   b("risk_max_drawdown_limit", 15, "组合最大回撤熔断线 (%)，超过则暂停新开仓", "number");
@@ -379,7 +403,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "compute_moat",
-        label: t("stockAnalysis.settings.group.moat") ?? "护城河",
+        label: t("stockAnalysis.settings.group.moat"),
         vars: resolve([
           "moat_roe_years_min",
           "moat_avg_gross_margin_min",
@@ -419,6 +443,41 @@ export function StockAnalysisConfigPanel(_props: Props) {
         ]),
       },
       {
+        tool: "portfolio_mgr_action",
+        label: t("stockAnalysis.settings.group.portfolioMgrAction"),
+        vars: resolve([
+          "action_buy_threshold",
+          "action_increase_threshold",
+          "action_hold_threshold",
+          "action_watch_threshold",
+          "action_reduce_threshold",
+          "pos_buy_min",
+          "pos_increase_min",
+          "pos_cap_extreme",
+          "pos_cap_high",
+          "pos_cap_mid",
+        ]),
+      },
+      {
+        tool: "portfolio_mgr_risk",
+        label: t("stockAnalysis.settings.group.portfolioMgrRisk"),
+        vars: resolve([
+          "risk_debt_extreme",
+          "risk_vol_extreme",
+          "risk_sharpe_extreme",
+          "risk_vol_high",
+          "risk_dd_high",
+          "risk_roe_high",
+          "risk_debt_high",
+          "risk_vol_low",
+          "risk_sharpe_low",
+          "risk_dd_low",
+          "risk_roe_low",
+          "risk_debt_low",
+          "risk_growth_low",
+        ]),
+      },
+      {
         tool: "rules",
         label: t("stockAnalysis.settings.group.rule"),
         vars: resolve([
@@ -432,7 +491,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "screener",
-        label: t("stockAnalysis.settings.group.screener") ?? "选股筛选",
+        label: t("stockAnalysis.settings.group.screener"),
         vars: resolve([
           "screener_min_change_pct",
           "screener_max_change_pct",
@@ -452,7 +511,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "signals",
-        label: t("stockAnalysis.settings.group.signals") ?? "信号检测",
+        label: t("stockAnalysis.settings.group.signals"),
         vars: resolve([
           "signal_ma_fast",
           "signal_ma_slow",
@@ -461,7 +520,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "keylevels",
-        label: t("stockAnalysis.settings.group.keylevels") ?? "关键价位",
+        label: t("stockAnalysis.settings.group.keylevels"),
         vars: resolve([
           "keylevel_lookback_days",
           "keylevel_touch_tolerance_pct",
@@ -470,7 +529,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "recommender",
-        label: t("stockAnalysis.settings.group.recommender") ?? "推荐器",
+        label: t("stockAnalysis.settings.group.recommender"),
         vars: resolve([
           "reco_trend_enabled",
           "reco_reversion_enabled",
@@ -483,7 +542,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "technical_indicators",
-        label: t("stockAnalysis.settings.group.indicators") ?? "技术指标",
+        label: t("stockAnalysis.settings.group.indicators"),
         vars: resolve([
           "macd_fast",
           "macd_slow",
@@ -497,7 +556,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "recommender_strategies",
-        label: t("stockAnalysis.settings.group.strategyParams") ?? "策略参数",
+        label: t("stockAnalysis.settings.group.strategyParams"),
         vars: resolve([
           "trend_kline_limit",
           "trend_amount_ratio_min",
@@ -515,7 +574,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
       },
       {
         tool: "trading",
-        label: t("stockAnalysis.settings.group.trading") ?? "交易决策",
+        label: t("stockAnalysis.settings.group.trading"),
         vars: resolve(["trading_price_deviation_limit"]),
       },
       {
@@ -557,6 +616,17 @@ export function StockAnalysisConfigPanel(_props: Props) {
         tool: "workflow",
         label: t("stockAnalysis.settings.group.dryRun"),
         vars: resolve(["analysis_dry_run"]),
+      },
+      {
+        tool: "simulation",
+        label: t("stockAnalysis.settings.group.simulation"),
+        vars: resolve([
+          "mc_default_price",
+          "mc_default_return",
+          "mc_default_volatility",
+          "mc_default_days",
+          "mc_default_simulations",
+        ]),
       },
     ].filter((g) => g.vars.length > 0);
   }, [template, t]);

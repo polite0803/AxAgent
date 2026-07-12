@@ -119,18 +119,19 @@ impl SerenityStrategy {
 
         if let Ok(klines) = client.get_klines_with_adj(code, "daily", 252, None).await {
             let latest_close = klines.last().map(|k| k.close).unwrap_or(price);
-            // 近3月（约63个交易日）
-            let k3m_idx = klines.len().saturating_sub(63);
-            let k3m_close = klines.get(k3m_idx).map(|k| k.close);
-            if let (Some(close_3m_back), true) =
-                (k3m_close, latest_close > 0.0 && serenity_score < 85.0)
-            {
-                let gain_3m = (latest_close - close_3m_back) / close_3m_back * 100.0;
-                if gain_3m > max_3m_gain {
-                    tracing::info!(
-                        "{code}: 近3月涨幅 {gain_3m:.0}% > {max_3m_gain}%, 因短期涨幅过大排除"
-                    );
-                    return None;
+            // 近3月（约63个交易日）：数据不足63根时无法计算，跳过该过滤
+            // 避免 saturating_sub 退化为取首根（上市以来涨幅）而误剔除次新股
+            if klines.len() >= 63 {
+                let k3m_idx = klines.len() - 63;
+                let close_3m_back = klines[k3m_idx].close;
+                if latest_close > 0.0 && serenity_score < 85.0 {
+                    let gain_3m = (latest_close - close_3m_back) / close_3m_back * 100.0;
+                    if gain_3m > max_3m_gain {
+                        tracing::info!(
+                            "{code}: 近3月涨幅 {gain_3m:.0}% > {max_3m_gain}%, 因短期涨幅过大排除"
+                        );
+                        return None;
+                    }
                 }
             }
             // 近12月（约252个交易日）

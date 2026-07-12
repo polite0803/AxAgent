@@ -19,50 +19,29 @@ use seed_stock_analysis::seed_stock_analysis_workflow_template;
 
 /// 编译期嵌入的专家提示词（include_str 确保打包后可用）
 const EMBEDDED_PROMPTS: &[(&str, &str)] = &[
-    (
-        "market-analyst",
-        include_str!("../../../agency_experts/stock-analysis/market-analyst.md"),
-    ),
+    ("market-analyst", include_str!("../../../agency_experts/stock-analysis/market-analyst.md")),
     (
         "sentiment-analyst",
         include_str!("../../../agency_experts/stock-analysis/sentiment-analyst.md"),
     ),
-    (
-        "news-analyst",
-        include_str!("../../../agency_experts/stock-analysis/news-analyst.md"),
-    ),
+    ("news-analyst", include_str!("../../../agency_experts/stock-analysis/news-analyst.md")),
     (
         "fundamentals-analyst",
         include_str!("../../../agency_experts/stock-analysis/fundamentals-analyst.md"),
     ),
-    (
-        "policy-analyst",
-        include_str!("../../../agency_experts/stock-analysis/policy-analyst.md"),
-    ),
+    ("policy-analyst", include_str!("../../../agency_experts/stock-analysis/policy-analyst.md")),
     (
         "hot-money-tracker",
         include_str!("../../../agency_experts/stock-analysis/hot-money-tracker.md"),
     ),
-    (
-        "lockup-watcher",
-        include_str!("../../../agency_experts/stock-analysis/lockup-watcher.md"),
-    ),
+    ("lockup-watcher", include_str!("../../../agency_experts/stock-analysis/lockup-watcher.md")),
     (
         "research-analyst",
         include_str!("../../../agency_experts/stock-analysis/research-analyst.md"),
     ),
-    (
-        "sector-analyst",
-        include_str!("../../../agency_experts/stock-analysis/sector-analyst.md"),
-    ),
-    (
-        "bull-researcher",
-        include_str!("../../../agency_experts/stock-analysis/bull-researcher.md"),
-    ),
-    (
-        "bear-researcher",
-        include_str!("../../../agency_experts/stock-analysis/bear-researcher.md"),
-    ),
+    ("sector-analyst", include_str!("../../../agency_experts/stock-analysis/sector-analyst.md")),
+    ("bull-researcher", include_str!("../../../agency_experts/stock-analysis/bull-researcher.md")),
+    ("bear-researcher", include_str!("../../../agency_experts/stock-analysis/bear-researcher.md")),
     ("bull-r2", include_str!("../../../agency_experts/stock-analysis/bull-r2.md")),
     ("bear-r2", include_str!("../../../agency_experts/stock-analysis/bear-r2.md")),
     ("bull-r3", include_str!("../../../agency_experts/stock-analysis/bull-r3.md")),
@@ -75,10 +54,7 @@ const EMBEDDED_PROMPTS: &[(&str, &str)] = &[
         "conservative-debator",
         include_str!("../../../agency_experts/stock-analysis/conservative-debator.md"),
     ),
-    (
-        "neutral-debator",
-        include_str!("../../../agency_experts/stock-analysis/neutral-debator.md"),
-    ),
+    ("neutral-debator", include_str!("../../../agency_experts/stock-analysis/neutral-debator.md")),
     (
         "research-manager",
         include_str!("../../../agency_experts/stock-analysis/research-manager.md"),
@@ -96,10 +72,7 @@ const EMBEDDED_PROMPTS: &[(&str, &str)] = &[
         "quality-fallback",
         include_str!("../../../agency_experts/stock-analysis/quality-fallback.md"),
     ),
-    (
-        "rule-checker",
-        include_str!("../../../agency_experts/stock-analysis/rule-checker.md"),
-    ),
+    ("rule-checker", include_str!("../../../agency_experts/stock-analysis/rule-checker.md")),
     (
         "catalyst-analyst",
         include_str!("../../../agency_experts/stock-analysis/catalyst-analyst.md"),
@@ -112,15 +85,9 @@ const EMBEDDED_PROMPTS: &[(&str, &str)] = &[
         "risk-convergence",
         include_str!("../../../agency_experts/stock-analysis/risk-convergence.md"),
     ),
-    (
-        "reflection",
-        include_str!("../../../agency_experts/stock-analysis/reflection.md"),
-    ),
+    ("reflection", include_str!("../../../agency_experts/stock-analysis/reflection.md")),
     // ── Serenity 瓶颈分析 4 专家 ──
-    (
-        "trend-scanner",
-        include_str!("../../../agency_experts/stock-analysis/trend-scanner.md"),
-    ),
+    ("trend-scanner", include_str!("../../../agency_experts/stock-analysis/trend-scanner.md")),
     (
         "chain-decomposer",
         include_str!("../../../agency_experts/stock-analysis/chain-decomposer.md"),
@@ -281,15 +248,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
             "search_stock",
         ],
     ),
-    (
-        "policy-analyst",
-        &[
-            "search_news",
-            "get_stock_news",
-            "get_cls_flash",
-            "search_stock",
-        ],
-    ),
+    ("policy-analyst", &["search_news", "get_stock_news", "get_cls_flash", "search_stock"]),
     (
         "hot-money-tracker",
         &[
@@ -349,12 +308,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     ("neutral-debator", &["compute_portfolio_risk", "search_stock"]),
     (
         "research-manager",
-        &[
-            "compute_scoring",
-            "compute_valuation",
-            "compute_portfolio_risk",
-            "search_stock",
-        ],
+        &["compute_scoring", "compute_valuation", "compute_portfolio_risk", "search_stock"],
     ),
     ("trader", &["get_stock_quote", "compute_scoring", "search_stock"]),
     (
@@ -377,12 +331,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     // rule-checker 需要读取技术指标与估值/风控结果
     (
         "rule-checker",
-        &[
-            "compute_scoring",
-            "compute_valuation",
-            "compute_portfolio_risk",
-            "search_stock",
-        ],
+        &["compute_scoring", "compute_valuation", "compute_portfolio_risk", "search_stock"],
     ),
     // ── Catalyst & Narrative Analyst ──
     // 需要读取新闻/公告做催化剂判断 + K线/量价做机构行为分析
@@ -1003,11 +952,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 title: "调用股票分析子工作流".into(),
                 description: Some("嵌套 stock-analysis 子工作流，复用其 9 维度分析能力".into()),
                 position: Position { x: 20.0, y: 120.0 },
-                retry: RetryConfig {
-                    enabled: true,
-                    max_retries: 2,
-                    ..Default::default()
-                },
+                retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
                 timeout: Some(600),
                 enabled: true,
                 parent_id: None,
@@ -1044,11 +989,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 title: "反思复盘".into(),
                 description: Some("基于实际走势+偏差报告+数据工具做反思复盘".into()),
                 position: Position { x: 20.0, y: 380.0 },
-                retry: RetryConfig {
-                    enabled: true,
-                    max_retries: 2,
-                    ..Default::default()
-                },
+                retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
                 timeout: Some(600),
                 enabled: true,
                 parent_id: None,
@@ -1138,7 +1079,6 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                     enabled: true,
                     match_threshold: 0.4,
                 }),
-                stream_chunk_timeout_secs: Some(300),
             },
         }),
         // 4. 反思记录持久化：写入 stock_reflections 表供后续查询/复盘
@@ -1148,11 +1088,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 title: "反思记录持久化".into(),
                 description: Some("写入反思记录到 stock_reflections 表".into()),
                 position: Position { x: 20.0, y: 500.0 },
-                retry: RetryConfig {
-                    enabled: true,
-                    max_retries: 2,
-                    ..Default::default()
-                },
+                retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
                 timeout: Some(30),
                 enabled: true,
                 parent_id: None,
@@ -1300,9 +1236,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
     })?;
 
     // 先删再插，避免 SeaORM .save() 对已存在记录的 update 失败
-    let _ = workflow_template::Entity::delete_by_id("stock-reflection")
-        .exec(db)
-        .await;
+    let _ = workflow_template::Entity::delete_by_id("stock-reflection").exec(db).await;
     workflow_template::ActiveModel {
         id: Set("stock-reflection".to_string()),
         name: Set("A股反思复盘".to_string()),

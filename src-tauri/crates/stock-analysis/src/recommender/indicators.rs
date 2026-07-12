@@ -1,14 +1,11 @@
 //! 技术指标辅助函数
 
+use axagent_astock_data::indicators::{build_ema_series, rsi as astock_rsi, sma as astock_sma};
 use axagent_astock_data::KLine;
 
-/// 简单移动平均
+/// 简单移动平均（委托 `axagent_astock_data::indicators::sma`，避免重复实现）
 pub fn sma(prices: &[f64], period: usize) -> Option<f64> {
-    if period == 0 || prices.len() < period {
-        return None;
-    }
-    let n = prices.len();
-    Some(prices[n - period..].iter().sum::<f64>() / period as f64)
+    astock_sma(prices, period)
 }
 
 /// K线收盘价序列
@@ -21,37 +18,10 @@ pub fn volumes(klines: &[KLine]) -> Vec<f64> {
     klines.iter().map(|k| k.volume).collect()
 }
 
-/// RSI(period) — 经典 Wilder 平滑
+/// RSI(period) — 经典 Wilder 平滑（委托 `axagent_astock_data::indicators::rsi`）
 pub fn rsi(klines: &[KLine], period: usize) -> Option<f64> {
-    if klines.len() < period + 1 {
-        return None;
-    }
     let cs = closes(klines);
-    let mut gains = 0.0;
-    let mut losses = 0.0;
-    for i in 1..=period {
-        let diff = cs[i] - cs[i - 1];
-        if diff > 0.0 {
-            gains += diff;
-        } else {
-            losses += -diff;
-        }
-    }
-    let mut avg_gain = gains / period as f64;
-    let mut avg_loss = losses / period as f64;
-    for i in (period + 1)..cs.len() {
-        let diff = cs[i] - cs[i - 1];
-        let gain = if diff > 0.0 { diff } else { 0.0 };
-        let loss = if diff < 0.0 { -diff } else { 0.0 };
-        avg_gain = (avg_gain * (period - 1) as f64 + gain) / period as f64;
-        avg_loss = (avg_loss * (period - 1) as f64 + loss) / period as f64;
-    }
-    if avg_loss > 1e-10 {
-        let rs = avg_gain / avg_loss;
-        Some(100.0 - 100.0 / (1.0 + rs))
-    } else {
-        Some(100.0)
-    }
+    astock_rsi(&cs, period)
 }
 
 /// MACD 柱状值（最新一根）
@@ -71,21 +41,8 @@ pub fn macd(klines: &[KLine], fast: usize, slow: usize, signal: usize) -> Option
 }
 
 fn ema_series(prices: &[f64], period: usize) -> Vec<f64> {
-    if prices.is_empty() || period == 0 {
-        return vec![];
-    }
-    let k = 2.0 / (period as f64 + 1.0);
-    let mut emas = Vec::with_capacity(prices.len());
-    // 第一个 EMA 用 SMA 初始化
-    let init_n = period.min(prices.len());
-    let init_sma: f64 = prices[..init_n].iter().sum::<f64>() / init_n as f64;
-    emas.push(init_sma);
-    for item in prices.iter().skip(1) {
-        let prev = *emas.last().unwrap();
-        let cur = item * k + prev * (1.0 - k);
-        emas.push(cur);
-    }
-    emas
+    // 委托 `axagent_astock_data::indicators::build_ema_series`，避免重复实现
+    build_ema_series(prices, period)
 }
 
 /// 最近 N 日最高 / 最低

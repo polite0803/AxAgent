@@ -5,6 +5,8 @@
 //! 让 Agent 的市场行为围绕这些外生信号展开。
 
 use crate::types::{Price, SimTimestamp};
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 // ── 市场事件 ──
 
@@ -64,6 +66,9 @@ pub trait Oracle: Send + Sync {
 // ── 内置 Oracle 实现 ──
 
 /// 基准 Oracle —— 纯随机游走（无趋势、无事件）
+///
+/// 修复 P0-M5: 原实现用 `(time * 1.618).sin()` 确定性函数冒充随机游走，
+/// 导致所有 Monte Carlo path 完全相同。改为用 StdRng 生成真随机步进。
 pub struct BaselineOracle {
     #[allow(dead_code)]
     reference_price: Price,
@@ -73,6 +78,8 @@ pub struct BaselineOracle {
     last_time: SimTimestamp,
     /// 随机游走日波动率（基点）
     daily_vol_bps: i64,
+    /// 修复 P0-M5: 可种子化的 PRNG，替代确定性 sin
+    rng: StdRng,
 }
 
 impl BaselineOracle {
@@ -82,6 +89,18 @@ impl BaselineOracle {
             current_fv: reference_price as f64,
             last_time: 0,
             daily_vol_bps,
+            rng: StdRng::from_entropy(),
+        }
+    }
+
+    /// 修复 P0-M4: 带 seed 的构造函数，让 Monte Carlo 可复现
+    pub fn with_seed(reference_price: Price, daily_vol_bps: i64, seed: u64) -> Self {
+        Self {
+            reference_price,
+            current_fv: reference_price as f64,
+            last_time: 0,
+            daily_vol_bps,
+            rng: StdRng::seed_from_u64(seed),
         }
     }
 }
@@ -92,26 +111,27 @@ impl Oracle for BaselineOracle {
     }
 
     fn signal_at(&mut self, time: SimTimestamp) -> OracleSignal {
+        use rand::Rng;
         // 计算时间差（ns → 模拟天数）
         let dt_days = (time.saturating_sub(self.last_time)) as f64 / 1_000_000_000.0 / 86_400.0;
         if dt_days > 0.0 {
-            // 随机步进（使用确定性伪随机，基于时间）
-            let step = (time as f64 * 1.618).sin() * self.daily_vol_bps as f64 / 10000.0;
+            // 修复 P0-M5: 用 StdRng 生成正态分布近似（Box-Muller 简化版）
+            let u1: f64 = self.rng.r#gen_range(0.0001..1.0);
+            let u2: f64 = self.rng.r#gen_range(0.0001..1.0);
+            let normal = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
+            let step = normal * self.daily_vol_bps as f64 / 10000.0;
             self.current_fv *= 1.0 + step * dt_days.sqrt();
             self.last_time = time;
         }
         let fv = self.current_fv.round() as Price;
 
-        OracleSignal {
-            time,
-            fundamental_value: fv.max(1),
-            sentiment: 1.0,
-            active_event: None,
-        }
+        OracleSignal { time, fundamental_value: fv.max(1), sentiment: 1.0, active_event: None }
     }
 }
 
 /// 趋势 Oracle —— 带定向漂移（用于模拟牛市/熊市）
+///
+/// 修复 P0-M5: 原 noise 用 `(time * PI).sin()` 确定性函数，改为 StdRng。
 pub struct DriftOracle {
     #[allow(dead_code)]
     reference_price: Price,
@@ -121,6 +141,8 @@ pub struct DriftOracle {
     vol_bps: i64,
     current_fv: f64,
     last_time: SimTimestamp,
+    /// 修复 P0-M5: 可种子化 PRNG
+    rng: StdRng,
 }
 
 impl DriftOracle {
@@ -131,6 +153,24 @@ impl DriftOracle {
             vol_bps,
             current_fv: reference_price as f64,
             last_time: 0,
+            rng: StdRng::from_entropy(),
+        }
+    }
+
+    /// 修复 P0-M4: 带 seed 的构造函数
+    pub fn with_seed(
+        reference_price: Price,
+        drift_per_day_bps: i64,
+        vol_bps: i64,
+        seed: u64,
+    ) -> Self {
+        Self {
+            reference_price,
+            drift_per_day_bps,
+            vol_bps,
+            current_fv: reference_price as f64,
+            last_time: 0,
+            rng: StdRng::seed_from_u64(seed),
         }
     }
 
@@ -151,10 +191,15 @@ impl Oracle for DriftOracle {
     }
 
     fn signal_at(&mut self, time: SimTimestamp) -> OracleSignal {
+        use rand::Rng;
         let dt_days = (time.saturating_sub(self.last_time)) as f64 / 1_000_000_000.0 / 86_400.0;
         if dt_days > 0.0 {
             let drift = self.drift_per_day_bps as f64 / 10000.0;
-            let noise = (time as f64 * std::f64::consts::PI).sin() * self.vol_bps as f64 / 10000.0;
+            // 修复 P0-M5: 用 StdRng Box-Muller 替代确定性 sin
+            let u1: f64 = self.rng.r#gen_range(0.0001..1.0);
+            let u2: f64 = self.rng.r#gen_range(0.0001..1.0);
+            let normal = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
+            let noise = normal * self.vol_bps as f64 / 10000.0;
             self.current_fv *= 1.0 + (drift + noise) * dt_days.sqrt();
             self.last_time = time;
         }
@@ -196,17 +241,11 @@ impl EventOracle {
             events: vec![
                 ScriptedEvent {
                     at_time: crash_time,
-                    event: MarketEvent::PriceShock {
-                        direction: -1.0,
-                        magnitude_bps: drop_bps,
-                    },
+                    event: MarketEvent::PriceShock { direction: -1.0, magnitude_bps: drop_bps },
                 },
                 ScriptedEvent {
                     at_time: crash_time + recovery_time_ns,
-                    event: MarketEvent::PriceShock {
-                        direction: 1.0,
-                        magnitude_bps: drop_bps,
-                    },
+                    event: MarketEvent::PriceShock { direction: 1.0, magnitude_bps: drop_bps },
                 },
             ],
             active_event: None,

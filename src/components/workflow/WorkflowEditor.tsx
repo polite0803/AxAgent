@@ -1237,7 +1237,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       return yaml || null;
     } catch (e) {
       console.error("[exportYaml]", e);
-      message.error(t("workflow.importExport.yamlExportFailed", { defaultValue: "YAML export failed" }));
+      message.error(t("workflow.importExport.yamlExportFailed"));
       return null;
     }
   }, [t]);
@@ -1251,11 +1251,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         await loadTemplate(result.workflow.id);
         return true;
       }
-      message.error(t("workflow.importExport.yamlImportFailed", { defaultValue: "YAML import failed" }));
+      message.error(t("workflow.importExport.yamlImportFailed"));
       return false;
     } catch (e) {
       console.error("[importYaml]", e);
-      message.error(t("workflow.importExport.yamlImportFailed", { defaultValue: "YAML import failed" }));
+      message.error(t("workflow.importExport.yamlImportFailed"));
       return false;
     }
   }, [t, loadTemplate]);
@@ -1909,7 +1909,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             size="small"
             onClick={() => navigateSearch(-1)}
             disabled={searchResults.length === 0}
-            aria-label={t("workflow.search.prev", { defaultValue: "Previous match" })}
+            aria-label={t("workflow.search.prev")}
             aria-keyshortcuts="Shift+Enter"
           >
             ▲
@@ -1918,7 +1918,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             size="small"
             onClick={() => navigateSearch(1)}
             disabled={searchResults.length === 0}
-            aria-label={t("workflow.search.next", { defaultValue: "Next match" })}
+            aria-label={t("workflow.search.next")}
             aria-keyshortcuts="Enter"
           >
             ▼
@@ -1926,7 +1926,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           <Button
             size="small"
             onClick={() => setSearchVisible(false)}
-            aria-label={t("workflow.search.close", { defaultValue: "Close search" })}
+            aria-label={t("workflow.search.close")}
             aria-keyshortcuts="Escape"
           >
             ✕
@@ -2210,7 +2210,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       {contextMenu && (
         <div
           role="menu"
-          aria-label={t("workflow.contextMenu.label", { defaultValue: "Node actions" })}
+          aria-label={t("workflow.contextMenu.label")}
           style={{
             position: "fixed",
             left: contextMenu.x,

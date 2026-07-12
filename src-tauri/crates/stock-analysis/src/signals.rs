@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use axagent_astock_data::indicators::sma;
+
 /// K 线最小结构（反序列化用）
 #[derive(Debug, Clone, Deserialize)]
 struct KLineRaw {
@@ -11,15 +13,6 @@ struct KLineRaw {
     close: f64,
     #[serde(default)]
     volume: f64,
-}
-
-// ── SMA ──
-
-fn sma(prices: &[f64], period: usize) -> Option<f64> {
-    if period == 0 || prices.len() < period {
-        return None;
-    }
-    Some(prices[prices.len() - period..].iter().sum::<f64>() / period as f64)
 }
 
 // ── MA 交叉检测 ──

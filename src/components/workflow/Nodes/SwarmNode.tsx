@@ -25,7 +25,7 @@ const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
       data={data}
       selected={selected}
       icon="🧠"
-      childLabel={t("workflow.swarmNode.agents", { defaultValue: "Agents" })}
+      childLabel={t("workflow.swarmNode.agents")}
       extraTags={
         <>
           <Tag
@@ -38,7 +38,7 @@ const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
               color: PINK_BASE,
             }}
           >
-            {agentCount} {t("workflow.swarmNode.agents", { defaultValue: "agents" })}
+            {agentCount} {t("workflow.swarmNode.agents")}
           </Tag>
           <Tag
             style={{
@@ -50,7 +50,7 @@ const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
               color: PINK_BASE,
             }}
           >
-            {maxRounds} {t("workflow.swarmNode.rounds", { defaultValue: "rounds" })}
+            {maxRounds} {t("workflow.swarmNode.rounds")}
           </Tag>
         </>
       }

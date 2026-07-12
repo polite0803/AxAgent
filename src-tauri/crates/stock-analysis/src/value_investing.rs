@@ -1,5 +1,7 @@
 use axagent_astock_data::FinancialReport;
 
+use crate::value::ValueEngine;
+
 /// 价值投资综合指标
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -74,8 +76,12 @@ impl ValueInvestingEngine {
             "无"
         };
 
-        // 3. F-Score
-        let f_score = Self::piotroski_f_score(financials);
+        // 3. F-Score（委托统一的 ValueEngine::f_score，保证与详情版口径一致）
+        let f_score = if financials.len() >= 2 {
+            ValueEngine::f_score(&financials[0], &financials[1]).total
+        } else {
+            0
+        };
         let f_score_level = match f_score {
             7..=9 => "优秀(7-9)",
             5..=6 => "良好(5-6)",
@@ -203,69 +209,6 @@ impl ValueInvestingEngine {
         let terminal_value = terminal_fcf / terminal_spread;
         let terminal_pv = terminal_value / (1.0 + discount).powi(5);
         pv + terminal_pv
-    }
-
-    /// Piotroski F-Score (0-9分)
-    /// 盈利(0-4) + 财务健康(0-3) + 运营效率(0-2)
-    fn piotroski_f_score(financials: &[FinancialReport]) -> u32 {
-        if financials.len() < 2 {
-            return 0;
-        }
-        let curr = &financials[0];
-        let prev = &financials[1];
-        let mut score = 0u32;
-
-        // 盈利能力 (4分)
-        if curr.net_profit.unwrap_or(0.0) > 0.0 {
-            score += 1;
-        } // ROA > 0
-        if curr.net_profit.unwrap_or(0.0) > prev.net_profit.unwrap_or(0.0) {
-            score += 1;
-        } // 净利润增长
-        if curr.roe.unwrap_or(0.0) > prev.roe.unwrap_or(0.0) {
-            score += 1;
-        } // ROE增长
-        let net_margin = curr.net_margin.unwrap_or(0.0);
-        let curr_roe = curr.roe.unwrap_or(0.0);
-        if curr.revenue.unwrap_or(0.0) > 0.0 && net_margin > 0.0 && net_margin < curr_roe * 2.0 {
-            score += 1;
-        } // 盈利质量(应计项测试)
-
-        // 财务健康 (3分)
-        if curr.debt_ratio.unwrap_or(100.0) < prev.debt_ratio.unwrap_or(100.0) {
-            score += 1;
-        } // 负债率下降
-        if curr.current_ratio.map(|r| r > 1.5).unwrap_or(false) {
-            score += 1;
-        }
-        // 无增发(用EPS不稀释代理)
-        if curr.eps.unwrap_or(0.0) >= prev.eps.unwrap_or(0.0) {
-            score += 1;
-        } // EPS不稀释
-
-        // 运营效率 (2分)
-        if curr.gross_margin.unwrap_or(0.0) > prev.gross_margin.unwrap_or(0.0) {
-            score += 1;
-        } // 毛利率改善
-        let rev_growth = if prev.revenue.unwrap_or(0.0) > 0.0 {
-            (curr.revenue.unwrap_or(0.0) - prev.revenue.unwrap_or(0.0))
-                / prev.revenue.unwrap_or(0.0)
-        } else {
-            0.0
-        };
-        let profit_growth = if prev.net_profit.unwrap_or(0.0) > 0.0 {
-            (curr.net_profit.unwrap_or(0.0) - prev.net_profit.unwrap_or(0.0))
-                / prev.net_profit.unwrap_or(0.0)
-        } else if curr.net_profit.unwrap_or(0.0) > 0.0 {
-            1.0
-        } else {
-            0.0
-        };
-        if rev_growth > 0.0 && rev_growth >= profit_growth {
-            score += 1;
-        }
-
-        score
     }
 
     /// 护城河量化清单 (0-100分)

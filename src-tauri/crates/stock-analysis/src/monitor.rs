@@ -440,10 +440,11 @@ impl RealtimeMonitor {
         }
 
         // 2) Cooldown: 同一只股票两次 T+0 之间间隔 ≥ min_interval_minutes
+        //    读+写在同一个 write lock 内完成，避免 TOCTOU 竞态
         let now_ts = chrono::Utc::now().timestamp();
         let cooldown_secs = t0_cfg.min_interval_minutes * 60;
         {
-            let last_map = self.t0_last_trigger_ts.read().await;
+            let mut last_map = self.t0_last_trigger_ts.write().await;
             if let Some(&last_ts) = last_map.get(stock_code) {
                 if now_ts - last_ts < cooldown_secs {
                     tracing::debug!(
@@ -455,11 +456,6 @@ impl RealtimeMonitor {
                     return;
                 }
             }
-        }
-
-        // 3) 记录触发时间, 然后 emit 事件
-        {
-            let mut last_map = self.t0_last_trigger_ts.write().await;
             last_map.insert(stock_code.to_string(), now_ts);
         }
         let reason = if hit_change && hit_volume {

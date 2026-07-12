@@ -46,7 +46,7 @@ export function StockAnalysisSettings({ defaultTab }: { defaultTab?: string } = 
           },
           {
             key: "schedule",
-            label: "定时",
+            label: t("stockAnalysis.settings_StockAnalysisSettings.001"),
             children: <ScheduledAnalysisTab />,
           },
         ]}

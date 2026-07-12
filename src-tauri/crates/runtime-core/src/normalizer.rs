@@ -80,9 +80,7 @@ impl ResponseNormalizer for DefaultResponseNormalizer {
 
         // ── 3. 保底：没有任何 block 时返回纯文本 ──
         if blocks.is_empty() && !response.content.is_empty() {
-            blocks.push(ContentBlock::Text {
-                text: response.content.clone(),
-            });
+            blocks.push(ContentBlock::Text { text: response.content.clone() });
         }
 
         blocks
@@ -119,11 +117,7 @@ fn try_parse_code_block(lang: &str, content: &str) -> Option<ContentBlock> {
         let name = val
             .get("name")
             .and_then(|v| v.as_str())
-            .or_else(|| {
-                val.get("function")
-                    .and_then(|f| f.get("name"))
-                    .and_then(|v| v.as_str())
-            })
+            .or_else(|| val.get("function").and_then(|f| f.get("name")).and_then(|v| v.as_str()))
             .unwrap_or("unknown_tool");
 
         let arguments = val
@@ -140,17 +134,9 @@ fn try_parse_code_block(lang: &str, content: &str) -> Option<ContentBlock> {
             })
             .unwrap_or_else(|| trimmed.to_string());
 
-        let id = val
-            .get("id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("auto")
-            .to_string();
+        let id = val.get("id").and_then(|v| v.as_str()).unwrap_or("auto").to_string();
 
-        return Some(ContentBlock::ToolUse {
-            id,
-            name: name.to_string(),
-            input: arguments,
-        });
+        return Some(ContentBlock::ToolUse { id, name: name.to_string(), input: arguments });
     }
 
     None
@@ -167,9 +153,7 @@ fn flush_text(buffer: &mut String, blocks: &mut Vec<ContentBlock>) {
     let text = std::mem::take(buffer);
     let trimmed = text.trim();
     if !trimmed.is_empty() {
-        blocks.push(ContentBlock::Text {
-            text: trimmed.to_string(),
-        });
+        blocks.push(ContentBlock::Text { text: trimmed.to_string() });
     }
 }
 
@@ -206,12 +190,7 @@ mod tests {
         let response = make_text_response("你好，世界！");
         let blocks = normalizer.normalize(&response).await;
         assert_eq!(blocks.len(), 1);
-        assert_eq!(
-            blocks[0],
-            ContentBlock::Text {
-                text: "你好，世界！".to_string()
-            }
-        );
+        assert_eq!(blocks[0], ContentBlock::Text { text: "你好，世界！".to_string() });
     }
 
     #[tokio::test]
@@ -222,12 +201,7 @@ mod tests {
         );
         let blocks = normalizer.normalize(&response).await;
         assert_eq!(blocks.len(), 3);
-        assert_eq!(
-            blocks[0],
-            ContentBlock::Text {
-                text: "我需要查一下天气。".to_string()
-            }
-        );
+        assert_eq!(blocks[0], ContentBlock::Text { text: "我需要查一下天气。".to_string() });
         assert_eq!(
             blocks[1],
             ContentBlock::ToolUse {
@@ -236,12 +210,7 @@ mod tests {
                 input: "{\"city\":\"北京\"}".to_string(),
             }
         );
-        assert_eq!(
-            blocks[2],
-            ContentBlock::Text {
-                text: "这是结果。".to_string()
-            }
-        );
+        assert_eq!(blocks[2], ContentBlock::Text { text: "这是结果。".to_string() });
     }
 
     #[tokio::test]
@@ -284,10 +253,8 @@ mod tests {
             vec![tool_call],
         );
         let blocks = normalizer.normalize(&response).await;
-        let tool_uses: Vec<_> = blocks
-            .iter()
-            .filter(|b| matches!(b, ContentBlock::ToolUse { .. }))
-            .collect();
+        let tool_uses: Vec<_> =
+            blocks.iter().filter(|b| matches!(b, ContentBlock::ToolUse { .. })).collect();
         assert_eq!(tool_uses.len(), 1);
     }
 

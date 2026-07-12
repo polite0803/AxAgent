@@ -90,12 +90,12 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
           size="small"
           style={{ width: "100%" }}
           options={[
-            { value: "exact", label: t("workflow.props.matchModeExact", { defaultValue: "Exact" }) },
-            { value: "contains", label: t("workflow.props.matchModeContains", { defaultValue: "Contains" }) },
-            { value: "regex", label: t("workflow.props.matchModeRegex", { defaultValue: "Regex" }) },
+            { value: "exact", label: t("workflow.props.matchModeExact") },
+            { value: "contains", label: t("workflow.props.matchModeContains") },
+            { value: "regex", label: t("workflow.props.matchModeRegex") },
             {
               value: "expression",
-              label: t("workflow.props.matchModeExpression", { defaultValue: "Expression" }),
+              label: t("workflow.props.matchModeExpression"),
             },
           ]}
         />
@@ -117,7 +117,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         }}
       >
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.props.useLlmRouting", { defaultValue: "LLM Smart Routing" })}
+          {t("workflow.props.useLlmRouting")}
         </label>
         <Switch
           size="small"
@@ -136,7 +136,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
                 marginBottom: 4,
               }}
             >
-              {t("workflow.props.llmRoutingPrompt", { defaultValue: "Routing Prompt" })}
+              {t("workflow.props.llmRoutingPrompt")}
             </label>
             <Input.TextArea
               value={config.llm_prompt || ""}
@@ -157,13 +157,13 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
                 marginBottom: 4,
               }}
             >
-              {t("workflow.props.llmRoutingModel", { defaultValue: "Model (optional)" })}
+              {t("workflow.props.llmRoutingModel")}
             </label>
             <Input
               value={config.llm_model || ""}
               onChange={(e) => setCfg("llm_model", e.target.value || undefined)}
               size="small"
-              placeholder={t("workflow.props.defaultModel", { defaultValue: "Use default model" })}
+              placeholder={t("workflow.props.defaultModel")}
             />
           </div>
         </>
@@ -242,7 +242,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
                 setCfg("cases", cases);
               }}
               placeholder={isExpressionMode
-                ? t("workflow.props.expressionPlaceholder", { defaultValue: "_value > 100" })
+                ? t("workflow.props.expressionPlaceholder")
                 : t("workflow.props.switchValuePlaceholder")}
             />
             <Button
@@ -266,7 +266,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         <label
           style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}
         >
-          {t("workflow.props.defaultCase", { defaultValue: "Default case (fallback)" })}
+          {t("workflow.props.defaultCase")}
         </label>
         <Input
           value={config.default_case || ""}

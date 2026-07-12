@@ -33,6 +33,7 @@ use serde::{Deserialize, Serialize};
 use crate::ctx::{EquityPoint, Position, StrategyCtx, Trade};
 use crate::error::QuantError;
 use crate::matcher::{Matcher, MatcherConfig};
+use crate::metrics::{annualized, max_drawdown, sharpe_ratio};
 use crate::strategy::Strategy;
 use crate::types::{Bar, Fill, Order, OrderType, Side, Signal, SignalAction};
 
@@ -176,8 +177,9 @@ impl BacktestEngine {
 
             // 4.5 Signal → Order → 撮合 → 应用 Fill
             for sig in &signals {
-                let order = signal_to_order(sig, &bar);
                 let pos = ctx.positions.get(&bar.code);
+                let order =
+                    signal_to_order(sig, &bar, ctx.cash, pos.map(|p| p.quantity).unwrap_or(0));
                 let fill = self.matcher.match_order(order, &bar, pos, ctx.cash);
                 all_fills.push(fill.clone());
                 if fill.matched {
@@ -239,18 +241,33 @@ fn push_equity_point(ctx: &mut StrategyCtx, date: &str) {
     });
 }
 
-fn signal_to_order(sig: &Signal, bar: &Bar) -> Order {
+fn signal_to_order(sig: &Signal, bar: &Bar, cash: f64, position_qty: u64) -> Order {
     let side = match sig.action {
         SignalAction::Buy => Side::Long,
         SignalAction::Sell => Side::Flat,
         SignalAction::Hold => Side::Flat,
     };
-    // 占位：M1 阶段每 signal 默认 100 股（最小一手）
-    // M2 阶段接入 portfolio sizing（按目标权重 / 凯利公式 / 风险预算）
     let quantity = if matches!(sig.action, SignalAction::Hold) {
         0
     } else {
-        100
+        match side {
+            Side::Long => {
+                // 根据可用资金计算可买股数（取 95% 资金，向下取整到整手）
+                let lot_size = 100u64;
+                let max_shares = if bar.close > 0.0 {
+                    ((cash * 0.95) / bar.close) as u64
+                } else {
+                    0
+                };
+                let rounded = (max_shares / lot_size) * lot_size;
+                rounded.max(lot_size).min(10_000) // 最少 1 手，最多 1 万
+            },
+            Side::Flat => {
+                // 卖出全部持仓
+                position_qty
+            },
+            _ => 0,
+        }
     };
     Order {
         code: bar.code.clone(),
@@ -352,86 +369,10 @@ fn compute_basic(ctx: &StrategyCtx, initial_cash: f64) -> (f64, f64, f64, f64, f
     } else {
         0.0
     };
-    let (max_dd, max_dd_pct) = compute_max_drawdown(&ctx.equity_curve);
-    let sharpe = compute_sharpe(&ctx.equity_curve, 0.025);
-    let annualized = compute_annualized(&ctx.equity_curve, initial_cash);
+    let (max_dd, max_dd_pct) = max_drawdown(&ctx.equity_curve);
+    let sharpe = sharpe_ratio(&ctx.equity_curve, 0.025, 252.0);
+    let annualized = annualized(&ctx.equity_curve, 252.0);
     (total_return, sharpe, max_dd, max_dd_pct, annualized)
-}
-
-fn compute_max_drawdown(curve: &[EquityPoint]) -> (f64, f64) {
-    let mut peak = f64::MIN;
-    let mut max_dd = 0.0;
-    let mut max_dd_pct = 0.0;
-    for p in curve {
-        if p.equity > peak {
-            peak = p.equity;
-        }
-        if peak > 0.0 {
-            let dd = peak - p.equity;
-            let dd_pct = dd / peak;
-            if dd > max_dd {
-                max_dd = dd;
-            }
-            if dd_pct > max_dd_pct {
-                max_dd_pct = dd_pct;
-            }
-        }
-    }
-    (max_dd, max_dd_pct)
-}
-
-fn compute_sharpe(curve: &[EquityPoint], risk_free_annual: f64) -> f64 {
-    if curve.len() < 2 {
-        return 0.0;
-    }
-    let mut rets: Vec<f64> = Vec::with_capacity(curve.len() - 1);
-    for w in curve.windows(2) {
-        let prev = w[0].equity;
-        let cur = w[1].equity;
-        if prev > 0.0 {
-            rets.push((cur - prev) / prev);
-        }
-    }
-    if rets.is_empty() {
-        return 0.0;
-    }
-    let mean = rets.iter().sum::<f64>() / rets.len() as f64;
-    let var = rets.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / rets.len() as f64;
-    let std = var.sqrt();
-    if std < 1e-10 {
-        return 0.0;
-    }
-    let daily_rf = risk_free_annual / 252.0;
-    (mean - daily_rf) / std * (252.0_f64).sqrt()
-}
-
-fn compute_annualized(curve: &[EquityPoint], initial_cash: f64) -> f64 {
-    if curve.len() < 2 || initial_cash <= 0.0 {
-        return 0.0;
-    }
-    let final_eq = curve.last().unwrap().equity;
-    let total_return = (final_eq - initial_cash) / initial_cash;
-    let first = &curve.first().unwrap().date;
-    let last = &curve.last().unwrap().date;
-    let days = approx_days_between(first, last);
-    if days <= 0 {
-        return 0.0;
-    }
-    let years = days as f64 / 365.0;
-    if (1.0 + total_return) <= 0.0 {
-        return 0.0;
-    }
-    (1.0 + total_return).powf(1.0 / years) - 1.0
-}
-
-fn approx_days_between(start: &str, end: &str) -> i64 {
-    use chrono::NaiveDate;
-    let s = NaiveDate::parse_from_str(start, "%Y-%m-%d").ok();
-    let e = NaiveDate::parse_from_str(end, "%Y-%m-%d").ok();
-    match (s, e) {
-        (Some(s), Some(e)) => (e - s).num_days(),
-        _ => 0,
-    }
 }
 
 fn compute_win_rate(trades: &[Trade]) -> (usize, usize, f64) {
@@ -451,4 +392,23 @@ fn compute_win_rate(trades: &[Trade]) -> (usize, usize, f64) {
         0.0
     };
     (winning, losing, win_rate)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ep(date: &str, equity: f64) -> EquityPoint {
+        EquityPoint { date: date.to_string(), equity, cash: equity, position_value: 0.0 }
+    }
+
+    #[test]
+    fn compute_sharpe_short_curve_returns_zero_no_panic() {
+        // 单点：直接返回 0
+        let single = vec![ep("2026-01-01", 100.0)];
+        assert_eq!(sharpe_ratio(&single, 0.025, 252.0), 0.0);
+        // 两点：rets.len()==1，样本方差需 n≥2，应返回 0 而非除零 panic
+        let two = vec![ep("2026-01-01", 100.0), ep("2026-01-02", 101.0)];
+        assert_eq!(sharpe_ratio(&two, 0.025, 252.0), 0.0);
+    }
 }

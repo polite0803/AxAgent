@@ -128,7 +128,9 @@ impl ChainExecutor {
                             Ok(None)
                         }
                     },
-                    Err(_) => Ok(None),
+                    // 修复 P0-A3: 原 `Err(_) => Ok(None)` 把 401/DNS/panic 全部吞为
+                    // "OK 但空"，回退链调试黑洞。改为显式传播错误。
+                    Err(e) => Err(e),
                 }
             },
             FallbackStep::KlinesSynthesize { vendor, period, limit } => {

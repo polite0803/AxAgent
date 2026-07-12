@@ -71,7 +71,7 @@ const GroupFrameNodeComponent: React.FC<NodeProps> = ({ data: _data, selected })
             whiteSpace: "nowrap",
           }}
         >
-          {data.title || t("workflow.groupNode.untitled", { defaultValue: "Group" })}
+          {data.title || t("workflow.groupNode.untitled")}
         </span>
         {collapsed && (
           <span
@@ -84,7 +84,7 @@ const GroupFrameNodeComponent: React.FC<NodeProps> = ({ data: _data, selected })
               lineHeight: "16px",
             }}
           >
-            {t("workflow.groupNode.folded", { defaultValue: "folded" })}
+            {t("workflow.groupNode.folded")}
           </span>
         )}
         <span

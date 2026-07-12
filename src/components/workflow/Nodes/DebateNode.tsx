@@ -26,7 +26,7 @@ const DebateNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => 
       data={data}
       selected={selected}
       icon="⚖️"
-      childLabel={t("workflow.debateNode.debaters", { defaultValue: "Debaters" })}
+      childLabel={t("workflow.debateNode.debaters")}
       extraTags={
         <>
           <Tag
@@ -39,7 +39,7 @@ const DebateNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => 
               color: BLUE_BASE,
             }}
           >
-            {debaterCount} {t("workflow.debateNode.debaters", { defaultValue: "debaters" })}
+            {debaterCount} {t("workflow.debateNode.debaters")}
           </Tag>
           <Tag
             style={{
@@ -51,7 +51,7 @@ const DebateNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => 
               color: BLUE_BASE,
             }}
           >
-            {maxRounds} {t("workflow.debateNode.rounds", { defaultValue: "rounds" })}
+            {maxRounds} {t("workflow.debateNode.rounds")}
           </Tag>
         </>
       }

@@ -26,6 +26,12 @@ pub fn aggregate_to_bars(trades: &[TradeRecord], bar_ns: u64) -> Vec<Bar> {
     if trades.is_empty() {
         return Vec::new();
     }
+    // 修复 P0-M10: bar_ns == 0 会导致 bar_start += bar_ns 后 bar_end == bar_start
+    // 形成无限循环（while bar_start <= last_time 永真）。直接返回空 Vec。
+    if bar_ns == 0 {
+        tracing::warn!("[stylized_facts] aggregate_to_bars 收到 bar_ns=0，返回空 Vec");
+        return Vec::new();
+    }
 
     let first_time = trades[0].timestamp;
     let last_time = trades[trades.len() - 1].timestamp;
@@ -34,10 +40,8 @@ pub fn aggregate_to_bars(trades: &[TradeRecord], bar_ns: u64) -> Vec<Bar> {
     let mut bar_start = first_time;
     while bar_start <= last_time {
         let bar_end = bar_start + bar_ns;
-        let window_trades: Vec<&TradeRecord> = trades
-            .iter()
-            .filter(|t| t.timestamp >= bar_start && t.timestamp < bar_end)
-            .collect();
+        let window_trades: Vec<&TradeRecord> =
+            trades.iter().filter(|t| t.timestamp >= bar_start && t.timestamp < bar_end).collect();
 
         let bar_time = bar_start;
         bar_start = bar_end;
@@ -48,24 +52,11 @@ pub fn aggregate_to_bars(trades: &[TradeRecord], bar_ns: u64) -> Vec<Bar> {
 
         let open = window_trades[0].price as f64;
         let close = window_trades[window_trades.len() - 1].price as f64;
-        let high = window_trades
-            .iter()
-            .map(|t| t.price as f64)
-            .fold(f64::NEG_INFINITY, f64::max);
-        let low = window_trades
-            .iter()
-            .map(|t| t.price as f64)
-            .fold(f64::INFINITY, f64::min);
+        let high = window_trades.iter().map(|t| t.price as f64).fold(f64::NEG_INFINITY, f64::max);
+        let low = window_trades.iter().map(|t| t.price as f64).fold(f64::INFINITY, f64::min);
         let volume: u64 = window_trades.iter().map(|t| t.quantity).sum();
 
-        bars.push(Bar {
-            time: bar_time,
-            open,
-            high,
-            low,
-            close,
-            volume,
-        });
+        bars.push(Bar { time: bar_time, open, high, low, close, volume });
     }
 
     bars
@@ -125,11 +116,8 @@ fn price_and_returns(trades: &[TradeRecord]) -> (Vec<f64>, Vec<f64>) {
     let prices: Vec<f64> = trades.iter().map(|t| t.price as f64).collect();
 
     // 对数收益率
-    let returns: Vec<f64> = prices
-        .windows(2)
-        .map(|w| (w[1] / w[0]).ln())
-        .filter(|r| r.is_finite())
-        .collect();
+    let returns: Vec<f64> =
+        prices.windows(2).map(|w| (w[1] / w[0]).ln()).filter(|r| r.is_finite()).collect();
 
     (prices, returns)
 }
@@ -239,10 +227,9 @@ fn compute_ljung_box(returns: &[f64], lag: usize) -> (f64, f64) {
 
     let mut q_stat = 0.0;
     for k in 1..=lag {
-        let gamma_k: f64 = (0..(n - k))
-            .map(|i| (returns[i] - mean) * (returns[i + k] - mean))
-            .sum::<f64>()
-            / n as f64;
+        let gamma_k: f64 =
+            (0..(n - k)).map(|i| (returns[i] - mean) * (returns[i + k] - mean)).sum::<f64>()
+                / n as f64;
         let r_k = gamma_k / gamma0;
         q_stat += r_k.powi(2) / (n - k) as f64;
     }
@@ -296,11 +283,7 @@ fn compute_leverage(returns: &[f64]) -> f64 {
     let mean_r = pairs.iter().map(|(r, _)| r).sum::<f64>() / m;
     let mean_v = pairs.iter().map(|(_, v)| v).sum::<f64>() / m;
 
-    let cov = pairs
-        .iter()
-        .map(|(r, v)| (r - mean_r) * (v - mean_v))
-        .sum::<f64>()
-        / m;
+    let cov = pairs.iter().map(|(r, v)| (r - mean_r) * (v - mean_v)).sum::<f64>() / m;
     let var_r = pairs.iter().map(|(r, _)| (r - mean_r).powi(2)).sum::<f64>() / m;
     let var_v = pairs.iter().map(|(_, v)| (v - mean_v).powi(2)).sum::<f64>() / m;
 
@@ -368,11 +351,8 @@ impl StylizedFacts {
 
         // 用 Bar 的 close 价格计算对数收益率
         let prices: Vec<f64> = bars.iter().map(|b| b.close).collect();
-        let returns: Vec<f64> = prices
-            .windows(2)
-            .map(|w| (w[1] / w[0]).ln())
-            .filter(|r| r.is_finite())
-            .collect();
+        let returns: Vec<f64> =
+            prices.windows(2).map(|w| (w[1] / w[0]).ln()).filter(|r| r.is_finite()).collect();
 
         compute_facts_from_returns(&returns)
     }
@@ -383,8 +363,7 @@ impl StylizedFacts {
         self.failed.clear();
 
         if self.n_observations < 30 {
-            self.failed
-                .push(format!("样本不足: {} < 30", self.n_observations));
+            self.failed.push(format!("样本不足: {} < 30", self.n_observations));
             return;
         }
 

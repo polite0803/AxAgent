@@ -304,14 +304,25 @@ pub struct RsiStrategy {
 }
 
 impl RsiStrategy {
-    pub fn new(period: usize, overbought: f64, oversold: f64) -> Self {
-        Self { period, overbought, oversold }
+    /// 构造 RSI 反转策略。
+    ///
+    /// # 参数校验
+    /// `overbought` 必须严格大于 `oversold`，否则阈值语义颠倒（超买低于超卖），
+    /// 会生成相反的买卖信号。构造期即拦截，避免静默产生错误信号。
+    pub fn new(period: usize, overbought: f64, oversold: f64) -> Result<Self, QuantError> {
+        if overbought <= oversold {
+            return Err(QuantError::Param(format!(
+                "RsiStrategy: overbought({}) 必须严格大于 oversold({})，阈值颠倒",
+                overbought, oversold
+            )));
+        }
+        Ok(Self { period, overbought, oversold })
     }
 }
 
 impl Default for RsiStrategy {
     fn default() -> Self {
-        Self::new(6, 70.0, 30.0)
+        Self::new(6, 70.0, 30.0).expect("RsiStrategy 默认阈值非法")
     }
 }
 
@@ -636,5 +647,36 @@ impl Strategy for TurtleStrategy {
             }]);
         }
         Ok(vec![])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rsi_new_valid_thresholds() {
+        // overbought > oversold 合法
+        let s = RsiStrategy::new(14, 70.0, 30.0);
+        assert!(s.is_ok());
+        let s = s.unwrap();
+        assert_eq!(s.period, 14);
+        assert!((s.overbought - 70.0).abs() < 1e-9);
+        assert!((s.oversold - 30.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn rsi_new_rejects_inverted_thresholds() {
+        // 审计项「RSI 参数无交叉校验」：overbought <= oversold 必须构造期拦截
+        let inverted = RsiStrategy::new(14, 30.0, 70.0);
+        assert!(matches!(inverted, Err(QuantError::Param(_))));
+        let equal = RsiStrategy::new(14, 50.0, 50.0);
+        assert!(matches!(equal, Err(QuantError::Param(_))));
+    }
+
+    #[test]
+    fn rsi_default_is_valid() {
+        let s = RsiStrategy::default();
+        assert!(s.overbought > s.oversold);
     }
 }

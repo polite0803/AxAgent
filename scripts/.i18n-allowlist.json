@@ -1,7 +1,7 @@
 {
   "version": "2",
   "generated": "2026-07-08",
-  "total_entries": 521,
+  "total_entries": 673,
   "total_files": 481,
   "entries": [
     {
@@ -430,8 +430,8 @@
     },
     {
       "file": "src/components/settings/AcpSettings.tsx",
-      "lines": "49,56,78,96,106,142,189,221",
-      "reason": "硬编码英文占位符",
+      "lines": "*",
+      "reason": "JSX注释-非UI文本",
       "phase": 3
     },
     {
@@ -442,8 +442,8 @@
     },
     {
       "file": "src/components/settings/AgentGeneratorModal.tsx",
-      "lines": "10,12,13,14,15,16,17,18,19,20,22,24,69,71",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "*",
+      "reason": "LLM提示词模板-非UI文本",
       "phase": 3
     },
     {
@@ -460,8 +460,8 @@
     },
     {
       "file": "src/components/settings/DataManager.tsx",
-      "lines": "50,52,102,104,115,117",
-      "reason": "非UI字符串-内部日志",
+      "lines": "*",
+      "reason": "logIpcError调试日志-非UI",
       "phase": 3
     },
     {
@@ -478,38 +478,38 @@
     },
     {
       "file": "src/components/settings/GeneralSettings.tsx",
-      "lines": "72,74",
-      "reason": "非UI字符串-内部日志",
+      "lines": "*",
+      "reason": "logIpcError调试日志-非UI",
       "phase": 3
     },
     {
       "file": "src/components/settings/HookExecutionLog.tsx",
-      "lines": "11,14,15,17,19,21,23,25,27,31,44,49,57,62,65,79,85,198,235",
-      "reason": "硬编码中文字符串",
+      "lines": "*",
+      "reason": "JSX注释-非UI文本",
       "phase": 3
     },
     {
       "file": "src/components/settings/KnowledgeSettings.tsx",
-      "lines": "1230,1313",
-      "reason": "硬编码中文字符串",
+      "lines": "*",
+      "reason": "JSX注释-非UI文本",
       "phase": 3
     },
     {
       "file": "src/components/settings/McpServerSettings.tsx",
-      "lines": "67,69,139,167,462,497,542,578,969,989",
-      "reason": "硬编码英文占位符",
+      "lines": "*",
+      "reason": "JSX注释-非UI文本",
       "phase": 3
     },
     {
       "file": "src/components/settings/PromptImportModal.tsx",
-      "lines": "66,68,81,86,129,131,199",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "*",
+      "reason": "代码注释-非UI文本",
       "phase": 3
     },
     {
       "file": "src/components/settings/PromptTemplatesSettings.tsx",
-      "lines": "32,241,274,296,378,384,467,531",
-      "reason": "硬编码中文字符串",
+      "lines": "*",
+      "reason": "JSX注释-非UI文本",
       "phase": 3
     },
     {
@@ -526,20 +526,20 @@
     },
     {
       "file": "src/components/settings/ProviderSettings.tsx",
-      "lines": "23,25",
-      "reason": "硬编码中文字符串",
+      "lines": "*",
+      "reason": "代码注释-非UI文本",
       "phase": 3
     },
     {
       "file": "src/components/settings/SchedulerSettings.tsx",
-      "lines": "543,557,574,576,600,928",
-      "reason": "硬编码英文 UI 消息",
+      "lines": "*",
+      "reason": "JSX注释-非UI文本",
       "phase": 3
     },
     {
       "file": "src/components/settings/SettingsPanel.tsx",
-      "lines": "443,445",
-      "reason": "非UI字符串-内部日志",
+      "lines": "*",
+      "reason": "logIpcError调试日志-非UI",
       "phase": 3
     },
     {
@@ -3073,6 +3073,912 @@
       "file": "src/lib/storage.ts",
       "lines": "37",
       "reason": "非UI字符串-内部日志",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/__tests__/ChatBubbleExpandButton.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/__tests__/chatScroll.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/__tests__/chatStreaming.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/__tests__/feedback.phase-b.templates.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/__tests__/InputArea.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/__tests__/toolCallDisplay.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/gateway/__tests__/GatewayDiagnostics.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/gateway/__tests__/GatewayMetrics.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/gateway/__tests__/GatewayOverview.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/gateway/__tests__/GatewayTemplates.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/StockAnalysisConfigPanel.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/__tests__/BackupCenter.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/__tests__/feedback.phase-d.reasoning-control.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/__tests__/McpServerSettings.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/decision-timeline/__tests__/TimelineNodeCard.violations.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/__tests__/dualViewRegistration.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/BacktestPage.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/ComparePage.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/DecisionBanner.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/DecisionTimelinePanel.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/PanelEmpty.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/RecommendationPanel.asOfDate.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/resolveTimelineJump.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/ScreenerPage.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/TradePage.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/TradePanel.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/WatchlistPage.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/__tests__/ReplayWorkbench.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/__tests__/TimeAnchorTour.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/DebugPanel/__tests__/deadEnd.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/__tests__/batchEditUtils.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/__tests__/dndState.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/__tests__/semanticActions.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/timeTravel/__tests__/futureReferenceDetector.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/agentOutput.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/browserMock.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/dualView.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/exportChat.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/htmlParser.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/memoryUtils.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/modelCapabilities.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/searchUtils.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/__tests__/ChatPage.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/__tests__/GatewayPage.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/__tests__/stockAnalysisStore.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/__tests__/stockWorkflowChatBridge.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/__tests__/timeAnchorStore.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/__tests__/conversationStore.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/__tests__/stockAnalysisStore.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/types/__tests__/phase2-types.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/types/__tests__/stock-analysis.test.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/__tests__/App.d2.test.tsx",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/__tests__/e2e/clawcode-agent.e2e.ts",
+      "lines": "*",
+      "reason": "test-测试代码无需国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/WorkflowAgentCard.tsx",
+      "lines": "*",
+      "reason": "逻辑代码-LLM输出解析/非UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/quant/QuantLab.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/quant/charts/QuantMetricsCard.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/quant/tables/TradesTable.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/quant/tabs/StrategyListTab.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/AboutPage.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/AgentProfileManager.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/BackupCenter.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/BalanceBadge.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/CacheConfigPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ConversationSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/DashboardPluginsSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/DynamicPagesSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/EngineConfigForm.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/EngineDetailPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/EvolutionSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ExpertPromptList.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/GatewayConfigPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/IconPickerModal.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ImageGenSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/index.ts",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/LocalToolSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/MemorySettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/MessageChannelSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/PlatformStatusCard.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ProfileManager.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ProfileSelector.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ProxySettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/RolePromptList.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ScheduledAnalysisTab.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/SearchProviderSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/SettingsGroup.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/SettingsMenu.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/SettingsSelect.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ShortcutSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/SkillsHubSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/SourceManager.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/StockAnalysisSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/StorageSpaceManager.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ThemeManager.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ToolManager.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ToolSemanticCheck.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/UserProfileSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/WorkflowSettings.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/AnalysisHistoryButton.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/AnalysisProgress.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/AnnouncementsPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/BacktestPage.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/BacktestPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ClsFlashPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ComparePage.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/DailyReviewPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/DecisionTimelinePanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/EvolutionDriftPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ExecutionReplayPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ExperimentSidebar.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ExperimentTrail.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/HistoricalAnalysisPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/IndexQuotesPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/InvestDashboard.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/KLineChart.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/LimitUpPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/NorthBoundPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/OptionPcrPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/PanelEmpty.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/PeersPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/PortfolioMonitorPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/RecoHistoryModal.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/RecommendationPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ReflectionPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ScreenerPage.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/SectorHeatmapPanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisChatIndicator.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisPage.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisPageContext.ts",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisSettingsModal.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockQuoteCard.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockScreenerPanel.tsx",
+      "lines": "*",
+      "reason": "数据值+注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/timelineJump.ts",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/TradePage.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/TradePanel.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/utils.ts",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ValuationBandChart.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/vendorCheck.ts",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/WatchlistPage.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/decision-timeline/DecisionPhaseOverview.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/decision-timeline/TimelineBody.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/decision-timeline/TimelineNodeCard.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/DualViewRenderer.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/index.ts",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/_shared/PageHeader.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/AsOfDatePicker.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/ModeSwitch.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/PageTimeAnchor.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/ReplayBadge.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/ReplayWorkbench.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/TimeAnchorTour.tsx",
+      "lines": "*",
+      "reason": "中文注释-非UI文本",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/IndustryRankingPanel.tsx",
+      "lines": "*",
+      "reason": "中文单位格式化-非UI",
       "phase": 3
     }
   ]

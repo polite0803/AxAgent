@@ -32,14 +32,17 @@ use crate::strategy::Strategy;
 use crate::types::Bar;
 
 /// Walk-Forward 配置
+///
+/// 注意：train_days / test_days 按 K 线 bar 数计算（非自然日），
+/// 避免非交易日导致窗口长度不一致。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WalkForwardConfig {
-    /// IS 训练窗口大小（自然日，简化处理）
+    /// IS 训练窗口大小（bar 数，非自然日）
     pub train_days: i64,
-    /// OOS 验证窗口大小（自然日）
+    /// OOS 验证窗口大小（bar 数，非自然日）
     pub test_days: i64,
-    /// 步进大小（默认 = test_days，即不重叠）
+    /// 步进 bar 数（默认 = test_days，即不重叠）
     pub step_days: Option<i64>,
     /// anchored 模式（IS 起点固定）
     pub anchored: bool,
@@ -152,66 +155,56 @@ impl WalkForward {
     /// 数据切分（pure function）
     ///
     /// - 假设 klines 已按 date 排序
-    /// - 简化：按自然日切分（不做交易日历）
+    /// - 基于 K 线 bar 索引切分，不依赖自然日历（避免非交易日导致窗口不一致）
     pub fn split(&self, klines: &[Bar]) -> Result<WalkForwardSplit, QuantError> {
         if klines.is_empty() {
             return Err(QuantError::WalkForward("输入 K 线为空".to_string()));
         }
-        let first_date = &klines[0].date;
-        let last_date = &klines[klines.len() - 1].date;
-        let total_days = approx_days(first_date, last_date);
-        if total_days < self.config.train_days + self.config.test_days {
+        let total_bars = klines.len();
+        let train_count = self.config.train_days as usize;
+        let test_count = self.config.test_days as usize;
+        if total_bars < train_count + test_count {
             return Err(QuantError::WalkForward(format!(
-                "数据跨度 {} 天 < train({}) + test({}) = {} 天",
-                total_days,
-                self.config.train_days,
-                self.config.test_days,
-                self.config.train_days + self.config.test_days
+                "数据 bar 数 {} < train({}) + test({}) = {}",
+                total_bars,
+                train_count,
+                test_count,
+                train_count + test_count
             )));
         }
-        let step = self.config.step_days.unwrap_or(self.config.test_days);
+        let step = self.config.step_days.unwrap_or(self.config.test_days) as usize;
+        // 修复 P0-M11: step == 0 会导致 cursor 永不增长，循环条件
+        // `train_start_idx >= total_bars` 永不命中（除非 step 实际为 0 但 folds 已满），
+        // 形成 CPU 死锁。直接拒绝配置。
+        if step == 0 {
+            return Err(QuantError::WalkForward("step_days must be > 0".to_string()));
+        }
         let mut folds = Vec::new();
         let mut fold_idx = 0;
-        let mut cursor = 0i64;
+        let mut cursor = 0usize;
         loop {
-            let train_start_offset = if self.config.anchored { 0 } else { cursor };
-            let train_end_offset = train_start_offset + self.config.train_days;
-            let test_start_offset = if self.config.anchored {
-                self.config.train_days + cursor
+            let train_start_idx = if self.config.anchored { 0 } else { cursor };
+            let train_end_idx = (train_start_idx + train_count).min(total_bars);
+            let test_start_idx = if self.config.anchored {
+                train_count + cursor
             } else {
-                train_end_offset
+                train_end_idx
             };
-            let test_end_offset = test_start_offset + self.config.test_days;
-            if test_end_offset > total_days {
+            let test_end_idx = (test_start_idx + test_count).min(total_bars);
+            if train_start_idx >= total_bars || test_start_idx >= total_bars {
                 break;
             }
-            let train_start = add_days(first_date, train_start_offset);
-            let train_end = add_days(first_date, train_end_offset.saturating_sub(1));
-            let test_start = add_days(first_date, test_start_offset);
-            let test_end = add_days(first_date, test_end_offset.saturating_sub(1));
-            let train_bars: Vec<Bar> = klines
-                .iter()
-                .filter(|b| {
-                    b.date.as_str() >= train_start.as_str() && b.date.as_str() <= train_end.as_str()
-                })
-                .cloned()
-                .collect();
-            let test_bars: Vec<Bar> = klines
-                .iter()
-                .filter(|b| {
-                    b.date.as_str() >= test_start.as_str() && b.date.as_str() <= test_end.as_str()
-                })
-                .cloned()
-                .collect();
+            let train_bars: Vec<Bar> = klines[train_start_idx..train_end_idx].to_vec();
+            let test_bars: Vec<Bar> = klines[test_start_idx..test_end_idx].to_vec();
             if train_bars.len() >= self.config.min_train_bars
                 && test_bars.len() >= self.config.min_test_bars
             {
                 folds.push(WalkForwardFold {
                     fold_idx,
-                    train_start,
-                    train_end,
-                    test_start,
-                    test_end,
+                    train_start: klines[train_start_idx].date.clone(),
+                    train_end: klines[train_end_idx - 1].date.clone(),
+                    test_start: klines[test_start_idx].date.clone(),
+                    test_end: klines[test_end_idx - 1].date.clone(),
                     train_bars_count: train_bars.len(),
                     test_bars_count: test_bars.len(),
                 });
@@ -227,7 +220,9 @@ impl WalkForward {
 
     /// 跑 Walk-Forward 验证
     ///
-    /// - `strategy_factory`: 给定参数，构造一个新 Strategy 实例（grid search 时为每个候选构造）
+    /// - `strategy_factory`: 给定 fold 索引，构造一个新 Strategy 实例。
+    ///   修复 P0-T4: factory 返回 `Result` 而非 `Box<dyn Strategy>`，
+    ///   构造失败时（参数错误 / 状态异常）跳过该 fold 而非 panic。
     /// - `param_grid`: 简化版 — M1 不做 grid search，由 caller 在 factory 内自行选参
     /// - 返回综合报告
     pub async fn run<F>(
@@ -236,12 +231,13 @@ impl WalkForward {
         klines: Vec<Bar>,
     ) -> Result<WalkForwardReport, QuantError>
     where
-        F: Fn(usize) -> Box<dyn Strategy>,
+        F: Fn(usize) -> Result<Box<dyn Strategy>, String>,
     {
         let split = self.split(&klines)?;
         let engine = BacktestEngine::with_defaults();
         let mut windows: Vec<WalkForwardWindowResult> = Vec::new();
         let mut all_oos_points: Vec<EquityPoint> = Vec::new();
+        let mut skipped_folds: Vec<(usize, String)> = Vec::new();
 
         for (i, fold) in split.folds.iter().enumerate() {
             let train_bars: Vec<Bar> = klines
@@ -260,9 +256,17 @@ impl WalkForward {
                 })
                 .cloned()
                 .collect();
-            // 每个 fold 用独立的 strategy 实例（避免状态污染）
-            let mut train_strategy = strategy_factory(i);
-            let mut test_strategy = strategy_factory(i);
+            // 每个 fold 用独立的 strategy 实例（避免状态污染）。
+            // 修复 P0-T4: factory 返回 Result，构造失败时记录并跳过该 fold。
+            let (mut train_strategy, mut test_strategy) =
+                match (strategy_factory(i), strategy_factory(i)) {
+                    (Ok(t), Ok(te)) => (t, te),
+                    (Err(e), _) | (_, Err(e)) => {
+                        tracing::warn!("[WalkForward] 跳过 fold {}: 策略构造失败: {}", i, e);
+                        skipped_folds.push((i, e));
+                        continue;
+                    },
+                };
             let train_result = engine.run(train_strategy.as_mut(), train_bars).await?;
             let test_result = engine.run(test_strategy.as_mut(), test_bars).await?;
             let train_metrics =
@@ -279,9 +283,16 @@ impl WalkForward {
             // 收集 OOS equity（简化：直接拼接 OOS equity）
             all_oos_points.extend(test_result.equity_curve.clone());
             // best_params（M1 简化：取该 fold 的 strategy 参数；M2 阶段接 grid search）
-            let best_params = match strategy_factory(i).params() {
-                serde_json::Value::Object(map) => Some(map.into_iter().collect()),
-                _ => None,
+            // factory 已成功，跳过 fold 的分支已 continue；此处 unwrap 安全。
+            let best_params = match strategy_factory(i) {
+                Ok(s) => match s.params() {
+                    serde_json::Value::Object(map) => Some(map.into_iter().collect()),
+                    _ => None,
+                },
+                Err(e) => {
+                    tracing::warn!("[WalkForward] fold {} 构造 best_params 失败: {}", i, e);
+                    None
+                },
             };
             windows.push(WalkForwardWindowResult {
                 fold: fold.clone(),
@@ -293,6 +304,14 @@ impl WalkForward {
                 degradation_ratio: degradation,
                 overfit_flag,
             });
+        }
+
+        if windows.is_empty() && !skipped_folds.is_empty() {
+            return Err(QuantError::WalkForward(format!(
+                "所有 {} 个 fold 均构造失败（如：{}）",
+                skipped_folds.len(),
+                skipped_folds[0].1
+            )));
         }
 
         let aggregated_oos_metrics = MetricsReport::from_equity_curve(
@@ -332,16 +351,8 @@ impl WalkForward {
 #[allow(dead_code)]
 fn _ensure_used(_: BacktestConfig) {}
 
-fn approx_days(start: &str, end: &str) -> i64 {
-    use chrono::NaiveDate;
-    let s = NaiveDate::parse_from_str(start, "%Y-%m-%d").ok();
-    let e = NaiveDate::parse_from_str(end, "%Y-%m-%d").ok();
-    match (s, e) {
-        (Some(s), Some(e)) => (e - s).num_days(),
-        _ => 0,
-    }
-}
-
+/// 仅在测试中使用的日期加法
+#[allow(dead_code)]
 fn add_days(date: &str, days: i64) -> String {
     use chrono::{Duration, NaiveDate};
     match NaiveDate::parse_from_str(date, "%Y-%m-%d") {

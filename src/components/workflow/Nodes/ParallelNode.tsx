@@ -88,7 +88,7 @@ const ParallelNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) =
       data={data}
       selected={selected}
       icon={isDecorative ? "📦" : "⚡"}
-      childLabel={t("workflow.parallelNode.branches", { defaultValue: "Branches" })}
+      childLabel={t("workflow.parallelNode.branches")}
       extraTags={extraTags}
       disableHandles={isDecorative}
     />

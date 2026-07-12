@@ -887,12 +887,18 @@ pub struct SignalQualityStats {
 static SIGNAL_QUALITY_CACHE: LazyLock<RwLock<HashMap<(String, String), SignalQualityStats>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
+/// 缓存容量上限，超出后按 last_updated 驱逐最旧条目，避免长跑内存无限增长
+const MAX_CACHE_ENTRIES: usize = 4096;
+
 /// 从回测 groups 结果更新信号质量缓存（自动注入 as-of 后缀隔离 live/replay）
 pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStats>) {
     let suffix = axagent_astock_data::as_of::cache_suffix();
-    let now =
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()
-            as u64;
+    // 修复 P0-S4: 系统时钟早于 UNIX_EPOCH 时 unwrap 会 panic（嵌入式/虚拟机时钟漂移场景）。
+    // 改用 unwrap_or_default() 兜底为 0；now=0 会让缓存条目看上去"立即过期"，但功能不挂。
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
     let mut cache = SIGNAL_QUALITY_CACHE.write().unwrap_or_else(|e| e.into_inner());
     for (sid, stats) in positive_stats {
         if stats.total_signals < 5 {
@@ -909,6 +915,15 @@ pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStat
                 last_updated: now,
             },
         );
+    }
+    // 容量上限：超出时按 last_updated 驱逐最旧的约 25%，避免长跑内存无限增长
+    if cache.len() > MAX_CACHE_ENTRIES {
+        let mut aged: Vec<_> = cache.iter().map(|(k, v)| (k.clone(), v.last_updated)).collect();
+        aged.sort_by_key(|(_, ts)| *ts);
+        let drop = cache.len() - MAX_CACHE_ENTRIES + MAX_CACHE_ENTRIES / 4;
+        for (k, _) in aged.into_iter().take(drop) {
+            cache.remove(&k);
+        }
     }
 }
 

@@ -591,6 +591,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         });
     }
 
+    // ── 股票业务客户端与交易引擎 ──
+    let astock_client = Arc::new(axagent_astock_data::AStockClient::new());
+    let trading_engine =
+        Arc::new(TokioRwLock::new(axagent_stock_analysis::trading::TradingEngine::new(
+            Arc::new(sea_db.clone()),
+            astock_client.clone(),
+        )));
+
     Ok(AppState {
         harness,
         gateway: gateway_server,
@@ -663,6 +671,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         plugin_manager,
         file_authorizer,
         session_share_manager,
+        astock_client,
+        trading_engine,
+        stock_monitor: None,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,
         gateway_state,

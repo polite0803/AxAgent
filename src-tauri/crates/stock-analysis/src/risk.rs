@@ -13,8 +13,11 @@ pub const KELLY_MEDIUM_THRESHOLD: f64 = 0.1;
 
 // ── 最大回撤 ──
 
-/// 计算峰值到谷底的最大回撤比例 (0.0~1.0)，复用 backtest.rs 中的逻辑。
-pub fn max_drawdown(prices: &[f64]) -> f64 {
+/// 峰值到谷底的最大回撤比例 (0.0~1.0)。
+///
+/// 本模块内最大回撤的唯一核心实现；`portfolio_monitor::compute_max_drawdown_pct`
+/// 复用本函数（结果 ×100 得到百分比）。
+pub(crate) fn peak_trough_drawdown(prices: &[f64]) -> f64 {
     if prices.is_empty() {
         return 0.0;
     }
@@ -37,12 +40,43 @@ pub fn max_drawdown(prices: &[f64]) -> f64 {
     max_dd
 }
 
+/// 计算峰值到谷底的最大回撤比例 (0.0~1.0)，复用 `peak_trough_drawdown`。
+pub fn max_drawdown(prices: &[f64]) -> f64 {
+    peak_trough_drawdown(prices)
+}
+
 // ── 夏普比率 ──
 
 /// 计算夏普比率：(mean_return - risk_free) / stddev_return。
 /// 使用 `ANNUALIZATION_FACTOR_DAILY` 作为默认年化因子。
 pub fn sharpe_ratio(returns: &[f64], risk_free: f64) -> SharpeResult {
     sharpe_ratio_with_annualization(returns, risk_free, ANNUALIZATION_FACTOR_DAILY)
+}
+
+/// 夏普比率核心计算：返回 (sharpe, annualized, mean_return, stddev)。
+///
+/// 使用样本方差（n-1）；`portfolio_monitor::compute_sharpe` 复用本函数避免重复实现。
+pub(crate) fn sharpe_components(
+    returns: &[f64],
+    risk_free: f64,
+    annualization_factor: f64,
+) -> (f64, f64, f64, f64) {
+    let n = returns.len();
+    if n < 2 {
+        return (0.0, 0.0, 0.0, 0.0);
+    }
+    let mean: f64 = returns.iter().sum::<f64>() / n as f64;
+    let variance: f64 = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
+    let stddev = variance.sqrt();
+    let excess = mean - risk_free;
+    let sharpe = if stddev > 0.0 { excess / stddev } else { 0.0 };
+    let annualized = sharpe * annualization_factor.sqrt();
+    (
+        (sharpe * 1000.0).round() / 1000.0,
+        (annualized * 1000.0).round() / 1000.0,
+        (mean * 10000.0).round() / 100.0,
+        (stddev * 10000.0).round() / 100.0,
+    )
 }
 
 /// 带自定义年化因子的夏普比率。
@@ -52,21 +86,9 @@ pub fn sharpe_ratio_with_annualization(
     risk_free: f64,
     annualization_factor: f64,
 ) -> SharpeResult {
-    let n = returns.len();
-    if n < 2 {
-        return SharpeResult { sharpe: 0.0, annualized: 0.0, mean_return: 0.0, stddev: 0.0 };
-    }
-    let mean: f64 = returns.iter().sum::<f64>() / n as f64;
-    let variance: f64 = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
-    let stddev = variance.sqrt();
-    let excess = mean - risk_free;
-    let sharpe = if stddev > 0.0 { excess / stddev } else { 0.0 };
-    SharpeResult {
-        sharpe: (sharpe * 1000.0).round() / 1000.0,
-        annualized: (sharpe * (annualization_factor.sqrt()) * 1000.0).round() / 1000.0,
-        mean_return: (mean * 10000.0).round() / 100.0,
-        stddev: (stddev * 10000.0).round() / 100.0,
-    }
+    let (sharpe, annualized, mean_return, stddev) =
+        sharpe_components(returns, risk_free, annualization_factor);
+    SharpeResult { sharpe, annualized, mean_return, stddev }
 }
 
 #[derive(Debug, Clone, Serialize)]

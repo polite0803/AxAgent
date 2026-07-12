@@ -8,6 +8,7 @@ use axagent_entities::{
     financial_snapshots, portfolio_holdings, price_alerts, reco_picks, stock_analyses, trades,
     watchlist_items,
 };
+use axagent_harness::market_data::KLine;
 use axagent_stock_analysis::backtest::{
     BacktestEngine, BacktestResult, BacktestStats, HistoricalAnalysis,
 };
@@ -26,6 +27,9 @@ use axagent_stock_analysis::screener::{ScreenCriteria, ScreenResult, StockScreen
 use axagent_stock_analysis::trading::{PositionSummary, TradePredictionComparison};
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 // ── What-If 回测命令（结构化参数方案 Phase 5/6）──
 // 前端 What-If 面板调用此命令，后端执行 Rhai 引擎确保公式与 DAG 中完全一致。
@@ -38,8 +42,15 @@ pub struct WhatIfRequest {
     pub dqi_score: f64,
     pub overall_risk: String,
     pub catalyst_level: String,
-    pub institutional_trace: String,
     pub consensus_score: f64,
+    /// 机构痕迹（龙虎榜/大宗交易/北上资金等汇总描述）
+    #[serde(default)]
+    pub institutional_trace: String,
+    /// DAG 黑板上一次快照（JSON 字符串），包含所有上游节点输出。
+    /// 提供时后端自动解构并注入 portfolio-mgr.rhai 所需的所有参数。
+    /// 缺失时仅根据 6 个显式参数运行（简化模式）。
+    #[serde(default)]
+    pub blackboard_snapshot: Option<String>,
 }
 
 /// What-If 回测结果
@@ -47,16 +58,80 @@ pub struct WhatIfRequest {
 #[serde(rename_all = "camelCase")]
 pub struct WhatIfResult {
     pub decision: String,
+    /// 建议仓位百分比，**语义为 0–100 的整数百分比**（例如 40 表示 40%，不是 0.4）。
+    /// 前端展示时直接当作百分比数值使用，切勿再除以 100。
     pub position_pct: f64,
     pub confidence: f64,
     pub risk_level: String,
     pub stop_loss_pct: f64,
     pub take_profit_pct: f64,
     pub reasoning: String,
+    /// 决策追溯链（来自 portfolio-mgr.rhai 完整输出）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision_trail: Option<Vec<DecisionTrailItem>>,
+    /// 技术面否决详情
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub technical_veto: Option<TechnicalVetoInfo>,
+    /// 模拟门信息
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub simulation_gate: Option<SimulationGateInfo>,
+    /// 模拟门前的原始决策 action
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_sim_action: Option<String>,
+    /// 模拟门前的原始仓位
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_sim_position_pct: Option<f64>,
+}
+
+/// 决策追溯链节点
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DecisionTrailItem {
+    pub rule_id: String,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+}
+
+/// 技术面否决信息
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TechnicalVetoInfo {
+    pub vetoed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rule_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+/// 模拟门信息（S-501~503）
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SimulationGateInfo {
+    pub vetoed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rule_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// 模拟门前的原始决策 action
+    pub pre_sim_action: String,
+    /// 模拟门前的原始仓位
+    pub pre_sim_position_pct: f64,
+    /// 模拟实测的价格稳定性
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sim_stability: Option<f64>,
+    /// 模拟实测的流动性
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sim_liquidity: Option<f64>,
+    /// 模拟实测的冲击成本 (bps)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sim_impact: Option<f64>,
 }
 
 /// 执行 portfolio-mgr 确定性公式（Rhai 引擎）。
-/// 与 `stock_analysis_setup.rs` 中的 Rhai 脚本逻辑完全一致。
+/// 修复 D2: 从文件加载完整 portfolio-mgr.rhai，通过 blackboard_snapshot 提供完整参数。
 #[tauri::command]
 pub fn compute_what_if(params: WhatIfRequest) -> Result<WhatIfResult, String> {
     use rhai::{Engine, Scope};
@@ -64,78 +139,167 @@ pub fn compute_what_if(params: WhatIfRequest) -> Result<WhatIfResult, String> {
     let engine = Engine::new();
     let mut scope = Scope::new();
 
-    // 注入参数
+    // 1. 注入显式参数（用户在前端调整的 6 个核心值）
     scope.push_constant("totalScore", params.total_score);
     scope.push_constant("dqi_score", params.dqi_score);
     scope.push_constant("overall_risk", params.overall_risk.clone());
     scope.push_constant("catalyst_level", params.catalyst_level.clone());
-    scope.push_constant("institutional_trace", params.institutional_trace.clone());
     scope.push_constant("consensusScore", params.consensus_score);
 
-    // portfolio-mgr 确定性公式（与 stock_analysis_setup.rs 中的 Rhai 脚本一致）
-    let code = r#"
-        let consensus_adj = (consensusScore - 50.0) / 100.0 * 10.0;
-        let dqi_adj = (dqi_score - 50.0) / 100.0 * 5.0;
-        let risk_adj = switch overall_risk {
-            "低" => 5.0, "高" => -5.0, "极高" => -10.0, _ => 0.0
-        };
-        let cat_bonus = switch catalyst_level {
-            "L3估值体系级" => 12.0, "L2业绩拐点级" => 6.0, "L1普通消息" => 2.0, _ => 0.0
-        };
-        let inst_bonus = if institutional_trace == "有建仓痕迹" || institutional_trace == "疑似建仓" { 5.0 } else { 0.0 };
-        let adjustment = consensus_adj + dqi_adj + risk_adj + cat_bonus + inst_bonus;
-        let confidence = clamp(totalScore + adjustment, 0.0, 100.0);
-        let base_pos = if risk_adj >= 0.0 { confidence * 0.8 } else { confidence * 0.5 };
-        let position_pct = clamp(base_pos, 0.0, 100.0);
-        let decision = if confidence >= 80.0 && position_pct >= 30.0 { "增持" }
-            else if confidence >= 60.0 { "买入" }
-            else if confidence >= 40.0 { "持有" }
-            else if position_pct < 10.0 { "减持" }
-            else { "持有" };
-        let stop_loss = if position_pct > 0.0 { 8.0 } else { 0.0 };
-        let take_profit = if position_pct > 0.0 { 15.0 } else { 0.0 };
-        let reasoning = `确定性公式结果: totalScore=${totalScore}, dqi=${dqi_score}, risk=${overall_risk}, catalyst=${catalyst_level}, consensus=${consensusScore}, adjustment=${adjustment}, confidence=${confidence}, position=${position_pct}`;
-        #{
-            "decision": decision,
-            "position_pct": position_pct,
-            "confidence": confidence,
-            "risk_level": overall_risk,
-            "stop_loss_pct": stop_loss,
-            "take_profit_pct": take_profit,
-            "reasoning": reasoning
+    // 2. 从 blackboard 快照注入完整参数（修复 D2: 从 _raw.portfolio-mgr.input_params 读取）
+    if let Some(ref snapshot_json) = params.blackboard_snapshot {
+        if let Ok(snapshot) = serde_json::from_str::<serde_json::Value>(snapshot_json) {
+            // 优先路径: _raw.portfolio-mgr.input_params（CodeNode 在 DAG 执行时保存的
+            // 完整 input_mapping 解析值快照，包含所有上游节点注入的参数）
+            // 回退路径: params.portfolio-mgr.input_params（旧版快照）
+            let input_params = snapshot
+                .pointer("/_raw/portfolio-mgr/input_params")
+                .or_else(|| snapshot.pointer("/params/portfolio-mgr/input_params"))
+                .or_else(|| {
+                    // 无 snapshot 时尝试使用根对象
+                    if snapshot.is_object() {
+                        Some(&snapshot)
+                    } else {
+                        None
+                    }
+                });
+
+            if let Some(params_map) = input_params.and_then(|v| v.as_object()) {
+                for (key, val) in params_map {
+                    // 跳过已注入的显式字段（前端显式值优先）
+                    if key == "totalScore"
+                        || key == "dqi_score"
+                        || key == "overall_risk"
+                        || key == "catalyst_level"
+                        || key == "consensusScore"
+                    {
+                        continue;
+                    }
+                    // 根据值类型注入 Rhai scope
+                    match val {
+                        serde_json::Value::Number(n) => {
+                            if let Some(f) = n.as_f64() {
+                                scope.push_constant(key.as_str(), f);
+                            }
+                        },
+                        serde_json::Value::String(s) => {
+                            scope.push_constant(key.as_str(), s.clone());
+                        },
+                        serde_json::Value::Bool(b) => {
+                            scope.push_constant(key.as_str(), *b);
+                        },
+                        // Map 和 Array 通过 JSON 字符串传递，safe_parse 在 Rhai 中处理
+                        serde_json::Value::Object(map) => {
+                            if let Ok(json_str) = serde_json::to_string(map) {
+                                scope.push_constant(key.as_str(), json_str);
+                            }
+                        },
+                        serde_json::Value::Array(arr) => {
+                            if let Ok(json_str) = serde_json::to_string(arr) {
+                                scope.push_constant(key.as_str(), json_str);
+                            }
+                        },
+                        serde_json::Value::Null => { /* 不注入，Rhai 中 present()=false */ },
+                    }
+                }
+            }
+            // 若 _raw.portfolio-mgr.input_params 不存在，快照可能为旧版。
+            // 此时仅 5 个显式参数可用，Rhai 脚本中其他变量 present()=false，走兜底逻辑。
         }
-    "#;
+        // 解析失败不报错，静默降级（只有 5 个显式参数可用）
+    }
+
+    // 3. 从文件加载完整 portfolio-mgr.rhai 公式
+    //    使用 include_str! 编译时嵌入，与 DAG 中实际使用的文件保持同步
+    let code = include_str!("portfolio-mgr.rhai");
 
     let result: rhai::Dynamic = engine
         .eval_with_scope(&mut scope, code)
         .map_err(|e| format!("Rhai execution failed: {e}"))?;
 
-    // 转换结果为 WhatIfResult
-    let result_map = result
-        .clone()
-        .try_cast::<rhai::Map>()
-        .ok_or("Result is not a map")?;
+    // 4. 转换结果为 WhatIfResult
+    let result_map = result.clone().try_cast::<rhai::Map>().ok_or("Result is not a map")?;
+
     let get_str = |key: &str| -> String {
-        result_map
-            .get(key)
-            .and_then(|v| v.clone().try_cast::<String>())
-            .unwrap_or_default()
+        result_map.get(key).and_then(|v| v.clone().try_cast::<String>()).unwrap_or_default()
     };
-    let get_f64 = |key: &str| -> f64 {
-        result_map
-            .get(key)
-            .and_then(|v| v.as_float().ok())
-            .unwrap_or(0.0)
+    let get_f64 =
+        |key: &str| -> f64 { result_map.get(key).and_then(|v| v.as_float().ok()).unwrap_or(0.0) };
+    // 从 map 中递归提取 decision_trail 数组
+    let get_decision_trail = |map: &rhai::Map| -> Option<Vec<DecisionTrailItem>> {
+        let trail_val = map.get("decision_trail")?;
+        let trail_dynamic = trail_val.clone();
+        let trail_array: rhai::Dynamic = trail_dynamic;
+        let arr = trail_array.into_array().ok()?;
+        let items: Vec<DecisionTrailItem> = arr
+            .into_iter()
+            .filter_map(|item| {
+                let item_map = item.try_cast::<rhai::Map>()?;
+                Some(DecisionTrailItem {
+                    rule_id: item_map
+                        .get("rule_id")
+                        .and_then(|v| v.clone().try_cast::<String>())
+                        .unwrap_or_default(),
+                    status: item_map
+                        .get("status")
+                        .and_then(|v| v.clone().try_cast::<String>())
+                        .unwrap_or_default(),
+                    detail: item_map.get("detail").and_then(|v| v.clone().try_cast::<String>()),
+                    timestamp: item_map
+                        .get("timestamp")
+                        .and_then(|v| v.clone().try_cast::<String>()),
+                })
+            })
+            .collect();
+        if items.is_empty() { None } else { Some(items) }
+    };
+    let get_technical_veto = |map: &rhai::Map| -> Option<TechnicalVetoInfo> {
+        let veto_val = map.get("technical_veto")?;
+        let veto_map = veto_val.clone().try_cast::<rhai::Map>()?;
+        Some(TechnicalVetoInfo {
+            vetoed: veto_map.get("vetoed").and_then(|v| v.as_bool().ok()).unwrap_or(false),
+            rule_id: veto_map.get("rule_id").and_then(|v| v.clone().try_cast::<String>()),
+            reason: veto_map.get("reason").and_then(|v| v.clone().try_cast::<String>()),
+        })
+    };
+    let get_simulation_gate = |map: &rhai::Map| -> Option<SimulationGateInfo> {
+        let gate_val = map.get("simulation_gate")?;
+        let gate_map = gate_val.clone().try_cast::<rhai::Map>()?;
+        Some(SimulationGateInfo {
+            vetoed: gate_map.get("vetoed").and_then(|v| v.as_bool().ok()).unwrap_or(false),
+            rule_id: gate_map.get("rule_id").and_then(|v| v.clone().try_cast::<String>()),
+            reason: gate_map.get("reason").and_then(|v| v.clone().try_cast::<String>()),
+            pre_sim_action: gate_map
+                .get("pre_sim_action")
+                .and_then(|v| v.clone().try_cast::<String>())
+                .unwrap_or_default(),
+            pre_sim_position_pct: gate_map
+                .get("pre_sim_position_pct")
+                .and_then(|v| v.as_float().ok())
+                .unwrap_or(0.0),
+            sim_stability: gate_map.get("sim_stability").and_then(|v| v.as_float().ok()),
+            sim_liquidity: gate_map.get("sim_liquidity").and_then(|v| v.as_float().ok()),
+            sim_impact: gate_map.get("sim_impact").and_then(|v| v.as_float().ok()),
+        })
     };
 
     Ok(WhatIfResult {
-        decision: get_str("decision"),
-        position_pct: get_f64("position_pct"),
+        decision: get_str("action"),
+        position_pct: get_f64("positionPct"),
         confidence: get_f64("confidence"),
-        risk_level: get_str("risk_level"),
-        stop_loss_pct: get_f64("stop_loss_pct"),
-        take_profit_pct: get_f64("take_profit_pct"),
+        risk_level: get_str("riskLevel"),
+        stop_loss_pct: get_f64("stopLossPct"),
+        take_profit_pct: get_f64("takeProfitPct"),
         reasoning: get_str("reasoning"),
+        decision_trail: get_decision_trail(&result_map),
+        technical_veto: get_technical_veto(&result_map),
+        simulation_gate: get_simulation_gate(&result_map),
+        pre_sim_action: result_map
+            .get("pre_sim_action")
+            .and_then(|v| v.clone().try_cast::<String>()),
+        pre_sim_position_pct: result_map
+            .get("pre_sim_position_pct")
+            .and_then(|v| v.as_float().ok()),
     })
 }
 
@@ -160,6 +324,52 @@ pub struct ReplayToolChainResult {
     pub valuation_result: serde_json::Value,
     pub risk_result: serde_json::Value,
     pub decision: WhatIfResult,
+    /// 数据源降级标记：为 true 表示本次回放的部分实时数据来自缓存/中性占位，
+    /// 评分权重推演仍可运行，但估值/支撑位等依赖实时行情的结果仅供参考。
+    pub data_degraded: bool,
+}
+
+/// 进程级「最近一次成功获取」的实时数据缓存，供数据源临时不可用时降级回放。
+/// key = 股票代码；value = (K线, 实时行情, 缓存时间戳)。
+/// 修复 D3: 60 秒 TTL + 最多 1000 条限制，过期条目惰性清理。
+static LAST_MARKET_DATA: std::sync::LazyLock<
+    Mutex<HashMap<String, (Vec<KLine>, StockQuote, Instant)>>,
+> = std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+
+const LAST_MARKET_DATA_TTL: Duration = Duration::from_secs(60);
+const LAST_MARKET_DATA_CAP: usize = 1000;
+
+/// 构造一个中性占位的行情（价格为 0、PE 为空），用于 quote 获取失败时的降级，
+/// 使估值/风险/What-If 仍可基于已有 K 线运行（评分权重推演不受影响）。
+///
+/// ## D10 风险分析结论（2026-07-12）
+/// - `neutral_quote` 仅有 1 个调用点：`replay_tool_chain` 中的 K线成功+行情失败分支。
+/// - 该路径下的 `price=0.0` 仅在 downstream `support_score` 计算中作为分子，
+///   分母有 `t > 0` 守卫，不会触发除零崩溃，仅导致 support_score 无意义。
+/// - 其余 `quote.price` 除法使用（PE计算 / 估值比率）均有 `price > 0.0` 前置守卫。
+/// - 结论：**不改 Option**，零值占位是故意设计的降级策略，实际无除零风险。
+fn neutral_quote(code: &str) -> StockQuote {
+    StockQuote {
+        code: code.to_string(),
+        name: String::new(),
+        price: 0.0,
+        pre_close: 0.0,
+        open: 0.0,
+        high: 0.0,
+        low: 0.0,
+        volume: 0.0,
+        amount: 0.0,
+        change_pct: 0.0,
+        turnover_rate: 0.0,
+        pe: None,
+        pb: None,
+        total_mv: None,
+        circulating_mv: None,
+        limit_up: None,
+        limit_down: None,
+        is_st: false,
+        timestamp: String::new(),
+    }
 }
 
 /// 重新运行工具链（t-scoring / t-valuation / t-risk）带上覆盖的配置参数。
@@ -175,27 +385,81 @@ pub async fn replay_tool_chain(
     let code = &params.stock_code;
     let client = Arc::new(AStockClient::new());
 
-    // ── 获取实时数据 ──
-    let (klines, quote) =
+    // ── 获取实时数据（带降级回退）──
+    // 任一数据源失败时，优先使用进程级「最近一次成功」缓存；仅 quote 失败时退化为
+    // 中性占位行情，使评分权重推演仍可运行；两者皆失败且无缓存时才返回明确错误。
+    let (klines_res, quote_res) =
         tokio::join!(client.get_klines(code, "daily", 120), client.get_quote(code),);
-    let klines = klines.map_err(|e| format!("Failed to get klines: {e}"))?;
-    let quote = quote.map_err(|e| format!("Failed to get quote: {e}"))?;
+
+    let (klines, quote, data_degraded) = match (klines_res, quote_res) {
+        (Ok(k), Ok(q)) => (k, q, false),
+        (Ok(k), Err(_)) => {
+            // K 线成功，行情失败 → 中性占位，标记降级（估值/支撑位仅供参考）
+            (k, neutral_quote(code), true)
+        },
+        (Err(_), Ok(q)) => {
+            // 行情成功，K 线失败 → 尝试使用缓存的 K 线（检查 TTL）
+            let cached = LAST_MARKET_DATA
+                .lock()
+                .map_err(|_| "缓存锁 poisoned".to_string())?
+                .get(code)
+                .and_then(|(k, _, ts)| {
+                    if *ts + LAST_MARKET_DATA_TTL >= Instant::now() {
+                        Some(k.clone())
+                    } else {
+                        None
+                    }
+                });
+            match cached {
+                Some(k) => (k, q, true),
+                None => {
+                    return Err(format!(
+                        "Failed to get klines: 数据源暂时不可用且无本地缓存，无法回放"
+                    ));
+                },
+            }
+        },
+        (Err(_), Err(_)) => {
+            // 两者皆失败 → 整组使用缓存（检查 TTL）
+            let cached = LAST_MARKET_DATA
+                .lock()
+                .map_err(|_| "缓存锁 poisoned".to_string())?
+                .get(code)
+                .and_then(|(k, q, ts)| {
+                    if *ts + LAST_MARKET_DATA_TTL >= Instant::now() {
+                        Some((k.clone(), q.clone()))
+                    } else {
+                        None
+                    }
+                });
+            match cached {
+                Some((k, q)) => (k, q, true),
+                None => {
+                    return Err(format!(
+                        "Failed to get market data (klines & quote): 数据源暂时不可用且无本地缓存"
+                    ));
+                },
+            }
+        },
+    };
+
+    // 更新「最近一次成功」缓存（仅当本次确有真实数据，含 TTL + 容量限制）
+    if !data_degraded {
+        if let Ok(mut cache) = LAST_MARKET_DATA.lock() {
+            // 超过容量时清理过期条目
+            if cache.len() >= LAST_MARKET_DATA_CAP {
+                cache.retain(|_, (_, _, ts)| *ts + LAST_MARKET_DATA_TTL >= Instant::now());
+            }
+            cache.insert(code.clone(), (klines.clone(), quote.clone(), Instant::now()));
+        }
+    }
 
     // ── 从 _template_vars 读取参数（用覆盖值替换默认值） ──
     let tv = |key: &str, default: f64| -> f64 {
-        params
-            .config_overrides
-            .get(key)
-            .and_then(|v| v.as_f64())
-            .unwrap_or(default)
+        params.config_overrides.get(key).and_then(|v| v.as_f64()).unwrap_or(default)
     };
     let tv_str = |key: &str, default: &str| -> String {
-        params
-            .config_overrides
-            .get(key)
-            .and_then(|v| v.as_str())
-            .unwrap_or(default)
-            .to_string()
+        params.config_overrides.get(key).and_then(|v| v.as_str()).unwrap_or(default).to_string()
     };
 
     // ── 1. compute_scoring（技术综合评分）──
@@ -267,9 +531,7 @@ pub async fn replay_tool_chain(
         + volume_score * w_volume / 100.0
         + rsi_score * w_rsi / 100.0
         + support_score * w_support / 100.0;
-    let total_score = (base * 0.7 + catalyst_score * 0.3)
-        .round()
-        .clamp(0.0, 100.0);
+    let total_score = (base * 0.7 + catalyst_score * 0.3).round().clamp(0.0, 100.0);
 
     let score_details = serde_json::json!({
         "trendScore": trend_score, "deviationScore": deviation_score,
@@ -325,6 +587,7 @@ pub async fn replay_tool_chain(
         catalyst_level: tv_str("catalyst_level", "无催化剂"),
         institutional_trace: tv_str("institutional_trace", "无异常"),
         consensus_score: 50.0,
+        blackboard_snapshot: None,
     };
     let decision = compute_what_if(what_if)?;
 
@@ -337,6 +600,7 @@ pub async fn replay_tool_chain(
         valuation_result,
         risk_result,
         decision,
+        data_degraded,
     })
 }
 use sea_orm::sea_query::Expr;
@@ -373,11 +637,7 @@ pub async fn search_stock(
     state: State<'_, AppState>,
     keyword: String,
 ) -> Result<Vec<axagent_astock_data::StockSearchResult>, String> {
-    state
-        .astock_client
-        .search_stock(&keyword)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.search_stock(&keyword).await.map_err(|e| e.to_string())
 }
 
 /// 获取实时行情
@@ -394,11 +654,7 @@ pub async fn get_stock_quote(
         .map_err(|e| format!("as_of_date 解析失败: {e}"))?;
     axagent_astock_data::as_of::with_optional_asof(as_of_ctx, async {
         axagent_astock_data::as_of::with_degradation_log(async {
-            state
-                .astock_client
-                .get_quote(&stock_code)
-                .await
-                .map_err(|e| e.to_string())
+            state.astock_client.get_quote(&stock_code).await.map_err(|e| e.to_string())
         })
         .await
     })
@@ -531,18 +787,12 @@ pub async fn generate_fundamentals_report(
     let include_md = request.include_markdown.unwrap_or(true);
 
     // 1. 拉取实时行情
-    let quote = state
-        .astock_client
-        .get_quote(&request.stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
+    let quote =
+        state.astock_client.get_quote(&request.stock_code).await.map_err(|e| e.to_string())?;
 
     // 2. 拉取财务数据（按时间倒序,首项为最新）
-    let financials = state
-        .astock_client
-        .get_financials(&request.stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
+    let financials =
+        state.astock_client.get_financials(&request.stock_code).await.map_err(|e| e.to_string())?;
 
     // 3. 生成报告
     let report = FundamentalsAnalyzer::generate(&request.stock_code, &quote, &financials);
@@ -570,16 +820,9 @@ pub async fn get_fundamentals_report_markdown(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<String, String> {
-    let quote = state
-        .astock_client
-        .get_quote(&stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
-    let financials = state
-        .astock_client
-        .get_financials(&stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
+    let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| e.to_string())?;
+    let financials =
+        state.astock_client.get_financials(&stock_code).await.map_err(|e| e.to_string())?;
     let report = FundamentalsAnalyzer::generate(&stock_code, &quote, &financials);
     Ok(report.to_markdown())
 }
@@ -589,10 +832,7 @@ pub async fn get_fundamentals_report_markdown(
 pub async fn get_cache_stats() -> Result<CacheStats, String> {
     // 当前 L1/L2 cache 由 astock_data 内部管理,后续可改为从 AppState 注入
     // 这里返回 0/0,等 Phase 3 把 cache 提到 AppState 时再接
-    Ok(CacheStats {
-        l1_entries: 0,
-        l2_entries: 0,
-    })
+    Ok(CacheStats { l1_entries: 0, l2_entries: 0 })
 }
 
 /// 取消分析 — 设置取消令牌让后台任务停止
@@ -685,10 +925,7 @@ pub async fn rename_stock_analysis(
         .ok_or_else(|| format!("分析记录不存在: {analysis_id}"))?
         .into();
     record.stock_name = Set(new_name);
-    record
-        .update(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    record.update(state.harness.db()).await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -712,10 +949,7 @@ pub async fn add_to_watchlist(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    model
-        .insert(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    model.insert(state.harness.db()).await.map_err(|e| e.to_string())
 }
 
 /// 移除自选股
@@ -762,10 +996,7 @@ pub async fn add_portfolio_holding(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    model
-        .insert(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    model.insert(state.harness.db()).await.map_err(|e| e.to_string())
 }
 
 /// 更新持仓
@@ -862,8 +1093,7 @@ pub async fn list_portfolio(state: State<'_, AppState>) -> Result<Vec<serde_json
 async fn load_value_config(
     db: &sea_orm::DatabaseConnection,
 ) -> axagent_stock_analysis::decision::ValueConfig {
-    if let Ok(Some(v)) =
-        axagent_dao::repo::settings::get_setting(db, "stock_analysis_config").await
+    if let Ok(Some(v)) = axagent_dao::repo::settings::get_setting(db, "stock_analysis_config").await
     {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&v) {
             if let Some(value_section) = parsed.get("value") {
@@ -930,7 +1160,7 @@ pub async fn backtest_analysis(
     let ctx = AsOfContext::parse_optional(as_of_date.as_deref())?;
     let result = axagent_astock_data::as_of::with_optional_asof(ctx, async {
         BacktestEngine::backtest_decision(
-            &state.astock_client,
+            &*state.astock_client,
             &stock_code,
             &analysis_date,
             &decision_action,
@@ -994,10 +1224,7 @@ pub async fn backtest_all_history(
         "replay" => query.filter(stock_analyses::Column::AnalysisKind.eq("replay")),
         _ => query, // "all" 或未知值 = 不过滤
     };
-    let analyses = query
-        .all(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let analyses = query.all(state.harness.db()).await.map_err(|e| e.to_string())?;
 
     let historical: Vec<HistoricalAnalysis> = analyses
         .iter()
@@ -1011,10 +1238,7 @@ pub async fn backtest_all_history(
             HistoricalAnalysis {
                 stock_code: a.stock_code.clone(),
                 analysis_date: a.analysis_date.clone(),
-                decision_action: a
-                    .decision_action
-                    .clone()
-                    .unwrap_or_else(|| "持有".to_string()),
+                decision_action: a.decision_action.clone().unwrap_or_else(|| "持有".to_string()),
                 decision_confidence: confidence,
                 time_horizon: a.decision_time_horizon.clone(),
                 expected_holding_days: a.decision_expected_holding_days,
@@ -1024,7 +1248,7 @@ pub async fn backtest_all_history(
 
     // 默认持有期参数保留向后兼容，backtest_history 内部会优先使用每条记录的个性化持有期
     let results =
-        BacktestEngine::backtest_history(&state.astock_client, historical, holding_days).await?;
+        BacktestEngine::backtest_history(&*state.astock_client, historical, holding_days).await?;
     let stats = BacktestEngine::compute_stats(&results);
     Ok(stats)
 }
@@ -1097,7 +1321,7 @@ pub async fn run_replay_backtest(
         let effective_holding = item.expected_holding_days.unwrap_or(holding_days);
         let result = as_of::with_optional_asof(ctx, async {
             BacktestEngine::backtest_decision(
-                &state.astock_client,
+                &*state.astock_client,
                 &item.stock_code,
                 &item.as_of_date,
                 &item.decision_action,
@@ -1154,10 +1378,7 @@ pub async fn create_price_alert(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    model
-        .insert(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    model.insert(state.harness.db()).await.map_err(|e| e.to_string())
 }
 
 /// 查询价格告警列表
@@ -1232,8 +1453,8 @@ pub async fn generate_stock_report(
         axagent_astock_data::indicators::compute_indicators(&record.stock_code, &klines);
     let mut score =
         axagent_stock_analysis::scoring::ScoringEngine::score(&indicators, quote.price, None);
-    let pe = quote.pe;
-    let pb = quote.pb;
+    let pe = quote.pe.unwrap_or(0.0);
+    let pb = quote.pb.unwrap_or(0.0);
     let roe = state
         .astock_client
         .get_financials(&record.stock_code)
@@ -1261,13 +1482,8 @@ pub async fn generate_stock_report(
         .unwrap_or(serde_json::Value::Object(Default::default()));
 
     // 辅助：从 Value 中取字符串（空值视为缺失）
-    let bb_str = |k: &str| -> String {
-        bb_value
-            .get(k)
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string()
-    };
+    let bb_str =
+        |k: &str| -> String { bb_value.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string() };
 
     // 分析师报告：所有 report.* 前缀的键
     let analyst_reports: std::collections::HashMap<String, String> = bb_value
@@ -1346,9 +1562,7 @@ pub async fn list_trades(
     limit: Option<u32>,
 ) -> Result<Vec<trades::Model>, String> {
     let engine = state.trading_engine.read().await;
-    engine
-        .get_trades(stock_code.as_deref(), limit.unwrap_or(50))
-        .await
+    engine.get_trades(stock_code.as_deref(), limit.unwrap_or(50)).await
 }
 
 /// 获取持仓汇总（交易日志驱动的成本跟踪）
@@ -1416,9 +1630,7 @@ pub async fn validate_trade(
     price: f64,
 ) -> Result<serde_json::Value, String> {
     let engine = state.trading_engine.read().await;
-    let result = engine
-        .validate_trade(&stock_code, &direction, quantity, price)
-        .await;
+    let result = engine.validate_trade(&stock_code, &direction, quantity, price).await;
     Ok(serde_json::json!({
         "valid": result.valid,
         "errors": result.errors,
@@ -1464,14 +1676,8 @@ pub async fn screen_stocks(
     criteria: ScreenCriteria,
 ) -> Result<Vec<ScreenResult>, String> {
     let watchlist: Vec<(String, String)> =
-        match axagent_entities::watchlist_items::Entity::find()
-            .all(state.harness.db())
-            .await
-        {
-            Ok(rows) => rows
-                .iter()
-                .map(|w| (w.stock_code.clone(), w.stock_name.clone()))
-                .collect(),
+        match axagent_entities::watchlist_items::Entity::find().all(state.harness.db()).await {
+            Ok(rows) => rows.iter().map(|w| (w.stock_code.clone(), w.stock_name.clone())).collect(),
             Err(e) => {
                 tracing::warn!("screen_stocks: 读自选股失败,改用 FALLBACK 池: {}", e);
                 Vec::new()
@@ -1549,15 +1755,12 @@ pub async fn generate_daily_review(state: State<'_, AppState>) -> Result<DailyRe
                     .unwrap_or(0.0),
                 alert.target_price
             );
-            triggered_alerts
-                .entry(alert.stock_code)
-                .or_default()
-                .push(desc);
+            triggered_alerts.entry(alert.stock_code).or_default().push(desc);
         }
     }
 
     PostCloseReview::generate(
-        &state.astock_client,
+        &*state.astock_client,
         &watchlist,
         &triggered_alerts,
         state.harness.db(),
@@ -1572,7 +1775,7 @@ pub async fn generate_daily_review(state: State<'_, AppState>) -> Result<DailyRe
 pub async fn optimize_scoring_weights(
     state: State<'_, AppState>,
 ) -> Result<axagent_stock_analysis::decision::ScoringWeights, String> {
-    axagent_stock_analysis::backtest::optimize_weights(&state.astock_client, state.harness.db())
+    axagent_stock_analysis::backtest::optimize_weights(&*state.astock_client, state.harness.db())
         .await
 }
 
@@ -1624,21 +1827,16 @@ async fn backtest_reco_strategies_inner(
     }
 
     // 3. 解析候选池快照（从任一记录的 seed_pool_json 字段）
-    let seed_pool_json = all_picks
-        .first()
-        .and_then(|p| p.seed_pool_json.as_deref())
-        .unwrap_or("[]");
+    let seed_pool_json =
+        all_picks.first().and_then(|p| p.seed_pool_json.as_deref()).unwrap_or("[]");
 
     let seed_pool: Vec<Vec<String>> = serde_json::from_str(seed_pool_json).unwrap_or_default();
 
     // 4. 分离正向/负向样本
     // 正向 = synthetic=0 的 picks（被策略真实命中的推荐）
     // 负向 = 候选池中 - 正向（但注意：候选池可能有重复，用 HashSet 去重）
-    let positive_set: std::collections::HashSet<String> = all_picks
-        .iter()
-        .filter(|p| p.synthetic == 0)
-        .map(|p| p.stock_code.clone())
-        .collect();
+    let positive_set: std::collections::HashSet<String> =
+        all_picks.iter().filter(|p| p.synthetic == 0).map(|p| p.stock_code.clone()).collect();
 
     let positive_stocks: Vec<(String, String)> = all_picks
         .iter()
@@ -1773,11 +1971,8 @@ pub async fn apply_reco_weights(
         .map_err(|e| format!("读取模板失败: {e}"))?
         .ok_or_else(|| "stock-analysis 模板不存在".to_string())?;
 
-    let mut vars: Vec<serde_json::Value> = tmpl
-        .variables
-        .as_deref()
-        .and_then(|v| serde_json::from_str(v).ok())
-        .unwrap_or_default();
+    let mut vars: Vec<serde_json::Value> =
+        tmpl.variables.as_deref().and_then(|v| serde_json::from_str(v).ok()).unwrap_or_default();
 
     // 2. 构建要写入的 weight map
     let weight_map: BTreeMap<String, f64> = match weights {
@@ -1875,10 +2070,8 @@ pub async fn get_reco_signal_history(
         .map_err(|e| e.to_string())?;
 
     // 3. 构建股票列表（从推荐记录 + 候选池去重）
-    let seed_pool_json = all_picks
-        .first()
-        .and_then(|p| p.seed_pool_json.as_deref())
-        .unwrap_or("[]");
+    let seed_pool_json =
+        all_picks.first().and_then(|p| p.seed_pool_json.as_deref()).unwrap_or("[]");
     let seed_pool: Vec<Vec<String>> = serde_json::from_str(seed_pool_json).unwrap_or_default();
 
     use std::collections::BTreeSet;
@@ -1932,18 +2125,10 @@ pub async fn get_portfolio_dashboard(
         let n = positions.len();
         dashboard.top_concentration_pct = top;
         dashboard.positions = positions.clone();
-        dashboard.total_market_value = positions
-            .iter()
-            .map(|p| p.market_value.unwrap_or(0.0))
-            .sum();
-        dashboard.total_pnl = positions
-            .iter()
-            .map(|p| p.unrealized_pnl.unwrap_or(0.0))
-            .sum();
-        let cost: f64 = positions
-            .iter()
-            .map(|p| p.avg_cost * p.total_shares as f64)
-            .sum();
+        dashboard.total_market_value =
+            positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
+        dashboard.total_pnl = positions.iter().map(|p| p.unrealized_pnl.unwrap_or(0.0)).sum();
+        let cost: f64 = positions.iter().map(|p| p.avg_cost * p.total_shares as f64).sum();
         dashboard.total_pnl_pct = if cost > 0.0 {
             (dashboard.total_pnl / cost) * 100.0
         } else {
@@ -1987,7 +2172,7 @@ pub async fn refresh_portfolio_metrics(
 
     let corr_count = portfolio_monitor::refresh_correlation(
         state.harness.db(),
-        &state.astock_client,
+        &*state.astock_client,
         &positions,
         60,
         as_of,
@@ -2034,10 +2219,7 @@ pub async fn check_position_limits(
     let _ = stock_code; // sector lookup not used yet; keep on signature for forward-compat
     let engine = state.trading_engine.read().await;
     let positions = engine.get_positions().await?;
-    let total_mv: f64 = positions
-        .iter()
-        .map(|p| p.market_value.unwrap_or(0.0))
-        .sum();
+    let total_mv: f64 = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
     let (top, sector_exposures, _max_sec) = portfolio_monitor::compute_concentration(&positions);
     let _ = top;
     let sector_pairs: Vec<(String, f64)> = sector_exposures.into_iter().collect();
@@ -2078,14 +2260,8 @@ pub async fn get_value_assessment(
     stock_code: String,
 ) -> Result<axagent_stock_analysis::value::ValueAssessment, String> {
     let client = &state.astock_client;
-    let quote = client
-        .get_quote(&stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
-    let financials = client
-        .get_financials(&stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
+    let quote = client.get_quote(&stock_code).await.map_err(|e| e.to_string())?;
+    let financials = client.get_financials(&stock_code).await.map_err(|e| e.to_string())?;
     let shares = quote.total_mv.and_then(|mv| {
         if quote.price > 0.0 {
             Some(mv / quote.price / 1_0000_0000.0)
@@ -2115,16 +2291,9 @@ pub async fn compute_value_metrics(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<axagent_stock_analysis::value_investing::ValueMetrics, String> {
-    let quote = state
-        .astock_client
-        .get_quote(&stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
-    let financials = state
-        .astock_client
-        .get_financials(&stock_code)
-        .await
-        .map_err(|e| e.to_string())?;
+    let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| e.to_string())?;
+    let financials =
+        state.astock_client.get_financials(&stock_code).await.map_err(|e| e.to_string())?;
     let total_shares = quote.total_mv.and_then(|mv| {
         if quote.price > 0.0 {
             Some(mv / quote.price / 1_0000_0000.0)
@@ -2159,11 +2328,7 @@ pub async fn get_stock_research_reports(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::ResearchReport>, String> {
-    state
-        .astock_client
-        .get_research_reports(&stock_code)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_research_reports(&stock_code).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2171,11 +2336,7 @@ pub async fn get_stock_consensus_eps(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Option<axagent_astock_data::ConsensusEPS>, String> {
-    state
-        .astock_client
-        .get_consensus_eps(&stock_code)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_consensus_eps(&stock_code).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2183,11 +2344,7 @@ pub async fn get_stock_concept_blocks(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Option<axagent_astock_data::ConceptBlocks>, String> {
-    state
-        .astock_client
-        .get_concept_blocks(&stock_code)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_concept_blocks(&stock_code).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2195,11 +2352,7 @@ pub async fn get_stock_announcements(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::Announcement>, String> {
-    state
-        .astock_client
-        .get_announcements(&stock_code)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_announcements(&stock_code).await.map_err(|e| e.to_string())
 }
 
 /// 财报披露日历(R3-B):
@@ -2211,11 +2364,7 @@ pub async fn get_earnings_calendar(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::EarningsEvent>, String> {
-    state
-        .astock_client
-        .get_earnings_calendar(&stock_code)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_earnings_calendar(&stock_code).await.map_err(|e| e.to_string())
 }
 
 /// 估值带(R3-C):
@@ -2273,12 +2422,7 @@ pub async fn compute_valuation_band(
     }
     let samples: Vec<SnapAdapter> = historical
         .into_iter()
-        .map(|m| SnapAdapter {
-            date: m.snapshot_date,
-            pe: m.pe_ttm,
-            pb: m.pb,
-            ps: m.ps_ttm,
-        })
+        .map(|m| SnapAdapter { date: m.snapshot_date, pe: m.pe_ttm, pb: m.pb, ps: m.ps_ttm })
         .collect();
 
     let band = axagent_astock_data::valuation_band::compute_valuation_band(
@@ -2318,66 +2462,42 @@ pub async fn list_financial_snapshots(
 pub async fn get_hot_stocks(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::HotStock>, String> {
-    state
-        .astock_client
-        .get_hot_stocks()
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_hot_stocks().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_industry_ranking(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::IndustryRank>, String> {
-    state
-        .astock_client
-        .get_industry_ranking()
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_industry_ranking().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_cls_flash(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::ClsFlashItem>, String> {
-    state
-        .astock_client
-        .get_cls_flash()
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_cls_flash().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_market_dragon_tiger(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::MarketDragonTiger>, String> {
-    state
-        .astock_client
-        .get_market_dragon_tiger()
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_market_dragon_tiger().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_north_bound_flow(
     state: State<'_, AppState>,
 ) -> Result<Option<axagent_astock_data::NorthBoundFlow>, String> {
-    state
-        .astock_client
-        .get_north_bound_flow()
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_north_bound_flow().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_index_quotes(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::IndexQuote>, String> {
-    state
-        .astock_client
-        .get_index_quotes()
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_index_quotes().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2385,11 +2505,7 @@ pub async fn get_stock_peers(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::PeerComparison>, String> {
-    state
-        .astock_client
-        .get_peers(&stock_code)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_peers(&stock_code).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -2397,11 +2513,7 @@ pub async fn get_stock_option_pcr(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Option<axagent_astock_data::OptionPCR>, String> {
-    state
-        .astock_client
-        .get_option_pcr(&stock_code)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.get_option_pcr(&stock_code).await.map_err(|e| e.to_string())
 }
 
 // ── CronJob 定时任务（基于上游 CronJobStore + 持久化）──
@@ -2449,11 +2561,7 @@ pub async fn create_stock_cron(
     let id = format!(
         "stock-{}-{}",
         stock_code,
-        uuid::Uuid::new_v4()
-            .to_string()
-            .split('-')
-            .next()
-            .unwrap_or("x")
+        uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("x")
     );
     let prompt = format!("对 {} ({}) 执行完整股票分析", stock_code, stock_name);
     let desc = format!("定时分析 {}", stock_code);
@@ -2515,14 +2623,8 @@ pub async fn create_portfolio_scan_cron(
     cron_expression: String,
     enabled: Option<bool>,
 ) -> Result<CronJobResponse, String> {
-    let id = format!(
-        "pfscan-{}",
-        uuid::Uuid::new_v4()
-            .to_string()
-            .split('-')
-            .next()
-            .unwrap_or("x")
-    );
+    let id =
+        format!("pfscan-{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("x"));
     let mut job = CronJob::new(
         &id,
         &cron_expression,
@@ -2586,11 +2688,10 @@ pub async fn delete_portfolio_scan_cron(
 pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> Result<(), String> {
     // 对需要 token/密钥的 vendor，先从数据库加载凭据到内存
     if vendor == "xueqiu" || vendor == "iwencai" || vendor == "neodata" {
-        let template =
-            axagent_entities::workflow_template::Entity::find_by_id("stock-analysis")
-                .one(state.harness.db())
-                .await
-                .map_err(|e| e.to_string())?;
+        let template = axagent_entities::workflow_template::Entity::find_by_id("stock-analysis")
+            .one(state.harness.db())
+            .await
+            .map_err(|e| e.to_string())?;
         if let Some(t) = template {
             let vars = extract_template_vars(&t);
             for (name, value) in &vars {
@@ -2623,11 +2724,7 @@ pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> 
         }
     }
 
-    state
-        .astock_client
-        .check_vendor_health(&vendor)
-        .await
-        .map_err(|e| e.to_string())
+    state.astock_client.check_vendor_health(&vendor).await.map_err(|e| e.to_string())
 }
 
 /// 将 NeoData token 保存到 Python 脚本缓存文件
@@ -2853,34 +2950,26 @@ pub async fn recommend_stocks(
 
     // ── 持久化荐股结果（仅 live 模式） ──
     if as_of_date.is_none() {
-        let generated_at = chrono::Local::now()
-            .format("%Y-%m-%dT%H:%M:%S%.3f")
-            .to_string();
+        let generated_at = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f").to_string();
         let created_at = generated_at.clone();
 
         // 构建策略权重快照（用于回溯某次荐股时的权重配置）
         let strategy_weights_json: Option<String> = {
             let vars_clone: Vec<(String, serde_json::Value)> = vars.clone();
-            vars_clone
-                .iter()
-                .find(|(k, _)| k == "reco_strategy_weights")
-                .and_then(|(_, v)| {
-                    if v.is_object() {
-                        Some(v.to_string())
-                    } else {
-                        None
-                    }
-                })
+            vars_clone.iter().find(|(k, _)| k == "reco_strategy_weights").and_then(|(_, v)| {
+                if v.is_object() {
+                    Some(v.to_string())
+                } else {
+                    None
+                }
+            })
         };
 
         // 构建候选池快照（用于回测的负向样本）
         use axagent_stock_analysis::recommender::pool::build_seed_pool;
         let seed = build_seed_pool(&state.astock_client).await;
         let seed_pool_json = serde_json::to_string(
-            &seed
-                .iter()
-                .map(|(c, n, _)| vec![c.as_str(), n.as_str()])
-                .collect::<Vec<_>>(),
+            &seed.iter().map(|(c, n, _)| vec![c.as_str(), n.as_str()]).collect::<Vec<_>>(),
         )
         .unwrap_or_default();
 
@@ -3083,14 +3172,12 @@ pub async fn get_latest_analysis_for_stock(
 
     // 从 decision_json 提取 confidence
     let confidence: Option<i32> = model.decision_json.as_ref().and_then(|raw| {
-        serde_json::from_str::<serde_json::Value>(raw)
-            .ok()
-            .and_then(|v| {
-                v.get("confidence")
-                    .or_else(|| v.get("weighted_confidence"))
-                    .and_then(|c| c.as_i64())
-                    .map(|i| i as i32)
-            })
+        serde_json::from_str::<serde_json::Value>(raw).ok().and_then(|v| {
+            v.get("confidence")
+                .or_else(|| v.get("weighted_confidence"))
+                .and_then(|c| c.as_i64())
+                .map(|i| i as i32)
+        })
     });
 
     Ok(Some(LatestAnalysisSummary {
@@ -3141,14 +3228,12 @@ pub async fn get_latest_analyses_for_stocks(
 
         let summary = row.map(|model| {
             let confidence: Option<i32> = model.decision_json.as_ref().and_then(|raw| {
-                serde_json::from_str::<serde_json::Value>(raw)
-                    .ok()
-                    .and_then(|v| {
-                        v.get("confidence")
-                            .or_else(|| v.get("weighted_confidence"))
-                            .and_then(|c| c.as_i64())
-                            .map(|i| i as i32)
-                    })
+                serde_json::from_str::<serde_json::Value>(raw).ok().and_then(|v| {
+                    v.get("confidence")
+                        .or_else(|| v.get("weighted_confidence"))
+                        .and_then(|c| c.as_i64())
+                        .map(|i| i as i32)
+                })
             });
 
             LatestAnalysisSummary {
@@ -3199,14 +3284,8 @@ pub async fn create_watchlist_scan_cron(
     cron_expression: String,
     enabled: Option<bool>,
 ) -> Result<CronJobResponse, String> {
-    let id = format!(
-        "wlscan-{}",
-        uuid::Uuid::new_v4()
-            .to_string()
-            .split('-')
-            .next()
-            .unwrap_or("x")
-    );
+    let id =
+        format!("wlscan-{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("x"));
     let mut job = CronJob::new(
         &id,
         &cron_expression,
@@ -3282,14 +3361,7 @@ pub async fn create_validate_decisions_cron(
     reflection_depth: Option<String>,
     enabled: Option<bool>,
 ) -> Result<CronJobResponse, String> {
-    let id = format!(
-        "vldec-{}",
-        uuid::Uuid::new_v4()
-            .to_string()
-            .split('-')
-            .next()
-            .unwrap_or("x")
-    );
+    let id = format!("vldec-{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("x"));
     let expr = cron_expression.unwrap_or_else(|| "0 6 * * *".to_string());
     let threshold = min_confidence_threshold.unwrap_or(0);
     let depth = reflection_depth.unwrap_or_else(|| "light".to_string());
@@ -3360,14 +3432,8 @@ pub async fn create_batch_reflection_cron(
     cron_expression: Option<String>,
     enabled: Option<bool>,
 ) -> Result<CronJobResponse, String> {
-    let id = format!(
-        "batchref-{}",
-        uuid::Uuid::new_v4()
-            .to_string()
-            .split('-')
-            .next()
-            .unwrap_or("x")
-    );
+    let id =
+        format!("batchref-{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("x"));
     let expr = cron_expression.unwrap_or_else(|| "0 18 * * *".to_string());
     let mut job = CronJob::new(
         &id,
@@ -3443,10 +3509,7 @@ pub async fn list_reflections(
     if let Some(ref code) = stock_code {
         query = query.filter(stock_reflections::Column::StockCode.eq(code));
     }
-    let items = query
-        .all(db)
-        .await
-        .map_err(|e| format!("查询反思记录失败: {e}"))?;
+    let items = query.all(db).await.map_err(|e| format!("查询反思记录失败: {e}"))?;
     let limit = limit.unwrap_or(50) as usize;
     let result: Vec<serde_json::Value> = items
         .into_iter()
@@ -3569,10 +3632,7 @@ pub async fn list_param_suggestions(
     if let Some(ref code) = stock_code {
         query = query.filter(stock_reflections::Column::StockCode.eq(code));
     }
-    let items = query
-        .all(db)
-        .await
-        .map_err(|e| format!("查询参数建议失败: {e}"))?;
+    let items = query.all(db).await.map_err(|e| format!("查询参数建议失败: {e}"))?;
 
     let result: Vec<serde_json::Value> = items
         .into_iter()
@@ -3616,18 +3676,12 @@ pub async fn apply_param_suggestions(
         .map_err(|e| format!("读取模板失败: {e}"))?
         .ok_or_else(|| "stock-analysis 模板不存在".to_string())?;
 
-    let mut vars: Vec<serde_json::Value> = tmpl
-        .variables
-        .as_deref()
-        .and_then(|v| serde_json::from_str(v).ok())
-        .unwrap_or_default();
+    let mut vars: Vec<serde_json::Value> =
+        tmpl.variables.as_deref().and_then(|v| serde_json::from_str(v).ok()).unwrap_or_default();
 
     // 2. 逐个更新
     for update in &updates {
-        let param_name = update
-            .get("param")
-            .and_then(|v| v.as_str())
-            .ok_or("缺少 param")?;
+        let param_name = update.get("param").and_then(|v| v.as_str()).ok_or("缺少 param")?;
         let new_value = update.get("value").ok_or("缺少 value")?;
 
         // 找到匹配的变量并更新 value
@@ -3754,10 +3808,8 @@ pub async fn manual_recalc_strategy_weights(
     )
     .await?;
     // 同时返回当前生效的 weights 便于前端 refresh
-    let flat: Vec<(String, String, f64)> = new_weights
-        .into_iter()
-        .map(|((s, p), w)| (s, p, w))
-        .collect();
+    let flat: Vec<(String, String, f64)> =
+        new_weights.into_iter().map(|((s, p), w)| (s, p, w)).collect();
     Ok(serde_json::json!({
         "written": written,
         "currentWeights": flat,
@@ -3788,10 +3840,8 @@ pub async fn get_reco_strategy_weights(
 pub async fn get_t0_config(
     state: State<'_, AppState>,
 ) -> Result<axagent_stock_analysis::monitor::TZeroConfig, String> {
-    let monitor = state
-        .stock_monitor
-        .as_ref()
-        .ok_or_else(|| "RealtimeMonitor 未初始化".to_string())?;
+    let monitor =
+        state.stock_monitor.as_ref().ok_or_else(|| "RealtimeMonitor 未初始化".to_string())?;
     Ok(monitor.t0_config().await)
 }
 
@@ -3801,10 +3851,8 @@ pub async fn set_t0_config(
     state: State<'_, AppState>,
     config: axagent_stock_analysis::monitor::TZeroConfig,
 ) -> Result<(), String> {
-    let monitor = state
-        .stock_monitor
-        .as_ref()
-        .ok_or_else(|| "RealtimeMonitor 未初始化".to_string())?;
+    let monitor =
+        state.stock_monitor.as_ref().ok_or_else(|| "RealtimeMonitor 未初始化".to_string())?;
     monitor.set_t0_config(config).await;
     Ok(())
 }
@@ -4028,70 +4076,69 @@ pub async fn quick_backtest(
     let mut total_return = 0.0f64;
 
     for (i, analysis_date) in sample_dates.iter().enumerate() {
-        let ctx = AsOfContext::parse_optional(request.as_of_date.as_deref())?;
-
-        let sample_result = as_of::with_optional_asof(ctx, async {
-            // 获取采样日的实际行情（as-of 模式下会回放到该日期）
+        // 获取采样日行情作为 entry price（使用请求级的 as-of 上下文）
+        let entry_ctx = AsOfContext::parse_optional(request.as_of_date.as_deref())?;
+        let entry_price = as_of::with_optional_asof(entry_ctx, async {
             let client = &state.astock_client;
-
-            // 获取采样日行情作为 entry price
             let klines = client
                 .get_klines(&stock_code, "daily", 1)
                 .await
                 .map_err(|e| format!("获取 K 线失败({analysis_date}): {e}"))?;
-
-            let entry_price = klines.first().map(|k| k.close).unwrap_or(0.0);
-
-            // 计算持有期后的 exit date
-            let _exit_date = {
-                let base = NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d").unwrap_or_default();
-                let mut exit = base;
-                let mut days_forward = 0;
-                while days_forward < hold_days {
-                    exit = exit.succ_opt().unwrap_or(exit);
-                    if exit.weekday().num_days_from_monday() < 5 {
-                        days_forward += 1;
-                    }
-                }
-                exit.format("%Y-%m-%d").to_string()
-            };
-
-            // 获取退出日行情
-            let exit_klines = client
-                .get_klines(&stock_code, "daily", 1)
-                .await
-                .ok()
-                .unwrap_or_default();
-
-            let exit_price = exit_klines.first().map(|k| k.close).unwrap_or(0.0);
-
-            let return_pct = if entry_price > 0.0 {
-                ((exit_price - entry_price) / entry_price) * 100.0
-            } else {
-                0.0
-            };
-
-            let was_correct = return_pct > 0.0;
-            if was_correct {
-                correct_count += 1;
-            }
-            total_return += return_pct;
-
-            Ok::<QuickBacktestSample, String>(QuickBacktestSample {
-                analysis_date: analysis_date.clone(),
-                entry_price,
-                exit_price,
-                return_pct,
-                was_correct,
-                decision_action: if return_pct > 0.0 {
-                    "买入".into()
-                } else {
-                    "卖出/持有".into()
-                },
-                decision_confidence: 50.0f64.min(50.0 + return_pct.abs()),
-            })
+            Ok::<f64, String>(klines.first().map(|k| k.close).unwrap_or(0.0))
         })
         .await?;
+
+        // 计算持有期后的 exit date
+        let exit_date_str = {
+            let base = NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d").unwrap_or_default();
+            let mut exit = base;
+            let mut days_forward = 0;
+            while days_forward < hold_days {
+                exit = exit.succ_opt().unwrap_or(exit);
+                if exit.weekday().num_days_from_monday() < 5 {
+                    days_forward += 1;
+                }
+            }
+            exit.format("%Y-%m-%d").to_string()
+        };
+
+        // 使用 as-of 模式获取退出日行情（fix D1: 以前使用同一个 as_of 上下文，无视 exit_date）
+        let exit_ctx = AsOfContext::parse_optional(Some(&exit_date_str))?;
+        let exit_price = as_of::with_optional_asof(exit_ctx, async {
+            let client = &state.astock_client;
+            let klines = client
+                .get_klines(&stock_code, "daily", 1)
+                .await
+                .map_err(|e| format!("获取退出日K线失败({exit_date_str}): {e}"))?;
+            Ok::<f64, String>(klines.first().map(|k| k.close).unwrap_or(0.0))
+        })
+        .await?;
+
+        let return_pct = if entry_price > 0.0 {
+            ((exit_price - entry_price) / entry_price) * 100.0
+        } else {
+            0.0
+        };
+
+        let was_correct = return_pct > 0.0;
+        if was_correct {
+            correct_count += 1;
+        }
+        total_return += return_pct;
+
+        let sample_result = QuickBacktestSample {
+            analysis_date: analysis_date.clone(),
+            entry_price,
+            exit_price,
+            return_pct,
+            was_correct,
+            decision_action: if return_pct > 0.0 {
+                "买入".into()
+            } else {
+                "卖出/持有".into()
+            },
+            decision_confidence: 50.0f64.min(50.0 + return_pct.abs()),
+        };
 
         samples.push(sample_result);
 

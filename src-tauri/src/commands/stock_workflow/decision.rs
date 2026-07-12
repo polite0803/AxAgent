@@ -28,10 +28,7 @@ pub(crate) enum QualityPrecheckResult {
     /// 部分数据缺失但可继续
     Partial(String),
     /// 数据不足，跳过（含结构化缺失清单，供前端展示数据缺失报告）
-    Insufficient {
-        summary: String,
-        missing_sources: Vec<DataMissingItem>,
-    },
+    Insufficient { summary: String, missing_sources: Vec<DataMissingItem> },
 }
 
 /// P1-3: 单数据源预检结果(供多源聚合用)
@@ -68,10 +65,7 @@ pub(crate) fn aggregate_precheck(sources: Vec<(&str, SourceCheck)>) -> QualityPr
             .map(|item| format!("{}: {}", item.source, item.detail))
             .collect::<Vec<_>>()
             .join("; ");
-        QualityPrecheckResult::Insufficient {
-            summary,
-            missing_sources,
-        }
+        QualityPrecheckResult::Insufficient { summary, missing_sources }
     } else if !partial_msgs.is_empty() {
         QualityPrecheckResult::Partial(partial_msgs.join("; "))
     } else {
@@ -309,26 +303,14 @@ pub(crate) async fn load_and_inject_template(
     // stock_code/stock_name 已通过 AgentNodeConfig.input_mapping 自动注入到每个 Agent 节点的 system_prompt，
     // 不再需要手动遍历追加（参见 stock_analysis_setup.rs 中 agent() 宏的 input_mapping 配置）。
 
-    let input_schema: Option<JsonSchema> = template
-        .input_schema
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
-    let output_schema: Option<JsonSchema> = template
-        .output_schema
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
-    let variables: Option<Vec<Variable>> = template
-        .variables
-        .as_ref()
-        .and_then(|v| serde_json::from_str(v).ok());
+    let input_schema: Option<JsonSchema> =
+        template.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let output_schema: Option<JsonSchema> =
+        template.output_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let variables: Option<Vec<Variable>> =
+        template.variables.as_ref().and_then(|v| serde_json::from_str(v).ok());
 
-    Ok(LoadedTemplate {
-        nodes,
-        edges,
-        input_schema,
-        output_schema,
-        variables,
-    })
+    Ok(LoadedTemplate { nodes, edges, input_schema, output_schema, variables })
 }
 
 /// 工作流结果 → blackboard_snapshot — 现已委托给 axagent-stock-analysis::blackboard 模块
@@ -345,18 +327,10 @@ pub(crate) fn extract_decision_fields(
         Ok(v) => v,
         Err(_) => return (None, None, None, None, None),
     };
-    let action = parsed
-        .get("action")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let position_pct = parsed
-        .get("positionPct")
-        .or_else(|| parsed.get("position_pct"))
-        .and_then(|v| v.as_f64());
-    let reasoning = parsed
-        .get("reasoning")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let action = parsed.get("action").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let position_pct =
+        parsed.get("positionPct").or_else(|| parsed.get("position_pct")).and_then(|v| v.as_f64());
+    let reasoning = parsed.get("reasoning").and_then(|v| v.as_str()).map(|s| s.to_string());
     let time_horizon = parsed
         .get("timeHorizon")
         .or_else(|| parsed.get("time_horizon"))
@@ -414,9 +388,7 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
         }
     }
     // 回退: workflow 顶层 output(无 output_schema 或非 stock-analysis 工作流)
-    wf.output
-        .as_ref()
-        .and_then(|v| serde_json::to_string(v).ok())
+    wf.output.as_ref().and_then(|v| serde_json::to_string(v).ok())
 }
 
 /// 从 Workflow 结果中提取 trader 节点的 LLM 决策 JSON。
@@ -577,11 +549,7 @@ pub(crate) fn compute_decision_agreement(
     let lj = serde_json::from_str::<serde_json::Value>(llm_json?).ok()?;
 
     // 归一化操作字符串
-    let norm = |s: &str| {
-        s.trim()
-            .to_lowercase()
-            .replace([' ', '/', '_', '\u{3000}'], "")
-    };
+    let norm = |s: &str| s.trim().to_lowercase().replace([' ', '/', '_', '\u{3000}'], "");
 
     // 公式字段: action / positionPct / confidence
     let f_action = fj.get("action").and_then(|v| v.as_str().map(norm));
@@ -594,16 +562,8 @@ pub(crate) fn compute_decision_agreement(
     let l_conf = lj.get("confidence").and_then(|v| v.as_f64());
 
     // V50: 保存原始 action 值用于诊断展示
-    let f_action_raw = fj
-        .get("action")
-        .and_then(|v| v.as_str())
-        .unwrap_or("?")
-        .to_string();
-    let l_action_raw = lj
-        .get("action")
-        .and_then(|v| v.as_str())
-        .unwrap_or("?")
-        .to_string();
+    let f_action_raw = fj.get("action").and_then(|v| v.as_str()).unwrap_or("?").to_string();
+    let l_action_raw = lj.get("action").and_then(|v| v.as_str()).unwrap_or("?").to_string();
     // V50: 预计算维度差值
     let pos_gap: Option<f64> = match (f_pos, l_pos) {
         (Some(a), Some(b)) => Some((a - b).abs()),
@@ -703,9 +663,7 @@ pub(crate) fn compute_decision_agreement(
                 None
             };
             let posterior = obj.get("posterior").and_then(|p| p.as_f64());
-            let action = obj
-                .get("action")
-                .and_then(|a| a.as_str().map(|s| s.to_string()));
+            let action = obj.get("action").and_then(|a| a.as_str().map(|s| s.to_string()));
             Some((f7_weight_pct, posterior, action))
         } else {
             None
@@ -809,24 +767,27 @@ pub(crate) fn parse_asof_param(s: Option<String>) -> Result<Option<AsOfContext>,
 /// （trader/research-mgr 等节点 3 轮 LLM+工具调用总耗时约 200-400s）。
 const DEFAULT_MAX_CONCURRENT: usize = 8;
 const DEFAULT_STEP_TIMEOUT_SECS: u64 = 600;
+/// 工作流整体超时（秒）。单步 step_timeout 只限单节点，多步累计可能很久；
+/// 总超时兜底防止 LLM 卡死或 vendor 长时间无响应导致分析永久挂起。
+/// 默认 30 分钟 = 1800s，覆盖典型 10+ 节点工作流（每步 600s × 并发 8 的最坏路径）。
+const DEFAULT_TOTAL_TIMEOUT_SECS: u64 = 1800;
 
 /// 从模板 variables 中解析 RunOptions 关键参数。
 ///
 /// 用户在「股票分析设置 → 参数」中调整 `max_concurrent` /
-/// `agent_timeout_secs` 后，这里读到的就是新值；如果模板里没有这两个
-/// key（旧版本 / 用户清空）则用默认值。
+/// `agent_timeout_secs` / `total_timeout_secs` 后，这里读到的就是新值；
+/// 如果模板里没有这些 key（旧版本 / 用户清空）则用默认值。
 ///
 /// 容错策略：
 ///   * 越界 / 非法类型 → 用默认值；
 ///   * max_concurrent ∈ [1, 32]，过小会让并发退化为串行，过大会拖垮 LLM 速率。
 ///   * step_timeout ∈ [10, 3600] 秒，避免 0 或极端大值。
+///   * total_timeout ∈ [60, 7200] 秒，下限 1 分钟，上限 2 小时。
 pub(crate) fn resolve_runtime_options(
     variables: Option<&[axagent_harness::workflow_types::Variable]>,
-) -> (usize, std::time::Duration) {
+) -> (usize, std::time::Duration, std::time::Duration) {
     let lookup = |name: &str| -> Option<serde_json::Value> {
-        variables
-            .and_then(|vs| vs.iter().find(|v| v.name == name))
-            .map(|v| v.value.clone())
+        variables.and_then(|vs| vs.iter().find(|v| v.name == name)).map(|v| v.value.clone())
     };
 
     let max_concurrent = lookup("max_concurrent")
@@ -839,7 +800,16 @@ pub(crate) fn resolve_runtime_options(
         .map(|n| n.clamp(10, 3600))
         .unwrap_or(DEFAULT_STEP_TIMEOUT_SECS);
 
-    (max_concurrent, std::time::Duration::from_secs(step_timeout_secs))
+    let total_timeout_secs = lookup("total_timeout_secs")
+        .and_then(|v| v.as_u64())
+        .map(|n| n.clamp(60, 7200))
+        .unwrap_or(DEFAULT_TOTAL_TIMEOUT_SECS);
+
+    (
+        max_concurrent,
+        std::time::Duration::from_secs(step_timeout_secs),
+        std::time::Duration::from_secs(total_timeout_secs),
+    )
 }
 
 #[cfg(test)]
@@ -1086,11 +1056,8 @@ pub async fn rerun_decision(
     // 将 _raw.{nodeId} 条目提升到顶层（去除 _raw. 前缀），使 input_mapping
     // 中的原始 nodeId 路径（如 t-scoring.result.totalScore）能正确解析。
     // _raw.* 由 build_blackboard_snapshot 在 blackboard.rs 中写入。
-    let raw_keys: Vec<String> = snapshot
-        .keys()
-        .filter(|k| k.starts_with("_raw."))
-        .cloned()
-        .collect();
+    let raw_keys: Vec<String> =
+        snapshot.keys().filter(|k| k.starts_with("_raw.")).cloned().collect();
     if !raw_keys.is_empty() {
         for raw_key in raw_keys {
             if let Some(key) = raw_key.strip_prefix("_raw.") {
@@ -1119,8 +1086,7 @@ pub async fn rerun_decision(
                 } else if *k == "raw.combined" {
                     Some(("raw-data".to_string(), k.clone()))
                 } else {
-                    k.strip_prefix("report.")
-                        .map(|id| (id.to_string(), k.clone()))
+                    k.strip_prefix("report.").map(|id| (id.to_string(), k.clone()))
                 }
             })
             .collect();
@@ -1181,10 +1147,7 @@ pub async fn rerun_decision(
         }
     });
     engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-        arr.iter()
-            .map(|item| item.to_string())
-            .collect::<Vec<_>>()
-            .join(sep)
+        arr.iter().map(|item| item.to_string()).collect::<Vec<_>>().join(sep)
     });
     let mut scope = Scope::new();
 
@@ -1247,9 +1210,7 @@ pub async fn rerun_decision(
             source_key.clone()
         } else {
             // 尝试剥除 node_id.result. → node_id. 和 node_id.content. → node_id.
-            source_key
-                .replacen(".result.", ".", 1)
-                .replacen(".content.", ".", 1)
+            source_key.replacen(".result.", ".", 1).replacen(".content.", ".", 1)
         };
         // V40 修复: 旧版 snapshot 中 remapped key 的查找
         // resolve_path 的第一步是 vars.get(parts[0])，如果 parts[0] 是
@@ -1427,20 +1388,12 @@ pub async fn rerun_decision(
     let decision_value = to_json(&result);
 
     // 5. 提取决策字段
-    let action = decision_value
-        .get("action")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let action = decision_value.get("action").and_then(|v| v.as_str()).map(|s| s.to_string());
     let position_pct = decision_value.get("positionPct").and_then(|v| v.as_f64());
     let confidence = decision_value.get("confidence").and_then(|v| v.as_f64());
-    let reasoning = decision_value
-        .get("reasoning")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let time_horizon = decision_value
-        .get("timeHorizon")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let reasoning = decision_value.get("reasoning").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let time_horizon =
+        decision_value.get("timeHorizon").and_then(|v| v.as_str()).map(|s| s.to_string());
     let holding_days = decision_value.get("expectedHoldingDays").and_then(|v| {
         if let Some(f) = v.as_f64() {
             Some(f as i64)

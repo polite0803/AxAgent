@@ -86,6 +86,7 @@
     "selectDestination": "Please select import destination",
     "selectKnowledgeBaseFirst": "Please select a knowledge base first",
     "importSuccess": "Import successful",
+    "importPartial": "Import done: {ok} succeeded, {failed} failed (failed items not written; check codes and retry)",
     "folderSelected": "Folder selected: {{path}}"
   },
   "chat": {
@@ -8279,6 +8280,8 @@
     "cost": "Cost",
     "disabledHint": "Enable to record buy/sell trades. Tracks position cost and P&L.",
     "fillRequired": "Fill required fields",
+    "quickRecordInvalid": "Invalid decision params, target price/position ignored, please fill manually",
+    "quickRecordHint": "Quick fill: target price and position % must be valid (position 0–100%)",
     "limitsBlocked": "Position limits blocked",
     "placeholder": "Execute & replay trades",
     "pnl": "P&L",
@@ -9553,8 +9556,8 @@
           "mainInflow": "Main Inflow ≥",
           "dragonTiger": "Dragon&Tiger ≥",
           "northbound": "Northbound ≥",
-          "rsiOversold": "RSI Oversold",
-          "rsiOverbought": "RSI Overbought"
+          "rsiOversold": "RSI Oversold (<30)",
+          "rsiOverbought": "RSI Overbought (>70)"
         },
         "unit10k": "10k"
       },
@@ -10177,7 +10180,12 @@
     "stockAnalysis.workflow.riskConvergence": "风险收敛",
     "stockAnalysis.workflow.riskLevel": "风险",
     "stockAnalysis.workflow.riskNeutral": "中性风险评估",
-    "stockAnalysis.workflow.vValidate": "验证"
+    "stockAnalysis.workflow.vValidate": "验证",
+    "settings_StockAnalysisSettings.001": "定时",
+    "stock-analysis_RecommendationPanel.001": "title",
+    "stock-analysis_RecommendationPanel.002": "请先勾选要应用的策略",
+    "stock-analysis_RecommendationPanel.003": "所选项的权重值无效(NaN/缺失),无法应用",
+    "stock-analysis_StockAnalysisPage.001": "title"
   },
   "learningGraph": {
     "title": "Learning Graph",
