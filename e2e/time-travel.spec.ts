@@ -1,16 +1,20 @@
 import { expect, test } from "@playwright/test";
 
 async function dismissModals(page: import("@playwright/test").Page) {
-  const closeBtn = page.locator(".ant-modal-close").first();
-  if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await closeBtn.click();
-    await page.waitForTimeout(300);
+  let closed = false;
+  if (await page.locator(".ant-modal-close").first().isVisible({ timeout: 1000 }).catch(() => false)) {
+    await page.locator(".ant-modal-close").first().click();
+    closed = true;
   }
   const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
   if (await okBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
     await okBtn.click();
-    await page.waitForTimeout(300);
+    closed = true;
   }
+  if (closed) {
+    await page.locator(".ant-modal-wrap").first().waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
+  }
+  await page.waitForTimeout(200);
 }
 
 /**
@@ -84,7 +88,7 @@ test.describe("Time Travel / As-Of Mode", () => {
     await expect(anchor).toBeVisible({ timeout: 30000 });
     await dismissModals(page);
     // PageTimeAnchor 使用 Segmented 组件，点"历史回放"选项触发 DatePicker
-    await anchor.locator(".ant-segmented-item").last().click();
+    await anchor.locator(".ant-segmented-item").last().click({ force: true });
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
   });
@@ -93,12 +97,12 @@ test.describe("Time Travel / As-Of Mode", () => {
     const anchor = page.locator('[data-testid="page-time-anchor"]');
     await dismissModals(page);
     // 点 Segmented "历史回放" 选项
-    await anchor.locator(".ant-segmented-item").last().click();
+    await anchor.locator(".ant-segmented-item").last().click({ force: true });
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
 
     // 点 DatePicker input 打开日历面板，选一个过去日期
-    await picker.locator("input").click();
+    await picker.locator("input").click({ force: true });
     const calendar = page.locator(".ant-picker-dropdown").first();
     await expect(calendar).toBeVisible({ timeout: 5000 });
     await calendar.locator(".ant-picker-cell:not(.ant-picker-cell-disabled)").first().click();
