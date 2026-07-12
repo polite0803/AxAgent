@@ -1,14 +1,15 @@
+import { PageHeader } from "@/components/stock-analysis/_shared/PageHeader";
 import { AsOfDatePicker } from "@/components/time-travel/AsOfDatePicker";
 import { ReplayBadge, ReplayWatermark } from "@/components/time-travel/ReplayBadge";
 import { ReplaySweep } from "@/components/time-travel/ReplaySweep";
 import { useTimeAnchorStore } from "@/stores/feature/timeAnchorStore";
 import { Alert, Button, Card, Empty, Space, Typography } from "antd";
-import { History, RotateCcw, Zap } from "lucide-react";
+import { RotateCcw, Zap } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-const { Title, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 /**
  * ReplayWorkbench — 时间旅行回放工作台
@@ -51,121 +52,120 @@ export function ReplayWorkbench() {
   };
 
   return (
-    <div style={{ padding: "24px 16px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <History size={20} />
-        <Title level={3} style={{ margin: 0 }}>
-          {t("replayWorkbench.title")}
-        </Title>
-        {isLocked && <ReplayBadge />}
-      </div>
+    <div className="flex h-full flex-col">
+      <PageHeader titleKey="replayWorkbench.title" backTo="/stock-analysis" backLabelKey="nav.chat" />
+      <div style={{ padding: "24px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          {isLocked && <ReplayBadge />}
+        </div>
 
-      <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        {t("replayWorkbench.description")}
-      </Paragraph>
+        <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+          {t("replayWorkbench.description")}
+        </Paragraph>
 
-      <Card
-        title={
-          <span>
-            <span style={{ marginRight: 8 }}>1️⃣</span>
-            {t("replayWorkbench.step1.title")}
-          </span>
-        }
-        size="small"
-        style={{ marginBottom: 16 }}
-      >
-        {chosen === null
-          ? (
-            <AsOfDatePicker
-              onPick={handlePick}
-              onCancel={() => navigate("/backtest")}
-            />
-          )
-          : (
-            <Space size="middle" wrap>
-              <span style={{ fontSize: 13 }}>
-                {t("replayWorkbench.step1.currentlyPicked", { date: chosen })}
-              </span>
-              <Button
-                size="small"
-                icon={<RotateCcw size={12} />}
-                onClick={handleReset}
-                data-testid="replay-reset-btn"
-              >
-                {t("replayWorkbench.step1.reselect")}
-              </Button>
-            </Space>
-          )}
-      </Card>
-
-      {chosen && (
         <Card
           title={
             <span>
-              <span style={{ marginRight: 8 }}>2️⃣</span>
-              {t("replayWorkbench.step2.title")}
+              <span style={{ marginRight: 8 }}>1️⃣</span>
+              {t("replayWorkbench.step1.title")}
             </span>
           }
           size="small"
-          style={{ marginBottom: 16, position: "relative" }}
+          style={{ marginBottom: 16 }}
         >
-          <div style={{ position: "relative" }}>
-            <Paragraph type="secondary" style={{ marginBottom: 12 }}>
-              {t("replayWorkbench.step2.description", { date: chosen })}
-            </Paragraph>
-            <Space wrap>
-              <Button
-                type="primary"
-                onClick={() => navigate("/stock-analysis")}
-                data-testid="goto-stock-analysis"
-              >
-                {t("replayWorkbench.step2.analyze")}
-              </Button>
-              <Button
-                onClick={() => navigate("/backtest")}
-                data-testid="goto-backtest"
-              >
-                {t("replayWorkbench.step2.backtest")}
-              </Button>
-              <Button
-                onClick={() => navigate("/watchlist")}
-                data-testid="goto-watchlist"
-              >
-                {t("replayWorkbench.step2.watchlist")}
-              </Button>
-            </Space>
-            <ReplayWatermark />
-          </div>
+          {chosen === null
+            ? (
+              <AsOfDatePicker
+                onPick={handlePick}
+                onCancel={() => navigate("/backtest")}
+              />
+            )
+            : (
+              <Space size="middle" wrap>
+                <span style={{ fontSize: 13 }}>
+                  {t("replayWorkbench.step1.currentlyPicked", { date: chosen })}
+                </span>
+                <Button
+                  size="small"
+                  icon={<RotateCcw size={12} />}
+                  onClick={handleReset}
+                  data-testid="replay-reset-btn"
+                >
+                  {t("replayWorkbench.step1.reselect")}
+                </Button>
+              </Space>
+            )}
         </Card>
-      )}
 
-      <Alert
-        type="info"
-        showIcon
-        message={t("replayWorkbench.notice")}
-        style={{ marginBottom: 16 }}
-      />
+        {chosen && (
+          <Card
+            title={
+              <span>
+                <span style={{ marginRight: 8 }}>2️⃣</span>
+                {t("replayWorkbench.step2.title")}
+              </span>
+            }
+            size="small"
+            style={{ marginBottom: 16, position: "relative" }}
+          >
+            <div style={{ position: "relative" }}>
+              <Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                {t("replayWorkbench.step2.description", { date: chosen })}
+              </Paragraph>
+              <Space wrap>
+                <Button
+                  type="primary"
+                  onClick={() => navigate("/stock-analysis")}
+                  data-testid="goto-stock-analysis"
+                >
+                  {t("replayWorkbench.step2.analyze")}
+                </Button>
+                <Button
+                  onClick={() => navigate("/backtest")}
+                  data-testid="goto-backtest"
+                >
+                  {t("replayWorkbench.step2.backtest")}
+                </Button>
+                <Button
+                  onClick={() => navigate("/watchlist")}
+                  data-testid="goto-watchlist"
+                >
+                  {t("replayWorkbench.step2.watchlist")}
+                </Button>
+              </Space>
+              <ReplayWatermark />
+            </div>
+          </Card>
+        )}
 
-      <ReplaySweep />
+        <Alert
+          type="info"
+          showIcon
+          message={t("replayWorkbench.notice")}
+          style={{ marginBottom: 16 }}
+        />
 
-      {isLocked && (
-        <Card size="small" style={{ borderColor: "var(--sa-red, #ef4444)" }}>
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("replayWorkbench.exitHint")}
-          />
-          <div style={{ textAlign: "center", marginTop: 12 }}>
-            <Button
-              danger
-              icon={<Zap size={12} />}
-              onClick={handleSwitchToLive}
-              data-testid="replay-exit-btn"
-            >
-              {t("replayWorkbench.exitBtn")}
-            </Button>
-          </div>
-        </Card>
-      )}
+        <ReplaySweep />
+
+        {isLocked && (
+          <Card size="small" style={{ borderColor: "var(--sa-red, #ef4444)" }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("replayWorkbench.exitHint")}
+            />
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <Button
+                danger
+                icon={<Zap size={12} />}
+                onClick={handleSwitchToLive}
+                data-testid="replay-exit-btn"
+              >
+                {t("replayWorkbench.exitBtn")}
+              </Button>
+            </div>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
