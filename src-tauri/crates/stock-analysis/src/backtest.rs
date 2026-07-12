@@ -4,7 +4,7 @@ use crate::decision::ScoringWeights;
 
 /// 回测使用的日 K 线数量（约 2 个交易年）。覆盖 analysis_date 后需有足够余量。
 const BACKTEST_KLINE_COUNT: u32 = 500;
-use axagent_harness::market_data::MarketDataProvider;
+use axagent_harness::market_data::{AdjType, MarketDataProvider};
 use sea_orm::DatabaseConnection;
 
 /// 回测结果
@@ -111,11 +111,12 @@ impl BacktestEngine {
     ) -> Result<BacktestResult, String> {
         // 取最近 BACKTEST_KLINE_COUNT 日K线，最大化覆盖 analysis_date 的概率
         // 注：get_klines 返回最近 N 根K线（按时间升序），若 analysis_date 超出范围则回测失败
+        // 修复 R3: 使用前复权（Forward）消除除权除息造成的价格跳变，避免回测收益失真
         let klines = client
-            .get_klines(stock_code, "daily", BACKTEST_KLINE_COUNT, None)
+            .get_klines(stock_code, "daily", BACKTEST_KLINE_COUNT, Some(AdjType::Forward))
             .await
             .map_err(|e| format!("获取K线失败: {e}"))?;
-        if klines.iter().all(|k| k.date.as_str() < analysis_date) {
+        if klines.iter().all(|k| k.date.as_str() <= analysis_date) {
             return Err(format!("{stock_code} 无 {analysis_date} 之后的K线数据"));
         }
 
@@ -123,22 +124,26 @@ impl BacktestEngine {
             return Err(format!("{stock_code} 无K线数据"));
         }
 
-        let entry_idx = klines.iter().position(|k| k.date.as_str() >= analysis_date);
+        // 修复 P0: 前视偏差 — 原代码用 analysis_date 当天收盘价作为入场价，
+        // 但当天收盘才知道价格，实际最早只能在次日开盘执行买入。
+        // 改为：找到 analysis_date 之后的第一根 K 线，用其开盘价作为入场价。
+        let entry_idx = klines.iter().position(|k| k.date.as_str() > analysis_date);
         let entry_price = match entry_idx {
-            Some(i) => Some(klines[i].close),
-            None => return Err(format!("{stock_code} 在 {analysis_date} 无K线数据，无法回测")),
+            Some(i) => Some(klines[i].open), // 次日开盘价入场
+            None => return Err(format!("{stock_code} 在 {analysis_date} 之后无K线数据，无法回测")),
         };
 
+        // 修复 P1: T+1 漏洞 — holding_days=0 时当天买入当天卖出，违反 A 股 T+1 交收规则。
+        // 最小持有 1 个交易日（入场次日开盘买入，最早 T+1 卖出）。
+        let holding_days = holding_days.max(1);
         let exit_idx =
             entry_idx.map(|i| (i + holding_days as usize).min(klines.len() - 1)).unwrap();
         let exit_price = klines[exit_idx].close;
 
         // 计算持有期间最大回撤
-        let relevant: Vec<_> = klines
-            .iter()
-            .skip_while(|k| k.date.as_str() < analysis_date)
-            .take(holding_days as usize + 1)
-            .collect();
+        // 注：relevant 范围从入场日（entry_idx）到出场日（exit_idx），含两端
+        let relevant: Vec<_> =
+            klines.iter().skip(entry_idx.unwrap()).take(holding_days as usize + 1).collect();
 
         let mut peak = 0.0_f64;
         let mut max_dd = 0.0;
@@ -199,7 +204,10 @@ impl BacktestEngine {
     ) -> Result<Vec<BacktestResult>, String> {
         let mut results = Vec::new();
         for analysis in analyses {
-            let holding_days = analysis.expected_holding_days.unwrap_or(default_holding_days);
+            // 修复 P1: T+1 下界校验 — expected_holding_days=0 时当天买入当天卖出，
+            // 违反 A 股 T+1 交收规则。强制最小持有 1 个交易日。
+            let holding_days =
+                analysis.expected_holding_days.unwrap_or(default_holding_days).max(1);
             match Self::backtest_decision(
                 client,
                 &analysis.stock_code,

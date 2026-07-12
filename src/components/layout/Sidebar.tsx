@@ -136,7 +136,7 @@ const builtinNavItems: NavItem[] = [
   },
   {
     key: "stock-analysis",
-    icon: <LineChart size={18} color={NAV_ICON_COLORS.Router} />,
+    icon: <LineChart size={17} />,
     labelKey: "nav.stockAnalysis",
     path: "/stock-analysis",
     isPlugin: false,
@@ -164,7 +164,7 @@ const builtinNavItems: NavItem[] = [
   },
   {
     key: "backtest",
-    icon: <Icon icon="fluent:chart-20-filled" size={17} />,
+    icon: <Icon icon="fluent:gantt-chart-20-filled" size={17} />,
     labelKey: "nav.backtest",
     path: "/backtest",
     isPlugin: false,

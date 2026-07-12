@@ -299,8 +299,10 @@ fn sector_beta(sector: &str) -> f64 {
         0.5
     } else if s.contains("医药") || s.contains("medical") || s.contains("health") {
         0.9
-    } else if s.contains("能源") || s.contains("能源") || s.contains("energy") {
+    } else if s.contains("能源") || s.contains("energy") {
         1.1
+    } else if s.contains("地产") || s.contains("房地产") || s.contains("real_estate") {
+        1.2
     } else if s.contains("公用") || s.contains("utility") {
         0.4
     } else {

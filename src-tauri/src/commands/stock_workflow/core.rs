@@ -122,6 +122,7 @@ async fn run_stock_workflow_inner(
         decision_reasoning: Set(None),
         decision_json: Set(None),
         llm_decision_json: Set(None),
+        node_results_snapshot: Set(None),
         blackboard_snapshot: Set(None),
         config_id: Set(None),
         // Time-travel metadata: 标记该 analysis 为 replay 模式 + 截止日
@@ -1092,6 +1093,7 @@ pub async fn run_single_stock_analysis(
         decision_reasoning: Set(None),
         decision_json: Set(None),
         llm_decision_json: Set(None),
+        node_results_snapshot: Set(None),
         blackboard_snapshot: Set(None),
         config_id: Set(None),
         analysis_kind: Set("live".into()),

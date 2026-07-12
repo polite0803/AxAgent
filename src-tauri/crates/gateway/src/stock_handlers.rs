@@ -167,6 +167,7 @@ pub async fn start_analysis(
         decision_time_horizon: Set(None),
         decision_expected_holding_days: Set(None),
         llm_decision_json: Set(None),
+        node_results_snapshot: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };

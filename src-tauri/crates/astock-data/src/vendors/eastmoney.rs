@@ -196,7 +196,7 @@ impl StockVendor for EastMoneyVendor {
         stock_code: &str,
         period: &str,
         limit: u32,
-        _adj: Option<AdjType>,
+        adj: Option<AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
         let period_code = match period {
             "5" | "Min5" => "5",
@@ -209,8 +209,15 @@ impl StockVendor for EastMoneyVendor {
             _ => "101",
         };
         let secid = to_em_secid(stock_code);
+        // 修复 R3: 根据 adj 参数选择 fqt（0=不复权, 1=前复权, 2=后复权）
+        // 原硬编码 fqt=1 导致 adj_type=None 时仍返回前复权数据，与不复权语义不符
+        let fqt = match adj {
+            None | Some(AdjType::None) => 0,
+            Some(AdjType::Forward) => 1,
+            Some(AdjType::Backward) => 2,
+        };
         let url = format!(
-            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt={period_code}&fqt=1&end=20500101&lmt={limit}"
+            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt={period_code}&fqt={fqt}&end=20500101&lmt={limit}"
         );
 
         let resp = self.em_get(&url).await?;
@@ -220,6 +227,9 @@ impl StockVendor for EastMoneyVendor {
             .as_array()
             .ok_or_else(|| DataError::ParseError("missing klines array".into()))?;
 
+        // vendor 已应用复权 → 标记 adj_factor = Some(1.0) 表示已处理
+        // （实际复权因子不是 1.0，但 lib 层只检查 is_some 判断是否需要本地 fallback）
+        let adj_marker = if fqt == 0 { None } else { Some(1.0) };
         let mut klines: Vec<KLine> = klines_raw
             .iter()
             .map(|v| {
@@ -242,8 +252,8 @@ impl StockVendor for EastMoneyVendor {
                     volume: parse(parts[5]),
                     amount: parse(parts[6]),
                     turnover_rate: Some(parse(parts[10])),
-                    // P1-4: vendor 默认不复权
-                    adj_factor: None,
+                    // R3: vendor 已复权时标记，避免 lib 层二次应用
+                    adj_factor: adj_marker,
                 })
             })
             .collect::<Result<Vec<_>, DataError>>()?;
@@ -1532,7 +1542,7 @@ impl StockVendor for EastMoneyVendor {
         stock_code: &str,
         period: &str,
         limit: u32,
-        _adj: Option<AdjType>,
+        adj: Option<AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
         let period_code = match period {
             "5" | "Min5" => "5",
@@ -1548,14 +1558,22 @@ impl StockVendor for EastMoneyVendor {
             .ok_or_else(|| DataError::ParseError("no as_of context".into()))?;
         let end_date = as_of.as_of_date.format("%Y%m%d").to_string();
         let secid = to_em_secid(stock_code);
+        // 修复 R3: 与 get_klines 一致，根据 adj 参数选择 fqt
+        let fqt = match adj {
+            None | Some(AdjType::None) => 0,
+            Some(AdjType::Forward) => 1,
+            Some(AdjType::Backward) => 2,
+        };
         let url = format!(
-            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt={period_code}&fqt=1&end={end_date}&lmt={limit}"
+            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt={period_code}&fqt={fqt}&end={end_date}&lmt={limit}"
         );
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
         let klines_raw = json["data"]["klines"]
             .as_array()
             .ok_or_else(|| DataError::ParseError("missing klines array".into()))?;
+        // vendor 已应用复权 → 标记 adj_factor = Some(1.0) 表示已处理
+        let adj_marker = if fqt == 0 { None } else { Some(1.0) };
         let mut klines: Vec<KLine> = klines_raw
             .iter()
             .map(|v| {
@@ -1582,8 +1600,8 @@ impl StockVendor for EastMoneyVendor {
                     } else {
                         None
                     },
-                    // P1-4: vendor 默认不复权
-                    adj_factor: None,
+                    // R3: vendor 已复权时标记，避免 lib 层二次应用
+                    adj_factor: adj_marker,
                 })
             })
             .collect::<Result<_, _>>()?;

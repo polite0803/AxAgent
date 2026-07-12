@@ -20,7 +20,7 @@ export function AgentPanelHeader() {
     <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-color)] shrink-0">
       <div className="flex items-center gap-2 min-w-0">
         <Bot size={18} className="text-[var(--color-primary)] shrink-0" />
-        <span className="font-semibold text-sm truncate">AxAgent</span>
+        <span className="font-semibold text-sm truncate">{t("app.name")}</span>
       </div>
 
       <div className="flex-1 mx-3 min-w-0">

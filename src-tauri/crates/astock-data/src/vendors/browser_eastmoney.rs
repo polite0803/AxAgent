@@ -82,10 +82,21 @@ async fn browser_fetch(
     fetcher: Option<&Arc<dyn BrowserHttpFetch>>,
     url: &str,
 ) -> Result<Value, DataError> {
-    let f = fetcher.ok_or_else(|| DataError::VendorError {
-        vendor: "browser_eastmoney".into(),
-        message: "browser fetcher not configured".into(),
-    })?;
+    let f = match fetcher {
+        Some(f) => f,
+        None => {
+            // 修复 R3: fetcher 未注入时显式告警，避免静默失败导致调试黑洞
+            // 常见原因：非浏览器环境启动（如纯 CLI / 测试），未调用 register_browser_fetcher
+            tracing::warn!(
+                url = %url,
+                "[browser_eastmoney] fetcher 未配置，跳过浏览器请求（非浏览器环境或未注入 BrowserHttpFetch）"
+            );
+            return Err(DataError::VendorError {
+                vendor: "browser_eastmoney".into(),
+                message: "browser fetcher not configured (non-browser environment)".into(),
+            });
+        },
+    };
 
     // ── 惰性预热：仅首次请求执行，后续跳过 ──
     ensure_warmed_up(f.as_ref()).await;
@@ -177,7 +188,7 @@ impl StockVendor for BrowserEastMoneyVendor {
         stock_code: &str,
         period: &str,
         limit: u32,
-        _adj: Option<AdjType>,
+        adj: Option<AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
         let secid = to_em_secid(stock_code);
         let klt = match period {
@@ -186,14 +197,22 @@ impl StockVendor for BrowserEastMoneyVendor {
             "monthly" | "103" | "Monthly" => "103",
             _ => "101",
         };
+        // 修复 R3: 与 eastmoney vendor 一致，根据 adj 参数选择 fqt
+        let fqt = match adj {
+            None | Some(AdjType::None) => 0,
+            Some(AdjType::Forward) => 1,
+            Some(AdjType::Backward) => 2,
+        };
         let url = format!(
-            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt={klt}&fqt=1&end=20500101&lmt={limit}"
+            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt={klt}&fqt={fqt}&end=20500101&lmt={limit}"
         );
         let json = browser_fetch(self.fetcher.as_ref(), &url).await?;
         let klines = json["data"]["klines"]
             .as_array()
             .ok_or_else(|| DataError::ParseError("no klines array in response".into()))?;
 
+        // vendor 已应用复权 → 标记 adj_factor = Some(1.0) 表示已处理
+        let adj_marker = if fqt == 0 { None } else { Some(1.0) };
         let mut result = Vec::with_capacity(klines.len());
         for item in klines {
             let s = item.as_str().unwrap_or("");
@@ -211,7 +230,8 @@ impl StockVendor for BrowserEastMoneyVendor {
                 volume: p(5),
                 amount: p(6),
                 turnover_rate: None,
-                adj_factor: None,
+                // R3: vendor 已复权时标记，避免 lib 层二次应用
+                adj_factor: adj_marker,
             });
         }
         Ok(result)

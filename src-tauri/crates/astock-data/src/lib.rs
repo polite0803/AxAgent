@@ -1231,19 +1231,22 @@ impl AStockClient {
         self.get_klines_with_adj(stock_code, period, limit, None).await
     }
 
-    /// K 线查询，支持复权方式 (R3-A 接口, P1-4 vendor 接入后真正用上)
+    /// K 线查询，支持复权方式 (R3-A 接口)
     ///
-    /// 当前实现:`adj_type=None` 时等同于 `get_klines`;非 None 时按 P1-3 计划
-    /// 在 vendor 链路前/后挂上 `apply_adjustment`,目前是 stub,行为退化为
-    /// 不复权（保留原 vendor 形态）。等 P1-4 完成后再启用真正复权。
+    /// 实现策略：
+    /// - `adj_type=None` 或 `Some(AdjType::None)`：不复权，直接返回 vendor 原始数据
+    /// - `Some(AdjType::Forward)` 或 `Some(AdjType::Backward)`：
+    ///   1. vendor 若支持复权（如 eastmoney 的 fqt 参数），返回的 K 线 `adj_factor` 标记为 `Some`
+    ///   2. vendor 若不支持复权（如 sina/163），返回的 K 线 `adj_factor` 为 `None`，
+    ///      lib 层检测到后本地应用 `compute_adj_factors` + `apply_adjustment`
     pub async fn get_klines_with_adj(
         &self,
         stock_code: &str,
         period: &str,
         limit: u32,
-        _adj_type: Option<crate::types::AdjType>,
+        adj_type: Option<crate::types::AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
-        let cache_key = Self::kline_cache_key(stock_code, period, _adj_type);
+        let cache_key = Self::kline_cache_key(stock_code, period, adj_type);
         let fetch_limit = limit.max(500);
 
         {
@@ -1274,11 +1277,9 @@ impl AStockClient {
                     let cap = vendor.asof_capability("get_klines");
                     let klines = match cap {
                         AsOfCapability::NativeDateParam if crate::as_of::is_asof_active() => {
-                            vendor
-                                .get_klines_with_asof(&sc, &period, fetch_limit, _adj_type)
-                                .await?
+                            vendor.get_klines_with_asof(&sc, &period, fetch_limit, adj_type).await?
                         },
-                        _ => vendor.get_klines(&sc, &period, fetch_limit, _adj_type).await?,
+                        _ => vendor.get_klines(&sc, &period, fetch_limit, adj_type).await?,
                     };
                     if klines.is_empty() {
                         return Err(DataError::VendorError {
@@ -1298,10 +1299,85 @@ impl AStockClient {
             })
             .await?;
 
+        // R3: 本地复权 fallback — 若 vendor 未应用复权（adj_factor 全为 None），
+        // 且用户请求了复权（adj_type 为 Some 且非 None），则本地应用复权因子
+        let result = self.apply_local_adjustment_if_needed(result, adj_type, stock_code).await;
+
         let json = serde_json::to_string(&result).unwrap_or_default();
         self.cache_set(cache_key, json, 300).await;
         let start = result.len().saturating_sub(limit as usize);
         Ok(result[start..].to_vec())
+    }
+
+    /// 本地复权 fallback：当 vendor 返回的 K 线 adj_factor 全为 None 时，
+    /// 获取除权事件并本地应用复权因子。
+    ///
+    /// - `adj_type=None` 或 `Some(None)`：直接返回原数据（不复权）
+    /// - `adj_type=Some(Forward/Backward)` 且 K 线已有 adj_factor 标记：vendor 已处理，直接返回
+    /// - `adj_type=Some(Forward/Backward)` 且 K 线 adj_factor 全 None：本地应用复权
+    async fn apply_local_adjustment_if_needed(
+        &self,
+        klines: Vec<KLine>,
+        adj_type: Option<crate::types::AdjType>,
+        stock_code: &str,
+    ) -> Vec<KLine> {
+        // 不复权或无复权请求：直接返回
+        let adj = match adj_type {
+            None | Some(crate::types::AdjType::None) => return klines,
+            Some(adj) => adj,
+        };
+
+        // vendor 已应用复权（至少一根 K 线 adj_factor 为 Some）：信任 vendor
+        if klines.iter().any(|k| k.adj_factor.is_some()) {
+            return klines;
+        }
+
+        // 所有 K 线 adj_factor 都为 None → vendor 未应用复权，本地 fallback
+        // 获取除权除息事件
+        let dividends = match self.get_dividend_records(stock_code).await {
+            Ok(records) => records,
+            Err(e) => {
+                tracing::warn!(
+                    stock = %stock_code,
+                    error = %e,
+                    "获取除权事件失败，跳过本地复权 fallback"
+                );
+                return klines;
+            },
+        };
+
+        if dividends.is_empty() {
+            tracing::debug!(
+                stock = %stock_code,
+                "无除权事件，本地复权 fallback 无需应用（K 线原样返回）"
+            );
+            return klines;
+        }
+
+        // DividendRecord → AdjustmentEvent 转换
+        // 注：DividendRecord 不含 rights_ratio/rights_price，配股调整暂缺
+        let events: Vec<crate::types::AdjustmentEvent> = dividends
+            .iter()
+            .map(|d| crate::types::AdjustmentEvent {
+                stock_code: d.stock_code.clone(),
+                ex_date: d.ex_date.clone(),
+                cash_dividend: d.dividend_per_share,
+                bonus_share_ratio: d.bonus_share_ratio,
+                rights_ratio: 0.0,
+                rights_price: 0.0,
+            })
+            .collect();
+
+        let factors = crate::adjustment::compute_adj_factors(&klines, &events, adj);
+        let adjusted = crate::adjustment::apply_adjustment(&klines, &factors, adj);
+        tracing::info!(
+            stock = %stock_code,
+            adj_type = ?adj,
+            events_count = events.len(),
+            klines_count = klines.len(),
+            "本地复权 fallback 已应用（vendor 未复权）"
+        );
+        adjusted
     }
 
     /// 财报披露日历 (R3-B 接口, 暂为 stub)

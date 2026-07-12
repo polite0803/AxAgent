@@ -1042,6 +1042,10 @@ macro_rules! register_all_commands {
             commands::stock_workflow::reflection::run_batch_reflection,
             commands::stock_workflow::serenity::run_serenity_screening,
             commands::stock_workflow::core::run_stock_workflow,
+            // ── 决策事后验证（V55）──
+            commands::backtest_validation::run_decision_backtest,
+            commands::backtest_validation::list_decision_validations,
+            commands::backtest_validation::compute_validation_report,
         ]
     };
 }

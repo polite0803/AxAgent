@@ -1,3 +1,4 @@
+import { PageTimeAnchor } from "@/components/time-travel/PageTimeAnchor";
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -35,7 +36,10 @@ export function PageHeader({
       </button>
       <h2 className="sa-header-title">{t(titleKey)}</h2>
       {meta && <span className="sa-header-meta">{meta}</span>}
-      {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+      <div className="ml-auto flex items-center gap-2">
+        <PageTimeAnchor />
+        {actions}
+      </div>
     </header>
   );
 }

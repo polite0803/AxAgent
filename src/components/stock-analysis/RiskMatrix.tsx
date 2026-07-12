@@ -174,7 +174,7 @@ function buildRiskMarkdown(
     );
   }
   lines.push(
-    `*本文档由 AxInvest 风险评估模块自动生成，仅供研究参考，不构成投资建议。*`,
+    `*本文档由 ${t("app.name")} 风险评估模块自动生成，仅供研究参考，不构成投资建议。*`,
   );
   return lines.join("\n");
 }

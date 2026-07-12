@@ -4238,3 +4238,234 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* ── 宽屏消息内容约束 ─────────────────────────────────── */
 /* 移除 max-width 硬限制，让 chat-main 通过 flex: 1 自动扩展至可用宽度 */
+
+/* ═══════════════════════════════════════════════════════════════
+   ── StockAnalysisPage 布局 ──────────────────────────────────
+   ═══════════════════════════════════════════════════════════════ */
+.sa-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.sa-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 36px;
+}
+.sa-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fg);
+}
+.sa-header-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-right: auto;
+}
+.sa-header-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  transition: all 0.12s;
+  font-family: inherit;
+}
+.sa-header-back:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.sa-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sa-body-inner {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.sa-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.sa-sidebar {
+  width: 280px;
+  min-width: 280px;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sa-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.sa-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  transition: all 0.12s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.sa-tab:hover {
+  background: var(--accent-bg);
+  color: var(--fg);
+}
+.sa-tab.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+.sa-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: var(--z-overlay);
+}
+.sa-bottom-sheet.open {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.sa-sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 6px;
+  cursor: pointer;
+}
+.sa-sheet-handle-bar {
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.sa-sheet-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.sa-sheet-tab {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.sa-sheet-tab:hover {
+  background: var(--accent-bg);
+  color: var(--fg);
+}
+.sa-sheet-tab.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+.sa-sheet-body {
+  padding: 8px 12px;
+}
+.sa-sheet-toggle {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  z-index: var(--z-overlay);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.sa-loading {
+  padding: 24px 16px;
+}
+.sa-panel-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.sa-markdown-content {
+  line-height: 1.65;
+  font-size: 13px;
+}
+.sa-settings-inline {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.sa-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sa-settings-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.sa-settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .sa-body-inner {
+    flex-direction: column;
+  }
+  .sa-sidebar {
+    width: 100%;
+    min-width: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}

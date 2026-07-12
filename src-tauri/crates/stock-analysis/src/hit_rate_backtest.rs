@@ -112,17 +112,21 @@ pub struct HitRateReport {
 /// 推断 action：从 target_price / price 关系推断（不依赖显式 action 字段）
 ///
 /// 规则：
-/// - target_price / price > 1.03 → "buy"（隐含预期上涨 3%+）
-/// - target_price / price < 0.97 → "sell"（隐含预期下跌 3%+）
+/// - target_price / price > 1.01 → "buy"（隐含预期上涨 1%+）
+/// - target_price / price < 0.99 → "sell"（隐含预期下跌 1%+）
 /// - 其他 → "hold"
+///
+/// 修复 P1: 原阈值 3% 偏高 —— A 股 T+1 持有至少 1 日，策略计算出的 target_price
+/// 通常已包含最小预期涨幅。3% 阈值会把"轻微看涨"（1-3%）误判为 "hold"，
+/// 导致命中率统计分母偏大。降到 1% 更贴合实际信号强度。
 pub fn infer_action(price: f64, target_price: f64) -> &'static str {
     if price <= 0.0 {
         return "hold";
     }
     let ratio = target_price / price;
-    if ratio > 1.03 {
+    if ratio > 1.01 {
         "buy"
-    } else if ratio < 0.97 {
+    } else if ratio < 0.99 {
         "sell"
     } else {
         "hold"
@@ -142,7 +146,10 @@ pub fn infer_action(price: f64, target_price: f64) -> &'static str {
 ///   - final_return_pct < 0% → "hit"（看空看对了）
 ///   - final_return_pct > 5% → "false_hit"
 ///   - 其他 → "partial"
-/// - **hold**: 默认 "partial"（不计入命中率分母）
+/// - **hold**: 窄幅震荡判断
+///   - |final_return_pct| <= 1% → "hit"（震荡判断正确，价格确实未明显变动）
+///   - |final_return_pct| > 5% → "false_hit"（判断震荡但市场走出趋势）
+///   - 其他 → "partial"
 /// - **数据不足**: 任意 None → "insufficient"
 pub fn compute_hit_outcome(
     action: &str,
@@ -174,7 +181,18 @@ pub fn compute_hit_outcome(
                 Some("partial".to_string())
             }
         },
-        "hold" => Some("partial".to_string()),
+        // 修复 P1: hold 原一律 "partial"，未反映震荡判断的正确性。
+        // 窄幅震荡（|ret| ≤ 1%）→ hit；明显趋势（|ret| > 5%）→ false_hit。
+        "hold" => {
+            let abs_ret = ret.abs();
+            if abs_ret <= 1.0 {
+                Some("hit".to_string())
+            } else if abs_ret > 5.0 {
+                Some("false_hit".to_string())
+            } else {
+                Some("partial".to_string())
+            }
+        },
         _ => Some("insufficient".to_string()),
     }
 }
@@ -222,8 +240,26 @@ pub fn compute_price_metrics(
     let min_price = lows.iter().copied().fold(f64::INFINITY, f64::min);
 
     let max_return_pct = (max_price - entry_price) / entry_price * 100.0;
-    let min_return_pct = (min_price - entry_price) / entry_price * 100.0;
-    let max_drawdown_pct = min_return_pct; // 在本窗口内，最低价即最大回撤
+
+    // 修复 P0: max_drawdown 原误算为"最大亏损幅度"（从入场价到最低价的跌幅），
+    // 正确定义是"从持有期间最高峰值到后续最低谷值的跌幅"。
+    // 反例: entry=10, closes=[12,8,11]
+    //   误算 = (8-10)/10*100 = -20%（从入场价到最低价）
+    //   正确 = (12-8)/12*100 = 33.3%（从峰值 12 到谷值 8 的回撤）
+    let mut peak = entry_price;
+    let mut max_dd_pct = 0.0_f64;
+    for &close in closes {
+        if close > peak {
+            peak = close;
+        }
+        if peak > 0.0 {
+            let dd = (peak - close) / peak * 100.0;
+            if dd > max_dd_pct {
+                max_dd_pct = dd;
+            }
+        }
+    }
+    let max_drawdown_pct = max_dd_pct;
     let final_return_pct = (t_plus_n_price - entry_price) / entry_price * 100.0;
 
     let hit_stop_loss = min_price <= stop_loss;
@@ -472,8 +508,20 @@ mod tests {
     #[test]
     fn test_infer_action_hold() {
         assert_eq!(infer_action(10.0, 10.0), "hold");
-        assert_eq!(infer_action(10.0, 10.2), "hold"); // 2% < 3%
+        assert_eq!(infer_action(10.0, 10.05), "hold"); // 0.5% < 1%
         assert_eq!(infer_action(0.0, 10.0), "hold"); // 边界
+    }
+
+    #[test]
+    fn test_hit_outcome_hold_narrow_range() {
+        // 修复 P1: hold 窄幅震荡判定
+        assert_eq!(compute_hit_outcome("hold", Some(0.5), None, None), Some("hit".to_string()));
+        assert_eq!(compute_hit_outcome("hold", Some(-0.8), None, None), Some("hit".to_string()));
+        assert_eq!(compute_hit_outcome("hold", Some(3.0), None, None), Some("partial".to_string()));
+        assert_eq!(
+            compute_hit_outcome("hold", Some(6.0), None, None),
+            Some("false_hit".to_string())
+        );
     }
 
     #[test]

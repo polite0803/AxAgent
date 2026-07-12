@@ -354,7 +354,7 @@ export function StockAnalysisPage() {
               ? {t("nav.chat")}
             </button>
             <h2 className="sa-header-title">{t("stockAnalysis.title")}</h2>
-            <span className="sa-header-meta">{marketStatus || t("stockAnalysis.subtitle")}</span>
+            {marketStatus && <span className="sa-header-meta">{marketStatus}</span>}
             <PageTimeAnchor />
             <button
               type="button"

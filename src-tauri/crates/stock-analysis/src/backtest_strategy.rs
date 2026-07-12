@@ -16,7 +16,7 @@
 
 use crate::recommender::indicators;
 use crate::recommender::types::Period;
-use axagent_harness::market_data::{KLine, MarketDataProvider};
+use axagent_harness::market_data::{AdjType, KLine, MarketDataProvider};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
@@ -578,10 +578,12 @@ pub async fn run_signal_history(
 
     let mut results = Vec::new();
     for (code, name) in &stocks {
-        let klines = match client.get_klines(code, "daily", kline_limit, None).await {
-            Ok(k) if k.len() >= strat.warmup => k,
-            _ => continue,
-        };
+        // 修复 P1: 使用前复权（Forward）消除除权除息造成的价格跳变，避免回测收益失真
+        let klines =
+            match client.get_klines(code, "daily", kline_limit, Some(AdjType::Forward)).await {
+                Ok(k) if k.len() >= strat.warmup => k,
+                _ => continue,
+            };
         let sigs = scan_one(
             &klines,
             code,
@@ -635,7 +637,8 @@ async fn run_group(
     }
     let mut loaded = Vec::new();
     for (code, name) in stocks {
-        match client.get_klines(code, "daily", kline_limit, None).await {
+        // 修复 P1: 与 scan_strategy 一致，使用前复权
+        match client.get_klines(code, "daily", kline_limit, Some(AdjType::Forward)).await {
             Ok(k) if k.len() >= 60 => {
                 loaded.push(StockWithKlines { code: code.clone(), name: name.clone(), klines: k })
             },
@@ -691,7 +694,7 @@ fn scan_one(
     warmup: usize,
     vars_ref: &serde_json::Value,
 ) -> Vec<StrategySignalResult> {
-    let max_idx = klines.len().saturating_sub(holding as usize + 1);
+    let max_idx = klines.len().saturating_sub(holding as usize + 2);
     let mut out = Vec::new();
     // cooldown_index: 上次信号触发的位置 + holding，此期间不产生新信号
     // 避免滑动窗口在同一持仓期内产生多个重叠信号（高估可执行信号频率）
@@ -701,12 +704,16 @@ fn scan_one(
             continue;
         }
         let window = &klines[..=i];
-        if let Some(entry) = detect(window, vars_ref) {
-            let exit_idx = (i + holding as usize).min(klines.len() - 1);
+        if detect(window, vars_ref).is_some() {
+            // 修复 P1: 前视偏差 — 原代码用信号日收盘价（klines[i].close）作为入场价，
+            // 但信号在收盘后才能生成，实际最早只能在次日开盘执行买入。
+            // 改为：entry = klines[i+1].open（次日开盘价），exit = klines[i+1+holding].close
+            let entry = klines[i + 1].open;
+            let exit_idx = (i + 1 + holding as usize).min(klines.len() - 1);
             let exit_price = klines[exit_idx].close;
             let mut peak = 0.0_f64;
             let mut max_dd = 0.0;
-            for k in &klines[i..=exit_idx] {
+            for k in &klines[i + 1..=exit_idx] {
                 if k.close > peak {
                     peak = k.close;
                 }

@@ -145,7 +145,7 @@ let announcement_modifier = if present(announcements) && type_of(announcements) 
                 let combined = `${title} ${ann_type}`;
                 // 高风险关键词检测
                 for kw in risk_kw {
-                    if combined.contains(kw) || combined.contains(kw.to_uppercase()) {
+                    if combined.contains(kw) || combined.contains(kw.to_upper()) {
                         if kw == "退市" || kw == "立案调查" || kw == "可能快速下跌" || kw == "风险警示" {
                             high_risk_count = high_risk_count + 1;
                         } else {
@@ -345,14 +345,20 @@ if present(risk_sharpe) {
         f4_quant_adjust += 0.02;
     }
 }
-if present(risk_pe) && risk_pe > 0.0 {
-    // PE: >200 异常 | >100 偏高 | <0 亏损
+// PE 处理: 区分缺失(<=0)、亏损(负值)、偏高(>100)、极端高(>200)
+// 注: 上游 stock_data.rs 在 PE 缺失时输出 0.0 作为兜底值
+if present(risk_pe) && type_of(risk_pe) == "f64" {
     if risk_pe > 200.0 {
         f4_quant_adjust -= 0.05;
         f4_quant_notes.push(`PE=${(risk_pe*10.0).round()/10.0}（极端高）`);
-    } else if risk_pe < 0.0 {
+    } else if risk_pe > 100.0 {
+        f4_quant_adjust -= 0.03;
+        f4_quant_notes.push(`PE=${(risk_pe*10.0).round()/10.0}（偏高）`);
+    } else if risk_pe <= 0.0 {
+        // PE<=0 视为数据缺失或亏损企业（上游 xueqiu 已过滤 <=0 为 None，
+        // 此处兜底处理其他数据源可能返回的 0/负值）
         f4_quant_adjust -= 0.08;
-        f4_quant_notes.push("PE为负（亏损企业）");
+        f4_quant_notes.push("PE数据缺失或为负（亏损企业）");
     }
 }
 let f4_adjusted = clamp(f4_signal + f4_quant_adjust, -1.0, 1.0);
@@ -773,6 +779,11 @@ let weighted_signal = f1_weight*f1_signal + f2_weight*f2_signal
                     + f7_weight*f7_signal + f9_weight*f9_signal + f10_weight*f10_signal
                     + f11_weight*f11_signal;
 let avg_signal = if total_weight > 0.0 { weighted_signal / total_weight } else { 0.0 };
+
+// 理论最大权重和（10 个活跃因子的默认权重之和）
+// 用于 weights_collapsed 比例阈值和 evidence_pct 计算
+//   f1=0.15 + f2=0.25 + f3=0.20 + f4=0.15 + f5=0.15 + f6=0.15 + f7=0.15 + f9=0.08 + f10=0.08 + f11=0.08 = 1.44
+let max_weight = 0.15 + 0.25 + 0.20 + 0.15 + 0.15 + 0.15 + 0.15 + 0.08 + 0.08 + 0.08;
 // V38 修复: 证据数量自适应缩放 — 证据越多（total_weight 越大），对先验的修正力度越强。
 // 单因子（total_weight≈0.20）时缩放 0.20（保守），全因子（total_weight≈1.20）时缩放 0.50。
 // 固定 0.35 使单因子和多因子修正力度相同，违反贝叶斯"更多证据→更大更新"的核心思想。
@@ -921,13 +932,15 @@ let evidence_scale = if total_weight < 0.3 {
 	//   视为严重数据异常：强制 weights_collapsed（观望+空仓+confidence 对半），
 	//   避免"50/50 中性兜底"被当成有效信号继续融合。
 	// V56 优化 + V54 修复: 分级降级 — 单点失败不应全盘观望。
-	//   level 2 全盘降级 (weights_collapsed): total_weight<0.3 或 untrusted_count>=2
-	//     → 仅置信度×0.7，不强制空仓+观望（让 posterior 自然决定 action）
-	//   level 1 部分降级 (partial_degraded): untrusted_count==1
-	//     → 禁止买入/增持（降级为持有） + confidence×0.7，不强制空仓
-	//   理由: 6 个上游 Agent 中任一失败就全盘降级过于保守，
-	//     其余 5 个可信 Agent 的信号仍有价值，不应被单点失败完全否决。
-	let weights_collapsed = total_weight < 0.3 || untrusted_count >= 2;
+	//   level 2 全盘降级 (weights_collapsed): (total_weight/max_weight)<0.3 或 untrusted_count>=2
+//     → 仅置信度×0.7，不强制空仓+观望（让 posterior 自然决定 action）
+//   level 1 部分降级 (partial_degraded): untrusted_count==1
+//     → 禁止买入/增持（降级为持有） + confidence×0.7，不强制空仓
+//   理由: 6 个上游 Agent 中任一失败就全盘降级过于保守，
+//     其余 5 个可信 Agent 的信号仍有价值，不应被单点失败完全否决。
+//   P2 修复: weights_collapsed 改为比例阈值 (total_weight/max_weight<0.3)，
+//     避免在 regime_factor_weights 缩放权重后误判为坍缩。
+	let weights_collapsed = (total_weight / max_weight) < 0.3 || untrusted_count >= 2;
 	let partial_degraded = untrusted_count == 1;
 	if weights_collapsed {
 	    // V54 修复: 不再强制空仓+观望，仅降置信度
@@ -1111,11 +1124,9 @@ if !present(money_flow) { data_gaps.push("资金流向(t-hotmoney-data)"); }
 if !present(lockup_bundle) { data_gaps.push("筹码面数据(t-lockup-data)"); }
 if !present(dragon_tiger) { data_gaps.push("龙虎榜数据(t-dragon-tiger-data)"); }
 if !present(announcements) { data_gaps.push("公告数据(t-catalyst-data)"); }
+if !present(risk_pe) || risk_pe <= 0.0 { data_gaps.push("PE数据(t-risk)"); }
 if !present(pace_signal) { data_gaps.push("PACE情绪因子(pace-calc)"); }
-// evidence_pct 分母用 10 因子的理论最大权重和（f11=0.08 是 PACE 情绪因子）
-// 10 活跃因子默认权重（PACE 集成后 f11 激活: f11=0.08）:
-//   f1=0.15 + f2=0.25 + f3=0.20 + f4=0.15 + f5=0.15 + f6=0.15 + f7=0.15 + f9=0.08 + f10=0.08 + f11=0.08 = 1.44
-let max_weight = 0.15 + 0.25 + 0.20 + 0.15 + 0.15 + 0.15 + 0.15 + 0.08 + 0.08 + 0.08;
+// evidence_pct = total_weight / max_weight * 100（max_weight 已在贝叶斯融合段计算）
 let evidence_pct_raw = (total_weight / max_weight * 100.0).to_int();
 let evidence_pct = if evidence_pct_raw > 100 { 100 } else { evidence_pct_raw };
 

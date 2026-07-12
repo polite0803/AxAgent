@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Icon as IconifyIcon } from "@iconify/react";
+import { Icon as IconifyIcon } from "@iconify/react/dist/iconify.js";
 import React from "react";
 
 export interface IconProps {

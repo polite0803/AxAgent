@@ -33,6 +33,36 @@ impl Default for CodeExecutor {
     }
 }
 
+/// 注册通用 Rhai 函数（clamp / join / json_parse）。
+///
+/// 所有执行 Rhai 脚本的 Engine 实例都应调用此函数，确保脚本可用的
+/// 自定义函数集一致，避免分散注册导致遗漏。
+/// 参考: portfolio-mgr.rhai / consistency-check.rhai / bottleneck-calc.rhai 等
+/// 脚本均依赖 json_parse；clamp 用于信号夹紧；join 用于数组拼接。
+pub fn register_common_functions(engine: &mut Engine) {
+    engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
+        if value < min {
+            min
+        } else if value > max {
+            max
+        } else {
+            value
+        }
+    });
+    engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
+        arr.iter().map(|item| item.to_string()).collect::<Vec<_>>().join(sep)
+    });
+    engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
+        match serde_json::from_str::<serde_json::Value>(s) {
+            Ok(v) => json_value_to_dynamic(&v),
+            Err(e) => {
+                tracing::warn!("[code_executor] json_parse 失败: {e}");
+                rhai::Dynamic::UNIT
+            },
+        }
+    });
+}
+
 /// 共享 Rhai Engine 单例（池化 + 复用），避免每次执行重复分配与初始化。
 fn shared_rhai_engine() -> &'static Engine {
     static ENGINE: OnceLock<Engine> = OnceLock::new();
@@ -45,27 +75,7 @@ fn shared_rhai_engine() -> &'static Engine {
         engine.set_max_string_size(2_000_000);
         engine.set_max_array_size(50_000);
         engine.set_max_expr_depths(1024, 1024);
-        engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
-            if value < min {
-                min
-            } else if value > max {
-                max
-            } else {
-                value
-            }
-        });
-        engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-            arr.iter().map(|item| item.to_string()).collect::<Vec<_>>().join(sep)
-        });
-        engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
-            match serde_json::from_str::<serde_json::Value>(s) {
-                Ok(v) => json_value_to_dynamic(&v),
-                Err(e) => {
-                    tracing::warn!("[code_executor] json_parse 失败: {e}");
-                    rhai::Dynamic::UNIT
-                },
-            }
-        });
+        register_common_functions(&mut engine);
         engine
     })
 }

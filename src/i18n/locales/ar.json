@@ -8039,6 +8039,7 @@
       "version": "Version"
     },
     "strategy": {
+      "strategyForm": { "paramsJson": "Params JSON" },
       "builtin": "Built-in Strategy",
       "description": "Strategy Description",
       "lastUpdated": "Last Updated",
@@ -9161,6 +9162,35 @@
       "below": "Break Below"
     },
     "askAi": {
+      "quantSim": {
+        "title": "Strategy Simulation",
+        "stockCode": "Stock Code",
+        "referencePrice": "Reference Price",
+        "duration": "Duration (days)",
+        "strategy": "Strategy",
+        "description": "Simulate strategy performance",
+        "emptyHint": "Set parameters and click Run",
+        "emptyDesc": "Strategy simulation replays historical data",
+        "run": "Run",
+        "running": "Running...",
+        "spinTip": "Running...",
+        "events": "Events",
+        "eventsSuffix": "",
+        "trades": "Trades",
+        "tradesSuffix": "",
+        "finalPrice": "Final Price",
+        "fenSuffix": "fen",
+        "wallClock": "Wall Clock",
+        "interpretation": "Interpretation",
+        "strategyLabel": "Strategy",
+        "marketActivity": "Market Activity",
+        "marketActivityDetail": "{{events}} events",
+        "noEvents": "No market events",
+        "quote": "Quote",
+        "quoteDetail": "Final mid {{finalMidPrice}}, ref {{refPrice}}",
+        "noQuote": "No quote",
+        "settings": "Strategy Sim Settings"
+      },
       "decision": "decision",
       "prompt": "prompt"
     },

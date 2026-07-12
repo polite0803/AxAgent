@@ -146,7 +146,7 @@ export function AgentMiniPanel() {
       >
         <div className="flex items-center gap-2">
           <Bot size={16} className="text-[var(--color-primary)]" />
-          <span className="text-sm font-medium">AxAgent</span>
+          <span className="text-sm font-medium">{t("app.name")}</span>
         </div>
         <button
           type="button"

@@ -31,9 +31,10 @@ pub mod v006_vec_collections;
 pub mod v007_dynamic_ui_version;
 pub mod v008_credentials_and_rl_policies;
 pub mod v009_tool_adaptation;
+pub mod v010_stock_business_tables;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 9;
+pub const CURRENT_VERSION: i32 = 10;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -104,6 +105,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 9,
         description: "v009_tool_adaptation: add tool_adaptation column to providers table",
         up: |db| Box::pin(v009_tool_adaptation::up(db)),
+    },
+    Migration {
+        version: 10,
+        description: "v010_stock_business_tables: create all AxInvest stock business tables (22 tables merged from orphaned migrations v004-v011)",
+        up: |db| Box::pin(v010_stock_business_tables::up(db)),
     },
 ];
 
@@ -233,7 +239,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应只有 CURRENT_VERSION 行（与迁移数量一致）
+        // schema_version 表行数应等于 CURRENT_VERSION（每版本一行）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
@@ -243,7 +249,11 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 9, "schema_version should have exactly 9 rows");
+        assert_eq!(
+            cnt, CURRENT_VERSION,
+            "schema_version should have exactly {} rows",
+            CURRENT_VERSION
+        );
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

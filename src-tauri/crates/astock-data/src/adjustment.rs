@@ -75,11 +75,13 @@ fn compute_factor_series(
     sorted_events.sort_by(|a, b| a.ex_date.cmp(&b.ex_date));
 
     // 为每个 K 线日找其"生效"的事件: ex_date <= date
-    // 但需要 ex_date 当日 K 线的"昨收价"才能算事件复权率(1 - cash/prev_close - bonus)
-    // 简化: 用 (1 - bonus_ratio) 作为事件复权率(送转的影响),分红单独记录
-    //   这样复权后曲线在除权日还是有跳变,但仍连续可比较
-    //   真实复权应拆成两步: 1) 送转调整 (无跳变) 2) 分红调整 (有跳变,但有现金补偿)
-    //   行业惯例是只做送转调整,分红走"持仓 PnL 还原"路径
+    // 事件复权率由两部分组成:
+    //   1) 送转调整: 1 / (1 + bonus_share_ratio) — 送转后股本扩大，股价除以扩股系数
+    //   2) 配股调整: 1 / (1 + rights_ratio * (1 - rights_price / ex_close))
+    //      其中 ex_close 取除权日前一交易日收盘价
+    // 现金分红（cash_dividend）不纳入复权因子 — 行业惯例走"持仓 PnL 还原"路径，
+    //   因为分红对股价影响小（1-5%），且需要精确的 ex_close 才能计算
+    //   真实复权应拆成两步: 1) 送转+配股调整 (无跳变) 2) 分红调整 (有跳变,但有现金补偿)
 
     let mut result = Vec::with_capacity(klines.len());
     let mut cumulative: f64 = 1.0;
@@ -93,14 +95,33 @@ fn compute_factor_series(
     let _ = last_date; // suppress unused warning (last_date is conceptual)
 
     let mut event_idx = 0;
+    let mut prev_close: Option<f64> = None;
     for k in klines {
         // 累加 ex_date <= k.date 的所有事件复权率
         while event_idx < sorted_events.len() && sorted_events[event_idx].ex_date <= k.date {
             let ev = sorted_events[event_idx];
-            // 单步复权率: 1 / (1 + bonus_ratio) — 送转后股本扩大,股价需除以扩股系数
-            // 例: 10送2 → 股本从 100 → 120,股价从 10 → 10/1.2 = 8.33
-            let step = 1.0 / (1.0 + ev.bonus_share_ratio.max(0.0));
-            cumulative *= step;
+            // 1) 送转调整: 1 / (1 + bonus_ratio)
+            //    例: 10送2 → 股本从 100 → 120,股价从 10 → 10/1.2 = 8.33
+            let bonus_step = 1.0 / (1.0 + ev.bonus_share_ratio.max(0.0));
+            // 2) 配股调整: 1 / (1 + rights_ratio * (1 - rights_price / ex_close))
+            //    ex_close 取前一交易日收盘价；若无前日数据则跳过配股调整
+            //    例: 10配3 配股价5元,前收10元 → 1/(1+0.3*(1-5/10)) = 1/1.15 = 0.870
+            let rights_step = if ev.rights_ratio > 0.0 && ev.rights_price > 0.0 {
+                let ex_close = prev_close.unwrap_or(k.close);
+                if ex_close > 0.0 {
+                    let discount = 1.0 - (ev.rights_price / ex_close);
+                    if 1.0 + ev.rights_ratio * discount > 0.0 {
+                        1.0 / (1.0 + ev.rights_ratio * discount)
+                    } else {
+                        1.0
+                    }
+                } else {
+                    1.0
+                }
+            } else {
+                1.0
+            };
+            cumulative *= bonus_step * rights_step;
             event_idx += 1;
         }
 
@@ -114,6 +135,7 @@ fn compute_factor_series(
         };
 
         result.push(AdjFactorPoint { date: k.date.clone(), factor });
+        prev_close = Some(k.close);
     }
 
     // 前复权归一化: 末端 factor → 1

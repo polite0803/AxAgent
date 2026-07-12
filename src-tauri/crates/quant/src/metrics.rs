@@ -198,7 +198,8 @@ pub fn sharpe_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year:
 
 fn sortino_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f64) -> f64 {
     let rets = daily_returns(curve);
-    if rets.is_empty() {
+    // 修复 P2: 与 sharpe_ratio 一致的空序列检查（需至少 2 个收益值）
+    if rets.len() < 2 {
         return 0.0;
     }
     let daily_rf = risk_free_annual / days_per_year;
@@ -209,7 +210,9 @@ fn sortino_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f6
         excess.iter().filter(|&&r| r < 0.0).map(|r| r.powi(2)).sum::<f64>() / excess.len() as f64;
     let downside_std = downside_var.sqrt();
     if downside_std < 1e-10 {
-        return 0.0;
+        // 修复 P1: 无下行风险（所有收益 >= rf）时，Sortino 数学定义应为正无穷，
+        // 原代码返回 0 会被误解为"最差绩效"。改为：mean>0 返回正无穷，否则 0。
+        return if mean > 0.0 { f64::INFINITY } else { 0.0 };
     }
     mean / downside_std * days_per_year.sqrt()
 }

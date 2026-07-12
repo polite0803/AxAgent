@@ -65,7 +65,7 @@ const INSTALL_TARGETS = [
   {
     key: "axagent",
     label: "~/.axagent/skills/",
-    desc: "AxAgent",
+    desc: "本地",
     icon: <Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} />,
   },
   {
@@ -127,13 +127,7 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
-  axagent: "AxAgent",
-  claude: "Claude",
-  agents: "Agents",
-  builtin: "skills.source.builtin",
-  bundled: "skills.source.bundled",
-  codebuddy: "CodeBuddy",
-  trae: "Trae",
+  axagent: "本地",
   workbuddy: "WorkBuddy",
   project: "skills.source.project",
 };

@@ -1,4 +1,4 @@
-use chrono::{Datelike, Duration, NaiveDate, Timelike, Weekday};
+use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc, Weekday};
 use std::collections::HashSet;
 use std::sync::{LazyLock, RwLock};
 
@@ -140,18 +140,35 @@ pub fn next_trading_day(date: NaiveDate) -> NaiveDate {
     date
 }
 
+/// 获取当前北京时间（UTC+8），正确处理日期跨夜。
+///
+/// 返回 (hour, minute, beijing_date)：
+/// - hour/minute: 北京时间时分
+/// - beijing_date: 北京日期（用于交易日判定）
+///
+/// 修复前: `is_trading_time()` 用 `now.date_naive()` (UTC 日期) 判定交易日，
+/// 在 UTC 16:00-24:00（北京次日 00:00-08:00）期间会判错日期。
+fn beijing_now() -> (u32, u32, NaiveDate) {
+    let now = Utc::now();
+    let utc_hour = now.hour();
+    let minute = now.minute();
+    // UTC+8: 如果 UTC 时 + 8 >= 24，则北京已是次日
+    let beijing_hour = (utc_hour + 8) % 24;
+    let beijing_date = if utc_hour + 8 >= 24 {
+        now.date_naive() + Duration::days(1)
+    } else {
+        now.date_naive()
+    };
+    (beijing_hour, minute, beijing_date)
+}
+
 /// 判断当前是否为交易时间
 pub fn is_trading_time() -> bool {
-    let now = chrono::Utc::now();
-    let today = now.date_naive();
+    let (hour, minute, today) = beijing_now();
 
     if !is_trading_day(&today) {
         return false;
     }
-
-    // 获取北京时间（UTC+8）
-    let hour = (now.hour() + 8) % 24;
-    let minute = now.minute();
 
     // 上午 9:30-11:30
     if hour == 9 && minute >= 30 {
@@ -178,11 +195,11 @@ pub fn is_trading_time() -> bool {
     false
 }
 
-/// 判断当前是否为午休时间
+/// 判断当前是否为午休时间（11:30-13:00）
 pub fn is_lunch_break() -> bool {
-    let now = chrono::Utc::now();
-    let hour = (now.hour() + 8) % 24;
-    hour == 11 || hour == 12
+    let (hour, minute, _) = beijing_now();
+    // A 股午休: 11:30-13:00（含 11:30，不含 13:00）
+    (hour == 11 && minute > 30) || hour == 12
 }
 
 /// 从东方财富 API 获取最新交易日历
@@ -246,9 +263,8 @@ pub fn next_trading_time_desc() -> String {
         return "午休中，13:00恢复".to_string();
     }
 
-    let now = chrono::Utc::now();
-    let hour = (now.hour() + 8) % 24;
-    if hour < 9 || (hour == 9 && now.minute() < 30) {
+    let (hour, minute, _) = beijing_now();
+    if hour < 9 || (hour == 9 && minute < 30) {
         return "距开盘".to_string();
     }
     if hour >= 15 {

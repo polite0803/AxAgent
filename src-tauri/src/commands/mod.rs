@@ -13,6 +13,7 @@ pub mod agent_role;
 pub mod app_config;
 pub mod artifacts;
 pub mod background_tasks;
+pub mod backtest_validation;
 pub mod backup;
 pub mod branches;
 #[cfg(not(mobile))]

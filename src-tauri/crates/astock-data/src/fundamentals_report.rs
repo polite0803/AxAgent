@@ -267,7 +267,7 @@ impl FundamentalsAnalyzer {
             }
         }
         let market = crate::detect_market_type(&quote.code);
-        let pct = crate::get_price_limit_pct(market);
+        let pct = crate::get_st_price_limit_pct(quote.is_st, market);
         if let Some(limit_up) = quote.limit_up {
             t.push(format!("涨停价 = {:.2} (+{:.0}%)", limit_up, pct));
         }

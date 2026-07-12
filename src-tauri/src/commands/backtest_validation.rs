@@ -99,10 +99,7 @@ pub async fn run_decision_backtest(
         query = query.filter(reco_picks::Column::Period.eq(period.as_str()));
     }
     // 按 generated_at 倒序，优先回测最近的数据
-    let picks = query
-        .all(db)
-        .await
-        .map_err(|e| format!("读取 reco_picks 失败: {e}"))?;
+    let picks = query.all(db).await.map_err(|e| format!("读取 reco_picks 失败: {e}"))?;
 
     if picks.is_empty() {
         // 空集合：返回空报告，避免前端拿到 None 报错
@@ -143,7 +140,15 @@ pub async fn run_decision_backtest(
 
         // 对每个 T+N 跑一次验证
         for &t_plus_n in &t_plus_n_list {
-            match fetch_and_validate(&state, &reco_pick, &pick_model.id, t_plus_n).await {
+            match fetch_and_validate(
+                &state,
+                &reco_pick,
+                &pick_model.id,
+                t_plus_n,
+                &pick_model.generated_at,
+            )
+            .await
+            {
                 Ok((validation, src)) => {
                     if data_source == "unknown" {
                         data_source = src;
@@ -180,12 +185,7 @@ pub async fn run_decision_backtest(
         compute_hit_rate_report(&validations)
     };
 
-    Ok(RunDecisionBacktestResponse {
-        report,
-        written_count,
-        skipped_count: skipped,
-        data_source,
-    })
+    Ok(RunDecisionBacktestResponse { report, written_count, skipped_count: skipped, data_source })
 }
 
 /// 拉取 T+N 窗口日 K 线并构建 PickValidation
@@ -194,10 +194,15 @@ async fn fetch_and_validate(
     reco_pick: &RecoPick,
     pick_id: &str,
     t_plus_n: i32,
+    generated_at: &str,
 ) -> Result<(PickValidation, String), String> {
-    // 拉取窗口：取 T+N 后 10 个交易日（防止节假日窗口不足），
-    // 实际验证只看前 T+N 个交易日
-    let fetch_limit = (t_plus_n as u32 + 10).max(30);
+    // 从 generated_at 提取决策日期（格式 "YYYY-MM-DDTHH:MM:SS.fff" → "YYYY-MM-DD"）
+    let decision_date = generated_at.get(..10).unwrap_or(generated_at);
+
+    // 拉取窗口：取 T+N 后 10 个交易日（防止节假日窗口不足）。
+    // 修复 P0: 原 fetch_limit 太小（t_plus_n + 10），当 pick 距今较远时
+    // 不包含决策日之后的足够数据。改为 500（约 2 个交易年）确保覆盖。
+    let fetch_limit = (t_plus_n as u32 + 10).max(500);
 
     let klines = state
         .astock_client
@@ -209,12 +214,20 @@ async fn fetch_and_validate(
         return Err("K 线为空".to_string());
     }
 
-    // K 线按日期升序排列后取前 T+N 个
-    // 注：astock_client.get_klines 返回已按日期升序（vendors/sina.rs 等都 sort_by date）
-    let n = (t_plus_n as usize).min(klines.len());
-    let closes: Vec<f64> = klines[..n].iter().map(|k| k.close).collect();
-    let highs: Vec<f64> = klines[..n].iter().map(|k| k.high).collect();
-    let lows: Vec<f64> = klines[..n].iter().map(|k| k.low).collect();
+    // 修复 P0: 原代码 klines[..n] 取的是最早的 n 根 K 线（决策日之前的数据），
+    // 导致用决策前的价格"验证"决策，命中率完全失真。
+    // 正确逻辑：找到决策日之后的第一根 K 线，取该位置之后的 n 根。
+    // K 线按日期升序排列（vendors/sina.rs 等都 sort_by date）
+    let start_idx = klines
+        .iter()
+        .position(|k| k.date.as_str() > decision_date)
+        .ok_or_else(|| format!("决策日 {decision_date} 之后无 K 线数据"))?;
+
+    let valid_klines = &klines[start_idx..];
+    let n = (t_plus_n as usize).min(valid_klines.len());
+    let closes: Vec<f64> = valid_klines[..n].iter().map(|k| k.close).collect();
+    let highs: Vec<f64> = valid_klines[..n].iter().map(|k| k.high).collect();
+    let lows: Vec<f64> = valid_klines[..n].iter().map(|k| k.low).collect();
 
     // 数据源标识：优先用 K 线数据的 vendor 名（这里简化为 "astock_client"，
     // 因为 AStockClient 内部已做 vendor failover，统一标记）
@@ -248,10 +261,8 @@ async fn write_decision_validations(
             continue;
         }
 
-        let factor_snapshot_json = v
-            .factor_snapshot
-            .as_ref()
-            .and_then(|m| serde_json::to_string(m).ok());
+        let factor_snapshot_json =
+            v.factor_snapshot.as_ref().and_then(|m| serde_json::to_string(m).ok());
 
         let active = decision_validations::ActiveModel {
             id: Set(uuid_v4()),
@@ -402,10 +413,8 @@ pub async fn compute_validation_report(
     let validations: Vec<PickValidation> = all
         .into_iter()
         .map(|m| {
-            let factor_snapshot: Option<HashMap<String, f64>> = m
-                .factor_snapshot
-                .as_ref()
-                .and_then(|s| serde_json::from_str(s).ok());
+            let factor_snapshot: Option<HashMap<String, f64>> =
+                m.factor_snapshot.as_ref().and_then(|s| serde_json::from_str(s).ok());
             PickValidation {
                 pick_id: m.pick_id,
                 stock_code: m.stock_code,
@@ -456,15 +465,12 @@ fn empty_report() -> HitRateReport {
 /// UUID v4 简易实现（避免引入额外依赖）
 fn uuid_v4() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     // 时间戳 + 纳秒数 + 进程 ID 拼一个伪 UUID
     format!(
         "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
         (nanos >> 32) as u32,
-        (nanos >> 16) as u16 & 0xFFFF,
+        ((nanos >> 16) as u16),
         (nanos & 0x0FFF) as u16,
         std::process::id(),
         nanos as u64 & 0xFFFFFFFFFFFF
@@ -481,13 +487,7 @@ mod tests {
         // 格式: 8-4-4-4-12 hex
         assert_eq!(id.len(), 36);
         assert_eq!(id.chars().filter(|c| *c == '-').count(), 4);
-        assert!(
-            id.split('-')
-                .next()
-                .unwrap()
-                .chars()
-                .all(|c| c.is_ascii_hexdigit())
-        );
+        assert!(id.split('-').next().unwrap().chars().all(|c| c.is_ascii_hexdigit()));
     }
 
     #[test]

@@ -43,29 +43,36 @@ impl FallbackChain {
     }
 
     pub fn a_share_quote() -> Self {
+        // 与 lib.rs default_routing().quote 保持一致
         Self::new("a_share_quote")
             .then(FallbackStep::vendor("tencent"))
-            .then(FallbackStep::vendor("sina"))
-            .then(FallbackStep::vendor("eastmoney"))
-            .then(FallbackStep::vendor("xueqiu"))
             .then(FallbackStep::vendor("mootdx"))
+            .then(FallbackStep::vendor("sina"))
+            .then(FallbackStep::vendor("xueqiu"))
+            .then(FallbackStep::vendor("eastmoney"))
+            .then(FallbackStep::vendor("neodata"))
             .with_total_timeout(20_000)
     }
 
     pub fn a_share_klines() -> Self {
+        // 与 lib.rs default_routing().klines 保持一致
         Self::new("a_share_klines")
             .then(FallbackStep::vendor("tencent"))
-            .then(FallbackStep::vendor("sina"))
-            .then(FallbackStep::vendor("eastmoney"))
             .then(FallbackStep::vendor("xueqiu"))
+            .then(FallbackStep::vendor("mootdx"))
+            .then(FallbackStep::vendor("eastmoney"))
+            .then(FallbackStep::vendor("browser_eastmoney"))
             .with_total_timeout(25_000)
     }
 
     pub fn a_share_financials() -> Self {
+        // 与 lib.rs default_routing().financials 保持一致
         Self::new("a_share_financials")
-            .then(FallbackStep::VendorQuote { vendor: "tencent".into(), timeout_ms: 5000 })
             .then(FallbackStep::FillFinancials { vendor: "eastmoney".into() })
+            .then(FallbackStep::FillFinancials { vendor: "browser_eastmoney".into() })
             .then(FallbackStep::FillFinancials { vendor: "xueqiu".into() })
+            .then(FallbackStep::FillFinancials { vendor: "akshare".into() })
+            .then(FallbackStep::FillFinancials { vendor: "neodata".into() })
             .with_total_timeout(30_000)
     }
 }
@@ -153,10 +160,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn chain_a_share_quote_has_5_steps() {
+    fn chain_a_share_quote_has_6_steps() {
         let c = FallbackChain::a_share_quote();
         assert_eq!(c.name, "a_share_quote");
-        assert_eq!(c.steps.len(), 5);
+        assert_eq!(c.steps.len(), 6);
         assert_eq!(c.total_timeout_ms, 20_000);
         match &c.steps[0] {
             FallbackStep::VendorQuote { vendor, .. } => assert_eq!(vendor, "tencent"),

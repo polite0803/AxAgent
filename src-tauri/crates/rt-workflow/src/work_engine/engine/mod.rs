@@ -1278,6 +1278,8 @@ impl WorkEngine {
                                         engine.set_max_modules(0);
                                         engine.set_max_string_size(2_000_000);
                                         engine.set_max_array_size(50_000);
+                                        // 注册通用函数（json_parse/clamp/join），与 code_executor 一致
+                                        crate::work_engine::executors::register_common_functions(&mut engine);
                                         let _scope = Scope::new();
                                         // Register tool functions
                                         for (name, handler) in &rhai_tools {
