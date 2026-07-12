@@ -416,6 +416,175 @@ fn kline_to_bar(
     }
 }
 
+// ── 策略列表 ──
+
+/// 列出所有量化策略（内置 + Rhai 注册）
+#[tauri::command]
+pub async fn quant_strategies_list(
+    state: State<'_, AppState>,
+) -> Result<Vec<quant_strategies::Model>, String> {
+    use sea_orm::EntityTrait;
+    quant_strategies::Entity::find()
+        .all(state.harness.db())
+        .await
+        .map_err(|e| format!("查询策略列表失败: {e}"))
+}
+
+/// 注册 Rhai 策略
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegisterRhaiRequest {
+    pub name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub script_source: String,
+    pub params: HashMap<String, Value>,
+    pub walk_forward_enabled: bool,
+    pub upsert: bool,
+}
+
+#[tauri::command]
+pub async fn quant_strategy_register_rhai(
+    state: State<'_, AppState>,
+    request: RegisterRhaiRequest,
+) -> Result<quant_strategies::Model, String> {
+    use sea_orm::ActiveModelTrait;
+    use sea_orm::ColumnTrait;
+    use sea_orm::QueryFilter;
+    use uuid::Uuid;
+
+    let db = state.harness.db();
+    let now = Utc::now().timestamp();
+    let params_json = serde_json::to_string(&request.params).unwrap_or_else(|_| "{}".to_string());
+
+    // upsert 模式：按 name 查找已有记录
+    if request.upsert {
+        if let Some(existing) = quant_strategies::Entity::find()
+            .filter(quant_strategies::Column::Name.eq(&request.name))
+            .one(db)
+            .await
+            .map_err(|e| format!("查询已有策略失败: {e}"))?
+        {
+            let mut am: quant_strategies::ActiveModel = existing.into();
+            am.version = Set(request.version.clone());
+            am.description = Set(request.description.clone());
+            am.script_source = Set(Some(request.script_source.clone()));
+            am.params_json = Set(Some(params_json));
+            am.walk_forward_enabled = Set(request.walk_forward_enabled);
+            am.updated_at = Set(now);
+            return am.update(db).await.map_err(|e| format!("更新策略失败: {e}"));
+        }
+    }
+
+    // 新建
+    let new_id = Uuid::new_v4().to_string();
+    let model = quant_strategies::ActiveModel {
+        id: Set(new_id),
+        name: Set(request.name),
+        version: Set(request.version),
+        strategy_type: Set("rhai".to_string()),
+        description: Set(request.description),
+        script_source: Set(Some(request.script_source)),
+        params_json: Set(Some(params_json)),
+        walk_forward_enabled: Set(request.walk_forward_enabled),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
+    model.insert(db).await.map_err(|e| format!("插入策略失败: {e}"))
+}
+
+// ── 指标对比 ──
+
+/// 多 run 指标对比结果
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunWithMetricsResponse {
+    pub run: quant_runs::Model,
+    pub strategy_name: String,
+    pub metrics: Option<MetricsReport>,
+    pub error_message: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetricsCompareResponse {
+    pub runs: Vec<RunWithMetricsResponse>,
+    /// metric_name → run_id（各指标最佳者）
+    pub best_by: HashMap<String, String>,
+}
+
+#[tauri::command]
+pub async fn quant_metrics_compare(
+    state: State<'_, AppState>,
+    run_ids: Vec<String>,
+) -> Result<MetricsCompareResponse, String> {
+    use sea_orm::EntityTrait;
+
+    let db = state.harness.db();
+    let mut runs = Vec::with_capacity(run_ids.len());
+    for rid in run_ids {
+        let run = quant_runs::Entity::find_by_id(&rid)
+            .one(db)
+            .await
+            .map_err(|e| format!("查询 run {rid} 失败: {e}"))?;
+        if let Some(r) = run {
+            let strategy_name = {
+                let sm = quant_strategies::Entity::find_by_id(&r.strategy_id)
+                    .one(db)
+                    .await
+                    .map_err(|e| format!("查询策略 {rid} 失败: {e}"))?;
+                sm.map(|s| s.name).unwrap_or_default()
+            };
+            let metrics = r.result_json.as_ref().and_then(|json| {
+                serde_json::from_str::<BacktestResult>(json)
+                    .ok()
+                    .map(|br| MetricsReport::from_backtest_result(&br, 0.025))
+            });
+            runs.push(RunWithMetricsResponse {
+                run: r,
+                strategy_name,
+                metrics,
+                error_message: None,
+            });
+        }
+    }
+
+    // 计算各指标最佳者
+    let mut best_by: HashMap<String, String> = HashMap::new();
+    // 年化收益率最高 → best sharpe / totalReturn
+    let mut best_sharpe = f64::NEG_INFINITY;
+    let mut best_total_return = f64::NEG_INFINITY;
+    let mut best_sortino = f64::NEG_INFINITY;
+    let mut best_profit_factor = f64::NEG_INFINITY;
+    let mut best_max_drawdown = f64::INFINITY; // 回撤越小越好
+    for r in &runs {
+        if let Some(ref m) = r.metrics {
+            if m.sharpe > best_sharpe {
+                best_sharpe = m.sharpe;
+                best_by.insert("sharpe".into(), r.run.id.clone());
+            }
+            if m.total_return > best_total_return {
+                best_total_return = m.total_return;
+                best_by.insert("totalReturn".into(), r.run.id.clone());
+            }
+            if m.sortino > best_sortino {
+                best_sortino = m.sortino;
+                best_by.insert("sortino".into(), r.run.id.clone());
+            }
+            if m.profit_factor > best_profit_factor {
+                best_profit_factor = m.profit_factor;
+                best_by.insert("profitFactor".into(), r.run.id.clone());
+            }
+            if m.max_drawdown < best_max_drawdown {
+                best_max_drawdown = m.max_drawdown;
+                best_by.insert("maxDrawdown".into(), r.run.id.clone());
+            }
+        }
+    }
+
+    Ok(MetricsCompareResponse { runs, best_by })
+}
+
 /// 原始 WalkForwardReport → 响应结构（对齐前端契约）
 fn map_wf_report(r: &RawWalkForwardReport) -> WalkForwardReportResponse {
     let folds = r

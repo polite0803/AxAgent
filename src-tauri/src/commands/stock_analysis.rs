@@ -4210,3 +4210,77 @@ pub async fn quick_backtest(
         error: None,
     })
 }
+
+// ── 以下为插件探测发现的阻断性缺失命令修复 ──
+
+/// 列出所有可用的股票分析工具名称（用于 Agent 配置页工具选择列表）
+#[tauri::command]
+pub async fn list_stock_tools() -> Result<Vec<String>, String> {
+    let tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
+    let names: Vec<String> = tools
+        .into_iter()
+        .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+        .collect();
+    Ok(names)
+}
+
+/// 获取限售解禁时间表
+#[tauri::command]
+pub async fn get_lockup_schedule(
+    state: State<'_, AppState>,
+    stock_code: String,
+) -> Result<Vec<axagent_astock_data::types::LockupSchedule>, String> {
+    state
+        .astock_client
+        .get_lockup_schedule(&stock_code)
+        .await
+        .map_err(|e| format!("获取解禁数据失败: {e}"))
+}
+
+/// 获取分红记录
+#[tauri::command]
+pub async fn get_dividend_records(
+    state: State<'_, AppState>,
+    stock_code: String,
+) -> Result<Vec<axagent_astock_data::types::DividendRecord>, String> {
+    state
+        .astock_client
+        .get_dividend_records(&stock_code)
+        .await
+        .map_err(|e| format!("获取分红数据失败: {e}"))
+}
+
+/// 获取股票财务数据（对比面板使用）
+#[tauri::command]
+pub async fn get_stock_financials(
+    state: State<'_, AppState>,
+    stock_code: String,
+) -> Result<Vec<axagent_harness::market_data::FinancialReport>, String> {
+    state
+        .astock_client
+        .get_financials(&stock_code)
+        .await
+        .map_err(|e| format!("获取财务数据失败: {e}"))
+}
+
+/// 演化漂移重算（EvolutionDriftPanel 重算按钮）
+#[tauri::command]
+pub async fn stock_evolution_recalc(
+    state: State<'_, AppState>,
+    as_of_date: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let db = state.harness.db();
+    let (written, new_weights) = axagent_stock_analysis::evolution_drift::recalc_and_persist(
+        db,
+        "manual",
+        None,
+        as_of_date.as_deref(),
+    )
+    .await?;
+    let flat: Vec<(String, String, f64)> =
+        new_weights.into_iter().map(|((s, p), w)| (s, p, w)).collect();
+    Ok(serde_json::json!({
+        "written": written,
+        "currentWeights": flat,
+    }))
+}
