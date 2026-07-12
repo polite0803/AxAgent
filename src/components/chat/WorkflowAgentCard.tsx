@@ -8,7 +8,11 @@ import { useTranslation } from "react-i18next";
 /* eslint-disable react-refresh/only-export-components */
 
 /** 从任意 Agent JSON 输出中提取一段可读摘要 */
-function extractAgentBrief(report: string, maxLen = 180): string {
+function extractAgentBrief(
+  report: string,
+  t: (key: string) => string,
+  maxLen = 180,
+): string {
   const cleaned = cleanToolCallTags(report).trim();
   if (!cleaned) { return ""; }
 
@@ -107,8 +111,8 @@ function extractAgentBrief(report: string, maxLen = 180): string {
     const beScore = parsed.bear_strength_score ?? parsed.bear_score;
     if (typeof bScore === "number" || typeof beScore === "number") {
       const parts: string[] = [];
-      if (typeof bScore === "number") { parts.push(`看多:${bScore}`); }
-      if (typeof beScore === "number") { parts.push(`看空:${beScore}`); }
+      if (typeof bScore === "number") { parts.push(`${t("stockAnalysis.sentimentBullish")}:${bScore}`); }
+      if (typeof beScore === "number") { parts.push(`${t("stockAnalysis.sentimentBearish")}:${beScore}`); }
       return parts.join("，");
     }
     // 如果有 data_gaps 且没有实质内容，提示数据不足
@@ -116,8 +120,8 @@ function extractAgentBrief(report: string, maxLen = 180): string {
     if (Array.isArray(gaps) && gaps.length > 0) {
       const firstGap = String(gaps[0]);
       return firstGap.length > maxLen
-        ? `数据不足: ${firstGap.slice(0, maxLen)}...`
-        : `数据不足: ${firstGap}`;
+        ? `${t("quant.common.empty")}: ${firstGap.slice(0, maxLen)}...`
+        : `${t("quant.common.empty")}: ${firstGap}`;
     }
   }
 
@@ -237,7 +241,7 @@ export function WorkflowAgentCard({ data }: { data: WorkflowCardData }) {
 
   if (data.type === "analyst") {
     const brief = data.analystReport
-      ? extractAgentBrief(data.analystReport, 200)
+      ? extractAgentBrief(data.analystReport, t, 200)
       : t("stockAnalysis.workflow.analystComplete");
     return (
       <div className="workflow-card" style={{ padding: "10px 14px" }}>
@@ -249,8 +253,8 @@ export function WorkflowAgentCard({ data }: { data: WorkflowCardData }) {
 
   if (data.type === "debate") {
     const round = data.round ?? 1;
-    const bullBrief = data.bull ? extractAgentBrief(data.bull, 200) : t("stockAnalysis.workflow.pending");
-    const bearBrief = data.bear ? extractAgentBrief(data.bear, 200) : t("stockAnalysis.workflow.pending");
+    const bullBrief = data.bull ? extractAgentBrief(data.bull, t, 200) : t("stockAnalysis.workflow.pending");
+    const bearBrief = data.bear ? extractAgentBrief(data.bear, t, 200) : t("stockAnalysis.workflow.pending");
     return (
       <div className="workflow-card" style={{ padding: "10px 14px" }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
@@ -535,7 +539,7 @@ export function WorkflowAgentCard({ data }: { data: WorkflowCardData }) {
                     </div>
                     {a.status === "done" && a.report && (
                       <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                        {extractAgentBrief(a.report, 500)}
+                        {extractAgentBrief(a.report, t, 500)}
                       </div>
                     )}
                   </div>
@@ -579,7 +583,7 @@ export function WorkflowAgentCard({ data }: { data: WorkflowCardData }) {
                             🐂 {t("stockAnalysis.workflow.bullCase")}
                           </div>
                           <div style={{ fontSize: 10, color: "var(--muted)", lineHeight: 1.5 }}>
-                            {extractAgentBrief(d.bull ?? "", 200)}
+                            {extractAgentBrief(d.bull ?? "", t, 200)}
                           </div>
                         </div>
                         <div
@@ -595,7 +599,7 @@ export function WorkflowAgentCard({ data }: { data: WorkflowCardData }) {
                             🐻 {t("stockAnalysis.workflow.bearCase")}
                           </div>
                           <div style={{ fontSize: 10, color: "var(--muted)", lineHeight: 1.5 }}>
-                            {extractAgentBrief(d.bear ?? "", 200)}
+                            {extractAgentBrief(d.bear ?? "", t, 200)}
                           </div>
                         </div>
                       </div>
@@ -647,7 +651,7 @@ export function WorkflowAgentCard({ data }: { data: WorkflowCardData }) {
                     </div>
                     {r.status === "done" && r.content && (
                       <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                        {extractAgentBrief(r.content, 400)}
+                        {extractAgentBrief(r.content, t, 400)}
                       </div>
                     )}
                   </div>

@@ -175,7 +175,7 @@ export function BacktestTab() {
 
           {selectedStrategy && (
             <div style={{ marginTop: 16 }}>
-              <Text strong>策略参数</Text>
+              <Text strong>{t("quant.metrics.strategyParams")}</Text>
               <div style={{ marginTop: 8 }}>
                 <StrategyForm
                   strategy={selectedStrategy}
@@ -218,7 +218,7 @@ export function BacktestTab() {
           {/* ── 成交明细 ── */}
           {currentResult.trades.length > 0 && (
             <div style={{ marginTop: 16 }}>
-              <Title level={5}>{t("quant.backtest.trades") || "成交明细"}</Title>
+              <Title level={5}>{t("quant.backtest.trades")}</Title>
               <TradesTable trades={currentResult.trades} />
             </div>
           )}
@@ -292,23 +292,23 @@ function MetricsPanel({ metrics }: { metrics: MetricsReport }) {
     const r2: MetricItem[] = [
       {
         key: "annualizedVolatility",
-        title: t("quant.metrics.annualizedVolatility") || "年化波动率",
+        title: t("quant.metrics.annualizedVolatility"),
         value: metrics.annualizedVolatility * 100,
         suffix: "%",
         good: false,
       },
-      { key: "sortino", title: t("quant.metrics.sortino") || "索提诺比", value: metrics.sortino, good: true },
-      { key: "calmar", title: t("quant.metrics.calmar") || "卡尔玛比", value: (metrics.calmar ?? 0), good: true },
+      { key: "sortino", title: t("quant.metrics.sortino"), value: metrics.sortino, good: true },
+      { key: "calmar", title: t("quant.metrics.calmar"), value: (metrics.calmar ?? 0), good: true },
       {
         key: "profitFactor",
-        title: t("quant.metrics.profitFactor") || "盈亏比",
+        title: t("quant.metrics.profitFactor"),
         value: metrics.profitFactor,
         good: true,
       },
-      { key: "payoffRatio", title: t("quant.metrics.payoffRatio") || "赔率", value: metrics.payoffRatio, good: true },
+      { key: "payoffRatio", title: t("quant.metrics.payoffRatio"), value: metrics.payoffRatio, good: true },
       {
         key: "avgHoldingDays",
-        title: t("quant.metrics.avgHoldingDays") || "平均持仓(天)",
+        title: t("quant.metrics.avgHoldingDays"),
         value: metrics.avgHoldingDays,
         prec: 1,
       },
@@ -316,34 +316,34 @@ function MetricsPanel({ metrics }: { metrics: MetricsReport }) {
     const r3: MetricItem[] = [
       {
         key: "maxDrawdown",
-        title: t("quant.metrics.maxDrawdown") || "最大回撤(¥)",
+        title: t("quant.metrics.maxDrawdown"),
         value: metrics.maxDrawdown,
         prec: 0,
         good: false,
       },
       {
         key: "maxDrawdownDurationDays",
-        title: t("quant.metrics.maxDrawdownDuration") || "回撤持续(天)",
+        title: t("quant.metrics.maxDrawdownDuration"),
         value: metrics.maxDrawdownDurationDays,
         prec: 0,
         good: false,
       },
       {
         key: "winningTrades",
-        title: t("quant.metrics.winningTrades") || "盈利笔数",
+        title: t("quant.metrics.winningTrades"),
         value: metrics.winningTrades,
         prec: 0,
       },
       {
         key: "losingTrades",
-        title: t("quant.metrics.losingTrades") || "亏损笔数",
+        title: t("quant.metrics.losingTrades"),
         value: metrics.losingTrades,
         prec: 0,
       },
-      { key: "avgWin", title: t("quant.metrics.avgWin") || "平均盈利", value: metrics.avgWin, prec: 0 },
+      { key: "avgWin", title: t("quant.metrics.avgWin"), value: metrics.avgWin, prec: 0 },
       {
         key: "avgLoss",
-        title: t("quant.metrics.avgLoss") || "平均亏损",
+        title: t("quant.metrics.avgLoss"),
         value: Math.abs(metrics.avgLoss),
         prec: 0,
         good: false,
@@ -411,13 +411,13 @@ function WalkForwardPanel({
   const foldColumns: ColumnsType<WalkForwardFold> = [
     { title: "Fold", dataIndex: "foldIndex", key: "fi", width: 60, sorter: (a, b) => a.foldIndex - b.foldIndex },
     {
-      title: "训练区间",
+      title: t("quant.metrics.trainRange"),
       key: "train",
       width: 240,
       render: (_, r) => `${r.trainStart} → ${r.trainEnd} (${r.trainBarsCount})`,
     },
     {
-      title: "测试区间",
+      title: t("quant.metrics.testRange"),
       key: "test",
       width: 240,
       render: (_, r) => `${r.testStart} → ${r.testEnd} (${r.testBarsCount})`,
@@ -441,7 +441,7 @@ function WalkForwardPanel({
       sorter: (a, b) => a.testSharpe - b.testSharpe,
     },
     {
-      title: "退化",
+      title: t("quant.metrics.degradation"),
       dataIndex: "degradationRatio",
       key: "deg",
       width: 80,
@@ -450,7 +450,7 @@ function WalkForwardPanel({
       sorter: (a, b) => a.degradationRatio - b.degradationRatio,
     },
     {
-      title: "过拟合",
+      title: t("quant.metrics.overfit"),
       key: "of",
       width: 90,
       render: (_, r) => r.isOverfitFold ? <Tag color="red">是</Tag> : <Tag color="green">否</Tag>,
@@ -467,10 +467,12 @@ function WalkForwardPanel({
             <Space size="middle">
               <Text strong>{t("quant.backtest.walkForwardTitle") || "Walk-Forward 验证"}</Text>
               <Tag color={stabilityScore > 0.7 ? "green" : stabilityScore > 0.4 ? "orange" : "red"}>
-                稳定性 {stabilityScore.toFixed(3)}
+                {t("quant.metrics.stability")} {stabilityScore.toFixed(3)}
               </Tag>
               <Tag color={overfitWindowCount > 0 ? "red" : "green"}>
-                {overfitWindowCount > 0 ? `过拟合 ${overfitWindowCount}/${folds.length}` : "无过拟合"}
+                {overfitWindowCount > 0
+                  ? `${t("quant.metrics.overfit")} ${overfitWindowCount}/${folds.length}`
+                  : "无过拟合"}
               </Tag>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 OOS Sharpe: {aggregatedTestSharpe.toFixed(3)} · folds: {folds.length}

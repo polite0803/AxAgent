@@ -388,12 +388,12 @@ export function AnalystReportCard({ expertId, report }: Props) {
               )}
               {bullScore != null && (
                 <span className="text-xs" style={{ color: "#f5222d", fontWeight: 600 }}>
-                  看多 {Math.round(bullScore)}
+                  {t("stockAnalysis.sentimentBullish")} {Math.round(bullScore)}
                 </span>
               )}
               {bearScore != null && (
                 <span className="text-xs" style={{ color: "#52c41a", fontWeight: 600 }}>
-                  看空 {Math.round(bearScore)}
+                  {t("stockAnalysis.sentimentBearish")} {Math.round(bearScore)}
                 </span>
               )}
               {confidence != null && (

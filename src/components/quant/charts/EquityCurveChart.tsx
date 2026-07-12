@@ -3,6 +3,7 @@
 
 import * as echarts from "echarts";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { EquityPoint } from "@/types";
 
@@ -16,9 +17,11 @@ interface EquityCurveChartProps {
 export function EquityCurveChart({
   curve,
   benchmark,
-  benchmarkName = "基准",
+  benchmarkName,
   height = 360,
 }: EquityCurveChartProps) {
+  const { t } = useTranslation();
+  const benchLabel = benchmarkName ?? t("benchmark.name");
   const chartRef = useRef<HTMLDivElement>(null);
   const instRef = useRef<echarts.ECharts | null>(null);
 
@@ -40,7 +43,7 @@ export function EquityCurveChart({
 
     const series: echarts.SeriesOption[] = [
       {
-        name: "权益",
+        name: t("quant.metrics.equity"),
         type: "line",
         smooth: true,
         showSymbol: false,
@@ -54,7 +57,7 @@ export function EquityCurveChart({
       const init = curve[0].equity;
       const norm = benchmark.map((r) => init * (1 + r));
       series.push({
-        name: benchmarkName,
+        name: benchLabel,
         type: "line",
         smooth: true,
         showSymbol: false,
@@ -67,13 +70,13 @@ export function EquityCurveChart({
     instRef.current.setOption(
       {
         tooltip: { trigger: "axis" },
-        legend: { top: 0, data: benchmark ? ["权益", benchmarkName] : ["权益"] },
+        legend: { top: 0, data: benchmark ? [t("quant.metrics.equity"), benchLabel] : [t("quant.metrics.equity")] },
         grid: { left: 56, right: 56, top: 30, bottom: 50 },
         xAxis: { type: "category", data: dates, axisLabel: { hideOverlap: true } },
         yAxis: [
           {
             type: "value",
-            name: "权益",
+            name: t("quant.metrics.equity"),
             scale: true,
             splitLine: { lineStyle: { color: "rgba(0,0,0,0.05)" } },
           },
@@ -86,7 +89,7 @@ export function EquityCurveChart({
       },
       true,
     );
-  }, [curve, benchmark, benchmarkName]);
+  }, [curve, benchmark, benchLabel, t]);
 
   useEffect(() => {
     const onResize = () => instRef.current?.resize();

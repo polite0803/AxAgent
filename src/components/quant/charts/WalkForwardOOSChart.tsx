@@ -12,6 +12,7 @@
 
 import * as echarts from "echarts";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { EquityPoint, WalkForwardFold, WalkForwardWindowResult } from "@/types/quant";
 
@@ -63,6 +64,7 @@ export function WalkForwardOOSChart({
   initialCash = 1_000_000,
   height = 320,
 }: WalkForwardOOSChartProps) {
+  const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement>(null);
   const instRef = useRef<echarts.ECharts | null>(null);
 
@@ -89,7 +91,7 @@ export function WalkForwardOOSChart({
           trigger: "axis",
           valueFormatter: (v: number | string) => (typeof v === "number" ? v.toFixed(2) : String(v)),
         },
-        legend: { top: 0, data: ["OOS 权益", "初始资金基线"] },
+        legend: { top: 0, data: [t("quant.metrics.oosEquity"), t("quant.metrics.initialCash")] },
         grid: { left: 60, right: 30, top: 36, bottom: 50 },
         xAxis: {
           type: "category",
@@ -98,14 +100,14 @@ export function WalkForwardOOSChart({
         },
         yAxis: {
           type: "value",
-          name: "权益",
+          name: t("quant.metrics.equity"),
           scale: true,
           splitLine: { lineStyle: { color: "rgba(0,0,0,0.05)" } },
         },
         dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
         series: [
           {
-            name: "OOS 权益",
+            name: t("quant.metrics.oosEquity"),
             type: "line",
             smooth: false,
             showSymbol: false,
@@ -117,12 +119,12 @@ export function WalkForwardOOSChart({
               silent: true,
               symbol: "none",
               lineStyle: { color: "#999", type: "dashed", width: 1 },
-              data: [{ yAxis: initialCash, label: { formatter: "初始资金" } }],
+              data: [{ yAxis: initialCash, label: { formatter: t("quant.metrics.initialCash") } }],
             },
           },
           {
             // 占位系列：让 legend 显示"初始资金基线"
-            name: "初始资金基线",
+            name: t("quant.metrics.initialCash"),
             type: "line",
             showSymbol: false,
             data: [],
@@ -132,7 +134,7 @@ export function WalkForwardOOSChart({
       },
       true,
     );
-  }, [aggregatedOosEquity, windows, initialCash]);
+  }, [aggregatedOosEquity, windows, initialCash, t]);
 
   useEffect(() => {
     const onResize = () => instRef.current?.resize();

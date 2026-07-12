@@ -615,8 +615,9 @@ function VerdictView({ data }: { data: DebateJson }) {
 }
 
 function DebateContentView({ content, isDark }: { content: DebateContent; isDark: boolean }) {
+  const { t } = useTranslation();
   if (content.empty) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无数据" />;
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("quant.common.empty")} />;
   }
 
   // 无论结构化还是非结构化，只要 parsed 中有 report 字段就优先渲染 report Markdown
@@ -735,7 +736,7 @@ function DebateContentView({ content, isDark }: { content: DebateContent; isDark
       </pre>
     );
   }
-  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无数据" />;
+  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("quant.common.empty")} />;
 }
 
 /* ─── 主组件 ─── */

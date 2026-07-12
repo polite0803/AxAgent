@@ -10,6 +10,7 @@
 
 import * as echarts from "echarts";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { WalkForwardWindowResult } from "@/types/quant";
 
@@ -19,6 +20,7 @@ interface WalkForwardFoldBarChartProps {
 }
 
 export function WalkForwardFoldBarChart({ windows, height = 280 }: WalkForwardFoldBarChartProps) {
+  const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement>(null);
   const instRef = useRef<echarts.ECharts | null>(null);
 
@@ -51,7 +53,9 @@ export function WalkForwardFoldBarChart({ windows, height = 280 }: WalkForwardFo
             const w = windows[arr[0].dataIndex];
             const f = w.fold;
             return [
-              `<b>Fold ${f.foldIndex}</b> ${w.overfitFlag ? "<span style='color:#cf1322'>(过拟合)</span>" : ""}`,
+              `<b>Fold ${f.foldIndex}</b> ${
+                w.overfitFlag ? `<span style='color:#cf1322'>(${t("quant.metrics.overfit")})</span>` : ""
+              }`,
               `IS: ${f.trainStart} → ${f.trainEnd} (${f.trainBarsCount} 根)`,
               `OOS: ${f.testStart} → ${f.testEnd} (${f.testBarsCount} 根)`,
               `Train Sharpe: ${w.trainMetrics.sharpe.toFixed(3)}`,
@@ -114,14 +118,14 @@ export function WalkForwardFoldBarChart({ windows, height = 280 }: WalkForwardFo
               silent: true,
               symbol: "none",
               lineStyle: { color: "#cf1322", type: "dotted", width: 1 },
-              data: [{ yAxis: 0.3, label: { formatter: "过拟合阈值 0.3" } }],
+              data: [{ yAxis: 0.3, label: { formatter: `${t("quant.metrics.overfit")} 阈值 0.3` } }],
             },
           },
         ],
       },
       true,
     );
-  }, [windows]);
+  }, [windows, t]);
 
   useEffect(() => {
     const onResize = () => instRef.current?.resize();

@@ -2,6 +2,7 @@
 
 import * as echarts from "echarts";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { EquityPoint } from "@/types";
 
@@ -13,6 +14,7 @@ interface DrawdownChartProps {
 }
 
 export function DrawdownChart({ curve, height = 220 }: DrawdownChartProps) {
+  const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement>(null);
   const instRef = useRef<echarts.ECharts | null>(null);
 
@@ -38,7 +40,7 @@ export function DrawdownChart({ curve, height = 220 }: DrawdownChartProps) {
         xAxis: { type: "category", data: dates, axisLabel: { hideOverlap: true } },
         yAxis: {
           type: "value",
-          name: "回撤 %",
+          name: t("quant.metrics.maxDrawdownPct"),
           max: 0,
           splitLine: { lineStyle: { color: "rgba(0,0,0,0.05)" } },
         },
@@ -56,7 +58,7 @@ export function DrawdownChart({ curve, height = 220 }: DrawdownChartProps) {
       },
       true,
     );
-  }, [curve]);
+  }, [curve, t]);
 
   useEffect(() => {
     const onResize = () => instRef.current?.resize();
