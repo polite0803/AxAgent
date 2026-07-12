@@ -2,7 +2,7 @@
 
 use crate::recommender::types::{Period, RecoPick, Style};
 use std::collections::{BTreeMap, HashMap};
-use std::sync::RwLock;
+use std::sync::Mutex;
 
 /// 自适应评分权重（初始值为默认值，可通过回测/反思反馈调优）
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ impl Default for ScoringWeights {
     }
 }
 
-static ADAPTIVE_WEIGHTS: RwLock<ScoringWeights> = RwLock::new(ScoringWeights {
+static ADAPTIVE_WEIGHTS: Mutex<ScoringWeights> = Mutex::new(ScoringWeights {
     consistency: 0.45,
     signal_strength: 0.35,
     liquidity: 0.15,
@@ -28,12 +28,12 @@ static ADAPTIVE_WEIGHTS: RwLock<ScoringWeights> = RwLock::new(ScoringWeights {
 
 /// 读取当前自适应权重
 pub fn get_scoring_weights() -> ScoringWeights {
-    ADAPTIVE_WEIGHTS.read().unwrap_or_else(|e| e.into_inner()).clone()
+    ADAPTIVE_WEIGHTS.lock().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
 /// 更新自适应权重（EWMA: new = old × 0.7 + suggested × 0.3）
 pub fn nudge_scoring_weights(suggested: &ScoringWeights) {
-    if let Ok(mut w) = ADAPTIVE_WEIGHTS.write() {
+    if let Ok(mut w) = ADAPTIVE_WEIGHTS.lock() {
         w.consistency = w.consistency * 0.7 + suggested.consistency * 0.3;
         w.signal_strength = w.signal_strength * 0.7 + suggested.signal_strength * 0.3;
         w.liquidity = w.liquidity * 0.7 + suggested.liquidity * 0.3;

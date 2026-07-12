@@ -84,6 +84,7 @@ impl StockVendor for AkshareVendor {
                     free_cash_flow: None,
                     current_ratio: n("LD"), // 流动比率
                     quick_ratio: n("SD"),   // 速动比率
+                    estimated: Some(false),
                 }
             })
             .collect())
@@ -233,9 +234,7 @@ impl StockVendor for AkshareVendor {
                     .and_then(|v| {
                         v.as_i64()
                             .map(|ts| {
-                                chrono::DateTime::from_timestamp(ts, 0)
-                                    .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-                                    .unwrap_or_default()
+                                crate::vendors::format_timestamp(ts, "%Y-%m-%d %H:%M:%S", "akshare")
                             })
                             .or_else(|| v.as_str().map(|s| s.to_string()))
                     })

@@ -38,6 +38,7 @@ pub fn estimated_financial_report(stock_code: &str) -> FinancialReport {
         free_cash_flow: None,
         current_ratio: Some(1.5),
         quick_ratio: Some(1.0),
+        estimated: Some(true),
     }
 }
 

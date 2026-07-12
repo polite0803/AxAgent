@@ -921,6 +921,7 @@ dependencies = [
  "flate2",
  "futures",
  "moka",
+ "parking_lot",
  "redb",
  "reqwest 0.13.4",
  "serde",
@@ -1117,8 +1118,8 @@ dependencies = [
 name = "axagent-market-sim"
 version = "2.8.4"
 dependencies = [
+ "async-trait",
  "axagent-harness",
- "axagent-quant",
  "chrono",
  "futures",
  "rand 0.8.6",

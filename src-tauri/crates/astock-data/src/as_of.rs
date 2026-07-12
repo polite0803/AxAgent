@@ -268,13 +268,19 @@ where
 /// 消费并清空当前任务的降级日志。返回累积的降级条目。
 /// 必须在 with_degradation_log scope 内调用，否则返回空 Vec。
 pub fn take_asof_degradation_report() -> Vec<DegradationEntry> {
-    DEGRADATION_LOG.try_with(|cell| std::mem::take(&mut *cell.borrow_mut())).unwrap_or_default()
+    DEGRADATION_LOG.try_with(|cell| std::mem::take(&mut *cell.borrow_mut())).unwrap_or_else(|e| {
+        tracing::warn!("[as_of] take_asof_degradation_report 访问失败: {e}");
+        Vec::new()
+    })
 }
 
 /// 仅快照全局降级日志(不清空,供前端 poll 显示)。
 /// 返回按时间顺序排列(旧 → 新)的最近 256 条。
 pub fn peek_global_degradation_report() -> Vec<DegradationEntry> {
-    GLOBAL_DEGRADATION_LOG.lock().map(|g| g.iter().cloned().collect()).unwrap_or_default()
+    GLOBAL_DEGRADATION_LOG.lock().map(|g| g.iter().cloned().collect()).unwrap_or_else(|e| {
+        tracing::warn!("[as_of] GLOBAL_DEGRADATION_LOG 中毒: {e}");
+        Vec::new()
+    })
 }
 
 /// 当前累计降级总数(从进程启动起算,跨 live/replay 切换)。

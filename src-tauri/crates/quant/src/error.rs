@@ -45,3 +45,33 @@ impl From<serde_json::Error> for QuantError {
         QuantError::Serde(e.to_string())
     }
 }
+
+/// `QuantError` → `AxAgentError` 转换
+///
+/// 让 `Strategy` trait 实现可用 `?` 自动将内部 `QuantError` 传播为
+/// `axagent_harness::core_error::AxAgentError`（Strategy trait 的统一错误类型）。
+///
+/// 映射规则：
+/// - `Param` → `Validation`（参数校验失败）
+/// - `Data` → `Validation`（数据校验失败）
+/// - `Strategy` → `Agent`（策略内部错误）
+/// - `Backtest` → `Execution`（回测执行错误）
+/// - `Script` → `Execution`（Rhai 脚本执行错误）
+/// - `WalkForward` → `Validation`（Walk-Forward 验证错误）
+/// - `Multi` → `Validation`（多策略组合错误）
+/// - `Serde` → `Internal`（序列化错误）
+impl From<QuantError> for axagent_harness::core_error::AxAgentError {
+    fn from(e: QuantError) -> Self {
+        use axagent_harness::core_error::AxAgentError;
+        match e {
+            QuantError::Param(msg) => AxAgentError::Validation(msg),
+            QuantError::Data(msg) => AxAgentError::Validation(msg),
+            QuantError::Strategy(msg) => AxAgentError::Agent { source: None, context: msg },
+            QuantError::Backtest(msg) => AxAgentError::Execution { source: None, context: msg },
+            QuantError::Script(msg) => AxAgentError::Execution { source: None, context: msg },
+            QuantError::WalkForward(msg) => AxAgentError::Validation(msg),
+            QuantError::Multi(msg) => AxAgentError::Validation(msg),
+            QuantError::Serde(msg) => AxAgentError::Internal(msg),
+        }
+    }
+}

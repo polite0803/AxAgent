@@ -34,6 +34,7 @@
     "recommend": "推荐",
     "quant": "量化",
     "replayWorkbench": "回放工作台",
+    "pipeline": "주식 파이프라인",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -10272,5 +10273,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "스킬 상태 전환 실패"
+  },
+  "pipeline": {
+    "title": "주식 파이프라인",
+    "date": "실행 날짜",
+    "status": "상태",
+    "candidates": "후보 종목 수",
+    "analyzed": "분석 수",
+    "reflectionScheduled": "반영 스케줄됨",
+    "totalRuns": "총 실행 횟수",
+    "successRate": "성공률",
+    "runNow": "지금 실행",
+    "running": "실행 중...",
+    "progress": "진행 상황",
+    "history": "기록",
+    "noHistory": "기록 없음"
   }
 }

@@ -34,6 +34,7 @@
     "recommend": "Recommend",
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
+    "pipeline": "Aktien-Pipeline",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -10235,5 +10236,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "Fehler beim Umschalten des Skill-Status"
+  },
+  "pipeline": {
+    "title": "Aktien-Pipeline",
+    "date": "Ausführungsdatum",
+    "status": "Status",
+    "candidates": "Kandidaten",
+    "analyzed": "Analysiert",
+    "reflectionScheduled": "Geplante Reflexionen",
+    "totalRuns": "Gesamtzahl Ausführungen",
+    "successRate": "Erfolgsquote",
+    "runNow": "Jetzt ausführen",
+    "running": "Wird ausgeführt...",
+    "progress": "Fortschritt",
+    "history": "Verlauf",
+    "noHistory": "Kein Verlauf vorhanden"
   }
 }

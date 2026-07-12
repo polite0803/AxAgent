@@ -138,10 +138,10 @@ async fn filter_one(client: &AStockClient, item: SeedItem) -> Option<SeedItem> {
 }
 
 /// 缓存 vendor 启用集合（5 min）
-use std::sync::RwLock;
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-static VENDOR_CACHE: RwLock<Option<(HashSet<String>, Instant)>> = RwLock::new(None);
+static VENDOR_CACHE: Mutex<Option<(HashSet<String>, Instant)>> = Mutex::new(None);
 const VENDOR_TTL: Duration = Duration::from_secs(300);
 
 /// 通过 `get_workflow_template` 读 `vendor_*` 变量，返回启用的 vendor 集合
@@ -187,7 +187,7 @@ pub fn load_enabled_vendors_from_template(
 
 /// 读取缓存（命中且未过期直接返回）
 pub fn get_cached_vendors() -> Option<HashSet<String>> {
-    let guard = VENDOR_CACHE.read().ok()?;
+    let guard = VENDOR_CACHE.lock().ok()?;
     if let Some((set, ts)) = guard.as_ref() {
         if ts.elapsed() < VENDOR_TTL {
             return Some(set.clone());
@@ -197,13 +197,13 @@ pub fn get_cached_vendors() -> Option<HashSet<String>> {
 }
 
 pub fn set_cached_vendors(set: HashSet<String>) {
-    if let Ok(mut g) = VENDOR_CACHE.write() {
+    if let Ok(mut g) = VENDOR_CACHE.lock() {
         *g = Some((set, Instant::now()));
     }
 }
 
 pub fn clear_cached_vendors() {
-    if let Ok(mut g) = VENDOR_CACHE.write() {
+    if let Ok(mut g) = VENDOR_CACHE.lock() {
         *g = None;
     }
 }

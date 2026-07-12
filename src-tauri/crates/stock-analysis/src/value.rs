@@ -155,7 +155,7 @@ impl ValueEngine {
         growth_rate: f64,        // 未来5年增长率 (如 0.10 = 10%)
         terminal_rate: f64,      // 永续增长率 (如 0.03 = 3%)
         discount_rate: f64,      // 折现率 (如 0.10 = 10%)
-        shares_outstanding: f64, // 总股本
+        shares_outstanding: f64, // 总股本（亿股，调用方传 mv/price/1e8）
         years: u32,              // 预测年数
     ) -> f64 {
         let mut total_pv = 0.0;
@@ -169,12 +169,16 @@ impl ValueEngine {
         }
 
         // 第二阶段：永续增长期
+        // 修复 M13: 终值折现期数应为 years（第 years 年末），而非 years+1
+        // 对齐 value_investing.rs:210 的 powi(5) 口径
         let terminal_value =
             fcf * (1.0 + terminal_rate) / (discount_rate - terminal_rate.max(0.001));
-        let terminal_pv = terminal_value / (1.0 + discount_rate).powi(years as i32 + 1);
+        let terminal_pv = terminal_value / (1.0 + discount_rate).powi(years as i32);
         total_pv += terminal_pv;
 
-        total_pv / shares_outstanding.max(1.0)
+        // 修复 C1: shares_outstanding 单位为亿股，需 ×1e8 转为股
+        // 对齐 value_investing.rs:177 的 fcf/shares/1e8 口径
+        total_pv / (shares_outstanding * 1_0000_0000.0).max(1.0)
     }
 
     /// ── 格雷厄姆公式 ──

@@ -34,6 +34,7 @@
     "compare": "比較",
     "quant": "クオンツ",
     "replayWorkbench": "リプレイワークベンチ",
+    "pipeline": "株式パイプライン",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -10272,5 +10273,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "スキル状態の切り替えに失敗しました"
+  },
+  "pipeline": {
+    "title": "株式パイプライン",
+    "date": "実行日",
+    "status": "ステータス",
+    "candidates": "候補銘柄数",
+    "analyzed": "分析数",
+    "reflectionScheduled": "反思スケジュール済み",
+    "totalRuns": "総実行回数",
+    "successRate": "成功率",
+    "runNow": "今すぐ実行",
+    "running": "実行中...",
+    "progress": "進捗",
+    "history": "履歴",
+    "noHistory": "履歴なし"
   }
 }

@@ -125,6 +125,7 @@ pub mod quant_strategies;
 pub mod reco_picks;
 pub mod reflection_lessons;
 pub mod stock_analyses;
+pub mod stock_pipeline_runs;
 pub mod stock_reflections;
 pub mod strategy_performance;
 pub mod strategy_weight_history;

@@ -22,7 +22,7 @@ import {
 import type { AppSettings, PageKey } from "@/types";
 import { AppstoreAddOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
+import { GitBranch, Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
 import { createElement, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -48,6 +48,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   compare: "/compare",
   quant: "/quant",
   "replay-workbench": "/replay-workbench",
+  pipeline: "/pipeline",
   settings: "/settings",
 };
 
@@ -202,6 +203,13 @@ const builtinNavItems: NavItem[] = [
     icon: <Icon icon="fluent:clock-20-filled" size={17} />,
     labelKey: "nav.replayWorkbench",
     path: "/replay-workbench",
+    isPlugin: false,
+  },
+  {
+    key: "pipeline",
+    icon: <GitBranch size={17} />,
+    labelKey: "nav.pipeline",
+    path: "/pipeline",
     isPlugin: false,
   },
 ];
@@ -508,6 +516,7 @@ export function Sidebar() {
       labelKey: "sidebar.sectionInvestReview",
       items: builtinNavItems.filter((n) =>
         n.key === "scheduled-analysis" || n.key === "quant" || n.key === "replay-workbench"
+        || n.key === "pipeline"
       ),
     });
 

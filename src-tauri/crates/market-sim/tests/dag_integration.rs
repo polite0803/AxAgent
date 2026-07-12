@@ -7,6 +7,7 @@
 //!   ④ 无 simulation_result 时无影响
 //!   ⑤ 性能基准
 
+use async_trait::async_trait;
 use axagent_market_sim::{
     BEST_PARAMS, ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, SimConfig, SimKernel,
     SimResult, StrategyAgent,
@@ -278,7 +279,9 @@ fn v8_quant_strategy_produces_events() {
     kernel.register(Box::new(MarketMakerAgent::new("mm", 35, 500, 5000, 0.1, 500_000, price)));
     kernel.register(Box::new(QuantStrategyAgent::new(
         "quant",
-        Box::new(axagent_quant::MaCrossStrategy::new(5, 20)),
+        // 原 test 依赖 axagent_quant::MaCrossStrategy，按铁律 5（consumer 测试不得依赖其他 consumer），
+        // 改为本地 MockMaCrossStrategy。它实现了 Strategy trait，行为足够验证事件循环。
+        Box::new(MockMaCrossStrategy::new(5, 20)),
         "000001",
         price,
         1_000_000.0,
@@ -290,4 +293,104 @@ fn v8_quant_strategy_produces_events() {
     assert!(result.total_events > 50);
     assert!(result.stats.agent_count >= 3);
     eprintln!("[V8] quant_strategy: events={} trades={}", result.total_events, result.trades.len());
+}
+
+/// 本地 MockMaCrossStrategy — 不依赖 axagent-quant（同为 consumer，违反铁律 5）
+struct MockMaCrossStrategy {
+    short_period: usize,
+    long_period: usize,
+}
+
+impl MockMaCrossStrategy {
+    fn new(short_period: usize, long_period: usize) -> Self {
+        Self { short_period, long_period }
+    }
+}
+
+#[async_trait]
+impl axagent_harness::strategy_contract::Strategy for MockMaCrossStrategy {
+    fn name(&self) -> &str {
+        "mock_ma_cross"
+    }
+    fn params(&self) -> serde_json::Value {
+        serde_json::json!({
+            "short_period": self.short_period,
+            "long_period": self.long_period,
+        })
+    }
+    fn set_param(
+        &mut self,
+        key: &str,
+        value: serde_json::Value,
+    ) -> axagent_harness::core_error::Result<()> {
+        use axagent_harness::core_error::AxAgentError;
+        match key {
+            "short_period" => {
+                self.short_period =
+                    value.as_u64().ok_or_else(|| AxAgentError::Validation(key.to_string()))?
+                        as usize;
+            },
+            "long_period" => {
+                self.long_period =
+                    value.as_u64().ok_or_else(|| AxAgentError::Validation(key.to_string()))?
+                        as usize;
+            },
+            _ => return Err(AxAgentError::Validation(format!("未知参数: {}", key))),
+        }
+        Ok(())
+    }
+    async fn on_bar(
+        &mut self,
+        bar: &axagent_harness::strategy_contract::Bar,
+        ctx: &mut axagent_harness::strategy_contract::StrategyCtx,
+    ) -> axagent_harness::core_error::Result<Vec<axagent_harness::strategy_contract::Signal>> {
+        use axagent_harness::strategy_contract::{CloseReason, Signal, SignalAction};
+
+        let history = match ctx.bar_history.get(&bar.code) {
+            Some(h) if h.len() > self.long_period => h,
+            _ => return Ok(vec![]),
+        };
+        if history.len() < self.long_period + 1 {
+            return Ok(vec![]);
+        }
+        let cs: Vec<f64> = history.iter().map(|b| b.close).collect();
+        let cur_short = sma_last(&cs, self.short_period);
+        let cur_long = sma_last(&cs, self.long_period);
+        let prev_short = sma_last(&cs[..cs.len() - 1], self.short_period);
+        let prev_long = sma_last(&cs[..cs.len() - 1], self.long_period);
+
+        if let (Some(cs_), Some(cl_), Some(ps_), Some(pl_)) =
+            (cur_short, cur_long, prev_short, prev_long)
+        {
+            if ps_ <= pl_ && cs_ > cl_ {
+                return Ok(vec![Signal {
+                    code: bar.code.clone(),
+                    action: SignalAction::Buy,
+                    strength: 0.7,
+                    reason: format!("Mock MA{} 上穿 MA{}", self.short_period, self.long_period),
+                    target_weight: None,
+                    close_reason: None,
+                }]);
+            }
+            if ps_ >= pl_ && cs_ < cl_ {
+                return Ok(vec![Signal {
+                    code: bar.code.clone(),
+                    action: SignalAction::Sell,
+                    strength: 0.7,
+                    reason: format!("Mock MA{} 下穿 MA{}", self.short_period, self.long_period),
+                    target_weight: None,
+                    close_reason: Some(CloseReason::SignalReverse),
+                }]);
+            }
+        }
+        Ok(vec![])
+    }
+}
+
+fn sma_last(values: &[f64], period: usize) -> Option<f64> {
+    if values.len() < period || period == 0 {
+        return None;
+    }
+    let start = values.len() - period;
+    Some(values[start..].iter().sum::<f64>() / period as f64)
 }

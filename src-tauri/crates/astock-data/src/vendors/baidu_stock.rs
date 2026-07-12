@@ -181,6 +181,7 @@ impl StockVendor for BaiduStockVendor {
                 free_cash_flow: None,
                 current_ratio: None,
                 quick_ratio: None,
+                estimated: Some(false),
             })
             .collect())
     }

@@ -36,7 +36,8 @@
     "backtest": "回测",
     "compare": "对比",
     "quant": "量化",
-    "replayWorkbench": "回放工作台"
+    "replayWorkbench": "回放工作台",
+    "pipeline": "股票管道"
   },
   "sidebar": {
     "sectionWork": "工作",
@@ -10573,5 +10574,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "切换 skill 状态失败"
+  },
+  "pipeline": {
+    "title": "股票管道",
+    "date": "执行日期",
+    "status": "状态",
+    "candidates": "候选股数",
+    "analyzed": "分析数",
+    "reflectionScheduled": "已调度反思",
+    "totalRuns": "总运行次数",
+    "successRate": "成功率",
+    "runNow": "立即执行",
+    "running": "执行中...",
+    "progress": "执行进度",
+    "history": "历史记录",
+    "noHistory": "暂无执行历史"
   }
 }

@@ -380,18 +380,23 @@ async fn evaluate_position(
     }
 
     // 行业集中度
+    // 修复 H8: sector_exposure 应为占比(%)，position_pct 已是百分比，二者直接比较
+    // 原代码 `position_pct / total_mv.max(1.0) * 100.0` 量纲错乱（百分比÷市值×100）
     if let Some(sector) = holding.stock_name.split(' ').next() {
         let sector_total: f64 = sector_exposure
             .iter()
             .filter(|(name, _)| name.contains(sector) || sector.contains(name))
             .map(|(_, pct)| *pct)
             .sum();
-        if sector_total > 45.0 && position_pct / total_mv.max(1.0) * 100.0 > 5.0 {
+        if sector_total > 45.0 && position_pct > 5.0 {
             score += SCORE_SECTOR_OVEREXPOSED;
             signals.push(ExitSignal {
                 signal_type: "sector_overexposed".into(),
                 severity: "medium".into(),
-                detail: format!("行业总暴露 {:.0}%，单一持仓占比过高", sector_total),
+                detail: format!(
+                    "行业总暴露 {:.0}%，单一持仓占比 {:.1}%，集中度过高",
+                    sector_total, position_pct
+                ),
             });
         }
     }

@@ -65,6 +65,7 @@ export function StrategyForm({ strategy, onChange }: StrategyFormProps) {
     return strategy.params as Record<string, number>;
   }, [strategy, fields]);
 
+  // 修复 H9: 通过 Form key 强制重挂载同步 initialValues，避免 onChange 展开导致字段重置
   if (!fields) {
     // Rhai 策略：参数以 JSON 字符串形式编辑（M1 简化）
     return (
@@ -88,7 +89,7 @@ export function StrategyForm({ strategy, onChange }: StrategyFormProps) {
   }
 
   return (
-    <Form layout="vertical" size="small" initialValues={initialValues}>
+    <Form key={strategy.id} layout="vertical" size="small" initialValues={initialValues}>
       {fields.map((f) => (
         <Form.Item key={f.key} label={f.label} name={f.key}>
           <InputNumber

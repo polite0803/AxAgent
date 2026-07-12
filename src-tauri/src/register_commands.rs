@@ -914,7 +914,6 @@ macro_rules! register_all_commands {
             commands::stock_analysis::batch_get_financials,
             commands::stock_analysis::generate_fundamentals_report,
             commands::stock_analysis::get_fundamentals_report_markdown,
-            commands::stock_analysis::get_cache_stats,
             commands::stock_analysis::cancel_stock_analysis,
             commands::stock_analysis::list_stock_analyses,
             commands::stock_analysis::get_stock_analysis,
@@ -1043,6 +1042,10 @@ macro_rules! register_all_commands {
             commands::stock_workflow::reflection::submit_reflection_feedback,
             commands::stock_workflow::serenity::run_serenity_screening,
             commands::stock_workflow::core::run_stock_workflow,
+            // ── 股票管道编排器 ──
+            commands::stock_pipeline::core::run_stock_pipeline,
+            commands::stock_pipeline::core::get_pipeline_history,
+            commands::stock_pipeline::core::get_pipeline_run_detail,
             // ── 决策事后验证（V55）──
             commands::backtest_validation::run_decision_backtest,
             commands::backtest_validation::list_decision_validations,

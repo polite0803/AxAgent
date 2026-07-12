@@ -84,6 +84,7 @@ const LazyQuantLabPage = lazy(() => import("@/pages/QuantLabPage").then((m) => (
 const LazyReplayWorkbenchPage = lazy(() =>
   import("@/pages/ReplayWorkbenchPage").then((m) => ({ default: m.ReplayWorkbenchPage }))
 );
+const LazyPipelinePage = lazy(() => import("@/pages/PipelinePage").then((m) => ({ default: m.PipelinePage })));
 
 function PageLoader() {
   return (
@@ -407,6 +408,14 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="replay-workbench">
                 <SafeLazyPage Page={LazyReplayWorkbenchPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/pipeline"
+            element={
+              <PageContextProvider page="pipeline">
+                <SafeLazyPage Page={LazyPipelinePage} />
               </PageContextProvider>
             }
           />

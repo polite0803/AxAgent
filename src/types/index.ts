@@ -725,6 +725,7 @@ export type BuiltinPageKey =
   | "backtest"
   | "compare"
   | "scheduled-analysis"
+  | "pipeline"
   | "quant"
   | "replay-workbench"
   | "settings"
@@ -1161,6 +1162,7 @@ export * from "./memory";
 export * from "./nudge";
 export * from "./permission";
 export * from "./persona";
+export * from "./pipeline";
 export * from "./platform";
 export * from "./proactive";
 export * from "./search";

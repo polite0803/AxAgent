@@ -32,6 +32,7 @@
     "backtest": "回測",
     "compare": "對比",
     "replayWorkbench": "回放工作台",
+    "pipeline": "股票管道",
     "recommend": "推薦",
     "quant": "量化",
     "portfolio": "[TODO] Portfolio",
@@ -10272,5 +10273,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "切換 skill 狀態失敗"
+  },
+  "pipeline": {
+    "title": "股票管道",
+    "date": "執行日期",
+    "status": "狀態",
+    "candidates": "候選股數",
+    "analyzed": "分析數",
+    "reflectionScheduled": "已排程反思",
+    "totalRuns": "總執行次數",
+    "successRate": "成功率",
+    "runNow": "立即執行",
+    "running": "執行中...",
+    "progress": "執行進度",
+    "history": "歷史記錄",
+    "noHistory": "暫無執行歷史"
   }
 }

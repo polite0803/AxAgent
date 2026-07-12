@@ -34,6 +34,7 @@
     "recommend": "Recommend",
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
+    "pipeline": "Конвейер акций",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -10223,5 +10224,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "Не удалось переключить состояние навыка"
+  },
+  "pipeline": {
+    "title": "Конвейер акций",
+    "date": "Дата выполнения",
+    "status": "Статус",
+    "candidates": "Кандидаты",
+    "analyzed": "Проанализировано",
+    "reflectionScheduled": "Запланированных рефлексий",
+    "totalRuns": "Всего запусков",
+    "successRate": "Успешность",
+    "runNow": "Запустить сейчас",
+    "running": "Выполняется...",
+    "progress": "Прогресс",
+    "history": "История",
+    "noHistory": "Истории нет"
   }
 }

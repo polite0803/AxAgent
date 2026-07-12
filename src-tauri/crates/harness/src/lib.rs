@@ -386,3 +386,10 @@ pub use compact_session::{
     cleanup_task_boundary, compact_session, decay_weight, detect_task_boundary,
     format_compact_summary, get_compact_continuation_message, summarize_turn,
 };
+
+// ── 量化策略契约（让 market-sim / quant 等 consumer 共享 Strategy trait + 数据类型） ──
+pub mod strategy_contract;
+pub use strategy_contract::{
+    Bar, CloseReason, EquityPoint, Fill, Order, OrderType, Position, Side, Signal, SignalAction,
+    Strategy, StrategyCtx, Trade,
+};

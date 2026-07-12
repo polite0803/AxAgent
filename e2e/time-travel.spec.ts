@@ -101,8 +101,8 @@ test.describe("Time Travel / As-Of Mode", () => {
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
 
-    // 点 DatePicker input 打开日历面板，选一个过去日期
-    await picker.locator("input").click({ force: true });
+    // 点 DatePicker 容器打开日历面板，选一个过去日期
+    await picker.click({ force: true });
     const calendar = page.locator(".ant-picker-dropdown").first();
     await expect(calendar).toBeVisible({ timeout: 5000 });
     await calendar.locator(".ant-picker-cell:not(.ant-picker-cell-disabled)").first().click();

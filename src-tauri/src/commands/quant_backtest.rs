@@ -20,7 +20,7 @@
 
 use std::collections::HashMap;
 
-use axagent_astock_data::AStockClient;
+use axagent_astock_data::{AStockClient, types::AdjType};
 use axagent_entities::{quant_runs, quant_strategies};
 use axagent_harness::market_data::KLine;
 use axagent_quant::{
@@ -178,7 +178,7 @@ pub async fn quant_backtest_run(
     let pending = pending.insert(db).await.map_err(|e| format!("插入回测记录失败: {e}"))?;
 
     // 3. 执行回测
-    match execute_backtest(&request, &strategy_model).await {
+    match execute_backtest(&request, &strategy_model, &state.astock_client).await {
         Ok((result, metrics, walk_forward_rust)) => {
             let finished_at = Utc::now().timestamp();
             let result_json =
@@ -209,7 +209,12 @@ pub async fn quant_backtest_run(
             am.status = Set("failed".to_string());
             am.error_message = Set(Some(err.clone()));
             am.finished_at = Set(Some(finished_at));
-            let _ = am.update(db).await;
+            // 失败状态落库即使出错也不覆盖原始错误，只记录日志避免僵尸记录
+            if let Err(db_err) = am.update(db).await {
+                tracing::error!(
+                    "[quant_backtest] 回测失败后更新状态为 failed 失败: {db_err} (原始错误: {err})"
+                );
+            }
             Err(err)
         },
     }
@@ -233,6 +238,7 @@ pub async fn quant_run_get(
 async fn execute_backtest(
     request: &BacktestRunRequest,
     strategy_model: &quant_strategies::Model,
+    client: &std::sync::Arc<AStockClient>,
 ) -> Result<(BacktestResult, MetricsReport, Option<RawWalkForwardReport>), String> {
     // 1. 构造策略实例
     let mut strategy = build_strategy(strategy_model, &request.params)?;
@@ -251,7 +257,8 @@ async fn execute_backtest(
             _ => 2000u32,
         }
     };
-    let client = AStockClient::new();
+    // 复用 AppState 中共享的 AStockClient（连接池 + 缓存共享），避免每次请求新建
+    tracing::debug!("[quant_backtest] 复用共享 AStockClient");
     // 同时尝试获取实时行情（获取涨跌停/ST 标记，用于回测撮合）
     let quote_info = client.get_quote(&request.code).await.ok();
     let (limit_up, limit_down, is_st) = match quote_info {
@@ -259,10 +266,11 @@ async fn execute_backtest(
         None => (None, None, false),
     };
 
+    // 修复 C2: 回测必须使用前复权数据，否则遇分红/送转标的价格断层，虚假信号、收益与回撤失真
     let klines = client
-        .get_klines(&request.code, "daily", kline_count)
+        .get_klines_with_adj(&request.code, "daily", kline_count, Some(AdjType::Forward))
         .await
-        .map_err(|e| format!("拉取K线失败(limit={kline_count}): {e}"))?;
+        .map_err(|e| format!("拉取前复权K线失败(limit={kline_count}): {e}"))?;
     if klines.is_empty() {
         return Err(format!("未获取到 {} 的K线数据", request.code));
     }
@@ -293,9 +301,6 @@ async fn execute_backtest(
         let wf = WalkForward::new(WalkForwardConfig::default());
         let sm = strategy_model.clone();
         let params = request.params.clone();
-        // 预验证策略构造（主回测已验证，此处双重确认防回归）
-        let _ = build_strategy(&sm, &params)
-            .map_err(|e| format!("WalkForward 预验证策略构造失败: {e}"))?;
         let strategy_name = sm.name.clone();
         // 修复 P0-T4: 改 Result 传播，避免 panic 拖垮 Tauri 进程。
         // 之前依赖"factory 内构造不应失败"的假设并不严格；

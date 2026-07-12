@@ -109,6 +109,9 @@ pub struct FinancialReport {
     pub current_ratio: Option<f64>,
     #[serde(default)]
     pub quick_ratio: Option<f64>,
+    /// 标记该报告是否为估值/行业均值 fallback（非真实财报数据）
+    #[serde(default)]
+    pub estimated: Option<bool>,
 }
 
 impl FinancialReport {

@@ -96,6 +96,7 @@ pub mod sources;
 pub mod spawn_guard;
 pub mod stock_analysis;
 pub mod stock_analysis_setup;
+pub mod stock_pipeline;
 pub mod stock_workflow;
 pub mod storage;
 #[cfg(not(mobile))]

@@ -33,6 +33,7 @@
     "compare": "مقارنة",
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
+    "pipeline": "خط أنابيب الأسهم",
     "recommend": "Recommend",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
@@ -10223,5 +10224,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
+  },
+  "pipeline": {
+    "title": "خط أنابيب الأسهم",
+    "date": "تاريخ التنفيذ",
+    "status": "الحالة",
+    "candidates": "المرشحون",
+    "analyzed": "تم تحليلها",
+    "reflectionScheduled": "تأملات مجدولة",
+    "totalRuns": "إجمالي التشغيلات",
+    "successRate": "معدل النجاح",
+    "runNow": "تشغيل الآن",
+    "running": "قيد التشغيل...",
+    "progress": "التقدم",
+    "history": "السجل",
+    "noHistory": "لا يوجد سجل"
   }
 }

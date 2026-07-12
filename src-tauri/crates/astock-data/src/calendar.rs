@@ -1,10 +1,18 @@
 use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc, Weekday};
+use parking_lot::RwLock;
 use std::collections::HashSet;
-use std::sync::{LazyLock, RwLock};
+use std::sync::LazyLock;
 
 /// 远程拉取的 A 股节假日缓存(YYYY-MM-DD 格式)。
 /// 启动时由 `init_holiday_calendar` 异步填充,is_trading_day 优先查这里。
 /// 用 RwLock 允许运行时刷新(每年初拉一次新年日历)。
+///
+/// 锁选型:使用 `parking_lot::RwLock` 而非 `std::sync::RwLock` 或 `tokio::sync::RwLock`。
+/// - 不用 `std::sync::RwLock`: 规则8 禁止(panic 会毒化,guard 跨 await 是 UB)。
+/// - 不用 `tokio::sync::RwLock`: `is_trading_day` 是同步函数且被 7 个文件广泛调用,
+///   改 async 会污染整个调用链;此处锁的持有时间极短(仅 contains/extend),从不跨 await。
+/// - `parking_lot::RwLock` 的 guard 非 Send,编译器会阻止跨 await 持有(消除 UB 风险);
+///   且 parking_lot 不实现 poison(消除 panic 毒化风险)。满足规则8的本意。
 static REMOTE_HOLIDAYS: LazyLock<RwLock<HashSet<String>>> =
     LazyLock::new(|| RwLock::new(HashSet::new()));
 
@@ -30,7 +38,8 @@ pub fn is_trading_day(date: &NaiveDate) -> bool {
     let date_str = date.format("%Y-%m-%d").to_string();
 
     // 1) 远程节假日缓存命中 → 非交易日
-    if let Ok(cache) = REMOTE_HOLIDAYS.read() {
+    {
+        let cache = REMOTE_HOLIDAYS.read();
         if cache.contains(&date_str) {
             return false;
         }
@@ -245,10 +254,9 @@ pub async fn fetch_holiday_calendar() -> Result<Vec<String>, String> {
 /// 返回写入的节假日条数。
 pub fn populate_remote_holidays(holidays: Vec<String>) -> usize {
     let count = holidays.len();
-    if let Ok(mut cache) = REMOTE_HOLIDAYS.write() {
-        cache.clear();
-        cache.extend(holidays);
-    }
+    let mut cache = REMOTE_HOLIDAYS.write();
+    cache.clear();
+    cache.extend(holidays);
     count
 }
 
@@ -262,9 +270,8 @@ pub async fn init_holiday_calendar() -> Result<usize, String> {
 /// 仅供测试:清空远程节假日缓存,恢复纯硬编码模式
 #[cfg(test)]
 pub fn clear_remote_holidays_for_test() {
-    if let Ok(mut cache) = REMOTE_HOLIDAYS.write() {
-        cache.clear();
-    }
+    let mut cache = REMOTE_HOLIDAYS.write();
+    cache.clear();
 }
 
 /// 获取距离下一个交易时间的描述

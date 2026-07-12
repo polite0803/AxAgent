@@ -38,6 +38,7 @@
     "compare": "Compare",
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
+    "pipeline": "Stock Pipeline",
     "screener": "Screener",
     "recommend": "Recommend",
     "stockAnalysis": "Stock Analysis",
@@ -10579,5 +10580,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
+  },
+  "pipeline": {
+    "title": "Stock Pipeline",
+    "date": "Run Date",
+    "status": "Status",
+    "candidates": "Candidates",
+    "analyzed": "Analyzed",
+    "reflectionScheduled": "Reflections Scheduled",
+    "totalRuns": "Total Runs",
+    "successRate": "Success Rate",
+    "runNow": "Run Now",
+    "running": "Running...",
+    "progress": "Progress",
+    "history": "History",
+    "noHistory": "No history yet"
   }
 }

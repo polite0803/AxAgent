@@ -362,3 +362,19 @@ pub mod sina;
 pub mod tencent;
 pub mod ths;
 pub mod xueqiu;
+
+/// 格式化 Unix 时间戳（秒）为字符串。
+///
+/// 替代 `DateTime::from_timestamp(ts, 0).map(|dt| dt.format(fmt).to_string()).unwrap_or_default()`：
+/// 后者会在 `from_timestamp` 返回 None（ts 超出范围）时静默返回空字符串，
+/// 让下游误判"无日期"且无法区分"字段缺失"和"时间戳非法"。
+///
+/// 失败时记录 warn 日志，返回空字符串（保持业务向后兼容）。
+pub fn format_timestamp(ts: i64, fmt: &str, vendor: &str) -> String {
+    chrono::DateTime::from_timestamp(ts, 0).map(|dt| dt.format(fmt).to_string()).unwrap_or_else(
+        || {
+            tracing::warn!("[{vendor}] 时间戳非法，无法格式化: ts={ts}");
+            String::new()
+        },
+    )
+}

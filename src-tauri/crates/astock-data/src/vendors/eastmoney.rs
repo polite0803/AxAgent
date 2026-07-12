@@ -326,6 +326,7 @@ impl StockVendor for EastMoneyVendor {
                     free_cash_flow: None,
                     current_ratio: n("LD"), // 流动比率
                     quick_ratio: n("SD"),   // 速动比率
+                    estimated: Some(false),
                 }
             })
             .collect())
@@ -1085,11 +1086,7 @@ impl StockVendor for EastMoneyVendor {
                         .get("notice_date")
                         .and_then(|v| v.as_i64())
                         .map(|ts| {
-                            let secs = ts / 1000;
-                            let naive = chrono::DateTime::from_timestamp(secs, 0)
-                                .map(|dt| dt.format("%Y-%m-%d").to_string())
-                                .unwrap_or_default();
-                            naive
+                            crate::vendors::format_timestamp(ts / 1000, "%Y-%m-%d", "eastmoney")
                         })
                         .unwrap_or_default(),
                     ann_type: item
@@ -1129,17 +1126,14 @@ impl StockVendor for EastMoneyVendor {
                 trade_date: r["TRADE_DATE"]
                     .as_str()
                     .map(|s| s.chars().take(10).collect::<String>())
-                    .unwrap_or(
+                    .unwrap_or_else(|| {
                         r["TRADE_DATE"]
                             .as_i64()
                             .map(|ts| {
-                                let secs = ts / 1000;
-                                chrono::DateTime::from_timestamp(secs, 0)
-                                    .map(|dt| dt.format("%Y-%m-%d").to_string())
-                                    .unwrap_or_default()
+                                crate::vendors::format_timestamp(ts / 1000, "%Y-%m-%d", "eastmoney")
                             })
-                            .unwrap_or_default(),
-                    ),
+                            .unwrap_or_default()
+                    }),
                 price: r["TRADE_PRICE"].as_f64().unwrap_or(0.0),
                 volume: r["TRADE_VOL"].as_f64().unwrap_or(0.0),
                 amount: r["TRADE_AMOUNT"].as_f64().unwrap_or(0.0),
@@ -1484,10 +1478,18 @@ impl StockVendor for EastMoneyVendor {
             "https://np-anotice-stock.eastmoney.com/api/security/ann?cb=jQuery&sr=-1&page_size=20&page_index=1&ann_type=A&client_source=web&stock_list={stock_code}&f_node=0&s_node=0&begin_time={begin_date}&end_time={end_date}"
         );
         let resp = self.em_get(&url).await?;
-        let body = resp.text().await.unwrap_or_default();
+        // 修复 P0-A5 同类问题: 原 `unwrap_or_default()` 把 HTTP body 解码错误吞为空串，
+        // 走到下面 `serde_json::from_str(...).unwrap_or(Value::Null)` 丢失根因。
+        // 改用 `?` 透传原始 reqwest::Error 便于调试。
+        let body = resp.text().await?;
         let json_str =
             body.trim_start_matches("jQuery(").trim_end_matches(')').trim_end_matches(';');
-        let json: Value = serde_json::from_str(json_str).unwrap_or(Value::Null);
+        let json: Value = serde_json::from_str(json_str).map_err(|e| {
+            DataError::ParseError(format!(
+                "eastmoney announcements json 解析失败: {e}, body preview={}",
+                &json_str[..json_str.len().min(200)]
+            ))
+        })?;
         let items = match json["data"]["list"].as_array() {
             Some(arr) => arr,
             None => return Ok(vec![]),
@@ -1506,10 +1508,7 @@ impl StockVendor for EastMoneyVendor {
                         .get("notice_date")
                         .and_then(|v| v.as_i64())
                         .map(|ts| {
-                            let secs = ts / 1000;
-                            chrono::DateTime::from_timestamp(secs, 0)
-                                .map(|dt| dt.format("%Y-%m-%d").to_string())
-                                .unwrap_or_default()
+                            crate::vendors::format_timestamp(ts / 1000, "%Y-%m-%d", "eastmoney")
                         })
                         .unwrap_or_default(),
                     ann_type: Some("A".to_string()),

@@ -2,7 +2,6 @@ use crate::AppState;
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_astock_data::batch::{BatchRequest, BatchResult, BatchRunner, MarketBatchQuery};
 use axagent_astock_data::fundamentals_report::{FundamentalsAnalyzer, FundamentalsReport};
-use axagent_astock_data::two_tier_cache::CacheStats;
 use axagent_astock_data::{FinancialReport, StockQuote};
 use axagent_entities::{
     financial_snapshots, portfolio_holdings, price_alerts, reco_picks, stock_analyses, trades,
@@ -853,14 +852,6 @@ pub async fn get_fundamentals_report_markdown(
         state.astock_client.get_financials(&stock_code).await.map_err(|e| e.to_string())?;
     let report = FundamentalsAnalyzer::generate(&stock_code, &quote, &financials);
     Ok(report.to_markdown())
-}
-
-/// 双层缓存统计
-#[tauri::command]
-pub async fn get_cache_stats() -> Result<CacheStats, String> {
-    // 当前 L1/L2 cache 由 astock_data 内部管理,后续可改为从 AppState 注入
-    // 这里返回 0/0,等 Phase 3 把 cache 提到 AppState 时再接
-    Ok(CacheStats { l1_entries: 0, l2_entries: 0 })
 }
 
 /// 取消分析 — 设置取消令牌让后台任务停止

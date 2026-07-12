@@ -144,9 +144,7 @@ impl StockVendor for XueqiuVendor {
                     )));
                 }
                 let ts = arr[0].as_i64().unwrap_or(0) / 1000;
-                let date = chrono::DateTime::from_timestamp(ts, 0)
-                    .map(|d| d.format("%Y-%m-%d").to_string())
-                    .unwrap_or_default();
+                let date = crate::vendors::format_timestamp(ts, "%Y-%m-%d", "xueqiu");
                 let g = |i: usize| -> f64 { arr[i].as_f64().unwrap_or(0.0) };
                 Ok(KLine {
                     date,
@@ -202,6 +200,7 @@ impl StockVendor for XueqiuVendor {
                     free_cash_flow: None,
                     current_ratio: f("current_ratio"),
                     quick_ratio: f("quick_ratio"),
+                    estimated: Some(false),
                 }
             })
             .collect())
@@ -239,7 +238,13 @@ impl StockVendor for XueqiuVendor {
             .and_then(|v| v.to_str().ok().map(String::from))
             .unwrap_or_default();
         if ct.starts_with("text/html") || ct.starts_with("text/plain") {
-            let body = resp.text().await.unwrap_or_default();
+            // 修复: 原 `unwrap_or_default()` 把 body 读取失败吞为空串，
+            // 导致 warn 日志中 preview 为空，丢失 WAF/反爬诊断信息。
+            // 改为内嵌错误原因，便于排查。
+            let body = match resp.text().await {
+                Ok(t) => t,
+                Err(e) => format!("<resp.text() failed: {e}>"),
+            };
             let preview = &body[..body.len().min(200)];
             tracing::warn!("[xueqiu] 新闻接口返回非 JSON (Content-Type={ct}), preview={preview}");
             return Err(DataError::VendorError {
@@ -270,9 +275,8 @@ impl StockVendor for XueqiuVendor {
                 let summary = trimmed.chars().take(200).collect::<String>();
                 let created_at = item["created_at"].as_i64().unwrap_or(0);
                 let ts = created_at / 1000;
-                let publish_time = chrono::DateTime::from_timestamp(ts, 0)
-                    .map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string())
-                    .unwrap_or_default();
+                let publish_time =
+                    crate::vendors::format_timestamp(ts, "%Y-%m-%d %H:%M:%S", "xueqiu");
                 let source = item["user"]["screen_name"].as_str().unwrap_or("雪球");
                 NewsItem {
                     title: item["title"].as_str().unwrap_or("").to_string(),

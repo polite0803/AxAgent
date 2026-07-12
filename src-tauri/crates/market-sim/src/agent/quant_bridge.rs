@@ -22,7 +22,11 @@
 //!       └─ 更新 last_price 用于 Bar 合成
 //! ```
 
-use axagent_quant::{Bar, Signal, SignalAction, Strategy, StrategyCtx};
+// 从 harness 引入策略契约类型（Strategy trait + Bar/Signal/SignalAction/StrategyCtx/Position/Side）
+// 这消除了 market-sim 对 axagent-quant 的违规依赖（两者均为 consumer，应仅依赖 harness）
+use axagent_harness::strategy_contract::{
+    Bar, Position, Side, Signal, SignalAction, Strategy, StrategyCtx,
+};
 
 use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
 use crate::types::{FillResult, MarketOrder, OrderSide, Price, SimTimestamp, TradeRecord};
@@ -245,20 +249,18 @@ impl QuantStrategyAgent {
             if trade.buyer_agent_id == self.id {
                 // 买入
                 self.ctx.cash -= cost;
-                let entry = self.ctx.positions.entry(code.clone()).or_insert_with(|| {
-                    axagent_quant::Position {
-                        code: code.clone(),
-                        name: None,
-                        side: axagent_quant::Side::Long,
-                        quantity: 0,
-                        cost_basis: 0.0,
-                        last_price: price_f,
-                        market_value: 0.0,
-                        unrealized_pnl: 0.0,
-                        realized_pnl: 0.0,
-                        entry_date: "sim".into(),
-                        entry_timestamp: "sim".into(),
-                    }
+                let entry = self.ctx.positions.entry(code.clone()).or_insert_with(|| Position {
+                    code: code.clone(),
+                    name: None,
+                    side: Side::Long,
+                    quantity: 0,
+                    cost_basis: 0.0,
+                    last_price: price_f,
+                    market_value: 0.0,
+                    unrealized_pnl: 0.0,
+                    realized_pnl: 0.0,
+                    entry_date: "sim".into(),
+                    entry_timestamp: "sim".into(),
                 });
                 let total_qty = entry.quantity as f64;
                 let total_cost = entry.cost_basis * total_qty;
@@ -387,6 +389,113 @@ impl SimAgent for QuantStrategyAgent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use async_trait::async_trait;
+    use axagent_harness::strategy_contract::CloseReason;
+    use serde_json::{Value, json};
+
+    /// 本地测试用 MockStrategy
+    ///
+    /// market-sim 是 consumer，按 AGENTS.md 铁律 5，测试不得依赖 quant crate
+    /// （同为 consumer）。这里实现一个简单的均线策略：累积 N 根 bar 后发出 Buy 信号，
+    /// 用于验证 QuantStrategyAgent 桥接事件循环的正确性，与具体业务策略解耦。
+    struct MockMaCrossStrategy {
+        short_period: usize,
+        long_period: usize,
+    }
+
+    impl MockMaCrossStrategy {
+        fn new(short_period: usize, long_period: usize) -> Self {
+            Self { short_period, long_period }
+        }
+    }
+
+    #[async_trait]
+    impl Strategy for MockMaCrossStrategy {
+        fn name(&self) -> &str {
+            "mock_ma_cross"
+        }
+
+        fn params(&self) -> Value {
+            json!({
+                "short_period": self.short_period,
+                "long_period": self.long_period,
+            })
+        }
+
+        fn set_param(
+            &mut self,
+            key: &str,
+            value: Value,
+        ) -> axagent_harness::core_error::Result<()> {
+            use axagent_harness::core_error::AxAgentError;
+            match key {
+                "short_period" => {
+                    self.short_period =
+                        value.as_u64().ok_or_else(|| AxAgentError::Validation(key.to_string()))?
+                            as usize;
+                },
+                "long_period" => {
+                    self.long_period =
+                        value.as_u64().ok_or_else(|| AxAgentError::Validation(key.to_string()))?
+                            as usize;
+                },
+                _ => {
+                    return Err(AxAgentError::Validation(format!("未知参数: {}", key)));
+                },
+            }
+            Ok(())
+        }
+
+        async fn on_bar(
+            &mut self,
+            bar: &Bar,
+            ctx: &mut StrategyCtx,
+        ) -> axagent_harness::core_error::Result<Vec<Signal>> {
+            let history = match ctx.bar_history.get(&bar.code) {
+                Some(h) if h.len() > self.long_period => h,
+                _ => return Ok(vec![]),
+            };
+            let cs: Vec<f64> = history.iter().map(|b| b.close).collect();
+            let cur_short = sma_last(&cs, self.short_period);
+            let cur_long = sma_last(&cs, self.long_period);
+            let prev_short = sma_last(&cs[..cs.len() - 1], self.short_period);
+            let prev_long = sma_last(&cs[..cs.len() - 1], self.long_period);
+
+            if let (Some(cs_), Some(cl_), Some(ps_), Some(pl_)) =
+                (cur_short, cur_long, prev_short, prev_long)
+            {
+                if ps_ <= pl_ && cs_ > cl_ {
+                    return Ok(vec![Signal {
+                        code: bar.code.clone(),
+                        action: SignalAction::Buy,
+                        strength: 0.7,
+                        reason: format!("Mock MA{} 上穿 MA{}", self.short_period, self.long_period),
+                        target_weight: None,
+                        close_reason: None,
+                    }]);
+                }
+                if ps_ >= pl_ && cs_ < cl_ {
+                    return Ok(vec![Signal {
+                        code: bar.code.clone(),
+                        action: SignalAction::Sell,
+                        strength: 0.7,
+                        reason: format!("Mock MA{} 下穿 MA{}", self.short_period, self.long_period),
+                        target_weight: None,
+                        close_reason: Some(CloseReason::SignalReverse),
+                    }]);
+                }
+            }
+            Ok(vec![])
+        }
+    }
+
+    fn sma_last(values: &[f64], period: usize) -> Option<f64> {
+        if values.len() < period || period == 0 {
+            return None;
+        }
+        let start = values.len() - period;
+        Some(values[start..].iter().sum::<f64>() / period as f64)
+    }
 
     fn run_quant_sim(
         strategy: Box<dyn Strategy>,
@@ -421,12 +530,13 @@ mod tests {
 
     #[test]
     fn test_quant_ma_cross_produces_events() {
-        let strategy = Box::new(axagent_quant::MaCrossStrategy::new(5, 20));
+        // 原 test 依赖 axagent_quant::MaCrossStrategy，按铁律 5 改用本地 MockMaCrossStrategy
+        let strategy = Box::new(MockMaCrossStrategy::new(5, 20));
         let result = run_quant_sim(strategy, 500_000_000);
 
         assert!(result.total_events > 50, "events={}", result.total_events);
         eprintln!(
-            "MaCross: events={} trades={} mid={:?}",
+            "MockMaCross: events={} trades={} mid={:?}",
             result.total_events,
             result.trades.len(),
             result.final_mid_price
@@ -435,21 +545,21 @@ mod tests {
 
     #[test]
     fn test_quant_macd_produces_events() {
-        let strategy = Box::new(axagent_quant::MacdStrategy::default());
+        // 用同一 Mock 策略验证事件循环（原 test 依赖 axagent_quant::MacdStrategy）
+        let strategy = Box::new(MockMaCrossStrategy::new(12, 26));
         let result = run_quant_sim(strategy, 500_000_000);
 
         assert!(result.total_events > 50);
-        eprintln!("MACD: events={} trades={}", result.total_events, result.trades.len());
+        eprintln!("MockMacd: events={} trades={}", result.total_events, result.trades.len());
     }
 
     #[test]
     fn test_quant_rsi_produces_events() {
-        let strategy = Box::new(
-            axagent_quant::RsiStrategy::new(14, 70.0, 30.0).expect("RsiStrategy 阈值非法"),
-        );
+        // 用同一 Mock 策略验证事件循环（原 test 依赖 axagent_quant::RsiStrategy）
+        let strategy = Box::new(MockMaCrossStrategy::new(6, 14));
         let result = run_quant_sim(strategy, 500_000_000);
 
         assert!(result.total_events > 50);
-        eprintln!("RSI: events={} trades={}", result.total_events, result.trades.len());
+        eprintln!("MockRsi: events={} trades={}", result.total_events, result.trades.len());
     }
 }

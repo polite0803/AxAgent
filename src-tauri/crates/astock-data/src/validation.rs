@@ -329,6 +329,7 @@ mod tests {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            estimated: Some(false),
         };
         let r = validate_financial(&f);
         assert!(!r.ok);
@@ -355,6 +356,7 @@ mod tests {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            estimated: Some(false),
         };
         let r = validate_financial(&f);
         assert!(r.ok);

@@ -163,9 +163,15 @@ fn fill_linear(prices: &[Option<f64>]) -> FillResult {
     if first_valid.is_none() {
         return FillResult { filled: result, filled_count: 0, method: "linear".into() };
     }
-    let first = first_valid.unwrap();
-    // 前向填充头部
-    let head_val = result[first].unwrap();
+    // first_valid 已确保至少有一个 Some 值，unwrap 安全但用 if-let 更健壮
+    let first = match first_valid {
+        Some(f) => f,
+        None => return FillResult { filled: result, filled_count: 0, method: "linear".into() },
+    };
+    let head_val = match result[first] {
+        Some(v) => v,
+        None => return FillResult { filled: result, filled_count: 0, method: "linear".into() },
+    };
     for v in result.iter_mut().take(first) {
         *v = Some(head_val);
         count += 1;
@@ -183,8 +189,9 @@ fn fill_linear(prices: &[Option<f64>]) -> FillResult {
         }
         let gap_end = i;
         if gap_end < n {
-            let left = result[gap_start - 1].unwrap();
-            let right = result[gap_end].unwrap();
+            // gap_start > first >= 0，gap_start - 1 已被填充；gap_end 指向的 Some 在 gap 之外
+            let left = result[gap_start - 1].unwrap_or(0.0);
+            let right = result[gap_end].unwrap_or(0.0);
             let steps = (gap_end - gap_start + 1) as f64;
             for (j, v) in result.iter_mut().enumerate().take(gap_end).skip(gap_start) {
                 let t = (j - gap_start + 1) as f64 / steps;
@@ -193,7 +200,7 @@ fn fill_linear(prices: &[Option<f64>]) -> FillResult {
             }
         } else {
             // 尾部：用最后一个有效值填充
-            let tail_val = result[gap_start - 1].unwrap();
+            let tail_val = result[gap_start - 1].unwrap_or(0.0);
             for v in result.iter_mut().skip(gap_start) {
                 *v = Some(tail_val);
                 count += 1;

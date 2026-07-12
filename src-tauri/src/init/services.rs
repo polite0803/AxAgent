@@ -41,6 +41,8 @@ pub fn start_background_services(
     start_lesson_validation(state);
     // [方向6] DreamConsolidator：每日 18:00 跨股票蒸馏反思轨迹
     start_dream_consolidation(state);
+    // 股票全业务管道：每日 18:00 自动发现+分析+持仓再评估
+    start_stock_pipeline(app, state);
 }
 
 fn start_plugins(state: &AppState) {
@@ -1532,4 +1534,96 @@ fn start_index_job_service(app: &tauri::AppHandle, state: &AppState) {
         service.start().await;
     });
     tracing::info!("[index_queue] 已启动持久化索引队列 worker");
+}
+
+/// 股票全业务管道定时任务：每日 18:00 Asia/Shanghai 自动运行
+///
+/// 首次延迟 60 秒（等待其他服务初始化），之后计算下一个 18:00 北京时间。
+/// 反思阶段由现有 6h cron 接力，此处只管发现+分析+持仓再评估。
+fn start_stock_pipeline(app: &tauri::AppHandle, state: &AppState) {
+    let db = state.harness.db().clone();
+    let client = state.astock_client.clone();
+    let engine = state.work_engine.clone();
+    let token = state.shutdown_token.clone();
+    let app_handle = app.clone();
+
+    state.task_manager.spawn("stock_pipeline", async move {
+        // 首次延迟 60 秒，等待其他服务初始化
+        let initial_delay = std::time::Duration::from_secs(60);
+        tokio::time::sleep(initial_delay).await;
+
+        loop {
+            // 计算下一个 18:00 Asia/Shanghai（转为 UTC）
+            let next_run = next_18_00_shanghai();
+            let wait_duration = next_run.signed_duration_since(chrono::Utc::now());
+            let wait_secs = wait_duration.num_seconds().max(60) as u64;
+
+            tracing::info!(
+                "[stock_pipeline] 距离下次执行还有 {} 秒（约 {} 小时）",
+                wait_secs,
+                wait_secs / 3600
+            );
+
+            tokio::select! {
+                _ = token.cancelled() => {
+                    tracing::info!("[stock_pipeline] 收到关闭信号");
+                    break;
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(wait_secs)) => {
+                    tracing::info!("[stock_pipeline] 开始执行股票管道");
+
+                    let app_for_progress = app_handle.clone();
+                    let progress_callback = std::sync::Arc::new(move |step: &str, detail: &str| {
+                        let _ = app_for_progress.emit(
+                            "pipeline-step",
+                            serde_json::json!({
+                                "step": step,
+                                "detail": detail,
+                                "timestamp": chrono::Utc::now().timestamp_millis(),
+                            }),
+                        );
+                    });
+
+                    let config = crate::commands::stock_pipeline::core::PipelineConfig::default();
+                    match crate::commands::stock_pipeline::core::run_stock_pipeline_inner(
+                        &db,
+                        &client,
+                        &engine,
+                        &config,
+                        None,
+                        Some(progress_callback),
+                    )
+                    .await
+                    {
+                        Ok(result) => {
+                            tracing::info!(
+                                "[stock_pipeline] 管道执行完成: {} 候选, {} 新分析, {} 持仓再评估",
+                                result.candidates.len(),
+                                result.new_analyses.len(),
+                                result.reassessed.len()
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!("[stock_pipeline] 管道执行失败: {e}");
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// 计算下一个 18:00 Asia/Shanghai 时间点（转为 UTC 返回）
+fn next_18_00_shanghai() -> chrono::DateTime<chrono::Utc> {
+    use chrono::TimeZone;
+    let cst = chrono::FixedOffset::east_opt(8 * 3600).unwrap();
+    let now_shanghai = chrono::Local::now().with_timezone(&cst);
+    let today_18 = now_shanghai.date_naive().and_hms_opt(18, 0, 0).unwrap();
+    let today_18_shanghai = cst.from_local_datetime(&today_18).unwrap();
+
+    if now_shanghai < today_18_shanghai {
+        today_18_shanghai.with_timezone(&chrono::Utc)
+    } else {
+        (today_18_shanghai + chrono::Duration::days(1)).with_timezone(&chrono::Utc)
+    }
 }

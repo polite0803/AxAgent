@@ -24,10 +24,17 @@
 use async_trait::async_trait;
 use serde_json::{Value, json};
 
-use crate::ctx::StrategyCtx;
+// 引入 harness 的 Result 别名（即 Result<_, AxAgentError>）—— 用 HarnessResult 避免遮蔽 std Result
+// Strategy trait 已下沉到 harness，方法返回 axagent_harness::core_error::Result
+use axagent_harness::core_error::Result as HarnessResult;
+// 保留 QuantError：作为策略实现的内部错误类型，通过 From<QuantError> for AxAgentError
+// 在 `?` 处自动转换为 AxAgentError
 use crate::error::QuantError;
-use crate::strategy::Strategy;
 use crate::types::{Bar, CloseReason, Signal, SignalAction};
+
+// 类型仅用于 trait 方法签名（Strategy trait 在 harness 中定义）
+use crate::ctx::StrategyCtx;
+use crate::strategy::Strategy;
 
 // ===================== 共享指标 helpers =====================
 
@@ -134,7 +141,7 @@ impl Strategy for MaCrossStrategy {
             "long_period": self.long_period,
         })
     }
-    fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
+    fn set_param(&mut self, key: &str, value: Value) -> HarnessResult<()> {
         let (new_short, new_long) = match key {
             "short_period" => {
                 let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
@@ -144,39 +151,49 @@ impl Strategy for MaCrossStrategy {
                 let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
                 (self.short_period, v)
             },
-            _ => return Err(QuantError::Param(key.to_string())),
+            _ => return Err(QuantError::Param(key.to_string()).into()),
         };
         if new_short == 0 || new_long == 0 {
             return Err(QuantError::Param(format!(
                 "period 必须 > 0: short={}, long={}",
                 new_short, new_long
-            )));
+            ))
+            .into());
         }
         if new_short >= new_long {
             return Err(QuantError::Param(format!(
                 "short({}) 必须 < long({})",
                 new_short, new_long
-            )));
+            ))
+            .into());
         }
         self.short_period = new_short;
         self.long_period = new_long;
         Ok(())
     }
 
-    async fn on_bar(
-        &mut self,
-        bar: &Bar,
-        ctx: &mut StrategyCtx,
-    ) -> Result<Vec<Signal>, QuantError> {
+    async fn on_bar(&mut self, bar: &Bar, ctx: &mut StrategyCtx) -> HarnessResult<Vec<Signal>> {
         let history = match ctx.bar_history.get(&bar.code) {
             Some(h) if h.len() > self.long_period => h,
             _ => return Ok(vec![]),
         };
         let cs = closes(history);
-        let cur_short = sma_last(&cs, self.short_period).unwrap();
-        let cur_long = sma_last(&cs, self.long_period).unwrap();
-        let prev_short = sma_last(&cs[..cs.len() - 1], self.short_period).unwrap();
-        let prev_long = sma_last(&cs[..cs.len() - 1], self.long_period).unwrap();
+        let cur_short = match sma_last(&cs, self.short_period) {
+            Some(v) => v,
+            None => return Ok(vec![]),
+        };
+        let cur_long = match sma_last(&cs, self.long_period) {
+            Some(v) => v,
+            None => return Ok(vec![]),
+        };
+        let prev_short = match sma_last(&cs[..cs.len() - 1], self.short_period) {
+            Some(v) => v,
+            None => return Ok(vec![]),
+        };
+        let prev_long = match sma_last(&cs[..cs.len() - 1], self.long_period) {
+            Some(v) => v,
+            None => return Ok(vec![]),
+        };
 
         // 金叉：prev_short <= prev_long && cur_short > cur_long
         if prev_short <= prev_long && cur_short > cur_long {
@@ -245,7 +262,7 @@ impl Strategy for MacdStrategy {
             "signal": self.signal,
         })
     }
-    fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
+    fn set_param(&mut self, key: &str, value: Value) -> HarnessResult<()> {
         let (new_fast, new_slow, new_signal) = match key {
             "fast" => {
                 let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
@@ -259,16 +276,19 @@ impl Strategy for MacdStrategy {
                 let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
                 (self.fast, self.slow, v)
             },
-            _ => return Err(QuantError::Param(key.to_string())),
+            _ => return Err(QuantError::Param(key.to_string()).into()),
         };
         if new_fast == 0 || new_slow == 0 || new_signal == 0 {
             return Err(QuantError::Param(format!(
                 "MACD 参数必须 > 0: fast={}, slow={}, signal={}",
                 new_fast, new_slow, new_signal
-            )));
+            ))
+            .into());
         }
         if new_fast >= new_slow {
-            return Err(QuantError::Param(format!("fast({}) 必须 < slow({})", new_fast, new_slow)));
+            return Err(
+                QuantError::Param(format!("fast({}) 必须 < slow({})", new_fast, new_slow)).into()
+            );
         }
         self.fast = new_fast;
         self.slow = new_slow;
@@ -276,11 +296,7 @@ impl Strategy for MacdStrategy {
         Ok(())
     }
 
-    async fn on_bar(
-        &mut self,
-        bar: &Bar,
-        ctx: &mut StrategyCtx,
-    ) -> Result<Vec<Signal>, QuantError> {
+    async fn on_bar(&mut self, bar: &Bar, ctx: &mut StrategyCtx) -> HarnessResult<Vec<Signal>> {
         let history = match ctx.bar_history.get(&bar.code) {
             Some(h) if h.len() > self.slow + self.signal => h,
             _ => return Ok(vec![]),
@@ -294,10 +310,13 @@ impl Strategy for MacdStrategy {
         if dif_series.len() < 2 || dea_series.len() < 2 {
             return Ok(vec![]);
         }
-        let cur_dif = *dif_series.last().unwrap();
-        let cur_dea = *dea_series.last().unwrap();
-        let prev_dif = dif_series[dif_series.len() - 2];
-        let prev_dea = dea_series[dea_series.len() - 2];
+        let (cur_dif, cur_dea, prev_dif, prev_dea) =
+            match (dif_series.as_slice(), dea_series.as_slice()) {
+                (d, e) if d.len() >= 2 && e.len() >= 2 => {
+                    (d[d.len() - 1], e[e.len() - 1], d[d.len() - 2], e[e.len() - 2])
+                },
+                _ => return Ok(vec![]),
+            };
 
         // 金叉
         if prev_dif <= prev_dea && cur_dif > cur_dea {
@@ -371,7 +390,7 @@ impl Strategy for RsiStrategy {
             "oversold": self.oversold,
         })
     }
-    fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
+    fn set_param(&mut self, key: &str, value: Value) -> HarnessResult<()> {
         let (new_period, new_overbought, new_oversold) = match key {
             "period" => {
                 let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
@@ -385,16 +404,17 @@ impl Strategy for RsiStrategy {
                 let v = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?;
                 (self.period, self.overbought, v)
             },
-            _ => return Err(QuantError::Param(key.to_string())),
+            _ => return Err(QuantError::Param(key.to_string()).into()),
         };
         if new_period == 0 {
-            return Err(QuantError::Param("period 必须 > 0".into()));
+            return Err(QuantError::Param("period 必须 > 0".into()).into());
         }
         if new_overbought <= new_oversold {
             return Err(QuantError::Param(format!(
                 "overbought({}) 必须 > oversold({})",
                 new_overbought, new_oversold
-            )));
+            ))
+            .into());
         }
         self.period = new_period;
         self.overbought = new_overbought;
@@ -402,11 +422,7 @@ impl Strategy for RsiStrategy {
         Ok(())
     }
 
-    async fn on_bar(
-        &mut self,
-        bar: &Bar,
-        ctx: &mut StrategyCtx,
-    ) -> Result<Vec<Signal>, QuantError> {
+    async fn on_bar(&mut self, bar: &Bar, ctx: &mut StrategyCtx) -> HarnessResult<Vec<Signal>> {
         let history = match ctx.bar_history.get(&bar.code) {
             Some(h) if h.len() >= self.period + 2 => h,
             _ => return Ok(vec![]),
@@ -475,7 +491,7 @@ impl Strategy for BollStrategy {
             "stddev": self.stddev,
         })
     }
-    fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
+    fn set_param(&mut self, key: &str, value: Value) -> HarnessResult<()> {
         let (new_period, new_stddev) = match key {
             "period" => {
                 let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
@@ -485,30 +501,29 @@ impl Strategy for BollStrategy {
                 let v = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?;
                 (self.period, v)
             },
-            _ => return Err(QuantError::Param(key.to_string())),
+            _ => return Err(QuantError::Param(key.to_string()).into()),
         };
         if new_period == 0 {
-            return Err(QuantError::Param("period 必须 > 0".into()));
+            return Err(QuantError::Param("period 必须 > 0".into()).into());
         }
         if new_stddev <= 0.0 {
-            return Err(QuantError::Param(format!("stddev({}) 必须 > 0", new_stddev)));
+            return Err(QuantError::Param(format!("stddev({}) 必须 > 0", new_stddev)).into());
         }
         self.period = new_period;
         self.stddev = new_stddev;
         Ok(())
     }
 
-    async fn on_bar(
-        &mut self,
-        bar: &Bar,
-        ctx: &mut StrategyCtx,
-    ) -> Result<Vec<Signal>, QuantError> {
+    async fn on_bar(&mut self, bar: &Bar, ctx: &mut StrategyCtx) -> HarnessResult<Vec<Signal>> {
         let history = match ctx.bar_history.get(&bar.code) {
             Some(h) if h.len() > self.period => h,
             _ => return Ok(vec![]),
         };
         let cs = closes(history);
-        let mid = sma_last(&cs, self.period).unwrap();
+        let mid = match sma_last(&cs, self.period) {
+            Some(v) => v,
+            None => return Ok(vec![]),
+        };
         let sd = stddev_sample(&cs[cs.len() - self.period..], mid);
         let upper = mid + self.stddev * sd;
         let lower = mid - self.stddev * sd;
@@ -581,7 +596,7 @@ impl Strategy for TurtleStrategy {
             "atr_multiplier": self.atr_multiplier,
         })
     }
-    fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
+    fn set_param(&mut self, key: &str, value: Value) -> HarnessResult<()> {
         let (new_entry, new_exit, new_atr) = match key {
             "entry_period" => {
                 let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
@@ -600,13 +615,14 @@ impl Strategy for TurtleStrategy {
                     value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?;
                 return Ok(());
             },
-            _ => return Err(QuantError::Param(key.to_string())),
+            _ => return Err(QuantError::Param(key.to_string()).into()),
         };
         if new_entry == 0 || new_exit == 0 || new_atr == 0 {
             return Err(QuantError::Param(format!(
                 "Turtle 参数必须 > 0: entry={}, exit={}, atr={}",
                 new_entry, new_exit, new_atr
-            )));
+            ))
+            .into());
         }
         self.entry_period = new_entry;
         self.exit_period = new_exit;
@@ -614,11 +630,7 @@ impl Strategy for TurtleStrategy {
         Ok(())
     }
 
-    async fn on_bar(
-        &mut self,
-        bar: &Bar,
-        ctx: &mut StrategyCtx,
-    ) -> Result<Vec<Signal>, QuantError> {
+    async fn on_bar(&mut self, bar: &Bar, ctx: &mut StrategyCtx) -> HarnessResult<Vec<Signal>> {
         let history = match ctx.bar_history.get(&bar.code) {
             Some(h) if h.len() > self.entry_period => h,
             _ => return Ok(vec![]),

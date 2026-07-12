@@ -150,7 +150,9 @@ impl BacktestEngine {
         let mut prev_date = String::new();
 
         // 3. on_init
-        strategy.on_init(&mut ctx).await?;
+        // Strategy trait 已下沉到 harness，on_init 返回 Result<_, AxAgentError>，
+        // 用 map_err 转回 QuantError 保持 BacktestEngine::run 的错误类型不变
+        strategy.on_init(&mut ctx).await.map_err(|e| QuantError::Strategy(e.to_string()))?;
 
         // 4. 主事件循环
         //    P0-4 修复：信号在 bar 收盘后产生，缓存到 pending_signals，
@@ -194,7 +196,10 @@ impl BacktestEngine {
             }
 
             // 4.5 调策略（基于当前已收盘 bar 产生信号）
-            let signals = strategy.on_bar(&bar, &mut ctx).await?;
+            let signals = strategy
+                .on_bar(&bar, &mut ctx)
+                .await
+                .map_err(|e| QuantError::Strategy(e.to_string()))?;
             all_signals.extend(signals.iter().cloned());
 
             // 4.6 信号缓存到 pending_signals，下一根 bar 开盘时撮合
@@ -216,7 +221,7 @@ impl BacktestEngine {
         }
 
         // 6. on_finish
-        strategy.on_finish(&mut ctx).await?;
+        strategy.on_finish(&mut ctx).await.map_err(|e| QuantError::Strategy(e.to_string()))?;
 
         // 7. 计算基础指标
         let (total_return, sharpe, max_dd, max_dd_pct, annualized) =
@@ -281,8 +286,13 @@ fn signal_to_order(sig: &Signal, bar: &Bar, cash: f64, position_qty: u64) -> Ord
                 } else {
                     0
                 };
-                let rounded = (max_shares / lot_size) * lot_size;
-                rounded.max(lot_size).min(10_000) // 最少 1 手，最多 1 万
+                // 当 close == 0 或资金不足以买 1 手时直接返回 0，避免 max(lot_size) 强制最少 1 手
+                if max_shares < lot_size {
+                    0
+                } else {
+                    let rounded = (max_shares / lot_size) * lot_size;
+                    rounded.min(10_000) // 最多 1 万
+                }
             },
             Side::Short => {
                 // 卖出全部持仓
@@ -329,8 +339,15 @@ fn apply_fill(ctx: &mut StrategyCtx, fill: &Fill) {
                 entry_timestamp: order.timestamp.clone(),
             });
             let new_qty = pos.quantity + order.quantity;
+            // 修复 H1: 成本基准须含买入佣金/印花税（每股分摊），否则后续 realized_pnl 偏高
+            let buy_fee_per_share = if order.quantity > 0 {
+                (fill.commission + fill.stamp_tax) / order.quantity as f64
+            } else {
+                0.0
+            };
             pos.cost_basis = if new_qty > 0 {
-                (pos.cost_basis * pos.quantity as f64 + fill.fill_price * order.quantity as f64)
+                (pos.cost_basis * pos.quantity as f64
+                    + (fill.fill_price + buy_fee_per_share) * order.quantity as f64)
                     / new_qty as f64
             } else {
                 0.0
@@ -348,7 +365,14 @@ fn apply_fill(ctx: &mut StrategyCtx, fill: &Fill) {
             ctx.slippage_paid += fill.slippage;
             if let Some(pos) = ctx.positions.get_mut(&order.code) {
                 let sell_qty = order.quantity.min(pos.quantity);
-                let realized = (fill.fill_price - pos.cost_basis) * sell_qty as f64;
+                // 修复 H1: realized 须扣卖出佣金/印花税（每股分摊），否则净亏可能算盈利
+                let sell_fee_per_share = if sell_qty > 0 {
+                    (fill.commission + fill.stamp_tax) / sell_qty as f64
+                } else {
+                    0.0
+                };
+                let realized =
+                    (fill.fill_price - sell_fee_per_share - pos.cost_basis) * sell_qty as f64;
                 // 在 pos.quantity 变更前保存，供 Trade 记录使用
                 realized_for_trade = realized;
                 pos.realized_pnl += realized;
@@ -387,8 +411,10 @@ fn compute_basic(ctx: &StrategyCtx, initial_cash: f64) -> (f64, f64, f64, f64, f
         0.0
     };
     let (max_dd, max_dd_pct) = max_drawdown(&ctx.equity_curve);
-    let sharpe = sharpe_ratio(&ctx.equity_curve, 0.025, 252.0);
-    let annualized = annualized(&ctx.equity_curve, 252.0);
+    // 修复 H2: 统一使用 A 股 244 交易日年化口径，对齐 metrics.rs 的 A_SHARE_TRADING_DAYS_PER_YEAR
+    let sharpe =
+        sharpe_ratio(&ctx.equity_curve, 0.025, crate::metrics::A_SHARE_TRADING_DAYS_PER_YEAR);
+    let annualized = annualized(&ctx.equity_curve, crate::metrics::A_SHARE_TRADING_DAYS_PER_YEAR);
     (total_return, sharpe, max_dd, max_dd_pct, annualized)
 }
 

@@ -243,7 +243,10 @@ pub struct NeoDataVendor {
 impl NeoDataVendor {
     /// 获取当前 token（可能为空）
     fn get_token(&self) -> String {
-        self.token.try_read().map(|t| t.clone()).unwrap_or_default()
+        self.token.try_read().map(|t| t.clone()).unwrap_or_else(|e| {
+            tracing::warn!("[neodata] token RwLock 中毒: {e}");
+            String::new()
+        })
     }
 
     /// 带 token 的 NeoData 查询包装
@@ -346,6 +349,7 @@ impl StockVendor for NeoDataVendor {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            estimated: Some(false),
         }])
     }
 
@@ -375,9 +379,11 @@ impl StockVendor for NeoDataVendor {
                             publish_time: doc["publishTime"]
                                 .as_i64()
                                 .map(|ts| {
-                                    chrono::DateTime::from_timestamp(ts, 0)
-                                        .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-                                        .unwrap_or_default()
+                                    crate::vendors::format_timestamp(
+                                        ts,
+                                        "%Y-%m-%d %H:%M:%S",
+                                        "neodata",
+                                    )
                                 })
                                 .unwrap_or_default(),
                             sentiment_score: None,
@@ -566,9 +572,8 @@ impl StockVendor for NeoDataVendor {
                         let content = doc["content"].as_str().unwrap_or("");
                         let source = doc["source"].as_str().unwrap_or("NeoData");
                         let ts = doc["publishTime"].as_i64().unwrap_or(0);
-                        let time = chrono::DateTime::from_timestamp(ts, 0)
-                            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-                            .unwrap_or_default();
+                        let time =
+                            crate::vendors::format_timestamp(ts, "%Y-%m-%d %H:%M:%S", "neodata");
 
                         items.push(ClsFlashItem {
                             title: title.to_string(),

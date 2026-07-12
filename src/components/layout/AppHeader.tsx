@@ -45,7 +45,7 @@ function resolvePageLabel(pathname: string): string | null {
     pathname.startsWith("/stock-analysis") || pathname.startsWith("/screener") || pathname.startsWith("/watchlist")
     || pathname.startsWith("/portfolio") || pathname.startsWith("/backtest") || pathname.startsWith("/compare")
     || pathname.startsWith("/trade") || pathname.startsWith("/scheduled-analysis") || pathname.startsWith("/quant")
-    || pathname.startsWith("/replay-workbench")
+    || pathname.startsWith("/replay-workbench") || pathname.startsWith("/pipeline")
   ) {
     return null;
   }

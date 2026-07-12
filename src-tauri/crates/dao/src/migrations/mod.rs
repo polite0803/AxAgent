@@ -34,9 +34,10 @@ pub mod v009_tool_adaptation;
 pub mod v010_stock_business_tables;
 pub mod v011_drop_node_results_snapshot;
 pub mod v012_news_archive_article_code_not_null;
+pub mod v013_stock_pipeline_runs;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 12;
+pub const CURRENT_VERSION: i32 = 13;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -122,6 +123,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 12,
         description: "v012_news_archive_article_code_not_null: make news_archive.article_code NOT NULL to fix UNIQUE(source, article_code) ineffectiveness on NULL",
         up: |db| Box::pin(v012_news_archive_article_code_not_null::up(db)),
+    },
+    Migration {
+        version: 13,
+        description: "v013_stock_pipeline_runs: create stock_pipeline_runs table for pipeline execution history",
+        up: |db| Box::pin(v013_stock_pipeline_runs::up(db)),
     },
 ];
 

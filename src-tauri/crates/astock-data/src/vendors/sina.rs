@@ -145,8 +145,9 @@ impl StockVendor for SinaVendor {
             open: f(1),
             high: f(4),
             low: f(5),
-            volume: f(8),
-            amount: f(9),
+            // 修复 H4: sina f(8)=手、f(9)=万元，统一为 股/元（对齐 tencent.rs:117-118）
+            volume: f(8) * 100.0,
+            amount: f(9) * 10000.0,
             change_pct: (f(3) - f(2)) / f(2) * 100.0,
             turnover_rate: 0.0,
             pe: None,
@@ -251,6 +252,7 @@ impl StockVendor for SinaVendor {
                 free_cash_flow: None,
                 current_ratio: None,
                 quick_ratio: None,
+                estimated: Some(false),
             });
         }
         Ok(reports)

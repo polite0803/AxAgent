@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, listen } from "@/lib/invoke";
 import {
   type AttentionMetrics,
   type ExitSignals,
@@ -21,7 +21,6 @@ import {
   RightOutlined,
   StockOutlined,
 } from "@ant-design/icons";
-import { listen } from "@tauri-apps/api/event";
 import {
   Alert,
   Button,

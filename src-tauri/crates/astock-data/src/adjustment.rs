@@ -75,13 +75,14 @@ fn compute_factor_series(
     sorted_events.sort_by(|a, b| a.ex_date.cmp(&b.ex_date));
 
     // 为每个 K 线日找其"生效"的事件: ex_date <= date
-    // 事件复权率由两部分组成:
+    // 事件复权率由三部分组成:
     //   1) 送转调整: 1 / (1 + bonus_share_ratio) — 送转后股本扩大，股价除以扩股系数
     //   2) 配股调整: 1 / (1 + rights_ratio * (1 - rights_price / ex_close))
     //      其中 ex_close 取除权日前一交易日收盘价
-    // 现金分红（cash_dividend）不纳入复权因子 — 行业惯例走"持仓 PnL 还原"路径，
-    //   因为分红对股价影响小（1-5%），且需要精确的 ex_close 才能计算
-    //   真实复权应拆成两步: 1) 送转+配股调整 (无跳变) 2) 分红调整 (有跳变,但有现金补偿)
+    //   3) 现金分红调整: 1 - cash_dividend / ex_close — 除息日股价自然回落 cash_dividend 元
+    // 修复 H3: 现金分红必须纳入复权因子，否则除息日价格断层会污染指标/回测
+    //   行业惯例中"持仓 PnL 还原"路径仅适用于含现金补偿的总收益计算，
+    //   但本项目的复权序列被直接用于指标计算和回测，必须修正分红跳变
 
     let mut result = Vec::with_capacity(klines.len());
     let mut cumulative: f64 = 1.0;
@@ -121,7 +122,22 @@ fn compute_factor_series(
             } else {
                 1.0
             };
-            cumulative *= bonus_step * rights_step;
+            // 3) 现金分红调整: 1 - cash_dividend / ex_close
+            //    ex_close 取前一交易日收盘价；除息日股价回落 cash_dividend 元
+            //    例: 每股分红0.5元,前收10元 → 1 - 0.5/10 = 0.95
+            let dividend_step = if ev.cash_dividend > 0.0 {
+                let ex_close = prev_close.unwrap_or(k.close);
+                if ex_close > 0.0 {
+                    let ratio = ev.cash_dividend / ex_close;
+                    // 分红率不应使因子变负（极端情况下也钳制到 0.01）
+                    (1.0 - ratio).max(0.01)
+                } else {
+                    1.0
+                }
+            } else {
+                1.0
+            };
+            cumulative *= bonus_step * rights_step * dividend_step;
             event_idx += 1;
         }
 

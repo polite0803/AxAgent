@@ -21,7 +21,6 @@ pub mod indicators;
 pub mod mcp_tools;
 pub mod regime;
 pub mod scoring;
-pub mod two_tier_cache;
 pub mod types;
 pub mod validation;
 pub mod valuation_band;
@@ -530,6 +529,23 @@ impl AStockClient {
         // L2 同样写
         if let Some(l2) = &self.l2 {
             l2.set(key, value, ttl_secs);
+        }
+    }
+
+    /// 序列化结果并写入缓存。序列化失败时跳过缓存写入并记录 warn 日志。
+    /// 替代 `serde_json::to_string(&v).unwrap_or_default()` 模式：
+    /// 后者会在序列化失败时写入空字符串，导致下次读取反序列化失败 → 缓存污染。
+    async fn cache_set_serialized<T: serde::Serialize>(
+        &self,
+        cache_key: String,
+        value: &T,
+        ttl_secs: i64,
+    ) {
+        match serde_json::to_string(value) {
+            Ok(json) => self.cache_set(cache_key, json, ttl_secs).await,
+            Err(e) => {
+                tracing::warn!("[astock-data] 序列化失败，跳过缓存写入: key={cache_key}, err={e}")
+            },
         }
     }
 
@@ -1306,8 +1322,7 @@ impl AStockClient {
             })
             .await?;
 
-        let json = serde_json::to_string(&result).unwrap_or_default();
-        self.cache_set(cache_key, json, 30).await;
+        self.cache_set_serialized(cache_key, &result, 30).await;
         Ok(result)
     }
 
@@ -1410,8 +1425,7 @@ impl AStockClient {
         // 且用户请求了复权（adj_type 为 Some 且非 None），则本地应用复权因子
         let result = self.apply_local_adjustment_if_needed(result, adj_type, stock_code).await;
 
-        let json = serde_json::to_string(&result).unwrap_or_default();
-        self.cache_set(cache_key, json, 300).await;
+        self.cache_set_serialized(cache_key, &result, 300).await;
         let start = result.len().saturating_sub(limit as usize);
         Ok(result[start..].to_vec())
     }
@@ -1543,8 +1557,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("financials", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 3600).await;
+                self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
             Err(e) => {
@@ -1597,8 +1610,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("news", &format!("{stock_code}:{limit}"));
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 300).await;
+                self.cache_set_serialized(cache_key, &result, 300).await;
                 // P6:自动 upsert 到 news_archive(无关缓存命中/降级,
                 // 任何 vendor 返回的非空结果都入本地语料库)
                 if let Some(sink) = &self.news_archive_sink {
@@ -1689,8 +1701,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("money_flow", stock_code);
-                let json = serde_json::to_string(&Some(result.clone())).unwrap_or_default();
-                self.cache_set(cache_key, json, 60).await;
+                self.cache_set_serialized(cache_key, &Some(result.clone()), 60).await;
                 Ok(Some(result))
             },
             Err(e) => {
@@ -1736,8 +1747,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("dragon_tiger", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 3600).await;
+                self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
             Err(e) => {
@@ -1784,8 +1794,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("lockup", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 86400).await;
+                self.cache_set_serialized(cache_key, &result, 86400).await;
                 Ok(result)
             },
             Err(e) => {
@@ -1854,8 +1863,7 @@ impl AStockClient {
             Ok(result) => {
                 // H1.1 修复:写入 L1 缓存(TTL 60s,搜索结果变化快,使用较短 TTL)
                 let cache_key = Self::cache_key_for("search_stock", keyword);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 60).await;
+                self.cache_set_serialized(cache_key, &result, 60).await;
                 Ok(result)
             },
             Err(e) => {
@@ -1953,8 +1961,7 @@ impl AStockClient {
             Ok(result) => {
                 // H1.2 修复:写入 L1 缓存(60s TTL)
                 let cache_key = Self::cache_key_for("search_news", &format!("{keyword}:{limit}"));
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 60).await;
+                self.cache_set_serialized(cache_key, &result, 60).await;
                 if let Some(sink) = &self.news_archive_sink {
                     let filtered: Vec<NewsItem> = result
                         .iter()
@@ -1990,8 +1997,7 @@ impl AStockClient {
                             match vendor.get_margin_data_with_asof(stock_code).await {
                                 Ok(Some(r)) => {
                                     let cache_key = Self::cache_key_for("margin", stock_code);
-                                    let json = serde_json::to_string(&Some(&r)).unwrap_or_default();
-                                    self.cache_set(cache_key, json, 300).await;
+                                    self.cache_set_serialized(cache_key, &Some(&r), 300).await;
                                     return Ok(Some(r));
                                 },
                                 Ok(None) => continue,
@@ -2060,8 +2066,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("margin", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 300).await;
+                self.cache_set_serialized(cache_key, &result, 300).await;
                 Ok(Some(result))
             },
             Err(_) => Ok(None),
@@ -2131,8 +2136,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("north_bound", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 300).await;
+                self.cache_set_serialized(cache_key, &result, 300).await;
                 Ok(Some(result))
             },
             Err(_) => Ok(None),
@@ -2237,8 +2241,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("shareholder_trades", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 3600).await;
+                self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
             Err(_) => Ok(vec![]),
@@ -2292,8 +2295,7 @@ impl AStockClient {
                                 // 双重保险:vendor 端已用 as_of 窗口拉取,这里再截一遍防御 vendor bug
                                 let reports = Self::truncate_research_reports_by_asof(reports);
                                 let cache_key = Self::cache_key_for("research_reports", stock_code);
-                                let json = serde_json::to_string(&reports).unwrap_or_default();
-                                self.cache_set(cache_key, json, 3600).await;
+                                self.cache_set_serialized(cache_key, &reports, 3600).await;
                                 return Ok(reports);
                             }
                         },
@@ -2340,8 +2342,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("research_reports", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 3600).await;
+                self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
             Err(_) => Ok(vec![]),
@@ -2572,8 +2573,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("announcements", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 3600).await;
+                self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
             Err(_) => Ok(vec![]),
@@ -2907,8 +2907,7 @@ impl AStockClient {
                 let result = Self::truncate_north_bound_flow_by_asof(Some(result));
                 if let Some(ref r) = result {
                     let cache_key = Self::cache_key_for("north_bound_flow", "market");
-                    let json = serde_json::to_string(r).unwrap_or_default();
-                    self.cache_set(cache_key, json, 300).await;
+                    self.cache_set_serialized(cache_key, r, 300).await;
                 }
                 Ok(result)
             },
@@ -2946,8 +2945,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("block_trades", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 3600).await;
+                self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
             Err(_) => Ok(vec![]),
@@ -2993,8 +2991,7 @@ impl AStockClient {
         {
             Ok(result) => {
                 let cache_key = Self::cache_key_for("institutional_visits", stock_code);
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                self.cache_set(cache_key, json, 3600).await;
+                self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
             Err(_) => Ok(vec![]),
@@ -3003,17 +3000,49 @@ impl AStockClient {
 
     /// 筹码面分析数据聚合：一次调用获取解禁 + 增减持 + 大宗交易
     /// 供 lockup-watcher 冷启动使用，避免 LLM 因单源空数据而不主动调其他工具
+    ///
+    /// 设计：聚合函数，单源失败时返回部分结果 + 在 JSON 中注入 `errors` 字段
+    /// 记录失败原因，避免 `unwrap_or_default()` 完全静默吞错导致下游无法感知数据缺失。
     pub async fn get_lockup_bundle(
         &self,
         stock_code: &str,
     ) -> Result<serde_json::Value, DataError> {
-        let lockup = self.get_lockup_schedule(stock_code).await.unwrap_or_default();
-        let trades = self.get_shareholder_trades(stock_code).await.unwrap_or_default();
-        let block = self.get_block_trades(stock_code).await.unwrap_or_default();
+        let mut errors: Vec<String> = Vec::new();
+
+        let lockup = match self.get_lockup_schedule(stock_code).await {
+            Ok(v) => v,
+            Err(e) => {
+                errors.push(format!("lockup_schedule: {e}"));
+                vec![]
+            },
+        };
+        let trades = match self.get_shareholder_trades(stock_code).await {
+            Ok(v) => v,
+            Err(e) => {
+                errors.push(format!("shareholder_trades: {e}"));
+                vec![]
+            },
+        };
+        let block = match self.get_block_trades(stock_code).await {
+            Ok(v) => v,
+            Err(e) => {
+                errors.push(format!("block_trades: {e}"));
+                vec![]
+            },
+        };
+
+        if !errors.is_empty() {
+            tracing::warn!(
+                "[astock-data] get_lockup_bundle({stock_code}) 部分数据源失败: {:?}",
+                errors
+            );
+        }
+
         Ok(serde_json::json!({
             "lockup_schedule": lockup,
             "shareholder_trades": trades,
             "block_trades": block,
+            "errors": errors,
         }))
     }
 
@@ -3592,6 +3621,7 @@ mod asof_truncate_tests {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            estimated: Some(false),
         }
     }
 

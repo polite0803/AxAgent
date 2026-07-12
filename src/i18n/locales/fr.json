@@ -34,6 +34,7 @@
     "recommend": "Recommend",
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
+    "pipeline": "Pipeline d'Actions",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -10235,5 +10236,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "Échec de la bascule de l'état de la compétence"
+  },
+  "pipeline": {
+    "title": "Pipeline d'Actions",
+    "date": "Date d'exécution",
+    "status": "Statut",
+    "candidates": "Candidats",
+    "analyzed": "Analysés",
+    "reflectionScheduled": "Réflexions planifiées",
+    "totalRuns": "Total des exécutions",
+    "successRate": "Taux de réussite",
+    "runNow": "Exécuter maintenant",
+    "running": "En cours...",
+    "progress": "Progression",
+    "history": "Historique",
+    "noHistory": "Pas d'historique"
   }
 }

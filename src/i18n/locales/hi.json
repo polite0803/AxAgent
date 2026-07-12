@@ -34,6 +34,7 @@
     "recommend": "Recommend",
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
+    "pipeline": "स्टॉक पाइपलाइन",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -10238,5 +10239,20 @@
   },
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
+  },
+  "pipeline": {
+    "title": "स्टॉक पाइपलाइन",
+    "date": "निष्पादन तिथि",
+    "status": "स्थिति",
+    "candidates": "उम्मीदवार",
+    "analyzed": "विश्लेषित",
+    "reflectionScheduled": "अनुसूचित प्रतिबिंब",
+    "totalRuns": "कुल रन",
+    "successRate": "सफलता दर",
+    "runNow": "अभी चलाएं",
+    "running": "चल रहा है...",
+    "progress": "प्रगति",
+    "history": "इतिहास",
+    "noHistory": "कोई इतिहास नहीं"
   }
 }

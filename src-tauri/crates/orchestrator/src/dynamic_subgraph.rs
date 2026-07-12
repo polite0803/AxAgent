@@ -448,6 +448,7 @@ mod tests {
                         model_role: None,
                         consistency_check: None,
                         hallucination_guard: None,
+                        fallback_model: None,
                     },
                 })
             })
@@ -515,6 +516,7 @@ mod tests {
                         model_role: None,
                         consistency_check: None,
                         hallucination_guard: None,
+                        fallback_model: None,
                     },
                 })
             })

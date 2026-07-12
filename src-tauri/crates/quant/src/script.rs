@@ -49,10 +49,12 @@ use rhai::{AST, Array, Engine, Map, Scope};
 use serde_json::Value;
 use tokio::sync::Mutex;
 
+// 引入 harness Result 别名（即 Result<_, AxAgentError>）—— Strategy trait 已下沉
 use crate::ctx::StrategyCtx;
 use crate::error::QuantError;
 use crate::strategy::Strategy;
 use crate::types::{Bar, CloseReason, Side, Signal, SignalAction};
+use axagent_harness::core_error::Result as HarnessResult;
 
 /// Rhai 策略（脚本驱动）
 ///
@@ -170,7 +172,7 @@ impl Strategy for RhaiStrategy {
         serde_json::to_value(&self.params).unwrap_or(Value::Null)
     }
 
-    fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
+    fn set_param(&mut self, key: &str, value: Value) -> HarnessResult<()> {
         self.params.insert(key.to_string(), value.clone());
         // 修复 P0-Q1: set_param 是同步函数，不能 .await tokio Mutex。
         // 用 try_lock + blocking 不可行（会阻塞 async runtime）。
@@ -179,11 +181,7 @@ impl Strategy for RhaiStrategy {
         Ok(())
     }
 
-    async fn on_bar(
-        &mut self,
-        bar: &Bar,
-        ctx: &mut StrategyCtx,
-    ) -> Result<Vec<Signal>, QuantError> {
+    async fn on_bar(&mut self, bar: &Bar, ctx: &mut StrategyCtx) -> HarnessResult<Vec<Signal>> {
         let ast = self.ast.clone();
         let bar_map = bar_to_rhai(bar);
         // 修复 M-PERF-3: 增量构建 closes 数组，避免每次从头重建
@@ -203,7 +201,7 @@ impl Strategy for RhaiStrategy {
         rhai_array_to_signals(arr)
     }
 
-    async fn on_init(&mut self, _ctx: &mut StrategyCtx) -> Result<(), QuantError> {
+    async fn on_init(&mut self, _ctx: &mut StrategyCtx) -> HarnessResult<()> {
         // 用当前 params 调一次 init（让用户脚本初始化全局变量）
         let engine = self.engine.clone();
         let ast = self.ast.clone();
@@ -219,7 +217,7 @@ impl Strategy for RhaiStrategy {
         Ok(())
     }
 
-    async fn on_finish(&mut self, _ctx: &mut StrategyCtx) -> Result<(), QuantError> {
+    async fn on_finish(&mut self, _ctx: &mut StrategyCtx) -> HarnessResult<()> {
         let engine = self.engine.clone();
         let ast = self.ast.clone();
         let _ = tokio::task::spawn_blocking(move || {
@@ -309,7 +307,7 @@ fn ctx_to_rhai(ctx: &StrategyCtx, bar: &Bar, closes: Array) -> Map {
     m
 }
 
-fn rhai_array_to_signals(arr: Array) -> Result<Vec<Signal>, QuantError> {
+fn rhai_array_to_signals(arr: Array) -> HarnessResult<Vec<Signal>> {
     let mut out = Vec::with_capacity(arr.len());
     for v in arr {
         let m = v
@@ -327,7 +325,9 @@ fn rhai_array_to_signals(arr: Array) -> Result<Vec<Signal>, QuantError> {
             "buy" => SignalAction::Buy,
             "sell" => SignalAction::Sell,
             "hold" => SignalAction::Hold,
-            other => return Err(QuantError::Script(format!("signal action 非法: {}", other))),
+            other => {
+                return Err(QuantError::Script(format!("signal action 非法: {}", other)).into());
+            },
         };
         let strength = m.get("strength").and_then(|v| v.clone().try_cast::<f64>()).unwrap_or(0.5);
         let reason =

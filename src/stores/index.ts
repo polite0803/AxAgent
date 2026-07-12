@@ -51,6 +51,7 @@ export type { DiscoveredMcpServer } from "./feature/mcpStore";
 export { useMemoryStore } from "./feature/memoryStore";
 export { useNudgeStore } from "./feature/nudgeStore";
 export { useOnboardingStore } from "./feature/onboardingStore";
+export { usePipelineStore } from "./feature/pipelineStore";
 export { setupPlanEventListeners, usePlanStore } from "./feature/planStore";
 export { usePlatformStore } from "./feature/platformStore";
 export { usePluginStore } from "./feature/pluginStore";

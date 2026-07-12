@@ -99,12 +99,7 @@ impl StockVendor for CninfoVendor {
                 let sec_name = item["secName"].as_str().map(|s| s.to_string());
                 let ann_date = item["announcementTime"]
                     .as_i64()
-                    .map(|ts| {
-                        let secs = ts / 1000;
-                        chrono::DateTime::from_timestamp(secs, 0)
-                            .map(|dt| dt.format("%Y-%m-%d").to_string())
-                            .unwrap_or_default()
-                    })
+                    .map(|ts| crate::vendors::format_timestamp(ts / 1000, "%Y-%m-%d", "cninfo"))
                     .unwrap_or_default();
                 let adj_url = item["adjunctUrl"].as_str().unwrap_or("");
                 let pdf_url = if adj_url.is_empty() {

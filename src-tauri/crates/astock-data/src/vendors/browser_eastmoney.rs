@@ -289,6 +289,7 @@ impl StockVendor for BrowserEastMoneyVendor {
                 free_cash_flow: None,
                 current_ratio: None,
                 quick_ratio: None,
+                estimated: Some(false),
             });
         }
         Ok(result)

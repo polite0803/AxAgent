@@ -20,7 +20,7 @@ use axagent_harness::market_data::{AdjType, KLine, MarketDataProvider};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
-use std::sync::RwLock;
+use std::sync::Mutex;
 
 // ── 类型 ──
 
@@ -891,8 +891,8 @@ pub struct SignalQualityStats {
 }
 
 /// 全局信号质量缓存（按 (strategy_id, as_of_suffix) 索引，live/replay 隔离）
-static SIGNAL_QUALITY_CACHE: LazyLock<RwLock<HashMap<(String, String), SignalQualityStats>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
+static SIGNAL_QUALITY_CACHE: LazyLock<Mutex<HashMap<(String, String), SignalQualityStats>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// 缓存容量上限，超出后按 last_updated 驱逐最旧条目，避免长跑内存无限增长
 const MAX_CACHE_ENTRIES: usize = 4096;
@@ -910,7 +910,7 @@ pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStat
             tracing::warn!("[signal_quality] SystemTime 早于 UNIX_EPOCH（时钟倒流）: {e}");
             0
         });
-    let mut cache = SIGNAL_QUALITY_CACHE.write().unwrap_or_else(|e| e.into_inner());
+    let mut cache = SIGNAL_QUALITY_CACHE.lock().unwrap_or_else(|e| e.into_inner());
     for (sid, stats) in positive_stats {
         if stats.total_signals < 5 {
             continue;
@@ -941,7 +941,7 @@ pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStat
 /// 查询策略信号质量（自动注入 as-of 后缀隔离 live/replay）
 pub fn get_signal_quality(strategy_id: &str) -> Option<SignalQualityStats> {
     let suffix = axagent_astock_data::as_of::cache_suffix();
-    let cache = SIGNAL_QUALITY_CACHE.read().unwrap_or_else(|e| e.into_inner());
+    let cache = SIGNAL_QUALITY_CACHE.lock().unwrap_or_else(|e| e.into_inner());
     cache.get(&(strategy_id.to_string(), suffix)).cloned()
 }
 
