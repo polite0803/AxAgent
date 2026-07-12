@@ -68,6 +68,9 @@ const LazyLearningGraphPage = lazy(() =>
 const LazyDynamicUIManagerPage = lazy(() =>
   import("@/pages/DynamicUIManagerPage").then((m) => ({ default: m.DynamicUIManagerPage }))
 );
+const LazyStockAnalysisPage = lazy(() =>
+  import("@/pages/StockAnalysisPage").then((m) => ({ default: m.StockAnalysisPage }))
+);
 
 function PageLoader() {
   return (
@@ -311,6 +314,14 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="dynamic-ui">
                 <SafeLazyPage Page={LazyDynamicUIManagerPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/stock-analysis"
+            element={
+              <PageContextProvider page="stock-analysis">
+                <SafeLazyPage Page={LazyStockAnalysisPage} />
               </PageContextProvider>
             }
           />

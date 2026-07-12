@@ -22,7 +22,7 @@ import {
 import type { AppSettings, PageKey } from "@/types";
 import { AppstoreAddOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
+import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
 import { createElement, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -38,6 +38,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   terminal: "/terminal",
   workflow: "/workflow",
   "dynamic-ui": "/dynamic-ui",
+  "stock-analysis": "/stock-analysis",
   settings: "/settings",
 };
 
@@ -122,6 +123,13 @@ const builtinNavItems: NavItem[] = [
     icon: <Icon icon="fluent:apps-20-filled" size={17} />,
     labelKey: "nav.dynamicUI",
     path: "/dynamic-ui",
+    isPlugin: false,
+  },
+  {
+    key: "stock-analysis",
+    icon: <LineChart size={18} color={NAV_ICON_COLORS.Router} />,
+    labelKey: "nav.stockAnalysis",
+    path: "/stock-analysis",
     isPlugin: false,
   },
 ];
@@ -403,6 +411,12 @@ export function Sidebar() {
         n.key === "gateway" || n.key === "terminal" || n.key === "files" || n.key === "workflow"
         || n.key === "dynamic-ui"
       ),
+    });
+
+    sections.push({
+      key: "invest",
+      labelKey: "sidebar.sectionInvest",
+      items: builtinNavItems.filter((n) => n.key === "stock-analysis"),
     });
 
     if (bottomPlugins.length > 0) {

@@ -15,7 +15,7 @@ export function ModeSwitch() {
       type="text"
       size="small"
       icon={<Clock size={14} />}
-      title={t("timeTravel.modeSwitch")}
+      title={t("timeTravel.modeSwitch.tooltipLive")}
     />
   );
 }

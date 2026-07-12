@@ -717,6 +717,7 @@ export type BuiltinPageKey =
   | "terminal"
   | "workflow"
   | "dynamic-ui"
+  | "stock-analysis"
   | "settings"
   | "marketplace"
   | "wiki";
