@@ -34,6 +34,13 @@ impl L1Cache {
         self.inner.get(key).await
     }
 
+    /// 写入缓存条目。
+    ///
+    /// 修复 M-PERF-1: `_ttl` 参数当前被忽略，因为 `moka::future::Cache` 在
+    /// `L1Cache::new` 中已通过 `time_to_live(cfg.default_ttl)` 配置了全局 TTL。
+    /// 若需要 per-entry TTL，需改用 `moka::policy::Expiration` + 自定义 `Expiry`
+    /// trait（API 变更成本较高，当前全局 TTL 已满足业务需求）。
+    /// 保留参数签名以保持调用方兼容性，未来切换到 per-entry TTL 时无需改 API。
     pub async fn set(&self, key: String, value: String, _ttl: Duration) {
         self.inner.insert(key, value).await;
     }
@@ -126,6 +133,12 @@ impl L2Cache {
         Ok(())
     }
 
+    /// 估算 L2 缓存条目数。
+    ///
+    /// 修复 M-RES-6: 此方法遍历整张 redb 表来计数，对于大表（>10万条）会有性能影响。
+    /// 上限 100_000 防止无限遍历，但仍可能在大表上产生毫秒级延迟。
+    /// 若调用方只需粗略估计，可优先使用 L1Cache::entry_count()（moka O(1)）。
+    /// 此处保留完整遍历是因为 redb 的 entries() 在某些版本下不准确。
     pub fn approx_len(&self) -> usize {
         let Ok(txn) = self.db.begin_read() else { return 0 };
         let Ok(table) = txn.open_table(TABLE) else { return 0 };

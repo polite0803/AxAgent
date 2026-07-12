@@ -73,11 +73,20 @@ pub struct BatchResult<T> {
     pub success: HashMap<String, T>,
     pub failures: HashMap<String, String>,
     pub elapsed_ms: u64,
+    /// H1.8 修复:是否因失败数超过 max_failures 阈值而提前终止
+    /// (true 表示还有未完成的任务被丢弃;false 表示所有任务都跑完)
+    #[serde(default)]
+    pub early_terminated: bool,
 }
 
 impl<T> BatchResult<T> {
     pub fn new() -> Self {
-        Self { success: HashMap::new(), failures: HashMap::new(), elapsed_ms: 0 }
+        Self {
+            success: HashMap::new(),
+            failures: HashMap::new(),
+            elapsed_ms: 0,
+            early_terminated: false,
+        }
     }
 
     pub fn total(&self) -> usize {
@@ -242,6 +251,8 @@ impl BatchRunner {
         let mut success = HashMap::new();
         let mut failures = HashMap::new();
         let mut failure_count = 0usize;
+        // H1.8 修复:超过 max_failures 阈值时真正 break 终止后续任务
+        let mut early_terminated = false;
         while let Some(joined) = tasks.next().await {
             let Ok((code, res)) = joined else { continue };
             match res {
@@ -251,19 +262,31 @@ impl BatchRunner {
                 Err(e) => {
                     failure_count += 1;
                     failures.insert(code, e);
-                    if failure_count > max_failures {
+                    if max_failures > 0 && failure_count > max_failures {
                         tracing::warn!(
-                            "[batch:{}] 失败数 {} 超过阈值 {}，提前终止",
+                            "[batch:{}] 失败数 {} 超过阈值 {}，提前终止后续任务",
                             method,
                             failure_count,
                             max_failures
                         );
+                        early_terminated = true;
+                        break;
                     }
                 },
             }
         }
 
-        BatchResult { success, failures, elapsed_ms: start.elapsed().as_millis() as u64 }
+        // H1.8:如提前终止,丢弃仍在运行的剩余任务(避免泄漏)
+        if early_terminated {
+            while tasks.next().await.is_some() {}
+        }
+
+        BatchResult {
+            success,
+            failures,
+            elapsed_ms: start.elapsed().as_millis() as u64,
+            early_terminated,
+        }
     }
 }
 

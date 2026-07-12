@@ -1,5 +1,24 @@
 use std::collections::HashMap;
 
+/// 修复 M-DS-3: 包装 `serde_json::from_str` 的失败路径，
+/// 在解析失败时通过 `tracing::warn!` 记录原始 JSON 片段，便于排查上游数据质量问题。
+/// 同时仍返回 `Default::default()` 维持降级行为（不破坏既有调用方）。
+fn parse_or_warn<T: serde::de::DeserializeOwned + Default>(label: &str, json: &str) -> T {
+    match serde_json::from_str::<T>(json) {
+        Ok(v) => v,
+        Err(e) => {
+            let preview: String = json.chars().take(120).collect();
+            tracing::warn!(
+                "[stock-analysis] report.rs JSON 解析失败 label={} err={} preview={:?}",
+                label,
+                e,
+                preview
+            );
+            T::default()
+        },
+    }
+}
+
 /// Generate an HTML visualization report from all analysis data
 #[allow(clippy::too_many_arguments)]
 pub fn generate_html_report(
@@ -20,19 +39,18 @@ pub fn generate_html_report(
     peers_json: &str,
     option_pcr_json: &str,
 ) -> String {
-    let quote: serde_json::Value = serde_json::from_str(quote_json).unwrap_or_default();
+    let quote: serde_json::Value = parse_or_warn("quote", quote_json);
     let price = quote["price"].as_f64().unwrap_or(0.0);
     let change_pct = quote["changePct"].as_f64().unwrap_or(0.0);
-    let score: serde_json::Value = serde_json::from_str(score_json).unwrap_or_default();
-    let decision: serde_json::Value = serde_json::from_str(decision_json).unwrap_or_default();
-    let value: serde_json::Value = serde_json::from_str(value_assessment_json).unwrap_or_default();
+    let score: serde_json::Value = parse_or_warn("score", score_json);
+    let decision: serde_json::Value = parse_or_warn("decision", decision_json);
+    let value: serde_json::Value = parse_or_warn("value_assessment", value_assessment_json);
     let buffett_verdict = value["buffett_verdict"].as_str().unwrap_or("-");
     let margin_of_safety = value["margin_of_safety_pct"].as_f64().unwrap_or(0.0);
     let f_score = value["f_score"].as_f64().unwrap_or(0.0);
     let moat = value["moat_score"].as_f64().unwrap_or(0.0);
 
-    let block_trades: Vec<serde_json::Value> =
-        serde_json::from_str(block_trades_json).unwrap_or_default();
+    let block_trades: Vec<serde_json::Value> = parse_or_warn("block_trades", block_trades_json);
     let block_trades_section = if block_trades.is_empty() {
         String::new()
     } else {
@@ -51,7 +69,7 @@ pub fn generate_html_report(
     };
 
     let visits: Vec<serde_json::Value> =
-        serde_json::from_str(institutional_visits_json).unwrap_or_default();
+        parse_or_warn("institutional_visits", institutional_visits_json);
     let institutional_visits_section = if visits.is_empty() {
         String::new()
     } else {
@@ -70,8 +88,7 @@ pub fn generate_html_report(
         format!("<h3 style=\"margin:16px 0 8px\">机构调研</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>日期</th><th>机构数</th><th>内容</th></tr>{rows}</table>")
     };
 
-    let index_quotes: Vec<serde_json::Value> =
-        serde_json::from_str(index_quotes_json).unwrap_or_default();
+    let index_quotes: Vec<serde_json::Value> = parse_or_warn("index_quotes", index_quotes_json);
     let index_quotes_section = if index_quotes.is_empty() {
         String::new()
     } else {
@@ -89,7 +106,7 @@ pub fn generate_html_report(
         format!("<h3 style=\"margin:16px 0 8px\">大盘指数</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>指数</th><th>点位</th><th>涨跌幅</th></tr>{rows}</table>")
     };
 
-    let peers: Vec<serde_json::Value> = serde_json::from_str(peers_json).unwrap_or_default();
+    let peers: Vec<serde_json::Value> = parse_or_warn("peers", peers_json);
     let peers_section = if peers.is_empty() {
         String::new()
     } else {
@@ -110,7 +127,7 @@ pub fn generate_html_report(
         format!("<h3 style=\"margin:16px 0 8px\">同行业可比公司</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>股票</th><th>PE</th><th>PB</th><th>ROE</th><th>涨跌幅</th></tr>{rows}</table>")
     };
 
-    let option_pcr: serde_json::Value = serde_json::from_str(option_pcr_json).unwrap_or_default();
+    let option_pcr: serde_json::Value = parse_or_warn("option_pcr", option_pcr_json);
     let option_pcr_section = if option_pcr.is_null() || option_pcr_json.is_empty() {
         String::new()
     } else {

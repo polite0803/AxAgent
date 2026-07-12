@@ -205,15 +205,23 @@ impl SimAgent for StrategyAgent {
     fn on_message(&mut self, msg: &MessageBody, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         match msg {
             MessageBody::OrderFilled { fill, .. } => {
-                // 记录入场价
-                if self.entry_submitted && self.entry_price.is_none() {
-                    for trade in &fill.trades {
-                        if trade.buyer_agent_id == self.id {
+                // 记录入场价（仅首次成交记录 entry_price）。
+                // 修复 M-DS-6: 原代码只在 `entry_price.is_none()` 首次成交时更新
+                // current_position，导致部分成交后续 fills 丢失持仓更新。
+                // 现在每次 fill 都更新 current_position，但 entry_price 仅记录
+                // 第一次成交价（用于止损止盈判定）。
+                for trade in &fill.trades {
+                    if trade.buyer_agent_id == self.id {
+                        if self.entry_price.is_none() && self.entry_submitted {
                             self.entry_price = Some(trade.price);
-                            self.current_position += trade.quantity as i64;
-                        } else if trade.seller_agent_id == self.id {
-                            self.current_position -= trade.quantity as i64;
                         }
+                        self.current_position += trade.quantity as i64;
+                    } else if trade.seller_agent_id == self.id {
+                        if self.entry_price.is_none() && self.entry_submitted {
+                            // 卖出首次成交也记录 entry_price
+                            self.entry_price = Some(trade.price);
+                        }
+                        self.current_position -= trade.quantity as i64;
                     }
                 }
                 // 获取最新价格
@@ -284,7 +292,7 @@ mod tests {
         kernel.register(Box::new(MarketMakerAgent::new(
             "mm", 30, 500, 5000, 0.1, 500_000, ref_price,
         )));
-        kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.5, 100, 50, ref_price)));
+        kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.5, 100, 50, ref_price, 42)));
         kernel.register(Box::new(StrategyAgent::new(
             "strategy", action, target, stop, ref_price, 500, 1_000_000,
         )));

@@ -27,6 +27,28 @@ use axagent_quant::{Bar, Signal, SignalAction, Strategy, StrategyCtx};
 use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
 use crate::types::{FillResult, MarketOrder, OrderSide, Price, SimTimestamp, TradeRecord};
 
+/// 在同步上下文中执行 async future
+///
+/// 修复 H3.5: 原实现用 futures::executor::block_on，在 tokio runtime 上下文中
+/// 会创建嵌套 runtime（违反 AGENTS.md Rule 9）。改为优先复用已有 tokio runtime：
+/// - 若当前线程在 tokio runtime 中，用 block_in_place + Handle::block_on
+/// - 若无 runtime（如单元测试），创建临时 runtime 执行
+///
+/// 注意：block_in_place 必须在 multi-thread runtime 中调用。
+/// Tauri 应用使用 tokio::main（multi-thread），生产路径安全。
+fn block_on_async<F: std::future::Future>(fut: F) -> F::Output {
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => {
+            // 在已有 tokio runtime 中执行（block_in_place 要求 multi-thread runtime）
+            tokio::task::block_in_place(|| handle.block_on(fut))
+        },
+        Err(_) => {
+            // 无 tokio runtime（如单元测试），创建临时 runtime 执行
+            tokio::runtime::Runtime::new().expect("无法创建 tokio runtime").block_on(fut)
+        },
+    }
+}
+
 /// 量化策略桥接 Agent
 pub struct QuantStrategyAgent {
     id: String,
@@ -165,21 +187,29 @@ impl QuantStrategyAgent {
         let mut actions = Vec::new();
 
         let price = signal.strength * self.last_price;
-        let qty = 100.max((self.ctx.cash / price.max(1.0)) as u64 / 100 * 100);
+        // 修复 M-DS-9: 原代码 `100.max(...)` 永远取较大值，
+        // 资金不够 100 股时仍下 100 股，导致超出资金上限。
+        // 现在按资金上限计算整手股数（A 股最小交易单位 100 股），
+        // 若资金不够 100 股则 qty = 0（不下单）。
+        let max_affordable_lots = (self.ctx.cash / price.max(1.0)) as u64 / 100;
+        let qty = max_affordable_lots * 100;
 
         match signal.action {
             SignalAction::Buy => {
-                let order = MarketOrder {
-                    id: self.gen_id(),
-                    side: OrderSide::Buy,
-                    quantity: qty,
-                    agent_id: self.id.clone(),
-                    timestamp: ctx.current_time,
-                };
-                actions.push(AgentAction::SendMessage {
-                    target: "exchange".into(),
-                    body: MessageBody::SubmitMarket(order),
-                });
+                // 修复 M-DS-9: qty = 0（资金不够 100 股）时跳过下单，避免空单
+                if qty > 0 {
+                    let order = MarketOrder {
+                        id: self.gen_id(),
+                        side: OrderSide::Buy,
+                        quantity: qty,
+                        agent_id: self.id.clone(),
+                        timestamp: ctx.current_time,
+                    };
+                    actions.push(AgentAction::SendMessage {
+                        target: "exchange".into(),
+                        body: MessageBody::SubmitMarket(order),
+                    });
+                }
             },
             SignalAction::Sell => {
                 // 卖：减当前持仓
@@ -276,7 +306,7 @@ impl SimAgent for QuantStrategyAgent {
 
     fn on_init(&mut self, ctx: &mut AgentContext) -> Vec<AgentAction> {
         // 调用策略的 on_init（同步执行）
-        let _ = futures::executor::block_on(self.strategy.on_init(&mut self.ctx));
+        let _ = block_on_async(self.strategy.on_init(&mut self.ctx));
 
         self.initialized = true;
         self.bar_start_time = ctx.current_time;
@@ -301,7 +331,7 @@ impl SimAgent for QuantStrategyAgent {
         self.ctx.current_time = bar.date.clone();
 
         // 2. 调用策略的 on_bar
-        let signal_result = futures::executor::block_on(self.strategy.on_bar(&bar, &mut self.ctx));
+        let signal_result = block_on_async(self.strategy.on_bar(&bar, &mut self.ctx));
         match signal_result {
             Ok(signals) => {
                 for signal in signals {
@@ -349,7 +379,7 @@ impl SimAgent for QuantStrategyAgent {
     }
 
     fn on_sim_end(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
-        let _ = futures::executor::block_on(self.strategy.on_finish(&mut self.ctx));
+        let _ = block_on_async(self.strategy.on_finish(&mut self.ctx));
         Vec::new()
     }
 }
@@ -384,7 +414,7 @@ mod tests {
             1_000_000.0,
             1_000_000,
         )));
-        kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.27, 50, 32, price)));
+        kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.27, 50, 32, price, 42)));
 
         kernel.run().unwrap()
     }

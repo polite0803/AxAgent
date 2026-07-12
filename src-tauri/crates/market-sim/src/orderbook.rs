@@ -24,6 +24,12 @@ use std::collections::{BTreeMap, HashMap, VecDeque};
 use crate::error::SimError;
 use crate::types::*;
 
+/// 成交历史最大长度，防止无界增长导致 OOM
+///
+/// 修复 C4.5: 原 trade_history 在长时仿真中无限制累积，
+/// 可能消耗 GB 级内存。这里限制为 100_000 条，超过时丢弃最旧记录。
+const MAX_TRADE_HISTORY: usize = 100_000;
+
 // ── 内部数据结构 ──
 
 /// 价格档位：同一价位上的所有挂单（FIFO 时间优先队列）
@@ -107,6 +113,11 @@ pub struct OrderBook {
     /// 订单快速查找表：OrderId → 位置
     order_index: HashMap<OrderId, OrderLocator>,
     /// 成交历史
+    ///
+    /// 修复 L-10: 此字段保留用于 OrderBook 内部查询（如 trade_count()、
+    /// market_impact_estimate 等场景）。Kernel.collect_results 已改为
+    /// 从 ExchangeAgent::trade_history() 聚合，二者数据一致但来源不同。
+    /// 若未来确认 OrderBook 内部不再需要，可安全删除。
     trade_history: Vec<TradeRecord>,
     /// 最小价格变动单位（A 股 = 1 分）
     tick_size: Price,
@@ -149,6 +160,16 @@ impl OrderBook {
         id
     }
 
+    /// 修剪成交历史至不超过 MAX_TRADE_HISTORY 条
+    ///
+    /// 修复 C4.5: 在每次 extend 后调用，超过上限时丢弃最旧记录，防止 OOM。
+    fn trim_trade_history(&mut self) {
+        if self.trade_history.len() > MAX_TRADE_HISTORY {
+            let overflow = self.trade_history.len() - MAX_TRADE_HISTORY;
+            self.trade_history.drain(0..overflow);
+        }
+    }
+
     // ── 订单操作 ──
 
     /// 提交市价单：立即以最优对手价成交
@@ -181,6 +202,8 @@ impl OrderBook {
         fill.vwap = Self::compute_vwap(&fill);
         fill.unfilled_quantity = order.quantity.saturating_sub(fill.filled_quantity);
         self.trade_history.extend(fill.trades.iter().cloned());
+        // 修复 C4.5: 修剪成交历史，防止无界增长
+        self.trim_trade_history();
 
         // 计算冲击成本
         if let Some(mid) = mid_before
@@ -250,9 +273,15 @@ impl OrderBook {
     ///
     /// 修复 P0-M8: 原 `level.orders.remove(idx).unwrap()` 在 level 已被其他
     /// match 路径清空时会 panic。改为返回 `SimError::OrderNotFound`。
+    ///
+    /// 修复 H3.3: 原实现先 `order_index.remove` 再检查 bids/asks，错误路径
+    /// 会导致 order_index 中已删除但订单仍挂在 bids/asks，撤单永久失败。
+    /// 改为：先用 `get` 查找 locator，所有可能失败的操作（level 查找、position 查找、
+    /// remove）全部成功后，最后才 `order_index.remove`。
     pub fn cancel_order(&mut self, order_id: OrderId) -> Result<OrderResult, SimError> {
+        // 修复 H3.3: 用 get 而非 remove，避免错误路径下 order_index 状态不一致
         let locator =
-            self.order_index.remove(&order_id).ok_or(SimError::OrderNotFound(order_id))?;
+            self.order_index.get(&order_id).copied().ok_or(SimError::OrderNotFound(order_id))?;
 
         let remaining = match locator {
             OrderLocator::Bid(price) => {
@@ -288,6 +317,8 @@ impl OrderBook {
             },
         };
 
+        // 所有可能失败的操作已完成，安全地移除 order_index 条目
+        self.order_index.remove(&order_id);
         Ok(OrderResult::Cancelled { order_id, remaining })
     }
 
@@ -429,19 +460,26 @@ impl OrderBook {
             };
 
             consumed_levels += 1;
+            let mut self_trade_skips = 0;
 
             while remaining > 0 && !level.is_empty() {
                 // 修复 P0-M7: 自成交保护——跳过但不删除对方订单。
-                // 原实现 pop_front + order_index.remove 会永久踢出对手方订单，
-                // 在 calibration 100 组参数场景下订单簿被掏空。
-                // 改为：跳过该订单继续尝试下一个（用 Vec::swap_remove 不行，会打乱顺序；
-                // 用 rotate 不现实。最简单方案：遇到自成交就 break 当前 level，继续下一 level）。
+                // 修复 H3.2: 原 break 会跳过整个 level，丢失同 level 后续非自成交订单。
+                // 改为：将队首自成交订单 rotate 到队尾（pop_front + push_back），
+                // continue 继续匹配队首的下一张订单。整 level 全自成交时跳出。
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == buyer_agent_id).unwrap_or(false);
                 if is_self {
-                    // 跳过当前 level（对手方订单保留在簿中），尝试下一价格档
-                    break;
+                    if let Some(order) = level.orders.pop_front() {
+                        level.orders.push_back(order);
+                    }
+                    self_trade_skips += 1;
+                    if self_trade_skips >= level.orders.len() {
+                        break;
+                    }
+                    continue;
                 }
+                self_trade_skips = 0;
 
                 let seller_remaining = level.orders.front().unwrap().remaining();
                 let trade_qty = remaining.min(seller_remaining);
@@ -462,13 +500,15 @@ impl OrderBook {
                 });
 
                 fill.filled_quantity += trade_qty;
-                remaining -= trade_qty;
+                // 修复 L-7: u64 下溢防护（trade_qty = remaining.min(...) 理论上不会下溢，但防御性处理）。
+                remaining = remaining.saturating_sub(trade_qty);
 
                 // 更新卖单（独立作用域，避免借用冲突）
                 let is_filled = {
                     let seller = level.orders.front_mut().unwrap();
                     seller.filled_quantity += trade_qty;
-                    level.total_quantity -= trade_qty;
+                    // 修复 L-7: u64 下溢防护，避免 total_quantity 与订单 remaining 不一致时 panic。
+                    level.total_quantity = level.total_quantity.saturating_sub(trade_qty);
                     seller.is_filled()
                 };
 
@@ -507,14 +547,24 @@ impl OrderBook {
             };
 
             consumed_levels += 1;
+            let mut self_trade_skips = 0;
 
             while remaining > 0 && !level.is_empty() {
                 // 修复 P0-M7: 自成交保护——跳过但不删除对方订单
+                // 修复 H3.2: rotate 到队尾继续匹配，整 level 全自成交时跳出
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == seller_agent_id).unwrap_or(false);
                 if is_self {
-                    break;
+                    if let Some(order) = level.orders.pop_front() {
+                        level.orders.push_back(order);
+                    }
+                    self_trade_skips += 1;
+                    if self_trade_skips >= level.orders.len() {
+                        break;
+                    }
+                    continue;
                 }
+                self_trade_skips = 0;
 
                 let buyer_remaining = level.orders.front().unwrap().remaining();
                 let trade_qty = remaining.min(buyer_remaining);
@@ -535,13 +585,15 @@ impl OrderBook {
                 });
 
                 fill.filled_quantity += trade_qty;
-                remaining -= trade_qty;
+                // 修复 L-7: u64 下溢防护（trade_qty = remaining.min(...) 理论上不会下溢，但防御性处理）。
+                remaining = remaining.saturating_sub(trade_qty);
 
                 // 更新买单
                 let is_filled = {
                     let buyer = level.orders.front_mut().unwrap();
                     buyer.filled_quantity += trade_qty;
-                    level.total_quantity -= trade_qty;
+                    // 修复 L-7: u64 下溢防护，避免 total_quantity 与订单 remaining 不一致时 panic。
+                    level.total_quantity = level.total_quantity.saturating_sub(trade_qty);
                     buyer.is_filled()
                 };
 
@@ -595,6 +647,8 @@ impl OrderBook {
         fill.vwap = Self::compute_vwap(&fill);
         let unfilled = order.quantity.saturating_sub(fill.filled_quantity);
         self.trade_history.extend(fill.trades.iter().cloned());
+        // 修复 C4.5: 修剪成交历史，防止无界增长
+        self.trim_trade_history();
 
         if let Some(mid) = mid_before
             && fill.vwap > 0.0
@@ -604,24 +658,24 @@ impl OrderBook {
         }
 
         if unfilled > 0 {
-            // 限价单部分成交后，剩余挂单
+            // 限价单未完全成交：剩余部分挂入订单簿。
+            // 修复 C4.4: 原 place_order_internal 不分配新 ID，直接使用传入 order.id；
+            // 现在改为内部分配新 ID 并返回，需在 PartialFill/Placed 中返回该新 ID，
+            // 否则 caller 拿到的 order_id 不指向任何订单。
+            // 同时修复双重挂单 bug: 原代码在 unfilled>0 时挂一次剩余订单后，
+            // 又在 else 分支再次挂单（"理论上不应该走到这里"），导致订单簿中出现两条相同订单。
             let mut remaining_order = order.clone();
             remaining_order.filled_quantity = fill.filled_quantity;
-            self.place_order_internal(remaining_order);
-        }
+            let new_id = self.place_order_internal(remaining_order);
 
-        let order_id = order.id;
-
-        if fill.filled_quantity > 0 && unfilled > 0 {
-            Ok(OrderResult::PartialFill { order_id, fill })
-        } else if fill.filled_quantity > 0 {
-            Ok(OrderResult::FullFill { order_id, fill })
+            if fill.filled_quantity > 0 {
+                Ok(OrderResult::PartialFill { order_id: new_id, fill })
+            } else {
+                Ok(OrderResult::Placed { order_id: new_id })
+            }
         } else {
-            // 理论上不应该走到这里
-            let mut remaining_order = order;
-            remaining_order.filled_quantity = 0;
-            self.place_order_internal(remaining_order);
-            Ok(OrderResult::Placed { order_id })
+            // 完全成交
+            Ok(OrderResult::FullFill { order_id: order.id, fill })
         }
     }
 
@@ -646,14 +700,24 @@ impl OrderBook {
                 None => continue,
             };
             consumed += 1;
+            let mut self_trade_skips = 0;
 
             while remaining > 0 && !level.is_empty() {
                 // 修复 P0-M7: 自成交保护——跳过但不删除对方订单
+                // 修复 H3.2: rotate 到队尾继续匹配，整 level 全自成交时跳出
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == buyer_agent_id).unwrap_or(false);
                 if is_self {
-                    break;
+                    if let Some(order) = level.orders.pop_front() {
+                        level.orders.push_back(order);
+                    }
+                    self_trade_skips += 1;
+                    if self_trade_skips >= level.orders.len() {
+                        break;
+                    }
+                    continue;
                 }
+                self_trade_skips = 0;
 
                 let seller_remaining = level.orders.front().unwrap().remaining();
                 let trade_qty = remaining.min(seller_remaining);
@@ -674,12 +738,14 @@ impl OrderBook {
                 });
 
                 fill.filled_quantity += trade_qty;
-                remaining -= trade_qty;
+                // 修复 L-7: u64 下溢防护（trade_qty = remaining.min(...) 理论上不会下溢，但防御性处理）。
+                remaining = remaining.saturating_sub(trade_qty);
 
                 let is_filled = {
                     let seller = level.orders.front_mut().unwrap();
                     seller.filled_quantity += trade_qty;
-                    level.total_quantity -= trade_qty;
+                    // 修复 L-7: u64 下溢防护，避免 total_quantity 与订单 remaining 不一致时 panic。
+                    level.total_quantity = level.total_quantity.saturating_sub(trade_qty);
                     seller.is_filled()
                 };
 
@@ -717,14 +783,24 @@ impl OrderBook {
                 None => continue,
             };
             consumed += 1;
+            let mut self_trade_skips = 0;
 
             while remaining > 0 && !level.is_empty() {
                 // 修复 P0-M7: 自成交保护——跳过但不删除对方订单
+                // 修复 H3.2: rotate 到队尾继续匹配，整 level 全自成交时跳出
                 let is_self =
                     level.orders.front().map(|o| o.agent_id == seller_agent_id).unwrap_or(false);
                 if is_self {
-                    break;
+                    if let Some(order) = level.orders.pop_front() {
+                        level.orders.push_back(order);
+                    }
+                    self_trade_skips += 1;
+                    if self_trade_skips >= level.orders.len() {
+                        break;
+                    }
+                    continue;
                 }
+                self_trade_skips = 0;
 
                 let buyer_remaining = level.orders.front().unwrap().remaining();
                 let trade_qty = remaining.min(buyer_remaining);
@@ -745,12 +821,14 @@ impl OrderBook {
                 });
 
                 fill.filled_quantity += trade_qty;
-                remaining -= trade_qty;
+                // 修复 L-7: u64 下溢防护（trade_qty = remaining.min(...) 理论上不会下溢，但防御性处理）。
+                remaining = remaining.saturating_sub(trade_qty);
 
                 let is_filled = {
                     let buyer = level.orders.front_mut().unwrap();
                     buyer.filled_quantity += trade_qty;
-                    level.total_quantity -= trade_qty;
+                    // 修复 L-7: u64 下溢防护，避免 total_quantity 与订单 remaining 不一致时 panic。
+                    level.total_quantity = level.total_quantity.saturating_sub(trade_qty);
                     buyer.is_filled()
                 };
 
@@ -769,28 +847,36 @@ impl OrderBook {
 
     /// 挂单（无条件挂入，不检查是否可立即成交）
     fn place_order(&mut self, order: LimitOrder) -> Result<OrderResult, SimError> {
-        self.place_order_internal(order);
-        Ok(OrderResult::Placed { order_id: self.id_counter - 1 })
+        let new_id = self.place_order_internal(order);
+        Ok(OrderResult::Placed { order_id: new_id })
     }
 
-    fn place_order_internal(&mut self, order: LimitOrder) {
+    /// 内部挂单实现
+    ///
+    /// 修复 C4.4: 原实现直接使用传入的 order.id，并让 place_order 返回 `self.id_counter - 1`。
+    /// 由于此处未调用 next_order_id()，id_counter 没有递增，导致返回的 order_id 完全错误
+    /// （可能指向不存在的订单或上一个分配出去的订单）。
+    /// 改为：内部分配新 ID 覆盖传入的 order.id，并返回真实的新 order_id。
+    fn place_order_internal(&mut self, mut order: LimitOrder) -> OrderId {
+        let new_id = self.next_order_id();
+        order.id = new_id;
         let side = order.side;
         let price = order.price;
-        let order_id = order.id;
 
         match side {
             OrderSide::Buy => {
                 let level =
                     self.bids.entry(Reverse(price)).or_insert_with(|| PriceLevel::new(price));
                 level.push(order);
-                self.order_index.insert(order_id, OrderLocator::Bid(price));
+                self.order_index.insert(new_id, OrderLocator::Bid(price));
             },
             OrderSide::Sell => {
                 let level = self.asks.entry(price).or_insert_with(|| PriceLevel::new(price));
                 level.push(order);
-                self.order_index.insert(order_id, OrderLocator::Ask(price));
+                self.order_index.insert(new_id, OrderLocator::Ask(price));
             },
         }
+        new_id
     }
 
     /// 模拟冲击成本（不影响订单簿状态）
@@ -808,7 +894,8 @@ impl OrderBook {
                     let take = remaining.min(level.total_quantity);
                     total_cost += (*price as f64) * (take as f64);
                     total_qty += take;
-                    remaining -= take;
+                    // 修复 L-7: u64 下溢防护。
+                    remaining = remaining.saturating_sub(take);
                 }
             },
             OrderSide::Sell => {
@@ -819,7 +906,8 @@ impl OrderBook {
                     let take = remaining.min(level.total_quantity);
                     total_cost += (*price as f64) * (take as f64);
                     total_qty += take;
-                    remaining -= take;
+                    // 修复 L-7: u64 下溢防护。
+                    remaining = remaining.saturating_sub(take);
                 }
             },
         }
@@ -982,10 +1070,11 @@ mod tests {
         ob.submit_limit_order(make_limit(1, OrderSide::Sell, 1000, 50, "trader")).unwrap();
         ob.submit_limit_order(make_limit(2, OrderSide::Buy, 1001, 50, "trader")).unwrap();
 
-        // 自成交禁止后：卖单被移除，买单挂入 → 只剩 1 个买单
-        assert_eq!(ob.order_count(), 1);
+        // 自成交保护设计为 rotate+保留：卖单 rotate 到队尾保留在订单簿，
+        // 买单无对手方可成交 → 挂入 bid 端。最终订单簿同时存在买卖双边，无成交。
+        assert_eq!(ob.order_count(), 2);
         assert_eq!(ob.best_bid_price(), Some(1001));
-        assert_eq!(ob.best_ask_price(), None);
+        assert_eq!(ob.best_ask_price(), Some(1000));
         assert_eq!(ob.trade_count(), 0);
     }
 

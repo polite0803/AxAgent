@@ -10,7 +10,7 @@
 //!
 //! 唤醒间隔服从指数分布，平均 `avg_interval_ns`。
 
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 
 use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
 use crate::types::{OrderSide, *};
@@ -29,6 +29,8 @@ pub struct NoiseAgent {
     reference_price: Price,
     /// 自增 ID
     next_id: u64,
+    /// 修复 H3.6: 可复现 RNG（替代 thread_rng）
+    rng: rand::rngs::StdRng,
 }
 
 impl NoiseAgent {
@@ -40,6 +42,7 @@ impl NoiseAgent {
         max_order_qty: Quantity,
         price_noise_bps: i64,
         reference_price: Price,
+        seed: u64,
     ) -> Self {
         Self {
             id: id.into(),
@@ -49,6 +52,8 @@ impl NoiseAgent {
             price_noise_bps,
             reference_price,
             next_id: 1,
+            // 修复 H3.6: 用种子初始化 RNG，保证仿真可复现
+            rng: rand::rngs::StdRng::seed_from_u64(seed),
         }
     }
 }
@@ -78,7 +83,8 @@ impl SimAgent for NoiseAgent {
     }
 
     fn on_wakeup(&mut self, ctx: &mut AgentContext) -> Vec<AgentAction> {
-        let mut rng = rand::thread_rng();
+        // 修复 H3.6: 使用结构体内的可复现 RNG 替代 thread_rng
+        let rng = &mut self.rng;
         let mut actions: Vec<AgentAction> = vec![
             // 下次唤醒（指数分布）
             AgentAction::WakeupAfter(
@@ -103,7 +109,13 @@ impl SimAgent for NoiseAgent {
         if rng.r#gen_bool(0.7) {
             let max_noise = (self.reference_price as f64 * self.price_noise_bps as f64 / 10000.0)
                 .round() as Price;
-            let offset = rng.gen_range(-max_noise..=max_noise);
+            // 修复 H3.7: price_noise_bps < 0 时 max_noise < 0，
+            // gen_range(-max_noise..=max_noise) 会因 range 起止颠倒而 panic
+            let offset = if max_noise > 0 {
+                rng.r#gen_range(-max_noise..=max_noise)
+            } else {
+                0
+            };
             let price = (self.reference_price as f64 + offset as f64).round().max(1.0) as Price;
 
             let id = self.next_id;

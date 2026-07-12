@@ -10076,7 +10076,20 @@
       "aiSelectNoneBtn": "全不选",
       "rollbackWarning": "将回滚到版本 {{target}}",
       "jumpToAnalysisBtn": "跳转到原 analysis",
-      "jumpToAnalysisTooltip": "查看此次反思对应的原始 analysis 记录"
+      "jumpToAnalysisTooltip": "查看此次反思对应的原始 analysis 记录",
+      "feedbackBtn": "反馈",
+      "feedbackTitle": "反思反馈",
+      "feedbackRatingLabel": "评分",
+      "feedbackCommentLabel": "评论（可选）",
+      "feedbackCommentPlaceholder": "请输入对这次反思的建议...",
+      "feedbackSubmitBtn": "提交反馈",
+      "feedbackSuccess": "反馈已提交（{{action}}）",
+      "feedbackFailed": "反馈提交失败: {{error}}",
+      "feedbackActionNone": "无动作",
+      "feedbackActionRL": "已触发 RL 训练",
+      "feedbackActionSkill": "已触发技能进化",
+      "feedbackActionPool": "已触发经验池检查",
+      "feedbackStatsLabel": "统计: 正 {{positive}} / 负 {{negative}} / 总 {{total}}"
     },
     "portfolioMonitor": {
       "title": "组合监控",

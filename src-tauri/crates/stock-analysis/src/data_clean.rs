@@ -18,7 +18,11 @@ pub struct OutlierResult {
 /// prices_json: f64 数组 JSON 字符串。
 /// threshold: zscore 方法的 sigma 倍数（默认 2.0），或 IQR 方法的倍数（默认 1.5）。
 pub fn remove_outliers(prices_json: &str, method: &str, threshold: f64) -> OutlierResult {
-    let prices: Vec<f64> = serde_json::from_str(prices_json).unwrap_or_default();
+    // 修复 L-2: 添加 warn 日志，便于发现 JSON 解析失败。
+    let prices: Vec<f64> = serde_json::from_str(prices_json).unwrap_or_else(|e| {
+        tracing::warn!("[data_clean] remove_outliers JSON 解析失败: {e}");
+        Vec::new()
+    });
     if prices.len() < 4 {
         return OutlierResult {
             cleaned: prices,
@@ -121,7 +125,11 @@ pub struct FillResult {
 /// 填充缺失值（JSON null → 填充值）。
 /// method: "forward" (前向填充) 或 "linear" (线性插值)。
 pub fn fill_missing(prices_json: &str, method: &str) -> FillResult {
-    let prices: Vec<Option<f64>> = serde_json::from_str(prices_json).unwrap_or_default();
+    // 修复 L-2: 添加 warn 日志，便于发现 JSON 解析失败。
+    let prices: Vec<Option<f64>> = serde_json::from_str(prices_json).unwrap_or_else(|e| {
+        tracing::warn!("[data_clean] fill_missing JSON 解析失败: {e}");
+        Vec::new()
+    });
     if prices.is_empty() {
         return FillResult { filled: vec![], filled_count: 0, method: method.into() };
     }
@@ -236,8 +244,15 @@ pub fn adjust_prices(klines_json: &str, dividends_json: &str) -> AdjustResult {
         share_dividend: f64,
     }
 
-    let mut klines: Vec<RawKLine> = serde_json::from_str(klines_json).unwrap_or_default();
-    let dividends: Vec<Dividend> = serde_json::from_str(dividends_json).unwrap_or_default();
+    // 修复 L-2: 添加 warn 日志，便于发现 JSON 解析失败。
+    let mut klines: Vec<RawKLine> = serde_json::from_str(klines_json).unwrap_or_else(|e| {
+        tracing::warn!("[data_clean] adjust_for_dividends klines JSON 解析失败: {e}");
+        Vec::new()
+    });
+    let dividends: Vec<Dividend> = serde_json::from_str(dividends_json).unwrap_or_else(|e| {
+        tracing::warn!("[data_clean] adjust_for_dividends dividends JSON 解析失败: {e}");
+        Vec::new()
+    });
 
     if klines.is_empty() {
         return AdjustResult { adjusted_klines: vec![], adjustment_factor: 1.0 };

@@ -70,6 +70,12 @@ pub struct RhaiStrategy {
     ast: Arc<AST>,
     /// 参数
     params: HashMap<String, Value>,
+    /// 修复 M-PERF-3: 缓存每个 code 的 closes 序列，避免每次 on_bar 都
+    /// 从头重建整个数组（原实现 O(n²)）。Engine 在每次 on_bar 前 push 1 个 bar
+    /// 到 ctx.bar_history[code]，所以正常情况下 cache 长度 == history.len() - 1，
+    /// 只需 push 新 bar 的 close 即可。若检测到 cache 与 history 不一致
+    /// （回测重置 / 切换数据集），全量重建一次。
+    closes_cache: HashMap<String, Vec<f64>>,
 }
 
 impl RhaiStrategy {
@@ -103,12 +109,46 @@ impl RhaiStrategy {
             engine: Arc::new(Mutex::new(engine)),
             ast: Arc::new(ast),
             params: HashMap::new(),
+            closes_cache: HashMap::new(),
         })
     }
 
     /// 获取 script 源码（用于 UI 编辑 + 持久化）
     pub fn script(&self) -> &str {
         &self.script
+    }
+
+    /// 修复 M-PERF-3: 增量构建当前 bar.code 的 closes 数组。
+    ///
+    /// Engine 在每次 on_bar 前会 push 1 个 bar 到 `ctx.bar_history[code]`，
+    /// 所以正常情况下 `closes_cache[code]` 长度应等于 `history.len() - 1`。
+    /// 此时只需 push 新 bar 的 close 即可，避免每次从头重建数组（O(n²) → O(1)）。
+    ///
+    /// 若检测到 cache 与 history 不一致（回测重置 / 切换数据集 / 跨股票），
+    /// 全量重建一次以保证正确性。
+    fn build_closes_array(&mut self, ctx: &StrategyCtx, bar: &Bar) -> Array {
+        let history = ctx.bar_history.get(&bar.code);
+        let history_len = history.map(|h| h.len()).unwrap_or(0);
+
+        let cached = self.closes_cache.entry(bar.code.clone()).or_default();
+        // 检查 cache 与 history 是否一致：
+        // - 正常增量：cached.len() == history_len - 1（Engine 刚 push 了新 bar）
+        // - 不一致：cached.len() >= history_len 或 cached.len() < history_len - 1
+        //   前者意味着 history 被截断（重置）；后者意味着 cache 严重落后
+        if cached.len() + 1 == history_len {
+            if let Some(h) = history
+                && let Some(last_bar) = h.last()
+            {
+                cached.push(last_bar.close);
+            }
+        } else {
+            // 全量重建
+            cached.clear();
+            if let Some(h) = history {
+                cached.extend(h.iter().map(|b| b.close));
+            }
+        }
+        cached.iter().map(|c| (*c).into()).collect()
     }
 }
 
@@ -146,7 +186,9 @@ impl Strategy for RhaiStrategy {
     ) -> Result<Vec<Signal>, QuantError> {
         let ast = self.ast.clone();
         let bar_map = bar_to_rhai(bar);
-        let ctx_map = ctx_to_rhai(ctx, bar);
+        // 修复 M-PERF-3: 增量构建 closes 数组，避免每次从头重建
+        let closes_array = self.build_closes_array(ctx, bar);
+        let ctx_map = ctx_to_rhai(ctx, bar, closes_array);
         // 修复 P0-Q1: 用 tokio::sync::Mutex + .await；Rhai eval 是 CPU 密集，
         // 用 spawn_blocking 避免阻塞 async runtime。
         let engine = self.engine.clone();
@@ -207,6 +249,10 @@ fn build_engine() -> Engine {
     engine.set_max_string_size(1_000_000); // 1MB
     engine.set_max_array_size(10_000);
     engine.set_max_map_size(10_000);
+    // 修复 L-6: Rhai 默认会注册 print/debug，脚本中的 print 语句会输出到 stdout，
+    // 在生产环境（Tauri 后台进程）中不希望有意外输出。
+    // 注意: rhai 1.25 无 disable_print API，改用 on_print 注册空回调抑制输出。
+    engine.on_print(|_| {});
     engine.register_fn("sma", sma_rhai);
     engine.register_fn("ema", ema_rhai);
     engine.register_fn("rsi", rsi_rhai);
@@ -239,7 +285,7 @@ fn bar_to_rhai(bar: &Bar) -> Map {
     m
 }
 
-fn ctx_to_rhai(ctx: &StrategyCtx, bar: &Bar) -> Map {
+fn ctx_to_rhai(ctx: &StrategyCtx, bar: &Bar, closes: Array) -> Map {
     let mut m = Map::new();
     m.insert("cash".into(), ctx.cash.into());
     m.insert("current_date".into(), ctx.current_date.clone().into());
@@ -252,8 +298,8 @@ fn ctx_to_rhai(ctx: &StrategyCtx, bar: &Bar) -> Map {
     let history = ctx.bar_history.get(&bar.code);
     let history_len = history.map(|h| h.len()).unwrap_or(0);
     m.insert("history_len".into(), (history_len as i64).into());
-    let closes: Array =
-        history.map(|h| h.iter().map(|b| b.close.into()).collect()).unwrap_or_default();
+    // 修复 M-PERF-3: closes 数组由 caller 通过 closes_cache 增量构建，
+    // 不再每次从头重建整个数组（避免 O(n²)）。
     m.insert("closes".into(), closes.into());
     // 当前 bar.code 的持仓
     let pos_qty = ctx.position(&bar.code).map(|p| p.quantity as i64).unwrap_or(0);
@@ -357,35 +403,19 @@ fn ema_rhai(values: Array, period: i64) -> f64 {
 }
 
 fn rsi_rhai(values: Array, period: i64) -> f64 {
-    if values.len() < (period as usize + 1) || period <= 0 {
+    // 修复 M-RES-9: 原实现重复了 builtin.rs 的 rsi_wilder 逻辑（违反 DRY）。
+    // 改为调用 rsi_wilder，统一算法实现。若 period 非法或数据不足，
+    // rsi_wilder 内部会返回 50.0 兜底。
+    if period <= 0 {
         return 50.0;
     }
     let closes: Vec<f64> = values.iter().filter_map(|v| v.clone().try_cast::<f64>()).collect();
-    let mut avg_gain = 0.0;
-    let mut avg_loss = 0.0;
-    for i in 1..=period as usize {
-        let diff = closes[i] - closes[i - 1];
-        if diff > 0.0 {
-            avg_gain += diff;
-        } else {
-            avg_loss += -diff;
-        }
-    }
-    avg_gain /= period as f64;
-    avg_loss /= period as f64;
-    for i in (period as usize + 1)..closes.len() {
-        let diff = closes[i] - closes[i - 1];
-        let g = if diff > 0.0 { diff } else { 0.0 };
-        let l = if diff < 0.0 { -diff } else { 0.0 };
-        avg_gain = (avg_gain * (period - 1) as f64 + g) / period as f64;
-        avg_loss = (avg_loss * (period - 1) as f64 + l) / period as f64;
-    }
-    if avg_loss < 1e-10 {
-        return 100.0;
-    }
-    let rs = avg_gain / avg_loss;
-    100.0 - (100.0 / (1.0 + rs))
+    crate::builtin::rsi_wilder(&closes, period as usize)
 }
+
+// 抑制 Side 未使用警告（保留以备 future 扩展，如 init 中处理 side 参数）
+#[allow(dead_code)]
+fn _ensure_side_used(_: Side) {}
 
 #[cfg(test)]
 mod tests {
@@ -484,7 +514,3 @@ fn on_bar(bar, ctx) {
         let _ = r.to_string();
     }
 }
-
-// 抑制 Side 未使用警告（保留以备 future 扩展，如 init 中处理 side 参数）
-#[allow(dead_code)]
-fn _ensure_side_used(_: Side) {}

@@ -188,18 +188,43 @@ impl SimKernel {
         let wall_start = std::time::Instant::now();
 
         // 1. 初始化所有 Agent
+        // 修复 C4.3: 在 on_init 调用周围添加 catch_unwind，panic 时加入 poisoned_agents
         {
             let agent_ids: Vec<String> = self.agents.keys().cloned().collect();
             for agent_id in agent_ids {
-                let mut ctx = self.make_ctx(&agent_id);
+                let mut ctx = self.make_ctx(&agent_id, None);
+                let agent_id_for_panic = agent_id.clone();
                 let actions = {
                     let entry = self.agents.get_mut(&agent_id).unwrap();
-                    entry.agent.on_init(&mut ctx)
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        entry.agent.on_init(&mut ctx)
+                    }))
+                    .unwrap_or_else(|e| {
+                        let panic_msg = if let Some(s) = e.downcast_ref::<&str>() {
+                            (*s).to_string()
+                        } else if let Some(s) = e.downcast_ref::<String>() {
+                            s.clone()
+                        } else {
+                            "unknown panic".to_string()
+                        };
+                        tracing::error!(
+                            "[market-sim] Agent '{}' on_init panic, 已加入黑名单: {}",
+                            agent_id_for_panic,
+                            panic_msg
+                        );
+                        self.poisoned_agents.insert(agent_id_for_panic);
+                        Vec::new()
+                    })
                 };
+                // 已毒化的 Agent 跳过后续处理
+                if self.poisoned_agents.contains(&agent_id) {
+                    continue;
+                }
                 let mut all_actions = ctx.drain_actions();
                 all_actions.extend(actions);
                 let agent_id_for_process = agent_id.clone();
-                self.process_actions(&agent_id_for_process, &all_actions, 0)?;
+                // 修复 M-DEF-4: process_actions 返回 ()，不再需要 ?
+                self.process_actions(&agent_id_for_process, &all_actions, 0);
             }
         }
 
@@ -217,6 +242,19 @@ impl SimKernel {
             }
 
             // 推进虚拟时钟
+            // 修复 M-DS-5: 添加倒流检查。事件队列按 scheduled_at 反向优先级（
+            // Reverse 包装 BinaryHeap<MaxHeap>）弹出，正常情况下事件时间应单调
+            // 不减。倒流意味着 schedule_message 写入了比当前更早的时间戳（如
+            // on_sim_end 后再调度 on_init 的 bug），记录 warn 便于排查。
+            if event.scheduled_at < self.clock {
+                tracing::warn!(
+                    "[market-sim] Kernel: 事件时间倒流 scheduled_at={} < clock={}, target={} from={}",
+                    event.scheduled_at,
+                    self.clock,
+                    event.message.target,
+                    event.message.source
+                );
+            }
             self.clock = event.scheduled_at;
             self.event_count += 1;
 
@@ -226,7 +264,7 @@ impl SimKernel {
             let body = event.message.body.clone();
             let has_agent = self.agents.contains_key(&target_id);
             if has_agent {
-                let mut ctx = self.make_ctx(&target_id);
+                let mut ctx = self.make_ctx(&target_id, Some(&event.message.source));
                 let actions = {
                     let entry = self.agents.get_mut(&target_id).unwrap();
                     let agent_id_for_panic = target_id.clone();
@@ -264,7 +302,7 @@ impl SimKernel {
                 let mut all_actions = ctx.drain_actions();
                 all_actions.extend(actions);
 
-                self.process_actions(&target_id, &all_actions, self.clock)?;
+                self.process_actions(&target_id, &all_actions, self.clock);
             } else if self.config.trace {
                 tracing::warn!(
                     "Kernel: message to unknown agent '{}' from '{}'",
@@ -275,17 +313,128 @@ impl SimKernel {
         }
 
         // 3. 通知所有 Agent 模拟结束
+        // 修复 C4.3: 在 on_sim_end 调用周围添加 catch_unwind，panic 时加入 poisoned_agents
         {
             let agent_ids: Vec<String> = self.agents.keys().cloned().collect();
             for agent_id in agent_ids {
-                let mut ctx = self.make_ctx(&agent_id);
+                // 已毒化的 Agent 不再调用 on_sim_end，避免二次 panic
+                if self.poisoned_agents.contains(&agent_id) {
+                    continue;
+                }
+                let mut ctx = self.make_ctx(&agent_id, None);
+                let agent_id_for_panic = agent_id.clone();
                 let actions = {
                     let entry = self.agents.get_mut(&agent_id).unwrap();
-                    entry.agent.on_sim_end(&mut ctx)
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        entry.agent.on_sim_end(&mut ctx)
+                    }))
+                    .unwrap_or_else(|e| {
+                        let panic_msg = if let Some(s) = e.downcast_ref::<&str>() {
+                            (*s).to_string()
+                        } else if let Some(s) = e.downcast_ref::<String>() {
+                            s.clone()
+                        } else {
+                            "unknown panic".to_string()
+                        };
+                        tracing::error!(
+                            "[market-sim] Agent '{}' on_sim_end panic, 已加入黑名单: {}",
+                            agent_id_for_panic,
+                            panic_msg
+                        );
+                        self.poisoned_agents.insert(agent_id_for_panic);
+                        Vec::new()
+                    })
                 };
                 let mut all_actions = ctx.drain_actions();
                 all_actions.extend(actions);
-                self.process_actions(&agent_id, &all_actions, self.clock)?;
+                self.process_actions(&agent_id, &all_actions, self.clock);
+            }
+        }
+
+        // 修复 M-DS-10: on_sim_end 中 Agent 调度的消息（如结算通知）被推入
+        // event_queue，但主循环（步骤 2）已退出。需要在 collect_results 前再跑
+        // 一轮事件处理循环，让这些"模拟收尾"消息被目标 Agent 接收。
+        // 为避免 Agent 在收尾阶段无限循环发送消息，限制最大处理事件数为
+        // 当前队列长度的快照（即只处理 on_sim_end 直接产生的那一批）。
+        {
+            let mut pending = self.event_queue.len();
+            while pending > 0 && !self.event_queue.is_empty() {
+                pending = pending.saturating_sub(1);
+                self.max_queue_depth = self.max_queue_depth.max(self.event_queue.len());
+
+                let Reverse(event) = self.event_queue.pop().unwrap();
+
+                // 收尾阶段不再受 max_time_ns 限制（on_sim_end 调度的事件
+                // 可能略晚于 max_time_ns，但仍是收尾流程的一部分）
+
+                if event.scheduled_at < self.clock {
+                    tracing::warn!(
+                        "[market-sim] Kernel(收尾): 事件时间倒流 scheduled_at={} < clock={}, target={} from={}",
+                        event.scheduled_at,
+                        self.clock,
+                        event.message.target,
+                        event.message.source
+                    );
+                }
+                self.clock = event.scheduled_at;
+                self.event_count += 1;
+
+                let target_id = event.message.target.clone();
+                let body = event.message.body.clone();
+                let has_agent = self.agents.contains_key(&target_id);
+                if has_agent {
+                    if self.poisoned_agents.contains(&target_id) {
+                        continue;
+                    }
+                    let mut ctx = self.make_ctx(&target_id, Some(&event.message.source));
+                    let actions = {
+                        let entry = self.agents.get_mut(&target_id).unwrap();
+                        let agent_id_for_panic = target_id.clone();
+                        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            if matches!(body, MessageBody::Wakeup) {
+                                entry.agent.on_wakeup(&mut ctx)
+                            } else {
+                                entry.agent.on_message(&body, &mut ctx)
+                            }
+                        }))
+                        .unwrap_or_else(|e| {
+                            let panic_msg = if let Some(s) = e.downcast_ref::<&str>() {
+                                (*s).to_string()
+                            } else if let Some(s) = e.downcast_ref::<String>() {
+                                s.clone()
+                            } else {
+                                "unknown panic".to_string()
+                            };
+                            tracing::error!(
+                                "[market-sim] Agent '{}' on_message(收尾) panic, 已加入黑名单: {}",
+                                agent_id_for_panic,
+                                panic_msg
+                            );
+                            self.poisoned_agents.insert(agent_id_for_panic);
+                            Vec::new()
+                        })
+                    };
+                    if self.poisoned_agents.contains(&target_id) {
+                        continue;
+                    }
+                    let mut all_actions = ctx.drain_actions();
+                    all_actions.extend(actions);
+                    self.process_actions(&target_id, &all_actions, self.clock);
+                } else if self.config.trace {
+                    tracing::warn!(
+                        "Kernel(收尾): message to unknown agent '{}' from '{}'",
+                        target_id,
+                        event.message.source
+                    );
+                }
+                // 收尾阶段新产生的事件不纳入本轮处理（避免无限循环），
+                // 直接由后续 collect_results 忽略。
+            }
+            if !self.event_queue.is_empty() {
+                tracing::warn!(
+                    "[market-sim] Kernel: on_sim_end 收尾阶段仍残留 {} 个未处理事件（已忽略）",
+                    self.event_queue.len()
+                );
             }
         }
 
@@ -315,22 +464,31 @@ impl SimKernel {
     // ── 内部方法 ──
 
     /// 创建 Agent 上下文
-    fn make_ctx(&self, agent_id: &str) -> AgentContext {
+    ///
+    /// 修复 P0-5: 增加 `message_source` 参数，由调用方从 `event.message.source`
+    /// 传入。ExchangeAgent 处理 CancelOrder / RequestQuote 等不含来源 ID 的消息时，
+    /// 需通过此字段获取通知目标，避免把通知发给自己。
+    fn make_ctx(&self, agent_id: &str, message_source: Option<&str>) -> AgentContext {
         AgentContext::new(
             self.clock,
             self.config.stock_code.clone(),
             self.config.reference_price,
             agent_id.to_string(),
+            message_source.map(|s| s.to_string()),
         )
     }
 
     /// 处理 Agent 返回的动作列表
+    ///
+    /// 修复 M-DEF-4: 原返回 `Result<(), SimError>` 但实际永不返回 Err
+    /// （所有内部调用 schedule_message / push 都不返回 Result）。
+    /// 改为返回 ()，移除调用方的 `?` 死代码。
     fn process_actions(
         &mut self,
         source_id: &str,
         actions: &[AgentAction],
         current_time: SimTimestamp,
-    ) -> Result<(), SimError> {
+    ) {
         // 先获取 source_type（避免在 schedule_message 中持有 self.agents 的借用）
         let source_type: String = self
             .agents
@@ -376,7 +534,6 @@ impl SimKernel {
                 },
             }
         }
-        Ok(())
     }
 
     /// 调度消息投递
@@ -421,21 +578,37 @@ impl SimKernel {
     /// stylized_facts / calibration 全部走"成交不足 < 20"分支得 999.0 分。
     /// 现在通过 `SimAgent::trade_history()` trait 方法从每个 Agent 聚合；
     /// 默认实现返回空切片，只有 ExchangeAgent override 后才有数据。
+    ///
+    /// 修复 C4.2: 原实现 exchange_stats 永远返回 (0, 0, 0)，导致 SimStats 中的
+    /// total_orders/total_trades/total_volume 全为 0。现在通过 `SimAgent::exchange_stats()`
+    /// trait 方法累加所有 ExchangeAgent 的真实统计。
     fn collect_results(&self) -> (Vec<TradeRecord>, Option<f64>, (u64, u64, Quantity)) {
         let mut all_trades: Vec<TradeRecord> = Vec::new();
+        let mut total_orders: u64 = 0;
+        let mut total_trades: u64 = 0;
+        let mut total_volume: Quantity = 0;
+        let mut final_mid: Option<f64> = None;
         for entry in self.agents.values() {
-            all_trades.extend(entry.agent.trade_history().iter().cloned());
+            // 修复 M-RES-14: 原实现从所有 Agent 收集 trade_history，
+            // 但策略类 Agent（如 quant_bridge）的 trade_history 与 ExchangeAgent 重复，
+            // 导致 all_trades 中有重复记录。改为只从 ExchangeAgent 收集。
+            if entry.agent.agent_type() == AgentType::Exchange {
+                all_trades.extend(entry.agent.trade_history().iter().cloned());
+                // 修复 M-RES-12: 优先用 ExchangeAgent 的 OrderBook mid_price
+                if final_mid.is_none() {
+                    final_mid = entry.agent.final_mid_price();
+                }
+            }
+            // 累加 ExchangeAgent 等的统计（其他 Agent 默认返回 (0, 0, 0)）
+            let (o, t, v) = entry.agent.exchange_stats();
+            total_orders += o;
+            total_trades += t;
+            total_volume += v;
         }
-        // mid_price：从成交价均值近似（深度不足时 None）
-        let mid_price = if all_trades.is_empty() {
-            None
-        } else {
-            let sum: f64 = all_trades.iter().map(|t| t.price as f64).sum();
-            Some(sum / all_trades.len() as f64)
-        };
-        // exchange_stats：(total_orders, total_trades, total_volume) 暂取 0，
-        // 真正 ExchangeAgent 仍可通过 agents 字典访问；这里不重复暴露以保持签名稳定
-        (all_trades, mid_price, (0, 0, 0))
+        // 修复 M-RES-12: 若 OrderBook mid_price 不可用（一侧为空），
+        // 用最后一笔成交价兜底。
+        let mid_price = final_mid.or_else(|| all_trades.last().map(|t| t.price as f64));
+        (all_trades, mid_price, (total_orders, total_trades, total_volume))
     }
 }
 
@@ -480,6 +653,13 @@ mod tests {
                     .push(AgentAction::SendMessage { target: target.clone(), body: body.clone() });
             }
             actions
+        }
+
+        // 测试辅助：on_wakeup 也走与 on_message 一致的回复逻辑。
+        // kernel 主循环将 MessageBody::Wakeup 路由到 on_wakeup（而非 on_message），
+        // 若不覆写则走 trait 默认实现（返回空 Vec），EchoAgent 不会回复。
+        fn on_wakeup(&mut self, ctx: &mut AgentContext) -> Vec<AgentAction> {
+            self.on_message(&MessageBody::Wakeup, ctx)
         }
     }
 
@@ -564,7 +744,7 @@ mod tests {
         )));
 
         // 注册噪声 Agent（1ms 平均间隔，50% 概率，50 股上限，30bps 噪声）
-        kernel.register(Box::new(NoiseAgent::new("noise_1", 500_000, 0.4, 50, 30, 1000)));
+        kernel.register(Box::new(NoiseAgent::new("noise_1", 500_000, 0.4, 50, 30, 1000, 42)));
 
         // 注册价值 Agent（参考价 1010，超过 20bps 时交易）
         kernel.register(Box::new(ValueAgent::new("value", 1010, 20, 200, 3000, 1_000_000)));
@@ -575,7 +755,15 @@ mod tests {
         // 基本验证：事件被处理了
         assert!(result.total_events > 0, "应该有事件处理");
         assert_eq!(result.stats.agent_count, 5);
-        assert!(result.sim_time_ns <= 10_000_000);
+        // 修复 P0-5 后 ExchangeAgent 正确通知提交订单的 Agent，
+        // 收尾阶段会处理队列中残留的消息事件（时间戳略超 max_time_ns，
+        // 因为 deliver_at = sent_at + latency）。收尾阶段设计上不受
+        // max_time_ns 限制（见 kernel.rs 收尾阶段注释），允许 1ms 容差。
+        assert!(
+            result.sim_time_ns <= 11_000_000,
+            "sim_time_ns={} 应不超过 max_time_ns + 1ms 容差",
+            result.sim_time_ns
+        );
     }
 
     #[test]
@@ -598,8 +786,8 @@ mod tests {
         kernel.register(Box::new(MomentumAgent::new(
             "momentum", 5, 0.003, 100, 2000, 500_000, 1000.0,
         )));
-        kernel.register(Box::new(NoiseAgent::new("noise_1", 300_000, 0.3, 50, 30, 1000)));
-        kernel.register(Box::new(NoiseAgent::new("noise_2", 500_000, 0.5, 30, 20, 1000)));
+        kernel.register(Box::new(NoiseAgent::new("noise_1", 300_000, 0.3, 50, 30, 1000, 42)));
+        kernel.register(Box::new(NoiseAgent::new("noise_2", 500_000, 0.5, 30, 20, 1000, 42)));
         kernel.register(Box::new(ValueAgent::new("value", 1020, 30, 200, 3000, 1_000_000)));
 
         let result = kernel.run().unwrap();

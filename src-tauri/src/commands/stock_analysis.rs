@@ -640,6 +640,10 @@ pub async fn search_stock(
     state: State<'_, AppState>,
     keyword: String,
 ) -> Result<Vec<axagent_astock_data::StockSearchResult>, String> {
+    // 修复 L-12: 参数非空校验，避免空字符串触发无意义的 vendor 请求
+    if keyword.trim().is_empty() {
+        return Err("keyword 不能为空".to_string());
+    }
     state.astock_client.search_stock(&keyword).await.map_err(|e| e.to_string())
 }
 
@@ -653,6 +657,10 @@ pub async fn get_stock_quote(
     stock_code: String,
     as_of_date: Option<String>,
 ) -> Result<axagent_astock_data::StockQuote, String> {
+    // 修复 L-12: 参数非空校验，避免空代码触发无意义的 vendor 请求
+    if stock_code.trim().is_empty() {
+        return Err("stock_code 不能为空".to_string());
+    }
     let as_of_ctx = AsOfContext::parse_optional(as_of_date.as_deref())
         .map_err(|e| format!("as_of_date 解析失败: {e}"))?;
     axagent_astock_data::as_of::with_optional_asof(as_of_ctx, async {
@@ -676,6 +684,13 @@ pub async fn get_stock_kline(
     as_of_date: Option<String>,
     adj: Option<String>,
 ) -> Result<Vec<axagent_astock_data::KLine>, String> {
+    // 修复 L-12: 参数非空校验，避免空值触发无意义的 vendor 请求
+    if stock_code.trim().is_empty() {
+        return Err("stock_code 不能为空".to_string());
+    }
+    if period.trim().is_empty() {
+        return Err("period 不能为空".to_string());
+    }
     let as_of_ctx = AsOfContext::parse_optional(as_of_date.as_deref())
         .map_err(|e| format!("as_of_date 解析失败: {e}"))?;
     let adj_type = match adj.as_deref() {
@@ -753,6 +768,16 @@ pub async fn batch_get_klines(
     period: String,
     limit: u32,
 ) -> Result<BatchResult<Vec<axagent_astock_data::KLine>>, String> {
+    // 修复 M-DEF-6: 限制批量 codes 数量 <= 50，防止恶意调用方一次性
+    // 发起上百个 vendor 请求耗尽信号量池。
+    const MAX_CODES: usize = 50;
+    if codes.len() > MAX_CODES {
+        return Err(format!(
+            "batch_get_klines codes 数量 {} 超过上限 {}，请分批调用",
+            codes.len(),
+            MAX_CODES
+        ));
+    }
     let client = state.astock_client.clone();
     let runner = BatchRunner::new(client);
     Ok(runner.get_klines_batch(codes, &period, limit).await)
@@ -861,6 +886,14 @@ pub async fn list_stock_analyses(
     limit: u32,
     offset: u32,
 ) -> Result<Vec<stock_analyses::Model>, String> {
+    // 修复 M-DEF-6: 限制 limit <= 1000，防止恶意大 limit 拖垮 DB / 内存。
+    const MAX_LIMIT: u32 = 1000;
+    let limit = if limit > MAX_LIMIT {
+        tracing::warn!("list_stock_analyses limit={} 超过上限 {}，自动截断", limit, MAX_LIMIT);
+        MAX_LIMIT
+    } else {
+        limit
+    };
     stock_analyses::Entity::find()
         .order_by_desc(stock_analyses::Column::CreatedAt)
         .limit(Some(limit as u64))
@@ -902,6 +935,16 @@ pub async fn batch_delete_stock_analyses(
     state: State<'_, AppState>,
     analysis_ids: Vec<String>,
 ) -> Result<(), String> {
+    // 修复 M-DEF-6: 限制批量删除 ids 数量 <= 100，防止一次性提交过大
+    // 事务导致 SQLite 锁定过久 / 内存占用过高。
+    const MAX_IDS: usize = 100;
+    if analysis_ids.len() > MAX_IDS {
+        return Err(format!(
+            "batch_delete_stock_analyses ids 数量 {} 超过上限 {}，请分批调用",
+            analysis_ids.len(),
+            MAX_IDS
+        ));
+    }
     let db = state.harness.db();
     for id in &analysis_ids {
         stock_analyses::Entity::delete_by_id(id)
@@ -3615,6 +3658,8 @@ pub async fn run_reflection_now(
         &depth,
         // [B2/B3 借鉴] 手动反思场景无 B1 阶段落盘的 pending row,传 None 走 INSERT 路径
         None,
+        // [方向3] 手动反思也持久化 trajectory，为 ExperiencePipeline 提供数据源
+        Some(&state.trajectory_storage),
     )
     .await
 }

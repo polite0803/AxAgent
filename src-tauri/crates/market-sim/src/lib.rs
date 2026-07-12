@@ -47,11 +47,11 @@ pub use types::{
 
 // Phase 2+3 re-exports
 pub use agent::{
-    AgentAction, AgentContext, AgentMessage, AgentType, ExchangeAgent, MarketMakerAgent,
-    MessageBody, MomentumAgent, NoiseAgent, QuantStrategyAgent, SimAgent, StrategyAgent,
-    ValueAgent,
+    AgentAction, AgentContext, AgentMessage, AgentType, BackgroundAgent, ExchangeAgent,
+    InstitutionalAgent, MarketMakerAgent, MessageBody, MomentumAgent, NoiseAgent,
+    QuantStrategyAgent, RhaiAgent, SimAgent, StrategyAgent, ValueAgent,
 };
-pub use calibration::BEST_PARAMS;
+pub use calibration::{BEST_PARAMS, CalibrationParam, CalibrationResult, CalibrationRunner};
 pub use config::{LatencyMatrix, SimConfig};
 pub use kernel::{SimKernel, SimResult, SimStats};
 pub use stylized_facts::{StylizedFacts, TargetRange};

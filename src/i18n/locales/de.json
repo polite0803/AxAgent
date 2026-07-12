@@ -9785,7 +9785,20 @@
       "aiSelectNoneBtn": "Alle abwählen",
       "rollbackWarning": "Rollback auf Version {{target}}",
       "jumpToAnalysisBtn": "Zur Analyse springen",
-      "jumpToAnalysisTooltip": "Originalanalyseaufzeichnung für diese Reflexion anzeigen"
+      "jumpToAnalysisTooltip": "Originalanalyseaufzeichnung für diese Reflexion anzeigen",
+      "feedbackBtn": "Feedback",
+      "feedbackTitle": "Reflexions-Feedback",
+      "feedbackRatingLabel": "Bewertung",
+      "feedbackCommentLabel": "Kommentar (optional)",
+      "feedbackCommentPlaceholder": "Geben Sie Vorschläge für diese Reflexion ein...",
+      "feedbackSubmitBtn": "Feedback senden",
+      "feedbackSuccess": "Feedback gesendet ({{action}})",
+      "feedbackFailed": "Feedback senden fehlgeschlagen: {{error}}",
+      "feedbackActionNone": "Keine Aktion",
+      "feedbackActionRL": "RL-Training ausgelöst",
+      "feedbackActionSkill": "Skill-Evolution ausgelöst",
+      "feedbackActionPool": "Pool-Größenprüfung ausgelöst",
+      "feedbackStatsLabel": "Statistik: + {{positive}} / - {{negative}} / gesamt {{total}}"
     },
     "portfolioMonitor": {
       "title": "Portfolio Monitor",

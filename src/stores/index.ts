@@ -77,3 +77,7 @@ export { useWorkflowStore } from "./feature/workflowStore";
 // ── AxInvest stock analysis ──
 export { useStockAnalysisStore } from "./feature/stockAnalysisStore";
 export type { ExperimentRecord } from "./feature/stockAnalysisStore";
+
+// ── AxInvest quant 模块（回测 + 策略管理）──
+export { useBacktestStore } from "./feature/quant";
+export { useStrategyStore } from "./feature/quant";

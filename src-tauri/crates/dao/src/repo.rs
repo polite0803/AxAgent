@@ -27,6 +27,7 @@ pub mod loop_checkpoint;
 pub mod mcp_server;
 pub mod memory;
 pub mod message;
+pub mod news_archive;
 pub mod platform_config;
 pub mod program_policy;
 pub mod prompt_template;

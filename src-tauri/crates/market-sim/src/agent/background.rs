@@ -4,9 +4,7 @@
 //! - 无需显式 WakeupAfter，框架确保其定期获知市场状态
 //! - 用于模拟数据推送服务、风控监控、实时计算等基础设施
 
-use crate::agent::traits::{
-    AgentAction, AgentContext, AgentType, MessageBody, SimAgent,
-};
+use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
 use crate::types::*;
 
 /// 后台监控 Agent
@@ -21,11 +19,7 @@ pub struct BackgroundAgent {
 impl BackgroundAgent {
     /// 创建后台监控 Agent
     pub fn new(id: impl Into<String>, interval_ns: SimTimestamp) -> Self {
-        Self {
-            id: id.into(),
-            interval_ns,
-            quote_updates: 0,
-        }
+        Self { id: id.into(), interval_ns, quote_updates: 0 }
     }
 }
 
@@ -44,10 +38,7 @@ impl SimAgent for BackgroundAgent {
 
     fn on_init(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         vec![
-            AgentAction::SendMessage {
-                target: "exchange".into(),
-                body: MessageBody::RequestQuote,
-            },
+            AgentAction::SendMessage { target: "exchange".into(), body: MessageBody::RequestQuote },
             AgentAction::WakeupAfter(self.interval_ns),
         ]
     }
@@ -64,10 +55,7 @@ impl SimAgent for BackgroundAgent {
 
     fn on_wakeup(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         vec![
-            AgentAction::SendMessage {
-                target: "exchange".into(),
-                body: MessageBody::RequestQuote,
-            },
+            AgentAction::SendMessage { target: "exchange".into(), body: MessageBody::RequestQuote },
             AgentAction::WakeupAfter(self.interval_ns),
         ]
     }

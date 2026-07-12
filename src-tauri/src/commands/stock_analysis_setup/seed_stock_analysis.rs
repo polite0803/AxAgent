@@ -728,6 +728,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     enabled: true,
                     match_threshold: 0.4,
                 }),
+                // H4.1 修复：主模型（如 Qwen3.7-Max）返回空输出时，自动用 GLM-5.2 重试一次。
+                // agent_executor 在 strict_mode 校验失败（空内容/格式错误）时触发重试，
+                // 重试使用简化 ChatRequest（无 tools），成功则替换 final_content。
+                fallback_model: Some("glm-5.2".to_string()),
             },
         })
     };

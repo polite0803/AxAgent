@@ -103,8 +103,15 @@ async fn neodata_query(query: &str, token: Option<&str>) -> Result<Value, DataEr
 }
 
 /// 查找 query.py 脚本路径
+///
+/// H1.7 修复:不再硬编码用户目录,改为多级 fallback:
+/// 1. 当前工作目录下的 `scripts/query.py`
+/// 2. `NEODATA_PATH` 环境变量(用户自定义脚本目录)
+/// 3. Windows: `%LOCALAPPDATA%\Programs\WorkBuddy\resources\app.asar.unpacked\resources\builtin-skills\neodata-financial-search`
+///    (从 LOCALAPPDATA 推导,不再硬编码 `C:\Users\polit`)
+/// 4. 最终 fallback:相对路径 `scripts/query.py`,让 Python 自行查找
 fn find_script() -> PathBuf {
-    // 优先从当前工作目录查找
+    // 1) 当前工作目录
     let cwd = std::env::current_dir().ok();
     if let Some(dir) = &cwd {
         let p = dir.join(NEODATA_SCRIPT);
@@ -112,15 +119,38 @@ fn find_script() -> PathBuf {
             return p;
         }
     }
-    // fallback: WorkBuddy skill 目录
-    let fallback = PathBuf::from(
-        r"C:\Users\polit\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\resources\builtin-skills\neodata-financial-search",
-    )
-    .join(NEODATA_SCRIPT);
-    if fallback.exists() {
-        return fallback;
+
+    // 2) NEODATA_PATH 环境变量(用户自定义脚本所在目录)
+    if let Ok(neodata_dir) = std::env::var("NEODATA_PATH") {
+        if !neodata_dir.is_empty() {
+            let p = PathBuf::from(&neodata_dir).join(NEODATA_SCRIPT);
+            if p.exists() {
+                return p;
+            }
+        }
     }
-    // 最终 fallback：用相对路径，让 Python 自行查找
+
+    // 3) Windows WorkBuddy skill 目录(从 LOCALAPPDATA 推导,不再硬编码用户名)
+    if cfg!(target_os = "windows") {
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            if !local_app_data.is_empty() {
+                let p = PathBuf::from(&local_app_data)
+                    .join("Programs")
+                    .join("WorkBuddy")
+                    .join("resources")
+                    .join("app.asar.unpacked")
+                    .join("resources")
+                    .join("builtin-skills")
+                    .join("neodata-financial-search")
+                    .join(NEODATA_SCRIPT);
+                if p.exists() {
+                    return p;
+                }
+            }
+        }
+    }
+
+    // 4) 最终 fallback:相对路径,让 Python 自行查找
     PathBuf::from(NEODATA_SCRIPT)
 }
 

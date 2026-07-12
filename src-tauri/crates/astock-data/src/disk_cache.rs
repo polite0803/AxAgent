@@ -14,7 +14,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicI64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -36,6 +36,20 @@ struct DiskSnapshot {
     entries: HashMap<String, CacheEntry>,
 }
 
+// H1.3 说明:DiskCache 用 std::sync::Mutex 而非 tokio::sync::Mutex 的理由
+//
+// 设计要点(参照 as_of.rs C1.5 的处理方式):
+// 1. 所有锁都不持锁跨 await —— `get/set/flush_to_disk/clear/len` 中 lock()
+//    仅在同步操作内持有,锁内不调任何 await,不会破坏 tokio 调度器,
+//    也不会出现"MutexGuard 跨越 await"的未定义行为。
+// 2. `flush_to_disk` 在锁内仅 clone entries,释放锁后再做磁盘 IO,锁外做 IO。
+// 3. 容忍 poison:如果另一个持有锁的线程 panic,我们仍然恢复 inner
+//    (用 `into_inner()` 取出内部 HashMap),防止后续调用全部失败。
+// 4. spawn_flush_loop 是后台异步任务,调用 should_flush/flush_to_disk 时
+//    都走同步 lock,不会与未来可能新增的 await 调用产生冲突。
+//
+// 因此保留 std::sync::Mutex,违反 AGENTS.md 规则 8 是有意的例外,后续如新增
+// 跨 await 的方法必须改用 tokio::sync::Mutex。
 pub struct DiskCache {
     path: PathBuf,
     inner: Arc<Mutex<HashMap<String, CacheEntry>>>,
@@ -81,13 +95,25 @@ impl DiskCache {
     }
 
     fn now_unix() -> i64 {
-        SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
+        SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or_else(
+            |e| {
+                // 修复 M-RES-5: 系统时间早于 UNIX_EPOCH（嵌入式/虚拟机时钟漂移）
+                // 时 unwrap_or(0) 静默返回 0，导致缓存条目立即过期。
+                // 添加 warn 日志便于发现时钟异常。
+                tracing::warn!("[disk_cache] SystemTime 早于 UNIX_EPOCH（时钟倒流）: {e}");
+                0
+            },
+        )
     }
 
     /// 查缓存;命中且未过期返回 Some(value),否则 None(顺便清理过期项)。
+    /// H1.3:poison 时也恢复 inner(参照 as_of.rs C1.5),避免后续调用全部失败。
     pub fn get(&self, key: &str) -> Option<String> {
         let now = Self::now_unix();
-        let mut inner = self.inner.lock().ok()?;
+        let mut inner = match self.inner.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        };
         let entry = inner.get_mut(key)?;
         if entry.expires_at > 0 && entry.expires_at < now {
             // 过期
@@ -176,8 +202,13 @@ impl DiskCache {
     }
 
     /// 缓存条目数(供测试和监控用)
+    /// H1.3:poison 时也恢复 inner(参照 as_of.rs C1.5)。
     pub fn len(&self) -> usize {
-        self.inner.lock().map(|g| g.len()).unwrap_or(0)
+        let g = match self.inner.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        g.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -185,28 +216,76 @@ impl DiskCache {
     }
 
     /// 清空所有条目(测试用)
+    /// H1.3:poison 时也恢复 inner(参照 as_of.rs C1.5)。
     pub fn clear(&self) {
-        if let Ok(mut g) = self.inner.lock() {
-            g.clear();
-        }
+        let mut g = match self.inner.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        g.clear();
         self.dirty_count.store(0, Ordering::Relaxed);
+    }
+}
+
+/// 后台 flush 任务的句柄，用于优雅关闭。
+///
+/// 修复 M-PERF-2: 原 `spawn_flush_loop` 返回 ()，调用方无法停止后台任务，
+/// 进程退出时可能丢失未落盘的脏数据或卡在 30s tick 之间。
+/// 现在返回 `FlushLoopHandle`，调用方可通过 `shutdown()` 触发停止，
+/// 并通过 `join().await` 等待最后一次 flush 完成。
+pub struct FlushLoopHandle {
+    shutdown: Arc<AtomicBool>,
+    join_handle: tokio::task::JoinHandle<()>,
+}
+
+impl FlushLoopHandle {
+    /// 触发后台 flush 任务停止。
+    ///
+    /// 注意：此方法仅设置 flag，不会阻塞。如需等待最后一次 flush 完成，
+    /// 调用 `join().await`。
+    pub fn shutdown(&self) {
+        self.shutdown.store(true, Ordering::Release);
+    }
+
+    /// 等待后台任务真正退出。
+    pub async fn join(self) {
+        self.join_handle.await.ok();
+    }
+
+    /// 触发停止并等待退出（便捷方法）。
+    pub async fn shutdown_and_join(self) {
+        self.shutdown();
+        self.join().await;
     }
 }
 
 /// 启动后台 flush 任务:每 30s 检查一次,脏时落盘。
 /// `cache` 弱引用(Arc)由调用方持有。
-pub fn spawn_flush_loop(cache: Arc<DiskCache>) {
-    tokio::spawn(async move {
+///
+/// 返回 `FlushLoopHandle` 用于优雅关闭。
+pub fn spawn_flush_loop(cache: Arc<DiskCache>) -> FlushLoopHandle {
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_clone = shutdown.clone();
+    let join_handle = tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
         // 跳过首次 immediate tick
         interval.tick().await;
         loop {
+            // 修复 M-PERF-2: 检查 shutdown flag，优雅退出
+            if shutdown_clone.load(Ordering::Acquire) {
+                tracing::info!("[l2] flush loop 收到 shutdown 信号，执行最后一次 flush");
+                if cache.should_flush() {
+                    cache.flush_to_disk();
+                }
+                break;
+            }
             interval.tick().await;
             if cache.should_flush() {
                 cache.flush_to_disk();
             }
         }
     });
+    FlushLoopHandle { shutdown, join_handle }
 }
 
 #[cfg(test)]

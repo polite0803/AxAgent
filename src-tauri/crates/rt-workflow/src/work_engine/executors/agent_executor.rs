@@ -1017,37 +1017,155 @@ impl NodeExecutorTrait for AgentExecutor {
                                 "strict_mode: LLM 输出格式校验失败,降级为原始文本输出 (output_mode={:?}): {e}",
                                 an.config.output_mode,
                             );
-                            // 构建 tool 摘要: 若工具有实际返回数据则纳入
-                            let tool_summary: Vec<serde_json::Value> = tool_calls_made
-                                .iter()
-                                .filter_map(|tc| {
-                                    let result_str = tc.get("result")?.as_str()?;
-                                    // 过滤掉空结果或错误结果
-                                    if result_str.is_empty() || result_str.starts_with("Error:") {
-                                        None
-                                    } else {
-                                        Some(serde_json::json!({
-                                            "tool": tc.get("tool"),
-                                            "arguments": tc.get("arguments"),
-                                            "result_summary": result_str.chars().take(500).collect::<String>(),
-                                        }))
-                                    }
-                                })
-                                .collect();
-                            // FIX-03: 增强 strict_mode 降级策略——标记数据异常而非伪装成正常分析
-                            let fallback_json = serde_json::json!({
-                                "report": trimmed,
-                                // V40 修复: 增加 position_pct=50 使前端的 computeRiskScore
-                                // 能通过第1优先级（VERDICT position_pct→风险分=100-50=50）给出
-                                // 中等风险分，而非因 position_pct 缺失走 confidence=30 给出低风险。
-                                // 使用默认时间范围
-                                "verdict": {"verdict": "数据不足", "bull_score": 0, "bear_score": 0, "confidence": 0, "position_pct": 50},
-                                "strict_mode_fallback": true,
-                                "__data_quality_alert": true,
-                                "strict_mode_failure_reason": "LLM 输出非标准格式，无法解析为 JSON",
-                                "tool_results_summary": tool_summary,
-                            });
-                            final_content = fallback_json.to_string();
+                            // H4.1 修复：主模型输出无效（空内容/格式错误）时，用 fallback_model
+                            // 重试一次 LLM 调用。重试使用简化 ChatRequest（不带 tools），
+                            // 避免再次进入工具调用循环；成功则替换 final_content，
+                            // 失败则继续走原降级 JSON 路径。
+                            let mut fallback_remedied = false;
+                            if let Some(ref fb) = an.config.fallback_model
+                                && fb != &model
+                            {
+                                tracing::info!(
+                                    node_id = %an.base.id,
+                                    fallback_model = %fb,
+                                    primary_model = %model,
+                                    "H4.1: 主模型输出无效，尝试用 fallback_model 重试",
+                                );
+                                match self
+                                    .resolve_provider(
+                                        Some(fb.as_str()),
+                                        session_model,
+                                        session_provider_id,
+                                        profile_suggested,
+                                    )
+                                    .await
+                                {
+                                    Ok((fb_prov, fb_key, fb_model, fb_adapter, fb_api_key)) => {
+                                        let fb_req_ctx =
+                                            axagent_harness::build_provider_request_context(
+                                                &fb_prov, &fb_key, fb_api_key,
+                                            );
+                                        let fb_request = ChatRequest {
+                                            model: fb_model.clone(),
+                                            messages: messages.clone(),
+                                            stream: true,
+                                            temperature: an.config.temperature.map(|t| t as f64),
+                                            max_tokens: an.config.max_tokens,
+                                            top_p: None,
+                                            tools: None,
+                                            thinking_budget: None,
+                                            use_max_completion_tokens: None,
+                                            thinking_param_style: None,
+                                            api_mode: None,
+                                            instructions: None,
+                                            conversation: None,
+                                            previous_response_id: None,
+                                            store: None,
+                                        };
+                                        let llm_config = axagent_harness::LlmCallConfig::default();
+                                        match axagent_harness::execute_llm_stream(
+                                            fb_adapter.as_ref(),
+                                            &fb_req_ctx,
+                                            fb_request,
+                                            &llm_config,
+                                            None,
+                                        )
+                                        .await
+                                        {
+                                            Ok(mut fb_stream) => {
+                                                let mut fb_content = String::new();
+                                                let chunk_timeout = Duration::from_secs(120);
+                                                while let Ok(maybe_chunk) = tokio::time::timeout(
+                                                    chunk_timeout,
+                                                    fb_stream.next(),
+                                                )
+                                                .await
+                                                {
+                                                    match maybe_chunk {
+                                                        Some(Ok(chunk)) => {
+                                                            if let Some(ref content) = chunk.content
+                                                            {
+                                                                fb_content.push_str(content);
+                                                            }
+                                                        },
+                                                        Some(Err(_)) | None => break,
+                                                    }
+                                                }
+                                                if !fb_content.trim().is_empty() {
+                                                    tracing::info!(
+                                                        node_id = %an.base.id,
+                                                        fallback_model = %fb,
+                                                        content_len = fb_content.len(),
+                                                        "H4.1: fallback_model 重试成功，替换 final_content",
+                                                    );
+                                                    final_content = fb_content;
+                                                    fallback_remedied = true;
+                                                } else {
+                                                    tracing::warn!(
+                                                        node_id = %an.base.id,
+                                                        fallback_model = %fb,
+                                                        "H4.1: fallback_model 仍返回空输出，走降级 JSON",
+                                                    );
+                                                }
+                                            },
+                                            Err(err) => {
+                                                tracing::warn!(
+                                                    node_id = %an.base.id,
+                                                    fallback_model = %fb,
+                                                    error = %err,
+                                                    "H4.1: fallback_model 流式调用失败，走降级 JSON",
+                                                );
+                                            },
+                                        }
+                                    },
+                                    Err(err) => {
+                                        tracing::warn!(
+                                            node_id = %an.base.id,
+                                            fallback_model = %fb,
+                                            error = %err,
+                                            "H4.1: fallback_model provider 解析失败，走降级 JSON",
+                                        );
+                                    },
+                                }
+                            }
+                            // fallback 重试未成功时，走原降级 JSON 路径
+                            if !fallback_remedied {
+                                // 构建 tool 摘要: 若工具有实际返回数据则纳入
+                                let tool_summary: Vec<serde_json::Value> = tool_calls_made
+                                    .iter()
+                                    .filter_map(|tc| {
+                                        let result_str = tc.get("result")?.as_str()?;
+                                        // 过滤掉空结果或错误结果
+                                        if result_str.is_empty()
+                                            || result_str.starts_with("Error:")
+                                        {
+                                            None
+                                        } else {
+                                            Some(serde_json::json!({
+                                                "tool": tc.get("tool"),
+                                                "arguments": tc.get("arguments"),
+                                                "result_summary": result_str.chars().take(500).collect::<String>(),
+                                            }))
+                                        }
+                                    })
+                                    .collect();
+                                // FIX-03: 增强 strict_mode 降级策略——标记数据异常而非伪装成正常分析
+                                let fallback_json = serde_json::json!({
+                                    "report": trimmed,
+                                    // V40 修复: 增加 position_pct=50 使前端的 computeRiskScore
+                                    // 能通过第1优先级（VERDICT position_pct→风险分=100-50=50）给出
+                                    // 中等风险分，而非因 position_pct 缺失走 confidence=30 给出低风险。
+                                    // 使用默认时间范围
+                                    "verdict": {"verdict": "数据不足", "bull_score": 0, "bear_score": 0, "confidence": 0, "position_pct": 50},
+                                    "strict_mode_fallback": true,
+                                    "__data_quality_alert": true,
+                                    "strict_mode_failure_reason": "LLM 输出非标准格式，无法解析为 JSON",
+                                    "tool_results_summary": tool_summary,
+                                    // H4.1: 标记 fallback_model 配置（供下游 portfolio-mgr 感知）
+                                    "fallback_model_configured": an.config.fallback_model.is_some(),
+                                });
+                                final_content = fallback_json.to_string();
+                            }
                         }
                     }
                 }

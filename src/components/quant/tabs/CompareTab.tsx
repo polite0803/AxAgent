@@ -103,7 +103,7 @@ export function CompareTab() {
         </Button>
       </Card>
 
-      {error && <Alert type="error" showIcon title={error} closable />}
+      {error && <Alert type="error" showIcon message={error} closable />}
 
       {compare && (
         <Card title={`${t("quant.compare.title")} (${compare.runs.length} runs)`} size="small">

@@ -176,6 +176,7 @@ fn build_default_agents(
             50,                           // 最大 50 股/单
             30,                           // 30bps 噪声
             reference_price,
+            42 + i as u64, // seed
         )));
     }
 
@@ -311,7 +312,7 @@ pub fn market_sim_run_mc(request: McSimRequest) -> Result<McSimResult, String> {
                 3000,
                 1_000_000,
             )),
-            Box::new(NoiseAgent::new("noise", 300_000, 0.3, 50, 30, ref_price)),
+            Box::new(NoiseAgent::new("noise", 300_000, 0.3, 50, 30, ref_price, _seed)),
         ]
     };
 
@@ -425,6 +426,7 @@ pub fn market_sim_run_strategy(request: QuantSimRequest) -> Result<QuantSimRunRe
         50,
         30,
         request.reference_price,
+        request.seed.unwrap_or(42),
     )));
 
     let quant_agent = QuantStrategyAgent::new(

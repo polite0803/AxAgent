@@ -72,7 +72,10 @@ impl PostCloseReview {
     ) -> Result<DailyReview, String> {
         let now = chrono::Utc::now();
         let today = now.format("%Y-%m-%d").to_string();
-        let today_date = chrono::NaiveDate::parse_from_str(&today, "%Y-%m-%d").unwrap_or_default();
+        // 修复 M-DS-2: 原代码 `NaiveDate::parse_from_str(&today, ...).unwrap_or_default()`
+        // 解析失败时返回 1970-01-01（Unix 纪元）。直接从 `now` 取 date_naive()
+        // 跳过字符串序列化/反序列化往返，杜绝 1970 错日期。
+        let today_date = now.date_naive();
 
         let market_status = if calendar::is_trading_day(&today_date) {
             if calendar::is_trading_time() {

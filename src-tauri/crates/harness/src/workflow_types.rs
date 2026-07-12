@@ -323,6 +323,11 @@ pub struct AgentNodeConfig {
     /// 防幻觉锚定检查配置（可选，不配置时零影响）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hallucination_guard: Option<HallucinationGuardConfig>,
+    /// H4.1 修复：主模型返回空输出时切换到的兜底模型 ID。
+    /// 配置后，agent_executor 在 strict_mode 检测到空输出时会用此模型重试。
+    /// 典型配置："glm-5.2"（当主模型为 qwen3.7-max 时）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback_model: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]

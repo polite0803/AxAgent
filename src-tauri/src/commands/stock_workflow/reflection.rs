@@ -4,19 +4,19 @@ use super::serenity::extract_agent_output;
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
-use axagent_astock_data::as_of::AsOfContext;
+use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_entities::stock_analyses;
 use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
-use serde_json::json;
 use std::sync::Arc;
 use tauri::State;
 
-/// 反思复盘工作流：嵌套原股票分析工作流的 as-of，取后见信息对比，反思。
+/// 反思复盘工作流：从原始分析的 blackboard_snapshot 记忆中反思。
 ///
-/// 加载与 [run_single_stock_analysis] 相同的 stock-analysis DAG，
-/// 设置 as_of_date 回到原始分析日期（数据与原分析一致），
-/// 注入 `actual_outcome` 变量让 portfolio-manager 产生反思。
+/// [v2] 不再通过 sub-analysis SubWorkflowNode 嵌套重跑完整 stock-analysis DAG。
+/// 改为从 `stock_analyses.blackboard_snapshot` 加载已保存的分析结果记忆，
+/// 构造名为 `sub-analysis` 的变量注入反思工作流，供 reflection-comparator 和
+/// reflection-agent 使用。避免重跑 9 维度分析师 + 6 轮辩论，节省 90%+ LLM token。
 ///
 /// ## v008 升级（借鉴 TradingAgents 反思机制）
 ///
@@ -57,8 +57,10 @@ pub async fn run_reflection_workflow(
     // [B2/B3 借鉴] 反思 row ID(B1 阶段落盘的 pending row)。
     // 传入则 UPDATE 现有 row;传 None 则按 v1 行为 INSERT 新 row,保持旧调用方兼容。
     reflection_id: Option<String>,
+    // [方向3] 轨迹存储，用于持久化反思执行轨迹。
+    // 传 None 则跳过 Trajectory 持久化（手动反思等不需要轨迹的场景）。
+    trajectory_storage: Option<&std::sync::Arc<axagent_trajectory::TrajectoryStorage>>,
 ) -> Result<String, String> {
-    use axagent_astock_data::as_of;
     use axagent_entities::stock_reflections;
     use sea_orm::sea_query::Expr;
 
@@ -148,36 +150,59 @@ pub async fn run_reflection_workflow(
         })?;
     let wf_id = workflow.id.clone();
 
-    // 4. 加载原始决策的时间维度信息
-    // 手动触发时 original_analysis_id="" → original_ctx=None。
+    // 4. 加载原始分析记录：时间维度 + blackboard_snapshot（分析工作流记忆）
+    // [v2] 不再通过 sub-analysis SubWorkflowNode 重跑完整 stock-analysis DAG，
+    //      而是从 stock_analyses.blackboard_snapshot 加载已保存的分析结果作为记忆，
+    //      构造名为 "sub-analysis" 的变量注入工作流。
+    //      context_sources / input_mapping 路径（如 sub-analysis.trader.content.action）
+    //      保持不变，resolve_var_path 会从注入的变量中按路径下钻。
+    //
+    // 手动触发时 original_analysis_id="" → 无记忆可加载，注入空对象降级。
     // 但反思 prompt 模板 (reflection.md:17-18) hard-code 引用
     // {{original_time_horizon}} / {{original_holding_days}},所以必须注入占位值
     // (否则 work_engine 报 VARIABLE_NOT_FOUND,reflection-agent 节点 Failed,
     // 数据库 what_went_wrong 等字段全 null)。
-    // 之前的注释说"让工作流模板自己决定怎么处理"——实际模板没有兜底处理。
-    let original_ctx: Option<(String, i64)> = if original_analysis_id.is_empty() {
+    let original_analysis: Option<stock_analyses::Model> = if original_analysis_id.is_empty() {
         None
     } else {
-        let time_horizon = stock_analyses::Entity::find_by_id(original_analysis_id)
-            .one(db)
-            .await
-            .ok()
-            .flatten()
-            .and_then(|a| a.decision_time_horizon);
-        let holding_days = stock_analyses::Entity::find_by_id(original_analysis_id)
-            .one(db)
-            .await
-            .ok()
-            .flatten()
-            .and_then(|a| a.decision_expected_holding_days.map(|d| d as i64));
-        match (time_horizon, holding_days) {
-            (Some(t), Some(h)) => Some((t, h)),
-            _ => None,
-        }
+        stock_analyses::Entity::find_by_id(original_analysis_id).one(db).await.ok().flatten()
+    };
+
+    let original_ctx: Option<(String, i64)> = original_analysis.as_ref().and_then(|a| {
+        let t = a.decision_time_horizon.clone()?;
+        let h = a.decision_expected_holding_days.map(|d| d as i64)?;
+        Some((t, h))
+    });
+
+    // 4a. 从 blackboard_snapshot 构造 sub-analysis 变量（分析工作流记忆）
+    let sub_analysis_memory: serde_json::Value = match &original_analysis {
+        Some(analysis) => {
+            build_sub_analysis_from_snapshot(analysis.blackboard_snapshot.as_deref(), stock_code)
+        },
+        None => {
+            tracing::warn!(
+                "[reflection] {}: 无 original_analysis_id 或记录不存在,注入空 sub-analysis 记忆",
+                stock_code
+            );
+            serde_json::json!({})
+        },
     };
 
     // 5. 注入变量
     let mut variables = vec![
+        // [v2] sub-analysis 变量：从 blackboard_snapshot 加载的分析工作流记忆。
+        // 替代原 SubWorkflowNode 嵌套重放，避免重跑完整 stock-analysis DAG。
+        // reflection-comparator 的 input_mapping (如 sub-analysis.trader.content.action)
+        // 和 reflection-agent 的 context_sources 都引用此变量名。
+        axagent_harness::workflow_types::Variable {
+            name: "sub-analysis".into(),
+            var_type: "object".into(),
+            value: sub_analysis_memory,
+            description: Some(
+                "原始股票分析工作流的记忆（从 blackboard_snapshot._raw.* 恢复的节点输出）".into(),
+            ),
+            is_secret: false,
+        },
         // 内联 system_prompt (stock_analysis_setup.rs:4538-4552) 引用了
         // {{stock_code}} / {{stock_name}} —— 必须在 variables 顶层,
         // input_mapping 的 source="trigger" 不会把它们提到顶层 (只会追加到
@@ -209,6 +234,45 @@ pub async fn run_reflection_workflow(
             var_type: "string".into(),
             value: serde_json::Value::String(reflection_depth.to_string()),
             description: Some("反思深度：light(简要) / deep(详细推理链)".into()),
+            is_secret: false,
+        },
+        // [时间旅行模式] 注入 hindsight_date 让 reflection-agent LLM 知道评估时点。
+        // 工具调用也以此日期为 AS_OF 锚点，查看"截至此日期的实际走势"。
+        axagent_harness::workflow_types::Variable {
+            name: "hindsight_date".into(),
+            var_type: "string".into(),
+            value: serde_json::Value::String(hindsight_date.to_string()),
+            description: Some("反思评估时点（YYYY-MM-DD），工具调用和数据查看的时间锚点".into()),
+            is_secret: false,
+        },
+        // [C3 借鉴] 4 个结构化 outcome 变量（reflection.md prompt 引用但原未注入）
+        // 不注入会导致 VARIABLE_NOT_FOUND 或 LLM 看到空值，影响反思质量。
+        axagent_harness::workflow_types::Variable {
+            name: "raw_return_pct".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(raw_return.unwrap_or(0.0)),
+            description: Some("实际原始收益率百分比（如 -8.0 表示跌 8%）".into()),
+            is_secret: false,
+        },
+        axagent_harness::workflow_types::Variable {
+            name: "alpha_return_pct".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(alpha_return.unwrap_or(0.0)),
+            description: Some("相对基准的超额收益百分比".into()),
+            is_secret: false,
+        },
+        axagent_harness::workflow_types::Variable {
+            name: "holding_days".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(holding_days.unwrap_or(0)),
+            description: Some("实际持仓天数".into()),
+            is_secret: false,
+        },
+        axagent_harness::workflow_types::Variable {
+            name: "benchmark_name".into(),
+            var_type: "string".into(),
+            value: serde_json::Value::String(benchmark_name.unwrap_or("沪深300").to_string()),
+            description: Some("对比基准名称（如沪深300/中证500）".into()),
             is_secret: false,
         },
         // 反思 prompt 模板里引用了 {{stock_lessons}},必须显式注入,
@@ -269,15 +333,9 @@ pub async fn run_reflection_workflow(
         max_concurrent,
         step_timeout,
         progress_callback: None,
-        // [BUGFIX] 之前只传 stock_code,缺 stock_name / as_of_date。
-        // 反思工作流内的 sub-analysis 节点 (嵌套 stock-analysis 子工作流) 的
-        // input_mapping 把这 3 个变量映射到子工作流的 input,缺任何一个都会
-        // 导致子工作流报 "参数 X 应为 string 类型" 或 "VARIABLE_NOT_FOUND: X"。
-        input: Some(json!({
-            "stock_code": stock_code,
-            "stock_name": stock_name,
-            "as_of_date": as_of_date,
-        })),
+        // [v2] 不再有 sub-analysis SubWorkflowNode，无需为子工作流传 input。
+        // stock_code / stock_name / as_of_date 已通过 variables 顶层注入。
+        input: None,
         input_schema: loaded.input_schema,
         output_schema: loaded.output_schema,
         dry_run: false,
@@ -285,13 +343,19 @@ pub async fn run_reflection_workflow(
         ..Default::default()
     };
 
-    // 5. as-of 范围执行
-    let ctx = AsOfContext::parse(as_of_date).map_err(|e| {
-        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("as_of 解析失败: {e}"))
+    // [时间旅行模式] 用 hindsight_date 作为 AS_OF 锚点包装工作流执行。
+    // reflection-agent 调用的 K 线/公告工具会以 hindsight_date 为时间锚点，
+    // 查看"截至评估时点的实际走势"，而非今天的全部数据。
+    // - as_of_date 是原始分析日期（记忆锚点）
+    // - hindsight_date 是反思评估时点（工具调用锚点）
+    // 二者解耦：分析记忆从 blackboard_snapshot 加载（无 AS_OF），工具调用走 AS_OF(hindsight_date)
+    let hindsight_ctx = AsOfContext::parse(hindsight_date).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("hindsight_date 解析失败: {e}"))
     })?;
 
-    let result =
-        as_of::AS_OF.scope(Some(ctx), async move { engine.run_workflow(&wf_id, opts).await }).await;
+    let result = as_of::AS_OF
+        .scope(Some(hindsight_ctx), async move { engine.run_workflow(&wf_id, opts).await })
+        .await;
 
     // 6. 处理结果
     match result {
@@ -373,7 +437,11 @@ pub async fn run_reflection_workflow(
                     Expr::value(what_went_wrong.clone()),
                 )
                 .col_expr(stock_reflections::Column::MissedSignals, Expr::value(missed_signals))
-                .col_expr(stock_reflections::Column::FixForFuture, Expr::value(fix_for_future))
+                .col_expr(
+                    stock_reflections::Column::FixForFuture,
+                    // [方向2] fix_for_future 在此处被 move,提前 clone 一份供 ExperiencePipeline 用
+                    Expr::value(fix_for_future.clone()),
+                )
                 .col_expr(
                     stock_reflections::Column::ParameterSuggestionsJson,
                     Expr::value(params_suggestion_json),
@@ -417,6 +485,81 @@ pub async fn run_reflection_workflow(
 
             tracing::info!("[reflection] {}: 反思完成", stock_code);
 
+            // ── [方向3] 持久化反思轨迹到 TrajectoryStorage ──
+            // 为后续的 ExperiencePipeline（方向2）和 DreamConsolidator（方向6）提供数据基础。
+            // 从反思结果中提取 verdict / lesson_summary / what_went_wrong 构造 Trajectory，
+            // 用 TrajectoryScorer 自动计算 quality 和 value_score。
+            if let Some(storage) = trajectory_storage {
+                use axagent_harness::trajectory_scorer::TrajectoryScorer;
+                use axagent_harness::trajectory_types::{
+                    MessageRole, Trajectory, TrajectoryOutcome, TrajectoryStep,
+                };
+
+                let verdict_str = reflection_json.get("verdict").and_then(|v| v.as_str());
+                let outcome = match verdict_str {
+                    Some("correct") => TrajectoryOutcome::Success,
+                    Some("partial") => TrajectoryOutcome::Partial,
+                    Some("wrong") => TrajectoryOutcome::Failure,
+                    _ if status_text.starts_with("failed") => TrajectoryOutcome::Abandoned,
+                    _ => TrajectoryOutcome::Partial,
+                };
+
+                let lesson =
+                    reflection_json.get("lesson_summary").and_then(|v| v.as_str()).unwrap_or("");
+                let reasoning_text = what_went_wrong.as_deref().unwrap_or("");
+                let duration_ms = (chrono::Utc::now().timestamp_millis() - now_ms).max(0) as u64;
+
+                let steps = vec![
+                    TrajectoryStep {
+                        timestamp_ms: now_ms.max(0) as u64,
+                        role: MessageRole::User,
+                        content: format!(
+                            "反思 {} ({}) 预测时间={} 评估时间={} 实际={}",
+                            stock_code, stock_name, as_of_date, hindsight_date, actual_outcome
+                        ),
+                        reasoning: None,
+                        tool_calls: None,
+                        tool_results: None,
+                    },
+                    TrajectoryStep {
+                        timestamp_ms: duration_ms,
+                        role: MessageRole::Assistant,
+                        content: lesson.to_string(),
+                        reasoning: if reasoning_text.is_empty() {
+                            None
+                        } else {
+                            Some(reasoning_text.to_string())
+                        },
+                        tool_calls: None,
+                        tool_results: None,
+                    },
+                ];
+
+                let mut trajectory = Trajectory::new(
+                    analysis_id.clone(),
+                    // [方向6] topic 包含股票代码，让 DreamConsolidator 按股票分组蒸馏
+                    format!("stock_reflection:{}", stock_code),
+                    format!("{} {} 反思", stock_code, stock_name),
+                    lesson.to_string(),
+                    outcome,
+                    duration_ms,
+                    steps,
+                );
+                TrajectoryScorer::apply(&mut trajectory);
+
+                if let Err(e) = storage.save_trajectory(&trajectory).await {
+                    tracing::warn!("[reflection] 保存 trajectory 失败: {e}");
+                } else {
+                    tracing::info!(
+                        "[reflection] trajectory {} 已持久化 (outcome={:?} quality={:.2} value={:.2})",
+                        &trajectory.id,
+                        outcome,
+                        trajectory.quality.overall,
+                        trajectory.value_score
+                    );
+                }
+            }
+
             // ── [F1 借鉴] 反思完成后自动提取 lesson 为可重用规则 ──
             // 借鉴 TradingAgents 反思→规则提取机制:反思完成后把 lesson_summary
             // 提取为可重用的规则存入 reflection_lessons 表,下次决策可查询。
@@ -434,6 +577,66 @@ pub async fn run_reflection_workflow(
                     )
                     .await;
                 }
+            }
+
+            // ── [方向2] 接入 ExperiencePipeline，把反思转为 Experience 喂给 RLOptimizer ──
+            // 设计要点:
+            // - 用 verdict 映射 quality_score:correct=9, partial=5, wrong=2, 其他=4
+            // - 异步提交,不阻塞反思主流程
+            // - 失败不影响反思结果(只记 warn 日志)
+            {
+                use axagent_agent::Reflection;
+
+                let verdict_str = reflection_json.get("verdict").and_then(|v| v.as_str());
+                let quality_score: u8 = match verdict_str {
+                    Some("correct") => 9,
+                    Some("partial") => 5,
+                    Some("wrong") => 2,
+                    _ => 4,
+                };
+
+                let lesson_summary =
+                    reflection_json.get("lesson_summary").and_then(|v| v.as_str()).unwrap_or("");
+                let what_went_wrong_text = what_went_wrong.clone().unwrap_or_default();
+                let missed =
+                    reflection_json.get("missed_signals").and_then(|v| v.as_str()).unwrap_or("");
+                let fix_text = fix_for_future.clone().unwrap_or_default();
+
+                let mut error_patterns: Vec<String> = Vec::new();
+                if !what_went_wrong_text.is_empty() {
+                    error_patterns.push(what_went_wrong_text.clone());
+                }
+                if !missed.is_empty() {
+                    error_patterns.push(missed.to_string());
+                }
+                let mut improvements: Vec<String> = Vec::new();
+                if !fix_text.is_empty() {
+                    improvements.push(fix_text.clone());
+                }
+
+                let quality_analysis = format!(
+                    "verdict={:?} stock={} hindsight={} actual={}",
+                    verdict_str, stock_code, hindsight_date, actual_outcome
+                );
+
+                let reflection = Reflection::new(analysis_id.clone())
+                    .with_quality(quality_score, quality_analysis)
+                    .with_patterns(error_patterns.clone(), Vec::new())
+                    .with_improvements(improvements.clone())
+                    .with_summary(lesson_summary.to_string());
+
+                let pipeline = crate::commands::_shared_state::SHARED_PIPELINE.clone();
+                let aid = analysis_id.clone();
+                tokio::task::spawn(async move {
+                    let mut pipeline = pipeline.write().await;
+                    let exp = pipeline.process_reflection(&reflection).await;
+                    tracing::info!(
+                        "[reflection] ExperiencePipeline: 已吸收 reflection {} -> reward={:.3} done={}",
+                        aid,
+                        exp.reward,
+                        exp.done
+                    );
+                });
             }
 
             Ok(analysis_id)
@@ -511,12 +714,63 @@ pub async fn run_batch_reflection(
         // 默认 28 天 = mid 决策标准持仓期(用户没指定时取 stock-analysis 模板默认)
         let expected_days = analysis.decision_expected_holding_days.map(|d| d as i64).unwrap_or(28);
         let analysis_date = analysis.as_of_date.as_deref().unwrap_or(&p.as_of_date);
-        let analysis_ms = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d")
-            .ok()
-            .and_then(|d| d.and_hms_opt(0, 0, 0))
-            .map(|dt| dt.and_utc().timestamp_millis())
-            .unwrap_or(p.created_at);
-        let days_held = (today_ms - analysis_ms).max(0) / 86_400_000; // ms → days
+
+        // [时间旅行模式] 评估时点由 pending row 的 hindsight_date 决定。
+        // - hindsight_date 在未来 → 还没到反思时点，skip
+        // - hindsight_date <= today → 可以反思，传给 run_reflection_workflow
+        //   作为 AS_OF 锚点查看"截至评估时点的实际走势"
+        // - days_held 基于 hindsight_date - analysis_date 计算
+        let hindsight_date = p.hindsight_date.as_str();
+        // P3-#13 修复：时区错位
+        // 原实现用 `chrono::Utc::now().timestamp_millis()` 与 `NaiveDate.and_utc().timestamp_millis()`
+        // 比较和相减，会因 UTC vs Asia/Shanghai 8 小时偏差导致跨日 days_held 计算偏少 1 天。
+        // 例：北京时间 2026-07-14 02:00 = UTC 2026-07-13 18:00；若 analysis_date="2026-07-13"，
+        //     hindsight_date="2026-07-14"，原实现 (hindsight_ms - analysis_ms) / 86400000 = 0，
+        //     实际应为 1 天。
+        // 修复：用 NaiveDate 直接相减，彻底绕开时区转换。today 也按 Asia/Shanghai 时区取 NaiveDate。
+        let analysis_nd = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d").ok();
+        let hindsight_nd = chrono::NaiveDate::parse_from_str(hindsight_date, "%Y-%m-%d").ok();
+
+        // today 按 Asia/Shanghai 时区取 NaiveDate（A 股交易日历以北京时间为准）
+        let today_nd = {
+            use chrono::TimeZone;
+            // FixedOffset 8 小时 = Asia/Shanghai（chrono 内置无 IANA 时区数据库依赖）
+            let offset = chrono::FixedOffset::east_opt(8 * 3600).unwrap();
+            offset.from_utc_datetime(&chrono::Utc::now().naive_utc()).date_naive()
+        };
+
+        // hindsight 在未来 → skip（按日历日比较，不受时区影响）
+        if let Some(h) = hindsight_nd {
+            if h > today_nd {
+                tracing::info!(
+                    "[D1] pending {} ({}) hindsight_date={} 在未来,未到评估时点 skip",
+                    p.id,
+                    p.stock_code,
+                    hindsight_date
+                );
+                skipped_young += 1;
+                continue;
+            }
+        }
+
+        // days_held = hindsight_date - analysis_date（日历日相减，无时区偏差）
+        let days_held = match (analysis_nd, hindsight_nd) {
+            (Some(a), Some(h)) => (h - a).num_days().max(0),
+            // 解析失败时回退到 timestamp_ms 计算（保留旧行为兼容脏数据）
+            _ => {
+                let analysis_ms = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|d| d.and_hms_opt(0, 0, 0))
+                    .map(|dt| dt.and_utc().timestamp_millis())
+                    .unwrap_or(p.created_at);
+                let hindsight_ms = chrono::NaiveDate::parse_from_str(hindsight_date, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|d| d.and_hms_opt(0, 0, 0))
+                    .map(|dt| dt.and_utc().timestamp_millis())
+                    .unwrap_or(today_ms);
+                (hindsight_ms - analysis_ms).max(0) / 86_400_000
+            },
+        };
 
         if days_held < expected_days {
             tracing::info!(
@@ -546,10 +800,12 @@ pub async fn run_batch_reflection(
             Some(days_held as i32), // holding_days 填入
             None,                   // benchmark_name
             analysis_date,
-            &chrono::Utc::now().format("%Y-%m-%d").to_string(),
+            // [时间旅行模式] 传 pending row 的 hindsight_date 而非 today
+            hindsight_date,
             0u8,
             "light",
-            Some(p.id.clone()), // [B2/B3] 走 UPDATE 路径
+            Some(p.id.clone()),              // [B2/B3] 走 UPDATE 路径
+            Some(&state.trajectory_storage), // [方向3] 持久化轨迹
         )
         .await;
 
@@ -575,18 +831,49 @@ pub async fn run_batch_reflection(
     // ── [D2 借鉴] Resolved FIFO 清理 ──
     // 保留最近 1000 条 + 90 天内的 completed row,删除更老的。
     // pending row 永远保留(B1 借鉴:不能丢反思需求)。
+    //
+    // P3-#10 修复：原实现一次 DELETE 可能影响数十万条 row,阻塞 SQLite WAL。
+    // 改为分批循环：每批 SELECT 1000 个 id → DELETE WHERE id IN(...)，
+    // 直到无超龄 row。单批事务短，避免锁表。
+    use sea_orm::QuerySelect;
     let ninety_days_ago_ms = today_ms - 90 * 86_400_000;
-    let cleaned_up = stock_reflections::Entity::delete_many()
-        .filter(stock_reflections::Column::Status.eq("completed"))
-        .filter(stock_reflections::Column::UpdatedAt.lt(ninety_days_ago_ms))
-        .exec(db)
-        .await
-        .map(|r| r.rows_affected)
-        .unwrap_or_else(|e| {
-            tracing::warn!("[D2] FIFO 清理失败: {e}");
-            0
-        });
-    tracing::info!("[D2 fifo_cleanup] 删除 {} 条超龄 completed row", cleaned_up);
+    let mut cleaned_up: u64 = 0;
+    loop {
+        // 取 1000 条超龄 completed row 的 id（按 updated_at ASC 优先删最老的）
+        let stale_ids: Vec<String> = stock_reflections::Entity::find()
+            .select_only()
+            .column(stock_reflections::Column::Id)
+            .filter(stock_reflections::Column::Status.eq("completed"))
+            .filter(stock_reflections::Column::UpdatedAt.lt(ninety_days_ago_ms))
+            .order_by_asc(stock_reflections::Column::UpdatedAt)
+            .limit(1000)
+            .into_tuple()
+            .all(db)
+            .await
+            .unwrap_or_else(|e| {
+                tracing::warn!("[D2] FIFO 查询超龄 row 失败: {e}");
+                Vec::new()
+            });
+        if stale_ids.is_empty() {
+            break;
+        }
+        let batch_size = stale_ids.len() as u64;
+        let _ = stock_reflections::Entity::delete_many()
+            .filter(stock_reflections::Column::Id.is_in(stale_ids))
+            .exec(db)
+            .await
+            .map(|r| {
+                cleaned_up += r.rows_affected;
+            })
+            .map_err(|e| {
+                tracing::warn!("[D2] FIFO 批量删除失败: {e}");
+            });
+        // 若本批不足 1000 条,说明已无超龄 row,退出避免无限循环
+        if batch_size < 1000 {
+            break;
+        }
+    }
+    tracing::info!("[D2 fifo_cleanup] 分批删除 {} 条超龄 completed row", cleaned_up);
 
     tracing::info!(
         "[D1 batch_reflection] 完成: total={} resolved={} failed={} skipped_young={} cleaned={}",
@@ -622,11 +909,42 @@ async fn extract_lesson_to_rule(
 ) -> Result<(), String> {
     use axagent_entities::reflection_lessons;
     use sea_orm::ActiveModelTrait;
+    use sea_orm::ColumnTrait;
+    use sea_orm::EntityTrait;
+    use sea_orm::QueryFilter;
     use sea_orm::Set;
 
     // 短文本过短或无实际建议性内容则跳过
     let trimmed = lesson_summary.trim();
     if trimmed.len() < 10 || trimmed.len() > 250 {
+        return Ok(());
+    }
+
+    // [P2-#9 修复] 去重：检查相同 lesson_summary 是否已存在
+    // 同一只股票多次相似反思会产生大量重复规则，此处按 stock_code + lesson_summary 去重。
+    // 若已存在，更新 source_reflection_id 和 updated_at（保留原有 times_applied/success_count）。
+    let existing = reflection_lessons::Entity::find()
+        .filter(reflection_lessons::Column::StockCode.eq(stock_code))
+        .filter(reflection_lessons::Column::LessonSummary.eq(trimmed))
+        .one(db)
+        .await
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("F1 查询重复 lesson 失败: {e}"))
+                .to_string()
+        })?;
+
+    if let Some(existing_model) = existing {
+        // 已存在相同规则，更新 source_reflection_id 和 updated_at，保留应用统计
+        let mut active: reflection_lessons::ActiveModel = existing_model.into();
+        active.source_reflection_id = Set(Some(source_reflection_id.to_string()));
+        active.updated_at = Set(chrono::Utc::now().timestamp_millis());
+        active.update(db).await.map(|_| ()).map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("F1 更新重复 lesson 失败: {e}"))
+                .to_string()
+        })?;
+        tracing::debug!("[F1] lesson_summary 已存在，更新 source_reflection_id: {}", trimmed);
         return Ok(());
     }
 
@@ -663,18 +981,145 @@ async fn extract_lesson_to_rule(
     })
 }
 
+// ── [P1-#5 修复] 反思规则有效性验证 ──
+//
+// 接入原死代码 `reflection_lesson_validator.rs`（adjust_lesson_confidence 等函数）。
+// 追踪 reflection_lessons 表中规则被引用后的决策表现，调整 confidence。
+// 适合作为 cron 任务定期执行（如每日一次）。
+//
+// 验证维度：
+// - 规则被引用次数（times_applied）：通过 stock_reflections 中 lesson_summary 模糊匹配
+// - 引用后决策成功率（success_count）：基于 stock_analyses 表的 posterior 字段
+// - 规则置信度衰减/提升：基于实际表现调整 confidence
+//
+// 调用方式：cron 调度器或 Tauri 命令 `run_lesson_validation`。
+// 已接入 start_background_services 的 start_lesson_validation 定时任务。
+pub async fn run_lesson_validation(
+    db: &sea_orm::DatabaseConnection,
+) -> Result<serde_json::Value, String> {
+    use axagent_entities::reflection_lessons;
+    use axagent_entities::stock_reflections;
+    use axagent_stock_analysis::reflection_lesson_validator::{
+        build_lesson_validation, build_lesson_validation_report,
+    };
+
+    // 1. 加载所有 active 规则
+    let lessons: Vec<reflection_lessons::Model> = reflection_lessons::Entity::find()
+        .filter(reflection_lessons::Column::Status.eq("active"))
+        .all(db)
+        .await
+        .map_err(|e| format!("加载 reflection_lessons 失败: {e}"))?;
+
+    tracing::info!("[lesson-validation] 加载 {} 条 active 规则", lessons.len());
+
+    let mut validations = Vec::new();
+    let mut updated_count = 0u32;
+
+    for lesson in &lessons {
+        // 2. 统计 times_applied：在 stock_reflections 中模糊匹配 lesson_summary
+        let applied_count = stock_reflections::Entity::find()
+            .filter(stock_reflections::Column::LessonSummary.contains(&lesson.lesson_summary))
+            .filter(stock_reflections::Column::Status.eq("completed"))
+            .all(db)
+            .await
+            .map(|v| v.len() as i32)
+            .unwrap_or(0);
+
+        // 3. 统计 success_count：基于 verdict 推断（correct/partial 视为成功）
+        let success_count = stock_reflections::Entity::find()
+            .filter(stock_reflections::Column::LessonSummary.contains(&lesson.lesson_summary))
+            .filter(stock_reflections::Column::Status.eq("completed"))
+            .filter(stock_reflections::Column::Verdict.is_in(vec!["correct", "partial"]))
+            .all(db)
+            .await
+            .map(|v| v.len() as i32)
+            .unwrap_or(0);
+
+        // 4. 构建验证记录
+        let validation = build_lesson_validation(
+            lesson.id.clone(),
+            lesson.lesson_summary.clone(),
+            lesson.source_reflection_id.clone().unwrap_or_default(),
+            lesson.stock_code.clone(),
+            applied_count,
+            success_count,
+            lesson.confidence,
+        );
+        validations.push(validation.clone());
+
+        // 5. 更新 reflection_lessons 表的 times_applied/success_count/confidence
+        let new_status = if validation.adjusted_confidence < 0.2 {
+            "deprecated"
+        } else {
+            "active"
+        };
+
+        let _ = reflection_lessons::Entity::update_many()
+            .col_expr(
+                reflection_lessons::Column::TimesApplied,
+                sea_orm::sea_query::Expr::value(applied_count),
+            )
+            .col_expr(
+                reflection_lessons::Column::SuccessCount,
+                sea_orm::sea_query::Expr::value(success_count),
+            )
+            .col_expr(
+                reflection_lessons::Column::Confidence,
+                sea_orm::sea_query::Expr::value(validation.adjusted_confidence),
+            )
+            .col_expr(
+                reflection_lessons::Column::Status,
+                sea_orm::sea_query::Expr::value(new_status),
+            )
+            .filter(reflection_lessons::Column::Id.eq(&lesson.id))
+            .exec(db)
+            .await;
+
+        updated_count += 1;
+    }
+
+    // 6. 生成验证报告
+    let report = build_lesson_validation_report(&validations);
+
+    tracing::info!(
+        "[lesson-validation] 完成: validated={} deprecated={} avg_success_rate={:.2}",
+        report.validated_lessons,
+        report.deprecated_lessons,
+        report.avg_success_rate
+    );
+
+    Ok(serde_json::json!({
+        "totalLessons": report.total_lessons,
+        "validatedLessons": report.validated_lessons,
+        "pendingLessons": report.pending_lessons,
+        "deprecatedLessons": report.deprecated_lessons,
+        "avgSuccessRate": report.avg_success_rate,
+        "confidenceAdjustment": {
+            "increased": report.confidence_adjustment_stats.increased,
+            "decreased": report.confidence_adjustment_stats.decreased,
+            "unchanged": report.confidence_adjustment_stats.unchanged,
+        },
+        "updatedCount": updated_count,
+    }))
+}
+
 // ── [缺陷5 fix] 内部批量反思函数(非 Tauri 命令,供 cron 调度器直接调用) ──
 //
 // 从 run_batch_reflection 提取的核心逻辑。
 // 参数通过独立引用传入,不需要 AppState。
-#[allow(dead_code)]
+//
+// P3-#11 修复：`_engine` 参数类型从 `&WorkEngine` 改为 `&Arc<WorkEngine>`，
+// 避免循环内 `Arc::new(_engine.clone())` 克隆整个 WorkEngine（可能包含大量状态）。
+// Arc::clone 只是原子引用计数加一，O(1)。
+// 已接入 start_background_services 的 start_batch_reflection 定时任务。
 pub async fn run_batch_reflection_inner(
     db: &sea_orm::DatabaseConnection,
     _client: &axagent_astock_data::AStockClient,
-    _engine: &axagent_rt_workflow::work_engine::WorkEngine,
+    _engine: &std::sync::Arc<axagent_rt_workflow::work_engine::WorkEngine>,
     _vector_store: &axagent_search::vector_store::VectorStore,
     _master_key: &[u8; 32],
     max_count: Option<u32>,
+    trajectory_storage: Option<&std::sync::Arc<axagent_trajectory::TrajectoryStorage>>,
 ) -> Result<serde_json::Value, String> {
     use crate::commands::error::ErrorResponse;
     use axagent_entities::stock_analyses;
@@ -722,12 +1167,42 @@ pub async fn run_batch_reflection_inner(
 
         let expected_days = analysis.decision_expected_holding_days.map(|d| d as i64).unwrap_or(28);
         let analysis_date = analysis.as_of_date.as_deref().unwrap_or(&p.as_of_date);
-        let analysis_ms = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d")
-            .ok()
-            .and_then(|d| d.and_hms_opt(0, 0, 0))
-            .map(|dt| dt.and_utc().timestamp_millis())
-            .unwrap_or(p.created_at);
-        let days_held = (today_ms - analysis_ms).max(0) / 86_400_000;
+
+        // [时间旅行模式] 评估时点由 pending row 的 hindsight_date 决定。
+        // P3-#13 修复：用 NaiveDate 直接相减，避免 UTC vs Asia/Shanghai 时区错位。
+        let hindsight_date = p.hindsight_date.as_str();
+        let analysis_nd = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d").ok();
+        let hindsight_nd = chrono::NaiveDate::parse_from_str(hindsight_date, "%Y-%m-%d").ok();
+
+        let today_nd = {
+            use chrono::TimeZone;
+            let offset = chrono::FixedOffset::east_opt(8 * 3600).unwrap();
+            offset.from_utc_datetime(&chrono::Utc::now().naive_utc()).date_naive()
+        };
+
+        if let Some(h) = hindsight_nd {
+            if h > today_nd {
+                skipped_young += 1;
+                continue;
+            }
+        }
+
+        let days_held = match (analysis_nd, hindsight_nd) {
+            (Some(a), Some(h)) => (h - a).num_days().max(0),
+            _ => {
+                let analysis_ms = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|d| d.and_hms_opt(0, 0, 0))
+                    .map(|dt| dt.and_utc().timestamp_millis())
+                    .unwrap_or(p.created_at);
+                let hindsight_ms = chrono::NaiveDate::parse_from_str(hindsight_date, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|d| d.and_hms_opt(0, 0, 0))
+                    .map(|dt| dt.and_utc().timestamp_millis())
+                    .unwrap_or(today_ms);
+                (hindsight_ms - analysis_ms).max(0) / 86_400_000
+            },
+        };
 
         if days_held < expected_days {
             skipped_young += 1;
@@ -737,7 +1212,8 @@ pub async fn run_batch_reflection_inner(
         let r = run_reflection_workflow(
             db,
             _client,
-            &std::sync::Arc::new(_engine.clone()),
+            // P3-#11: Arc::clone O(1)，而非克隆整个 WorkEngine
+            &std::sync::Arc::clone(_engine),
             _vector_store,
             _master_key,
             &p.stock_code,
@@ -749,10 +1225,12 @@ pub async fn run_batch_reflection_inner(
             Some(days_held as i32),
             None,
             analysis_date,
-            &chrono::Utc::now().format("%Y-%m-%d").to_string(),
+            // [时间旅行模式] 传 pending row 的 hindsight_date 而非 today
+            hindsight_date,
             0u8,
             "light",
             Some(p.id.clone()),
+            trajectory_storage, // [方向3] 透传轨迹存储
         )
         .await;
 
@@ -767,15 +1245,43 @@ pub async fn run_batch_reflection_inner(
         }
     }
 
-    // D2 FIFO 清理
+    // D2 FIFO 清理（P3-#10：分批删除，每批 1000 条，避免单次大事务锁表）
+    use sea_orm::QuerySelect;
     let ninety_days_ago_ms = today_ms - 90 * 86_400_000;
-    let cleaned_up = stock_reflections::Entity::delete_many()
-        .filter(stock_reflections::Column::Status.eq("completed"))
-        .filter(stock_reflections::Column::UpdatedAt.lt(ninety_days_ago_ms))
-        .exec(db)
-        .await
-        .map(|r| r.rows_affected)
-        .unwrap_or(0);
+    let mut cleaned_up: u64 = 0;
+    loop {
+        let stale_ids: Vec<String> = stock_reflections::Entity::find()
+            .select_only()
+            .column(stock_reflections::Column::Id)
+            .filter(stock_reflections::Column::Status.eq("completed"))
+            .filter(stock_reflections::Column::UpdatedAt.lt(ninety_days_ago_ms))
+            .order_by_asc(stock_reflections::Column::UpdatedAt)
+            .limit(1000)
+            .into_tuple()
+            .all(db)
+            .await
+            .unwrap_or_else(|e| {
+                tracing::warn!("[D2 inner] FIFO 查询超龄 row 失败: {e}");
+                Vec::new()
+            });
+        if stale_ids.is_empty() {
+            break;
+        }
+        let batch_size = stale_ids.len() as u64;
+        let _ = stock_reflections::Entity::delete_many()
+            .filter(stock_reflections::Column::Id.is_in(stale_ids))
+            .exec(db)
+            .await
+            .map(|r| {
+                cleaned_up += r.rows_affected;
+            })
+            .map_err(|e| {
+                tracing::warn!("[D2 inner] FIFO 批量删除失败: {e}");
+            });
+        if batch_size < 1000 {
+            break;
+        }
+    }
 
     Ok(serde_json::json!({
         "totalPending": pendings.len(),
@@ -786,6 +1292,297 @@ pub async fn run_batch_reflection_inner(
         "cleanedUp": cleaned_up,
         "errors": errors,
     }))
+}
+
+/// 从 `stock_analyses.blackboard_snapshot` 构造 `sub-analysis` 变量。
+///
+/// [v2] 替代原 SubWorkflowNode 嵌套重放：直接从已保存的分析结果记忆中恢复
+/// 各节点输出，避免重跑完整 stock-analysis DAG。
+///
+/// ## snapshot 结构（由 `build_blackboard_snapshot` 写入）
+/// - `_raw.<nodeId>` — 原始节点输出（含 content/params/result 字段）
+/// - `report.<nodeId>` — 分析师报告（纯文本）
+/// - `params.<nodeId>` — content 解析后的 JSON 对象
+/// - `result.<nodeId>` — CodeNode 的 result 字段
+///
+/// ## content 字段预处理
+/// AgentNode 的 `content` 字段通常是 JSON 字符串（如 `{"action":"买入",...}`）。
+/// `resolve_var_path` 不会自动解析 JSON 字符串，路径如
+/// `sub-analysis.trader.content.action` 会下钻失败。
+/// 此处对每个节点的 `content` 字段做 JSON 解析，把字符串转为对象，
+/// 确保 input_mapping 的点路径能正确下钻。
+fn build_sub_analysis_from_snapshot(
+    snapshot_json: Option<&str>,
+    stock_code: &str,
+) -> serde_json::Value {
+    use serde_json::Map;
+
+    let Some(json_str) = snapshot_json else {
+        tracing::warn!(
+            "[reflection] {}: blackboard_snapshot 为 None（原始分析可能未完成）,注入空记忆",
+            stock_code
+        );
+        return serde_json::json!({});
+    };
+
+    let Ok(snapshot) = serde_json::from_str::<serde_json::Value>(json_str) else {
+        tracing::error!(
+            "[reflection] {}: blackboard_snapshot JSON 解析失败,注入空记忆",
+            stock_code
+        );
+        return serde_json::json!({});
+    };
+
+    let Some(obj) = snapshot.as_object() else {
+        tracing::warn!(
+            "[reflection] {}: blackboard_snapshot 不是 JSON 对象,注入空记忆",
+            stock_code
+        );
+        return serde_json::json!({});
+    };
+
+    // 检查是否有 _raw.* 条目（新版 snapshot）
+    let has_raw = obj.keys().any(|k| k.starts_with("_raw."));
+
+    if !has_raw {
+        tracing::warn!(
+            "[reflection] {}: 旧版 snapshot（无 _raw.*），JSON 结构已丢失,注入空记忆。建议重新运行完整分析工作流以生成新版 snapshot",
+            stock_code
+        );
+        return serde_json::json!({});
+    }
+
+    let mut sub_analysis = Map::new();
+    for (key, val) in obj {
+        let Some(node_id) = key.strip_prefix("_raw.") else {
+            continue;
+        };
+
+        // 克隆节点输出，对 content 字段做 JSON 解析预处理
+        let mut node_output = val.clone();
+        if let Some(node_obj) = node_output.as_object_mut() {
+            if let Some(content) = node_obj.get("content").and_then(|v| v.as_str()) {
+                // content 是 JSON 字符串 → 解析为对象，确保路径下钻可用
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(content) {
+                    if parsed.is_object() {
+                        node_obj.insert("content".into(), parsed);
+                    }
+                }
+            }
+        }
+
+        sub_analysis.insert(node_id.to_string(), node_output);
+    }
+
+    if sub_analysis.is_empty() {
+        tracing::warn!(
+            "[reflection] {}: snapshot 中未找到任何 _raw.* 节点输出,注入空记忆",
+            stock_code
+        );
+    }
+
+    serde_json::Value::Object(sub_analysis)
+}
+
+/// [方向4/方向5] 提交反思结果的用户反馈（1-5 星评分）。
+///
+/// 接入 FeedbackOrchestrator + ExperiencePipeline 双轨：
+/// - Pipeline：把反馈转为 Experience 写入 RLOptimizer 经验池（reward: 1→-1.0, 5→1.0）
+/// - Orchestrator：计数正/负反馈，达到阈值触发 RLTraining / SkillEvolution
+///
+/// [方向5] 当 Orchestrator 返回 `TriggerSkillEvolution` 时，spawn 异步任务
+/// 真正调用 SkillEvolutionEngine 对 lesson 做语义变异进化：
+/// - 从 stock_reflections 表查出 lesson_summary
+/// - 包装为单步 Skill（content = "1. {lesson}"）
+/// - 用 try_lock 获取 engine（避免阻塞反馈返回）
+/// - 拉取最近 30 条轨迹作为 test_trajectories
+/// - 进化成功则更新 reflection_lessons.rule_pattern 字段
+///
+/// `analysis_id` 同时作为 trace_id，保证同一反思的多次评分会被 Orchestrator 去重。
+#[tauri::command]
+pub async fn submit_reflection_feedback(
+    state: State<'_, AppState>,
+    analysis_id: String,
+    rating: u8,
+    comment: Option<String>,
+) -> Result<serde_json::Value, String> {
+    use crate::commands::_shared_state::{SHARED_ORCHESTRATOR, SHARED_PIPELINE};
+
+    if !(1..=5).contains(&rating) {
+        return Err("评分必须在 1-5 之间".to_string());
+    }
+    if analysis_id.trim().is_empty() {
+        return Err("analysis_id 不能为空".to_string());
+    }
+
+    tracing::info!(
+        "[reflection_feedback] analysis_id={} rating={} comment={:?}",
+        analysis_id,
+        rating,
+        comment
+    );
+
+    // 1. ExperiencePipeline：反馈 → Experience → 经验池
+    let pipeline = SHARED_PIPELINE.clone();
+    let trace = analysis_id.clone();
+    let comment_clone = comment.clone();
+    let pipeline_handle = tokio::task::spawn(async move {
+        let mut pipeline = pipeline.write().await;
+        pipeline.process_feedback(&trace, rating, comment_clone.as_deref()).await
+    });
+
+    // 2. FeedbackOrchestrator：计数 + 阈值触发动作
+    let orchestrator = SHARED_ORCHESTRATOR.clone();
+    let action_result = tokio::task::spawn_blocking(move || orchestrator.record_feedback(rating))
+        .await
+        .map_err(|e| format!("Orchestrator join 错误: {e}"))?;
+
+    let action_str = match &action_result {
+        axagent_agent::OrchestratorAction::None => "none",
+        axagent_agent::OrchestratorAction::TriggerRLTraining { .. } => "trigger_rl_training",
+        axagent_agent::OrchestratorAction::TriggerSkillEvolution { .. } => {
+            // [方向5] 真正触发 SkillEvolutionEngine 进化（异步，不阻塞反馈返回）
+            let evolution_state = state.clone_for_evolution();
+            let ev_analysis_id = analysis_id.clone();
+            tokio::task::spawn(async move {
+                if let Err(e) = run_lesson_evolution(&evolution_state, &ev_analysis_id).await {
+                    tracing::warn!("[reflection_feedback] SkillEvolution 失败: {e}");
+                }
+            });
+            "trigger_skill_evolution"
+        },
+        axagent_agent::OrchestratorAction::TriggerPoolSizeCheck { .. } => "trigger_pool_size_check",
+    };
+
+    // 等待 Pipeline 完成（best-effort，失败不影响反馈提交）
+    if let Err(e) = pipeline_handle.await {
+        tracing::warn!("[reflection_feedback] Pipeline join 错误: {e}");
+    }
+
+    Ok(serde_json::json!({
+        "analysisId": analysis_id,
+        "rating": rating,
+        "action": action_str,
+        "orchestratorStats": {
+            "totalFeedback": SHARED_ORCHESTRATOR.stats().total_feedback,
+            "negativeCount": SHARED_ORCHESTRATOR.stats().negative_count,
+            "positiveCount": SHARED_ORCHESTRATOR.stats().positive_count,
+        }
+    }))
+}
+
+/// [方向5] SkillEvolution 所需的最小状态快照（避免持有 AppState 引用）。
+struct EvolutionStateSnapshot {
+    db: sea_orm::DatabaseConnection,
+    skill_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
+    trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage>,
+}
+
+impl AppState {
+    /// 克隆 SkillEvolution 所需的最小状态
+    fn clone_for_evolution(&self) -> EvolutionStateSnapshot {
+        EvolutionStateSnapshot {
+            db: self.harness.db().clone(),
+            skill_engine: self.skill_evolution_engine.clone(),
+            trajectory_storage: self.trajectory_storage.clone(),
+        }
+    }
+}
+
+/// [方向5] 对指定反思的 lesson 执行 SkillEvolutionEngine 语义变异进化。
+///
+/// 流程：
+/// 1. 从 stock_reflections 表查出 lesson_summary / verdict / stock_code
+/// 2. 把 lesson 包装为单步 Skill（content = "1. {lesson}"）
+/// 3. 用 try_lock 获取 engine（失败则跳过，不阻塞）
+/// 4. 拉取最近 30 条轨迹作为 test_trajectories
+/// 5. 调用 engine.run(&skill, &test_refs).await
+/// 6. 进化成功则更新 reflection_lessons.rule_pattern 字段
+async fn run_lesson_evolution(
+    state: &EvolutionStateSnapshot,
+    analysis_id: &str,
+) -> Result<(), String> {
+    use axagent_entities::{reflection_lessons, stock_reflections};
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+
+    // 1. 查询反思记录
+    let reflection = stock_reflections::Entity::find_by_id(analysis_id.to_string())
+        .one(&state.db)
+        .await
+        .map_err(|e| format!("查询 stock_reflections 失败: {e}"))?
+        .ok_or_else(|| format!("反思记录 {analysis_id} 不存在"))?;
+
+    let lesson_summary = reflection
+        .lesson_summary
+        .as_deref()
+        .ok_or_else(|| "lesson_summary 为空，无法进化".to_string())?;
+
+    let stock_code = reflection.stock_code.clone();
+
+    // 2. 包装为单步 Skill（用 Skill::new 构造函数）
+    let mut skill = axagent_trajectory::Skill::new(
+        format!("反思教训:{}", stock_code),
+        format!("股票 {} 反思教训", stock_code),
+        format!("1. {lesson_summary}"),
+        "reflection_lesson".to_string(),
+    );
+    skill.id = format!("lesson_{analysis_id}");
+
+    // 3. try_lock 获取 engine（不阻塞）
+    let mut engine = state
+        .skill_engine
+        .try_lock()
+        .map_err(|_| "SkillEvolutionEngine 被占用（cron 正在运行），跳过本次进化".to_string())?;
+
+    // 4. 拉取最近 30 条轨迹
+    let trajectories = state
+        .trajectory_storage
+        .get_trajectories(Some(30))
+        .await
+        .map_err(|e| format!("拉取轨迹失败: {e}"))?;
+
+    if trajectories.len() < 10 {
+        return Err(format!("轨迹数量不足（{} < 10），无法进化", trajectories.len()));
+    }
+
+    let test_refs: Vec<&axagent_trajectory::Trajectory> = trajectories.iter().collect();
+
+    // 5. 调用进化
+    tracing::info!("[skill_evolution] 开始进化 lesson {} (stock={})", analysis_id, stock_code);
+    let modification = engine.run(&skill, &test_refs).await;
+
+    if let Some(modification) = &modification {
+        tracing::info!(
+            "[skill_evolution] 进化完成: confidence={:.3} reason={}",
+            modification.confidence,
+            modification.reason
+        );
+
+        // 6. 更新 reflection_lessons.rule_pattern 字段
+        if !modification.new_content.is_empty() {
+            let now_ms = chrono::Utc::now().timestamp_millis();
+            let _ = reflection_lessons::Entity::update_many()
+                .col_expr(
+                    reflection_lessons::Column::RulePattern,
+                    sea_orm::sea_query::Expr::value(modification.new_content.clone()),
+                )
+                .col_expr(
+                    reflection_lessons::Column::UpdatedAt,
+                    sea_orm::sea_query::Expr::value(now_ms),
+                )
+                .filter(reflection_lessons::Column::SourceReflectionId.eq(analysis_id.to_string()))
+                .exec(&state.db)
+                .await;
+            tracing::info!(
+                "[skill_evolution] 已更新 reflection_lessons.rule_pattern (analysis_id={})",
+                analysis_id
+            );
+        }
+    } else {
+        tracing::info!("[skill_evolution] 进化未产生改进（lesson={})", analysis_id);
+    }
+
+    Ok(())
 }
 
 // ── 单元测试：覆盖 LLM 输出 → IR → JSON 提取的全链路 ──

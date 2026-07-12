@@ -89,6 +89,17 @@ pub struct WalkForwardFold {
     pub test_end: String,
     pub train_bars_count: usize,
     pub test_bars_count: usize,
+    /// 修复 M-RES-10: 添加 klines 切片索引，让 run 函数直接用索引切片，
+    /// 避免用日期字符串过滤的重复逻辑（且多股票场景下日期过滤可能数据泄漏）。
+    /// 序列化时跳过，仅为内部使用。
+    #[serde(skip)]
+    pub train_start_idx: usize,
+    #[serde(skip)]
+    pub train_end_idx: usize,
+    #[serde(skip)]
+    pub test_start_idx: usize,
+    #[serde(skip)]
+    pub test_end_idx: usize,
 }
 
 /// 数据切分结果
@@ -182,9 +193,25 @@ impl WalkForward {
         let mut folds = Vec::new();
         let mut fold_idx = 0;
         let mut cursor = 0usize;
+        // 修复 M-DS-4: 多股票场景下，按 bar 索引切分时若两支股票同一日期，
+        // train_end 日期可能等于 test_start 日期，导致 run 函数按日期字符串过滤时
+        // 同日数据被同时纳入 train 和 test（数据泄漏）。先检测是否为多股票，
+        // 多股票时强制 train_end = test_start 日期减 1 天（严格小于）。
+        let is_multi_stock = {
+            let first_code = &klines[0].code;
+            !klines.iter().all(|b| b.code == *first_code)
+        };
         loop {
             let train_start_idx = if self.config.anchored { 0 } else { cursor };
-            let train_end_idx = (train_start_idx + train_count).min(total_bars);
+            // P1-1 修复：anchored 模式下 IS 起点固定为 0，终点随 cursor 前移（expanding window）
+            // 原实现 train_end_idx = train_start_idx + train_count 在 anchored 下恒等于 train_count，
+            // 导致所有 fold 的 IS 窗口完全相同，参数稳定度评估失去意义（stability_score 恒为 1.0）。
+            // rolling 模式保持原逻辑：窗口大小固定，整体随 cursor 前移。
+            let train_end_idx = if self.config.anchored {
+                (cursor + train_count).min(total_bars)
+            } else {
+                (train_start_idx + train_count).min(total_bars)
+            };
             let test_start_idx = if self.config.anchored {
                 train_count + cursor
             } else {
@@ -199,14 +226,28 @@ impl WalkForward {
             if train_bars.len() >= self.config.min_train_bars
                 && test_bars.len() >= self.config.min_test_bars
             {
+                let test_start_date = klines[test_start_idx].date.clone();
+                let mut train_end_date = klines[train_end_idx - 1].date.clone();
+                if is_multi_stock
+                    && train_end_date == test_start_date
+                    && let Ok(test_start_d) =
+                        chrono::NaiveDate::parse_from_str(&test_start_date, "%Y-%m-%d")
+                {
+                    train_end_date =
+                        (test_start_d - chrono::Duration::days(1)).format("%Y-%m-%d").to_string();
+                }
                 folds.push(WalkForwardFold {
                     fold_idx,
                     train_start: klines[train_start_idx].date.clone(),
-                    train_end: klines[train_end_idx - 1].date.clone(),
-                    test_start: klines[test_start_idx].date.clone(),
+                    train_end: train_end_date,
+                    test_start: test_start_date,
                     test_end: klines[test_end_idx - 1].date.clone(),
                     train_bars_count: train_bars.len(),
                     test_bars_count: test_bars.len(),
+                    train_start_idx,
+                    train_end_idx,
+                    test_start_idx,
+                    test_end_idx,
                 });
                 fold_idx += 1;
             }
@@ -240,22 +281,14 @@ impl WalkForward {
         let mut skipped_folds: Vec<(usize, String)> = Vec::new();
 
         for (i, fold) in split.folds.iter().enumerate() {
-            let train_bars: Vec<Bar> = klines
-                .iter()
-                .filter(|b| {
-                    b.date.as_str() >= fold.train_start.as_str()
-                        && b.date.as_str() <= fold.train_end.as_str()
-                })
-                .cloned()
-                .collect();
-            let test_bars: Vec<Bar> = klines
-                .iter()
-                .filter(|b| {
-                    b.date.as_str() >= fold.test_start.as_str()
-                        && b.date.as_str() <= fold.test_end.as_str()
-                })
-                .cloned()
-                .collect();
+            // 修复 M-RES-10: 原实现用日期字符串过滤 klines，与 split 的索引切片
+            // 逻辑重复，且多股票场景下可能数据泄漏。改为直接用 fold 中的索引切片。
+            let train_bars: Vec<Bar> = klines[fold.train_start_idx..fold.train_end_idx].to_vec();
+            let test_bars: Vec<Bar> = klines[fold.test_start_idx..fold.test_end_idx].to_vec();
+            // 修复 M-RES-11: 原实现每个 fold 调用 strategy_factory 三次
+            // （train_strategy + test_strategy + best_params），浪费计算且可能
+            // 因 factory 有状态导致三次调用结果不一致。改为只调用一次，
+            // 用 train_strategy 提取 best_params，test_strategy 单独构造用于回测。
             // 每个 fold 用独立的 strategy 实例（避免状态污染）。
             // 修复 P0-T4: factory 返回 Result，构造失败时记录并跳过该 fold。
             let (mut train_strategy, mut test_strategy) =
@@ -280,19 +313,31 @@ impl WalkForward {
             };
             // 单 fold 过拟合告警：test_sharpe 显著低于 train_sharpe（ratio < 0.3）
             let overfit_flag = degradation < 0.3;
-            // 收集 OOS equity（简化：直接拼接 OOS equity）
-            all_oos_points.extend(test_result.equity_curve.clone());
-            // best_params（M1 简化：取该 fold 的 strategy 参数；M2 阶段接 grid search）
-            // factory 已成功，跳过 fold 的分支已 continue；此处 unwrap 安全。
-            let best_params = match strategy_factory(i) {
-                Ok(s) => match s.params() {
-                    serde_json::Value::Object(map) => Some(map.into_iter().collect()),
-                    _ => None,
-                },
-                Err(e) => {
-                    tracing::warn!("[WalkForward] fold {} 构造 best_params 失败: {}", i, e);
-                    None
-                },
+            // 收集 OOS equity（按 fold 归一化，避免 fold 边界引入虚假 daily_return）
+            // 修复 C-3: 每个 fold 都从 initial_cash 开始，直接拼接会在 fold 边界
+            // 产生约 16.7% 的虚假负收益，严重失真 sharpe/volatility/max_drawdown
+            let fold_initial = test_result.equity_curve.first().map(|p| p.equity).unwrap_or(1.0);
+            let scale = if let Some(last) = all_oos_points.last() {
+                if fold_initial > 0.0 {
+                    last.equity / fold_initial
+                } else {
+                    1.0
+                }
+            } else {
+                1.0
+            };
+            for ep in &test_result.equity_curve {
+                all_oos_points.push(EquityPoint {
+                    date: ep.date.clone(),
+                    equity: ep.equity * scale,
+                    cash: ep.cash * scale,
+                    position_value: ep.position_value * scale,
+                });
+            }
+            // best_params：复用 train_strategy 提取参数，不再额外调用 factory。
+            let best_params = match train_strategy.params() {
+                serde_json::Value::Object(map) => Some(map.into_iter().collect()),
+                _ => None,
             };
             windows.push(WalkForwardWindowResult {
                 fold: fold.clone(),
@@ -318,7 +363,8 @@ impl WalkForward {
             &all_oos_points,
             &windows.iter().flat_map(|w| w.test_result.trades.iter().cloned()).collect::<Vec<_>>(),
             self.config.risk_free_annual,
-            252.0,
+            // 修复 L-5: 使用 A 股实际交易日数 244 而非美股的 252。
+            crate::metrics::A_SHARE_TRADING_DAYS_PER_YEAR,
         );
 
         let overfit_window_count = windows.iter().filter(|w| w.overfit_flag).count();
@@ -424,10 +470,25 @@ mod tests {
         let split = wf.split(&klines).unwrap();
         eprintln!("[debug] split done, {} folds", split.folds.len());
         assert!(split.folds.len() >= 2);
-        // anchored 模式：所有 fold 的 train_start 应相同
+        // anchored 模式：所有 fold 的 train_start 应相同（IS 起点固定）
         let first_train_start = &split.folds[0].train_start;
+        let first_train_start_idx = split.folds[0].train_start_idx;
         for f in &split.folds {
             assert_eq!(&f.train_start, first_train_start);
+            assert_eq!(f.train_start_idx, first_train_start_idx);
+        }
+        // P1-1 修复验证：anchored 模式下 train_end 应随 fold index 递增
+        // （IS 终点前移 = expanding window）。原 bug 下所有 fold 的 train_end_idx 恒等于
+        // train_count，参数稳定度评估失效。
+        for i in 1..split.folds.len() {
+            assert!(
+                split.folds[i].train_end_idx > split.folds[i - 1].train_end_idx,
+                "fold {} train_end_idx ({}) 应大于 fold {} ({})，anchored 模式 IS 终点应随 fold 前移",
+                i,
+                split.folds[i].train_end_idx,
+                i - 1,
+                split.folds[i - 1].train_end_idx
+            );
         }
     }
 

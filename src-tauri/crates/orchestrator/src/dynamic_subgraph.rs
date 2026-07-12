@@ -135,6 +135,7 @@ impl DynamicSubGraph {
             model_role: None,
             consistency_check: None,
             hallucination_guard: None,
+            fallback_model: None,
         };
 
         WorkflowNode::Agent(AgentNode { base, config })

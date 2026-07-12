@@ -38,6 +38,10 @@ mod builtin;
 mod ctx;
 mod engine;
 mod error;
+// kline_provider 是 M2 基础设施（K 线 + Quote → Bar 转换），M1 阶段回测直接接收 Vec<Bar>
+// 尚未在命令层使用，允许 dead_code 直到 M2 接入
+#[allow(dead_code)]
+mod kline_provider;
 mod matcher;
 mod metrics;
 mod script;

@@ -398,6 +398,11 @@ pub struct StockRawData {
     pub institutional_visits: Vec<InstitutionalVisit>,
     pub peers: Vec<PeerComparison>,
     pub option_pcr: Option<OptionPCR>,
+    /// H1.4 修复:fetch_all 中各子查询失败时的错误信息集合
+    /// (空 Vec 表示全部成功;非空时调用方可据此判断数据完整性,
+    /// 决定是降级使用部分数据还是直接报错)
+    #[serde(default)]
+    pub errors: Vec<String>,
 }
 
 /// 市场级原始数据

@@ -15,6 +15,11 @@ impl Default for PositionLimits {
 
 impl PositionLimits {
     /// 检查新增仓位是否合规
+    ///
+    /// 修复 P2-9: 当 `total_portfolio_value == 0` 时原代码把 new_pct 置为 0，
+    /// 静默绕过单股仓位与行业暴露上限检查。这在"空仓首次建仓"场景下形成风控漏洞
+    /// —— 任意金额的买单都会"合规"。改为明确拒绝，迫使 caller 传入含现金的
+    /// 组合总价值（持仓市值 + 可用现金），让仓位上限检查真实生效。
     pub fn check_new_position(
         &self,
         new_position_value: f64,
@@ -23,6 +28,13 @@ impl PositionLimits {
         new_sector: Option<&str>,
         current_sector_exposures: &[(String, f64)],
     ) -> Result<(), String> {
+        if total_portfolio_value <= 0.0 {
+            return Err(format!(
+                "组合总价值为 {}，无法计算仓位比例（请传入 持仓市值+可用现金 作为分母）",
+                total_portfolio_value
+            ));
+        }
+
         if let Some(sector) = new_sector {
             let current_sector_pct = current_sector_exposures
                 .iter()
@@ -30,11 +42,7 @@ impl PositionLimits {
                 .map(|(_, pct)| *pct)
                 .next()
                 .unwrap_or(0.0);
-            let new_pct = if total_portfolio_value > 0.0 {
-                (new_position_value / total_portfolio_value) * 100.0
-            } else {
-                0.0
-            };
+            let new_pct = (new_position_value / total_portfolio_value) * 100.0;
             if current_sector_pct + new_pct > self.max_sector_exposure_pct {
                 return Err(format!(
                     "行业{}暴露{:.1}%将超过上限{:.0}%",
@@ -52,11 +60,7 @@ impl PositionLimits {
             ));
         }
 
-        let new_pct = if total_portfolio_value > 0.0 {
-            (new_position_value / total_portfolio_value) * 100.0
-        } else {
-            0.0
-        };
+        let new_pct = (new_position_value / total_portfolio_value) * 100.0;
 
         if new_pct > self.max_single_stock_pct {
             return Err(format!(

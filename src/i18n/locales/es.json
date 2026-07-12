@@ -9785,7 +9785,20 @@
       "aiSelectNoneBtn": "Deseleccionar todo",
       "rollbackWarning": "Se revertirá a la versión {{target}}",
       "jumpToAnalysisBtn": "Ir al análisis",
-      "jumpToAnalysisTooltip": "Ver el registro de análisis original para esta reflexión"
+      "jumpToAnalysisTooltip": "Ver el registro de análisis original para esta reflexión",
+      "feedbackBtn": "Comentarios",
+      "feedbackTitle": "Comentarios de reflexión",
+      "feedbackRatingLabel": "Calificación",
+      "feedbackCommentLabel": "Comentario (opcional)",
+      "feedbackCommentPlaceholder": "Ingrese sugerencias para esta reflexión...",
+      "feedbackSubmitBtn": "Enviar comentarios",
+      "feedbackSuccess": "Comentarios enviados ({{action}})",
+      "feedbackFailed": "Error al enviar comentarios: {{error}}",
+      "feedbackActionNone": "Sin acción",
+      "feedbackActionRL": "Entrenamiento RL activado",
+      "feedbackActionSkill": "Evolución de habilidades activada",
+      "feedbackActionPool": "Verificación del grupo de experiencia activada",
+      "feedbackStatsLabel": "Estadísticas: + {{positive}} / - {{negative}} / total {{total}}"
     },
     "portfolioMonitor": {
       "title": "Portfolio Monitor",

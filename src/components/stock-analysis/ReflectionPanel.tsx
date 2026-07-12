@@ -1,6 +1,7 @@
 import type { AiChatAction } from "@/components/workflow/types/workflow.types";
 import { invoke, listen } from "@/lib/invoke";
 import { useStockAnalysisStore } from "@/stores";
+import type { ReflectionFeedbackResult } from "@/types";
 import {
   Button,
   Card,
@@ -11,6 +12,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Rate,
   Select,
   Space,
   Spin,
@@ -84,6 +86,13 @@ export function ReflectionPanel() {
   const [manualOutcome, setManualOutcome] = useState("");
   const [manualDepth, setManualDepth] = useState("light");
   const [running, setRunning] = useState(false);
+
+  // [方向4/5] 反思反馈 Modal 状态
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackRow, setFeedbackRow] = useState<ReflectionRow | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
 
   // 个股分析页内自动取当前股票代码（首次加载时填入）
   const [manualCode, setManualCode] = useState(stockCodeFromStore ?? "");
@@ -221,6 +230,48 @@ export function ReflectionPanel() {
       message.warning(t("stockAnalysis.reflection.clearAllPartial", { total: ids.length, failed }));
     }
     await load();
+  };
+
+  // [方向4/5] 打开反馈 Modal
+  const openFeedbackModal = (row: ReflectionRow) => {
+    setFeedbackRow(row);
+    setFeedbackRating(0);
+    setFeedbackComment("");
+    setFeedbackModalOpen(true);
+  };
+
+  // [方向4/5] 提交反思反馈到后端 submit_reflection_feedback 命令
+  const submitFeedback = async () => {
+    if (!feedbackRow || feedbackRating < 1 || feedbackRating > 5) {
+      message.warning(t("stockAnalysis.reflection.feedbackRatingLabel"));
+      return;
+    }
+    setFeedbackSubmitting(true);
+    try {
+      const result = await invoke<ReflectionFeedbackResult>(
+        "submit_reflection_feedback",
+        {
+          analysisId: feedbackRow.id,
+          rating: feedbackRating,
+          comment: feedbackComment.trim() || null,
+        },
+      );
+      const actionSuffix: Record<ReflectionFeedbackResult["action"], string> = {
+        none: "None",
+        trigger_rl_training: "RL",
+        trigger_skill_evolution: "Skill",
+        trigger_pool_size_check: "Pool",
+      };
+      const actionKey = `stockAnalysis.reflection.feedbackAction${actionSuffix[result.action]}`;
+      message.success(
+        t("stockAnalysis.reflection.feedbackSuccess", { action: t(actionKey) }),
+      );
+      setFeedbackModalOpen(false);
+    } catch (e) {
+      message.error(t("stockAnalysis.reflection.feedbackFailed", { error: String(e) }));
+    } finally {
+      setFeedbackSubmitting(false);
+    }
   };
 
   // P1-7 修复: 反思历史筛选 (股票代码模糊匹配 + 状态 + 时间区间)
@@ -600,7 +651,7 @@ export function ReflectionPanel() {
                 />
                 <Table.Column
                   title={t("stockAnalysis.reflection.colAction")}
-                  width={150}
+                  width={200}
                   fixed="right"
                   render={(_: unknown, r: ReflectionRow) => (
                     <Space size="small">
@@ -621,6 +672,15 @@ export function ReflectionPanel() {
                           </Button>
                         </Popconfirm>
                       )}
+                      {/* [方向4/5] 已完成的反思可提交反馈，触发 ExperiencePipeline + SkillEvolution */}
+                      {r.status === "completed" && (
+                        <Button
+                          size="small"
+                          onClick={() => openFeedbackModal(r)}
+                        >
+                          {t("stockAnalysis.reflection.feedbackBtn")}
+                        </Button>
+                      )}
                       <Popconfirm
                         title={t("stockAnalysis.reflection.deleteConfirm")}
                         okText={t("common.confirm")}
@@ -638,6 +698,51 @@ export function ReflectionPanel() {
             )}
         </Spin>
       </Card>
+
+      {/* [方向4/5] 反思反馈 Modal：1-5 星评分 + 可选评论 */}
+      <Modal
+        title={t("stockAnalysis.reflection.feedbackTitle")}
+        open={feedbackModalOpen}
+        onOk={submitFeedback}
+        confirmLoading={feedbackSubmitting}
+        onCancel={() => setFeedbackModalOpen(false)}
+        okText={t("stockAnalysis.reflection.feedbackSubmitBtn")}
+        cancelText={t("common.cancel")}
+      >
+        {feedbackRow && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <Text strong>{feedbackRow.stockCode}</Text>
+              <Text type="secondary" style={{ marginLeft: 8 }}>
+                {feedbackRow.stockName}
+              </Text>
+            </div>
+            <div>
+              <div style={{ marginBottom: 8 }}>
+                {t("stockAnalysis.reflection.feedbackRatingLabel")}
+              </div>
+              <Rate
+                value={feedbackRating}
+                onChange={setFeedbackRating}
+                count={5}
+              />
+            </div>
+            <div>
+              <div style={{ marginBottom: 8 }}>
+                {t("stockAnalysis.reflection.feedbackCommentLabel")}
+              </div>
+              <Input.TextArea
+                value={feedbackComment}
+                onChange={(e) => setFeedbackComment(e.target.value)}
+                placeholder={t("stockAnalysis.reflection.feedbackCommentPlaceholder")}
+                rows={3}
+                maxLength={500}
+                showCount
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

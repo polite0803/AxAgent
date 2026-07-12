@@ -592,7 +592,12 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     }
 
     // ── 股票业务客户端与交易引擎 ──
-    let astock_client = Arc::new(axagent_astock_data::AStockClient::new());
+    // C5.1: 注入 NewsArchiveSink，使 get_news/search_news 的结果自动写入 news_archive 表
+    let news_sink = std::sync::Arc::new(crate::init::news_archive_sink::NewsArchiveSinkImpl::new(
+        sea_db.clone(),
+    ));
+    let astock_client =
+        Arc::new(axagent_astock_data::AStockClient::new().with_news_archive_sink(news_sink));
     let trading_engine =
         Arc::new(TokioRwLock::new(axagent_stock_analysis::trading::TradingEngine::new(
             Arc::new(sea_db.clone()),

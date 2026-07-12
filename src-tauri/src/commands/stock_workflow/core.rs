@@ -122,7 +122,6 @@ async fn run_stock_workflow_inner(
         decision_reasoning: Set(None),
         decision_json: Set(None),
         llm_decision_json: Set(None),
-        node_results_snapshot: Set(None),
         blackboard_snapshot: Set(None),
         config_id: Set(None),
         // Time-travel metadata: 标记该 analysis 为 replay 模式 + 截止日
@@ -391,6 +390,9 @@ async fn run_stock_workflow_inner(
         });
     // 在 spawn 前捕获 as-of 上下文（tokio::task_local 不跨 tokio::spawn 传播）
     let captured_asof = as_of::current_as_of();
+    // H4.2 修复：捕获 shutdown_token，使 spawn 任务在应用关闭时能协作取消，
+    // 避免 AppState::drop 后后台任务仍阻塞 run_workflow 等待 LLM 响应。
+    let shutdown_token = state.shutdown_token.clone();
     tokio::spawn(async move {
         // P3 修复: 在 spawn 内恢复 AS_OF + DEGRADATION_LOG 作用域
         as_of::with_optional_asof(captured_asof, async {
@@ -610,11 +612,33 @@ async fn run_stock_workflow_inner(
 
         // P0-T5: 整体超时兜底。step_timeout 只限单步，多步累计可能很久；
         // 超时后调 cancel_workflow 让 WorkEngine 协作取消，避免分析永久挂起。
-        let workflow_result = tokio::time::timeout(
+        // H4.2 修复：同时监听 shutdown_token，应用关闭时主动取消工作流，
+        // 避免 AppState::drop 后后台任务仍阻塞 run_workflow 等待 LLM 响应。
+        // shutdown 与超时走相同分支（Err(Elapsed)），DB 状态更新为 "timeout" 语义等价。
+        let timeout_future = tokio::time::timeout(
             total_timeout,
             engine.run_workflow(&wf_id, opts),
-        )
-        .await;
+        );
+        let workflow_result = tokio::select! {
+            biased;
+            _ = shutdown_token.cancelled() => {
+                tracing::info!(%wf_id, "shutdown_token 触发，主动取消工作流");
+                let _ = engine.cancel_workflow(&wf_id).await;
+                // shutdown 等价于超时，用 zero-duration timeout 构造 Err(Elapsed)
+                // 让下游 match 走 Err(_elapsed) 分支（更新 DB 状态为 timeout）
+                tokio::time::timeout(
+                    std::time::Duration::from_nanos(1),
+                    std::future::pending::<
+                        Result<
+                            axagent_rt_workflow::workflow_engine::Workflow,
+                            axagent_rt_workflow::workflow_engine::WorkflowError,
+                        >,
+                    >(),
+                )
+                .await
+            },
+            r = timeout_future => r,
+        };
 
         match workflow_result {
             // 超时分支：主动取消工作流 + 更新 DB 状态为 timeout
@@ -867,24 +891,24 @@ async fn run_stock_workflow_inner(
                         });
                         // ── P1-1: 如果当前股票在持仓中，计算退出紧迫度 ──
                         // 读取 portfolio_holdings 表，判断分析结果是否触发退出建议
-                        let exit_urgency = tokio::task::block_in_place(|| {
-                            tokio::runtime::Handle::current().block_on(async {
-                                use axagent_entities::portfolio_holdings;
-                                let holding = portfolio_holdings::Entity::find()
-                                    .filter(portfolio_holdings::Column::StockCode.eq(&stock_code))
-                                    .one(&db).await.ok().flatten();
-                                // 提取当前分析决策
-                                let action_str = decision_json.as_deref()
-                                    .and_then(|dj| serde_json::from_str::<serde_json::Value>(dj).ok())
-                                    .and_then(|v| v.get("action").and_then(|a| a.as_str()).map(String::from));
-                                match action_str.as_deref() {
-                                    Some("卖出") => Some(90.0),   // 高紧迫卖出
-                                    Some("减持") => Some(60.0),   // 中紧迫减持
-                                    Some("观望") if holding.as_ref().map(|h| h.shares > 0.0).unwrap_or(false) => Some(30.0), // 低紧迫（不增持）
-                                    _ => None,                     // 持有/买入 → 不触发退出
-                                }
-                            })
-                        });
+                        // 修复 M-RES-15: 原实现用 block_in_place + block_on 嵌套异步，
+                        // 在 Tauri 异步上下文中可能导致死锁或性能问题。改为直接 .await。
+                        let exit_urgency = {
+                            use axagent_entities::portfolio_holdings;
+                            let holding = portfolio_holdings::Entity::find()
+                                .filter(portfolio_holdings::Column::StockCode.eq(&stock_code))
+                                .one(&db).await.ok().flatten();
+                            // 提取当前分析决策
+                            let action_str = decision_json.as_deref()
+                                .and_then(|dj| serde_json::from_str::<serde_json::Value>(dj).ok())
+                                .and_then(|v| v.get("action").and_then(|a| a.as_str()).map(String::from));
+                            match action_str.as_deref() {
+                                Some("卖出") => Some(90.0),   // 高紧迫卖出
+                                Some("减持") => Some(60.0),   // 中紧迫减持
+                                Some("观望") if holding.as_ref().map(|h| h.shares > 0.0).unwrap_or(false) => Some(30.0), // 低紧迫（不增持）
+                                _ => None,                     // 持有/买入 → 不触发退出
+                            }
+                        };
                         // 将退出紧迫度注入 decision_json
                         let decision_json = if exit_urgency.is_some() {
                             decision_json.map(|dj| {
@@ -1093,7 +1117,6 @@ pub async fn run_single_stock_analysis(
         decision_reasoning: Set(None),
         decision_json: Set(None),
         llm_decision_json: Set(None),
-        node_results_snapshot: Set(None),
         blackboard_snapshot: Set(None),
         config_id: Set(None),
         analysis_kind: Set("live".into()),
@@ -1228,6 +1251,8 @@ pub async fn run_single_stock_analysis(
             // 修复"决策信息缺失"误报:用 extract_decision_json 从 portfolio-mgr
             // 节点 .result 提取决策(而非 CodeNode 包装顶层,后者无 action 字段)。
             let decision_json_str = extract_decision_json(&wf);
+            // 提取 expected_holding_days（在 decision_json_str 被 move 之前）
+            let (_, _, _, _, expected_holding_days) = extract_decision_fields(&decision_json_str);
             let decision_output = decision_json_str
                 .as_deref()
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok());
@@ -1254,15 +1279,29 @@ pub async fn run_single_stock_analysis(
             //   3) fetch_stock_lessons 可基于 status='resolved' 过滤,只注入真正可用的教训
             // 字段: as_of_date = analysis_date, raw_return/alpha_return/holding_days
             //   全部 None(预测不到),status='pending',后续由 D1 批量补全。
+            //
+            // [时间旅行模式] hindsight_date = analysis_date + expected_holding_days
+            //   反思评估时点由决策的期望持有期决定，而非固定"今天"。
+            //   批量反思任务在 hindsight_date 到达时才执行，并以 hindsight_date
+            //   作为 AS_OF 锚点查看"截至评估时点的实际走势"。
+            //   - expected_holding_days 缺失时默认 28 天（与批量任务默认值一致）
+            //   - 若计算出的 hindsight_date 在未来，批量任务会 skip 直到日期到达
             let pending_id = uuid::Uuid::new_v4().to_string();
             let today_str = chrono::Utc::now().format("%Y-%m-%d").to_string();
+            let hindsight_date_str = {
+                let hold_days = expected_holding_days.unwrap_or(28) as i64;
+                let analysis_naive = chrono::NaiveDate::parse_from_str(&today_str, "%Y-%m-%d")
+                    .unwrap_or_else(|_| chrono::Local::now().date_naive());
+                let h = analysis_naive + chrono::Duration::days(hold_days);
+                h.format("%Y-%m-%d").to_string()
+            };
             let _ = stock_reflections::ActiveModel {
                 id: Set(pending_id.clone()),
                 stock_code: Set(stock_code.to_string()),
                 stock_name: Set(stock_name.to_string()),
                 original_analysis_id: Set(analysis_id.clone()),
                 as_of_date: Set(today_str.clone()),
-                hindsight_date: Set(today_str),
+                hindsight_date: Set(hindsight_date_str),
                 min_confidence_threshold: Set(70),
                 reflection_depth: Set("light".to_string()),
                 actual_outcome: Set(String::new()),
@@ -1453,6 +1492,41 @@ pub(crate) async fn fetch_stock_lessons(
                 lines.push(format!("  - {}", ls));
             } else if let Some(ref w) = l.what_went_wrong {
                 lines.push(format!("  - 错因：{}", w));
+            }
+        }
+    }
+
+    // ── [F1 闭环] 规则化教训：从 reflection_lessons 表查询 ──
+    // 修复首轮分析发现的"reflection_lessons 闭环断裂"问题：
+    // extract_lesson_to_rule 会把高质量 lesson_summary 写入 reflection_lessons,
+    // 但原 fetch_stock_lessons 只查 stock_reflections,规则化教训永远不被消费。
+    // 现补充查询 reflection_lessons 表的规则化教训（按 confidence 降序取前 5 条）。
+    use axagent_entities::reflection_lessons;
+    let rule_lessons: Vec<reflection_lessons::Model> = reflection_lessons::Entity::find()
+        .filter(reflection_lessons::Column::StockCode.eq(stock_code))
+        .filter(reflection_lessons::Column::Confidence.gte(0.3)) // 过滤低质量/已废弃规则
+        .order_by_desc(reflection_lessons::Column::Confidence)
+        .all(db)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .take(5)
+        .collect();
+
+    if !rule_lessons.is_empty() {
+        lines.push(String::new());
+        lines.push(format!("【规则化教训 {} 条(按置信度降序)】", rule_lessons.len()));
+        for (i, l) in rule_lessons.iter().enumerate() {
+            lines.push(format!(
+                "#{} (confidence={:.2}, 应用{}次/成功{}次): {}",
+                i + 1,
+                l.confidence,
+                l.times_applied,
+                l.success_count,
+                l.lesson_summary
+            ));
+            if let Some(ref p) = l.rule_pattern {
+                lines.push(format!("  - 触发条件：{}", p));
             }
         }
     }

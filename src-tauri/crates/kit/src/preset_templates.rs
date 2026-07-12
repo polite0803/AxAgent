@@ -149,6 +149,7 @@ fn step_to_agent_node(
             consistency_check: None,
             hallucination_guard: None,
             input_mapping: std::collections::HashMap::new(),
+            fallback_model: None,
         },
     })
 }

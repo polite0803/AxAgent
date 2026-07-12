@@ -790,9 +790,8 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
     use axagent_entities::workflow_template;
     use axagent_harness::workflow_types::{
         AgentNode, AgentNodeConfig, CodeNode, CodeNodeConfig, EdgeType, OutputMode, Position,
-        RetryConfig, StorageNode, StorageNodeConfig, SubWorkflowNode, SubWorkflowNodeConfig,
-        ToolDef, TriggerConfig, TriggerNode, TriggerType, Variable, WorkflowEdge, WorkflowNode,
-        WorkflowNodeBase,
+        RetryConfig, StorageNode, StorageNodeConfig, ToolDef, TriggerConfig, TriggerNode,
+        TriggerType, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
     };
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
@@ -917,6 +916,38 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
         },
     });
 
+    // ── CodeNode: 反思输出硬裁决验证层（reflection-agent → reflection-validator → store-ref）──
+    // [P1-#1 修复] 原 reflection_validator.rhai 是死代码，DAG 未引用。
+    // 现接入为 DAG 节点，在 reflection-agent 之后、store-ref 之前执行。
+    // 验证 7 字段类型/枚举值/长度，自动修正 verdict 枚举、截断 lesson_summary、
+    // 补全 missed_signals 数组等（R-302/R-303/R-304/R-305 硬裁决规则）。
+    let validator_code = include_str!("../reflection_validator.rhai").to_string();
+    let validator_node = WorkflowNode::Code(CodeNode {
+        base: WorkflowNodeBase {
+            id: "reflection-validator".into(),
+            title: "反思输出硬裁决验证".into(),
+            description: Some("验证 reflection-agent 输出的字段类型/枚举值/长度，自动修正".into()),
+            position: Position { x: 20.0, y: 460.0 },
+            retry: RetryConfig::default(),
+            timeout: Some(5),
+            enabled: true,
+            parent_id: None,
+            compensation: None,
+            continue_on_fail: true, // 验证失败不阻塞落盘
+        },
+        config: CodeNodeConfig {
+            language: "rhai".into(),
+            code: validator_code,
+            output_var: "reflection-validated".into(),
+            tool_name: None,
+            execute_directly: true,
+            input_mapping: [("reflection_input", "reflection")]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+        },
+    });
+
     // ── 节点定义（与 stock-analysis 同款：Rust 类型构造，编译期校验必填字段）──
     let nodes: Vec<WorkflowNode> = vec![
         // 1. 触发器：手动模式，传入 stock_code / as_of_date / actual_outcome / reflection_depth
@@ -945,43 +976,11 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 }),
             },
         }),
-        // 2. 嵌套子工作流：复用 stock-analysis 模板的分析能力
-        WorkflowNode::SubWorkflow(SubWorkflowNode {
-            base: WorkflowNodeBase {
-                id: "sub-analysis".into(),
-                title: "调用股票分析子工作流".into(),
-                description: Some("嵌套 stock-analysis 子工作流，复用其 9 维度分析能力".into()),
-                position: Position { x: 20.0, y: 120.0 },
-                retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
-                timeout: Some(600),
-                enabled: true,
-                parent_id: None,
-                compensation: None,
-                continue_on_fail: false,
-            },
-            config: SubWorkflowNodeConfig {
-                sub_workflow_id: "stock-analysis".into(),
-                // [BUGFIX] 原配置 source="trigger" 是节点 ID,会被 map_inputs 当变量名查
-                // context.variables["trigger"],返回的是 trigger 节点完整输出对象
-                // ({status, trigger_type, config, timestamp, node_id}),而不是 string 类型的
-                // stock_code,导致子工作流所有 tool 节点报 "参数 stock_code 应为 string 类型"
-                // 以及 agent 节点报 "VARIABLE_NOT_FOUND: stock_name"(stock_name 根本不在
-                // trigger 输出里)。改用变量名后,父工作流 state.variables 里的 string 类型
-                // 变量才能正确传递到子工作流的 input。
-                input_mapping: [
-                    ("stock_code".to_string(), "stock_code".to_string()),
-                    ("stock_name".to_string(), "stock_name".to_string()),
-                    ("as_of_date".to_string(), "as_of_date".to_string()),
-                ]
-                .into_iter()
-                .collect(),
-                output_var: "sub-analysis".into(),
-                is_async: false,
-                sub_graph: None,
-            },
-        }),
-        // 3. 反思复盘 Agent：注入实际走势结果 + 反思深度 + 定量对比报告
-        //    注: comparator_node 在 nodes vec 外部构造(见前文),这里追加到 vec 末尾
+        // 2. 定量对比 CodeNode + 3. 反思复盘 Agent + 4. 硬裁决验证
+        //    注: comparator_node / validator_node 在 nodes vec 外部构造(见前文),这里追加到 vec 末尾
+        //    [v2] 删除 sub-analysis SubWorkflowNode — 不再重跑完整 stock-analysis DAG，
+        //    改由 run_reflection_workflow 从 stock_analyses.blackboard_snapshot 加载记忆，
+        //    构造名为 "sub-analysis" 的变量注入工作流（context_sources / input_mapping 路径不变）。
         comparator_node,
         WorkflowNode::Agent(AgentNode {
             base: WorkflowNodeBase {
@@ -1038,20 +1037,34 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                       \"what_went_wrong\": \"哪里判断错了，简要说明\",\n\
                       \"missed_signals\": [\"被忽略的信号1\", \"被忽略的信号2\"],\n\
                       \"fix_for_future\": \"下次如何避免同样的错误\",\n\
-                      \"params_suggestion\": {\"参数名\": \"调整建议\"}\n\
+                      \"implementation_tier\": \"L1 | L2 | L3\",\n\
+                      \"code_diff_proposal\": \"具体修改方案描述（L1简述 / L2-L3含文件路径和代码段）\",\n\
+                      \"params_suggestion\": [\n\
+                        {\n\
+                          \"param\": \"参数名\",\n\
+                          \"current_value\": \"当前值\",\n\
+                          \"suggested_value\": \"建议值\",\n\
+                          \"reason\": \"调整原因\"\n\
+                        }\n\
+                      ]\n\
                     }"
                 .into(),
                 context_sources: vec!["sub-analysis".into(), "reflection-comparator".into()],
                 input_mapping: [
-                    ("stock_code".to_string(), "trigger".to_string()),
-                    ("stock_name".to_string(), "trigger".to_string()),
-                    ("actual_outcome".to_string(), "trigger".to_string()),
-                    ("reflection_depth".to_string(), "trigger".to_string()),
-                    ("raw_return_pct".to_string(), "trigger".to_string()),
-                    ("alpha_return_pct".to_string(), "trigger".to_string()),
-                    ("holding_days".to_string(), "trigger".to_string()),
-                    ("benchmark_name".to_string(), "trigger".to_string()),
-                    ("stock_lessons".to_string(), "trigger".to_string()),
+                    // [BUGFIX] source 应为变量名而非节点 ID "trigger"。
+                    // 这些变量已在 run_reflection_workflow 的 variables vec 中顶层注入,
+                    // 用变量名才能正确从 context.variables 取到 string 值,
+                    // 否则 map_inputs 会把整个 trigger 节点输出对象当变量值传递。
+                    ("stock_code".to_string(), "stock_code".to_string()),
+                    ("stock_name".to_string(), "stock_name".to_string()),
+                    ("actual_outcome".to_string(), "actual_outcome".to_string()),
+                    ("reflection_depth".to_string(), "reflection_depth".to_string()),
+                    ("raw_return_pct".to_string(), "raw_return_pct".to_string()),
+                    ("alpha_return_pct".to_string(), "alpha_return_pct".to_string()),
+                    ("holding_days".to_string(), "holding_days".to_string()),
+                    ("benchmark_name".to_string(), "benchmark_name".to_string()),
+                    ("stock_lessons".to_string(), "stock_lessons".to_string()),
+                    ("hindsight_date".to_string(), "hindsight_date".to_string()),
                     ("deviation_report".to_string(), "reflection-comparator".to_string()),
                 ]
                 .into_iter()
@@ -1079,9 +1092,13 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                     enabled: true,
                     match_threshold: 0.4,
                 }),
+                fallback_model: None,
             },
         }),
-        // 4. 反思记录持久化：写入 stock_reflections 表供后续查询/复盘
+        // 4. 硬裁决验证：reflection-agent → reflection-validator → store-ref
+        //    [P1-#1] 接入原死代码 reflection_validator.rhai，自动修正字段类型/枚举值/长度
+        validator_node,
+        // 5. 反思记录持久化：写入 stock_reflections 表供后续查询/复盘
         WorkflowNode::Storage(StorageNode {
             base: WorkflowNodeBase {
                 id: "store-ref".into(),
@@ -1097,8 +1114,12 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
             },
             config: StorageNodeConfig {
                 backend: "sqlite".into(),
-                operation: "insert".into(),
-                input_var: "reflection".into(),
+                // [BUGFIX] 改为 upsert：B3 路径下 run_reflection_workflow 已 UPDATE
+                // pending row（通过 pending_id 匹配），store-ref 不应再 INSERT 重复 row。
+                // upsert 语义：若 pending row 存在则 UPDATE，否则 INSERT。
+                operation: "upsert".into(),
+                // [P1-#1] 使用验证后的输出（reflection-validator 节点 output_var）
+                input_var: "reflection-validated".into(),
                 collection: "stock_reflections".into(),
                 key_var: None,
                 output_var: "storage-result".into(),
@@ -1107,18 +1128,10 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
     ];
 
     let edges: Vec<WorkflowEdge> = vec![
+        // [v2] trigger → reflection-comparator 直连（删除 sub-analysis 中间节点）
         WorkflowEdge {
-            id: "e-trigger-sub-analysis".into(),
+            id: "e-trigger-comparator".into(),
             source: "trigger".into(),
-            source_handle: None,
-            target: "sub-analysis".into(),
-            target_handle: None,
-            edge_type: EdgeType::Direct,
-            label: None,
-        },
-        WorkflowEdge {
-            id: "e-sub-analysis-comparator".into(),
-            source: "sub-analysis".into(),
             source_handle: None,
             target: "reflection-comparator".into(),
             target_handle: None,
@@ -1134,9 +1147,19 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
             edge_type: EdgeType::Direct,
             label: None,
         },
+        // [P1-#1] reflection-agent → reflection-validator → store-ref
         WorkflowEdge {
-            id: "e-reflection-store".into(),
+            id: "e-reflection-validator".into(),
             source: "reflection-agent".into(),
+            source_handle: None,
+            target: "reflection-validator".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
+        WorkflowEdge {
+            id: "e-validator-store".into(),
+            source: "reflection-validator".into(),
             source_handle: None,
             target: "store-ref".into(),
             target_handle: None,
@@ -1162,8 +1185,20 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
         },
     ];
 
-    // serenity-reflection 模板版本。v1: 重新种子化
-    const REFLECTION_TEMPLATE_VERSION: i32 = 1;
+    // serenity-reflection 模板版本。
+    // v1: 重新种子化
+    // v2: 删除 sub-analysis SubWorkflowNode，改由 run_reflection_workflow
+    //     从 stock_analyses.blackboard_snapshot 加载记忆注入 sub-analysis 变量
+    // v3: 修复 reflection-agent input_mapping（trigger→变量名）;
+    //     store-ref operation 改为 upsert 避免重复 row;
+    //     params_suggestion schema 统一为数组格式;
+    //     新增 implementation_tier/code_diff_proposal 闭环字段;
+    //     新增 hindsight_date 变量注入
+    // v4: 接入 reflection-validator CodeNode（原死代码）;
+    //     DAG: reflection-agent → reflection-validator → store-ref;
+    //     store-ref input_var 改为 reflection-validated;
+    //     validator Rhai 脚本 params_suggestion 改为数组格式
+    const REFLECTION_TEMPLATE_VERSION: i32 = 4;
 
     // 版本检查：已有同版本或更新的记录则跳过
     if let Some(ref existing) =

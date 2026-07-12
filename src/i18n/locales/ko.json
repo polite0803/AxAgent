@@ -9822,7 +9822,20 @@
       "aiSelectNoneBtn": "모두 해제",
       "rollbackWarning": "버전 {{target}}로 롤백합니다",
       "jumpToAnalysisBtn": "원본 분석으로 이동",
-      "jumpToAnalysisTooltip": "이 회고에 해당하는 원본 분석 기록 보기"
+      "jumpToAnalysisTooltip": "이 회고에 해당하는 원본 분석 기록 보기",
+      "feedbackBtn": "피드백",
+      "feedbackTitle": "회고 피드백",
+      "feedbackRatingLabel": "평가",
+      "feedbackCommentLabel": "코멘트 (선택)",
+      "feedbackCommentPlaceholder": "이 회고에 대한 제안을 입력하세요...",
+      "feedbackSubmitBtn": "피드백 제출",
+      "feedbackSuccess": "피드백이 제출되었습니다 ({{action}})",
+      "feedbackFailed": "피드백 제출 실패: {{error}}",
+      "feedbackActionNone": "동작 없음",
+      "feedbackActionRL": "RL 트레이닝 트리거됨",
+      "feedbackActionSkill": "스킬 진화 트리거됨",
+      "feedbackActionPool": "경험 풀 검사 트리거됨",
+      "feedbackStatsLabel": "통계: 정 {{positive}} / 부 {{negative}} / 합계 {{total}}"
     },
     "portfolioMonitor": {
       "title": "Portfolio Monitor",

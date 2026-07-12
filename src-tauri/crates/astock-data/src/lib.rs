@@ -329,30 +329,78 @@ pub struct AStockClient {
 impl AStockClient {
     /// 修复 P0-A4: 原 `expect("Failed to create HTTP client")` 在 TLS 初始化
     /// 失败时 panic，拖垮整个 Tauri 进程。改为返回 Result。
+    ///
+    /// 修复 M-RES-1: 原 `unwrap_or_else` 在 TLS 失败时静默降级为空 vendors，
+    /// 上层无感知。改为使用 reqwest 默认配置兜底（无自定义 TLS），并保留 vendors 注册，
+    /// 让降级路径仍可用。tracing::error! 已记录便于诊断。
     pub fn new() -> Self {
-        Self::try_new().unwrap_or_else(|e| {
-            tracing::error!("[astock-data] HTTP client 创建失败，降级为空配置: {e}");
-            // 降级：用 reqwest 默认配置（无自定义 TLS），至少不 panic
-            let http = reqwest::Client::new();
-            Self {
-                vendors: Vec::new(),
-                routing: VendorRouting::default_routing(),
-                gate: DomainGate::new(),
-                http,
-                cache: MokaCache::builder()
-                    .max_capacity(4096)
-                    .time_to_idle(Duration::from_secs(3600))
-                    .build(),
-                health_tracker: Arc::new(VendorHealthTracker::new(VendorHealthConfig::default())),
-                l2: None,
-                daily_snapshot: None,
-                iwencai_key: RwLock::new(String::new()),
-                xq_token: None,
-                neodata_token: None,
-                news_archive_sink: None,
-                browser_fetcher: None,
-            }
-        })
+        match Self::try_new() {
+            Ok(client) => client,
+            Err(e) => {
+                tracing::error!(
+                    "[astock-data] HTTP client 创建失败（TLS 初始化错误），降级为默认配置: {e}"
+                );
+                // 降级：用 reqwest 默认配置（无自定义 TLS），至少不 panic。
+                // 仍注册全部 vendor，保证降级后数据源可用。
+                let http = reqwest::Client::new();
+                let mut client = Self {
+                    vendors: Vec::new(),
+                    routing: VendorRouting::default_routing(),
+                    gate: DomainGate::new(),
+                    http: http.clone(),
+                    cache: MokaCache::builder()
+                        .max_capacity(4096)
+                        .time_to_idle(Duration::from_secs(3600))
+                        .build(),
+                    health_tracker: Arc::new(VendorHealthTracker::new(
+                        VendorHealthConfig::default(),
+                    )),
+                    l2: None,
+                    daily_snapshot: None,
+                    iwencai_key: RwLock::new(String::new()),
+                    xq_token: None,
+                    neodata_token: None,
+                    news_archive_sink: None,
+                    browser_fetcher: None,
+                };
+                client.register_default_vendors(http);
+                client
+            },
+        }
+    }
+
+    /// 注册默认 vendor 集合（try_new 与降级路径共用）
+    fn register_default_vendors(&mut self, http: reqwest::Client) {
+        self.register_vendor("tencent", Box::new(TencentVendor { http: http.clone() }));
+        self.register_vendor(
+            "eastmoney",
+            Box::new(EastMoneyVendor {
+                http: http.clone(),
+                proxy_http: EastMoneyVendor::build_proxy_client(),
+            }),
+        );
+        self.register_vendor("sina", Box::new(SinaVendor { http: http.clone() }));
+        self.register_vendor("ths", Box::new(ThsVendor { http: http.clone() }));
+        self.register_vendor("cninfo", Box::new(CninfoVendor { http: http.clone() }));
+        self.register_vendor("baidu_stock", Box::new(BaiduStockVendor { http: http.clone() }));
+        self.register_vendor(
+            "iwencai",
+            Box::new(IwencaiVendor { http: http.clone(), api_key: String::new() }),
+        );
+        self.register_vendor("akshare", Box::new(AkshareVendor { http: http.clone() }));
+        self.register_vendor("mootdx", Box::new(MootdxVendor::new()));
+        self.register_vendor("browser_eastmoney", Box::new(BrowserEastMoneyVendor::new()));
+        // NeoData Financial Search — 末位 fallback vendor
+        let neodata_token = Arc::new(RwLock::new(String::new()));
+        self.neodata_token = Some(neodata_token.clone());
+        self.register_vendor("neodata", Box::new(NeoDataVendor { token: neodata_token }));
+        // 雪球数据源（始终注册，token 通过共享 Arc 运行时注入）
+        let xq_token = Arc::new(RwLock::new(String::new()));
+        self.xq_token = Some(xq_token.clone());
+        self.register_vendor(
+            "xueqiu",
+            Box::new(XueqiuVendor { http: http.clone(), token: xq_token }),
+        );
     }
 
     /// 修复 P0-A4: 返回 Result 的构造函数，调用方可自行处理 TLS 失败
@@ -392,36 +440,7 @@ impl AStockClient {
             browser_fetcher: None,   // 浏览器 fetch 通过 with_browser_fetcher() 注入
         };
 
-        client.register_vendor("tencent", Box::new(TencentVendor { http: http.clone() }));
-        client.register_vendor(
-            "eastmoney",
-            Box::new(EastMoneyVendor {
-                http: http.clone(),
-                proxy_http: EastMoneyVendor::build_proxy_client(),
-            }),
-        );
-        client.register_vendor("sina", Box::new(SinaVendor { http: http.clone() }));
-        client.register_vendor("ths", Box::new(ThsVendor { http: http.clone() }));
-        client.register_vendor("cninfo", Box::new(CninfoVendor { http: http.clone() }));
-        client.register_vendor("baidu_stock", Box::new(BaiduStockVendor { http: http.clone() }));
-        client.register_vendor(
-            "iwencai",
-            Box::new(IwencaiVendor { http: http.clone(), api_key: String::new() }),
-        );
-        client.register_vendor("akshare", Box::new(AkshareVendor { http: http.clone() }));
-        client.register_vendor("mootdx", Box::new(MootdxVendor::new()));
-        client.register_vendor("browser_eastmoney", Box::new(BrowserEastMoneyVendor::new()));
-        // NeoData Financial Search — 末位 fallback vendor，覆盖美股/宏观/外汇/期货等
-        let neodata_token = Arc::new(RwLock::new(String::new()));
-        client.neodata_token = Some(neodata_token.clone());
-        client.register_vendor("neodata", Box::new(NeoDataVendor { token: neodata_token }));
-        // 雪球数据源（始终注册，token 通过共享 Arc 运行时注入）
-        let xq_token = Arc::new(RwLock::new(String::new()));
-        client.xq_token = Some(xq_token.clone());
-        client.register_vendor(
-            "xueqiu",
-            Box::new(XueqiuVendor { http: http.clone(), token: xq_token }),
-        );
+        client.register_default_vendors(http);
 
         Ok(client)
     }
@@ -519,6 +538,29 @@ impl AStockClient {
         format!("{}:{}::{}", method, args, crate::as_of::cache_suffix())
     }
 
+    /// 修复 P1-5: 在 is_asof_active_for(kind) 为 true 但 current_as_of() 返回 None
+    /// 的 race condition 场景下，原代码使用 .expect(...) 会导致 panic。
+    /// 改为退化为 None（让调用方原样返回数据，不截断）并通过 record_degradation
+    /// 记录降级原因，使决策可观测。这与 is_asof_active_for=false 的行为一致——
+    /// "as_of 未生效时数据不截断"，是更安全的失败方向（避免错误丢弃数据）。
+    fn as_of_ctx_or_degrade(method: &str) -> Option<crate::as_of::AsOfContext> {
+        match crate::as_of::current_as_of() {
+            Some(c) => Some(c),
+            None => {
+                tracing::warn!(
+                    "[asof] race condition: is_asof_active_for 为真但 current_as_of 为 None，{} 退化为不截断",
+                    method
+                );
+                crate::as_of::record_degradation(
+                    "astock-data",
+                    method,
+                    "current_as_of 为 None（race condition），退化为不截断",
+                );
+                None
+            },
+        }
+    }
+
     /// K 线专用 cache key:在 cache_key_for 基础上追加 effective_cutoff(交易日 fallback 后),
     /// 解决缺陷 B —— 同一 as_of_date 下,周末 vs 周一/effective_cutoff 不同时缓存会污染。
     /// live 模式下 effective 与 as_of 一致,行为不变。
@@ -556,8 +598,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return klines;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_klines_by_asof") {
+            Some(c) => c,
+            None => return klines,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         let before = klines.len();
         let filtered: Vec<KLine> =
@@ -591,8 +635,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Unstructured) {
             return news;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Unstructured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_news_by_asof") {
+            Some(c) => c,
+            None => return news,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         news.into_iter()
             .filter(|n| {
@@ -610,8 +656,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return reports;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_financials_by_asof") {
+            Some(c) => c,
+            None => return reports,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         reports.into_iter().filter(|r| r.report_date.as_str() <= cutoff.as_str()).collect()
     }
@@ -622,8 +670,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return entries;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_dragon_tiger_by_asof") {
+            Some(c) => c,
+            None => return entries,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         entries.into_iter().filter(|e| e.date.as_str() <= cutoff.as_str()).collect()
     }
@@ -634,8 +684,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Unstructured) {
             return items;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Unstructured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_announcements_by_asof") {
+            Some(c) => c,
+            None => return items,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         items
             .into_iter()
@@ -649,8 +701,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Unstructured) {
             return items;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Unstructured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_research_reports_by_asof") {
+            Some(c) => c,
+            None => return items,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         items
             .into_iter()
@@ -665,8 +719,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return items;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_lockup_by_asof") {
+            Some(c) => c,
+            None => return items,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         items
             .into_iter()
@@ -681,8 +737,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return items;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_dividend_by_asof") {
+            Some(c) => c,
+            None => return items,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         items
             .into_iter()
@@ -696,8 +754,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return items;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_shareholder_trades_by_asof") {
+            Some(c) => c,
+            None => return items,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         items
             .into_iter()
@@ -711,8 +771,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return items;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_block_trades_by_asof") {
+            Some(c) => c,
+            None => return items,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         items
             .into_iter()
@@ -728,8 +790,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return items;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_institutional_visits_by_asof") {
+            Some(c) => c,
+            None => return items,
+        };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
         items
             .into_iter()
@@ -743,8 +807,10 @@ impl AStockClient {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return item;
         }
-        let ctx = crate::as_of::current_as_of()
-            .expect("is_asof_active_for(Structured) 为真时 current_as_of 必为 Some");
+        let ctx = match Self::as_of_ctx_or_degrade("truncate_north_bound_flow_by_asof") {
+            Some(c) => c,
+            None => return item,
+        };
         let item = item?;
         if !item.date.is_empty()
             && item.date.as_str() <= ctx.as_of_date.format("%Y-%m-%d").to_string().as_str()
@@ -882,7 +948,8 @@ impl AStockClient {
 
             for name in names_to_try {
                 if let Some(vendor) = self.find_vendor(name) {
-                    let _guard = self.gate.acquire(name).await;
+                    // 修复 M-DEF-1: acquire 现在返回 Result，错误传播为 DataError
+                    let _guard = self.gate.acquire(name).await?;
                     match fetch_fn(name, vendor).await {
                         Ok(result) => {
                             self.health_tracker.record_success(name).await;
@@ -1054,6 +1121,20 @@ impl AStockClient {
         self.daily_snapshot.as_ref().and_then(|c| c.get(method, date))
     }
 
+    /// C5.3 修复：带 keyword 维度的每日快照查询（用于 search_stock 等方法）
+    /// 与 try_daily_snapshot 的区别：cache_key 含 keyword，避免不同 keyword 互相覆盖
+    fn try_daily_keyword_snapshot(
+        &self,
+        method: &str,
+        keyword: &str,
+        date: &str,
+    ) -> Option<String> {
+        if !daily_snapshot::SNAPSHOT_METHODS.contains(&method) {
+            return None;
+        }
+        self.daily_snapshot.as_ref().and_then(|c| c.get_keyword(method, keyword, date))
+    }
+
     /// 设置每日快照（全市场方法），供 Tauri command 写入
     pub fn set_daily_snapshot(&self, method: &str, date: &str, json: &str) {
         if let Some(ref snap) = self.daily_snapshot {
@@ -1065,6 +1146,14 @@ impl AStockClient {
     pub fn set_stock_daily_snapshot(&self, method: &str, stock_code: &str, date: &str, json: &str) {
         if let Some(ref snap) = self.daily_snapshot {
             snap.set_stock_snapshot(method, stock_code, date, json);
+        }
+    }
+
+    /// C5.3 修复：设置带 keyword 的每日快照（用于 search_stock 等方法）
+    /// 供 Tauri command sweep_daily_snapshots 写入预抓结果
+    pub fn set_daily_keyword_snapshot(&self, method: &str, keyword: &str, date: &str, json: &str) {
+        if let Some(ref snap) = self.daily_snapshot {
+            snap.set_keyword_snapshot(method, keyword, date, json);
         }
     }
 
@@ -1253,8 +1342,26 @@ impl AStockClient {
             if let Some(cached) = self.cache_get(&cache_key).await {
                 if let Ok(klines) = serde_json::from_str::<Vec<KLine>>(&cached) {
                     if klines.len() >= limit as usize {
-                        let start = klines.len().saturating_sub(limit as usize);
-                        return Ok(klines[start..].to_vec());
+                        // 修复 M-DS-1: 仅检查长度不够，还需校验最后一条 K 线的日期
+                        // 是否为最新交易日。若缓存过期（如周末/节假日拉取后过了夜），
+                        // 视为未命中，继续走 vendor 拿最新数据。
+                        let latest_td = crate::calendar::latest_trading_day();
+                        let cache_stale = klines
+                            .last()
+                            .and_then(|k| {
+                                chrono::NaiveDate::parse_from_str(&k.date, "%Y-%m-%d").ok()
+                            })
+                            .map(|d| d < latest_td)
+                            .unwrap_or(true);
+                        if !cache_stale {
+                            let start = klines.len().saturating_sub(limit as usize);
+                            return Ok(klines[start..].to_vec());
+                        }
+                        tracing::debug!(
+                            "[astock-data] K 线缓存已过期 (last_date={:?}, latest_trading_day={}), 重新拉取 vendor",
+                            klines.last().map(|k| k.date.as_str()),
+                            latest_td
+                        );
                     }
                 }
             }
@@ -1440,10 +1547,14 @@ impl AStockClient {
                 self.cache_set(cache_key, json, 3600).await;
                 Ok(result)
             },
-            Err(_) => {
-                // C: fallback — 全部数据源失败时返回行业均值估计值
-                tracing::warn!("[C-fallback] 为 {stock_code} 使用行业估算财务数据");
-                Ok(vec![crate::types::estimated_financial_report(stock_code)])
+            Err(e) => {
+                // C: fallback — 全部数据源失败时返回错误，不包装估算数据
+                // 估算数据不应被 Ok 包装，否则下游无法区分真实财报和估算值
+                tracing::warn!("[C-fallback] {stock_code} 所有财务数据源失败: {e}");
+                Err(DataError::VendorError {
+                    vendor: "all".into(),
+                    message: format!("所有财务数据源失败，无法获取 {} 的财报数据", stock_code),
+                })
             },
         }
     }
@@ -1502,9 +1613,14 @@ impl AStockClient {
                 }
                 Ok(result)
             },
-            Err(_) => {
-                tracing::warn!("所有新闻源均失败");
-                Ok(vec![])
+            Err(e) => {
+                // 与 get_financials 一致：全部数据源失败时返回 Err，
+                // 避免调用方把空列表误判为"无新闻/无催化剂"
+                tracing::warn!("[news] {stock_code} 所有新闻数据源失败: {e}");
+                Err(DataError::VendorError {
+                    vendor: "all".into(),
+                    message: format!("所有新闻数据源失败，无法获取 {} 的新闻", stock_code),
+                })
             },
         }
     }
@@ -1577,7 +1693,11 @@ impl AStockClient {
                 self.cache_set(cache_key, json, 60).await;
                 Ok(Some(result))
             },
-            Err(_) => Ok(None),
+            Err(e) => {
+                // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
+                tracing::warn!("[get_money_flow] 所有 vendor 失败(stock_code={}): {e}", stock_code);
+                Ok(None)
+            },
         }
     }
 
@@ -1620,7 +1740,14 @@ impl AStockClient {
                 self.cache_set(cache_key, json, 3600).await;
                 Ok(result)
             },
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
+                tracing::warn!(
+                    "[get_dragon_tiger] 所有 vendor 失败(stock_code={}): {e}",
+                    stock_code
+                );
+                Ok(vec![])
+            },
         }
     }
 
@@ -1661,17 +1788,27 @@ impl AStockClient {
                 self.cache_set(cache_key, json, 86400).await;
                 Ok(result)
             },
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
+                tracing::warn!(
+                    "[get_lockup_schedule] 所有 vendor 失败(stock_code={}): {e}",
+                    stock_code
+                );
+                Ok(vec![])
+            },
         }
     }
 
     pub async fn search_stock(&self, keyword: &str) -> Result<Vec<StockSearchResult>, DataError> {
         // P5:搜索是当下语义(iwencai NoHistoricalSemantic),as-of 模式检查每日快照或返回空
+        // C5.3 修复:cache_key 含 keyword 维度，避免不同 keyword 互相覆盖
         if crate::as_of::is_asof_active() {
             let as_of = crate::as_of::current_as_of();
             if let Some(ref ctx) = as_of {
                 let date = ctx.as_of_date.format("%Y-%m-%d").to_string();
-                if let Some(cached) = self.try_daily_snapshot("search_stock", &date) {
+                if let Some(cached) =
+                    self.try_daily_keyword_snapshot("search_stock", keyword, &date)
+                {
                     if let Ok(r) = serde_json::from_str::<Vec<StockSearchResult>>(&cached) {
                         if !r.is_empty() {
                             return Ok(r);
@@ -1687,6 +1824,15 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // ── live 模式 ──
+        // H1.1 修复:live 模式也添加 L1 缓存(搜索结果 60s 内变化不大,频繁搜索同关键词可命中缓存)
+        {
+            let cache_key = Self::cache_key_for("search_stock", keyword);
+            if let Some(cached) = self.cache_get(&cache_key).await {
+                if let Ok(data) = serde_json::from_str::<Vec<StockSearchResult>>(&cached) {
+                    return Ok(data);
+                }
+            }
+        }
         let vendor_names: Vec<String> = self.routing.search.iter().map(|n| n.to_string()).collect();
         let kw = keyword.to_string();
         match self
@@ -1705,8 +1851,18 @@ impl AStockClient {
             })
             .await
         {
-            Ok(result) => Ok(result),
-            Err(_) => Ok(vec![]),
+            Ok(result) => {
+                // H1.1 修复:写入 L1 缓存(TTL 60s,搜索结果变化快,使用较短 TTL)
+                let cache_key = Self::cache_key_for("search_stock", keyword);
+                let json = serde_json::to_string(&result).unwrap_or_default();
+                self.cache_set(cache_key, json, 60).await;
+                Ok(result)
+            },
+            Err(e) => {
+                // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
+                tracing::warn!("[search_stock] 所有 vendor 失败(keyword={}): {e}", keyword);
+                Ok(vec![])
+            },
         }
     }
 
@@ -1724,10 +1880,19 @@ impl AStockClient {
                     .map(|dt| dt.timestamp_millis())
                     .unwrap_or_else(|| {
                         // fallback:用 UTC 23:59:59.999
+                        // 修复 M-RES-8: 内层 unwrap_or(0) 在极端情况下
+                        // （如 as_of_date 无效）静默返回 0，导致 sink 查询条件
+                        // 变为 "ts <= 0"，几乎不可能命中。添加 warn 日志便于发现。
                         ctx.as_of_date
                             .and_hms_opt(23, 59, 59)
                             .and_then(|dt| dt.and_utc().timestamp_millis().into())
-                            .unwrap_or(0)
+                            .unwrap_or_else(|| {
+                                tracing::warn!(
+                                    "[news_archive] as_of_ts_ms 计算失败，回退为 0 (as_of_date={})",
+                                    ctx.as_of_date
+                                );
+                                0
+                            })
                     });
                 let archived = sink.search_asof(keyword, None, as_of_ts_ms, limit).await;
                 if !archived.is_empty() {
@@ -1756,6 +1921,15 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // live 模式:走 vendor + 自动 upsert
+        // H1.2 修复:live 模式添加 L1 缓存(60s TTL,新闻搜索结果短期内变化不大)
+        {
+            let cache_key = Self::cache_key_for("search_news", &format!("{keyword}:{limit}"));
+            if let Some(cached) = self.cache_get(&cache_key).await {
+                if let Ok(data) = serde_json::from_str::<Vec<NewsItem>>(&cached) {
+                    return Ok(data);
+                }
+            }
+        }
         let vendor_names: Vec<String> =
             self.routing.search_news.iter().map(|n| n.to_string()).collect();
         let kw = keyword.to_string();
@@ -1777,6 +1951,10 @@ impl AStockClient {
             .await
         {
             Ok(result) => {
+                // H1.2 修复:写入 L1 缓存(60s TTL)
+                let cache_key = Self::cache_key_for("search_news", &format!("{keyword}:{limit}"));
+                let json = serde_json::to_string(&result).unwrap_or_default();
+                self.cache_set(cache_key, json, 60).await;
                 if let Some(sink) = &self.news_archive_sink {
                     let filtered: Vec<NewsItem> = result
                         .iter()
@@ -1789,7 +1967,15 @@ impl AStockClient {
                 }
                 Ok(result)
             },
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
+                tracing::warn!(
+                    "[search_news] 所有 vendor 失败(keyword={}, limit={}): {e}",
+                    keyword,
+                    limit
+                );
+                Ok(vec![])
+            },
         }
     }
 
@@ -3098,82 +3284,130 @@ impl AStockClient {
                 }
             },
         };
+        // H1.4 修复:收集所有子查询错误,调用方可据此判断数据完整性
+        let mut errors: Vec<String> = Vec::new();
         let klines = klines_r.unwrap_or_else(|e| {
-            tracing::warn!("klines failed: {e}");
+            let msg = format!("klines: {e}");
+            tracing::warn!("{} failed: {}", "klines", msg);
+            errors.push(msg);
             vec![]
         });
         let financials = financials_r.unwrap_or_else(|e| {
-            tracing::warn!("financials failed: {e}");
+            let msg = format!("financials: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let news = news_r.unwrap_or_else(|e| {
-            tracing::warn!("news failed: {e}");
+            let msg = format!("news: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let money_flow = money_flow_r.unwrap_or_else(|e| {
-            tracing::warn!("money_flow failed: {e}");
+            let msg = format!("money_flow: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             None
         });
         let dragon_tiger = dragon_tiger_r.unwrap_or_else(|e| {
-            tracing::warn!("dragon_tiger failed: {e}");
+            let msg = format!("dragon_tiger: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let lockup = lockup_r.unwrap_or_else(|e| {
-            tracing::warn!("lockup failed: {e}");
+            let msg = format!("lockup: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let margin_data = margin_r.unwrap_or_else(|e| {
-            tracing::warn!("margin_data failed: {e}");
+            let msg = format!("margin_data: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             None
         });
         let north_bound = north_bound_r.unwrap_or_else(|e| {
-            tracing::warn!("north_bound failed: {e}");
+            let msg = format!("north_bound: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             None
         });
         let sector_info = sector_r.unwrap_or_else(|e| {
-            tracing::warn!("sector_info failed: {e}");
+            let msg = format!("sector_info: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             None
         });
         let shareholder_trades = shareholder_r.unwrap_or_else(|e| {
-            tracing::warn!("shareholder_trades failed: {e}");
+            let msg = format!("shareholder_trades: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let dividend_records = dividend_r.unwrap_or_else(|e| {
-            tracing::warn!("dividend_records failed: {e}");
+            let msg = format!("dividend_records: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let research_reports = research_r.unwrap_or_else(|e| {
-            tracing::warn!("research_reports failed: {e}");
+            let msg = format!("research_reports: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let consensus_eps = consensus_r.unwrap_or_else(|e| {
-            tracing::warn!("consensus_eps failed: {e}");
+            let msg = format!("consensus_eps: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             None
         });
         let concept_blocks = concept_r.unwrap_or_else(|e| {
-            tracing::warn!("concept_blocks failed: {e}");
+            let msg = format!("concept_blocks: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             None
         });
         let announcements = announcements_r.unwrap_or_else(|e| {
-            tracing::warn!("announcements failed: {e}");
+            let msg = format!("announcements: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let block_trades = block_trades_r.unwrap_or_else(|e| {
-            tracing::warn!("block_trades failed: {e}");
+            let msg = format!("block_trades: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let institutional_visits = institutional_visits_r.unwrap_or_else(|e| {
-            tracing::warn!("institutional_visits failed: {e}");
+            let msg = format!("institutional_visits: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let peers = peers_r.unwrap_or_else(|e| {
-            tracing::warn!("peers failed: {e}");
+            let msg = format!("peers: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             vec![]
         });
         let option_pcr = option_pcr_r.unwrap_or_else(|e| {
-            tracing::warn!("option_pcr failed: {e}");
+            let msg = format!("option_pcr: {e}");
+            tracing::warn!("{}", msg);
+            errors.push(msg);
             None
         });
+        if !errors.is_empty() {
+            tracing::warn!(
+                "[fetch_all] {} 个子查询失败(stock_code={}): {:?}",
+                errors.len(),
+                stock_code,
+                errors
+            );
+        }
 
         Ok(StockRawData {
             quote,
@@ -3196,6 +3430,7 @@ impl AStockClient {
             institutional_visits,
             peers,
             option_pcr,
+            errors,
         })
     }
 }

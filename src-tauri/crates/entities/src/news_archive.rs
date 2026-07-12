@@ -16,8 +16,8 @@ pub struct Model {
     pub id: String,
     /// vendor 标识(同 StockVendor::name)
     pub source: String,
-    /// 第三方文章 id(无则用 url 的 hash)
-    pub article_code: Option<String>,
+    /// 第三方文章 id(始终非空 — C5.2: NewsArchiveSinkImpl 用 url/title sha256 兜底)
+    pub article_code: String,
     pub title: String,
     pub summary: Option<String>,
     pub url: Option<String>,

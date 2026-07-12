@@ -95,6 +95,33 @@ impl DailySnapshotCache {
         let key = Self::cache_key(method, date);
         self.disk.get(&key).is_some()
     }
+
+    // ── C5.3 修复：带 keyword 维度的快照 ──
+    // search_stock 这类方法的结果与 keyword 强相关，原 cache_key
+    // 仅含 method + date，导致不同 keyword 的搜索结果互相覆盖。
+    // 新增 keyword 维度，cache_key = daily:{method}:{keyword}:{date}。
+
+    fn cache_key_with_keyword(method: &str, keyword: &str, date: &str) -> String {
+        format!("{SNAPSHOT_PREFIX}:{method}:{keyword}:{date}")
+    }
+
+    /// 存入带 keyword 的快照（用于 search_stock 等方法）
+    pub fn set_keyword_snapshot(&self, method: &str, keyword: &str, date: &str, json: &str) {
+        let key = Self::cache_key_with_keyword(method, keyword, date);
+        self.disk.set(key, json.to_string(), 0i64);
+    }
+
+    /// 获取带 keyword 的快照
+    pub fn get_keyword(&self, method: &str, keyword: &str, date: &str) -> Option<String> {
+        let key = Self::cache_key_with_keyword(method, keyword, date);
+        self.disk.get(&key)
+    }
+
+    /// 检查带 keyword 的快照是否已缓存
+    pub fn has_keyword(&self, method: &str, keyword: &str, date: &str) -> bool {
+        let key = Self::cache_key_with_keyword(method, keyword, date);
+        self.disk.get(&key).is_some()
+    }
 }
 
 #[cfg(test)]
@@ -172,5 +199,29 @@ mod tests {
         assert!(SNAPSHOT_METHODS.contains(&"get_concept_blocks"));
         assert!(SNAPSHOT_METHODS.contains(&"search_stock"));
         assert!(SNAPSHOT_METHODS.contains(&"get_sector_info"));
+    }
+
+    #[test]
+    fn test_keyword_snapshot_isolation() {
+        // C5.3: 不同 keyword 的快照应互相隔离
+        let cache = make_cache();
+        cache.set_keyword_snapshot("search_stock", "贵州茅台", "2026-06-01", "maotai_result");
+        cache.set_keyword_snapshot("search_stock", "比亚迪", "2026-06-01", "byd_result");
+
+        let maotai = cache.get_keyword("search_stock", "贵州茅台", "2026-06-01");
+        let byd = cache.get_keyword("search_stock", "比亚迪", "2026-06-01");
+        let miss = cache.get_keyword("search_stock", "未知股票", "2026-06-01");
+
+        assert_eq!(maotai, Some("maotai_result".to_string()));
+        assert_eq!(byd, Some("byd_result".to_string()));
+        assert!(miss.is_none(), "未缓存的 keyword 应返回 None");
+    }
+
+    #[test]
+    fn test_keyword_snapshot_key_format() {
+        // 确认 keyword 版本的 key 含 keyword 维度
+        let key =
+            DailySnapshotCache::cache_key_with_keyword("search_stock", "贵州茅台", "2026-06-01");
+        assert_eq!(key, "daily:search_stock:贵州茅台:2026-06-01");
     }
 }

@@ -37,9 +37,6 @@ pub struct Model {
     /// LLM 决策 JSON（方案 D 双向并存：trader 节点的 `{stance, positionPct, confidence}`）
     #[sea_orm(default_value = "NULL")]
     pub llm_decision_json: Option<String>,
-    /// 子工作流节点结果快照（用于 rerun_decision_only 缓存命中跳过已算节点）
-    #[sea_orm(default_value = "NULL")]
-    pub node_results_snapshot: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

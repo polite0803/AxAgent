@@ -3,6 +3,7 @@ use crate::error::DataError;
 use crate::types::*;
 use crate::vendors::StockVendor;
 use async_trait::async_trait;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -21,17 +22,22 @@ const RSP_HEADER_LEN: usize = 0x10;
 pub struct MootdxVendor {
     pub host: String,
     pub port: u16,
+    /// H1.6 修复:轮询负载均衡索引,记录上次成功的 TDX_SERVERS 下标。
+    /// 下次查询从该索引开始遍历,失败时自动 failover 到下一个 server,
+    /// 成功后更新此索引(避免每次都从 TDX_SERVERS[0] 开始浪费时间)。
+    /// AtomicUsize 因为 vendor 方法签名是 `&self`,需要内部可变性。
+    current_server_idx: AtomicUsize,
 }
 
 impl MootdxVendor {
     pub fn new() -> Self {
         let (host, port) = TDX_SERVERS[0];
-        Self { host: host.to_string(), port }
+        Self { host: host.to_string(), port, current_server_idx: AtomicUsize::new(0) }
     }
 
     #[allow(dead_code)]
     pub fn with_server(host: &str, port: u16) -> Self {
-        Self { host: host.to_string(), port }
+        Self { host: host.to_string(), port, current_server_idx: AtomicUsize::new(0) }
     }
 
     async fn connect(&self) -> Result<TdxConnection, DataError> {
@@ -141,7 +147,16 @@ impl TdxConnection {
         stocks: &[(u8, &str)],
     ) -> Result<Vec<QuoteResult>, DataError> {
         let stock_len = stocks.len() as u16;
-        let pkgdatalen = stock_len * 7 + 12;
+        // 修复 M-RES-7: 原 `stock_len * 7 + 12` 在 stock_len 较大时
+        // (u16 * 7 + 12) 理论上不会溢出（max ~462K），但用 checked_mul
+        // 防御性更好，符合安全编码规范。
+        let pkgdatalen =
+            stock_len.checked_mul(7).and_then(|v| v.checked_add(12)).ok_or_else(|| {
+                DataError::VendorError {
+                    vendor: "mootdx".into(),
+                    message: format!("pkgdatalen 计算溢出 (stock_len={})", stock_len),
+                }
+            })?;
 
         let mut pkg = Vec::with_capacity(22 + stocks.len() * 7);
         pkg.extend_from_slice(&(0x10cu16).to_le_bytes());
@@ -547,13 +562,25 @@ impl StockVendor for MootdxVendor {
     async fn get_quote(&self, stock_code: &str) -> Result<StockQuote, DataError> {
         let market = Self::market_code(stock_code);
         let mut last_err = None;
-        for (host, port) in TDX_SERVERS.iter() {
-            let vendor = MootdxVendor { host: host.to_string(), port: *port };
+        // H1.6 修复:从 current_server_idx 开始遍历所有 TDX_SERVERS,
+        // 失败时 failover 到下一个,成功时记录使用的 idx(下次优先从此 server 开始)
+        let start_idx = self.current_server_idx.load(Ordering::Relaxed);
+        let len = TDX_SERVERS.len();
+        for offset in 0..len {
+            let idx = (start_idx + offset) % len;
+            let (host, port) = TDX_SERVERS[idx];
+            let vendor = MootdxVendor {
+                host: host.to_string(),
+                port,
+                current_server_idx: AtomicUsize::new(idx),
+            };
             match vendor.connect().await {
                 Ok(mut conn) => {
                     let stocks = vec![(market, stock_code)];
                     match conn.get_security_quotes(&stocks).await {
                         Ok(quotes) if !quotes.is_empty() => {
+                            // H1.6:成功后更新 current_server_idx,下次优先用此 server
+                            self.current_server_idx.store(idx, Ordering::Relaxed);
                             let q = &quotes[0];
                             let change_pct = if q.last_close > 0.0 {
                                 (q.price - q.last_close) / q.last_close * 100.0
@@ -616,8 +643,18 @@ impl StockVendor for MootdxVendor {
         let market = Self::market_code(stock_code) as u16;
         let category = Self::kline_category(period);
         let mut last_err = None;
-        for (host, port) in TDX_SERVERS.iter() {
-            let vendor = MootdxVendor { host: host.to_string(), port: *port };
+        // H1.6 修复:从 current_server_idx 开始遍历所有 TDX_SERVERS,
+        // 失败时 failover 到下一个,成功时记录使用的 idx
+        let start_idx = self.current_server_idx.load(Ordering::Relaxed);
+        let len = TDX_SERVERS.len();
+        for offset in 0..len {
+            let idx = (start_idx + offset) % len;
+            let (host, port) = TDX_SERVERS[idx];
+            let vendor = MootdxVendor {
+                host: host.to_string(),
+                port,
+                current_server_idx: AtomicUsize::new(idx),
+            };
             match vendor.connect().await {
                 Ok(mut conn) => {
                     match conn
@@ -625,6 +662,8 @@ impl StockVendor for MootdxVendor {
                         .await
                     {
                         Ok(bars) if !bars.is_empty() => {
+                            // H1.6:成功后更新 current_server_idx
+                            self.current_server_idx.store(idx, Ordering::Relaxed);
                             return Ok(bars
                                 .into_iter()
                                 .map(|b| KLine {

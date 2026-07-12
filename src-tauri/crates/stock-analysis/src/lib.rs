@@ -26,6 +26,7 @@ pub mod position_limits;
 pub mod prompts;
 pub mod quality;
 pub mod recommender;
+pub mod reflection_lesson_validator;
 pub mod report;
 pub mod review;
 pub mod risk;

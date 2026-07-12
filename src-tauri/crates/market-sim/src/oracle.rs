@@ -123,6 +123,18 @@ impl Oracle for BaselineOracle {
             self.current_fv *= 1.0 + step * dt_days.sqrt();
             self.last_time = time;
         }
+        // 修复 M-DS-8: 累积漂移或异常波动可能让 current_fv 变为 NaN/Inf，
+        // 直接 `as Price` 会得到 UB 行为（饱和转换或截断）。
+        // 检测到非有限值或负数时，记录 warn 并返回兜底值 1，避免污染下游 Agent。
+        if !self.current_fv.is_finite() || self.current_fv < 0.0 {
+            tracing::warn!(
+                "[market-sim] BaselineOracle current_fv 异常: {}, 重置为 reference_price={}",
+                self.current_fv,
+                self.reference_price
+            );
+            self.current_fv = self.reference_price as f64;
+            return OracleSignal { time, fundamental_value: 1, sentiment: 1.0, active_event: None };
+        }
         let fv = self.current_fv.round() as Price;
 
         OracleSignal { time, fundamental_value: fv.max(1), sentiment: 1.0, active_event: None }
@@ -203,6 +215,18 @@ impl Oracle for DriftOracle {
             self.current_fv *= 1.0 + (drift + noise) * dt_days.sqrt();
             self.last_time = time;
         }
+        // 修复 P1-2: 累积漂移或异常波动可能让 current_fv 变为 NaN/Inf，
+        // 与 BaselineOracle 保持一致的兜底检查：检测到非有限值或负数时，
+        // 记录 warn 并重置为 reference_price，避免污染下游 Agent。
+        if !self.current_fv.is_finite() || self.current_fv < 0.0 {
+            tracing::warn!(
+                "[market-sim] DriftOracle current_fv 异常: {}, 重置为 reference_price={}",
+                self.current_fv,
+                self.reference_price
+            );
+            self.current_fv = self.reference_price as f64;
+            return OracleSignal { time, fundamental_value: 1, sentiment: 1.0, active_event: None };
+        }
         let fv = self.current_fv.round() as Price;
 
         let sentiment_factor = if self.drift_per_day_bps > 0 {
@@ -262,6 +286,43 @@ impl EventOracle {
             event_end_time: 0,
         }
     }
+
+    /// 修复 P1-1: 带 seed 的闪崩情景 Oracle，让蒙特卡洛路径可复现。
+    /// seed 由蒙特卡洛引擎按 (base_seed + path_index) 派生，
+    /// 保证每条路径独立且可复现。
+    pub fn flash_crash_with_seed(
+        reference_price: Price,
+        crash_time: SimTimestamp,
+        recovery_time_ns: SimTimestamp,
+        seed: u64,
+    ) -> Self {
+        let drop_bps = 500; // 5% 闪崩
+        Self {
+            base_oracle: DriftOracle::with_seed(reference_price, 0, 15, seed),
+            events: vec![
+                ScriptedEvent {
+                    at_time: crash_time,
+                    event: MarketEvent::PriceShock { direction: -1.0, magnitude_bps: drop_bps },
+                },
+                ScriptedEvent {
+                    at_time: crash_time + recovery_time_ns,
+                    event: MarketEvent::PriceShock { direction: 1.0, magnitude_bps: drop_bps },
+                },
+            ],
+            active_event: None,
+            event_end_time: 0,
+        }
+    }
+
+    /// 修复 P1-1: 带 seed 的高波动 Oracle，让蒙特卡洛路径可复现。
+    pub fn high_volatility_with_seed(reference_price: Price, seed: u64) -> Self {
+        Self {
+            base_oracle: DriftOracle::with_seed(reference_price, 0, 80, seed),
+            events: vec![],
+            active_event: None,
+            event_end_time: 0,
+        }
+    }
 }
 
 impl Oracle for EventOracle {
@@ -271,8 +332,13 @@ impl Oracle for EventOracle {
 
     fn signal_at(&mut self, time: SimTimestamp) -> OracleSignal {
         // 检查是否有事件触发
+        // 修复 M-RES-13: 原实现 `event.at_time == time` 严格相等，
+        // 若 event_at_time 落在两个 tick 之间（time 步进大于 1ns），
+        // 事件永远不触发。改为 `event.at_time <= time` 且当前不在活跃事件期内。
+        // event_end_time == 0 表示无活跃事件（sentinel）。
         for event in &self.events {
-            if event.at_time == time {
+            let not_in_active = self.event_end_time == 0 || time < self.event_end_time;
+            if event.at_time <= time && not_in_active {
                 self.active_event = Some(event.event.clone());
                 self.event_end_time = time + 1_000_000; // 1ms 后恢复
             }

@@ -131,6 +131,31 @@ pub fn compute_excess_return(
     }
 }
 
+/// 计算价格序列的最大回撤（百分比，负值）
+///
+/// 修复 P2-11: 提取为独立函数，遵循"峰值→谷值"标准定义。
+/// 算法：遍历序列，跟踪历史峰值 peak；每个点的回撤 = (price - peak) / peak × 100；
+/// 取所有点回撤的最小值（最负值）作为最大回撤。
+pub fn compute_max_drawdown_from_series(prices: &[f64]) -> f64 {
+    if prices.is_empty() {
+        return 0.0;
+    }
+    let mut peak = prices[0];
+    let mut max_dd = 0.0_f64;
+    for &p in prices {
+        if p > peak {
+            peak = p;
+        }
+        if peak > 0.0 {
+            let dd = (p - peak) / peak * 100.0;
+            if dd < max_dd {
+                max_dd = dd;
+            }
+        }
+    }
+    max_dd
+}
+
 /// 构建 SerenityPickValidation
 #[allow(clippy::too_many_arguments)]
 pub fn build_serenity_validation(
@@ -154,11 +179,16 @@ pub fn build_serenity_validation(
     } else {
         let entry = closes[0];
         let max_price = closes.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        let min_price = closes.iter().copied().fold(f64::INFINITY, f64::min);
         let final_price = closes[closes.len() - 1];
 
         let max_ret = (max_price - entry) / entry * 100.0;
-        let max_dd = (min_price - entry) / entry * 100.0;
+        // 修复 P2-11: 原算法 (min_price - entry) / entry 计算的是"从入场到最低价的跌幅"，
+        // 不是真正的"最大回撤"。最大回撤定义：从历史峰值到随后谷值的最大跌幅。
+        // 例如 closes=[10, 11, 9.5, 12, 11.5]：
+        //   - 旧算法: (9.5-10)/10 = -5%
+        //   - 正确算法: 在 i=2 时 peak=11, dd=(9.5-11)/11 = -13.6%（更真实）
+        // 修复后反映持仓期间的真实风险暴露，而非简单的"入场后最大浮亏"。
+        let max_dd = compute_max_drawdown_from_series(closes);
         let final_ret = (final_price - entry) / entry * 100.0;
 
         (Some(max_ret), Some(max_dd), Some(final_ret))
@@ -481,6 +511,29 @@ mod tests {
         assert!(v.final_return_pct.unwrap() > 0.0);
         assert!(v.excess_return.is_some());
         assert!(v.hit_outcome.is_some());
+    }
+
+    #[test]
+    fn test_max_drawdown_peak_to_trough() {
+        // 修复 P2-11 验证: closes=[10, 11, 9.5, 12, 11.5]
+        // 旧算法 (min-entry)/entry = (9.5-10)/10 = -5%
+        // 正确算法: peak=11 时 trough=9.5, dd = (9.5-11)/11 = -13.6%
+        let closes = vec![10.0, 11.0, 9.5, 12.0, 11.5];
+        let dd = compute_max_drawdown_from_series(&closes);
+        assert!(dd < -13.0 && dd > -14.0, "expected ~-13.6%, got {dd}%");
+    }
+
+    #[test]
+    fn test_max_drawdown_monotonic_increasing() {
+        // 单调上涨序列无回撤
+        let closes = vec![10.0, 11.0, 12.0, 13.0, 14.0];
+        let dd = compute_max_drawdown_from_series(&closes);
+        assert_eq!(dd, 0.0);
+    }
+
+    #[test]
+    fn test_max_drawdown_empty_series() {
+        assert_eq!(compute_max_drawdown_from_series(&[]), 0.0);
     }
 
     #[test]

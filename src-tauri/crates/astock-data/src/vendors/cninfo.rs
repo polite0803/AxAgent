@@ -136,6 +136,7 @@ impl StockVendor for CninfoVendor {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod capability_tests {
     use super::*;
 

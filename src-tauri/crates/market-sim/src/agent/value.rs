@@ -27,8 +27,6 @@ pub struct ValueAgent {
     wakeup_interval_ns: SimTimestamp,
     /// 当前持仓
     position: i64,
-    /// 上次测试中是否已发出请求
-    has_request: bool,
 }
 
 impl ValueAgent {
@@ -49,7 +47,6 @@ impl ValueAgent {
             position_limit,
             wakeup_interval_ns,
             position: 0,
-            has_request: false,
         }
     }
 }
@@ -77,7 +74,7 @@ impl SimAgent for ValueAgent {
     fn on_message(&mut self, msg: &MessageBody, ctx: &mut AgentContext) -> Vec<AgentAction> {
         match msg {
             MessageBody::QuoteReply(snapshot) => {
-                self.has_request = true;
+                // 修复 L-9: 删除 has_request 字段（死代码，从未被读取）。
                 let mid = if let (Some(bid), Some(ask)) =
                     (snapshot.bids.first(), snapshot.asks.first())
                 {
@@ -97,6 +94,7 @@ impl SimAgent for ValueAgent {
                 let mut actions = Vec::new();
                 if mid < self.fair_value as f64 && self.position < self.position_limit {
                     // 低于公平价值 → 买入
+                    // 修复 C4.6: 不在此处更新 position；改为在 OrderFilled 中根据实际成交量更新
                     let order = MarketOrder {
                         id: 0,
                         side: OrderSide::Buy,
@@ -108,9 +106,9 @@ impl SimAgent for ValueAgent {
                         target: "exchange".into(),
                         body: MessageBody::SubmitMarket(order),
                     });
-                    self.position += self.order_size as i64;
                 } else if mid > self.fair_value as f64 && self.position > -self.position_limit {
                     // 高于公平价值 → 卖出
+                    // 修复 C4.6: 不在此处更新 position；改为在 OrderFilled 中根据实际成交量更新
                     let order = MarketOrder {
                         id: 0,
                         side: OrderSide::Sell,
@@ -122,10 +120,20 @@ impl SimAgent for ValueAgent {
                         target: "exchange".into(),
                         body: MessageBody::SubmitMarket(order),
                     });
-                    self.position -= self.order_size as i64;
                 }
 
                 actions
+            },
+            MessageBody::OrderFilled { fill, .. } => {
+                // 修复 C4.6: 在 OrderFilled 中根据实际成交更新 position
+                for trade in &fill.trades {
+                    if trade.buyer_agent_id == self.id {
+                        self.position += trade.quantity as i64;
+                    } else if trade.seller_agent_id == self.id {
+                        self.position -= trade.quantity as i64;
+                    }
+                }
+                Vec::new()
             },
             _ => Vec::new(),
         }

@@ -142,11 +142,11 @@ fn main() {
         ""
     };
 
-    // R-305: params_suggestion 必须是对象
-    let params_suggestion = if !is_unit(params_raw) && type_of(params_raw) == "map" {
+    // R-305: params_suggestion 必须是数组（v3 schema: [{param, current_value, suggested_value, reason}]）
+    let params_suggestion = if !is_unit(params_raw) && type_of(params_raw) == "array" {
         params_raw
     } else {
-        #{}
+        []
     };
 
     // rule_codes: 必须是数组

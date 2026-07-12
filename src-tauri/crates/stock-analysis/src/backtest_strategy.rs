@@ -418,7 +418,7 @@ fn detect_capital_ultra_short(klines: &[KLine], _vars: &serde_json::Value) -> Op
 
 // ── 策略注册表 ──
 
-#[allow(dead_code)]
+// 修复 L-1: 删除错误的 #[allow(dead_code)] 标注，read_f64 在多处策略中被使用。
 /// Read a f64 variable from vars with fallback default
 fn read_f64(vars: &serde_json::Value, name: &str, default: f64) -> f64 {
     vars.get(name).and_then(|v| v.as_f64()).unwrap_or(default)
@@ -902,10 +902,14 @@ pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStat
     let suffix = axagent_astock_data::as_of::cache_suffix();
     // 修复 P0-S4: 系统时钟早于 UNIX_EPOCH 时 unwrap 会 panic（嵌入式/虚拟机时钟漂移场景）。
     // 改用 unwrap_or_default() 兜底为 0；now=0 会让缓存条目看上去"立即过期"，但功能不挂。
+    // 修复 L-3: 添加 warn 日志，便于发现时钟倒流异常。
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64;
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or_else(|e| {
+            tracing::warn!("[signal_quality] SystemTime 早于 UNIX_EPOCH（时钟倒流）: {e}");
+            0
+        });
     let mut cache = SIGNAL_QUALITY_CACHE.write().unwrap_or_else(|e| e.into_inner());
     for (sid, stats) in positive_stats {
         if stats.total_signals < 5 {

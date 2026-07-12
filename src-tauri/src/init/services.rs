@@ -36,6 +36,11 @@ pub fn start_background_services(
     start_trajectory_cleanup(state);
     start_index_job_service(app, state);
     start_plugins(state);
+    // 反思工作流定时任务（方向1：接入上游反思基础设施）
+    start_batch_reflection(state);
+    start_lesson_validation(state);
+    // [方向6] DreamConsolidator：每日 18:00 跨股票蒸馏反思轨迹
+    start_dream_consolidation(state);
 }
 
 fn start_plugins(state: &AppState) {
@@ -196,6 +201,164 @@ fn start_memory_maintenance_tick(state: &AppState) {
                             "[memory_maintenance] Found {} similar memory clusters (potential duplicates)",
                             clusters.len()
                         );
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// 反思工作流定时任务：定期扫描 pending row 并执行反思。
+///
+/// 每 6 小时运行一次，首次延迟 60 秒（避免启动时抢资源）。
+/// 调用 `run_batch_reflection_inner` 处理最多 20 条 pending row。
+/// 监听 `shutdown_token` 支持优雅关闭。
+fn start_batch_reflection(state: &AppState) {
+    let db = state.harness.db().clone();
+    let client = state.astock_client.clone();
+    let engine = state.work_engine.clone();
+    let vector_store = state.vector_store.clone();
+    let master_key = state.harness.master_key_owned();
+    // [方向3] 透传 TrajectoryStorage，让批量反思也持久化执行轨迹
+    let trajectory_storage = state.trajectory_storage.clone();
+    let token = state.shutdown_token.clone();
+    state.task_manager.spawn("batch_reflection", async move {
+        let initial_delay = std::time::Duration::from_secs(60);
+        let interval = std::time::Duration::from_secs(6 * 3600); // 6 小时
+        tokio::time::sleep(initial_delay).await;
+        loop {
+            tokio::select! {
+                _ = token.cancelled() => {
+                    tracing::info!("[batch_reflection] 收到关闭信号");
+                    break;
+                }
+                _ = tokio::time::sleep(interval) => {
+                    tracing::info!("[batch_reflection] 开始执行批量反思");
+                    match crate::commands::stock_workflow::run_batch_reflection_inner(
+                        &db,
+                        &client,
+                        &engine,
+                        &vector_store,
+                        &master_key,
+                        None,
+                        Some(&trajectory_storage),
+                    ).await {
+                        Ok(result) => {
+                            tracing::info!(
+                                "[batch_reflection] 完成: {}",
+                                serde_json::to_string(&result).unwrap_or_default()
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!("[batch_reflection] 失败: {e}");
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// 反思规则有效性验证定时任务：定期校证 `reflection_lessons` 表的 confidence。
+///
+/// 每 24 小时运行一次，首次延迟 120 秒。
+/// 调用 `run_lesson_validation` 基于 `times_applied` 和 `actual_success_rate`
+/// 自动调整每条 lesson 的 confidence（×1.1 提升 / ×0.8 衰减 / 0.1 强废弃）。
+/// 监听 `shutdown_token` 支持优雅关闭。
+fn start_lesson_validation(state: &AppState) {
+    let db = state.harness.db().clone();
+    let token = state.shutdown_token.clone();
+    state.task_manager.spawn("lesson_validation", async move {
+        let initial_delay = std::time::Duration::from_secs(120);
+        let interval = std::time::Duration::from_secs(24 * 3600); // 24 小时
+        tokio::time::sleep(initial_delay).await;
+        loop {
+            tokio::select! {
+                _ = token.cancelled() => {
+                    tracing::info!("[lesson_validation] 收到关闭信号");
+                    break;
+                }
+                _ = tokio::time::sleep(interval) => {
+                    tracing::info!("[lesson_validation] 开始校证反思规则置信度");
+                    match crate::commands::stock_workflow::run_lesson_validation(&db).await {
+                        Ok(result) => {
+                            tracing::info!(
+                                "[lesson_validation] 完成: validated={} deprecated={} avg_success_rate={:.2}",
+                                result.get("validatedLessons").and_then(|v| v.as_i64()).unwrap_or(0),
+                                result.get("deprecatedLessons").and_then(|v| v.as_i64()).unwrap_or(0),
+                                result.get("avgSuccessRate").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!("[lesson_validation] 失败: {e}");
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// [方向6] DreamConsolidator 定时任务：每日 18:00 跨股票蒸馏反思轨迹。
+///
+/// 调用 `state.dream_consolidator.consolidate_force()` 强制执行蒸馏（绕过时间门控）。
+/// - 从 TrajectoryStorage 拉取最近 N 条反思轨迹（N=experience_replay_sample_size，默认 50）
+/// - 按 topic（股票代码）分组，蒸馏 ToolUsagePattern / ReasoningStrategy / ErrorRecovery
+/// - 蒸馏知识写入 `trajectory_skills` 表 + FTS 索引
+/// - 建议仅存内存（进程内 cache），重启丢失
+///
+/// 首次延迟：距离今日 18:00 的秒数（若已过 18:00 则推迟到次日 18:00）。
+/// 监听 `shutdown_token` 支持优雅关闭。
+fn start_dream_consolidation(state: &AppState) {
+    let consolidator = state.dream_consolidator.clone();
+    let token = state.shutdown_token.clone();
+    state.task_manager.spawn("dream_consolidation", async move {
+        // 计算距离今日 18:00 的初始延迟（Asia/Shanghai 时区）
+        let now = chrono::Local::now();
+        let today_18 = now
+            .date_naive()
+            .and_hms_opt(18, 0, 0)
+            .unwrap_or_else(|| now.naive_local());
+        let initial_delay_secs = if now.naive_local() < today_18 {
+            (today_18 - now.naive_local()).num_seconds().max(60) as u64
+        } else {
+            // 已过 18:00，推迟到次日 18:00
+            ((today_18 + chrono::Duration::days(1) - now.naive_local())
+                .num_seconds()
+                .max(60)) as u64
+        };
+
+        let initial_delay = std::time::Duration::from_secs(initial_delay_secs);
+        let interval = std::time::Duration::from_secs(24 * 3600); // 24 小时
+
+        tracing::info!(
+            "[dream_consolidation] 首次运行延迟 {} 秒（约 {} 小时），之后每 24 小时运行一次",
+            initial_delay_secs,
+            initial_delay_secs / 3600
+        );
+
+        tokio::time::sleep(initial_delay).await;
+        loop {
+            tokio::select! {
+                _ = token.cancelled() => {
+                    tracing::info!("[dream_consolidation] 收到关闭信号");
+                    break;
+                }
+                _ = tokio::time::sleep(interval) => {
+                    tracing::info!("[dream_consolidation] 开始跨股票蒸馏反思轨迹");
+                    let result = consolidator.consolidate_force().await;
+                    if result.executed {
+                        tracing::info!(
+                            "[dream_consolidation] 完成: memories={} patterns={} suggestions={} duration={}s",
+                            result.memories_extracted,
+                            result.patterns_discovered,
+                            result.suggestions_generated,
+                            result.duration_secs
+                        );
+                    } else if let Some(reason) = &result.skip_reason {
+                        tracing::info!("[dream_consolidation] 跳过: {}", reason);
+                    } else {
+                        tracing::info!("[dream_consolidation] 未执行（无明确原因）");
                     }
                 }
             }

@@ -421,6 +421,7 @@ impl StockVendor for ThsVendor {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod capability_tests {
     use super::*;
 

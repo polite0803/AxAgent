@@ -238,6 +238,10 @@ pub fn compute_concentration_warning(
 }
 
 /// 压测：单股 i 在 scenario 下预计跌幅 = avg_beta_i * market_drop
+///
+/// 修复 P2-10: 原代码接收 `sector_exposure` 参数却完全未使用（`let _ = sector_exposure`），
+/// 行业集中度风险被忽略。改为：当某行业暴露占比超过阈值（40%）时，该行业持仓的
+/// 损失放大 1.2 倍——行业越集中，下跌时踩踏越严重（流动性折价 + 相关性坍缩）。
 /// 返回 (组合总 P&L, P&L%, 受损最大持仓)
 pub fn run_stress_scenario(
     positions: &[PositionSummary],
@@ -259,31 +263,50 @@ pub fn run_stress_scenario(
     let market_drop = scenario.market_drop();
     let mut total_pnl = 0.0;
     let mut worst_hit: Option<(f64, &PositionSummary)> = None;
+    let mut concentration_penalty_applied = false;
     for p in positions {
         let mv = p.market_value.unwrap_or(0.0);
-        let beta = sector_beta(p.sector_name.as_deref().unwrap_or(""));
-        let pct = beta * market_drop * 100.0;
-        let pnl = mv * beta * market_drop;
+        let sector = p.sector_name.as_deref().unwrap_or("");
+        let base_beta = sector_beta(sector);
+        // 行业集中度惩罚：sector_exposure[sector] > 40% 时放大 beta
+        let sector_pct = sector_exposure.get(sector).copied().unwrap_or(0.0);
+        let adjusted_beta = if sector_pct > SECTOR_CONCENTRATION_THRESHOLD {
+            concentration_penalty_applied = true;
+            base_beta * SECTOR_CONCENTRATION_PENALTY
+        } else {
+            base_beta
+        };
+        let pct = adjusted_beta * market_drop * 100.0;
+        let pnl = mv * adjusted_beta * market_drop;
         total_pnl += pnl;
         if worst_hit.as_ref().map(|(w, _)| pct < *w).unwrap_or(true) {
             worst_hit = Some((pct, p));
         }
     }
-    let _ = sector_exposure; // 当前未用，保留供后续 sector-level 扩展
     let top = worst_hit.map(|(_, p)| PositionHit {
         stock_code: p.stock_code.clone(),
         stock_name: p.stock_name.clone(),
         pnl_pct: worst_hit.as_ref().map(|(w, _)| *w).unwrap_or(0.0),
     });
+    let note = if concentration_penalty_applied {
+        "线性近似 + 行业集中度惩罚：sector_pct>40% 时 beta × 1.2（流动性折价）".to_string()
+    } else {
+        "线性近似：单股跌幅 = sector_beta × 大盘跌幅".to_string()
+    };
     StressTestResult {
         scenario: scenario.code().to_string(),
         label: scenario.label().to_string(),
         portfolio_pnl: total_pnl,
         portfolio_pnl_pct: (total_pnl / total_mv) * 100.0,
         top_hit: top,
-        note: "线性近似：单股跌幅 = sector_beta × 大盘跌幅".to_string(),
+        note,
     }
 }
+
+/// 行业集中度阈值：超过此值时压测中该行业持仓 beta 放大
+const SECTOR_CONCENTRATION_THRESHOLD: f64 = 40.0;
+/// 行业集中度惩罚系数：beta × 1.2（模拟流动性折价 + 相关性坍缩）
+const SECTOR_CONCENTRATION_PENALTY: f64 = 1.2;
 
 fn sector_beta(sector: &str) -> f64 {
     let s = sector.to_lowercase();
@@ -783,7 +806,7 @@ mod tests {
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let y = vec![5.0, 4.0, 3.0, 2.0, 1.0];
         let c = pearson_correlation(&x, &y).unwrap();
-        assert!(c < -0.99 && c >= -1.0);
+        assert!((-1.0..-0.99).contains(&c));
     }
 
     #[test]
@@ -796,13 +819,28 @@ mod tests {
         let pos = vec![ps("a", 10000.0, Some("科技"), 50.0)];
         let sector: HashMap<String, f64> = [("科技".into(), 100.0)].into_iter().collect();
         let r = run_stress_scenario(&pos, &sector, StressScenario::MarketDown10);
-        // 科技 beta=1.3, m10=10% → 单股 -13%
+        // 科技 beta=1.3, m10=10%, sector_pct=100%>40% → beta×1.2=1.56 → 单股 -15.6%
+        assert!(
+            r.portfolio_pnl_pct < -14.0 && r.portfolio_pnl_pct > -17.0,
+            "pct = {}",
+            r.portfolio_pnl_pct
+        );
+        assert_eq!(r.top_hit.as_ref().unwrap().stock_code, "a");
+        assert!(r.note.contains("行业集中度惩罚"));
+    }
+
+    #[test]
+    fn stress_scenario_no_penalty_when_sector_low() {
+        let pos = vec![ps("a", 10000.0, Some("科技"), 50.0)];
+        let sector: HashMap<String, f64> = [("科技".into(), 30.0)].into_iter().collect();
+        let r = run_stress_scenario(&pos, &sector, StressScenario::MarketDown10);
+        // sector_pct=30% < 40% 阈值 → 无惩罚，beta=1.3 → 单股 -13%
         assert!(
             r.portfolio_pnl_pct < -12.0 && r.portfolio_pnl_pct > -14.0,
             "pct = {}",
             r.portfolio_pnl_pct
         );
-        assert_eq!(r.top_hit.as_ref().unwrap().stock_code, "a");
+        assert!(!r.note.contains("行业集中度惩罚"));
     }
 
     #[test]

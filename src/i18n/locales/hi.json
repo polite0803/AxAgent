@@ -9788,7 +9788,20 @@
       "aiSelectNoneBtn": "सभी अचयनित करें",
       "rollbackWarning": "संस्करण {{target}} पर रोलबैक होगा",
       "jumpToAnalysisBtn": "विश्लेषण पर जाएँ",
-      "jumpToAnalysisTooltip": "इस चिंतनशील के लिए मूल विश्लेषण रिकॉर्ड देखें"
+      "jumpToAnalysisTooltip": "इस चिंतनशील के लिए मूल विश्लेषण रिकॉर्ड देखें",
+      "feedbackBtn": "प्रतिक्रिया",
+      "feedbackTitle": "चिंतनशील प्रतिक्रिया",
+      "feedbackRatingLabel": "रेटिंग",
+      "feedbackCommentLabel": "टिप्पणी (वैकल्पिक)",
+      "feedbackCommentPlaceholder": "इस चिंतनशील के लिए सुझाव दर्ज करें...",
+      "feedbackSubmitBtn": "प्रतिक्रिया सबमिट करें",
+      "feedbackSuccess": "प्रतिक्रिया सबमिट की गई ({{action}})",
+      "feedbackFailed": "प्रतिक्रिया सबमिट करने में विफल: {{error}}",
+      "feedbackActionNone": "कोई कार्रवाई नहीं",
+      "feedbackActionRL": "RL प्रशिक्षण ट्रिगर किया गया",
+      "feedbackActionSkill": "कौशल विकास ट्रिगर किया गया",
+      "feedbackActionPool": "अनुभव पूल जांच ट्रिगर किया गया",
+      "feedbackStatsLabel": "आँकड़े: + {{positive}} / - {{negative}} / कुल {{total}}"
     },
     "portfolioMonitor": {
       "title": "Portfolio Monitor",

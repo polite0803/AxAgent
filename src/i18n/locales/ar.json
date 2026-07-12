@@ -9773,7 +9773,20 @@
       "aiSelectNoneBtn": "إلغاء تحديد الكل",
       "rollbackWarning": "سيتم التراجع إلى الإصدار {{target}}",
       "jumpToAnalysisBtn": "الانتقال إلى التحليل",
-      "jumpToAnalysisTooltip": "عرض سجل التحليل الأصلي لهذا التأمل"
+      "jumpToAnalysisTooltip": "عرض سجل التحليل الأصلي لهذا التأمل",
+      "feedbackBtn": "ملاحظات",
+      "feedbackTitle": "ملاحظات التأمل",
+      "feedbackRatingLabel": "التقييم",
+      "feedbackCommentLabel": "تعليق (اختياري)",
+      "feedbackCommentPlaceholder": "أدخل اقتراحات لهذا التأمل...",
+      "feedbackSubmitBtn": "إرسال الملاحظات",
+      "feedbackSuccess": "تم إرسال الملاحظات ({{action}})",
+      "feedbackFailed": "فشل إرسال الملاحظات: {{error}}",
+      "feedbackActionNone": "بدون إجراء",
+      "feedbackActionRL": "تم تشغيل تدريب RL",
+      "feedbackActionSkill": "تم تشغيل تطور المهارات",
+      "feedbackActionPool": "تم تشغيل فحص مجموعة الخبرة",
+      "feedbackStatsLabel": "الإحصائيات: + {{positive}} / - {{negative}} / الإجمالي {{total}}"
     },
     "portfolioMonitor": {
       "title": "Portfolio Monitor",

@@ -1040,6 +1040,7 @@ macro_rules! register_all_commands {
             commands::stock_workflow::serenity::refresh_serenity_feedback,
             commands::stock_workflow::decision::rerun_decision,
             commands::stock_workflow::reflection::run_batch_reflection,
+            commands::stock_workflow::reflection::submit_reflection_feedback,
             commands::stock_workflow::serenity::run_serenity_screening,
             commands::stock_workflow::core::run_stock_workflow,
             // ── 决策事后验证（V55）──

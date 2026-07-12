@@ -476,6 +476,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn completeness_counts_filled_fields() {
         let mut r = FinancialRatios::default();
         r.pe = Some(10.0);

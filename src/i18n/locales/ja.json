@@ -9913,7 +9913,20 @@
       "aiSelectNoneBtn": "すべて解除",
       "rollbackWarning": "バージョン {{target}} にロールバックします",
       "jumpToAnalysisBtn": "元の分析にジャンプ",
-      "jumpToAnalysisTooltip": "この振り返りに対応する元の分析記録を表示"
+      "jumpToAnalysisTooltip": "この振り返りに対応する元の分析記録を表示",
+      "feedbackBtn": "フィードバック",
+      "feedbackTitle": "振り返りフィードバック",
+      "feedbackRatingLabel": "評価",
+      "feedbackCommentLabel": "コメント（任意）",
+      "feedbackCommentPlaceholder": "この振り返りに対する提案を入力してください...",
+      "feedbackSubmitBtn": "フィードバックを送信",
+      "feedbackSuccess": "フィードバックが送信されました（{{action}}）",
+      "feedbackFailed": "フィードバックの送信に失敗しました: {{error}}",
+      "feedbackActionNone": "アクションなし",
+      "feedbackActionRL": "RL トレーニングをトリガーしました",
+      "feedbackActionSkill": "スキル進化をトリガーしました",
+      "feedbackActionPool": "経験プールチェックをトリガーしました",
+      "feedbackStatsLabel": "統計: 正 {{positive}} / 負 {{negative}} / 合計 {{total}}"
     },
     "portfolioMonitor": {
       "title": "株式分析",

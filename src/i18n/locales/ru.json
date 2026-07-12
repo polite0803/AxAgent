@@ -9773,7 +9773,20 @@
       "aiSelectNoneBtn": "Снять выделение",
       "rollbackWarning": "Откат к версии {{target}}",
       "jumpToAnalysisBtn": "Перейти к анализу",
-      "jumpToAnalysisTooltip": "Просмотреть исходную запись анализа для этого размышления"
+      "jumpToAnalysisTooltip": "Просмотреть исходную запись анализа для этого размышления",
+      "feedbackBtn": "Отзыв",
+      "feedbackTitle": "Отзыв о размышлении",
+      "feedbackRatingLabel": "Оценка",
+      "feedbackCommentLabel": "Комментарий (необязательно)",
+      "feedbackCommentPlaceholder": "Введите предложения для этого размышления...",
+      "feedbackSubmitBtn": "Отправить отзыв",
+      "feedbackSuccess": "Отзыв отправлен ({{action}})",
+      "feedbackFailed": "Ошибка отправки отзыва: {{error}}",
+      "feedbackActionNone": "Без действия",
+      "feedbackActionRL": "Запущено RL-обучение",
+      "feedbackActionSkill": "Запущена эволюция навыков",
+      "feedbackActionPool": "Запущена проверка пула опыта",
+      "feedbackStatsLabel": "Статистика: + {{positive}} / - {{negative}} / всего {{total}}"
     },
     "portfolioMonitor": {
       "title": "Portfolio Monitor",

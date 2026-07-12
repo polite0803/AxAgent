@@ -101,16 +101,27 @@ pub struct MonteCarloEngine {
 
 impl MonteCarloEngine {
     /// 根据场景类型创建对应的 Oracle
-    fn make_oracle(&self, scenario: ScenarioType) -> Box<dyn Oracle> {
+    ///
+    /// 修复 P1-1: 增加 seed 参数，调用 with_seed 系列构造方法。
+    /// 蒙特卡洛的每条路径需要独立但可复现的 Oracle，原实现调用 ::new()
+    /// 使用 StdRng::from_entropy() 初始化 RNG，导致即使蒙特卡洛的 seed
+    /// 参数相同，每次运行结果也不同。现统一改为 with_seed(seed)，
+    /// seed 由调用方按 (base_seed + path_index) 派生传入。
+    fn make_oracle(&self, scenario: ScenarioType, seed: u64) -> Box<dyn Oracle> {
         let ref_price = self.config.reference_price;
         match scenario {
-            ScenarioType::Normal => Box::new(BaselineOracle::new(ref_price, 15)),
-            ScenarioType::Bull => Box::new(DriftOracle::bull(ref_price)),
-            ScenarioType::Bear => Box::new(DriftOracle::bear(ref_price)),
-            ScenarioType::FlashCrash => {
-                Box::new(EventOracle::flash_crash(ref_price, 60_000_000, 120_000_000))
+            ScenarioType::Normal => Box::new(BaselineOracle::with_seed(ref_price, 15, seed)),
+            ScenarioType::Bull => Box::new(DriftOracle::with_seed(ref_price, 30, 20, seed)),
+            ScenarioType::Bear => Box::new(DriftOracle::with_seed(ref_price, -50, 40, seed)),
+            ScenarioType::FlashCrash => Box::new(EventOracle::flash_crash_with_seed(
+                ref_price,
+                60_000_000,
+                120_000_000,
+                seed,
+            )),
+            ScenarioType::HighVolatility => {
+                Box::new(EventOracle::high_volatility_with_seed(ref_price, seed))
             },
-            ScenarioType::HighVolatility => Box::new(EventOracle::high_volatility(ref_price)),
         }
     }
 
@@ -141,13 +152,20 @@ impl MonteCarloEngine {
         for sc in &self.scenarios {
             let mut path_results = Vec::with_capacity(sc.paths);
             let base_seed = self.config.seed;
-            let mut oracle = self.make_oracle(sc.scenario);
 
             for path_idx in 0..sc.paths {
                 let seed = base_seed + path_idx as u64;
 
-                // 用 Oracle 生成该路径的参考价（不同场景的 Oracle 产生差异化价格轨迹）
-                let oracle_signal = oracle.signal_at((path_idx as u64 + 1) * 1_000_000_000);
+                // 修复 C4.7: 每次循环重新创建 Oracle，避免跨路径状态污染
+                // （原实现 Oracle 在 path 循环外创建，signal_at 修改内部 last_time，
+                // 后续路径的 dt_days 计算会基于上次的状态，导致场景价格漂移）
+                // 修复 P1-1: 传入 seed 让 Oracle 可复现（seed = base_seed + path_idx），
+                // 每条路径独立但相同 seed 重跑结果一致。
+                let mut oracle = self.make_oracle(sc.scenario, seed);
+
+                // 修复 C4.7: 使用固定时间 signal_at(1_000_000_000)，避免时间累加
+                // （原实现使用 (path_idx + 1) * 1_000_000_000，时间累加导致 dt_days 越来越大）
+                let oracle_signal = oracle.signal_at(1_000_000_000);
                 let scenario_price = oracle_signal.fundamental_value;
 
                 let mut cfg = self.config.clone();
@@ -284,12 +302,12 @@ mod tests {
             ..Default::default()
         };
 
-        let mut engine = MonteCarloEngine::new(config, |_seed| {
+        let mut engine = MonteCarloEngine::new(config, |seed| {
             let price = 1000;
             vec![
                 Box::new(ExchangeAgent::with_tick_size("exchange", 1)),
                 Box::new(MarketMakerAgent::new("mm", 50, 500, 5000, 0.1, 200_000, price)),
-                Box::new(NoiseAgent::new("noise", 300_000, 0.3, 50, 30, price)),
+                Box::new(NoiseAgent::new("noise", 300_000, 0.3, 50, 30, price, seed)),
             ]
         });
 

@@ -9972,7 +9972,20 @@
       "aiSelectNoneBtn": "全不選",
       "rollbackWarning": "將回滾到版本 {{target}}",
       "jumpToAnalysisBtn": "跳轉到原 analysis",
-      "jumpToAnalysisTooltip": "查看此次反思對應的原始 analysis 記錄"
+      "jumpToAnalysisTooltip": "查看此次反思對應的原始 analysis 記錄",
+      "feedbackBtn": "回饋",
+      "feedbackTitle": "反思回饋",
+      "feedbackRatingLabel": "評分",
+      "feedbackCommentLabel": "評論（可選）",
+      "feedbackCommentPlaceholder": "請輸入對這次反思的建議...",
+      "feedbackSubmitBtn": "提交回饋",
+      "feedbackSuccess": "回饋已提交（{{action}}）",
+      "feedbackFailed": "回饋提交失敗: {{error}}",
+      "feedbackActionNone": "無動作",
+      "feedbackActionRL": "已觸發 RL 訓練",
+      "feedbackActionSkill": "已觸發技能進化",
+      "feedbackActionPool": "已觸發經驗池檢查",
+      "feedbackStatsLabel": "統計: 正 {{positive}} / 負 {{negative}} / 總 {{total}}"
     },
     "portfolioMonitor": {
       "title": "Portfolio Monitor",

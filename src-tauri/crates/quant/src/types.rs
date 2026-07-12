@@ -104,6 +104,43 @@ impl Bar {
 
     /// 校验 Bar 数据合理性（撮合器在写入时调用）
     pub fn validate(&self) -> Result<(), QuantError> {
+        // P1-2 修复：先检查 NaN/Inf
+        // 原因：NaN 与任何数比较都返回 false（NaN <= 0.0 为 false），
+        // 导致 NaN 会绕过下面的 price <= 0.0 检查，传播到 sma/ema/rsi 等指标
+        // 计算结果，污染 cost_basis、market_value、equity_curve，最终使所有
+        // 指标变为 NaN。sharpe_ratio 等函数的 std < 1e-10 检查也无法拦截 NaN。
+        // f64::INFINITY 同理（Inf <= 0.0 为 false）。
+        // 必须用 is_nan/is_infinite 显式检查。
+        let fields = [
+            (self.open, "open"),
+            (self.high, "high"),
+            (self.low, "low"),
+            (self.close, "close"),
+            (self.volume, "volume"),
+        ];
+        for (val, name) in fields {
+            if val.is_nan() {
+                return Err(QuantError::Data(format!(
+                    "Bar {} is NaN: code={} date={}",
+                    name, self.code, self.date
+                )));
+            }
+            if val.is_infinite() {
+                return Err(QuantError::Data(format!(
+                    "Bar {} is infinite: code={} date={}",
+                    name, self.code, self.date
+                )));
+            }
+        }
+        // adj_factor 若存在也需要检查（复权因子为 NaN/Inf 会污染所有复权价格）
+        if let Some(adj) = self.adj_factor
+            && (adj.is_nan() || adj.is_infinite())
+        {
+            return Err(QuantError::Data(format!(
+                "Bar adj_factor is NaN/Inf: code={} date={} adj_factor={}",
+                self.code, self.date, adj
+            )));
+        }
         if self.open <= 0.0 || self.high <= 0.0 || self.low <= 0.0 || self.close <= 0.0 {
             return Err(QuantError::Data(format!(
                 "Bar 含非法价格: code={} date={} O={} H={} L={} C={}",

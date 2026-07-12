@@ -20,8 +20,18 @@ impl EastMoneyVendor {
         if proxy_url.is_empty() {
             return None;
         }
+        // 修复 M-RES-2: 原 `reqwest::Proxy::all(&proxy_url).ok()?` 把代理构建
+        // 错误（URL 格式错误、协议不支持等）静默吞为 None，调用方无法感知。
+        // 改为显式 match，记录 warn 日志便于诊断。
+        let proxy = match reqwest::Proxy::all(&proxy_url) {
+            Ok(p) => p,
+            Err(e) => {
+                tracing::warn!("[eastmoney] 代理 URL 解析失败 (url={proxy_url}): {e}");
+                return None;
+            },
+        };
         match reqwest::Client::builder()
-            .proxy(reqwest::Proxy::all(&proxy_url).ok()?)
+            .proxy(proxy)
             .timeout(std::time::Duration::from_secs(15))
             .connect_timeout(std::time::Duration::from_secs(10))
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
@@ -120,7 +130,13 @@ impl EastMoneyVendor {
                 },
             }
         }
-        Err(last_err.unwrap())
+        // 修复 M-DEF-2: 原代码 `last_err.unwrap()` 在 last_err 为 None 时 panic。
+        // 理论上循环正常退出时 last_err 必有值（只有 Ok 分支会 return），
+        // 但防御性编程：若因逻辑漏洞走到这里 last_err 仍为 None，给出明确错误。
+        Err(last_err.unwrap_or_else(|| DataError::VendorError {
+            vendor: "eastmoney".into(),
+            message: "no error recorded".into(),
+        }))
     }
 }
 
@@ -378,9 +394,20 @@ impl StockVendor for EastMoneyVendor {
             ))
         })?;
 
-        let items = match json["result"]["cmsArticleWebOld"].as_array() {
+        // 修复 M-RES-16: 添加 fallback 检查 `result.cmsArticleWebOld.list`（旧格式）。
+        // 原实现仅检查 `cmsArticleWebOld` 是否为数组，若上游改为 {list: [...]} 格式
+        // 则静默返回空 vec，调用方无感知。
+        let items = json["result"]["cmsArticleWebOld"]
+            .as_array()
+            .or_else(|| json["result"]["cmsArticleWebOld"]["list"].as_array());
+        let items = match items {
             Some(arr) => arr,
-            None => return Ok(vec![]),
+            None => {
+                tracing::debug!(
+                    "[eastmoney] cmsArticleWebOld 字段格式非预期（无 list 数组），返回空"
+                );
+                return Ok(vec![]);
+            },
         };
 
         Ok(items
@@ -487,9 +514,20 @@ impl StockVendor for EastMoneyVendor {
             ))
         })?;
 
-        let items = match json["result"]["cmsArticleWebOld"].as_array() {
+        // 修复 M-RES-16: 添加 fallback 检查 `result.cmsArticleWebOld.list`（旧格式）。
+        // 原实现仅检查 `cmsArticleWebOld` 是否为数组，若上游改为 {list: [...]} 格式
+        // 则静默返回空 vec，调用方无感知。
+        let items = json["result"]["cmsArticleWebOld"]
+            .as_array()
+            .or_else(|| json["result"]["cmsArticleWebOld"]["list"].as_array());
+        let items = match items {
             Some(arr) => arr,
-            None => return Ok(vec![]),
+            None => {
+                tracing::debug!(
+                    "[eastmoney] cmsArticleWebOld 字段格式非预期（无 list 数组），返回空"
+                );
+                return Ok(vec![]);
+            },
         };
 
         Ok(items
@@ -1195,7 +1233,7 @@ impl StockVendor for EastMoneyVendor {
         }
 
         let peer_url = format!(
-            "https://push2his.eastmoney.com/api/qt/clist/get?pn=1&pz=10&fs=b:{board_code}&fields=f12,f14,f162,f167,f127,f2,f116,f170"
+            "https://push2his.eastmoney.com/api/qt/clist/get?pn=1&pz=10&fs=b:{board_code}&fields=f12,f14,f162,f167,f173,f2,f116,f170"
         );
         let resp = self.em_get(&peer_url).await?;
         let json: Value = resp.json().await.unwrap_or(Value::Null);
@@ -1215,7 +1253,7 @@ impl StockVendor for EastMoneyVendor {
                     stock_name: r["f14"].as_str().unwrap_or("").to_string(),
                     pe: f("f162").and_then(|v| if v > 0.0 { Some(v / 100.0) } else { None }),
                     pb: f("f167").and_then(|v| if v > 0.0 { Some(v / 100.0) } else { None }),
-                    roe: f("f127").and_then(|v| if v > 0.0 { Some(v / 100.0) } else { None }),
+                    roe: f("f173").and_then(|v| if v > 0.0 { Some(v / 100.0) } else { None }),
                     change_pct: f("f170").unwrap_or(0.0) / 100.0,
                     market_cap: f("f116").filter(|v| *v > 0.0),
                 }

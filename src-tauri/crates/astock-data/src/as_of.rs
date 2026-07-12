@@ -18,125 +18,18 @@
 //! 进程级回退。读取时优先 task_local（更精确、嵌套感知），没有再读全局；
 //! 写入时 `with_optional_asof` 同步写全局，spawn 出去的 future 即可读到。
 
-use chrono::{Local, NaiveDate};
-use serde::{Deserialize, Serialize};
+use chrono::Local;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
-use thiserror::Error;
 
-/// As-Of 数据的来源标签，用于审计
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AsOfSource {
-    /// 用户在 UI 手动选择
-    UserReplay,
-    /// Sweep 工具批量跑
-    BacktestSweep,
-    /// 调度器周期跑
-    ScheduledReplay,
-}
-
-impl std::fmt::Display for AsOfSource {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AsOfSource::UserReplay => write!(f, "user_replay"),
-            AsOfSource::BacktestSweep => write!(f, "backtest_sweep"),
-            AsOfSource::ScheduledReplay => write!(f, "scheduled_replay"),
-        }
-    }
-}
-
-/// 时间锚点：在该任务执行期间，所有 vendor 调用应被视为"截至 as_of_date"
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AsOfContext {
-    pub as_of_date: NaiveDate,
-    pub source: AsOfSource,
-    /// 数据截止范围(混合 as-of 模式)。默认 All 兼容旧行为。
-    ///
-    /// - `All`:所有数据源(价格/技术/财务 + 新闻/公告)统一按 as_of 截止
-    /// - `Structured`:仅"结构化数据"按 as_of 截止;新闻/公告/研报
-    ///   保持实时(参考 TradingAgents-CN 的"价格截止 + 社交新闻实时")
-    #[serde(default)]
-    pub data_scope: AsOfDataScope,
-}
-
-/// 数据截止范围(混合 as-of 模式核心枚举)
-///
-/// 用户在 UI 可选择:全截止(回放) / 仅结构化截止(日常分析推荐)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum AsOfDataScope {
-    /// 所有数据按 as_of 截止(旧行为,默认)
-    #[default]
-    All,
-    /// 仅"结构化数据"按 as_of 截止;新闻/公告/研报/排行 保持实时
-    Structured,
-}
-
-/// 数据源种类(用于 AsOfDataScope 决策)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AsOfDataKind {
-    /// 结构化数据:价格/K线/技术指标/财务三张表/资金流/龙虎榜/股东
-    /// /融资融券/北向/解禁/分红/一致预期
-    Structured,
-    /// 非结构化数据:新闻/公告/研报/社媒(StockTwits/Reddit)
-    Unstructured,
-    /// 排行榜/分类/指数:热门股/行业排名/概念板块/搜索新闻
-    Rank,
-}
-
-impl AsOfContext {
-    /// 创建 AsOfContext；as_of_date 必须在今天及之前
-    pub fn new(date: NaiveDate, source: AsOfSource) -> Result<Self, AsOfError> {
-        let today = Local::now().date_naive();
-        if date > today {
-            return Err(AsOfError::FutureDate { date: date.to_string(), today: today.to_string() });
-        }
-        Ok(Self { as_of_date: date, source, data_scope: AsOfDataScope::All })
-    }
-
-    /// 创建带数据范围的 AsOfContext
-    pub fn with_data_scope(mut self, scope: AsOfDataScope) -> Self {
-        self.data_scope = scope;
-        self
-    }
-
-    /// 解析 'YYYY-MM-DD' 字符串；空字符串视为非法
-    pub fn parse(s: &str) -> Result<Self, AsOfError> {
-        if s.is_empty() {
-            return Err(AsOfError::InvalidFormat { reason: "empty string".into() });
-        }
-        let date = NaiveDate::parse_from_str(s, "%Y-%m-%d")
-            .map_err(|e| AsOfError::InvalidFormat { reason: e.to_string() })?;
-        Self::new(date, AsOfSource::UserReplay)
-    }
-
-    /// 解析可选入参（None / 空 / 全空白 → None；合法 → Some；非法 → Err）
-    pub fn parse_optional(s: Option<&str>) -> Result<Option<Self>, String> {
-        match s.map(str::trim).filter(|s| !s.is_empty()) {
-            None => Ok(None),
-            Some(s) => Self::parse(s).map(Some).map_err(|e| format!("as_of_date 解析失败: {e}")),
-        }
-    }
-
-    /// 转 'YYYY-MM-DD' 字符串
-    pub fn as_string(&self) -> String {
-        self.as_of_date.format("%Y-%m-%d").to_string()
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum AsOfError {
-    #[error("as_of_date cannot be in the future: {date} (today is {today})")]
-    FutureDate { date: String, today: String },
-
-    #[error("as_of_date format invalid: {reason}")]
-    InvalidFormat { reason: String },
-
-    #[error("as_of_date too old: {0} days ago, max is {1}")]
-    TooOld(i64, i64),
-}
+// 共享 DTO 类型（AsOfContext / AsOfSource / AsOfDataScope / AsOfDataKind /
+// DegradationEntry / AsOfError）的权威定义在 `axagent_harness::as_of`，
+// 本模块通过 pub use re-export，不重复定义。
+// 运行时状态管理（task_local、全局 Mutex、降级日志等）仍保留在本模块。
+pub use axagent_harness::as_of::{
+    AsOfContext, AsOfDataKind, AsOfDataScope, AsOfError, AsOfSource, DegradationEntry,
+};
 
 tokio::task_local! {
     /// 当前任务内的 AsOfContext；None 表示 live 模式
@@ -307,15 +200,8 @@ pub fn cache_suffix() -> String {
         .unwrap_or_else(|| "live".to_string())
 }
 
-/// As-Of 降级条目：vendor / method 在该时间点不可用或无历史语义
-/// (spec §4.1 统一降级协议)
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct DegradationEntry {
-    pub vendor: String,
-    pub method: String,
-    pub reason: String,
-    pub as_of: String,
-}
+// DegradationEntry 的权威定义在 `axagent_harness::as_of`，本模块顶部已 pub use。
+// 此处仅保留运行时降级日志缓冲（task_local + 全局环形缓冲）。
 
 // 任务级降级日志：每个 tokio 任务一个 Vec，scope 结束时不重置，
 // 由 workflow 节点通过 take_asof_degradation_report() 一次性消费并清空。
@@ -407,7 +293,7 @@ pub fn reset_global_degradation_log() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Duration;
+    use chrono::{Duration, NaiveDate};
     use serial_test::serial;
 
     #[tokio::test]

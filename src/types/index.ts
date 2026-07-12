@@ -1164,6 +1164,7 @@ export * from "./persona";
 export * from "./platform";
 export * from "./proactive";
 export * from "./search";
+export * from "./stock-analysis";
 export * from "./style";
 export * from "./tracer";
 export * from "./wiki";

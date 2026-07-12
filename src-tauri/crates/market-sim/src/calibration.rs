@@ -221,6 +221,7 @@ impl CalibrationRunner {
                 50,
                 param.noise_price_noise_bps,
                 price,
+                seed + i as u64, // 修复 H3.6: 传递种子保证可复现
             )));
         }
 
@@ -291,19 +292,23 @@ impl CalibrationRunner {
     }
 
     /// 运行全部参数扫描
+    ///
+    /// 修复 L-11: 当前实现是串行的（map + collect）。
+    /// 由于 run_single 需要 &mut self（共享可变状态如 RNG），无法直接用 rayon par_iter。
+    /// 若需并行化，应将 run_single 改为接受独立状态（如克隆 self 或拆分不可变部分），
+    /// 然后用 rayon 或 tokio task 并行执行。当前规模（通常 < 100 个参数组合）下
+    /// 串行性能可接受，并行化收益有限。
     pub fn run(&mut self) -> Vec<CalibrationResult> {
+        // 修复 M-DEF-5: 原 if/else 两个分支都调用 `self.run_single(param, seed)`，
+        // 是死代码（可能源于早期"测试模式跳过部分扫描"的实验残留）。
+        // 直接调用 run_single，简化逻辑。
         let mut results: Vec<CalibrationResult> = self
             .params
             .iter()
             .enumerate()
             .map(|(i, param)| {
                 let seed = 1000 + i as u64;
-                if cfg!(test) || self.params.len() <= 5 {
-                    self.run_single(param, seed)
-                } else {
-                    // 生产模式全部运行
-                    self.run_single(param, seed)
-                }
+                self.run_single(param, seed)
             })
             .collect();
 
@@ -402,7 +407,7 @@ mod tests {
 
         kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
         kernel.register(Box::new(MarketMakerAgent::new("mm", 30, 500, 5000, 0.1, 1_000_000, 1000)));
-        kernel.register(Box::new(NoiseAgent::new("noise", 1_000_000, 0.8, 200, 50, 1000)));
+        kernel.register(Box::new(NoiseAgent::new("noise", 1_000_000, 0.8, 200, 50, 1000, 42)));
 
         let start = std::time::Instant::now();
         match kernel.run() {

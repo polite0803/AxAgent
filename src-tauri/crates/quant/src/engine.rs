@@ -153,6 +153,9 @@ impl BacktestEngine {
         strategy.on_init(&mut ctx).await?;
 
         // 4. 主事件循环
+        //    P0-4 修复：信号在 bar 收盘后产生，缓存到 pending_signals，
+        //    在下一根 bar 的 open 撮合（避免用同根 bar 的 open 成交造成 time-travel bias）
+        let mut pending_signals: Vec<Signal> = Vec::new();
         for bar in bars {
             // 4.1 跨日：结算昨日权益点
             if !prev_date.is_empty() && bar.date != prev_date {
@@ -171,21 +174,40 @@ impl BacktestEngine {
                 pos.unrealized_pnl = (bar.close - pos.cost_basis) * pos.quantity as f64;
             }
 
-            // 4.4 调策略
+            // 4.4 先撮合上一根 bar 产生的 pending signals（用当前 bar 的 open 成交）
+            //    OrderType::Market 文档约定"下一根 K 线开盘价成交"，此处兑现该约定
+            if !pending_signals.is_empty() {
+                // 多标的场景下各 code 独立推进，只撮合与当前 bar.code 匹配的信号
+                let (to_match, remaining): (Vec<Signal>, Vec<Signal>) =
+                    pending_signals.drain(..).partition(|s| s.code == bar.code);
+                pending_signals = remaining;
+                for sig in to_match {
+                    let pos = ctx.positions.get(&bar.code);
+                    let order =
+                        signal_to_order(&sig, &bar, ctx.cash, pos.map(|p| p.quantity).unwrap_or(0));
+                    let fill = self.matcher.match_order(order, &bar, pos, ctx.cash);
+                    all_fills.push(fill.clone());
+                    if fill.matched {
+                        apply_fill(&mut ctx, &fill);
+                    }
+                }
+            }
+
+            // 4.5 调策略（基于当前已收盘 bar 产生信号）
             let signals = strategy.on_bar(&bar, &mut ctx).await?;
             all_signals.extend(signals.iter().cloned());
 
-            // 4.5 Signal → Order → 撮合 → 应用 Fill
-            for sig in &signals {
-                let pos = ctx.positions.get(&bar.code);
-                let order =
-                    signal_to_order(sig, &bar, ctx.cash, pos.map(|p| p.quantity).unwrap_or(0));
-                let fill = self.matcher.match_order(order, &bar, pos, ctx.cash);
-                all_fills.push(fill.clone());
-                if fill.matched {
-                    apply_fill(&mut ctx, &fill);
-                }
-            }
+            // 4.6 信号缓存到 pending_signals，下一根 bar 开盘时撮合
+            pending_signals.extend(signals);
+        }
+
+        // 4.7 循环结束后，剩余 pending_signals 无下一根 bar 可成交，跳过并记录 warn
+        //     （用 close 撮合会重新引入 time-travel bias，故不采用）
+        if !pending_signals.is_empty() {
+            tracing::warn!(
+                count = pending_signals.len(),
+                "回测结束时有未撮合的 pending signals（最后一根 bar 产生），已跳过"
+            );
         }
 
         // 5. 收尾权益点
@@ -244,7 +266,7 @@ fn push_equity_point(ctx: &mut StrategyCtx, date: &str) {
 fn signal_to_order(sig: &Signal, bar: &Bar, cash: f64, position_qty: u64) -> Order {
     let side = match sig.action {
         SignalAction::Buy => Side::Long,
-        SignalAction::Sell => Side::Flat,
+        SignalAction::Sell => Side::Short,
         SignalAction::Hold => Side::Flat,
     };
     let quantity = if matches!(sig.action, SignalAction::Hold) {
@@ -262,7 +284,7 @@ fn signal_to_order(sig: &Signal, bar: &Bar, cash: f64, position_qty: u64) -> Ord
                 let rounded = (max_shares / lot_size) * lot_size;
                 rounded.max(lot_size).min(10_000) // 最少 1 手，最多 1 万
             },
-            Side::Flat => {
+            Side::Short => {
                 // 卖出全部持仓
                 position_qty
             },
@@ -284,6 +306,8 @@ fn apply_fill(ctx: &mut StrategyCtx, fill: &Fill) {
     if order.quantity == 0 {
         return;
     }
+    // P0-3 修复：在状态变更前计算 realized_for_trade，避免 pos.quantity 被减少后恒为 0
+    let mut realized_for_trade: f64 = 0.0;
     match order.side {
         Side::Long => {
             let cost = fill.fill_amount + fill.commission + fill.stamp_tax;
@@ -325,6 +349,8 @@ fn apply_fill(ctx: &mut StrategyCtx, fill: &Fill) {
             if let Some(pos) = ctx.positions.get_mut(&order.code) {
                 let sell_qty = order.quantity.min(pos.quantity);
                 let realized = (fill.fill_price - pos.cost_basis) * sell_qty as f64;
+                // 在 pos.quantity 变更前保存，供 Trade 记录使用
+                realized_for_trade = realized;
                 pos.realized_pnl += realized;
                 pos.quantity -= sell_qty;
                 if pos.quantity == 0 {
@@ -338,15 +364,6 @@ fn apply_fill(ctx: &mut StrategyCtx, fill: &Fill) {
         },
         Side::Flat => {},
     }
-    let realized_for_trade = if matches!(order.side, Side::Short) {
-        if let Some(pos) = ctx.positions.get(&order.code) {
-            (fill.fill_price - pos.cost_basis) * order.quantity.min(pos.quantity) as f64
-        } else {
-            0.0
-        }
-    } else {
-        0.0
-    };
     ctx.trades.push(Trade {
         code: order.code.clone(),
         side: order.side,

@@ -193,7 +193,7 @@ export function BacktestTab() {
         </Form>
       </Card>
 
-      {error && <Alert type="error" showIcon title={t("quant.backtest.errorRunning")} description={error} closable />}
+      {error && <Alert type="error" showIcon message={t("quant.backtest.errorRunning")} description={error} closable />}
 
       {currentRun && currentResult && (
         <Card title={t("quant.backtest.result")} size="small">

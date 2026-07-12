@@ -9,7 +9,10 @@ use crate::types::{Price, SimTimestamp};
 /// 模拟器全局配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimConfig {
-    /// 最大模拟时间（纳秒），到达后停止。0 = 无限
+    /// 最大模拟时间（纳秒），到达后停止。0 = 无限。
+    ///
+    /// 默认 600_000_000_000（10 分钟），防止多个 Agent WakeupAfter 自续约导致死循环。
+    /// 修复 H3.8: 原默认值 0（无限）会导致 SimConfig::default() 永不停止。
     pub max_time_ns: SimTimestamp,
     /// 随机种子（用于可复现仿真）
     pub seed: u64,
@@ -28,7 +31,8 @@ pub struct SimConfig {
 impl Default for SimConfig {
     fn default() -> Self {
         Self {
-            max_time_ns: 0,
+            // 修复 H3.8: 默认 10 分钟，防止 Agent 自续约导致死循环
+            max_time_ns: 600_000_000_000,
             seed: 42,
             stock_code: "000001".to_string(),
             reference_price: 1000, // 10.00 元

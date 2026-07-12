@@ -159,23 +159,25 @@ impl StockVendor for BrowserEastMoneyVendor {
             .ok_or_else(|| DataError::ParseError("no data in quote response".into()))?;
 
         let g = |k: &str| -> f64 { data.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0) };
+        // 东方财富价格字段为整数，需除以 100 转为元（与 eastmoney.rs 一致）
+        let gp = |k: &str| -> f64 { g(k) / 100.0 };
 
         Ok(StockQuote {
             code: stock_code.to_string(),
             name: data.get("f58").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            price: g("f43"),
-            pre_close: g("f44"),
-            open: g("f46"),
-            high: g("f45"),
-            low: g("f44"),
-            volume: g("f47"),
-            amount: g("f48"),
-            change_pct: g("f170"),
-            turnover_rate: g("f168"),
-            pe: Some(g("f162")).filter(|v| *v > 0.0),
-            pb: Some(g("f167")).filter(|v| *v > 0.0),
-            total_mv: Some(g("f116") * 1e8).filter(|v| *v > 0.0),
-            circulating_mv: Some(g("f117") * 1e8).filter(|v| *v > 0.0),
+            price: gp("f43"),
+            pre_close: gp("f60"), // f60=昨收价
+            open: gp("f46"),
+            high: gp("f44"),           // f44=最高价
+            low: gp("f45"),            // f45=最低价
+            volume: g("f47"),          // 成交量（股），不除以 100
+            amount: g("f48"),          // 成交额（元），不除以 100
+            change_pct: gp("f170"),    // 涨跌幅
+            turnover_rate: gp("f168"), // 换手率
+            pe: Some(gp("f162")).filter(|v| *v > 0.0),
+            pb: Some(gp("f167")).filter(|v| *v > 0.0),
+            total_mv: Some(g("f116")).filter(|v| *v > 0.0), // 总市值，不乘 1e8
+            circulating_mv: Some(g("f117")).filter(|v| *v > 0.0), // 流通市值，不乘 1e8
             limit_up: None,
             limit_down: None,
             is_st: false,
@@ -239,10 +241,15 @@ impl StockVendor for BrowserEastMoneyVendor {
 
     async fn get_financials(&self, stock_code: &str) -> Result<Vec<FinancialReport>, DataError> {
         let secid = to_em_secid(stock_code);
+        // 修复 M-RES-5: 系统时钟倒流时 unwrap_or_default 静默返回 0，
+        // 导致 random=0 让 URL 缓存命中率异常。添加 warn 日志便于发现。
         let random = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis();
+            .map(|d| d.as_millis())
+            .unwrap_or_else(|e| {
+                tracing::warn!("[browser_eastmoney] SystemTime 早于 UNIX_EPOCH（时钟倒流）: {e}");
+                0
+            });
         // 东方财富财务报表 API
         let url = format!(
             "https://datacenter.eastmoney.com/securities/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=ALL&filter=(SECUCODE=\"{secid}\")&pageNumber=1&pageSize=4&sortTypes=-1&sortColumns=REPORT_DATE&source=HSF10&client=PC&v={random}"

@@ -112,6 +112,19 @@ pub fn is_trading_day(date: &NaiveDate) -> bool {
     true
 }
 
+/// 获取当前北京时间对应的"最新交易日"。
+///
+/// 规则：
+/// - 若今天（北京日期）是交易日，返回今天；
+/// - 否则返回 previous_trading_day(today)。
+///
+/// 用于 K 线缓存命中校验：缓存最后一条 K 线日期必须 >= 该日期，
+/// 否则视为缓存过期，触发重新拉取 vendor。
+pub fn latest_trading_day() -> NaiveDate {
+    let (_, _, today) = beijing_now();
+    previous_trading_day(today)
+}
+
 /// 查找指定日期之前最近的交易日(若 date 本身是交易日,返回 date)
 /// 用于 as-of 模式下周末/节假日的 fallback: 用户选择回看周六,
 /// 真实数据应该取周五收盘。

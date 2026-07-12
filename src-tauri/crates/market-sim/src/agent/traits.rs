@@ -95,7 +95,10 @@ pub enum MessageBody {
     /// 撤单确认
     OrderCancelled { order_id: OrderId, remaining: Quantity },
     /// 限价单已挂单确认
-    OrderPlaced { order_id: OrderId },
+    ///
+    /// 修复 P0-6: 增加 `side` 字段，让做市商等 Agent 能区分挂单方向，
+    /// 从而正确更新 bid_order_id / ask_order_id。
+    OrderPlaced { order_id: OrderId, side: OrderSide },
 
     // ── 行情查询 ──
     /// 请求订单簿快照（→ ExchangeAgent）
@@ -136,8 +139,16 @@ pub struct AgentContext {
     pub stock_code: String,
     /// 参考价格（分）
     pub reference_price: Price,
-    /// Agent 自身 ID
+    /// Agent 自身 ID（即消息目标 Agent）
     agent_id: String,
+    /// 修复 P0-5: 当前消息的来源 Agent ID。
+    ///
+    /// Kernel 在 `make_ctx` 时从 `event.message.source` 填充。
+    /// 对于 on_init / on_sim_end 等非消息触发场景为 None。
+    ///
+    /// ExchangeAgent 处理 CancelOrder / RequestQuote 等不含来源 ID 的消息时，
+    /// 需通过此字段获取通知目标（提交请求的 Agent），避免把通知发给自己。
+    message_source: Option<String>,
     /// 动作缓冲区（Agent 的返回值通过此 Vec 传递给 Kernel）
     actions: Vec<AgentAction>,
 }
@@ -148,8 +159,16 @@ impl AgentContext {
         stock_code: String,
         reference_price: Price,
         agent_id: String,
+        message_source: Option<String>,
     ) -> Self {
-        Self { current_time, stock_code, reference_price, agent_id, actions: Vec::new() }
+        Self {
+            current_time,
+            stock_code,
+            reference_price,
+            agent_id,
+            message_source,
+            actions: Vec::new(),
+        }
     }
 
     /// 向目标 Agent 发送消息
@@ -170,6 +189,14 @@ impl AgentContext {
     /// 获取 Agent ID
     pub fn agent_id(&self) -> &str {
         &self.agent_id
+    }
+
+    /// 修复 P0-5: 获取当前消息的来源 Agent ID。
+    ///
+    /// 用于 ExchangeAgent 处理 CancelOrder / RequestQuote 等不含来源 ID 的消息时，
+    /// 确定通知目标（即提交请求的 Agent）。
+    pub fn message_source(&self) -> Option<&str> {
+        self.message_source.as_deref()
     }
 
     /// 消费累积的动作列表（由 Kernel 调用）
@@ -206,6 +233,25 @@ pub trait SimAgent: Send + Sync {
     /// 该 Agent 在模拟中产生的成交历史（默认空；策略类 Agent 可重写以暴露模拟成交）
     fn trade_history(&self) -> &[TradeRecord] {
         &[]
+    }
+
+    /// 交易所统计（仅 ExchangeAgent 重写）
+    ///
+    /// 返回 (total_orders, total_trades, total_volume)。
+    /// 其他 Agent 默认返回 (0, 0, 0)。
+    /// 修复 C4.2: 之前 Kernel.collect_results 硬编码返回 (0, 0, 0)，
+    /// 导致 SimStats 永远是 0。改为通过 trait 暴露真实统计。
+    fn exchange_stats(&self) -> (u64, u64, Quantity) {
+        (0, 0, 0)
+    }
+
+    /// 模拟结束时的最终中间价（仅 ExchangeAgent 重写）
+    ///
+    /// 修复 M-RES-12: 原 Kernel.collect_results 用所有 trade 的均价近似 final_mid_price，
+    /// 这不是真正的 mid price。改为通过 trait 让 ExchangeAgent 暴露 OrderBook 的
+    /// best_bid + best_ask 均值。其他 Agent 默认返回 None。
+    fn final_mid_price(&self) -> Option<f64> {
+        None
     }
 
     /// 模拟初始化（在第一个事件之前调用一次）

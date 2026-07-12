@@ -68,35 +68,64 @@ impl SimAgent for ExchangeAgent {
         &self.trade_history
     }
 
+    /// 修复 C4.2: 暴露 ExchangeAgent 的 (total_orders, total_trades, total_volume) 统计，
+    /// 供 Kernel.collect_results 累加。原实现 Kernel 硬编码返回 (0, 0, 0)。
+    fn exchange_stats(&self) -> (u64, u64, Quantity) {
+        (self.total_orders, self.total_trades, self.total_volume)
+    }
+
+    /// 修复 M-RES-12: 暴露 OrderBook 的最终 mid price
+    /// （best_bid + best_ask 的均值）。若订单簿一侧为空则返回 None。
+    fn final_mid_price(&self) -> Option<f64> {
+        self.orderbook.mid_price()
+    }
+
     fn on_message(&mut self, msg: &MessageBody, ctx: &mut AgentContext) -> Vec<AgentAction> {
         match msg {
             // ── 限价单 ──
             MessageBody::SubmitLimit(order) => {
                 self.total_orders += 1;
                 self.orderbook.set_time(ctx.current_time);
-                let source = ctx.agent_id().to_string();
+                // 修复 P0-5: 通知目标应为提交订单的 Agent（order.agent_id），
+                // 而非 ctx.agent_id()（其值为消息目标 "exchange"）。
+                let source = order.agent_id.clone();
 
                 match self.orderbook.submit_limit_order(order.clone()) {
                     Ok(result) => match result {
                         OrderResult::Placed { order_id } => {
-                            ctx.send(&source, MessageBody::OrderPlaced { order_id });
+                            // 修复 P0-6: OrderPlaced 携带 side 字段，
+                            // 让做市商能区分 bid/ask 挂单并更新对应 order_id。
+                            ctx.send(
+                                &source,
+                                MessageBody::OrderPlaced { order_id, side: order.side },
+                            );
                         },
                         OrderResult::PartialFill { order_id, ref fill } => {
                             // 修复 P0-M1: 收集成交历史供 Kernel 提取
                             self.trade_history.extend(fill.trades.iter().cloned());
-                            // 通知卖方
+                            // 修复 H3.1: 限价单对手通知须区分提交者 side
+                            // 原实现只通知 seller_agent_id != source，当提交者是卖方时不通知买方
                             for trade in &fill.trades {
-                                if trade.seller_agent_id != source {
+                                let counterparty = match order.side {
+                                    OrderSide::Buy => &trade.seller_agent_id,
+                                    OrderSide::Sell => &trade.buyer_agent_id,
+                                };
+                                if counterparty != &source {
+                                    let cp_order_id = if order.side == OrderSide::Buy {
+                                        trade.seller_order_id
+                                    } else {
+                                        trade.buyer_order_id
+                                    };
                                     ctx.send(
-                                        &trade.seller_agent_id,
+                                        counterparty,
                                         MessageBody::OrderFilled {
-                                            order_id: trade.seller_order_id,
+                                            order_id: cp_order_id,
                                             fill: fill.clone(),
                                         },
                                     );
                                 }
                             }
-                            // 通知买方（自己）
+                            // 通知提交者自己
                             ctx.send(
                                 &source,
                                 MessageBody::OrderFilled { order_id, fill: fill.clone() },
@@ -107,19 +136,28 @@ impl SimAgent for ExchangeAgent {
                         OrderResult::FullFill { order_id, ref fill } => {
                             // 修复 P0-M1: 收集成交历史供 Kernel 提取
                             self.trade_history.extend(fill.trades.iter().cloned());
-                            // 通知对手方
+                            // 修复 H3.1: 限价单对手通知须区分提交者 side
                             for trade in &fill.trades {
-                                if trade.seller_agent_id != source {
+                                let counterparty = match order.side {
+                                    OrderSide::Buy => &trade.seller_agent_id,
+                                    OrderSide::Sell => &trade.buyer_agent_id,
+                                };
+                                if counterparty != &source {
+                                    let cp_order_id = if order.side == OrderSide::Buy {
+                                        trade.seller_order_id
+                                    } else {
+                                        trade.buyer_order_id
+                                    };
                                     ctx.send(
-                                        &trade.seller_agent_id,
+                                        counterparty,
                                         MessageBody::OrderFilled {
-                                            order_id: trade.seller_order_id,
+                                            order_id: cp_order_id,
                                             fill: fill.clone(),
                                         },
                                     );
                                 }
                             }
-                            // 通知自己
+                            // 通知提交者自己
                             ctx.send(
                                 &source,
                                 MessageBody::OrderFilled { order_id, fill: fill.clone() },
@@ -145,7 +183,9 @@ impl SimAgent for ExchangeAgent {
             MessageBody::SubmitMarket(order) => {
                 self.total_orders += 1;
                 self.orderbook.set_time(ctx.current_time);
-                let source = ctx.agent_id().to_string();
+                // 修复 P0-5: 通知目标应为提交订单的 Agent（order.agent_id），
+                // 而非 ctx.agent_id()（其值为消息目标 "exchange"）。
+                let source = order.agent_id.clone();
 
                 match self.orderbook.submit_market_order(order.clone()) {
                     Ok(result) => match result {
@@ -195,11 +235,19 @@ impl SimAgent for ExchangeAgent {
 
             // ── 撤单 ──
             MessageBody::CancelOrder(order_id) => {
-                let source = ctx.agent_id().to_string();
+                // 修复 P0-5: CancelOrder 消息体不含来源 ID，
+                // 通过 ctx.message_source() 获取提交撤单请求的 Agent。
+                let source = ctx.message_source().unwrap_or_default().to_string();
                 match self.orderbook.cancel_order(*order_id) {
                     Ok(result) => {
                         if let OrderResult::Cancelled { order_id, remaining } = result {
-                            ctx.send(&source, MessageBody::OrderCancelled { order_id, remaining });
+                            // 仅在 source 非空时回复，避免向空目标发送通知
+                            if !source.is_empty() {
+                                ctx.send(
+                                    &source,
+                                    MessageBody::OrderCancelled { order_id, remaining },
+                                );
+                            }
                         }
                     },
                     Err(_) => {
@@ -210,9 +258,13 @@ impl SimAgent for ExchangeAgent {
 
             // ── 行情查询 ──
             MessageBody::RequestQuote => {
-                let source = ctx.agent_id().to_string();
+                // 修复 P0-5: RequestQuote 消息体不含来源 ID，
+                // 通过 ctx.message_source() 获取查询行情的 Agent。
+                let source = ctx.message_source().unwrap_or_default().to_string();
                 let snapshot = self.orderbook.book_depth(10);
-                ctx.send(&source, MessageBody::QuoteReply(snapshot));
+                if !source.is_empty() {
+                    ctx.send(&source, MessageBody::QuoteReply(snapshot));
+                }
             },
 
             // ── 不处理的消息 ──

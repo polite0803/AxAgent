@@ -165,19 +165,37 @@ impl SimAgent for MarketMakerAgent {
     }
 
     fn on_message(&mut self, msg: &MessageBody, _ctx: &mut AgentContext) -> Vec<AgentAction> {
-        if let MessageBody::OrderFilled { fill, .. } = msg {
-            self.trade_count += 1;
-            for trade in &fill.trades {
-                if trade.buyer_agent_id == self.id {
-                    self.net_position += trade.quantity as i64;
-                    self.last_mid = Some(trade.price as f64);
-                    self.reference_price = trade.price;
-                } else if trade.seller_agent_id == self.id {
-                    self.net_position -= trade.quantity as i64;
-                    self.last_mid = Some(trade.price as f64);
-                    self.reference_price = trade.price;
+        match msg {
+            MessageBody::OrderFilled { fill, .. } => {
+                self.trade_count += 1;
+                for trade in &fill.trades {
+                    if trade.buyer_agent_id == self.id {
+                        self.net_position += trade.quantity as i64;
+                        self.last_mid = Some(trade.price as f64);
+                        self.reference_price = trade.price;
+                    } else if trade.seller_agent_id == self.id {
+                        self.net_position -= trade.quantity as i64;
+                        self.last_mid = Some(trade.price as f64);
+                        self.reference_price = trade.price;
+                    }
                 }
-            }
+            },
+            // 修复 P0-6: 处理 OrderPlaced 消息，用 ExchangeAgent 分配的真实 order_id
+            // 覆盖 submit_quotes 中 gen_id() 生成的临时 ID。
+            //
+            // 原因：OrderBook::place_order_internal 调用 next_order_id() 分配新 ID
+            // 并覆盖传入的 order.id，导致 MM 记录的 bid_order_id / ask_order_id
+            // 是无效 ID，撤单时 ExchangeAgent 返回 OrderNotFound，旧挂单永不被撤销。
+            // 现在 P0-5 修复后 MM 能收到 OrderPlaced 通知，此处更新记录的 ID。
+            MessageBody::OrderPlaced { order_id, side } => match side {
+                OrderSide::Buy => {
+                    self.bid_order_id = Some(*order_id);
+                },
+                OrderSide::Sell => {
+                    self.ask_order_id = Some(*order_id);
+                },
+            },
+            _ => {},
         }
         Vec::new()
     }

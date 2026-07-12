@@ -53,7 +53,9 @@ pub use market_data::{
 
 // ── 时间旅行(As-Of) DTO 契约 ──
 pub mod as_of;
-pub use as_of::{AsOfContext, AsOfDataKind, AsOfDataScope, AsOfSource, DegradationEntry};
+pub use as_of::{
+    AsOfContext, AsOfDataKind, AsOfDataScope, AsOfError, AsOfSource, DegradationEntry,
+};
 
 // ── 高级股票数据服务契约（让 stock-analysis 不依赖 astock-data 实现）──
 pub mod stock_data_service;

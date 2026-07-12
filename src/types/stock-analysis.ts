@@ -38,6 +38,25 @@ export type { StockActionType, StockRiskLevelType };
 
 // ── 纯类型定义 ──
 
+/**
+ * 反思反馈提交结果（对应后端 submit_reflection_feedback 命令返回值）。
+ *
+ * 接入 FeedbackOrchestrator + ExperiencePipeline 双轨：
+ * - Pipeline：反馈 → Experience → 经验池
+ * - Orchestrator：计数 + 阈值触发 RLTraining / SkillEvolution
+ */
+export interface ReflectionFeedbackResult {
+  analysisId: string;
+  rating: number;
+  /** Orchestrator 触发的动作类型 */
+  action: "none" | "trigger_rl_training" | "trigger_skill_evolution" | "trigger_pool_size_check";
+  orchestratorStats: {
+    totalFeedback: number;
+    negativeCount: number;
+    positiveCount: number;
+  };
+}
+
 export interface StockQuote {
   code: string;
   name: string;

@@ -25,5 +25,7 @@ pub use reflection::run_reflection_workflow;
 // Internal helpers called from outside the module
 #[allow(unused_imports)]
 pub use reflection::run_batch_reflection_inner;
+#[allow(unused_imports)]
+pub use reflection::run_lesson_validation;
 
 // Re-export public structs

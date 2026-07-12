@@ -27,6 +27,11 @@ pub enum DataError {
     /// spec §4.1 统一降级协议
     #[error("As-Of 模式下 {vendor}::{method} 降级: {reason} (as_of={as_of})")]
     AsOfDegraded { vendor: String, method: String, reason: String, as_of: String },
+
+    /// 内部错误（信号量关闭、运行时异常等不应发生但需要传播的错误）
+    /// 修复 M-DEF-1: 用于替代 `acquire_owned().expect("semaphore closed")`
+    #[error("Internal error: {0}")]
+    Internal(String),
 }
 
 #[cfg(test)]

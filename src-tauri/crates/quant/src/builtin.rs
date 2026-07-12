@@ -63,7 +63,11 @@ fn stddev_sample(data: &[f64], mean: f64) -> f64 {
     v.sqrt()
 }
 
-fn rsi_wilder(closes: &[f64], period: usize) -> f64 {
+/// RSI (Wilder 平滑) 指标计算
+///
+/// 修复 M-RES-9: 改为 pub(crate) 以便 script.rs 的 rsi_rhai 复用，
+/// 消除重复实现（DRY 原则）。
+pub(crate) fn rsi_wilder(closes: &[f64], period: usize) -> f64 {
     if closes.len() < period + 1 {
         return 50.0;
     }
@@ -131,17 +135,31 @@ impl Strategy for MaCrossStrategy {
         })
     }
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
-        match key {
+        let (new_short, new_long) = match key {
             "short_period" => {
-                self.short_period =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (v, self.long_period)
             },
             "long_period" => {
-                self.long_period =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (self.short_period, v)
             },
             _ => return Err(QuantError::Param(key.to_string())),
+        };
+        if new_short == 0 || new_long == 0 {
+            return Err(QuantError::Param(format!(
+                "period 必须 > 0: short={}, long={}",
+                new_short, new_long
+            )));
         }
+        if new_short >= new_long {
+            return Err(QuantError::Param(format!(
+                "short({}) 必须 < long({})",
+                new_short, new_long
+            )));
+        }
+        self.short_period = new_short;
+        self.long_period = new_long;
         Ok(())
     }
 
@@ -228,21 +246,33 @@ impl Strategy for MacdStrategy {
         })
     }
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
-        match key {
+        let (new_fast, new_slow, new_signal) = match key {
             "fast" => {
-                self.fast =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (v, self.slow, self.signal)
             },
             "slow" => {
-                self.slow =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (self.fast, v, self.signal)
             },
             "signal" => {
-                self.signal =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (self.fast, self.slow, v)
             },
             _ => return Err(QuantError::Param(key.to_string())),
+        };
+        if new_fast == 0 || new_slow == 0 || new_signal == 0 {
+            return Err(QuantError::Param(format!(
+                "MACD 参数必须 > 0: fast={}, slow={}, signal={}",
+                new_fast, new_slow, new_signal
+            )));
         }
+        if new_fast >= new_slow {
+            return Err(QuantError::Param(format!("fast({}) 必须 < slow({})", new_fast, new_slow)));
+        }
+        self.fast = new_fast;
+        self.slow = new_slow;
+        self.signal = new_signal;
         Ok(())
     }
 
@@ -342,20 +372,33 @@ impl Strategy for RsiStrategy {
         })
     }
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
-        match key {
+        let (new_period, new_overbought, new_oversold) = match key {
             "period" => {
-                self.period =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (v, self.overbought, self.oversold)
             },
             "overbought" => {
-                self.overbought =
-                    value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
+                let v = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?;
+                (self.period, v, self.oversold)
             },
             "oversold" => {
-                self.oversold = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
+                let v = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?;
+                (self.period, self.overbought, v)
             },
             _ => return Err(QuantError::Param(key.to_string())),
+        };
+        if new_period == 0 {
+            return Err(QuantError::Param("period 必须 > 0".into()));
         }
+        if new_overbought <= new_oversold {
+            return Err(QuantError::Param(format!(
+                "overbought({}) 必须 > oversold({})",
+                new_overbought, new_oversold
+            )));
+        }
+        self.period = new_period;
+        self.overbought = new_overbought;
+        self.oversold = new_oversold;
         Ok(())
     }
 
@@ -433,16 +476,25 @@ impl Strategy for BollStrategy {
         })
     }
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
-        match key {
+        let (new_period, new_stddev) = match key {
             "period" => {
-                self.period =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (v, self.stddev)
             },
             "stddev" => {
-                self.stddev = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
+                let v = value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?;
+                (self.period, v)
             },
             _ => return Err(QuantError::Param(key.to_string())),
+        };
+        if new_period == 0 {
+            return Err(QuantError::Param("period 必须 > 0".into()));
         }
+        if new_stddev <= 0.0 {
+            return Err(QuantError::Param(format!("stddev({}) 必须 > 0", new_stddev)));
+        }
+        self.period = new_period;
+        self.stddev = new_stddev;
         Ok(())
     }
 
@@ -530,25 +582,35 @@ impl Strategy for TurtleStrategy {
         })
     }
     fn set_param(&mut self, key: &str, value: Value) -> Result<(), QuantError> {
-        match key {
+        let (new_entry, new_exit, new_atr) = match key {
             "entry_period" => {
-                self.entry_period =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (v, self.exit_period, self.atr_period)
             },
             "exit_period" => {
-                self.exit_period =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (self.entry_period, v, self.atr_period)
             },
             "atr_period" => {
-                self.atr_period =
-                    value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize
+                let v = value.as_u64().ok_or_else(|| QuantError::Param(key.to_string()))? as usize;
+                (self.entry_period, self.exit_period, v)
             },
             "atr_multiplier" => {
                 self.atr_multiplier =
-                    value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?
+                    value.as_f64().ok_or_else(|| QuantError::Param(key.to_string()))?;
+                return Ok(());
             },
             _ => return Err(QuantError::Param(key.to_string())),
+        };
+        if new_entry == 0 || new_exit == 0 || new_atr == 0 {
+            return Err(QuantError::Param(format!(
+                "Turtle 参数必须 > 0: entry={}, exit={}, atr={}",
+                new_entry, new_exit, new_atr
+            )));
         }
+        self.entry_period = new_entry;
+        self.exit_period = new_exit;
+        self.atr_period = new_atr;
         Ok(())
     }
 

@@ -566,6 +566,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn test_compute_indicators_with_config_custom() {
         let mut config = IndicatorConfig::default();
         config.ma_periods = vec![5, 10];

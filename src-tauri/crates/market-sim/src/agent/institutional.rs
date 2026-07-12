@@ -7,12 +7,10 @@
 //! - 时间加权执行（TWAP），避免单笔冲击市场
 //! - 成交价跟踪基准价（不追涨杀跌）
 
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 
-use crate::agent::traits::{
-    AgentAction, AgentContext, AgentType, MessageBody, SimAgent,
-};
-use crate::types::{LimitOrder, OrderSide, *};
+use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
+use crate::types::*;
 
 pub struct InstitutionalAgent {
     id: String,
@@ -30,6 +28,8 @@ pub struct InstitutionalAgent {
     slice_interval_ns: SimTimestamp,
     /// 自增 ID
     next_id: u64,
+    /// 修复 H3.6: 可复现 RNG（替代 thread_rng）
+    rng: rand::rngs::StdRng,
 }
 
 impl InstitutionalAgent {
@@ -40,23 +40,27 @@ impl InstitutionalAgent {
     /// - `total_capital`: 总资金（分）
     /// - `slices`: 拆单份数（默认 10）
     /// - `slice_interval_ns`: 每份间隔（默认 200ms）
+    /// - `seed`: 随机种子（保证仿真可复现）
     pub fn new(
         id: impl Into<String>,
         reference_price: Price,
         total_capital: i64,
         slices: u32,
         slice_interval_ns: SimTimestamp,
+        seed: u64,
     ) -> Self {
         Self {
             id: id.into(),
             reference_price,
             total_capital,
             used_capital: 0,
-            max_order_size: (total_capital / slices.max(1) as i64 / reference_price.max(1))
-                .max(100) as Quantity,
+            max_order_size: (total_capital / slices.max(1) as i64 / reference_price.max(1)).max(100)
+                as Quantity,
             remaining_slices: slices,
             slice_interval_ns,
             next_id: 1,
+            // 修复 H3.6: 用种子初始化 RNG，保证仿真可复现
+            rng: rand::rngs::StdRng::seed_from_u64(seed),
         }
     }
 
@@ -82,18 +86,21 @@ impl SimAgent for InstitutionalAgent {
 
     fn on_init(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         vec![
-            AgentAction::SendMessage {
-                target: "exchange".into(),
-                body: MessageBody::RequestQuote,
-            },
+            AgentAction::SendMessage { target: "exchange".into(), body: MessageBody::RequestQuote },
             AgentAction::WakeupAfter(self.slice_interval_ns),
         ]
     }
 
     fn on_message(&mut self, msg: &MessageBody, _ctx: &mut AgentContext) -> Vec<AgentAction> {
         match msg {
-            MessageBody::OrderFilled { fill: _, .. } => {
-                // 记录成交价，用于调整后续订单
+            MessageBody::OrderFilled { fill, .. } => {
+                // 修复 C4.6: 在 OrderFilled 中根据实际成交更新 used_capital
+                // （原实现在 SendMessage 后立即按挂单价 used_capital +=，与实际成交价不一致）
+                for trade in &fill.trades {
+                    if trade.buyer_agent_id == self.id {
+                        self.used_capital += trade.quantity as i64 * trade.price;
+                    }
+                }
                 Vec::new()
             },
             MessageBody::QuoteReply(_snapshot) => {
@@ -114,8 +121,9 @@ impl SimAgent for InstitutionalAgent {
 
             // TWAP 执行：按当前价格提交限价买入单
             // 使用参考价 ± 随机偏移模拟对市场价格的适应
-            let mut rng = rand::thread_rng();
-            let offset = rng.gen_range(-5..=5);
+            // 修复 H3.6: 使用结构体内的可复现 RNG 替代 thread_rng
+            let rng = &mut self.rng;
+            let offset = rng.r#gen_range(-5..=5);
             let limit_price = (self.reference_price + offset).max(1);
 
             let order = LimitOrder {
@@ -132,7 +140,7 @@ impl SimAgent for InstitutionalAgent {
                 body: MessageBody::SubmitLimit(order),
             });
 
-            self.used_capital += slice_size as i64 * limit_price;
+            // 修复 C4.6: 不在此处更新 used_capital；改为在 OrderFilled 中根据实际成交价更新
             self.remaining_slices -= 1;
         }
 
@@ -157,8 +165,8 @@ impl SimAgent for InstitutionalAgent {
 mod tests {
     use super::*;
     use crate::agent::*;
-    use crate::kernel::*;
     use crate::config::*;
+    use crate::kernel::*;
 
     #[test]
     fn test_institutional_submits_orders() {
@@ -170,7 +178,14 @@ mod tests {
             ..Default::default()
         });
         kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
-        kernel.register(Box::new(InstitutionalAgent::new("inst", price, 1_000_000, 5, 200_000_000)));
+        kernel.register(Box::new(InstitutionalAgent::new(
+            "inst",
+            price,
+            1_000_000,
+            5,
+            200_000_000,
+            42,
+        )));
 
         let result = kernel.run().unwrap();
         assert!(result.total_events > 10, "events={}", result.total_events);

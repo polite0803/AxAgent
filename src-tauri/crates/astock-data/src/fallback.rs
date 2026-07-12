@@ -126,9 +126,12 @@ impl ChainExecutor {
     ) -> Result<Option<StockQuote>, DataError> {
         match step {
             FallbackStep::VendorQuote { vendor: _, timeout_ms } => {
-                let _ = timeout_ms;
-                match self.client.get_quote(code).await {
-                    Ok(q) => {
+                // 修复 M-RES-3: 原 timeout_ms 字段未使用，导致单步无超时控制。
+                // 现在用 tokio::time::timeout 包装 vendor.get_quote，
+                // 超时则记 warn 并传播 VendorError。
+                let timeout_dur = std::time::Duration::from_millis(*timeout_ms);
+                match tokio::time::timeout(timeout_dur, self.client.get_quote(code)).await {
+                    Ok(Ok(q)) => {
                         if q.price > 0.0 && !q.name.is_empty() {
                             Ok(Some(q))
                         } else {
@@ -137,7 +140,18 @@ impl ChainExecutor {
                     },
                     // 修复 P0-A3: 原 `Err(_) => Ok(None)` 把 401/DNS/panic 全部吞为
                     // "OK 但空"，回退链调试黑洞。改为显式传播错误。
-                    Err(e) => Err(e),
+                    Ok(Err(e)) => Err(e),
+                    Err(_) => {
+                        tracing::warn!(
+                            "[chain] vendor get_quote 超时 (code={}, timeout_ms={})",
+                            code,
+                            timeout_ms
+                        );
+                        Err(DataError::VendorError {
+                            vendor: "chain".into(),
+                            message: format!("vendor get_quote 超时 (timeout_ms={})", timeout_ms),
+                        })
+                    },
                 }
             },
             FallbackStep::KlinesSynthesize { vendor, period, limit } => {

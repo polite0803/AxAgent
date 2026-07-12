@@ -32,9 +32,11 @@ pub mod v007_dynamic_ui_version;
 pub mod v008_credentials_and_rl_policies;
 pub mod v009_tool_adaptation;
 pub mod v010_stock_business_tables;
+pub mod v011_drop_node_results_snapshot;
+pub mod v012_news_archive_article_code_not_null;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 10;
+pub const CURRENT_VERSION: i32 = 12;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -110,6 +112,16 @@ const MIGRATIONS: &[Migration] = &[
         version: 10,
         description: "v010_stock_business_tables: create all AxInvest stock business tables (22 tables merged from orphaned migrations v004-v011)",
         up: |db| Box::pin(v010_stock_business_tables::up(db)),
+    },
+    Migration {
+        version: 11,
+        description: "v011_drop_node_results_snapshot: drop dead column stock_analyses.node_results_snapshot (never written, rerun_decision_only cache never implemented)",
+        up: |db| Box::pin(v011_drop_node_results_snapshot::up(db)),
+    },
+    Migration {
+        version: 12,
+        description: "v012_news_archive_article_code_not_null: make news_archive.article_code NOT NULL to fix UNIQUE(source, article_code) ineffectiveness on NULL",
+        up: |db| Box::pin(v012_news_archive_article_code_not_null::up(db)),
     },
 ];
 

@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
+use crate::error::DataError;
+
 /// 支持的供应商及其并发上限
 const CAPACITIES: &[(&str, usize)] = &[
     ("eastmoney", 3),   // 东方财富：最核心，但限流最严
@@ -49,10 +51,18 @@ impl DomainGate {
     }
 
     /// 获取指定供应商的并发许可证（异步等待直到有空位）
-    pub async fn acquire(&self, vendor_name: &str) -> DomainGuard {
+    ///
+    /// 修复 M-DEF-1: 原代码 `acquire_owned().expect("DomainGate semaphore closed")`
+    /// 在信号量意外关闭时会 panic 整个进程。改为返回 `Result`，让调用方决定
+    /// 如何处理（通常作为 vendor 重试链中的一环被传播为 DataError）。
+    pub async fn acquire(&self, vendor_name: &str) -> Result<DomainGuard, DataError> {
         let sem = self.gates.get(vendor_name).unwrap_or(&self.default);
-        let permit = sem.clone().acquire_owned().await.expect("DomainGate semaphore closed");
-        DomainGuard::new(permit)
+        let permit = sem
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|e| DataError::Internal(format!("semaphore closed: {e}")))?;
+        Ok(DomainGuard::new(permit))
     }
 
     /// 尝试获取许可证，不等待，失败返回 None
@@ -75,9 +85,9 @@ mod tests {
     #[tokio::test]
     async fn test_acquire_release() {
         let gate = DomainGate::new();
-        let guard = gate.acquire("eastmoney").await;
+        let guard = gate.acquire("eastmoney").await.unwrap();
         drop(guard); // 显式释放
-        let guard2 = gate.acquire("eastmoney").await;
+        let guard2 = gate.acquire("eastmoney").await.unwrap();
         assert!(guard2._permit.is_some());
     }
 
@@ -85,9 +95,9 @@ mod tests {
     async fn test_capacity_limits() {
         let gate = DomainGate::new();
         // 东方财富只有 3 个许可证
-        let g1 = gate.acquire("eastmoney").await;
-        let _g2 = gate.acquire("eastmoney").await;
-        let _g3 = gate.acquire("eastmoney").await;
+        let g1 = gate.acquire("eastmoney").await.unwrap();
+        let _g2 = gate.acquire("eastmoney").await.unwrap();
+        let _g3 = gate.acquire("eastmoney").await.unwrap();
         // 第4个尝试应该获取不到（非阻塞）
         assert!(gate.try_acquire("eastmoney").is_none());
         drop(g1);

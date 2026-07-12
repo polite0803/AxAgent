@@ -88,7 +88,15 @@ fn parse_quote(raw: &str) -> Result<StockQuote, DataError> {
     let ts_idx = fields
         .iter()
         .position(|f| f.len() == 14 && f.chars().all(|c| c.is_ascii_digit()))
-        .unwrap_or(30);
+        .unwrap_or_else(|| {
+            // 修复 M-RES-4: fallback 30 时无日志，调试黑洞。
+            // 当上游格式变更导致时间戳字段无法定位时，记录 warn 便于发现。
+            tracing::warn!(
+                "[tencent] 时间戳字段定位失败，回退到默认索引 30 (fields_len={})",
+                fields.len()
+            );
+            30
+        });
 
     if fields.len() < ts_idx + 19 {
         return Err(DataError::ParseError(format!(

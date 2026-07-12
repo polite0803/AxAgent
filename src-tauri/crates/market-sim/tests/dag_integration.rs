@@ -206,7 +206,7 @@ fn run_validation_sim(
     kernel.register(Box::new(StrategyAgent::new(
         "strategy", action, target, stop, price, pos, 1_000_000,
     )));
-    kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.27, 50, 32, price)));
+    kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.27, 50, 32, price, 42)));
     kernel.register(Box::new(MomentumAgent::new(
         "momentum",
         5,
@@ -251,11 +251,13 @@ fn v6_full_pipeline_total_orders_reported() {
 /// 验证⑦：BEST_PARAMS 可读取且有效
 #[test]
 fn v7_best_params_are_valid() {
-    assert!(BEST_PARAMS.mm_spread_bps > 0, "mm_spread_bps 应 > 0");
-    assert!(BEST_PARAMS.mm_quote_size > 0, "mm_quote_size 应 > 0");
-    assert!(BEST_PARAMS.noise_act_prob > 0.0, "noise_act_prob 应 > 0");
-    assert!(BEST_PARAMS.noise_price_noise_bps > 0, "noise_price_noise_bps 应 > 0");
-    assert!(BEST_PARAMS.momentum_threshold > 0.0, "momentum_threshold 应 > 0");
+    // BEST_PARAMS 为 pub const，断言属于编译期常量比较；
+    // 用 const { assert!(..) } 消除 clippy::assertions_on_constants 警告
+    const { assert!(BEST_PARAMS.mm_spread_bps > 0, "mm_spread_bps 应 > 0") };
+    const { assert!(BEST_PARAMS.mm_quote_size > 0, "mm_quote_size 应 > 0") };
+    const { assert!(BEST_PARAMS.noise_act_prob > 0.0, "noise_act_prob 应 > 0") };
+    const { assert!(BEST_PARAMS.noise_price_noise_bps > 0, "noise_price_noise_bps 应 > 0") };
+    const { assert!(BEST_PARAMS.momentum_threshold > 0.0, "momentum_threshold 应 > 0") };
     eprintln!("[V7] BEST_PARAMS validated: {:?}", BEST_PARAMS);
 }
 
@@ -282,7 +284,7 @@ fn v8_quant_strategy_produces_events() {
         1_000_000.0,
         1_000_000,
     )));
-    kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.27, 50, 32, price)));
+    kernel.register(Box::new(NoiseAgent::new("noise", 500_000, 0.27, 50, 32, price, 42)));
 
     let result = kernel.run().unwrap();
     assert!(result.total_events > 50);

@@ -132,6 +132,9 @@ pub struct AnalystInput {
     pub bear_score: Option<f64>,
     /// 建议仓位 (0-100)
     pub position_pct: Option<f64>,
+    /// 不可信输出标记（来自上游解析失败/幻觉检测）
+    #[serde(default)]
+    pub untrusted: Option<bool>,
 }
 
 /// 证据权重计算请求
@@ -169,6 +172,8 @@ pub struct AnalystWeight {
     pub stance_direction: String,
     /// 该分析师的分析置信度（基于报告内容）
     pub stance_confidence: f64,
+    /// 是否为不可信输出（解析失败/幻觉/上游标记）
+    pub is_untrusted: bool,
 }
 
 /// 共识结果
@@ -359,7 +364,10 @@ fn compute_regime_modifiers(regime: &MarketRegimeInfo) -> HashMap<AnalystDomain,
 }
 
 /// 从分析师的报告文本提取立场方向
-fn extract_stance(analyst: &AnalystInput) -> (String, f64) {
+///
+/// 返回三元组: (direction, confidence, is_untrusted)
+/// - is_untrusted=true 表示无可信结构化数据，立场为回退推断，不应参与仓位贡献
+fn extract_stance(analyst: &AnalystInput) -> (String, f64, bool) {
     // 优先使用结构化字段
     if let Some(ref stance) = analyst.stance {
         let lower = stance.to_lowercase();
@@ -372,7 +380,7 @@ fn extract_stance(analyst: &AnalystInput) -> (String, f64) {
             || lower.contains("上行")
             || lower.contains("流入")
         {
-            return ("bullish".into(), 0.8);
+            return ("bullish".into(), 0.8, false);
         }
         if lower.contains("卖")
             || lower.contains("空")
@@ -383,7 +391,7 @@ fn extract_stance(analyst: &AnalystInput) -> (String, f64) {
             || lower.contains("下行")
             || lower.contains("流出")
         {
-            return ("bearish".into(), 0.8);
+            return ("bearish".into(), 0.8, false);
         }
         if lower.contains("中性")
             || lower.contains("观望")
@@ -392,30 +400,30 @@ fn extract_stance(analyst: &AnalystInput) -> (String, f64) {
             || lower.contains("neutral")
             || lower.contains("震荡")
         {
-            return ("neutral".into(), 0.7);
+            return ("neutral".into(), 0.7, false);
         }
     }
 
     // 使用 bull_score / bear_score
     if let (Some(bs), Some(bs2)) = (analyst.bull_score, analyst.bear_score) {
         if bs > bs2 {
-            return ("bullish".into(), ((bs - bs2) / 10.0).min(0.9));
+            return ("bullish".into(), ((bs - bs2) / 10.0).min(0.9), false);
         }
         if bs2 > bs {
-            return ("bearish".into(), ((bs2 - bs) / 10.0).min(0.9));
+            return ("bearish".into(), ((bs2 - bs) / 10.0).min(0.9), false);
         }
-        return ("neutral".into(), 0.5);
+        return ("neutral".into(), 0.5, false);
     }
 
     // 使用仓位建议
     if let Some(pct) = analyst.position_pct {
         if pct >= 6.0 {
-            return ("bullish".into(), (pct / 100.0).min(0.9));
+            return ("bullish".into(), (pct / 100.0).min(0.9), false);
         }
         if pct < 0.0 {
-            return ("bearish".into(), 0.7);
+            return ("bearish".into(), 0.7, false);
         }
-        return ("neutral".into(), 0.5);
+        return ("neutral".into(), 0.5, false);
     }
 
     // 没有结构化数据 → 从报告文本做简单情感分类
@@ -442,15 +450,16 @@ fn extract_stance(analyst: &AnalystInput) -> (String, f64) {
 
         if bull_count > bear_count {
             let conf = 0.5 + (bull_count as f64 - bear_count as f64) * 0.05;
-            return ("bullish".into(), conf.min(0.85));
+            return ("bullish".into(), conf.min(0.85), false);
         }
         if bear_count > bull_count {
             let conf = 0.5 + (bear_count as f64 - bull_count as f64) * 0.05;
-            return ("bearish".into(), conf.min(0.85));
+            return ("bearish".into(), conf.min(0.85), false);
         }
     }
 
-    ("neutral".into(), 0.4)
+    // 无任何可信数据 → 标记为不可信，position_pct 应为 0
+    ("neutral".into(), 0.4, true)
 }
 
 /// 检查 HOLD 门控条件
@@ -657,8 +666,9 @@ pub fn compute_evidence_weights(request: EvidenceWeightRequest) -> EvidenceWeigh
             // 最终权重 = 时间维度 * 市场周期 * 历史表现
             let final_w = (horizon_w * regime_m * history_m).clamp(0.1, 3.0);
 
-            // 提取立场
-            let (direction, conf) = extract_stance(analyst);
+            // 提取立场（含不可信标记）
+            let (direction, conf, untrusted) = extract_stance(analyst);
+            let is_untrusted = untrusted || analyst.untrusted.unwrap_or(false);
 
             AnalystWeight {
                 analyst_id: analyst.analyst_id.clone(),
@@ -669,6 +679,7 @@ pub fn compute_evidence_weights(request: EvidenceWeightRequest) -> EvidenceWeigh
                 final_weight: (final_w * 100.0).round() / 100.0,
                 stance_direction: direction,
                 stance_confidence: conf,
+                is_untrusted,
             }
         })
         .collect();
@@ -718,15 +729,63 @@ pub fn compute_evidence_weights(request: EvidenceWeightRequest) -> EvidenceWeigh
         _ => consensus.confidence,
     };
 
+    // 10. 权重坍缩三层策略（不可信信号防护，决策安全最后一道防线）
+    //     - 层1：trusted_weight<0.3 或 untrusted_count≥2 → 0%仓位 + confidence×0.5
+    //     - 层2：untrusted_count==1 且 posterior≥0.70 → 30%上限 + confidence×0.85（保留买入/增持）
+    //     - 层3：untrusted_count==1 且 posterior<0.70 → 禁止加仓 + confidence×0.70
+    let untrusted_count = analyst_weights.iter().filter(|a| a.is_untrusted).count();
+    let trusted_weight: f64 =
+        analyst_weights.iter().filter(|a| !a.is_untrusted).map(|a| a.final_weight).sum();
+    let posterior = overall_confidence / 100.0;
+
+    let mut final_position_pct = recommended_position_pct;
+    let mut final_confidence = overall_confidence;
+    let mut final_action = recommended_action.to_string();
+
+    if trusted_weight < 0.3 || untrusted_count >= 2 {
+        // 层1：完全坍缩 — 不可信信号过多，清仓
+        final_position_pct = 0.0;
+        final_confidence = overall_confidence * 0.5;
+        if final_action == "BUY" {
+            final_action = "HOLD".to_string();
+        }
+        tracing::warn!(
+            "[权重坍缩-层1] untrusted_count={}, trusted_weight={:.2} → 0%仓位, confidence×0.5",
+            untrusted_count,
+            trusted_weight
+        );
+    } else if untrusted_count == 1 {
+        if posterior >= 0.70 {
+            // 层2：单一不可信但后验充足 → 限制仓位 30% 上限，保留 BUY 信号
+            final_position_pct = recommended_position_pct.min(30.0);
+            final_confidence = overall_confidence * 0.85;
+            tracing::warn!(
+                "[权重坍缩-层2] untrusted_count=1, posterior={:.2} → 30%仓位上限, confidence×0.85",
+                posterior
+            );
+        } else {
+            // 层3：单一不可信且后验不足 → 禁止加仓
+            final_position_pct = 0.0;
+            final_confidence = overall_confidence * 0.70;
+            if final_action == "BUY" {
+                final_action = "HOLD".to_string();
+            }
+            tracing::warn!(
+                "[权重坍缩-层3] untrusted_count=1, posterior={:.2} → 禁止加仓, confidence×0.70",
+                posterior
+            );
+        }
+    }
+
     EvidenceWeightReport {
         market_regime: request.market_regime,
         time_horizon: request.time_horizon,
         analyst_weights,
         consensus,
         hold_gate,
-        recommended_action: recommended_action.to_string(),
-        recommended_position_pct,
-        overall_confidence,
+        recommended_action: final_action,
+        recommended_position_pct: final_position_pct,
+        overall_confidence: final_confidence,
     }
 }
 
@@ -742,6 +801,7 @@ mod tests {
             bull_score: None,
             bear_score: None,
             position_pct: None,
+            untrusted: None,
         }
     }
 
@@ -818,6 +878,7 @@ mod tests {
                 bull_score: None,
                 bear_score: None,
                 position_pct: None,
+                untrusted: None,
             },
             AnalystInput {
                 analyst_id: "a-hot-money".into(),
@@ -826,6 +887,7 @@ mod tests {
                 bull_score: None,
                 bear_score: None,
                 position_pct: None,
+                untrusted: None,
             },
             AnalystInput {
                 analyst_id: "fundamental".into(),
@@ -834,6 +896,7 @@ mod tests {
                 bull_score: None,
                 bear_score: None,
                 position_pct: None,
+                untrusted: None,
             },
         ];
         let request = EvidenceWeightRequest {

@@ -64,8 +64,11 @@ impl StockVendor for BaiduStockVendor {
         let open = val_to_f64(&result["open"]).unwrap_or(0.0);
         let high = val_to_f64(&result["high"]).unwrap_or(0.0);
         let low = val_to_f64(&result["low"]).unwrap_or(0.0);
-        let _close =
+        let pre_close =
             val_to_f64(&result["close"]).or(val_to_f64(&result["yestclose"])).unwrap_or(0.0);
+        if pre_close <= 0.0 {
+            tracing::warn!("[baidu_stock] {} yestclose 缺失或为 0", stock_code);
+        }
         let volume = val_to_f64(&result["volume"]).unwrap_or(0.0);
         let amount = val_to_f64(&result["amount"]).unwrap_or(0.0);
         let change_pct = val_to_f64(&result["changepercent"]).unwrap_or(0.0);
@@ -75,7 +78,7 @@ impl StockVendor for BaiduStockVendor {
             code: stock_code.to_string(),
             name: result["name"].as_str().unwrap_or("").to_string(),
             price,
-            pre_close: 0.0,
+            pre_close,
             open,
             high,
             low,

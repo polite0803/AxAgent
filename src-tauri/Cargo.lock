@@ -1122,9 +1122,11 @@ dependencies = [
  "chrono",
  "futures",
  "rand 0.8.6",
+ "rhai",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "tokio",
  "tracing",
 ]
 

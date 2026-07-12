@@ -296,13 +296,19 @@ let risk_rank_val = risk_rank(overall_risk);
 //   原则: 中风险≠无风险，应有轻微负信号；跳变更均匀
 let f4_default = 0.15;
 let f4_weight = f4_default;   // overall_risk 始终存在（算法分类确保兜底）
-let f4_signal = switch overall_risk {
+// P0-2 修复: f4_signal 只读 LLM 分类（与 overall_risk 的算法分类解耦）
+// overall_risk 已基于量化指标计算，f4_quant_adjust 又用同样的指标做修正
+// 为避免双重惩罚，f4_signal 改为只读 LLM 的独立风险判断
+// 当 LLM 分类缺失（算法兜底场景）时 f4_signal=0.0，由 f4_quant_adjust 独立承担
+let f4_signal = if present(overall_risk_llm) && type_of(overall_risk_llm) == "string" {
+    switch overall_risk_llm {
         "低风险"|"低" => 0.30,
-        "中风险"|"中" => -0.05,   // V51: 中风险轻微负信号（原-0.10）
-        "高风险"|"高" => -0.25,   // V51: 降低过度惩罚（原-0.40→-0.25）
-        "极高风险"|"极高" => -0.50, // V51: 降低极端惩罚（原-0.65→-0.50）
+        "中风险"|"中" => -0.05,
+        "高风险"|"高" => -0.25,
+        "极高风险"|"极高" => -0.50,
         _ => 0.0
-    };
+    }
+} else { 0.0 };
 
 // ── P0-2 补: 量化风险指标修正 f4_signal ──
 // t-risk ToolNode 输出 stockRiskProfile 含波动率/回撤/夏普等真实风险指标
@@ -661,66 +667,9 @@ let decision_trail = [];
 for t in tech_veto_trail {
     decision_trail.push(t);
 }
-
-// 记录风险否决
-if risk_downgraded {
-    decision_trail.push(#{
-        "rule_id": "R-200",
-        "status": "DOWNGRADED",
-        "detail": risk_downgrade_note,
-        "timestamp": 0.0,
-    });
-}
-
-// 记录空头预测否决
-if bearish_downgraded {
-    decision_trail.push(#{
-        "rule_id": "R-201",
-        "status": "DOWNGRADED",
-        "detail": bearish_downgrade_note,
-        "timestamp": 0.0,
-    });
-}
-
-// 记录数据异常
-if !trader_data_valid {
-    decision_trail.push(#{
-        "rule_id": "R-202",
-        "status": "DOWNGRADED",
-        "detail": `trader数据异常:${sanity_reason}`,
-        "timestamp": 0.0,
-    });
-}
-
-// 记录权重坍缩
-if weights_collapsed {
-    decision_trail.push(#{
-        "rule_id": "R-203",
-        "status": "DOWNGRADED",
-        "detail": `因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,置信度×0.7`,
-        "timestamp": 0.0,
-    });
-}
-
-// V56: 记录单点不可信部分降级
-if partial_degraded {
-    decision_trail.push(#{
-        "rule_id": "R-205",
-        "status": "DOWNGRADED",
-        "detail": `单点上游不可信(untrusted_count=1),禁止加仓+置信度×0.7`,
-        "timestamp": 0.0,
-    });
-}
-
-// 记录零仓位修正
-if position_pct <= 0.0 && (base_action == "买入" || base_action == "增持" || base_action == "持有") {
-    decision_trail.push(#{
-        "rule_id": "R-204",
-        "status": "DOWNGRADED",
-        "detail": `零仓位修正:${base_action}→观望(仓位0%,不可持股)`,
-        "timestamp": 0.0,
-    });
-}
+// P0-1 修复: R-200/R-201/R-202/R-204 原在此处前向引用未声明变量（risk_downgraded/
+// bearish_downgraded/trader_data_valid/position_pct/base_action），被 catch_unwind
+// 吞掉后永不生效。已移至各变量定义之后，参照 C2.1 修复 R-203/R-205 的模式。
 
 // ── 数据 sanity 预检（必须在 position_pct/final_action 之前定义）──
 let trader_data_valid = true;
@@ -767,6 +716,17 @@ if trader_data_valid {
         trader_data_valid = false;
         sanity_reason = `stopLoss(${trader_stop_loss})<1元`;
     }
+}
+
+// P0-1 修复: R-202 移至 trader_data_valid 定义之后（原位置前向引用为死代码）
+// 记录数据异常
+if !trader_data_valid {
+    decision_trail.push(#{
+        "rule_id": "R-202",
+        "status": "DOWNGRADED",
+        "detail": `trader数据异常:${sanity_reason}`,
+        "timestamp": 0.0,
+    });
 }
 
 // ── 贝叶斯融合 ──
@@ -942,12 +902,45 @@ let evidence_scale = if total_weight < 0.3 {
 //     避免在 regime_factor_weights 缩放权重后误判为坍缩。
 	let weights_collapsed = (total_weight / max_weight) < 0.3 || untrusted_count >= 2;
 	let partial_degraded = untrusted_count == 1;
+	// 三级降级策略（C2.1 修复：原二级退化为单级，现恢复三分支）
+	//   分支 A: weights_collapsed → 0% 仓位 + confidence × 0.5
+	//   分支 B: untrusted_count==1 且 posterior≥0.70 → 仓位上限 30% + confidence × 0.85 + 保留买入/增持
+	//   分支 C: untrusted_count==1 且 posterior<0.70 → 禁止加仓 + confidence × 0.70
+	let partial_high_confidence = partial_degraded && posterior >= 0.70;
+	let partial_low_confidence = partial_degraded && posterior < 0.70;
 	if weights_collapsed {
-	    // V54 修复: 不再强制空仓+观望，仅降置信度
-	    let old_conf = final_confidence;
-	    final_confidence = clamp(final_confidence * 0.7, 0.0, 100.0);
-	} else if partial_degraded {
-	    final_confidence = clamp(final_confidence * 0.7, 0.0, 100.0);
+	    // 分支 A: 权重坍缩或≥2 个上游不可信 → 强制空仓 + 置信度对半
+	    final_confidence = clamp(final_confidence * 0.5, 0.0, 100.0);
+	    position_pct = 0.0;
+	} else if partial_high_confidence {
+	    // 分支 B: 单点不可信但后验高置信 → 保留买入/增持，仓位上限 30%（在仓位对齐段应用）
+	    final_confidence = clamp(final_confidence * 0.85, 0.0, 100.0);
+	} else if partial_low_confidence {
+	    // 分支 C: 单点不可信且后验低置信 → 禁止加仓 + 置信度 × 0.70
+	    final_confidence = clamp(final_confidence * 0.70, 0.0, 100.0);
+	}
+	// C2.1: 三级降级 decision_trail（原 696-713 行前向引用为死代码，移至此处方能生效）
+	if weights_collapsed {
+	    decision_trail.push(#{
+	        "rule_id": "R-203",
+	        "status": "DOWNGRADED",
+	        "detail": `因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`,
+	        "timestamp": 0.0,
+	    });
+	} else if partial_high_confidence {
+	    decision_trail.push(#{
+	        "rule_id": "R-205",
+	        "status": "DOWNGRADED",
+	        "detail": `单点上游不可信(untrusted_count=1,posterior≥0.70),仓位≤30%+置信度×0.85`,
+	        "timestamp": 0.0,
+	    });
+	} else if partial_low_confidence {
+	    decision_trail.push(#{
+	        "rule_id": "R-205",
+	        "status": "DOWNGRADED",
+	        "detail": `单点上游不可信(untrusted_count=1,posterior<0.70),禁止加仓+置信度×0.70`,
+	        "timestamp": 0.0,
+	    });
 	}
 
 	// ── V42 重构: action 阈值使用 effective_posterior(=posterior+risk_bias) ──
@@ -975,13 +968,24 @@ let evidence_scale = if total_weight < 0.3 {
 	    base_action = "减持";
 	}
 
+	// P0-1 修复: R-204 移至 position_pct 与 base_action 都定义之后（原位置前向引用为死代码）
+	// 记录零仓位修正
+	if position_pct <= 0.0 && (base_action == "买入" || base_action == "增持" || base_action == "持有") {
+	    decision_trail.push(#{
+	        "rule_id": "R-204",
+	        "status": "DOWNGRADED",
+	        "detail": `零仓位修正:${base_action}→观望(仓位0%,不可持股)`,
+	        "timestamp": 0.0,
+	    });
+	}
+
 	// ── 最终 action：sanity 不通过则强制降级 ──
 	// V54 修复: weights_collapsed 不再强制"观望"，让 posterior 自然决定 action
 	let final_action = if !trader_data_valid {
 	    // 数据异常时：根据 posterior 决定是"观望"还是"卖出"
 	    if posterior < 0.45 { "卖出" } else { "观望" }
-	} else if partial_degraded && (base_action == "买入" || base_action == "增持") {
-	    // V56: 单点不可信 — 禁止加仓，降级为"持有"（可继续持仓但不追加）
+	} else if partial_low_confidence && (base_action == "买入" || base_action == "增持") {
+	    // 分支 C: 单点不可信+低置信 — 禁止加仓，降级为"持有"（可继续持仓但不追加）
 	    "持有"
 	} else if position_pct <= 0.0 && (base_action == "买入" || base_action == "增持" || base_action == "持有") {
 	    // V42: 仓位为 0 时不应给出持仓性建议。若 base_action 暗示持仓但实际空仓，
@@ -1009,6 +1013,17 @@ let evidence_scale = if total_weight < 0.3 {
         final_action = "持有";
     }
 
+	// P0-1 修复: R-200 移至 risk_downgraded 定义之后（原位置前向引用为死代码）
+	// 记录风险否决
+	if risk_downgraded {
+	    decision_trail.push(#{
+	        "rule_id": "R-200",
+	        "status": "DOWNGRADED",
+	        "detail": risk_downgrade_note,
+	        "timestamp": 0.0,
+	    });
+	}
+
 	// ── V47 新增: 空头 trader 预测否决 ──
 	// 当 trader 预测 targetPrice 显著低于 currentPrice（≥15%）时，意味着系统自身
 	// 的交易员认为股价将大幅下跌。此时给出"持有"或更积极的建议是逻辑矛盾。
@@ -1029,6 +1044,17 @@ let evidence_scale = if total_weight < 0.3 {
 	    // "减持"/"卖出"保持不动（已经是看空方向）
 	}
 
+	// P0-1 修复: R-201 移至 bearish_downgraded 定义之后（原位置前向引用为死代码）
+	// 记录空头预测否决
+	if bearish_downgraded {
+	    decision_trail.push(#{
+	        "rule_id": "R-201",
+	        "status": "DOWNGRADED",
+	        "detail": bearish_downgrade_note,
+	        "timestamp": 0.0,
+	    });
+	}
+
 	// ── 仓位与 action 对齐（V42）: action 决定了仓位性质 ──
 	// 如果 action 是减持/卖出，仓位应趋于零或极低
 	if final_action == "卖出" {
@@ -1037,6 +1063,10 @@ let evidence_scale = if total_weight < 0.3 {
 	    position_pct = 15.0;   // 减持通道，仓位不超15%
 	} else if final_action == "观望" && position_pct > 0.0 {
 	    position_pct = 0.0;     // 观望=不持仓，清零目标仓位
+	}
+	// C2.1 分支 B: 单点不可信但高置信 — 仓位上限 30%
+	if partial_high_confidence && position_pct > 30.0 {
+	    position_pct = 30.0;
 	}
 
 	let contradiction_note = if !trader_data_valid {
@@ -1047,11 +1077,13 @@ let evidence_scale = if total_weight < 0.3 {
 	    ` | ⚠️仓位修正:action=${final_action}仓位调至${position_pct}%`
 	} else { "" };
 
-	// V54 修复: 权重坍缩不再强制观望+空仓，仅降置信度
+	// C2.1 三级降级标注
 let collapse_note = if weights_collapsed {
-    ` | ⚠️因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,置信度×0.7`
-} else if partial_degraded {
-    ` | ⚠️单点上游不可信(untrusted_count=1),禁止加仓+置信度×0.7`
+    ` | ⚠️因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`
+} else if partial_high_confidence {
+    ` | ⚠️单点上游不可信(untrusted_count=1,posterior≥0.70),仓位≤30%+置信度×0.85`
+} else if partial_low_confidence {
+    ` | ⚠️单点上游不可信(untrusted_count=1,posterior<0.70),禁止加仓+置信度×0.70`
 } else { "" };
 
 	// V43 修复: position_pct 用 clamp(只压不抬), 避免 risk_note 把凯利低仓位

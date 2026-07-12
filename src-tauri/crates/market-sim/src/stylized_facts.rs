@@ -106,14 +106,21 @@ pub struct StylizedFacts {
 
 /// 从成交记录提取价格序列，计算 Stylized Facts。
 ///
-/// `trades` 按时间排序。返回每个时间点的价格序列、对数收益率序列。
+/// 返回每个时间点的价格序列、对数收益率序列。
+/// 修复 M-DS-7: 原代码注释假设 `trades` 已按时间排序但未 enforce，
+/// 上游若乱序传入会导致收益率序列错乱、Stylized Facts 失真。
+/// 现显式复制并按 timestamp 排序，保证单调。
 fn price_and_returns(trades: &[TradeRecord]) -> (Vec<f64>, Vec<f64>) {
     if trades.is_empty() {
         return (Vec::new(), Vec::new());
     }
 
-    // 按时间排序（已排序）
-    let prices: Vec<f64> = trades.iter().map(|t| t.price as f64).collect();
+    // 修复 M-DS-7: 显式排序而非假设上游已排序
+    let mut sorted_trades = trades.to_vec();
+    sorted_trades.sort_by_key(|t| t.timestamp);
+
+    // 按时间排序后的价格序列
+    let prices: Vec<f64> = sorted_trades.iter().map(|t| t.price as f64).collect();
 
     // 对数收益率
     let returns: Vec<f64> =

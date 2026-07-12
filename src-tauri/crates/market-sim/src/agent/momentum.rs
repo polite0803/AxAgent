@@ -18,6 +18,8 @@
 //! | position_limit | 2000-5000 | 持仓上限 |
 //! | wakeup_interval_ns | 1_000_000 (1ms) | 检查频率 |
 
+use std::collections::VecDeque;
+
 use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
 use crate::types::{OrderSide, *};
 
@@ -29,7 +31,8 @@ pub struct MomentumAgent {
     position_limit: i64,
     wakeup_interval_ns: SimTimestamp,
     /// 价格窗口（最近 lookback 个成交价）
-    price_window: Vec<f64>,
+    // 修复 L-8: 原 Vec::remove(0) 是 O(n) 操作，改用 VecDeque 实现高效 pop_front。
+    price_window: VecDeque<f64>,
     /// 当前持仓（正 = 多）
     position: i64,
 }
@@ -45,8 +48,8 @@ impl MomentumAgent {
         wakeup_interval_ns: SimTimestamp,
         reference_price: f64,
     ) -> Self {
-        let mut pw = Vec::with_capacity(lookback);
-        pw.push(reference_price);
+        let mut pw = VecDeque::with_capacity(lookback);
+        pw.push_back(reference_price);
         Self {
             id: id.into(),
             lookback,
@@ -60,9 +63,9 @@ impl MomentumAgent {
     }
 
     fn push_price(&mut self, price: f64) {
-        self.price_window.push(price);
+        self.price_window.push_back(price);
         if self.price_window.len() > self.lookback {
-            self.price_window.remove(0);
+            self.price_window.pop_front();
         }
     }
 
@@ -71,8 +74,8 @@ impl MomentumAgent {
         if n < 2 {
             return None;
         }
-        let oldest = self.price_window[0];
-        let latest = self.price_window[n - 1];
+        let oldest = *self.price_window.front()?;
+        let latest = *self.price_window.back()?;
         if oldest > 0.0 {
             Some((latest - oldest) / oldest)
         } else {
@@ -114,6 +117,7 @@ impl SimAgent for MomentumAgent {
                         if momentum > self.momentum_threshold && self.position < self.position_limit
                         {
                             // 看涨 → 以市价买入
+                            // 修复 C4.6: 不在此处更新 position；改为在 OrderFilled 中根据实际成交量更新
                             let order = MarketOrder {
                                 id: 0,
                                 side: OrderSide::Buy,
@@ -125,11 +129,11 @@ impl SimAgent for MomentumAgent {
                                 target: "exchange".into(),
                                 body: MessageBody::SubmitMarket(order),
                             });
-                            self.position += self.order_size as i64;
                         } else if momentum < -self.momentum_threshold
                             && self.position > -self.position_limit
                         {
                             // 看跌 → 以市价卖出
+                            // 修复 C4.6: 不在此处更新 position；改为在 OrderFilled 中根据实际成交量更新
                             let order = MarketOrder {
                                 id: 0,
                                 side: OrderSide::Sell,
@@ -141,7 +145,6 @@ impl SimAgent for MomentumAgent {
                                 target: "exchange".into(),
                                 body: MessageBody::SubmitMarket(order),
                             });
-                            self.position -= self.order_size as i64;
                         }
 
                         return actions;
@@ -152,6 +155,12 @@ impl SimAgent for MomentumAgent {
             MessageBody::OrderFilled { fill, .. } => {
                 for trade in &fill.trades {
                     self.push_price(trade.price as f64);
+                    // 修复 C4.6: 在 OrderFilled 中根据实际成交更新 position
+                    if trade.buyer_agent_id == self.id {
+                        self.position += trade.quantity as i64;
+                    } else if trade.seller_agent_id == self.id {
+                        self.position -= trade.quantity as i64;
+                    }
                 }
                 Vec::new()
             },

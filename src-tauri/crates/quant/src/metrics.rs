@@ -17,6 +17,11 @@ use serde::{Deserialize, Serialize};
 use crate::ctx::{EquityPoint, Trade};
 use crate::engine::BacktestResult;
 
+/// A 股每年实际交易日数（约 244 天，而非美股的 252 天）。
+/// 修复 L-5: 原代码硬编码 252.0，导致 Sharpe / 年化波动率等指标对 A 股略有偏差。
+/// 统一为常量便于复用。
+pub const A_SHARE_TRADING_DAYS_PER_YEAR: f64 = 244.0;
+
 /// 完整绩效报告
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -108,7 +113,13 @@ impl MetricsReport {
 
     /// 从 BacktestResult 构建
     pub fn from_backtest_result(result: &BacktestResult, risk_free_annual: f64) -> Self {
-        Self::from_equity_curve(&result.equity_curve, &result.trades, risk_free_annual, 252.0)
+        // 修复 L-5: 使用 A 股实际交易日数 244 而非美股的 252。
+        Self::from_equity_curve(
+            &result.equity_curve,
+            &result.trades,
+            risk_free_annual,
+            A_SHARE_TRADING_DAYS_PER_YEAR,
+        )
     }
 }
 
@@ -145,7 +156,24 @@ pub fn approx_days(start: &str, end: &str) -> i64 {
     let e = NaiveDate::parse_from_str(end, "%Y-%m-%d").ok();
     match (s, e) {
         (Some(s), Some(e)) => (e - s).num_days(),
-        _ => 0,
+        // 修复 L-4: 日期格式错误时静默返回 0，导致 max_drawdown_duration
+        // 和年化指标失真。添加 warn 日志便于发现。
+        (None, None) => {
+            tracing::warn!(
+                "[metrics] approx_days 日期解析失败 (start={}, end={})，返回 0",
+                start,
+                end
+            );
+            0
+        },
+        (None, _) => {
+            tracing::warn!("[metrics] approx_days start 日期解析失败 (start={})，返回 0", start);
+            0
+        },
+        (_, None) => {
+            tracing::warn!("[metrics] approx_days end 日期解析失败 (end={})，返回 0", end);
+            0
+        },
     }
 }
 

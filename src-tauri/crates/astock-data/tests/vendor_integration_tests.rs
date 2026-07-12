@@ -123,6 +123,7 @@ fn test_stock_raw_data_serialization() {
         institutional_visits: vec![],
         peers: vec![],
         option_pcr: None,
+        errors: vec![],
     };
     let json = serde_json::to_string(&raw).unwrap();
     assert!(json.contains("600519"));

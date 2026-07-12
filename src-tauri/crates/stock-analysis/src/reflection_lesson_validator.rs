@@ -140,10 +140,7 @@ pub fn adjust_lesson_confidence(
     }
 
     if times_applied < 3 {
-        return (
-            original_confidence,
-            format!("样本不足（{times_applied}<3），保持原置信度"),
-        );
+        return (original_confidence, format!("样本不足（{times_applied}<3），保持原置信度"));
     }
 
     // 强废弃：5 次以上应用且成功率 < 30%
@@ -191,10 +188,7 @@ pub fn adjust_lesson_confidence(
 /// - `insufficient_data`: 0 < times_applied < 3
 /// - `pending`: times_applied == 0
 /// - `deprecated`: adjusted_confidence < 0.2
-pub fn determine_validation_status(
-    times_applied: i32,
-    adjusted_confidence: f64,
-) -> String {
+pub fn determine_validation_status(times_applied: i32, adjusted_confidence: f64) -> String {
     if adjusted_confidence < 0.2 {
         return "deprecated".to_string();
     }
@@ -229,8 +223,7 @@ pub fn build_lesson_validation(
     let actual_success_rate = compute_actual_success_rate(success_count, times_applied);
     let (adjusted_confidence, adjustment_note) =
         adjust_lesson_confidence(original_confidence, actual_success_rate, times_applied);
-    let validation_status =
-        determine_validation_status(times_applied, adjusted_confidence);
+    let validation_status = determine_validation_status(times_applied, adjusted_confidence);
 
     let now = Utc::now().to_rfc3339();
     LessonValidation {
@@ -254,29 +247,17 @@ pub fn build_lesson_validation(
 ///
 /// # 参数
 /// - `validations`: 规则验证记录列表
-pub fn build_lesson_validation_report(
-    validations: &[LessonValidation],
-) -> LessonValidationReport {
+pub fn build_lesson_validation_report(validations: &[LessonValidation]) -> LessonValidationReport {
     let total_lessons = validations.len();
-    let validated_lessons = validations
-        .iter()
-        .filter(|v| v.validation_status == "validated")
-        .count();
-    let pending_lessons = validations
-        .iter()
-        .filter(|v| v.validation_status == "pending")
-        .count();
-    let deprecated_lessons = validations
-        .iter()
-        .filter(|v| v.validation_status == "deprecated")
-        .count();
+    let validated_lessons =
+        validations.iter().filter(|v| v.validation_status == "validated").count();
+    let pending_lessons = validations.iter().filter(|v| v.validation_status == "pending").count();
+    let deprecated_lessons =
+        validations.iter().filter(|v| v.validation_status == "deprecated").count();
 
     // 平均成功率（仅计算 times_applied > 0 的）
-    let success_rates: Vec<f64> = validations
-        .iter()
-        .filter(|v| v.times_applied > 0)
-        .map(|v| v.actual_success_rate)
-        .collect();
+    let success_rates: Vec<f64> =
+        validations.iter().filter(|v| v.times_applied > 0).map(|v| v.actual_success_rate).collect();
     let avg_success_rate = if success_rates.is_empty() {
         0.0
     } else {
@@ -286,9 +267,7 @@ pub fn build_lesson_validation_report(
     // 按 verdict 分层
     let mut verdict_breakdown: HashMap<String, VerdictStats> = HashMap::new();
     for v in validations {
-        let entry = verdict_breakdown
-            .entry(v.source_verdict.clone())
-            .or_default();
+        let entry = verdict_breakdown.entry(v.source_verdict.clone()).or_default();
         entry.total += 1;
         if v.times_applied > 0 {
             entry.avg_success_rate += v.actual_success_rate;
@@ -525,10 +504,7 @@ mod tests {
             ),
         ];
         let report = build_lesson_validation_report(&validations);
-        let wrong_stats = report
-            .verdict_breakdown
-            .get("wrong")
-            .expect("wrong verdict 必须存在");
+        let wrong_stats = report.verdict_breakdown.get("wrong").expect("wrong verdict 必须存在");
         assert_eq!(wrong_stats.total, 2);
         // 平均成功率 = (0.75 + 0.5) / 2 = 0.625
         assert!((wrong_stats.avg_success_rate - 0.625).abs() < 1e-6);

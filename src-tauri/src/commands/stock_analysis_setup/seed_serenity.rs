@@ -519,6 +519,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                     enabled: true,
                     match_threshold: 0.4,
                 }),
+                fallback_model: None,
             },
         })
     };

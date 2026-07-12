@@ -15,9 +15,7 @@
 //! }
 //! ```
 
-use crate::agent::traits::{
-    AgentAction, AgentContext, AgentType, MessageBody, SimAgent,
-};
+use crate::agent::traits::{AgentAction, AgentContext, AgentType, MessageBody, SimAgent};
 use crate::types::{LimitOrder, MarketOrder, OrderSide};
 
 /// Rhai 脚本 Agent
@@ -46,14 +44,10 @@ impl RhaiAgent {
         engine.set_max_string_size(1_000_000); // 1MB
         engine.set_max_array_size(10_000);
         engine.set_max_map_size(10_000);
+        // 修复 M-DEF-3: 设置最大调用栈深度，防止递归策略脚本栈溢出
+        engine.set_max_call_levels(64);
 
-        Self {
-            id: id.into(),
-            script: script.into(),
-            next_id: 1,
-            cached_ast: None,
-            engine,
-        }
+        Self { id: id.into(), script: script.into(), next_id: 1, cached_ast: None, engine }
     }
 
     fn gen_id(&mut self) -> u64 {
@@ -62,21 +56,22 @@ impl RhaiAgent {
         id
     }
 
-    fn get_ast(&mut self) -> Option<&rhai::AST> {
+    fn call_script(&mut self, event_type: &str, ctx: &AgentContext) -> Vec<AgentAction> {
+        // 修复 C4 编译错误: 原 get_ast(&mut self) 返回 &AST 持有可变借用，
+        // 随后 self.engine.call_fn 又需不可变借用 → 借用冲突。
+        // 改为内联编译逻辑，让 &mut self.engine.compile 的借用在本块内结束。
         if self.cached_ast.is_none() {
             match self.engine.compile(&self.script) {
                 Ok(ast) => self.cached_ast = Some(ast),
                 Err(e) => {
                     tracing::warn!("RhaiAgent[{}]: 脚本编译失败: {}", self.id, e);
-                    return None;
-                }
+                    return Vec::new();
+                },
             }
         }
-        self.cached_ast.as_ref()
-    }
 
-    fn call_script(&mut self, event_type: &str, ctx: &AgentContext) -> Vec<AgentAction> {
-        let ast = match self.get_ast() {
+        // 此时 self.cached_ast 已填充，与 self.engine 同时为不可变借用，可共存
+        let ast = match self.cached_ast.as_ref() {
             Some(a) => a,
             None => return Vec::new(),
         };
@@ -110,15 +105,17 @@ impl RhaiAgent {
 
                 match action.as_str() {
                     "submit_market" => {
-                        let side = match map.get("side").and_then(|v| v.clone().try_cast::<String>()) {
-                            Some(s) if s == "buy" => OrderSide::Buy,
-                            Some(s) if s == "sell" => OrderSide::Sell,
-                            _ => continue,
-                        };
-                        let qty = match map.get("quantity").and_then(|v| v.clone().try_cast::<i64>()) {
-                            Some(q) => q as u64,
-                            None => continue,
-                        };
+                        let side =
+                            match map.get("side").and_then(|v| v.clone().try_cast::<String>()) {
+                                Some(s) if s == "buy" => OrderSide::Buy,
+                                Some(s) if s == "sell" => OrderSide::Sell,
+                                _ => continue,
+                            };
+                        let qty =
+                            match map.get("quantity").and_then(|v| v.clone().try_cast::<i64>()) {
+                                Some(q) => q as u64,
+                                None => continue,
+                            };
                         actions.push(AgentAction::SendMessage {
                             target: "exchange".into(),
                             body: MessageBody::SubmitMarket(MarketOrder {
@@ -131,19 +128,22 @@ impl RhaiAgent {
                         });
                     },
                     "submit_limit" => {
-                        let side = match map.get("side").and_then(|v| v.clone().try_cast::<String>()) {
-                            Some(s) if s == "buy" => OrderSide::Buy,
-                            Some(s) if s == "sell" => OrderSide::Sell,
-                            _ => continue,
-                        };
-                        let price = match map.get("price").and_then(|v| v.clone().try_cast::<i64>()) {
+                        let side =
+                            match map.get("side").and_then(|v| v.clone().try_cast::<String>()) {
+                                Some(s) if s == "buy" => OrderSide::Buy,
+                                Some(s) if s == "sell" => OrderSide::Sell,
+                                _ => continue,
+                            };
+                        let price = match map.get("price").and_then(|v| v.clone().try_cast::<i64>())
+                        {
                             Some(p) => p,
                             None => continue,
                         };
-                        let qty = match map.get("quantity").and_then(|v| v.clone().try_cast::<i64>()) {
-                            Some(q) => q as u64,
-                            None => continue,
-                        };
+                        let qty =
+                            match map.get("quantity").and_then(|v| v.clone().try_cast::<i64>()) {
+                                Some(q) => q as u64,
+                                None => continue,
+                            };
                         actions.push(AgentAction::SendMessage {
                             target: "exchange".into(),
                             body: MessageBody::SubmitLimit(LimitOrder {
@@ -172,12 +172,28 @@ impl RhaiAgent {
 }
 
 impl SimAgent for RhaiAgent {
-    fn id(&self) -> &str { &self.id }
-    fn name(&self) -> &str { "Rhai" }
-    fn agent_type(&self) -> AgentType { AgentType::Rhai }
+    fn id(&self) -> &str {
+        &self.id
+    }
+    fn name(&self) -> &str {
+        "Rhai"
+    }
+    fn agent_type(&self) -> AgentType {
+        AgentType::Rhai
+    }
 
     fn on_init(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
-        self.call_script("init", _ctx)
+        // 修复 C4.1 引入的测试失败: P0-M6 将 on_wakeup 改为有条件续约后，
+        // on_init 也需要追加 WakeupAfter 启动事件循环，否则 RhaiAgent 永远不会被唤醒。
+        // 与 on_wakeup 保持一致：仅在脚本返回至少一个 action 时续约。
+        let actions = self.call_script("init", _ctx);
+        if !actions.is_empty() {
+            let mut all = actions;
+            all.push(AgentAction::WakeupAfter(100_000_000)); // 100ms 后唤醒
+            all
+        } else {
+            actions
+        }
     }
 
     fn on_message(&mut self, _msg: &MessageBody, ctx: &mut AgentContext) -> Vec<AgentAction> {
@@ -198,7 +214,9 @@ impl SimAgent for RhaiAgent {
         }
     }
 
-    fn on_sim_end(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> { Vec::new() }
+    fn on_sim_end(&mut self, _ctx: &mut AgentContext) -> Vec<AgentAction> {
+        Vec::new()
+    }
 }
 
 #[cfg(test)]
@@ -218,7 +236,9 @@ mod tests {
             ..Default::default()
         });
         kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
-        kernel.register(Box::new(RhaiAgent::new("rhai", r#"
+        kernel.register(Box::new(RhaiAgent::new(
+            "rhai",
+            r#"
             fn on_event(event_type) {
                 if event_type == "init" || event_type == "wakeup" {
                     [#{ "action": "request_quote" }]
@@ -226,7 +246,9 @@ mod tests {
                     []
                 }
             }
-        "#.to_string())));
+        "#
+            .to_string(),
+        )));
 
         let result = kernel.run().unwrap();
         assert!(result.total_events > 5);
