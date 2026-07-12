@@ -2,6 +2,8 @@
 
 import { NL2SkillResultView } from "@/components/workflow/AIPanel/NL2SkillResultView";
 import { NL2UIResultView } from "@/components/workflow/AIPanel/NL2UIResultView";
+import { useDynamicUIStore } from "@/stores";
+import { useSkillStore } from "@/stores/feature/skillStore";
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import type { NL2SkillRequest, NL2SkillResult, NL2UIRequest, NL2UIResult, SkillDefinition, UISchema } from "@/types";
 import { LayoutOutlined, SendOutlined, ThunderboltOutlined } from "@ant-design/icons";
@@ -18,8 +20,8 @@ type GenerationMode = "skill" | "ui";
  * NL 生成标签页
  *
  * 支持两种生成模式：
- * - NL2Skill：自然语言 → 技能定义（SkillDefinition）
- * - NL2UI：自然语言 → 动态 UI Schema（UISchema）
+ * - NL2Skill：自然语言 → 技能定义（SkillDefinition），可应用到 skillStore
+ * - NL2UI：自然语言 → 动态 UI Schema（UISchema），可保存到 dynamicUIStore
  */
 export function AgentWfTab() {
   const { t } = useTranslation();
@@ -33,6 +35,9 @@ export function AgentWfTab() {
   const parseSkillFromNaturalLanguage = useWorkflowStore((s) => s.parseSkillFromNaturalLanguage);
   const parseUIFromNaturalLanguage = useWorkflowStore((s) => s.parseUIFromNaturalLanguage);
   const parseProgress = useWorkflowStore((s) => s.parseProgress);
+
+  const createSkill = useSkillStore((s) => s.createSkill);
+  const createSchema = useDynamicUIStore((s) => s.createSchema);
 
   const [skillResult, setSkillResult] = useState<NL2SkillResult | null>(null);
   const [uiResult, setUIResult] = useState<NL2UIResult | null>(null);
@@ -74,12 +79,35 @@ export function AgentWfTab() {
     }
   };
 
-  const handleApplySkill = (_skill: SkillDefinition) => {
-    message.info(t("agentPanel.nlGen.applySkillComingSoon"));
+  const handleApplySkill = async (skill: SkillDefinition) => {
+    try {
+      const content = JSON.stringify(skill, null, 2);
+      const result = await createSkill(skill.name, skill.description, content);
+      if (result.can_create) {
+        message.success(t("agentPanel.nlGen.applySkillSuccess"));
+      } else {
+        message.warning(result.message || t("agentPanel.nlGen.applySkillFailed"));
+      }
+    } catch (err) {
+      console.warn("[AgentWfTab] applySkill failed:", err);
+      message.error(t("agentPanel.nlGen.applySkillFailed"));
+    }
   };
 
-  const handleApplyUI = (_schema: UISchema) => {
-    message.info(t("agentPanel.nlGen.applyUIComingSoon"));
+  const handleApplyUI = async (schema: UISchema) => {
+    try {
+      await createSchema({
+        title: schema.id || t("agentPanel.nlGen.defaultUITitle"),
+        description: prompt,
+        schema_json: JSON.stringify(schema),
+        category: "generated",
+        tags: [],
+      });
+      message.success(t("agentPanel.nlGen.applyUISuccess"));
+    } catch (err) {
+      console.warn("[AgentWfTab] applyUI failed:", err);
+      message.error(t("agentPanel.nlGen.applyUIFailed"));
+    }
   };
 
   return (

@@ -22,7 +22,8 @@ use chrono::Utc;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewsArchiveEntry {
     pub source: String,
-    pub article_code: Option<String>,
+    /// C5.2: NOT NULL。调用方(NewsArchiveSinkImpl)始终用 url hash 兜底。
+    pub article_code: String,
     pub title: String,
     pub summary: Option<String>,
     pub url: Option<String>,

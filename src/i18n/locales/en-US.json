@@ -8409,6 +8409,7 @@
   },
   "agentPanel": {
     "openPanel": "Open AxAgent Panel",
+    "panelTitle": "Agent",
     "openMiniPanel": "Open Agent Mini Panel",
     "closePanel": "Close Panel",
     "globalMode": "Global Mode",
@@ -8418,6 +8419,12 @@
     "miniPanelComingSoon": "Chat features coming soon",
     "newChat": "New Chat",
     "chatComingSoon": "Agent chat will be available here soon",
+    "chatEmpty": "No messages yet",
+    "chatStartHint": "Start a new Agent conversation",
+    "chatNewConversation": "New Conversation",
+    "chatDefaultTitle": "Agent Chat",
+    "chatInputPlaceholder": "Type a message...",
+    "chatEmptyHint": "Send a message to start chatting",
     "executionComingSoon": "Execution tracing panel coming soon",
     "skillComingSoon": "Skill management panel coming soon",
     "tabs": {
@@ -8442,7 +8449,12 @@
       "uiTypeReport": "Report",
       "uiTypeCustom": "Custom",
       "applySkillComingSoon": "Skill apply feature coming soon",
-      "applyUIComingSoon": "UI apply feature coming soon"
+      "applySkillSuccess": "Skill applied successfully",
+      "applySkillFailed": "Failed to apply skill",
+      "applyUIComingSoon": "UI apply feature coming soon",
+      "applyUISuccess": "UI schema saved successfully",
+      "applyUIFailed": "Failed to save UI schema",
+      "defaultUITitle": "Generated UI"
     }
   },
   "trace": {

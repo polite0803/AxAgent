@@ -8601,6 +8601,7 @@
   },
   "agentPanel": {
     "openPanel": "打开 AxAgent 面板",
+    "panelTitle": "智能体",
     "openMiniPanel": "打开 Agent 迷你面板",
     "closePanel": "关闭面板",
     "globalMode": "全局模式",
@@ -8610,6 +8611,12 @@
     "miniPanelComingSoon": "对话功能将在后续版本中开放",
     "newChat": "新建对话",
     "chatComingSoon": "Agent 对话功能即将在此处呈现",
+    "chatEmpty": "暂无消息",
+    "chatStartHint": "开始一个新的 Agent 对话",
+    "chatNewConversation": "新建对话",
+    "chatDefaultTitle": "Agent 对话",
+    "chatInputPlaceholder": "输入消息...",
+    "chatEmptyHint": "发送消息开始对话",
     "executionComingSoon": "执行追踪面板将在后续版本中实现",
     "skillComingSoon": "技能管理面板将在后续版本中实现",
     "tabs": {
@@ -8634,7 +8641,12 @@
       "uiTypeReport": "报告",
       "uiTypeCustom": "自定义",
       "applySkillComingSoon": "技能应用功能即将推出",
-      "applyUIComingSoon": "UI 应用功能即将推出"
+      "applySkillSuccess": "技能应用成功",
+      "applySkillFailed": "技能应用失败",
+      "applyUIComingSoon": "UI 应用功能即将推出",
+      "applyUISuccess": "UI 界面保存成功",
+      "applyUIFailed": "UI 界面保存失败",
+      "defaultUITitle": "生成的界面"
     }
   },
   "trace": {
