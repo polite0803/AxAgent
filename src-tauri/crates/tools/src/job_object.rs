@@ -101,6 +101,7 @@ pub mod windows_impl {
 /// - Windows: 创建 Job Object 并设置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`，
 ///   返回的 JobHandle 在 Drop 时关闭句柄，自动终止整个进程树。
 /// - 非 Windows: 空操作，返回的 JobHandle 不做任何事。
+#[cfg_attr(not(windows), allow(unused_variables))]
 pub fn assign_job(child: &tokio::process::Child) -> Result<JobHandle, String> {
     #[cfg(windows)]
     {

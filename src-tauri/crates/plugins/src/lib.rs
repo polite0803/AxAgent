@@ -1075,6 +1075,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        windows,
+        ignore = "Windows 平台 lifecycle 脚本需 .cmd 才能直接 exec；当前 run_lifecycle_commands 不走 shell 包装"
+    )]
     fn plugin_registry_runs_initialize_and_shutdown_for_enabled_plugins() {
         let _guard = env_guard();
         let config_home = temp_dir("lifecycle-home");
@@ -1240,6 +1244,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        windows,
+        ignore = "Windows 平台 lifecycle 脚本需 .cmd 才能直接 exec；当前 run_lifecycle_commands 不走 shell 包装"
+    )]
     fn plugin_lifecycle_handles_parallel_execution() {
         use std::sync::Arc;
         use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
