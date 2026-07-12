@@ -190,7 +190,7 @@ mod tests {
         let response = make_text_response("你好，世界！");
         let blocks = normalizer.normalize(&response).await;
         assert_eq!(blocks.len(), 1);
-        assert_eq!(blocks[0], ContentBlock::Text { text: "你好，世界！".to_string() });
+        assert!(matches!(blocks[0], ContentBlock::Text { text: ref t } if t == "你好，世界！"));
     }
 
     #[tokio::test]
@@ -201,16 +201,13 @@ mod tests {
         );
         let blocks = normalizer.normalize(&response).await;
         assert_eq!(blocks.len(), 3);
-        assert_eq!(blocks[0], ContentBlock::Text { text: "我需要查一下天气。".to_string() });
-        assert_eq!(
+        assert!(matches!(blocks[0], ContentBlock::Text { text: ref t } if t == "我需要查一下天气。"));
+        assert!(matches!(
             blocks[1],
-            ContentBlock::ToolUse {
-                id: "auto".to_string(),
-                name: "get_weather".to_string(),
-                input: "{\"city\":\"北京\"}".to_string(),
-            }
-        );
-        assert_eq!(blocks[2], ContentBlock::Text { text: "这是结果。".to_string() });
+            ContentBlock::ToolUse { id: ref id, name: ref n, input: ref inp }
+                if id == "auto" && n == "get_weather" && inp == "{\"city\":\"北京\"}"
+        ));
+        assert!(matches!(blocks[2], ContentBlock::Text { text: ref t } if t == "这是结果。"));
     }
 
     #[tokio::test]
@@ -227,14 +224,11 @@ mod tests {
         let response = make_tool_call_response("我来搜索一下。", vec![tool_call]);
         let blocks = normalizer.normalize(&response).await;
         assert_eq!(blocks.len(), 2);
-        assert_eq!(
+        assert!(matches!(
             blocks[1],
-            ContentBlock::ToolUse {
-                id: "call_123".to_string(),
-                name: "search".to_string(),
-                input: "{\"q\": \"Rust\"}".to_string(),
-            }
-        );
+            ContentBlock::ToolUse { id: ref id, name: ref n, input: ref inp }
+                if id == "call_123" && n == "search" && inp == "{\"q\": \"Rust\"}"
+        ));
     }
 
     #[tokio::test]
