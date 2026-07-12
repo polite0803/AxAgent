@@ -435,25 +435,44 @@ function R2View({ data, isDark }: { data: R2DebateJson; isDark: boolean }) {
   );
 }
 
-/** R3 最终立场标签映射 */
-const R3_POSITION_LABEL: Record<string, { text: string; color: string }> = {
-  strong_bull: { text: "强烈看多", color: "red" },
-  bull: { text: "看多", color: "red" },
-  weak_bull: { text: "弱看多", color: "orange" },
-  strong_bear: { text: "强烈看空", color: "green" },
-  bear: { text: "看空", color: "green" },
-  weak_bear: { text: "弱看空", color: "lime" },
-};
-
-/** R3 verdict 标签映射 */
-const R3_VERDICT_LABEL: Record<string, { text: string; color: string }> = {
-  rejected: { text: "反驳", color: "red" },
-  partially_accepted: { text: "部分接受", color: "orange" },
-  accepted: { text: "接受", color: "green" },
-};
+function r3PosLabel(key: string, t: (k: string) => string): { text: string; color: string } {
+  const m: Record<string, [string, string]> = {
+    strong_bull: ["stockAnalysis.debate.strongBullish", "red"],
+    bull: ["stockAnalysis.debate.bullish", "red"],
+    weak_bull: ["stockAnalysis.debate.weakBullish", "orange"],
+    strong_bear: ["stockAnalysis.debate.strongBearish", "green"],
+    bear: ["stockAnalysis.debate.bearish", "green"],
+    weak_bear: ["stockAnalysis.debate.weakBearish", "lime"],
+  };
+  const e = m[key];
+  return e ? { text: t(e[0]), color: e[1] } : { text: key, color: "default" };
+}
+function r3VerdictLabel(key: string, t: (k: string) => string): { text: string; color: string } {
+  const m: Record<string, [string, string]> = {
+    rejected: ["stockAnalysis.debate.rejected", "red"],
+    partially_accepted: ["stockAnalysis.debate.partiallyAccepted", "orange"],
+    accepted: ["stockAnalysis.debate.accepted", "green"],
+  };
+  const e = m[key];
+  return e ? { text: t(e[0]), color: e[1] } : { text: key, color: "default" };
+}
+function stanceLabel(key: string, t: (k: string) => string): { text: string; color: string } {
+  const m: Record<string, [string, string]> = {
+    strong_bull: ["stockAnalysis.debate.strongBullish", "red"],
+    bull: ["stockAnalysis.debate.bullish", "red"],
+    weak_bull: ["stockAnalysis.debate.weakBullish", "orange"],
+    neutral: ["profile.options.neutral", "default"],
+    weak_bear: ["stockAnalysis.debate.weakBearish", "lime"],
+    bear: ["stockAnalysis.debate.bearish", "green"],
+    strong_bear: ["stockAnalysis.debate.strongBearish", "green"],
+  };
+  const e = m[key];
+  return e ? { text: t(e[0]), color: e[1] } : { text: key, color: "default" };
+}
 
 function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
-  const posInfo = data.final_position ? R3_POSITION_LABEL[data.final_position] : null;
+  const { t } = useTranslation();
+  const posInfo = data.final_position ? r3PosLabel(data.final_position, t) : null;
   return (
     <div className="space-y-3">
       {/* 最终立场声明 */}
@@ -488,7 +507,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
           <div className="text-xs font-semibold mb-1" style={{ color: "var(--muted)" }}>逐条回应 R2 质询</div>
           <div className="space-y-2">
             {data.r2_cross_examination_response.map((resp, i) => {
-              const vInfo = resp.verdict ? R3_VERDICT_LABEL[resp.verdict] : null;
+              const vInfo = resp.verdict ? r3VerdictLabel(resp.verdict, t) : null;
               return (
                 <div
                   key={i}
@@ -563,16 +582,6 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
 }
 
 /** stance → 中文标签映射 */
-const STANCE_LABEL: Record<string, { text: string; color: string }> = {
-  strong_bull: { text: "强烈看多", color: "red" },
-  bull: { text: "看多", color: "red" },
-  weak_bull: { text: "弱看多", color: "orange" },
-  neutral: { text: "中性", color: "default" },
-  weak_bear: { text: "弱看空", color: "lime" },
-  bear: { text: "看空", color: "green" },
-  strong_bear: { text: "强烈看空", color: "green" },
-};
-
 /**
  * VerdictView — 渲染简化的 verdict 格式（stance + strength_score + confidence）。
  * 当 LLM 输出不含 core_arguments/cross_examination 等 R1-R3 结构化字段，
@@ -580,6 +589,7 @@ const STANCE_LABEL: Record<string, { text: string; color: string }> = {
  * 支持嵌套 verdict 对象：{"report":"...","verdict":{"stance":"bullish","strength_score":55,"confidence":60}}
  */
 function VerdictView({ data }: { data: DebateJson }) {
+  const { t } = useTranslation();
   // 优先读顶层字段，回退到嵌套 verdict 对象
   const v = data.stance !== undefined || data.strength_score !== undefined || data.confidence !== undefined
     ? data
@@ -587,7 +597,7 @@ function VerdictView({ data }: { data: DebateJson }) {
       ? data.verdict as Record<string, unknown>
       : data) as DebateJson;
 
-  const stanceInfo = v.stance ? STANCE_LABEL[v.stance] : null;
+  const stanceInfo = v.stance ? stanceLabel(v.stance, t) : null;
   const score = v.strength_score ?? v.bull_strength_score ?? v.bear_strength_score;
   const conf = v.confidence;
 

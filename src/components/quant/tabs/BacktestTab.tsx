@@ -472,7 +472,7 @@ function WalkForwardPanel({
               <Tag color={overfitWindowCount > 0 ? "red" : "green"}>
                 {overfitWindowCount > 0
                   ? `${t("quant.metrics.overfit")} ${overfitWindowCount}/${folds.length}`
-                  : "无过拟合"}
+                  : t("quant.metrics.noOverfit")}
               </Tag>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 OOS Sharpe: {aggregatedTestSharpe.toFixed(3)} · folds: {folds.length}

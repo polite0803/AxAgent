@@ -205,28 +205,39 @@ function extractSummary(parsed: ParsedReport): string {
 }
 
 /** 从 ParsedReport 中提取标签列表 */
-function extractTags(parsed: ParsedReport): string[] {
+function extractTags(parsed: ParsedReport, t?: (key: string) => string): string[] {
   if (Array.isArray(parsed.signals) && parsed.signals.length > 0) {
     return parsed.signals;
   }
   const tags: string[] = [];
   if (parsed.stance) { tags.push(parsed.stance); }
   if (parsed.action) { tags.push(parsed.action); }
-  if (parsed.main_flow_state) { tags.push(`资金流:${parsed.main_flow_state}`); }
+  if (parsed.main_flow_state) {
+    tags.push(`${t ? t("stockAnalysis.analystReport.moneyFlow") : "资金流"}:${parsed.main_flow_state}`);
+  }
   if (parsed.dragon_tiger_signal) { tags.push(parsed.dragon_tiger_signal); }
-  if (parsed.moat_rating) { tags.push(`护城河:${parsed.moat_rating}`); }
+  if (parsed.moat_rating) {
+    tags.push(
+      `${t ? t("stockAnalysis.analystReport.moat") : "护城河"}:${parsed.moat_rating}`,
+    );
+  }
   if (parsed.catalyst_level) { tags.push(parsed.catalyst_level); }
-  if (parsed.narrative_completeness) { tags.push(`叙事:${parsed.narrative_completeness}`); }
-  if (parsed.institutional_trace) { tags.push(`资金:${parsed.institutional_trace}`); }
-  if (parsed.concept_risk) { tags.push(`概念风险:${parsed.concept_risk}`); }
+  if (parsed.narrative_completeness) {
+    tags.push(`${t ? t("stockAnalysis.analystReport.narrative") : "叙事"}:${parsed.narrative_completeness}`);
+  }
+  if (parsed.institutional_trace) {
+    tags.push(`${t ? t("stockAnalysis.analystReport.capital") : "资金"}:${parsed.institutional_trace}`);
+  }
+  if (parsed.concept_risk) {
+    tags.push(`${t ? t("stockAnalysis.analystReport.conceptRisk") : "概念风险"}:${parsed.concept_risk}`);
+  }
   if (typeof parsed.bull_score === "number" && parsed.bull_score > 0) {
-    // 归一化到百分制：十分制(≤10) ×10，百分制(>10) 不处理
     const normalized = parsed.bull_score <= 10 ? parsed.bull_score * 10 : parsed.bull_score;
-    tags.push(`看多:${Math.round(normalized)}`);
+    tags.push(`${t ? t("stockAnalysis.sentimentBullish") : "看多"}:${Math.round(normalized)}`);
   }
   if (typeof parsed.bear_score === "number" && parsed.bear_score > 0) {
     const normalized = parsed.bear_score <= 10 ? parsed.bear_score * 10 : parsed.bear_score;
-    tags.push(`看空:${Math.round(normalized)}`);
+    tags.push(`${t ? t("stockAnalysis.sentimentBearish") : "看空"}:${Math.round(normalized)}`);
   }
   return tags;
 }
@@ -341,7 +352,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
       if (!parsed.summary && typeof parsed.report === "string") { parsed.summary = parsed.report; }
     }
     const summary = extractSummary(parsed);
-    const tags = extractTags(parsed);
+    const tags = extractTags(parsed, t);
     const points = extractKeyPoints(parsed);
     const riskFlags = extractRiskFlags(parsed);
     const empty = isEmptyAnalysis(parsed);
@@ -372,7 +383,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
             <span className="flex items-center gap-2 flex-wrap">
               {name}
               {parsed.type && <Tag style={{ marginLeft: 8 }}>{parsed.type}</Tag>}
-              {empty && <Tag color="orange">数据不足</Tag>}
+              {empty && <Tag color="orange">{t("quant.common.empty")}</Tag>}
             </span>
           }
           extra={expandBtn}
@@ -430,7 +441,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
           )}
           {!parsed.verdict && bullScore == null && bearScore == null && !summary && points.length === 0 && (
             <div className="text-xs" style={{ color: "var(--muted)" }}>
-              分析完成，但未返回结构化内容
+              {t("stockAnalysis.analystReport.completedNoStructure")}
             </div>
           )}
         </Card>
@@ -454,7 +465,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
               defaultActiveKey={[]}
               items={[{
                 key: "raw",
-                label: "查看原始数据",
+                label: t("stockAnalysis.analystReport.viewRawData"),
                 children: (
                   <pre
                     style={{
@@ -537,7 +548,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
       const items = gapMatch[1].match(/"([^"\n]{5,})"/g);
       if (items && items.length > 0) {
         const first = items[0].replace(/^"|"$/g, "");
-        if (first.length > 5) { summary = `数据受限：${first}`; }
+        if (first.length > 5) { summary = `${t("stockAnalysis.analystReport.dataLimited")}:${first}`; }
       }
     }
 
@@ -547,12 +558,12 @@ export function AnalystReportCard({ expertId, report }: Props) {
     if (bullMatch) {
       const raw = parseInt(bullMatch[1], 10);
       const normalized = raw <= 10 ? raw * 10 : raw;
-      tags.push(`看多:${Math.round(normalized)}`);
+      tags.push(`${t("stockAnalysis.sentimentBullish")}:${Math.round(normalized)}`);
     }
     if (bearMatch) {
       const raw = parseInt(bearMatch[1], 10);
       const normalized = raw <= 10 ? raw * 10 : raw;
-      tags.push(`看空:${Math.round(normalized)}`);
+      tags.push(`${t("stockAnalysis.sentimentBearish")}:${Math.round(normalized)}`);
     }
 
     // 提取 stance / action
@@ -615,7 +626,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
         title={
           <span>
             {name}
-            {fuzzy.empty && <Tag color="orange" style={{ marginLeft: 8 }}>数据不足</Tag>}
+            {fuzzy.empty && <Tag color="orange" style={{ marginLeft: 8 }}>{t("quant.common.empty")}</Tag>}
           </span>
         }
         extra={expandBtn}
@@ -642,7 +653,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
         )}
         {fuzzy.empty && displayContent && (
           <div className="text-xs" style={{ color: "var(--muted)" }}>
-            数据不足
+            {t("quant.common.empty")}
           </div>
         )}
         {!displayContent && (
