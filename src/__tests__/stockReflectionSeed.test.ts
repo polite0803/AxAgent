@@ -21,7 +21,7 @@ function loadSource(): string {
   const projectRoot = process.cwd();
   const srcPath = resolve(
     projectRoot,
-    "src-tauri/src/commands/stock_analysis_setup.rs",
+    "src-tauri/src/commands/stock_analysis_setup/mod.rs",
   );
   return readFileSync(srcPath, "utf8");
 }

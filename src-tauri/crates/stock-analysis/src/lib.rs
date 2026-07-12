@@ -14,6 +14,8 @@ pub mod intent_parser;
 // 此处用 pub use 保持向后兼容。
 // re-export conserved for backward compat
 pub use axagent_astock_data::fundamentals_report;
+// K 线形态和价量背离检测 — 权威实现在 astock-data crate，此处 re-export 保持向后兼容
+pub use axagent_astock_data::{candlestick_pattern, divergence};
 pub mod key_levels;
 pub mod market_regime;
 pub mod monitor;

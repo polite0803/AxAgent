@@ -667,6 +667,7 @@ async fn extract_lesson_to_rule(
 //
 // 从 run_batch_reflection 提取的核心逻辑。
 // 参数通过独立引用传入,不需要 AppState。
+#[allow(dead_code)]
 pub async fn run_batch_reflection_inner(
     db: &sea_orm::DatabaseConnection,
     _client: &axagent_astock_data::AStockClient,

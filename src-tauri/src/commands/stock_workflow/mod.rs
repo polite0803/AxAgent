@@ -19,9 +19,11 @@ pub mod reflection;
 pub mod serenity;
 
 // Re-export all #[tauri::command] functions so they remain accessible via stock_workflow::
+#[allow(unused_imports)]
 pub use core::run_single_stock_analysis;
 pub use reflection::run_reflection_workflow;
 // Internal helpers called from outside the module
+#[allow(unused_imports)]
 pub use reflection::run_batch_reflection_inner;
 
 // Re-export public structs

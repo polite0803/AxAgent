@@ -1,10 +1,11 @@
-//! 信号生成 — MA 金叉/死叉检测、突破/破位判断。
+//! 信号生成 — MA 金叉/死叉检测、突破/破位判断、K 线形态确认。
 //!
 //! 纯函数，接收 JSON 字符串输入，输出结构化信号结果。
 
-use serde::{Deserialize, Serialize};
-
+use crate::candlestick_pattern;
 use axagent_astock_data::indicators::sma;
+use axagent_astock_data::KLine;
+use serde::{Deserialize, Serialize};
 
 /// K 线最小结构（反序列化用）
 #[derive(Debug, Clone, Deserialize)]
@@ -172,6 +173,86 @@ pub fn detect_breakout_with_volume_mult(
 /// support/resistance: 支撑位和阻力位价格。
 pub fn detect_breakout(klines_json: &str, support: f64, resistance: f64) -> BreakoutResult {
     detect_breakout_with_volume_mult(klines_json, support, resistance, 1.5)
+}
+
+// ── K 线形态确认增强 ──
+
+/// 将 KLineRaw 向量转为 KLine 向量（供 candlestick_pattern 使用）。
+fn raw_to_kline(raw: &[KLineRaw]) -> Vec<KLine> {
+    // KLineRaw 只有 close/volume，其他字段用默认值
+    raw.iter()
+        .map(|r| KLine {
+            date: String::new(),
+            open: r.close,
+            high: r.close,
+            low: r.close,
+            close: r.close,
+            volume: r.volume,
+            amount: r.close * r.volume,
+            turnover_rate: None,
+            adj_factor: None,
+        })
+        .collect()
+}
+
+/// 在突破检测基础上叠加 K 线形态确认。
+///
+/// 返回增强后的 BreakoutResult，其中：
+/// - 阻力突破 + 看涨形态 → confidence 提升至 "high"
+/// - 支撑跌破 + 看跌形态 → confidence 提升至 "high"
+/// - 突破方向与形态矛盾 → confidence 降低一级
+pub fn detect_breakout_with_pattern(
+    klines_json: &str,
+    support: f64,
+    resistance: f64,
+    volume_mult: f64,
+) -> BreakoutResult {
+    let mut result =
+        detect_breakout_with_volume_mult(klines_json, support, resistance, volume_mult);
+
+    // 只有检测到突破才做形态确认
+    if result.breakout_type == "none" {
+        return result;
+    }
+
+    // 解析完整 K 线数据用于形态检测
+    let klines_raw: Vec<KLineRaw> = serde_json::from_str(klines_json).unwrap_or_default();
+    if klines_raw.len() < 2 {
+        return result;
+    }
+    let klines = raw_to_kline(&klines_raw);
+    let patterns = candlestick_pattern::detect_all_patterns(&klines);
+
+    if result.breakout_type == "resistance_break" {
+        // 阻力突破：看涨形态确认，看跌形态矛盾
+        let has_bullish = patterns.iter().any(|p| p.direction == "看涨");
+        let has_bearish = patterns.iter().any(|p| p.direction == "看跌");
+        if has_bullish && result.confidence != "high" {
+            result.confidence = "high".into();
+        } else if has_bearish {
+            // 看跌形态与突破方向矛盾 → confidence 降级
+            result.confidence = match result.confidence.as_str() {
+                "high" => "medium".into(),
+                "medium" => "low".into(),
+                _ => result.confidence,
+            };
+        }
+    } else if result.breakout_type == "support_break" {
+        // 支撑跌破：看跌形态确认，看涨形态矛盾
+        let has_bearish = patterns.iter().any(|p| p.direction == "看跌");
+        let has_bullish = patterns.iter().any(|p| p.direction == "看涨");
+        if has_bearish && result.confidence != "high" {
+            result.confidence = "high".into();
+        } else if has_bullish {
+            result.confidence = match result.confidence.as_str() {
+                "high" => "medium".into(),
+                "medium" => "low".into(),
+                _ => result.confidence,
+            };
+        }
+    }
+
+    result
 }
 
 // ── 测试 ──

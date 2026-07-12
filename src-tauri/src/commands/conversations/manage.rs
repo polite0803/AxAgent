@@ -683,11 +683,11 @@ pub(crate) async fn consume_stream(
     // Compute timing metrics
     let first_token_latency_ms = first_token_time.map(|t| (t - stream_start).as_millis() as i64);
     let tokens_per_second = match (final_usage.as_ref(), first_token_time) {
-        (Some(usage), Some(ft)) if usage.completion_tokens > 0 => {
+        (Some(usage), Some(ft)) if usage.output_tokens > 0 => {
             let gen_duration =
                 stream_start.elapsed().as_secs_f64() - (ft - stream_start).as_secs_f64();
             if gen_duration > 0.0 {
-                Some(usage.completion_tokens as f64 / gen_duration)
+                Some(usage.output_tokens as f64 / gen_duration)
             } else {
                 None
             }

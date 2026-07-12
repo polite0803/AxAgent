@@ -5,6 +5,7 @@
 //! 提供会话压缩完整性校验和复杂度评估功能。
 //! 实现方（`axagent-trajectory`）管理轨迹数据的处理和优化。
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// 完整性检查结果
@@ -15,7 +16,7 @@ pub struct IntegrityResult {
 }
 
 /// 单项完整性检查结果
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IntegrityCheck {
     pub name: String,
     pub passed: bool,
@@ -40,7 +41,8 @@ pub trait TrajectoryService: fmt::Debug + Send + Sync {
 }
 
 /// 任务复杂度等级
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TaskComplexity {
     Low,
     Medium,
@@ -57,8 +59,7 @@ impl TaskComplexity {
     }
 }
 
-/// 空实现 — 提供默认降级行为
-
+// 空实现 — 提供默认降级行为
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::research_state::{SearchQuery, SearchResult, SourceType};
+use crate::research_state::{ResearchStateResult, SearchQuery, SourceType};
 use crate::search_provider::{ContentMetadata, ExtractedContent, RelevanceScorer, SearchProvider};
 use async_trait::async_trait;
 use axagent_harness::kit_bridge::KitHtmlCleaner;
@@ -63,7 +63,7 @@ impl WebSearchProvider {
     async fn perform_search(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         if let Some(ref api_key) = self.config.api_key
             && let Some(ref endpoint) = self.config.endpoint
         {
@@ -75,7 +75,7 @@ impl WebSearchProvider {
     async fn search_via_ddg(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let ddg_url =
             format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(&query.query));
 
@@ -98,7 +98,7 @@ impl WebSearchProvider {
         &self,
         html: &str,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let mut results = Vec::new();
         let doc = scraper::Html::parse_document(html);
         let result_selector = scraper::Selector::parse(".result__a")
@@ -125,7 +125,7 @@ impl WebSearchProvider {
                 let credibility = self.estimate_credibility(link);
 
                 results.push(
-                    SearchResult::new(
+                    ResearchStateResult::new(
                         SourceType::Web,
                         link.to_string(),
                         title.trim().to_string(),
@@ -138,9 +138,9 @@ impl WebSearchProvider {
         }
 
         if results.is_empty() {
-            // 不在已存在的 tokio runtime 中嵌套 block_on,改用 spawn_blocking。
+            // 使用 tokio Handle::block_on 确保 tokio API（如 reqwest）在 block_in_place 内可用
             let wiki_results = tokio::task::block_in_place(|| {
-                futures::executor::block_on(self.search_via_wikipedia(query))
+                tokio::runtime::Handle::current().block_on(self.search_via_wikipedia(query))
             });
             return wiki_results;
         }
@@ -151,7 +151,7 @@ impl WebSearchProvider {
     async fn search_via_wikipedia(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let wiki_url = format!(
             "https://en.wikipedia.org/w/api.php?action=opensearch&search={}&limit={}&format=json",
             urlencoding::encode(&query.query),
@@ -183,7 +183,7 @@ impl WebSearchProvider {
         let scorer = RelevanceScorer::new(&query.query);
 
         let max_results = query.max_results;
-        let results: Vec<SearchResult> = wiki_response
+        let results: Vec<ResearchStateResult> = wiki_response
             .titles
             .into_iter()
             .zip(wiki_response.snippets)
@@ -191,7 +191,7 @@ impl WebSearchProvider {
             .enumerate()
             .filter(|(idx, _)| *idx < max_results)
             .map(|(_, ((title, snippet), url))| {
-                let result = SearchResult::new(SourceType::Wikipedia, url, title, snippet)
+                let result = ResearchStateResult::new(SourceType::Wikipedia, url, title, snippet)
                     .with_credibility(SourceType::Wikipedia.default_credibility());
                 let relevance = scorer.score(&result);
                 result.with_relevance(relevance)
@@ -206,7 +206,7 @@ impl WebSearchProvider {
         query: &SearchQuery,
         endpoint: &str,
         _api_key: &str,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let url = if endpoint.contains('?') {
             format!("{}&q={}", endpoint, urlencoding::encode(&query.query))
         } else {
@@ -221,7 +221,7 @@ impl WebSearchProvider {
             .map_err(|e| crate::search_provider::SearchError::NetworkError(e.to_string()))?;
 
         #[derive(Deserialize)]
-        struct ApiSearchResult {
+        struct ApiResearchStateResult {
             title: String,
             url: String,
             snippet: Option<String>,
@@ -229,7 +229,7 @@ impl WebSearchProvider {
 
         #[derive(Deserialize)]
         struct ApiResponse {
-            results: Vec<ApiSearchResult>,
+            results: Vec<ApiResearchStateResult>,
         }
 
         let api_response: ApiResponse = response
@@ -239,7 +239,7 @@ impl WebSearchProvider {
 
         let scorer = RelevanceScorer::new(&query.query);
 
-        let results: Vec<SearchResult> = api_response
+        let results: Vec<ResearchStateResult> = api_response
             .results
             .into_iter()
             .take(query.max_results)
@@ -247,7 +247,7 @@ impl WebSearchProvider {
                 let snippet = r.snippet.unwrap_or_default();
                 let url = r.url.clone();
                 let credibility = self.estimate_credibility(&url);
-                let result = SearchResult::new(SourceType::Web, r.url, r.title, snippet)
+                let result = ResearchStateResult::new(SourceType::Web, r.url, r.title, snippet)
                     .with_credibility(credibility);
                 let relevance = scorer.score(&result);
                 result.with_relevance(relevance)
@@ -310,7 +310,7 @@ impl SearchProvider for WebSearchProvider {
     async fn search(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         self.perform_search(query).await
     }
 

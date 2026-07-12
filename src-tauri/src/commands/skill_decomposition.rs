@@ -229,6 +229,7 @@ fn find_similar_local_tools(
             axagent_tools::ToolCategory::Knowledge => "builtin-knowledge",
             axagent_tools::ToolCategory::Browser => "builtin-browser",
             axagent_tools::ToolCategory::Desktop => "builtin-desktop",
+            axagent_tools::ToolCategory::Finance => "builtin-finance",
         };
 
         if final_score >= min_similarity {
@@ -296,7 +297,7 @@ pub struct ConfirmDecompositionRequest {
 
 fn create_plugin_manager() -> Result<PluginManager, String> {
     let home = dirs::home_dir().ok_or_else(|| "Cannot determine home directory".to_string())?;
-    let config_home = home.join(".claw");
+    let config_home = crate::paths::axagent_home().join("plugins");
     let mut config = PluginManagerConfig::new(config_home);
     config.external_dirs = vec![
         home.join(".axagent").join("skills"),

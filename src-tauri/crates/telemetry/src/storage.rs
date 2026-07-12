@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+/// 内存中保存的 trace 最大数量。超过此值时按 `exported_at` 移除最旧 trace，
+/// 避免无限增长内存泄漏。
+const MAX_TRACES: usize = 10000;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraceSummary {
     pub trace_id: String,
@@ -128,6 +132,14 @@ impl TraceStorage for InMemoryTraceStorage {
         let mut traces =
             self.traces.write().map_err(|_| StorageError::new("Failed to acquire write lock"))?;
         traces.insert(trace.trace_id.clone(), trace);
+        // 容量限制：超过上限时按 exported_at 移除最旧 trace，避免无限增长内存泄漏
+        if traces.len() > MAX_TRACES {
+            let oldest_id =
+                traces.iter().min_by_key(|(_, t)| t.exported_at).map(|(k, _)| k.clone());
+            if let Some(oldest_id) = oldest_id {
+                traces.remove(&oldest_id);
+            }
+        }
         Ok(())
     }
 

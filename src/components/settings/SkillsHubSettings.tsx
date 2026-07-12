@@ -34,10 +34,10 @@ export function SkillsHubSettings() {
       a.download = `${skillName}.skill.json`;
       a.click();
       URL.revokeObjectURL(url);
-      message.success(`Exported ${skillName}`);
+      message.success(t("settings.skillsHub.exported", { name: skillName }));
     } catch (e) {
       console.error("Export failed:", e);
-      message.error(`Export failed: ${e}`);
+      message.error(t("settings.skillsHub.exportFailed", { error: String(e) }));
     }
   }, [t]);
 
@@ -59,10 +59,10 @@ export function SkillsHubSettings() {
           name: skillData.name,
           sourcePath: skillData.sourcePath ?? skillData.name,
         });
-        message.success(`Imported ${skillData.name}`);
+        message.success(t("settings.skillsHub.imported", { name: skillData.name }));
       } catch (e) {
         console.error("Import failed:", e);
-        message.error(`Import failed: ${e}`);
+        message.error(t("settings.skillsHub.importFailed", { error: String(e) }));
       }
     };
     input.click();

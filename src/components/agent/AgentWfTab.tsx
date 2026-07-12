@@ -3,8 +3,7 @@
 import { NL2SkillResultView } from "@/components/workflow/AIPanel/NL2SkillResultView";
 import { NL2UIResultView } from "@/components/workflow/AIPanel/NL2UIResultView";
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import type { UISchema } from "@/types/dynamicUI";
-import type { NL2SkillRequest, NL2SkillResult, NL2UIRequest, NL2UIResult, SkillDefinition } from "@/types/workflow";
+import type { NL2SkillRequest, NL2SkillResult, NL2UIRequest, NL2UIResult, SkillDefinition, UISchema } from "@/types";
 import { LayoutOutlined, SendOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { App, Button, Empty, Input, Progress, Select, Space, Tabs, Typography } from "antd";
 import { useMemo, useState } from "react";

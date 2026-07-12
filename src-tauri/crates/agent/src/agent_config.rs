@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 
 /// 智能体角色定义，决定可调用工具范围
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum AgentRole {
+pub enum ToolPermissionRole {
     /// 执行者 — 所有读写工具
     #[default]
     Executor,
@@ -22,11 +22,11 @@ pub enum AgentRole {
     Custom { name: String, allowed_categories: Vec<String> },
 }
 
-impl AgentRole {
+impl ToolPermissionRole {
     /// 返回角色的默认工具类别
     pub fn default_tool_categories(&self) -> Vec<&'static str> {
         match self {
-            AgentRole::Executor => vec![
+            ToolPermissionRole::Executor => vec![
                 "FileRead",
                 "FileWrite",
                 "Shell",
@@ -43,42 +43,42 @@ impl AgentRole {
                 "Browser",
                 "Desktop",
             ],
-            AgentRole::Planner => vec!["FileRead", "Network", "Knowledge"],
-            AgentRole::Researcher => vec!["FileRead", "Network", "Knowledge", "Browser"],
-            AgentRole::CodeReviewer => vec!["FileRead", "Vcs", "Knowledge"],
-            AgentRole::SafetyGuard => vec!["FileRead", "Knowledge"],
-            AgentRole::Custom { .. } => {
+            ToolPermissionRole::Planner => vec!["FileRead", "Network", "Knowledge"],
+            ToolPermissionRole::Researcher => vec!["FileRead", "Network", "Knowledge", "Browser"],
+            ToolPermissionRole::CodeReviewer => vec!["FileRead", "Vcs", "Knowledge"],
+            ToolPermissionRole::SafetyGuard => vec!["FileRead", "Knowledge"],
+            ToolPermissionRole::Custom { .. } => {
                 vec![]
             },
         }
     }
 
     pub fn allow_all_tools(&self) -> bool {
-        matches!(self, AgentRole::Executor)
+        matches!(self, ToolPermissionRole::Executor)
     }
 
     pub fn as_str(&self) -> &str {
         match self {
-            AgentRole::Executor => "executor",
-            AgentRole::Planner => "planner",
-            AgentRole::Researcher => "researcher",
-            AgentRole::CodeReviewer => "code_reviewer",
-            AgentRole::SafetyGuard => "safety_guard",
-            AgentRole::Custom { name, .. } => name.as_str(),
+            ToolPermissionRole::Executor => "executor",
+            ToolPermissionRole::Planner => "planner",
+            ToolPermissionRole::Researcher => "researcher",
+            ToolPermissionRole::CodeReviewer => "code_reviewer",
+            ToolPermissionRole::SafetyGuard => "safety_guard",
+            ToolPermissionRole::Custom { name, .. } => name.as_str(),
         }
     }
 }
 
-impl std::str::FromStr for AgentRole {
+impl std::str::FromStr for ToolPermissionRole {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "executor" => Ok(AgentRole::Executor),
-            "planner" => Ok(AgentRole::Planner),
-            "researcher" => Ok(AgentRole::Researcher),
-            "code_reviewer" => Ok(AgentRole::CodeReviewer),
-            "safety_guard" => Ok(AgentRole::SafetyGuard),
+            "executor" => Ok(ToolPermissionRole::Executor),
+            "planner" => Ok(ToolPermissionRole::Planner),
+            "researcher" => Ok(ToolPermissionRole::Researcher),
+            "code_reviewer" => Ok(ToolPermissionRole::CodeReviewer),
+            "safety_guard" => Ok(ToolPermissionRole::SafetyGuard),
             _ => Err(()),
         }
     }

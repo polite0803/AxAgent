@@ -7,6 +7,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// citations HashMap 最大条目数
+const MAX_CITATIONS_CAPACITY: usize = 1000;
+/// usage_records HashMap 最大条目数
+const MAX_USAGE_RECORDS_CAPACITY: usize = 1000;
+/// 单个 citation 的 usage 记录最大数量
+const MAX_USAGE_PER_CITATION: usize = 10000;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CitationUsage {
     pub citation_id: String,
@@ -48,6 +55,14 @@ impl CitationTracker {
         let id = citation.id.clone();
         let mut citations = self.citations.write().await;
         citations.insert(id.clone(), citation);
+        // 容量限制：超过上限时移除最旧的条目（HashMap 无序，移除任意一个）
+        while citations.len() > MAX_CITATIONS_CAPACITY {
+            if let Some(first_key) = citations.keys().next().cloned() {
+                citations.remove(&first_key);
+            } else {
+                break;
+            }
+        }
         id
     }
 
@@ -67,6 +82,11 @@ impl CitationTracker {
     }
 
     pub async fn get_all_citations(&self) -> Vec<Citation> {
+        // 性能权衡：在 read 锁内克隆所有 Citation。
+        // RwLock 允许并发读，不会阻塞其他 reader，但会延迟 writer。
+        // 容量已由 MAX_CITATIONS_CAPACITY (1000) 上限约束，最坏情况可控。
+        // 若未来需要进一步优化，可将 citations 改为 HashMap<String, Arc<Citation>>，
+        // 用 Arc::clone 替代深层 clone，但需同步修改所有返回 Citation 的公共方法签名。
         let citations = self.citations.read().await;
         citations.values().cloned().collect()
     }
@@ -79,6 +99,14 @@ impl CitationTracker {
     pub async fn update_citation(&self, citation: Citation) -> Option<Citation> {
         let mut citations = self.citations.write().await;
         citations.insert(citation.id.clone(), citation.clone());
+        // 容量限制：超过上限时移除最旧的条目
+        while citations.len() > MAX_CITATIONS_CAPACITY {
+            if let Some(first_key) = citations.keys().next().cloned() {
+                citations.remove(&first_key);
+            } else {
+                break;
+            }
+        }
         Some(citation)
     }
 
@@ -96,7 +124,21 @@ impl CitationTracker {
 
     pub async fn record_usage(&self, citation_id: String, usage: CitationUsage) {
         let mut usage_records = self.usage_records.write().await;
-        usage_records.entry(citation_id).or_insert_with(Vec::new).push(usage);
+        let records = usage_records.entry(citation_id).or_insert_with(Vec::new);
+        records.push(usage);
+        // 限制单个 citation 的 usage 记录数，超过则丢弃最旧的
+        if records.len() > MAX_USAGE_PER_CITATION {
+            let excess = records.len() - MAX_USAGE_PER_CITATION;
+            records.drain(0..excess);
+        }
+        // 容量限制：usage_records HashMap 超过上限时移除最旧的条目
+        while usage_records.len() > MAX_USAGE_RECORDS_CAPACITY {
+            if let Some(first_key) = usage_records.keys().next().cloned() {
+                usage_records.remove(&first_key);
+            } else {
+                break;
+            }
+        }
     }
 
     pub async fn get_usage(&self, citation_id: &str) -> Vec<CitationUsage> {
@@ -105,6 +147,8 @@ impl CitationTracker {
     }
 
     pub async fn get_all_usage(&self) -> HashMap<String, Vec<CitationUsage>> {
+        // 性能权衡：在 read 锁内克隆整个 usage_records HashMap。
+        // 容量已由 MAX_USAGE_RECORDS_CAPACITY (1000) 和 MAX_USAGE_PER_CITATION (10000) 约束。
         let usage_records = self.usage_records.read().await;
         usage_records.clone()
     }
@@ -209,6 +253,15 @@ impl CitationTracker {
             if !citations_map.contains_key(&citation.id) {
                 citations_map.insert(citation.id.clone(), citation);
                 count += 1;
+            }
+        }
+
+        // 容量限制：导入后超过上限时移除最旧的条目
+        while citations_map.len() > MAX_CITATIONS_CAPACITY {
+            if let Some(first_key) = citations_map.keys().next().cloned() {
+                citations_map.remove(&first_key);
+            } else {
+                break;
             }
         }
 

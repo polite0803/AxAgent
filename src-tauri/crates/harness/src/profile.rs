@@ -53,13 +53,13 @@ pub enum CommentStyle {
     Minimal,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum Tone {
+pub enum ProfileTone {
     Formal,
     Casual,
     Technical,
     Friendly,
 }
-impl Tone {
+impl ProfileTone {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Formal => "formal",
@@ -79,7 +79,7 @@ pub struct CodingStyleProfile {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommunicationProfile {
-    pub tone: Tone,
+    pub tone: ProfileTone,
     pub detail_level: u8,
     pub prefers_code_examples: bool,
 }

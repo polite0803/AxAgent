@@ -5,7 +5,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { NAV_ICON_COLORS } from "@/lib/iconColors";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { getPinnedSchemas, getPinnedSchemasByGroup, PIN_GROUPS } from "@/lib/pinned-schemas";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
@@ -279,7 +279,7 @@ function MobileActions() {
 
   const cycleTheme = () => {
     const next = settings.theme_mode === "dark" ? "system" : settings.theme_mode === "system" ? "light" : "dark";
-    saveSettings({ theme_mode: next });
+    saveSettings({ theme_mode: next }).catch(logIpcError("Sidebar: saveSettings(theme_mode)"));
   };
 
   const ThemeIcon = settings.theme_mode === "dark" ? Moon : settings.theme_mode === "light" ? Sun : Globe;

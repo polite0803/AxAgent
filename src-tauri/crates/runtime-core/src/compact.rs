@@ -1033,7 +1033,7 @@ mod tests {
                     "message[{}] is a ToolResult but message[{}] has no ToolUse: {:?}",
                     i,
                     i - 1,
-                    &messages[i - 1].blocks
+                    messages[i - 1].blocks
                 );
             }
         }

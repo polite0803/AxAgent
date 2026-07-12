@@ -73,15 +73,15 @@ pub enum PreprocessingStep {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidationResult {
+pub struct DatasetValidationResult {
     pub valid: bool,
-    pub errors: Vec<ValidationError>,
+    pub errors: Vec<DatasetValidationError>,
     pub warnings: Vec<String>,
     pub stats: DatasetStats,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidationError {
+pub struct DatasetValidationError {
     pub line: usize,
     pub message: String,
 }
@@ -126,7 +126,7 @@ impl FineTuneDataset {
         }
     }
 
-    pub fn validate(&self) -> ValidationResult {
+    pub fn validate(&self) -> DatasetValidationResult {
         let mut errors = Vec::new();
         let warnings = Vec::new();
         let mut total_input_len = 0;
@@ -137,11 +137,12 @@ impl FineTuneDataset {
             total_output_len += sample.output.len();
 
             if sample.input.is_empty() {
-                errors.push(ValidationError { line: i, message: "Empty input".to_string() });
+                errors.push(DatasetValidationError { line: i, message: "Empty input".to_string() });
             }
 
             if sample.output.is_empty() {
-                errors.push(ValidationError { line: i, message: "Empty output".to_string() });
+                errors
+                    .push(DatasetValidationError { line: i, message: "Empty output".to_string() });
             }
         }
 
@@ -157,7 +158,7 @@ impl FineTuneDataset {
             total_output_len / self.samples.len()
         };
 
-        ValidationResult {
+        DatasetValidationResult {
             valid: errors.is_empty(),
             errors,
             warnings,
@@ -428,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_validation_result_serialization() {
-        let result = ValidationResult {
+        let result = DatasetValidationResult {
             valid: true,
             errors: vec![],
             warnings: vec!["test warning".to_string()],
@@ -440,7 +441,7 @@ mod tests {
             },
         };
         let json = serde_json::to_string(&result).unwrap();
-        let de: ValidationResult = serde_json::from_str(&json).unwrap();
+        let de: DatasetValidationResult = serde_json::from_str(&json).unwrap();
         assert!(de.valid);
         assert_eq!(de.stats.total_samples, 5);
     }

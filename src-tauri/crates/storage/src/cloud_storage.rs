@@ -1110,8 +1110,21 @@ impl SyncEngine {
     }
 
     /// Blocking helper for use from sync contexts.
+    ///
+    /// # Panics
+    ///
+    /// 若当前线程不处于任何 tokio runtime 上下文，`Handle::current()` 会 panic。
+    ///
+    /// # Safety
+    ///
+    /// `block_on` 会阻塞当前线程直到 future 完成。**调用方必须确保不在
+    /// tokio runtime worker 线程上直接调用本函数**，否则会死锁或 panic。
+    /// 建议用 `tokio::task::spawn_blocking` 包裹本函数后再在 async
+    /// 上下文中使用。函数名 `blocking_` 前缀即用于提醒此约束。
     pub fn blocking_fetch(&self, key: &str, local_path: &Path) -> Result<()> {
         let rt = tokio::runtime::Handle::current();
+        // SAFETY: 调用方必须确保不在 tokio runtime worker 线程上直接调用，
+        // 建议通过 `spawn_blocking` 包裹。详见函数级文档。
         rt.block_on(self.fetch_file(key, local_path))
     }
 

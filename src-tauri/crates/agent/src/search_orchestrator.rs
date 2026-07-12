@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::research_state::{SearchPlan, SearchQuery, SearchResult, SourceType};
+use crate::research_state::{ResearchStateResult, SearchPlan, SearchQuery, SourceType};
 use crate::search_provider::SearchProvider;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -79,9 +79,12 @@ impl SearchOrchestrator {
         self
     }
 
-    pub async fn execute(&self, plan: &SearchPlan) -> Result<Vec<SearchResult>, OrchestratorError> {
-        let mut all_results: Vec<SearchResult> = Vec::new();
-        let mut query_results: HashMap<String, Vec<SearchResult>> = HashMap::new();
+    pub async fn execute(
+        &self,
+        plan: &SearchPlan,
+    ) -> Result<Vec<ResearchStateResult>, OrchestratorError> {
+        let mut all_results: Vec<ResearchStateResult> = Vec::new();
+        let mut query_results: HashMap<String, Vec<ResearchStateResult>> = HashMap::new();
 
         for group in &plan.parallel_groups {
             let group_results = self.execute_parallel_group(group, plan).await?;
@@ -109,7 +112,7 @@ impl SearchOrchestrator {
         &self,
         query_ids: &[String],
         plan: &SearchPlan,
-    ) -> Result<HashMap<String, Vec<SearchResult>>, OrchestratorError> {
+    ) -> Result<HashMap<String, Vec<ResearchStateResult>>, OrchestratorError> {
         let mut handles = Vec::new();
         let timeout = self.timeout_secs;
         let providers = self.providers.clone();
@@ -138,7 +141,7 @@ impl SearchOrchestrator {
             }
         }
 
-        let mut results: HashMap<String, Vec<SearchResult>> = HashMap::new();
+        let mut results: HashMap<String, Vec<ResearchStateResult>> = HashMap::new();
 
         for handle in handles {
             match handle.await {
@@ -160,8 +163,8 @@ impl SearchOrchestrator {
     async fn execute_single_query_static(
         query: &SearchQuery,
         providers: &HashMap<SourceType, Arc<dyn SearchProvider>>,
-    ) -> Result<Vec<SearchResult>, OrchestratorError> {
-        let mut results: Vec<SearchResult> = Vec::new();
+    ) -> Result<Vec<ResearchStateResult>, OrchestratorError> {
+        let mut results: Vec<ResearchStateResult> = Vec::new();
 
         for source_type in &query.source_types {
             let source_results = Self::search_source_static(query, *source_type, providers).await?;
@@ -176,7 +179,7 @@ impl SearchOrchestrator {
         query: &SearchQuery,
         source_type: SourceType,
         providers: &HashMap<SourceType, Arc<dyn SearchProvider>>,
-    ) -> Result<Vec<SearchResult>, OrchestratorError> {
+    ) -> Result<Vec<ResearchStateResult>, OrchestratorError> {
         let provider = providers
             .get(&source_type)
             .ok_or(OrchestratorError::NoProviderForSource(source_type))?;
@@ -184,9 +187,9 @@ impl SearchOrchestrator {
         provider.search(query).await.map_err(|e| OrchestratorError::ProviderError(e.to_string()))
     }
 
-    fn deduplicate_results(&self, results: Vec<SearchResult>) -> Vec<SearchResult> {
+    fn deduplicate_results(&self, results: Vec<ResearchStateResult>) -> Vec<ResearchStateResult> {
         let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
-        let mut deduplicated: Vec<SearchResult> = Vec::new();
+        let mut deduplicated: Vec<ResearchStateResult> = Vec::new();
 
         for result in results {
             if seen_urls.contains(&result.url) {
@@ -199,7 +202,9 @@ impl SearchOrchestrator {
         deduplicated
     }
 
-    pub fn calculate_source_distribution(results: &[SearchResult]) -> HashMap<SourceType, usize> {
+    pub fn calculate_source_distribution(
+        results: &[ResearchStateResult],
+    ) -> HashMap<SourceType, usize> {
         let mut distribution: HashMap<SourceType, usize> = HashMap::new();
 
         for result in results {
@@ -211,9 +216,9 @@ impl SearchOrchestrator {
 
     pub fn get_high_credibility_results<'a>(
         &self,
-        results: &'a [SearchResult],
+        results: &'a [ResearchStateResult],
         threshold: f32,
-    ) -> Vec<&'a SearchResult> {
+    ) -> Vec<&'a ResearchStateResult> {
         results
             .iter()
             .filter(|r| r.credibility_score.map(|s| s >= threshold).unwrap_or(false))
@@ -270,12 +275,12 @@ mod tests {
 
     struct MockSearchProvider {
         source_type: SourceType,
-        results: Vec<SearchResult>,
+        results: Vec<ResearchStateResult>,
         should_fail: bool,
     }
 
     impl MockSearchProvider {
-        fn new(source_type: SourceType, results: Vec<SearchResult>) -> Self {
+        fn new(source_type: SourceType, results: Vec<ResearchStateResult>) -> Self {
             Self { source_type, results, should_fail: false }
         }
 
@@ -286,7 +291,10 @@ mod tests {
 
     #[async_trait]
     impl SearchProvider for MockSearchProvider {
-        async fn search(&self, _query: &SearchQuery) -> Result<Vec<SearchResult>, SearchError> {
+        async fn search(
+            &self,
+            _query: &SearchQuery,
+        ) -> Result<Vec<ResearchStateResult>, SearchError> {
             if self.should_fail {
                 Err(SearchError::ApiError("mock error".to_string()))
             } else {
@@ -320,8 +328,8 @@ mod tests {
         title: &str,
         source_type: SourceType,
         relevance: f32,
-    ) -> SearchResult {
-        SearchResult::new(
+    ) -> ResearchStateResult {
+        ResearchStateResult::new(
             source_type,
             url.to_string(),
             title.to_string(),
@@ -477,21 +485,21 @@ mod tests {
     fn test_get_high_credibility_results() {
         let orch = SearchOrchestrator::new();
         let results = vec![
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://a.com".to_string(),
                 "A".to_string(),
                 "s".to_string(),
             )
             .with_credibility(0.9),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://b.com".to_string(),
                 "B".to_string(),
                 "s".to_string(),
             )
             .with_credibility(0.5),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://c.com".to_string(),
                 "C".to_string(),
@@ -507,7 +515,7 @@ mod tests {
     fn test_get_high_credibility_results_none_match() {
         let orch = SearchOrchestrator::new();
         let results = vec![
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://a.com".to_string(),
                 "A".to_string(),

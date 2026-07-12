@@ -142,7 +142,9 @@ function AppInner() {
             /* not a Tauri webview window */
           }
         },
-      );
+      ).catch(() => {
+        /* Tauri API not available in browser mode */
+      });
     }
   }, [navigate, isQuickBarWindow]);
 

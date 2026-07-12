@@ -2272,10 +2272,20 @@
       "exportSkill": "Exportar",
       "importSkill": "Importar",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "Exportado {{name}}",
+      "exportFailed": "Exportación fallida: {{error}}",
+      "imported": "Importado {{name}}",
+      "importFailed": "Importación fallida: {{error}}"
     },
     "plugins": {
-      "title": "Plugins"
+      "title": "Plugins",
+      "loadFailed": "Error al cargar plugins: {{error}}",
+      "refreshFailed": "Actualización fallida: {{error}}",
+      "installFailed": "Instalación fallida: {{error}}",
+      "openFolderFailed": "Error al abrir carpeta: {{error}}",
+      "toggleFailed": "Cambio de estado fallido: {{error}}",
+      "unloadFailed": "Descarga fallida: {{error}}"
     },
     "dashboardPlugins": {
       "title": "Complementos del panel",
@@ -2330,7 +2340,13 @@
       "agentEvents": "Eventos de agente",
       "toolEvents": "Eventos de herramienta",
       "sessionEvents": "Eventos de sesión",
-      "messageEvents": "Eventos de mensaje"
+      "messageEvents": "Eventos de mensaje",
+      "loadFailed": "Error al cargar suscripciones: {{error}}",
+      "refreshFailed": "Actualización fallida: {{error}}",
+      "toggleFailed": "Cambio de estado fallido: {{error}}",
+      "deleteFailed": "Eliminación fallida: {{error}}",
+      "createFailed": "Creación fallida: {{error}}",
+      "testFailed": "Prueba fallida: {{error}}"
     },
     "zhipu": "Zhipu",
     "bocha": "Bocha",
@@ -6904,7 +6920,10 @@
     },
     "title": "Ajuste fino del modelo",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "¿Eliminar este conjunto de datos?"
+    }
   },
   "research": {
     "mockFinding": "Resultado de investigación simulado",

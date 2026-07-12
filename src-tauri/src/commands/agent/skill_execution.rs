@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Instant;
+use tauri::Emitter;
 use tracing::warn;
 
 /// 语义匹配：检查用户输入是否匹配已有工作流模板
@@ -39,75 +40,20 @@ pub(super) async fn check_and_suggest_workflow_match(
                 "merge",
             ],
         ),
-        (
-            "bug-fix",
-            vec![
-                "bug", "fix", "修复", "调试", "debug", "error", "错误", "crash", "崩溃",
-            ],
-        ),
-        (
-            "doc-gen",
-            vec![
-                "doc", "文档", "document", "generate", "生成", "readme", "api doc",
-            ],
-        ),
-        (
-            "test-gen",
-            vec![
-                "test",
-                "测试",
-                "unit test",
-                "单元测试",
-                "coverage",
-                "覆盖",
-                "e2e",
-            ],
-        ),
+        ("bug-fix", vec!["bug", "fix", "修复", "调试", "debug", "error", "错误", "crash", "崩溃"]),
+        ("doc-gen", vec!["doc", "文档", "document", "generate", "生成", "readme", "api doc"]),
+        ("test-gen", vec!["test", "测试", "unit test", "单元测试", "coverage", "覆盖", "e2e"]),
         ("refactor", vec!["refactor", "重构", "clean", "清理", "restructure", "整理"]),
         (
             "explore",
-            vec![
-                "explore",
-                "探索",
-                "understand",
-                "理解",
-                "navigate",
-                "浏览",
-                "search",
-                "查找",
-            ],
+            vec!["explore", "探索", "understand", "理解", "navigate", "浏览", "search", "查找"],
         ),
         (
             "performance",
-            vec![
-                "performance",
-                "性能",
-                "optimize",
-                "优化",
-                "slow",
-                "慢",
-                "speed",
-                "加速",
-            ],
+            vec!["performance", "性能", "optimize", "优化", "slow", "慢", "speed", "加速"],
         ),
-        (
-            "security",
-            vec![
-                "security",
-                "安全",
-                "audit",
-                "审计",
-                "vulnerability",
-                "漏洞",
-                "scan",
-            ],
-        ),
-        (
-            "api-design",
-            vec![
-                "api", "design", "设计", "endpoint", "接口", "rest", "graphql",
-            ],
-        ),
+        ("security", vec!["security", "安全", "audit", "审计", "vulnerability", "漏洞", "scan"]),
+        ("api-design", vec!["api", "design", "设计", "endpoint", "接口", "rest", "graphql"]),
         (
             "feature",
             vec![
@@ -181,17 +127,17 @@ pub(super) async fn load_enabled_skill_contents(
     scenario: Option<&str>,
     enabled_skill_ids: &[String],
 ) -> Vec<(String, String)> {
-    let disabled =
-        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
-            Ok(d) => d,
-            Err(_) => return Vec::new(),
-        };
+    let disabled = match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await
+    {
+        Ok(d) => d,
+        Err(_) => return Vec::new(),
+    };
 
     let home = match dirs::home_dir() {
         Some(h) => h,
         None => return Vec::new(),
     };
-    let config_home = home.join(".claw");
+    let config_home = crate::paths::axagent_home().join("plugins");
     let mut config = axagent_plugins::PluginManagerConfig::new(config_home);
     config.external_dirs = vec![
         home.join(".axagent").join("skills"),
@@ -209,10 +155,8 @@ pub(super) async fn load_enabled_skill_contents(
         Ok(skills) => skills,
         Err(_) => return Vec::new(),
     };
-    let skill_scenarios: std::collections::HashMap<String, Vec<String>> = all_skills
-        .into_iter()
-        .map(|s| (s.name.clone(), s.scenarios))
-        .collect();
+    let skill_scenarios: std::collections::HashMap<String, Vec<String>> =
+        all_skills.into_iter().map(|s| (s.name.clone(), s.scenarios)).collect();
 
     let mut results = Vec::new();
 
@@ -268,11 +212,11 @@ pub(super) async fn load_skill_tools(
     scenario: Option<&str>,
     enabled_skill_ids: &[String],
 ) -> (Vec<ChatTool>, HashMap<String, axagent_trajectory::Skill>) {
-    let disabled =
-        match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await {
-            Ok(d) => d,
-            Err(_) => return (Vec::new(), HashMap::new()),
-        };
+    let disabled = match axagent_dao::repo::skill::get_disabled_skills(app_state.harness.db()).await
+    {
+        Ok(d) => d,
+        Err(_) => return (Vec::new(), HashMap::new()),
+    };
 
     let trajectory_storage = &app_state.trajectory_storage;
     let all_skills = match trajectory_storage.get_skills().await {
@@ -328,7 +272,7 @@ pub(super) struct SkillTaskContext {
     constraints: Option<Vec<String>>,
 }
 
-static SKILL_MCP_REGISTRY: std::sync::OnceLock<
+pub(super) static SKILL_MCP_REGISTRY: std::sync::OnceLock<
     std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,
 > = std::sync::OnceLock::new();
 
@@ -346,10 +290,7 @@ struct ConvEntry {
 
 impl ConvEntry {
     fn new() -> Self {
-        Self {
-            records: Vec::new(),
-            last_access: Instant::now(),
-        }
+        Self { records: Vec::new(), last_access: Instant::now() }
     }
 
     fn touch(&mut self) {
@@ -369,11 +310,7 @@ pub(super) struct SkillOutputTracker {
 
 impl SkillOutputTracker {
     fn new() -> Self {
-        Self {
-            inner: Mutex::new(HashMap::new()),
-            max_records_per_conv: 200,
-            max_conversations: 64,
-        }
+        Self { inner: Mutex::new(HashMap::new()), max_records_per_conv: 200, max_conversations: 64 }
     }
 
     /// Evict the least recently accessed conversation(s) until we are within capacity.
@@ -401,9 +338,7 @@ impl SkillOutputTracker {
         record: SkillExecutionRecord,
     ) -> Result<(), String> {
         let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
-        let entry = tracker
-            .entry(conversation_id.to_string())
-            .or_insert_with(ConvEntry::new);
+        let entry = tracker.entry(conversation_id.to_string()).or_insert_with(ConvEntry::new);
         entry.touch();
 
         if entry.records.len() >= self.max_records_per_conv {
@@ -442,11 +377,7 @@ impl SkillOutputTracker {
         let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
         if let Some(entry) = tracker.get_mut(conversation_id) {
             entry.touch();
-            if let Some(last) = entry
-                .records
-                .iter_mut()
-                .rev()
-                .find(|r| r.skill_name == skill_name)
+            if let Some(last) = entry.records.iter_mut().rev().find(|r| r.skill_name == skill_name)
             {
                 last.output = Some(output);
             }
@@ -505,7 +436,7 @@ pub(super) struct SkillExecutionContext {
 }
 
 impl SkillExecutionContext {
-    fn new(
+    pub(super) fn new(
         _app: tauri::AppHandle,
         app_state: &AppState,
         _adapter: Arc<dyn ProviderAdapter>,
@@ -514,10 +445,7 @@ impl SkillExecutionContext {
         conversation_id: String,
         _message_id: String,
     ) -> Self {
-        Self {
-            sea_db: app_state.harness.db().clone(),
-            conversation_id,
-        }
+        Self { sea_db: app_state.harness.db().clone(), conversation_id }
     }
 
     fn mcp_registry(&self) -> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
@@ -546,11 +474,11 @@ pub(super) struct SkillExecutionResult {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(super) struct SkillStep {
-    step: usize,
-    action: String,
-    description: String,
+    pub(super) step: usize,
+    pub(super) action: String,
+    pub(super) description: String,
     #[serde(default)]
-    needs: Vec<usize>,
+    pub(super) needs: Vec<usize>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -585,11 +513,7 @@ pub(super) fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
             }
         }
         if line_trimmed.starts_with("arguments:") || line_trimmed.starts_with("args:") {
-            let json_str = line_trimmed
-                .split_once(':')
-                .map(|x| x.1)
-                .unwrap_or("{}")
-                .trim();
+            let json_str = line_trimmed.split_once(':').map(|x| x.1).unwrap_or("{}").trim();
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
                 arguments = parsed;
             }
@@ -601,10 +525,7 @@ pub(super) fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
         }
     }
 
-    tool_name.map(|name| McpToolCall {
-        tool_name: name,
-        arguments,
-    })
+    tool_name.map(|name| McpToolCall { tool_name: name, arguments })
 }
 
 pub(super) fn infer_agent_role(
@@ -661,12 +582,10 @@ pub(super) async fn execute_skill_async(
 
     let tracker = get_skill_output_tracker();
     let conversation_id = ctx.conversation_id.clone();
-    let recent_skills = tracker
-        .get_recent_skills(&conversation_id, 10)
-        .unwrap_or_else(|e| {
-            warn!("get_recent_skills failed: {}, using empty default", e);
-            Vec::new()
-        });
+    let recent_skills = tracker.get_recent_skills(&conversation_id, 10).unwrap_or_else(|e| {
+        warn!("get_recent_skills failed: {}, using empty default", e);
+        Vec::new()
+    });
     let inter_skill_deps = detect_inter_skill_dependencies(task, &recent_skills);
     let inter_skill_deps_json = if inter_skill_deps.is_empty() {
         None
@@ -676,10 +595,8 @@ pub(super) async fn execute_skill_async(
             .ok()
     };
 
-    let execution_record = SkillExecutionRecord {
-        skill_name: skill_name.to_string(),
-        output: None,
-    };
+    let execution_record =
+        SkillExecutionRecord { skill_name: skill_name.to_string(), output: None };
     let _ = tracker.record_execution(&conversation_id, execution_record);
 
     let mut mcp_result: Option<String> = None;
@@ -761,10 +678,19 @@ pub(super) async fn execute_skill_async(
                             }
                         },
                         Ok(None) => {
-                            tracing::debug!("[skill_execution] 未找到 tool execution 记录 (conversation={}, skill={})", conversation_id_clone, skill_name_for_lookup);
+                            tracing::debug!(
+                                "[skill_execution] 未找到 tool execution 记录 (conversation={}, skill={})",
+                                conversation_id_clone,
+                                skill_name_for_lookup
+                            );
                         },
                         Err(e) => {
-                            tracing::warn!("[skill_execution] 查询 tool execution 失败 (conversation={}, skill={}): {}", conversation_id_clone, skill_name_for_lookup, e);
+                            tracing::warn!(
+                                "[skill_execution] 查询 tool execution 失败 (conversation={}, skill={}): {}",
+                                conversation_id_clone,
+                                skill_name_for_lookup,
+                                e
+                            );
                         },
                     }
                 },
@@ -801,10 +727,19 @@ pub(super) async fn execute_skill_async(
                             }
                         },
                         Ok(None) => {
-                            tracing::debug!("[skill_execution] 未找到 tool execution 记录 (conversation={}, skill={})", conversation_id_clone, skill_name_for_lookup);
+                            tracing::debug!(
+                                "[skill_execution] 未找到 tool execution 记录 (conversation={}, skill={})",
+                                conversation_id_clone,
+                                skill_name_for_lookup
+                            );
                         },
                         Err(e) => {
-                            tracing::warn!("[skill_execution] 查询 tool execution 失败 (conversation={}, skill={}): {}", conversation_id_clone, skill_name_for_lookup, e);
+                            tracing::warn!(
+                                "[skill_execution] 查询 tool execution 失败 (conversation={}, skill={}): {}",
+                                conversation_id_clone,
+                                skill_name_for_lookup,
+                                e
+                            );
                         },
                     }
                 },
@@ -829,11 +764,8 @@ pub(super) async fn execute_mcp_tool_call(
         ErrorResponse::new(agent_err::INTERNAL)
             .with_detail(format!("Failed to serialize arguments: {}", e))
     })?;
-    let result = registry
-        .execute_mcp(tool_name, &args_json)
-        .await
-        .map(|r| r.content)
-        .map_err(|e| {
+    let result =
+        registry.execute_mcp(tool_name, &args_json).await.map(|r| r.content).map_err(|e| {
             ErrorResponse::new(agent_err::INTERNAL)
                 .with_detail(format!("MCP tool execution failed: {}", e))
         })?;
@@ -1019,9 +951,8 @@ pub(super) fn build_agent_system_prompt(
 
     if let Some(lang) = output_language {
         if !lang.is_empty() {
-            let already_present = prompts
-                .iter()
-                .any(|p| axagent_kit::utils::has_output_language_directive(p));
+            let already_present =
+                prompts.iter().any(|p| axagent_kit::utils::has_output_language_directive(p));
             if !already_present {
                 prompts.push(axagent_kit::utils::build_output_language_directive(lang));
             }

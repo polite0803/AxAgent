@@ -346,7 +346,6 @@ async fn run_stock_workflow_inner(
             // 计算日收益率序列 → 年化波动率 → sim_stability
             let mut returns = Vec::with_capacity(klines.len() - 1);
             let mut total_volume: f64 = 0.0;
-            let mut avg_price: f64 = 0.0;
             for pair in klines.windows(2) {
                 let prev_close = pair[0].close;
                 let cur = &pair[1];
@@ -355,7 +354,7 @@ async fn run_stock_workflow_inner(
                 }
                 total_volume += cur.volume;
             }
-            avg_price = klines.last()?.close;
+            let avg_price = klines.last()?.close;
             let n = returns.len() as f64;
             if n < 3.0 {
                 return None;
@@ -1068,6 +1067,7 @@ pub async fn cancel_stock_workflow(
 /// - 不需要 `as_of_date` 参数（使用当前时间，非回放模式）
 /// - 不需要 `dry_run`（总是完整执行）
 /// - 参数是独立引用而非 Tauri State
+#[allow(dead_code)]
 pub async fn run_single_stock_analysis(
     db: &DatabaseConnection,
     client: &axagent_astock_data::AStockClient,

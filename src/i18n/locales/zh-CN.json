@@ -1353,10 +1353,20 @@
       "exportSkill": "导出",
       "importSkill": "导入",
       "noSkillsToExport": "没有可导出的技能",
-      "invalidSkillFile": "无效的技能文件：缺少名称"
+      "invalidSkillFile": "无效的技能文件：缺少名称",
+      "exported": "已导出 {{name}}",
+      "exportFailed": "导出失败：{{error}}",
+      "imported": "已导入 {{name}}",
+      "importFailed": "导入失败：{{error}}"
     },
     "plugins": {
-      "title": "插件"
+      "title": "插件",
+      "loadFailed": "加载插件失败：{{error}}",
+      "refreshFailed": "刷新失败：{{error}}",
+      "installFailed": "安装失败：{{error}}",
+      "openFolderFailed": "打开文件夹失败：{{error}}",
+      "toggleFailed": "切换状态失败：{{error}}",
+      "unloadFailed": "卸载失败：{{error}}"
     },
     "dashboardPlugins": {
       "title": "仪表盘插件",
@@ -2358,7 +2368,13 @@
       "agentEvents": "Agent 事件",
       "toolEvents": "工具事件",
       "sessionEvents": "会话事件",
-      "messageEvents": "消息事件"
+      "messageEvents": "消息事件",
+      "loadFailed": "加载订阅失败：{{error}}",
+      "refreshFailed": "刷新失败：{{error}}",
+      "toggleFailed": "切换状态失败：{{error}}",
+      "deleteFailed": "删除失败：{{error}}",
+      "createFailed": "创建失败：{{error}}",
+      "testFailed": "测试失败：{{error}}"
     },
     "themePreset": "主题预设",
     "themePresetDeepDusk": "深色暮色",
@@ -7052,7 +7068,10 @@
     },
     "title": "模型微调",
     "trainingJobCreated": "训练任务创建成功",
-    "trainingJobFailed": "训练任务创建失败"
+    "trainingJobFailed": "训练任务创建失败",
+    "dataset": {
+      "deleteConfirm": "删除此数据集？"
+    }
   },
   "research": {
     "mockFinding": "模拟研究发现",

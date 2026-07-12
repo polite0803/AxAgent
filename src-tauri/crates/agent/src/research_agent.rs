@@ -3,7 +3,7 @@
 use crate::error_recovery_engine::ErrorRecoveryEngine;
 use crate::research_state::{
     Citation, ResearchConfig, ResearchPhase, ResearchProgress, ResearchReport, ResearchState,
-    ResearchStatus, SearchPlan, SearchResult,
+    ResearchStateResult, ResearchStatus, SearchPlan,
 };
 use crate::search_orchestrator::SearchOrchestrator;
 use crate::search_planner::SearchPlanner;
@@ -195,7 +195,7 @@ impl ResearchAgent {
         Ok(plan)
     }
 
-    async fn searching_phase(&self) -> Result<Vec<SearchResult>, ResearchError> {
+    async fn searching_phase(&self) -> Result<Vec<ResearchStateResult>, ResearchError> {
         self.update_phase(ResearchPhase::Searching).await;
 
         let plan = {
@@ -690,7 +690,7 @@ impl LlmContentGenerator for DefaultLlmContentGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::research_state::{Citation, ResearchConfig, SearchResult, SourceType};
+    use crate::research_state::{Citation, ResearchConfig, ResearchStateResult, SourceType};
 
     #[tokio::test]
     async fn test_research_agent_creation() {
@@ -855,7 +855,7 @@ mod tests {
     async fn test_research_agent_build_research_context() {
         let agent = ResearchAgent::new();
         let mut state = ResearchState::new("Test topic".to_string());
-        state.add_search_result(SearchResult::new(
+        state.add_search_result(ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Example Source".to_string(),
@@ -880,7 +880,7 @@ mod tests {
     async fn test_research_agent_format_sources_for_llm() {
         let agent = ResearchAgent::new();
         let mut state = ResearchState::new("Topic".to_string());
-        state.add_search_result(SearchResult::new(
+        state.add_search_result(ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Source Title".to_string(),
@@ -896,7 +896,7 @@ mod tests {
     async fn test_research_agent_format_findings_for_llm() {
         let agent = ResearchAgent::new();
         let mut state = ResearchState::new("Topic".to_string());
-        state.add_search_result(SearchResult::new(
+        state.add_search_result(ResearchStateResult::new(
             SourceType::Academic,
             "https://paper.com".to_string(),
             "Research Paper".to_string(),
@@ -911,7 +911,7 @@ mod tests {
     async fn test_research_agent_generate_content_no_generator() {
         let agent = ResearchAgent::new();
         let mut state = ResearchState::new("Test Topic".to_string());
-        state.add_search_result(SearchResult::new(
+        state.add_search_result(ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Example".to_string(),
@@ -931,7 +931,7 @@ mod tests {
     async fn test_research_agent_generate_summary_no_generator() {
         let agent = ResearchAgent::new();
         let mut state = ResearchState::new("Summary Topic".to_string());
-        state.add_search_result(SearchResult::new(
+        state.add_search_result(ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Example".to_string(),
@@ -1055,7 +1055,7 @@ mod tests {
         {
             let mut state = agent.state.write().await;
             state.add_search_result(
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Web,
                     "https://example.com/page1".to_string(),
                     "Page 1".to_string(),
@@ -1065,7 +1065,7 @@ mod tests {
                 .with_credibility(0.8),
             );
             state.add_search_result(
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Web,
                     "https://EXAMPLE.COM/page1".to_string(),
                     "Page 1 Dup".to_string(),
@@ -1130,7 +1130,7 @@ mod tests {
         let agent = ResearchAgent::new();
         let mut state = ResearchState::new("Topic".to_string());
         for i in 0..25 {
-            state.add_search_result(SearchResult::new(
+            state.add_search_result(ResearchStateResult::new(
                 SourceType::Web,
                 format!("https://example.com/{}", i),
                 format!("Source {}", i),
@@ -1147,7 +1147,7 @@ mod tests {
         let agent = ResearchAgent::new();
         let mut state = ResearchState::new("Topic".to_string());
         for i in 0..15 {
-            state.add_search_result(SearchResult::new(
+            state.add_search_result(ResearchStateResult::new(
                 SourceType::Web,
                 format!("https://example.com/{}", i),
                 format!("Source {}", i),

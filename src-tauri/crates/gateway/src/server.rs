@@ -113,8 +113,13 @@ pub(crate) fn client_ip_policy_from_env_or_default() -> ClientIpPolicy {
     }
 
     if proxies.is_empty() {
-        tracing::warn!("TRUSTED_PROXIES 解析后为空，回退到 trust_all()");
-        return ClientIpPolicy::trust_all();
+        // SECURITY: 默认不信任任何代理，防止 X-Forwarded-For 伪造
+        // 生产部署必须配置 TRUSTED_PROXIES 环境变量
+        tracing::warn!(
+            "TRUSTED_PROXIES 未配置 — 网关不信任任何转发头，\
+             远程部署时请配置 TRUSTED_PROXIES 环境变量"
+        );
+        return ClientIpPolicy::trust_none();
     }
 
     tracing::info!("TRUSTED_PROXIES 已配置 {} 个可信代理", proxies.len());

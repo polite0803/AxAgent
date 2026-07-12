@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::time::Instant;
@@ -31,14 +31,7 @@ static ACTIVE_PERSONALITY_FILE: LazyLock<PathBuf> = LazyLock::new(|| {
         .join(".active")
 });
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum SlashCommandAction {
-    LoadBundle { name: String, args: String },
-    LoadSkill { name: String, args: String },
-    SwitchPersonality { name: String },
-    BuiltIn { command: String, args: String },
-    Unknown,
-}
+pub use axagent_harness::kit_bridge::SlashCommandAction;
 
 pub struct SlashCommandRouter;
 
@@ -104,6 +97,9 @@ fn is_bundle_name(name: &str) -> bool {
 }
 
 fn get_cached_bundle_names() -> Vec<String> {
+    // SAFETY: 本函数及所有 BUNDLE_NAMES_CACHE 访问点（is_bundle_name）均为
+    // 同步函数，guard 不跨 await 点。使用 std::sync::Mutex 是正确的；
+    // unwrap_or_else 处理 poison 以避免 panic 连锁。
     let mut guard = BUNDLE_NAMES_CACHE.lock().unwrap_or_else(|e| e.into_inner());
     if let Some((ref names, built_at)) = *guard
         && built_at.elapsed().as_secs() < BUNDLE_CACHE_TTL_SECS
@@ -359,12 +355,7 @@ pub fn apply_slash_command_to_input(text: &str) -> SlashCommandPreprocessed {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SlashCommandPreprocessed {
-    pub modified_text: String,
-    pub personality_prompt: Option<String>,
-    pub is_builtin: bool,
-}
+pub use axagent_harness::kit_bridge::SlashCommandPreprocessed;
 
 #[cfg(test)]
 mod tests {

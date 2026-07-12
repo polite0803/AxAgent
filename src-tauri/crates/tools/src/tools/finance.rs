@@ -78,12 +78,7 @@ struct SharpeR {
 fn sharpe_ratio(returns: &[f64], rf: f64, annualization: f64) -> SharpeR {
     let n = returns.len();
     if n < 2 {
-        return SharpeR {
-            sharpe: 0.0,
-            annualized: 0.0,
-            mean_return: 0.0,
-            stddev: 0.0,
-        };
+        return SharpeR { sharpe: 0.0, annualized: 0.0, mean_return: 0.0, stddev: 0.0 };
     }
     let m = returns.iter().sum::<f64>() / n as f64;
     let v = returns.iter().map(|r| (r - m).powi(2)).sum::<f64>() / (n - 1) as f64;
@@ -106,11 +101,7 @@ struct VarR {
 fn value_at_risk(returns: &[f64], conf: f64) -> VarR {
     let n = returns.len();
     if n < 5 {
-        return VarR {
-            var_pct: 0.0,
-            confidence: conf,
-            cvar_pct: 0.0,
-        };
+        return VarR { var_pct: 0.0, confidence: conf, cvar_pct: 0.0 };
     }
     let mut s = returns.to_vec();
     s.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
@@ -152,11 +143,7 @@ fn pe_percentile(cur: f64, hist: &[f64]) -> PeR {
         "极高"
     };
     let med = if !s.is_empty() { s[s.len() / 2] } else { cur };
-    PeR {
-        percentile: (pct * 10.0).round() / 10.0,
-        level: level.into(),
-        median: med,
-    }
+    PeR { percentile: (pct * 10.0).round() / 10.0, level: level.into(), median: med }
 }
 
 #[derive(Serialize)]
@@ -166,10 +153,7 @@ struct PegR {
 }
 fn peg_ratio(pe: f64, g: f64) -> PegR {
     if g <= 0.0 {
-        return PegR {
-            peg: f64::INFINITY,
-            level: "无意义".into(),
-        };
+        return PegR { peg: f64::INFINITY, level: "无意义".into() };
     }
     let peg = pe / g;
     PegR {
@@ -231,18 +215,12 @@ struct RpR {
 fn risk_parity(vols: &[f64], corr_json: &str) -> RpR {
     let n = vols.len();
     if n == 0 {
-        return RpR {
-            weights: vec![],
-            divers_ratio: 0.0,
-        };
+        return RpR { weights: vec![], divers_ratio: 0.0 };
     }
     let corr_matrix: Option<Vec<Vec<f64>>> = serde_json::from_str(corr_json)
         .ok()
         .filter(|m: &Vec<Vec<f64>>| m.len() == n && m.iter().all(|r| r.len() == n));
-    let inv: Vec<f64> = vols
-        .iter()
-        .map(|&v| if v > 0.0 { 1.0 / v } else { 0.0 })
-        .collect();
+    let inv: Vec<f64> = vols.iter().map(|&v| if v > 0.0 { 1.0 / v } else { 0.0 }).collect();
     let total: f64 = inv.iter().sum();
     let w = if let Some(corr) = corr_matrix {
         let mut w: Vec<f64> = inv.clone();
@@ -278,9 +256,7 @@ fn risk_parity(vols: &[f64], corr_json: &str) -> RpR {
         }
         w.iter().map(|&x| (x * 10000.0).round() / 10000.0).collect()
     } else if total > 0.0 {
-        inv.iter()
-            .map(|&x| (x / total * 10000.0).round() / 10000.0)
-            .collect()
+        inv.iter().map(|&x| (x / total * 10000.0).round() / 10000.0).collect()
     } else {
         vec![1.0 / n as f64; n]
     };
@@ -378,11 +354,7 @@ fn detect_breakout(kj: &str, sup: f64, res: f64, vol_confirm_th: f64) -> BrkR {
     let last = kl.last().unwrap();
     let price = last.close;
     let avg_v = if kl.len() >= 5 {
-        kl[kl.len() - 6..kl.len() - 1]
-            .iter()
-            .map(|k| k.volume)
-            .sum::<f64>()
-            / 5.0
+        kl[kl.len() - 6..kl.len() - 1].iter().map(|k| k.volume).sum::<f64>() / 5.0
     } else {
         kl.iter().map(|k| k.volume).sum::<f64>() / kl.len() as f64
     };
@@ -424,10 +396,7 @@ struct OutR {
 fn remove_outliers(pj: &str, method: &str, th: f64) -> OutR {
     let prices: Vec<f64> = serde_json::from_str(pj).unwrap_or_default();
     if prices.len() < 4 {
-        return OutR {
-            cleaned: prices,
-            removed_count: 0,
-        };
+        return OutR { cleaned: prices, removed_count: 0 };
     }
     if method == "iqr" {
         let mut s = prices.clone();
@@ -436,10 +405,7 @@ fn remove_outliers(pj: &str, method: &str, th: f64) -> OutR {
         let q3 = s[(s.len() as f64 * 0.75).floor() as usize];
         let iqr = q3 - q1;
         if iqr < 1e-10 {
-            return OutR {
-                cleaned: prices,
-                removed_count: 0,
-            };
+            return OutR { cleaned: prices, removed_count: 0 };
         }
         let (lo, hi) = (q1 - th * iqr, q3 + th * iqr);
         let mut cleaned = Vec::with_capacity(prices.len());
@@ -455,19 +421,13 @@ fn remove_outliers(pj: &str, method: &str, th: f64) -> OutR {
                 cleaned.push(p);
             }
         }
-        OutR {
-            cleaned,
-            removed_count: rm,
-        }
+        OutR { cleaned, removed_count: rm }
     } else {
         let n = prices.len();
         let m = prices.iter().sum::<f64>() / n as f64;
         let std = (prices.iter().map(|p| (p - m).powi(2)).sum::<f64>() / (n - 1) as f64).sqrt();
         if std < 1e-10 {
-            return OutR {
-                cleaned: prices,
-                removed_count: 0,
-            };
+            return OutR { cleaned: prices, removed_count: 0 };
         }
         let mut cleaned = Vec::with_capacity(prices.len());
         let mut rm = 0usize;
@@ -481,10 +441,7 @@ fn remove_outliers(pj: &str, method: &str, th: f64) -> OutR {
                 cleaned.push(p);
             }
         }
-        OutR {
-            cleaned,
-            removed_count: rm,
-        }
+        OutR { cleaned, removed_count: rm }
     }
 }
 
@@ -496,10 +453,7 @@ struct FillR {
 fn fill_missing(pj: &str, method: &str) -> FillR {
     let prices: Vec<Option<f64>> = serde_json::from_str(pj).unwrap_or_default();
     if prices.is_empty() {
-        return FillR {
-            filled: vec![],
-            filled_count: 0,
-        };
+        return FillR { filled: vec![], filled_count: 0 };
     }
     if method == "linear" {
         let mut r = prices.clone();
@@ -507,10 +461,7 @@ fn fill_missing(pj: &str, method: &str) -> FillR {
         let n = r.len();
         let first = r.iter().position(|v| v.is_some());
         if first.is_none() {
-            return FillR {
-                filled: r,
-                filled_count: 0,
-            };
+            return FillR { filled: r, filled_count: 0 };
         }
         let f = first.unwrap();
         let hv = r[f].unwrap();
@@ -544,10 +495,7 @@ fn fill_missing(pj: &str, method: &str) -> FillR {
                 }
             }
         }
-        FillR {
-            filled: r,
-            filled_count: cnt,
-        }
+        FillR { filled: r, filled_count: cnt }
     } else {
         let mut r = prices.clone();
         let mut last: Option<f64> = None;
@@ -560,10 +508,7 @@ fn fill_missing(pj: &str, method: &str) -> FillR {
                 cnt += 1;
             }
         }
-        FillR {
-            filled: r,
-            filled_count: cnt,
-        }
+        FillR { filled: r, filled_count: cnt }
     }
 }
 
@@ -601,10 +546,7 @@ fn adjust_prices(kj: &str, dj: &str) -> AdjR {
     let mut kl: Vec<K> = serde_json::from_str(kj).unwrap_or_default();
     let div: Vec<D> = serde_json::from_str(dj).unwrap_or_default();
     if kl.is_empty() {
-        return AdjR {
-            adjusted_klines: vec![],
-            adjustment_factor: 1.0,
-        };
+        return AdjR { adjusted_klines: vec![], adjustment_factor: 1.0 };
     }
     kl.sort_by(|a, b| b.date.cmp(&a.date));
     let mut factor = 1.0;
@@ -653,10 +595,11 @@ fn compute_atr(args: &Value) -> Result<Value, String> {
         .and_then(|v| v.as_str())
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or_default();
-    let period = args
-        .get("period")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(tv_i64(args, "atr_period", 14) as u64) as usize;
+    let period = args.get("period").and_then(|v| v.as_u64()).unwrap_or(tv_i64(
+        args,
+        "atr_period",
+        14,
+    ) as u64) as usize;
     let n = kl.len();
     if n < 2 || period == 0 {
         return Ok(json!({"atr": 0.0, "period": period}));
@@ -664,9 +607,7 @@ fn compute_atr(args: &Value) -> Result<Value, String> {
     let mut trs = vec![0.0; n - 1];
     for i in 1..n {
         let (p, c) = (&kl[i - 1], &kl[i]);
-        trs[i - 1] = (c.high - c.low)
-            .max((c.high - p.close).abs())
-            .max((c.low - p.close).abs());
+        trs[i - 1] = (c.high - c.low).max((c.high - p.close).abs()).max((c.low - p.close).abs());
     }
     let atr = if trs.len() <= period {
         trs.iter().sum::<f64>() / trs.len() as f64
@@ -692,10 +633,8 @@ fn compute_kdj(args: &Value) -> Result<Value, String> {
         .and_then(|v| v.as_str())
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or_default();
-    let n = args
-        .get("n")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(tv_i64(args, "kdj_n", 9) as u64) as usize;
+    let n =
+        args.get("n").and_then(|v| v.as_u64()).unwrap_or(tv_i64(args, "kdj_n", 9) as u64) as usize;
     if kl.len() < n {
         return Ok(json!({"k": 50.0, "d": 50.0, "j": 50.0, "signal": "中性"}));
     }
@@ -764,11 +703,7 @@ fn calc_beta(args: &Value) -> Result<Value, String> {
         return Ok(json!({"beta": 1.0}));
     }
     let (ms, mm) = (s[..n].iter().sum::<f64>() / n as f64, m[..n].iter().sum::<f64>() / n as f64);
-    let cov = s[..n]
-        .iter()
-        .zip(m[..n].iter())
-        .map(|(&a, &b)| (a - ms) * (b - mm))
-        .sum::<f64>()
+    let cov = s[..n].iter().zip(m[..n].iter()).map(|(&a, &b)| (a - ms) * (b - mm)).sum::<f64>()
         / (n - 1) as f64;
     let vm = m[..n].iter().map(|&x| (x - mm).powi(2)).sum::<f64>() / (n - 1) as f64;
     Ok(json!({"beta": if vm > 1e-10 { (cov / vm * 1000.0).round() / 1000.0 } else { 1.0 }}))
@@ -777,14 +712,8 @@ fn calc_beta(args: &Value) -> Result<Value, String> {
 // ── P2/P3 ──
 
 fn detect_earnings(args: &Value) -> Result<Value, String> {
-    let a = args
-        .get("actual_eps")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
-    let c = args
-        .get("consensus_eps")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
+    let a = args.get("actual_eps").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let c = args.get("consensus_eps").and_then(|v| v.as_f64()).unwrap_or(0.0);
     if c.abs() < 1e-10 {
         return Ok(json!({"surprise_pct": 0.0, "level": "无预期"}));
     }
@@ -817,19 +746,18 @@ fn detect_earnings(args: &Value) -> Result<Value, String> {
 }
 
 fn detect_pledge(args: &Value) -> Result<Value, String> {
-    let p = args
-        .get("pledge_pct")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
+    let p = args.get("pledge_pct").and_then(|v| v.as_f64()).unwrap_or(0.0);
     // 质押风险阈值（用户可在设置面板中调整）
-    let w = args
-        .get("warning_line")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(args, "pledge_warning_line", 50.0));
-    let lq = args
-        .get("liquidation_line")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(args, "pledge_liquidation_line", 70.0));
+    let w = args.get("warning_line").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        args,
+        "pledge_warning_line",
+        50.0,
+    ));
+    let lq = args.get("liquidation_line").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        args,
+        "pledge_liquidation_line",
+        70.0,
+    ));
     let med = tv_f64(args, "pledge_medium_line", 30.0);
     let low = tv_f64(args, "pledge_low_line", 10.0);
     let (r, wa) = if p >= lq {
@@ -913,26 +841,30 @@ fn normal_approx(s0: &mut u64, s1: &mut u64) -> f64 {
 
 fn monte_carlo(args: &Value) -> Result<Value, String> {
     // 蒙特卡洛参数（用户可在设置面板中调整默认值）
-    let price = args
-        .get("current_price")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(args, "mc_default_price", 10.0));
-    let ret = args
-        .get("annual_return")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(args, "mc_default_return", 0.08));
-    let vol = args
-        .get("annual_volatility")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(args, "mc_default_volatility", 0.3));
+    let price = args.get("current_price").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        args,
+        "mc_default_price",
+        10.0,
+    ));
+    let ret = args.get("annual_return").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        args,
+        "mc_default_return",
+        0.08,
+    ));
+    let vol = args.get("annual_volatility").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        args,
+        "mc_default_volatility",
+        0.3,
+    ));
     let days =
         args.get("days")
             .and_then(|v| v.as_u64())
             .unwrap_or(tv_i64(args, "mc_default_days", 30) as u64) as usize;
-    let sims = args
-        .get("simulations")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(tv_i64(args, "mc_default_simulations", 1000) as u64) as usize;
+    let sims = args.get("simulations").and_then(|v| v.as_u64()).unwrap_or(tv_i64(
+        args,
+        "mc_default_simulations",
+        1000,
+    ) as u64) as usize;
     let (dr, dv) = (ret / 252.0, vol / (252.0f64).sqrt());
     let mut outs = Vec::with_capacity(sims);
     let mut s0 = 1234567890123456789u64;
@@ -955,18 +887,9 @@ fn monte_carlo(args: &Value) -> Result<Value, String> {
 
 fn industry_pos(args: &Value) -> Result<Value, String> {
     let sp = args.get("stock_pe").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let sg = args
-        .get("stock_growth")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
-    let ip = args
-        .get("industry_avg_pe")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(sp);
-    let ig = args
-        .get("industry_avg_growth")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(sg);
+    let sg = args.get("stock_growth").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let ip = args.get("industry_avg_pe").and_then(|v| v.as_f64()).unwrap_or(sp);
+    let ig = args.get("industry_avg_growth").and_then(|v| v.as_f64()).unwrap_or(sg);
     if ip <= 0.0 || ig <= 0.0 {
         return Ok(json!({"position": "数据无效"}));
     }
@@ -1003,10 +926,7 @@ fn limit_up(args: &Value) -> Result<Value, String> {
         .and_then(|v| v.as_str())
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or_default();
-    let mt = args
-        .get("market_type")
-        .and_then(|v| v.as_str())
-        .unwrap_or("main");
+    let mt = args.get("market_type").and_then(|v| v.as_str()).unwrap_or("main");
     let lp = match mt {
         "star" | "chinext" => tv_f64(args, "limit_pct_star", 20.0),
         "bj" => tv_f64(args, "limit_pct_bj", 30.0),
@@ -1028,10 +948,7 @@ fn limit_up(args: &Value) -> Result<Value, String> {
     } else {
         1.0
     };
-    let up_d = kl[n - 10..]
-        .iter()
-        .filter(|k| k.close > k.high * 0.99)
-        .count();
+    let up_d = kl[n - 10..].iter().filter(|k| k.close > k.high * 0.99).count();
     let trend = (up_d as f64 / 10.0 - 0.5) * 2.0;
     // 涨停潜力评分的权重（用户可调）
     let w_trend = tv_f64(args, "limit_up_w_trend", 40.0);
@@ -1128,105 +1045,93 @@ calc_tool_r!(CalcMaxDrawdownTool, "calc_max_drawdown", "计算最大回撤比例
 });
 calc_tool_r!(CalcSharpeRatioTool, "calc_sharpe_ratio", "计算夏普比率", |input| {
     let returns = parse_f64s(&input, "returns_json");
-    let rf = input
-        .get("risk_free")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(&input, "risk_free_rate", 0.03));
+    let rf = input.get("risk_free").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        &input,
+        "risk_free_rate",
+        0.03,
+    ));
     let ann = tv_f64(&input, "risk_sharpe_annualization", 252.0);
     serde_json::to_value(sharpe_ratio(&returns, rf, ann)).unwrap_or_default()
 });
 calc_tool_r!(CalcVarTool, "calc_var", "历史模拟法 VaR 计算", |input| {
     let returns = parse_f64s(&input, "returns_json");
-    let conf = input
-        .get("confidence")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(&input, "var_confidence", 0.95));
+    let conf = input.get("confidence").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        &input,
+        "var_confidence",
+        0.95,
+    ));
     serde_json::to_value(value_at_risk(&returns, conf)).unwrap_or_default()
 });
 calc_tool_r!(CalcPEPercentileTool, "calc_pe_percentile", "PE 历史分位数", |input| {
-    let cur = input
-        .get("current_pe")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
+    let cur = input.get("current_pe").and_then(|v| v.as_f64()).unwrap_or(0.0);
     let hist = parse_f64s(&input, "historical_pes_json");
     serde_json::to_value(pe_percentile(cur, &hist)).unwrap_or_default()
 });
 calc_tool_r!(CalcPEGTool, "calc_peg", "PEG 估值指标", |input| {
     let pe = input.get("pe").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let g = input
-        .get("growth_rate")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
+    let g = input.get("growth_rate").and_then(|v| v.as_f64()).unwrap_or(0.0);
     serde_json::to_value(peg_ratio(pe, g)).unwrap_or_default()
 });
 calc_tool_r!(CalcKellyTool, "calc_kelly", "凯利公式仓位计算", |input| {
-    let wr = input
-        .get("win_rate")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(&input, "kelly_default_win_rate", 0.5));
-    let aw = input
-        .get("avg_win")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(&input, "kelly_default_avg_win", 0.05));
-    let al = input
-        .get("avg_loss")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(&input, "kelly_default_avg_loss", 0.05));
+    let wr = input.get("win_rate").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        &input,
+        "kelly_default_win_rate",
+        0.5,
+    ));
+    let aw = input.get("avg_win").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        &input,
+        "kelly_default_avg_win",
+        0.05,
+    ));
+    let al = input.get("avg_loss").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        &input,
+        "kelly_default_avg_loss",
+        0.05,
+    ));
     let heavy = tv_f64(&input, "risk_kelly_heavy_threshold", 0.25);
     let med = tv_f64(&input, "risk_kelly_medium_threshold", 0.1);
     serde_json::to_value(kelly(wr, aw, al, heavy, med)).unwrap_or_default()
 });
 calc_tool_r!(CalcRiskParityTool, "calc_risk_parity", "风险平价权重计算", |input| {
     let vols = parse_f64s(&input, "volatilities_json");
-    let corr_json = input
-        .get("correlations_json")
-        .and_then(|v| v.as_str())
-        .unwrap_or("[]");
+    let corr_json = input.get("correlations_json").and_then(|v| v.as_str()).unwrap_or("[]");
     serde_json::to_value(risk_parity(&vols, corr_json)).unwrap_or_default()
 });
 
 calc_tool_r!(DetectMACrossTool, "detect_ma_cross", "MA 金叉死叉检测", |input| {
-    let kj = input
-        .get("klines_json")
-        .and_then(|v| v.as_str())
-        .unwrap_or("[]");
-    let fast = input
-        .get("fast_period")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(tv_i64(&input, "signal_ma_fast", 5) as u64) as usize;
-    let slow = input
-        .get("slow_period")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(tv_i64(&input, "signal_ma_slow", 20) as u64) as usize;
+    let kj = input.get("klines_json").and_then(|v| v.as_str()).unwrap_or("[]");
+    let fast = input.get("fast_period").and_then(|v| v.as_u64()).unwrap_or(tv_i64(
+        &input,
+        "signal_ma_fast",
+        5,
+    ) as u64) as usize;
+    let slow = input.get("slow_period").and_then(|v| v.as_u64()).unwrap_or(tv_i64(
+        &input,
+        "signal_ma_slow",
+        20,
+    ) as u64) as usize;
     serde_json::to_value(detect_ma_cross(kj, fast, slow)).unwrap_or_default()
 });
 calc_tool_r!(DetectBreakoutTool, "detect_breakout", "支撑阻力突破检测", |input| {
-    let kj = input
-        .get("klines_json")
-        .and_then(|v| v.as_str())
-        .unwrap_or("[]");
+    let kj = input.get("klines_json").and_then(|v| v.as_str()).unwrap_or("[]");
     let sup = input.get("support").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let res = input
-        .get("resistance")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
+    let res = input.get("resistance").and_then(|v| v.as_f64()).unwrap_or(0.0);
     let vol_th = tv_f64(&input, "breakout_volume_threshold", 1.5);
     serde_json::to_value(detect_breakout(kj, sup, res, vol_th)).unwrap_or_default()
 });
 
 calc_tool_r!(CleanOutliersTool, "clean_outliers", "异常值剔除 (zscore/iqr)", |input| {
-    let pj = input
-        .get("prices_json")
-        .and_then(|v| v.as_str())
-        .unwrap_or("[]");
-    let method = input
-        .get("method")
-        .and_then(|v| v.as_str())
-        .unwrap_or(tv_str(&input, "outlier_method", "zscore"));
-    let th = input
-        .get("threshold")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(tv_f64(&input, "outlier_threshold", 2.0));
+    let pj = input.get("prices_json").and_then(|v| v.as_str()).unwrap_or("[]");
+    let method = input.get("method").and_then(|v| v.as_str()).unwrap_or(tv_str(
+        &input,
+        "outlier_method",
+        "zscore",
+    ));
+    let th = input.get("threshold").and_then(|v| v.as_f64()).unwrap_or(tv_f64(
+        &input,
+        "outlier_threshold",
+        2.0,
+    ));
     serde_json::to_value(remove_outliers(pj, method, th)).unwrap_or_default()
 });
 calc_tool_r!(
@@ -1234,26 +1139,18 @@ calc_tool_r!(
     "clean_fill_missing",
     "缺失值填充 (forward/linear)",
     |input| {
-        let pj = input
-            .get("prices_json")
-            .and_then(|v| v.as_str())
-            .unwrap_or("[]");
-        let method = input
-            .get("method")
-            .and_then(|v| v.as_str())
-            .unwrap_or(tv_str(&input, "fill_missing_method", "forward"));
+        let pj = input.get("prices_json").and_then(|v| v.as_str()).unwrap_or("[]");
+        let method = input.get("method").and_then(|v| v.as_str()).unwrap_or(tv_str(
+            &input,
+            "fill_missing_method",
+            "forward",
+        ));
         serde_json::to_value(fill_missing(pj, method)).unwrap_or_default()
     }
 );
 calc_tool_r!(AdjustPricesTool, "adjust_prices", "前复权价格调整", |input| {
-    let kj = input
-        .get("klines_json")
-        .and_then(|v| v.as_str())
-        .unwrap_or("[]");
-    let dj = input
-        .get("dividends_json")
-        .and_then(|v| v.as_str())
-        .unwrap_or("[]");
+    let kj = input.get("klines_json").and_then(|v| v.as_str()).unwrap_or("[]");
+    let dj = input.get("dividends_json").and_then(|v| v.as_str()).unwrap_or("[]");
     serde_json::to_value(adjust_prices(kj, dj)).unwrap_or_default()
 });
 
@@ -1283,6 +1180,42 @@ calc_tool!(
     "行业内估值/增长对比分析"
 );
 calc_tool!(DetectLimitUpTool, limit_up, "detect_limit_up_potential", "涨停潜力评估");
+
+// ── K线形态与背离检测（基于 astock-data 模块）──
+
+/// K 线形态检测包装函数
+fn detect_candlestick_patterns(input: &Value) -> Result<String, String> {
+    let kj = input.get("klines_json").and_then(|v| v.as_str()).unwrap_or("[]");
+    let klines: Vec<axagent_astock_data::KLine> =
+        serde_json::from_str(kj).map_err(|e| format!("解析 K 线数据失败: {e}"))?;
+    let patterns = axagent_astock_data::candlestick_pattern::detect_all_patterns(&klines);
+    serde_json::to_string(&patterns).map_err(|e| format!("序列化形态结果失败: {e}"))
+}
+
+/// 价量背离检测包装函数
+fn detect_divergence(input: &Value) -> Result<String, String> {
+    let kj = input.get("klines_json").and_then(|v| v.as_str()).unwrap_or("[]");
+    let rsi_period = input.get("rsi_period").and_then(|v| v.as_f64()).unwrap_or(14.0) as usize;
+    let lookback = input.get("lookback").and_then(|v| v.as_f64()).unwrap_or(14.0) as usize;
+    let klines: Vec<axagent_astock_data::KLine> =
+        serde_json::from_str(kj).map_err(|e| format!("解析 K 线数据失败: {e}"))?;
+    let results =
+        axagent_astock_data::divergence::detect_all_divergences(&klines, rsi_period, lookback);
+    serde_json::to_string(&results).map_err(|e| format!("序列化背离结果失败: {e}"))
+}
+
+calc_tool!(
+    DetectCandlestickPatternsTool,
+    detect_candlestick_patterns,
+    "detect_candlestick_patterns",
+    "检测 K 线形态（吞没/锤子/晨星等 12 种）"
+);
+calc_tool!(
+    DetectDivergenceTool,
+    detect_divergence,
+    "detect_divergence",
+    "检测价量背离（RSI 顶底背离 + OBV 背离）"
+);
 
 // ═══════════ 数据 API 工具（需要 AStockClient）═══════════
 
@@ -1321,52 +1254,31 @@ macro_rules! api_tool {
 }
 
 api_tool!(ResearchReportsTool, "get_research_reports", "获取券商研报", |input, c| {
-    let code = input
-        .get("stock_code")
-        .and_then(|v| v.as_str())
-        .unwrap_or("000001");
+    let code = input.get("stock_code").and_then(|v| v.as_str()).unwrap_or("000001");
     c.get_research_reports(code)
         .await
         .map(|v| ToolResult::success(serde_json::to_value(v).unwrap_or_default().to_string()))
         .map_err(|e| ToolError::execution_failed(e.to_string()))
 });
-api_tool!(
-    ConceptBlocksTool,
-    "get_concept_blocks",
-    "获取概念板块归属",
-    |input, c| {
-        let code = input
-            .get("stock_code")
-            .and_then(|v| v.as_str())
-            .unwrap_or("000001");
-        c.get_concept_blocks(code)
-            .await
-            .map(|v| ToolResult::success(serde_json::to_value(v).unwrap_or_default().to_string()))
-            .map_err(|e| ToolError::execution_failed(e.to_string()))
-    }
-);
-api_tool!(
-    NorthBoundFlowTool,
-    "get_north_bound_flow",
-    "获取北向资金流向",
-    |_input, c| {
-        c.get_north_bound_flow()
-            .await
-            .map(|v| ToolResult::success(serde_json::to_value(v).unwrap_or_default().to_string()))
-            .map_err(|e| ToolError::execution_failed(e.to_string()))
-    }
-);
-api_tool!(
-    DragonTigerTool,
-    "get_market_dragon_tiger",
-    "获取龙虎榜数据",
-    |_input, c| {
-        c.get_market_dragon_tiger()
-            .await
-            .map(|v| ToolResult::success(serde_json::to_value(v).unwrap_or_default().to_string()))
-            .map_err(|e| ToolError::execution_failed(e.to_string()))
-    }
-);
+api_tool!(ConceptBlocksTool, "get_concept_blocks", "获取概念板块归属", |input, c| {
+    let code = input.get("stock_code").and_then(|v| v.as_str()).unwrap_or("000001");
+    c.get_concept_blocks(code)
+        .await
+        .map(|v| ToolResult::success(serde_json::to_value(v).unwrap_or_default().to_string()))
+        .map_err(|e| ToolError::execution_failed(e.to_string()))
+});
+api_tool!(NorthBoundFlowTool, "get_north_bound_flow", "获取北向资金流向", |_input, c| {
+    c.get_north_bound_flow()
+        .await
+        .map(|v| ToolResult::success(serde_json::to_value(v).unwrap_or_default().to_string()))
+        .map_err(|e| ToolError::execution_failed(e.to_string()))
+});
+api_tool!(DragonTigerTool, "get_market_dragon_tiger", "获取龙虎榜数据", |_input, c| {
+    c.get_market_dragon_tiger()
+        .await
+        .map(|v| ToolResult::success(serde_json::to_value(v).unwrap_or_default().to_string()))
+        .map_err(|e| ToolError::execution_failed(e.to_string()))
+});
 api_tool!(ClsFlashTool, "get_cls_flash", "获取财联社实时快讯", |_input, c| {
     c.get_cls_flash()
         .await

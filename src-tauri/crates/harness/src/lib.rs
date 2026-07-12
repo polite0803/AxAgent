@@ -309,7 +309,7 @@ pub use dream::{
 pub mod profile;
 pub use profile::{
     CodingStyleProfile, CommentStyle, CommunicationProfile, DomainKnowledgeProfile, ExpertiseLevel,
-    IndentationStyle, LearningState, NamingConvention, ProfileUpdate, Tone, UserProfile,
+    IndentationStyle, LearningState, NamingConvention, ProfileTone, ProfileUpdate, UserProfile,
     UserProfileService, WorkHabitProfile,
 };
 pub mod style;
@@ -360,7 +360,7 @@ pub use tool_access::{AccessDecision, ToolAccessControl, ToolAccessRequest};
 
 // ── P10: 开发者体验契约（可观测 / 基准测试 / 开发体验） ──
 pub mod observability;
-pub use observability::{ObservabilityProvider, SpanType};
+pub use observability::{ObservabilityProvider, ObservabilitySpanType};
 pub mod benchmark;
 pub use benchmark::{BenchmarkReport, BenchmarkRunner, BenchmarkTask, Difficulty, TaskResult};
 pub mod dev_experience;

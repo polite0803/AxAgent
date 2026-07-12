@@ -249,7 +249,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
                     thinking: None,
                     done: is_done,
                     is_final: if is_done { Some(true) } else { None },
-                    usage: chunk.usage.clone(),
+                    usage: chunk.usage,
                     tool_calls: None,
                 };
 

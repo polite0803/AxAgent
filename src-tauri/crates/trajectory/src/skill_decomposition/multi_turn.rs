@@ -208,13 +208,9 @@ pub(crate) struct ConversationTurn {
     pub artifacts: Vec<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum MessageRole {
-    System,
-    User,
-    Assistant,
-}
+// MessageRole 权威定义在 axagent-harness（含 Tool 变体，serde lowercase）；
+// System/User/Assistant 三变体序列化输出与原 snake_case 一致，此处 re-export 复用。
+pub(crate) use axagent_harness::trajectory_types::MessageRole;
 
 pub(crate) struct DecompositionSession {
     pub session_id: String,

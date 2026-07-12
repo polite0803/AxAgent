@@ -4,8 +4,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
-
 use crate::json::JsonValue;
 use crate::sandbox::SandboxConfig;
 
@@ -129,16 +127,7 @@ pub struct ScopedMcpServerConfig {
     pub config: McpServerConfig,
 }
 
-/// Transport families supported by configured MCP servers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum McpTransport {
-    Stdio,
-    Sse,
-    Http,
-    Ws,
-    Sdk,
-    ManagedProxy,
-}
+pub use axagent_harness::tool_service::McpTransport;
 
 /// Scope-normalized MCP server configuration variants.
 #[derive(Debug, Clone, PartialEq, Eq)]

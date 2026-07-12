@@ -3,12 +3,25 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Difficulty {
     Easy,
     Medium,
     Hard,
     Expert,
+}
+
+impl std::cmp::PartialOrd for Difficulty {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let to_int = |d: &Difficulty| match d {
+            Difficulty::Easy => 0,
+            Difficulty::Medium => 1,
+            Difficulty::Hard => 2,
+            Difficulty::Expert => 3,
+        };
+        to_int(self).partial_cmp(&to_int(other))
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BenchmarkTask {

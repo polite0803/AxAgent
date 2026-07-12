@@ -58,6 +58,16 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+interface LocalModelInfo {
+  name: string;
+  file_path: string;
+  size_bytes: number;
+  downloaded_at: string;
+  sha256: string;
+  model_type: "Reranker" | "Judge";
+  is_downloaded: boolean;
+}
+
 const INDEX_STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
   pending: { color: "default", labelKey: "settings.indexStatus.pending" },
   indexing: {
@@ -1499,8 +1509,7 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
                 locale={{
                   emptyText: <Empty description={t("settings.rag.modelNotDownloaded")} />,
                 }}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                renderItem={(model: any) => (
+                renderItem={(model: LocalModelInfo) => (
                   <List.Item
                     actions={[
                       model.is_downloaded

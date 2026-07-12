@@ -2,6 +2,7 @@
 
 import { IconEditor } from "@/components/shared/IconEditor";
 import { StylePreviewPanel } from "@/components/style";
+import { logIpcError } from "@/lib/invoke";
 import { useStyleStore } from "@/stores/feature/styleStore";
 import {
   type AvatarType,
@@ -76,8 +77,8 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
       setName(profile.name);
       setAvatarType(profile.avatarType);
       setAvatarValue(profile.avatarValue);
-      loadTrajectoryProfile();
-      loadStyleProfile("default");
+      loadTrajectoryProfile().catch(logIpcError("UserProfileModal: loadTrajectoryProfile"));
+      loadStyleProfile("default").catch(logIpcError("UserProfileModal: loadStyleProfile"));
       getStats().then((s) => setStats(s));
       /* eslint-enable react-hooks/set-state-in-effect */
     }

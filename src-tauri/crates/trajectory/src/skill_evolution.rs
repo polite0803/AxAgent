@@ -16,7 +16,7 @@ pub use axagent_harness::trajectory_types::{
     LlmEvolutionProvider, LlmMutationFuture, LlmMutationRequest, LlmMutationResponse, ProcedureStep,
 };
 
-use crate::skill::{Skill, SkillModification, ValidationResult};
+use crate::skill::{Skill, SkillModification, SkillValidationResult};
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -428,12 +428,14 @@ impl SkillEvolutionEngine {
     }
 
     pub fn set_llm_provider(&self, provider: Arc<dyn LlmEvolutionProvider>) {
-        *self.llm_provider.write().unwrap() = Some(provider);
+        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
+        *self.llm_provider.write().unwrap_or_else(|e| e.into_inner()) = Some(provider);
     }
 
     pub fn set_sandbox(&mut self, executor: Arc<dyn SandboxExecutor>) {
         self.config.use_execution_validation = true;
-        *self.sandbox.write().unwrap() = Some(executor);
+        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
+        *self.sandbox.write().unwrap_or_else(|e| e.into_inner()) = Some(executor);
     }
 
     pub fn skill_count(&self) -> usize {
@@ -441,11 +443,13 @@ impl SkillEvolutionEngine {
     }
 
     pub fn has_llm_provider(&self) -> bool {
-        self.llm_provider.read().unwrap().is_some()
+        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
+        self.llm_provider.read().unwrap_or_else(|e| e.into_inner()).is_some()
     }
 
     pub fn has_sandbox(&self) -> bool {
-        self.sandbox.read().unwrap().is_some()
+        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
+        self.sandbox.read().unwrap_or_else(|e| e.into_inner()).is_some()
     }
 
     pub fn initialize(&mut self, skill: &Skill) {
@@ -501,7 +505,9 @@ impl SkillEvolutionEngine {
 
         if let Some(ref mut pop) = self.population {
             if self.config.use_llm_mutation {
-                let llm_provider = self.llm_provider.read().unwrap().clone();
+                // SAFETY: read guard 在 .clone() 后立即释放，不跨 await 点。
+                let llm_provider =
+                    self.llm_provider.read().unwrap_or_else(|e| e.into_inner()).clone();
                 if let Some(ref provider) = llm_provider {
                     for individual in &mut pop.individuals {
                         let failure_evidence: Vec<String> = test_trajectories
@@ -563,7 +569,8 @@ impl SkillEvolutionEngine {
             }
 
             if self.config.use_execution_validation {
-                let sandbox = self.sandbox.read().unwrap().clone();
+                // SAFETY: read guard 在 .clone() 后立即释放，不跨 await 点。
+                let sandbox = self.sandbox.read().unwrap_or_else(|e| e.into_inner()).clone();
                 if let Some(ref sandbox) = sandbox {
                     for individual in &mut pop.individuals.iter_mut() {
                         let mut total_success = 0.0;
@@ -672,13 +679,13 @@ impl SkillEvolutionEngine {
             let is_improved = best.fitness > skill.quality_score;
 
             let validation_result = if is_improved && self.config.use_execution_validation {
-                Some(ValidationResult {
+                Some(SkillValidationResult {
                     success: true,
                     quality_delta: best.fitness - skill.quality_score,
                     issues: Vec::new(),
                 })
             } else if is_improved {
-                Some(ValidationResult {
+                Some(SkillValidationResult {
                     success: true,
                     quality_delta: best.fitness - skill.quality_score,
                     issues: vec!["Validation without execution - consider enabling sandbox validation".to_string()],
@@ -817,6 +824,6 @@ mod tests {
     async fn test_engine_with_llm_provider() {
         let engine = SkillEvolutionEngine::new();
         engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider));
-        assert!(engine.llm_provider.read().unwrap().is_some());
+        assert!(engine.llm_provider.read().unwrap_or_else(|e| e.into_inner()).is_some());
     }
 }

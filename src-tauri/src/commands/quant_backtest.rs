@@ -342,7 +342,7 @@ fn build_strategy(
             Ok(Box::new(s))
         },
         // builtin 或未知类型：按 name 关键字分发到内置策略
-        "builtin" | _ => {
+        _ => {
             let name = model.name.to_lowercase();
             if name.contains("rsi") {
                 let s = RsiStrategy::new(

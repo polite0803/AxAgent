@@ -20,7 +20,7 @@ import {
 import domtoimage from "dom-to-image-more";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import {
   auto_layout,
   autoLayoutWorkflow,
@@ -407,7 +407,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   useEffect(() => {
     hasAutoLaidOutRef.current = false;
     if (templateId) {
-      loadTemplate(templateId);
+      loadTemplate(templateId).catch(logIpcError("WorkflowEditor: loadTemplate"));
     } else {
       initNewTemplate();
     }

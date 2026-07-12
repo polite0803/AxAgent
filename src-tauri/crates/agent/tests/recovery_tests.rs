@@ -110,9 +110,9 @@ fn test_recovery_adjustments() {
 
 #[tokio::test]
 async fn with_retry_succeeds_on_first_attempt() {
-    use axagent_agent::retry_policy::{RetryPolicy, with_retry};
+    use axagent_agent::retry_policy::{AgentRetryPolicy, with_retry};
 
-    let policy = RetryPolicy::new(3);
+    let policy = AgentRetryPolicy::new(3);
     let result = with_retry(&policy, || async { Ok::<_, &str>("success") }).await;
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "success");
@@ -120,9 +120,9 @@ async fn with_retry_succeeds_on_first_attempt() {
 
 #[tokio::test]
 async fn with_retry_exhausts_after_max_attempts() {
-    use axagent_agent::retry_policy::{RetryError, RetryPolicy, with_retry};
+    use axagent_agent::retry_policy::{AgentRetryPolicy, RetryError, with_retry};
 
-    let policy = RetryPolicy::new(2)
+    let policy = AgentRetryPolicy::new(2)
         .with_base_delay(std::time::Duration::from_millis(1))
         .with_exponential_backoff(false)
         .with_jitter(false);
@@ -137,9 +137,9 @@ async fn with_retry_exhausts_after_max_attempts() {
 
 #[tokio::test]
 async fn with_retry_stops_on_unrecoverable() {
-    use axagent_agent::retry_policy::{RetryError, RetryPolicy, with_retry};
+    use axagent_agent::retry_policy::{AgentRetryPolicy, RetryError, with_retry};
 
-    let policy = RetryPolicy::new(5)
+    let policy = AgentRetryPolicy::new(5)
         .with_base_delay(std::time::Duration::from_millis(1))
         .with_exponential_backoff(false)
         .with_jitter(false);

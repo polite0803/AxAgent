@@ -153,18 +153,7 @@ pub async fn increment_source_count(db: &DatabaseConnection, wiki_id: &str) -> R
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NoteVersion {
-    pub id: i64,
-    pub wiki_id: String,
-    pub note_id: String,
-    pub title: String,
-    pub content: String,
-    pub content_hash: String,
-    pub author: String,
-    pub created_at: i64,
-}
+pub use axagent_harness::wiki_dtos::NoteVersion;
 
 fn model_to_version(m: wiki_page_versions::Model) -> NoteVersion {
     NoteVersion {

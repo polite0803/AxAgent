@@ -399,13 +399,15 @@ struct PooledConnection {
 pub struct McpConnectionPool {
     connections: Mutex<HashMap<StdioServerKey, PooledConnection>>,
     idle_timeout: std::time::Duration,
+    /// 池中允许的最大连接数；超过时淘汰最久未使用的连接
+    max_connections: usize,
 }
 
 #[cfg(not(target_os = "android"))]
 impl McpConnectionPool {
     /// Create a new connection pool with the given idle timeout.
     pub fn new(idle_timeout: std::time::Duration) -> Self {
-        Self { connections: Mutex::new(HashMap::new()), idle_timeout }
+        Self { connections: Mutex::new(HashMap::new()), idle_timeout, max_connections: 32 }
     }
 
     /// Get an existing connection or create a new one for the given server config.
@@ -432,6 +434,19 @@ impl McpConnectionPool {
         let env: HashMap<String, String> = serde_json::from_str(&key.env_json).unwrap_or_default();
 
         let (peer, cancel_token) = spawn_stdio_client(&key.command, &args, &env).await?;
+
+        // 容量保护：若池已满，淘汰最久未使用的连接
+        if conns.len() >= self.max_connections
+            && let Some(oldest_key) =
+                conns.iter().min_by_key(|(_, v)| v.last_used).map(|(k, _)| k.clone())
+            && let Some(pooled) = conns.remove(&oldest_key)
+        {
+            pooled.cancel_token.cancel();
+            info!(
+                "[McpPool] Evicted oldest connection '{}' to make room (max={})",
+                oldest_key.command, self.max_connections
+            );
+        }
 
         conns.insert(
             key.clone(),

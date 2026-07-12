@@ -175,7 +175,7 @@ impl OpenAiResponsesStreamState {
     }
 
     fn usage(&self) -> Option<TokenUsage> {
-        self.usage.clone()
+        self.usage
     }
 }
 
@@ -215,12 +215,11 @@ impl AnthropicMessagesStreamState {
         let prompt_tokens = self.prompt_tokens?;
         let completion_tokens = self.completion_tokens.unwrap_or(0);
         Some(TokenUsage {
-            prompt_tokens,
-            completion_tokens,
-            total_tokens: prompt_tokens + completion_tokens,
-            cache_creation_tokens: None,
-            cache_read_tokens: None,
-            ..Default::default()
+            input_tokens: prompt_tokens,
+            output_tokens: completion_tokens,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+            cache_miss_input_tokens: None,
         })
     }
 }
@@ -233,12 +232,12 @@ struct GeminiStreamState {
 impl GeminiStreamState {
     fn observe_sse_line(&mut self, line: &str) {
         if let Some(value) = parse_sse_json_line(line) {
-            self.usage = extract_gemini_generate_content_usage(&value).or(self.usage.clone());
+            self.usage = extract_gemini_generate_content_usage(&value).or(self.usage);
         }
     }
 
     fn usage(&self) -> Option<TokenUsage> {
-        self.usage.clone()
+        self.usage
     }
 }
 
@@ -299,19 +298,12 @@ fn extract_openai_response_usage(value: &serde_json::Value) -> Option<TokenUsage
     let prompt_tokens: u32 = usage.get("input_tokens")?.as_u64()?.try_into().unwrap_or(u32::MAX);
     let completion_tokens: u32 =
         usage.get("output_tokens")?.as_u64()?.try_into().unwrap_or(u32::MAX);
-    let total_tokens = usage
-        .get("total_tokens")
-        .and_then(|value| value.as_u64())
-        .map(|value| value.try_into().unwrap_or(u32::MAX))
-        .unwrap_or(prompt_tokens + completion_tokens);
-
     Some(TokenUsage {
-        prompt_tokens,
-        completion_tokens,
-        total_tokens,
-        cache_creation_tokens: None,
-        cache_read_tokens: None,
-        ..Default::default()
+        input_tokens: prompt_tokens,
+        output_tokens: completion_tokens,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+        cache_miss_input_tokens: None,
     })
 }
 
@@ -321,24 +313,22 @@ fn extract_anthropic_message_usage(value: &serde_json::Value) -> Option<TokenUsa
     let completion_tokens = usage.get("output_tokens")?.as_u64()? as u32;
 
     Some(TokenUsage {
-        prompt_tokens,
-        completion_tokens,
-        total_tokens: prompt_tokens + completion_tokens,
-        cache_creation_tokens: None,
-        cache_read_tokens: None,
-        ..Default::default()
+        input_tokens: prompt_tokens,
+        output_tokens: completion_tokens,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+        cache_miss_input_tokens: None,
     })
 }
 
 fn extract_anthropic_count_tokens_usage(value: &serde_json::Value) -> Option<TokenUsage> {
     let prompt_tokens = value.get("input_tokens")?.as_u64()? as u32;
     Some(TokenUsage {
-        prompt_tokens,
-        completion_tokens: 0,
-        total_tokens: prompt_tokens,
-        cache_creation_tokens: None,
-        cache_read_tokens: None,
-        ..Default::default()
+        input_tokens: prompt_tokens,
+        output_tokens: 0,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+        cache_miss_input_tokens: None,
     })
 }
 
@@ -346,31 +336,24 @@ fn extract_gemini_generate_content_usage(value: &serde_json::Value) -> Option<To
     let usage = value.get("usageMetadata")?;
     let prompt_tokens = usage.get("promptTokenCount")?.as_u64()? as u32;
     let completion_tokens = usage.get("candidatesTokenCount")?.as_u64()? as u32;
-    let total_tokens = usage
-        .get("totalTokenCount")
-        .and_then(|value| value.as_u64())
-        .map(|value| value as u32)
-        .unwrap_or(prompt_tokens + completion_tokens);
 
     Some(TokenUsage {
-        prompt_tokens,
-        completion_tokens,
-        total_tokens,
-        cache_creation_tokens: None,
-        cache_read_tokens: None,
-        ..Default::default()
+        input_tokens: prompt_tokens,
+        output_tokens: completion_tokens,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+        cache_miss_input_tokens: None,
     })
 }
 
 fn extract_gemini_count_tokens_usage(value: &serde_json::Value) -> Option<TokenUsage> {
     let prompt_tokens = value.get("totalTokens")?.as_u64()? as u32;
     Some(TokenUsage {
-        prompt_tokens,
-        completion_tokens: 0,
-        total_tokens: prompt_tokens,
-        cache_creation_tokens: None,
-        cache_read_tokens: None,
-        ..Default::default()
+        input_tokens: prompt_tokens,
+        output_tokens: 0,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+        cache_miss_input_tokens: None,
     })
 }
 
@@ -598,16 +581,16 @@ async fn record_native_outcome(
                 &gateway_key.id,
                 provider_id,
                 model_id,
-                usage.prompt_tokens as u64,
-                usage.completion_tokens as u64,
-                usage.cache_read_tokens.unwrap_or(0) as u64,
+                usage.input_tokens as u64,
+                usage.output_tokens as u64,
+                usage.cache_read_input_tokens as u64,
             )
             .await;
     }
 
     let elapsed = start_time.elapsed().as_millis() as i32;
-    let request_tokens = usage.map(|usage| usage.prompt_tokens as i64).unwrap_or(0);
-    let response_tokens = usage.map(|usage| usage.completion_tokens as i64).unwrap_or(0);
+    let request_tokens = usage.map(|usage| usage.input_tokens as i64).unwrap_or(0);
+    let response_tokens = usage.map(|usage| usage.output_tokens as i64).unwrap_or(0);
     let _ = adapter
         .request_log()
         .record_request_log(
@@ -1466,9 +1449,9 @@ mod tests {
 
     fn assert_usage(actual: Option<TokenUsage>, prompt: u32, completion: u32, total: u32) {
         let usage = actual.expect("expected usage to be present");
-        assert_eq!(usage.prompt_tokens, prompt);
-        assert_eq!(usage.completion_tokens, completion);
-        assert_eq!(usage.total_tokens, total);
+        assert_eq!(usage.input_tokens, prompt);
+        assert_eq!(usage.output_tokens, completion);
+        assert_eq!(usage.total_tokens(), total);
     }
 
     #[test]

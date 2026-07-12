@@ -20,6 +20,76 @@ use crate::skill_evolution::{
     ProcedureStep, SandboxExecutor, SandboxValidationResult, SkillGenome,
 };
 
+/// 命令最大长度（字符），防止超长命令导致解析 DoS 或绕过模式检测
+#[cfg(not(target_os = "android"))]
+const MAX_COMMAND_LEN: usize = 10_000;
+
+/// 危险环境变量列表，子进程执行前必须清除，防止 LD_PRELOAD 等注入子进程
+#[cfg(not(target_os = "android"))]
+const DANGEROUS_ENV_VARS: &[&str] = &[
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "LD_AUDIT",
+    "DYLD_INSERT_LIBRARIES",
+    "DYLD_LIBRARY_PATH",
+    "PERL5OPT",
+    "PYTHONPATH",
+    "RUBYOPT",
+    "BASH_ENV",
+    "ENV",
+    "PS4",
+    "NODE_OPTIONS",
+    "JAVA_TOOL_OPTIONS",
+];
+
+/// 危险命令模式列表，用于基础过滤。
+///
+/// 注意：字符串包含检查可被简单混淆绕过（如 `rm -r"f /`、Base64+eval 等），
+/// 仅作为第一道防线。真正的隔离依赖 env_clear、工作目录限制、rlimit 等机制。
+#[cfg(not(target_os = "android"))]
+const DANGEROUS_PATTERNS: &[&str] = &[
+    // 删除/格式化磁盘
+    "rm -rf /",
+    "rm -rf /*",
+    "rm -r -f /",
+    "format c:",
+    "del /s /q c:\\",
+    "mkfs",
+    // 系统关机/重启
+    "shutdown",
+    "reboot",
+    "halt",
+    "poweroff",
+    "init 0",
+    "init 6",
+    // fork bomb（多种变体，含无空格混淆形式）
+    ":(){ :|:& };:",
+    ":(){:|:&};:",
+    ":() { :|: & };:",
+    // 设备直接写入
+    "dd if=/dev/zero of=",
+    "dd if=",
+    "> /dev/sd",
+    "/dev/sda",
+    "/dev/sdb",
+    // 权限滥用
+    "chmod 777 /",
+    "chmod -R 777",
+    "chown -R",
+    // 远程脚本执行（管道下载并执行）
+    "curl | sh",
+    "curl | bash",
+    "wget | bash",
+    "wget | sh",
+    // eval / base64 解码执行（常见混淆手段）
+    "eval ",
+    "base64 --decode",
+    "base64 -d",
+    // 提权
+    "sudo ",
+    "su -",
+];
+
 #[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SandboxPolicy {
@@ -97,21 +167,18 @@ impl SkillSandboxExecutor {
             violations.push("step action is empty".into());
         }
 
-        let dangerous_patterns = [
-            "rm -rf /",
-            "format c:",
-            "del /s /q c:\\",
-            "shutdown",
-            ":(){ :|:& };:",
-            "mkfs",
-            "dd if=",
-            "> /dev/sd",
-            "chmod 777 /",
-            "curl | sh",
-            "wget | bash",
-        ];
+        // SECURITY: 命令长度限制，防止超长命令导致 DoS 或绕过模式检测
+        if step.action.len() > MAX_COMMAND_LEN {
+            violations.push(format!(
+                "command length {} exceeds max {} characters",
+                step.action.len(),
+                MAX_COMMAND_LEN
+            ));
+        }
+
+        // SECURITY: 危险模式检测（仅第一道防线，可被混淆绕过）
         let action_lower = step.action.to_lowercase();
-        for pattern in &dangerous_patterns {
+        for pattern in DANGEROUS_PATTERNS {
             if action_lower.contains(pattern) {
                 violations.push(format!("dangerous pattern detected: '{}'", pattern));
             }
@@ -176,16 +243,26 @@ impl SkillSandboxExecutor {
                     {
                         let mut scmd = Command::new("cmd");
                         scmd.args(["/C", &cmd]).stdout(Stdio::piped()).stderr(Stdio::piped());
+                        // SECURITY: 清除危险环境变量，防止 LD_PRELOAD 等注入子进程
+                        for var in DANGEROUS_ENV_VARS {
+                            scmd.env_remove(var);
+                        }
+                        // SECURITY: 限制工作目录到系统临时目录，防止越权访问用户文件
+                        scmd.current_dir(std::env::temp_dir());
                         axagent_kit::utils::hide_window(scmd.as_std_mut());
                         scmd.output()
                     }
                     #[cfg(not(target_family = "windows"))]
                     {
-                        Command::new("sh")
-                            .args(["-c", &cmd])
-                            .stdout(Stdio::piped())
-                            .stderr(Stdio::piped())
-                            .output()
+                        let mut scmd = Command::new("sh");
+                        scmd.args(["-c", &cmd]).stdout(Stdio::piped()).stderr(Stdio::piped());
+                        // SECURITY: 清除危险环境变量，防止 LD_PRELOAD 等注入子进程
+                        for var in DANGEROUS_ENV_VARS {
+                            scmd.env_remove(var);
+                        }
+                        // SECURITY: 限制工作目录到系统临时目录，防止越权访问用户文件
+                        scmd.current_dir(std::env::temp_dir());
+                        scmd.output()
                     }
                 })
                 .await;
@@ -332,21 +409,18 @@ impl DryRunSandboxExecutor {
             violations.push("step action is empty".into());
         }
 
-        let dangerous_patterns = [
-            "rm -rf /",
-            "format c:",
-            "del /s /q c:\\",
-            "shutdown",
-            ":(){ :|:& };:",
-            "mkfs",
-            "dd if=",
-            "> /dev/sd",
-            "chmod 777 /",
-            "curl | sh",
-            "wget | bash",
-        ];
+        // SECURITY: 命令长度限制，防止超长命令导致 DoS 或绕过模式检测
+        if step.action.len() > MAX_COMMAND_LEN {
+            violations.push(format!(
+                "command length {} exceeds max {} characters",
+                step.action.len(),
+                MAX_COMMAND_LEN
+            ));
+        }
+
+        // SECURITY: 危险模式检测（仅第一道防线，可被混淆绕过）
         let action_lower = step.action.to_lowercase();
-        for pattern in &dangerous_patterns {
+        for pattern in DANGEROUS_PATTERNS {
             if action_lower.contains(pattern) {
                 violations.push(format!("dangerous pattern detected: '{}'", pattern));
             }

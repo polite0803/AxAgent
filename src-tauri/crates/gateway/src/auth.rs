@@ -50,6 +50,12 @@ impl ClientIpPolicy {
         self.trusted_proxies = proxies;
         self
     }
+
+    /// SECURITY: 不信任任何代理 — 未配置 TRUSTED_PROXIES 时的安全默认。
+    /// 远程部署时请配置 TRUSTED_PROXIES 环境变量以启用 XFF 解析。
+    pub fn trust_none() -> Self {
+        Self { trusted_proxies: Vec::new() }
+    }
 }
 
 /// 提取 client IP：仅当 `peer_addr` 在 `policy.trusted_proxies` 中时才解析 X-Forwarded-For。

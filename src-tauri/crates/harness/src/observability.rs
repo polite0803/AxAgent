@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SpanType {
+pub enum ObservabilitySpanType {
     Agent,
     Tool,
     LlmCall,
@@ -15,7 +15,12 @@ pub enum SpanType {
 
 #[async_trait]
 pub trait ObservabilityProvider: Send + Sync {
-    async fn start_span(&self, name: &str, span_type: SpanType, attributes: Map<String, Value>);
+    async fn start_span(
+        &self,
+        name: &str,
+        span_type: ObservabilitySpanType,
+        attributes: Map<String, Value>,
+    );
     async fn end_span(&self, attributes: Map<String, Value>);
     async fn record_event(&self, name: &str, attributes: Map<String, Value>);
     async fn record_metric(&self, name: &str, value: f64, labels: Map<String, Value>);

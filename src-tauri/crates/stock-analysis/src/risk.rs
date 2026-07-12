@@ -18,13 +18,10 @@ pub const KELLY_MEDIUM_THRESHOLD: f64 = 0.1;
 /// 本模块内最大回撤的唯一核心实现；`portfolio_monitor::compute_max_drawdown_pct`
 /// 复用本函数（结果 ×100 得到百分比）。
 pub(crate) fn peak_trough_drawdown(prices: &[f64]) -> f64 {
-    if prices.is_empty() {
+    if prices.is_empty() || prices.iter().all(|&p| p <= 0.0) {
         return 0.0;
     }
-    let mut peak = prices[0];
-    if peak <= 0.0 {
-        peak = f64::MAX;
-    }
+    let mut peak = prices.iter().find(|&&p| p > 0.0).copied().unwrap_or(0.0);
     let mut max_dd = 0.0;
     for &p in prices.iter() {
         if p > peak {

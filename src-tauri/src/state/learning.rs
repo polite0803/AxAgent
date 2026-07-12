@@ -7,14 +7,14 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-pub struct LearningState {
+pub struct LearningEngineState {
     pub text_grad_engine: Arc<Mutex<axagent_trajectory::TextGradEngine>>,
     pub intrinsic_motivation: Arc<Mutex<axagent_trajectory::IntrinsicMotivationEngine>>,
     pub coevolution_env: Arc<Mutex<axagent_trajectory::CoevolutionEnvironment>>,
     pub process_reward_model: Arc<Mutex<axagent_trajectory::ProcessRewardModel>>,
 }
 
-impl LearningState {
+impl LearningEngineState {
     pub fn new(
         text_grad_engine: Arc<Mutex<axagent_trajectory::TextGradEngine>>,
         intrinsic_motivation: Arc<Mutex<axagent_trajectory::IntrinsicMotivationEngine>>,

@@ -50,7 +50,7 @@ export interface PlanState {
 
 // ── Conversation aggregated view ──
 
-export interface ConversationSummary {
+export interface ConversationAggregatedView {
   conversationId: string;
   session: AgentSession | null;
   executionState: ExecutionState;
@@ -170,7 +170,7 @@ interface AgentDomainStore {
   // ── Selectors (derived / computed state) ──
 
   getActiveToolCall: (conversationId: string) => ToolCallState | null;
-  getConversationSummary: (conversationId: string) => ConversationSummary;
+  getConversationSummary: (conversationId: string) => ConversationAggregatedView;
   getPendingActions: (conversationId: string) => {
     permissions: PermissionRequestEvent[];
     askUser: AskUserEvent[];

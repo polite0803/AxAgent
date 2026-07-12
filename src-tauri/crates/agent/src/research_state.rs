@@ -74,7 +74,7 @@ impl ResearchStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchResult {
+pub struct ResearchStateResult {
     pub id: String,
     pub source_type: SourceType,
     pub url: String,
@@ -86,7 +86,7 @@ pub struct SearchResult {
     pub extracted_at: DateTime<Utc>,
 }
 
-impl SearchResult {
+impl ResearchStateResult {
     pub fn new(source_type: SourceType, url: String, title: String, snippet: String) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
@@ -320,7 +320,7 @@ pub struct ResearchState {
     pub topic: String,
     pub status: ResearchStatus,
     pub current_phase: ResearchPhase,
-    pub search_results: Vec<SearchResult>,
+    pub search_results: Vec<ResearchStateResult>,
     pub citations: Vec<Citation>,
     pub progress: ResearchProgress,
     pub config: ResearchConfig,
@@ -388,7 +388,7 @@ impl ResearchState {
         self.updated_at = Utc::now();
     }
 
-    pub fn add_search_result(&mut self, result: SearchResult) {
+    pub fn add_search_result(&mut self, result: ResearchStateResult) {
         self.search_results.push(result);
         self.progress.increment_sources_found(1);
         self.updated_at = Utc::now();
@@ -656,7 +656,7 @@ mod tests {
 
     #[test]
     fn test_search_result_new() {
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Example".to_string(),
@@ -671,7 +671,7 @@ mod tests {
 
     #[test]
     fn test_search_result_builder() {
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Academic,
             "url".to_string(),
             "Title".to_string(),
@@ -810,7 +810,7 @@ mod tests {
     #[test]
     fn test_research_state_add_search_result() {
         let mut state = ResearchState::new("Topic".to_string());
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "url".to_string(),
             "Title".to_string(),

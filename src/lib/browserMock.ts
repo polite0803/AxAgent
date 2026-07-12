@@ -115,7 +115,11 @@ function getStore<T>(key: string, defaultValue: T): T {
 }
 
 function setStore<T>(key: string, value: T): void {
-  localStorage.setItem(`axagent_${key}`, JSON.stringify(value));
+  try {
+    localStorage.setItem(`axagent_${key}`, JSON.stringify(value));
+  } catch (e) {
+    console.warn(`Failed to write localStorage key: axagent_${key}`, e);
+  }
 }
 
 function generateBrowserResponse(userContent: string): string {

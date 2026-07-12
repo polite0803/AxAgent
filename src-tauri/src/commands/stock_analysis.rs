@@ -45,6 +45,7 @@ pub struct WhatIfRequest {
     pub consensus_score: f64,
     /// 机构痕迹（龙虎榜/大宗交易/北上资金等汇总描述）
     #[serde(default)]
+    #[allow(dead_code)]
     pub institutional_trace: String,
     /// DAG 黑板上一次快照（JSON 字符串），包含所有上游节点输出。
     /// 提供时后端自动解构并注入 portfolio-mgr.rhai 所需的所有参数。
@@ -332,6 +333,7 @@ pub struct ReplayToolChainResult {
 /// 进程级「最近一次成功获取」的实时数据缓存，供数据源临时不可用时降级回放。
 /// key = 股票代码；value = (K线, 实时行情, 缓存时间戳)。
 /// 修复 D3: 60 秒 TTL + 最多 1000 条限制，过期条目惰性清理。
+#[allow(clippy::type_complexity)]
 static LAST_MARKET_DATA: std::sync::LazyLock<
     Mutex<HashMap<String, (Vec<KLine>, StockQuote, Instant)>>,
 > = std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -413,9 +415,9 @@ pub async fn replay_tool_chain(
             match cached {
                 Some(k) => (k, q, true),
                 None => {
-                    return Err(format!(
-                        "Failed to get klines: 数据源暂时不可用且无本地缓存，无法回放"
-                    ));
+                    return Err(
+                        "Failed to get klines: 数据源暂时不可用且无本地缓存，无法回放".to_string()
+                    );
                 },
             }
         },
@@ -435,9 +437,10 @@ pub async fn replay_tool_chain(
             match cached {
                 Some((k, q)) => (k, q, true),
                 None => {
-                    return Err(format!(
+                    return Err(
                         "Failed to get market data (klines & quote): 数据源暂时不可用且无本地缓存"
-                    ));
+                            .to_string(),
+                    );
                 },
             }
         },

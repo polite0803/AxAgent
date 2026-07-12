@@ -7,6 +7,10 @@ use std::sync::{Arc, RwLock};
 use tokio::sync::broadcast;
 
 const BROADCAST_CAPACITY: usize = 256;
+/// 单个 Blackboard 的 entries HashMap 最大条目数
+const MAX_ENTRIES_CAPACITY: usize = 1000;
+/// BlackboardManager 管理的 Blackboard 最大数量
+const MAX_BLACKBOARDS_CAPACITY: usize = 1000;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub enum EntryPriority {
@@ -77,6 +81,14 @@ impl Blackboard {
             };
             let mut map = guard;
             map.insert(key.to_string(), entry.clone());
+            // 容量限制：超过上限时移除最旧的条目（HashMap 无序，移除任意一个）
+            while map.len() > MAX_ENTRIES_CAPACITY {
+                if let Some(first_key) = map.keys().next().cloned() {
+                    map.remove(&first_key);
+                } else {
+                    break;
+                }
+            }
         }
         let _ = self.event_sender.send(event);
         entry
@@ -227,6 +239,14 @@ impl BlackboardManager {
         };
         let mut map = guard;
         map.insert(name.to_string(), bb.clone());
+        // 容量限制：超过上限时移除最旧的 Blackboard（HashMap 无序，移除任意一个）
+        while map.len() > MAX_BLACKBOARDS_CAPACITY {
+            if let Some(first_key) = map.keys().next().cloned() {
+                map.remove(&first_key);
+            } else {
+                break;
+            }
+        }
         bb
     }
 

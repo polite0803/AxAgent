@@ -238,12 +238,13 @@ pub(super) fn spawn_stream_task(
                 if let Some(u) = usage {
                     total_usage = match total_usage {
                         Some(acc) => Some(TokenUsage {
-                            prompt_tokens: acc.prompt_tokens + u.prompt_tokens,
-                            completion_tokens: acc.completion_tokens + u.completion_tokens,
-                            total_tokens: acc.total_tokens + u.total_tokens,
-                            cache_creation_tokens: u.cache_creation_tokens.or(acc.cache_creation_tokens),
-                            cache_read_tokens: u.cache_read_tokens.or(acc.cache_read_tokens),
-                            cache_miss_tokens: u.cache_miss_tokens.or(acc.cache_miss_tokens),
+                            input_tokens: acc.input_tokens + u.input_tokens,
+                            output_tokens: acc.output_tokens + u.output_tokens,
+                            cache_creation_input_tokens: acc.cache_creation_input_tokens
+                                + u.cache_creation_input_tokens,
+                            cache_read_input_tokens: acc.cache_read_input_tokens
+                                + u.cache_read_input_tokens,
+                            cache_miss_input_tokens: u.cache_miss_input_tokens.or(acc.cache_miss_input_tokens),
                         }),
                         None => Some(u),
                     };
@@ -490,9 +491,9 @@ pub(super) fn spawn_stream_task(
                     total_content.push_str(&error_diag);
                 }
             }
-            let token_count = total_usage.as_ref().map(|u| u.completion_tokens);
-            let prompt_tokens = total_usage.as_ref().map(|u| u.prompt_tokens);
-            let completion_tokens = total_usage.as_ref().map(|u| u.completion_tokens);
+            let token_count = total_usage.as_ref().map(|u| u.output_tokens);
+            let prompt_tokens = total_usage.as_ref().map(|u| u.input_tokens);
+            let completion_tokens = total_usage.as_ref().map(|u| u.output_tokens);
             // Prepend memory retrieval tag (if any) so it persists in DB
             let cleaned_total = clean_output(&total_content);
             let saved_content = if content_prefix.is_empty() {
@@ -1155,6 +1156,18 @@ pub async fn send_message(
                 enabled
             })
             .unwrap_or(false);
+    // 从数据库加载全局禁用工具列表（与 agent 模式 load_enabled_state 一致）
+    // TODO: group_enabled 过滤需要 tool_registry.load_enabled_state(db)，
+    // streaming 流程中未创建 tool_registry，暂不实现组级别过滤。
+    let disabled_tools_set: std::collections::HashSet<String> =
+        axagent_harness::repositories::settings_repository()
+            .get_setting("disabled_tools")
+            .await
+            .ok()
+            .flatten()
+            .and_then(|v| serde_json::from_str::<Vec<String>>(&v).ok())
+            .map(|v| v.into_iter().collect())
+            .unwrap_or_default();
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
@@ -1208,6 +1221,10 @@ pub async fn send_message(
             ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
+            // 过滤被禁用的内置工具
+            if disabled_tools_set.contains(*name) {
+                continue;
+            }
             all_tools.push(ChatTool {
                 r#type: "function".to_string(),
                 function: ChatToolFunction {
@@ -1226,6 +1243,10 @@ pub async fn send_message(
                     .await
             {
                 for td in descriptors {
+                    // 过滤被禁用的 MCP 工具
+                    if disabled_tools_set.contains(&td.name) {
+                        continue;
+                    }
                     let parameters: Option<serde_json::Value> = td
                         .input_schema_json
                         .as_ref()

@@ -38,9 +38,9 @@ pub struct LlmCallResult {
 impl LlmCallResult {
     pub fn from_raw(response: ChatResponse, duration_ms: u64, cached: bool) -> Self {
         let usage = LlmUsage {
-            prompt_tokens: response.usage.prompt_tokens,
-            completion_tokens: response.usage.completion_tokens,
-            total_tokens: response.usage.total_tokens,
+            prompt_tokens: response.usage.input_tokens,
+            completion_tokens: response.usage.output_tokens,
+            total_tokens: response.usage.total_tokens(),
         };
         Self { response, usage, duration_ms, cached }
     }
@@ -273,7 +273,7 @@ pub async fn execute_llm_stream(
         let cached_response: ChatResponse =
             serde_json::from_value(cached.clone()).unwrap_or_default();
         tracing::info!("[execute_llm_stream] 缓存命中: model={}", prepared.request.model);
-        let usage = cached_response.usage.clone();
+        let usage = cached_response.usage;
         let chunks: Vec<Result<ChatStreamChunk, String>> = vec![
             Ok(ChatStreamChunk {
                 content: Some(cached_response.content),
@@ -512,7 +512,7 @@ impl Stream for ExecuteLlmStream {
                             this.thinking.push_str(t);
                         }
                         if let Some(ref u) = chunk.usage {
-                            this.usage = u.clone();
+                            this.usage = *u;
                         }
                         this.phase = if chunk.done {
                             StreamPhase::Post
@@ -587,7 +587,7 @@ impl Stream for ExecuteLlmStream {
                             } else {
                                 Some(std::mem::take(&mut this.thinking))
                             },
-                            usage: this.usage.clone(),
+                            usage: this.usage,
                             ..Default::default()
                         };
                         if let Ok(val) = serde_json::to_value(&resp) {

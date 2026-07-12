@@ -45,6 +45,8 @@ pub enum ToolCategory {
     Browser,
     /// 桌面控制
     Desktop,
+    /// 金融计算（ATR、KDJ、回撤、VaR 等）
+    Finance,
 }
 
 impl ToolCategory {
@@ -65,6 +67,7 @@ impl ToolCategory {
             ToolCategory::Knowledge => "knowledge",
             ToolCategory::Browser => "browser",
             ToolCategory::Desktop => "desktop",
+            ToolCategory::Finance => "finance",
         }
     }
 
@@ -91,6 +94,7 @@ impl ToolCategory {
             ToolCategory::Knowledge => "builtin-knowledge",
             ToolCategory::Browser => "builtin-browser",
             ToolCategory::Desktop => "builtin-desktop",
+            ToolCategory::Finance => "builtin-finance",
         }
     }
 }

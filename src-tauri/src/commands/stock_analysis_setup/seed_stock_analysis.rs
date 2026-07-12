@@ -14,11 +14,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         CodeNode, CodeNodeConfig, DebateNode, DebateNodeConfig, EdgeType, EndNode, EndNodeConfig,
         ErrorConfig, JsonSchema, JsonSchemaProperty, LlmClassifierNode, LlmClassifierNodeConfig,
         MergeStrategy, NotificationNode, NotificationNodeConfig, OnFailureAction, OutputMode,
-        ParallelNode, ParallelNodeConfig, Position, RetryConfig, RetryPolicy, StorageNode,
-        StorageNodeConfig, SubGraph, SwitchCase, SwitchNode, SwitchNodeConfig, ToolDef, ToolNode,
-        ToolNodeConfig, TriggerConfig, TriggerNode, TriggerType, ValidationAssertion,
-        ValidationNode, ValidationNodeConfig, Variable, WorkflowEdge, WorkflowNode,
-        WorkflowNodeBase,
+        ParallelNode, ParallelNodeConfig, Position, RetryConfig, StorageNode, StorageNodeConfig,
+        SubGraph, SwitchCase, SwitchNode, SwitchNodeConfig, ToolDef, ToolNode, ToolNodeConfig,
+        TriggerConfig, TriggerNode, TriggerType, ValidationAssertion, ValidationNode,
+        ValidationNodeConfig, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
+        WorkflowRetryPolicy,
     };
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
@@ -583,6 +583,16 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         description: Some("获取行业分类（申万一级/二级、概念板块标签）".into()),
         parameters: stock_code_params(),
     };
+    let td_candlestick_patterns = ToolDef {
+        name: "detect_candlestick_patterns".into(),
+        description: Some("检测 K 线形态（吞没/锤子/晨星等 12 种）".into()),
+        parameters: data_params(),
+    };
+    let td_divergence = ToolDef {
+        name: "detect_divergence".into(),
+        description: Some("检测价量背离（RSI 顶底背离 + OBV 背离）".into()),
+        parameters: data_params(),
+    };
 
     // 工具名 → ToolDef 映射（用于按名查找，给节点填充 config.tools）
     let tool_def_map: std::collections::HashMap<&str, ToolDef> = [
@@ -631,6 +641,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         ("get_stock_margin_data", td_margin.clone()),
         ("get_announcement_content", td_announce_content.clone()),
         ("get_stock_sector_info", td_sector_info.clone()),
+        ("detect_candlestick_patterns", td_candlestick_patterns.clone()),
+        ("detect_divergence", td_divergence.clone()),
     ]
     .into_iter()
     .collect();
@@ -1110,6 +1122,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         td_score.clone(),
         td_earnings.clone(),
         td_ma_cross.clone(),
+        td_candlestick_patterns.clone(),
+        td_divergence.clone(),
     ];
 
     for round in 0..debate_max_rounds {
@@ -1403,6 +1417,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 td_var.clone(),
                 td_kelly.clone(),
                 td_mc.clone(),
+                td_divergence.clone(),
             ],
         ),
         (
@@ -1416,6 +1431,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 td_maxdd.clone(),
                 td_pledge.clone(),
                 td_corr.clone(),
+                td_divergence.clone(),
             ],
         ),
         (
@@ -1430,6 +1446,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 td_peg.clone(),
                 td_rp.clone(),
                 td_ind.clone(),
+                td_divergence.clone(),
             ],
         ),
     ]
@@ -1852,6 +1869,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             td_rp.clone(),
             td_corr.clone(),
             td_ind.clone(),
+            td_candlestick_patterns.clone(),
+            td_divergence.clone(),
         ];
         a.config.system_prompt =
             format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
@@ -1905,6 +1924,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             td_kelly.clone(),
             td_mc.clone(),
             td_lup.clone(),
+            td_candlestick_patterns.clone(),
+            td_divergence.clone(),
         ];
         a.config.system_prompt =
             format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
@@ -2657,7 +2678,7 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
     })?;
 
     let error_config = ErrorConfig {
-        retry_policy: Some(RetryPolicy {
+        retry_policy: Some(WorkflowRetryPolicy {
             max_retries: 3,
             base_delay_ms: 1000,
             max_delay_ms: 30000,

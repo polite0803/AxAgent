@@ -230,9 +230,13 @@ pub async fn secure_store(
         .ok_or_else(|| "Cannot determine data directory".to_string())?
         .join("axagent")
         .join("secure_storage");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join(format!("{key}.enc"));
-    std::fs::write(&path, encrypted).map_err(|e| e.to_string())
+    tokio::task::spawn_blocking(move || {
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        std::fs::write(&path, encrypted).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// 解密之前通过 secure_store 存储的值。
@@ -250,10 +254,12 @@ pub async fn secure_get(
     if !path.exists() {
         return Ok(None);
     }
-    let encrypted = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let master_key = axagent_crypto::derive_storage_master_key();
-    let decrypted =
-        axagent_crypto::decrypt_key(&encrypted, &master_key).map_err(|e| e.to_string())?;
+    let encrypted = tokio::task::spawn_blocking(move || std::fs::read_to_string(&path))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+    // 自动兼容 v1（SHA256）/v2（Argon2id）密钥派生
+    let decrypted = axagent_crypto::decrypt_storage_key(&encrypted).map_err(|e| e.to_string())?;
     Ok(Some(decrypted))
 }
 
@@ -265,8 +271,13 @@ pub async fn secure_remove(_state: State<'_, AppState>, key: String) -> Result<(
         .join("axagent")
         .join("secure_storage");
     let path = dir.join(format!("{key}.enc"));
-    if path.exists() {
-        std::fs::remove_file(&path).map_err(|e| e.to_string())?;
-    }
+    tokio::task::spawn_blocking(move || {
+        if path.exists() {
+            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+        }
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
     Ok(())
 }

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use sea_orm::*;
-use serde::{Deserialize, Serialize};
 
 use axagent_entities::{note_backlinks, note_links, notes};
 use axagent_harness::core_error::{AxAgentError, Result};
@@ -14,12 +13,7 @@ use axagent_harness::util_fns::gen_id;
 // 这里 re-export 保持向后兼容 — 单一类型来源。
 pub use axagent_harness::types::NoteLink;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NoteSearchResult {
-    pub note: Note,
-    pub snippet: String,
-    pub score: f64,
-}
+pub use axagent_harness::rag_config::NoteSearchResult;
 
 pub fn model_to_note(m: notes::Model) -> Note {
     Note {

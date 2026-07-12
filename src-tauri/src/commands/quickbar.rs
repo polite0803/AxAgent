@@ -1,20 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use std::sync::OnceLock;
+
+use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 
 const QUICKBAR_LABEL: &str = "quickbar";
 const QUICKBAR_WIDTH: f64 = 650.0;
 const QUICKBAR_HEIGHT: f64 = 400.0;
+const FALLBACK_URL_STR: &str = "http://localhost:1420/index.html?__route=quickbar";
+static FALLBACK_URL: OnceLock<Url> = OnceLock::new();
 
 fn quickbar_url(app: &AppHandle) -> WebviewUrl {
     match app.config().build.dev_url.as_ref() {
         Some(dev_url) => {
             let base = dev_url.as_str().trim_end_matches('/');
-            let fallback_url = "http://localhost:1420/index.html?__route=quickbar";
             WebviewUrl::External(
                 format!("{}/index.html?__route=quickbar", base).parse().unwrap_or_else(|_| {
                     tracing::warn!("quickbar dev_url 格式无效，使用默认 URL");
-                    fallback_url.parse().expect("hardcoded fallback URL is valid")
+                    FALLBACK_URL
+                        .get_or_init(|| {
+                            FALLBACK_URL_STR.parse().expect("hardcoded fallback URL is valid")
+                        })
+                        .clone()
                 }),
             )
         },

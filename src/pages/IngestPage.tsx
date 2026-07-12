@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { IngestPanel } from "@/components/wiki/IngestPanel";
+import { logIpcError } from "@/lib/invoke";
 import { useLlmWikiStore, WikiSource } from "@/stores/feature/llmWikiStore";
 import {
   DeleteOutlined,
@@ -39,7 +40,7 @@ export function IngestPage() {
   );
 
   useEffect(() => {
-    loadWikis();
+    loadWikis().catch(logIpcError("IngestPage: loadWikis"));
   }, [loadWikis]);
 
   useEffect(() => {

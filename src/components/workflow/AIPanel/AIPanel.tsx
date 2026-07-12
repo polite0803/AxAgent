@@ -5,7 +5,7 @@ import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { AiChatMessage } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import type { NLParseResult } from "@/types/workflow";
+import type { NLParseResult } from "@/types";
 import { App, Button, Card, Empty, Input, Progress, Radio, Tag, theme } from "antd";
 import DOMPurify from "dompurify";
 import { Lightbulb, MessageSquare, Play, Rocket, Send, Sparkles, StopCircle, Trash2, Wand2 } from "lucide-react";

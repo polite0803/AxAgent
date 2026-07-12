@@ -145,18 +145,42 @@ mod tests {
 
     fn write_lifecycle_plugin(root: &Path, name: &str, version: &str) -> PathBuf {
         let log_path = root.join("lifecycle.log");
-        write_file(
-            root.join("lifecycle").join("init.sh").as_path(),
-            "#!/bin/sh\nprintf 'init\\n' >> lifecycle.log\n",
+
+        #[cfg(windows)]
+        let (init_name, init_body, shutdown_name, shutdown_body) = (
+            "init.cmd",
+            "@echo off\r\n@echo init>> lifecycle.log\r\n",
+            "shutdown.cmd",
+            "@echo off\r\n@echo shutdown>> lifecycle.log\r\n",
         );
-        write_file(
-            root.join("lifecycle").join("shutdown.sh").as_path(),
+        #[cfg(not(windows))]
+        let (init_name, init_body, shutdown_name, shutdown_body) = (
+            "init.sh",
+            "#!/bin/sh\nprintf 'init\\n' >> lifecycle.log\n",
+            "shutdown.sh",
             "#!/bin/sh\nprintf 'shutdown\\n' >> lifecycle.log\n",
         );
+
+        let init_path = root.join("lifecycle").join(init_name);
+        write_file(init_path.as_path(), init_body);
+        let shutdown_path = root.join("lifecycle").join(shutdown_name);
+        write_file(shutdown_path.as_path(), shutdown_body);
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            for script in [&init_path, &shutdown_path] {
+                let mut permissions = fs::metadata(script).expect("metadata").permissions();
+                permissions.set_mode(0o755);
+                fs::set_permissions(script, permissions).expect("chmod");
+            }
+        }
+
         write_file(
             root.join(MANIFEST_RELATIVE_PATH).as_path(),
             format!(
-                "{{\n  \"name\": \"{name}\",\n  \"version\": \"{version}\",\n  \"description\": \"lifecycle plugin\",\n  \"lifecycle\": {{\n    \"Init\": [\"./lifecycle/init.sh\"],\n    \"Shutdown\": [\"./lifecycle/shutdown.sh\"]\n  }}\n}}"
+                "{{\n  \"name\": \"{name}\",\n  \"version\": \"{version}\",\n  \"description\": \"lifecycle plugin\",\n  \"lifecycle\": {{\n    \"Init\": [\"./lifecycle/{init_name}\"],\n    \"Shutdown\": [\"./lifecycle/{shutdown_name}\"]\n  }}\n}}"
             )
             .as_str(),
         );
@@ -1092,7 +1116,9 @@ mod tests {
         registry.shutdown().expect("shutdown should succeed");
 
         let log = fs::read_to_string(&log_path).expect("lifecycle log should exist");
-        assert_eq!(log, "init\nshutdown\n");
+        // Windows cmd echo 输出含 \r\n，normalize 后精确匹配
+        let normalized = log.replace("\r\n", "\n").replace(" \n", "\n");
+        assert_eq!(normalized, "init\nshutdown\n");
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(source_root);
@@ -1285,7 +1311,10 @@ mod tests {
                                 if registry.initialize().is_ok() && registry.shutdown().is_ok() {
                                     // Verify lifecycle.log exists and has expected content
                                     if let Ok(log) = fs::read_to_string(&log_path) {
-                                        if log == "init\nshutdown\n" {
+                                        // Windows cmd echo 输出含尾随空格 + CRLF，normalize 后精确匹配
+                                        let normalized =
+                                            log.replace("\r\n", "\n").replace(" \n", "\n");
+                                        if normalized == "init\nshutdown\n" {
                                             success_count.fetch_add(1, AtomicOrdering::Relaxed);
                                         }
                                     }

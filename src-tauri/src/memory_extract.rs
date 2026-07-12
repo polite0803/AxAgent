@@ -275,7 +275,7 @@ pub struct ConsolidatedMemory {
 // ── Entity Extraction ─────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractedEntity {
+pub struct MemoryExtractedEntity {
     pub name: String,
     pub entity_type: String,
     pub properties: std::collections::HashMap<String, serde_json::Value>,
@@ -284,7 +284,7 @@ pub struct ExtractedEntity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractedRelation {
+pub struct MemoryExtractedRelation {
     pub source_name: String,
     pub target_name: String,
     pub relation_type: String,
@@ -294,8 +294,8 @@ pub struct ExtractedRelation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityExtractionResult {
-    pub entities: Vec<ExtractedEntity>,
-    pub relations: Vec<ExtractedRelation>,
+    pub entities: Vec<MemoryExtractedEntity>,
+    pub relations: Vec<MemoryExtractedRelation>,
 }
 
 pub async fn extract_entities_from_messages(

@@ -461,6 +461,7 @@ macro_rules! register_all_commands {
             commands::agent::user_profile_set_expertise,
             commands::agent::user_profile_export_md,
             commands::agent::adaptation_status,
+            commands::agent::pricing::is_pricing_available,
             commands::artifacts::list_artifacts,
             commands::artifacts::create_artifact,
             commands::artifacts::update_artifact,

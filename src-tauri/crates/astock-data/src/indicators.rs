@@ -2,7 +2,7 @@ use crate::types::KLine;
 use serde::{Deserialize, Serialize};
 
 /// 技术指标计算结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TechnicalIndicators {
     pub stock_code: String,

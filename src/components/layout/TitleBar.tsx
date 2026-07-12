@@ -247,7 +247,7 @@ export function TitleBar() {
 
   // Fetch backup info on mount and when popover opens
   useEffect(() => {
-    loadBackupSettings();
+    loadBackupSettings().catch(logIpcError("TitleBar: loadBackupSettings"));
 
     invoke<{ lastSyncTime: string | null }>("get_webdav_sync_status")
       .then((s) => {
@@ -601,7 +601,9 @@ export function TitleBar() {
                   children: themeMenuItems.map((item) => ({
                     ...item,
                     onClick: () => {
-                      saveSettings({ theme_mode: item.key });
+                      saveSettings({ theme_mode: item.key }).catch(
+                        logIpcError("TitleBar: saveSettings(theme_mode)"),
+                      );
                     },
                   })),
                 },
@@ -610,7 +612,9 @@ export function TitleBar() {
                   ...item,
                   onClick: () => {
                     i18n.changeLanguage(item.key);
-                    saveSettings({ language: item.key });
+                    saveSettings({ language: item.key }).catch(
+                      logIpcError("TitleBar: saveSettings(language)"),
+                    );
                   },
                 })),
               ]}

@@ -3,7 +3,7 @@
 
 import { WorkflowLogPanel } from "@/components/workflow/WorkflowLogPanel";
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import type { WorkflowDefinition, WorkflowExecution } from "@/types/workflow";
+import type { WorkflowDefinition, WorkflowExecution } from "@/types";
 import { Button, Descriptions, Form, Input, Modal, Space, Tag, Typography } from "antd";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

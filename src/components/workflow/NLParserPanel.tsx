@@ -2,7 +2,7 @@
 // Phase 4: NLParserPanel — 自然语言解析面板
 
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import type { NLParseResult } from "@/types/workflow";
+import type { NLParseResult } from "@/types";
 import { Button, Input, Progress, Space, Tag, Typography } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";

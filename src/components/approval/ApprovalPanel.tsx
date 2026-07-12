@@ -2,6 +2,7 @@
 
 // 人工审批（HITL）面板 — 显示待审批工作流列表，支持 approve / reject 操作
 
+import { logIpcError } from "@/lib/invoke";
 import { useApprovalStore } from "@/stores";
 import type { ApprovalRequest } from "@/types";
 import { Badge, Button, Empty, Input, Modal, Space, Spin, Table, Tag, theme, Typography } from "antd";
@@ -28,7 +29,7 @@ export function ApprovalPanel() {
   // 打开时刷新
   useEffect(() => {
     if (panelOpen) {
-      fetchPendingApprovals();
+      fetchPendingApprovals().catch(logIpcError("ApprovalPanel: fetchPendingApprovals"));
     }
   }, [panelOpen, fetchPendingApprovals]);
 

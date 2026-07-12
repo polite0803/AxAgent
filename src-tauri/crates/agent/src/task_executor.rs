@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::task::{TaskGraph, TaskNode, TaskStatus, TopologicalSortError};
+use crate::task::{AgentTaskStatus, TaskGraph, TaskNode, TopologicalSortError};
 use crate::task_decomposer::{DecompositionError, TaskDecomposer};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -32,12 +32,13 @@ impl ExecutionProgress {
     pub fn update(&mut self, graph: &TaskGraph) {
         self.total_tasks = graph.tasks.len();
         self.completed_tasks =
-            graph.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count();
-        self.failed_tasks = graph.tasks.iter().filter(|t| t.status == TaskStatus::Failed).count();
+            graph.tasks.iter().filter(|t| t.status == AgentTaskStatus::Completed).count();
+        self.failed_tasks =
+            graph.tasks.iter().filter(|t| t.status == AgentTaskStatus::Failed).count();
         self.current_tasks = graph
             .tasks
             .iter()
-            .filter(|t| t.status == TaskStatus::Running)
+            .filter(|t| t.status == AgentTaskStatus::Running)
             .map(|t| t.id.clone())
             .collect();
         self.percentage = if self.total_tasks > 0 {
@@ -216,13 +217,13 @@ impl TaskExecutor {
 
             for task in &graph.tasks {
                 match task.status {
-                    TaskStatus::Running => {
+                    AgentTaskStatus::Running => {
                         self.emit(ExecutionEvent::TaskStarted(task.id.clone()));
                     },
-                    TaskStatus::Completed => {
+                    AgentTaskStatus::Completed => {
                         self.emit(ExecutionEvent::TaskCompleted(task.id.clone()));
                     },
-                    TaskStatus::Failed => {
+                    AgentTaskStatus::Failed => {
                         self.emit(ExecutionEvent::TaskFailed(
                             task.id.clone(),
                             task.error.clone().unwrap_or_default(),
@@ -345,7 +346,7 @@ impl TaskExecutor {
             if let Some(dep_task) = graph.get_task(dep_id) {
                 if let Some(ref output) = dep_task.result {
                     context.inputs.insert(dep_id.clone(), output.clone());
-                } else if dep_task.status == TaskStatus::Failed {
+                } else if dep_task.status == AgentTaskStatus::Failed {
                     return Err(ExecutionError::InvalidGraph(format!(
                         "Dependency {} failed",
                         dep_id
@@ -360,10 +361,10 @@ impl TaskExecutor {
     fn update_task_state(&self, graph: &mut TaskGraph, task_id: &str, result: TaskResult) {
         if let Some(task) = graph.get_task_mut(task_id) {
             if result.is_success() {
-                task.status = TaskStatus::Completed;
+                task.status = AgentTaskStatus::Completed;
                 task.result = Some(result.output);
             } else {
-                task.status = TaskStatus::Failed;
+                task.status = AgentTaskStatus::Failed;
                 task.error = Some(result.error.clone().unwrap_or_default());
             }
         }
@@ -518,7 +519,7 @@ impl From<TopologicalSortError> for ExecutionError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::task::{TaskNode, TaskStatus, TaskType};
+    use crate::task::{AgentTaskStatus, TaskNode, TaskType};
     use crate::task_decomposer::DecompositionError;
     use std::collections::HashMap;
 
@@ -634,7 +635,7 @@ mod tests {
     fn test_execution_progress_update_completed() {
         let mut graph = TaskGraph::new();
         let mut task1 = TaskNode::new("1", "task 1", TaskType::Query);
-        task1.status = TaskStatus::Completed;
+        task1.status = AgentTaskStatus::Completed;
         graph.add_task(task1);
         let mut progress = ExecutionProgress::new(&graph);
         progress.update(&graph);
@@ -646,7 +647,7 @@ mod tests {
     fn test_execution_progress_update_running() {
         let mut graph = TaskGraph::new();
         let mut task1 = TaskNode::new("1", "task 1", TaskType::Query);
-        task1.status = TaskStatus::Running;
+        task1.status = AgentTaskStatus::Running;
         graph.add_task(task1);
         let mut progress = ExecutionProgress::new(&graph);
         progress.update(&graph);
@@ -658,7 +659,7 @@ mod tests {
     fn test_execution_progress_update_failed() {
         let mut graph = TaskGraph::new();
         let mut task1 = TaskNode::new("1", "task 1", TaskType::Query);
-        task1.status = TaskStatus::Failed;
+        task1.status = AgentTaskStatus::Failed;
         task1.error = Some("error".to_string());
         graph.add_task(task1);
         let mut progress = ExecutionProgress::new(&graph);
@@ -678,11 +679,11 @@ mod tests {
     fn test_execution_progress_mixed_statuses() {
         let mut graph = TaskGraph::new();
         let mut t1 = TaskNode::new("1", "t1", TaskType::Query);
-        t1.status = TaskStatus::Completed;
+        t1.status = AgentTaskStatus::Completed;
         let mut t2 = TaskNode::new("2", "t2", TaskType::Reasoning);
-        t2.status = TaskStatus::Running;
+        t2.status = AgentTaskStatus::Running;
         let mut t3 = TaskNode::new("3", "t3", TaskType::Validation);
-        t3.status = TaskStatus::Failed;
+        t3.status = AgentTaskStatus::Failed;
         t3.error = Some("err".to_string());
         graph.add_task(t1);
         graph.add_task(t2);

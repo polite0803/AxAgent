@@ -145,15 +145,33 @@ pub async fn reorder_conversation_categories(
     db: &DatabaseConnection,
     category_ids: &[String],
 ) -> Result<()> {
-    let now = now_ts();
-    for (i, id) in category_ids.iter().enumerate() {
-        conversation_categories::Entity::update_many()
-            .col_expr(conversation_categories::Column::SortOrder, Expr::value(i as i32))
-            .col_expr(conversation_categories::Column::UpdatedAt, Expr::value(now))
-            .filter(conversation_categories::Column::Id.eq(id))
-            .exec(db)
-            .await?;
+    if category_ids.is_empty() {
+        return Ok(());
     }
+    let now = now_ts();
+    // 使用 CASE WHEN 批量更新，避免 N+1 查询（单条 SQL 替代循环内 N 次 UPDATE）
+    let mut case_expr = String::from("CASE id ");
+    let mut params: Vec<Value> = Vec::with_capacity(category_ids.len() * 3 + 1);
+    for (i, id) in category_ids.iter().enumerate() {
+        case_expr.push_str("WHEN ? THEN ? ");
+        params.push(id.clone().into());
+        params.push((i as i32).into());
+    }
+    case_expr.push_str("END");
+    params.push(now.into());
+
+    let placeholders: Vec<&str> = category_ids.iter().map(|_| "?").collect();
+    let sql = format!(
+        "UPDATE conversation_categories SET sort_order = {}, updated_at = ? WHERE id IN ({})",
+        case_expr,
+        placeholders.join(",")
+    );
+    // 添加 IN 子句的参数
+    for id in category_ids {
+        params.push(id.clone().into());
+    }
+
+    db.execute_raw(Statement::from_sql_and_values(DatabaseBackend::Sqlite, &sql, params)).await?;
     Ok(())
 }
 

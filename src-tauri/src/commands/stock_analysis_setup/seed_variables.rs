@@ -3,7 +3,7 @@
 //! 拆分自 seed_stock_analysis.rs（P1-5），减少主文件行数 ~1100 行。
 //! 变量通过 `{{var}}` 语法注入到 Rhai 脚本和 Agent prompt 中。
 
-use axagent_harness::workflow_types::{JsonSchemaProperty, Variable};
+use axagent_harness::workflow_types::Variable;
 
 /// 构建股票分析工作流模板的所有可配置变量
 pub(crate) fn build_template_variables() -> Vec<Variable> {

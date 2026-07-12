@@ -801,10 +801,7 @@ pub async fn run_serenity_screening(
                         v.clone()
                     }
                 })
-                .or_else(|| wf_result.results.get("a-candidate-mapper").cloned().map(|v| {
-                    // AgentNode 输出: {"role": "...", "content": "raw JSON string", ...} — 保持原样
-                    v
-                }))
+                .or_else(|| wf_result.results.get("a-candidate-mapper").cloned())
                 .unwrap_or(serde_json::Value::Null);
             // 诊断：打印原始节点输出
             {
@@ -1519,7 +1516,6 @@ async fn do_feedback_loop(state: &State<'_, AppState>) -> Result<serde_json::Val
 #[cfg(test)]
 mod serenity_extract_tests {
     use super::*;
-    use crate::commands::error::ErrorResponse;
     use axagent_harness::types::{ChatResponse, ContentBlock};
     use axagent_runtime_core::DefaultResponseNormalizer;
 

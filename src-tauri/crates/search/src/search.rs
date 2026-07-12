@@ -123,7 +123,7 @@ pub fn is_safe_url(url_str: &str) -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SearchResult {
+pub struct DocSearchResult {
     pub title: String,
     pub content: String,
     pub url: String,
@@ -140,7 +140,7 @@ pub struct SearchResult {
 pub struct SearchResponse {
     pub ok: bool,
     pub query: String,
-    pub results: Vec<SearchResult>,
+    pub results: Vec<DocSearchResult>,
     pub latency_ms: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -613,7 +613,7 @@ pub async fn execute_iterative_search(
     let start = Instant::now();
 
     let expansion = expand_search_queries(query);
-    let mut all_results: Vec<SearchResult> = Vec::new();
+    let mut all_results: Vec<DocSearchResult> = Vec::new();
     let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut queries_to_try: Vec<String> = expansion.queries.clone();
 
@@ -669,7 +669,7 @@ pub async fn execute_iterative_search(
     })
 }
 
-fn extract_covered_topics(results: &[SearchResult]) -> Vec<String> {
+fn extract_covered_topics(results: &[DocSearchResult]) -> Vec<String> {
     let mut words: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
 
     for r in results {
@@ -711,7 +711,7 @@ fn generate_gap_query(original: &str, covered: &[String]) -> String {
     }
 }
 
-pub fn rerank_search_results(query: &str, results: &mut Vec<SearchResult>) {
+pub fn rerank_search_results(query: &str, results: &mut Vec<DocSearchResult>) {
     if results.len() <= 1 {
         return;
     }
@@ -727,7 +727,7 @@ pub fn rerank_search_results(query: &str, results: &mut Vec<SearchResult>) {
         return;
     }
 
-    let scored: Vec<(SearchResult, f32)> = results
+    let scored: Vec<(DocSearchResult, f32)> = results
         .drain(..)
         .map(|r| {
             let title_lower = r.title.to_lowercase();
@@ -937,8 +937,8 @@ pub fn shared_http_client() -> Arc<reqwest::Client> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CascadeSearchResult {
     pub query: String,
-    pub local_results: Vec<SearchResult>,
-    pub web_results: Vec<SearchResult>,
+    pub local_results: Vec<DocSearchResult>,
+    pub web_results: Vec<DocSearchResult>,
     pub source_used: CascadeSource,
     pub total_results: usize,
 }
@@ -951,7 +951,7 @@ pub enum CascadeSource {
 }
 
 pub fn should_supplement_with_web(
-    local_results: &[SearchResult],
+    local_results: &[DocSearchResult],
     query: &str,
     min_results: usize,
 ) -> bool {
@@ -973,10 +973,10 @@ pub fn should_supplement_with_web(
 }
 
 pub fn merge_local_and_web(
-    local: Vec<SearchResult>,
-    web: Vec<SearchResult>,
+    local: Vec<DocSearchResult>,
+    web: Vec<DocSearchResult>,
     max_total: usize,
-) -> Vec<SearchResult> {
+) -> Vec<DocSearchResult> {
     let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut merged = Vec::new();
 
@@ -1062,7 +1062,7 @@ async fn search_tavily(
     query: &str,
     max_results: i32,
     timeout_ms: i32,
-) -> Result<Vec<SearchResult>> {
+) -> Result<Vec<DocSearchResult>> {
     let url = endpoint.unwrap_or("https://api.tavily.com/search");
 
     let client = Client::builder()
@@ -1095,7 +1095,7 @@ async fn search_tavily(
         .results
         .into_iter()
         .take(max_results as usize)
-        .map(|r| SearchResult {
+        .map(|r| DocSearchResult {
             title: r.title.unwrap_or_else(|| "No title".to_string()),
             content: r.content.unwrap_or_default(),
             url: r.url.unwrap_or_default(),
@@ -1135,7 +1135,7 @@ async fn search_zhipu(
     query: &str,
     max_results: i32,
     timeout_ms: i32,
-) -> Result<Vec<SearchResult>> {
+) -> Result<Vec<DocSearchResult>> {
     let url = endpoint.unwrap_or("https://open.bigmodel.cn/api/paas/v4/web_search");
 
     let client = Client::builder()
@@ -1169,7 +1169,7 @@ async fn search_zhipu(
     Ok(results
         .into_iter()
         .take(max_results as usize)
-        .map(|r| SearchResult {
+        .map(|r| DocSearchResult {
             title: r.title.unwrap_or_else(|| "No title".to_string()),
             content: r.content.unwrap_or_default(),
             url: r.link.unwrap_or_default(),
@@ -1225,7 +1225,7 @@ async fn search_bocha(
     query: &str,
     max_results: i32,
     timeout_ms: i32,
-) -> Result<Vec<SearchResult>> {
+) -> Result<Vec<DocSearchResult>> {
     let url = endpoint.unwrap_or("https://api.bochaai.com/v1/web-search");
 
     let client = Client::builder()
@@ -1267,7 +1267,7 @@ async fn search_bocha(
     Ok(results
         .into_iter()
         .take(max_results as usize)
-        .map(|r| SearchResult {
+        .map(|r| DocSearchResult {
             title: r.name.unwrap_or_else(|| "No title".to_string()),
             content: r.summary.or(r.snippet).unwrap_or_default(),
             url: r.url.unwrap_or_default(),
@@ -1279,14 +1279,14 @@ async fn search_bocha(
 
 // ── DuckDuckGo (fallback, no API key needed) ────────────────
 
-async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchResult>> {
+async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<DocSearchResult>> {
     let client = Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .timeout(std::time::Duration::from_secs(20))
         .build()
         .map_err(|e| AxAgentError::Provider(format!("DDG client error: {e}")))?;
 
-    let mut results: Vec<SearchResult> = Vec::new();
+    let mut results: Vec<DocSearchResult> = Vec::new();
 
     let api_url = format!(
         "https://api.duckduckgo.com/?q={}&format=json&no_html=1&skip_disambig=1&t=axagent",
@@ -1300,7 +1300,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
             && !abs.is_empty()
         {
             let url = json.get("AbstractURL").and_then(|v| v.as_str()).unwrap_or("");
-            results.push(SearchResult {
+            results.push(DocSearchResult {
                 title: "摘要".to_string(),
                 content: abs.to_string(),
                 url: url.to_string(),
@@ -1312,7 +1312,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
             for topic in topics.iter().take(max_results as usize) {
                 if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
                     let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
-                    results.push(SearchResult {
+                    results.push(DocSearchResult {
                         title: text.chars().take(80).collect(),
                         content: text.to_string(),
                         url: url.to_string(),
@@ -1371,7 +1371,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                 let url = href_caps.get(i).cloned().unwrap_or_default();
 
                 if !title.is_empty() {
-                    results.push(SearchResult {
+                    results.push(DocSearchResult {
                         title,
                         content: snippet,
                         url,
@@ -1388,7 +1388,7 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                     {
                         let text = part[start + 1..start + 1 + end].trim();
                         if !text.is_empty() {
-                            results.push(SearchResult {
+                            results.push(DocSearchResult {
                                 title: text.chars().take(80).collect(),
                                 content: text.to_string(),
                                 url: String::new(),
@@ -1426,7 +1426,7 @@ async fn search_serpapi(
     query: &str,
     max_results: i32,
     timeout_ms: i32,
-) -> Result<Vec<SearchResult>> {
+) -> Result<Vec<DocSearchResult>> {
     let url = endpoint.unwrap_or("https://serpapi.com/search");
     let client = Client::builder()
         .timeout(std::time::Duration::from_millis(timeout_ms as u64))
@@ -1455,7 +1455,7 @@ async fn search_serpapi(
     Ok(organic
         .into_iter()
         .take(max_results as usize)
-        .map(|r| SearchResult {
+        .map(|r| DocSearchResult {
             title: r.title.unwrap_or_default(),
             content: r.snippet.unwrap_or_default(),
             url: r.link.unwrap_or_default(),
@@ -1492,7 +1492,7 @@ async fn search_brave(
     query: &str,
     max_results: i32,
     timeout_ms: i32,
-) -> Result<Vec<SearchResult>> {
+) -> Result<Vec<DocSearchResult>> {
     let url = endpoint.unwrap_or("https://api.search.brave.com/res/v1/web/search");
     let client = Client::builder()
         .timeout(std::time::Duration::from_millis(timeout_ms as u64))
@@ -1517,7 +1517,7 @@ async fn search_brave(
     Ok(web
         .into_iter()
         .take(max_results as usize)
-        .map(|r| SearchResult {
+        .map(|r| DocSearchResult {
             title: r.title.unwrap_or_default(),
             content: r.description.unwrap_or_default(),
             url: r.url.unwrap_or_default(),
@@ -1555,7 +1555,7 @@ async fn search_bing(
     query: &str,
     max_results: i32,
     timeout_ms: i32,
-) -> Result<Vec<SearchResult>> {
+) -> Result<Vec<DocSearchResult>> {
     let url = endpoint.unwrap_or("https://api.bing.microsoft.com/v7.0/search");
     let client = Client::builder()
         .timeout(std::time::Duration::from_millis(timeout_ms as u64))
@@ -1579,7 +1579,7 @@ async fn search_bing(
     Ok(web
         .into_iter()
         .take(max_results as usize)
-        .map(|r| SearchResult {
+        .map(|r| DocSearchResult {
             title: r.name.unwrap_or_default(),
             content: r.snippet.unwrap_or_default(),
             url: r.url.unwrap_or_default(),
@@ -1610,7 +1610,7 @@ async fn search_google_pse(
     query: &str,
     max_results: i32,
     timeout_ms: i32,
-) -> Result<Vec<SearchResult>> {
+) -> Result<Vec<DocSearchResult>> {
     let url = endpoint.unwrap_or("https://www.googleapis.com/customsearch/v1");
     let client = Client::builder()
         .timeout(std::time::Duration::from_millis(timeout_ms as u64))
@@ -1639,7 +1639,7 @@ async fn search_google_pse(
     Ok(items
         .into_iter()
         .take(max_results as usize)
-        .map(|r| SearchResult {
+        .map(|r| DocSearchResult {
             title: r.title.unwrap_or_default(),
             content: r.snippet.unwrap_or_default(),
             url: r.link.unwrap_or_default(),

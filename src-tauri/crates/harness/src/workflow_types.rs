@@ -1494,7 +1494,7 @@ pub enum OnFailureAction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
-pub struct RetryPolicy {
+pub struct WorkflowRetryPolicy {
     pub max_retries: u32,
     pub base_delay_ms: u64,
     pub max_delay_ms: u64,
@@ -1509,7 +1509,7 @@ pub struct CompensationStep {
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub struct ErrorConfig {
-    pub retry_policy: Option<RetryPolicy>,
+    pub retry_policy: Option<WorkflowRetryPolicy>,
     pub on_failure: OnFailureAction,
     pub error_branch: Option<Vec<String>>,
     pub compensation_steps: Option<Vec<CompensationStep>>,

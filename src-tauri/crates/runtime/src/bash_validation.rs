@@ -16,7 +16,7 @@ use axagent_runtime_core::permissions::PermissionMode;
 
 /// Result of validating a bash command before execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ValidationResult {
+pub enum BashValidationDecision {
     /// Command is safe to execute.
     Allow,
     /// Command should be blocked with the given reason.
@@ -102,9 +102,9 @@ const WRITE_REDIRECTIONS: &[&str] = &[">", ">>", ">&"];
 ///
 /// Corresponds to upstream `tools/BashTool/readOnlyValidation.ts`.
 #[must_use]
-pub fn validate_read_only(command: &str, mode: PermissionMode) -> ValidationResult {
+pub fn validate_read_only(command: &str, mode: PermissionMode) -> BashValidationDecision {
     if mode != PermissionMode::ReadOnly {
-        return ValidationResult::Allow;
+        return BashValidationDecision::Allow;
     }
 
     let first_command = extract_first_command(command);
@@ -112,7 +112,7 @@ pub fn validate_read_only(command: &str, mode: PermissionMode) -> ValidationResu
     // Check for write commands.
     for &write_cmd in WRITE_COMMANDS {
         if first_command == write_cmd {
-            return ValidationResult::Block {
+            return BashValidationDecision::Block {
                 reason: format!(
                     "Command '{write_cmd}' modifies the filesystem and is not allowed in read-only mode"
                 ),
@@ -123,7 +123,7 @@ pub fn validate_read_only(command: &str, mode: PermissionMode) -> ValidationResu
     // Check for state-modifying commands.
     for &state_cmd in STATE_MODIFYING_COMMANDS {
         if first_command == state_cmd {
-            return ValidationResult::Block {
+            return BashValidationDecision::Block {
                 reason: format!(
                     "Command '{state_cmd}' modifies system state and is not allowed in read-only mode"
                 ),
@@ -136,7 +136,7 @@ pub fn validate_read_only(command: &str, mode: PermissionMode) -> ValidationResu
         let inner = extract_sudo_inner(command);
         if !inner.is_empty() {
             let inner_result = validate_read_only(inner, mode);
-            if inner_result != ValidationResult::Allow {
+            if inner_result != BashValidationDecision::Allow {
                 return inner_result;
             }
         }
@@ -145,7 +145,7 @@ pub fn validate_read_only(command: &str, mode: PermissionMode) -> ValidationResu
     // Check for write redirections.
     for &redir in WRITE_REDIRECTIONS {
         if command.contains(redir) {
-            return ValidationResult::Block {
+            return BashValidationDecision::Block {
                 reason: format!(
                     "Command contains write redirection '{redir}' which is not allowed in read-only mode"
                 ),
@@ -158,7 +158,7 @@ pub fn validate_read_only(command: &str, mode: PermissionMode) -> ValidationResu
         return validate_git_read_only(command);
     }
 
-    ValidationResult::Allow
+    BashValidationDecision::Allow
 }
 
 /// Git subcommands that are read-only safe.
@@ -184,19 +184,19 @@ const GIT_READ_ONLY_SUBCOMMANDS: &[&str] = &[
     "config",
 ];
 
-fn validate_git_read_only(command: &str) -> ValidationResult {
+fn validate_git_read_only(command: &str) -> BashValidationDecision {
     let parts: Vec<&str> = command.split_whitespace().collect();
     // Skip past "git" and any flags (e.g., "git -C /path")
     let subcommand = parts.iter().skip(1).find(|p| !p.starts_with('-'));
 
     match subcommand {
-        Some(&sub) if GIT_READ_ONLY_SUBCOMMANDS.contains(&sub) => ValidationResult::Allow,
-        Some(&sub) => ValidationResult::Block {
+        Some(&sub) if GIT_READ_ONLY_SUBCOMMANDS.contains(&sub) => BashValidationDecision::Allow,
+        Some(&sub) => BashValidationDecision::Block {
             reason: format!(
                 "Git subcommand '{sub}' modifies repository state and is not allowed in read-only mode"
             ),
         },
-        None => ValidationResult::Allow, // bare "git" is fine
+        None => BashValidationDecision::Allow, // bare "git" is fine
     }
 }
 
@@ -225,11 +225,11 @@ const ALWAYS_DESTRUCTIVE_COMMANDS: &[&str] = &["shred", "wipefs"];
 ///
 /// Corresponds to upstream `tools/BashTool/destructiveCommandWarning.ts`.
 #[must_use]
-pub fn check_destructive(command: &str) -> ValidationResult {
+pub fn check_destructive(command: &str) -> BashValidationDecision {
     // Check known destructive patterns.
     for &(pattern, warning) in DESTRUCTIVE_PATTERNS {
         if command.contains(pattern) {
-            return ValidationResult::Warn {
+            return BashValidationDecision::Warn {
                 message: format!("Destructive command detected: {warning}"),
             };
         }
@@ -239,7 +239,7 @@ pub fn check_destructive(command: &str) -> ValidationResult {
     let first = extract_first_command(command);
     for &cmd in ALWAYS_DESTRUCTIVE_COMMANDS {
         if first == cmd {
-            return ValidationResult::Warn {
+            return BashValidationDecision::Warn {
                 message: format!(
                     "Command '{cmd}' is inherently destructive and may cause data loss"
                 ),
@@ -251,13 +251,13 @@ pub fn check_destructive(command: &str) -> ValidationResult {
     if command.contains("rm ") && command.contains("-r") && command.contains("-f") {
         // Already handled the most dangerous patterns above.
         // Flag any remaining "rm -rf" as a warning.
-        return ValidationResult::Warn {
+        return BashValidationDecision::Warn {
             message: "Recursive forced deletion detected — verify the target path is correct"
                 .to_string(),
         };
     }
 
-    ValidationResult::Allow
+    BashValidationDecision::Allow
 }
 
 // ---------------------------------------------------------------------------
@@ -268,23 +268,23 @@ pub fn check_destructive(command: &str) -> ValidationResult {
 ///
 /// Corresponds to upstream `tools/BashTool/modeValidation.ts`.
 #[must_use]
-pub fn validate_mode(command: &str, mode: PermissionMode) -> ValidationResult {
+pub fn validate_mode(command: &str, mode: PermissionMode) -> BashValidationDecision {
     match mode {
         PermissionMode::ReadOnly => validate_read_only(command, mode),
         PermissionMode::WorkspaceWrite => {
             // In workspace-write mode, check for system-level destructive
             // operations that go beyond workspace scope.
             if command_targets_outside_workspace(command) {
-                return ValidationResult::Warn {
+                return BashValidationDecision::Warn {
                     message:
                         "Command appears to target files outside the workspace — requires elevated permission"
                             .to_string(),
                 };
             }
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         },
         PermissionMode::DangerFullAccess | PermissionMode::Allow | PermissionMode::Prompt => {
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         },
     }
 }
@@ -320,20 +320,20 @@ fn command_targets_outside_workspace(command: &str) -> bool {
 ///
 /// Corresponds to upstream `tools/BashTool/sedValidation.ts`.
 #[must_use]
-pub fn validate_sed(command: &str, mode: PermissionMode) -> ValidationResult {
+pub fn validate_sed(command: &str, mode: PermissionMode) -> BashValidationDecision {
     let first = extract_first_command(command);
     if first != "sed" {
-        return ValidationResult::Allow;
+        return BashValidationDecision::Allow;
     }
 
     // In read-only mode, block sed -i (in-place editing).
     if mode == PermissionMode::ReadOnly && command.contains(" -i") {
-        return ValidationResult::Block {
+        return BashValidationDecision::Block {
             reason: "sed -i (in-place editing) is not allowed in read-only mode".to_string(),
         };
     }
 
-    ValidationResult::Allow
+    BashValidationDecision::Allow
 }
 
 // ---------------------------------------------------------------------------
@@ -344,13 +344,13 @@ pub fn validate_sed(command: &str, mode: PermissionMode) -> ValidationResult {
 ///
 /// Corresponds to upstream `tools/BashTool/pathValidation.ts`.
 #[must_use]
-pub fn validate_paths(command: &str, workspace: &Path) -> ValidationResult {
+pub fn validate_paths(command: &str, workspace: &Path) -> BashValidationDecision {
     // Check for directory traversal attempts.
     if command.contains("../") {
         let workspace_str = workspace.to_string_lossy();
         // Allow traversal if it resolves within workspace (heuristic).
         if !command.contains(&*workspace_str) {
-            return ValidationResult::Warn {
+            return BashValidationDecision::Warn {
                 message: "Command contains directory traversal pattern '../' — verify the target path resolves within the workspace".to_string(),
             };
         }
@@ -358,14 +358,14 @@ pub fn validate_paths(command: &str, workspace: &Path) -> ValidationResult {
 
     // Check for home directory references that could escape workspace.
     if command.contains("~/") || command.contains("$HOME") {
-        return ValidationResult::Warn {
+        return BashValidationDecision::Warn {
             message:
                 "Command references home directory — verify it stays within the workspace scope"
                     .to_string(),
         };
     }
 
-    ValidationResult::Allow
+    BashValidationDecision::Allow
 }
 
 // ---------------------------------------------------------------------------
@@ -578,22 +578,26 @@ fn classify_git_command(command: &str) -> CommandIntent {
 ///
 /// Returns the first non-Allow result, or Allow if all validations pass.
 #[must_use]
-pub fn validate_command(command: &str, mode: PermissionMode, workspace: &Path) -> ValidationResult {
+pub fn validate_command(
+    command: &str,
+    mode: PermissionMode,
+    workspace: &Path,
+) -> BashValidationDecision {
     // 1. Mode-level validation (includes read-only checks).
     let result = validate_mode(command, mode);
-    if result != ValidationResult::Allow {
+    if result != BashValidationDecision::Allow {
         return result;
     }
 
     // 2. Sed-specific validation.
     let result = validate_sed(command, mode);
-    if result != ValidationResult::Allow {
+    if result != BashValidationDecision::Allow {
         return result;
     }
 
     // 3. Destructive command warnings.
     let result = check_destructive(command);
-    if result != ValidationResult::Allow {
+    if result != BashValidationDecision::Allow {
         return result;
     }
 
@@ -700,7 +704,7 @@ mod tests {
     fn blocks_rm_in_read_only() {
         assert!(matches!(
             validate_read_only("rm -rf /tmp/x", PermissionMode::ReadOnly),
-            ValidationResult::Block { reason } if reason.contains("rm")
+            BashValidationDecision::Block { reason } if reason.contains("rm")
         ));
     }
 
@@ -708,7 +712,7 @@ mod tests {
     fn allows_rm_in_workspace_write() {
         assert_eq!(
             validate_read_only("rm -rf /tmp/x", PermissionMode::WorkspaceWrite),
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         );
     }
 
@@ -716,20 +720,23 @@ mod tests {
     fn blocks_write_redirections_in_read_only() {
         assert!(matches!(
             validate_read_only("echo hello > file.txt", PermissionMode::ReadOnly),
-            ValidationResult::Block { reason } if reason.contains("redirection")
+            BashValidationDecision::Block { reason } if reason.contains("redirection")
         ));
     }
 
     #[test]
     fn allows_read_commands_in_read_only() {
-        assert_eq!(validate_read_only("ls -la", PermissionMode::ReadOnly), ValidationResult::Allow);
+        assert_eq!(
+            validate_read_only("ls -la", PermissionMode::ReadOnly),
+            BashValidationDecision::Allow
+        );
         assert_eq!(
             validate_read_only("cat /etc/hosts", PermissionMode::ReadOnly),
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         );
         assert_eq!(
             validate_read_only("grep -r pattern .", PermissionMode::ReadOnly),
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         );
     }
 
@@ -737,7 +744,7 @@ mod tests {
     fn blocks_sudo_write_in_read_only() {
         assert!(matches!(
             validate_read_only("sudo rm -rf /tmp/x", PermissionMode::ReadOnly),
-            ValidationResult::Block { reason } if reason.contains("rm")
+            BashValidationDecision::Block { reason } if reason.contains("rm")
         ));
     }
 
@@ -745,7 +752,7 @@ mod tests {
     fn blocks_git_push_in_read_only() {
         assert!(matches!(
             validate_read_only("git push origin main", PermissionMode::ReadOnly),
-            ValidationResult::Block { reason } if reason.contains("push")
+            BashValidationDecision::Block { reason } if reason.contains("push")
         ));
     }
 
@@ -753,7 +760,7 @@ mod tests {
     fn allows_git_status_in_read_only() {
         assert_eq!(
             validate_read_only("git status", PermissionMode::ReadOnly),
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         );
     }
 
@@ -761,7 +768,7 @@ mod tests {
     fn blocks_package_install_in_read_only() {
         assert!(matches!(
             validate_read_only("npm install express", PermissionMode::ReadOnly),
-            ValidationResult::Block { reason } if reason.contains("npm")
+            BashValidationDecision::Block { reason } if reason.contains("npm")
         ));
     }
 
@@ -771,7 +778,7 @@ mod tests {
     fn warns_rm_rf_root() {
         assert!(matches!(
             check_destructive("rm -rf /"),
-            ValidationResult::Warn { message } if message.contains("root")
+            BashValidationDecision::Warn { message } if message.contains("root")
         ));
     }
 
@@ -779,7 +786,7 @@ mod tests {
     fn warns_rm_rf_home() {
         assert!(matches!(
             check_destructive("rm -rf ~"),
-            ValidationResult::Warn { message } if message.contains("home")
+            BashValidationDecision::Warn { message } if message.contains("home")
         ));
     }
 
@@ -787,7 +794,7 @@ mod tests {
     fn warns_shred() {
         assert!(matches!(
             check_destructive("shred /dev/sda"),
-            ValidationResult::Warn { message } if message.contains("destructive")
+            BashValidationDecision::Warn { message } if message.contains("destructive")
         ));
     }
 
@@ -795,14 +802,14 @@ mod tests {
     fn warns_fork_bomb() {
         assert!(matches!(
             check_destructive(":(){ :|:& };:"),
-            ValidationResult::Warn { message } if message.contains("Fork bomb")
+            BashValidationDecision::Warn { message } if message.contains("Fork bomb")
         ));
     }
 
     #[test]
     fn allows_safe_commands() {
-        assert_eq!(check_destructive("ls -la"), ValidationResult::Allow);
-        assert_eq!(check_destructive("echo hello"), ValidationResult::Allow);
+        assert_eq!(check_destructive("ls -la"), BashValidationDecision::Allow);
+        assert_eq!(check_destructive("echo hello"), BashValidationDecision::Allow);
     }
 
     // --- modeValidation ---
@@ -811,7 +818,7 @@ mod tests {
     fn workspace_write_warns_system_paths() {
         assert!(matches!(
             validate_mode("cp file.txt /etc/config", PermissionMode::WorkspaceWrite),
-            ValidationResult::Warn { message } if message.contains("outside the workspace")
+            BashValidationDecision::Warn { message } if message.contains("outside the workspace")
         ));
     }
 
@@ -819,7 +826,7 @@ mod tests {
     fn workspace_write_allows_local_writes() {
         assert_eq!(
             validate_mode("cp file.txt ./backup/", PermissionMode::WorkspaceWrite),
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         );
     }
 
@@ -829,7 +836,7 @@ mod tests {
     fn blocks_sed_inplace_in_read_only() {
         assert!(matches!(
             validate_sed("sed -i 's/old/new/' file.txt", PermissionMode::ReadOnly),
-            ValidationResult::Block { reason } if reason.contains("sed -i")
+            BashValidationDecision::Block { reason } if reason.contains("sed -i")
         ));
     }
 
@@ -837,7 +844,7 @@ mod tests {
     fn allows_sed_stdout_in_read_only() {
         assert_eq!(
             validate_sed("sed 's/old/new/' file.txt", PermissionMode::ReadOnly),
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         );
     }
 
@@ -848,7 +855,7 @@ mod tests {
         let workspace = PathBuf::from("/workspace/project");
         assert!(matches!(
             validate_paths("cat ../../../etc/passwd", &workspace),
-            ValidationResult::Warn { message } if message.contains("traversal")
+            BashValidationDecision::Warn { message } if message.contains("traversal")
         ));
     }
 
@@ -857,7 +864,7 @@ mod tests {
         let workspace = PathBuf::from("/workspace/project");
         assert!(matches!(
             validate_paths("cat ~/.ssh/id_rsa", &workspace),
-            ValidationResult::Warn { message } if message.contains("home directory")
+            BashValidationDecision::Warn { message } if message.contains("home directory")
         ));
     }
 
@@ -918,7 +925,7 @@ mod tests {
         let workspace = PathBuf::from("/workspace");
         assert!(matches!(
             validate_command("rm -rf /tmp/x", PermissionMode::ReadOnly, &workspace),
-            ValidationResult::Block { .. }
+            BashValidationDecision::Block { .. }
         ));
     }
 
@@ -927,7 +934,7 @@ mod tests {
         let workspace = PathBuf::from("/workspace");
         assert!(matches!(
             validate_command("rm -rf /", PermissionMode::WorkspaceWrite, &workspace),
-            ValidationResult::Warn { .. }
+            BashValidationDecision::Warn { .. }
         ));
     }
 
@@ -936,7 +943,7 @@ mod tests {
         let workspace = PathBuf::from("/workspace");
         assert_eq!(
             validate_command("ls -la", PermissionMode::ReadOnly, &workspace),
-            ValidationResult::Allow
+            BashValidationDecision::Allow
         );
     }
 

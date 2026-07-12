@@ -1481,7 +1481,7 @@ mod tests {
         session_load_from_path,
     };
     use crate::usage::TokenUsage;
-    use axagent_telemetry::{MemoryTelemetrySink, TelemetryEvent};
+    use axagent_harness::test_support::{MemorySessionTracer, MemoryTelemetrySink, TelemetryEvent};
     use std::fs;
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -1597,7 +1597,7 @@ mod tests {
     fn records_runtime_session_trace_events() {
         let sink = Arc::new(MemoryTelemetrySink::default());
         let tracer: Arc<dyn axagent_harness::SessionTracer> =
-            Arc::new(axagent_telemetry::SessionTracer::new("session-runtime", sink.clone()));
+            Arc::new(MemorySessionTracer::new(sink.clone()));
         let mut runtime = ConversationRuntime::new(
             Session::new(),
             ScriptedApiClient { call_count: 0 },

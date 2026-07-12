@@ -72,6 +72,7 @@ export type { AvatarType } from "./feature/userProfileStore";
 export { useWorkEngineStore } from "./feature/workEngineStore";
 export { useWorkflowEditorStore } from "./feature/workflowEditorStore";
 export type { SaveSkillWorkflowResponse, SimilarWorkflow } from "./feature/workflowEditorStore";
+export { useWorkflowStore } from "./feature/workflowStore";
 
 // ── AxInvest stock analysis ──
 export { useStockAnalysisStore } from "./feature/stockAnalysisStore";

@@ -222,18 +222,13 @@ impl VectorStore {
     }
 
     async fn registry_get_collection(&self, collection_id: &str) -> Option<(i32, String)> {
-        let cid = collection_id.replace('\'', "''");
-        let row = self
-            .db
-            .query_one_raw(Statement::from_string(
-                DbBackend::Sqlite,
-                format!(
-                    "SELECT dimensions, index_type FROM vec_collections WHERE collection_id='{cid}'"
-                ),
-            ))
-            .await
-            .ok()
-            .flatten();
+        // 参数化查询，避免 SQL 注入
+        let stmt = Statement::from_sql_and_values(
+            DbBackend::Sqlite,
+            "SELECT dimensions, index_type FROM vec_collections WHERE collection_id = ?",
+            [collection_id.into()],
+        );
+        let row = self.db.query_one_raw(stmt).await.ok().flatten();
 
         row.and_then(|r| {
             let dim: i32 = r.try_get("", "dimensions").ok()?;
@@ -247,33 +242,43 @@ impl VectorStore {
     }
 
     async fn registry_delete_collection(&self, collection_id: &str) {
-        let cid = collection_id.replace('\'', "''");
-        let _ =
-            self.exec(&format!("DELETE FROM vec_collections WHERE collection_id='{cid}'")).await;
+        // 参数化查询
+        let _ = self
+            .exec_with_params(
+                "DELETE FROM vec_collections WHERE collection_id = ?",
+                [collection_id.into()],
+            )
+            .await;
     }
 
     /// P2-2: 将 collection 在注册表中标记为 disabled，避免坏掉的 collection 被反复使用
     async fn registry_mark_disabled(&self, collection_id: &str) {
-        let cid = collection_id.replace('\'', "''");
         let now = Self::now_ms();
+        // 参数化查询：collection_id 用占位符，now 为 i64 安全拼接
         let _ = self
-            .exec(&format!(
-                "UPDATE vec_collections SET index_type='disabled', updated_at={now} \
-                 WHERE collection_id='{cid}'"
-            ))
+            .exec_with_params(
+                &format!(
+                    "UPDATE vec_collections SET index_type = 'disabled', updated_at = {now} \
+                     WHERE collection_id = ?"
+                ),
+                [collection_id.into()],
+            )
             .await;
     }
 
     async fn registry_update_vector_count(&self, collection_id: &str) {
-        let cid = collection_id.replace('\'', "''");
+        // sanitized 仅允许字母数字和下划线（来自 sanitize_collection_id），表名拼接安全
         let sanitized = Self::sanitize_collection_id(collection_id);
         let now = Self::now_ms();
         let _ = self
-            .exec(&format!(
-                "UPDATE vec_collections SET vector_count = (SELECT COUNT(*) FROM vec_{sanitized}_meta), \
-                 updated_at = {now}, last_indexed_at = {now} \
-                 WHERE collection_id='{cid}'"
-            ))
+            .exec_with_params(
+                &format!(
+                    "UPDATE vec_collections SET vector_count = (SELECT COUNT(*) FROM vec_{sanitized}_meta), \
+                     updated_at = {now}, last_indexed_at = {now} \
+                     WHERE collection_id = ?"
+                ),
+                [collection_id.into()],
+            )
             .await;
     }
 
@@ -1429,6 +1434,17 @@ impl VectorStore {
             .execute_raw(Statement::from_string(DbBackend::Sqlite, sql))
             .await
             .map_err(Self::wrap)?;
+        Ok(())
+    }
+
+    /// 执行带参数的 SQL 语句（参数化查询，防止 SQL 注入）。
+    async fn exec_with_params(
+        &self,
+        sql: &str,
+        params: impl IntoIterator<Item = sea_orm::Value>,
+    ) -> Result<()> {
+        let stmt = Statement::from_sql_and_values(DbBackend::Sqlite, sql, params);
+        self.db.execute_raw(stmt).await.map_err(Self::wrap)?;
         Ok(())
     }
 

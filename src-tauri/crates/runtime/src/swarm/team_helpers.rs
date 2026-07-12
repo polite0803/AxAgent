@@ -131,7 +131,7 @@ impl Team {
 
 /// 团队任务状态
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TaskStatus {
+pub enum SwarmTaskStatus {
     /// 待分配
     Pending,
     /// 已分配，等待执行
@@ -154,7 +154,7 @@ pub struct TeamTask {
     /// 分配给谁（agent_id）
     pub assigned_to: Option<String>,
     /// 任务状态
-    pub status: TaskStatus,
+    pub status: SwarmTaskStatus,
     /// 任务结果（完成后填充）
     pub result: Option<String>,
     /// 任务创建时间
@@ -168,7 +168,7 @@ impl TeamTask {
             id: Uuid::new_v4().to_string(),
             description: description.to_string(),
             assigned_to: None,
-            status: TaskStatus::Pending,
+            status: SwarmTaskStatus::Pending,
             result: None,
             created_at: Utc::now(),
         }
@@ -327,7 +327,7 @@ pub fn assign_task(team: &mut Team, task: TeamTask, agent_id: &str) -> bool {
 
     let mut assigned_task = task;
     assigned_task.assigned_to = Some(agent_id.to_string());
-    assigned_task.status = TaskStatus::InProgress;
+    assigned_task.status = SwarmTaskStatus::InProgress;
     team.tasks.push(assigned_task);
 
     true
@@ -349,9 +349,9 @@ pub fn assign_task(team: &mut Team, task: TeamTask, agent_id: &str) -> bool {
 pub fn cancel_tasks_for_teammate(team: &mut Team, agent_id: &str) {
     for task in team.tasks.iter_mut() {
         if task.assigned_to.as_deref() == Some(agent_id)
-            && matches!(task.status, TaskStatus::Assigned)
+            && matches!(task.status, SwarmTaskStatus::Assigned)
         {
-            task.status = TaskStatus::Failed("队友已离线".to_string());
+            task.status = SwarmTaskStatus::Failed("队友已离线".to_string());
         }
     }
 }
@@ -410,7 +410,7 @@ mod tests {
         assert!(ok);
         assert_eq!(team.tasks.len(), 1);
         // 分配后任务应直接进入 InProgress 状态，与队友 Busy 保持一致
-        assert_eq!(team.tasks[0].status, TaskStatus::InProgress);
+        assert_eq!(team.tasks[0].status, SwarmTaskStatus::InProgress);
         // 队友状态应为 Busy
         assert_eq!(team.members[0].status, TeammateStatus::Busy);
     }
@@ -477,13 +477,13 @@ mod tests {
         assert!(team
             .tasks
             .iter()
-            .all(|t| matches!(t.status, TaskStatus::InProgress)));
+            .all(|t| matches!(t.status, SwarmTaskStatus::InProgress)));
 
         // 手动制造一个 Assigned 状态的任务（模拟 assign_task 修复前
         // 的遗留场景或外部代码直接 push 的 Assigned 任务）
         let mut stale_task = TeamTask::new("遗留的 Assigned 任务");
         stale_task.assigned_to = Some("Alice@T".to_string());
-        stale_task.status = TaskStatus::Assigned;
+        stale_task.status = SwarmTaskStatus::Assigned;
         team.tasks.push(stale_task);
 
         // 移除 Alice
@@ -499,7 +499,7 @@ mod tests {
         for task in &team.tasks {
             if task.assigned_to.as_deref() == Some("Alice@T") {
                 match &task.status {
-                    TaskStatus::Failed(reason) => {
+                    SwarmTaskStatus::Failed(reason) => {
                         assert_eq!(reason, "队友已离线");
                     }
                     other => panic!("Alice 的遗留任务应为 Failed，实际为 {:?}", other),
@@ -514,7 +514,7 @@ mod tests {
             .filter(|t| t.assigned_to.as_deref() == Some("Bob@T"))
             .collect();
         assert_eq!(bob_tasks.len(), 1);
-        assert!(matches!(bob_tasks[0].status, TaskStatus::InProgress));
+        assert!(matches!(bob_tasks[0].status, SwarmTaskStatus::InProgress));
     }
 
     /// 队友处于 Offline 或 Error 状态时，assign_task 应拒绝分配
@@ -566,12 +566,12 @@ mod tests {
         assert!(assign_task(&mut team, task, "Alice@T"));
 
         // 此时任务处于 InProgress
-        assert!(matches!(team.tasks[0].status, TaskStatus::InProgress));
+        assert!(matches!(team.tasks[0].status, SwarmTaskStatus::InProgress));
 
         // 显式调用 cancel_tasks_for_teammate，不应影响 InProgress
         cancel_tasks_for_teammate(&mut team, "Alice@T");
         assert!(
-            matches!(team.tasks[0].status, TaskStatus::InProgress),
+            matches!(team.tasks[0].status, SwarmTaskStatus::InProgress),
             "InProgress 任务不应被 cancel_tasks_for_teammate 取消"
         );
     }

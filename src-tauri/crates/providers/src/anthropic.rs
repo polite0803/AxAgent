@@ -456,12 +456,11 @@ impl ProviderAdapter for AnthropicAdapter {
             content,
             thinking,
             usage: TokenUsage {
-                prompt_tokens: ar.usage.input_tokens,
-                completion_tokens: ar.usage.output_tokens,
-                total_tokens: ar.usage.input_tokens + ar.usage.output_tokens,
-                cache_creation_tokens: ar.usage.cache_creation_input_tokens,
-                cache_read_tokens: ar.usage.cache_read_input_tokens,
-                ..Default::default()
+                input_tokens: ar.usage.input_tokens,
+                output_tokens: ar.usage.output_tokens,
+                cache_creation_input_tokens: ar.usage.cache_creation_input_tokens.unwrap_or(0),
+                cache_read_input_tokens: ar.usage.cache_read_input_tokens.unwrap_or(0),
+                cache_miss_input_tokens: None,
             },
             tool_calls: if tool_calls.is_empty() {
                 None
@@ -726,14 +725,12 @@ impl ProviderAdapter for AnthropicAdapter {
                                             done: false,
                                             is_final: None,
                                             usage: Some(TokenUsage {
-                                                prompt_tokens: accumulated_prompt_tokens,
-                                                completion_tokens: out,
-                                                total_tokens: accumulated_prompt_tokens + out,
-                                                cache_creation_tokens: Some(
+                                                input_tokens: accumulated_prompt_tokens,
+                                                output_tokens: out,
+                                                cache_creation_input_tokens:
                                                     accumulated_cache_creation,
-                                                ),
-                                                cache_read_tokens: Some(accumulated_cache_read),
-                                                ..Default::default()
+                                                cache_read_input_tokens: accumulated_cache_read,
+                                                cache_miss_input_tokens: None,
                                             }),
                                             tool_calls: None,
                                         }));
@@ -765,13 +762,11 @@ impl ProviderAdapter for AnthropicAdapter {
                                         || accumulated_cache_read > 0
                                     {
                                         Some(TokenUsage {
-                                            prompt_tokens: accumulated_prompt_tokens,
-                                            completion_tokens: accumulated_completion_tokens,
-                                            total_tokens: accumulated_prompt_tokens
-                                                + accumulated_completion_tokens,
-                                            cache_creation_tokens: Some(accumulated_cache_creation),
-                                            cache_read_tokens: Some(accumulated_cache_read),
-                                            ..Default::default()
+                                            input_tokens: accumulated_prompt_tokens,
+                                            output_tokens: accumulated_completion_tokens,
+                                            cache_creation_input_tokens: accumulated_cache_creation,
+                                            cache_read_input_tokens: accumulated_cache_read,
+                                            cache_miss_input_tokens: None,
                                         })
                                     } else {
                                         None

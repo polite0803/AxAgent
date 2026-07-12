@@ -119,10 +119,7 @@ pub fn init_pricing_config(app: &tauri::AppHandle) {
     let config = load_pricing_from_disk(app).unwrap_or_else(|e| {
         tracing::warn!("Failed to load pricing.toml, using heuristic fallback: {}", e);
         PRICING_AVAILABLE.store(false, std::sync::atomic::Ordering::Release);
-        PricingConfigFile {
-            budget: BudgetConfig::default(),
-            models: Vec::new(),
-        }
+        PricingConfigFile { budget: BudgetConfig::default(), models: Vec::new() }
     });
     let _ = PRICING_CONFIG.set(config);
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { NLParseResult, WorkflowDefinition } from "@/types/workflow";
+import type { NLParseResult, WorkflowDefinition } from "@/types";
 import { Button, Card, List, Progress, Radio, Statistic, Tag, theme, Typography } from "antd";
 import { Lightbulb, Workflow } from "lucide-react";
 import React, { useMemo, useState } from "react";

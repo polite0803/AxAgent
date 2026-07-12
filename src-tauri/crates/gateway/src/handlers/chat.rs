@@ -208,9 +208,9 @@ pub(crate) async fn handle_non_stream_with_failover(
                         &gateway_key.id,
                         provider_id,
                         Some(model_id),
-                        response.usage.prompt_tokens as u64,
-                        response.usage.completion_tokens as u64,
-                        response.usage.cache_read_tokens.unwrap_or(0) as u64,
+                        response.usage.input_tokens as u64,
+                        response.usage.output_tokens as u64,
+                        response.usage.cache_read_input_tokens as u64,
                     )
                     .await;
 
@@ -224,8 +224,8 @@ pub(crate) async fn handle_non_stream_with_failover(
                     provider_id,
                     200,
                     elapsed,
-                    response.usage.prompt_tokens as i64,
-                    response.usage.completion_tokens as i64,
+                    response.usage.input_tokens as i64,
+                    response.usage.output_tokens as i64,
                     None
                 );
 
@@ -347,10 +347,10 @@ pub(crate) async fn handle_stream(
             match chunk_result {
                 Ok(chunk) => {
                     if let Some(usage) = &chunk.usage {
-                        total_prompt = usage.prompt_tokens;
-                        total_completion = usage.completion_tokens;
-                        total_cached = usage.cache_read_tokens.unwrap_or(0);
-                        total_cache_creation = usage.cache_creation_tokens.unwrap_or(0);
+                        total_prompt = usage.input_tokens;
+                        total_completion = usage.output_tokens;
+                        total_cached = usage.cache_read_input_tokens;
+                        total_cache_creation = usage.cache_creation_input_tokens;
                     }
 
                     if chunk.done {
@@ -428,20 +428,21 @@ fn build_non_stream_response_body(response: &ChatResponse) -> serde_json::Value 
     }
 
     let mut usage = serde_json::Map::from_iter([
-        ("prompt_tokens".to_string(), json!(response.usage.prompt_tokens)),
-        ("completion_tokens".to_string(), json!(response.usage.completion_tokens)),
-        ("total_tokens".to_string(), json!(response.usage.total_tokens)),
+        ("prompt_tokens".to_string(), json!(response.usage.input_tokens)),
+        ("completion_tokens".to_string(), json!(response.usage.output_tokens)),
+        ("total_tokens".to_string(), json!(response.usage.total_tokens())),
         (
             "prompt_tokens_details".to_string(),
             json!({
-                "cached_tokens": response.usage.cache_read_tokens.unwrap_or(0),
+                "cached_tokens": response.usage.cache_read_input_tokens,
             }),
         ),
     ]);
-    if let Some(cache_creation) = response.usage.cache_creation_tokens
-        && cache_creation > 0
-    {
-        usage.insert("cache_creation_input_tokens".to_string(), json!(cache_creation));
+    if response.usage.cache_creation_input_tokens > 0 {
+        usage.insert(
+            "cache_creation_input_tokens".to_string(),
+            json!(response.usage.cache_creation_input_tokens),
+        );
     }
 
     json!({

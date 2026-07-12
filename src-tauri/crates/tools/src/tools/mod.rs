@@ -23,6 +23,7 @@ pub mod file_edit;
 pub mod file_read;
 pub mod file_system;
 pub mod file_write;
+pub mod finance;
 pub mod git;
 pub mod glob;
 pub mod grep;
@@ -254,6 +255,36 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(rpc::RpcCallTool),
         // ── 迁移工具 ──
         std::sync::Arc::new(migration_tool::MigrationTool),
+        // ── 金融计算工具 ──
+        std::sync::Arc::new(finance::CalcMaxDrawdownTool),
+        std::sync::Arc::new(finance::CalcSharpeRatioTool),
+        std::sync::Arc::new(finance::CalcVarTool),
+        std::sync::Arc::new(finance::CalcPEPercentileTool),
+        std::sync::Arc::new(finance::CalcPEGTool),
+        std::sync::Arc::new(finance::CalcKellyTool),
+        std::sync::Arc::new(finance::CalcRiskParityTool),
+        std::sync::Arc::new(finance::DetectMACrossTool),
+        std::sync::Arc::new(finance::DetectBreakoutTool),
+        std::sync::Arc::new(finance::CleanOutliersTool),
+        std::sync::Arc::new(finance::CleanFillMissingTool),
+        std::sync::Arc::new(finance::AdjustPricesTool),
+        std::sync::Arc::new(finance::ComputeATRTool),
+        std::sync::Arc::new(finance::ComputeKDJTool),
+        std::sync::Arc::new(finance::ComputeOBVTool),
+        std::sync::Arc::new(finance::CalcBetaTool),
+        std::sync::Arc::new(finance::DetectEarningsTool),
+        std::sync::Arc::new(finance::DetectPledgeRiskTool),
+        std::sync::Arc::new(finance::CalcCorrMatrixTool),
+        std::sync::Arc::new(finance::RunMonteCarloTool),
+        std::sync::Arc::new(finance::AnalyzeIndustryTool),
+        std::sync::Arc::new(finance::DetectLimitUpTool),
+        std::sync::Arc::new(finance::ResearchReportsTool),
+        std::sync::Arc::new(finance::ConceptBlocksTool),
+        std::sync::Arc::new(finance::NorthBoundFlowTool),
+        std::sync::Arc::new(finance::DragonTigerTool),
+        std::sync::Arc::new(finance::ClsFlashTool),
+        std::sync::Arc::new(finance::DetectCandlestickPatternsTool),
+        std::sync::Arc::new(finance::DetectDivergenceTool),
     ]);
 
     let available_toolsets: HashSet<String> =

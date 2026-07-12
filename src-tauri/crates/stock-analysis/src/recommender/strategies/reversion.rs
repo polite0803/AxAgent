@@ -1,8 +1,10 @@
-//! 超跌反弹子策略：RSI 超卖 / 底背离 / 缩量回踩
+//! 超跌反弹子策略：RSI 超卖 / RSI 底背离 / 看涨 K 线形态 / 缩量回踩
 //!
 //! v1 不做长线（设计文档 §2.3）
 
 use super::super::strategy::{read_f64, RecoContext, RecommendStrategy};
+use crate::candlestick_pattern;
+use crate::divergence;
 use crate::recommender::indicators;
 use crate::recommender::scoring::{calc_confidence, calc_position};
 use crate::recommender::types::{Period, RecoPick, Style};
@@ -41,13 +43,47 @@ impl ReversionStrategy {
             return None;
         }
         let price = klines.last()?.close;
+
+        // ── 新增：底背离检测 + 看涨 K 线形态检测 ──
+        let lookback = read_f64(vars, "rev_divergence_lookback", 14.0) as usize;
+        let min_divergence_strength = read_f64(vars, "rev_min_divergence_strength", 0.3);
+        let divergence_result = divergence::detect_all_divergences(&klines, 14, lookback);
+        let has_bullish_divergence = divergence_result.iter().any(|d| {
+            d.divergence_type == "regular_bullish" && d.strength >= min_divergence_strength
+        });
+        let best_divergence =
+            divergence_result.into_iter().find(|d| d.divergence_type == "regular_bullish");
+
+        let patterns = candlestick_pattern::detect_all_patterns(&klines);
+        let has_bullish_pattern =
+            patterns.iter().any(|p| p.direction == "看涨" && p.confidence >= 0.5);
+        let best_bullish_pattern =
+            patterns.into_iter().find(|p| p.direction == "看涨" && p.confidence >= 0.5);
+
+        let divergence_bonus = if has_bullish_divergence {
+            read_f64(vars, "rev_divergence_bonus", 0.10)
+        } else {
+            0.0
+        };
+        let pattern_bonus = if has_bullish_pattern {
+            read_f64(vars, "rev_pattern_bonus", 0.05)
+        } else {
+            0.0
+        };
+        // ── 新增结束 ──
+
         let rsi_period = read_f64(vars, "rev_rsi_period", 6.0) as usize;
         let rsi_value = indicators::rsi(&klines, rsi_period)?;
 
         let (pass, reasons) = match self.period {
             Period::UltraShort => return None, // 超短线不适用超跌反弹
             Period::Short => {
-                let rsi_short_max = read_f64(vars, "rev_rsi_short_max", 35.0);
+                // 底背离 → 放宽 RSI 阈值从 35 至 40，提前捕捉反转
+                let rsi_short_max = if has_bullish_divergence {
+                    read_f64(vars, "rev_rsi_short_max_divergence", 40.0)
+                } else {
+                    read_f64(vars, "rev_rsi_short_max", 35.0)
+                };
                 if rsi_value >= rsi_short_max {
                     return None;
                 }
@@ -58,13 +94,22 @@ impl ReversionStrategy {
                 if avg_5 <= 0.0 || today > avg_5 * avg_mult {
                     return None;
                 }
-                (
-                    true,
-                    vec![
-                        format!("RSI({}) {:.1} 超卖", rsi_period, rsi_value),
-                        format!("量比 {} 日均 {:.0}%", avg_period, today / avg_5 * 100.0),
-                    ],
-                )
+                let mut r = vec![
+                    format!("RSI({}) {:.1} 超卖", rsi_period, rsi_value),
+                    format!("量比 {} 日均 {:.0}%", avg_period, today / avg_5 * 100.0),
+                ];
+                // 追加背离/形态理由
+                if let Some(d) = &best_divergence {
+                    r.push(format!(
+                        "{}（强度 {:.0}%）",
+                        d.description.split('，').next().unwrap_or(&d.description),
+                        d.strength * 100.0
+                    ));
+                }
+                if let Some(p) = &best_bullish_pattern {
+                    r.push(format!("出现{}形态", p.pattern));
+                }
+                (true, r)
             },
             Period::Mid => {
                 let dd_period = read_f64(vars, "rev_dd_period", 250.0) as usize;
@@ -74,18 +119,31 @@ impl ReversionStrategy {
                     return None;
                 }
                 let rsi_mid_period = read_f64(vars, "rev_rsi_mid_period", 30.0) as usize;
-                let rsi_mid_max = read_f64(vars, "rev_rsi_mid_max", 50.0);
+                let rsi_mid_max = if has_bullish_divergence {
+                    // 底背离放宽月线 RSI 阈值从 50 至 55
+                    read_f64(vars, "rev_rsi_mid_max_divergence", 55.0)
+                } else {
+                    read_f64(vars, "rev_rsi_mid_max", 50.0)
+                };
                 let rsi_30 = indicators::rsi(&klines, rsi_mid_period).unwrap_or(rsi_mid_max);
                 if rsi_30 > rsi_mid_max {
                     return None;
                 }
-                (
-                    true,
-                    vec![
-                        format!("距 {} 日高回撤 {:.0}%", dd_period, dd),
-                        format!("月线 RSI {:.1}", rsi_30),
-                    ],
-                )
+                let mut r = vec![
+                    format!("距 {} 日高回撤 {:.0}%", dd_period, dd),
+                    format!("月线 RSI {:.1}", rsi_30),
+                ];
+                if let Some(d) = &best_divergence {
+                    r.push(format!(
+                        "{}（强度 {:.0}%）",
+                        d.description.split('，').next().unwrap_or(&d.description),
+                        d.strength * 100.0
+                    ));
+                }
+                if let Some(p) = &best_bullish_pattern {
+                    r.push(format!("出现{}形态", p.pattern));
+                }
+                (true, r)
             },
             Period::Long => return None, // v1 不做长线超跌
         };
@@ -115,14 +173,23 @@ impl ReversionStrategy {
             Period::Long => return None,
         };
 
+        // 底背离 + 看涨形态 → 提升 signal_strength 系数
+        let signal_strength =
+            (read_f64(vars, "rev_conf_signal", 0.8) + divergence_bonus + pattern_bonus).min(0.99);
         let conf = calc_confidence(
             read_f64(vars, "rev_conf_consistency", 0.7),
-            read_f64(vars, "rev_conf_signal", 0.8),
+            signal_strength,
             read_f64(vars, "rev_conf_direction", 0.6),
             read_f64(vars, "rev_conf_market", 0.0),
             read_f64(vars, "rev_conf_base", 1.0),
         );
         let position = calc_position(base_position, conf, self.period);
+
+        // 底背离 → 在 risk_notes 中减弱"抄底过早"警告
+        let mut risk_notes = vec!["下跌趋势未尽 / 抄底过早".to_string()];
+        if has_bullish_divergence {
+            risk_notes.push("RSI 底背离出现，下跌动能衰减".to_string());
+        }
 
         Some(RecoPick {
             stock_code: code.into(),
@@ -139,7 +206,7 @@ impl ReversionStrategy {
             holding_days: self.period.default_holding_days(),
             confidence: conf,
             reasons,
-            risk_notes: vec!["下跌趋势未尽 / 抄底过早".to_string()],
+            risk_notes,
             secondary_styles: vec![],
             synthetic: false,
         })

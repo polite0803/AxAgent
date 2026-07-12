@@ -101,6 +101,9 @@ pub struct FeedbackRecord {
 
 // ── Global state ──
 
+/// 内存反馈记录的最大容量。超过此值时丢弃最旧记录，避免无限增长内存泄漏。
+const MAX_FEEDBACK_RECORDS: usize = 1000;
+
 lazy_static::lazy_static! {
     static ref TRACE_STORAGE: Mutex<InMemoryTraceStorage> =
         Mutex::new(InMemoryTraceStorage::new());
@@ -486,6 +489,10 @@ pub fn tracer_submit_feedback(
     // 1. 持久化落盘
     let mut feedback = FEEDBACK_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
     feedback.push(record);
+    // 容量限制：超过上限时丢弃最旧记录，保留最近 MAX_FEEDBACK_RECORDS 条
+    if feedback.len() > MAX_FEEDBACK_RECORDS {
+        feedback.truncate(MAX_FEEDBACK_RECORDS);
+    }
 
     let count = feedback.len();
     tracing::info!("Feedback submitted (total: {})", count);

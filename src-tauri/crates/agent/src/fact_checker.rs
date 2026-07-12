@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::credibility_evaluator::{CredibilityAssessment, CredibilityEvaluator};
-use crate::research_state::SearchResult;
+use crate::research_state::ResearchStateResult;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -93,7 +93,7 @@ pub enum EvidenceType {
 }
 
 pub trait RelevanceCalculator: Send + Sync {
-    fn calculate(&self, claim: &Claim, source: &SearchResult) -> f32;
+    fn calculate(&self, claim: &Claim, source: &ResearchStateResult) -> f32;
 }
 
 pub struct JaccardRelevanceCalculator;
@@ -105,7 +105,7 @@ impl JaccardRelevanceCalculator {
 }
 
 impl RelevanceCalculator for JaccardRelevanceCalculator {
-    fn calculate(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn calculate(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         let claim_words: HashSet<String> = claim
             .text
             .split_whitespace()
@@ -155,7 +155,7 @@ impl EnhancedRelevanceCalculator {
             .collect()
     }
 
-    fn jaccard_similarity(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn jaccard_similarity(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         let claim_words: HashSet<String> = claim
             .text
             .split_whitespace()
@@ -179,7 +179,7 @@ impl EnhancedRelevanceCalculator {
         intersection as f32 / union.max(1) as f32
     }
 
-    fn ngram_overlap(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn ngram_overlap(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         let claim_words = self.extract_words(&claim.text);
         let source_text = format!("{} {}", source.title, source.snippet);
         let source_words = self.extract_words(&source_text);
@@ -213,7 +213,7 @@ impl EnhancedRelevanceCalculator {
         bigram_score * 0.6 + trigram_score * 0.4
     }
 
-    fn key_term_overlap(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn key_term_overlap(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         let claim_terms = self.extract_key_terms(&claim.text);
         let source_text = format!("{} {}", source.title, source.snippet);
         let source_terms = self.extract_key_terms(&source_text);
@@ -251,7 +251,7 @@ impl EnhancedRelevanceCalculator {
             .collect()
     }
 
-    fn length_normalized_score(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn length_normalized_score(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         let claim_len = claim.text.split_whitespace().count();
         let source_text = format!("{} {}", source.title, source.snippet);
         let source_len = source_text.split_whitespace().count();
@@ -265,7 +265,7 @@ impl EnhancedRelevanceCalculator {
 }
 
 impl RelevanceCalculator for EnhancedRelevanceCalculator {
-    fn calculate(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn calculate(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         let jaccard = self.jaccard_similarity(claim, source);
         let ngram = self.ngram_overlap(claim, source);
         let key_term = self.key_term_overlap(claim, source);
@@ -327,7 +327,7 @@ impl EmbeddingRelevanceCalculator {
 }
 
 impl RelevanceCalculator for EmbeddingRelevanceCalculator {
-    fn calculate(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn calculate(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         if let Some(ref embed_fn) = self.embedding_fn {
             let claim_embedding = embed_fn(&claim.text);
             let source_text = format!("{} {}", source.title, source.snippet);
@@ -385,7 +385,11 @@ impl FactChecker {
         self
     }
 
-    pub async fn check_claim(&self, claim: &Claim, sources: &[SearchResult]) -> FactCheckResult {
+    pub async fn check_claim(
+        &self,
+        claim: &Claim,
+        sources: &[ResearchStateResult],
+    ) -> FactCheckResult {
         let futures: Vec<_> = sources.iter().map(|s| self.evaluator.evaluate(s)).collect();
         let assessments: Vec<CredibilityAssessment> = futures::future::join_all(futures).await;
 
@@ -434,7 +438,7 @@ impl FactChecker {
         }
     }
 
-    fn calculate_relevance(&self, claim: &Claim, source: &SearchResult) -> f32 {
+    fn calculate_relevance(&self, claim: &Claim, source: &ResearchStateResult) -> f32 {
         self.relevance_calculator.calculate(claim, source)
     }
 
@@ -547,7 +551,7 @@ impl FactChecker {
     pub async fn check_batch(
         &self,
         claims: &[Claim],
-        sources: &[SearchResult],
+        sources: &[ResearchStateResult],
     ) -> Vec<FactCheckResult> {
         let mut results = Vec::new();
 
@@ -602,7 +606,7 @@ impl ClaimExtractor {
             .collect()
     }
 
-    pub fn extract_from_results(&self, results: &[SearchResult]) -> Vec<Claim> {
+    pub fn extract_from_results(&self, results: &[ResearchStateResult]) -> Vec<Claim> {
         let mut claims = Vec::new();
 
         for result in results {
@@ -630,7 +634,7 @@ mod tests {
 
         let claim = Claim::new("Rust is a systems programming language");
 
-        let sources = vec![SearchResult::new(
+        let sources = vec![ResearchStateResult::new(
             crate::research_state::SourceType::Documentation,
             "https://doc.rust-lang.org/".to_string(),
             "The Rust Programming Language".to_string(),
@@ -656,7 +660,7 @@ mod tests {
 
         let claim = Claim::new("This is a test claim that should be unsupported");
 
-        let sources: Vec<SearchResult> = vec![];
+        let sources: Vec<ResearchStateResult> = vec![];
 
         let result = checker.check_claim(&claim, &sources).await;
 
@@ -686,7 +690,7 @@ mod tests {
     fn test_jaccard_relevance_calculator() {
         let calc = JaccardRelevanceCalculator::new();
         let claim = Claim::new("Rust is a systems programming language");
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             crate::research_state::SourceType::Documentation,
             "https://doc.rust-lang.org/".to_string(),
             "The Rust Programming Language".to_string(),
@@ -703,7 +707,7 @@ mod tests {
     fn test_enhanced_relevance_calculator() {
         let calc = EnhancedRelevanceCalculator::new();
         let claim = Claim::new("Rust is a systems programming language");
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             crate::research_state::SourceType::Documentation,
             "https://doc.rust-lang.org/".to_string(),
             "The Rust Programming Language".to_string(),
@@ -720,7 +724,7 @@ mod tests {
     fn test_enhanced_relevance_calculator_unrelated() {
         let calc = EnhancedRelevanceCalculator::new();
         let claim = Claim::new("The Eiffel Tower is located in Paris France");
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             crate::research_state::SourceType::Documentation,
             "https://doc.rust-lang.org/".to_string(),
             "The Rust Programming Language".to_string(),
@@ -736,7 +740,7 @@ mod tests {
     fn test_embedding_relevance_calculator_fallback() {
         let calc = EmbeddingRelevanceCalculator::new();
         let claim = Claim::new("Rust is a systems programming language");
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             crate::research_state::SourceType::Documentation,
             "https://doc.rust-lang.org/".to_string(),
             "The Rust Programming Language".to_string(),
@@ -761,7 +765,7 @@ mod tests {
 
         let calc = EmbeddingRelevanceCalculator::new().with_embedding_fn(embedding_fn);
         let claim = Claim::new("Rust is a systems programming language");
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             crate::research_state::SourceType::Documentation,
             "https://doc.rust-lang.org/".to_string(),
             "The Rust Programming Language".to_string(),
@@ -780,7 +784,7 @@ mod tests {
             .with_relevance_calculator(Box::new(JaccardRelevanceCalculator::new()));
 
         let claim = Claim::new("Rust is a systems programming language");
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             crate::research_state::SourceType::Documentation,
             "https://doc.rust-lang.org/".to_string(),
             "The Rust Programming Language".to_string(),

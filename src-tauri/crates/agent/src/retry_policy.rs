@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RetryPolicy {
+pub struct AgentRetryPolicy {
     pub max_attempts: usize,
     pub base_delay: Duration,
     pub max_delay: Duration,
@@ -16,7 +16,7 @@ pub struct RetryPolicy {
     pub retry_on: Vec<ErrorType>,
 }
 
-impl RetryPolicy {
+impl AgentRetryPolicy {
     pub fn new(max_attempts: usize) -> Self {
         Self {
             max_attempts,
@@ -86,7 +86,7 @@ impl RetryPolicy {
     }
 }
 
-impl Default for RetryPolicy {
+impl Default for AgentRetryPolicy {
     fn default() -> Self {
         Self::new(3)
     }
@@ -126,7 +126,7 @@ impl Default for RetryState {
     }
 }
 
-pub async fn with_retry<F, Fut, T, E>(policy: &RetryPolicy, mut f: F) -> Result<T, RetryError>
+pub async fn with_retry<F, Fut, T, E>(policy: &AgentRetryPolicy, mut f: F) -> Result<T, RetryError>
 where
     F: FnMut() -> Fut,
     Fut: std::future::Future<Output = Result<T, E>>,
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_exponential_backoff() {
-        let policy = RetryPolicy::new(5)
+        let policy = AgentRetryPolicy::new(5)
             .with_base_delay(Duration::from_secs(1))
             .with_exponential_backoff(true)
             .with_jitter(false);
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_max_delay() {
-        let policy = RetryPolicy::new(5)
+        let policy = AgentRetryPolicy::new(5)
             .with_base_delay(Duration::from_secs(1))
             .with_max_delay(Duration::from_secs(5))
             .with_exponential_backoff(true)
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_retry_policy_new() {
-        let policy = RetryPolicy::new(3);
+        let policy = AgentRetryPolicy::new(3);
         assert_eq!(policy.max_attempts, 3);
         assert_eq!(policy.base_delay, Duration::from_secs(1));
         assert_eq!(policy.max_delay, Duration::from_secs(60));
@@ -231,25 +231,25 @@ mod tests {
 
     #[test]
     fn test_retry_policy_default() {
-        let policy = RetryPolicy::default();
+        let policy = AgentRetryPolicy::default();
         assert_eq!(policy.max_attempts, 3);
     }
 
     #[test]
     fn test_with_base_delay() {
-        let policy = RetryPolicy::new(3).with_base_delay(Duration::from_millis(500));
+        let policy = AgentRetryPolicy::new(3).with_base_delay(Duration::from_millis(500));
         assert_eq!(policy.base_delay, Duration::from_millis(500));
     }
 
     #[test]
     fn test_with_max_delay() {
-        let policy = RetryPolicy::new(3).with_max_delay(Duration::from_secs(120));
+        let policy = AgentRetryPolicy::new(3).with_max_delay(Duration::from_secs(120));
         assert_eq!(policy.max_delay, Duration::from_secs(120));
     }
 
     #[test]
     fn test_with_exponential_backoff_disabled() {
-        let policy = RetryPolicy::new(5)
+        let policy = AgentRetryPolicy::new(5)
             .with_base_delay(Duration::from_secs(2))
             .with_exponential_backoff(false)
             .with_jitter(false);
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_with_jitter_disabled() {
-        let policy = RetryPolicy::new(5)
+        let policy = AgentRetryPolicy::new(5)
             .with_base_delay(Duration::from_secs(1))
             .with_exponential_backoff(true)
             .with_jitter(false);
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_should_retry_within_limit() {
-        let policy = RetryPolicy::new(3);
+        let policy = AgentRetryPolicy::new(3);
         assert!(policy.should_retry(0, ErrorType::Transient));
         assert!(policy.should_retry(1, ErrorType::Transient));
         assert!(policy.should_retry(2, ErrorType::Unknown));
@@ -281,20 +281,20 @@ mod tests {
 
     #[test]
     fn test_should_retry_at_max() {
-        let policy = RetryPolicy::new(3);
+        let policy = AgentRetryPolicy::new(3);
         assert!(!policy.should_retry(3, ErrorType::Transient));
     }
 
     #[test]
     fn test_should_retry_wrong_error_type() {
-        let policy = RetryPolicy::new(3);
+        let policy = AgentRetryPolicy::new(3);
         assert!(!policy.should_retry(0, ErrorType::Unrecoverable));
         assert!(!policy.should_retry(0, ErrorType::Recoverable));
     }
 
     #[test]
     fn test_should_retry_transient_and_unknown_only() {
-        let policy = RetryPolicy::new(3);
+        let policy = AgentRetryPolicy::new(3);
         assert!(policy.should_retry(0, ErrorType::Transient));
         assert!(policy.should_retry(0, ErrorType::Unknown));
         assert!(!policy.should_retry(0, ErrorType::Recoverable));
@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_next_delay_with_jitter_in_range() {
-        let policy = RetryPolicy::new(5)
+        let policy = AgentRetryPolicy::new(5)
             .with_base_delay(Duration::from_secs(1))
             .with_exponential_backoff(false)
             .with_jitter(true);
@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn test_total_timeout() {
-        let policy = RetryPolicy::new(3)
+        let policy = AgentRetryPolicy::new(3)
             .with_base_delay(Duration::from_secs(1))
             .with_exponential_backoff(false)
             .with_jitter(false);
@@ -332,7 +332,7 @@ mod tests {
 
     #[test]
     fn test_total_timeout_with_exponential() {
-        let policy = RetryPolicy::new(3)
+        let policy = AgentRetryPolicy::new(3)
             .with_base_delay(Duration::from_secs(1))
             .with_exponential_backoff(true)
             .with_jitter(false);
@@ -400,14 +400,14 @@ mod tests {
 
     #[test]
     fn test_retry_policy_serialization() {
-        let policy = RetryPolicy::new(5)
+        let policy = AgentRetryPolicy::new(5)
             .with_base_delay(Duration::from_millis(500))
             .with_max_delay(Duration::from_secs(30))
             .with_exponential_backoff(true)
             .with_jitter(false);
 
         let json = serde_json::to_string(&policy).unwrap();
-        let deserialized: RetryPolicy = serde_json::from_str(&json).unwrap();
+        let deserialized: AgentRetryPolicy = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.max_attempts, 5);
         assert_eq!(deserialized.base_delay, Duration::from_millis(500));
         assert_eq!(deserialized.max_delay, Duration::from_secs(30));
@@ -418,7 +418,7 @@ mod tests {
     #[tokio::test]
     async fn test_with_retry_success() {
         let policy =
-            RetryPolicy::new(3).with_base_delay(Duration::from_millis(1)).with_jitter(false);
+            AgentRetryPolicy::new(3).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let result = with_retry(&policy, || async { Ok::<i32, String>(42) }).await;
         assert_eq!(result.unwrap(), 42);
     }
@@ -426,7 +426,7 @@ mod tests {
     #[tokio::test]
     async fn test_with_retry_eventual_success() {
         let policy =
-            RetryPolicy::new(3).with_base_delay(Duration::from_millis(1)).with_jitter(false);
+            AgentRetryPolicy::new(3).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let mut count = 0;
         let result = with_retry(&policy, || {
             count += 1;
@@ -445,7 +445,7 @@ mod tests {
     #[tokio::test]
     async fn test_with_retry_exhausted() {
         let policy =
-            RetryPolicy::new(2).with_base_delay(Duration::from_millis(1)).with_jitter(false);
+            AgentRetryPolicy::new(2).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let result =
             with_retry(&policy, || async { Err::<i32, String>("always fails".to_string()) }).await;
         assert!(result.is_err());
@@ -458,7 +458,7 @@ mod tests {
     #[tokio::test]
     async fn test_with_retry_unrecoverable_stops() {
         let policy =
-            RetryPolicy::new(5).with_base_delay(Duration::from_millis(1)).with_jitter(false);
+            AgentRetryPolicy::new(5).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let result =
             with_retry(&policy, || async { Err::<i32, String>("syntax error".to_string()) }).await;
         assert!(result.is_err());
@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_next_delay_zero_attempt() {
-        let policy = RetryPolicy::new(3)
+        let policy = AgentRetryPolicy::new(3)
             .with_base_delay(Duration::from_secs(1))
             .with_exponential_backoff(true)
             .with_jitter(false);
@@ -498,7 +498,7 @@ mod tests {
 
     #[test]
     fn test_next_delay_large_attempt_capped() {
-        let policy = RetryPolicy::new(10)
+        let policy = AgentRetryPolicy::new(10)
             .with_base_delay(Duration::from_secs(1))
             .with_max_delay(Duration::from_secs(60))
             .with_exponential_backoff(true)

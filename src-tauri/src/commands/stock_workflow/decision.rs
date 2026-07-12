@@ -820,9 +820,10 @@ mod tests {
 
     #[test]
     fn resolve_runtime_options_uses_defaults_when_missing() {
-        let (mc, to) = resolve_runtime_options(None);
+        let (mc, to, total_to) = resolve_runtime_options(None);
         assert_eq!(mc, DEFAULT_MAX_CONCURRENT);
         assert_eq!(to.as_secs(), DEFAULT_STEP_TIMEOUT_SECS);
+        assert_eq!(total_to.as_secs(), DEFAULT_TOTAL_TIMEOUT_SECS);
     }
 
     #[test]
@@ -843,7 +844,7 @@ mod tests {
                 is_secret: false,
             },
         ];
-        let (mc, to) = resolve_runtime_options(Some(&vars));
+        let (mc, to, _total_to) = resolve_runtime_options(Some(&vars));
         assert_eq!(mc, 20);
         assert_eq!(to.as_secs(), 120);
     }
@@ -866,7 +867,7 @@ mod tests {
                 is_secret: false,
             },
         ];
-        let (mc, to) = resolve_runtime_options(Some(&vars));
+        let (mc, to, _total_to) = resolve_runtime_options(Some(&vars));
         assert_eq!(mc, 1);
         assert_eq!(to.as_secs(), 3600);
     }
@@ -880,7 +881,7 @@ mod tests {
             description: None,
             is_secret: false,
         }];
-        let (mc, _) = resolve_runtime_options(Some(&vars));
+        let (mc, _to, _total_to) = resolve_runtime_options(Some(&vars));
         assert_eq!(mc, DEFAULT_MAX_CONCURRENT);
     }
 

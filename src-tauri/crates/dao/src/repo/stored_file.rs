@@ -1,22 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use sea_orm::*;
-use serde::{Deserialize, Serialize};
 
 use axagent_entities::stored_files;
 use axagent_harness::core_error::{AxAgentError, Result};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StoredFile {
-    pub id: String,
-    pub hash: String,
-    pub original_name: String,
-    pub mime_type: String,
-    pub size_bytes: i64,
-    pub storage_path: String,
-    pub conversation_id: Option<String>,
-    pub created_at: String,
-}
+pub use axagent_harness::repo_dtos::StoredFile;
 
 fn model_to_stored_file(m: stored_files::Model) -> StoredFile {
     StoredFile {
@@ -104,6 +93,24 @@ pub async fn delete_stored_files_by_conversation(
 pub async fn list_all_stored_files(db: &DatabaseConnection) -> Result<Vec<StoredFile>> {
     let models =
         stored_files::Entity::find().order_by_desc(stored_files::Column::CreatedAt).all(db).await?;
+    Ok(models.into_iter().map(model_to_stored_file).collect())
+}
+
+/// 按 mime_type 模式过滤并分页查询存储文件，避免全表加载。
+/// `mime_pattern` 使用 SQL LIKE 语法，例如 `"image/%"` 匹配所有图片类型。
+pub async fn list_stored_files_by_category(
+    db: &DatabaseConnection,
+    mime_pattern: &str,
+    limit: u64,
+    offset: u64,
+) -> Result<Vec<StoredFile>> {
+    let models = stored_files::Entity::find()
+        .filter(stored_files::Column::MimeType.like(mime_pattern))
+        .order_by_desc(stored_files::Column::CreatedAt)
+        .offset(offset)
+        .limit(limit)
+        .all(db)
+        .await?;
     Ok(models.into_iter().map(model_to_stored_file).collect())
 }
 

@@ -1,6 +1,8 @@
-//! 持仓退出建议引擎 — 根据持仓情况、分析结论、技术指标、组合风险，
-//! 推荐在未来什么时间以什么价格挂出哪些持仓股票。
+//! 持仓退出建议引擎 — 根据持仓情况、分析结论、技术指标、K线形态、
+//! RSI 顶背离、组合风险，推荐在未来什么时间以什么价格挂出哪些持仓股票。
 
+use crate::candlestick_pattern;
+use crate::divergence;
 use axagent_astock_data::indicators::compute_indicators;
 use axagent_entities::{portfolio_holdings, stock_analyses};
 use axagent_harness::market_data::MarketDataProvider;
@@ -93,6 +95,9 @@ const SCORE_TAKE_PROFIT: f64 = 12.0;
 const SCORE_STOP_LOSS_NEAR: f64 = 18.0;
 const SCORE_ROTATE: f64 = 5.0;
 const SCORE_RISK_PARITY: f64 = 8.0;
+const SCORE_RSI_BEARISH_DIVERGENCE: f64 = 20.0;
+const SCORE_BEARISH_PATTERN_HIGH: f64 = 18.0;
+const SCORE_BEARISH_PATTERN_MED: f64 = 12.0;
 
 // ── 主函数 ──
 
@@ -309,6 +314,49 @@ async fn evaluate_position(
                     severity: "medium".into(),
                     detail: "放量下跌，抛压加重".into(),
                 });
+            }
+
+            // RSI 顶背离
+            let divergence_result = divergence::detect_rsi_divergence(klines, 14, 14);
+            if divergence_result.divergence_type == "regular_bearish"
+                && divergence_result.strength > 0.3
+            {
+                score += SCORE_RSI_BEARISH_DIVERGENCE;
+                signals.push(ExitSignal {
+                    signal_type: "rsi_bearish_divergence".into(),
+                    severity: "high".into(),
+                    detail: format!(
+                        "RSI 顶背离（强度 {:.0}%），价格新高但 RSI 未新高，上涨动能衰减",
+                        divergence_result.strength * 100.0
+                    ),
+                });
+            }
+
+            // 看跌 K 线形态
+            let patterns = candlestick_pattern::detect_all_patterns(klines);
+            for pattern in &patterns {
+                if pattern.direction == "看跌" {
+                    let score_val = if pattern.confidence >= 0.7 {
+                        SCORE_BEARISH_PATTERN_HIGH
+                    } else {
+                        SCORE_BEARISH_PATTERN_MED
+                    };
+                    score += score_val;
+                    let severity = if pattern.confidence >= 0.7 {
+                        "high"
+                    } else {
+                        "medium"
+                    };
+                    signals.push(ExitSignal {
+                        signal_type: format!("bearish_pattern_{}", pattern.pattern),
+                        severity: severity.into(),
+                        detail: format!(
+                            "出现「{}」看跌形态（置信度 {:.0}%）",
+                            pattern.pattern,
+                            pattern.confidence * 100.0
+                        ),
+                    });
+                }
             }
         }
     }

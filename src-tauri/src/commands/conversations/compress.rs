@@ -10,6 +10,10 @@ use crate::commands::error_code::conv_err;
 use crate::commands::error_code::session as session_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
+#[cfg(test)]
+use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
+#[cfg(test)]
+use axagent_harness::AgentSessionRepository;
 use axagent_harness::types::*;
 use axagent_harness::url_utils::resolve_base_url_for_type;
 use axagent_providers::ProviderRequestContext;
@@ -689,9 +693,10 @@ mod tests_conversation {
             agent_ask_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_always_allowed: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
-            agent_session_manager: Arc::new(axagent_agent::SessionManager::new_for_test(
-                db.clone(),
-            )),
+            agent_session_manager: Arc::new(axagent_agent::SessionManager::new_for_test(Arc::new(
+                DaoAgentSessionRepository::new(Arc::new(db.clone())),
+            )
+                as Arc<dyn AgentSessionRepository>)),
             agent_cancel_tokens: Arc::new(DashMap::new()),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -908,7 +913,10 @@ mod tests_conversation {
                 Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             ),
             agent: crate::state::AgentState::new(
-                Arc::new(axagent_agent::SessionManager::new_for_test(db.clone())),
+                Arc::new(axagent_agent::SessionManager::new_for_test(Arc::new(
+                    DaoAgentSessionRepository::new(Arc::new(db.clone())),
+                )
+                    as Arc<dyn AgentSessionRepository>)),
                 Arc::new(DashMap::new()),
                 Arc::new(Mutex::new(std::collections::HashSet::new())),
                 Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -1016,7 +1024,7 @@ mod tests_conversation {
                 )),
                 Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
             ),
-            learning: crate::state::LearningState::new(
+            learning: crate::state::LearningEngineState::new(
                 Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
                     axagent_trajectory::ComputationGraph::new(),
                     axagent_trajectory::TextGradConfig::default(),

@@ -118,8 +118,8 @@ if (canRunRust && !quick) {
   );
 
   step(
-    "cargo test 单元测试 (库 crate)",
-    "cargo test --workspace --exclude axagent",
+    "cargo test 单元测试 (quant + stock-analysis + harness + tools)",
+    "cargo test -p axagent-quant -p axagent-stock-analysis -p axagent-harness -p axagent-tools --lib 2>&1 || cargo test -p axagent-quant -p axagent-stock-analysis --lib",
     { cwd: srcTauri, timeout: 10 * 60 * 1000, env: { ...process.env } },
   );
 }

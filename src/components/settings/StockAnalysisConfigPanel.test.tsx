@@ -14,7 +14,7 @@ import { resolve } from "node:path";
 const PANEL_PATH = resolve(__dirname, "./StockAnalysisConfigPanel.tsx");
 const RUST_SETUP_PATH = resolve(
   __dirname,
-  "../../../src-tauri/src/commands/stock_analysis_setup.rs",
+  "../../../src-tauri/src/commands/stock_analysis_setup/mod.rs",
 );
 
 function readPanelSource(): string {

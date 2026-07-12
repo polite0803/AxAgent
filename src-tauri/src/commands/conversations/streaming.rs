@@ -466,9 +466,9 @@ fn spawn_stream_task(
                     total_content.push_str(&error_diag);
                 }
             }
-            let token_count = total_usage.as_ref().map(|u| u.completion_tokens);
-            let prompt_tokens = total_usage.as_ref().map(|u| u.prompt_tokens);
-            let completion_tokens = total_usage.as_ref().map(|u| u.completion_tokens);
+            let token_count = total_usage.as_ref().map(|u| u.output_tokens);
+            let prompt_tokens = total_usage.as_ref().map(|u| u.input_tokens);
+            let completion_tokens = total_usage.as_ref().map(|u| u.output_tokens);
             // Prepend memory retrieval tag (if any) so it persists in DB
             let cleaned_total = clean_output(&total_content);
             let saved_content = if content_prefix.is_empty() {
@@ -1076,6 +1076,18 @@ pub async fn send_message(
                 enabled
             })
             .unwrap_or(false);
+    // 从数据库加载全局禁用工具列表（与 agent 模式 load_enabled_state 一致）
+    // TODO: group_enabled 过滤需要 tool_registry.load_enabled_state(db)，
+    // streaming 流程中未创建 tool_registry，暂不实现组级别过滤。
+    let disabled_tools_set: std::collections::HashSet<String> =
+        axagent_harness::repositories::settings_repository()
+            .get_setting("disabled_tools")
+            .await
+            .ok()
+            .flatten()
+            .and_then(|v| serde_json::from_str::<Vec<String>>(&v).ok())
+            .map(|v| v.into_iter().collect())
+            .unwrap_or_default();
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
@@ -1126,6 +1138,10 @@ pub async fn send_message(
             ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
+            // 过滤被禁用的内置工具
+            if disabled_tools_set.contains(*name) {
+                continue;
+            }
             all_tools.push(ChatTool {
                 r#type: "function".to_string(),
                 function: ChatToolFunction {
@@ -1144,6 +1160,10 @@ pub async fn send_message(
                     .await
             {
                 for td in descriptors {
+                    // 过滤被禁用的 MCP 工具
+                    if disabled_tools_set.contains(&td.name) {
+                        continue;
+                    }
                     let parameters: Option<serde_json::Value> =
                         td.input_schema_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
                     all_tools.push(ChatTool {
@@ -1455,6 +1475,18 @@ pub async fn regenerate_message(
             .await
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
+    // 从数据库加载全局禁用工具列表（与 agent 模式 load_enabled_state 一致）
+    // TODO: group_enabled 过滤需要 tool_registry.load_enabled_state(db)，
+    // streaming 流程中未创建 tool_registry，暂不实现组级别过滤。
+    let disabled_tools_set: std::collections::HashSet<String> =
+        axagent_harness::repositories::settings_repository()
+            .get_setting("disabled_tools")
+            .await
+            .ok()
+            .flatten()
+            .and_then(|v| serde_json::from_str::<Vec<String>>(&v).ok())
+            .map(|v| v.into_iter().collect())
+            .unwrap_or_default();
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
@@ -1498,6 +1530,10 @@ pub async fn regenerate_message(
             ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
+            // 过滤被禁用的内置工具
+            if disabled_tools_set.contains(*name) {
+                continue;
+            }
             all_tools.push(ChatTool {
                 r#type: "function".to_string(),
                 function: ChatToolFunction {
@@ -1516,6 +1552,10 @@ pub async fn regenerate_message(
                     .await
             {
                 for td in descriptors {
+                    // 过滤被禁用的 MCP 工具
+                    if disabled_tools_set.contains(&td.name) {
+                        continue;
+                    }
                     let parameters: Option<serde_json::Value> =
                         td.input_schema_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
                     all_tools.push(ChatTool {
@@ -1832,6 +1872,18 @@ pub async fn regenerate_with_model(
             .await
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
+    // 从数据库加载全局禁用工具列表（与 agent 模式 load_enabled_state 一致）
+    // TODO: group_enabled 过滤需要 tool_registry.load_enabled_state(db)，
+    // streaming 流程中未创建 tool_registry，暂不实现组级别过滤。
+    let disabled_tools_set: std::collections::HashSet<String> =
+        axagent_harness::repositories::settings_repository()
+            .get_setting("disabled_tools")
+            .await
+            .ok()
+            .flatten()
+            .and_then(|v| serde_json::from_str::<Vec<String>>(&v).ok())
+            .map(|v| v.into_iter().collect())
+            .unwrap_or_default();
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
@@ -1875,6 +1927,10 @@ pub async fn regenerate_with_model(
             ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
+            // 过滤被禁用的内置工具
+            if disabled_tools_set.contains(*name) {
+                continue;
+            }
             all_tools.push(ChatTool {
                 r#type: "function".to_string(),
                 function: ChatToolFunction {
@@ -1893,6 +1949,10 @@ pub async fn regenerate_with_model(
                     .await
             {
                 for td in descriptors {
+                    // 过滤被禁用的 MCP 工具
+                    if disabled_tools_set.contains(&td.name) {
+                        continue;
+                    }
                     let parameters: Option<serde_json::Value> =
                         td.input_schema_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
                     all_tools.push(ChatTool {

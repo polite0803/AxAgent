@@ -265,13 +265,12 @@ impl SessionManager {
         }
     }
 
-    /// Test-only constructor: creates DAO repos from a DB connection.
+    /// Test-only constructor: accepts a pre-constructed `AgentSessionRepository`.
+    /// 仅在 `testing` feature 启用时可用，调用方负责构造 repo（避免 agent crate 依赖 dao）。
+    #[cfg(feature = "testing")]
     #[doc(hidden)]
-    pub fn new_for_test(db: sea_orm::DatabaseConnection) -> Self {
-        let db = Arc::new(db);
-        let repo: Arc<dyn AgentSessionRepository> =
-            Arc::new(axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository::new(db));
-        Self::new(repo)
+    pub fn new_for_test(session_repo: Arc<dyn AgentSessionRepository>) -> Self {
+        Self::new(session_repo)
     }
 
     pub async fn set_default_workspace_dir(&self, dir: Option<String>) {
@@ -1469,10 +1468,17 @@ mod tests {
         db
     }
 
+    /// 构造测试用 AgentSessionRepository（通过 dev-dependencies 中的 axagent-dao）
+    fn make_test_repo(db: DatabaseConnection) -> Arc<dyn AgentSessionRepository> {
+        Arc::new(axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository::new(Arc::new(
+            db,
+        )))
+    }
+
     #[tokio::test]
     async fn test_session_manager_new() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         assert_eq!(mgr.session_count().await, 0);
         assert!(!mgr.has_app_handle().await);
     }
@@ -1480,7 +1486,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_set_default_workspace_dir() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string())).await;
         let default_dir = mgr.default_workspace_dir.lock().await;
         assert_eq!(*default_dir, Some("/tmp/workspace".to_string()));
@@ -1489,7 +1495,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_set_default_workspace_dir_none() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         mgr.set_default_workspace_dir(Some("/tmp/workspace".to_string())).await;
         mgr.set_default_workspace_dir(None).await;
         let default_dir = mgr.default_workspace_dir.lock().await;
@@ -1499,14 +1505,14 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_has_app_handle_initially_false() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         assert!(!mgr.has_app_handle().await);
     }
 
     #[tokio::test]
     async fn test_session_manager_get_session_not_found() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         let result = mgr.get_session("nonexistent").await;
         assert!(result.is_none());
     }
@@ -1514,7 +1520,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_remove_session_not_found() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         let result = mgr.remove_session("nonexistent").await;
         assert!(result.is_none());
     }
@@ -1522,7 +1528,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_create_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         let session =
             mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         assert_eq!(session.provider_id(), "provider-1");
@@ -1534,7 +1540,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_create_and_get_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         let session =
             mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = session.session().session_id.clone();
@@ -1546,7 +1552,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_create_and_remove_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         let session =
             mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = session.session().session_id.clone();
@@ -1560,7 +1566,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_get_or_create_session_new() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         let session = mgr
             .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
             .await
@@ -1572,7 +1578,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_get_or_create_session_existing() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         let session1 = mgr
             .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
             .await
@@ -1588,7 +1594,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_clear_session() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         assert_eq!(mgr.session_count().await, 1);
         mgr.clear_session("conv-1").await;
@@ -1598,7 +1604,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_clear_session_nonexistent() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
         mgr.clear_session("nonexistent").await;
         assert_eq!(mgr.session_count().await, 1);
@@ -1607,7 +1613,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_multiple_sessions() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         mgr.create_session("p2".to_string(), "conv-2".to_string()).await.unwrap();
         mgr.create_session("p3".to_string(), "conv-3".to_string()).await.unwrap();
@@ -1617,7 +1623,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_conversation_index() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         let conv_index = mgr.conversation_index.lock().await;
         assert!(conv_index.contains_key("conv-1"));
@@ -1626,7 +1632,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_session_last_access_updated() {
         let db = setup_test_db().await;
-        let mgr = SessionManager::new_for_test(db);
+        let mgr = SessionManager::new_for_test(make_test_repo(db));
         mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
         let session_id = {
             let conv_index = mgr.conversation_index.lock().await;

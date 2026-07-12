@@ -18,6 +18,22 @@ use std::sync::LazyLock;
 // async everywhere and break ~10+ callers in the tools crate.
 use std::sync::RwLock;
 
+// ── AStock 全局客户端 ──────────────────────────────────────────────────────
+
+use axagent_astock_data::AStockClient;
+use std::sync::OnceLock;
+
+static GLOBAL_ASTOCK_CLIENT: OnceLock<AStockClient> = OnceLock::new();
+
+/// 设置全局 AStock 客户端。返回 true 表示成功，false 表示已设置过（重复调用静默忽略）。
+pub fn set_astock_client(client: AStockClient) -> bool {
+    GLOBAL_ASTOCK_CLIENT.set(client).is_ok()
+}
+
+pub fn get_astock_client() -> Option<&'static AStockClient> {
+    GLOBAL_ASTOCK_CLIENT.get()
+}
+
 // ── 数据库路径 ────────────────────────────────────────────────────────────
 
 static GLOBAL_DB_PATH: LazyLock<RwLock<Option<String>>> = LazyLock::new(|| RwLock::new(None));

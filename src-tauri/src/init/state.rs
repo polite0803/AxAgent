@@ -12,7 +12,7 @@ use crate::AppState;
 use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
-use crate::state::{BrowserClientField, LearningState, SandboxExecutorField, ToolState};
+use crate::state::{BrowserClientField, LearningEngineState, SandboxExecutorField, ToolState};
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 use axagent_harness::AgentSessionRepository;
 use axagent_plugins::{PluginManager, PluginManagerConfig};
@@ -568,7 +568,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
 
     // ── M1: 新子状态分解 — 学习引擎与工具创建器 ──
-    let learning_state = LearningState::new(
+    let learning_state = LearningEngineState::new(
         text_grad_engine.clone(),
         intrinsic_motivation.clone(),
         coevolution_env.clone(),

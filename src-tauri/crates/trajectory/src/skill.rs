@@ -169,13 +169,7 @@ pub struct SkillContext {
     pub entities: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TaskComplexity {
-    Low,
-    Medium,
-    High,
-}
+pub use axagent_harness::TaskComplexity;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillModification {
@@ -184,7 +178,7 @@ pub struct SkillModification {
     pub new_content: String,
     pub reason: String,
     pub confidence: f64,
-    pub validation_result: Option<ValidationResult>,
+    pub validation_result: Option<SkillValidationResult>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -198,7 +192,7 @@ pub enum ModificationType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidationResult {
+pub struct SkillValidationResult {
     pub success: bool,
     pub quality_delta: f64,
     pub issues: Vec<String>,
@@ -593,7 +587,7 @@ impl SkillOptimizer {
         skill: &Skill,
         modification: &SkillModification,
         test_trajectories: &[&Trajectory],
-    ) -> ValidationResult {
+    ) -> SkillValidationResult {
         let mut issues = Vec::new();
         let mut improvements: f64 = 0.0;
 
@@ -627,7 +621,7 @@ impl SkillOptimizer {
             issues.push("Modification significantly increases skill complexity".to_string());
         }
 
-        ValidationResult {
+        SkillValidationResult {
             success: issues.is_empty() && improvements >= 0.0,
             quality_delta: improvements,
             issues,

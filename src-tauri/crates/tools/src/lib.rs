@@ -12,6 +12,7 @@ pub mod context_keys;
 pub mod global_state;
 pub mod group_manager;
 pub mod hooks;
+pub mod job_object;
 pub mod knowledge_callback;
 pub mod markdown;
 pub mod mcp;

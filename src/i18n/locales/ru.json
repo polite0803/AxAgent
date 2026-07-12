@@ -1352,10 +1352,20 @@
       "exportSkill": "Экспорт",
       "importSkill": "Импорт",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "Экспортировано {{name}}",
+      "exportFailed": "Ошибка экспорта: {{error}}",
+      "imported": "Импортировано {{name}}",
+      "importFailed": "Ошибка импорта: {{error}}"
     },
     "plugins": {
-      "title": "Плагины"
+      "title": "Плагины",
+      "loadFailed": "Ошибка загрузки плагинов: {{error}}",
+      "refreshFailed": "Ошибка обновления: {{error}}",
+      "installFailed": "Ошибка установки: {{error}}",
+      "openFolderFailed": "Ошибка открытия папки: {{error}}",
+      "toggleFailed": "Ошибка переключения: {{error}}",
+      "unloadFailed": "Ошибка выгрузки: {{error}}"
     },
     "dashboardPlugins": {
       "title": "Плагины панели управления",
@@ -2330,7 +2340,13 @@
       "agentEvents": "События агента",
       "toolEvents": "События инструмента",
       "sessionEvents": "События сессии",
-      "messageEvents": "События сообщений"
+      "messageEvents": "События сообщений",
+      "loadFailed": "Ошибка загрузки подписок: {{error}}",
+      "refreshFailed": "Ошибка обновления: {{error}}",
+      "toggleFailed": "Ошибка переключения: {{error}}",
+      "deleteFailed": "Ошибка удаления: {{error}}",
+      "createFailed": "Ошибка создания: {{error}}",
+      "testFailed": "Ошибка тестирования: {{error}}"
     },
     "themePreset": "Предустановка темы",
     "themePresetDeepDusk": "Глубокие сумерки",
@@ -6904,7 +6920,10 @@
     },
     "title": "Дообучение модели",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "Удалить этот набор данных?"
+    }
   },
   "research": {
     "mockFinding": "Фиктивный результат исследования",

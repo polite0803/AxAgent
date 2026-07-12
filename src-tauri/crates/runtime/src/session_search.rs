@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchResult {
+pub struct SessionMessageSearchResult {
     pub session_id: String,
     pub message_index: usize,
     pub content: String,
@@ -66,7 +66,7 @@ impl SessionSearchEngine {
         self.cache.write().await.insert(session_id.to_string(), entries);
     }
 
-    pub async fn search(&self, query: &SearchQuery) -> Vec<SearchResult> {
+    pub async fn search(&self, query: &SearchQuery) -> Vec<SessionMessageSearchResult> {
         let cache = self.cache.read().await;
         let mut results = Vec::new();
 
@@ -102,7 +102,7 @@ impl SessionSearchEngine {
 
                     let snippet = Self::create_snippet(&entry.content, mat.start(), 80);
 
-                    results.push(SearchResult {
+                    results.push(SessionMessageSearchResult {
                         session_id: session_id.clone(),
                         message_index: entry.message_index,
                         content: snippet,

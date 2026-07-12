@@ -64,6 +64,7 @@ fn generate_training_id() -> String {
     format!("training_{}", chrono::Utc::now().timestamp_millis())
 }
 
+// 注：RL checkpoint 功能尚未实现，此函数为预留；待 checkpoint 落地后移除属性。
 #[expect(dead_code)]
 fn generate_checkpoint_id() -> String {
     format!("ckpt_{}", chrono::Utc::now().timestamp_millis())
