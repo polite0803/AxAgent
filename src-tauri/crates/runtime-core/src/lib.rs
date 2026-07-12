@@ -140,7 +140,7 @@ pub use usage::{
 };
 
 pub use config_validate::{
-    ConfigDiagnostic, DiagnosticKind, ValidationResult, check_unsupported_format,
+    ConfigDiagnostic, ConfigValidationResult, DiagnosticKind, check_unsupported_format,
     format_diagnostics, validate_config_file,
 };
 

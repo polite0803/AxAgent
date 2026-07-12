@@ -50,8 +50,7 @@ pub trait PlannerAdapter: fmt::Debug + Send + Sync {
     fn get_pending_steps(&self) -> Vec<String>;
 }
 
-/// 空实现 — 总是失败（规划器未配置）
-
+// 空实现 — 总是失败（规划器未配置）
 #[cfg(test)]
 mod tests {
     use super::*;

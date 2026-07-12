@@ -411,18 +411,9 @@ pub struct ChatResponse {
     pub tool_calls: Option<Vec<ToolCall>>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TokenUsage {
-    pub prompt_tokens: u32,
-    pub completion_tokens: u32,
-    pub total_tokens: u32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cache_creation_tokens: Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cache_read_tokens: Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cache_miss_tokens: Option<u32>,
-}
+// TokenUsage 权威定义在 `crate::conversation_model::TokenUsage`，此处仅 re-export
+// 以保持 `axagent_harness::types::TokenUsage` 路径向后兼容。
+pub use crate::conversation_model::TokenUsage;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatStreamChunk {

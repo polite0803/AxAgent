@@ -61,26 +61,7 @@ pub struct StructuredLogEntry {
     pub correlation_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LogLevel {
-    Trace,
-    Debug,
-    Info,
-    Warn,
-    Error,
-}
-
-impl std::fmt::Display for LogLevel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LogLevel::Trace => write!(f, "TRACE"),
-            LogLevel::Debug => write!(f, "DEBUG"),
-            LogLevel::Info => write!(f, "INFO"),
-            LogLevel::Warn => write!(f, "WARN"),
-            LogLevel::Error => write!(f, "ERROR"),
-        }
-    }
-}
+pub use axagent_harness::LogLevel;
 
 impl StructuredLogEntry {
     pub fn new(level: LogLevel, message: impl Into<String>, source: impl Into<String>) -> Self {

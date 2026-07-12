@@ -666,7 +666,7 @@ impl TrajectoryStorage {
 
     // ── Sessions ──
 
-    pub async fn save_session(&self, s: &Session) -> Result<()> {
+    pub async fn save_session(&self, s: &TrajectorySession) -> Result<()> {
         trajectory_sessions::Entity::insert(trajectory_sessions::ActiveModel {
             id: Set(s.id.clone()),
             title: Set(s.title.clone()),
@@ -695,14 +695,14 @@ impl TrajectoryStorage {
         Ok(())
     }
 
-    pub async fn get_session(&self, id: &str) -> Result<Option<Session>> {
+    pub async fn get_session(&self, id: &str) -> Result<Option<TrajectorySession>> {
         Ok(trajectory_sessions::Entity::find_by_id(id)
             .one(self.db.as_ref())
             .await?
             .map(|s| model_to_sess(&s)))
     }
 
-    pub async fn get_all_sessions(&self) -> Result<Vec<Session>> {
+    pub async fn get_all_sessions(&self) -> Result<Vec<TrajectorySession>> {
         Ok(trajectory_sessions::Entity::find()
             .order_by_desc(trajectory_sessions::Column::UpdatedAt)
             .all(self.db.as_ref())
@@ -1318,8 +1318,8 @@ fn model_to_relationship(r: &trajectory_relationships::Model) -> Relationship {
     }
 }
 
-fn model_to_sess(s: &trajectory_sessions::Model) -> Session {
-    Session {
+fn model_to_sess(s: &trajectory_sessions::Model) -> TrajectorySession {
+    TrajectorySession {
         id: s.id.clone(),
         title: s.title.clone(),
         platform: s.platform.clone(),
@@ -1433,7 +1433,7 @@ impl TrajectoryCleanupTask {
 // ── Public types ──
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Session {
+pub struct TrajectorySession {
     pub id: String,
     pub title: String,
     pub platform: String,

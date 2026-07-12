@@ -11,7 +11,7 @@ use crate::hooks::executors::execute_hook;
 use crate::hooks::registry::HookRegistry;
 use crate::hooks::{HookAction, HookConfig, HookEventType};
 pub use crate::mcp_manager::{McpManager, McpServerConfig, McpToolConfig};
-use crate::permissions::{PermissionMode, PermissionPolicy};
+use crate::permissions::{PermissionMode, ToolPermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
 use crate::{Tool, ToolCategory, ToolError, ToolErrorKind, ToolInfo, ToolResult};
@@ -363,7 +363,7 @@ pub struct UnifiedToolRegistry {
     ///
     /// 用 `Arc<Mutex<..>>` 包裹以支持 `&self` 执行路径：trait `ToolRegistry::execute_tool`
     /// 仅持有 `&self`，而 `PermissionPolicy::authorize` 需可变访问内部 `DenialTracker`。
-    pub permission_policy: Arc<Mutex<PermissionPolicy>>,
+    pub permission_policy: Arc<Mutex<ToolPermissionPolicy>>,
     /// Hook 注册表（集成到执行路径）
     pub hook_registry: HookRegistry,
     /// 工具调用审计器
@@ -472,7 +472,7 @@ impl UnifiedToolRegistry {
             groups: ToolGroupManager::new(),
             recorder: None,
             usage_stats: ToolUsageStats::new(),
-            permission_policy: Arc::new(Mutex::new(PermissionPolicy::new(
+            permission_policy: Arc::new(Mutex::new(ToolPermissionPolicy::new(
                 PermissionMode::WorkspaceWrite,
             ))),
             hook_registry: HookRegistry::new(),
@@ -498,7 +498,7 @@ impl UnifiedToolRegistry {
 
         // 配置默认工具级权限要求
         self.permission_policy = Arc::new(Mutex::new(
-            PermissionPolicy::new(PermissionMode::WorkspaceWrite)
+            ToolPermissionPolicy::new(PermissionMode::WorkspaceWrite)
                 .with_tool_requirement("FileRead", PermissionMode::ReadOnly)
                 .with_tool_requirement("Glob", PermissionMode::ReadOnly)
                 .with_tool_requirement("Grep", PermissionMode::ReadOnly)
@@ -923,8 +923,12 @@ impl UnifiedToolRegistry {
         let sanitized_input = self.auditor.sanitize_input(input);
 
         // ── 权限检查（集成 PermissionPolicy） ──
-        let decision =
-            self.permission_policy.lock().unwrap().authorize(tool_name, &sanitized_input);
+        // 锁中毒时恢复内部数据：即使前一个线程 panic，我们仍能继续执行权限检查
+        let decision = self
+            .permission_policy
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .authorize(tool_name, &sanitized_input);
         if decision.is_denied() {
             return Err(ToolError::permission_denied(tool_name, &decision.reason));
         }

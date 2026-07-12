@@ -3,7 +3,7 @@
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::SemanticCache;
 use crate::state::{
-    AgentState, GatewayState, InfraState, LearningState, MemoryState, SkillState, TaskState,
+    AgentState, GatewayState, InfraState, LearningEngineState, MemoryState, SkillState, TaskState,
     ToolState,
 };
 use axagent_plugins::PluginManager;
@@ -311,7 +311,7 @@ pub struct AppState {
     pub agent: AgentState,
     pub memory: MemoryState,
     pub skill: SkillState,
-    pub learning: LearningState,
+    pub learning: LearningEngineState,
     pub tool: ToolState,
 }
 

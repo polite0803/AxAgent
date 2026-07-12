@@ -133,7 +133,7 @@ export function DatasetManager() {
                       Add Sample
                     </Button>
                     <Popconfirm
-                      title="Delete this dataset?"
+                      title={t("fineTune.dataset.deleteConfirm")}
                       onConfirm={() => handleDeleteDataset(record.id)}
                       okText={t("datasetManager.yes")}
                       cancelText={t("datasetManager.no")}

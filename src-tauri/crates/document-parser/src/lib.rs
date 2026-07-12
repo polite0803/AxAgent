@@ -5,7 +5,7 @@
 //!
 //! Extracted from `axagent-core` as part of harness architecture refactoring.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use axagent_harness::core_error::{AxAgentError, Result};
 
@@ -45,6 +45,15 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
             })
         },
     }
+}
+
+/// 异步版本的文本提取，通过 spawn_blocking 包装同步 I/O，避免阻塞 tokio 运行时。
+/// 参数使用 `PathBuf` 和 `String`（owned），因为闭包需要 `'static` 生命周期。
+pub async fn extract_text_async(file_path: PathBuf, mime_type: String) -> Result<String> {
+    tokio::task::spawn_blocking(move || extract_text(&file_path, &mime_type))
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("文本提取任务失败: {e}")))
+        .and_then(|r| r)
 }
 
 /// Extract text from PDF using pdf-extract crate.

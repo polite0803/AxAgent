@@ -2331,10 +2331,20 @@
       "exportSkill": "匯出",
       "importSkill": "匯入",
       "noSkillsToExport": "[TODO] No installed skills to export",
-      "invalidSkillFile": "[TODO] Invalid skill file: missing name"
+      "invalidSkillFile": "[TODO] Invalid skill file: missing name",
+      "exported": "已匯出 {{name}}",
+      "exportFailed": "匯出失敗：{{error}}",
+      "imported": "已匯入 {{name}}",
+      "importFailed": "匯入失敗：{{error}}"
     },
     "plugins": {
-      "title": "外掛程式"
+      "title": "外掛程式",
+      "loadFailed": "載入外掛程式失敗：{{error}}",
+      "refreshFailed": "重新整理失敗：{{error}}",
+      "installFailed": "安裝失敗：{{error}}",
+      "openFolderFailed": "開啟資料夾失敗：{{error}}",
+      "toggleFailed": "切換狀態失敗：{{error}}",
+      "unloadFailed": "卸載失敗：{{error}}"
     },
     "dashboardPlugins": {
       "title": "儀表盤插件",
@@ -2389,7 +2399,13 @@
       "agentEvents": "Agent 事件",
       "toolEvents": "工具事件",
       "sessionEvents": "工作階段事件",
-      "messageEvents": "訊息事件"
+      "messageEvents": "訊息事件",
+      "loadFailed": "載入訂閱失敗：{{error}}",
+      "refreshFailed": "重新整理失敗：{{error}}",
+      "toggleFailed": "切換狀態失敗：{{error}}",
+      "deleteFailed": "刪除失敗：{{error}}",
+      "createFailed": "建立失敗：{{error}}",
+      "testFailed": "測試失敗：{{error}}"
     },
     "themePreset": "主題預設",
     "themePresetDeepDusk": "深色暮色",
@@ -6905,7 +6921,10 @@
     },
     "title": "模型微調",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "刪除此資料集？"
+    }
   },
   "research": {
     "mockFinding": "模擬研究發現",

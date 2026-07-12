@@ -365,13 +365,7 @@ pub struct IntegrityCheckResult {
     pub checks: Vec<IntegrityCheck>,
 }
 
-/// A single integrity check result.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IntegrityCheck {
-    pub name: String,
-    pub passed: bool,
-    pub detail: String,
-}
+pub use axagent_harness::IntegrityCheck;
 
 /// Verify the integrity of a compressed session against the original.
 ///

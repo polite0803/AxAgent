@@ -879,10 +879,9 @@ mod tests {
         assert_eq!(gateway_api_base_path(CliTool::Cursor), "/v1");
     }
 
-    #[test]
-    fn list_gateway_templates_match_actual_claude_and_cursor_contracts() {
-        let templates =
-            tauri::async_runtime::block_on(list_gateway_templates()).expect("list templates");
+    #[tokio::test]
+    async fn list_gateway_templates_match_actual_claude_and_cursor_contracts() {
+        let templates = list_gateway_templates().await.expect("list templates");
 
         let cursor = templates
             .iter()

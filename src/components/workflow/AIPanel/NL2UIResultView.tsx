@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
-import type { UISchema } from "@/types/dynamicUI";
-import type { NL2UIResult } from "@/types/workflow";
+import type { NL2UIResult, UISchema } from "@/types";
 import {
   BulbOutlined,
   CheckCircleOutlined,

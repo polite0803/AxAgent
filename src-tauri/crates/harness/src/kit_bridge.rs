@@ -3,6 +3,7 @@
 //! Kit-to-Harness bridge: traits + DTOs for kit modules needed by consumer crates.
 //! Kit implements these traits so consumers depend only on harness.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -86,7 +87,7 @@ pub trait KitSkillDirs: Send + Sync {
 
 // ── 5. SlashCommand ───────────────────────────────────────────
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SlashCommandAction {
     LoadBundle { name: String, args: String },
     LoadSkill { name: String, args: String },
@@ -95,7 +96,7 @@ pub enum SlashCommandAction {
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SlashCommandPreprocessed {
     pub modified_text: String,
     pub personality_prompt: Option<String>,

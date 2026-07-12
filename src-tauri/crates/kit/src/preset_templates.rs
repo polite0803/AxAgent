@@ -699,7 +699,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         output_schema: get_output_schema_for_template(preset),
         variables: vec![],
         error_config: Some(ErrorConfig {
-            retry_policy: Some(RetryPolicy {
+            retry_policy: Some(WorkflowRetryPolicy {
                 max_retries: 3,
                 base_delay_ms: 1000,
                 max_delay_ms: 30000,

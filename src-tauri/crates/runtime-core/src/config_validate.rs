@@ -57,12 +57,12 @@ impl std::fmt::Display for ConfigDiagnostic {
 
 /// Result of validating a single config file.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidationResult {
+pub struct ConfigValidationResult {
     pub errors: Vec<ConfigDiagnostic>,
     pub warnings: Vec<ConfigDiagnostic>,
 }
 
-impl ValidationResult {
+impl ConfigValidationResult {
     #[must_use]
     pub fn is_ok(&self) -> bool {
         self.errors.is_empty()
@@ -220,8 +220,8 @@ fn validate_object_keys(
     prefix: &str,
     source: &str,
     path_display: &str,
-) -> ValidationResult {
-    let mut result = ValidationResult { errors: Vec::new(), warnings: Vec::new() };
+) -> ConfigValidationResult {
+    let mut result = ConfigValidationResult { errors: Vec::new(), warnings: Vec::new() };
 
     let known_names: Vec<&str> = known_fields.iter().map(|f| f.name).collect();
 
@@ -306,7 +306,7 @@ pub fn validate_config_file(
     object: &BTreeMap<String, JsonValue>,
     source: &str,
     file_path: &Path,
-) -> ValidationResult {
+) -> ConfigValidationResult {
     let path_display = file_path.display().to_string();
     let mut result = validate_object_keys(object, TOP_LEVEL_FIELDS, "", source, &path_display);
 
@@ -375,7 +375,7 @@ pub fn check_unsupported_format(file_path: &Path) -> Result<(), ConfigError> {
 
 /// Format all diagnostics into a human-readable report.
 #[must_use]
-pub fn format_diagnostics(result: &ValidationResult) -> String {
+pub fn format_diagnostics(result: &ConfigValidationResult) -> String {
     let mut lines = Vec::new();
     for warning in &result.warnings {
         lines.push(format!("warning: {warning}"));

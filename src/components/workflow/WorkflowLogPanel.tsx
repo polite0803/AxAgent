@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Phase 4: WorkflowLogPanel — 工作流执行日志面板
 
-import type { ExecutionLogEntry } from "@/types/workflow";
+import type { ExecutionLogEntry } from "@/types";
 import { Button, Empty } from "antd";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";

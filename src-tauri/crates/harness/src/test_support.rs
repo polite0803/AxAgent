@@ -85,6 +85,7 @@ use crate::MessageSample;
 use crate::ModelKnowledgeProvider;
 use crate::NpmRegistryService;
 use crate::ObservabilityProvider;
+use crate::ObservabilitySpanType;
 use crate::OutputSanitizer;
 use crate::PlannerAdapter;
 use crate::PlatformConnectionInfo;
@@ -111,7 +112,6 @@ use crate::ScanResult;
 use crate::ScannerConfig;
 use crate::SelfRagProvider;
 use crate::SessionTracer;
-use crate::SpanType;
 use crate::SsrFConfig;
 use crate::SsrFGuard;
 use crate::StyleApplier;
@@ -844,7 +844,7 @@ impl NpmRegistryService for NoopNpmRegistryService {
 pub struct NoopObservabilityProvider;
 #[async_trait]
 impl ObservabilityProvider for NoopObservabilityProvider {
-    async fn start_span(&self, _: &str, _: SpanType, _: Map<String, Value>) {}
+    async fn start_span(&self, _: &str, _: ObservabilitySpanType, _: Map<String, Value>) {}
     async fn end_span(&self, _: Map<String, Value>) {}
     async fn record_event(&self, _: &str, _: Map<String, Value>) {}
     async fn record_metric(&self, _: &str, _: f64, _: Map<String, Value>) {}
@@ -1185,6 +1185,76 @@ pub struct NoopSessionTracer;
 
 impl SessionTracer for NoopSessionTracer {
     fn record(&self, _name: &str, _attributes: Map<String, Value>) {}
+}
+
+// ── Telemetry test mocks ──
+//
+// 专为 consumer crate（agent / runtime-core / gateway 等）单元测试设计的轻量
+// telemetry mock。避免 consumer 在 dev-dependencies 中引入实现层 axagent-telemetry
+// crate（违反 AGENTS.md 铁律 5：consumer crate 测试只能通过
+// `axagent_harness::test_support::*` mock）。
+//
+// 仅保留测试断言所需的 `SessionTrace` 变体与 `name` 字段，其余字段（session_id、
+// sequence、timestamp_ms、attributes 等）省略。若测试需要更丰富的事件结构，应
+// 扩展本 mock 而非退回依赖 axagent-telemetry。
+
+/// 简化的 SessionTrace 记录，仅保留测试断言所需的 `name` 字段。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionTraceRecord {
+    pub name: String,
+}
+
+/// 简化的 telemetry 事件枚举，仅含 `SessionTrace` 变体（满足测试断言）。
+///
+/// 标记为 `#[non_exhaustive]` 以便未来扩展（如需断言 HTTP/Analytics 事件）
+/// 时不必破坏现有 match；同时使跨 crate match 中的 `_` 模式不算 unreachable。
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum TelemetryEvent {
+    SessionTrace(SessionTraceRecord),
+}
+
+/// 内存 telemetry sink，收集事件供测试断言。
+///
+/// 等价于 `axagent_telemetry::MemoryTelemetrySink`，但不依赖实现层 crate。
+/// 所有锁操作均通过 `PoisonError::into_inner` 恢复，避免测试中 panic。
+#[derive(Default, Debug)]
+pub struct MemoryTelemetrySink {
+    events: std::sync::Mutex<Vec<TelemetryEvent>>,
+}
+
+impl MemoryTelemetrySink {
+    #[must_use]
+    pub fn events(&self) -> Vec<TelemetryEvent> {
+        self.events.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+    }
+
+    fn push(&self, event: TelemetryEvent) {
+        self.events.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push(event);
+    }
+}
+
+/// 测试用 `SessionTracer` 实现，将 `record` 调用转换为 `TelemetryEvent::SessionTrace`
+/// 存入关联的 `MemoryTelemetrySink`。
+///
+/// 用于替代 `axagent_telemetry::SessionTracer::new(session_id, sink)` 在测试中的
+/// 构造场景。本实现忽略 `attributes`（测试断言通常只关心 `name`）。
+#[derive(Debug)]
+pub struct MemorySessionTracer {
+    sink: Arc<MemoryTelemetrySink>,
+}
+
+impl MemorySessionTracer {
+    #[must_use]
+    pub fn new(sink: Arc<MemoryTelemetrySink>) -> Self {
+        Self { sink }
+    }
+}
+
+impl SessionTracer for MemorySessionTracer {
+    fn record(&self, name: &str, _attributes: Map<String, Value>) {
+        self.sink.push(TelemetryEvent::SessionTrace(SessionTraceRecord { name: name.to_string() }));
+    }
 }
 
 // ── from ssrf_guard.rs ──

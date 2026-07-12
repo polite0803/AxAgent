@@ -2273,10 +2273,20 @@
       "exportSkill": "निर्यात करें",
       "importSkill": "आयात करें",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "निर्यात किया गया {{name}}",
+      "exportFailed": "निर्यात विफल: {{error}}",
+      "imported": "आयात किया गया {{name}}",
+      "importFailed": "आयात विफल: {{error}}"
     },
     "plugins": {
-      "title": "प्लगइन्स"
+      "title": "प्लगइन्स",
+      "loadFailed": "प्लगइन लोड विफल: {{error}}",
+      "refreshFailed": "रीफ्रेश विफल: {{error}}",
+      "installFailed": "इंस्टॉल विफल: {{error}}",
+      "openFolderFailed": "फोल्डर खोलना विफल: {{error}}",
+      "toggleFailed": "स्थिति टॉगल विफल: {{error}}",
+      "unloadFailed": "अनलोड विफल: {{error}}"
     },
     "dashboardPlugins": {
       "title": "डैशबोर्ड प्लगइन",
@@ -2331,7 +2341,13 @@
       "agentEvents": "एजेंट इवेंट",
       "toolEvents": "टूल इवेंट",
       "sessionEvents": "सत्र इवेंट",
-      "messageEvents": "संदेश इवेंट"
+      "messageEvents": "संदेश इवेंट",
+      "loadFailed": "सब्सक्रिप्शन लोड विफल: {{error}}",
+      "refreshFailed": "रीफ्रेश विफल: {{error}}",
+      "toggleFailed": "स्थिति टॉगल विफल: {{error}}",
+      "deleteFailed": "हटाना विफल: {{error}}",
+      "createFailed": "बनाना विफल: {{error}}",
+      "testFailed": "परीक्षण विफल: {{error}}"
     },
     "workflow": {
       "title": "वर्कफ़्लो सेटिंग्स",
@@ -6905,7 +6921,10 @@
     },
     "title": "मॉडल फाइन-ट्यूनिंग",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "इस डेटासेट को हटाएं?"
+    }
   },
   "research": {
     "mockFinding": "नकली शोध परिणाम",

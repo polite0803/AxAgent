@@ -49,7 +49,7 @@ export function DashboardPluginsSettings() {
       );
       setPlugins(Array.isArray(result) ? result : []);
     } catch (error) {
-      message.error(`Failed to load plugins: ${error}`);
+      message.error(t("settings.plugins.loadFailed", { error }));
     } finally {
       setLoading(false);
     }
@@ -57,6 +57,7 @@ export function DashboardPluginsSettings() {
 
   useEffect(() => {
     setTimeout(() => loadPlugins(), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRefresh = async () => {
@@ -66,7 +67,7 @@ export function DashboardPluginsSettings() {
       await loadPlugins();
       message.success(t("settings.dashboardPlugins.refreshSuccess"));
     } catch (error) {
-      message.error(`Refresh failed: ${error}`);
+      message.error(t("settings.plugins.refreshFailed", { error }));
     } finally {
       setRefreshing(false);
     }
@@ -88,7 +89,7 @@ export function DashboardPluginsSettings() {
       await loadPlugins();
       message.success(t("settings.dashboardPlugins.enabled"));
     } catch (error) {
-      message.error(`Install failed: ${error}`);
+      message.error(t("settings.plugins.installFailed", { error }));
     } finally {
       setInstalling(false);
     }
@@ -98,7 +99,7 @@ export function DashboardPluginsSettings() {
     try {
       await invoke("dashboard_open_plugins_folder");
     } catch (error) {
-      message.error(`Failed to open folder: ${error}`);
+      message.error(t("settings.plugins.openFolderFailed", { error }));
     }
   };
 
@@ -116,7 +117,7 @@ export function DashboardPluginsSettings() {
           : t("settings.dashboardPlugins.disabled"),
       );
     } catch (error) {
-      message.error(`Toggle failed: ${error}`);
+      message.error(t("settings.plugins.toggleFailed", { error }));
     }
   };
 
@@ -127,7 +128,7 @@ export function DashboardPluginsSettings() {
       setPlugins((prev) => prev.filter((p) => p.id !== pluginId));
       message.success(t("settings.dashboardPlugins.unloaded"));
     } catch (error) {
-      message.error(`Unload failed: ${error}`);
+      message.error(t("settings.plugins.unloadFailed", { error }));
     } finally {
       setUnloadingId(null);
     }

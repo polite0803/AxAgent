@@ -2,7 +2,7 @@
 
 use crate::recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
 use crate::recovery_strategies::{RecoveryAdjustment, RecoveryResult, RecoveryStrategy};
-use crate::retry_policy::RetryPolicy;
+use crate::retry_policy::AgentRetryPolicy;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -146,7 +146,7 @@ impl ErrorRecoveryEngine {
                 max_delay_ms,
                 exponential_backoff,
             } => {
-                let policy = RetryPolicy::new(*max_attempts)
+                let policy = AgentRetryPolicy::new(*max_attempts)
                     .with_base_delay(Duration::from_millis(*base_delay_ms))
                     .with_max_delay(Duration::from_millis(*max_delay_ms))
                     .with_exponential_backoff(*exponential_backoff);
@@ -215,7 +215,7 @@ impl ErrorRecoveryEngine {
     async fn retry_with_policy<F, Fut, T>(
         &self,
         f: &mut F,
-        policy: &RetryPolicy,
+        policy: &AgentRetryPolicy,
         start: Instant,
     ) -> RecoveryResult
     where

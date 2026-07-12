@@ -17,12 +17,14 @@ const MAX_ENTRY_SIZE_BYTES = 500 * 1024;
 
 export const storage = {
   get<T = string>(key: string): T | null {
-    const raw = localStorage.getItem(key);
-    if (raw === null) { return null; }
     try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) {
+        return null;
+      }
       return JSON.parse(raw) as T;
     } catch {
-      return raw as unknown as T;
+      return null;
     }
   },
 

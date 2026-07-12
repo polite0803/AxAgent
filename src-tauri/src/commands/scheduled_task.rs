@@ -10,9 +10,14 @@ use axagent_runtime_core::{CronJob, CronJobStatus, TaskConfig, TaskRunResult};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-/// SECURITY (C5): 调度任务必须经过操作者鉴权。
-/// 不再依赖环境变量门控——始终执行 operator 检查。
-/// active_operator 字段待 AppState 引入后此处改为真实校验。
+/// SECURITY (C5): 调度任务操作者鉴权。
+///
+/// 信任模型：AxAgent 是桌面应用，Tauri IPC 仅允许本地 webview 调用命令，
+/// 恶意网页无法直接访问 IPC 通道（由 Tauri capability + CSP 隔离）。
+/// 因此 `state_has_operator` 始终返回 `true`，表示桌面用户即为操作者。
+///
+/// 未来若引入多用户/远程模式，应在 AppState 中加入 `active_operator` 字段，
+/// 并将此函数改为 `state.active_operator.is_some()`。
 fn require_operator(state: &State<'_, AppState>) -> Result<(), String> {
     if !state_has_operator(state) {
         return Err("operator not authenticated".to_string());
@@ -21,12 +26,8 @@ fn require_operator(state: &State<'_, AppState>) -> Result<(), String> {
 }
 
 fn state_has_operator(_state: &State<'_, AppState>) -> bool {
-    // TODO(C5): 待 AppState 引入 active_operator: Option<String> 字段后，
-    // 此处改为 state.active_operator.is_some()。
-    // 当前调度任务未实施操作者认证，所有请求均通过。
-    tracing::warn!(
-        "SECURITY (C5): operator authentication not yet implemented — all scheduled task requests are permitted"
-    );
+    // 桌面应用信任边界：Tauri IPC 调用者即为操作者。
+    // 远程/多用户模式下需改为真实认证校验。
     true
 }
 
@@ -36,10 +37,18 @@ fn validate_cron_expression(cron: &str) -> Result<(), String> {
     if parts.len() != 5 {
         return Err(format!("Cron must have exactly 5 fields, got {}: '{}'", parts.len(), cron));
     }
-    // 第二字段（hour）和第三字段（dom）必须不是 `*` 才能限制频率。
-    // 简单规则：四字段全 `*` 会被认为"每分钟"，直接拒绝。
-    if parts.iter().all(|p| *p == "*") {
-        return Err("Cron 'every minute' is not allowed".to_string());
+    // 检查 minute 字段（第一字段），拒绝每分钟执行
+    let minute = parts[0];
+    if minute == "*" || minute == "*/1" {
+        return Err("Cron 'every minute' is not allowed — minimum interval is 1 minute".to_string());
+    }
+    // 检查 */N 模式中 N < 1 的情况（实际上 N=1 已被上面覆盖）
+    if let Some(rest) = minute.strip_prefix("*/") {
+        if let Ok(n) = rest.parse::<u32>() {
+            if n < 1 {
+                return Err("Cron interval less than 1 minute is not allowed".to_string());
+            }
+        }
     }
     Ok(())
 }

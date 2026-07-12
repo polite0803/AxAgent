@@ -174,7 +174,8 @@ pub use skills_hub_adapter::SkillsHubAdapter;
 pub use skills_hub_client::{SkillsHubConfig, SkillsHubSearchResult, SkillsHubSkill};
 
 pub use storage::{
-    TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectoryStatistics, TrajectoryStorage,
+    TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectorySession, TrajectoryStatistics,
+    TrajectoryStorage,
 };
 
 pub use style_applier::StyleApplier;

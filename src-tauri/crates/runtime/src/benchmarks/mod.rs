@@ -65,7 +65,7 @@ pub struct BenchResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskResult {
     pub task_id: String,
-    pub status: TaskStatus,
+    pub status: BenchmarkTaskStatus,
     pub score: f64,
     pub steps_taken: usize,
     pub output: Option<String>,
@@ -74,7 +74,7 @@ pub struct TaskResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum TaskStatus {
+pub enum BenchmarkTaskStatus {
     Pending,
     Running,
     Success,
@@ -157,9 +157,9 @@ impl BenchmarkRunner {
         TaskResult {
             task_id: task.id.clone(),
             status: if score.passed {
-                TaskStatus::Success
+                BenchmarkTaskStatus::Success
             } else {
-                TaskStatus::Failed
+                BenchmarkTaskStatus::Failed
             },
             score: score.score,
             steps_taken: 0,

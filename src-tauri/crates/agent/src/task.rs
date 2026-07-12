@@ -37,7 +37,7 @@ impl std::str::FromStr for TaskType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TaskStatus {
+pub enum AgentTaskStatus {
     Pending,
     Running,
     Completed,
@@ -45,14 +45,14 @@ pub enum TaskStatus {
     Skipped,
 }
 
-impl TaskStatus {
+impl AgentTaskStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
-            TaskStatus::Pending => "pending",
-            TaskStatus::Running => "running",
-            TaskStatus::Completed => "completed",
-            TaskStatus::Failed => "failed",
-            TaskStatus::Skipped => "skipped",
+            AgentTaskStatus::Pending => "pending",
+            AgentTaskStatus::Running => "running",
+            AgentTaskStatus::Completed => "completed",
+            AgentTaskStatus::Failed => "failed",
+            AgentTaskStatus::Skipped => "skipped",
         }
     }
 }
@@ -63,7 +63,7 @@ pub struct TaskNode {
     pub description: String,
     pub task_type: TaskType,
     pub dependencies: Vec<String>,
-    pub status: TaskStatus,
+    pub status: AgentTaskStatus,
     pub result: Option<serde_json::Value>,
     pub error: Option<String>,
     pub created_at: String,
@@ -78,7 +78,7 @@ impl TaskNode {
             description: description.into(),
             task_type,
             dependencies: Vec::new(),
-            status: TaskStatus::Pending,
+            status: AgentTaskStatus::Pending,
             result: None,
             error: None,
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -99,34 +99,34 @@ impl TaskNode {
     /// 直接 panic 以暴露问题，而不是默默覆盖已有状态。
     pub fn start(&mut self) {
         assert!(
-            self.status == TaskStatus::Pending,
+            self.status == AgentTaskStatus::Pending,
             "TaskNode::start() 只能在 Pending 状态调用，当前状态: {:?} (id={})",
             self.status,
             self.id
         );
-        self.status = TaskStatus::Running;
+        self.status = AgentTaskStatus::Running;
         self.started_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
     pub fn complete(&mut self, result: serde_json::Value) {
-        self.status = TaskStatus::Completed;
+        self.status = AgentTaskStatus::Completed;
         self.result = Some(result);
         self.completed_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
     pub fn fail(&mut self, error: impl Into<String>) {
-        self.status = TaskStatus::Failed;
+        self.status = AgentTaskStatus::Failed;
         self.error = Some(error.into());
         self.completed_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
     pub fn skip(&mut self) {
-        self.status = TaskStatus::Skipped;
+        self.status = AgentTaskStatus::Skipped;
         self.completed_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
     pub fn is_ready(&self) -> bool {
-        self.status == TaskStatus::Pending
+        self.status == AgentTaskStatus::Pending
     }
 
     /// 任务是否处于“已结束”状态（用于聚合查询 `all_complete()` 等）。
@@ -134,7 +134,10 @@ impl TaskNode {
     /// 采用宽松语义：`Completed` / `Failed` / `Skipped` 都视为结束。
     /// 注意：这不代表“成功”，仅代表生命周期已终止。若需判断“成功完成”请使用 `is_completed()`。
     pub fn is_complete(&self) -> bool {
-        matches!(self.status, TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Skipped)
+        matches!(
+            self.status,
+            AgentTaskStatus::Completed | AgentTaskStatus::Failed | AgentTaskStatus::Skipped
+        )
     }
 
     /// 任务是否“成功完成”（严格语义）。仅 `Completed` 返回 `true`。
@@ -142,7 +145,7 @@ impl TaskNode {
     /// 用于依赖图就绪判定等需要“该任务确实有可用产物”的场景。
     /// 与宽松的 `is_complete()` 区分，避免 `Skipped` / `Failed` 任务被误判为已成功完成。
     pub fn is_completed(&self) -> bool {
-        matches!(self.status, TaskStatus::Completed)
+        matches!(self.status, AgentTaskStatus::Completed)
     }
 }
 
@@ -211,7 +214,7 @@ impl TaskGraph {
     }
 
     pub fn has_failures(&self) -> bool {
-        self.tasks.iter().any(|t| t.status == TaskStatus::Failed)
+        self.tasks.iter().any(|t| t.status == AgentTaskStatus::Failed)
     }
 
     /// 计算任务图整体完成度（百分比，0.0–100.0）。
@@ -322,7 +325,7 @@ impl TaskGraph {
             self.get_task(dep_id).is_some_and(|dep| match self.dependency_policy {
                 DependencyPolicy::Complete => dep.is_completed(),
                 DependencyPolicy::CompleteOrSkipped => {
-                    matches!(dep.status, TaskStatus::Completed | TaskStatus::Skipped)
+                    matches!(dep.status, AgentTaskStatus::Completed | AgentTaskStatus::Skipped)
                 },
                 DependencyPolicy::AnyResolved => dep.is_complete(),
             })
@@ -336,23 +339,28 @@ impl TaskGraph {
     }
 
     pub fn get_failed_task_ids(&self) -> Vec<String> {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Failed).map(|t| t.id.clone()).collect()
+        self.tasks
+            .iter()
+            .filter(|t| t.status == AgentTaskStatus::Failed)
+            .map(|t| t.id.clone())
+            .collect()
     }
 
-    pub fn get_status_summary(&self) -> TaskStatusSummary {
+    pub fn get_status_summary(&self) -> AgentTaskStatusSummary {
         let total = self.tasks.len();
-        let pending = self.tasks.iter().filter(|t| t.status == TaskStatus::Pending).count();
-        let running = self.tasks.iter().filter(|t| t.status == TaskStatus::Running).count();
-        let completed = self.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count();
-        let failed = self.tasks.iter().filter(|t| t.status == TaskStatus::Failed).count();
-        let skipped = self.tasks.iter().filter(|t| t.status == TaskStatus::Skipped).count();
+        let pending = self.tasks.iter().filter(|t| t.status == AgentTaskStatus::Pending).count();
+        let running = self.tasks.iter().filter(|t| t.status == AgentTaskStatus::Running).count();
+        let completed =
+            self.tasks.iter().filter(|t| t.status == AgentTaskStatus::Completed).count();
+        let failed = self.tasks.iter().filter(|t| t.status == AgentTaskStatus::Failed).count();
+        let skipped = self.tasks.iter().filter(|t| t.status == AgentTaskStatus::Skipped).count();
 
-        TaskStatusSummary { total, pending, running, completed, failed, skipped }
+        AgentTaskStatusSummary { total, pending, running, completed, failed, skipped }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct TaskStatusSummary {
+pub struct AgentTaskStatusSummary {
     pub total: usize,
     pub pending: usize,
     pub running: usize,
@@ -515,11 +523,11 @@ mod tests {
 
     #[test]
     fn test_task_status_as_str() {
-        assert_eq!(TaskStatus::Pending.as_str(), "pending");
-        assert_eq!(TaskStatus::Running.as_str(), "running");
-        assert_eq!(TaskStatus::Completed.as_str(), "completed");
-        assert_eq!(TaskStatus::Failed.as_str(), "failed");
-        assert_eq!(TaskStatus::Skipped.as_str(), "skipped");
+        assert_eq!(AgentTaskStatus::Pending.as_str(), "pending");
+        assert_eq!(AgentTaskStatus::Running.as_str(), "running");
+        assert_eq!(AgentTaskStatus::Completed.as_str(), "completed");
+        assert_eq!(AgentTaskStatus::Failed.as_str(), "failed");
+        assert_eq!(AgentTaskStatus::Skipped.as_str(), "skipped");
     }
 
     #[test]
@@ -529,7 +537,7 @@ mod tests {
         assert_eq!(node.description, "Test task");
         assert_eq!(node.task_type, TaskType::ToolCall);
         assert!(node.dependencies.is_empty());
-        assert_eq!(node.status, TaskStatus::Pending);
+        assert_eq!(node.status, AgentTaskStatus::Pending);
         assert!(node.result.is_none());
         assert!(node.error.is_none());
     }
@@ -546,7 +554,7 @@ mod tests {
     fn test_task_node_start() {
         let mut node = TaskNode::new("t1", "Task", TaskType::Query);
         node.start();
-        assert_eq!(node.status, TaskStatus::Running);
+        assert_eq!(node.status, AgentTaskStatus::Running);
         assert!(node.started_at.is_some());
     }
 
@@ -555,7 +563,7 @@ mod tests {
         let mut node = TaskNode::new("t1", "Task", TaskType::Query);
         node.start();
         node.complete(serde_json::json!("result"));
-        assert_eq!(node.status, TaskStatus::Completed);
+        assert_eq!(node.status, AgentTaskStatus::Completed);
         assert!(node.result.is_some());
         assert!(node.completed_at.is_some());
     }
@@ -565,7 +573,7 @@ mod tests {
         let mut node = TaskNode::new("t1", "Task", TaskType::Query);
         node.start();
         node.fail("something went wrong");
-        assert_eq!(node.status, TaskStatus::Failed);
+        assert_eq!(node.status, AgentTaskStatus::Failed);
         assert_eq!(node.error, Some("something went wrong".to_string()));
         assert!(node.completed_at.is_some());
     }
@@ -574,7 +582,7 @@ mod tests {
     fn test_task_node_skip() {
         let mut node = TaskNode::new("t1", "Task", TaskType::Query);
         node.skip();
-        assert_eq!(node.status, TaskStatus::Skipped);
+        assert_eq!(node.status, AgentTaskStatus::Skipped);
         assert!(node.completed_at.is_some());
     }
 
@@ -620,7 +628,7 @@ mod tests {
         if let Some(task) = graph.get_task_mut("t1") {
             task.start();
         }
-        assert_eq!(graph.get_task("t1").unwrap().status, TaskStatus::Running);
+        assert_eq!(graph.get_task("t1").unwrap().status, AgentTaskStatus::Running);
     }
 
     #[test]

@@ -18,10 +18,9 @@ pub trait SessionTracer: fmt::Debug + Send + Sync {
     fn record(&self, name: &str, attributes: Map<String, Value>);
 }
 
-/// 空实现 SessionTracer — 丢弃所有事件。
-///
-/// 在未配置 telemetry 时作为默认 fallback 使用。
-
+// 空实现 SessionTracer — 丢弃所有事件。
+//
+// 在未配置 telemetry 时作为默认 fallback 使用。
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -22,7 +22,7 @@ pub struct ParallelTask {
     pub name: String,
     pub description: String,
     pub task_prompt: String,
-    pub status: TaskStatus,
+    pub status: ParallelTaskStatus,
     pub result: Option<String>,
     pub error: Option<String>,
     pub progress: f32,
@@ -43,7 +43,7 @@ impl ParallelTask {
             name,
             description,
             task_prompt,
-            status: TaskStatus::Pending,
+            status: ParallelTaskStatus::Pending,
             result: None,
             error: None,
             progress: 0.0,
@@ -57,20 +57,20 @@ impl ParallelTask {
     }
 
     pub fn start(&mut self, agent_id: String) {
-        self.status = TaskStatus::Running;
+        self.status = ParallelTaskStatus::Running;
         self.started_at = Some(Utc::now());
         self.agent_id = Some(agent_id);
     }
 
     pub fn complete(&mut self, result: String) {
-        self.status = TaskStatus::Completed;
+        self.status = ParallelTaskStatus::Completed;
         self.result = Some(result);
         self.completed_at = Some(Utc::now());
         self.progress = 1.0;
     }
 
     pub fn fail(&mut self, error: String) {
-        self.status = TaskStatus::Failed;
+        self.status = ParallelTaskStatus::Failed;
         self.error = Some(error);
         self.completed_at = Some(Utc::now());
     }
@@ -87,7 +87,7 @@ impl ParallelTask {
 
     /// 标记任务为超时
     pub fn mark_timeout(&mut self) {
-        self.status = TaskStatus::Timeout;
+        self.status = ParallelTaskStatus::Timeout;
         self.completed_at = Some(Utc::now());
         self.error = Some("任务执行超时".to_string());
     }
@@ -107,7 +107,7 @@ impl ParallelTask {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum TaskStatus {
+pub enum ParallelTaskStatus {
     Pending,
     Running,
     Completed,
@@ -168,27 +168,27 @@ impl ParallelExecution {
 
     pub fn is_complete(&self) -> bool {
         self.tasks.iter().all(|t| {
-            t.status == TaskStatus::Completed
-                || t.status == TaskStatus::Failed
-                || t.status == TaskStatus::Cancelled
-                || t.status == TaskStatus::Timeout
+            t.status == ParallelTaskStatus::Completed
+                || t.status == ParallelTaskStatus::Failed
+                || t.status == ParallelTaskStatus::Cancelled
+                || t.status == ParallelTaskStatus::Timeout
         })
     }
 
     pub fn completed_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Completed).count()
+        self.tasks.iter().filter(|t| t.status == ParallelTaskStatus::Completed).count()
     }
 
     pub fn failed_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Failed).count()
+        self.tasks.iter().filter(|t| t.status == ParallelTaskStatus::Failed).count()
     }
 
     pub fn running_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Running).count()
+        self.tasks.iter().filter(|t| t.status == ParallelTaskStatus::Running).count()
     }
 
     pub fn pending_count(&self) -> usize {
-        self.tasks.iter().filter(|t| t.status == TaskStatus::Pending).count()
+        self.tasks.iter().filter(|t| t.status == ParallelTaskStatus::Pending).count()
     }
 
     pub fn overall_progress(&self) -> f32 {
@@ -234,14 +234,14 @@ impl ParallelExecution {
     }
 }
 
-fn format_status(status: &TaskStatus) -> &'static str {
+fn format_status(status: &ParallelTaskStatus) -> &'static str {
     match status {
-        TaskStatus::Pending => "⏳ 等待中",
-        TaskStatus::Running => "🔄 运行中",
-        TaskStatus::Completed => "✅ 完成",
-        TaskStatus::Failed => "❌ 失败",
-        TaskStatus::Cancelled => "🚫 已取消",
-        TaskStatus::Timeout => "⏱️ 超时",
+        ParallelTaskStatus::Pending => "⏳ 等待中",
+        ParallelTaskStatus::Running => "🔄 运行中",
+        ParallelTaskStatus::Completed => "✅ 完成",
+        ParallelTaskStatus::Failed => "❌ 失败",
+        ParallelTaskStatus::Cancelled => "🚫 已取消",
+        ParallelTaskStatus::Timeout => "⏱️ 超时",
     }
 }
 
@@ -281,7 +281,7 @@ pub struct ExecutionResult {
 pub struct TaskResultSummary {
     pub task_id: String,
     pub task_name: String,
-    pub status: TaskStatus,
+    pub status: ParallelTaskStatus,
     pub result_preview: Option<String>,
     pub error_preview: Option<String>,
     pub duration_ms: Option<u64>,
@@ -435,7 +435,9 @@ impl ParallelExecutionVerifier {
             .filter(|t| {
                 !matches!(
                     t.status,
-                    TaskStatus::Cancelled | TaskStatus::Pending | TaskStatus::Running
+                    ParallelTaskStatus::Cancelled
+                        | ParallelTaskStatus::Pending
+                        | ParallelTaskStatus::Running
                 )
             })
             .collect();
@@ -480,7 +482,7 @@ impl ParallelExecutionVerifier {
             .iter()
             .filter(|t| {
                 t.expected_output_schema.is_some()
-                    && t.status == TaskStatus::Completed
+                    && t.status == ParallelTaskStatus::Completed
                     && t.result.is_some()
             })
             .collect();
@@ -546,7 +548,7 @@ impl ParallelExecutionVerifier {
         let completed_tasks: Vec<&ParallelTask> = execution
             .tasks
             .iter()
-            .filter(|t| t.status == TaskStatus::Completed && t.result.is_some())
+            .filter(|t| t.status == ParallelTaskStatus::Completed && t.result.is_some())
             .collect();
 
         if completed_tasks.len() < 2 {
@@ -679,7 +681,9 @@ impl ParallelExecutionVerifier {
             .filter(|t| {
                 !matches!(
                     t.status,
-                    TaskStatus::Cancelled | TaskStatus::Pending | TaskStatus::Running
+                    ParallelTaskStatus::Cancelled
+                        | ParallelTaskStatus::Pending
+                        | ParallelTaskStatus::Running
                 )
             })
             .collect();
@@ -695,7 +699,9 @@ impl ParallelExecutionVerifier {
 
         let failed = non_cancelled
             .iter()
-            .filter(|t| matches!(t.status, TaskStatus::Failed | TaskStatus::Timeout))
+            .filter(|t| {
+                matches!(t.status, ParallelTaskStatus::Failed | ParallelTaskStatus::Timeout)
+            })
             .count();
         let error_rate = failed as f64 / non_cancelled.len() as f64;
         let passed = error_rate <= self.config.max_error_rate;
@@ -872,22 +878,28 @@ impl ParallelExecutionService {
 
         match strategy {
             ExecutionStrategy::Sequential => {
-                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
-                    t.start(Uuid::new_v4().to_string());
-                    t.clone()
-                })
+                execution.tasks.iter_mut().find(|t| t.status == ParallelTaskStatus::Pending).map(
+                    |t| {
+                        t.start(Uuid::new_v4().to_string());
+                        t.clone()
+                    },
+                )
             },
             ExecutionStrategy::Parallel => {
-                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
-                    t.start(Uuid::new_v4().to_string());
-                    t.clone()
-                })
+                execution.tasks.iter_mut().find(|t| t.status == ParallelTaskStatus::Pending).map(
+                    |t| {
+                        t.start(Uuid::new_v4().to_string());
+                        t.clone()
+                    },
+                )
             },
             ExecutionStrategy::PriorityBased => {
-                execution.tasks.iter_mut().find(|t| t.status == TaskStatus::Pending).map(|t| {
-                    t.start(Uuid::new_v4().to_string());
-                    t.clone()
-                })
+                execution.tasks.iter_mut().find(|t| t.status == ParallelTaskStatus::Pending).map(
+                    |t| {
+                        t.start(Uuid::new_v4().to_string());
+                        t.clone()
+                    },
+                )
             },
         }
     }
@@ -952,8 +964,10 @@ impl ParallelExecutionService {
         let execution = executions.get_mut(execution_id)?;
 
         for task in &mut execution.tasks {
-            if task.status == TaskStatus::Pending || task.status == TaskStatus::Running {
-                task.status = TaskStatus::Cancelled;
+            if task.status == ParallelTaskStatus::Pending
+                || task.status == ParallelTaskStatus::Running
+            {
+                task.status = ParallelTaskStatus::Cancelled;
                 task.completed_at = Some(Utc::now());
             }
         }
@@ -1008,7 +1022,7 @@ impl ParallelExecutionService {
         let mut timed_out = Vec::new();
 
         for task in &mut execution.tasks {
-            if task.status != TaskStatus::Running {
+            if task.status != ParallelTaskStatus::Running {
                 continue;
             }
             if let (Some(started), Some(limit_secs)) = (task.started_at, task.timeout_secs) {
@@ -1064,7 +1078,7 @@ mod tests {
             format!("desc {}", name),
             format!("prompt {}", name),
         );
-        task.status = TaskStatus::Completed;
+        task.status = ParallelTaskStatus::Completed;
         task.started_at = Some(started);
         task.completed_at = Some(now);
         task.progress = 1.0;
@@ -1084,7 +1098,7 @@ mod tests {
             format!("desc {}", name),
             format!("prompt {}", name),
         );
-        task.status = TaskStatus::Failed;
+        task.status = ParallelTaskStatus::Failed;
         task.error = Some(error.to_string());
         task.started_at = Some(started);
         task.completed_at = Some(now);
@@ -1099,7 +1113,7 @@ mod tests {
             format!("desc {}", name),
             format!("prompt {}", name),
         );
-        task.status = TaskStatus::Running;
+        task.status = ParallelTaskStatus::Running;
         task.started_at = Some(started);
         task.timeout_secs = Some(timeout_secs);
         task
@@ -1161,7 +1175,7 @@ mod tests {
     fn test_output_completeness_ignores_cancelled() {
         let verifier = ParallelExecutionVerifier::with_defaults();
         let mut cancelled = make_completed_task("c1", None, None, None, 100);
-        cancelled.status = TaskStatus::Cancelled;
+        cancelled.status = ParallelTaskStatus::Cancelled;
         let tasks = vec![make_completed_task("t1", Some("result"), None, None, 100), cancelled];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
@@ -1372,7 +1386,7 @@ mod tests {
     fn test_mark_timeout() {
         let mut task = make_running_task("t1", 60, 30);
         task.mark_timeout();
-        assert_eq!(task.status, TaskStatus::Timeout);
+        assert_eq!(task.status, ParallelTaskStatus::Timeout);
         assert!(task.error.is_some());
     }
 
@@ -1395,7 +1409,7 @@ mod tests {
             let mut executions = service.executions.write().unwrap();
             let exec = executions.get_mut(&exec_id).unwrap();
             let task = &mut exec.tasks[0];
-            task.status = TaskStatus::Running;
+            task.status = ParallelTaskStatus::Running;
             task.started_at = Some(Utc::now() - chrono::Duration::seconds(60));
             task.timeout_secs = Some(30);
         }
@@ -1404,7 +1418,7 @@ mod tests {
         assert_eq!(timed_out.len(), 1);
 
         let exec = service.get_execution(&exec_id).await.unwrap();
-        assert_eq!(exec.tasks[0].status, TaskStatus::Timeout);
+        assert_eq!(exec.tasks[0].status, ParallelTaskStatus::Timeout);
     }
 
     #[tokio::test]
@@ -1426,7 +1440,7 @@ mod tests {
             let mut executions = service.executions.write().unwrap();
             let exec = executions.get_mut(&exec_id).unwrap();
             let task = &mut exec.tasks[0];
-            task.status = TaskStatus::Running;
+            task.status = ParallelTaskStatus::Running;
             task.started_at = Some(Utc::now() - chrono::Duration::seconds(5));
             task.timeout_secs = Some(300);
         }

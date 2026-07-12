@@ -21,8 +21,6 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
-axagent-prompt-guard = { path = "../prompt-guard" }
-axagent-telemetry = { path = "../telemetry" }
 insta = { workspace = true }
 tempfile = "3"
 

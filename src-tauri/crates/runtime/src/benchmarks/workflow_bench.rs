@@ -344,9 +344,9 @@ impl WorkflowBenchRunner {
                     task_results: vec![super::TaskResult {
                         task_id: r.template_id.clone(),
                         status: if passed {
-                            super::TaskStatus::Success
+                            super::BenchmarkTaskStatus::Success
                         } else {
-                            super::TaskStatus::Failed
+                            super::BenchmarkTaskStatus::Failed
                         },
                         score: if passed { 1.0 } else { 0.0 },
                         steps_taken: r.nodes_executed,

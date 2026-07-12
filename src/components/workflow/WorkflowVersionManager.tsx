@@ -2,7 +2,7 @@
 // Phase 4: WorkflowVersionManager — 工作流版本管理
 
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
-import type { WorkflowDefinition, WorkflowVersion } from "@/types/workflow";
+import type { WorkflowDefinition, WorkflowVersion } from "@/types";
 import { Button, Drawer, Empty, Modal, Popconfirm, Space, Table, Tag, Timeline, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -1354,10 +1354,20 @@
       "exportSkill": "Exporter",
       "importSkill": "Importer",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "Exporté {{name}}",
+      "exportFailed": "Échec de l'export : {{error}}",
+      "imported": "Importé {{name}}",
+      "importFailed": "Échec de l'import : {{error}}"
     },
     "plugins": {
-      "title": "Plugins"
+      "title": "Plugins",
+      "loadFailed": "Échec du chargement des plugins : {{error}}",
+      "refreshFailed": "Échec de l'actualisation : {{error}}",
+      "installFailed": "Échec de l'installation : {{error}}",
+      "openFolderFailed": "Échec de l'ouverture du dossier : {{error}}",
+      "toggleFailed": "Échec du basculement : {{error}}",
+      "unloadFailed": "Échec du déchargement : {{error}}"
     },
     "dashboardPlugins": {
       "title": "Plugins de tableau de bord",
@@ -2331,7 +2341,13 @@
       "agentEvents": "Événements Agent",
       "toolEvents": "Événements Outil",
       "sessionEvents": "Événements Session",
-      "messageEvents": "Événements Message"
+      "messageEvents": "Événements Message",
+      "loadFailed": "Échec du chargement des abonnements : {{error}}",
+      "refreshFailed": "Échec de l'actualisation : {{error}}",
+      "toggleFailed": "Échec du basculement : {{error}}",
+      "deleteFailed": "Échec de la suppression : {{error}}",
+      "createFailed": "Échec de la création : {{error}}",
+      "testFailed": "Échec du test : {{error}}"
     },
     "themePreset": "Préréglage de thème",
     "themePresetDeepDusk": "Crépuscule profond",
@@ -6905,7 +6921,10 @@
     },
     "title": "Affinage du modèle",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "Supprimer ce jeu de données ?"
+    }
   },
   "research": {
     "mockFinding": "Résultat de recherche fictif",

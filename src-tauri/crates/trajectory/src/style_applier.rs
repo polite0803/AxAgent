@@ -36,13 +36,8 @@ pub struct StylePattern {
     pub usage_count: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum StylePatternType {
-    Naming,
-    Formatting,
-    Structure,
-    Comment,
-}
+// StylePatternType 权威定义在 axagent-harness（多 Idiom 变体，默认序列化一致），此处 re-export 复用。
+pub use axagent_harness::StylePatternType;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeTemplate {

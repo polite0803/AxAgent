@@ -84,16 +84,15 @@ fn test_chat_tool_definition() {
 #[test]
 fn test_token_usage_types() {
     let usage = types::TokenUsage {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-        total_tokens: 150,
-        cache_creation_tokens: None,
-        cache_read_tokens: None,
-        cache_miss_tokens: None,
+        input_tokens: 100,
+        output_tokens: 50,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+        cache_miss_input_tokens: None,
     };
-    assert_eq!(usage.total_tokens, 150);
-    assert_eq!(usage.prompt_tokens, 100);
-    assert_eq!(usage.completion_tokens, 50);
+    assert_eq!(usage.total_tokens(), 150);
+    assert_eq!(usage.input_tokens, 100);
+    assert_eq!(usage.output_tokens, 50);
 }
 
 #[test]

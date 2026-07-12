@@ -122,7 +122,7 @@ export function CronManager({
       width: 60,
       render: (_: unknown, record: CronJob) => (
         <Popconfirm
-          title="Delete this cron job?"
+          title={t("settings.cron.deleteConfirm")}
           onConfirm={() => onDelete(record.id)}
           okText={t("cronManager.delete")}
           cancelText="Cancel"

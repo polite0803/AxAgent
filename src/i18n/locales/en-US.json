@@ -2655,10 +2655,20 @@
       "exportSkill": "Export",
       "importSkill": "Import",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "Exported {{name}}",
+      "exportFailed": "Export failed: {{error}}",
+      "imported": "Imported {{name}}",
+      "importFailed": "Import failed: {{error}}"
     },
     "plugins": {
-      "title": "Plugins"
+      "title": "Plugins",
+      "loadFailed": "Failed to load plugins: {{error}}",
+      "refreshFailed": "Refresh failed: {{error}}",
+      "installFailed": "Install failed: {{error}}",
+      "openFolderFailed": "Failed to open folder: {{error}}",
+      "toggleFailed": "Toggle failed: {{error}}",
+      "unloadFailed": "Unload failed: {{error}}"
     },
     "dashboardPlugins": {
       "title": "Dashboard Plugins",
@@ -2713,7 +2723,13 @@
       "agentEvents": "Agent Events",
       "toolEvents": "Tool Events",
       "sessionEvents": "Session Events",
-      "messageEvents": "Message Events"
+      "messageEvents": "Message Events",
+      "loadFailed": "Failed to load subscriptions: {{error}}",
+      "refreshFailed": "Refresh failed: {{error}}",
+      "toggleFailed": "Toggle failed: {{error}}",
+      "deleteFailed": "Delete failed: {{error}}",
+      "createFailed": "Create failed: {{error}}",
+      "testFailed": "Test failed: {{error}}"
     },
     "activeProfile": "Active Profile",
     "createProfile": "Create Profile",
@@ -7620,7 +7636,10 @@
     },
     "title": "Model Fine-Tuning",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "Delete this dataset?"
+    }
   },
   "agentMode": {
     "requiresTauri": "Agent mode requires Tauri desktop environment. Please run `npm run tauri dev` in terminal.",

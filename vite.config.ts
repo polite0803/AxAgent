@@ -47,6 +47,7 @@ const SHIKI_ALLOWED_LANGS = new Set([
   "objective-cpp",
   "php",
   "python",
+  "rhai",
   "ruby",
   "rust",
   "sass",

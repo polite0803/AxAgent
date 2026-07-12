@@ -1345,14 +1345,7 @@ mod tests {
                 model: "test".to_string(),
                 content: "test".to_string(),
                 thinking: None,
-                usage: TokenUsage {
-                    prompt_tokens: 0,
-                    completion_tokens: 0,
-                    total_tokens: 0,
-                    cache_creation_tokens: None,
-                    cache_read_tokens: None,
-                    cache_miss_tokens: None,
-                },
+                usage: TokenUsage::default(),
                 tool_calls: None,
             })
         }

@@ -322,14 +322,25 @@ pub async fn list_files_page_entries(
 ) -> Result<Vec<FilesPageEntry>, String> {
     let entries = match category.as_str() {
         "images" | "files" => {
-            let all_files =
+            // images 分类在 SQL 层用 LIKE 过滤，避免全表加载后在内存中筛选
+            let files = if category == "images" {
+                axagent_dao::repo::stored_file::list_stored_files_by_category(
+                    state.harness.db(),
+                    "image/%",
+                    500,
+                    0,
+                )
+                .await
+                .map_err(|e| e.to_string())?
+            } else {
                 axagent_dao::repo::stored_file::list_all_stored_files(state.harness.db())
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| e.to_string())?
+            };
             if category == "images" {
-                build_image_entries(&all_files)
+                build_image_entries(&files)
             } else {
-                build_file_entries(&all_files)
+                build_file_entries(&files)
             }
         },
         "backups" => {
@@ -352,6 +363,19 @@ pub async fn list_files_page_entries(
 #[tauri::command]
 pub async fn open_files_page_entry(app: tauri::AppHandle, path: String) -> Result<(), String> {
     validate_path_for_open(&path)?;
+    // 路径遍历防护：canonicalize 后必须落在 documents 根目录之内，
+    // 阻止 `..`、绝对路径、符号链接等方式越界访问系统任意文件。
+    let documents_root = axagent_storage::storage_paths::documents_root();
+    let canonical =
+        Path::new(&path).canonicalize().map_err(|e| format!("路径解析失败：'{}' ({})", path, e))?;
+    let canonical_root = documents_root.canonicalize().unwrap_or_else(|_| documents_root.clone());
+    if !canonical.starts_with(&canonical_root) {
+        return Err(format!(
+            "路径越界：'{}' 不在文档根目录 '{}' 内",
+            path,
+            documents_root.display()
+        ));
+    }
     use tauri_plugin_opener::OpenerExt;
     app.opener().open_path(&path, None::<&str>).map_err(|e| e.to_string())
 }
@@ -359,6 +383,19 @@ pub async fn open_files_page_entry(app: tauri::AppHandle, path: String) -> Resul
 #[tauri::command]
 pub async fn reveal_files_page_entry(app: tauri::AppHandle, path: String) -> Result<(), String> {
     validate_path_for_open(&path)?;
+    // 路径遍历防护：canonicalize 后必须落在 documents 根目录之内，
+    // 阻止 `..`、绝对路径、符号链接等方式越界访问系统任意文件。
+    let documents_root = axagent_storage::storage_paths::documents_root();
+    let canonical =
+        Path::new(&path).canonicalize().map_err(|e| format!("路径解析失败：'{}' ({})", path, e))?;
+    let canonical_root = documents_root.canonicalize().unwrap_or_else(|_| documents_root.clone());
+    if !canonical.starts_with(&canonical_root) {
+        return Err(format!(
+            "路径越界：'{}' 不在文档根目录 '{}' 内",
+            path,
+            documents_root.display()
+        ));
+    }
     use tauri_plugin_opener::OpenerExt;
     app.opener().reveal_item_in_dir(&path).map_err(|e| e.to_string())
 }

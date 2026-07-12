@@ -1916,9 +1916,9 @@ mod test_tool_call_flow {
 
 #[tokio::test]
 async fn stress_retry_policy_memory_stability() {
-    use axagent_agent::retry_policy::{RetryPolicy, with_retry};
+    use axagent_agent::retry_policy::{AgentRetryPolicy, with_retry};
 
-    let policy = RetryPolicy::new(3)
+    let policy = AgentRetryPolicy::new(3)
         .with_base_delay(std::time::Duration::from_millis(1))
         .with_exponential_backoff(false)
         .with_jitter(false);
@@ -1932,11 +1932,11 @@ async fn stress_retry_policy_memory_stability() {
 
 #[tokio::test]
 async fn stress_concurrent_retry_policies() {
-    use axagent_agent::retry_policy::{RetryPolicy, with_retry};
+    use axagent_agent::retry_policy::{AgentRetryPolicy, with_retry};
     use std::sync::Arc;
 
     let policy = Arc::new(
-        RetryPolicy::new(5)
+        AgentRetryPolicy::new(5)
             .with_base_delay(std::time::Duration::from_millis(1))
             .with_exponential_backoff(false)
             .with_jitter(false),

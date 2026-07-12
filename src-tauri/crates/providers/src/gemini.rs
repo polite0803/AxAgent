@@ -145,6 +145,7 @@ struct GeminiCandidate {
 struct GeminiUsageMetadata {
     prompt_token_count: Option<u32>,
     candidates_token_count: Option<u32>,
+    #[allow(dead_code)]
     total_token_count: Option<u32>,
     /// Gemini 上下文缓存命中 token 数 (cachedContentTokenCount).
     #[serde(default)]
@@ -438,21 +439,13 @@ fn make_gen_config(request: &ChatRequest) -> Option<GeminiGenerationConfig> {
 
 fn usage_from_meta(meta: Option<GeminiUsageMetadata>) -> TokenUsage {
     meta.map(|u| TokenUsage {
-        prompt_tokens: u.prompt_token_count.unwrap_or(0),
-        completion_tokens: u.candidates_token_count.unwrap_or(0),
-        total_tokens: u.total_token_count.unwrap_or(0),
-        cache_creation_tokens: None,
-        cache_read_tokens: u.cached_content_token_count,
-        ..Default::default()
+        input_tokens: u.prompt_token_count.unwrap_or(0),
+        output_tokens: u.candidates_token_count.unwrap_or(0),
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: u.cached_content_token_count.unwrap_or(0),
+        cache_miss_input_tokens: None,
     })
-    .unwrap_or(TokenUsage {
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        total_tokens: 0,
-        cache_creation_tokens: None,
-        cache_read_tokens: None,
-        ..Default::default()
-    })
+    .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -725,12 +718,13 @@ impl ProviderAdapter for GeminiAdapter {
                                     };
 
                                     let usage = gr.usage_metadata.map(|u| TokenUsage {
-                                        prompt_tokens: u.prompt_token_count.unwrap_or(0),
-                                        completion_tokens: u.candidates_token_count.unwrap_or(0),
-                                        total_tokens: u.total_token_count.unwrap_or(0),
-                                        cache_creation_tokens: None,
-                                        cache_read_tokens: u.cached_content_token_count,
-                                        ..Default::default()
+                                        input_tokens: u.prompt_token_count.unwrap_or(0),
+                                        output_tokens: u.candidates_token_count.unwrap_or(0),
+                                        cache_creation_input_tokens: 0,
+                                        cache_read_input_tokens: u
+                                            .cached_content_token_count
+                                            .unwrap_or(0),
+                                        cache_miss_input_tokens: None,
                                     });
 
                                     let _ = tx.try_send(Ok(ChatStreamChunk {

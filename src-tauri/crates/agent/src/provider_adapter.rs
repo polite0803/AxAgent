@@ -372,29 +372,25 @@ impl AxAgentApiClient {
     }
 
     /// Convert AxAgent's TokenUsage to Runtime's TokenUsage
+    ///
+    /// 两个类型别名现在都指向 `axagent_harness::conversation_model::TokenUsage`，
+    /// 因此转换退化为直接拷贝（TokenUsage: Copy）。
     fn convert_usage(usage: &AxAgentTokenUsage) -> RuntimeTokenUsage {
-        RuntimeTokenUsage {
-            input_tokens: usage.prompt_tokens,
-            output_tokens: usage.completion_tokens,
-            cache_creation_input_tokens: usage.cache_creation_tokens.unwrap_or(0),
-            cache_read_input_tokens: usage.cache_read_tokens.unwrap_or(0),
-            cache_miss_input_tokens: usage.cache_miss_tokens,
-        }
+        *usage
     }
 }
 
 impl ApiClient for AxAgentApiClient {
     fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError> {
         // Apply request delay to avoid rate limits
+        // NOTE: `stream` 是同步 trait 方法，无法使用 `tokio::time::sleep`。
+        // 使用 `std::thread::sleep` 阻塞当前线程；若在 tokio worker 上调用，
+        // 会阻塞该 worker 但不会 panic（`block_on` 在已有 runtime 上下文中会 panic）。
+        // 长期方案是将 `ApiClient::stream` 改为 `async fn`。
         if let Some(delay_ms) = self.request_delay_ms
             && delay_ms > 0
         {
-            let delay = std::time::Duration::from_millis(delay_ms);
-            if let Ok(handle) = tokio::runtime::Handle::try_current() {
-                handle.block_on(tokio::time::sleep(delay));
-            } else {
-                std::thread::sleep(delay);
-            }
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
         }
 
         // Convert Runtime's ApiRequest to AxAgent's ChatRequest
@@ -482,9 +478,8 @@ impl ApiClient for AxAgentApiClient {
                             }
                             events.push(event);
 
-                            if let Some(cache_read) = usage.cache_read_tokens
-                                && cache_read > 0
-                            {
+                            if usage.cache_read_input_tokens > 0 {
+                                let cache_read = usage.cache_read_input_tokens;
                                 let cache_event = AssistantEvent::PromptCache(PromptCacheEvent {
                                     unexpected: false,
                                     reason: String::new(),
@@ -522,11 +517,11 @@ impl ApiClient for AxAgentApiClient {
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
             let (tx, rx) = tokio::sync::oneshot::channel();
             handle.spawn_blocking(move || {
-                let res = futures::executor::block_on(process_stream);
+                let res = tokio::runtime::Handle::current().block_on(process_stream);
                 let _ = tx.send(res);
             });
             tokio::task::block_in_place(|| {
-                futures::executor::block_on(async move {
+                tokio::runtime::Handle::current().block_on(async move {
                     rx.await.unwrap_or_else(|e| {
                         Err(RuntimeError::new(format!("stream task dropped: {e}")))
                     })
@@ -701,12 +696,11 @@ mod tests {
     #[test]
     fn test_convert_usage() {
         let usage = AxAgentTokenUsage {
-            prompt_tokens: 100,
-            completion_tokens: 50,
-            total_tokens: 150,
-            cache_creation_tokens: None,
-            cache_read_tokens: None,
-            cache_miss_tokens: None,
+            input_tokens: 100,
+            output_tokens: 50,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+            cache_miss_input_tokens: None,
         };
         let runtime_usage = AxAgentApiClient::convert_usage(&usage);
         assert_eq!(runtime_usage.input_tokens, 100);
@@ -909,12 +903,11 @@ mod tests {
     #[test]
     fn test_convert_usage_fields() {
         let usage = AxAgentTokenUsage {
-            prompt_tokens: 500,
-            completion_tokens: 250,
-            total_tokens: 750,
-            cache_creation_tokens: None,
-            cache_read_tokens: None,
-            cache_miss_tokens: None,
+            input_tokens: 500,
+            output_tokens: 250,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+            cache_miss_input_tokens: None,
         };
         let runtime_usage = AxAgentApiClient::convert_usage(&usage);
         assert_eq!(runtime_usage.input_tokens, 500);

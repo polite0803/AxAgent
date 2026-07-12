@@ -124,7 +124,7 @@ impl PermissionDecision {
 ///
 /// 整合规则匹配、分类器、拒绝追踪，提供统一的权限决策接口。
 #[derive(Clone)]
-pub struct PermissionPolicy {
+pub struct ToolPermissionPolicy {
     /// 激活的权限模式
     pub active_mode: PermissionMode,
     /// 允许规则集
@@ -153,7 +153,7 @@ fn mode_rank(mode: &PermissionMode) -> u8 {
     }
 }
 
-impl PermissionPolicy {
+impl ToolPermissionPolicy {
     pub fn new(mode: PermissionMode) -> Self {
         Self {
             active_mode: mode,

@@ -1173,7 +1173,7 @@ pub(crate) async fn consume_stream(
                     thinking: emit_thinking_signal,
                     done: is_done,
                     is_final: None,
-                    usage: chunk.usage.clone(),
+                    usage: chunk.usage,
                     tool_calls: chunk.tool_calls.clone(),
                 };
                 if emitted_chunk.done && emitted_chunk.is_final.is_none() {
@@ -1250,11 +1250,11 @@ pub(crate) async fn consume_stream(
     // Compute timing metrics
     let first_token_latency_ms = first_token_time.map(|t| (t - stream_start).as_millis() as i64);
     let tokens_per_second = match (final_usage.as_ref(), first_token_time) {
-        (Some(usage), Some(ft)) if usage.completion_tokens > 0 => {
+        (Some(usage), Some(ft)) if usage.output_tokens > 0 => {
             let gen_duration =
                 stream_start.elapsed().as_secs_f64() - (ft - stream_start).as_secs_f64();
             if gen_duration > 0.0 {
-                Some(usage.completion_tokens as f64 / gen_duration)
+                Some(usage.output_tokens as f64 / gen_duration)
             } else {
                 None
             }
@@ -2724,7 +2724,10 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         ),
         agent: crate::state::AgentState::new(
-            Arc::new(axagent_agent::SessionManager::new_for_test(db.clone())),
+            Arc::new(axagent_agent::SessionManager::new_for_test(Arc::new(
+                DaoAgentSessionRepository::new(Arc::new(db.clone())),
+            )
+                as Arc<dyn AgentSessionRepository>)),
             Arc::new(DashMap::new()),
             Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
             Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
@@ -2824,7 +2827,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             )),
             Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         ),
-        learning: crate::state::LearningState::new(
+        learning: crate::state::LearningEngineState::new(
             Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
                 axagent_trajectory::ComputationGraph::new(),
                 axagent_trajectory::TextGradConfig::default(),

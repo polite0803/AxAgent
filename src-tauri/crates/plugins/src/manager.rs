@@ -1665,35 +1665,25 @@ pub fn run_lifecycle_commands(
     }
 
     for command in commands {
-        let mut process = if Path::new(command).exists() {
-            if cfg!(windows) {
-                let mut process = Command::new("cmd");
-                process.arg("/C").arg(command);
-                #[cfg(windows)]
-                {
-                    use std::os::windows::process::CommandExt;
-                    process.creation_flags(0x08000000); // CREATE_NO_WINDOW
-                }
-                process
-            } else {
-                let mut process = Command::new("sh");
-                process.arg(command);
-                process
-            }
-        } else if cfg!(windows) {
-            let mut process = Command::new("cmd");
-            process.arg("/C").arg(command);
-            #[cfg(windows)]
-            {
-                use std::os::windows::process::CommandExt;
-                process.creation_flags(0x08000000); // CREATE_NO_WINDOW
-            }
-            process
-        } else {
-            let mut process = Command::new("sh");
-            process.arg("-lc").arg(command);
-            process
-        };
+        // SECURITY: 不再通过 `cmd /C` 或 `sh -lc` 执行命令，避免 shell 解析
+        // `&`、`|`、`$()`、反引号等特殊字符导致命令注入。
+        // 将命令字符串按空白分割为程序 + 参数数组，直接 exec。
+        // 插件 lifecycle 命令来自插件配置文件（plugin.json），虽然用户安装时会确认，
+        // 但配置文件可能被篡改，因此仍需防护。
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.is_empty() {
+            continue;
+        }
+        let executable = parts[0];
+        let args = &parts[1..];
+
+        let mut process = Command::new(executable);
+        process.args(args);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            process.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
         if let Some(root) = &metadata.root {
             process.current_dir(root);
         }

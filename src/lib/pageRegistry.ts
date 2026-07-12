@@ -26,7 +26,7 @@ export interface RegistryPage {
  * - "link"     → transient connection flows
  * - "marketplace" → no route defined
  */
-const BUILTIN_HOME_PAGES: RegistryPage[] = [
+export const BUILTIN_HOME_PAGES: RegistryPage[] = [
   { path: "/chat", labelKey: "nav.chat" },
   { path: "/dashboard", labelKey: "nav.dashboard" },
   { path: "/knowledge", labelKey: "nav.knowledge" },
@@ -58,5 +58,3 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   marketplace: "/marketplace",
   wiki: "/wiki",
 };
-
-export default BUILTIN_HOME_PAGES;

@@ -1389,10 +1389,20 @@
       "exportSkill": "내보내기",
       "importSkill": "가져오기",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "내보냈습니다 {{name}}",
+      "exportFailed": "내보내기 실패: {{error}}",
+      "imported": "가져왔습니다 {{name}}",
+      "importFailed": "가져오기 실패: {{error}}"
     },
     "plugins": {
-      "title": "플러그인"
+      "title": "플러그인",
+      "loadFailed": "플러그인 로드 실패: {{error}}",
+      "refreshFailed": "새로고침 실패: {{error}}",
+      "installFailed": "설치 실패: {{error}}",
+      "openFolderFailed": "폴더 열기 실패: {{error}}",
+      "toggleFailed": "상태 전환 실패: {{error}}",
+      "unloadFailed": "언로드 실패: {{error}}"
     },
     "dashboardPlugins": {
       "title": "대시보드 플러그인",
@@ -2389,7 +2399,13 @@
       "agentEvents": "Agent 이벤트",
       "toolEvents": "도구 이벤트",
       "sessionEvents": "세션 이벤트",
-      "messageEvents": "메시지 이벤트"
+      "messageEvents": "메시지 이벤트",
+      "loadFailed": "구독 로드 실패: {{error}}",
+      "refreshFailed": "새로고침 실패: {{error}}",
+      "toggleFailed": "상태 전환 실패: {{error}}",
+      "deleteFailed": "삭제 실패: {{error}}",
+      "createFailed": "생성 실패: {{error}}",
+      "testFailed": "테스트 실패: {{error}}"
     },
     "themePreset": "테마 프리셋",
     "themePresetDeepDusk": "딥 더스크",
@@ -6905,7 +6921,10 @@
     },
     "title": "모델 파인튜닝",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "이 데이터셋을 삭제하시겠습니까?"
+    }
   },
   "research": {
     "mockFinding": "모의 연구 결과",

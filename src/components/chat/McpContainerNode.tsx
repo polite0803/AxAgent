@@ -5,6 +5,7 @@ import { CheckCircle, Loader, XCircle } from "lucide-react";
 import type { NodeComponentProps, RenderContext, RenderNodeFn } from "markstream-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ParsedNode, VmrContainerNode } from "stream-markdown-parser";
 
 function safeGetAttr(attrs: unknown, key: string): string | undefined {
   if (!attrs) {
@@ -48,23 +49,22 @@ function safeGetAttr(attrs: unknown, key: string): string | undefined {
   return undefined;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractText(children: any[] | undefined): string {
+function extractText(children: ParsedNode[] | undefined): string {
   if (!children || children.length === 0) {
     return "";
   }
   const parts: string[] = [];
   for (const child of children) {
-    if (typeof child === "string") {
-      parts.push(child);
-    } else if (child?.content != null) {
+    // ParsedNode 联合类型中部分成员有 content/children 字段，这里通过类型断言访问
+    const node = child as { content?: unknown; children?: ParsedNode[] };
+    if (node.content != null) {
       parts.push(
-        typeof child.content === "object"
-          ? JSON.stringify(child.content)
-          : String(child.content),
+        typeof node.content === "object"
+          ? JSON.stringify(node.content)
+          : String(node.content),
       );
-    } else if (child?.children) {
-      parts.push(extractText(child.children));
+    } else if (node.children) {
+      parts.push(extractText(node.children));
     }
   }
   return parts.join("");
@@ -81,8 +81,7 @@ function NodeChild({
   ctx,
   renderNode,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  child: any;
+  child: ParsedNode;
   indexKey: string | undefined;
   index: number;
   ctx: RenderContext;
@@ -105,8 +104,7 @@ function DefaultContainer({
   renderNode,
   indexKey,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  node: any;
+  node: VmrContainerNode;
   ctx: RenderContext;
   renderNode?: RenderNodeFn | undefined;
   indexKey: string | undefined;
@@ -114,25 +112,28 @@ function DefaultContainer({
   return (
     <div className={`vmr-container vmr-container-${node.name ?? "unknown"}`}>
       {Array.isArray(node.children) && ctx && renderNode
-        ? node.children.map((child: any, i: number) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
-          <NodeChild
-            key={child.id
-              ?? child.name
-              ?? `${String(indexKey ?? "vmr-container")}-${i}`}
-            child={child}
-            indexKey={indexKey}
-            index={i}
-            ctx={ctx}
-            renderNode={renderNode}
-          />
-        ))
+        ? node.children.map((child: ParsedNode, i: number) => {
+          // ParsedNode 联合类型中部分成员有 id/name 字段，这里通过类型断言访问
+          const c = child as { id?: string; name?: string };
+          return (
+            <NodeChild
+              key={c.id
+                ?? c.name
+                ?? `${String(indexKey ?? "vmr-container")}-${i}`}
+              child={child}
+              indexKey={indexKey}
+              index={i}
+              ctx={ctx}
+              renderNode={renderNode}
+            />
+          );
+        })
         : null}
     </div>
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function McpContainerNode(props: NodeComponentProps<any>) {
+export function McpContainerNode(props: NodeComponentProps<VmrContainerNode>) {
   const { node } = props;
 
   if (node.name !== "mcp") {
@@ -160,8 +161,7 @@ const monoStyle: React.CSSProperties = {
   padding: "4px 0",
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function McpToolCard({ node }: { node: any }) {
+function McpToolCard({ node }: { node: VmrContainerNode }) {
   const { t } = useTranslation();
 
   const serverName = safeGetAttr(node.attrs, "name") ?? "MCP";

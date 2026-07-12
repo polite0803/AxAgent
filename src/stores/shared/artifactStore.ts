@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import type { ExecutionResult } from "@/lib/codeExecutor";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { Artifact, ArtifactPreviewMode, CreateArtifactInput, UpdateArtifactInput } from "@/types";
 import { create } from "zustand";
-
-export interface ExecutionResult {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-  duration_ms: number;
-}
 
 interface ArtifactState {
   artifacts: Artifact[];

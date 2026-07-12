@@ -1389,10 +1389,20 @@
       "exportSkill": "エクスポート",
       "importSkill": "インポート",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "エクスポートしました {{name}}",
+      "exportFailed": "エクスポート失敗：{{error}}",
+      "imported": "インポートしました {{name}}",
+      "importFailed": "インポート失敗：{{error}}"
     },
     "plugins": {
-      "title": "プラグイン"
+      "title": "プラグイン",
+      "loadFailed": "プラグインの読み込みに失敗しました：{{error}}",
+      "refreshFailed": "更新に失敗しました：{{error}}",
+      "installFailed": "インストールに失敗しました：{{error}}",
+      "openFolderFailed": "フォルダを開けませんでした：{{error}}",
+      "toggleFailed": "状態の切り替えに失敗しました：{{error}}",
+      "unloadFailed": "アンロードに失敗しました：{{error}}"
     },
     "dashboardPlugins": {
       "name": "名前",
@@ -2382,7 +2392,13 @@
       "agentEvents": "Agent イベント",
       "toolEvents": "ツールイベント",
       "sessionEvents": "セッションイベント",
-      "messageEvents": "メッセージイベント"
+      "messageEvents": "メッセージイベント",
+      "loadFailed": "サブスクリプションの読み込みに失敗しました：{{error}}",
+      "refreshFailed": "更新に失敗しました：{{error}}",
+      "toggleFailed": "状態の切り替えに失敗しました：{{error}}",
+      "deleteFailed": "削除に失敗しました：{{error}}",
+      "createFailed": "作成に失敗しました：{{error}}",
+      "testFailed": "テストに失敗しました：{{error}}"
     },
     "themePreset": "テーマプリセット",
     "themePresetDeepDusk": "ディープダスク",
@@ -6905,7 +6921,10 @@
     },
     "title": "モデルファインチューニング",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "このデータセットを削除しますか？"
+    }
   },
   "research": {
     "mockFinding": "モック調査結果",

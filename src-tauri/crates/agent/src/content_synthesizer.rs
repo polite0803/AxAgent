@@ -2,7 +2,7 @@
 
 use crate::citation_tracker::CitationTracker;
 use crate::credibility_evaluator::CredibilityEvaluator;
-use crate::research_state::{OutlineSection, SearchResult, SourceType};
+use crate::research_state::{OutlineSection, ResearchStateResult, SourceType};
 use axagent_harness::util_fns::truncate_to_char_boundary;
 use std::sync::Arc;
 
@@ -36,7 +36,7 @@ impl ContentSynthesizer {
     pub async fn synthesize_section(
         &self,
         section: &OutlineSection,
-        sources: &[SearchResult],
+        sources: &[ResearchStateResult],
     ) -> String {
         let mut content = format!("## {}\n\n", section.title);
 
@@ -80,12 +80,12 @@ impl ContentSynthesizer {
 
     fn filter_relevant_sources(
         &self,
-        sources: &[SearchResult],
+        sources: &[ResearchStateResult],
         section_title: &str,
-    ) -> Vec<SearchResult> {
+    ) -> Vec<ResearchStateResult> {
         let section_keywords = self.extract_keywords(section_title);
 
-        let mut scored: Vec<(SearchResult, f32)> = sources
+        let mut scored: Vec<(ResearchStateResult, f32)> = sources
             .iter()
             .filter_map(|s| {
                 let score = self.calculate_relevance(&section_keywords, s);
@@ -116,7 +116,7 @@ impl ContentSynthesizer {
             .collect()
     }
 
-    fn calculate_relevance(&self, keywords: &[String], source: &SearchResult) -> f32 {
+    fn calculate_relevance(&self, keywords: &[String], source: &ResearchStateResult) -> f32 {
         let source_text = format!("{} {} {}", source.title, source.snippet, source.url);
         let source_lower = source_text.to_lowercase();
 
@@ -137,7 +137,7 @@ impl ContentSynthesizer {
 
     async fn synthesize_from_sources(
         &self,
-        sources: &[SearchResult],
+        sources: &[ResearchStateResult],
         section_title: &str,
     ) -> String {
         if sources.is_empty() {
@@ -189,7 +189,11 @@ impl ContentSynthesizer {
         synthesis
     }
 
-    pub fn build_synthesis_prompt(&self, sources: &[SearchResult], section_title: &str) -> String {
+    pub fn build_synthesis_prompt(
+        &self,
+        sources: &[ResearchStateResult],
+        section_title: &str,
+    ) -> String {
         if sources.is_empty() {
             return String::new();
         }
@@ -230,7 +234,7 @@ impl ContentSynthesizer {
         )
     }
 
-    fn extract_key_findings(&self, sources: &[SearchResult]) -> Vec<String> {
+    fn extract_key_findings(&self, sources: &[ResearchStateResult]) -> Vec<String> {
         let mut findings = Vec::new();
 
         for source in sources.iter().take(5) {
@@ -248,7 +252,7 @@ impl ContentSynthesizer {
         findings
     }
 
-    fn generate_source_stats(&self, sources: &[SearchResult]) -> String {
+    fn generate_source_stats(&self, sources: &[ResearchStateResult]) -> String {
         let total = sources.len();
         let academic = sources.iter().filter(|s| s.source_type == SourceType::Academic).count();
         let web = sources.iter().filter(|s| s.source_type == SourceType::Web).count();
@@ -286,7 +290,7 @@ impl ContentSynthesizer {
     pub async fn synthesize_batch(
         &self,
         sections: &[OutlineSection],
-        sources: &[SearchResult],
+        sources: &[ResearchStateResult],
     ) -> Vec<String> {
         let mut contents = Vec::new();
 
@@ -479,7 +483,7 @@ mod tests {
         let section = OutlineSection::new("Machine Learning Research".to_string())
             .with_description("Overview".to_string());
 
-        let sources = vec![SearchResult::new(
+        let sources = vec![ResearchStateResult::new(
             SourceType::Academic,
             "https://arxiv.org/abs/2103.00001".to_string(),
             "Machine Learning Advances".to_string(),
@@ -580,7 +584,7 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let keywords = vec!["machine".to_string(), "learning".to_string()];
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             SourceType::Academic,
             "https://example.com".to_string(),
             "Machine Learning Research".to_string(),
@@ -597,7 +601,7 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let keywords = vec!["quantum".to_string(), "physics".to_string()];
-        let source = SearchResult::new(
+        let source = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Cooking Recipes".to_string(),
@@ -614,13 +618,13 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let keywords = vec!["test".to_string()];
-        let academic = SearchResult::new(
+        let academic = ResearchStateResult::new(
             SourceType::Academic,
             "https://example.com".to_string(),
             "test".to_string(),
             "test".to_string(),
         );
-        let web = SearchResult::new(
+        let web = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "test".to_string(),
@@ -709,7 +713,7 @@ mod tests {
         let tracker = Arc::new(CitationTracker::new());
         let synthesizer = ContentSynthesizer::new(tracker);
 
-        let sources = vec![SearchResult::new(
+        let sources = vec![ResearchStateResult::new(
             SourceType::Academic,
             "https://example.com".to_string(),
             "Research".to_string(),
@@ -725,7 +729,7 @@ mod tests {
         let tracker = Arc::new(CitationTracker::new());
         let synthesizer = ContentSynthesizer::new(tracker);
 
-        let sources = vec![SearchResult::new(
+        let sources = vec![ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Short".to_string(),
@@ -742,7 +746,7 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let long_snippet = "A".repeat(300);
-        let sources = vec![SearchResult::new(
+        let sources = vec![ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Long".to_string(),
@@ -760,19 +764,19 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let sources = vec![
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Academic,
                 "url1".to_string(),
                 "A".to_string(),
                 "s".to_string(),
             ),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "url2".to_string(),
                 "B".to_string(),
                 "s".to_string(),
             ),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Documentation,
                 "url3".to_string(),
                 "C".to_string(),
@@ -905,13 +909,13 @@ mod tests {
         let synthesizer = ContentSynthesizer::new(tracker);
 
         let sources = vec![
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Academic,
                 "url1".to_string(),
                 "Machine Learning Research".to_string(),
                 "About machine learning algorithms".to_string(),
             ),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "url2".to_string(),
                 "Cooking Tips".to_string(),
@@ -931,9 +935,9 @@ mod tests {
         let tracker = Arc::new(CitationTracker::new());
         let synthesizer = ContentSynthesizer::new(tracker);
 
-        let sources: Vec<SearchResult> = (0..10)
+        let sources: Vec<ResearchStateResult> = (0..10)
             .map(|i| {
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Web,
                     format!("url{}", i),
                     format!("Research Topic {}", i),

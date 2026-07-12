@@ -112,6 +112,7 @@ struct ResponsesUsage {
     #[serde(default)]
     output_tokens: u32,
     #[serde(default)]
+    #[allow(dead_code)]
     total_tokens: u32,
     #[serde(default)]
     input_tokens_details: Option<ResponsesInputTokensDetails>,
@@ -126,12 +127,15 @@ struct ResponsesInputTokensDetails {
 impl ResponsesUsage {
     fn to_token_usage(&self) -> TokenUsage {
         TokenUsage {
-            prompt_tokens: self.input_tokens,
-            completion_tokens: self.output_tokens,
-            total_tokens: self.total_tokens,
-            cache_creation_tokens: None,
-            cache_read_tokens: self.input_tokens_details.as_ref().and_then(|d| d.cached_tokens),
-            ..Default::default()
+            input_tokens: self.input_tokens,
+            output_tokens: self.output_tokens,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: self
+                .input_tokens_details
+                .as_ref()
+                .and_then(|d| d.cached_tokens)
+                .unwrap_or(0),
+            cache_miss_input_tokens: None,
         }
     }
 }
@@ -551,14 +555,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
 
         let (content, tool_calls) = parse_response_output(&oai.output);
 
-        let usage = oai.usage.map(|u| u.to_token_usage()).unwrap_or(TokenUsage {
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
-            cache_creation_tokens: None,
-            cache_read_tokens: None,
-            ..Default::default()
-        });
+        let usage = oai.usage.map(|u| u.to_token_usage()).unwrap_or_default();
 
         Ok(ChatResponse {
             id: oai.id.unwrap_or_default(),

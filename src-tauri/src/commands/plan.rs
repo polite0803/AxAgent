@@ -130,7 +130,7 @@ pub struct Plan {
     pub user_message_id: String,
     pub title: String,
     pub steps: Vec<PlanStep>,
-    pub status: PlanStatus,
+    pub status: FrontendPlanStatus,
     #[serde(rename = "isActive")]
     pub is_active: bool,
     #[serde(rename = "createdUnderStrategy", skip_serializing_if = "Option::is_none")]
@@ -143,7 +143,7 @@ pub struct Plan {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub enum PlanStatus {
+pub enum FrontendPlanStatus {
     Draft,
     Reviewing,
     Approved,
@@ -401,7 +401,7 @@ async fn generate_plan_via_llm(
         user_message_id: user_message_id.to_string(),
         title,
         steps,
-        status: PlanStatus::Reviewing,
+        status: FrontendPlanStatus::Reviewing,
         is_active: true,
         created_under_strategy: Some("plan".to_string()),
         created_at: now,
@@ -1235,7 +1235,7 @@ pub async fn plan_activate(
         user_message_id: row.user_message_id.clone(),
         title: row.title.clone(),
         steps,
-        status: PlanStatus::Reviewing,
+        status: FrontendPlanStatus::Reviewing,
         is_active: true,
         created_under_strategy: row.created_under_strategy.clone(),
         created_at: row.created_at,
@@ -1260,14 +1260,14 @@ pub async fn plan_get(
         Some(row) => {
             let steps: Vec<PlanStep> = serde_json::from_str(&row.steps_json).unwrap_or_default();
             let status = match row.status.as_str() {
-                "draft" => PlanStatus::Draft,
-                "reviewing" => PlanStatus::Reviewing,
-                "approved" => PlanStatus::Approved,
-                "executing" => PlanStatus::Executing,
-                "completed" => PlanStatus::Completed,
-                "partial" => PlanStatus::Partial,
-                "cancelled" => PlanStatus::Cancelled,
-                _ => PlanStatus::Cancelled,
+                "draft" => FrontendPlanStatus::Draft,
+                "reviewing" => FrontendPlanStatus::Reviewing,
+                "approved" => FrontendPlanStatus::Approved,
+                "executing" => FrontendPlanStatus::Executing,
+                "completed" => FrontendPlanStatus::Completed,
+                "partial" => FrontendPlanStatus::Partial,
+                "cancelled" => FrontendPlanStatus::Cancelled,
+                _ => FrontendPlanStatus::Cancelled,
             };
             Ok(Some(Plan {
                 id: row.id,
@@ -1312,14 +1312,14 @@ pub async fn plan_list(
         .map(|row| {
             let steps: Vec<PlanStep> = serde_json::from_str(&row.steps_json).unwrap_or_default();
             let status = match row.status.as_str() {
-                "draft" => PlanStatus::Draft,
-                "reviewing" => PlanStatus::Reviewing,
-                "approved" => PlanStatus::Approved,
-                "executing" => PlanStatus::Executing,
-                "completed" => PlanStatus::Completed,
-                "partial" => PlanStatus::Partial,
-                "cancelled" => PlanStatus::Cancelled,
-                _ => PlanStatus::Cancelled,
+                "draft" => FrontendPlanStatus::Draft,
+                "reviewing" => FrontendPlanStatus::Reviewing,
+                "approved" => FrontendPlanStatus::Approved,
+                "executing" => FrontendPlanStatus::Executing,
+                "completed" => FrontendPlanStatus::Completed,
+                "partial" => FrontendPlanStatus::Partial,
+                "cancelled" => FrontendPlanStatus::Cancelled,
+                _ => FrontendPlanStatus::Cancelled,
             };
             Plan {
                 id: row.id,
@@ -1387,14 +1387,14 @@ pub async fn plan_modify_step(
     am.update(db).await.map_err(|e| format!("Failed to update plan: {}", e))?;
 
     let status = match row.status.as_str() {
-        "draft" => PlanStatus::Draft,
-        "reviewing" => PlanStatus::Reviewing,
-        "approved" => PlanStatus::Approved,
-        "executing" => PlanStatus::Executing,
-        "completed" => PlanStatus::Completed,
-        "partial" => PlanStatus::Partial,
-        "cancelled" => PlanStatus::Cancelled,
-        _ => PlanStatus::Cancelled,
+        "draft" => FrontendPlanStatus::Draft,
+        "reviewing" => FrontendPlanStatus::Reviewing,
+        "approved" => FrontendPlanStatus::Approved,
+        "executing" => FrontendPlanStatus::Executing,
+        "completed" => FrontendPlanStatus::Completed,
+        "partial" => FrontendPlanStatus::Partial,
+        "cancelled" => FrontendPlanStatus::Cancelled,
+        _ => FrontendPlanStatus::Cancelled,
     };
 
     Ok(Some(Plan {

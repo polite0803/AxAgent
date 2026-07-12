@@ -167,14 +167,14 @@ async fn record_version(
     use std::time::{SystemTime, UNIX_EPOCH};
     let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
 
-    db.execute_unprepared(&format!(
-        "INSERT OR IGNORE INTO axagent_schema_version (version, applied_at, description) \
-         VALUES ({}, {}, '{}')",
-        version,
-        now,
-        description.replace('\'', "''"),
-    ))
-    .await?;
+    // 参数化查询：避免 format! 拼接 SQL 带来的注入风险与转义负担。
+    // Sea-ORM 2.0 中 execute 接受 StatementBuilder，原始 Statement 需走 execute_raw。
+    let stmt = Statement::from_sql_and_values(
+        DatabaseBackend::Sqlite,
+        "INSERT OR IGNORE INTO axagent_schema_version (version, applied_at, description) VALUES (?, ?, ?)",
+        [version.into(), now.into(), description.into()],
+    );
+    db.execute_raw(stmt).await?;
     Ok(())
 }
 
@@ -199,12 +199,10 @@ mod tests {
             "axagent_schema_version",
         ] {
             let row = db
-                .query_one_raw(Statement::from_string(
+                .query_one_raw(Statement::from_sql_and_values(
                     DatabaseBackend::Sqlite,
-                    &format!(
-                        "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
-                        table
-                    ),
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    [(*table).into()],
                 ))
                 .await
                 .unwrap();
@@ -214,12 +212,10 @@ mod tests {
         // 死表应已被 v003 删除
         for dead in &["categories", "apps", "context_packs"] {
             let row = db
-                .query_one_raw(Statement::from_string(
+                .query_one_raw(Statement::from_sql_and_values(
                     DatabaseBackend::Sqlite,
-                    &format!(
-                        "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
-                        dead
-                    ),
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    [(*dead).into()],
                 ))
                 .await
                 .unwrap();
@@ -266,12 +262,10 @@ mod tests {
             "idx_messages_branch",
         ] {
             let row = db
-                .query_one_raw(Statement::from_string(
+                .query_one_raw(Statement::from_sql_and_values(
                     DatabaseBackend::Sqlite,
-                    &format!(
-                        "SELECT name FROM sqlite_master WHERE type='index' AND name='{}'",
-                        idx
-                    ),
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+                    [(*idx).into()],
                 ))
                 .await
                 .unwrap();

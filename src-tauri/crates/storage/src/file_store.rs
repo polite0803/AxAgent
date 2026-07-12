@@ -83,6 +83,22 @@ impl FileStore {
         Ok(SavedFile { hash, storage_path: relative_path, size_bytes: data.len() as i64 })
     }
 
+    /// 读取文件内容。
+    ///
+    /// 本地命中时直接读取磁盘；仅在 mobile 配置下，当文件不在本地时，
+    /// 会通过 `rt.block_on(...)` 同步等待异步 `fetch_file` 完成后再读。
+    ///
+    /// # Panics
+    ///
+    /// 在 mobile 配置下，若当前线程不处于任何 tokio runtime 上下文，
+    /// `Handle::current()` 会 panic。
+    ///
+    /// # Safety
+    ///
+    /// `block_on` 会阻塞当前线程直到 future 完成。**调用方必须确保不在
+    /// tokio runtime worker 线程上直接调用本函数**，否则会死锁或 panic。
+    /// 建议用 `tokio::task::spawn_blocking` 包裹本函数后再在 async
+    /// 上下文中使用。
     pub fn read_file(&self, storage_path: &str) -> Result<Vec<u8>> {
         self.validate_path(storage_path)?;
         let path = self.resolve_path(storage_path);
@@ -94,6 +110,8 @@ impl FileStore {
         #[cfg(mobile)]
         if let Some(ref engine) = self.sync_engine {
             let rt = tokio::runtime::Handle::current();
+            // SAFETY: 调用方必须确保不在 tokio runtime worker 线程上直接调用，
+            // 建议通过 `spawn_blocking` 包裹。详见函数级文档。
             let fetch_result = rt.block_on(engine.fetch_file(storage_path, &path));
             if fetch_result.is_ok() {
                 return Ok(std::fs::read(&path)?);

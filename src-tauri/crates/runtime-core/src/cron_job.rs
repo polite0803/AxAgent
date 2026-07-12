@@ -220,16 +220,14 @@ impl CronJobStore {
 
     pub async fn add(&self, job: CronJob) -> String {
         let id = job.id.clone();
-        // 写入 DB
+        // 写入 DB（参数化查询，避免 SQL 注入）
         if let Ok(json) = serde_json::to_string(&job) {
-            let safe_id = id.replace('\'', "''");
-            let safe_json = json.replace('\'', "''");
-            let _ = self
-                .db
-                .execute_unprepared(&format!(
-                    "INSERT OR REPLACE INTO cron_jobs (id, data) VALUES ('{safe_id}', '{safe_json}')",
-                ))
-                .await;
+            let stmt = Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "INSERT OR REPLACE INTO cron_jobs (id, data) VALUES (?, ?)",
+                [id.clone().into(), json.into()],
+            );
+            let _ = self.db.execute_raw(stmt).await;
         }
         // 写入内存
         let mut jobs = self.jobs.write().await;
@@ -238,12 +236,13 @@ impl CronJobStore {
     }
 
     pub async fn remove(&self, id: &str) -> bool {
-        // 删除 DB 记录
-        let safe_id = id.replace('\'', "''");
-        let _ = self
-            .db
-            .execute_unprepared(&format!("DELETE FROM cron_jobs WHERE id = '{safe_id}'"))
-            .await;
+        // 删除 DB 记录（参数化查询）
+        let stmt = Statement::from_sql_and_values(
+            DbBackend::Sqlite,
+            "DELETE FROM cron_jobs WHERE id = ?",
+            [id.into()],
+        );
+        let _ = self.db.execute_raw(stmt).await;
         // 删除内存
         let mut jobs = self.jobs.write().await;
         let len = jobs.len();
@@ -261,16 +260,14 @@ impl CronJobStore {
         if let Some(job) = jobs.iter_mut().find(|j| j.id == id) {
             updater(job);
             job.updated_at = now_millis();
-            // 同步写入 DB
+            // 同步写入 DB（参数化查询）
             if let Ok(json) = serde_json::to_string(job) {
-                let safe_id = job.id.replace('\'', "''");
-                let safe_json = json.replace('\'', "''");
-                let _ = self
-                    .db
-                    .execute_unprepared(&format!(
-                        "INSERT OR REPLACE INTO cron_jobs (id, data) VALUES ('{safe_id}', '{safe_json}')",
-                    ))
-                    .await;
+                let stmt = Statement::from_sql_and_values(
+                    DbBackend::Sqlite,
+                    "INSERT OR REPLACE INTO cron_jobs (id, data) VALUES (?, ?)",
+                    [job.id.clone().into(), json.into()],
+                );
+                let _ = self.db.execute_raw(stmt).await;
             }
             true
         } else {

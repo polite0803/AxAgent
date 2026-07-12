@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::research_state::{SearchQuery, SearchResult, SourceType};
+use crate::research_state::{ResearchStateResult, SearchQuery, SourceType};
 use crate::search_provider::{ContentMetadata, ExtractedContent, RelevanceScorer, SearchProvider};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -73,7 +73,7 @@ impl AcademicSearchProvider {
     async fn perform_search(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let mut all_results = Vec::new();
 
         if self.config.sources.arxiv {
@@ -110,7 +110,7 @@ impl AcademicSearchProvider {
     async fn search_arxiv(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let query_encoded = urlencoding::encode(&query.query);
         let url = format!(
             "http://export.arxiv.org/api/query?search_query=all:{}&start=0&max_results={}",
@@ -133,7 +133,7 @@ impl AcademicSearchProvider {
         &self,
         xml: &str,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let mut results = Vec::new();
 
         let entry_blocks: Vec<&str> = xml.split("<entry>").collect();
@@ -148,7 +148,7 @@ impl AcademicSearchProvider {
                 continue;
             }
 
-            let result = SearchResult::new(
+            let result = ResearchStateResult::new(
                 SourceType::Academic,
                 id,
                 title.replace("\n", " ").trim().to_string(),
@@ -178,7 +178,7 @@ impl AcademicSearchProvider {
         Some(xml[start_idx..end_idx].to_string())
     }
 
-    fn generate_mock_results(&self, query: &SearchQuery, source: &str) -> Vec<SearchResult> {
+    fn generate_mock_results(&self, query: &SearchQuery, source: &str) -> Vec<ResearchStateResult> {
         let query_lower = query.query.to_lowercase();
 
         let mock_papers = match source {
@@ -190,10 +190,10 @@ impl AcademicSearchProvider {
         mock_papers.into_iter().take(query.max_results.min(10)).collect()
     }
 
-    fn get_arxiv_mock_results(&self, query_lower: &str) -> Vec<SearchResult> {
+    fn get_arxiv_mock_results(&self, query_lower: &str) -> Vec<ResearchStateResult> {
         if query_lower.contains("machine learning") || query_lower.contains("ml") {
             vec![
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://arxiv.org/abs/2103.00001".to_string(),
                     "Learning Transferable Visual Models From Natural Language Supervision".to_string(),
@@ -202,7 +202,7 @@ impl AcademicSearchProvider {
                 .with_published_date("2021-02-26".to_string())
                 .with_credibility(0.95)
                 .with_relevance(0.93),
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://arxiv.org/abs/2005.14165".to_string(),
                     "Language Models are Few-Shot Learners".to_string(),
@@ -214,7 +214,7 @@ impl AcademicSearchProvider {
             ]
         } else if query_lower.contains("rust") || query_lower.contains("programming") {
             vec![
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://arxiv.org/abs/1905.09501".to_string(),
                     "RustBelt: Securing the Foundations of the Rust Programming Language".to_string(),
@@ -225,7 +225,7 @@ impl AcademicSearchProvider {
                 .with_relevance(0.9),
             ]
         } else {
-            vec![SearchResult::new(
+            vec![ResearchStateResult::new(
                 SourceType::Academic,
                 "https://arxiv.org/abs/2303.17760".to_string(),
                 format!("Survey Paper: {}", query_lower),
@@ -240,10 +240,10 @@ impl AcademicSearchProvider {
         }
     }
 
-    fn get_scholar_mock_results(&self, query_lower: &str) -> Vec<SearchResult> {
+    fn get_scholar_mock_results(&self, query_lower: &str) -> Vec<ResearchStateResult> {
         if query_lower.contains("machine learning") || query_lower.contains("ml") {
             vec![
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://scholar.google.com/scholar?q=attention+is+all+you+need".to_string(),
                     "Attention Is All You Need".to_string(),
@@ -252,7 +252,7 @@ impl AcademicSearchProvider {
                 .with_published_date("2017-06-12".to_string())
                 .with_credibility(0.95)
                 .with_relevance(0.95),
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://scholar.google.com/scholar?q=bert+pre-training+of+deep+bidirectional".to_string(),
                     "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding".to_string(),
@@ -264,7 +264,7 @@ impl AcademicSearchProvider {
             ]
         } else if query_lower.contains("deep learning") || query_lower.contains("neural") {
             vec![
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://scholar.google.com/scholar?q=deep+residual+learning+image+recognition".to_string(),
                     "Deep Residual Learning for Image Recognition".to_string(),
@@ -275,7 +275,7 @@ impl AcademicSearchProvider {
                 .with_relevance(0.91),
             ]
         } else {
-            vec![SearchResult::new(
+            vec![ResearchStateResult::new(
                 SourceType::Academic,
                 "https://scholar.google.com/scholar?q=comprehensive+survey".to_string(),
                 format!("Comprehensive Survey on {}", query_lower),
@@ -290,10 +290,10 @@ impl AcademicSearchProvider {
         }
     }
 
-    fn get_pubmed_mock_results(&self, query_lower: &str) -> Vec<SearchResult> {
+    fn get_pubmed_mock_results(&self, query_lower: &str) -> Vec<ResearchStateResult> {
         if query_lower.contains("cancer") || query_lower.contains("tumor") {
             vec![
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://pubmed.ncbi.nlm.nih.gov/29198900/".to_string(),
                     "Cancer Immunotherapy: A Review of Current Understanding".to_string(),
@@ -302,7 +302,7 @@ impl AcademicSearchProvider {
                 .with_published_date("2017-11-01".to_string())
                 .with_credibility(0.92)
                 .with_relevance(0.89),
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://pubmed.ncbi.nlm.nih.gov/30351497/".to_string(),
                     "Molecular Mechanisms of Cancer Development".to_string(),
@@ -314,7 +314,7 @@ impl AcademicSearchProvider {
             ]
         } else if query_lower.contains("covid") || query_lower.contains("virus") {
             vec![
-                SearchResult::new(
+                ResearchStateResult::new(
                     SourceType::Academic,
                     "https://pubmed.ncbi.nlm.nih.gov/32191675/".to_string(),
                     "SARS-CoV-2 Transmission and Infection".to_string(),
@@ -325,7 +325,7 @@ impl AcademicSearchProvider {
                 .with_relevance(0.92),
             ]
         } else {
-            vec![SearchResult::new(
+            vec![ResearchStateResult::new(
                 SourceType::Academic,
                 "https://pubmed.ncbi.nlm.nih.gov/35000000/".to_string(),
                 format!("Review: {}", query_lower),
@@ -343,7 +343,7 @@ impl AcademicSearchProvider {
     async fn search_google_scholar(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let query_encoded = urlencoding::encode(&query.query);
         let url = format!(
             "https://serpapi.com/search.json?engine=google_scholar&q={}&num={}",
@@ -374,7 +374,7 @@ impl AcademicSearchProvider {
         &self,
         json: &str,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let mut results = Vec::new();
 
         if let Ok(data) = serde_json::from_str::<serde_json::Value>(json)
@@ -398,7 +398,7 @@ impl AcademicSearchProvider {
                     continue;
                 }
 
-                let result = SearchResult::new(SourceType::Academic, link, title, snippet)
+                let result = ResearchStateResult::new(SourceType::Academic, link, title, snippet)
                     .with_credibility(0.88)
                     .with_relevance(0.85);
 
@@ -416,7 +416,7 @@ impl AcademicSearchProvider {
     async fn search_pubmed(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let query_encoded = urlencoding::encode(&query.query);
         let url = format!(
             "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term={}&retmax={}&retmode=json",
@@ -446,7 +446,7 @@ impl AcademicSearchProvider {
         &self,
         json: &str,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         let mut results = Vec::new();
 
         if let Ok(data) = serde_json::from_str::<serde_json::Value>(json)
@@ -456,7 +456,7 @@ impl AcademicSearchProvider {
             for id in id_list {
                 if let Some(id_str) = id.as_str() {
                     let link = format!("https://pubmed.ncbi.nlm.nih.gov/{}/", id_str);
-                    let result = SearchResult::new(
+                    let result = ResearchStateResult::new(
                         SourceType::Academic,
                         link,
                         format!("PubMed Article: {}", id_str),
@@ -489,7 +489,7 @@ impl SearchProvider for AcademicSearchProvider {
     async fn search(
         &self,
         query: &SearchQuery,
-    ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
+    ) -> Result<Vec<ResearchStateResult>, crate::search_provider::SearchError> {
         self.perform_search(query).await
     }
 

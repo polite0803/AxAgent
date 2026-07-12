@@ -181,7 +181,8 @@ pub use remote::{
 };
 
 pub use session_search::{
-    IndexedMessage, SearchQuery as RuntimeSearchQuery, SearchResult, SessionSearchEngine,
+    IndexedMessage, SearchQuery as RuntimeSearchQuery, SessionMessageSearchResult,
+    SessionSearchEngine,
 };
 pub use stale_base::{
     BaseCommitSource, BaseCommitState, check_base_commit, format_stale_base_warning,

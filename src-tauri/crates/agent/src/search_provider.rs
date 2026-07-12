@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::research_state::{SearchQuery, SearchResult, SourceType};
+use crate::research_state::{ResearchStateResult, SearchQuery, SourceType};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -93,7 +93,7 @@ impl ExtractedContent {
 
 #[async_trait]
 pub trait SearchProvider: Send + Sync {
-    async fn search(&self, query: &SearchQuery) -> Result<Vec<SearchResult>, SearchError>;
+    async fn search(&self, query: &SearchQuery) -> Result<Vec<ResearchStateResult>, SearchError>;
     async fn extract_content(&self, url: &str) -> Result<ExtractedContent, ExtractError>;
     fn source_type(&self) -> SourceType;
     fn display_name(&self) -> &str;
@@ -212,9 +212,9 @@ impl fmt::Display for SearchProviderType {
     }
 }
 
-pub trait SearchResultProcessor: Send + Sync {
-    fn process(&self, result: SearchResult) -> SearchResult;
-    fn process_batch(&self, results: Vec<SearchResult>) -> Vec<SearchResult> {
+pub trait ResearchStateResultProcessor: Send + Sync {
+    fn process(&self, result: ResearchStateResult) -> ResearchStateResult;
+    fn process_batch(&self, results: Vec<ResearchStateResult>) -> Vec<ResearchStateResult> {
         results.into_iter().map(|r| self.process(r)).collect()
     }
 }
@@ -230,7 +230,7 @@ impl RelevanceScorer {
         Self { query_terms }
     }
 
-    pub fn score(&self, result: &SearchResult) -> f32 {
+    pub fn score(&self, result: &ResearchStateResult) -> f32 {
         let title_lower = result.title.to_lowercase();
         let snippet_lower = result.snippet.to_lowercase();
 
@@ -248,8 +248,8 @@ impl RelevanceScorer {
         score.min(1.0)
     }
 
-    pub fn score_and_sort(&self, results: Vec<SearchResult>) -> Vec<SearchResult> {
-        let mut scored: Vec<(SearchResult, f32)> = results
+    pub fn score_and_sort(&self, results: Vec<ResearchStateResult>) -> Vec<ResearchStateResult> {
+        let mut scored: Vec<(ResearchStateResult, f32)> = results
             .into_iter()
             .map(|mut r| {
                 let score = self.score(&r);
@@ -264,8 +264,8 @@ impl RelevanceScorer {
     }
 }
 
-impl SearchResultProcessor for RelevanceScorer {
-    fn process(&self, result: SearchResult) -> SearchResult {
+impl ResearchStateResultProcessor for RelevanceScorer {
+    fn process(&self, result: ResearchStateResult) -> ResearchStateResult {
         let mut r = result;
         r.relevance_score = self.score(&r);
         r
@@ -285,8 +285,11 @@ mod tests {
 
     #[async_trait]
     impl SearchProvider for MockProvider {
-        async fn search(&self, _query: &SearchQuery) -> Result<Vec<SearchResult>, SearchError> {
-            Ok(vec![SearchResult::new(
+        async fn search(
+            &self,
+            _query: &SearchQuery,
+        ) -> Result<Vec<ResearchStateResult>, SearchError> {
+            Ok(vec![ResearchStateResult::new(
                 self.source,
                 "https://example.com".to_string(),
                 "Mock Result".to_string(),
@@ -534,7 +537,7 @@ mod tests {
     #[test]
     fn test_relevance_scorer_score_title_match() {
         let scorer = RelevanceScorer::new("rust");
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Rust Programming Guide".to_string(),
@@ -547,7 +550,7 @@ mod tests {
     #[test]
     fn test_relevance_scorer_score_snippet_match() {
         let scorer = RelevanceScorer::new("rust");
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Programming Guide".to_string(),
@@ -560,7 +563,7 @@ mod tests {
     #[test]
     fn test_relevance_scorer_score_no_match() {
         let scorer = RelevanceScorer::new("python");
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Java Tutorial".to_string(),
@@ -573,7 +576,7 @@ mod tests {
     #[test]
     fn test_relevance_scorer_score_max_one() {
         let scorer = RelevanceScorer::new("a b c d e");
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "a b c d e".to_string(),
@@ -587,19 +590,19 @@ mod tests {
     fn test_relevance_scorer_score_and_sort() {
         let scorer = RelevanceScorer::new("rust");
         let results = vec![
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://a.com".to_string(),
                 "Java Guide".to_string(),
                 "Java stuff".to_string(),
             ),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://b.com".to_string(),
                 "Rust Guide".to_string(),
                 "Rust stuff".to_string(),
             ),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://c.com".to_string(),
                 "Python Guide".to_string(),
@@ -614,7 +617,7 @@ mod tests {
     #[test]
     fn test_relevance_scorer_as_processor() {
         let scorer = RelevanceScorer::new("rust");
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Rust Guide".to_string(),
@@ -628,13 +631,13 @@ mod tests {
     fn test_search_result_processor_process_batch() {
         let scorer = RelevanceScorer::new("rust");
         let results = vec![
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://a.com".to_string(),
                 "Rust A".to_string(),
                 "rust".to_string(),
             ),
-            SearchResult::new(
+            ResearchStateResult::new(
                 SourceType::Web,
                 "https://b.com".to_string(),
                 "Java B".to_string(),

@@ -22,7 +22,7 @@ pub enum AssertionType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidationResult {
+pub struct ExecValidationResult {
     pub passed: bool,
     pub failed_assertions: Vec<FailedAssertion>,
     pub execution_time_ms: u64,
@@ -37,7 +37,7 @@ pub struct FailedAssertion {
 pub struct ValidationExecutor;
 
 impl ValidationExecutor {
-    pub fn validate(assertions: &[Assertion], context: &serde_json::Value) -> ValidationResult {
+    pub fn validate(assertions: &[Assertion], context: &serde_json::Value) -> ExecValidationResult {
         let start = std::time::Instant::now();
         let mut failed_assertions = Vec::new();
 
@@ -47,7 +47,7 @@ impl ValidationExecutor {
             }
         }
 
-        ValidationResult {
+        ExecValidationResult {
             passed: failed_assertions.is_empty(),
             failed_assertions,
             execution_time_ms: start.elapsed().as_millis() as u64,

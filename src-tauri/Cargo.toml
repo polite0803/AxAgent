@@ -206,6 +206,7 @@ opt-level = 0
 debug = true
 
 [dev-dependencies]
+axagent-agent = { path = "crates/agent", features = ["testing"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [[bench]]

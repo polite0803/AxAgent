@@ -1354,10 +1354,20 @@
       "exportSkill": "تصدير",
       "importSkill": "استيراد",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "تم التصدير {{name}}",
+      "exportFailed": "فشل التصدير: {{error}}",
+      "imported": "تم الاستيراد {{name}}",
+      "importFailed": "فشل الاستيراد: {{error}}"
     },
     "plugins": {
-      "title": "الإضافات"
+      "title": "الإضافات",
+      "loadFailed": "فشل تحميل الإضافات: {{error}}",
+      "refreshFailed": "فشل التحديث: {{error}}",
+      "installFailed": "فشل التثبيت: {{error}}",
+      "openFolderFailed": "فشل فتح المجلد: {{error}}",
+      "toggleFailed": "فشل تبديل الحالة: {{error}}",
+      "unloadFailed": "فشل الإلغاء: {{error}}"
     },
     "dashboardPlugins": {
       "title": "إضافات لوحة المعلومات",
@@ -2354,7 +2364,13 @@
       "agentEvents": "أحداث الوكيل",
       "toolEvents": "أحداث الأداة",
       "sessionEvents": "أحداث الجلسة",
-      "messageEvents": "أحداث الرسالة"
+      "messageEvents": "أحداث الرسالة",
+      "loadFailed": "فشل تحميل الاشتراكات: {{error}}",
+      "refreshFailed": "فشل التحديث: {{error}}",
+      "toggleFailed": "فشل تبديل الحالة: {{error}}",
+      "deleteFailed": "فشل الحذف: {{error}}",
+      "createFailed": "فشل الإنشاء: {{error}}",
+      "testFailed": "فشل الاختبار: {{error}}"
     },
     "themePreset": "إعداد مسبق للسمة",
     "themePresetDeepDusk": "شفق عميق",
@@ -6905,7 +6921,10 @@
     },
     "title": "الضبط الدقيق للنموذج",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "حذف مجموعة البيانات هذه؟"
+    }
   },
   "research": {
     "mockFinding": "نتيجة بحث وهمية",

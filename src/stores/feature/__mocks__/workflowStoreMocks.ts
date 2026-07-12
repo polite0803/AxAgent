@@ -10,15 +10,15 @@
  * - extractTriggers: 触发词提取辅助函数
  */
 
-import type { UISchema } from "@/types/dynamicUI";
 import type {
   NL2SkillResult,
   NL2UIRequest,
   NL2UIResult,
   NLParseResult,
   SkillDefinition,
+  UISchema,
   WorkflowDefinition,
-} from "@/types/workflow";
+} from "@/types";
 
 // ── ID 生成 ──
 

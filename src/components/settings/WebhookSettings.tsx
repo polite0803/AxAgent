@@ -76,7 +76,7 @@ export function WebhookSettings() {
       );
       setSubscriptions(result);
     } catch (error) {
-      message.error(`Failed to load subscriptions: ${error}`);
+      message.error(t("settings.webhook.loadFailed", { error }));
     } finally {
       setLoading(false);
     }
@@ -84,6 +84,7 @@ export function WebhookSettings() {
 
   useEffect(() => {
     setTimeout(() => loadSubscriptions(), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRefresh = async () => {
@@ -93,7 +94,7 @@ export function WebhookSettings() {
       await loadSubscriptions();
       message.success(t("settings.webhook.refreshSuccess"));
     } catch (error) {
-      message.error(`Refresh failed: ${error}`);
+      message.error(t("settings.webhook.refreshFailed", { error }));
     } finally {
       setRefreshing(false);
     }
@@ -112,7 +113,7 @@ export function WebhookSettings() {
           : t("settings.webhook.disabled"),
       );
     } catch (error) {
-      message.error(`Toggle failed: ${error}`);
+      message.error(t("settings.webhook.toggleFailed", { error }));
     }
   };
 
@@ -124,7 +125,7 @@ export function WebhookSettings() {
       setSubscriptions((prev) => prev.filter((s) => s.id !== id));
       message.success(t("settings.webhook.deleted"));
     } catch (error) {
-      message.error(`Delete failed: ${error}`);
+      message.error(t("settings.webhook.deleteFailed", { error }));
     }
   };
 
@@ -148,7 +149,7 @@ export function WebhookSettings() {
       form.resetFields();
       message.success(t("settings.webhook.created"));
     } catch (error) {
-      message.error(`Create failed: ${error}`);
+      message.error(t("settings.webhook.createFailed", { error }));
     } finally {
       setSubmitting(false);
     }
@@ -161,7 +162,7 @@ export function WebhookSettings() {
       });
       message.success(t("settings.webhook.testSuccess"));
     } catch (error) {
-      message.error(`Test failed: ${error}`);
+      message.error(t("settings.webhook.testFailed", { error }));
     }
   };
 

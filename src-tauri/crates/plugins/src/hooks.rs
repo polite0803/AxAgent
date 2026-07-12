@@ -13,22 +13,8 @@ use serde_json::json;
 
 use crate::{PluginError, PluginHooks, PluginRegistry};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HookEvent {
-    PreToolUse,
-    PostToolUse,
-    PostToolUseFailure,
-}
-
-impl HookEvent {
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::PreToolUse => "PreToolUse",
-            Self::PostToolUse => "PostToolUse",
-            Self::PostToolUseFailure => "PostToolUseFailure",
-        }
-    }
-}
+// HookEvent 权威定义在 axagent-harness（29 变体全集，含 pub as_str），此处 re-export 复用。
+pub use axagent_harness::runtime_types::hooks::HookEvent;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HookRunResult {

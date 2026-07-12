@@ -8,7 +8,7 @@ import type { AgentPoolItem, ToolCallState } from "@/types";
 const _EMPTY: never[] = [];
 import { SyncOutlined } from "@ant-design/icons";
 import { Progress, Tag, theme, Timeline, Typography } from "antd";
-import type { TimelineItemProps } from "antd";
+import type { GlobalToken, TimelineItemProps } from "antd";
 import {
   AlertTriangle,
   Bot,
@@ -108,8 +108,7 @@ function poolItemToEvent(item: AgentPoolItem): TimelineEvent {
 
 // ── Status colors and icons ──────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getStatusConfig(token: Record<string, any>) {
+function getStatusConfig(token: GlobalToken) {
   return {
     pending: { color: token.colorTextQuaternary, icon: <Clock size={12} /> },
     running: {

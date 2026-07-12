@@ -249,12 +249,11 @@ fn extract_gemini_compat_chunk(data: &str) -> Option<ChatStreamChunk> {
         .filter(|text| !text.is_empty());
 
     let usage = parsed.usage_metadata.map(|usage| TokenUsage {
-        prompt_tokens: usage.prompt_token_count.unwrap_or(0),
-        completion_tokens: usage.candidates_token_count.unwrap_or(0),
-        total_tokens: usage.total_token_count.unwrap_or(0),
-        cache_creation_tokens: None,
-        cache_read_tokens: usage.cached_content_token_count,
-        ..Default::default()
+        input_tokens: usage.prompt_token_count.unwrap_or(0),
+        output_tokens: usage.candidates_token_count.unwrap_or(0),
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: usage.cached_content_token_count.unwrap_or(0),
+        cache_miss_input_tokens: None,
     });
 
     if content.is_none() && usage.is_none() {
@@ -278,6 +277,7 @@ struct OpenAIUsage {
     #[serde(default)]
     completion_tokens: u32,
     #[serde(default)]
+    #[allow(dead_code)]
     total_tokens: u32,
     // DeepSeek 风格: 顶层 prompt_cache_*_tokens
     #[serde(default)]
@@ -315,12 +315,11 @@ impl OpenAIUsage {
 
     fn to_token_usage(&self) -> TokenUsage {
         TokenUsage {
-            prompt_tokens: self.prompt_tokens,
-            completion_tokens: self.completion_tokens,
-            total_tokens: self.total_tokens,
-            cache_creation_tokens: None,
-            cache_read_tokens: self.cache_read_tokens(),
-            cache_miss_tokens: self.prompt_cache_miss_tokens,
+            input_tokens: self.prompt_tokens,
+            output_tokens: self.completion_tokens,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: self.cache_read_tokens().unwrap_or(0),
+            cache_miss_input_tokens: self.prompt_cache_miss_tokens,
         }
     }
 }
@@ -385,6 +384,7 @@ struct GeminiCompatPart {
 struct GeminiCompatUsageMetadata {
     prompt_token_count: Option<u32>,
     candidates_token_count: Option<u32>,
+    #[allow(dead_code)]
     total_token_count: Option<u32>,
     /// Gemini 上下文缓存命中 token 数 (cachedContentTokenCount).
     #[serde(default)]
@@ -703,14 +703,7 @@ impl ProviderAdapter for OpenAIAdapter {
             .as_ref()
             .ok_or_else(|| AxAgentError::Provider("No message in choice".into()))?;
 
-        let usage = oai.usage.map(|u| u.to_token_usage()).unwrap_or(TokenUsage {
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
-            cache_creation_tokens: None,
-            cache_read_tokens: None,
-            ..Default::default()
-        });
+        let usage = oai.usage.map(|u| u.to_token_usage()).unwrap_or_default();
 
         let tool_calls = msg.tool_calls.as_ref().map(|tcs| {
             tcs.iter()
@@ -890,7 +883,7 @@ impl ProviderAdapter for OpenAIAdapter {
                     }
 
                     let usage = parsed.usage.map(|u| u.to_token_usage());
-                    if let Some(u) = usage.clone() {
+                    if let Some(u) = usage {
                         last_usage = Some(u);
                     }
                     let content = choice

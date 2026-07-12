@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::research_state::{SearchResult, SourceType};
+use crate::research_state::{ResearchStateResult, SourceType};
 use crate::source_validator::SourceValidationResult;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -149,7 +149,7 @@ impl CredibilityEvaluator {
         self
     }
 
-    pub async fn evaluate(&self, result: &SearchResult) -> CredibilityAssessment {
+    pub async fn evaluate(&self, result: &ResearchStateResult) -> CredibilityAssessment {
         let authority = self.evaluate_authority(result).await;
         let consistency = self.evaluate_consistency(result).await;
         let recency = self.evaluate_recency(result);
@@ -198,7 +198,7 @@ impl CredibilityEvaluator {
 
     pub async fn evaluate_with_validation(
         &self,
-        result: &SearchResult,
+        result: &ResearchStateResult,
         validation: SourceValidationResult,
     ) -> CredibilityAssessment {
         let mut assessment = self.evaluate(result).await;
@@ -214,7 +214,7 @@ impl CredibilityEvaluator {
         assessment
     }
 
-    async fn evaluate_authority(&self, result: &SearchResult) -> FactorResult {
+    async fn evaluate_authority(&self, result: &ResearchStateResult) -> FactorResult {
         let weight = self
             .source_weights
             .get(&result.source_type)
@@ -267,7 +267,7 @@ impl CredibilityEvaluator {
         }
     }
 
-    async fn evaluate_consistency(&self, _result: &SearchResult) -> FactorResult {
+    async fn evaluate_consistency(&self, _result: &ResearchStateResult) -> FactorResult {
         FactorResult {
             dimension: FactorDimension::Consistency,
             score: 0.7,
@@ -275,7 +275,7 @@ impl CredibilityEvaluator {
         }
     }
 
-    fn evaluate_recency(&self, result: &SearchResult) -> FactorResult {
+    fn evaluate_recency(&self, result: &ResearchStateResult) -> FactorResult {
         let recency_score = match &result.published_date {
             Some(date_str) => {
                 if let Ok(date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
@@ -322,7 +322,7 @@ impl CredibilityEvaluator {
         }
     }
 
-    async fn evaluate_objectivity(&self, result: &SearchResult) -> FactorResult {
+    async fn evaluate_objectivity(&self, result: &ResearchStateResult) -> FactorResult {
         let snippet_lower = result.snippet.to_lowercase();
 
         let subjective_indicators = [
@@ -373,7 +373,10 @@ impl CredibilityEvaluator {
         }
     }
 
-    pub async fn evaluate_batch(&self, results: &[SearchResult]) -> Vec<CredibilityAssessment> {
+    pub async fn evaluate_batch(
+        &self,
+        results: &[ResearchStateResult],
+    ) -> Vec<CredibilityAssessment> {
         let futures: Vec<_> = results.iter().map(|r| self.evaluate(r)).collect();
         futures::future::join_all(futures).await
     }
@@ -435,7 +438,7 @@ mod tests {
     async fn test_evaluate_academic_source() {
         let evaluator = CredibilityEvaluator::new();
 
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Academic,
             "https://arxiv.org/abs/2103.00001".to_string(),
             "A Study on Machine Learning".to_string(),
@@ -452,7 +455,7 @@ mod tests {
     async fn test_evaluate_blog_source() {
         let evaluator = CredibilityEvaluator::new();
 
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Blog,
             "https://personal-blog.com/post".to_string(),
             "I think this is the best framework".to_string(),
@@ -547,7 +550,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_github_source() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::GitHub,
             "https://github.com/rust-lang/rust".to_string(),
             "Rust Programming Language".to_string(),
@@ -561,7 +564,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_news_source() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::News,
             "https://news.example.com/article".to_string(),
             "Official report on climate change".to_string(),
@@ -574,7 +577,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_forum_source() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Forum,
             "https://forum.example.com/thread".to_string(),
             "Personal experience".to_string(),
@@ -587,7 +590,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_with_recent_date() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Academic,
             "https://arxiv.org/abs/test".to_string(),
             "Recent Paper".to_string(),
@@ -601,7 +604,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_with_old_date() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Academic,
             "https://arxiv.org/abs/old".to_string(),
             "Old Paper".to_string(),
@@ -615,7 +618,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_no_date() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "No Date Article".to_string(),
@@ -628,7 +631,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_invalid_date() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Bad Date".to_string(),
@@ -642,7 +645,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_subjective_content() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Blog,
             "https://blog.example.com".to_string(),
             "My Opinion".to_string(),
@@ -655,7 +658,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_objective_content() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Academic,
             "https://arxiv.org/abs/test".to_string(),
             "Research Study".to_string(),
@@ -668,7 +671,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_with_validation_adjusts_score() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Academic,
             "https://arxiv.org/abs/test".to_string(),
             "Validated Paper".to_string(),
@@ -690,7 +693,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_assessment_has_factors() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Test".to_string(),
@@ -703,7 +706,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_assessment_factor_dimensions() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://example.com".to_string(),
             "Test".to_string(),
@@ -814,7 +817,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_wikipedia_source() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Wikipedia,
             "https://en.wikipedia.org/wiki/Rust".to_string(),
             "Rust (programming language)".to_string(),
@@ -827,7 +830,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_documentation_source() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Documentation,
             "https://docs.rs/tokio".to_string(),
             "Tokio Documentation".to_string(),
@@ -840,7 +843,7 @@ mod tests {
     #[tokio::test]
     async fn test_evaluate_web_source() {
         let evaluator = CredibilityEvaluator::new();
-        let result = SearchResult::new(
+        let result = ResearchStateResult::new(
             SourceType::Web,
             "https://random-site.com".to_string(),
             "Random Article".to_string(),

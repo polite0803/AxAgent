@@ -29,7 +29,7 @@ pub mod tool;
 pub use agent::AgentState;
 pub use gateway::GatewayState;
 pub use infra::InfraState;
-pub use learning::LearningState;
+pub use learning::LearningEngineState;
 pub use memory::MemoryState;
 pub use skill::{BrowserClientField, SandboxExecutorField, SkillState};
 pub use task::TaskState;

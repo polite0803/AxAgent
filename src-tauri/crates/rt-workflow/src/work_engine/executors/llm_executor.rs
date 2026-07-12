@@ -220,7 +220,7 @@ impl NodeExecutorTrait for LlmExecutor {
             output: serde_json::json!({
                 "model": model_for_output, "provider": prov.id,
                 "content": response.content, "thinking": response.thinking,
-                "usage": { "input_tokens": response.usage.prompt_tokens, "output_tokens": response.usage.completion_tokens },
+                "usage": { "input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens },
                 "node_id": node.base_id(),
             }),
             output_var: None,

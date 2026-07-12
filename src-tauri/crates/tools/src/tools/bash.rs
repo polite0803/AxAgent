@@ -207,14 +207,15 @@ impl Tool for BashTool {
             axagent_kit::utils::hide_window(command.as_std_mut());
         }
         let child = command
-            // FIXME(Windows): kill_on_drop kills cmd.exe but not grandchildren
-            // (e.g. ping.exe spawned by cmd). The grandchild can keep the
-            // stdout/stderr pipes open, delaying test process exit.
-            // Full grandchild cleanup requires Job Objects (win32job crate).
-            // Tracked in Task 2.4 / docs/2026-06-11-code-review.md (Section 2.7).
             .kill_on_drop(true)
             .spawn()
             .map_err(|e| ToolError::execution_failed_for("Bash", format!("启动命令失败: {}", e)))?;
+
+        // Windows: 使用 Job Object 确保整个进程树（包括孙子进程）被一起清理
+        // 非 Windows: 空操作，JobHandle 不做任何事
+        let _job_handle = crate::job_object::assign_job(&child).map_err(|e| {
+            ToolError::execution_failed_for("Bash", format!("创建进程组失败: {}", e))
+        })?;
 
         let start = std::time::Instant::now();
 
@@ -319,16 +320,9 @@ mod tests {
         );
     }
 
-    /// 验证：1s 超时能在一个合理时间内触发（≤5s），并返回超时错误。
+    /// 验证：1s 超时能在一个合理时间内触发（≤3s），并返回超时错误。
     ///
-    /// Windows 上要把 1s 超时测得 ≤2s 比较难：cmd /C 包装的子命令（ping、
-    /// timeout）会产生 grandchild 进程（ping.exe / timeout.exe），cmd.exe
-    /// 被 `kill_on_drop` kill 后 grandchild 仍持有 stdout/stderr 管道，
-    /// 完整清理需要 Job Objects（win32job）。这里用 timing assertion 替代
-    /// 严格的 ≤2s 上限，确保 timeout 路径回归成"忽略超时、傻等子进程退出"
-    /// 时这个测试会失败（会变成 30s+）。
-    /// FIXME(Windows): 大约 29s 的 cmd grandchild 延迟需要 Job Objects
-    /// 才能彻底解决，跟踪在 Task 2.4 / docs/2026-06-11-code-review.md §2.7。
+    /// Windows: Job Object 现在确保整个进程树被终止，grandchild 不会残留。
     #[tokio::test]
     async fn bash_kill_on_timeout_reaps_child() {
         let tool = BashTool;

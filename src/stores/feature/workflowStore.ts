@@ -19,7 +19,7 @@ import type {
   WorkflowNode,
   WorkflowTemplate,
   WorkflowVersion,
-} from "@/types/workflow";
+} from "@/types";
 import { create } from "zustand";
 
 // Dev-only mock imports — Vite tree-shakes these in production build.

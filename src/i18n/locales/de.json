@@ -2273,10 +2273,20 @@
       "exportSkill": "Exportieren",
       "importSkill": "Importieren",
       "noSkillsToExport": "No installed skills to export",
-      "invalidSkillFile": "Invalid skill file: missing name"
+      "invalidSkillFile": "Invalid skill file: missing name",
+      "exported": "Exportiert {{name}}",
+      "exportFailed": "Export fehlgeschlagen: {{error}}",
+      "imported": "Importiert {{name}}",
+      "importFailed": "Import fehlgeschlagen: {{error}}"
     },
     "plugins": {
-      "title": "Plugins"
+      "title": "Plugins",
+      "loadFailed": "Plugins laden fehlgeschlagen: {{error}}",
+      "refreshFailed": "Aktualisierung fehlgeschlagen: {{error}}",
+      "installFailed": "Installation fehlgeschlagen: {{error}}",
+      "openFolderFailed": "Ordner öffnen fehlgeschlagen: {{error}}",
+      "toggleFailed": "Umschalten fehlgeschlagen: {{error}}",
+      "unloadFailed": "Entladen fehlgeschlagen: {{error}}"
     },
     "dashboardPlugins": {
       "title": "Dashboard-Plugins",
@@ -2331,7 +2341,13 @@
       "agentEvents": "Agent-Ereignisse",
       "toolEvents": "Werkzeug-Ereignisse",
       "sessionEvents": "Sitzungs-Ereignisse",
-      "messageEvents": "Nachrichten-Ereignisse"
+      "messageEvents": "Nachrichten-Ereignisse",
+      "loadFailed": "Abonnements laden fehlgeschlagen: {{error}}",
+      "refreshFailed": "Aktualisierung fehlgeschlagen: {{error}}",
+      "toggleFailed": "Umschalten fehlgeschlagen: {{error}}",
+      "deleteFailed": "Löschen fehlgeschlagen: {{error}}",
+      "createFailed": "Erstellen fehlgeschlagen: {{error}}",
+      "testFailed": "Test fehlgeschlagen: {{error}}"
     },
     "themePreset": "Design-Voreinstellung",
     "themePresetDeepDusk": "Tiefe Dämmerung",
@@ -6905,7 +6921,10 @@
     },
     "title": "Modell-Feinabstimmung",
     "trainingJobCreated": "Training job created successfully",
-    "trainingJobFailed": "Failed to create training job"
+    "trainingJobFailed": "Failed to create training job",
+    "dataset": {
+      "deleteConfirm": "Diesen Datensatz löschen?"
+    }
   },
   "research": {
     "mockFinding": "Simuliertes Forschungsergebnis",

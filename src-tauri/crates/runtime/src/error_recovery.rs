@@ -77,7 +77,7 @@ impl From<ErrorKind> for axagent_agent::ErrorType {
 
 /// 重试策略配置
 #[derive(Debug, Clone)]
-pub struct RetryPolicy {
+pub struct RecoveryRetryPolicy {
     /// 最大重试次数
     pub max_retries: u32,
     /// 基础延迟时间
@@ -86,7 +86,7 @@ pub struct RetryPolicy {
     pub max_delay: Duration,
 }
 
-impl Default for RetryPolicy {
+impl Default for RecoveryRetryPolicy {
     fn default() -> Self {
         Self {
             max_retries: 3,
@@ -96,7 +96,7 @@ impl Default for RetryPolicy {
     }
 }
 
-impl RetryPolicy {
+impl RecoveryRetryPolicy {
     /// 计算第 n 次重试的等待延迟
     pub fn delay_for(&self, kind: ErrorKind, attempt: u32) -> Duration {
         match kind {
@@ -125,16 +125,8 @@ impl RetryPolicy {
     }
 }
 
-/// 熔断器状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CircuitState {
-    /// 正常状态，请求允许通过
-    Closed,
-    /// 熔断状态，拒绝所有请求
-    Open,
-    /// 半开状态，允许探测请求
-    HalfOpen,
-}
+/// 熔断器状态（权威定义在 axagent-harness，此处 re-export 复用）
+pub use axagent_harness::CircuitState;
 
 /// 熔断器 — 连续失败达到阈值后熔断，防止雪崩
 #[derive(Debug)]
@@ -221,7 +213,7 @@ mod tests {
 
     #[test]
     fn rate_limit_uses_exponential_backoff() {
-        let policy = RetryPolicy::default();
+        let policy = RecoveryRetryPolicy::default();
         let d1 = policy.delay_for(ErrorKind::RateLimit, 1);
         let d2 = policy.delay_for(ErrorKind::RateLimit, 2);
         // 指数退避：第 2 次延迟应大于第 1 次
@@ -230,7 +222,7 @@ mod tests {
 
     #[test]
     fn server_error_uses_linear_backoff() {
-        let policy = RetryPolicy::default();
+        let policy = RecoveryRetryPolicy::default();
         let d1 = policy.delay_for(ErrorKind::ServerError, 1);
         let d2 = policy.delay_for(ErrorKind::ServerError, 2);
         assert!(d2 > d1);
@@ -238,7 +230,7 @@ mod tests {
 
     #[test]
     fn network_error_uses_fixed_interval() {
-        let policy = RetryPolicy::default();
+        let policy = RecoveryRetryPolicy::default();
         let d1 = policy.delay_for(ErrorKind::NetworkError, 1);
         let d2 = policy.delay_for(ErrorKind::NetworkError, 5);
         // 固定间隔，每次都是 500ms
@@ -286,13 +278,13 @@ mod tests {
 
     #[test]
     fn client_errors_not_retryable() {
-        let policy = RetryPolicy::default();
+        let policy = RecoveryRetryPolicy::default();
         assert!(!policy.should_retry(ErrorKind::ClientError, 0));
     }
 
     #[test]
     fn unknown_errors_not_retryable() {
-        let policy = RetryPolicy::default();
+        let policy = RecoveryRetryPolicy::default();
         assert!(!policy.should_retry(ErrorKind::Unknown, 0));
     }
 
@@ -316,7 +308,7 @@ mod tests {
 
     #[test]
     fn max_retries_exceeded_stops_retry() {
-        let policy = RetryPolicy::default();
+        let policy = RecoveryRetryPolicy::default();
         assert!(!policy.should_retry(ErrorKind::ServerError, 3)); // attempt 3 >= max_retries 3
         assert!(policy.should_retry(ErrorKind::ServerError, 2)); // attempt 2 < max_retries 3
     }

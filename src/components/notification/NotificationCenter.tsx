@@ -48,10 +48,14 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(
-      "axagent-notifications",
-      JSON.stringify(notifications),
-    );
+    try {
+      localStorage.setItem(
+        "axagent-notifications",
+        JSON.stringify(notifications),
+      );
+    } catch (e) {
+      console.warn("Failed to persist notifications", e);
+    }
   }, [notifications]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -277,15 +281,25 @@ export function addNotification(
     read: false,
   };
 
-  const stored = localStorage.getItem("axagent-notifications");
-  const existing: Notification[] = stored ? JSON.parse(stored) : [];
+  let existing: Notification[];
+  try {
+    const stored = localStorage.getItem("axagent-notifications");
+    existing = stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.warn("Failed to read notifications", e);
+    existing = [];
+  }
 
   existing.unshift(newNotification);
   if (existing.length > 50) {
     existing.splice(50);
   }
 
-  localStorage.setItem("axagent-notifications", JSON.stringify(existing));
+  try {
+    localStorage.setItem("axagent-notifications", JSON.stringify(existing));
+  } catch (e) {
+    console.warn("Failed to persist notifications", e);
+  }
 
   window.dispatchEvent(
     new CustomEvent("axagent:notification", { detail: newNotification }),

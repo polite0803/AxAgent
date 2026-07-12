@@ -101,7 +101,7 @@ impl Tool for WebSearchTool {
         let queries: Vec<&str> =
             expansion.queries.iter().take(MAX_EXPANDED_QUERIES).map(|s| s.as_str()).collect();
 
-        let mut all_results: Vec<axagent_search::search::SearchResult> = Vec::new();
+        let mut all_results: Vec<axagent_search::search::DocSearchResult> = Vec::new();
         let mut seen_urls: HashSet<String> = HashSet::new();
 
         let total_queries = queries.len();

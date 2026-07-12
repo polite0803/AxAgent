@@ -75,7 +75,7 @@ pub struct ResearchQuery {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchResult {
+pub struct DeepResearchSearchItem {
     pub query: String,
     pub url: String,
     pub title: String,
@@ -85,7 +85,7 @@ pub struct SearchResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResearchFinding {
     pub query: String,
-    pub results: Vec<SearchResult>,
+    pub results: Vec<DeepResearchSearchItem>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -356,9 +356,9 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
 
                 match provider.search(&search_query).await {
                     Ok(results) => {
-                        let search_results: Vec<SearchResult> = results
+                        let search_results: Vec<DeepResearchSearchItem> = results
                             .into_iter()
-                            .map(|r| SearchResult {
+                            .map(|r| DeepResearchSearchItem {
                                 query: query.clone(),
                                 url: r.url,
                                 title: r.title,
@@ -646,7 +646,7 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
         ];
 
         let mut contradictions = Vec::new();
-        let all_results: Vec<&SearchResult> =
+        let all_results: Vec<&DeepResearchSearchItem> =
             findings.iter().flat_map(|f| f.results.iter()).collect();
 
         for i in 0..all_results.len() {
@@ -685,7 +685,11 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
         contradictions
     }
 
-    async fn ingest_result(&self, wiki_id: &str, result: &SearchResult) -> Result<String, String> {
+    async fn ingest_result(
+        &self,
+        wiki_id: &str,
+        result: &DeepResearchSearchItem,
+    ) -> Result<String, String> {
         let content = format!(
             "# {}\n\n**Source:** [{}]({})\n\n**Research Query:** {}\n\n---\n\n{}",
             result.title, result.url, result.url, result.query, result.snippet
@@ -830,7 +834,7 @@ mod tests {
 
     #[test]
     fn test_search_result() {
-        let r = SearchResult {
+        let r = DeepResearchSearchItem {
             query: "test".to_string(),
             url: "https://example.com".to_string(),
             title: "Example".to_string(),
@@ -843,7 +847,7 @@ mod tests {
     fn test_research_finding() {
         let f = ResearchFinding {
             query: "test".to_string(),
-            results: vec![SearchResult {
+            results: vec![DeepResearchSearchItem {
                 query: "test".to_string(),
                 url: "https://a.com".to_string(),
                 title: "A".to_string(),
@@ -927,13 +931,13 @@ mod tests {
         let findings = vec![ResearchFinding {
             query: "Rust programming".to_string(),
             results: vec![
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "Rust programming".to_string(),
                     url: "https://rust-lang.org".to_string(),
                     title: "Rust Programming Language definition and meaning".to_string(),
                     snippet: "Rust is a systems programming language focused on safety".to_string(),
                 },
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "Rust programming".to_string(),
                     url: "https://example.com".to_string(),
                     title: "Rust recent developments 2025".to_string(),
@@ -957,7 +961,7 @@ mod tests {
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "obscure topic".to_string(),
-            results: vec![SearchResult {
+            results: vec![DeepResearchSearchItem {
                 query: "obscure topic".to_string(),
                 url: "https://example.com".to_string(),
                 title: "Some result".to_string(),
@@ -1012,7 +1016,7 @@ mod tests {
         let findings = vec![
             ResearchFinding {
                 query: "q1".to_string(),
-                results: vec![SearchResult {
+                results: vec![DeepResearchSearchItem {
                     query: "q1".to_string(),
                     url: "https://a.com".to_string(),
                     title: "Rust is safe".to_string(),
@@ -1021,7 +1025,7 @@ mod tests {
             },
             ResearchFinding {
                 query: "q2".to_string(),
-                results: vec![SearchResult {
+                results: vec![DeepResearchSearchItem {
                     query: "q2".to_string(),
                     url: "https://b.com".to_string(),
                     title: "Rust is safe".to_string(),
@@ -1046,7 +1050,7 @@ mod tests {
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
-            results: vec![SearchResult {
+            results: vec![DeepResearchSearchItem {
                 query: "q1".to_string(),
                 url: "https://a.com".to_string(),
                 title: "Unique title".to_string(),
@@ -1070,13 +1074,13 @@ mod tests {
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
             results: vec![
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "q1".to_string(),
                     url: "https://a.com".to_string(),
                     title: "Rust is harmful".to_string(),
                     snippet: "Rust is harmful for productivity".to_string(),
                 },
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "q1".to_string(),
                     url: "https://b.com".to_string(),
                     title: "Rust is beneficial".to_string(),
@@ -1101,13 +1105,13 @@ mod tests {
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
             results: vec![
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "q1".to_string(),
                     url: "https://same.com".to_string(),
                     title: "Rust is harmful".to_string(),
                     snippet: "Rust is harmful for productivity".to_string(),
                 },
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "q1".to_string(),
                     url: "https://same.com".to_string(),
                     title: "Rust is beneficial".to_string(),
@@ -1132,13 +1136,13 @@ mod tests {
         let findings = vec![ResearchFinding {
             query: "q1".to_string(),
             results: vec![
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "q1".to_string(),
                     url: "https://a.com".to_string(),
                     title: "Rust overview".to_string(),
                     snippet: "Rust is a programming language".to_string(),
                 },
-                SearchResult {
+                DeepResearchSearchItem {
                     query: "q1".to_string(),
                     url: "https://b.com".to_string(),
                     title: "Rust features".to_string(),

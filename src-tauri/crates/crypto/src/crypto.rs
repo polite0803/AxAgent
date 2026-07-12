@@ -74,6 +74,20 @@ pub fn sha256_hash(input: &str) -> String {
     format!("{:064x}", hasher.finalize())
 }
 
+/// 解密 secure storage 中的值，自动兼容 v1（SHA256）和 v2（Argon2id）密钥派生。
+/// 先用 v2 密钥尝试，失败则回退到 v1 密钥（用于解密升级前存储的旧数据）。
+pub fn decrypt_storage_key(encrypted: &str) -> Result<String> {
+    let v2_key = derive_storage_master_key_v2()?;
+    match decrypt_key(encrypted, &v2_key) {
+        Ok(plaintext) => Ok(plaintext),
+        Err(_) => {
+            // v2 解密失败，尝试 v1 密钥（旧数据）
+            let v1_key = derive_storage_master_key_v1();
+            decrypt_key(encrypted, &v1_key)
+        },
+    }
+}
+
 /// SECURITY (H7): 真正从 key 中提取可识别前缀。
 /// 取前 2 + 末 2 字符；长度不足时返回全 `*`。
 /// 仅用于 UI 展示，不参与任何权限判定。
@@ -334,11 +348,47 @@ pub fn generate_gateway_key() -> String {
     format!("aq-{}", hex::encode(bytes))
 }
 
-/// 从机器指纹派生前端 secure storage 的 AES-256 主密钥。
+/// 从机器指纹派生前端 secure storage 的 AES-256 主密钥（v2，Argon2id）。
 /// 密钥与机器绑定，用于 encrypt_key/decrypt_key 保护 localStorage 中的敏感数据。
+///
+/// SECURITY (C3): v2 使用 Argon2id（64MB/3/4）替代单次 SHA256，
+/// 提供内存硬度以抵抗离线暴力破解。salt 从机器指纹确定性派生，
+/// 保持"同机同密钥"语义。v1 保留用于解密旧数据。
 pub fn derive_storage_master_key() -> [u8; 32] {
+    derive_storage_master_key_v2().unwrap_or_else(|_| derive_storage_master_key_v1())
+}
+
+/// v2：Argon2id 派生，提供内存硬度。
+fn derive_storage_master_key_v2() -> Result<[u8; 32]> {
     let fingerprint = get_machine_fingerprint();
-    let seed = format!("axagent-storage-key-v2:{}:storage-encryption", fingerprint);
+    // 从指纹确定性派生 16 字节 salt（同机不变）
+    let mut salt = [0u8; 16];
+    let salt_seed = format!("axagent-storage-salt:{fingerprint}");
+    let salt_hash = sha2::Sha256::digest(salt_seed.as_bytes());
+    salt.copy_from_slice(&salt_hash[..16]);
+
+    let mut key = [0u8; 32];
+    let params = Params::new(ARGON2_MEMORY_COST, ARGON2_TIME_COST, ARGON2_PARALLELISM, Some(32))
+        .map_err(|e| AxAgentError::Crypto(format!("Argon2 参数无效: {e}")))?;
+    let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+    let mut password = Vec::with_capacity(
+        b"axagent-storage-key-v2:".len() + fingerprint.len() + b":storage-encryption".len(),
+    );
+    password.extend_from_slice(b"axagent-storage-key-v2:");
+    password.extend_from_slice(fingerprint.as_bytes());
+    password.extend_from_slice(b":storage-encryption");
+    let res = argon2
+        .hash_password_into(&password, &salt, &mut key)
+        .map_err(|e| AxAgentError::Crypto(format!("Argon2 存储密钥派生失败: {e}")));
+    password.zeroize();
+    res?;
+    Ok(key)
+}
+
+/// v1：单次 SHA256 派生（已弃用，仅用于解密旧数据）。
+fn derive_storage_master_key_v1() -> [u8; 32] {
+    let fingerprint = get_machine_fingerprint();
+    let seed = format!("axagent-storage-key-v2:{fingerprint}:storage-encryption");
     let hash = sha256_hash(&seed);
     let mut key = [0u8; 32];
     let decoded = hex::decode(&hash).unwrap_or_else(|_| vec![0u8; 32]);

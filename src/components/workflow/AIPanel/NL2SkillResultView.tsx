@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { NL2SkillResult, SkillDefinition } from "@/types/workflow";
+import type { NL2SkillResult, SkillDefinition } from "@/types";
 import { BulbOutlined, CheckCircleOutlined, PlayCircleOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { Button, Collapse, List, Progress, Space, Statistic, Tag, theme, Typography } from "antd";
 import React from "react";

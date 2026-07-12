@@ -784,7 +784,7 @@ impl NodeExecutorTrait for AgentExecutor {
                     stream_thinking = Some(thinking.clone());
                 }
                 if let Some(usage) = chunk.usage {
-                    stream_usage = (usage.prompt_tokens, usage.completion_tokens);
+                    stream_usage = (usage.input_tokens, usage.output_tokens);
                 }
                 if chunk.tool_calls.is_some() {
                     stream_tool_calls = chunk.tool_calls;

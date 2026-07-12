@@ -8,6 +8,11 @@ use tokio::sync::RwLock;
 
 use crate::agent_config::AgentConfig;
 
+/// 实验 HashMap 最大条目数
+const MAX_EXPERIMENTS_CAPACITY: usize = 1000;
+/// 单个实验最大 trial 记录数
+const MAX_TRIALS_PER_EXPERIMENT: usize = 10000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExperimentGroup {
     Control,
@@ -114,6 +119,14 @@ impl ExperimentRunner {
             return Err(format!("Experiment with id '{}' already exists", id));
         }
         experiments.insert(id, config);
+        // 容量限制：超过上限时移除最旧的条目（HashMap 无序，移除任意一个）
+        while experiments.len() > MAX_EXPERIMENTS_CAPACITY {
+            if let Some(first_key) = experiments.keys().next().cloned() {
+                experiments.remove(&first_key);
+            } else {
+                break;
+            }
+        }
         Ok(())
     }
 
@@ -166,7 +179,21 @@ impl ExperimentRunner {
         drop(experiments);
 
         let mut trial_results = self.trial_results.write().await;
-        trial_results.entry(result.experiment_id.clone()).or_insert_with(Vec::new).push(result);
+        let trials = trial_results.entry(result.experiment_id.clone()).or_insert_with(Vec::new);
+        trials.push(result);
+        // 限制单个实验的 trial 数量，超过则丢弃最旧的记录
+        if trials.len() > MAX_TRIALS_PER_EXPERIMENT {
+            let excess = trials.len() - MAX_TRIALS_PER_EXPERIMENT;
+            trials.drain(0..excess);
+        }
+        // 容量限制：trial_results HashMap 超过上限时移除最旧的条目
+        while trial_results.len() > MAX_EXPERIMENTS_CAPACITY {
+            if let Some(first_key) = trial_results.keys().next().cloned() {
+                trial_results.remove(&first_key);
+            } else {
+                break;
+            }
+        }
         Ok(())
     }
 

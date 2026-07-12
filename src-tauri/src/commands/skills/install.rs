@@ -549,7 +549,7 @@ async fn install_from_github(
 
     if git_available {
         let output = axagent_kit::utils::cmd("git")
-            .args(["clone", "--depth", "1", &git_url, skill_target.to_str().unwrap_or("")])
+            .args(["clone", "--depth", "1", "--", &git_url, skill_target.to_str().unwrap_or("")])
             .output()
             .map_err(|e| format!("Failed to execute git: {}", e))?;
 

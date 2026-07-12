@@ -19,35 +19,10 @@
 
 use std::collections::HashMap;
 
-/// 支持的语言
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PromptLang {
-    /// 简体中文（默认）
-    ZhCN,
-    /// 英文（回退语言）
-    EnUS,
-}
-
-impl PromptLang {
-    /// 从前端 locale 字符串转换
-    pub fn from_locale(locale: &str) -> Self {
-        match locale {
-            "en-US" | "en" => Self::EnUS,
-            "zh-CN" | "zh" => Self::ZhCN,
-            // 其他语言暂回退到英文，后续按需添加
-            _ => Self::ZhCN,
-        }
-    }
-
-    /// 从语言代码简写转换
-    pub fn from_lang_code(code: &str) -> Self {
-        match code {
-            "en" => Self::EnUS,
-            "zh" => Self::ZhCN,
-            _ => Self::ZhCN,
-        }
-    }
-}
+/// 支持的语言 — 权威定义在 axagent-harness，此处 re-export 复用
+/// （原 kit 本地枚举与 harness 派生/变体逐字一致；from_locale/from_lang_code
+/// 全项目零调用，按 P0 死代码清理规范一并删除）。
+pub use axagent_harness::PromptLang;
 
 /// 提示词注册表 — 编译时嵌入所有语言的提示模板
 pub struct PromptRegistry;
@@ -652,11 +627,8 @@ Each sub-skill should:
 
 impl axagent_harness::PromptProvider for PromptRegistry {
     fn get(&self, key: &str, lang: axagent_harness::PromptLang) -> &'static str {
-        let kit_lang = match lang {
-            axagent_harness::PromptLang::ZhCN => PromptLang::ZhCN,
-            axagent_harness::PromptLang::EnUS => PromptLang::EnUS,
-        };
-        PromptRegistry::get(key, kit_lang)
+        // PromptLang 已统一为 harness 权威类型，无需再映射
+        PromptRegistry::get(key, lang)
     }
 
     fn get_all_languages(&self, key: &str) -> std::collections::HashMap<String, &'static str> {
@@ -664,10 +636,6 @@ impl axagent_harness::PromptProvider for PromptRegistry {
     }
 
     fn format(&self, key: &str, lang: axagent_harness::PromptLang, args: &[&str]) -> String {
-        let kit_lang = match lang {
-            axagent_harness::PromptLang::ZhCN => PromptLang::ZhCN,
-            axagent_harness::PromptLang::EnUS => PromptLang::EnUS,
-        };
-        PromptRegistry::format(key, kit_lang, args)
+        PromptRegistry::format(key, lang, args)
     }
 }

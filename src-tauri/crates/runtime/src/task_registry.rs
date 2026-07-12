@@ -13,7 +13,7 @@ use crate::{TaskPacket, TaskPacketValidationError, validate_packet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum TaskStatus {
+pub enum RegistryTaskStatus {
     Created,
     Running,
     Completed,
@@ -21,7 +21,7 @@ pub enum TaskStatus {
     Stopped,
 }
 
-impl std::fmt::Display for TaskStatus {
+impl std::fmt::Display for RegistryTaskStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Created => write!(f, "created"),
@@ -39,7 +39,7 @@ pub struct Task {
     pub prompt: String,
     pub description: Option<String>,
     pub task_packet: Option<TaskPacket>,
-    pub status: TaskStatus,
+    pub status: RegistryTaskStatus,
     pub created_at: u64,
     pub updated_at: u64,
     pub messages: Vec<TaskMessage>,
@@ -102,7 +102,7 @@ impl TaskRegistry {
             prompt,
             description,
             task_packet,
-            status: TaskStatus::Created,
+            status: RegistryTaskStatus::Created,
             created_at: ts,
             updated_at: ts,
             messages: Vec::new(),
@@ -118,7 +118,7 @@ impl TaskRegistry {
         inner.tasks.get(task_id).cloned()
     }
 
-    pub fn list(&self, status_filter: Option<TaskStatus>) -> Vec<Task> {
+    pub fn list(&self, status_filter: Option<RegistryTaskStatus>) -> Vec<Task> {
         let inner = lock_or_recover(self.inner.lock(), "task_registry");
         inner
             .tasks
@@ -134,7 +134,9 @@ impl TaskRegistry {
             inner.tasks.get_mut(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
 
         match task.status {
-            TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Stopped => {
+            RegistryTaskStatus::Completed
+            | RegistryTaskStatus::Failed
+            | RegistryTaskStatus::Stopped => {
                 return Err(format!(
                     "task {task_id} is already in terminal state: {}",
                     task.status
@@ -143,7 +145,7 @@ impl TaskRegistry {
             _ => {},
         }
 
-        task.status = TaskStatus::Stopped;
+        task.status = RegistryTaskStatus::Stopped;
         task.updated_at = now_secs();
         Ok(task.clone())
     }
@@ -177,7 +179,7 @@ impl TaskRegistry {
         Ok(())
     }
 
-    pub fn set_status(&self, task_id: &str, status: TaskStatus) -> Result<(), String> {
+    pub fn set_status(&self, task_id: &str, status: RegistryTaskStatus) -> Result<(), String> {
         let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
         let task =
             inner.tasks.get_mut(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
@@ -220,7 +222,7 @@ mod tests {
     fn creates_and_retrieves_tasks() {
         let registry = TaskRegistry::new();
         let task = registry.create("Do something", Some("A test task"));
-        assert_eq!(task.status, TaskStatus::Created);
+        assert_eq!(task.status, RegistryTaskStatus::Created);
         assert_eq!(task.prompt, "Do something");
         assert_eq!(task.description.as_deref(), Some("A test task"));
         assert_eq!(task.task_packet, None);
@@ -261,17 +263,17 @@ mod tests {
         registry.create("Task A", None);
         let task_b = registry.create("Task B", None);
         registry
-            .set_status(&task_b.task_id, TaskStatus::Running)
+            .set_status(&task_b.task_id, RegistryTaskStatus::Running)
             .expect("set status should succeed");
 
         let all = registry.list(None);
         assert_eq!(all.len(), 2);
 
-        let running = registry.list(Some(TaskStatus::Running));
+        let running = registry.list(Some(RegistryTaskStatus::Running));
         assert_eq!(running.len(), 1);
         assert_eq!(running[0].task_id, task_b.task_id);
 
-        let created = registry.list(Some(TaskStatus::Created));
+        let created = registry.list(Some(RegistryTaskStatus::Created));
         assert_eq!(created.len(), 1);
     }
 
@@ -279,10 +281,10 @@ mod tests {
     fn stops_running_task() {
         let registry = TaskRegistry::new();
         let task = registry.create("Stoppable", None);
-        registry.set_status(&task.task_id, TaskStatus::Running).unwrap();
+        registry.set_status(&task.task_id, RegistryTaskStatus::Running).unwrap();
 
         let stopped = registry.stop(&task.task_id).expect("stop should succeed");
-        assert_eq!(stopped.status, TaskStatus::Stopped);
+        assert_eq!(stopped.status, RegistryTaskStatus::Stopped);
 
         // Stopping again should fail
         let result = registry.stop(&task.task_id);
@@ -333,18 +335,18 @@ mod tests {
         assert!(registry.update("nonexistent", "msg").is_err());
         assert!(registry.output("nonexistent").is_err());
         assert!(registry.append_output("nonexistent", "data").is_err());
-        assert!(registry.set_status("nonexistent", TaskStatus::Running).is_err());
+        assert!(registry.set_status("nonexistent", RegistryTaskStatus::Running).is_err());
     }
 
     #[test]
     fn task_status_display_all_variants() {
         // given
         let cases = [
-            (TaskStatus::Created, "created"),
-            (TaskStatus::Running, "running"),
-            (TaskStatus::Completed, "completed"),
-            (TaskStatus::Failed, "failed"),
-            (TaskStatus::Stopped, "stopped"),
+            (RegistryTaskStatus::Created, "created"),
+            (RegistryTaskStatus::Running, "running"),
+            (RegistryTaskStatus::Completed, "completed"),
+            (RegistryTaskStatus::Failed, "failed"),
+            (RegistryTaskStatus::Stopped, "stopped"),
         ];
 
         // when
@@ -370,7 +372,7 @@ mod tests {
         let registry = TaskRegistry::new();
         let task = registry.create("done", None);
         registry
-            .set_status(&task.task_id, TaskStatus::Completed)
+            .set_status(&task.task_id, RegistryTaskStatus::Completed)
             .expect("set status should succeed");
 
         // when
@@ -387,7 +389,9 @@ mod tests {
         // given
         let registry = TaskRegistry::new();
         let task = registry.create("failed", None);
-        registry.set_status(&task.task_id, TaskStatus::Failed).expect("set status should succeed");
+        registry
+            .set_status(&task.task_id, RegistryTaskStatus::Failed)
+            .expect("set status should succeed");
 
         // when
         let result = registry.stop(&task.task_id);
@@ -408,7 +412,7 @@ mod tests {
         let stopped = registry.stop(&task.task_id).expect("stop should succeed");
 
         // then
-        assert_eq!(stopped.status, TaskStatus::Stopped);
+        assert_eq!(stopped.status, RegistryTaskStatus::Stopped);
         assert!(stopped.updated_at >= task.updated_at);
     }
 
