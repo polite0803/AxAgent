@@ -60,6 +60,12 @@ export function AgentMiniPanel() {
 
   const draggingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const positionRef = useRef(position);
+
+  // 同步 positionRef，避免拖拽闭包读取过期值
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
 
   const clampPosition = useCallback((x: number, y: number) => {
     return {
@@ -75,6 +81,25 @@ export function AgentMiniPanel() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [clampPosition]);
+
+  // 拖拽时注册 document 监听器，卸载时自动清理（防止拖拽中组件卸载导致泄漏）
+  const dragListenersRef = useRef<{ move: (ev: MouseEvent) => void; up: () => void } | null>(null);
+
+  const cleanupDragListeners = useCallback(() => {
+    if (dragListenersRef.current) {
+      document.removeEventListener("mousemove", dragListenersRef.current.move);
+      document.removeEventListener("mouseup", dragListenersRef.current.up);
+      dragListenersRef.current = null;
+    }
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupDragListeners();
+    };
+  }, [cleanupDragListeners]);
 
   const handleHeaderMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -95,18 +120,17 @@ export function AgentMiniPanel() {
 
     const handleMouseUp = () => {
       draggingRef.current = false;
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      persistPosition(position.x, position.y);
+      cleanupDragListeners();
+      // 从 positionRef 读取最新值，而非 mousedown 时捕获的过期值
+      persistPosition(positionRef.current.x, positionRef.current.y);
     };
 
+    dragListenersRef.current = { move: handleMouseMove, up: handleMouseUp };
     document.body.style.cursor = "move";
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-  }, [position, clampPosition]);
+  }, [position, clampPosition, cleanupDragListeners]);
 
   if (!isMiniMode || isOpen) {
     return null;
@@ -146,7 +170,7 @@ export function AgentMiniPanel() {
       >
         <div className="flex items-center gap-2">
           <Bot size={16} className="text-[var(--color-primary)]" />
-          <span className="text-sm font-medium">AxAgent</span>
+          <span className="text-sm font-medium">{t("agentPanel.panelTitle")}</span>
         </div>
         <button
           type="button"

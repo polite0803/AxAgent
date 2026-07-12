@@ -8296,6 +8296,7 @@
   },
   "agentPanel": {
     "openPanel": "開啟 AxAgent 面板",
+    "panelTitle": "智能體",
     "openMiniPanel": "開啟 Agent 迷你面板",
     "closePanel": "關閉面板",
     "globalMode": "全域模式",
@@ -8305,6 +8306,12 @@
     "miniPanelComingSoon": "對話功能即將開放",
     "newChat": "新建對話",
     "chatComingSoon": "Agent 對話功能即將呈現",
+    "chatEmpty": "暫無訊息",
+    "chatStartHint": "開始一個新的 Agent 對話",
+    "chatNewConversation": "新建對話",
+    "chatDefaultTitle": "Agent 對話",
+    "chatInputPlaceholder": "輸入訊息...",
+    "chatEmptyHint": "發送訊息開始對話",
     "executionComingSoon": "執行追蹤面板即將實現",
     "skillComingSoon": "技能管理面板即將實現",
     "tabs": {
@@ -8329,7 +8336,12 @@
       "uiTypeReport": "報告",
       "uiTypeCustom": "自訂",
       "applySkillComingSoon": "技能應用即將推出",
-      "applyUIComingSoon": "UI 應用即將推出"
+      "applySkillSuccess": "技能應用成功",
+      "applySkillFailed": "技能應用失敗",
+      "applyUIComingSoon": "UI 應用即將推出",
+      "applyUISuccess": "UI 介面儲存成功",
+      "applyUIFailed": "UI 介面儲存失敗",
+      "defaultUITitle": "產生的介面"
     }
   },
   "portfolio": {
