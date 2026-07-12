@@ -8,8 +8,8 @@
 //!   ⑤ 性能基准
 
 use axagent_market_sim::{
-    BEST_PARAMS, ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, QuantStrategyAgent,
-    SimConfig, SimKernel, SimResult, StrategyAgent,
+    BEST_PARAMS, ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, SimConfig, SimKernel,
+    SimResult, StrategyAgent,
 };
 
 // ── 验证①: StrategyAgent 模式产出有效结果 ──

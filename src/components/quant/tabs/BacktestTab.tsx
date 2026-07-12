@@ -453,7 +453,10 @@ function WalkForwardPanel({
       title: t("quant.metrics.overfit"),
       key: "of",
       width: 90,
-      render: (_, r) => r.isOverfitFold ? <Tag color="red">是</Tag> : <Tag color="green">否</Tag>,
+      render: (_, r) =>
+        r.isOverfitFold
+          ? <Tag color="red">{t("quant.backtest.yes")}</Tag>
+          : <Tag color="green">{t("quant.backtest.no")}</Tag>,
     },
   ];
 
@@ -465,7 +468,7 @@ function WalkForwardPanel({
           key: "wf",
           label: (
             <Space size="middle">
-              <Text strong>{t("quant.backtest.walkForwardTitle") || "Walk-Forward 验证"}</Text>
+              <Text strong>{t("quant.backtest.walkForwardTitle")}</Text>
               <Tag color={stabilityScore > 0.7 ? "green" : stabilityScore > 0.4 ? "orange" : "red"}>
                 {t("quant.metrics.stability")} {stabilityScore.toFixed(3)}
               </Tag>
@@ -494,7 +497,7 @@ function WalkForwardPanel({
                   size="small"
                   items={[{
                     key: "chart",
-                    label: "Fold Sharpe 柱状图",
+                    label: t("quant.backtest.foldSharpeChart"),
                     children: <WalkForwardFoldBarChart windows={foldsToWindows(folds)} />,
                   }]}
                 />

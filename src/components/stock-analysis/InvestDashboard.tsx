@@ -144,7 +144,11 @@ export function InvestDashboard() {
             showHeader={false}
             columns={[
               { dataIndex: "stockCode", width: 60, render: (v: string) => <Tag className="m-0 text-[10px]">{v}</Tag> },
-              { dataIndex: "totalShares", width: 44, render: (v: number) => `${v.toFixed(0)}股` },
+              {
+                dataIndex: "totalShares",
+                width: 44,
+                render: (v: number) => `${v.toFixed(0)}${t("stockAnalysis.sharesUnit")}`,
+              },
               { dataIndex: "avgCost", width: 52, render: (v: number) => v.toFixed(2) },
               {
                 dataIndex: "unrealizedPnlPct",

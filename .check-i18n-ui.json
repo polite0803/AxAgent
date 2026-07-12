@@ -1,0 +1,1554 @@
+{
+  "src/components/quant/charts/WalkForwardFoldBarChart.tsx": [
+    {
+      "line": 59,
+      "text": "`IS: ${f.trainStart} → ${f.trainEnd} (${f.trainBarsCount} 根)`,"
+    },
+    {
+      "line": 60,
+      "text": "`OOS: ${f.testStart} → ${f.testEnd} (${f.testBarsCount} 根)`,"
+    },
+    {
+      "line": 121,
+      "text": "data: [{ yAxis: 0.3, label: { formatter: `${t(\"quant.metrics.overfit\")} 阈值 0.3` } }],"
+    }
+  ],
+  "src/components/quant/tabs/BacktestTab.tsx": [
+    {
+      "line": 456,
+      "text": "render: (_, r) => r.isOverfitFold ? <Tag color=\"red\">是</Tag> : <Tag color=\"green\">否</Tag>,"
+    },
+    {
+      "line": 468,
+      "text": "<Text strong>{t(\"quant.backtest.walkForwardTitle\") || \"Walk-Forward 验证\"}</Text>"
+    }
+  ],
+  "src/components/quant/tabs/CompareTab.tsx": [
+    {
+      "line": 75,
+      "text": "{recentRuns.length === 0 && <Text type=\"secondary\">无历史 run</Text>}"
+    },
+    {
+      "line": 129,
+      "text": "<Title level={5}>首条 run 指标</Title>"
+    }
+  ],
+  "src/components/quant/tabs/RhaiEditorTab.tsx": [
+    {
+      "line": 61,
+      "text": "<Form.Item label=\"描述\">"
+    },
+    {
+      "line": 64,
+      "text": "placeholder=\"策略说明（可选）\""
+    },
+    {
+      "line": 86,
+      "text": "<Text type=\"secondary\">upsert（同名同版本覆盖）</Text>"
+    }
+  ],
+  "src/components/quant/tabs/StrategyForm.tsx": [
+    {
+      "line": 73,
+      "text": "<Form.Item label=\"参数 (JSON)\">"
+    }
+  ],
+  "src/components/settings/ScheduledRecommendationTab.tsx": [
+    {
+      "line": 113,
+      "text": "message.success(\"定时荐股任务已创建\");"
+    },
+    {
+      "line": 115,
+      "text": "message.error(`创建失败: ${e instanceof Error ? e.message : String(e)}`);"
+    },
+    {
+      "line": 152,
+      "text": "最低置信 {r.config.minConfidence} · 推送 Top {r.config.topN}"
+    },
+    {
+      "line": 154,
+      "text": "{r.lastPicksCount !== null && <span className=\"text-gray-400\">上次推送 {r.lastPicksCount} 只</span>}"
+    },
+    {
+      "line": 188,
+      "text": "<Popconfirm title=\"确认删除?\" onConfirm={() => remove(record.id)}>"
+    },
+    {
+      "line": 200,
+      "text": "按 Cron 表达式定时跑智能荐股扫描，过滤兜底合成后只推\"真实\"推荐（按置信度排序 Top N）到操作系统通知。"
+    },
+    {
+      "line": 201,
+      "text": "<Tooltip title=\"cron 调度需 App 进程运行中；App 关闭时不会触发\">"
+    },
+    {
+      "line": 202,
+      "text": "<Tag color=\"orange\" className=\"m-0 ml-1 text-[10px]\">依赖 App 在线</Tag>"
+    },
+    {
+      "line": 211,
+      "text": "<span>新建定时荐股任务</span>"
+    },
+    {
+      "line": 217,
+      "text": "{adding ? \"取消\" : \"展开\"}"
+    },
+    {
+      "line": 238,
+      "text": "label=\"任务名称\""
+    },
+    {
+      "line": 242,
+      "text": "<Input placeholder=\"例如：每日收盘荐股\" />"
+    },
+    {
+      "line": 250,
+      "text": "<span>触发时机</span>"
+    },
+    {
+      "line": 261,
+      "text": "placeholder=\"选择预设或输入 cron\""
+    },
+    {
+      "line": 269,
+      "text": "label=\"荐股周期（多选）\""
+    },
+    {
+      "line": 276,
+      "text": "placeholder=\"选择至少一个周期\""
+    },
+    {
+      "line": 286,
+      "text": "<span>最低置信度（0-100）</span>"
+    },
+    {
+      "line": 297,
+      "text": "label=\"推送条数（Top N）\""
+    },
+    {
+      "line": 307,
+      "text": "创建"
+    },
+    {
+      "line": 318,
+      "text": "description=\"暂无定时荐股任务\""
+    }
+  ],
+  "src/components/stock-analysis/AnalystReportCard.tsx": [
+    {
+      "line": 216,
+      "text": "tags.push(`${t ? t(\"stockAnalysis.analystReport.moneyFlow\") : \"资金流\"}:${parsed.main_flow_state}`);"
+    },
+    {
+      "line": 221,
+      "text": "`${t ? t(\"stockAnalysis.analystReport.moat\") : \"护城河\"}:${parsed.moat_rating}`,"
+    },
+    {
+      "line": 226,
+      "text": "tags.push(`${t ? t(\"stockAnalysis.analystReport.narrative\") : \"叙事\"}:${parsed.narrative_completeness}`);"
+    },
+    {
+      "line": 229,
+      "text": "tags.push(`${t ? t(\"stockAnalysis.analystReport.capital\") : \"资金\"}:${parsed.institutional_trace}`);"
+    },
+    {
+      "line": 232,
+      "text": "tags.push(`${t ? t(\"stockAnalysis.analystReport.conceptRisk\") : \"概念风险\"}:${parsed.concept_risk}`);"
+    },
+    {
+      "line": 236,
+      "text": "tags.push(`${t ? t(\"stockAnalysis.sentimentBullish\") : \"看多\"}:${Math.round(normalized)}`);"
+    },
+    {
+      "line": 240,
+      "text": "tags.push(`${t ? t(\"stockAnalysis.sentimentBearish\") : \"看空\"}:${Math.round(normalized)}`);"
+    }
+  ],
+  "src/components/stock-analysis/CompareView.tsx": [
+    {
+      "line": 238,
+      "text": "<div className=\"text-xs font-semibold mt-2 mb-1\" style={{ color: \"var(--muted)\" }}>财务指标</div>"
+    },
+    {
+      "line": 246,
+      "text": "label=\"营收增速\""
+    },
+    {
+      "line": 252,
+      "text": "label=\"利润增速\""
+    },
+    {
+      "line": 258,
+      "text": "label=\"毛利率\""
+    },
+    {
+      "line": 264,
+      "text": "label=\"负债率\""
+    },
+    {
+      "line": 281,
+      "text": "if (v >= 1e8) { return `${(v / 1e8).toFixed(0)}亿`; }"
+    },
+    {
+      "line": 282,
+      "text": "return `${(v / 1e4).toFixed(0)}万`;"
+    }
+  ],
+  "src/components/stock-analysis/DebatePanel.tsx": [
+    {
+      "line": 301,
+      "text": "<div className=\"text-xs font-semibold mb-1\" style={{ color: \"var(--muted)\" }}>核心论点</div>"
+    },
+    {
+      "line": 305,
+      "text": "<span className=\"font-medium\">{arg.claim || \"未命名论点\"}</span>"
+    },
+    {
+      "line": 308,
+      "text": "<span className=\"ml-1\" style={{ color: \"var(--sa-red)\" }}>强度:{arg.strength}</span>"
+    },
+    {
+      "line": 312,
+      "text": "引用: {arg.evidence_refs.slice(0, 2).join(\"；\")}"
+    },
+    {
+      "line": 323,
+      "text": "<div className=\"text-xs font-semibold mb-1\" style={{ color: \"var(--muted)\" }}>多维度共振</div>"
+    },
+    {
+      "line": 327,
+      "text": "{rp.point || \"共振点\"}"
+    },
+    {
+      "line": 334,
+      "text": "<span className=\"ml-1\" style={{ color: \"var(--sa-amber)\" }}>权重:{rp.weight}</span>"
+    },
+    {
+      "line": 344,
+      "text": "<div className=\"text-xs font-semibold mb-1\" style={{ color: \"var(--muted)\" }}>反驳预防</div>"
+    },
+    {
+      "line": 355,
+      "text": "<div className=\"font-medium mb-0.5\">{pa.our_claim || `论点 ${i + 1}`}</div>"
+    },
+    {
+      "line": 358,
+      "text": "<span className=\"font-medium\">空方攻击:</span> {pa.bear_attack}"
+    },
+    {
+      "line": 363,
+      "text": "<span className=\"font-medium\">我方回应:</span> {pa.our_response}"
+    },
+    {
+      "line": 374,
+      "text": "<Tag color=\"red\">看多强度: {data.bull_strength_score}</Tag>"
+    },
+    {
+      "line": 379,
+      "text": "<Tag color=\"green\">看空强度: {data.bear_strength_score}</Tag>"
+    },
+    {
+      "line": 385,
+      "text": "数据缺口: {data.data_gaps.join(\"；\")}"
+    },
+    {
+      "line": 397,
+      "text": "<div className=\"text-xs font-semibold mb-1\" style={{ color: \"var(--muted)\" }}>质询要点</div>"
+    },
+    {
+      "line": 408,
+      "text": "<div className=\"font-medium mb-0.5\">{ce.target_claim_ref || `质询 ${i + 1}`}</div>"
+    },
+    {
+      "line": 417,
+      "text": "<span className=\"font-medium\">影响:</span> {ce.if_unanswered_impact}"
+    },
+    {
+      "line": 431,
+      "text": "<span className=\"font-medium\">收敛总结:</span> {data.summary_for_convergence}"
+    },
+    {
+      "line": 484,
+      "text": "置信度 {data.confidence}"
+    },
+    {
+      "line": 500,
+      "text": "<span className=\"font-medium\">最终立场:</span> {data.claim}"
+    },
+    {
+      "line": 507,
+      "text": "<div className=\"text-xs font-semibold mb-1\" style={{ color: \"var(--muted)\" }}>逐条回应 R2 质询</div>"
+    },
+    {
+      "line": 521,
+      "text": "<span className=\"font-medium\">质询 {i + 1}</span>"
+    },
+    {
+      "line": 531,
+      "text": "针对: {resp.r2_question_ref}"
+    },
+    {
+      "line": 537,
+      "text": "<span className=\"font-medium\">修正:</span> {resp.concession}"
+    },
+    {
+      "line": 550,
+      "text": "<div className=\"text-xs font-semibold mb-1\" style={{ color: \"var(--muted)\" }}>强化保留论据</div>"
+    },
+    {
+      "line": 554,
+      "text": "<span className=\"font-medium\">{sa.claim_ref || `论据 ${i + 1}`}</span>"
+    },
+    {
+      "line": 561,
+      "text": "<span className=\"ml-1\" style={{ color: \"var(--sa-red)\" }}>最终强度:{sa.final_strength}</span>"
+    },
+    {
+      "line": 565,
+      "text": "补充证据: {sa.additional_evidence}"
+    },
+    {
+      "line": 577,
+      "text": "仍未解决的数据缺口: {data.data_gaps.join(\"；\")}"
+    },
+    {
+      "line": 609,
+      "text": "强度: {score}"
+    },
+    {
+      "line": 614,
+      "text": "置信度: {conf}"
+    },
+    {
+      "line": 620,
+      "text": "(原始数据已解析但无可用展示字段)"
+    },
+    {
+      "line": 730,
+      "text": "message=\"LLM 输出为非结构化推理文本\""
+    },
+    {
+      "line": 731,
+      "text": "description=\"辩论节点未能产出 JSON 格式的结构化数据，原始输出为 LLM 内部推理过程，无法渲染。\""
+    },
+    {
+      "line": 851,
+      "text": "最终裁决: {finalVerdict.claim?.slice(0, 30) || finalVerdict.final_position || \"待定\"}"
+    },
+    {
+      "line": 956,
+      "text": "<span className=\"font-semibold\" style={{ color: \"#7c3aed\" }}>裁决理由</span>"
+    },
+    {
+      "line": 959,
+      "text": "ellipsis={{ rows: 3, expandable: true, symbol: \"展开\" }}"
+    },
+    {
+      "line": 963,
+      "text": "{finalVerdict.claim || \"暂无裁决说明\"}"
+    },
+    {
+      "line": 1049,
+      "text": "<span className=\"font-semibold\" style={{ color: \"#7c3aed\" }}>最终裁决</span>"
+    },
+    {
+      "line": 1052,
+      "text": "ellipsis={{ rows: 5, expandable: true, symbol: \"展开全文\" }}"
+    },
+    {
+      "line": 1056,
+      "text": "{finalVerdict.claim || \"暂无裁决说明\"}"
+    },
+    {
+      "line": 1060,
+      "text": "立场: {finalVerdict.final_position}"
+    },
+    {
+      "line": 1065,
+      "text": "置信度: {finalVerdict.confidence}"
+    }
+  ],
+  "src/components/stock-analysis/DecisionBanner.tsx": [
+    {
+      "line": 172,
+      "text": "message.error(`导出失败: ${errMsg}`);"
+    },
+    {
+      "line": 198,
+      "text": "{ key: \"docx\", icon: <FileWordOutlined />, label: \"Word 文档 (.docx)\" },"
+    },
+    {
+      "line": 561,
+      "text": "置信 <b>{confidencePct}%</b>"
+    },
+    {
+      "line": 565,
+      "text": "仓位 <b>{decision.positionPct}%</b>"
+    },
+    {
+      "line": 611,
+      "text": "置信{\" \"}"
+    },
+    {
+      "line": 621,
+      "text": "仓位{\" \"}"
+    },
+    {
+      "line": 737,
+      "text": "<span style={{ color: \"var(--muted)\" }}>门控</span>"
+    },
+    {
+      "line": 739,
+      "text": "{stockCodeEvidence.holdGate.holdAllowed ? \"✅ HOLD\" : \"🎯 强制方向\"}"
+    },
+    {
+      "line": 748,
+      "text": "<span style={{ color: \"var(--muted)\" }}>证据分</span>"
+    },
+    {
+      "line": 750,
+      "text": "多{stockCodeEvidence.consensus.bullishScore.toFixed(1)}{\" \"}"
+    },
+    {
+      "line": 751,
+      "text": "| 空{stockCodeEvidence.consensus.bearishScore.toFixed(1)}{\" \"}"
+    },
+    {
+      "line": 752,
+      "text": "| 净{stockCodeEvidence.consensus.netScore.toFixed(1)}"
+    },
+    {
+      "line": 996,
+      "text": "置信 <b>{confidencePct}%</b>"
+    },
+    {
+      "line": 1000,
+      "text": "仓位 <b>{decision ? `${decision.positionPct}%` : \"—\"}</b>"
+    },
+    {
+      "line": 1023,
+      "text": "置信{\" \"}"
+    },
+    {
+      "line": 1033,
+      "text": "仓位{\" \"}"
+    },
+    {
+      "line": 1057,
+      "text": "{decision.agreementBreakdown.actionNote === \"opposite\" ? \"✗方向相反\" : \"⚠分歧\"}"
+    },
+    {
+      "line": 1061,
+      "text": "<span>仓位差{Math.round(decision.agreementBreakdown.positionGap)}%</span>"
+    },
+    {
+      "line": 1064,
+      "text": "<span>置信差{Math.round(decision.agreementBreakdown.confidenceGap)}%</span>"
+    }
+  ],
+  "src/components/stock-analysis/ExitRecommendationPanel.tsx": [
+    {
+      "line": 44,
+      "text": "return \"立即卖出\";"
+    },
+    {
+      "line": 46,
+      "text": "return \"挂限价卖出\";"
+    },
+    {
+      "line": 48,
+      "text": "return \"设置止损\";"
+    },
+    {
+      "line": 50,
+      "text": "return \"继续持有\";"
+    },
+    {
+      "line": 52,
+      "text": "return \"考虑加仓\";"
+    },
+    {
+      "line": 115,
+      "text": "<span>退出建议</span>"
+    },
+    {
+      "line": 118,
+      "text": "{summary.urgentExits > 0 && <span style={{ color: \"red\" }}>⚠ {summary.urgentExits} 紧急</span>}"
+    },
+    {
+      "line": 119,
+      "text": "{summary.limitExits > 0 && <span style={{ color: \"#fa8c16\" }}>⏰ {summary.limitExits} 限价</span>}"
+    },
+    {
+      "line": 120,
+      "text": "{summary.stopLossNeeded > 0 && <span style={{ color: \"#faad14\" }}>🛡 {summary.stopLossNeeded} 止损</span>}"
+    },
+    {
+      "line": 160,
+      "text": "<span>成本 {rec.avgCost.toFixed(2)}</span>"
+    },
+    {
+      "line": 162,
+      "text": "现价 <b>{rec.currentPrice.toFixed(2)}</b>"
+    },
+    {
+      "line": 165,
+      "text": "盈亏 <b>{rec.pnlPct >= 0 ? \"+\" : \"\"}{rec.pnlPct.toFixed(1)}%</b>"
+    },
+    {
+      "line": 167,
+      "text": "<span>持有 {rec.holdingDays} 天</span>"
+    },
+    {
+      "line": 168,
+      "text": "<span>仓位 {rec.positionPct.toFixed(0)}%</span>"
+    },
+    {
+      "line": 171,
+      "text": "建议挂出 <b>{rec.suggestedPrice.toFixed(2)}</b>"
+    }
+  ],
+  "src/components/stock-analysis/ExperimentSidebar.tsx": [
+    {
+      "line": 261,
+      "text": "options={[\"低\", \"中\", \"高\", \"极高\"]}"
+    },
+    {
+      "line": 267,
+      "text": "options={[\"无催化剂\", \"L1普通消息\", \"L2业绩拐点级\", \"L3估值体系级\"]}"
+    },
+    {
+      "line": 273,
+      "text": "options={[\"无异常\", \"疑似建仓\", \"有建仓痕迹\", \"资金出逃\"]}"
+    },
+    {
+      "line": 348,
+      "text": "{result.decision === \"buy\" ? \"买入\" : result.decision === \"sell\" ? \"卖出\" : \"持有\"}"
+    }
+  ],
+  "src/components/stock-analysis/FundPanel.tsx": [
+    {
+      "line": 68,
+      "text": "if (form.amount <= 0) { return message.warning(\"金额必须 > 0\"); }"
+    },
+    {
+      "line": 77,
+      "text": "message.success(\"已记录\");"
+    },
+    {
+      "line": 99,
+      "text": "<span>资金流水</span>"
+    },
+    {
+      "line": 112,
+      "text": "总入金<div style={{ fontWeight: \"bold\" }}>{summary.totalDeposits.toFixed(0)}</div>"
+    },
+    {
+      "line": 115,
+      "text": "总出金<div style={{ fontWeight: \"bold\" }}>{summary.totalWithdrawals.toFixed(0)}</div>"
+    },
+    {
+      "line": 118,
+      "text": "净入金<div"
+    },
+    {
+      "line": 130,
+      "text": "<Modal title=\"记录资金流水\" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleRecord} width={360}>"
+    },
+    {
+      "line": 135,
+      "text": "options={[{ value: \"deposit\", label: \"入金（转入）\" }, { value: \"withdrawal\", label: \"出金（转出）\" }]}"
+    },
+    {
+      "line": 138,
+      "text": "placeholder=\"金额\""
+    },
+    {
+      "line": 151,
+      "text": "placeholder=\"手续费（可选）\""
+    },
+    {
+      "line": 158,
+      "text": "placeholder=\"备注（可选）\""
+    }
+  ],
+  "src/components/stock-analysis/InvestDashboard.tsx": [
+    {
+      "line": 147,
+      "text": "{ dataIndex: \"totalShares\", width: 44, render: (v: number) => `${v.toFixed(0)}股` },"
+    }
+  ],
+  "src/components/stock-analysis/MarketSimPanel.tsx": [
+    {
+      "line": 61,
+      "text": "title=\"⚡ 模拟配置\""
+    },
+    {
+      "line": 78,
+      "text": "<Form.Item label=\"股票代码\" name=\"stockCode\" rules={[{ required: true }]}>"
+    },
+    {
+      "line": 81,
+      "text": "<Form.Item label=\"参考价(分)\" name=\"referencePrice\" rules={[{ required: true }]}>"
+    },
+    {
+      "line": 84,
+      "text": "<Form.Item label=\"模拟时长(ms)\" name=\"maxSimTimeMs\" rules={[{ required: true }]}>"
+    },
+    {
+      "line": 88,
+      "text": "<Form.Item label=\"做市商\" name=\"marketMakers\">"
+    },
+    {
+      "line": 91,
+      "text": "<Form.Item label=\"动量\" name=\"momentumAgents\">"
+    },
+    {
+      "line": 94,
+      "text": "<Form.Item label=\"价值\" name=\"valueAgents\">"
+    },
+    {
+      "line": 97,
+      "text": "<Form.Item label=\"噪声\" name=\"noiseAgents\">"
+    },
+    {
+      "line": 102,
+      "text": "{loading ? \"模拟中...\" : \"运行模拟\"}"
+    },
+    {
+      "line": 114,
+      "text": "<span className=\"text-secondary text-sm\">DES 仿真运行中 ... 5 Agents 博弈中</span>"
+    },
+    {
+      "line": 135,
+      "text": "title=\"处理事件\""
+    },
+    {
+      "line": 137,
+      "text": "suffix=\"条\""
+    },
+    {
+      "line": 145,
+      "text": "title=\"成交笔数\""
+    },
+    {
+      "line": 147,
+      "text": "suffix=\"笔\""
+    },
+    {
+      "line": 155,
+      "text": "title=\"墙壁时间\""
+    },
+    {
+      "line": 165,
+      "text": "title=\"最终中间价\""
+    },
+    {
+      "line": 167,
+      "text": "suffix={result.finalMidPrice ? \"分\" : \"\"}"
+    },
+    {
+      "line": 179,
+      "text": "📊 模拟详情 ·{\" \"}"
+    },
+    {
+      "line": 187,
+      "text": "<Descriptions.Item label=\"模拟时间(虚拟)\">"
+    },
+    {
+      "line": 190,
+      "text": "<Descriptions.Item label=\"Agent 数量\">{result.agentCount}</Descriptions.Item>"
+    },
+    {
+      "line": 191,
+      "text": "<Descriptions.Item label=\"参考价\">{result.referencePrice} 分</Descriptions.Item>"
+    },
+    {
+      "line": 192,
+      "text": "<Descriptions.Item label=\"队列深度峰值\">{result.stats.maxQueueDepth}</Descriptions.Item>"
+    },
+    {
+      "line": 193,
+      "text": "<Descriptions.Item label=\"总订单数\">{result.stats.totalOrders}</Descriptions.Item>"
+    },
+    {
+      "line": 194,
+      "text": "<Descriptions.Item label=\"合计成交\">"
+    },
+    {
+      "line": 195,
+      "text": "{result.stats.totalTrades > 0 ? `${result.stats.totalTrades} 笔` : \"0\"}"
+    },
+    {
+      "line": 206,
+      "text": "<p className=\"mb-2 text-base\">配置上方参数，点击\"运行模拟\"启动多 Agent 市场仿真</p>"
+    },
+    {
+      "line": 208,
+      "text": "模拟内核包含：交易所(Exchange) + 做市商(MarketMaker) + 动量(Momentum) + 价值(Value) + 噪声(Noise) Agents"
+    }
+  ],
+  "src/components/stock-analysis/MonteCarloPanel.tsx": [
+    {
+      "line": 55,
+      "text": "setError(\"请至少选择一个场景\");"
+    },
+    {
+      "line": 97,
+      "text": "<Card size=\"small\" title=\"⚙ 鲁棒性测试配置\">"
+    },
+    {
+      "line": 100,
+      "text": "股票代码"
+    },
+    {
+      "line": 109,
+      "text": "参考价(分)"
+    },
+    {
+      "line": 119,
+      "text": "时长(ms)"
+    },
+    {
+      "line": 153,
+      "text": "合计 {totalPaths} 路径 · 模拟 ~{((totalPaths * simMs) / 1000).toFixed(1)}s 虚拟时间"
+    },
+    {
+      "line": 156,
+      "text": "{loading ? \"运行中...\" : \"运行鲁棒性测试\"}"
+    },
+    {
+      "line": 165,
+      "text": "<Spin size=\"large\" tip=\"正在运行 {totalPaths} 条模拟路径 ...\" />"
+    },
+    {
+      "line": 185,
+      "text": "title=\"总路径数\""
+    },
+    {
+      "line": 187,
+      "text": "suffix=\"条\""
+    },
+    {
+      "line": 195,
+      "text": "title=\"跨场景胜率\""
+    },
+    {
+      "line": 206,
+      "text": "title=\"一致性评分\""
+    },
+    {
+      "line": 209,
+      "text": "suffix={report.consistencyScore < 1.0 ? \" (稳定)\" : \" (波动)\"}"
+    },
+    {
+      "line": 216,
+      "text": "<div className=\"text-sm text-secondary\">最佳/最差场景</div>"
+    },
+    {
+      "line": 230,
+      "text": "📊 场景详情 · <Tag color=\"blue\">{report.stockCode}</Tag> 参考价 {report.referencePrice} 分"
+    },
+    {
+      "line": 284,
+      "text": "<Card size=\"small\" title=\"💡 解读\">"
+    },
+    {
+      "line": 286,
+      "text": "<Descriptions.Item label=\"胜率解读\">"
+    },
+    {
+      "line": 288,
+      "text": "? \"✅ 策略在不同市场环境下表现稳定\""
+    },
+    {
+      "line": 290,
+      "text": "? \"⚠️ 策略对市场环境有一定选择性，需关注当前市场风格\""
+    },
+    {
+      "line": 291,
+      "text": ": \"❌ 策略仅在特定市场中有效，需谨慎使用\"}"
+    },
+    {
+      "line": 293,
+      "text": "<Descriptions.Item label=\"一致性\">"
+    },
+    {
+      "line": 295,
+      "text": "? \"策略在不同场景下表现高度一致\""
+    },
+    {
+      "line": 297,
+      "text": "? \"策略表现有一定波动但可接受\""
+    },
+    {
+      "line": 298,
+      "text": ": \"策略表现高度依赖市场环境\"}"
+    },
+    {
+      "line": 300,
+      "text": "<Descriptions.Item label=\"建议\">"
+    },
+    {
+      "line": 302,
+      "text": "? \"策略在所有场景下表现一致\""
+    },
+    {
+      "line": 303,
+      "text": ": `策略在 ${report.bestScenario} 场景中最佳，在 ${report.worstScenario} 场景中最差，建议结合当前市场风格使用`}"
+    },
+    {
+      "line": 314,
+      "text": "<p className=\"mb-2 text-base\">选择多个市场场景，运行蒙特卡洛鲁棒性测试</p>"
+    },
+    {
+      "line": 316,
+      "text": "系统会在每个场景中运行 N 条随机路径，评估策略的跨场景稳定性"
+    }
+  ],
+  "src/components/stock-analysis/PortfolioDashboard.tsx": [
+    {
+      "line": 333,
+      "text": "placeholder=\"600519, 100, 1800.0, 贵州茅台\""
+    },
+    {
+      "line": 365,
+      "text": "{h.stockName} ({h.stockCode}) — {h.shares.toLocaleString()}股 @ ¥{h.avgCost.toFixed(2)}"
+    }
+  ],
+  "src/components/stock-analysis/PortfolioMonitorPanel.tsx": [
+    {
+      "line": 319,
+      "text": "{fmtMoney(s.portfolioPnl)} 元"
+    }
+  ],
+  "src/components/stock-analysis/PriceAlertPanel.tsx": [
+    {
+      "line": 165,
+      "text": "text={alerts.length > 0 ? `${alerts.length} 活跃` : \"无\"}"
+    },
+    {
+      "line": 182,
+      "text": "<Select.Option value=\"above\">≥ 价格突破</Select.Option>"
+    },
+    {
+      "line": 183,
+      "text": "<Select.Option value=\"below\">≤ 价格跌破</Select.Option>"
+    },
+    {
+      "line": 184,
+      "text": "<Select.Option value=\"change_up\">↗ 涨幅超</Select.Option>"
+    },
+    {
+      "line": 185,
+      "text": "<Select.Option value=\"change_down\">↘ 跌幅超</Select.Option>"
+    },
+    {
+      "line": 186,
+      "text": "<Select.Option value=\"volume_spike\">📊 放量</Select.Option>"
+    },
+    {
+      "line": 235,
+      "text": "locale={{ emptyText: \"无触发记录\" }}"
+    }
+  ],
+  "src/components/stock-analysis/QuantSimPanel.tsx": [
+    {
+      "line": 57,
+      "text": "<Card size=\"small\" title=\"⚡ 量化策略 DES 模拟\">"
+    },
+    {
+      "line": 60,
+      "text": "股票代码"
+    },
+    {
+      "line": 69,
+      "text": "参考价(分)"
+    },
+    {
+      "line": 79,
+      "text": "时长(ms)"
+    },
+    {
+      "line": 92,
+      "text": "<label className=\"text-sm font-medium\">策略</label>"
+    },
+    {
+      "line": 100,
+      "text": "{loading ? \"模拟中...\" : \"运行模拟\"}"
+    },
+    {
+      "line": 105,
+      "text": "将 quant 内置策略作为 Agent 注入 DES，与做市商/噪声同场博弈"
+    },
+    {
+      "line": 112,
+      "text": "<Spin tip=\"正在运行 DES 模拟...\" />"
+    },
+    {
+      "line": 127,
+      "text": "<Statistic title=\"处理事件\" value={result.totalEvents} suffix=\"个\" />"
+    },
+    {
+      "line": 130,
+      "text": "<Statistic title=\"成交笔数\" value={result.totalTrades} suffix=\"笔\" />"
+    },
+    {
+      "line": 134,
+      "text": "title=\"终止价\""
+    },
+    {
+      "line": 136,
+      "text": "suffix=\"分\""
+    },
+    {
+      "line": 140,
+      "text": "<Statistic title=\"墙钟耗时\" value={result.wallClockMs} suffix=\"ms\" />"
+    },
+    {
+      "line": 144,
+      "text": "<Card size=\"small\" title=\"💡 解读\">"
+    },
+    {
+      "line": 146,
+      "text": "<Descriptions.Item label=\"策略\">"
+    },
+    {
+      "line": 151,
+      "text": "<Descriptions.Item label=\"市场活动\">"
+    },
+    {
+      "line": 153,
+      "text": "? `在 ${simMs}ms 虚拟时间内产生了 ${result.totalEvents} 个事件、${result.totalTrades} 笔成交。`"
+    },
+    {
+      "line": 154,
+      "text": ": \"模拟未产生事件，请检查参数。\"}"
+    },
+    {
+      "line": 156,
+      "text": "<Descriptions.Item label=\"报价\">"
+    },
+    {
+      "line": 158,
+      "text": "? `终止中间价 ${result.finalMidPrice} 分 (参考价 ${refPrice} 分)`"
+    },
+    {
+      "line": 159,
+      "text": ": \"无可用报价\"}"
+    },
+    {
+      "line": 169,
+      "text": "<p className=\"mb-1 text-base\">选择一个量化策略，在 DES 合成市场中运行</p>"
+    },
+    {
+      "line": 171,
+      "text": "可用的策略包括双均线交叉、MACD、RSI、布林带、海龟通道"
+    }
+  ],
+  "src/components/stock-analysis/RecoSignalTimeline.tsx": [
+    {
+      "line": 225,
+      "text": "?? `胜 ${stats.wins} / 负 ${stats.total - stats.wins}`}"
+    }
+  ],
+  "src/components/stock-analysis/RecommendationPanel.tsx": [
+    {
+      "line": 831,
+      "text": "message.error(`校准预览失败: ${e}`);"
+    },
+    {
+      "line": 865,
+      "text": "message.success(`已应用 ${result.applied} 个策略权重调整`);"
+    },
+    {
+      "line": 871,
+      "text": "message.error(`应用失败: ${msg}`);"
+    },
+    {
+      "line": 893,
+      "text": "<Button key=\"cancel\" onClick={() => setModalOpen(false)}>取消</Button>,"
+    },
+    {
+      "line": 901,
+      "text": "应用选中项 ({checked.length})"
+    },
+    {
+      "line": 907,
+      "text": "? <p style={{ color: \"var(--muted)\" }}>当前无建议调整</p>"
+    },
+    {
+      "line": 912,
+      "text": "<th style={{ padding: 4, textAlign: \"left\" }}>策略</th>"
+    },
+    {
+      "line": 913,
+      "text": "<th style={{ padding: 4, textAlign: \"right\" }}>当前权重</th>"
+    },
+    {
+      "line": 914,
+      "text": "<th style={{ padding: 4, textAlign: \"right\" }}>建议权重</th>"
+    },
+    {
+      "line": 915,
+      "text": "<th style={{ padding: 4, textAlign: \"right\" }}>变动</th>"
+    },
+    {
+      "line": 916,
+      "text": "<th style={{ padding: 4 }}>应用</th>"
+    }
+  ],
+  "src/components/stock-analysis/ReflectionPanel.tsx": [
+    {
+      "line": 609,
+      "text": "成功后生成新记录,旧失败记录保留(可手动删除)。"
+    },
+    {
+      "line": 610,
+      "text": "仅 failed:* 状态显示,避免误操作正在 running/completed 的记录。 */"
+    },
+    {
+      "line": 926,
+      "text": "(手动反思时为空字符串,此时原 analysis 不存在,按钮隐藏) */"
+    },
+    {
+      "line": 1243,
+      "text": "return `你是工作流修改助手。请基于以下反思结论，输出 1-3 个 :::action 块，"
+    },
+    {
+      "line": 1244,
+      "text": "让前端用户可以预览 + 一键应用。"
+    },
+    {
+      "line": 1249,
+      "text": "【反思上下文】"
+    },
+    {
+      "line": 1250,
+      "text": "- 股票：${row.stockCode} ${row.stockName}"
+    },
+    {
+      "line": 1252,
+      "text": "- 实际结果：${row.actualOutcome}"
+    },
+    {
+      "line": 1253,
+      "text": "- 反思深度：${row.reflectionDepth}"
+    },
+    {
+      "line": 1264,
+      "text": "【实现层级（implementation_tier）】${tierText}"
+    },
+    {
+      "line": 1265,
+      "text": "（说明：L1 = 改 workflow_template.variables；L2 = 改 .rhai 公式 / 算法约束；L3 = 改 .md 提示词）"
+    },
+    {
+      "line": 1267,
+      "text": "【业务层代码 diff 提案（code_diff_proposal）】"
+    },
+    {
+      "line": 1270,
+      "text": "【输出格式】"
+    },
+    {
+      "line": 1272,
+      "text": "前端会自动用 apply_diff_with_validation 聚合，所以你**不需要**输出 apply_diff_with_validation 自身。"
+    },
+    {
+      "line": 1273,
+      "text": "edit_asset_file 的 description 必填（≤ 200 字）。"
+    },
+    {
+      "line": 1275,
+      "text": "1. 如果是 L1（参数调整）："
+    },
+    {
+      "line": 1280,
+      "text": "2. 如果是 L2（改 .rhai 公式）："
+    },
+    {
+      "line": 1285,
+      "text": "3. 如果是 L3（改 .md 提示词）："
+    },
+    {
+      "line": 1290,
+      "text": "4. 如果是回滚："
+    },
+    {
+      "line": 1295,
+      "text": "5. 如果是改 sub-workflow input_mapping："
+    },
+    {
+      "line": 1300,
+      "text": "不要输出除 :::action 块以外的其他内容（除简短中文解释外）。`;"
+    }
+  ],
+  "src/components/stock-analysis/ScheduledAnalysisPanel.tsx": [
+    {
+      "line": 143,
+      "text": "?? `已从持仓导入 ${added} 个定时分析`,"
+    }
+  ],
+  "src/components/stock-analysis/ScreenerPage.tsx": [
+    {
+      "line": 43,
+      "text": "避免:"
+    },
+    {
+      "line": 45,
+      "text": "hidden 时还去 setState,造成后续切回时显示过时/乱序数据"
+    },
+    {
+      "line": 47,
+      "text": "残留,让用户对结果感到困惑"
+    },
+    {
+      "line": 48,
+      "text": "切回时各 panel 重新 mount 并 invoke 自己的数据,语义最干净。 */"
+    }
+  ],
+  "src/components/stock-analysis/SerenityScreeningPanel.tsx": [
+    {
+      "line": 491,
+      "text": "\"[Serenity] ⚠️ 无法提取任何候选！完整payload:\","
+    },
+    {
+      "line": 738,
+      "text": "<Text type=\"secondary\">PE 上限</Text>"
+    },
+    {
+      "line": 750,
+      "text": "<Text type=\"secondary\">PB 上限</Text>"
+    },
+    {
+      "line": 762,
+      "text": "<Text type=\"secondary\">近3月涨幅上限</Text>"
+    },
+    {
+      "line": 774,
+      "text": "<Text type=\"secondary\">近12月涨幅上限</Text>"
+    },
+    {
+      "line": 786,
+      "text": "<Text type=\"secondary\">毛利率下限</Text>"
+    },
+    {
+      "line": 798,
+      "text": "<Text type=\"secondary\">负债率上限</Text>"
+    },
+    {
+      "line": 810,
+      "text": "<Text type=\"secondary\">高增长豁免阈值</Text>"
+    },
+    {
+      "line": 822,
+      "text": "PE超上限但营收增速≥此值时豁免，保护高增长标的不被误杀"
+    },
+    {
+      "line": 939,
+      "text": "? \"(执行完成，无输出内容)\""
+    },
+    {
+      "line": 941,
+      "text": "? \"(正在执行...)\""
+    },
+    {
+      "line": 942,
+      "text": ": \"(无详细输出)\"}"
+    },
+    {
+      "line": 1014,
+      "text": "`退出信号扫描完成:\\n检查 ${r.checked_count} 只\\n- 立即退出: ${r.exit_now_count} 只\\n- 谨慎关注: ${r.caution_count} 只`,"
+    },
+    {
+      "line": 1017,
+      "text": "alert(`退出信号扫描完成: ${r.checked_count} 只，暂无异常`);"
+    },
+    {
+      "line": 1396,
+      "text": "render: (v: number) => <span className=\"text-xs\">{v} 只</span>,"
+    },
+    {
+      "line": 1427,
+      "text": "{t(\"serenityPanel.serenityHistory.candidateCount\")}: {serenityDetailItems.length} 只"
+    }
+  ],
+  "src/components/stock-analysis/StockAnalysisPage.tsx": [
+    {
+      "line": 411,
+      "text": "title={\"打开/关闭分析调试面板\"}"
+    },
+    {
+      "line": 413,
+      "text": "🔍 {showDebug ? \"隐藏 Debug\" : \"Debug 面板\"}"
+    }
+  ],
+  "src/components/stock-analysis/TradeReviewPanel.tsx": [
+    {
+      "line": 109,
+      "text": "<span>交易复盘</span>"
+    },
+    {
+      "line": 118,
+      "text": "已平仓<div style={{ fontWeight: \"bold\" }}>{review.totalClosed}</div>"
+    },
+    {
+      "line": 121,
+      "text": "胜率<div style={{ fontWeight: \"bold\" }}>{review.winRate.toFixed(0)}%</div>"
+    },
+    {
+      "line": 124,
+      "text": "总盈亏<div style={{ color: review.totalPnl >= 0 ? \"var(--sa-red)\" : \"var(--sa-green)\", fontWeight: \"bold\" }}>"
+    },
+    {
+      "line": 130,
+      "text": "综合评级<div>"
+    },
+    {
+      "line": 141,
+      "text": "style={{ color: s.includes(\"优秀\") || s.includes(\"良好\") ? \"var(--sa-red)\" : \"var(--sa-green)\" }}"
+    }
+  ],
+  "src/components/stock-analysis/TradeStatsPanel.tsx": [
+    {
+      "line": 90,
+      "text": "<span>统计分析</span>"
+    },
+    {
+      "line": 99,
+      "text": "<span style={{ color: \"var(--muted)\" }}>总盈亏</span>"
+    },
+    {
+      "line": 106,
+      "text": "<span style={{ color: \"var(--muted)\" }}>胜率</span>"
+    },
+    {
+      "line": 114,
+      "text": "<span style={{ color: \"var(--muted)\" }}>盈亏比</span>"
+    },
+    {
+      "line": 120,
+      "text": "<span style={{ color: \"var(--muted)\" }}>平均持有</span>"
+    },
+    {
+      "line": 121,
+      "text": "<div style={{ fontWeight: \"bold\" }}>{stats.avgHoldingDays.toFixed(1)} 天</div>"
+    },
+    {
+      "line": 127,
+      "text": "<span style={{ color: \"var(--muted)\" }}>税费估算</span>"
+    },
+    {
+      "line": 128,
+      "text": "<span style={{ color: \"var(--sa-green)\" }}>印花税 ¥{stats.totalStampTax.toFixed(0)}</span>"
+    },
+    {
+      "line": 130,
+      "text": "<span style={{ color: \"var(--muted)\" }}>佣金 ¥{stats.totalFeesEst.toFixed(0)}</span>"
+    },
+    {
+      "line": 132,
+      "text": "<span>交易 {stats.totalBuys + stats.totalSells} 笔 (买 {stats.totalBuys} / 卖 {stats.totalSells})</span>"
+    },
+    {
+      "line": 138,
+      "text": "<div className=\"text-xs mb-1\" style={{ color: \"var(--muted)\" }}>持有期分布</div>"
+    },
+    {
+      "line": 143,
+      "text": "<b>{h.count} 笔</b>"
+    },
+    {
+      "line": 157,
+      "text": "<div className=\"text-xs mb-1\" style={{ color: \"var(--muted)\" }}>按策略</div>"
+    },
+    {
+      "line": 166,
+      "text": "<div>{s.tradeCount} 笔</div>"
+    },
+    {
+      "line": 180,
+      "text": "<div className=\"text-xs mb-1\" style={{ color: \"var(--muted)\" }}>月度盈亏</div>"
+    }
+  ],
+  "src/components/stock-analysis/ValueAssessmentPanel.tsx": [
+    {
+      "line": 262,
+      "text": "<span>展望说明 / 巴菲特裁决</span>"
+    },
+    {
+      "line": 263,
+      "text": "{data.ideal_buy_price && <Tag color=\"green\">理想买入价: {data.ideal_buy_price}</Tag>}"
+    },
+    {
+      "line": 274,
+      "text": "<div className=\"text-xs font-medium mb-1\" style={{ color: \"var(--muted)\" }}>商业模式</div>"
+    },
+    {
+      "line": 284,
+      "text": "<div className=\"text-xs font-medium mb-1\" style={{ color: \"var(--muted)\" }}>护城河评估</div>"
+    },
+    {
+      "line": 286,
+      "text": "<Tag color=\"gold\">护城河: {data.moat_rating}</Tag>"
+    },
+    {
+      "line": 299,
+      "text": "<div className=\"text-xs font-medium mb-1\" style={{ color: \"var(--muted)\" }}>财务健康</div>"
+    },
+    {
+      "line": 309,
+      "text": "<div className=\"text-xs font-medium mb-1\" style={{ color: \"var(--muted)\" }}>估值结论</div>"
+    },
+    {
+      "line": 328,
+      "text": "<div className=\"text-xs font-medium mb-1\" style={{ color: \"var(--muted)\" }}>风险标志</div>"
+    },
+    {
+      "line": 458,
+      "text": "估值报告（JSON 格式，未能自动解析）："
+    },
+    {
+      "line": 478,
+      "text": "估值报告（原始 JSON）："
+    }
+  ],
+  "src/components/stock-analysis/WhatIfBacktest.tsx": [
+    {
+      "line": 196,
+      "text": "if (confidence >= 80 && positionPct >= 30) { return \"增持\"; }"
+    },
+    {
+      "line": 197,
+      "text": "if (confidence >= 60) { return \"买入\"; }"
+    },
+    {
+      "line": 198,
+      "text": "if (confidence >= 40) { return \"持有\"; }"
+    },
+    {
+      "line": 199,
+      "text": "if (positionPct < 10) { return \"减持\"; }"
+    },
+    {
+      "line": 213,
+      "text": "reasoning: `确定性公式结果: totalScore=${totalScore.toFixed(0)}, dqi=${"
+    },
+    {
+      "line": 360,
+      "text": "riskLevel: (result.riskLevel ?? result.risk_level ?? \"中\") as string,"
+    },
+    {
+      "line": 552,
+      "text": "{ value: \"低\", label: t(\"stockAnalysis.whatIfBacktest.riskLevels.low\") },"
+    },
+    {
+      "line": 553,
+      "text": "{ value: \"中\", label: t(\"stockAnalysis.whatIfBacktest.riskLevels.medium\") },"
+    },
+    {
+      "line": 554,
+      "text": "{ value: \"高\", label: t(\"stockAnalysis.whatIfBacktest.riskLevels.high\") },"
+    },
+    {
+      "line": 555,
+      "text": "{ value: \"极高\", label: t(\"stockAnalysis.whatIfBacktest.riskLevels.veryHigh\") },"
+    },
+    {
+      "line": 634,
+      "text": "<div className=\"text-[10px] text-gray-500 mt-1\">估值参数</div>"
+    },
+    {
+      "line": 652,
+      "text": "<div className=\"text-[10px] text-gray-500 mt-1\">风控参数</div>"
+    },
+    {
+      "line": 742,
+      "text": "{t(\"stockAnalysis.decision.decisionTrail\") ?? \"决策追溯链\"}"
+    },
+    {
+      "line": 770,
+      "text": "⛔ 技术面否决: {result.technicalVeto.ruleId ?? \"\"}"
+    },
+    {
+      "line": 779,
+      "text": "🏭 模拟门 {result.simulationGate.ruleId ?? \"\"}:"
+    },
+    {
+      "line": 784,
+      "text": "模拟前决策: {result.preSimAction}"
+    },
+    {
+      "line": 787,
+      "text": "? ` | 稳定性 ${result.simulationGate.simStability}`"
+    },
+    {
+      "line": 790,
+      "text": "? ` | 流动性 ${result.simulationGate.simLiquidity}`"
+    },
+    {
+      "line": 793,
+      "text": "? ` | 冲击 ${result.simulationGate.simImpact}bps`"
+    }
+  ],
+  "src/components/stock-analysis/dual-view/CompactAnalystSummary.tsx": [
+    {
+      "line": 88,
+      "text": "暂无分析师报告"
+    }
+  ],
+  "src/components/stock-analysis/dual-view/CompactDebateNode.tsx": [
+    {
+      "line": 100,
+      "text": "暂无辩论数据"
+    },
+    {
+      "line": 128,
+      "text": "<span style={{ color: \"var(--muted)\" }}>{summary.totalRounds} 轮</span>"
+    },
+    {
+      "line": 133,
+      "text": "<span style={{ color: \"var(--sa-red, #dc2626)\", fontWeight: 600 }}>多:</span>"
+    },
+    {
+      "line": 139,
+      "text": "<span style={{ color: \"var(--sa-green, #16a34a)\", fontWeight: 600 }}>空:</span>"
+    }
+  ],
+  "src/components/stock-analysis/dual-view/CompactDecisionComparison.tsx": [
+    {
+      "line": 178,
+      "text": "? `⚠ ${view.agreementBreakdown.formulaAction} ≠ ${view.agreementBreakdown.llmAction}（方向相反）`"
+    },
+    {
+      "line": 179,
+      "text": ": `⚠ 分歧（${"
+    },
+    {
+      "line": 181,
+      "text": "? \"方向冲突\""
+    }
+  ],
+  "src/components/stock-analysis/dual-view/CompactValueAssessment.tsx": [
+    {
+      "line": 58,
+      "text": "护城河: {moat}"
+    },
+    {
+      "line": 61,
+      "text": "{ideal && <span style={{ color: \"var(--sa-green, #16a34a)\" }}>理想买入 ¥{ideal}</span>}"
+    }
+  ],
+  "src/components/stock-analysis/dual-view/DecisionComparisonPanel.tsx": [
+    {
+      "line": 126,
+      "text": "? \"✗ 相反\""
+    },
+    {
+      "line": 128,
+      "text": "? \"≈ 同向\""
+    },
+    {
+      "line": 129,
+      "text": ": \"⚠ 分歧\"} ({view.agreementBreakdown.formulaAction} vs {view.agreementBreakdown.llmAction})"
+    },
+    {
+      "line": 133,
+      "text": "{t(\"dualView.decision.positionPct\")}: 差 {Math.round(view.agreementBreakdown.positionGap)}%"
+    },
+    {
+      "line": 138,
+      "text": "{t(\"dualView.decision.confidence\")}: 差 {Math.round(view.agreementBreakdown.confidenceGap)}%"
+    },
+    {
+      "line": 193,
+      "text": "置信 <b style={{ fontSize: \"13px\" }}>{fmtNum(view.confidence)}%</b>"
+    },
+    {
+      "line": 197,
+      "text": "仓位 <b style={{ fontSize: \"13px\" }}>{fmtNum(view.decisionPositionPct, \"%\")}</b>"
+    },
+    {
+      "line": 234,
+      "text": "置信 <b style={{ fontSize: \"13px\" }}>{fmtNum(view.llmConfidence)}%</b>"
+    },
+    {
+      "line": 238,
+      "text": "仓位 <b style={{ fontSize: \"13px\" }}>{fmtNum(view.llmDecisionPositionPct, \"%\")}</b>"
+    }
+  ],
+  "src/components/stock-analysis/utils.ts": [
+    {
+      "line": 76,
+      "text": "if (typeof k.win_rate === \"number\") { kParts.push(`胜率 ${(k.win_rate * 100).toFixed(0)}%`); }"
+    },
+    {
+      "line": 77,
+      "text": "if (typeof k.payoff_ratio === \"number\") { kParts.push(`赔率 ${k.payoff_ratio}`); }"
+    },
+    {
+      "line": 78,
+      "text": "if (typeof k.raw_kelly === \"number\") { kParts.push(`原始 Kelly ${(k.raw_kelly * 100).toFixed(1)}%`); }"
+    },
+    {
+      "line": 79,
+      "text": "if (typeof k.scale_factor === \"number\") { kParts.push(`缩放因子 ${k.scale_factor}`); }"
+    }
+  ],
+  "src/components/time-travel/PageTimeAnchor.tsx": [
+    {
+      "line": 133,
+      "text": "实时通过 timeAnchorStore 拉取(每 3s 一次),数字就是\"被跳过的方法数\"。"
+    },
+    {
+      "line": 134,
+      "text": "0 时不显示,避免噪声。 */"
+    }
+  ],
+  "src/lib/invoke.ts": [
+    {
+      "line": 111,
+      "text": "`[IPC 重试] \"${cmd}\" 第 ${attempt + 1}/${maxRetries} 次重试，等待 ${actualDelay}ms:`,"
+    }
+  ],
+  "src/lib/storage.ts": [
+    {
+      "line": 37,
+      "text": "`[storage] 数据过大 (${(serialized.length / 1024).toFixed(1)} KB > ${"
+    }
+  ],
+  "src/stores/feature/stockAnalysisStore.ts": [
+    {
+      "line": 785,
+      "text": "const reason = (result.reason as string) || \"数据质量不足\";"
+    },
+    {
+      "line": 788,
+      "text": "error: `数据不足，跳过分析: ${reason}`,"
+    },
+    {
+      "line": 1675,
+      "text": "const label = nodeId === \"t-news-data\" ? \"新闻\" : nodeId === \"t-sentiment-data\" ? \"舆情\" : \"公告\";"
+    },
+    {
+      "line": 1677,
+      "text": "const msg = `⚠️ ${label}数据获取为空，相关分析师将基于有限数据分析`;"
+    },
+    {
+      "line": 1997,
+      "text": "`[t0] 收到 T+0 重跑请求: stock=${stockCode} reason=${reason}`,"
+    }
+  ],
+  "src/types/quant.ts": [
+    {
+      "line": 341,
+      "text": "reason: \"MA5(\" + s5 + \") 上穿 MA20(\" + s20 + \")\""
+    },
+    {
+      "line": 351,
+      "text": "reason: \"MA5 下穿 MA20\","
+    }
+  ]
+}

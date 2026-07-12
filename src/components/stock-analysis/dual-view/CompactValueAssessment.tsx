@@ -4,6 +4,7 @@
  * 输出:1-2 行关键信息,verdict + 理想买入价
  */
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface CompactValueAssessmentProps {
   data: { report: string } | string;
@@ -30,6 +31,7 @@ function tryParse(report: string): ParsedValue | null {
 }
 
 export function CompactValueAssessment({ data }: CompactValueAssessmentProps) {
+  const { t } = useTranslation();
   const report = typeof data === "string" ? data : data?.report ?? "";
   const parsed = useMemo(() => tryParse(report), [report]);
 
@@ -55,10 +57,12 @@ export function CompactValueAssessment({ data }: CompactValueAssessmentProps) {
             className="px-1.5 py-0.5 rounded text-[10px] font-medium"
             style={{ background: "var(--accent-bg, #ede9fe)", color: "var(--accent, #7c3aed)" }}
           >
-            护城河: {moat}
+            {t("stockAnalysis.compact.moat")}: {moat}
           </span>
         )}
-        {ideal && <span style={{ color: "var(--sa-green, #16a34a)" }}>理想买入 ¥{ideal}</span>}
+        {ideal && (
+          <span style={{ color: "var(--sa-green, #16a34a)" }}>{t("stockAnalysis.compact.idealBuy")} ¥{ideal}</span>
+        )}
       </div>
       {verdict && (
         <div className="text-[11px] leading-snug" style={{ color: "var(--color-text-secondary)" }}>

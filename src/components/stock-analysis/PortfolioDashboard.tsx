@@ -330,7 +330,7 @@ export function PortfolioDashboard() {
           <textarea
             className="w-full border rounded p-2 text-sm font-mono"
             rows={8}
-            placeholder="600519, 100, 1800.0, 贵州茅台"
+            placeholder={t("portfolio.importPlaceholder")}
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
             style={{ background: "var(--color-bg)", color: "var(--color-text)", borderColor: "var(--color-border)" }}
@@ -362,7 +362,8 @@ export function PortfolioDashboard() {
               <p className="text-sm font-medium">{t("portfolio.preview")}:</p>
               {vlmResult.map((h, i) => (
                 <div key={i} className="text-xs py-1">
-                  {h.stockName} ({h.stockCode}) — {h.shares.toLocaleString()}股 @ ¥{h.avgCost.toFixed(2)}
+                  {h.stockName} ({h.stockCode}) — {h.shares.toLocaleString()}
+                  {t("portfolio.sharesUnit")} @ ¥{h.avgCost.toFixed(2)}
                 </div>
               ))}
             </div>

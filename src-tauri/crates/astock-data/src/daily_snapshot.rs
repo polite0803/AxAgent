@@ -100,8 +100,6 @@ impl DailySnapshotCache {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
-
     fn make_cache() -> DailySnapshotCache {
         let dir = std::env::temp_dir().join("astock_daily_snapshot_test");
         let _ = std::fs::create_dir_all(&dir);

@@ -201,7 +201,9 @@ mod tests {
         );
         let blocks = normalizer.normalize(&response).await;
         assert_eq!(blocks.len(), 3);
-        assert!(matches!(blocks[0], ContentBlock::Text { text: ref t } if t == "我需要查一下天气。"));
+        assert!(
+            matches!(blocks[0], ContentBlock::Text { text: ref t } if t == "我需要查一下天气。")
+        );
         assert!(matches!(
             blocks[1],
             ContentBlock::ToolUse { id: ref id, name: ref n, input: ref inp }

@@ -139,8 +139,7 @@ export function ScheduledAnalysisPanel() {
         }
       }
       message.success(
-        t("stockAnalysis.scheduledAnalysis.importedFromPortfolio", { count: added })
-          ?? `已从持仓导入 ${added} 个定时分析`,
+        t("stockAnalysis.scheduledAnalysis.importedFromPortfolio", { count: added }),
       );
       loadJobs();
     } catch (e) {

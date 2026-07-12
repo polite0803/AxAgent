@@ -79,39 +79,34 @@ test.describe("Time Travel / As-Of Mode", () => {
     });
   });
 
-  test("clicking LIVE opens the As-Of date picker modal", async ({ page }) => {
-    const modeSwitch = page.locator('[data-testid="page-time-anchor"]');
-    await expect(modeSwitch).toBeVisible({ timeout: 30000 });
-    // Dismiss any overlay modal first so we can click normally
+  test("switching to Replay on the Segmented opens the date picker", async ({ page }) => {
+    const anchor = page.locator('[data-testid="page-time-anchor"]');
+    await expect(anchor).toBeVisible({ timeout: 30000 });
     await dismissModals(page);
-    await modeSwitch.click();
+    // PageTimeAnchor 使用 Segmented 组件，点"历史回放"选项触发 DatePicker
+    await anchor.locator(".ant-segmented-item").last().click();
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
   });
 
   test("picking a past date enters Replay mode and shows the Replay badge", async ({ page }) => {
-    const modeSwitch = page.locator('[data-testid="page-time-anchor"]');
-    // Dismiss any overlay modal first so we can click normally
+    const anchor = page.locator('[data-testid="page-time-anchor"]');
     await dismissModals(page);
-    await modeSwitch.click();
+    // 点 Segmented "历史回放" 选项
+    await anchor.locator(".ant-segmented-item").last().click();
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
 
-    // Try to inject a date directly into the picker input — fall back to AntD
-    // DatePicker behavior. We click "OK" to confirm. The picker blocks future
-    // dates so the test only succeeds if a past date is chosen.
-    const okBtn = picker.locator(
-      'button:has-text("Enter Replay"), button:has-text("进入回放"), button:has-text("确定")',
-    ).first();
-    const hasOk = await okBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    test.skip(!hasOk, "OK button not found (date not selected)");
+    // 点 DatePicker input 打开日历面板，选一个过去日期
+    await picker.locator("input").click();
+    const calendar = page.locator(".ant-picker-dropdown").first();
+    await expect(calendar).toBeVisible({ timeout: 5000 });
+    await calendar.locator(".ant-picker-cell:not(.ant-picker-cell-disabled)").first().click();
 
-    await okBtn.click();
+    // 选日期后会自动触发 enterReplay，Segmented 应显示"回放"字样
+    await expect(anchor).toContainText(/replay|回放|Replay/i, { timeout: 10000 });
 
-    // The mode-switch pill should now show "Replay" wording
-    await expect(modeSwitch).toContainText(/replay|回放|Replay/i, { timeout: 10000 });
-
-    // Navigate to stock-analysis and verify the ReplayBadge appears in a panel
+    // 导航到 stock-analysis 检查 ReplayBadge
     await page.goto("/stock-analysis");
     await page.waitForLoadState("domcontentloaded");
     const badge = page.locator('[data-testid="replay-badge"]').first();

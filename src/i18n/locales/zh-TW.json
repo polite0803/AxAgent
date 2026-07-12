@@ -8080,9 +8080,25 @@
       "deleteSuccess": "已刪除 {{count}} 條瓶頸掘金記錄",
       "selectedCount": "已選 {{count}} 項",
       "exitSelect": "退出多選",
-      "empty": "暫無瓶頸掘金歷史"
+      "empty": "暫無瓶頸掘金歷史",
+      "detailEmpty": "該輪暫無候選股記錄"
     },
-    "settings": "[TODO] Valuation Filters"
+    "filterPeUpper": "PE 上限",
+    "filterPbUpper": "PB 上限",
+    "filter3mGainUpper": "近3月漲幅上限",
+    "filter12mGainUpper": "近12月漲幅上限",
+    "filterGrossMarginLower": "毛利率下限",
+    "filterDebtRatioUpper": "負債率上限",
+    "filterGrowthExemptThreshold": "高增長豁免閾值",
+    "filterSuffixMultiplier": "倍",
+    "filterSuffixPercent": "%",
+    "filterSuffixCount": "隻",
+    "filterGrowthExemptHint": "PE超上限但營收增速≥此值時豁免，保護高增長標的不被誤殺",
+    "stepLogCompletedNoOutput": "(執行完成，無輸出內容)",
+    "stepLogRunning": "(正在執行...)",
+    "stepLogNoDetail": "(無詳細輸出)",
+    "exitSignalAlert": "退出信號掃描完成:\n檢查 {{checked}} 隻\n- 立即退出: {{exitNow}} 隻\n- 謹慎關注: {{caution}} 隻",
+    "exitSignalAlertNone": "退出信號掃描完成: {{checked}} 隻，暫無異常"
   },
   "quant": {
     "backtest": {
@@ -8111,7 +8127,9 @@
       "compare": "Start Compare",
       "comparing": "Comparing...",
       "selectRuns": "Select backtest runs",
-      "title": "Strategy Comparison"
+      "title": "Strategy Comparison",
+      "noHistoryRuns": "No historical runs",
+      "firstRunMetrics": "First Run Metrics"
     },
     "metrics": {
       "annualizedReturn": "Annualized Return",
@@ -8124,12 +8142,15 @@
     },
     "rhai": {
       "compileError": "Compile Error",
+      "description": "策略說明",
+      "descriptionPlaceholder": "策略說明（可選）",
       "hint": "Write trading strategy logic in Rhai language",
       "name": "Script Name",
       "save": "Save",
       "saved": "Saved",
       "source": "Source Code",
       "title": "Rhai Script Editor",
+      "upsertLabel": "upsert（同名同版本覆蓋）",
       "version": "Version"
     },
     "strategy": {
@@ -9641,6 +9662,17 @@
       "cachedAt": "缓存于 {{time}}",
       "cachedBadge": "缓存",
       "calibrate": "自动校准",
+      "cancel": "取消",
+      "calibrateStrategy": "策略",
+      "calibrateCurrentWeight": "當前權重",
+      "calibrateSuggestedWeight": "建議權重",
+      "calibrateChange": "變動",
+      "calibrateApply": "應用",
+      "calibrateNoSuggestions": "當前無建議調整",
+      "calibrateApplySelected": "應用選中項 ({{count}})",
+      "calibratePreviewFailed": "校準預覽失敗: {{error}}",
+      "calibrateApplied": "已應用 {{count}} 個策略權重調整",
+      "calibrateApplyFailed": "應用失敗",
       "recoHistory": {
         "viewHistory": "查看荐股历史",
         "title": "荐股历史",
@@ -10127,7 +10159,25 @@
     "stock-analysis_RecommendationPanel.001": "title",
     "stock-analysis_RecommendationPanel.002": "请先勾选要应用的策略",
     "stock-analysis_RecommendationPanel.003": "所选项的权重值无效(NaN/缺失),无法应用",
-    "stock-analysis_StockAnalysisPage.001": "title"
+    "stock-analysis_StockAnalysisPage.001": "title",
+    "exitRecommendation": {
+      "title": "退出建议",
+      "urgent": "紧急",
+      "limit": "限价",
+      "stopLoss": "止损",
+      "sellNow": "立即卖出",
+      "sellAtLimit": "挂限价卖出",
+      "setStopLoss": "设置止损",
+      "hold": "继续持有",
+      "considerAdd": "考虑加仓",
+      "cost": "成本",
+      "currentPrice": "现价",
+      "pnl": "盈亏",
+      "holdingDays": "持有",
+      "days": "天",
+      "position": "仓位",
+      "suggestedPrice": "建议挂出"
+    }
   },
   "learningGraph": {
     "title": "學習圖",

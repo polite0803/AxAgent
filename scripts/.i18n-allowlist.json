@@ -1,7 +1,7 @@
 {
   "version": "2",
-  "generated": "2026-07-08",
-  "total_entries": 673,
+  "generated": "2026-07-12",
+  "total_entries": 935,
   "total_files": 481,
   "entries": [
     {
@@ -1270,7 +1270,7 @@
     },
     {
       "file": "src/lib/invoke.ts",
-      "lines": "19,21,23,25,27,29,31,33,35,55,57,58,76,77,84,89,94,101,103,182,230,339,340,463,464,466",
+      "lines": "19,21,23,25,27,29,31,33,35,55,57,58,76,77,84,89,94,101,103,111,182,230,339,340,463,464,466",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -2776,42 +2776,42 @@
     },
     {
       "file": "src/components/stock-analysis/AnalystReportCard.tsx",
-      "lines": "*",
+      "lines": "*,216,221,226,229,232,236,240,690",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/AnalystReportGrid.tsx",
-      "lines": "*",
+      "lines": "*,35,36",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/DebatePanel.tsx",
-      "lines": "*",
+      "lines": "*,10,83,232,294,590,591,752,754,838",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/RiskMatrix.tsx",
-      "lines": "*",
+      "lines": "*,142,143,147,148,150,152,160,177,209,210,399",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/ValueAssessmentPanel.tsx",
-      "lines": "*",
+      "lines": "*,12,48,49,50,52,54,55,58,262,263,339,340,345,348,420,429,458,478",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/MarketSimPanel.tsx",
-      "lines": "*",
+      "lines": "*,8,11,135,145,155,165,167,195",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/MonteCarloPanel.tsx",
-      "lines": "*",
+      "lines": "*,32,185,195,206,241,251,253,260,267",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/QuantSimPanel.tsx",
-      "lines": "*",
+      "lines": "*,12,57,60,69,79,92,100,105,112,127,130,134,136,140,144,146,151,153,154,156,158,159,169,171",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2821,7 +2821,7 @@
     },
     {
       "file": "src/components/stock-analysis/PortfolioDashboard.tsx",
-      "lines": "*",
+      "lines": "*,365",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2831,22 +2831,22 @@
     },
     {
       "file": "src/components/stock-analysis/FundPanel.tsx",
-      "lines": "*",
+      "lines": "*,87,88,89,90,91,138,151,158",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/TradeStatsPanel.tsx",
-      "lines": "*",
+      "lines": "*,121,143,166",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/TradeReviewPanel.tsx",
-      "lines": "*",
+      "lines": "*,35,37,39,79,80,81,82,83,84,86,97,141,143",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/PriceAlertPanel.tsx",
-      "lines": "*",
+      "lines": "*,144,213,227",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2856,7 +2856,7 @@
     },
     {
       "file": "src/components/stock-analysis/DecisionBanner.tsx",
-      "lines": "*",
+      "lines": "*,750,751,752",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2876,7 +2876,7 @@
     },
     {
       "file": "src/components/stock-analysis/CompareView.tsx",
-      "lines": "*",
+      "lines": "*,246,252,258,264,281,282",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2896,7 +2896,7 @@
     },
     {
       "file": "src/components/quant/charts/WalkForwardFoldBarChart.tsx",
-      "lines": "*",
+      "lines": "*,59,60",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2906,7 +2906,7 @@
     },
     {
       "file": "src/components/quant/tabs/BacktestTab.tsx",
-      "lines": "*",
+      "lines": "*,497",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2916,7 +2916,7 @@
     },
     {
       "file": "src/components/quant/tabs/RhaiEditorTab.tsx",
-      "lines": "*",
+      "lines": "*,64",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2931,17 +2931,17 @@
     },
     {
       "file": "src/components/settings/DataVendorsTab.tsx",
-      "lines": "*",
+      "lines": "*,231,538,541",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/settings/StockAnalysisConfigPanel.tsx",
-      "lines": "*",
+      "lines": "*,243,262",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/settings/ScheduledRecommendationTab.tsx",
-      "lines": "*",
+      "lines": "*,50,57,63,100,125,132,136,143,165,172,228,238,261,269,276,297",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2951,7 +2951,7 @@
     },
     {
       "file": "src/components/stock-analysis/dual-view/CompactDebateNode.tsx",
-      "lines": "*",
+      "lines": "*,106,128",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -2961,47 +2961,47 @@
     },
     {
       "file": "src/components/stock-analysis/dual-view/CompactRecommendation.tsx",
-      "lines": "*",
+      "lines": "*,65,76",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/analystDualView.tsx",
-      "lines": "*",
+      "lines": "*,10",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/debateDualView.tsx",
-      "lines": "*",
+      "lines": "*,10",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/decisionDualView.tsx",
-      "lines": "*",
+      "lines": "*,13",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/recommendationDualView.tsx",
-      "lines": "*",
+      "lines": "*,10",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/riskDualView.tsx",
-      "lines": "*",
+      "lines": "*,10",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/valueAssessmentDualView.tsx",
-      "lines": "*",
+      "lines": "*,10",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/DecisionComparisonPanel.tsx",
-      "lines": "*",
+      "lines": "*,34,35,133,138",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/dual-view/CompactDecisionComparison.tsx",
-      "lines": "*",
+      "lines": "*,65,66",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -3016,12 +3016,12 @@
     },
     {
       "file": "src/components/stock-analysis/WhatIfBacktest.tsx",
-      "lines": "*",
+      "lines": "*,196,197,198,199,200,213,360,552,553,554,555,770,779,784,787,790,793",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/components/stock-analysis/SerenityScreeningPanel.tsx",
-      "lines": "*",
+      "lines": "*,491,578,703,939,941,942,1014,1017,1023,1292,1396,1427",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -3031,7 +3031,7 @@
     },
     {
       "file": "src/components/stock-analysis/RecoSignalTimeline.tsx",
-      "lines": "*",
+      "lines": "*,225",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -3046,7 +3046,7 @@
     },
     {
       "file": "src/components/stock-analysis/ScheduledAnalysisPanel.tsx",
-      "lines": "*",
+      "lines": "*,37,38,39,40,143",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
@@ -3061,17 +3061,17 @@
     },
     {
       "file": "src/lib/stock-analysis-utils.ts",
-      "lines": "*",
+      "lines": "*,303,306,309",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/stores/feature/stockAnalysisStore.ts",
-      "lines": "*",
+      "lines": "*,785,788,935,984,985,986,987,988,1675,1677,1752,1821,1822,1823,1824,1825,1997",
       "reason": "硬编码中文字符串-待迁移"
     },
     {
       "file": "src/lib/storage.ts",
-      "lines": "39",
+      "lines": "37,39",
       "reason": "非UI字符串-内部日志",
       "phase": 3
     },
@@ -3677,7 +3677,7 @@
     },
     {
       "file": "src/components/stock-analysis/BacktestPage.tsx",
-      "lines": "*",
+      "lines": "*,63,68,73",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
@@ -3725,7 +3725,7 @@
     },
     {
       "file": "src/components/stock-analysis/ExperimentSidebar.tsx",
-      "lines": "*",
+      "lines": "*,46,48,50,53,55,57,60,261,267,273",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
@@ -3749,7 +3749,7 @@
     },
     {
       "file": "src/components/stock-analysis/InvestDashboard.tsx",
-      "lines": "*",
+      "lines": "*,147,267,275,278",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
@@ -3791,7 +3791,7 @@
     },
     {
       "file": "src/components/stock-analysis/PortfolioMonitorPanel.tsx",
-      "lines": "*",
+      "lines": "*,319",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
@@ -3809,13 +3809,13 @@
     },
     {
       "file": "src/components/stock-analysis/ReflectionPanel.tsx",
-      "lines": "*",
+      "lines": "*,609,610,926,1243,1244,1249,1250,1252,1253,1264,1265,1267,1270,1272,1273,1275,1280,1285,1290,1295,1300",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
     {
       "file": "src/components/stock-analysis/ScreenerPage.tsx",
-      "lines": "*",
+      "lines": "*,43,44,45,46,47,48",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
@@ -3881,7 +3881,7 @@
     },
     {
       "file": "src/components/stock-analysis/utils.ts",
-      "lines": "*",
+      "lines": "*,76,77,78,79",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
@@ -3953,7 +3953,7 @@
     },
     {
       "file": "src/components/time-travel/PageTimeAnchor.tsx",
-      "lines": "*",
+      "lines": "*,132,133,134",
       "reason": "中文注释-非UI文本",
       "phase": 3
     },
@@ -3980,6 +3980,1316 @@
       "lines": "*",
       "reason": "中文单位格式化-非UI",
       "phase": 3
+    },
+    {
+      "file": "src/__tests__/stockReflectionSeed.test.ts",
+      "lines": "2,9,12,13,29,62",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentChatTab.tsx",
+      "lines": "7,9,10",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentContextBar.tsx",
+      "lines": "8,10,11,12",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentEntryPoint.tsx",
+      "lines": "9,11,12",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentExecutionTab.tsx",
+      "lines": "7,9",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentMiniPanel.tsx",
+      "lines": "44,46,47,48,49,50",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentPanel.tsx",
+      "lines": "14,16,17,18,19",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentSkillTab.tsx",
+      "lines": "7,9",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/agent/AgentWfTab.tsx",
+      "lines": "18,20,21,22",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/approval/ApprovalPanel.tsx",
+      "lines": "3",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/__tests__/ChatBubbleExpandButton.test.tsx",
+      "lines": "39,48",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/AgentStatsPanel.tsx",
+      "lines": "99",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/ChatBubbleExpandButton.tsx",
+      "lines": "8,10,15,16,17",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/ChatMinimap.tsx",
+      "lines": "216",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/ContextBar.tsx",
+      "lines": "23",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/DiffViewer.tsx",
+      "lines": "118",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/InputArea.tsx",
+      "lines": "2659",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/McpContainerNode.tsx",
+      "lines": "58,98,116",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/MultiLlmVotePanel.tsx",
+      "lines": "5,7,8,9,11,12,14,15,44,46,194",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/chat/WorkflowAgentCard.tsx",
+      "lines": "10,69,81,109,132,133,134,135,136,137,138,139",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/data/Dashboard.tsx",
+      "lines": "16,17",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/data/ListView.tsx",
+      "lines": "9,10,95",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/data/TimelineView.tsx",
+      "lines": "13",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/data/TreeView.tsx",
+      "lines": "8",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/DynamicUIPreview.tsx",
+      "lines": "38,39,40,41",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/DynamicUIRenderer.tsx",
+      "lines": "19",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/media/CodeEditorView.tsx",
+      "lines": "8,9,47,78",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/media/MarkdownView.tsx",
+      "lines": "8,9,10,42",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/SchemaTreeEditor.tsx",
+      "lines": "20,37,49,56,112,455",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/dynamicUI/VisualEditor.tsx",
+      "lines": "4,6,7,8,9,11,48,50,63,157,168",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/layout/AppHeader.tsx",
+      "lines": "48",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/layout/ContentArea.tsx",
+      "lines": "94",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/layout/Tooltip.tsx",
+      "lines": "17,68,70,158",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/charts/drawdown.test.ts",
+      "lines": "12,16,21,26",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/charts/drawdown.ts",
+      "lines": "9,11,12,13,15,16",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/charts/WalkForwardFoldBarChart.tsx",
+      "lines": "3,6,7",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/charts/WalkForwardOOSChart.tsx",
+      "lines": "20,22,24",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/QuantLab.tsx",
+      "lines": "2",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/tables/TradesTable.tsx",
+      "lines": "4,5,6",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/tabs/CompareTab.tsx",
+      "lines": "42",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/quant/tabs/StrategyForm.tsx",
+      "lines": "27,28,31,32,33,36,37,38,41,42,45,46,47,48",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/AdvancedSettings.tsx",
+      "lines": "605",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/AgentGeneratorModal.tsx",
+      "lines": "12,14,15,16,17,18,19,20,22,24,71",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/AgentProfileList.tsx",
+      "lines": "2,3,5,6,7,29,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,178,210,276,309,400",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/DataManager.tsx",
+      "lines": "52,104,117",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/DataVendorsTab.tsx",
+      "lines": "2,24,25,32,33,62,63,70,71,78,79,86,87,113,114,118,124,132,135,140,141,145,151,164,168,172,176,186,191,197,214,222,230,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,322,379",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/DynamicPagesSettings.tsx",
+      "lines": "47",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/ExpertPromptList.tsx",
+      "lines": "2,3",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/GeneralSettings.tsx",
+      "lines": "74",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/HookExecutionLog.tsx",
+      "lines": "17,19,21,23,25,27,64",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/RolePromptList.tsx",
+      "lines": "2,3",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/ScheduledRecommendationTab.tsx",
+      "lines": "45,46,47,48,49,53,54,55,56,60,61,62,98,123,130,258,259",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/SettingsPanel.tsx",
+      "lines": "445",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/SkillsHubSettings.tsx",
+      "lines": "12,13",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/StockAnalysisConfigPanel.test.tsx",
+      "lines": "211",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/StockAnalysisConfigPanel.tsx",
+      "lines": "18,19,20,22,23,24,26,27,28,29,31,32,34,35,36,37,38,39,40,42,43,44,45,46,47,49,50,51,52,53,55,56,57,58,59,60,62,63,64,65,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,111,112,113,114,115,116,117,119,120,121,122,123,124,125,126,127,128,129,131,132,133,134,135,136,137,138,139,140,142,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,166,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,186,187,188,190,191,193,195,197,198,199,200,201,202,204,205,206,207,209,210,211,212,213,214,215,216,217,219,220,221,222,223,224,225,226,227,231",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/shared/MonacoEditor.tsx",
+      "lines": "80",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/shared/PageContextProvider.tsx",
+      "lines": "15,17,19,21,23,28,34,49,57,59,61,66,68,69,70,72",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/skill/SkillPageRenderer.tsx",
+      "lines": "17,18,19",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/skill/SkillPanels.tsx",
+      "lines": "10",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/AutoCalibrateButton.concurrent.test.tsx",
+      "lines": "3,4",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/DecisionBanner.test.tsx",
+      "lines": "24,35,49,61,79",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/DecisionTimelinePanel.test.tsx",
+      "lines": "22,28,34,93",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/PanelEmpty.test.tsx",
+      "lines": "25,26,36,46,53,57,60",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/RecommendationPanel.asOfDate.test.tsx",
+      "lines": "26,58,65,75,85,91,120,129,157,170,193,209",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/resolveTimelineJump.test.ts",
+      "lines": "4,5,12,19,25,30,35,40,45,50,55,61,67,72,77",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/StockScreenerPanel.screenToken.test.tsx",
+      "lines": "16,17,30",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/TradePanel.test.tsx",
+      "lines": "40,49",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/_shared/PageHeader.tsx",
+      "lines": "6,8,10,12,14,19,20",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalysisDebugPanel.tsx",
+      "lines": "2,4,5,7,8,23",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalysisHistoryButton.tsx",
+      "lines": "19",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalysisProgress.tsx",
+      "lines": "27",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalystReportCard.tsx",
+      "lines": "51,68,106,118,119,126,127,128,168,185,207,245,275,283,294,343,363,371,373,555,569,594,595,596,597,598,599",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalystReportGrid.tsx",
+      "lines": "12,13,14,33,41,57,58,59,60,81,95",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/BacktestPage.tsx",
+      "lines": "18,19,20,21",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/BacktestPanel.tsx",
+      "lines": "34,35,36,58,247",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ClsFlashPanel.tsx",
+      "lines": "29,60",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ComparePage.tsx",
+      "lines": "7,8",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/CompareView.tsx",
+      "lines": "67",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ConceptBlocksPanel.tsx",
+      "lines": "37,38,68,69",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/DebatePanel.tsx",
+      "lines": "18,21,43,49,60,85,102,134,205,239,584,586,587,588,589,662,796,797",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/decision-timeline/DecisionPhaseOverview.tsx",
+      "lines": "4,6,7,8,10,11,12,13,14",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/decision-timeline/TimelineBody.tsx",
+      "lines": "22,99",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/decision-timeline/TimelineNodeCard.tsx",
+      "lines": "14,33,55,56,94",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/DecisionBanner.tsx",
+      "lines": "122,224,228",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/DecisionTimelinePanel.tsx",
+      "lines": "8,10",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/DragonTigerPanel.tsx",
+      "lines": "22,23,28",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/__tests__/dualViewRegistration.test.tsx",
+      "lines": "5,6,18,27,36,41,46,51,56",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactAnalystSummary.tsx",
+      "lines": "2,3,4,18",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactDebateNode.tsx",
+      "lines": "2,3,4,83",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactDecisionComparison.tsx",
+      "lines": "2,4,5,7,9,10,11,17,22,24,29,32,56,61,64",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRecommendation.tsx",
+      "lines": "2,3,4,15",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRiskSummary.tsx",
+      "lines": "2,3,4,5,6,83",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactValueAssessment.tsx",
+      "lines": "2,3,4",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/DecisionComparisonPanel.tsx",
+      "lines": "2,4,5,6,7,8,9,45,51",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/decisionDualView.tsx",
+      "lines": "4",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/DualViewRenderer.tsx",
+      "lines": "10,12,17,18,19",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/PanelCollapseButton.tsx",
+      "lines": "5,7,12,13,14",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/EventCalendarPanel.tsx",
+      "lines": "62,146,200,269,315",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/EvolutionDriftPanel.tsx",
+      "lines": "2,4,5,6,7,9,10,336,369",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ExperimentSidebar.tsx",
+      "lines": "2,4,5,6,31,32,33,53,55,57,60,109,182",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ExperimentTrail.tsx",
+      "lines": "2,4,5",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/HotStocksPanel.tsx",
+      "lines": "21",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/IndustryRankingPanel.tsx",
+      "lines": "23,24",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/InvestDashboard.tsx",
+      "lines": "34,41,234,267,275",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/KLineChart.tsx",
+      "lines": "22,256,427",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/LimitUpPanel.tsx",
+      "lines": "22,59,80",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/MarketSimPanel.tsx",
+      "lines": "7,9,10",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/MonteCarloPanel.tsx",
+      "lines": "27,28,29,30,31",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/NorthBoundPanel.tsx",
+      "lines": "55",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/PanelEmpty.tsx",
+      "lines": "13,28,33,34",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/PortfolioDashboard.tsx",
+      "lines": "23,85,108",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/PortfolioMonitorPanel.tsx",
+      "lines": "35,36,37",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/PriceAlertPanel.tsx",
+      "lines": "35,90,97",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/QuantSimPanel.tsx",
+      "lines": "7,8,9,10,11",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/QuickBacktestPanel.tsx",
+      "lines": "28",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/RecoHistoryModal.tsx",
+      "lines": "30,76,82",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/RecommendationPanel.tsx",
+      "lines": "27,28,29,36,37,38,39,126,127,129,130,197,198,200,201,202,204,205,566,567,568,569,582,798,845",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/RecoStrategyMatrix.tsx",
+      "lines": "10,24,26",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ReflectionPanel.tsx",
+      "lines": "35,78,147,148,254,296,306,608,778,779,780,781,839,840,842,925,1219,1246,1247,1255,1257,1259,1261,1271,1277,1282,1287,1320,1336",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/RiskMatrix.tsx",
+      "lines": "10,11,12,13,14,27,39,41,42,43,44,45,47,48,49,53,54,55,56,57,58,59,60,61,62,63,66,69,72,73,74,75,76,77,78,79,80,81,87,133,200",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ScheduledAnalysisPanel.tsx",
+      "lines": "43,116",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ScreenerPage.tsx",
+      "lines": "16,18,19,20,22,24,25,42,44,46",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/SerenityScreeningPanel.tsx",
+      "lines": "53,54,55,64,68,229,300,523,563,578,703,746,758,1020,1289",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisChatIndicator.tsx",
+      "lines": "7,10,12,13,14",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisPage.tsx",
+      "lines": "41,180,214,224,229,230,336,706,714",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisPageContext.ts",
+      "lines": "4,5,8",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/StockScreenerPanel.tsx",
+      "lines": "48,58,93,95,96,98,99,100,162,187",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/StockSearchBar.tsx",
+      "lines": "19,20,21,22,39,72",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/timelineJump.ts",
+      "lines": "2,4,5,38,40,41,42,43,44,49,60",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/TradePage.tsx",
+      "lines": "8,9",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/TradePanel.tsx",
+      "lines": "68,119",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/TradeReviewPanel.tsx",
+      "lines": "34,36,38",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/utils.ts",
+      "lines": "2,4,5,19,20,21,23,42,44,47,50,55,58,61,64,81,87,94,98,105,110,115,123,131,139,145,151,153,156,177,181,182,183",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ValuationBandChart.tsx",
+      "lines": "55,56,57,58",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ValueAssessmentPanel.tsx",
+      "lines": "15,38,39,40,41,48,49,50,54,55,101,102,103,147,201,211,236,247,254,343,344,346,347,419,428",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/vendorCheck.ts",
+      "lines": "5,20,33,52,58,60,61,62",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/WatchlistPage.tsx",
+      "lines": "8,10,11,12",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/WatchlistPanel.tsx",
+      "lines": "102,207,214,222,238",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/WhatIfBacktest.tsx",
+      "lines": "2,4,5,6,7,8,9,11,23,36,45,54,61,67,78,80,89,90,223,225,226,289,352,563,564,565,566,817,854,880",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/time-travel/AsOfDatePicker.tsx",
+      "lines": "7,9,10,11,12,14",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/time-travel/ModeSwitch.tsx",
+      "lines": "3",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/time-travel/PageTimeAnchor.tsx",
+      "lines": "9,11,12,13,15,16,132",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/time-travel/ReplayBadge.tsx",
+      "lines": "7,9,10,11,12,14,15,52,54,55",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/time-travel/ReplaySweep.tsx",
+      "lines": "71,251",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/time-travel/ReplayWorkbench.tsx",
+      "lines": "14,16,17,18,19,21,22,23,24,25,26",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/time-travel/TimeAnchorTour.tsx",
+      "lines": "7,9,10,11,12,13,15,16,17,18",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/trace/FeedbackCollector.tsx",
+      "lines": "12",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/trace/ImprovementSuggestion.tsx",
+      "lines": "20",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/wiki/GraphView.tsx",
+      "lines": "603",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/AIPanel/ActionDiffPreview.tsx",
+      "lines": "168,427,449",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/AIPanel/AIPanel.tsx",
+      "lines": "123",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/DebugPanel.tsx",
+      "lines": "362",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Edges/BaseEdge.tsx",
+      "lines": "15,16,17,31,32,104,137",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Hooks/useFlowNodes.ts",
+      "lines": "450,451,484,485,487,488,513",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Hooks/useNodeAIAssist.ts",
+      "lines": "36,38,48,66,126,199,200,232,233",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Nodes/ContainerNode.tsx",
+      "lines": "12,22,24,26,28,38,40,42,44,54,55,56,57,86,87",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/LlmClassifierPropertyPanel.tsx",
+      "lines": "32",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Panels/RightPanel.tsx",
+      "lines": "323,326,348,362",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Panels/ValidationRulesPanel.tsx",
+      "lines": "4,6,7,8,9,10",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/Templates/ImportExportModal.tsx",
+      "lines": "414,510",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/types/workflow.types.ts",
+      "lines": "50,55,87,95,109,111,113,165,167,169,178,181,192,194,200,213,215,216,217,218,221,240,286,300,309,311,313,315,317,319,397,410,412,414,506,508,510,512,514,516,541,545,547,550,581,590,592,594,596,598,600,602,604,775,776,777,778,779,780,781,782,783,784,788,794,796,798,800,802,806,808,810,812,814,816,818,822,824,826,828,830,832,834,866,897,899,921,923,924,926,928,929,930,931,932,933,934,935,940,941,954,958,959,960,961,964,966,972,991,999,1003,1214,1310,1311,1312,1342,1356",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/workflow/WorkflowEditor.tsx",
+      "lines": "416,430,509,510,511,512,514,515,549,1401,1736",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/constants/featureFlags.ts",
+      "lines": "4,5,8,11,14,17,23",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/hooks/useIpcHealth.ts",
+      "lines": "3",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/hooks/useRightPanel.ts",
+      "lines": "3,7,9,11,16,17,18",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/__tests__/agentOutput.test.ts",
+      "lines": "51,52,56,60,64,70,71,73,76,80,84,102,109,125,134,135,151,168,173,193,204",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/__tests__/dualView.test.ts",
+      "lines": "13,25,48,61,65,71",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/agentOutput.ts",
+      "lines": "1,15,19,22,32,41,45,47,56,64,65,66,67,68,90,129,131,132,133,134,135,161,169,171,172,173,174,183,215,225,226,231,232,233,234,235,304,305,383,416,417,418,420,421",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/debounce.ts",
+      "lines": "4,5,6",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dualView.ts",
+      "lines": "4,5,7,10,24,50",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dynamicUI/dashboardSchema.ts",
+      "lines": "4,6,7",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dynamicUI/DataBindingEngine.ts",
+      "lines": "8,10,11,12,13,14,22,87,88,89,90,160,161",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dynamicUI/EventHandlerEngine.ts",
+      "lines": "8,10,11,12,13,17,19,21,26,27,65,66,67,69,71,101,102,104,105,106,132",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dynamicUI/nl2ui-edit.ts",
+      "lines": "8,10,12,13,14",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dynamicUI/registerBuiltins.ts",
+      "lines": "46,47,279,280",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dynamicUI/SchemaValidator.ts",
+      "lines": "16,17,18,19,20,21",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/dynamicUI/useDynamicData.ts",
+      "lines": "4,6,7,8,9,11",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "40,42,44,46,48,50,63,65,66,409,410,536,537,539",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/pinned-schemas.ts",
+      "lines": "4,6,7,9,14,17,20,28,38,47,61,70,78,83,88,100,109,114,123,133,135,136,137,138,179,181,182",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/replay/workdays.ts",
+      "lines": "4,12,14,15,16",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/seed-stock-schemas.ts",
+      "lines": "4,6,7,9,17,18,24,25,31,32,42,43",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/skillEventBus.ts",
+      "lines": "16,17,18,19,20,53,56",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/skillLifecycle.ts",
+      "lines": "15,18,23,74,95,143",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/skillPermissions.ts",
+      "lines": "13,17,18,36,37,56,63,65,67,71,74,145,146,147,148,150,151,152,156,157,159,224,239,240,241,253,254",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-analysis-export.ts",
+      "lines": "2,3,4,64,74,101,102,103,105,111,113,115,116,117,118,119,120,121,126,129,132,133,134,135,136,137,138,139,142,149,162,169,178,180,183,189,198,214,216,218,221,230,253,266,273,275,278,285,286,287,288,289,290,291,313,347,362",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-analysis-utils.ts",
+      "lines": "2,4,5,12,23,33,41,53,64,74,86,95,108,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,129,139,141,142,143,144,145,146,147,152,164,167,179,257,286,288,289,290,313,365,376,388,398,419,420,421,422,423,424,425,426,427,428,429,430,431,432,433,437,438,439,440,441,442,443,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,464,465,466,467,468,471,473,518,522,592,606,607,608,631,649,651,652,654,655,656,657,658,720",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-schemas/evolution-drift-schema.ts",
+      "lines": "6,8,9,10,11,13,23,43,44,45,48,52,53,73,89,115,116,117,118",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-schemas/index.ts",
+      "lines": "4,6,7,9,22,24,26,27,28,29,30,31,32",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-schemas/stock-analysis-page-schema.ts",
+      "lines": "6,8,9,10,11,13,14,16,36,48,65,99,125,189,197,205,213,221,229,239,249,257,272,282,292,302,312,322,332,363",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-schemas/stock-quote-schema.ts",
+      "lines": "7,9,10,12,24,26,27,28,29,52,119,125,131,137,160,168,184",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/storage.ts",
+      "lines": "4,6,7,8,9,10,11,12,45,60,78,79,106,118,120,121,122",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/storeRegistry.ts",
+      "lines": "18,64",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/timeTravel/__tests__/futureReferenceDetector.test.ts",
+      "lines": "65,67,71,76,78,82,87,89,93,111,113,117,122,124,128",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/timeTravel/futureReferenceDetector.ts",
+      "lines": "2,4,5,7,8,9,10,12,13,14,15,27,28,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,71,72,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,106,117,119,120,121,122,150,180",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/toast.ts",
+      "lines": "6,7,8,10,11,20",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/workflowLayout.ts",
+      "lines": "8,12,13,14,16,85,86,99,112,114,116,127,143,155,160,166,173,181,182,234,244,246,247,248,250,251,252,253,282,284,285,286,287,289,290,291,292,293,294,295,582,596,597,632,650,651,652,668,669,670,688,690,691,692,693,714,716,717,718,719,720,721,723,724,725,726,727,840,847,849,850,851,852,853,855,913,923,924,1003,1005,1006,1124,1131,1133,1134,1135,1136,1137,1138,1139,1140,1141,1143,1144,1145,1146,1157,1159,1160,1161,1162,1163,1165,1166,1167,1168,1169,1171,1172,1173,1174,1201,1218,1219,1221,1308,1310,1311,1313,1314,1315,1316,1317,1318,1320,1321,1322,1323",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "172",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/pages/QuantLabPage.tsx",
+      "lines": "1",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/pages/SettingsPage.tsx",
+      "lines": "278,395",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/sdk/index.ts",
+      "lines": "6,8,16,24,27,35,41,49,60,69,77,84,135,140,145,150,167,172,177,182,193,194,253",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/sdk/rpcBridge.ts",
+      "lines": "231",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/sdk/sandboxTemplate.ts",
+      "lines": "119,125,152",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/__tests__/stockAnalysisStore.test.ts",
+      "lines": "46,104,154,155,156,157,158,169,171,188",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/domain/activeConversationService.ts",
+      "lines": "4,6,7,8,10,26,27",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/domain/conversationStore.ts",
+      "lines": "48,131,133,1485,1486",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/domain/conversationStoreSend.ts",
+      "lines": "373,446",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/domain/streamStore.ts",
+      "lines": "14,39,1329",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/__mocks__/workflowStoreMocks.ts",
+      "lines": "4,5,7,8,9,10,334",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/__tests__/stockAnalysisStore.test.ts",
+      "lines": "18,19,20,21,22,23,25,56,57,69,76,82,87,88,91,94,97,102,105,114,117,121,125,131,134,137,141,142,176,205,210,216,222,228,234,240,246,252,258,264,271,277,283,293,294,298,307,308,311,315,325,328,332,341,342,345,347,351,360,363,367,379,383,393,395,399,406,413,427,436,440,453,470,491,508,525,546,548,562,575,578,585,586,593,594,598,605,606,612,613,621,650,681,697,701,707",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/__tests__/stockWorkflowChatBridge.test.ts",
+      "lines": "72,82,92,99,136,146",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/agentStore.ts",
+      "lines": "47,369,841,842,843",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/decompositionStore.ts",
+      "lines": "82",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/dynamicUIStore.ts",
+      "lines": "20",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/executionPhaseMachine.ts",
+      "lines": "3",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/executionToolCallUtils.ts",
+      "lines": "6,15,16,17,18",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/quant/backtestStore.ts",
+      "lines": "11",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/quant/strategyStore.ts",
+      "lines": "8,10,69",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/serenityStore.ts",
+      "lines": "91,92,93,94,138",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/skillExtensionStore.ts",
+      "lines": "37,63,129,130,285,488,489,490",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/skillStore.ts",
+      "lines": "66,72",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/stockAnalysisStore.ts",
+      "lines": "34,59,60,61,62,68,102,120,122,159,171,184,193,204,296,298,300,306,361,404,471,513,581,608,620,659,679,754,781,782,855,886,898,905,912,927,1055,1058,1078,1087,1097,1099,1135,1146,1181,1268,1450,1451,1471,1495,1533,1538,1544,1564,1587,1596,1756,1899,1958,1993,1999,2011,2014,2016,2018,2020,2022,2098,2106,2111,2122",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/stockWorkflowChatBridge.ts",
+      "lines": "256,304,384,420",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/timeAnchorStore.ts",
+      "lines": "6,8,9,11,12,13,14,16,17,23,27,29,31,33,38,41,46,48,195",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/workflowEditorStore.ts",
+      "lines": "29,31,33,96,255,256,257,258,272,273,274,275,276,294,295,296,297,298,314,315,316,344,346,349,351,353,355,358,396,397,401,449,450,451,546,547,566,568,569,573,575,595,597,598,599,1073,1074,1089,1137,1165,1191,1343,1990,1991,1992,1993,2347,2394,2726,2727,2728",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/shared/agentPanelStore.ts",
+      "lines": "5,8,16,23,25,27,29,31,35,40,45,106,109,112,115,118,121",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/shared/uiStore.ts",
+      "lines": "7,15,36,38,48,58,85",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/theme/shadcnTheme.ts",
+      "lines": "388,395,401",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/__tests__/stock-analysis.test.ts",
+      "lines": "6,7,8,9,13,14,15,16,20,22,25,26,27,28,31,32,33,34,53,63,64,70,71,72,73,74,75,87,88,89,93,94,95,99",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/agent.ts",
+      "lines": "234,254,257,265,271,288,290,292,294,296,298,305,307,311,313,329",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/approval.ts",
+      "lines": "3",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/dynamicUI.ts",
+      "lines": "41,43,45,51,53,97,99,101,103,105,107,109,111,113,119,121,123,125,127,135,137,139,145,147,152,154,267,269",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/index.ts",
+      "lines": "581,923,931,933,935,939,944,945,946,950,951,960",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/persona.ts",
+      "lines": "3,10,14,16,18",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/quant.ts",
+      "lines": "8,100,157,159,161,163,331,341,351",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/stock-analysis.ts",
+      "lines": "1,2,35,45,74,114,116,118,120,122,124,126,130,152,245,259,265,269,271,273,275,277,279,281,283,285,287,289,291,293,295,297,301,304,306,308,310,312,314,316,318,320,326,329,332,340",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/workflow.ts",
+      "lines": "4,7,19,28,42,49,57,71,74,84,97,106,115,125,136,143,166,173,186,193,200,209",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/utils/workflowNodeLabel.ts",
+      "lines": "4,5,6,7",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/DataVendorsTab.tsx",
+      "lines": "178,179,180,181,182,183,188,201,202,203,204,205,206,207,208,209,210,211,224,225,226",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/settings/ProviderSettings.tsx",
+      "lines": "25",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/DecisionBanner.test.tsx",
+      "lines": "80",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/PanelEmpty.test.tsx",
+      "lines": "55",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/RecommendationPanel.asOfDate.test.tsx",
+      "lines": "140",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/resolveTimelineJump.test.ts",
+      "lines": "56",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/__tests__/TradePanel.test.tsx",
+      "lines": "51",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/AnalystReportCard.tsx",
+      "lines": "600,601,602,603,604,605,606",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/DebatePanel.tsx",
+      "lines": "10,83,294,752",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/DecisionBanner.tsx",
+      "lines": "394,417",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRecommendation.tsx",
+      "lines": "25,26,27,28,29",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRiskSummary.tsx",
+      "lines": "21,22,23,24,25,26,27,28,29,30,31,33",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/InvestDashboard.tsx",
+      "lines": "278",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ReflectionPanel.tsx",
+      "lines": "1220,1222",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/RiskMatrix.tsx",
+      "lines": "147,148,150,152,160,177",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/utils.ts",
+      "lines": "202,213",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/ValueAssessmentPanel.tsx",
+      "lines": "12,52,58,339",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/components/stock-analysis/WhatIfBacktest.tsx",
+      "lines": "155,157,159,169,171,173,175,177,179,200",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/__tests__/agentOutput.test.ts",
+      "lines": "100,107,124,129,142,147,150,158",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-analysis-export.ts",
+      "lines": "37,38,39,40,41,42,43,44,45,46,61,79,80,81,82,83,84,85,131,164,165,166,167,232,233,234,235,236,237,238",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/lib/stock-analysis-utils.ts",
+      "lines": "172,173,174,175,252,253,335,336,337,338,339,346,347,348,349,350,357,358,359,372,373,374,401,404,407,472,475,674",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/__tests__/stockAnalysisStore.test.ts",
+      "lines": "85,106,184",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/stores/feature/__tests__/stockAnalysisStore.test.ts",
+      "lines": "301,302,318,319,335,336,354,387,402,431,569,629,640,689,694",
+      "reason": "非UI文本-自动分类"
+    },
+    {
+      "file": "src/types/__tests__/stock-analysis.test.ts",
+      "lines": "56",
+      "reason": "非UI文本-自动分类"
     }
   ]
 }

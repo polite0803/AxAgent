@@ -2,6 +2,7 @@ import { invoke } from "@/lib/invoke";
 import type { QuantSimResult } from "@/types/market-sim";
 import { Button, Card, Descriptions, InputNumber, Select, Spin, Statistic, Tag } from "antd";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const STRATEGIES = [
   { value: "ma_cross", label: "双均线交叉 (MA 5/20)" },
@@ -12,6 +13,7 @@ const STRATEGIES = [
 ];
 
 export function QuantSimPanel() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<QuantSimResult | null>(null);
@@ -54,10 +56,10 @@ export function QuantSimPanel() {
 
   return (
     <div className="space-y-4">
-      <Card size="small" title="⚡ 量化策略 DES 模拟">
+      <Card size="small" title={t("stockAnalysis.quantSim.title")}>
         <div className="mb-3 flex flex-wrap items-center gap-4">
           <label className="text-sm font-medium">
-            股票代码
+            {t("stockAnalysis.quantSim.stockCode")}
             <InputNumber
               className="ml-2"
               style={{ width: 110 }}
@@ -66,7 +68,7 @@ export function QuantSimPanel() {
             />
           </label>
           <label className="text-sm font-medium">
-            参考价(分)
+            {t("stockAnalysis.quantSim.referencePrice")}
             <InputNumber
               className="ml-2"
               style={{ width: 120 }}
@@ -76,7 +78,7 @@ export function QuantSimPanel() {
             />
           </label>
           <label className="text-sm font-medium">
-            时长(ms)
+            {t("stockAnalysis.quantSim.duration")}
             <InputNumber
               className="ml-2"
               style={{ width: 100 }}
@@ -89,7 +91,7 @@ export function QuantSimPanel() {
         </div>
 
         <div className="mb-3 flex items-center gap-4">
-          <label className="text-sm font-medium">策略</label>
+          <label className="text-sm font-medium">{t("stockAnalysis.quantSim.strategy")}</label>
           <Select
             style={{ width: 240 }}
             value={strategy}
@@ -97,19 +99,19 @@ export function QuantSimPanel() {
             options={STRATEGIES}
           />
           <Button type="primary" onClick={handleRun} loading={loading}>
-            {loading ? "模拟中..." : "运行模拟"}
+            {loading ? t("stockAnalysis.quantSim.running") : t("stockAnalysis.quantSim.run")}
           </Button>
         </div>
 
         <div className="text-xs text-secondary">
-          将 quant 内置策略作为 Agent 注入 DES，与做市商/噪声同场博弈
+          {t("stockAnalysis.quantSim.description")}
         </div>
       </Card>
 
       {loading && (
         <Card size="small">
           <div className="flex items-center justify-center py-6">
-            <Spin tip="正在运行 DES 模拟..." />
+            <Spin tip={t("stockAnalysis.quantSim.spinTip")} />
           </div>
         </Card>
       )}
@@ -124,39 +126,51 @@ export function QuantSimPanel() {
         <>
           <div className="grid grid-cols-4 gap-3">
             <Card size="small" hoverable>
-              <Statistic title="处理事件" value={result.totalEvents} suffix="个" />
-            </Card>
-            <Card size="small" hoverable>
-              <Statistic title="成交笔数" value={result.totalTrades} suffix="笔" />
-            </Card>
-            <Card size="small" hoverable>
               <Statistic
-                title="终止价"
-                value={result.finalMidPrice ?? "—"}
-                suffix="分"
+                title={t("stockAnalysis.quantSim.events")}
+                value={result.totalEvents}
+                suffix={t("stockAnalysis.quantSim.eventsSuffix")}
               />
             </Card>
             <Card size="small" hoverable>
-              <Statistic title="墙钟耗时" value={result.wallClockMs} suffix="ms" />
+              <Statistic
+                title={t("stockAnalysis.quantSim.trades")}
+                value={result.totalTrades}
+                suffix={t("stockAnalysis.quantSim.tradesSuffix")}
+              />
+            </Card>
+            <Card size="small" hoverable>
+              <Statistic
+                title={t("stockAnalysis.quantSim.finalPrice")}
+                value={result.finalMidPrice ?? "—"}
+                suffix={t("stockAnalysis.quantSim.fenSuffix")}
+              />
+            </Card>
+            <Card size="small" hoverable>
+              <Statistic title={t("stockAnalysis.quantSim.wallClock")} value={result.wallClockMs} suffix="ms" />
             </Card>
           </div>
 
-          <Card size="small" title="💡 解读">
+          <Card size="small" title={t("stockAnalysis.quantSim.interpretation")}>
             <Descriptions column={1} size="small">
-              <Descriptions.Item label="策略">
+              <Descriptions.Item label={t("stockAnalysis.quantSim.strategyLabel")}>
                 <Tag color="blue">
                   {STRATEGIES.find((s) => s.value === strategy)?.label ?? strategy}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="市场活动">
+              <Descriptions.Item label={t("stockAnalysis.quantSim.marketActivity")}>
                 {result.totalEvents > 0
-                  ? `在 ${simMs}ms 虚拟时间内产生了 ${result.totalEvents} 个事件、${result.totalTrades} 笔成交。`
-                  : "模拟未产生事件，请检查参数。"}
+                  ? t("stockAnalysis.quantSim.marketActivityDetail", {
+                    simMs,
+                    totalEvents: result.totalEvents,
+                    totalTrades: result.totalTrades,
+                  })
+                  : t("stockAnalysis.quantSim.noEvents")}
               </Descriptions.Item>
-              <Descriptions.Item label="报价">
+              <Descriptions.Item label={t("stockAnalysis.quantSim.quote")}>
                 {result.finalMidPrice
-                  ? `终止中间价 ${result.finalMidPrice} 分 (参考价 ${refPrice} 分)`
-                  : "无可用报价"}
+                  ? t("stockAnalysis.quantSim.quoteDetail", { finalMidPrice: result.finalMidPrice, refPrice })
+                  : t("stockAnalysis.quantSim.noQuote")}
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -166,9 +180,9 @@ export function QuantSimPanel() {
       {!result && !loading && !error && (
         <Card size="small">
           <div className="py-6 text-center text-secondary">
-            <p className="mb-1 text-base">选择一个量化策略，在 DES 合成市场中运行</p>
+            <p className="mb-1 text-base">{t("stockAnalysis.quantSim.emptyHint")}</p>
             <p className="text-sm">
-              可用的策略包括双均线交叉、MACD、RSI、布林带、海龟通道
+              {t("stockAnalysis.quantSim.emptyDesc")}
             </p>
           </div>
         </Card>

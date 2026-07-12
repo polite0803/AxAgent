@@ -735,7 +735,7 @@ export function SerenityScreeningPanel() {
         {serenitySettingsOpen && (
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center justify-between text-xs">
-              <Text type="secondary">PE 上限</Text>
+              <Text type="secondary">{t("serenityPanel.filterPeUpper")}</Text>
               <InputNumber
                 size="small"
                 min={0}
@@ -743,11 +743,11 @@ export function SerenityScreeningPanel() {
                 value={serenityVars.max_pe ?? 100}
                 onChange={(v) => handleSerenityVarChange("max_pe", v ?? 100)}
                 className="w-24"
-                suffix="倍"
+                suffix={t("serenityPanel.filterSuffixMultiplier")}
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <Text type="secondary">PB 上限</Text>
+              <Text type="secondary">{t("serenityPanel.filterPbUpper")}</Text>
               <InputNumber
                 size="small"
                 min={0}
@@ -755,11 +755,11 @@ export function SerenityScreeningPanel() {
                 value={serenityVars.max_pb ?? 10}
                 onChange={(v) => handleSerenityVarChange("max_pb", v ?? 10)}
                 className="w-24"
-                suffix="倍"
+                suffix={t("serenityPanel.filterSuffixMultiplier")}
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <Text type="secondary">近3月涨幅上限</Text>
+              <Text type="secondary">{t("serenityPanel.filter3mGainUpper")}</Text>
               <InputNumber
                 size="small"
                 min={0}
@@ -767,11 +767,11 @@ export function SerenityScreeningPanel() {
                 value={serenityVars.max_3m_gain_pct ?? 30}
                 onChange={(v) => handleSerenityVarChange("max_3m_gain_pct", v ?? 30)}
                 className="w-24"
-                suffix="%"
+                suffix={t("serenityPanel.filterSuffixPercent")}
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <Text type="secondary">近12月涨幅上限</Text>
+              <Text type="secondary">{t("serenityPanel.filter12mGainUpper")}</Text>
               <InputNumber
                 size="small"
                 min={0}
@@ -779,11 +779,11 @@ export function SerenityScreeningPanel() {
                 value={serenityVars.max_12m_gain_pct ?? 100}
                 onChange={(v) => handleSerenityVarChange("max_12m_gain_pct", v ?? 100)}
                 className="w-24"
-                suffix="%"
+                suffix={t("serenityPanel.filterSuffixPercent")}
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <Text type="secondary">毛利率下限</Text>
+              <Text type="secondary">{t("serenityPanel.filterGrossMarginLower")}</Text>
               <InputNumber
                 size="small"
                 min={0}
@@ -791,11 +791,11 @@ export function SerenityScreeningPanel() {
                 value={serenityVars.min_gross_margin ?? 25}
                 onChange={(v) => handleSerenityVarChange("min_gross_margin", v ?? 25)}
                 className="w-24"
-                suffix="%"
+                suffix={t("serenityPanel.filterSuffixPercent")}
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <Text type="secondary">负债率上限</Text>
+              <Text type="secondary">{t("serenityPanel.filterDebtRatioUpper")}</Text>
               <InputNumber
                 size="small"
                 min={0}
@@ -803,11 +803,11 @@ export function SerenityScreeningPanel() {
                 value={serenityVars.max_debt_ratio ?? 60}
                 onChange={(v) => handleSerenityVarChange("max_debt_ratio", v ?? 60)}
                 className="w-24"
-                suffix="%"
+                suffix={t("serenityPanel.filterSuffixPercent")}
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <Text type="secondary">高增长豁免阈值</Text>
+              <Text type="secondary">{t("serenityPanel.filterGrowthExemptThreshold")}</Text>
               <InputNumber
                 size="small"
                 min={10}
@@ -815,11 +815,11 @@ export function SerenityScreeningPanel() {
                 value={serenityVars.growth_exempt_pct ?? 50}
                 onChange={(v) => handleSerenityVarChange("growth_exempt_pct", v ?? 50)}
                 className="w-24"
-                suffix="%"
+                suffix={t("serenityPanel.filterSuffixPercent")}
               />
             </div>
             <div className="col-span-2 text-xs text-gray-400 mt-1">
-              PE超上限但营收增速≥此值时豁免，保护高增长标的不被误杀
+              {t("serenityPanel.filterGrowthExemptHint")}
             </div>
           </div>
         )}
@@ -936,10 +936,10 @@ export function SerenityScreeningPanel() {
                       : (
                         <div className="mt-1 text-xs text-gray-400 italic">
                           {s.status === "completed"
-                            ? "(执行完成，无输出内容)"
+                            ? t("serenityPanel.stepLogCompletedNoOutput")
                             : s.status === "running"
-                            ? "(正在执行...)"
-                            : "(无详细输出)"}
+                            ? t("serenityPanel.stepLogRunning")
+                            : t("serenityPanel.stepLogNoDetail")}
                         </div>
                       )
                   )}
@@ -1010,11 +1010,14 @@ export function SerenityScreeningPanel() {
                     }>;
                   }>("refresh_serenity_exit_signals", { asOfDate });
                   if (r.exit_now_count > 0 || r.caution_count > 0) {
-                    alert(
-                      `退出信号扫描完成:\n检查 ${r.checked_count} 只\n- 立即退出: ${r.exit_now_count} 只\n- 谨慎关注: ${r.caution_count} 只`,
-                    );
+                    const msg = t("serenityPanel.exitSignalAlert", {
+                      checked: r.checked_count,
+                      exitNow: r.exit_now_count,
+                      caution: r.caution_count,
+                    });
+                    alert(msg);
                   } else {
-                    alert(`退出信号扫描完成: ${r.checked_count} 只，暂无异常`);
+                    alert(t("serenityPanel.exitSignalAlertNone", { checked: r.checked_count }));
                   }
                 } catch (e) {
                   console.error("刷新退出信号失败", e);
@@ -1393,7 +1396,7 @@ export function SerenityScreeningPanel() {
               title: t("serenityPanel.serenityHistory.candidateCount"),
               dataIndex: "stockCount",
               key: "stockCount",
-              render: (v: number) => <span className="text-xs">{v} 只</span>,
+              render: (v: number) => <span className="text-xs">{v}{t("serenityPanel.filterSuffixCount")}</span>,
             },
           ]}
         />
@@ -1424,7 +1427,8 @@ export function SerenityScreeningPanel() {
           : (
             <div className="flex flex-col gap-2">
               <div className="text-xs text-gray-500 mb-1">
-                {t("serenityPanel.serenityHistory.candidateCount")}: {serenityDetailItems.length} 只
+                {t("serenityPanel.serenityHistory.candidateCount")}: {serenityDetailItems.length}
+                {t("serenityPanel.filterSuffixCount")}
               </div>
               {serenityDetailItems.map((item, i) => (
                 <Card

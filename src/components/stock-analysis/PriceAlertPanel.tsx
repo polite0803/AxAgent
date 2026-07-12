@@ -141,7 +141,7 @@ export function PriceAlertPanel() {
   const historyColumns = [
     ...columns.slice(0, 4),
     {
-      title: "触发时间",
+      title: t("stockAnalysis.alert.triggerTime"),
       dataIndex: "triggeredAt",
       width: 80,
       render: (v: number | null) => v ? new Date(v).toLocaleDateString() : "—",
@@ -162,7 +162,9 @@ export function PriceAlertPanel() {
         <div className="flex gap-1 items-center">
           <Badge
             status={alerts.length > 0 ? "processing" : "default"}
-            text={alerts.length > 0 ? `${alerts.length} 活跃` : "无"}
+            text={alerts.length > 0
+              ? t("stockAnalysis.alert.activeWithCount", { count: alerts.length })
+              : t("stockAnalysis.alert.none")}
           />
           <Button size="small" icon={<PlusOutlined />} onClick={() => setAdding(!adding)} />
         </div>
@@ -179,11 +181,11 @@ export function PriceAlertPanel() {
             </Form.Item>
             <Form.Item name="condition" initialValue="above" noStyle>
               <Select style={{ width: 80 }} size="small">
-                <Select.Option value="above">≥ 价格突破</Select.Option>
-                <Select.Option value="below">≤ 价格跌破</Select.Option>
-                <Select.Option value="change_up">↗ 涨幅超</Select.Option>
-                <Select.Option value="change_down">↘ 跌幅超</Select.Option>
-                <Select.Option value="volume_spike">📊 放量</Select.Option>
+                <Select.Option value="above">{t("stockAnalysis.alert.conditionAbove")}</Select.Option>
+                <Select.Option value="below">{t("stockAnalysis.alert.conditionBelow")}</Select.Option>
+                <Select.Option value="change_up">{t("stockAnalysis.alert.conditionUp")}</Select.Option>
+                <Select.Option value="change_down">{t("stockAnalysis.alert.conditionDown")}</Select.Option>
+                <Select.Option value="volume_spike">{t("stockAnalysis.alert.conditionVolume")}</Select.Option>
               </Select>
             </Form.Item>
           </div>
@@ -210,7 +212,7 @@ export function PriceAlertPanel() {
         items={[
           {
             key: "active",
-            label: `活跃 (${alerts.length})`,
+            label: t("stockAnalysis.alert.activeTab", { count: alerts.length }),
             children: (
               <Table
                 dataSource={alerts}
@@ -224,7 +226,7 @@ export function PriceAlertPanel() {
           },
           {
             key: "history",
-            label: `已触发 (${history.length})`,
+            label: t("stockAnalysis.alert.triggeredTab", { count: history.length }),
             children: (
               <Table
                 dataSource={history.slice(0, 20)}
@@ -232,7 +234,7 @@ export function PriceAlertPanel() {
                 rowKey="id"
                 size="small"
                 pagination={false}
-                locale={{ emptyText: "无触发记录" }}
+                locale={{ emptyText: t("stockAnalysis.alert.noHistory") }}
               />
             ),
           },

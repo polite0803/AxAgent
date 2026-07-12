@@ -58,10 +58,10 @@ export function RhaiEditorTab() {
               <Input value={version} onChange={(e) => setVersion(e.target.value)} />
             </Form.Item>
           </div>
-          <Form.Item label="描述">
+          <Form.Item label={t("quant.rhai.description")}>
             <Input
               value={description}
-              placeholder="策略说明（可选）"
+              placeholder={t("quant.rhai.descriptionPlaceholder")}
               onChange={(e) => setDescription(e.target.value)}
             />
           </Form.Item>
@@ -83,7 +83,7 @@ export function RhaiEditorTab() {
                 checked={upsert}
                 onChange={(e) => setUpsert(e.target.checked)}
               />
-              <Text type="secondary">upsert（同名同版本覆盖）</Text>
+              <Text type="secondary">{t("quant.rhai.upsertLabel")}</Text>
             </label>
           </Space>
         </Form>

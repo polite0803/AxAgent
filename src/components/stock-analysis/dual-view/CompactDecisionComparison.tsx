@@ -175,10 +175,12 @@ export function CompactDecisionComparison({ data }: CompactDecisionComparisonPro
       {agreement !== null && agreement < 60 && view.agreementBreakdown && (
         <div className="text-sm" style={{ color: "#ef4444", opacity: 0.85 }}>
           {view.agreementBreakdown.actionNote === "opposite"
-            ? `⚠ ${view.agreementBreakdown.formulaAction} ≠ ${view.agreementBreakdown.llmAction}（方向相反）`
-            : `⚠ 分歧（${
+            ? `⚠ ${view.agreementBreakdown.formulaAction} ≠ ${view.agreementBreakdown.llmAction}（${
+              t("dualView.decision.oppositeDirection")
+            }）`
+            : `⚠ ${t("dualView.decision.disagreement")}（${
               view.agreementBreakdown.conflictType === "opposite_direction"
-                ? "方向冲突"
+                ? t("dualView.decision.directionConflict")
                 : view.agreementBreakdown.conflictType
             }）`}
         </div>

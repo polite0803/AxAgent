@@ -345,7 +345,11 @@ export function ExperimentSidebar() {
                     marginTop: 2,
                   }}
                 >
-                  {result.decision === "buy" ? "买入" : result.decision === "sell" ? "卖出" : "持有"}
+                  {result.decision === "buy"
+                    ? t("stockAnalysis.experiment.buy")
+                    : result.decision === "sell"
+                    ? t("stockAnalysis.experiment.sell")
+                    : t("stockAnalysis.experiment.hold")}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
                   {t("stockAnalysis.experiment.conf")} {result.confidence}% &middot; {t("stockAnalysis.experiment.pos")}

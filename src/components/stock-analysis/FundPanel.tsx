@@ -3,6 +3,7 @@ import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { App, Button, Card, DatePicker, Input, InputNumber, Modal, Select, Space, Table } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface FundTransfer {
   id: string;
@@ -22,6 +23,7 @@ interface FundSummary {
 }
 
 export function FundPanel() {
+  const { t } = useTranslation();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [transfers, setTransfers] = useState<FundTransfer[]>([]);
@@ -65,7 +67,7 @@ export function FundPanel() {
   }, [loadData]);
 
   const handleRecord = async () => {
-    if (form.amount <= 0) { return message.warning("金额必须 > 0"); }
+    if (form.amount <= 0) { return message.warning(t("stockAnalysis.fundPanel.amountMustBeGreaterThanZero")); }
     try {
       await invoke("record_fund_transfer", {
         transferType: form.transferType,
@@ -74,7 +76,7 @@ export function FundPanel() {
         fee: form.fee > 0 ? form.fee : null,
         notes: form.notes || null,
       });
-      message.success("已记录");
+      message.success(t("stockAnalysis.fundPanel.recorded"));
       setModalOpen(false);
       setForm({ transferType: "deposit", amount: 0, transferDate: dayjs().format("YYYY-MM-DD"), fee: 0, notes: "" });
       loadData();
@@ -84,11 +86,22 @@ export function FundPanel() {
   };
 
   const columns = [
-    { title: "类型", dataIndex: "transferType", width: 56, render: (v: string) => v === "deposit" ? "入金" : "出金" },
-    { title: "金额", dataIndex: "amount", width: 72, render: (v: number) => v.toFixed(0) },
-    { title: "日期", dataIndex: "transferDate", width: 80 },
-    { title: "手续费", dataIndex: "fee", width: 56, render: (v: number | null) => v ? v.toFixed(0) : "-" },
-    { title: "备注", dataIndex: "notes", render: (v: string | null) => v || "-" },
+    {
+      title: t("stockAnalysis.fundPanel.type"),
+      dataIndex: "transferType",
+      width: 56,
+      render: (v: string) =>
+        v === "deposit" ? t("stockAnalysis.fundPanel.deposit") : t("stockAnalysis.fundPanel.withdrawal"),
+    },
+    { title: t("stockAnalysis.fundPanel.amount"), dataIndex: "amount", width: 72, render: (v: number) => v.toFixed(0) },
+    { title: t("stockAnalysis.fundPanel.date"), dataIndex: "transferDate", width: 80 },
+    {
+      title: t("stockAnalysis.fundPanel.fee"),
+      dataIndex: "fee",
+      width: 56,
+      render: (v: number | null) => v ? v.toFixed(0) : "-",
+    },
+    { title: t("stockAnalysis.fundPanel.notes"), dataIndex: "notes", render: (v: string | null) => v || "-" },
   ];
 
   return (
@@ -96,7 +109,7 @@ export function FundPanel() {
       size="small"
       title={
         <div className="flex justify-between items-center">
-          <span>资金流水</span>
+          <span>{t("stockAnalysis.fundPanel.fundFlow")}</span>
           <Space size={4}>
             <Button size="small" icon={<PlusOutlined />} onClick={() => setModalOpen(true)} />
             <Button size="small" icon={<ReloadOutlined />} loading={loading} onClick={loadData} />
@@ -109,13 +122,16 @@ export function FundPanel() {
       {summary && (
         <div className="grid grid-cols-3 gap-1 mb-2 text-xs">
           <div className="p-1 rounded" style={{ background: "var(--surface)" }}>
-            总入金<div style={{ fontWeight: "bold" }}>{summary.totalDeposits.toFixed(0)}</div>
+            {t("stockAnalysis.fundPanel.totalDeposits")}
+            <div style={{ fontWeight: "bold" }}>{summary.totalDeposits.toFixed(0)}</div>
           </div>
           <div className="p-1 rounded" style={{ background: "var(--surface)" }}>
-            总出金<div style={{ fontWeight: "bold" }}>{summary.totalWithdrawals.toFixed(0)}</div>
+            {t("stockAnalysis.fundPanel.totalWithdrawals")}
+            <div style={{ fontWeight: "bold" }}>{summary.totalWithdrawals.toFixed(0)}</div>
           </div>
           <div className="p-1 rounded" style={{ background: "var(--surface)" }}>
-            净入金<div
+            {t("stockAnalysis.fundPanel.netInflow")}
+            <div
               style={{ color: summary.netInflow >= 0 ? "var(--sa-red)" : "var(--sa-green)", fontWeight: "bold" }}
             >
               {summary.netInflow >= 0 ? "+" : ""}
@@ -127,15 +143,24 @@ export function FundPanel() {
 
       <Table size="small" dataSource={transfers.slice(0, 10)} rowKey="id" pagination={false} columns={columns} />
 
-      <Modal title="记录资金流水" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleRecord} width={360}>
+      <Modal
+        title={t("stockAnalysis.fundPanel.recordFundFlow")}
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onOk={handleRecord}
+        width={360}
+      >
         <div className="flex flex-col gap-2">
           <Select
             value={form.transferType}
             onChange={(v) => setForm({ ...form, transferType: v })}
-            options={[{ value: "deposit", label: "入金（转入）" }, { value: "withdrawal", label: "出金（转出）" }]}
+            options={[{ value: "deposit", label: t("stockAnalysis.fundPanel.depositTransferIn") }, {
+              value: "withdrawal",
+              label: t("stockAnalysis.fundPanel.withdrawalTransferOut"),
+            }]}
           />
           <InputNumber
-            placeholder="金额"
+            placeholder={t("stockAnalysis.fundPanel.amount")}
             value={form.amount}
             onChange={(v) => setForm({ ...form, amount: v || 0 })}
             min={0}
@@ -148,14 +173,14 @@ export function FundPanel() {
             style={{ width: "100%" }}
           />
           <InputNumber
-            placeholder="手续费（可选）"
+            placeholder={t("stockAnalysis.fundPanel.feeOptional")}
             value={form.fee}
             onChange={(v) => setForm({ ...form, fee: v || 0 })}
             min={0}
             style={{ width: "100%" }}
           />
           <Input
-            placeholder="备注（可选）"
+            placeholder={t("stockAnalysis.fundPanel.notesOptional")}
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />

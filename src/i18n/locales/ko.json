@@ -8085,7 +8085,22 @@
       "exitSelect": "다중 선택 종료",
       "empty": "추천 내역이 없습니다"
     },
-    "settings": "Valuation Filters"
+    "filterPeUpper": "PE 상한",
+    "filterPbUpper": "PB 상한",
+    "filter3mGainUpper": "3개월 수익률 상한",
+    "filter12mGainUpper": "12개월 수익률 상한",
+    "filterGrossMarginLower": "매출총이익률 하한",
+    "filterDebtRatioUpper": "부채비율 상한",
+    "filterGrowthExemptThreshold": "성장 면제 임계값",
+    "filterSuffixMultiplier": "배",
+    "filterSuffixPercent": "%",
+    "filterSuffixCount": " 종목",
+    "filterGrowthExemptHint": "PE가 상한을 초과해도 매출 성장률이 이 값 이상이면 면제, 고성장 종목이 피해되지 않도록 보호",
+    "stepLogCompletedNoOutput": "(완료, 출력 없음)",
+    "stepLogRunning": "(실행 중...)",
+    "stepLogNoDetail": "(상세 출력 없음)",
+    "exitSignalAlert": "종료 신호 스캔 완료:\n확인 {{checked}} 종목\n- 지금 종료: {{exitNow}} 종목\n- 주의: {{caution}} 종목",
+    "exitSignalAlertNone": "종료 신호 스캔 완료: {{checked}} 종목, 이상 없음"
   },
   "quant": {
     "backtest": {
@@ -8114,7 +8129,9 @@
       "compare": "Start Compare",
       "comparing": "Comparing...",
       "selectRuns": "Select backtest runs",
-      "title": "Strategy Comparison"
+      "title": "Strategy Comparison",
+      "noHistoryRuns": "No historical runs",
+      "firstRunMetrics": "First Run Metrics"
     },
     "metrics": {
       "annualizedReturn": "Annualized Return",
@@ -9520,6 +9537,17 @@
       "cachedAt": "Cached at {{time}}",
       "cachedBadge": "Cached",
       "calibrate": "Auto-Calibrate",
+      "cancel": "Cancel",
+      "calibrateStrategy": "Strategy",
+      "calibrateCurrentWeight": "Current Weight",
+      "calibrateSuggestedWeight": "Suggested Weight",
+      "calibrateChange": "Change",
+      "calibrateApply": "Apply",
+      "calibrateNoSuggestions": "No suggestions for adjustment",
+      "calibrateApplySelected": "Apply Selected ({{count}})",
+      "calibratePreviewFailed": "Calibration preview failed: {{error}}",
+      "calibrateApplied": "Applied {{count}} strategy weight adjustments",
+      "calibrateApplyFailed": "Apply failed",
       "recoHistory": {
         "viewHistory": "View Recommendation History",
         "title": "Recommendation History",
@@ -10131,7 +10159,25 @@
     "stock-analysis_RecommendationPanel.001": "title",
     "stock-analysis_RecommendationPanel.002": "请先勾选要应用的策略",
     "stock-analysis_RecommendationPanel.003": "所选项的权重值无效(NaN/缺失),无法应用",
-    "stock-analysis_StockAnalysisPage.001": "title"
+    "stock-analysis_StockAnalysisPage.001": "title",
+    "exitRecommendation": {
+      "title": "退出建议",
+      "urgent": "紧急",
+      "limit": "限价",
+      "stopLoss": "止损",
+      "sellNow": "立即卖出",
+      "sellAtLimit": "挂限价卖出",
+      "setStopLoss": "设置止损",
+      "hold": "继续持有",
+      "considerAdd": "考虑加仓",
+      "cost": "成本",
+      "currentPrice": "现价",
+      "pnl": "盈亏",
+      "holdingDays": "持有",
+      "days": "天",
+      "position": "仓位",
+      "suggestedPrice": "建议挂出"
+    }
   },
   "learningGraph": {
     "title": "학습 그래프",

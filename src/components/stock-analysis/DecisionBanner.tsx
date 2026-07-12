@@ -169,7 +169,7 @@ export function DecisionBanner() {
       message.success(result);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(`导出失败: ${errMsg}`);
+      message.error(t("stockAnalysis.decisionBanner.exportFailed", { errMsg }));
     } finally {
       setExporting(null);
     }
@@ -195,7 +195,7 @@ export function DecisionBanner() {
 
   const exportMenuItems: { key: ExportFormat; icon: React.ReactNode; label: string }[] = [
     { key: "md", icon: <FileTextOutlined />, label: "Markdown (.md)" },
-    { key: "docx", icon: <FileWordOutlined />, label: "Word 文档 (.docx)" },
+    { key: "docx", icon: <FileWordOutlined />, label: t("stockAnalysis.decisionBanner.wordDocument") },
     { key: "pptx", icon: <FilePptOutlined />, label: "PowerPoint (.pptx)" },
   ];
 
@@ -558,11 +558,11 @@ export function DecisionBanner() {
                 </div>
                 <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                   <span>
-                    置信 <b>{confidencePct}%</b>
+                    {t("stockAnalysis.decisionBanner.confidenceAbbr")} <b>{confidencePct}%</b>
                   </span>
                   <span>|</span>
                   <span>
-                    仓位 <b>{decision.positionPct}%</b>
+                    {t("stockAnalysis.decisionBanner.positionAbbr")} <b>{decision.positionPct}%</b>
                   </span>
                 </div>
                 {decision.reasoning && (
@@ -608,7 +608,7 @@ export function DecisionBanner() {
                 </div>
                 <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                   <span>
-                    置信{" "}
+                    {t("stockAnalysis.decisionBanner.confidenceAbbr")}{" "}
                     <b>
                       {(() => {
                         const c = extractLlmField(llmDecisionJson, "confidence") as number | null;
@@ -618,7 +618,7 @@ export function DecisionBanner() {
                   </span>
                   <span>|</span>
                   <span>
-                    仓位{" "}
+                    {t("stockAnalysis.decisionBanner.positionAbbr")}{" "}
                     <b>
                       {(() => {
                         const p = extractLlmField(llmDecisionJson, "positionPct") as number | null;
@@ -734,9 +734,11 @@ export function DecisionBanner() {
                 color: stockCodeEvidence.holdGate.holdAllowed ? "var(--sa-blue)" : "var(--sa-amber)",
               }}
             >
-              <span style={{ color: "var(--muted)" }}>门控</span>
+              <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.decisionBanner.gateControl")}</span>
               <span className="font-semibold text-sm">
-                {stockCodeEvidence.holdGate.holdAllowed ? "✅ HOLD" : "🎯 强制方向"}
+                {stockCodeEvidence.holdGate.holdAllowed
+                  ? "✅ HOLD"
+                  : t("stockAnalysis.decisionBanner.mandatoryDirection")}
               </span>
             </span>
           )}
@@ -745,11 +747,12 @@ export function DecisionBanner() {
               className="text-sm px-2 py-1 rounded flex items-center justify-between font-mono"
               style={{ background: "var(--surface)", color: "var(--color-text-primary)" }}
             >
-              <span style={{ color: "var(--muted)" }}>证据分</span>
+              <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.decisionBanner.evidenceScore")}</span>
               <span className="font-semibold">
-                多{stockCodeEvidence.consensus.bullishScore.toFixed(1)}{" "}
-                | 空{stockCodeEvidence.consensus.bearishScore.toFixed(1)}{" "}
-                | 净{stockCodeEvidence.consensus.netScore.toFixed(1)}
+                {t("stockAnalysis.decisionBanner.bullishAbbr")}
+                {stockCodeEvidence.consensus.bullishScore.toFixed(1)} | {t("stockAnalysis.decisionBanner.bearishAbbr")}
+                {stockCodeEvidence.consensus.bearishScore.toFixed(1)} | {t("stockAnalysis.decisionBanner.netAbbr")}
+                {stockCodeEvidence.consensus.netScore.toFixed(1)}
               </span>
             </span>
           )}
@@ -993,11 +996,11 @@ export function DecisionBanner() {
               </div>
               <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                 <span>
-                  置信 <b>{confidencePct}%</b>
+                  {t("stockAnalysis.decisionBanner.confidenceAbbr")} <b>{confidencePct}%</b>
                 </span>
                 <span>|</span>
                 <span>
-                  仓位 <b>{decision ? `${decision.positionPct}%` : "—"}</b>
+                  {t("stockAnalysis.decisionBanner.positionAbbr")} <b>{decision ? `${decision.positionPct}%` : "—"}</b>
                 </span>
               </div>
               {decision?.reasoning && (
@@ -1020,7 +1023,7 @@ export function DecisionBanner() {
               </div>
               <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                 <span>
-                  置信{" "}
+                  {t("stockAnalysis.decisionBanner.confidenceAbbr")}{" "}
                   <b>
                     {(() => {
                       const c = extractLlmField(llmDecisionJson, "confidence") as number | null;
@@ -1030,7 +1033,7 @@ export function DecisionBanner() {
                 </span>
                 <span>|</span>
                 <span>
-                  仓位{" "}
+                  {t("stockAnalysis.decisionBanner.positionAbbr")}{" "}
                   <b>
                     {(() => {
                       const p = extractLlmField(llmDecisionJson, "positionPct") as number | null;
@@ -1054,14 +1057,24 @@ export function DecisionBanner() {
               style={{ borderTop: "1px solid var(--border)", color: "var(--muted)" }}
             >
               <span>
-                {decision.agreementBreakdown.actionNote === "opposite" ? "✗方向相反" : "⚠分歧"}
+                {decision.agreementBreakdown.actionNote === "opposite"
+                  ? t("stockAnalysis.decisionBanner.oppositeDirection")
+                  : t("stockAnalysis.decisionBanner.disagreement")}
                 ({decision.agreementBreakdown.formulaAction} vs {decision.agreementBreakdown.llmAction})
               </span>
               {decision.agreementBreakdown.positionGap != null && (
-                <span>仓位差{Math.round(decision.agreementBreakdown.positionGap)}%</span>
+                <span>
+                  {t("stockAnalysis.decisionBanner.positionGap", {
+                    gap: Math.round(decision.agreementBreakdown.positionGap),
+                  })}
+                </span>
               )}
               {decision.agreementBreakdown.confidenceGap != null && (
-                <span>置信差{Math.round(decision.agreementBreakdown.confidenceGap)}%</span>
+                <span>
+                  {t("stockAnalysis.decisionBanner.confidenceGap", {
+                    gap: Math.round(decision.agreementBreakdown.confidenceGap),
+                  })}
+                </span>
               )}
             </div>
           )}

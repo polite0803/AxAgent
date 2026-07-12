@@ -56,8 +56,8 @@ export function WalkForwardFoldBarChart({ windows, height = 280 }: WalkForwardFo
               `<b>Fold ${f.foldIndex}</b> ${
                 w.overfitFlag ? `<span style='color:#cf1322'>(${t("quant.metrics.overfit")})</span>` : ""
               }`,
-              `IS: ${f.trainStart} → ${f.trainEnd} (${f.trainBarsCount} 根)`,
-              `OOS: ${f.testStart} → ${f.testEnd} (${f.testBarsCount} 根)`,
+              `IS: ${f.trainStart} → ${f.trainEnd} (${t("quant.chart.barsCount", { count: f.trainBarsCount })})`,
+              `OOS: ${f.testStart} → ${f.testEnd} (${t("quant.chart.barsCount", { count: f.testBarsCount })})`,
               `Train Sharpe: ${w.trainMetrics.sharpe.toFixed(3)}`,
               `Test  Sharpe: ${w.testMetrics.sharpe.toFixed(3)}`,
               `Degradation: ${w.degradationRatio.toFixed(3)} ${w.overfitFlag ? "⚠️" : ""}`,
@@ -118,7 +118,10 @@ export function WalkForwardFoldBarChart({ windows, height = 280 }: WalkForwardFo
               silent: true,
               symbol: "none",
               lineStyle: { color: "#cf1322", type: "dotted", width: 1 },
-              data: [{ yAxis: 0.3, label: { formatter: `${t("quant.metrics.overfit")} 阈值 0.3` } }],
+              data: [{
+                yAxis: 0.3,
+                label: { formatter: `${t("quant.metrics.overfit")} ${t("quant.chart.threshold", { value: "0.3" })}` },
+              }],
             },
           },
         ],

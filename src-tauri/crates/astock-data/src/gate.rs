@@ -86,8 +86,8 @@ mod tests {
         let gate = DomainGate::new();
         // 东方财富只有 3 个许可证
         let g1 = gate.acquire("eastmoney").await;
-        let g2 = gate.acquire("eastmoney").await;
-        let g3 = gate.acquire("eastmoney").await;
+        let _g2 = gate.acquire("eastmoney").await;
+        let _g3 = gate.acquire("eastmoney").await;
         // 第4个尝试应该获取不到（非阻塞）
         assert!(gate.try_acquire("eastmoney").is_none());
         drop(g1);

@@ -104,7 +104,7 @@ export function PageTimeAnchor() {
             allowClear={false}
             placeholder={t("timeTravel.datePicker.placeholder")}
             style={{ width: 150 }}
-            data-testid="page-time-anchor-date"
+            data-testid="asof-date-picker"
           />
           {showPicker && !asOfDate && (
             <button

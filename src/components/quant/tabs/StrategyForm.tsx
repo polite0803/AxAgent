@@ -51,7 +51,7 @@ const BUILTIN_FIELDS: Record<string, ParamField[]> = {
 
 export function StrategyForm({ strategy, onChange }: StrategyFormProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { t: _t } = useTranslation();
+  const { t } = useTranslation();
   const fields = BUILTIN_FIELDS[strategy.id];
 
   const initialValues = useMemo(() => {
@@ -70,7 +70,7 @@ export function StrategyForm({ strategy, onChange }: StrategyFormProps) {
     // Rhai 策略：参数以 JSON 字符串形式编辑（M1 简化）
     return (
       <Form layout="vertical" size="small">
-        <Form.Item label="参数 (JSON)">
+        <Form.Item label={t("quant.strategyForm.paramsJson")}>
           <Input.TextArea
             rows={4}
             defaultValue={JSON.stringify(strategy.params, null, 2)}

@@ -631,7 +631,7 @@ export function WhatIfBacktest() {
                       onChange={(v) => setConfigOverrides((p) => ({ ...p, scoring_support: v }))}
                     />
                   </div>
-                  <div className="text-[10px] text-gray-500 mt-1">估值参数</div>
+                  <div className="text-[10px] text-gray-500 mt-1">{t("stockAnalysis.whatIf.valuationParams")}</div>
                   <div className="grid grid-cols-2 gap-2">
                     <ConfigParamSlider
                       label="value_dcf_growth_rate"
@@ -649,7 +649,7 @@ export function WhatIfBacktest() {
                       onChange={(v) => setConfigOverrides((p) => ({ ...p, value_safety_margin: v }))}
                     />
                   </div>
-                  <div className="text-[10px] text-gray-500 mt-1">风控参数</div>
+                  <div className="text-[10px] text-gray-500 mt-1">{t("stockAnalysis.whatIf.riskParams")}</div>
                   <div className="grid grid-cols-2 gap-2">
                     <ConfigParamSlider
                       label="kelly_fraction"
@@ -739,7 +739,7 @@ export function WhatIfBacktest() {
                 {result.decisionTrail && result.decisionTrail.length > 0 && (
                   <div className="mt-2">
                     <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
-                      {t("stockAnalysis.decision.decisionTrail") ?? "决策追溯链"}
+                      {t("stockAnalysis.decision.decisionTrail") ?? t("stockAnalysis.whatIf.decisionTrail")}
                     </div>
                     <div className="space-y-0.5">
                       {result.decisionTrail.map((t, i) => (
@@ -767,7 +767,7 @@ export function WhatIfBacktest() {
                 {/* 技术面否决详情 */}
                 {result.technicalVeto?.vetoed && (
                   <div className="mt-2 px-2 py-1.5 bg-red-900/20 rounded text-[11px] text-red-400">
-                    ⛔ 技术面否决: {result.technicalVeto.ruleId ?? ""}
+                    ⛔ {t("stockAnalysis.whatIfBacktest.technicalVeto")}: {result.technicalVeto.ruleId ?? ""}
                     {result.technicalVeto.reason ? ` — ${result.technicalVeto.reason}` : ""}
                   </div>
                 )}
@@ -776,21 +776,21 @@ export function WhatIfBacktest() {
                 {result.simulationGate?.vetoed && (
                   <div className="mt-2">
                     <div className="px-2 py-1.5 bg-amber-900/20 rounded text-[11px] text-amber-400">
-                      🏭 模拟门 {result.simulationGate.ruleId ?? ""}:
+                      🏭 {t("stockAnalysis.whatIfBacktest.simulationGate")} {result.simulationGate.ruleId ?? ""}:
                       {result.simulationGate.reason ? ` ${result.simulationGate.reason}` : ""}
                     </div>
                     {result.preSimAction && (
                       <div className="mt-1 px-2 py-1 text-[10px] text-gray-500">
-                        模拟前决策: {result.preSimAction}
+                        {t("stockAnalysis.whatIfBacktest.preSimDecision")}: {result.preSimAction}
                         {result.preSimPositionPct != null ? ` @ ${result.preSimPositionPct}%` : ""}
                         {result.simulationGate.simStability != null
-                          ? ` | 稳定性 ${result.simulationGate.simStability}`
+                          ? ` | ${t("stockAnalysis.whatIfBacktest.stability")} ${result.simulationGate.simStability}`
                           : ""}
                         {result.simulationGate.simLiquidity != null
-                          ? ` | 流动性 ${result.simulationGate.simLiquidity}`
+                          ? ` | ${t("stockAnalysis.whatIfBacktest.liquidity")} ${result.simulationGate.simLiquidity}`
                           : ""}
                         {result.simulationGate.simImpact != null
-                          ? ` | 冲击 ${result.simulationGate.simImpact}bps`
+                          ? ` | ${t("stockAnalysis.whatIfBacktest.impact")} ${result.simulationGate.simImpact}bps`
                           : ""}
                       </div>
                     )}

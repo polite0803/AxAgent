@@ -11,6 +11,7 @@
 import { useStockAnalysisStore } from "@/stores";
 import { Card, Table, Tag, Tooltip } from "antd";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface NodeInfo {
   nodeId: string;
@@ -39,21 +40,22 @@ function getNodeColor(nodeId: string): string {
   return NODE_COLORS.default;
 }
 
-function getNodeTypeLabel(nodeId: string): string {
-  if (nodeId.startsWith("a-")) { return "分析师"; }
+function getNodeTypeLabel(nodeId: string, t: (k: string) => string): string {
+  if (nodeId.startsWith("a-")) { return t("stockAnalysis.workflow.analyst"); }
   if (
     nodeId.startsWith("risk-") || nodeId === "p-risk-assess" || nodeId === "agg-risk" || nodeId === "risk-convergence"
-  ) { return "风控"; }
-  if (nodeId.startsWith("bull-")) { return "多方辩论"; }
-  if (nodeId.startsWith("bear-")) { return "空方辩论"; }
-  if (nodeId.startsWith("t-")) { return "数据工具"; }
-  if (nodeId === "debate-convergence") { return "辩论收敛"; }
-  if (nodeId.includes("mgr") || nodeId.includes("manager")) { return "决策引擎"; }
-  if (nodeId.includes("checker") || nodeId === "rule-check") { return "规则检查"; }
-  return "其他";
+  ) { return t("stockAnalysis.riskControl"); }
+  if (nodeId.startsWith("bull-")) { return t("stockAnalysis.bullDebate"); }
+  if (nodeId.startsWith("bear-")) { return t("stockAnalysis.bearDebate"); }
+  if (nodeId.startsWith("t-")) { return t("stockAnalysis.dataTool"); }
+  if (nodeId === "debate-convergence") { return t("stockAnalysis.debateConvergence"); }
+  if (nodeId.includes("mgr") || nodeId.includes("manager")) { return t("stockAnalysis.decisionEngine"); }
+  if (nodeId.includes("checker") || nodeId === "rule-check") { return t("stockAnalysis.ruleCheck"); }
+  return t("stockAnalysis.other");
 }
 
 export function AnalysisDebugPanel() {
+  const { t } = useTranslation();
   const analystReports = useStockAnalysisStore((s) => s.analystReports);
   const status = useStockAnalysisStore((s) => s.status);
   const failedNodes = useStockAnalysisStore((s) => s.failedNodes);
@@ -102,7 +104,7 @@ export function AnalysisDebugPanel() {
 
   const columns = [
     {
-      title: "节点",
+      title: t("stockAnalysis.analysisDebug.node"),
       dataIndex: "nodeId",
       key: "nodeId",
       width: 180,
@@ -117,14 +119,14 @@ export function AnalysisDebugPanel() {
       ),
     },
     {
-      title: "类型",
+      title: t("stockAnalysis.analysisDebug.type"),
       dataIndex: "nodeId",
       key: "nodeType",
       width: 80,
-      render: (id: string) => <span className="text-xs text-gray-400">{getNodeTypeLabel(id)}</span>,
+      render: (id: string) => <span className="text-xs text-gray-400">{getNodeTypeLabel(id, t)}</span>,
     },
     {
-      title: "状态",
+      title: t("stockAnalysis.analysisDebug.status"),
       dataIndex: "status",
       key: "status",
       width: 90,
@@ -133,12 +135,16 @@ export function AnalysisDebugPanel() {
           color={st === "completed" ? "success" : st === "failed" ? "error" : "default"}
           className="text-[11px]"
         >
-          {st === "completed" ? "✅ 完成" : st === "failed" ? "❌ 失败" : "⬜ 待执行"}
+          {st === "completed"
+            ? t("stockAnalysis.analysisDebug.completed")
+            : st === "failed"
+            ? t("stockAnalysis.analysisDebug.failed")
+            : t("stockAnalysis.analysisDebug.pending")}
         </Tag>
       ),
     },
     {
-      title: "报告大小",
+      title: t("stockAnalysis.analysisDebug.reportSize"),
       dataIndex: "reportSize",
       key: "size",
       width: 95,
@@ -151,14 +157,14 @@ export function AnalysisDebugPanel() {
           : <span className="text-gray-600">-</span>,
     },
     {
-      title: "估计 Tokens",
+      title: t("stockAnalysis.analysisDebug.estimatedTokens"),
       dataIndex: "reportSize",
       key: "tokens",
       width: 90,
       render: (size: number) => (size > 0 ? Math.round(size / 4) : "-"),
     },
     {
-      title: "错误信息",
+      title: t("stockAnalysis.analysisDebug.errorMessage"),
       dataIndex: "errorMessage",
       key: "error",
       width: 220,
@@ -179,12 +185,12 @@ export function AnalysisDebugPanel() {
       size="small"
       title={
         <div className="flex items-center gap-3">
-          <span>🔍 Debug 面板</span>
+          <span>{t("stockAnalysis.analysisDebug.debugPanel")}</span>
           <Tag color="default" className="text-[10px]">
-            进度 {progressPct}%
+            {t("stockAnalysis.analysisDebug.progress")} {progressPct}%
           </Tag>
           <Tag color="default" className="text-[10px]">
-            阶段 {currentStage}/5
+            {t("stockAnalysis.analysisDebug.stage")} {currentStage}/5
           </Tag>
         </div>
       }
@@ -193,18 +199,21 @@ export function AnalysisDebugPanel() {
     >
       {/* 概要行 */}
       <div className="flex gap-4 text-xs mb-2" style={{ color: "var(--muted)" }}>
-        <span>总节点: {allNodes.length}</span>
-        <span className="text-green-400">完成: {completedCount}</span>
-        <span className="text-red-400">失败: {failedCount}</span>
-        <span>总报告: {totalSize >= 1000 ? `${(totalSize / 1000).toFixed(1)}KB` : `${totalSize}B`}</span>
-        <span className="text-gray-500">状态: {status}</span>
+        <span>{t("stockAnalysis.analysisDebug.totalNodes")}: {allNodes.length}</span>
+        <span className="text-green-400">{t("stockAnalysis.analysisDebug.completed")}: {completedCount}</span>
+        <span className="text-red-400">{t("stockAnalysis.analysisDebug.failed")}: {failedCount}</span>
+        <span>
+          {t("stockAnalysis.analysisDebug.totalReport")}:{" "}
+          {totalSize >= 1000 ? `${(totalSize / 1000).toFixed(1)}KB` : `${totalSize}B`}
+        </span>
+        <span className="text-gray-500">{t("stockAnalysis.analysisDebug.statusLabel")}: {status}</span>
       </div>
 
       {/* 失败节点高亮提示 */}
       {failedCount > 0 && (
         <div className="mb-2 px-3 py-1.5 rounded text-xs bg-red-500/10 border border-red-500/20">
           <span className="text-red-400 font-medium">
-            ⚠️ {failedCount} 个节点失败，可能影响决策质量：
+            {t("stockAnalysis.analysisDebug.failedQualityWarning", { count: failedCount })}
           </span>{" "}
           {allNodes
             .filter((n) => n.status === "failed")
@@ -228,14 +237,14 @@ export function AnalysisDebugPanel() {
       {status === "completed" && failedCount > 0 && (
         <div className="mt-2 px-3 py-1.5 rounded text-xs bg-yellow-500/10 border border-yellow-500/20">
           <span className="text-yellow-400">
-            💡 上游节点失败会导致决策引擎收到默认值（score=50），从而产生相同结论。
-            请重点排查上方红色标记节点的失败原因。
+            {t("stockAnalysis.analysisDebug.upstreamTip")}
+            {t("stockAnalysis.analysisDebug.upstreamTipDetail")}
           </span>
         </div>
       )}
 
       {status !== "running" && status !== "loading" && status !== "completed" && (
-        <div className="text-center py-4 text-xs text-gray-500">等待分析开始...</div>
+        <div className="text-center py-4 text-xs text-gray-500">{t("stockAnalysis.analysisDebug.waitingAnalysis")}</div>
       )}
 
       <style>

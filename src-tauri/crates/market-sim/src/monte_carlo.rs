@@ -284,7 +284,7 @@ mod tests {
             ..Default::default()
         };
 
-        let mut engine = MonteCarloEngine::new(config, |seed| {
+        let mut engine = MonteCarloEngine::new(config, |_seed| {
             let price = 1000;
             vec![
                 Box::new(ExchangeAgent::with_tick_size("exchange", 1)),

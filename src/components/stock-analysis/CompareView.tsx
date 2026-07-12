@@ -235,7 +235,9 @@ export function CompareView() {
           {/* 财务对比 */}
           {fin1 && fin2 && (
             <>
-              <div className="text-xs font-semibold mt-2 mb-1" style={{ color: "var(--muted)" }}>财务指标</div>
+              <div className="text-xs font-semibold mt-2 mb-1" style={{ color: "var(--muted)" }}>
+                {t("stockAnalysis.compare.financialMetrics")}
+              </div>
               <CompareRow
                 label="ROE"
                 v1={fmtPct(fin1.roe)}
@@ -243,25 +245,25 @@ export function CompareView() {
                 better={compareFin(fin1.roe, fin2.roe, true)}
               />
               <CompareRow
-                label="营收增速"
+                label={t("stockAnalysis.compare.revenueGrowth")}
                 v1={fmtPct(fin1.revenueYoy)}
                 v2={fmtPct(fin2.revenueYoy)}
                 better={compareFin(fin1.revenueYoy, fin2.revenueYoy, true)}
               />
               <CompareRow
-                label="利润增速"
+                label={t("stockAnalysis.compare.profitGrowth")}
                 v1={fmtPct(fin1.profitYoy)}
                 v2={fmtPct(fin2.profitYoy)}
                 better={compareFin(fin1.profitYoy, fin2.profitYoy, true)}
               />
               <CompareRow
-                label="毛利率"
+                label={t("stockAnalysis.compare.grossMargin")}
                 v1={fmtPct(fin1.grossMargin)}
                 v2={fmtPct(fin2.grossMargin)}
                 better={compareFin(fin1.grossMargin, fin2.grossMargin, true)}
               />
               <CompareRow
-                label="负债率"
+                label={t("stockAnalysis.compare.debtRatio")}
                 v1={fmtPct(fin1.debtRatio)}
                 v2={fmtPct(fin2.debtRatio)}
                 better={compareFin(fin1.debtRatio, fin2.debtRatio, false)}

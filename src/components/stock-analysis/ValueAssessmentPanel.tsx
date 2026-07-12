@@ -253,14 +253,17 @@ function tryParseValueReport(report: string): ValueReportData | null {
 
 /** 结构化估值报告渲染 —— 风格与 AnalystReportCard 保持一致 */
 function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: boolean }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-3">
       {/* 展望说明 / 巴菲特裁决 */}
       {data.buffett_verdict && (
         <div>
           <div className="text-xs font-medium mb-1 flex items-center gap-2 flex-wrap" style={{ color: "var(--muted)" }}>
-            <span>展望说明 / 巴菲特裁决</span>
-            {data.ideal_buy_price && <Tag color="green">理想买入价: {data.ideal_buy_price}</Tag>}
+            <span>{t("stockAnalysis.valueAssessment.outlookVerdict")}</span>
+            {data.ideal_buy_price && (
+              <Tag color="green">{t("stockAnalysis.valueAssessment.idealBuyPriceLabel")}: {data.ideal_buy_price}</Tag>
+            )}
           </div>
           <div className={`prose max-w-none text-sm ${isDark ? "prose-invert" : ""}`}>
             <NodeRenderer content={data.buffett_verdict} isDark={isDark} />
@@ -271,7 +274,9 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
       {/* 商业模式 */}
       {data.business_model && (
         <div>
-          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>商业模式</div>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+            {t("stockAnalysis.valueAssessment.businessModel")}
+          </div>
           <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
             <NodeRenderer content={data.business_model} isDark={isDark} />
           </div>
@@ -281,9 +286,11 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
       {/* 护城河评估 */}
       {data.moat_rating && (
         <div>
-          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>护城河评估</div>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+            {t("stockAnalysis.valueAssessment.moatAssessment")}
+          </div>
           <div className="flex gap-1 flex-wrap mb-1">
-            <Tag color="gold">护城河: {data.moat_rating}</Tag>
+            <Tag color="gold">{t("stockAnalysis.valueAssessment.moatLabel")}: {data.moat_rating}</Tag>
           </div>
           {data.moat_reasoning && (
             <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
@@ -296,7 +303,9 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
       {/* 财务健康 */}
       {data.financial_health && (
         <div>
-          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>财务健康</div>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+            {t("stockAnalysis.valueAssessment.financialHealth")}
+          </div>
           <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
             <NodeRenderer content={data.financial_health} isDark={isDark} />
           </div>
@@ -306,7 +315,9 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
       {/* 估值结论 */}
       {(data.intrinsic_value_range || data.margin_of_safety) && (
         <div>
-          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>估值结论</div>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+            {t("stockAnalysis.valueAssessment.valuationConclusion")}
+          </div>
           <div className="space-y-1">
             {data.intrinsic_value_range && (
               <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
@@ -325,7 +336,9 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
       {/* 风险标志 */}
       {Array.isArray(data.risk_flags) && data.risk_flags.length > 0 && (
         <div>
-          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>风险标志</div>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+            {t("stockAnalysis.valueAssessment.riskFlags")}
+          </div>
           <div className="flex gap-1 flex-wrap">
             {data.risk_flags.map((r, i) => <Tag key={i} color="orange">{r}</Tag>)}
           </div>
@@ -455,7 +468,7 @@ export function ValueAssessmentPanel() {
         return (
           <div>
             <div className="text-xs mb-2" style={{ color: "var(--muted)" }}>
-              估值报告（JSON 格式，未能自动解析）：
+              {t("stockAnalysis.valueAssessment.jsonParseFailed")}：
             </div>
             <pre className="bg-gray-50 dark:bg-gray-900 p-3 rounded text-xs overflow-x-auto whitespace-pre-wrap">
               {readableText}
@@ -475,7 +488,7 @@ export function ValueAssessmentPanel() {
       return (
         <div>
           <div className="text-xs mb-2" style={{ color: "var(--muted)" }}>
-            估值报告（原始 JSON）：
+            {t("stockAnalysis.valueAssessment.jsonRawFallback")}：
           </div>
           <pre className="bg-gray-50 dark:bg-gray-900 p-3 rounded text-xs overflow-x-auto whitespace-pre-wrap">
             {cleaned}

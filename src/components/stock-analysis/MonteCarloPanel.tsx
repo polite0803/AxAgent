@@ -15,6 +15,7 @@ import {
   Tag,
 } from "antd";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ScenarioConfig {
   key: string;
@@ -32,6 +33,7 @@ const DEFAULT_SCENARIOS: ScenarioConfig[] = [
 ];
 
 export function MonteCarloPanel() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<RobustnessResult | null>(null);
@@ -52,7 +54,7 @@ export function MonteCarloPanel() {
   const handleRun = async () => {
     const activeScenarios = scenarios.filter((s) => s.enabled);
     if (activeScenarios.length === 0) {
-      setError("请至少选择一个场景");
+      setError(t("stockAnalysis.monte-carlo-panel.select-at-least-one-scenario"));
       return;
     }
 
@@ -94,10 +96,10 @@ export function MonteCarloPanel() {
   return (
     <div className="space-y-4">
       {/* 配置区 */}
-      <Card size="small" title="⚙ 鲁棒性测试配置">
+      <Card size="small" title={t("stockAnalysis.monte-carlo-panel.robustness-test-config")}>
         <div className="mb-3 flex flex-wrap items-center gap-4">
           <label className="text-sm font-medium">
-            股票代码
+            {t("stockAnalysis.monte-carlo-panel.stock-code")}
             <InputNumber
               className="ml-2"
               style={{ width: 110 }}
@@ -106,7 +108,7 @@ export function MonteCarloPanel() {
             />
           </label>
           <label className="text-sm font-medium">
-            参考价(分)
+            {t("stockAnalysis.monte-carlo-panel.reference-price")}
             <InputNumber
               className="ml-2"
               style={{ width: 120 }}
@@ -116,7 +118,7 @@ export function MonteCarloPanel() {
             />
           </label>
           <label className="text-sm font-medium">
-            时长(ms)
+            {t("stockAnalysis.monte-carlo-panel.duration-ms")}
             <InputNumber
               className="ml-2"
               style={{ width: 100 }}
@@ -150,10 +152,15 @@ export function MonteCarloPanel() {
 
         <div className="flex items-center justify-between">
           <span className="text-sm text-secondary">
-            合计 {totalPaths} 路径 · 模拟 ~{((totalPaths * simMs) / 1000).toFixed(1)}s 虚拟时间
+            {t("stockAnalysis.monte-carlo-panel.total-summary", {
+              totalPaths,
+              simTime: ((totalPaths * simMs) / 1000).toFixed(1),
+            })}
           </span>
           <Button type="primary" onClick={handleRun} loading={loading}>
-            {loading ? "运行中..." : "运行鲁棒性测试"}
+            {loading
+              ? t("stockAnalysis.monte-carlo-panel.running")
+              : t("stockAnalysis.monte-carlo-panel.run-robustness-test")}
           </Button>
         </div>
       </Card>
@@ -162,7 +169,7 @@ export function MonteCarloPanel() {
       {loading && (
         <Card size="small">
           <div className="flex items-center justify-center py-8">
-            <Spin size="large" tip="正在运行 {totalPaths} 条模拟路径 ..." />
+            <Spin size="large" tip={t("stockAnalysis.monte-carlo-panel.running-simulation-tip", { totalPaths })} />
           </div>
         </Card>
       )}
@@ -182,9 +189,9 @@ export function MonteCarloPanel() {
             <Col span={6}>
               <Card size="small" hoverable>
                 <Statistic
-                  title="总路径数"
+                  title={t("stockAnalysis.monte-carlo-panel.total-paths-stat")}
                   value={report.totalPaths}
-                  suffix="条"
+                  suffix={t("stockAnalysis.monte-carlo-panel.paths-unit")}
                   styles={{ content: { fontSize: 22 } }}
                 />
               </Card>
@@ -192,7 +199,7 @@ export function MonteCarloPanel() {
             <Col span={6}>
               <Card size="small" hoverable>
                 <Statistic
-                  title="跨场景胜率"
+                  title={t("stockAnalysis.monte-carlo-panel.cross-scenario-survival-rate")}
                   value={report.survivalRate}
                   suffix="%"
                   precision={1}
@@ -203,17 +210,19 @@ export function MonteCarloPanel() {
             <Col span={6}>
               <Card size="small" hoverable>
                 <Statistic
-                  title="一致性评分"
+                  title={t("stockAnalysis.monte-carlo-panel.consistency-score")}
                   value={report.consistencyScore}
                   precision={2}
-                  suffix={report.consistencyScore < 1.0 ? " (稳定)" : " (波动)"}
+                  suffix={report.consistencyScore < 1.0
+                    ? t("stockAnalysis.monte-carlo-panel.consistency-stable-suffix")
+                    : t("stockAnalysis.monte-carlo-panel.consistency-volatile-suffix")}
                   styles={{ content: { fontSize: 22 } }}
                 />
               </Card>
             </Col>
             <Col span={6}>
               <Card size="small" hoverable>
-                <div className="text-sm text-secondary">最佳/最差场景</div>
+                <div className="text-sm text-secondary">{t("stockAnalysis.monte-carlo-panel.best-worst-scenario")}</div>
                 <div className="mt-1">
                   <Tag color="green">{report.bestScenario}</Tag>
                   <Tag color="red">{report.worstScenario}</Tag>
@@ -227,7 +236,9 @@ export function MonteCarloPanel() {
             size="small"
             title={
               <span>
-                📊 场景详情 · <Tag color="blue">{report.stockCode}</Tag> 参考价 {report.referencePrice} 分
+                📊 {t("stockAnalysis.monte-carlo-panel.scenario-detail")} · <Tag color="blue">{report.stockCode}</Tag>
+                {" "}
+                {t("stockAnalysis.monte-carlo-panel.reference-price-label", { price: report.referencePrice })}
               </span>
             }
           >
@@ -238,7 +249,7 @@ export function MonteCarloPanel() {
               pagination={false}
               columns={[
                 {
-                  title: "场景",
+                  title: t("stockAnalysis.monte-carlo-panel.column-scenario"),
                   dataIndex: "label",
                   key: "label",
                   render: (label: string, record: McScenarioResult) => (
@@ -248,23 +259,28 @@ export function MonteCarloPanel() {
                     </span>
                   ),
                 },
-                { title: "路径数", dataIndex: "paths", key: "paths", width: 80 },
                 {
-                  title: "平均成交",
+                  title: t("stockAnalysis.monte-carlo-panel.column-paths"),
+                  dataIndex: "paths",
+                  key: "paths",
+                  width: 80,
+                },
+                {
+                  title: t("stockAnalysis.monte-carlo-panel.column-avg-trades"),
                   dataIndex: "avgTotalTrades",
                   key: "avgTotalTrades",
                   width: 100,
                   render: (v: number) => v.toFixed(1),
                 },
                 {
-                  title: "终止价(分)",
+                  title: t("stockAnalysis.monte-carlo-panel.column-final-price"),
                   dataIndex: "avgFinalMidPrice",
                   key: "avgFinalMidPrice",
                   width: 120,
                   render: (v: number | null) => (v ?? "—"),
                 },
                 {
-                  title: "涨跌幅",
+                  title: t("stockAnalysis.monte-carlo-panel.column-price-change"),
                   dataIndex: "priceChangePct",
                   key: "priceChangePct",
                   width: 100,
@@ -281,26 +297,29 @@ export function MonteCarloPanel() {
           </Card>
 
           {/* 解读 */}
-          <Card size="small" title="💡 解读">
+          <Card size="small" title={t("stockAnalysis.monte-carlo-panel.interpretation")}>
             <Descriptions column={1} size="small">
-              <Descriptions.Item label="胜率解读">
+              <Descriptions.Item label={t("stockAnalysis.monte-carlo-panel.survival-rate-analysis")}>
                 {report.survivalRate >= 70
-                  ? "✅ 策略在不同市场环境下表现稳定"
+                  ? t("stockAnalysis.monte-carlo-panel.survival-rate-high")
                   : report.survivalRate >= 40
-                  ? "⚠️ 策略对市场环境有一定选择性，需关注当前市场风格"
-                  : "❌ 策略仅在特定市场中有效，需谨慎使用"}
+                  ? t("stockAnalysis.monte-carlo-panel.survival-rate-medium")
+                  : t("stockAnalysis.monte-carlo-panel.survival-rate-low")}
               </Descriptions.Item>
-              <Descriptions.Item label="一致性">
+              <Descriptions.Item label={t("stockAnalysis.monte-carlo-panel.consistency")}>
                 {report.consistencyScore < 0.5
-                  ? "策略在不同场景下表现高度一致"
+                  ? t("stockAnalysis.monte-carlo-panel.consistency-high")
                   : report.consistencyScore < 1.0
-                  ? "策略表现有一定波动但可接受"
-                  : "策略表现高度依赖市场环境"}
+                  ? t("stockAnalysis.monte-carlo-panel.consistency-acceptable")
+                  : t("stockAnalysis.monte-carlo-panel.consistency-environment-dependent")}
               </Descriptions.Item>
-              <Descriptions.Item label="建议">
+              <Descriptions.Item label={t("stockAnalysis.monte-carlo-panel.advice")}>
                 {report.bestScenario === report.worstScenario
-                  ? "策略在所有场景下表现一致"
-                  : `策略在 ${report.bestScenario} 场景中最佳，在 ${report.worstScenario} 场景中最差，建议结合当前市场风格使用`}
+                  ? t("stockAnalysis.monte-carlo-panel.advice-consistent")
+                  : t("stockAnalysis.monte-carlo-panel.advice-different", {
+                    best: report.bestScenario,
+                    worst: report.worstScenario,
+                  })}
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -311,9 +330,9 @@ export function MonteCarloPanel() {
       {!report && !loading && !error && (
         <Card size="small">
           <div className="py-8 text-center text-secondary">
-            <p className="mb-2 text-base">选择多个市场场景，运行蒙特卡洛鲁棒性测试</p>
+            <p className="mb-2 text-base">{t("stockAnalysis.monte-carlo-panel.empty-state-title")}</p>
             <p className="text-sm">
-              系统会在每个场景中运行 N 条随机路径，评估策略的跨场景稳定性
+              {t("stockAnalysis.monte-carlo-panel.empty-state-desc")}
             </p>
           </div>
         </Card>

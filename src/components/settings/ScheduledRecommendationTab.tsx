@@ -19,6 +19,7 @@ import {
 } from "antd";
 import { Clock, Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type PeriodKey = "short" | "mid" | "long";
 
@@ -64,6 +65,7 @@ const ALL_PERIODS: { value: PeriodKey; label: string }[] = [
 
 export function ScheduledRecommendationTab() {
   const { message } = App.useApp();
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<RecoCronRow[]>([]);
   const [adding, setAdding] = useState(false);
   const [, setLoading] = useState(true);
@@ -110,9 +112,11 @@ export function ScheduledRecommendationTab() {
       form.resetFields();
       setAdding(false);
       loadTasks();
-      message.success("定时荐股任务已创建");
+      message.success(t("settings.scheduled-recommendation.task-created"));
     } catch (e: unknown) {
-      message.error(`创建失败: ${e instanceof Error ? e.message : String(e)}`);
+      message.error(
+        t("settings.scheduled-recommendation.create-failed", { error: e instanceof Error ? e.message : String(e) }),
+      );
     }
   };
 
@@ -133,14 +137,14 @@ export function ScheduledRecommendationTab() {
   const columns = useMemo(
     () => [
       {
-        title: "名称",
+        title: t("settings.scheduled-recommendation.column-name"),
         dataIndex: "name",
         width: 140,
         ellipsis: true,
         render: (v: string) => <span className="text-xs font-medium">{v}</span>,
       },
       {
-        title: "周期 / 推送",
+        title: t("settings.scheduled-recommendation.column-period"),
         key: "config",
         width: 200,
         render: (_: unknown, r: RecoCronRow) => (
@@ -149,9 +153,16 @@ export function ScheduledRecommendationTab() {
               {r.config.periods.map((p) => ALL_PERIODS.find((x) => x.value === p)?.label ?? p).join(" / ")}
             </span>
             <span className="text-gray-400">
-              最低置信 {r.config.minConfidence} · 推送 Top {r.config.topN}
+              {t("settings.scheduled-recommendation.min-confidence-and-top-n", {
+                confidence: r.config.minConfidence,
+                topN: r.config.topN,
+              })}
             </span>
-            {r.lastPicksCount !== null && <span className="text-gray-400">上次推送 {r.lastPicksCount} 只</span>}
+            {r.lastPicksCount !== null && (
+              <span className="text-gray-400">
+                {t("settings.scheduled-recommendation.last-push-count", { count: r.lastPicksCount })}
+              </span>
+            )}
           </div>
         ),
       },
@@ -162,14 +173,14 @@ export function ScheduledRecommendationTab() {
         render: (v: string) => <Tag className="text-[10px] m-0 font-mono">{v}</Tag>,
       },
       {
-        title: "已执行",
+        title: t("settings.scheduled-recommendation.column-executed"),
         dataIndex: "runCount",
         width: 50,
         align: "center" as const,
         render: (v: number) => <span className="text-xs">{v}</span>,
       },
       {
-        title: "状态",
+        title: t("settings.scheduled-recommendation.column-status"),
         dataIndex: "status",
         width: 70,
         render: (v: string, record: RecoCronRow) => (
@@ -185,7 +196,10 @@ export function ScheduledRecommendationTab() {
         key: "action",
         width: 30,
         render: (_: unknown, record: RecoCronRow) => (
-          <Popconfirm title="确认删除?" onConfirm={() => remove(record.id)}>
+          <Popconfirm
+            title={t("settings.scheduled-recommendation.confirm-delete")}
+            onConfirm={() => remove(record.id)}
+          >
             <Button size="small" type="text" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         ),
@@ -197,9 +211,11 @@ export function ScheduledRecommendationTab() {
   return (
     <div className="flex flex-col gap-3">
       <div className="text-xs text-gray-500 leading-relaxed">
-        按 Cron 表达式定时跑智能荐股扫描，过滤兜底合成后只推"真实"推荐（按置信度排序 Top N）到操作系统通知。
-        <Tooltip title="cron 调度需 App 进程运行中；App 关闭时不会触发">
-          <Tag color="orange" className="m-0 ml-1 text-[10px]">依赖 App 在线</Tag>
+        {t("settings.scheduled-recommendation.description")}
+        <Tooltip title={t("settings.scheduled-recommendation.tooltip-cron-dependency")}>
+          <Tag color="orange" className="m-0 ml-1 text-[10px]">
+            {t("settings.scheduled-recommendation.tag-app-online")}
+          </Tag>
         </Tooltip>
       </div>
 
@@ -208,13 +224,13 @@ export function ScheduledRecommendationTab() {
         title={
           <Space>
             <PlusOutlined />
-            <span>新建定时荐股任务</span>
+            <span>{t("settings.scheduled-recommendation.new-task")}</span>
           </Space>
         }
         styles={{ body: { padding: "12px" } }}
         extra={
           <Button size="small" onClick={() => setAdding(!adding)}>
-            {adding ? "取消" : "展开"}
+            {adding ? t("settings.scheduled-recommendation.cancel") : t("settings.scheduled-recommendation.expand")}
           </Button>
         }
       >
@@ -225,7 +241,7 @@ export function ScheduledRecommendationTab() {
             layout="vertical"
             onFinish={create}
             initialValues={{
-              name: "智能荐股",
+              name: t("settings.scheduled-recommendation.default-name"),
               periods: ["short", "mid"],
               minConfidence: 60,
               topN: 5,
@@ -235,11 +251,11 @@ export function ScheduledRecommendationTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
               <Form.Item
                 name="name"
-                label="任务名称"
+                label={t("settings.scheduled-recommendation.label-task-name")}
                 rules={[{ required: true, max: 64 }]}
                 className="!mb-0"
               >
-                <Input placeholder="例如：每日收盘荐股" />
+                <Input placeholder={t("settings.scheduled-recommendation.placeholder-task-name")} />
               </Form.Item>
 
               <Form.Item
@@ -247,7 +263,7 @@ export function ScheduledRecommendationTab() {
                 label={
                   <Space size={4}>
                     <Clock size={12} />
-                    <span>触发时机</span>
+                    <span>{t("settings.scheduled-recommendation.label-trigger-time")}</span>
                   </Space>
                 }
                 rules={[{ required: true }]}
@@ -255,10 +271,18 @@ export function ScheduledRecommendationTab() {
               >
                 <Select
                   options={[
-                    { label: "─ 预设时间点 ─", options: CRON_PRESETS, disabled: true },
-                    { label: "─ 自定义间隔 ─", options: INTERVAL_PRESETS, disabled: true },
+                    {
+                      label: t("settings.scheduled-recommendation.group-presets"),
+                      options: CRON_PRESETS,
+                      disabled: true,
+                    },
+                    {
+                      label: t("settings.scheduled-recommendation.group-custom-interval"),
+                      options: INTERVAL_PRESETS,
+                      disabled: true,
+                    },
                   ].flatMap((g) => g.options)}
-                  placeholder="选择预设或输入 cron"
+                  placeholder={t("settings.scheduled-recommendation.placeholder-cron-preset")}
                   showSearch
                   optionFilterProp="label"
                 />
@@ -266,14 +290,14 @@ export function ScheduledRecommendationTab() {
 
               <Form.Item
                 name="periods"
-                label="荐股周期（多选）"
+                label={t("settings.scheduled-recommendation.label-periods")}
                 rules={[{ required: true, type: "array", min: 1 }]}
                 className="!mb-0"
               >
                 <Select
                   mode="multiple"
                   options={ALL_PERIODS}
-                  placeholder="选择至少一个周期"
+                  placeholder={t("settings.scheduled-recommendation.placeholder-periods")}
                   maxTagCount="responsive"
                 />
               </Form.Item>
@@ -283,7 +307,7 @@ export function ScheduledRecommendationTab() {
                 label={
                   <Space size={4}>
                     <Zap size={12} />
-                    <span>最低置信度（0-100）</span>
+                    <span>{t("settings.scheduled-recommendation.label-min-confidence")}</span>
                   </Space>
                 }
                 rules={[{ required: true, type: "number", min: 0, max: 100 }]}
@@ -294,7 +318,7 @@ export function ScheduledRecommendationTab() {
 
               <Form.Item
                 name="topN"
-                label="推送条数（Top N）"
+                label={t("settings.scheduled-recommendation.label-top-n")}
                 rules={[{ required: true, type: "number", min: 1, max: 20 }]}
                 className="!mb-0"
               >
@@ -304,7 +328,7 @@ export function ScheduledRecommendationTab() {
 
             <div className="flex justify-end mt-3">
               <Button type="primary" htmlType="submit" size="small">
-                创建
+                {t("settings.scheduled-recommendation.create-task")}
               </Button>
             </div>
           </Form>
@@ -315,7 +339,7 @@ export function ScheduledRecommendationTab() {
         ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="暂无定时荐股任务"
+            description={t("settings.scheduled-recommendation.empty-description")}
           />
         )
         : (

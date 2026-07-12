@@ -828,7 +828,7 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
       setChecked(result.weights.map((w) => w.strategyId));
       setModalOpen(true);
     } catch (e) {
-      message.error(`校准预览失败: ${e}`);
+      message.error(t("stockAnalysis.recommendation.calibratePreviewFailed") + String(e));
     } finally {
       setLoading(false);
     }
@@ -862,13 +862,13 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
       const result = await invoke<{ applied: number }>("apply_reco_weights", {
         weights: validPayload,
       });
-      message.success(`已应用 ${result.applied} 个策略权重调整`);
+      message.success(t("stockAnalysis.recommendation.calibrateApplied") + " " + result.applied);
       setModalOpen(false);
     } catch (e) {
       // 后端在 weights=null 时返回 "请先调用 preview...",
       // 这里把后端字符串错误直接抛到 toast 之外加 prefix,便于排查
       const msg = typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
-      message.error(`应用失败: ${msg}`);
+      message.error(`${t("stockAnalysis.recommendation.calibrateApplyFailed")}: ${msg}`);
     } finally {
       setApplying(false);
     }
@@ -890,7 +890,7 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         footer={[
-          <Button key="cancel" onClick={() => setModalOpen(false)}>取消</Button>,
+          <Button key="cancel" onClick={() => setModalOpen(false)}>{t("stockAnalysis.recommendation.cancel")}</Button>,
           <Button
             key="apply"
             type="primary"
@@ -898,22 +898,30 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
             disabled={applying || checked.length === 0}
             onClick={handleApply}
           >
-            应用选中项 ({checked.length})
+            {t("stockAnalysis.recommendation.calibrateApplySelected") + " (" + checked.length + ")"}
           </Button>,
         ]}
         width={600}
       >
         {diff.length === 0
-          ? <p style={{ color: "var(--muted)" }}>当前无建议调整</p>
+          ? <p style={{ color: "var(--muted)" }}>{t("stockAnalysis.recommendation.calibrateNoSuggestions")}</p>
           : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border-tertiary)" }}>
-                  <th style={{ padding: 4, textAlign: "left" }}>策略</th>
-                  <th style={{ padding: 4, textAlign: "right" }}>当前权重</th>
-                  <th style={{ padding: 4, textAlign: "right" }}>建议权重</th>
-                  <th style={{ padding: 4, textAlign: "right" }}>变动</th>
-                  <th style={{ padding: 4 }}>应用</th>
+                  <th style={{ padding: 4, textAlign: "left" }}>
+                    {t("stockAnalysis.recommendation.calibrateStrategy")}
+                  </th>
+                  <th style={{ padding: 4, textAlign: "right" }}>
+                    {t("stockAnalysis.recommendation.calibrateCurrentWeight")}
+                  </th>
+                  <th style={{ padding: 4, textAlign: "right" }}>
+                    {t("stockAnalysis.recommendation.calibrateSuggestedWeight")}
+                  </th>
+                  <th style={{ padding: 4, textAlign: "right" }}>
+                    {t("stockAnalysis.recommendation.calibrateChange")}
+                  </th>
+                  <th style={{ padding: 4 }}>{t("stockAnalysis.recommendation.calibrateApply")}</th>
                 </tr>
               </thead>
               <tbody>

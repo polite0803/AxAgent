@@ -316,7 +316,8 @@ export function PortfolioMonitorPanel() {
                       className="text-2xl font-bold"
                       style={{ color: s.portfolioPnl < 0 ? "#cf1322" : "#389e0d" }}
                     >
-                      {fmtMoney(s.portfolioPnl)} 元
+                      {fmtMoney(s.portfolioPnl)}
+                      {t("stockAnalysis.portfolioMonitor.yuan")}
                     </div>
                     <div className="text-xs text-gray-500">
                       {fmtPct(s.portfolioPnlPct, false)} · {t("stockAnalysis.portfolioMonitor.worstHit")}:{" "}

@@ -72,7 +72,7 @@ export function CompareTab() {
       <Card title={t("quant.compare.title")} size="small">
         <Paragraph type="secondary">{t("quant.compare.selectRuns")}</Paragraph>
         <Space wrap size={6} style={{ marginBottom: 12 }}>
-          {recentRuns.length === 0 && <Text type="secondary">无历史 run</Text>}
+          {recentRuns.length === 0 && <Text type="secondary">{t("quant.compare.noHistoryRuns")}</Text>}
           {recentRuns.map((r) => (
             <label
               key={r.id}
@@ -126,7 +126,7 @@ export function CompareTab() {
           {/* Top metrics of first run for quick glance */}
           {compare.runs[0]?.metrics && (
             <div style={{ marginTop: 16 }}>
-              <Title level={5}>首条 run 指标</Title>
+              <Title level={5}>{t("quant.compare.firstRunMetrics")}</Title>
               <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
                 <QuantMetricsCard
                   title={t("quant.metrics.totalReturn")}

@@ -2,6 +2,7 @@ import { invoke } from "@/lib/invoke";
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Card, Space, Tag, Tooltip } from "antd";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // ── 类型定义 ──
 
@@ -38,18 +39,18 @@ interface ExitSummary {
   recommendations: ExitRecommendation[];
 }
 
-function actionLabel(action: string): string {
+function actionLabel(action: string, t: (key: string) => string): string {
   switch (action) {
     case "SELL_NOW":
-      return "立即卖出";
+      return t("stockAnalysis.exitRecommendation.sellNow");
     case "SELL_AT_LIMIT":
-      return "挂限价卖出";
+      return t("stockAnalysis.exitRecommendation.sellAtLimit");
     case "SET_STOP_LOSS":
-      return "设置止损";
+      return t("stockAnalysis.exitRecommendation.setStopLoss");
     case "HOLD":
-      return "继续持有";
+      return t("stockAnalysis.exitRecommendation.hold");
     case "CONSIDER_ADD":
-      return "考虑加仓";
+      return t("stockAnalysis.exitRecommendation.considerAdd");
     default:
       return action;
   }
@@ -90,6 +91,7 @@ function severityColor(severity: string): string {
 export function ExitRecommendationPanel() {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<ExitSummary | null>(null);
+  const { t } = useTranslation();
 
   const loadRecommendations = useCallback(async () => {
     setLoading(true);
@@ -112,12 +114,24 @@ export function ExitRecommendationPanel() {
       size="small"
       title={
         <div className="flex justify-between items-center">
-          <span>退出建议</span>
+          <span>{t("stockAnalysis.exitRecommendation.title")}</span>
           <Space size={4}>
             <span className="text-xs" style={{ color: "var(--muted)" }}>
-              {summary.urgentExits > 0 && <span style={{ color: "red" }}>⚠ {summary.urgentExits} 紧急</span>}
-              {summary.limitExits > 0 && <span style={{ color: "#fa8c16" }}>⏰ {summary.limitExits} 限价</span>}
-              {summary.stopLossNeeded > 0 && <span style={{ color: "#faad14" }}>🛡 {summary.stopLossNeeded} 止损</span>}
+              {summary.urgentExits > 0 && (
+                <span style={{ color: "red" }}>
+                  ⚠ {summary.urgentExits} {t("stockAnalysis.exitRecommendation.urgent")}
+                </span>
+              )}
+              {summary.limitExits > 0 && (
+                <span style={{ color: "#fa8c16" }}>
+                  ⏰ {summary.limitExits} {t("stockAnalysis.exitRecommendation.limit")}
+                </span>
+              )}
+              {summary.stopLossNeeded > 0 && (
+                <span style={{ color: "#faad14" }}>
+                  🛡 {summary.stopLossNeeded} {t("stockAnalysis.exitRecommendation.stopLoss")}
+                </span>
+              )}
             </span>
             <Button size="small" icon={<ReloadOutlined />} loading={loading} onClick={loadRecommendations} />
           </Space>
@@ -131,6 +145,7 @@ export function ExitRecommendationPanel() {
 }
 
 function RecommendationCard({ rec }: { rec: ExitRecommendation }) {
+  const { t } = useTranslation();
   const pnlColor = rec.pnlPct >= 0 ? "var(--sa-red)" : "var(--sa-green)";
   const scoreColor = rec.exitScore >= 40 ? "red" : rec.exitScore >= 20 ? "#fa8c16" : "#52c41a";
   const scoreBg = rec.exitScore >= 40 ? "#fff0f0" : rec.exitScore >= 20 ? "#fffbe6" : "#f6ffed";
@@ -146,7 +161,7 @@ function RecommendationCard({ rec }: { rec: ExitRecommendation }) {
           <b>{rec.stockCode}</b>
           <span style={{ color: "var(--muted)" }}>{rec.stockName}</span>
           <Tag color={actionColor(rec.action)} style={{ fontSize: 10, lineHeight: "16px", margin: 0 }}>
-            {actionLabel(rec.action)}
+            {actionLabel(rec.action, t)}
           </Tag>
         </Space>
         <Space size={4}>
@@ -157,18 +172,21 @@ function RecommendationCard({ rec }: { rec: ExitRecommendation }) {
 
       {/* 价格/盈亏行 */}
       <div className="flex gap-3 mb-1" style={{ color: "var(--muted)" }}>
-        <span>成本 {rec.avgCost.toFixed(2)}</span>
+        <span>{t("stockAnalysis.exitRecommendation.cost")} {rec.avgCost.toFixed(2)}</span>
         <span>
-          现价 <b>{rec.currentPrice.toFixed(2)}</b>
+          {t("stockAnalysis.exitRecommendation.currentPrice")} <b>{rec.currentPrice.toFixed(2)}</b>
         </span>
         <span style={{ color: pnlColor }}>
-          盈亏 <b>{rec.pnlPct >= 0 ? "+" : ""}{rec.pnlPct.toFixed(1)}%</b>
+          {t("stockAnalysis.exitRecommendation.pnl")} <b>{rec.pnlPct >= 0 ? "+" : ""}{rec.pnlPct.toFixed(1)}%</b>
         </span>
-        <span>持有 {rec.holdingDays} 天</span>
-        <span>仓位 {rec.positionPct.toFixed(0)}%</span>
+        <span>
+          {t("stockAnalysis.exitRecommendation.holdingDays")} {rec.holdingDays}
+          {t("stockAnalysis.exitRecommendation.days")}
+        </span>
+        <span>{t("stockAnalysis.exitRecommendation.position")} {rec.positionPct.toFixed(0)}%</span>
         {rec.suggestedPrice && (
           <span style={{ color: "#fa8c16" }}>
-            建议挂出 <b>{rec.suggestedPrice.toFixed(2)}</b>
+            {t("stockAnalysis.exitRecommendation.suggestedPrice")} <b>{rec.suggestedPrice.toFixed(2)}</b>
           </span>
         )}
         <Tag style={{ fontSize: 10, lineHeight: "16px" }}>{rec.timeframe}</Tag>

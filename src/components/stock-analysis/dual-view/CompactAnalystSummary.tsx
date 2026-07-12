@@ -85,7 +85,7 @@ export function CompactAnalystSummary({ data }: CompactAnalystSummaryProps) {
   if (!summary) {
     return (
       <div className="text-[12px] italic" style={{ color: "var(--muted)" }}>
-        暂无分析师报告
+        {t("stockAnalysis.compact.noAnalystReports")}
       </div>
     );
   }

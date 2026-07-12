@@ -4,6 +4,7 @@
  * 输出:情绪比例 + 1 条最强看多 + 1 条最强看空
  */
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface DebateRound {
   round: number;
@@ -76,6 +77,7 @@ function tryExtractClaims(text: string, isBull: boolean): ParsedClaim | null {
 }
 
 export function CompactDebateNode({ data }: CompactDebateNodeProps) {
+  const { t } = useTranslation();
   const rounds = useMemo(() => normalizeRounds(data), [data]);
 
   const summary = useMemo(() => {
@@ -97,13 +99,17 @@ export function CompactDebateNode({ data }: CompactDebateNodeProps) {
   if (!summary) {
     return (
       <div className="text-[12px] italic" style={{ color: "var(--muted)" }}>
-        暂无辩论数据
+        {t("stockAnalysis.compact.noDebateData")}
       </div>
     );
   }
 
   const pct = Math.round(summary.ratio * 100);
-  const sentiment = summary.ratio > 0.55 ? "看多" : summary.ratio < 0.45 ? "看空" : "中性";
+  const sentiment = summary.ratio > 0.55
+    ? t("stockAnalysis.compact.bullish")
+    : summary.ratio < 0.45
+    ? t("stockAnalysis.compact.bearish")
+    : t("stockAnalysis.compact.neutral");
 
   return (
     <div className="space-y-1 text-[12px]">
@@ -125,18 +131,18 @@ export function CompactDebateNode({ data }: CompactDebateNodeProps) {
         >
           {sentiment} · {pct}%
         </span>
-        <span style={{ color: "var(--muted)" }}>{summary.totalRounds} 轮</span>
+        <span style={{ color: "var(--muted)" }}>{summary.totalRounds}{t("stockAnalysis.compact.rounds")}</span>
       </div>
 
       {summary.bullTop?.claim && (
         <div className="text-[11px] leading-snug flex gap-1">
-          <span style={{ color: "var(--sa-red, #dc2626)", fontWeight: 600 }}>多:</span>
+          <span style={{ color: "var(--sa-red, #dc2626)", fontWeight: 600 }}>{t("stockAnalysis.compact.bull")}:</span>
           <span style={{ color: "var(--color-text-secondary)" }}>{summary.bullTop.claim}</span>
         </div>
       )}
       {summary.bearTop?.claim && (
         <div className="text-[11px] leading-snug flex gap-1">
-          <span style={{ color: "var(--sa-green, #16a34a)", fontWeight: 600 }}>空:</span>
+          <span style={{ color: "var(--sa-green, #16a34a)", fontWeight: 600 }}>{t("stockAnalysis.compact.bear")}:</span>
           <span style={{ color: "var(--color-text-secondary)" }}>{summary.bearTop.claim}</span>
         </div>
       )}

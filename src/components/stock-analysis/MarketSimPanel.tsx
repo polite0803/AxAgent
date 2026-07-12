@@ -2,6 +2,7 @@ import { invoke } from "@/lib/invoke";
 import type { SimRunRequest, SimRunResult } from "@/types/market-sim";
 import { Button, Card, Col, Descriptions, Divider, Form, InputNumber, Row, Space, Spin, Statistic, Tag } from "antd";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * MarketSimPanel — ABIDES-inspired 多 Agent 市场模拟面板
@@ -13,6 +14,7 @@ export function MarketSimPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SimRunResult | null>(null);
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const tokenRef = useRef(0);
 
@@ -58,7 +60,7 @@ export function MarketSimPanel() {
       {/* 配置区 */}
       <Card
         size="small"
-        title="⚡ 模拟配置"
+        title={t("stockAnalysis.marketSimPanel.simConfig")}
         className="[&_.ant-card-head-title]:flex [&_.ant-card-head-title]:items-center"
       >
         <Form
@@ -75,31 +77,39 @@ export function MarketSimPanel() {
           }}
           style={{ flexWrap: "wrap", gap: 12 }}
         >
-          <Form.Item label="股票代码" name="stockCode" rules={[{ required: true }]}>
+          <Form.Item label={t("stockAnalysis.marketSimPanel.stockCode")} name="stockCode" rules={[{ required: true }]}>
             <InputNumber style={{ width: 110 }} />
           </Form.Item>
-          <Form.Item label="参考价(分)" name="referencePrice" rules={[{ required: true }]}>
+          <Form.Item
+            label={t("stockAnalysis.marketSimPanel.referencePrice")}
+            name="referencePrice"
+            rules={[{ required: true }]}
+          >
             <InputNumber style={{ width: 120 }} min={1} />
           </Form.Item>
-          <Form.Item label="模拟时长(ms)" name="maxSimTimeMs" rules={[{ required: true }]}>
+          <Form.Item
+            label={t("stockAnalysis.marketSimPanel.simDuration")}
+            name="maxSimTimeMs"
+            rules={[{ required: true }]}
+          >
             <InputNumber style={{ width: 120 }} min={1} max={1000} />
           </Form.Item>
           <Divider style={{ margin: "8px 0" }} />
-          <Form.Item label="做市商" name="marketMakers">
+          <Form.Item label={t("stockAnalysis.marketSimPanel.marketMaker")} name="marketMakers">
             <InputNumber style={{ width: 80 }} min={0} max={5} />
           </Form.Item>
-          <Form.Item label="动量" name="momentumAgents">
+          <Form.Item label={t("stockAnalysis.marketSimPanel.momentum")} name="momentumAgents">
             <InputNumber style={{ width: 80 }} min={0} max={5} />
           </Form.Item>
-          <Form.Item label="价值" name="valueAgents">
+          <Form.Item label={t("stockAnalysis.marketSimPanel.value")} name="valueAgents">
             <InputNumber style={{ width: 80 }} min={0} max={5} />
           </Form.Item>
-          <Form.Item label="噪声" name="noiseAgents">
+          <Form.Item label={t("stockAnalysis.marketSimPanel.noise")} name="noiseAgents">
             <InputNumber style={{ width: 80 }} min={0} max={10} />
           </Form.Item>
           <Form.Item>
             <Button type="primary" onClick={handleRun} loading={loading}>
-              {loading ? "模拟中..." : "运行模拟"}
+              {loading ? t("stockAnalysis.marketSimPanel.simulating") : t("stockAnalysis.marketSimPanel.runSimulation")}
             </Button>
           </Form.Item>
         </Form>
@@ -111,7 +121,7 @@ export function MarketSimPanel() {
           <div className="flex items-center justify-center py-8">
             <Space direction="vertical" align="center">
               <Spin size="large" />
-              <span className="text-secondary text-sm">DES 仿真运行中 ... 5 Agents 博弈中</span>
+              <span className="text-secondary text-sm">{t("stockAnalysis.marketSimPanel.desRunning")}</span>
             </Space>
           </div>
         </Card>
@@ -132,9 +142,9 @@ export function MarketSimPanel() {
             <Col span={6}>
               <Card size="small" hoverable>
                 <Statistic
-                  title="处理事件"
+                  title={t("stockAnalysis.marketSimPanel.totalEvents")}
                   value={result.totalEvents}
-                  suffix="条"
+                  suffix={t("stockAnalysis.marketSimPanel.eventsSuffix")}
                   valueStyle={{ fontSize: 22 }}
                 />
               </Card>
@@ -142,9 +152,9 @@ export function MarketSimPanel() {
             <Col span={6}>
               <Card size="small" hoverable>
                 <Statistic
-                  title="成交笔数"
+                  title={t("stockAnalysis.marketSimPanel.totalTrades")}
                   value={result.stats.totalTrades}
-                  suffix="笔"
+                  suffix={t("stockAnalysis.marketSimPanel.tradesSuffix")}
                   valueStyle={{ fontSize: 22 }}
                 />
               </Card>
@@ -152,7 +162,7 @@ export function MarketSimPanel() {
             <Col span={6}>
               <Card size="small" hoverable>
                 <Statistic
-                  title="墙壁时间"
+                  title={t("stockAnalysis.marketSimPanel.wallClock")}
                   value={result.wallClockMs}
                   suffix="ms"
                   valueStyle={{ fontSize: 22 }}
@@ -162,9 +172,9 @@ export function MarketSimPanel() {
             <Col span={6}>
               <Card size="small" hoverable>
                 <Statistic
-                  title="最终中间价"
+                  title={t("stockAnalysis.marketSimPanel.finalMidPrice")}
                   value={result.finalMidPrice ?? "—"}
-                  suffix={result.finalMidPrice ? "分" : ""}
+                  suffix={result.finalMidPrice ? t("stockAnalysis.marketSimPanel.fenSuffix") : ""}
                   valueStyle={{ fontSize: 22 }}
                 />
               </Card>
@@ -176,7 +186,7 @@ export function MarketSimPanel() {
             size="small"
             title={
               <span>
-                📊 模拟详情 ·{" "}
+                {t("stockAnalysis.marketSimPanel.simDetails")}{" "}
                 <Tag color="blue" style={{ marginRight: 0 }}>
                   {result.stockCode}
                 </Tag>
@@ -184,15 +194,25 @@ export function MarketSimPanel() {
             }
           >
             <Descriptions column={3} size="small" bordered>
-              <Descriptions.Item label="模拟时间(虚拟)">
+              <Descriptions.Item label={t("stockAnalysis.marketSimPanel.simTimeVirtual")}>
                 {(result.simTimeNs / 1_000_000).toFixed(2)} ms
               </Descriptions.Item>
-              <Descriptions.Item label="Agent 数量">{result.agentCount}</Descriptions.Item>
-              <Descriptions.Item label="参考价">{result.referencePrice} 分</Descriptions.Item>
-              <Descriptions.Item label="队列深度峰值">{result.stats.maxQueueDepth}</Descriptions.Item>
-              <Descriptions.Item label="总订单数">{result.stats.totalOrders}</Descriptions.Item>
-              <Descriptions.Item label="合计成交">
-                {result.stats.totalTrades > 0 ? `${result.stats.totalTrades} 笔` : "0"}
+              <Descriptions.Item label={t("stockAnalysis.marketSimPanel.agentCount")}>
+                {result.agentCount}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("stockAnalysis.marketSimPanel.refPrice")}>
+                {result.referencePrice} {t("stockAnalysis.marketSimPanel.fenUnit")}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("stockAnalysis.marketSimPanel.maxQueueDepth")}>
+                {result.stats.maxQueueDepth}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("stockAnalysis.marketSimPanel.totalOrders")}>
+                {result.stats.totalOrders}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("stockAnalysis.marketSimPanel.totalTradesLabel")}>
+                {result.stats.totalTrades > 0
+                  ? `${result.stats.totalTrades} ${t("stockAnalysis.marketSimPanel.tradesUnit")}`
+                  : "0"}
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -203,9 +223,9 @@ export function MarketSimPanel() {
       {!result && !loading && !error && (
         <Card size="small">
           <div className="py-8 text-center text-secondary">
-            <p className="mb-2 text-base">配置上方参数，点击"运行模拟"启动多 Agent 市场仿真</p>
+            <p className="mb-2 text-base">{t("stockAnalysis.marketSimPanel.emptyHint")}</p>
             <p className="text-sm">
-              模拟内核包含：交易所(Exchange) + 做市商(MarketMaker) + 动量(Momentum) + 价值(Value) + 噪声(Noise) Agents
+              {t("stockAnalysis.marketSimPanel.emptyDesc")}
             </p>
           </div>
         </Card>

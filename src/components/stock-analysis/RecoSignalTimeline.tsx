@@ -221,8 +221,7 @@ export function RecoSignalTimeline({ strategyId }: RecoSignalTimelineProps) {
                   </strong>
                 </span>
                 <Tooltip
-                  title={t("stockAnalysis.backtest.winsAndLosses")
-                    ?? `胜 ${stats.wins} / 负 ${stats.total - stats.wins}`}
+                  title={t("stockAnalysis.backtest.winsAndLosses")}
                 >
                   <span>
                     <Tag color="green" className="m-0 text-[10px]">W {stats.wins}</Tag>
