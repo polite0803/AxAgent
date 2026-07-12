@@ -220,20 +220,23 @@ impl SimKernel {
             self.clock = event.scheduled_at;
             self.event_count += 1;
 
-            // 投递消息到目标 Agent
+            // 投递消息到目标 Agent。Wakeup 事件路由到 on_wakeup，
+            // 其他消息路由到 on_message。
             let target_id = event.message.target.clone();
             let body = event.message.body.clone();
             let has_agent = self.agents.contains_key(&target_id);
             if has_agent {
                 let mut ctx = self.make_ctx(&target_id);
-                // 修复 P0-M3: 用 catch_unwind 防止单个 Agent panic 拖垮整个 kernel。
-                // AssertUnwindSafe 因为 Agent trait 已经是 dyn，且 panic 不污染 ctx
-                // （ctx 是新建的）；panic 后记录到黑名单，后续消息直接丢弃。
                 let actions = {
                     let entry = self.agents.get_mut(&target_id).unwrap();
                     let agent_id_for_panic = target_id.clone();
                     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        entry.agent.on_message(&body, &mut ctx)
+                        // Wakeup 路由到 on_wakeup，其余消息路由到 on_message
+                        if matches!(body, MessageBody::Wakeup) {
+                            entry.agent.on_wakeup(&mut ctx)
+                        } else {
+                            entry.agent.on_message(&body, &mut ctx)
+                        }
                     }))
                     .unwrap_or_else(|e| {
                         let panic_msg = if let Some(s) = e.downcast_ref::<&str>() {

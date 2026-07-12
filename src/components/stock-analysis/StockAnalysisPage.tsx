@@ -410,7 +410,7 @@ export function StockAnalysisPage() {
                 onClick={() => setShowDebug(!showDebug)}
                 title={t("stockAnalysis.debugPanel.toggleTitle")}
               >
-                🔍 {showDebug ? t("stockAnalysis.debugPanel.hide") : t("stockAnalysis.debugPanel.show")}
+                🔍 {showDebug ? "隐藏" : "显示"}
               </button>
             </div>
 

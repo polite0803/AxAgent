@@ -71,6 +71,19 @@ const LazyDynamicUIManagerPage = lazy(() =>
 const LazyStockAnalysisPage = lazy(() =>
   import("@/pages/StockAnalysisPage").then((m) => ({ default: m.StockAnalysisPage }))
 );
+const LazyScreenerPage = lazy(() => import("@/pages/ScreenerPage").then((m) => ({ default: m.ScreenerPage })));
+const LazyWatchlistPage = lazy(() => import("@/pages/WatchlistPage").then((m) => ({ default: m.WatchlistPage })));
+const LazyPortfolioPage = lazy(() => import("@/pages/PortfolioPage").then((m) => ({ default: m.PortfolioPage })));
+const LazyTradePage = lazy(() => import("@/pages/TradePage").then((m) => ({ default: m.TradePage })));
+const LazyBacktestPage = lazy(() => import("@/pages/BacktestPage").then((m) => ({ default: m.BacktestPage })));
+const LazyComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
+const LazyScheduledAnalysisPage = lazy(() =>
+  import("@/pages/ScheduledAnalysisPage").then((m) => ({ default: m.ScheduledAnalysisPage }))
+);
+const LazyQuantLabPage = lazy(() => import("@/pages/QuantLabPage").then((m) => ({ default: m.QuantLabPage })));
+const LazyReplayWorkbenchPage = lazy(() =>
+  import("@/pages/ReplayWorkbenchPage").then((m) => ({ default: m.ReplayWorkbenchPage }))
+);
 
 function PageLoader() {
   return (
@@ -322,6 +335,78 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="stock-analysis">
                 <SafeLazyPage Page={LazyStockAnalysisPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/screener"
+            element={
+              <PageContextProvider page="screener">
+                <SafeLazyPage Page={LazyScreenerPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/watchlist"
+            element={
+              <PageContextProvider page="watchlist">
+                <SafeLazyPage Page={LazyWatchlistPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/portfolio"
+            element={
+              <PageContextProvider page="portfolio">
+                <SafeLazyPage Page={LazyPortfolioPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/trade"
+            element={
+              <PageContextProvider page="trade">
+                <SafeLazyPage Page={LazyTradePage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/backtest"
+            element={
+              <PageContextProvider page="backtest">
+                <SafeLazyPage Page={LazyBacktestPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/compare"
+            element={
+              <PageContextProvider page="compare">
+                <SafeLazyPage Page={LazyComparePage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/scheduled-analysis"
+            element={
+              <PageContextProvider page="scheduled-analysis">
+                <SafeLazyPage Page={LazyScheduledAnalysisPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/quant"
+            element={
+              <PageContextProvider page="quant">
+                <SafeLazyPage Page={LazyQuantLabPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/replay-workbench"
+            element={
+              <PageContextProvider page="replay-workbench">
+                <SafeLazyPage Page={LazyReplayWorkbenchPage} />
               </PageContextProvider>
             }
           />

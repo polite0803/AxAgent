@@ -39,6 +39,15 @@ const pageKeyToPath: Record<PageKey, string> = {
   workflow: "/workflow",
   "dynamic-ui": "/dynamic-ui",
   "stock-analysis": "/stock-analysis",
+  screener: "/screener",
+  watchlist: "/watchlist",
+  portfolio: "/portfolio",
+  trade: "/trade",
+  backtest: "/backtest",
+  "scheduled-analysis": "/scheduled-analysis",
+  compare: "/compare",
+  quant: "/quant",
+  "replay-workbench": "/replay-workbench",
   settings: "/settings",
 };
 
@@ -130,6 +139,69 @@ const builtinNavItems: NavItem[] = [
     icon: <LineChart size={18} color={NAV_ICON_COLORS.Router} />,
     labelKey: "nav.stockAnalysis",
     path: "/stock-analysis",
+    isPlugin: false,
+  },
+  {
+    key: "screener",
+    icon: <Icon icon="fluent:search-20-filled" size={17} />,
+    labelKey: "nav.screener",
+    path: "/screener",
+    isPlugin: false,
+  },
+  {
+    key: "watchlist",
+    icon: <Icon icon="fluent:star-20-filled" size={17} />,
+    labelKey: "nav.watchlist",
+    path: "/watchlist",
+    isPlugin: false,
+  },
+  {
+    key: "portfolio",
+    icon: <Icon icon="fluent:briefcase-20-filled" size={17} />,
+    labelKey: "nav.portfolio",
+    path: "/portfolio",
+    isPlugin: false,
+  },
+  {
+    key: "backtest",
+    icon: <Icon icon="fluent:chart-20-filled" size={17} />,
+    labelKey: "nav.backtest",
+    path: "/backtest",
+    isPlugin: false,
+  },
+  {
+    key: "compare",
+    icon: <Icon icon="fluent:arrow-swap-20-filled" size={17} />,
+    labelKey: "nav.compare",
+    path: "/compare",
+    isPlugin: false,
+  },
+  {
+    key: "trade",
+    icon: <Icon icon="fluent:currency-20-filled" size={17} />,
+    labelKey: "nav.trade",
+    path: "/trade",
+    isPlugin: false,
+  },
+  {
+    key: "scheduled-analysis",
+    icon: <Icon icon="fluent:calendar-clock-20-filled" size={17} />,
+    labelKey: "nav.scheduledAnalysis",
+    path: "/scheduled-analysis",
+    isPlugin: false,
+  },
+  {
+    key: "quant",
+    icon: <Icon icon="fluent:brain-20-filled" size={17} />,
+    labelKey: "nav.quant",
+    path: "/quant",
+    isPlugin: false,
+  },
+  {
+    key: "replay-workbench",
+    icon: <Icon icon="fluent:clock-20-filled" size={17} />,
+    labelKey: "nav.replayWorkbench",
+    path: "/replay-workbench",
     isPlugin: false,
   },
 ];
@@ -414,9 +486,29 @@ export function Sidebar() {
     });
 
     sections.push({
-      key: "invest",
-      labelKey: "sidebar.sectionInvest",
-      items: builtinNavItems.filter((n) => n.key === "stock-analysis"),
+      key: "invest-discover",
+      labelKey: "sidebar.sectionInvestDiscover",
+      items: builtinNavItems.filter((n) => n.key === "stock-analysis" || n.key === "screener"),
+    });
+
+    sections.push({
+      key: "invest-monitor",
+      labelKey: "sidebar.sectionInvestMonitor",
+      items: builtinNavItems.filter((n) => n.key === "watchlist" || n.key === "portfolio"),
+    });
+
+    sections.push({
+      key: "invest-execute",
+      labelKey: "sidebar.sectionInvestExecute",
+      items: builtinNavItems.filter((n) => n.key === "trade" || n.key === "backtest" || n.key === "compare"),
+    });
+
+    sections.push({
+      key: "invest-review",
+      labelKey: "sidebar.sectionInvestReview",
+      items: builtinNavItems.filter((n) =>
+        n.key === "scheduled-analysis" || n.key === "quant" || n.key === "replay-workbench"
+      ),
     });
 
     if (bottomPlugins.length > 0) {
