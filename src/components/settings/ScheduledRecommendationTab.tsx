@@ -205,7 +205,7 @@ export function ScheduledRecommendationTab() {
         ),
       },
     ],
-    [remove, toggle],
+    [remove, toggle, t],
   );
 
   return (

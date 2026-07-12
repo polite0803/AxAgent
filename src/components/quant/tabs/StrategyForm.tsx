@@ -50,7 +50,6 @@ const BUILTIN_FIELDS: Record<string, ParamField[]> = {
 };
 
 export function StrategyForm({ strategy, onChange }: StrategyFormProps) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { t } = useTranslation();
   const fields = BUILTIN_FIELDS[strategy.id];
 
