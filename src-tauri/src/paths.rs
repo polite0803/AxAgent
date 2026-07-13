@@ -3,8 +3,6 @@
 use std::path::PathBuf;
 
 /// Android 包名
-#[cfg(target_os = "android")]
-const _ANDROID_PKG: &str = "top.axagent.desktop";
 
 /// Returns the canonical AxAgent home directory and ensures it exists.
 ///

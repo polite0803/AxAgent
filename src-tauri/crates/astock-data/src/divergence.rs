@@ -29,52 +29,6 @@ pub struct DivergenceResult {
 
 // ── 帮助函数 ──
 
-/// 找序列中指定范围的峰值 (index, value)。
-#[allow(dead_code)]
-fn find_peaks(values: &[f64], window: usize) -> Vec<(usize, f64)> {
-    let mut peaks = Vec::new();
-    for i in window..values.len().saturating_sub(window) {
-        let v = values[i];
-        let left = &values[i - window..i];
-        let right = &values[i + 1..=i + window];
-        if v >= *left
-            .iter()
-            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .unwrap_or(&f64::MIN)
-            && v >= *right
-                .iter()
-                .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-                .unwrap_or(&f64::MIN)
-        {
-            peaks.push((i, v));
-        }
-    }
-    peaks
-}
-
-/// 找序列中指定范围的谷值 (index, value)。
-#[allow(dead_code)]
-fn find_valleys(values: &[f64], window: usize) -> Vec<(usize, f64)> {
-    let mut valleys = Vec::new();
-    for i in window..values.len().saturating_sub(window) {
-        let v = values[i];
-        let left = &values[i - window..i];
-        let right = &values[i + 1..=i + window];
-        if v <= *left
-            .iter()
-            .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .unwrap_or(&f64::MAX)
-            && v <= *right
-                .iter()
-                .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-                .unwrap_or(&f64::MAX)
-        {
-            valleys.push((i, v));
-        }
-    }
-    valleys
-}
-
 /// 计算 RSI 序列。
 fn compute_rsi_series(closes: &[f64], period: usize) -> Vec<f64> {
     if closes.len() < period + 1 {

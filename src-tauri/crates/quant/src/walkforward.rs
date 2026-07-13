@@ -25,7 +25,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::ctx::EquityPoint;
-use crate::engine::{BacktestConfig, BacktestEngine, BacktestResult};
+use crate::engine::{BacktestEngine, BacktestResult};
 use crate::error::QuantError;
 use crate::metrics::MetricsReport;
 use crate::strategy::Strategy;
@@ -392,10 +392,6 @@ impl WalkForward {
         })
     }
 }
-
-// 借用 BacktestConfig（保持 API 一致性，M1 不直接使用）
-#[allow(dead_code)]
-fn _ensure_used(_: BacktestConfig) {}
 
 /// 仅在测试中使用的日期加法
 #[allow(dead_code)]

@@ -36,12 +36,6 @@ fn lower_shadow(k: &KLine) -> f64 {
     k.open.min(k.close) - k.low
 }
 
-/// 实体长度（带符号，用于计算方向）
-#[allow(dead_code)]
-fn real_body(k: &KLine) -> f64 {
-    k.close - k.open
-}
-
 fn is_bullish(k: &KLine) -> bool {
     k.close > k.open
 }

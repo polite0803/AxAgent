@@ -19,22 +19,7 @@ fn tv_f64(input: &Value, key: &str, default: f64) -> f64 {
         .and_then(|v| v.as_f64())
         .unwrap_or(default)
 }
-#[allow(dead_code)]
-fn tv_i64(input: &Value, key: &str, default: i64) -> i64 {
-    input
-        .get("_template_vars")
-        .and_then(|tv| tv.get(key))
-        .and_then(|v| v.as_i64())
-        .unwrap_or(default)
-}
-#[allow(dead_code)]
-fn tv_bool(input: &Value, key: &str, default: bool) -> bool {
-    input
-        .get("_template_vars")
-        .and_then(|tv| tv.get(key))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(default)
-}
+
 
 // ── 1. StockQuoteTool ──
 pub struct StockQuoteTool {

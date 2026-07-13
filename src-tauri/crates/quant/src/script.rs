@@ -53,7 +53,7 @@ use tokio::sync::Mutex;
 use crate::ctx::StrategyCtx;
 use crate::error::QuantError;
 use crate::strategy::Strategy;
-use crate::types::{Bar, CloseReason, Side, Signal, SignalAction};
+use crate::types::{Bar, CloseReason, Signal, SignalAction};
 use axagent_harness::core_error::Result as HarnessResult;
 
 /// Rhai 策略（脚本驱动）
@@ -412,10 +412,6 @@ fn rsi_rhai(values: Array, period: i64) -> f64 {
     let closes: Vec<f64> = values.iter().filter_map(|v| v.clone().try_cast::<f64>()).collect();
     crate::builtin::rsi_wilder(&closes, period as usize)
 }
-
-// 抑制 Side 未使用警告（保留以备 future 扩展，如 init 中处理 side 参数）
-#[allow(dead_code)]
-fn _ensure_side_used(_: Side) {}
 
 #[cfg(test)]
 mod tests {
