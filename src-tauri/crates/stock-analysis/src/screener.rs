@@ -360,7 +360,7 @@ impl StockScreener {
                     Some(pe) if pe > 0.0 && pe <= max_pe => {
                         reasons.push(format!("低PE{:.1}", pe));
                         score += 5;
-                    }
+                    },
                     _ => continue,
                 }
             }
@@ -371,7 +371,7 @@ impl StockScreener {
                     Some(pb) if pb > 0.0 && pb <= max_pb => {
                         reasons.push(format!("低PB{:.1}", pb));
                         score += 3;
-                    }
+                    },
                     _ => continue,
                 }
             }
@@ -441,7 +441,7 @@ impl StockScreener {
         let theme_universe: HashSet<String> = match (&index, !theme_queries.is_empty()) {
             (Some(idx), true) => {
                 idx.theme_universe(&theme_queries, criteria.require_all_themes.unwrap_or(false))
-            }
+            },
             _ => HashSet::new(),
         };
 
@@ -530,13 +530,53 @@ mod tests {
     fn sample_snapshots() -> Vec<StockSnapshot> {
         vec![
             // AI 概念成员：002415(PE18), 688981(PE25), 601318(PE12)
-            StockSnapshot { code: "002415".into(), name: "汇川技术".into(), price: 60.0, change_pct: 1.5, turnover_rate: 2.0, pe: Some(18.0), pb: Some(5.0) },
-            StockSnapshot { code: "688981".into(), name: "中芯国际".into(), price: 50.0, change_pct: 3.0, turnover_rate: 4.0, pe: Some(25.0), pb: Some(3.0) },
-            StockSnapshot { code: "601318".into(), name: "中国平安".into(), price: 48.0, change_pct: -0.5, turnover_rate: 1.0, pe: Some(12.0), pb: Some(1.2) },
+            StockSnapshot {
+                code: "002415".into(),
+                name: "汇川技术".into(),
+                price: 60.0,
+                change_pct: 1.5,
+                turnover_rate: 2.0,
+                pe: Some(18.0),
+                pb: Some(5.0),
+            },
+            StockSnapshot {
+                code: "688981".into(),
+                name: "中芯国际".into(),
+                price: 50.0,
+                change_pct: 3.0,
+                turnover_rate: 4.0,
+                pe: Some(25.0),
+                pb: Some(3.0),
+            },
+            StockSnapshot {
+                code: "601318".into(),
+                name: "中国平安".into(),
+                price: 48.0,
+                change_pct: -0.5,
+                turnover_rate: 1.0,
+                pe: Some(12.0),
+                pb: Some(1.2),
+            },
             // 半导体行业但非 AI 概念：603501
-            StockSnapshot { code: "603501".into(), name: "韦尔股份".into(), price: 100.0, change_pct: 2.0, turnover_rate: 3.0, pe: Some(30.0), pb: Some(6.0) },
+            StockSnapshot {
+                code: "603501".into(),
+                name: "韦尔股份".into(),
+                price: 100.0,
+                change_pct: 2.0,
+                turnover_rate: 3.0,
+                pe: Some(30.0),
+                pb: Some(6.0),
+            },
             // 银行：000001（非 AI / 半导体）
-            StockSnapshot { code: "000001".into(), name: "平安银行".into(), price: 11.0, change_pct: 0.5, turnover_rate: 1.5, pe: Some(5.0), pb: Some(0.6) },
+            StockSnapshot {
+                code: "000001".into(),
+                name: "平安银行".into(),
+                price: 11.0,
+                change_pct: 0.5,
+                turnover_rate: 1.5,
+                pe: Some(5.0),
+                pb: Some(0.6),
+            },
         ]
     }
 
