@@ -62,27 +62,27 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "conversation:bubbleStyle",
-        labelKey: "settings.conversation.bubbleStyle",
+        labelKey: "settings.bubbleStyle",
         keywords: ["气泡样式", "消息气泡", "bubble style", "bubble"],
       },
       {
         itemKey: "conversation:renderUserMarkdown",
-        labelKey: "settings.conversation.renderUserMarkdown",
+        labelKey: "settings.renderUserMarkdown",
         keywords: ["渲染用户", "用户消息", "markdown", "render user"],
       },
       {
         itemKey: "conversation:multiModelDisplayMode",
-        labelKey: "settings.conversation.multiModelDisplayMode",
+        labelKey: "settings.multiModelDisplayMode",
         keywords: ["多模型", "显示模式", "multi model", "display mode", "tabs", "并排对比", "堆叠"],
       },
       {
         itemKey: "conversation:chatMinimapEnabled",
-        labelKey: "settings.conversation.chatMinimapEnabled",
+        labelKey: "settings.chatMinimapEnabled",
         keywords: ["对话导航", "聊天缩略图", "minimap", "对话缩略图"],
       },
       {
         itemKey: "conversation:chatMinimapStyle",
-        labelKey: "settings.conversation.chatMinimapStyle",
+        labelKey: "settings.chatMinimapStyle",
         keywords: ["导航样式", "缩略图样式", "minimap style", "问题索引", "浮动指示器"],
       },
     ],
@@ -114,7 +114,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       },
       {
         itemKey: "searchProviders:apiKey",
-        labelKey: "settings.searchProviders.apiKey",
+        labelKey: "settings.searchProviders.apiKeySet",
         keywords: ["api key", "密钥", "apikey"],
       },
       {
@@ -129,7 +129,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       },
       {
         itemKey: "searchProviders:enabled",
-        labelKey: "settings.searchProviders.enabled",
+        labelKey: "common.enabled",
         keywords: ["启用", "enabled", "开启"],
       },
     ],
@@ -261,17 +261,17 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "shortcuts:enableGlobalShortcuts",
-        labelKey: "settings.shortcuts.enableGlobalShortcuts",
+        labelKey: "settings.enableGlobalShortcuts",
         keywords: ["全局快捷键", "global shortcut", "启用"],
       },
       {
         itemKey: "shortcuts:enableShortcutRegistrationLogs",
-        labelKey: "settings.shortcuts.enableShortcutRegistrationLogs",
+        labelKey: "settings.enableShortcutRegistrationLogs",
         keywords: ["快捷键日志", "注册日志", "shortcut log", "diagnostic"],
       },
       {
         itemKey: "shortcuts:enableShortcutTriggerToast",
-        labelKey: "settings.shortcuts.enableShortcutTriggerToast",
+        labelKey: "settings.enableShortcutTriggerToast",
         keywords: ["触发提示", "toast", "shortcut trigger"],
       },
     ],
@@ -319,47 +319,47 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "agent:maxIterations",
-        labelKey: "settings.appConfig.maxIterations",
+        labelKey: "settings.agent.maxIterations",
         keywords: ["迭代次数", "max iterations", "max iterations"],
       },
       {
         itemKey: "agent:permissionMode",
-        labelKey: "settings.appConfig.permissionMode",
+        labelKey: "settings.agent.permissionMode",
         keywords: ["权限模式", "permission mode", "只读", "完全访问", "写入"],
       },
       {
         itemKey: "agent:forkSubagent",
-        labelKey: "settings.appConfig.forkSubagent",
+        labelKey: "settings.agent.featureFlags.forkSubagent",
         keywords: ["fork", "子agent", "subagent", "并行"],
       },
       {
         itemKey: "agent:coordinatorMode",
-        labelKey: "settings.appConfig.coordinatorMode",
+        labelKey: "settings.agent.featureFlags.coordinatorMode",
         keywords: ["协调者", "coordinator", "调度"],
       },
       {
         itemKey: "agent:proactiveMode",
-        labelKey: "settings.appConfig.proactiveMode",
+        labelKey: "settings.agent.featureFlags.proactiveMode",
         keywords: ["主动模式", "proactive", "预测"],
       },
       {
         itemKey: "agent:swarmMode",
-        labelKey: "settings.appConfig.swarmMode",
+        labelKey: "settings.agent.featureFlags.swarmMode",
         keywords: ["集群模式", "swarm", "集群协作"],
       },
       {
         itemKey: "agent:toolConcurrency",
-        labelKey: "settings.appConfig.toolConcurrency",
+        labelKey: "settings.agent.featureFlags.toolConcurrency",
         keywords: ["工具并发", "tool concurrency", "并行"],
       },
       {
         itemKey: "agent:verificationAgent",
-        labelKey: "settings.appConfig.verificationAgent",
+        labelKey: "settings.agent.featureFlags.verificationAgent",
         keywords: ["验证", "verification agent", "审查"],
       },
       {
         itemKey: "agent:dreamTask",
-        labelKey: "settings.appConfig.dreamTask",
+        labelKey: "settings.agent.featureFlags.dreamTask",
         keywords: ["梦境", "dream task", "后台优化"],
       },
     ],
@@ -376,17 +376,17 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "proxy:proxyType",
-        labelKey: "settings.proxy.type",
+        labelKey: "settings.proxyType",
         keywords: ["代理类型", "proxy type", "http", "socks5", "system", "none"],
       },
       {
         itemKey: "proxy:proxyAddress",
-        labelKey: "settings.proxy.address",
+        labelKey: "settings.proxyAddress",
         keywords: ["代理地址", "proxy address", "proxy host"],
       },
       {
         itemKey: "proxy:proxyPort",
-        labelKey: "settings.proxy.port",
+        labelKey: "settings.proxyPort",
         keywords: ["代理端口", "proxy port", "port"],
       },
     ],
@@ -408,17 +408,17 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "acp:serverAddress",
-        labelKey: "settings.acp.serverAddress",
+        labelKey: "acp.serverAddress",
         keywords: ["服务器地址", "server address", "acp", "base url"],
       },
       {
         itemKey: "acp:connectionStatus",
-        labelKey: "settings.acp.connectionStatus",
+        labelKey: "acp.connectionStatus",
         keywords: ["连接状态", "connection status", "connected"],
       },
       {
         itemKey: "acp:workdir",
-        labelKey: "settings.acp.workdir",
+        labelKey: "acp.workdir",
         keywords: ["工作目录", "workdir", "working directory", "会话"],
       },
     ],
@@ -430,17 +430,17 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "data:exportData",
-        labelKey: "settings.data.exportData",
+        labelKey: "settings.exportData",
         keywords: ["导出数据", "export", "数据导出"],
       },
       {
         itemKey: "data:importData",
-        labelKey: "settings.data.importData",
+        labelKey: "settings.importData",
         keywords: ["导入数据", "import", "数据导入"],
       },
       {
         itemKey: "data:clearData",
-        labelKey: "settings.data.clearData",
+        labelKey: "settings.clearData",
         keywords: ["清除数据", "清除对话", "clear", "delete", "danger"],
       },
     ],
@@ -472,7 +472,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "scheduler:autoBackupEnabled",
-        labelKey: "settings.scheduler.autoBackupEnabled",
+        labelKey: "settings.scheduler.enabled",
         keywords: ["自动备份", "auto backup", "启用"],
       },
       {
@@ -482,12 +482,12 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       },
       {
         itemKey: "scheduler:maxBackupCount",
-        labelKey: "settings.scheduler.maxBackupCount",
+        labelKey: "settings.scheduler.maxCount",
         keywords: ["备份保留", "max count", "最大数量"],
       },
       {
         itemKey: "scheduler:webdavSyncEnabled",
-        labelKey: "settings.scheduler.webdavSyncEnabled",
+        labelKey: "settings.scheduler.enabled",
         keywords: ["webdav同步", "自动同步", "webdav sync"],
       },
       {
@@ -502,7 +502,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       },
       {
         itemKey: "scheduler:closedLoopEnabled",
-        labelKey: "settings.scheduler.closedLoopEnabled",
+        labelKey: "settings.scheduler.enabled",
         keywords: ["闭环学习", "closed loop", "学习提示"],
       },
       {
@@ -529,142 +529,142 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "advanced:dangerousCmdDetect",
-        labelKey: "settings.advanced.dangerousCmdDetect",
+        labelKey: "advanced.dangerousCmdDetect",
         keywords: ["危险命令", "command detect", "安全验证", "bash"],
       },
       {
         itemKey: "advanced:networkCmdDetect",
-        labelKey: "settings.advanced.networkCmdDetect",
+        labelKey: "advancedSettings.networkCmdDetect",
         keywords: ["网络命令", "network detect", "网络检测"],
       },
       {
         itemKey: "advanced:cmdTimeout",
-        labelKey: "settings.advanced.cmdTimeout",
+        labelKey: "advanced.cmdTimeout",
         keywords: ["命令超时", "cmd timeout", "timeout", "bash"],
       },
       {
         itemKey: "advanced:defaultPermission",
-        labelKey: "settings.advanced.defaultPermission",
+        labelKey: "advancedSettings.defaultPermission",
         keywords: ["默认权限", "permission mode", "询问", "编辑", "完全"],
       },
       {
         itemKey: "advanced:fileWriteConfirm",
-        labelKey: "settings.advanced.fileWriteConfirm",
+        labelKey: "advanced.fileWriteConfirm",
         keywords: ["文件写入", "write confirm", "文件确认"],
       },
       {
         itemKey: "advanced:networkConfirm",
-        labelKey: "settings.advanced.networkConfirm",
+        labelKey: "advancedSettings.networkConfirm",
         keywords: ["网络确认", "network confirm", "网络请求"],
       },
       {
         itemKey: "advanced:shellConfirm",
-        labelKey: "settings.advanced.shellConfirm",
+        labelKey: "advancedSettings.shellConfirm",
         keywords: ["shell确认", "shell confirm", "命令执行"],
       },
       {
         itemKey: "advanced:defaultMode",
-        labelKey: "settings.advanced.defaultMode",
+        labelKey: "advancedSettings.defaultMode",
         keywords: ["默认模式", "default mode", "通用", "快速", "深度", "计划"],
       },
       {
         itemKey: "advanced:tokenBudgetLimit",
-        labelKey: "settings.advanced.tokenBudgetLimit",
+        labelKey: "advancedSettings.tokenBudgetLimit",
         keywords: ["token预算", "budget", "预算", "token limit"],
       },
       {
         itemKey: "advanced:enableTokenBudget",
-        labelKey: "settings.advanced.enableTokenBudget",
+        labelKey: "advancedSettings.enableTokenBudget",
         keywords: ["预算检测", "token budget", "budget enable"],
       },
       {
         itemKey: "advanced:autoRetry",
-        labelKey: "settings.advanced.autoRetry",
+        labelKey: "advancedSettings.autoRetry",
         keywords: ["自动重试", "auto retry", "重试"],
       },
       {
         itemKey: "advanced:maxRetries",
-        labelKey: "settings.advanced.maxRetries",
+        labelKey: "advancedSettings.maxRetries",
         keywords: ["重试次数", "max retries", "retry"],
       },
       {
         itemKey: "advanced:retryDelay",
-        labelKey: "settings.advanced.retryDelay",
+        labelKey: "advancedSettings.retryDelay",
         keywords: ["重试延迟", "retry delay", "延迟"],
       },
       {
         itemKey: "advanced:modelFallback",
-        labelKey: "settings.advanced.modelFallback",
+        labelKey: "advancedSettings.modelFallback",
         keywords: ["模型降级", "fallback", "回退"],
       },
       {
         itemKey: "advanced:cpuLimit",
-        labelKey: "settings.advanced.cpuLimit",
+        labelKey: "advancedSettings.cpuLimit",
         keywords: ["cpu上限", "cpu limit", "cpu"],
       },
       {
         itemKey: "advanced:memoryLimit",
-        labelKey: "settings.advanced.memoryLimit",
+        labelKey: "advancedSettings.memoryLimit",
         keywords: ["内存上限", "memory limit", "内存"],
       },
       {
         itemKey: "advanced:enableIdleDetection",
-        labelKey: "settings.advanced.enableIdleDetection",
+        labelKey: "advancedSettings.enableIdleDetection",
         keywords: ["空转检测", "idle detect", "idle"],
       },
       {
         itemKey: "advanced:idleTimeout",
-        labelKey: "settings.advanced.idleTimeout",
+        labelKey: "advancedSettings.idleTimeout",
         keywords: ["空闲超时", "idle timeout", "timeout"],
       },
       {
         itemKey: "advanced:autoCompressThreshold",
-        labelKey: "settings.advanced.autoCompressThreshold",
+        labelKey: "advancedSettings.autoCompressThreshold",
         keywords: ["压缩阈值", "auto compress", "context compress"],
       },
       {
         itemKey: "advanced:warningBuffer",
-        labelKey: "settings.advanced.warningBuffer",
+        labelKey: "advancedSettings.warningBuffer",
         keywords: ["警告缓冲", "warning buffer", "threshold"],
       },
       {
         itemKey: "advanced:maxConsecutiveFailures",
-        labelKey: "settings.advanced.maxConsecutiveFailures",
+        labelKey: "advancedSettings.maxConsecutiveFailures",
         keywords: ["压缩失败", "compact failure", "max failures"],
       },
       {
         itemKey: "advanced:enableMemoryCompression",
-        labelKey: "settings.advanced.enableMemoryCompression",
+        labelKey: "advancedSettings.enableMemoryCompression",
         keywords: ["记忆压缩", "memory compact", "session compress"],
       },
       {
         itemKey: "advanced:enableDream",
-        labelKey: "settings.advanced.enableDream",
+        labelKey: "advancedSettings.enableDream",
         keywords: ["dream", "巩固", "背景巩固", "consolidation"],
       },
       {
         itemKey: "advanced:dreamMinInterval",
-        labelKey: "settings.advanced.dreamMinInterval",
+        labelKey: "advancedSettings.minInterval",
         keywords: ["dream间隔", "min interval", "小时"],
       },
       {
         itemKey: "advanced:dreamMinSessions",
-        labelKey: "settings.advanced.dreamMinSessions",
+        labelKey: "advancedSettings.minNewSessions",
         keywords: ["新会话", "min sessions", "dream"],
       },
       {
         itemKey: "advanced:dreamMaxDuration",
-        labelKey: "settings.advanced.dreamMaxDuration",
+        labelKey: "advancedSettings.maxDuration",
         keywords: ["持续时间", "max duration", "dream"],
       },
       {
         itemKey: "advanced:enableLspDiagnostics",
-        labelKey: "settings.advanced.enableLspDiagnostics",
+        labelKey: "advancedSettings.enableLspDiagnostics",
         keywords: ["lsp诊断", "lsp diagnostics", "语言服务器"],
       },
       {
         itemKey: "advanced:diagnosticLevel",
-        labelKey: "settings.advanced.diagnosticLevel",
+        labelKey: "advancedSettings.diagnosticLevelLabel",
         keywords: ["诊断级别", "diagnostic level", "error", "warning"],
       },
     ],
@@ -681,37 +681,37 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     items: [
       {
         itemKey: "about:appVersion",
-        labelKey: "settings.about.version",
+        labelKey: "settings.version",
         keywords: ["版本", "version", "app version"],
       },
       {
         itemKey: "about:openSource",
-        labelKey: "settings.about.license",
+        labelKey: "settings.openSource",
         keywords: ["开源协议", "开源", "license", "AGPL"],
       },
       {
         itemKey: "about:overallStatus",
-        labelKey: "settings.about.overallStatus",
+        labelKey: "settings.overallStatus",
         keywords: ["总体状态", "服务健康", "health", "service health"],
       },
       {
         itemKey: "about:checkUpdate",
-        labelKey: "settings.about.checkUpdate",
+        labelKey: "settings.checkUpdate",
         keywords: ["检查更新", "update", "check update", "版本更新"],
       },
       {
         itemKey: "about:updateCheckInterval",
-        labelKey: "settings.about.updateCheckInterval",
+        labelKey: "settings.updateCheckInterval",
         keywords: ["更新间隔", "update interval", "check interval"],
       },
       {
         itemKey: "about:developerTools",
-        labelKey: "settings.about.developerTools",
+        labelKey: "settings.developerTools",
         keywords: ["开发者工具", "devtools", "开发工具"],
       },
       {
         itemKey: "about:replayTutorial",
-        labelKey: "settings.about.replayTutorial",
+        labelKey: "help.onboardingReplayDesc",
         keywords: ["引导", "tutorial", "onboarding", "新手指引"],
       },
     ],
@@ -773,7 +773,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       },
       {
         itemKey: "mcpServers:enabled",
-        labelKey: "settings.mcpServers.enabled",
+        labelKey: "common.enabled",
         keywords: ["启用", "enabled", "开启"],
       },
     ],

@@ -7,6 +7,7 @@ import { useSourceStore } from "@/stores";
 import { useLlmWikiStore, type Wiki } from "@/stores/feature/llmWikiStore";
 import { useMemoryStore } from "@/stores/feature/memoryStore";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
+import type { KnowledgeBase } from "@/types";
 import {
   Button,
   Card,
@@ -29,6 +30,7 @@ import {
   Typography,
 } from "antd";
 import {
+  ArrowLeft,
   BookOpen,
   Brain,
   Database,
@@ -47,6 +49,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { KnowledgeBaseDocuments } from "./KnowledgeBaseDocuments";
 
 const { Text, Paragraph } = Typography;
 
@@ -266,9 +269,11 @@ function CreateSourceModal({
 function SourceCard({
   source,
   onViewConfig,
+  onViewDocument,
 }: {
   source: UnifiedSource;
   onViewConfig: (s: UnifiedSource) => void;
+  onViewDocument?: (s: UnifiedSource) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -276,20 +281,22 @@ function SourceCard({
   const meta = TYPE_META[source.containerType];
 
   const handleView = useCallback(() => {
+    if (onViewDocument && source.containerType === "knowledge") {
+      onViewDocument(source);
+      return;
+    }
     switch (source.containerType) {
       case "wiki":
         navigate(`/wiki/${source.id}`);
         break;
       case "knowledge":
-        navigate(`/knowledge`);
-        break;
       case "memory":
         navigate(`/knowledge`);
         break;
       default:
         break;
     }
-  }, [source.containerType, source.id, navigate]);
+  }, [source.containerType, source.id, navigate, onViewDocument, source]);
 
   return (
     <Card
@@ -394,147 +401,179 @@ function KnowledgeTab({
     loadBases();
   }, [loadBases]);
 
+  const [selectedBase, setSelectedBase] = useState<KnowledgeBase | null>(null);
+
+  // 自动选中第一个知识库（如有），让文档管理直接可见
+  useEffect(() => {
+    if (bases.length > 0 && !selectedBase) {
+      setSelectedBase(bases[0]);
+    }
+  }, [bases, selectedBase]);
+
+  const handleViewDocument = useCallback((source: UnifiedSource) => {
+    const base = bases.find((b) => b.name === source.name);
+    if (base) { setSelectedBase(base); }
+  }, [bases]);
+
   const configuredCount = knowledgeSources.filter(
     (s) => s.embeddingProvider,
   ).length;
 
   return (
     <div>
-      <Row gutter={[16, 16]} style={{ marginBottom: token.marginLG }}>
-        <Col span={8}>
-          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
-            <Statistic
-              title={t("sourceManager.stats.knowledgeBases")}
-              value={bases.length}
-              prefix={<Database size={16} style={{ color: token.colorPrimary }} />}
-              styles={{ content: { fontSize: 24 } }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
-            <Statistic
-              title={t("sourceManager.stats.documents")}
-              value={bases.length}
-              prefix={<BookOpen size={16} style={{ color: token.colorInfo }} />}
-              styles={{ content: { fontSize: 24 } }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
-            <Statistic
-              title={t("sourceManager.stats.vectorReady")}
-              value={configuredCount}
-              suffix={`/ ${knowledgeSources.length}`}
-              prefix={<Zap size={16} style={{ color: token.colorSuccess }} />}
-              styles={{ content: { fontSize: 24 } }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <div
-        className="flex items-center justify-between"
-        style={{ marginBottom: token.marginMD }}
-      >
-        <Text strong style={{ fontSize: 15 }}>
-          {t("sourceManager.knowledge.title")}
-        </Text>
-        <div className="flex items-center gap-2">
-          <Button
-            size="small"
-            icon={<Plus size={14} />}
-            onClick={() => onCreate?.()}
-          >
-            {t("settings.knowledge.add")}
-          </Button>
-        </div>
-      </div>
-
-      <Spin spinning={knowledgeLoading}>
-        {knowledgeSources.length === 0
-          ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t("sourceManager.empty")}
-              style={{ padding: 40 }}
-            />
-          )
-          : (
-            <Row gutter={[12, 12]}>
-              {knowledgeSources.map((source) => (
-                <Col key={source.id} xs={24} sm={12} lg={8}>
-                  <SourceCard source={source} onViewConfig={onViewConfig} />
-                </Col>
-              ))}
+      {selectedBase
+        ? (
+          <div>
+            <Button
+              type="text"
+              icon={<ArrowLeft size={16} />}
+              onClick={() => setSelectedBase(null)}
+              style={{ marginBottom: token.marginSM }}
+            >
+              {t("sourceManager.backToList")}
+            </Button>
+            <KnowledgeBaseDocuments base={selectedBase} />
+          </div>
+        )
+        : (
+          <div>
+            <Row gutter={[16, 16]} style={{ marginBottom: token.marginLG }}>
+              <Col span={8}>
+                <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+                  <Statistic
+                    title={t("sourceManager.stats.knowledgeBases")}
+                    value={bases.length}
+                    prefix={<Database size={16} style={{ color: token.colorPrimary }} />}
+                    styles={{ content: { fontSize: 24 } }}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+                  <Statistic
+                    title={t("sourceManager.stats.documents")}
+                    value={bases.length}
+                    prefix={<BookOpen size={16} style={{ color: token.colorInfo }} />}
+                    styles={{ content: { fontSize: 24 } }}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
+                  <Statistic
+                    title={t("sourceManager.stats.vectorReady")}
+                    value={configuredCount}
+                    suffix={`/ ${knowledgeSources.length}`}
+                    prefix={<Zap size={16} style={{ color: token.colorSuccess }} />}
+                    styles={{ content: { fontSize: 24 } }}
+                  />
+                </Card>
+              </Col>
             </Row>
-          )}
 
-        {bases.length > 0 && (
-          <>
-            <Divider style={{ margin: `${token.marginLG}px 0` }} />
             <div
               className="flex items-center justify-between"
               style={{ marginBottom: token.marginMD }}
             >
               <Text strong style={{ fontSize: 15 }}>
-                {t("sourceManager.knowledge.recentBases")}
+                {t("sourceManager.knowledge.title")}
               </Text>
-              <Button
-                size="small"
-                type="link"
-                onClick={() => navigate("/knowledge")}
-              >
-                {t("sourceManager.viewAll")}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="small"
+                  icon={<Plus size={14} />}
+                  onClick={() => onCreate?.()}
+                >
+                  {t("settings.knowledge.add")}
+                </Button>
+              </div>
             </div>
-            <Row gutter={[12, 12]}>
-              {bases.slice(0, 6).map((base) => (
-                <Col key={base.id} xs={24} sm={12} lg={8}>
-                  <Card
-                    hoverable
-                    size="small"
-                    style={{ borderRadius: token.borderRadiusLG }}
-                    onClick={() => navigate("/knowledge")}
-                    styles={{ body: { padding: token.paddingSM } }}
+
+            <Spin spinning={knowledgeLoading}>
+              {knowledgeSources.length === 0
+                ? (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={t("sourceManager.empty")}
+                    style={{ padding: 40 }}
+                  />
+                )
+                : (
+                  <Row gutter={[12, 12]}>
+                    {knowledgeSources.map((source) => (
+                      <Col key={source.id} xs={24} sm={12} lg={8}>
+                        <SourceCard source={source} onViewConfig={onViewConfig} onViewDocument={handleViewDocument} />
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+
+              {bases.length > 0 && (
+                <>
+                  <Divider style={{ margin: `${token.marginLG}px 0` }} />
+                  <div
+                    className="flex items-center justify-between"
+                    style={{ marginBottom: token.marginMD }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="shrink-0 flex items-center justify-center"
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: token.borderRadius,
-                          backgroundColor: TYPE_META.knowledge.bgColor,
-                          color: TYPE_META.knowledge.fgColor,
-                        }}
-                      >
-                        <Database size={16} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <Text strong ellipsis style={{ fontSize: 13 }}>
-                          {base.name}
-                        </Text>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Tag
-                            color={base.embeddingProvider ? "green" : "default"}
-                            style={{ fontSize: 10, margin: 0 }}
-                          >
-                            {base.embeddingProvider
-                              ? t("settings.knowledge.vectorReady")
-                              : t("settings.knowledge.vectorNotConfigured")}
-                          </Tag>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          </>
+                    <Text strong style={{ fontSize: 15 }}>
+                      {t("sourceManager.knowledge.recentBases")}
+                    </Text>
+                    <Button
+                      size="small"
+                      type="link"
+                      onClick={() => navigate("/knowledge")}
+                    >
+                      {t("sourceManager.viewAll")}
+                    </Button>
+                  </div>
+                  <Row gutter={[12, 12]}>
+                    {bases.slice(0, 6).map((base) => (
+                      <Col key={base.id} xs={24} sm={12} lg={8}>
+                        <Card
+                          hoverable
+                          size="small"
+                          style={{ borderRadius: token.borderRadiusLG }}
+                          onClick={() => setSelectedBase(base)}
+                          styles={{ body: { padding: token.paddingSM } }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="shrink-0 flex items-center justify-center"
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: token.borderRadius,
+                                backgroundColor: TYPE_META.knowledge.bgColor,
+                                color: TYPE_META.knowledge.fgColor,
+                              }}
+                            >
+                              <Database size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <Text strong ellipsis style={{ fontSize: 13 }}>
+                                {base.name}
+                              </Text>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Tag
+                                  color={base.embeddingProvider ? "green" : "default"}
+                                  style={{ fontSize: 10, margin: 0 }}
+                                >
+                                  {base.embeddingProvider
+                                    ? t("settings.knowledge.vectorReady")
+                                    : t("settings.knowledge.vectorNotConfigured")}
+                                </Tag>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </>
+              )}
+            </Spin>
+          </div>
         )}
-      </Spin>
     </div>
   );
 }

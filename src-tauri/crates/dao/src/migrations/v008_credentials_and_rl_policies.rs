@@ -16,11 +16,18 @@
 //!   层读取时若 schema 不一致需要数据迁移。本 migration 不做数据迁移，仅
 //!   保证空表场景下功能可用。
 
-use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr};
+
+use super::pg_ddl::exec_ddl;
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
+    let is_pg = db.get_database_backend() == DbBackend::Postgres;
+
+    // 走 exec_ddl：PG 下经 pg_ddl() 把 INTEGER 时间戳列转 BIGINT
     // 1) 凭证表：AES-256-GCM 加密凭据存储
-    db.execute_unprepared(
+    exec_ddl(
+        &db,
+        is_pg,
         "CREATE TABLE IF NOT EXISTS credentials (\
          id TEXT NOT NULL PRIMARY KEY, \
          name TEXT NOT NULL, \
@@ -40,7 +47,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     .await?;
 
     // 2) RL 策略表：智能体强化学习策略持久化
-    db.execute_unprepared(
+    // 注：rl_policies.created_at 在 entity 里类型是 String → `TEXT`（PG 下 TEXT 通用，无需转 BIGINT）
+    exec_ddl(
+        &db,
+        is_pg,
         "CREATE TABLE IF NOT EXISTS rl_policies (\
          id TEXT NOT NULL PRIMARY KEY, \
          name TEXT NOT NULL, \

@@ -10,7 +10,6 @@ export { DisplaySettings } from "./DisplaySettings";
 export { EvolutionSettings } from "./EvolutionSettings";
 export { GatewayConfigPanel } from "./GatewayConfigPanel";
 export { GeneralSettings } from "./GeneralSettings";
-export { KnowledgeSettings } from "./KnowledgeSettings";
 export { LocalToolSettings } from "./LocalToolSettings";
 export { McpServerSettings } from "./McpServerSettings";
 export { MemorySettings } from "./MemorySettings";

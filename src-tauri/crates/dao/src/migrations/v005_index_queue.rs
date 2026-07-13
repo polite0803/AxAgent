@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr};
+
+use super::pg_ddl::exec_ddl;
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
-    db.execute_unprepared(
+    let is_pg = db.get_database_backend() == DbBackend::Postgres;
+
+    // 走 exec_ddl：PG 下经 pg_ddl() 把 INTEGER 时间戳列转 BIGINT（见 pg_ddl.rs 注释）
+    exec_ddl(
+        &db,
+        is_pg,
         "CREATE TABLE IF NOT EXISTS index_jobs (\
          id TEXT NOT NULL PRIMARY KEY, \
          job_type TEXT NOT NULL, \
@@ -24,6 +31,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     )
     .await?;
 
+    // 索引列名也含 `created_at` 但属于 DDL 子句结构，pg_ddl 不动这些
     db.execute_unprepared(
         "CREATE INDEX IF NOT EXISTS idx_index_jobs_status \
          ON index_jobs (status, priority DESC, created_at ASC)",

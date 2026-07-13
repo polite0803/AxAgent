@@ -6838,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "Raw 전환",
@@ -7929,69 +7931,6 @@
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
       "executionMode": "Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "라이브",
-      "replay": "{{date}} 리플레이",
-      "sweep": "일괄 백테스트",
-      "tooltipLive": "클릭하여 리플레이 모드로 진입 (과거 날짜 기준 분석)",
-      "tooltipReplay": "클릭하여 라이브 모드로 돌아가기",
-      "confirmTitle": "라이브 모드로 돌아가시겠습니까?",
-      "confirmBody": "라이브 모드는 실시간 데이터를 사용하므로 이전에 도출된 결론이 새로운 정보로 무효화되었을 수 있습니다. 리플레이 모드는 선택한 과거 날짜에서 세계를 닫아 룩어헤드 편향을 방지합니다.",
-      "confirmOk": "라이브로 전환",
-      "confirmCancel": "리플레이 유지",
-      "currentlyInReplay": "{{date}} 기준으로 리플레이 중",
-      "enteredReplay": "리플레이 모드 진입: {{date}}",
-      "switchedToLive": "라이브 모드로 전환됨"
-    },
-    "datePicker": {
-      "hint": "과거 거래일을 선택하세요. 오늘 및 미래 날짜는 비활성화됩니다(닫힌 세계 가정).",
-      "placeholder": "기준일 선택",
-      "ok": "리플레이 시작",
-      "cancel": "취소"
-    },
-    "pageAnchor": {
-      "live": "라이브",
-      "replay": "리플레이",
-      "untilDate": "{{date}} 기준"
-    },
-    "replayBadge": {
-      "label": "리플레이 · {{date}}",
-      "tooltip": "이 뷰의 모든 데이터, 프롬프트 및 결론은 {{date}}을 기준으로 합니다. 실전 거래에 사용하지 마세요.",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "{{date}} 기준"
-    },
-    "tour": {
-      "title": "타임 트래블 모드를 사용할 수 있습니다",
-      "body": "분석과 추천을 과거 거래일에 고정하여 룩어헤드 편향 없이 전략을 안전하게 백테스트할 수 있습니다. 시스템은 미래 날짜를 거부하며 타임스탬프 위반은 타임라인에서 강조 표시됩니다.",
-      "gotIt": "확인",
-      "stepAnchor": "언제든지 '라이브' 알약을 클릭하여 리플레이 모드로 진입하세요."
-    },
-    "violations": {
-      "chip": "⚠ {{n}}건 위반",
-      "chip_plural": "⚠ {{n}}건 위반",
-      "chipAria": "이 노드에 {{n}}건의 미래 날짜 참조 위반",
-      "tooltip": "이 노드의 출력은 as-of 기준 이후의 날짜를 언급합니다. 결론을 신뢰할 수 없는 것으로 간주하세요.",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "리플레이 모드 활성. 종목, 가격, 매수 구간은 모두 {{date}}을 기준으로 합니다. 실전 거래에 사용하지 마세요.",
-    "backtestHint": "이 통계는 {{date}} 기준으로 완료된 모든 분석(라이브 + 리플레이)을 집계합니다. 리플레이 워크벤치에서 모드별로 필터링하세요.",
-    "degradedStyles": {
-      "title": "as-of 잘림으로 인한 데이터 저하",
-      "description": "다음 데이터 스타일은 as-of 기준일 {{date}} 때문에 필요한 과거가 잘려, 리플레이 모드에서 낮은 신뢰도로 출력됩니다.",
-      "reason": "사유: {{reason}}",
-      "hint": "저하됨은 오류가 아니라 정보량이 줄어든 것뿐이므로 비저하 스타일보다 낮은 신뢰도로 다루십시오.",
-      "vendor": "벤더: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "성능 저하 · 일부 데이터에 기록 없음",
-      "labelWithCount": "성능 저하 · {{n}}건",
-      "tooltip": "재생 모드에서 자금 흐름/마진/북향 보유 등에 기록이 없어 건너뛰었습니다."
     }
   },
   "replayWorkbench": {

@@ -6838,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "Basculer Raw",
@@ -7929,69 +7931,6 @@
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
       "executionMode": "Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "EN DIRECT",
-      "replay": "Replay {{date}}",
-      "sweep": "Backtest par lot",
-      "tooltipLive": "Cliquez pour passer en mode Replay (analyser à une date passée)",
-      "tooltipReplay": "Cliquez pour revenir en mode En direct",
-      "confirmTitle": "Revenir en mode En direct ?",
-      "confirmBody": "Le mode En direct utilise des données en temps réel et les conclusions précédentes peuvent avoir été invalidées par de nouvelles informations. Le mode Replay ferme le monde à une date passée choisie pour éviter le biais de look-ahead.",
-      "confirmOk": "Passer en direct",
-      "confirmCancel": "Rester en Replay",
-      "currentlyInReplay": "Relecture en cours au {{date}}.",
-      "enteredReplay": "Mode Replay activé : {{date}}",
-      "switchedToLive": "Passé en mode En direct"
-    },
-    "datePicker": {
-      "hint": "Choisissez un jour de bourse passé. Aujourd'hui et les dates futures sont désactivés (hypothèse du monde clos).",
-      "placeholder": "Sélectionner la date d'ancrage",
-      "ok": "Lancer le Replay",
-      "cancel": "Annuler"
-    },
-    "pageAnchor": {
-      "live": "En direct",
-      "replay": "Replay",
-      "untilDate": "au {{date}}"
-    },
-    "replayBadge": {
-      "label": "Replay · {{date}}",
-      "tooltip": "Toutes les données, invites et conclusions de cette vue sont ancrées au {{date}}. À ne pas utiliser pour le trading en direct.",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "au {{date}}"
-    },
-    "tour": {
-      "title": "Le mode Voyage dans le temps est disponible",
-      "body": "Ancrez toutes les analyses et recommandations à un jour de bourse passé pour backtester vos stratégies en toute sécurité, sans biais de look-ahead. Le système rejettera les dates futures et les violations d'horodatage seront mises en évidence sur la timeline.",
-      "gotIt": "Compris",
-      "stepAnchor": "Cliquez à tout moment sur la pastille EN DIRECT pour passer en mode Replay."
-    },
-    "violations": {
-      "chip": "⚠ {{n}} violation",
-      "chip_plural": "⚠ {{n}} violations",
-      "chipAria": "{{n}} violation(s) de référence future sur ce nœud",
-      "tooltip": "La sortie de ce nœud mentionne des dates postérieures à l'ancrage as-of. Traitez sa conclusion comme non fiable.",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "Mode Replay actif. Les sélections, prix et bandes d'entrée sont ancrés au {{date}}. À ne pas utiliser pour le trading en direct.",
-    "backtestHint": "Ces statistiques agrègent toutes les analyses terminées (en direct + replay) au {{date}}. Utilisez le Replay Workbench pour filtrer par mode.",
-    "degradedStyles": {
-      "title": "Dégradation des sources de données sous troncature as-of",
-      "description": "Les styles de données suivants ont été réduits en fidélité car la date as-of {{date}} coupe l'historique nécessaire au signal complet.",
-      "reason": "Raison : {{reason}}",
-      "hint": "Un résultat dégradé n'est pas un résultat erroné ; il est moins informatif. Traitez sa confiance comme inférieure aux styles non dégradés.",
-      "vendor": "fournisseur : {{name}}"
-    },
-    "degradedMarker": {
-      "label": "Dégradé · Certaines données sans historique",
-      "labelWithCount": "Dégradé · {{n}} éléments",
-      "tooltip": "En mode replay, flux monétaire/marge/détention nord-bound etc. n'ont pas de sens historique et ont été ignorés."
     }
   },
   "replayWorkbench": {

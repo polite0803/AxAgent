@@ -229,9 +229,14 @@ pub fn run() {
 
             android_utils::mark_startup_phase("db_init_start");
 
-            let db_result = match spawn_block_on("db_init", init::init_database_with_dir(app_dir.clone())) {
-                Ok(Ok(result)) => result,
-                Ok(Err(e)) => {
+            // 直接使用 Tauri 主 runtime 初始化数据库（无需 spawn_block_on）。
+            // sqlx 连接池的 background task 必须创建在长寿命 runtime 上，否则
+            //   spawn_block_on 的临时 current_thread runtime 被 drop 后，连接池
+            //   内部任务孤儿化 → 后续 acquire() 触发 acquire_timeout(15s) 超时，
+            //   精确导致启动时 15 秒空白。
+            let db_result = match tauri::async_runtime::block_on(init::init_database_with_dir(app_dir.clone())) {
+                Ok(result) => result,
+                Err(e) => {
                     tracing::error!("Database initialization failed: {}", e);
                     android_utils::report_fatal_error(&format!("Database init failed: {}", e));
                     #[cfg(target_os = "windows")]
@@ -240,28 +245,17 @@ pub fn run() {
                     }
                     panic!("Fatal: database initialization failed: {}", e);
                 }
-                Err(e) => {
-                    tracing::error!("DB init thread panicked: {:?}", e);
-                    android_utils::report_fatal_error(&format!("DB init thread panicked: {:?}", e));
-                    panic!("Fatal: DB init thread panicked: {:?}", e);
-                }
             };
 
             android_utils::mark_startup_phase("db_init_done");
 
-            // 在独立线程中运行初始化，避免在 Tauri 的 tokio runtime 内创建嵌套 Runtime
             android_utils::mark_startup_phase("state_init_start");
-            let state = match spawn_block_on("state_init", init::state::create_app_state(db_result)) {
-                Ok(Ok(s)) => s,
-                Ok(Err(e)) => {
+            let state = match tauri::async_runtime::block_on(init::state::create_app_state(db_result)) {
+                Ok(s) => s,
+                Err(e) => {
                     tracing::error!("App state init returned error: {}", e);
                     android_utils::report_fatal_error(&format!("App state init failed: {}", e));
                     return Ok(());
-                }
-                Err(e) => {
-                    tracing::error!("App state init thread panicked: {:?}", e);
-                    android_utils::report_fatal_error(&format!("App state init thread panicked: {:?}", e));
-                    panic!("Fatal: App state init thread panicked: {:?}", e);
                 }
             };
 
@@ -272,12 +266,12 @@ pub fn run() {
             let state = app.state::<AppState>();
             let sea_db = state.harness.db().clone();
 
-            spawn_block_on("session_reset", async move {
-                let _ = axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await;
-            })
-            .unwrap_or_else(|e| {
-                tracing::error!("Session reset thread panicked: {:?}", e);
-            });
+            // 直接在 Tauri 主 runtime 上 reset 会话（同上：避免连接池跨 runtime 孤儿化）
+            if let Err(e) = tauri::async_runtime::block_on(async {
+                axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await
+            }) {
+                tracing::error!("Session reset failed: {:?}", e);
+            }
 
             // Initialize pricing configuration from pricing.toml
             commands::agent::init_pricing_config(app.handle());
@@ -406,13 +400,12 @@ pub fn run() {
             #[cfg(not(mobile))]
             let tray_language = {
                 let db = state.harness.db().clone();
-                spawn_block_on("tray_language", async move {
-                    axagent_dao::repo::settings::get_settings(&db)
-                        .await
-                        .map(|s| s.language)
-                        .unwrap_or_else(|_| "en".to_string())
-                }).unwrap_or_else(|e| {
-                    tracing::error!("Tray language thread panicked: {:?}", e);
+                tauri::async_runtime::block_on(
+                    axagent_dao::repo::settings::get_settings(&db),
+                )
+                .map(|s| s.language)
+                .unwrap_or_else(|e| {
+                    tracing::error!("Failed to get tray language: {}", e);
                     "en".to_string()
                 })
             };

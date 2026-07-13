@@ -6838,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "تبديل الخام",
@@ -7929,69 +7931,6 @@
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
       "executionMode": "Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "مباشر",
-      "replay": "إعادة {{date}}",
-      "sweep": "اختبار رجعي دفعي",
-      "tooltipLive": "انقر للدخول إلى وضع الإعادة (تحليل في تاريخ سابق)",
-      "tooltipReplay": "انقر للعودة إلى الوضع المباشر",
-      "confirmTitle": "العودة إلى الوضع المباشر؟",
-      "confirmBody": "يستخدم الوضع المباشر بيانات في الوقت الفعلي، وقد تكون الاستنتاجات السابقة قد تم إبطالها بمعلومات جديدة. وضع الإعادة يغلق العالم عند تاريخ سابق مختار لمنع تحيز النظر إلى الأمام.",
-      "confirmOk": "الانتقال إلى المباشر",
-      "confirmCancel": "البقاء في الإعادة",
-      "currentlyInReplay": "تجري إعادة التشغيل عند {{date}}.",
-      "enteredReplay": "تم تفعيل وضع الإعادة: {{date}}",
-      "switchedToLive": "تم التبديل إلى الوضع المباشر"
-    },
-    "datePicker": {
-      "hint": "اختر يوم تداول سابق. يتم تعطيل اليوم والتواريخ المستقبلية (افتراض العالم المغلق).",
-      "placeholder": "اختر تاريخ as-of",
-      "ok": "بدء الإعادة",
-      "cancel": "إلغاء"
-    },
-    "pageAnchor": {
-      "live": "مباشر",
-      "replay": "إعادة",
-      "untilDate": "حتى {{date}}"
-    },
-    "replayBadge": {
-      "label": "إعادة · {{date}}",
-      "tooltip": "جميع البيانات والمطالبات والأحكام في هذا العرض مرساة في {{date}}. لا تستخدم للتداول المباشر.",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "حتى {{date}}"
-    },
-    "tour": {
-      "title": "وضع السفر عبر الزمن متاح الآن",
-      "body": "اربط جميع التحليلات والتوصيات بيوم تداول سابق لاختبار استراتيجياتك بأمان دون تحيز النظر إلى الأمام. سيرفض النظام التواريخ المستقبلية وسيتم تمييز انتهاكات الطوابع الزمنية على الجدول الزمني.",
-      "gotIt": "فهمت",
-      "stepAnchor": "انقر على حبة 'مباشر' في أي وقت للدخول إلى وضع الإعادة."
-    },
-    "violations": {
-      "chip": "⚠ {{n}} انتهاك",
-      "chip_plural": "⚠ {{n}} انتهاكات",
-      "chipAria": "{{n}} انتهاك(-ات) مرجعية مستقبلية في هذه العقدة",
-      "tooltip": "يشير مخرجات هذه العقدة إلى تواريخ بعد مرساة as-of. اعتبر نتيجتها غير موثوقة.",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "وضع الإعادة نشط. الاختيارات والأسعار ونطاقات الدخول مرساة في {{date}}. لا تستخدم للتداول المباشر.",
-    "backtestHint": "تجمع هذه الإحصائيات جميع التحليلات المكتملة (المباشر + الإعادة) حتى {{date}}. استخدم طاولة الإعادة للتصفية حسب الوضع.",
-    "degradedStyles": {
-      "title": "تدهور مصادر البيانات بسبب اقتطاع as-of",
-      "description": "تم تخفيض دقة أنماط البيانات التالية لأن تاريخ as-of {{date}} يقطع التاريخ اللازم للإشارة الكاملة.",
-      "reason": "السبب: {{reason}}",
-      "hint": "النتيجة المتدهورة ليست خاطئة؛ بل أقل إفادة. عامل ثقتها بأنها أقل من الأساليب غير المتدهورة.",
-      "vendor": "المورّد: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "متدهور · بعض البيانات بلا سجل",
-      "labelWithCount": "متدهور · {{n}} عناصر",
-      "tooltip": "في وضع الإعادة، تدفق الأموال/الهامش/حيازة الشمال ليس لها دلالات تاريخية وتم تخطيها."
     }
   },
   "replayWorkbench": {

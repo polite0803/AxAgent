@@ -76,6 +76,33 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   mcpServers: <Network size={14} />,
 };
 
+/**
+ * 解析设置项 i18n key，回退到「去掉中间段」的平铺形式。
+ *
+ * zh-CN.json 中 `settings` 命名空间是混合结构：部分板块（`general`/`shortcuts`/
+ * `scheduler` 等）是 nested object，其他（`conversation`/`advanced`/`display`/`proxy`/
+ * `acp`/`appConfig`/`about`）是 string 或缺失，但它们的具体设置项以**平铺 key**
+ * 形式存储在 `settings` 顶层（如 `settings.multiModelDisplayMode`）。
+ *
+ * 因此对于 `settings.conversation.multiModelDisplayMode` 这种"看起来嵌套"的 key，
+ * 必须把去掉中间段后的 `settings.multiModelDisplayMode` 加入回退链，否则会
+ * 原样返回完整 key（截图 bug）。
+ */
+function resolveSettingsLabel(
+  t: (key: string | string[]) => string,
+  primary: string,
+  extraFallbacks: string[] = [],
+): string {
+  const fallbacks: string[] = [primary];
+  const parts = primary.split(".");
+  // 形如 "settings.<section>.<item>" → 去掉中间段 = "settings.<item>"
+  if (parts.length >= 3 && parts[0] === "settings") {
+    fallbacks.push(`settings.${parts[parts.length - 1]}`);
+  }
+  fallbacks.push(...extraFallbacks);
+  return t(fallbacks);
+}
+
 const TAB_GROUPS: Record<string, SettingsSection[]> = {
   model: [
     "providers",
@@ -205,8 +232,10 @@ export function SettingsSidebar() {
           kind: "item",
           key: `${entry.section}:${item.itemKey}`,
           icon: MENU_ICONS[entry.section],
-          label: t(item.labelKey),
-          subLabel: t([`settings.${entry.section}.title`, `settings.${entry.section}`]),
+          label: resolveSettingsLabel(t, item.labelKey),
+          subLabel: resolveSettingsLabel(t, `settings.${entry.section}.title`, [
+            `settings.${entry.section}`,
+          ]),
           keywords: item.keywords,
           targetSection: entry.section,
           itemKey: item.itemKey,

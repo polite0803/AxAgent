@@ -228,16 +228,15 @@ impl TrajectoryStorage {
         Ok(())
     }
 
-    /// P1-5: 使用 datetime() 归一化以解决字符串字典序问题
+    /// P1-5: 用字符串比较 ISO8601 / RFC3339 时间戳（字典序与时序一致）
     pub async fn cleanup_old_trajectories_by_age(&self, max_age_days: u32) -> Result<usize> {
         let cutoff = Utc::now() - chrono::Duration::days(max_age_days as i64);
         let cutoff_str = cutoff.to_rfc3339();
-        // 字符串字典序问题：ISO8601 / RFC3339 字典序与时间序一致，但需要统一格式
-        // 关键问题：原代码直接用字符串比较，未归一化为相同格式
-        // 修复：用 datetime() 函数归一化字符串时间戳再比较
+        // ISO8601 / RFC3339 格式为 year-first、zero-padded，字符串字典序与时序一致，
+        // 不需要 datetime() 函数（该函数是 SQLite 专有，PostgreSQL 不存在）。
         let old_trajectories = trajectories::Entity::find()
             .filter(sea_orm::sea_query::Expr::cust(format!(
-                "datetime(created_at) < datetime('{}')",
+                "created_at < '{}'",
                 cutoff_str
             )))
             .all(self.db.as_ref())

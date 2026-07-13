@@ -6986,7 +6986,9 @@
     "description": "描述",
     "rootPath": "根路径",
     "embeddingModel": "向量模型",
-    "embeddingRequired": "请选择向量模型"
+    "embeddingRequired": "请选择向量模型",
+    "importSelectBase": "请先选择目标知识库",
+    "backToList": "返回列表"
   },
   "chatMarkdown": {
     "toggleRaw": "切换原始",
@@ -8125,69 +8127,6 @@
       "lowAgreementHint": "双视角存在分歧",
       "llmMissingHint": "一致性评分 {{score}}/100",
       "executionMode": "执行模式"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "即时",
-      "replay": "回放 {{date}}",
-      "sweep": "批次回测",
-      "tooltipLive": "点击進入回放模式（按过去某日分析）",
-      "tooltipReplay": "点击切回即时模式",
-      "confirmTitle": "确认切回即时模式？",
-      "confirmBody": "即时模式使用最新行情，此前得出的结论可能已被新资讯推翻。回放模式把世界封在选定的过去某日，可避免前视偏差。",
-      "confirmOk": "切到即时",
-      "confirmCancel": "保持在回放",
-      "currentlyInReplay": "当前正以 {{date}} 为錨点回放。",
-      "enteredReplay": "已進入回放模式：{{date}}",
-      "switchedToLive": "已切到即时模式"
-    },
-    "datePicker": {
-      "hint": "请选择过去的交易日。今天及未來日期被禁用（封闭世界假设）。",
-      "placeholder": "选择截止日期",
-      "ok": "進入回放",
-      "cancel": "取消"
-    },
-    "pageAnchor": {
-      "live": "即时",
-      "replay": "回放",
-      "untilDate": "截至 {{date}}"
-    },
-    "replayBadge": {
-      "label": "回放 · {{date}}",
-      "tooltip": "此视图中的所有资料、提示词与结论都以 {{date}} 为锚点。不可用于实盘交易。",
-      "replay": "回放 {{date}}",
-      "sweep": "批次扫描"
-    },
-    "replayWatermark": {
-      "label": "截至 {{date}}"
-    },
-    "tour": {
-      "title": "时间旅行模式已上线",
-      "body": "把分析和荐股都錨定到过去的某一日，可以安全地回测策略、避免前视偏差。系统会拒绝未來日期，违反时间约束的输出会在时间线上高亮。",
-      "gotIt": "知道了",
-      "stepAnchor": "随时点击「即时」胶囊進入回放模式。"
-    },
-    "violations": {
-      "chip": "⚠ {{n}} 处违规",
-      "chip_plural": "⚠ {{n}} 处违规",
-      "chipAria": "本节点有 {{n}} 处未來日期引用违规",
-      "tooltip": "本节点输出提及了 as-of 錨点之后的日期。结论应视为不可信。",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "回放模式：荐股基于截至 {{date}} 的资料，今日及之后的行情不参与排序。",
-    "backtestHint": "回放模式：以下统计僅汇总 as-of 錨点 = {{date}} 的历史回放。",
-    "degradedStyles": {
-      "title": "as-of 截斷导致的资料降级",
-      "description": "以下资料風格因 as-of 截止日 {{date}} 截斷了所需的全部历史,在回放模式下以低可信度输出。",
-      "reason": "原因: {{reason}}",
-      "hint": "降级不等于错误,只是资讯量变少,请低于非降级風格的可信度处理。",
-      "vendor": "资料源: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "已降级 · 部分资料无历史",
-      "labelWithCount": "已降级 · {{n}} 项",
-      "tooltip": "回放模式下资金流向/融资融券/北向持仓等资料无历史语意,已被跳过。详見推荐面板的降级提示。"
     }
   },
   "replayWorkbench": {
