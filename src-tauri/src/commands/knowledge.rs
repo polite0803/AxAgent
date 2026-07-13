@@ -32,8 +32,18 @@ pub struct ImportDirectoryResult {
 fn is_supported_knowledge_ext(ext: &str) -> bool {
     matches!(
         ext.to_ascii_lowercase().as_str(),
-        "txt" | "md" | "markdown" | "csv" | "html" | "htm" | "xml" | "json" | "pdf" | "docx"
-            | "xlsx" | "pptx"
+        "txt"
+            | "md"
+            | "markdown"
+            | "csv"
+            | "html"
+            | "htm"
+            | "xml"
+            | "json"
+            | "pdf"
+            | "docx"
+            | "xlsx"
+            | "pptx"
     )
 }
 
@@ -63,10 +73,7 @@ fn collect_importable_files(
                 collect_importable_files(&path, recursive, extensions, files, skipped)?;
             }
         } else if file_type.is_file() {
-            let ext = path
-                .extension()
-                .and_then(|e| e.to_str())
-                .map(|s| s.to_ascii_lowercase());
+            let ext = path.extension().and_then(|e| e.to_str()).map(|s| s.to_ascii_lowercase());
             let allowed = match extensions {
                 Some(exts) => ext
                     .as_ref()
@@ -219,14 +226,12 @@ pub async fn import_knowledge_directory(
 
     let mut files = Vec::new();
     let mut skipped = Vec::new();
-    collect_importable_files(&dir, recursive, &extensions, &mut files, &mut skipped).map_err(
-        |e| format!("读取目录失败 {directory_path}: {e}"),
-    )?;
+    collect_importable_files(&dir, recursive, &extensions, &mut files, &mut skipped)
+        .map_err(|e| format!("读取目录失败 {directory_path}: {e}"))?;
 
-    let kb =
-        axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id).await.map_err(
-            |e| e.to_string(),
-        )?;
+    let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
+        .await
+        .map_err(|e| e.to_string())?;
     let has_embedding = kb.embedding_provider.is_some();
 
     let mut result = ImportDirectoryResult {
@@ -245,17 +250,11 @@ pub async fn import_knowledge_directory(
 
         // 递归导入时用相对路径作为标题，避免重名；非递归用文件名
         let title = if recursive {
-            path.strip_prefix(&dir)
-                .map(|p| p.to_string_lossy().replace('\\', "/"))
-                .unwrap_or_else(|_| {
-                    path.file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_default()
-                })
+            path.strip_prefix(&dir).map(|p| p.to_string_lossy().replace('\\', "/")).unwrap_or_else(
+                |_| path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
+            )
         } else {
-            path.file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default()
+            path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
         };
 
         match axagent_dao::repo::knowledge::add_document(
@@ -294,10 +293,7 @@ pub async fn import_knowledge_directory(
             },
             Err(e) => {
                 result.error_count += 1;
-                result.errors.push(ImportDirectoryError {
-                    path: abs,
-                    error: e.to_string(),
-                });
+                result.errors.push(ImportDirectoryError { path: abs, error: e.to_string() });
             },
         }
     }
