@@ -13,5 +13,16 @@ fn main() {
     }
 
     println!("cargo::rustc-check-cfg=cfg(mobile)");
+
+    // ── Windows: 增大主线程栈到 8MB ──
+    // Tauri 2.x 在 Windows 上启动 WebView2 时调用栈很深，
+    // Rust 默认 2MB 栈不够，在某些硬件上会间歇 stack overflow。
+    // Linux/macOS 默认栈够大（8MB），不需要此设置。
+    #[cfg(target_os = "windows")]
+    {
+        println!("cargo:rustc-link-arg=/STACK:8388608");
+        println!("cargo:warning=Windows: set main thread stack to 8MB (8388608)");
+    }
+
     tauri_build::build()
 }
