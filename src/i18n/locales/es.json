@@ -1768,6 +1768,7 @@
       "importDirTitle": "Import Folder into Knowledge Base",
       "importRecursive": "Recursive Subdirectories",
       "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importExtensionsPlaceholder": "e.g. md, txt, pdf",
       "importStart": "Start Import",
       "importing": "Importing, please wait…",
       "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",

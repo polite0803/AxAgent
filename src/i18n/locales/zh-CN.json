@@ -1849,6 +1849,7 @@
       "importDirTitle": "导入文件夹到知识库",
       "importRecursive": "递归子目录",
       "importExtensions": "扩展名过滤（逗号分隔，留空表示全部支持类型）",
+      "importExtensionsPlaceholder": "例如: md, txt, pdf",
       "importStart": "开始导入",
       "importing": "正在导入，请稍候…",
       "importDone": "已导入 {{imported}} 个、跳过 {{skipped}} 个、失败 {{error}} 个",
