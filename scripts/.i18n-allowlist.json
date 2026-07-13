@@ -490,8 +490,14 @@
     },
     {
       "file": "src/components/settings/KnowledgeSettings.tsx",
-      "lines": "1230,1313",
+      "lines": "1230,1313,1973",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/settingsSearchIndex.ts",
+      "lines": "ALL",
+      "reason": "非UI字符串-搜索关键词",
       "phase": 3
     },
     {
@@ -538,7 +544,7 @@
     },
     {
       "file": "src/components/settings/SettingsPanel.tsx",
-      "lines": "443,445",
+      "lines": "443,445,446",
       "reason": "非UI字符串-内部日志",
       "phase": 3
     },
