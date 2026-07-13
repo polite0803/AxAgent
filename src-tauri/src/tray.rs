@@ -52,18 +52,18 @@ pub fn create_tray(app: &AppHandle, _language: &str) -> Result<(), Box<dyn std::
 
 fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let menu = build_menu(app)?;
-    let icon = Image::from_path("icons/icon.png").unwrap_or_else(|_| {
-        Image::from_bytes(include_bytes!("../icons/32x32.png")).unwrap_or_else(|e| {
-            tracing::error!("嵌入式图标资源损坏，托盘不可用: {e}");
-            Image::new(&[], 32, 32) // 创建空白占位图标
-        })
+    // 直接嵌入 32x32.png（实心品牌图标）。生产模式下 Tauri 资源目录没有 icons/icon.png，
+    // 走 Image::from_path 必然失败，故不再尝试 path fallback。
+    let icon = Image::from_bytes(include_bytes!("../icons/32x32.png")).unwrap_or_else(|e| {
+        tracing::error!("嵌入式图标资源损坏，托盘不可用: {e}");
+        Image::new(&[], 32, 32) // 创建空白占位图标
     });
 
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .tooltip("AxAgent")
+        .tooltip("AxInvest")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 if let Some(w) = app.get_webview_window("main") {
