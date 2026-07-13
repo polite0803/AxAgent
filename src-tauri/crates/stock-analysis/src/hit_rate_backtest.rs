@@ -577,9 +577,26 @@ mod tests {
         assert_eq!(m.max_price, Some(12.2));
         assert_eq!(m.min_price, Some(10.3));
         assert!((m.max_return_pct.unwrap() - 22.0).abs() < 1e-6);
-        assert!((m.max_drawdown_pct.unwrap() - 3.0).abs() < 1e-6);
+        // 纯上行（closes 严格递增）无回撤，peak-to-trough 定义为 0
+        assert!((m.max_drawdown_pct.unwrap() - 0.0).abs() < 1e-6);
         assert!((m.final_return_pct.unwrap() - 20.0).abs() < 1e-6);
         assert_eq!(m.hit_target, Some(true));
+    }
+
+    #[test]
+    fn test_compute_price_metrics_drawdown_peak_to_trough() {
+        // 验证 P0 修复：最大回撤 = 持有期间峰值到后续谷值的跌幅，
+        // 而非「从入场价到最低价的跌幅」。
+        // entry=10, closes=[12,8,11]:
+        //   正确 = (12-8)/12*100 ≈ 33.333%（峰值 12 → 谷值 8）
+        //   旧误算 = (10-8)/10*100 = 20%（从入场价到谷值，漏算入场后涨幅）
+        let closes = vec![12.0, 8.0, 11.0];
+        let highs = vec![12.0, 8.0, 11.0];
+        let lows = vec![12.0, 8.0, 11.0];
+        let m = compute_price_metrics(10.0, &closes, &highs, &lows, 20.0, 5.0);
+        assert!((m.max_drawdown_pct.unwrap() - 100.0 * (12.0 - 8.0) / 12.0).abs() < 1e-6);
+        // 回归守卫：绝不能回到旧实现的 20.0
+        assert!((m.max_drawdown_pct.unwrap() - 20.0).abs() >= 1e-6);
     }
 
     #[test]
