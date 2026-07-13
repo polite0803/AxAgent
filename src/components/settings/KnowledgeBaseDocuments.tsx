@@ -1925,7 +1925,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                   id="import-dir-extensions"
                   value={importExtensionsText}
                   onChange={(e) => setImportExtensionsText(e.target.value)}
-                  placeholder="md, txt, pdf"
+                  placeholder={t("settings.knowledge.importExtensionsPlaceholder")}
                 />
               </div>
               {importing && (

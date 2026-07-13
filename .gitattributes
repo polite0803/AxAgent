@@ -86,3 +86,6 @@
 *.tsx text eol=lf
 *.json text eol=lf
 *.js text eol=lf
+
+# i18n locale: union merge 防止 merge 上游时下游 fork 独有 key 被覆盖
+src/i18n/locales/*.json merge=union

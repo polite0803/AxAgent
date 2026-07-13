@@ -34,22 +34,28 @@ import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import type { SkillProposal } from "@/types";
 import { App as AntdApp, ConfigProvider, message, theme } from "antd";
+import type { Locale } from "antd/es/locale";
 import { setDefaultI18nMap } from "markstream-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./i18n";
-import antdArEG from "antd/locale/ar_EG";
-import antdDeDE from "antd/locale/de_DE";
-import antdEnUS from "antd/locale/en_US";
-import antdEsES from "antd/locale/es_ES";
-import antdFrFR from "antd/locale/fr_FR";
-import antdHiIN from "antd/locale/hi_IN";
-import antdJaJP from "antd/locale/ja_JP";
-import antdKoKR from "antd/locale/ko_KR";
-import antdRuRU from "antd/locale/ru_RU";
-import antdZhCN from "antd/locale/zh_CN";
-import antdZhTW from "antd/locale/zh_TW";
+
+// antd locale 懒加载：dev 模式不阻塞 10 个未使用的 locale 模块加载。
+// 仅在语言切换时动态 import 对应 locale。
+const LOCAL_MODULE_MAP: Record<string, () => Promise<Record<string, unknown>>> = {
+  zh_CN: () => import("antd/locale/zh_CN"),
+  zh_TW: () => import("antd/locale/zh_TW"),
+  en_US: () => import("antd/locale/en_US"),
+  ja_JP: () => import("antd/locale/ja_JP"),
+  ko_KR: () => import("antd/locale/ko_KR"),
+  de_DE: () => import("antd/locale/de_DE"),
+  fr_FR: () => import("antd/locale/fr_FR"),
+  es_ES: () => import("antd/locale/es_ES"),
+  ru_RU: () => import("antd/locale/ru_RU"),
+  hi_IN: () => import("antd/locale/hi_IN"),
+  ar_EG: () => import("antd/locale/ar_EG"),
+};
 
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 
@@ -366,32 +372,17 @@ function AppRoot() {
     [],
   );
 
-  const staticLocaleMap = useMemo<Record<string, typeof antdZhCN>>(
-    () => ({
-      zh_CN: antdZhCN,
-      zh_TW: antdZhTW,
-      en_US: antdEnUS,
-      ja_JP: antdJaJP,
-      ko_KR: antdKoKR,
-      de_DE: antdDeDE,
-      fr_FR: antdFrFR,
-      es_ES: antdEsES,
-      ru_RU: antdRuRU,
-      hi_IN: antdHiIN,
-      ar_EG: antdArEG,
-    }),
-    [],
-  );
+  const [antdLocale, setAntdLocale] = useState<Locale | undefined>(undefined);
 
-  const antdLocale = useMemo(() => {
-    if (localeMap[language]) {
-      return staticLocaleMap[localeMap[language]] ?? antdZhCN;
+  // 动态加载当前语言的 antd locale（替代顶层导入所有 11 个 locale）
+  useEffect(() => {
+    const localeKey = localeMap[language] || (language?.startsWith("zh") ? "zh_CN" : "en_US");
+    if (localeKey in LOCAL_MODULE_MAP) {
+      LOCAL_MODULE_MAP[localeKey]()
+        .then((mod) => setAntdLocale((mod as unknown as { default: Locale }).default))
+        .catch(() => {});
     }
-    if (language?.startsWith("zh")) {
-      return antdZhCN;
-    }
-    return staticLocaleMap["en_US"];
-  }, [language, localeMap, staticLocaleMap]);
+  }, [language, localeMap]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = isDark ? "dark" : "light";
