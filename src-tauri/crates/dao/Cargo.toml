@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+[dev-dependencies]
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+
 [dependencies]
 async-trait = "0.1"
 axagent-entities = { path = "../entities" }

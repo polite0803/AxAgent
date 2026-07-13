@@ -49,6 +49,12 @@
 //! - stock_reflections 结构化字段（原 v008）：本迁移建表时直接包含
 //! - reflection_lessons 表（原 v009+v011 合并）：本迁移中创建（已修复 FK 问题）
 //! - strategy_performance.agreement_score（原 v010）：本迁移建表时直接包含
+//!
+//! ## 可移植性（PostgreSQL 切换）
+//!
+//! 时间戳列（毫秒 epoch，数值可达 ~1.7e12）在 PostgreSQL 中必须用 `BIGINT`，
+//! 否则 `INTEGER`(int4, 上限 ±21 亿) 会溢出写入失败。计数器/布尔/枚举类列
+//! 仍用 `INTEGER`。SQLite 的 `INTEGER` 为动态 64 位，两种写法无差异。
 
 use sea_orm::{ConnectionTrait, DbErr};
 
@@ -79,8 +85,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             outcome TEXT, \
             llm_decision_json TEXT, \
             node_results_snapshot TEXT, \
-            created_at INTEGER NOT NULL, \
-            updated_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL, \
+            updated_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -121,8 +127,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             blackboard_snapshot TEXT, \
             model_version TEXT, \
             status TEXT NOT NULL, \
-            created_at INTEGER NOT NULL, \
-            updated_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL, \
+            updated_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -139,8 +145,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             stock_code TEXT NOT NULL, \
             stock_name TEXT NOT NULL, \
             notes TEXT, \
-            created_at INTEGER NOT NULL, \
-            updated_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL, \
+            updated_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -159,8 +165,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             shares REAL NOT NULL, \
             cost_price REAL NOT NULL, \
             notes TEXT, \
-            created_at INTEGER NOT NULL, \
-            updated_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL, \
+            updated_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -185,7 +191,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             realized_pnl REAL, \
             strategy TEXT, \
             notes TEXT, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -203,9 +209,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             condition TEXT NOT NULL, \
             target_price REAL NOT NULL, \
             is_triggered INTEGER NOT NULL DEFAULT 0, \
-            triggered_at INTEGER, \
-            created_at INTEGER NOT NULL, \
-            updated_at INTEGER NOT NULL\
+            triggered_at BIGINT, \
+            created_at BIGINT NOT NULL, \
+            updated_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -249,7 +255,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             period TEXT, \
             detail TEXT, \
             source TEXT, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -266,7 +272,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             transfer_date TEXT NOT NULL, \
             fee REAL, \
             notes TEXT, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -288,7 +294,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             revenue_yoy REAL, \
             profit_yoy REAL, \
             source TEXT, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -305,7 +311,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             code_a TEXT NOT NULL, \
             code_b TEXT NOT NULL, \
             correlation REAL NOT NULL, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -329,7 +335,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             top_concentration_pct REAL NOT NULL, \
             sector_exposure_json TEXT NOT NULL, \
             stress_test_json TEXT, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -353,8 +359,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             walk_forward_folds INTEGER, \
             walk_forward_overfit_warning INTEGER, \
             walk_forward_stability_score REAL, \
-            started_at INTEGER NOT NULL, \
-            finished_at INTEGER, \
+            started_at BIGINT NOT NULL, \
+            finished_at BIGINT, \
             error_message TEXT\
         )",
     )
@@ -374,8 +380,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             script_source TEXT, \
             params_json TEXT, \
             walk_forward_enabled INTEGER NOT NULL DEFAULT 0, \
-            created_at INTEGER NOT NULL, \
-            updated_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL, \
+            updated_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -391,7 +397,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             reason TEXT, \
             close_reason TEXT, \
             timestamp TEXT NOT NULL, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
@@ -421,7 +427,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     .await?;
     db.execute_unprepared(
         "CREATE INDEX IF NOT EXISTS idx_quant_paper_trades_run ON quant_paper_trades(run_id, timestamp)",
-    ).await?;
+    )
+    .await?;
 
     // ── 17. decision_validations ──
     // 已含 agreement_score（原 v010）
@@ -459,7 +466,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     .await?;
     db.execute_unprepared(
         "CREATE INDEX IF NOT EXISTS idx_decision_val_code ON decision_validations(stock_code, generated_at DESC)",
-    ).await?;
+    )
+    .await?;
 
     // ── 18. divergence_logs ──
     db.execute_unprepared(
@@ -486,7 +494,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     .await?;
     db.execute_unprepared(
         "CREATE INDEX IF NOT EXISTS idx_divergence_logs_code ON divergence_logs(stock_code, decision_ts DESC)",
-    ).await?;
+    )
+    .await?;
 
     // ── 19. strategy_performance ──
     // 已含 agreement_score（原 v010）
@@ -497,21 +506,22 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             period TEXT NOT NULL, \
             stock_code TEXT NOT NULL, \
             stock_name TEXT NOT NULL, \
-            decision_at INTEGER NOT NULL, \
-            exit_at INTEGER NOT NULL, \
+            decision_at BIGINT NOT NULL, \
+            exit_at BIGINT NOT NULL, \
             holding_days INTEGER NOT NULL, \
             return_pct REAL NOT NULL, \
             was_correct INTEGER NOT NULL, \
             decision_confidence INTEGER NOT NULL, \
             horizon_pnl_json TEXT, \
             agreement_score INTEGER, \
-            created_at INTEGER NOT NULL\
+            created_at BIGINT NOT NULL\
         )",
     )
     .await?;
     db.execute_unprepared(
         "CREATE INDEX IF NOT EXISTS idx_strategy_perf_strategy ON strategy_performance(strategy_id, decision_at DESC)",
-    ).await?;
+    )
+    .await?;
 
     // ── 20. strategy_weight_history ──
     db.execute_unprepared(
@@ -527,13 +537,14 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             sample_size INTEGER NOT NULL, \
             win_rate REAL NOT NULL, \
             rationale TEXT, \
-            applied_at INTEGER NOT NULL\
+            applied_at BIGINT NOT NULL\
         )",
     )
     .await?;
     db.execute_unprepared(
         "CREATE INDEX IF NOT EXISTS idx_weight_history_strategy ON strategy_weight_history(strategy_id, applied_at DESC)",
-    ).await?;
+    )
+    .await?;
 
     // ── 21. reflection_lessons ──
     // 合并原 v009 + v011（已修复 FK 问题：移除 stock_code FK）
@@ -549,8 +560,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             success_count INTEGER NOT NULL DEFAULT 0, \
             confidence REAL NOT NULL DEFAULT 0.5, \
             status TEXT NOT NULL DEFAULT 'active', \
-            created_at INTEGER NOT NULL, \
-            updated_at INTEGER NOT NULL, \
+            created_at BIGINT NOT NULL, \
+            updated_at BIGINT NOT NULL, \
             FOREIGN KEY (source_reflection_id) REFERENCES stock_reflections(id) ON DELETE SET NULL\
         )",
     )
@@ -576,10 +587,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             summary TEXT, \
             url TEXT, \
             media_name TEXT, \
-            publish_time INTEGER NOT NULL, \
+            publish_time BIGINT NOT NULL, \
             stock_code TEXT, \
             keyword TEXT, \
-            fetched_at INTEGER NOT NULL, \
+            fetched_at BIGINT NOT NULL, \
             sentiment_score REAL, \
             UNIQUE(source, article_code))",
     )
