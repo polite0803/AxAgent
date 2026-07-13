@@ -1,23 +1,215 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! v001 — 全量 DDL 初始化（从 ddl.rs 迁出）
+//! v100_consolidated: 合并 v001–v011 所有历史迁移，统一修正列类型
 //!
-//! 这是 schema 的"初始快照"：所有 `CREATE TABLE IF NOT EXISTS`、
-//! `CREATE VIRTUAL TABLE IF NOT EXISTS`、`CREATE TRIGGER IF NOT EXISTS`、
-//! `CREATE INDEX IF NOT EXISTS`（v001 时期就有的那些）都集中在这里。
+//! ## 背景
 //!
-//! 注意：v002/v003 引入的新增索引 / 死表清理 **不应** 写到这里；
-//! 这条 migration 的语义是"项目第一次启动时的 schema"。
+//! 历史问题：v001–v009 的 DDL 中大量时间戳列和数字列使用 `INTEGER` (INT4)，
+//! 但 SeaORM entity 声明为 `i64`/`Option<i64>` → PG 下强类型检查报错：
+//!
+//!   `Rust type core::option::Option<i64> (as SQL type INT8)
+//!    is not compatible with SQL type INT4`
+//!
+//! v010/v011 只修补了部分旧表，仍有 67+ 对列遗漏。
+//!
+//! ## 策略
+//!
+//! 本 migration 一劳永逸：
+//!   - 使用 `pg_ddl()` 转换器（已补齐所有 i64 列名映射），在 PG 上 CREATE TABLE
+//!     时自动将 INTEGER 转 BIGINT。
+//!   - 运行**综合 ALTER 通道**，覆盖所有 entity 定义中为 i64 的列，对 PG 上仍为
+//!     INTEGER 的列执行 `ALTER COLUMN TYPE BIGINT`。
+//!   - 新实例：CREATE TABLE 直接产出正确类型，ALTER 通道幂等 no-op。
+//!   - 旧实例：CREATE TABLE IF NOT EXISTS 是 no-op，ALTER 通道修类型。
+//!   - SQLite：全部 no-op（动态类型无此问题）。
+//!
+//! ## 替代
+//!
+//! 本 migration 取代 v001–v011。历史文件保留仅作参考。
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr};
 
-pub use super::pg_ddl::{exec_ddl, pg_ddl};
+pub use super::pg_ddl::exec_ddl;
+
+// ============================================================================
+// 综合 ALTER 目标列表：所有 entity 字段类型为 `i64` / `Option<i64>` 的列。
+// ALTER 通道检查 information_schema，只有 INTEGER (INT4) 才转换 → 幂等。
+// 包含 v010/v011 已覆盖的列（全量清单，不自查遗留）。
+// ============================================================================
+
+const ALTER_TARGETS: &[(&str, &str)] = &[
+    // ======== v001 核心表 ========
+    ("providers", "created_at"),
+    ("providers", "updated_at"),
+    ("provider_keys", "last_validated_at"),
+    ("provider_keys", "created_at"),
+    ("models", "max_tokens"),
+    ("conversations", "max_tokens"),
+    ("conversations", "thinking_budget"),
+    ("conversations", "created_at"),
+    ("conversations", "updated_at"),
+    ("messages", "token_count"),
+    ("messages", "prompt_tokens"),
+    ("messages", "completion_tokens"),
+    ("messages", "first_token_latency_ms"),
+    ("messages", "cache_creation_tokens"),
+    ("messages", "cache_read_tokens"),
+    ("messages", "created_at"),
+    ("gateway_keys", "created_at"),
+    ("gateway_keys", "last_used_at"),
+    ("gateway_usage", "id"),
+    ("gateway_usage", "request_tokens"),
+    ("gateway_usage", "response_tokens"),
+    ("gateway_usage", "cached_input_tokens"),
+    ("gateway_usage", "created_at"),
+    ("gateway_request_logs", "request_tokens"),
+    ("gateway_request_logs", "response_tokens"),
+    ("gateway_request_logs", "created_at"),
+    ("conversation_summaries", "token_count"),
+    ("conversation_summaries", "created_at"),
+    ("conversation_summaries", "updated_at"),
+    ("conversation_categories", "default_max_tokens"),
+    ("conversation_categories", "created_at"),
+    ("conversation_categories", "updated_at"),
+    ("skill_states", "updated_at"),
+    ("wikis", "created_at"),
+    ("wikis", "updated_at"),
+    ("wiki_sources", "size_bytes"),
+    ("wiki_sources", "created_at"),
+    ("wiki_sources", "updated_at"),
+    ("wiki_pages", "last_linted_at"),
+    ("wiki_pages", "last_compiled_at"),
+    ("wiki_pages", "created_at"),
+    ("wiki_pages", "updated_at"),
+    ("wiki_operations", "id"),
+    ("wiki_operations", "created_at"),
+    ("wiki_operations", "completed_at"),
+    ("wiki_sync_queue", "id"),
+    ("wiki_sync_queue", "pending_count"),
+    ("wiki_sync_queue", "processing_count"),
+    ("wiki_sync_queue", "failed_count"),
+    ("wiki_sync_queue", "last_sync_at"),
+    ("wiki_sync_queue", "created_at"),
+    ("wiki_sync_queue", "processed_at"),
+    ("note_links", "id"),
+    ("note_links", "created_at"),
+    ("note_backlinks", "id"),
+    ("note_backlinks", "created_at"),
+    ("plans", "created_at"),
+    ("plans", "updated_at"),
+    ("agency_experts", "imported_at"),
+    ("agent_profiles", "suggested_max_tokens"),
+    ("agent_profiles", "created_at"),
+    ("agent_profiles", "updated_at"),
+    ("agent_roles", "timeout_seconds"),
+    ("agent_roles", "created_at"),
+    ("agent_roles", "updated_at"),
+    ("semantic_cache", "created_at"),
+    ("stored_files", "size_bytes"),
+    ("desktop_state", "x"),
+    ("desktop_state", "y"),
+    ("search_providers", "safe_search"),
+    ("program_policies", "rate_limit_per_minute"),
+    ("tool_executions", "duration_ms"),
+    ("backup_manifests", "file_size"),
+    // ======== v001 工作流表 ========
+    ("workflow_templates", "created_at"),
+    ("workflow_templates", "updated_at"),
+    ("workflow_template_versions", "created_at"),
+    ("workflow_executions", "created_at"),
+    ("workflow_executions", "updated_at"),
+    ("workflow_marketplace", "downloads"),
+    ("workflow_marketplace", "created_at"),
+    ("workflow_marketplace", "updated_at"),
+    ("workflow_marketplace_reviews", "created_at"),
+    ("workflow_marketplace_reviews", "updated_at"),
+    ("workflow_snapshots", "created_at"),
+    ("loop_checkpoints", "updated_at"),
+    // ======== v001 网关 / 工具表 ========
+    ("gateway_links", "last_sync_at"),
+    ("gateway_links", "latency_ms"),
+    ("gateway_links", "created_at"),
+    ("gateway_links", "updated_at"),
+    ("gateway_link_policies", "global_rpm"),
+    ("gateway_link_policies", "per_model_rpm"),
+    ("gateway_link_policies", "token_limit_per_minute"),
+    ("gateway_link_activities", "created_at"),
+    ("generated_tools", "created_at"),
+    // ======== v001 知识扩展表 ========
+    ("notes", "last_linted_at"),
+    ("notes", "last_compiled_at"),
+    ("notes", "user_edited_at"),
+    ("notes", "created_at"),
+    ("notes", "updated_at"),
+    ("knowledge_entities", "created_at"),
+    ("knowledge_entities", "updated_at"),
+    ("knowledge_attributes", "created_at"),
+    ("knowledge_attributes", "updated_at"),
+    ("knowledge_relations", "created_at"),
+    ("knowledge_relations", "updated_at"),
+    ("knowledge_flows", "created_at"),
+    ("knowledge_flows", "updated_at"),
+    ("knowledge_interfaces", "created_at"),
+    ("knowledge_interfaces", "updated_at"),
+    ("knowledge_documents", "size_bytes"),
+    ("knowledge_documents", "created_at"),
+    ("knowledge_documents", "updated_at"),
+    // ======== v001 Prompt 表 ========
+    ("prompt_templates", "created_at"),
+    ("prompt_templates", "updated_at"),
+    ("prompt_template_versions", "created_at"),
+    ("background_tasks", "created_at"),
+    ("background_tasks", "updated_at"),
+    ("background_tasks", "finished_at"),
+    // ======== v001 Wiki 扩展表 ========
+    ("wiki_templates", "created_at"),
+    ("wiki_templates", "updated_at"),
+    ("wiki_page_versions", "id"),
+    ("wiki_page_versions", "created_at"),
+    // ======== v001 Trajectory 表 ========
+    ("trajectory_trajectories", "duration_ms"),
+    ("trajectory_steps", "timestamp_ms"),
+    ("trajectory_skill_executions", "execution_time_ms"),
+    ("trajectory_sessions", "token_input"),
+    ("trajectory_sessions", "token_output"),
+    // ======== v005 索引队列表 ========
+    ("index_jobs", "created_at"),
+    ("index_jobs", "started_at"),
+    ("index_jobs", "completed_at"),
+    // ======== v006 向量集合表 ========
+    ("vec_collections", "vector_count"),
+    ("vec_collections", "created_at"),
+    ("vec_collections", "updated_at"),
+    ("vec_collections", "last_indexed_at"),
+    // ======== v007 动态 UI 版本表 ========
+    ("dynamic_ui_schema_versions", "id"),
+    ("dynamic_ui_schema_versions", "created_at"),
+    // ======== v008 凭据表 ========
+    ("credentials", "created_at"),
+    ("credentials", "updated_at"),
+];
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let is_pg = db.get_database_backend() == DbBackend::Postgres;
 
     // ========================================================================
-    // SECTION A: Core tables
+    // PHASE 1: Drop dead tables（来自 v003）
     // ========================================================================
+
+    for sql in &[
+        "DROP TABLE IF EXISTS categories",
+        "DROP TABLE IF EXISTS apps",
+        "DROP TABLE IF EXISTS context_packs",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    // ========================================================================
+    // PHASE 2: 创建全部表（合并 v001 + v004–v009）
+    //   使用 exec_ddl 确保 PG 下 pg_ddl() 将 INTEGER→BIGINT 转换生效。
+    //   SQLite 动态类型无影响。
+    // ========================================================================
+
+    // --- Section A: Core tables（来自 v001） ---
 
     for sql in &[
         // providers
@@ -81,6 +273,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
+    // messages cache token 列（ALTER ADD COLUMN 兼容已有表）
     for sql in &[
         "ALTER TABLE messages ADD COLUMN cache_creation_tokens BIGINT",
         "ALTER TABLE messages ADD COLUMN cache_read_tokens BIGINT",
@@ -88,16 +281,12 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         let _ = db.execute_unprepared(sql).await;
     }
 
+    // gateway_keys / gateway_usage
     for sql in &[
-        // categories — 死表，无代码引用（v003 会 DROP）
-        // apps — 死表，无代码引用（v003 会 DROP）
-        // context_packs — 死表，无代码引用（v003 会 DROP）
-        // gateway_keys
         "CREATE TABLE IF NOT EXISTS gateway_keys (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, \
             key_hash TEXT NOT NULL UNIQUE, key_prefix TEXT NOT NULL, encrypted_key TEXT, \
             enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL, last_used_at INTEGER)",
-        // gateway_usage
         "CREATE TABLE IF NOT EXISTS gateway_usage (\
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, key_id TEXT NOT NULL, \
             provider_id TEXT NOT NULL, model_id TEXT, \
@@ -107,7 +296,6 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     ] {
         exec_ddl(&db, is_pg, sql).await?;
     }
-
     let _ = db
         .execute_unprepared(
             "ALTER TABLE gateway_usage ADD COLUMN cached_input_tokens BIGINT NOT NULL DEFAULT 0",
@@ -163,7 +351,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS knowledge_documents (\
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, title TEXT NOT NULL, \
             source_path TEXT NOT NULL, mime_type TEXT NOT NULL, \
-            size_bytes INTEGER NOT NULL DEFAULT 0, \
+            size_bytes BIGINT NOT NULL DEFAULT 0, \
             indexing_status TEXT NOT NULL DEFAULT 'pending', doc_type TEXT NOT NULL DEFAULT '', \
             index_error TEXT, source_conversation_id TEXT, \
             created_at BIGINT NOT NULL DEFAULT 0, updated_at BIGINT NOT NULL DEFAULT 0, \
@@ -374,9 +562,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // ========================================================================
-    // SECTION B: Workflow tables
-    // ========================================================================
+    // --- Section B: Workflow tables（来自 v001） ---
 
     for sql in &[
         "CREATE TABLE IF NOT EXISTS workflow_templates (\
@@ -414,9 +600,6 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS workflow_snapshots (\
             id TEXT NOT NULL PRIMARY KEY, workflow_id TEXT NOT NULL, \
             snapshot_json TEXT NOT NULL, created_at BIGINT NOT NULL, step_id TEXT)",
-        // Loop 节点可恢复检查点。复合主键 (execution_id, node_id)：
-        // 同一 execution 内多个 Loop 节点并存时互不干扰。payload_json
-        // 序列化为 axagent_harness::workflow_types::LoopCheckpoint。
         "CREATE TABLE IF NOT EXISTS loop_checkpoints (\
             execution_id TEXT NOT NULL, node_id TEXT NOT NULL, \
             payload_json TEXT NOT NULL, updated_at BIGINT NOT NULL, \
@@ -425,9 +608,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // ========================================================================
-    // SECTION C: Gateway / Tools tables
-    // ========================================================================
+    // --- Section C: Gateway / Tools tables（来自 v001） ---
 
     for sql in &[
         "CREATE TABLE IF NOT EXISTS gateway_links (\
@@ -452,14 +633,11 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             original_description TEXT NOT NULL, input_schema TEXT NOT NULL, \
             output_schema TEXT NOT NULL, implementation TEXT NOT NULL, \
             source_info TEXT NOT NULL, created_at BIGINT NOT NULL)",
-        // scheduled_tasks — 死表，CronJobStore 纯内存不碰 SQLite
     ] {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // ========================================================================
-    // SECTION D: Knowledge extension tables
-    // ========================================================================
+    // --- Section D: Knowledge extension tables（来自 v001） ---
 
     for sql in &[
         "CREATE TABLE IF NOT EXISTS notes (\
@@ -503,9 +681,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // ========================================================================
-    // SECTION E: Prompt tables
-    // ========================================================================
+    // --- Section E: Prompt tables + background_tasks（来自 v001） ---
 
     for sql in &[
         "CREATE TABLE IF NOT EXISTS prompt_templates (\
@@ -523,7 +699,6 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             variables_schema TEXT, changelog TEXT, \
             category TEXT, tags TEXT, author TEXT, source TEXT, \
             created_at BIGINT NOT NULL)",
-        // background_tasks
         "CREATE TABLE IF NOT EXISTS background_tasks (\
             id TEXT NOT NULL PRIMARY KEY, title TEXT NOT NULL, \
             description TEXT NOT NULL DEFAULT '', task_type TEXT NOT NULL, command TEXT, \
@@ -535,9 +710,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // ========================================================================
-    // SECTION F: Wiki extension tables
-    // ========================================================================
+    // --- Section F: Wiki extension tables（来自 v001） ---
 
     for sql in &[
         "CREATE TABLE IF NOT EXISTS wiki_templates (\
@@ -553,9 +726,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // ========================================================================
-    // SECTION G: Trajectory tables (raw SQL from original migration)
-    // ========================================================================
+    // --- Section G: Trajectory tables（来自 v001） ---
 
     for sql in &[
         "CREATE TABLE IF NOT EXISTS trajectory_trajectories (\
@@ -630,80 +801,218 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // ========================================================================
-    // SECTION H: 全文检索索引
-    //   SQLite: FTS5 虚拟表；PostgreSQL: tsvector 生成列 + GIN 索引
-    // ========================================================================
+    // --- v004: Dynamic UI schemas ---
 
-    if !is_pg {
-        for sql in &[
-            "CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(\
-                content, content=messages, content_rowid=rowid, tokenize='unicode61')",
-            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectories_fts USING fts5(\
-                id UNINDEXED, session_id UNINDEXED, topic, summary, content, \
-                outcome UNINDEXED, quality_score UNINDEXED, created_at UNINDEXED, \
-                tokenize='porter unicode61')",
-            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_memories_fts USING fts5(\
-                id UNINDEXED, memory_type UNINDEXED, content, entities, \
-                created_at UNINDEXED, tokenize='porter unicode61')",
-            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_skills_fts USING fts5(\
-                id UNINDEXED, name, description, content, category UNINDEXED, \
-                tags, created_at UNINDEXED, tokenize='porter unicode61')",
-            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_messages_fts USING fts5(\
-                id UNINDEXED, session_id UNINDEXED, role UNINDEXED, content, \
-                created_at UNINDEXED, tokenize='porter unicode61')",
-        ] {
-            exec_ddl(&db, is_pg, sql).await?;
-        }
+    db.execute_unprepared(
+        "CREATE TABLE IF NOT EXISTS dynamic_ui_schemas (\
+         id TEXT NOT NULL PRIMARY KEY, \
+         title TEXT NOT NULL, \
+         description TEXT NOT NULL DEFAULT '', \
+         schema_json TEXT NOT NULL, \
+         category TEXT NOT NULL DEFAULT 'custom', \
+         tags TEXT NOT NULL DEFAULT '[]', \
+         is_builtin INTEGER NOT NULL DEFAULT 0, \
+         created_at TEXT NOT NULL, \
+         updated_at TEXT NOT NULL)",
+    )
+    .await?;
+
+    db.execute_unprepared(
+        "CREATE TABLE IF NOT EXISTS dynamic_ui_form_data (\
+         id TEXT NOT NULL PRIMARY KEY, \
+         schema_id TEXT NOT NULL, \
+         form_data_json TEXT NOT NULL, \
+         instance_key TEXT NOT NULL DEFAULT 'default', \
+         updated_at TEXT NOT NULL)",
+    )
+    .await?;
+
+    // --- v008: Credentials & RL policies ---
+
+    exec_ddl(
+        &db,
+        is_pg,
+        "CREATE TABLE IF NOT EXISTS credentials (\
+         id TEXT NOT NULL PRIMARY KEY, \
+         name TEXT NOT NULL, \
+         credential_type TEXT NOT NULL, \
+         data_encrypted TEXT NOT NULL, \
+         created_at INTEGER NOT NULL, \
+         updated_at INTEGER NOT NULL)",
+    )
+    .await?;
+
+    exec_ddl(
+        &db,
+        is_pg,
+        "CREATE TABLE IF NOT EXISTS rl_policies (\
+         id TEXT NOT NULL PRIMARY KEY, \
+         name TEXT NOT NULL, \
+         policy_type TEXT NOT NULL, \
+         model_id TEXT NOT NULL, \
+         reward_signals_json TEXT NOT NULL, \
+         experiences_json TEXT NOT NULL, \
+         total_experiences INTEGER NOT NULL, \
+         episodes_completed INTEGER NOT NULL, \
+         avg_reward REAL NOT NULL, \
+         last_update TEXT NOT NULL, \
+         created_at TEXT NOT NULL)",
+    )
+    .await?;
+
+    // --- v005: Index jobs ---
+
+    exec_ddl(
+        &db,
+        is_pg,
+        "CREATE TABLE IF NOT EXISTS index_jobs (\
+         id TEXT NOT NULL PRIMARY KEY, \
+         job_type TEXT NOT NULL, \
+         container_type TEXT NOT NULL, \
+         container_id TEXT NOT NULL, \
+         item_id TEXT NOT NULL, \
+         status TEXT NOT NULL DEFAULT 'pending', \
+         current_stage TEXT, \
+         progress INTEGER NOT NULL DEFAULT 0, \
+         error_message TEXT, \
+         retry_count INTEGER NOT NULL DEFAULT 0, \
+         max_retries INTEGER NOT NULL DEFAULT 3, \
+         priority INTEGER NOT NULL DEFAULT 0, \
+         created_at INTEGER NOT NULL, \
+         started_at INTEGER, \
+         completed_at INTEGER, \
+         metadata TEXT)",
+    )
+    .await?;
+
+    // --- v006: Vec collections ---
+
+    exec_ddl(
+        &db,
+        is_pg,
+        "CREATE TABLE IF NOT EXISTS vec_collections (\
+         collection_id TEXT NOT NULL PRIMARY KEY, \
+         dimensions INTEGER NOT NULL, \
+         embedding_model TEXT, \
+         index_type TEXT NOT NULL DEFAULT 'flat', \
+         hnsw_ef_construction INTEGER, \
+         hnsw_m INTEGER, \
+         hnsw_ef_search INTEGER, \
+         vector_count INTEGER NOT NULL DEFAULT 0, \
+         created_at INTEGER NOT NULL, \
+         updated_at INTEGER NOT NULL, \
+         last_indexed_at INTEGER, \
+         metadata TEXT)",
+    )
+    .await?;
+
+    // --- v007: Dynamic UI schema versions ---
+
+    let create_versions_sql = if is_pg {
+        // PG: id → BIGSERIAL（v100 改用 BIGSERIAL 匹配 entity i64）
+        "CREATE TABLE IF NOT EXISTS dynamic_ui_schema_versions (\
+         id BIGSERIAL PRIMARY KEY, \
+         schema_id TEXT NOT NULL, \
+         version TEXT NOT NULL, \
+         title TEXT NOT NULL, \
+         description TEXT NOT NULL DEFAULT '', \
+         schema_json TEXT NOT NULL, \
+         category TEXT NOT NULL DEFAULT 'custom', \
+         tags TEXT NOT NULL DEFAULT '[]', \
+         change_log TEXT NOT NULL DEFAULT '', \
+         created_at BIGINT NOT NULL)"
     } else {
-        // PostgreSQL：FTS5 不可用，改用 tsvector 生成列（GENERATED ALWAYS AS
-        // STORED 随基表内容自动维护，无需 SQLite 那种触发器）。
-        for sql in &[
-            "ALTER TABLE messages ADD COLUMN IF NOT EXISTS content_tsv tsvector \
-             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content, ''))) STORED",
-            "CREATE INDEX IF NOT EXISTS idx_messages_content_tsv ON messages USING GIN (content_tsv)",
-            "ALTER TABLE trajectory_trajectories ADD COLUMN IF NOT EXISTS tsv tsvector \
-             GENERATED ALWAYS AS (to_tsvector('simple', \
-               COALESCE(topic,'')||' '||COALESCE(summary,'')||' '||COALESCE(outcome,'')||' '||COALESCE(patterns,''))) STORED",
-            "CREATE INDEX IF NOT EXISTS idx_traj_trajectories_tsv ON trajectory_trajectories USING GIN (tsv)",
-            "ALTER TABLE trajectory_memories ADD COLUMN IF NOT EXISTS tsv tsvector \
-             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content,'')||' '||COALESCE(tags,''))) STORED",
-            "CREATE INDEX IF NOT EXISTS idx_traj_memories_tsv ON trajectory_memories USING GIN (tsv)",
-            "ALTER TABLE trajectory_skills ADD COLUMN IF NOT EXISTS tsv tsvector \
-             GENERATED ALWAYS AS (to_tsvector('simple', \
-               COALESCE(name,'')||' '||COALESCE(description,'')||' '||COALESCE(content,'')||' '||COALESCE(category,'')||' '||COALESCE(tags,''))) STORED",
-            "CREATE INDEX IF NOT EXISTS idx_traj_skills_tsv ON trajectory_skills USING GIN (tsv)",
-            "ALTER TABLE trajectory_messages ADD COLUMN IF NOT EXISTS tsv tsvector \
-             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content,'')||' '||COALESCE(role,''))) STORED",
-            "CREATE INDEX IF NOT EXISTS idx_traj_messages_tsv ON trajectory_messages USING GIN (tsv)",
-        ] {
-            db.execute_unprepared(sql).await?;
+        // SQLite: id → BIGINT AUTOINCREMENT（匹配 entity i64）
+        "CREATE TABLE IF NOT EXISTS dynamic_ui_schema_versions (\
+         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \
+         schema_id TEXT NOT NULL, \
+         version TEXT NOT NULL, \
+         title TEXT NOT NULL, \
+         description TEXT NOT NULL DEFAULT '', \
+         schema_json TEXT NOT NULL, \
+         category TEXT NOT NULL DEFAULT 'custom', \
+         tags TEXT NOT NULL DEFAULT '[]', \
+         change_log TEXT NOT NULL DEFAULT '', \
+         created_at INTEGER NOT NULL)"
+    };
+    db.execute_unprepared(create_versions_sql).await?;
+
+    // --- v007: Add version column to dynamic_ui_schemas ---
+
+    let _ = db
+        .execute_unprepared(
+            "ALTER TABLE dynamic_ui_schemas ADD COLUMN version TEXT NOT NULL DEFAULT '1.0.0'",
+        )
+        .await;
+
+    // --- v009: Tool adaptation columns on providers ---
+
+    let _ = db.execute_unprepared("ALTER TABLE providers ADD COLUMN tool_adaptation TEXT").await;
+    let _ = db
+        .execute_unprepared("ALTER TABLE providers ADD COLUMN tool_adaptation_marker_prefix TEXT")
+        .await;
+
+    // ========================================================================
+    // PHASE 3: 综合 ALTER 通道（仅 PG）
+    //   对所有 entity 中 i64 但 PG 上仍是 INTEGER 的列执行 ALTER TYPE BIGINT。
+    //   幂等：只改 data_type = 'integer' 的列。
+    // ========================================================================
+
+    if is_pg {
+        let mut altered = 0usize;
+        let mut skipped = 0usize;
+        let mut missing = 0usize;
+
+        for (table, column) in ALTER_TARGETS {
+            let row = db
+                .query_one_raw(sea_orm::Statement::from_string(
+                    DbBackend::Postgres,
+                    format!(
+                        "SELECT data_type FROM information_schema.columns \
+                         WHERE table_schema = current_schema() \
+                           AND table_name = '{table}' AND column_name = '{column}'"
+                    ),
+                ))
+                .await?;
+
+            match row {
+                None => {
+                    missing += 1;
+                },
+                Some(r) => {
+                    let data_type: Option<String> = r.try_get_by("data_type").ok();
+                    match data_type.as_deref() {
+                        Some("integer") => {
+                            let sql = format!(
+                                "ALTER TABLE {table} \
+                                 ALTER COLUMN {column} TYPE BIGINT USING {column}::bigint"
+                            );
+                            db.execute_unprepared(&sql).await?;
+                            altered += 1;
+                        },
+                        _ => {
+                            skipped += 1;
+                        },
+                    }
+                },
+            }
         }
+
+        tracing::info!(
+            "[v100] ALTER pass done: {} ALTERed, {} skipped (already BIGINT or not INTEGER), {} missing (table/column not found)",
+            altered,
+            skipped,
+            missing
+        );
+    } else {
+        tracing::info!("[v100] SQLite: ALTER pass no-op");
     }
 
     // ========================================================================
-    // SECTION I: FTS5 Triggers（仅 SQLite；PG 的 tsvector 由 GENERATED 列自动维护）
+    // PHASE 4: 全部索引
     // ========================================================================
 
-    if !is_pg {
-        for sql in &[
-            "CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN \
-             INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
-            "CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN \
-             INSERT INTO messages_fts(messages_fts, rowid, content) \
-             VALUES('delete', old.rowid, old.content); END",
-            "CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE OF content ON messages BEGIN \
-             INSERT INTO messages_fts(messages_fts, rowid, content) \
-             VALUES('delete', old.rowid, old.content); \
-             INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
-        ] {
-            exec_ddl(&db, is_pg, sql).await?;
-        }
-    }
-
-    // ========================================================================
-    // SECTION J: v001 时期就有的索引（v001_initial 不补新索引——那是 v002 的事）
-    // ========================================================================
+    // --- v001 时期索引 ---
 
     for sql in &[
         "CREATE INDEX IF NOT EXISTS idx_conversations_memory_status ON conversations(memory_status)",
@@ -762,7 +1071,155 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE INDEX IF NOT EXISTS idx_traj_learned_type ON trajectory_learned_patterns(pattern_type)",
         "CREATE INDEX IF NOT EXISTS idx_traj_prefs_key ON trajectory_preferences(key)",
     ] {
-        exec_ddl(&db, is_pg, sql).await?;
+        db.execute_unprepared(sql).await?;
+    }
+
+    // --- v002 索引 ---
+
+    for sql in &[
+        "CREATE INDEX IF NOT EXISTS idx_messages_conv_created \
+         ON messages(conversation_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_conversations_updated \
+         ON conversations(updated_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_provider_keys_provider \
+         ON provider_keys(provider_id)",
+        "CREATE INDEX IF NOT EXISTS idx_gateway_usage_key \
+         ON gateway_usage(key_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_sessions_user \
+         ON agent_sessions(conversation_id, total_tokens DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_messages_branch \
+         ON messages(branch_id) WHERE branch_id IS NOT NULL",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    // --- v004 索引 ---
+
+    for sql in &[
+        "CREATE INDEX IF NOT EXISTS idx_dynamic_ui_schemas_category \
+         ON dynamic_ui_schemas (category)",
+        "CREATE INDEX IF NOT EXISTS idx_dynamic_ui_schemas_updated \
+         ON dynamic_ui_schemas (updated_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_dynamic_ui_form_data_schema \
+         ON dynamic_ui_form_data (schema_id)",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    // --- v005 索引 ---
+
+    for sql in &[
+        "CREATE INDEX IF NOT EXISTS idx_index_jobs_status \
+         ON index_jobs (status, priority DESC, created_at ASC)",
+        "CREATE INDEX IF NOT EXISTS idx_index_jobs_container \
+         ON index_jobs (container_type, container_id)",
+        "CREATE INDEX IF NOT EXISTS idx_index_jobs_item \
+         ON index_jobs (container_type, item_id)",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    // --- v006 索引 ---
+
+    for sql in &[
+        "CREATE INDEX IF NOT EXISTS idx_vec_collections_model \
+         ON vec_collections (embedding_model)",
+        "CREATE INDEX IF NOT EXISTS idx_vec_collections_updated \
+         ON vec_collections (updated_at DESC)",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    // --- v007 索引 ---
+
+    for sql in &[
+        "CREATE INDEX IF NOT EXISTS idx_dyn_ui_schema_versions_schema \
+         ON dynamic_ui_schema_versions (schema_id)",
+        "CREATE INDEX IF NOT EXISTS idx_dyn_ui_schema_versions_created \
+         ON dynamic_ui_schema_versions (schema_id, created_at DESC)",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    // --- v008 索引 ---
+
+    for sql in &[
+        "CREATE INDEX IF NOT EXISTS idx_credentials_name ON credentials (name)",
+        "CREATE INDEX IF NOT EXISTS idx_credentials_type ON credentials (credential_type)",
+        "CREATE INDEX IF NOT EXISTS idx_rl_policies_model ON rl_policies (model_id)",
+        "CREATE INDEX IF NOT EXISTS idx_rl_policies_type ON rl_policies (policy_type)",
+    ] {
+        db.execute_unprepared(sql).await?;
+    }
+
+    // ========================================================================
+    // PHASE 5: 全文检索
+    //   SQLite: FTS5 虚拟表
+    //   PostgreSQL: tsvector 生成列 + GIN 索引
+    // ========================================================================
+
+    if !is_pg {
+        for sql in &[
+            "CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(\
+                content, content=messages, content_rowid=rowid, tokenize='unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectories_fts USING fts5(\
+                id UNINDEXED, session_id UNINDEXED, topic, summary, content, \
+                outcome UNINDEXED, quality_score UNINDEXED, created_at UNINDEXED, \
+                tokenize='porter unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_memories_fts USING fts5(\
+                id UNINDEXED, memory_type UNINDEXED, content, entities, \
+                created_at UNINDEXED, tokenize='porter unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_skills_fts USING fts5(\
+                id UNINDEXED, name, description, content, category UNINDEXED, \
+                tags, created_at UNINDEXED, tokenize='porter unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_messages_fts USING fts5(\
+                id UNINDEXED, session_id UNINDEXED, role UNINDEXED, content, \
+                created_at UNINDEXED, tokenize='porter unicode61')",
+        ] {
+            db.execute_unprepared(sql).await?;
+        }
+    } else {
+        for sql in &[
+            "ALTER TABLE messages ADD COLUMN IF NOT EXISTS content_tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content, ''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_messages_content_tsv ON messages USING GIN (content_tsv)",
+            "ALTER TABLE trajectory_trajectories ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', \
+               COALESCE(topic,'')||' '||COALESCE(summary,'')||' '||COALESCE(outcome,'')||' '||COALESCE(patterns,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_trajectories_tsv ON trajectory_trajectories USING GIN (tsv)",
+            "ALTER TABLE trajectory_memories ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content,'')||' '||COALESCE(tags,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_memories_tsv ON trajectory_memories USING GIN (tsv)",
+            "ALTER TABLE trajectory_skills ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', \
+               COALESCE(name,'')||' '||COALESCE(description,'')||' '||COALESCE(content,'')||' '||COALESCE(category,'')||' '||COALESCE(tags,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_skills_tsv ON trajectory_skills USING GIN (tsv)",
+            "ALTER TABLE trajectory_messages ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content,'')||' '||COALESCE(role,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_messages_tsv ON trajectory_messages USING GIN (tsv)",
+        ] {
+            db.execute_unprepared(sql).await?;
+        }
+    }
+
+    // ========================================================================
+    // PHASE 6: FTS5 Triggers（仅 SQLite）
+    // ========================================================================
+
+    if !is_pg {
+        for sql in &[
+            "CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN \
+             INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
+            "CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN \
+             INSERT INTO messages_fts(messages_fts, rowid, content) \
+             VALUES('delete', old.rowid, old.content); END",
+            "CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE OF content ON messages BEGIN \
+             INSERT INTO messages_fts(messages_fts, rowid, content) \
+             VALUES('delete', old.rowid, old.content); \
+             INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
+        ] {
+            db.execute_unprepared(sql).await?;
+        }
     }
 
     Ok(())

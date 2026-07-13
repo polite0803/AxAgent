@@ -22,25 +22,17 @@
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
+// ============================================================================
+// v100 是合并后的唯一迁移。历史 v001–v011 已合并至此文件，旧文件已删除。
+// 所有未来变更直接加在 v100 上或创建新版本。
+// ============================================================================
+
 pub mod pg_ddl;
-pub mod v001_initial;
-pub mod v002_indices;
-pub mod v003_drop_dead_tables;
-pub mod v004_dynamic_ui;
-pub mod v005_index_queue;
-pub mod v006_vec_collections;
-pub mod v007_dynamic_ui_version;
-pub mod v008_credentials_and_rl_policies;
-pub mod v009_tool_adaptation;
-pub mod v010_stock_business_tables;
-pub mod v011_drop_node_results_snapshot;
-pub mod v012_news_archive_article_code_not_null;
-pub mod v013_stock_pipeline_runs;
-pub mod v014_pg_timestamp_int4_to_int8;
-pub mod v015_pg_business_int4_to_int8;
+pub mod v100_consolidated;
+pub mod v101_pg_int4_to_int8_axinvest;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 15;
+pub const CURRENT_VERSION: i32 = 101;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -68,79 +60,14 @@ struct Migration {
 
 const MIGRATIONS: &[Migration] = &[
     Migration {
-        version: 1,
-        description: "v001_initial: full DDL snapshot migrated from ddl.rs",
-        up: |db| Box::pin(v001_initial::up(db)),
+        version: 100,
+        description: "v100_consolidated: consolidated DDL snapshot (replaces v001-v011) with all INT4→INT8 fixes",
+        up: |db| Box::pin(v100_consolidated::up(db)),
     },
     Migration {
-        version: 2,
-        description: "v002_indices: add critical query indices",
-        up: |db| Box::pin(v002_indices::up(db)),
-    },
-    Migration {
-        version: 3,
-        description: "v003_drop_dead_tables: drop unused categories/apps/context_packs",
-        up: |db| Box::pin(v003_drop_dead_tables::up(db)),
-    },
-    Migration {
-        version: 4,
-        description: "v004_dynamic_ui: tables for standalone dynamic UI system",
-        up: |db| Box::pin(v004_dynamic_ui::up(db)),
-    },
-    Migration {
-        version: 5,
-        description: "v005_index_queue: persistent index job queue with retry/progress",
-        up: |db| Box::pin(v005_index_queue::up(db)),
-    },
-    Migration {
-        version: 6,
-        description: "v006_vec_collections: vector collection metadata registry",
-        up: |db| Box::pin(v006_vec_collections::up(db)),
-    },
-    Migration {
-        version: 7,
-        description: "v007_dynamic_ui_version: add version to dynamic_ui_schemas, create dynamic_ui_schema_versions table",
-        up: |db| Box::pin(v007_dynamic_ui_version::up(db)),
-    },
-    Migration {
-        version: 8,
-        description: "v008_credentials_and_rl_policies: create credentials and rl_policies tables",
-        up: |db| Box::pin(v008_credentials_and_rl_policies::up(db)),
-    },
-    Migration {
-        version: 9,
-        description: "v009_tool_adaptation: add tool_adaptation column to providers table",
-        up: |db| Box::pin(v009_tool_adaptation::up(db)),
-    },
-    Migration {
-        version: 10,
-        description: "v010_stock_business_tables: create all AxInvest stock business tables (22 tables merged from orphaned migrations v004-v011)",
-        up: |db| Box::pin(v010_stock_business_tables::up(db)),
-    },
-    Migration {
-        version: 11,
-        description: "v011_drop_node_results_snapshot: drop dead column stock_analyses.node_results_snapshot (never written, rerun_decision_only cache never implemented)",
-        up: |db| Box::pin(v011_drop_node_results_snapshot::up(db)),
-    },
-    Migration {
-        version: 12,
-        description: "v012_news_archive_article_code_not_null: make news_archive.article_code NOT NULL to fix UNIQUE(source, article_code) ineffectiveness on NULL",
-        up: |db| Box::pin(v012_news_archive_article_code_not_null::up(db)),
-    },
-    Migration {
-        version: 13,
-        description: "v013_stock_pipeline_runs: create stock_pipeline_runs table for pipeline execution history",
-        up: |db| Box::pin(v013_stock_pipeline_runs::up(db)),
-    },
-    Migration {
-        version: 14,
-        description: "v014_pg_timestamp_int4_to_int8: ALTER timestamp columns from INT4 to INT8 on PostgreSQL (matching SeaORM i64 entity)",
-        up: |db| Box::pin(v014_pg_timestamp_int4_to_int8::up(db)),
-    },
-    Migration {
-        version: 15,
-        description: "v015_pg_business_int4_to_int8: ALTER max_tokens/thinking_budget from INT4 to INT8 on PostgreSQL",
-        up: |db| Box::pin(v015_pg_business_int4_to_int8::up(db)),
+        version: 101,
+        description: "v101_pg_int4_to_int8_axinvest: AxInvest-targeted INT4→INT8 fix for timestamps + max_tokens/thinking_budget (merged from v014/v015)",
+        up: |db| Box::pin(v101_pg_int4_to_int8_axinvest::up(db)),
     },
 ];
 
@@ -292,7 +219,7 @@ mod tests {
             .await
             .unwrap()
             .expect("count row");
-        let cnt: i32 = count_row.try_get_by("cnt").unwrap();
+        let cnt: i32 = cnt_row.try_get_by("cnt").unwrap();
         assert_eq!(
             cnt, CURRENT_VERSION,
             "schema_version should have exactly {} rows",
@@ -327,13 +254,13 @@ mod tests {
         }
     }
 
-    /// v001 中 v001_initial 的 `up` 也应单独 idempotent：单独跑
+    /// v100 consolidated 的 `up` 也应单独 idempotent：单独跑
     /// 一次，重复跑不报错（所有 CREATE 都用 IF NOT EXISTS）。
     #[tokio::test]
-    async fn v001_is_self_idempotent() {
+    async fn v100_is_self_idempotent() {
         let db = Database::connect("sqlite::memory:").await.unwrap();
-        // 不走 run_migrations，直接跑 v001
-        v001_initial::up(db.clone()).await.unwrap();
-        v001_initial::up(db).await.expect("v001 must be re-runnable in isolation");
+        // 不走 run_migrations，直接跑 v100
+        v100_consolidated::up(db.clone()).await.unwrap();
+        v100_consolidated::up(db).await.expect("v100 must be re-runnable in isolation");
     }
 }
