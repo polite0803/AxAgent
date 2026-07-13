@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr};
+
+use super::pg_ddl::exec_ddl;
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
-    db.execute_unprepared(
+    let is_pg = db.get_database_backend() == DbBackend::Postgres;
+
+    // 走 exec_ddl：PG 下经 pg_ddl() 把 INTEGER 时间戳列转 BIGINT
+    exec_ddl(
+        &db,
+        is_pg,
         "CREATE TABLE IF NOT EXISTS vec_collections (\
          collection_id TEXT NOT NULL PRIMARY KEY, \
          dimensions INTEGER NOT NULL, \

@@ -1316,6 +1316,9 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "searchPlaceholder": "Einstellungen durchsuchen...",
+    "searchResults": "{{count}} Ergebnisse",
+    "searchNoResults": "Keine passenden Einstellungen gefunden",
     "providers": "Anbieterverwaltung",
     "conversationSettings": "Gespräch",
     "defaultModel": "Standardmodell",
@@ -1760,7 +1763,19 @@
       "addSource": "Datenquelle hinzufügen",
       "loadToWiki": "In Wiki laden",
       "ragTab": "RAG-Wissensdatenbank",
-      "wikiTab": "Wiki"
+      "wikiTab": "Wiki",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "Erweiterte Abrufeinstellungen",
@@ -6823,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "Raw umschalten",
@@ -7916,69 +7933,6 @@
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
       "executionMode": "Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "LIVE",
-      "replay": "Replay {{date}}",
-      "sweep": "Sweep-Backtest",
-      "tooltipLive": "Klicken Sie hier, um in den Replay-Modus zu wechseln (Analyse zu einem vergangenen Datum)",
-      "tooltipReplay": "Klicken Sie hier, um zum Live-Modus zurückzukehren",
-      "confirmTitle": "Zurück zum Live-Modus?",
-      "confirmBody": "Der Live-Modus verwendet Echtzeitdaten und zuvor gezogene Schlussfolgerungen können durch neue Informationen bereits widerlegt sein. Der Replay-Modus schließt die Welt zu einem gewählten vergangenen Datum, um Look-Ahead-Bias zu vermeiden.",
-      "confirmOk": "Zu Live wechseln",
-      "confirmCancel": "Im Replay bleiben",
-      "currentlyInReplay": "Replay läuft mit Anker {{date}}.",
-      "enteredReplay": "Replay-Modus aktiviert: {{date}}",
-      "switchedToLive": "Zu Live-Modus gewechselt"
-    },
-    "datePicker": {
-      "hint": "Wählen Sie einen vergangenen Handelstag. Heute und zukünftige Daten sind deaktiviert (Closed-World-Annahme).",
-      "placeholder": "As-of-Datum wählen",
-      "ok": "Replay starten",
-      "cancel": "Abbrechen"
-    },
-    "pageAnchor": {
-      "live": "Live",
-      "replay": "Replay",
-      "untilDate": "Stand {{date}}"
-    },
-    "replayBadge": {
-      "label": "Replay · {{date}}",
-      "tooltip": "Alle Daten, Prompts und Urteile in dieser Ansicht sind auf {{date}} verankert. Nicht für den Live-Handel verwenden.",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "Stand {{date}}"
-    },
-    "tour": {
-      "title": "Zeitreise-Modus ist verfügbar",
-      "body": "Verankern Sie alle Analysen und Empfehlungen auf einem vergangenen Handelstag, um Strategien sicher ohne Look-Ahead-Bias zu backtesten. Das System lehnt zukünftige Daten ab und Zeitstempel-Verstöße werden in der Zeitleiste hervorgehoben.",
-      "gotIt": "Verstanden",
-      "stepAnchor": "Klicken Sie jederzeit auf die LIVE-Pille, um in den Replay-Modus zu wechseln."
-    },
-    "violations": {
-      "chip": "⚠ {{n}} Verstoß",
-      "chip_plural": "⚠ {{n}} Verstöße",
-      "chipAria": "{{n}} Zukunfts-Verstoß(-Verstöße) auf diesem Knoten",
-      "tooltip": "Die Ausgabe dieses Knotens erwähnt Daten nach dem As-of-Anker. Behandeln Sie die Schlussfolgerung als nicht vertrauenswürdig.",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "Replay-Modus aktiv. Auswahl, Preise und Einstiegsbereiche sind auf {{date}} verankert. Nicht für den Live-Handel verwenden.",
-    "backtestHint": "Diese Statistiken aggregieren alle abgeschlossenen Analysen (Live + Replay) zum Stand {{date}}. Verwenden Sie die Replay-Werkbank, um nach Modus zu filtern.",
-    "degradedStyles": {
-      "title": "Datenquellen unter as-of-Kürzung degradiert",
-      "description": "Folgende Datenstile sind in der Treue reduziert, da das as-of-Datum {{date}} die für das volle Signal benötigte Historie abschneidet.",
-      "reason": "Grund: {{reason}}",
-      "hint": "Ein degradiertes Ergebnis ist kein falsches Ergebnis; es ist weniger informativ. Behandeln Sie seine Konfidenz niedriger als bei nicht-degradierten Stilen.",
-      "vendor": "Anbieter: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "Heruntergestuft · Einige Daten ohne Verlauf",
-      "labelWithCount": "Heruntergestuft · {{n}} Elemente",
-      "tooltip": "Im Replay-Modus haben Geldfluss/Marge/Nordbound-Bestand etc. keine historische Bedeutung und wurden übersprungen."
     }
   },
   "replayWorkbench": {

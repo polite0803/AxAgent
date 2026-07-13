@@ -140,7 +140,7 @@ export function DisplaySettings() {
   return (
     <div className="p-6 pb-12">
       <SettingsGroup title={t("settings.groupTheme")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="display:themeMode">
           <span>{t("settings.theme.label")}</span>
           <Segmented
             data-testid="dark-mode-toggle"
@@ -166,7 +166,10 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ ...rowStyle, display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 8 }}>
+        <div
+          style={{ ...rowStyle, display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 8 }}
+          data-search-key="display:themePreset"
+        >
           <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {THEME_PRESETS.map((preset) => {
@@ -237,7 +240,7 @@ export function DisplaySettings() {
           </div>
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="display:primaryColor">
           <span>{t("settings.primaryColor")}</span>
           <div
             style={{
@@ -296,7 +299,7 @@ export function DisplaySettings() {
         </div>
       </SettingsGroup>
       <SettingsGroup title={t("settings.groupFontRadius")}>
-        <div style={{ padding: "4px 0" }}>
+        <div style={{ padding: "4px 0" }} data-search-key="display:fontSize">
           <span>{t("settings.fontSize")}</span>
           <Slider
             min={12}
@@ -307,7 +310,7 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ padding: "4px 0" }}>
+        <div style={{ padding: "4px 0" }} data-search-key="display:fontWeight">
           <span>{t("settings.fontWeight")}</span>
           <Slider
             min={100}
@@ -326,7 +329,7 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="display:fontFamily">
           <span>{t("settings.fontFamily")}</span>
           <SettingsSelect
             searchable
@@ -339,7 +342,7 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="display:codeFontFamily">
           <span>{t("settings.codeFontFamily")}</span>
           <SettingsSelect
             searchable
@@ -352,7 +355,7 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="display:codeThemeLight">
           <span>{t("settings.codeThemeLight")}</span>
           <SettingsSelect
             searchable
@@ -362,7 +365,7 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="display:codeThemeDark">
           <span>{t("settings.codeThemeDark")}</span>
           <SettingsSelect
             searchable
@@ -372,7 +375,7 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ padding: "4px 0" }}>
+        <div style={{ padding: "4px 0" }} data-search-key="display:borderRadius">
           <span>{t("settings.borderRadius")}</span>
           <Slider
             min={0}

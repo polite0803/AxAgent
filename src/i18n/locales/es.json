@@ -1316,6 +1316,9 @@
   },
   "settings": {
     "title": "Configuración",
+    "searchPlaceholder": "Buscar ajustes...",
+    "searchResults": "{{count}} resultados",
+    "searchNoResults": "No se encontraron ajustes coincidentes",
     "providers": "Gestión de proveedores",
     "conversationSettings": "Conversación",
     "defaultModel": "Modelo predeterminado",
@@ -1760,7 +1763,19 @@
       "addSource": "Añadir fuente de datos",
       "loadToWiki": "Cargar a Wiki",
       "ragTab": "RAG",
-      "wikiTab": "Wiki"
+      "wikiTab": "Wiki",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "Configuración de recuperación avanzada",
@@ -6823,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "Alternar Raw",
@@ -7916,69 +7933,6 @@
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
       "executionMode": "Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "EN VIVO",
-      "replay": "Replay {{date}}",
-      "sweep": "Backtest por lotes",
-      "tooltipLive": "Haga clic para entrar en modo Replay (analizar a una fecha pasada)",
-      "tooltipReplay": "Haga clic para volver al modo En vivo",
-      "confirmTitle": "¿Volver al modo En vivo?",
-      "confirmBody": "El modo En vivo usa datos en tiempo real y las conclusiones anteriores pueden haber sido invalidadas por nueva información. El modo Replay cierra el mundo en una fecha pasada elegida para evitar el sesgo de look-ahead.",
-      "confirmOk": "Cambiar a En vivo",
-      "confirmCancel": "Permanecer en Replay",
-      "currentlyInReplay": "Reproduciendo al {{date}}.",
-      "enteredReplay": "Modo Replay activado: {{date}}",
-      "switchedToLive": "Cambiado al modo En vivo"
-    },
-    "datePicker": {
-      "hint": "Elija un día de cotización pasado. Hoy y fechas futuras están deshabilitados (supuesto de mundo cerrado).",
-      "placeholder": "Seleccionar fecha de referencia",
-      "ok": "Iniciar Replay",
-      "cancel": "Cancelar"
-    },
-    "pageAnchor": {
-      "live": "En vivo",
-      "replay": "Replay",
-      "untilDate": "al {{date}}"
-    },
-    "replayBadge": {
-      "label": "Replay · {{date}}",
-      "tooltip": "Todos los datos, prompts y veredictos de esta vista están anclados al {{date}}. No usar para trading en vivo.",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "al {{date}}"
-    },
-    "tour": {
-      "title": "El modo Viaje en el tiempo está disponible",
-      "body": "Ancle todos los análisis y recomendaciones a un día de cotización pasado para backtestear estrategias de forma segura, sin sesgo de look-ahead. El sistema rechazará fechas futuras y las violaciones de marca temporal se resaltarán en la línea de tiempo.",
-      "gotIt": "Entendido",
-      "stepAnchor": "Haga clic en la píldora EN VIVO en cualquier momento para entrar al modo Replay."
-    },
-    "violations": {
-      "chip": "⚠ {{n}} violación",
-      "chip_plural": "⚠ {{n}} violaciones",
-      "chipAria": "{{n}} violación(es) de referencia futura en este nodo",
-      "tooltip": "La salida de este nodo menciona fechas posteriores al ancla as-of. Trate su conclusión como no confiable.",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "Modo Replay activo. Las selecciones, precios y bandas de entrada están ancladas al {{date}}. No usar para trading en vivo.",
-    "backtestHint": "Estas estadísticas agregan todos los análisis completados (en vivo + replay) al {{date}}. Use el Banco de Trabajo Replay para filtrar por modo.",
-    "degradedStyles": {
-      "title": "Fuentes de datos degradadas bajo truncamiento as-of",
-      "description": "Los siguientes estilos de datos se redujeron en fidelidad porque la fecha as-of {{date}} corta el historial necesario para la señal completa.",
-      "reason": "Motivo: {{reason}}",
-      "hint": "Un resultado degradado no es un resultado incorrecto; es menos informativo. Trate su confianza como inferior a la de los estilos no degradados.",
-      "vendor": "proveedor: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "Degradado · Algunos datos sin historial",
-      "labelWithCount": "Degradado · {{n}} elementos",
-      "tooltip": "En modo replay, flujo de dinero/margen/tenencia norte-bound etc. no tienen semántica histórica y se omitieron."
     }
   },
   "replayWorkbench": {

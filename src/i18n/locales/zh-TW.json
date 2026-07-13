@@ -1316,6 +1316,9 @@
   },
   "settings": {
     "title": "設定",
+    "searchPlaceholder": "搜尋設定項目...",
+    "searchResults": "{{count}} 個結果",
+    "searchNoResults": "未找到相關設定",
     "providers": "供應商管理",
     "conversationSettings": "對話設定",
     "defaultModel": "預設模型",
@@ -1818,7 +1821,19 @@
       "addSource": "添加數據源",
       "loadToWiki": "加載到Wiki",
       "ragTab": "知識庫 RAG",
-      "wikiTab": "知識庫"
+      "wikiTab": "知識庫",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "高級檢索設置",
@@ -6823,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "切換原始",
@@ -7916,69 +7933,6 @@
       "lowAgreementHint": "雙視角存在分歧",
       "llmMissingHint": "一致性評分 {{score}}/100",
       "executionMode": "[TODO] Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "即時",
-      "replay": "回放 {{date}}",
-      "sweep": "批次回測",
-      "tooltipLive": "點擊進入回放模式（按過去某日分析）",
-      "tooltipReplay": "點擊切回即時模式",
-      "confirmTitle": "確認切回即時模式？",
-      "confirmBody": "即時模式使用最新行情，此前得出的結論可能已被新資訊推翻。回放模式把世界封在選定的過去某日，可避免前視偏差。",
-      "confirmOk": "切到即時",
-      "confirmCancel": "保持在回放",
-      "currentlyInReplay": "當前正以 {{date}} 為錨點回放。",
-      "enteredReplay": "已進入回放模式：{{date}}",
-      "switchedToLive": "已切到即時模式"
-    },
-    "datePicker": {
-      "hint": "請選擇過去的交易日。今天及未來日期被禁用（封閉世界假設）。",
-      "placeholder": "選擇截止日期",
-      "ok": "進入回放",
-      "cancel": "取消"
-    },
-    "pageAnchor": {
-      "live": "即時",
-      "replay": "回放",
-      "untilDate": "截至 {{date}}"
-    },
-    "replayBadge": {
-      "label": "回放 · {{date}}",
-      "tooltip": "此視圖中的所有資料、提示詞與結論都以 {{date}} 為錨點。不可用於實盤交易。",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "截至 {{date}}"
-    },
-    "tour": {
-      "title": "時間旅行模式已上線",
-      "body": "把分析和薦股都錨定到過去的某一日，可以安全地回測策略、避免前視偏差。系統會拒絕未來日期，違反時間約束的輸出會在時間線上高亮。",
-      "gotIt": "知道了",
-      "stepAnchor": "隨時點擊「即時」膠囊進入回放模式。"
-    },
-    "violations": {
-      "chip": "⚠ {{n}} 處違規",
-      "chip_plural": "⚠ {{n}} 處違規",
-      "chipAria": "本節點有 {{n}} 處未來日期引用違規",
-      "tooltip": "本節點輸出提及了 as-of 錨點之後的日期。結論應視為不可信。",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "回放模式：薦股基於截至 {{date}} 的資料，今日及之後的行情不參與排序。",
-    "backtestHint": "回放模式：以下統計僅彙總 as-of 錨點 = {{date}} 的歷史回放。",
-    "degradedStyles": {
-      "title": "as-of 截斷導致的資料降級",
-      "description": "以下資料風格因 as-of 截止日 {{date}} 截斷了所需的全部歷史,在回放模式下以低可信度輸出。",
-      "reason": "原因: {{reason}}",
-      "hint": "降級不等於錯誤,只是資訊量變少,請低於非降級風格的可信度處理。",
-      "vendor": "資料源: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "已降級 · 部分資料無歷史",
-      "labelWithCount": "已降級 · {{n}} 項",
-      "tooltip": "回放模式下資金流向/融資融券/北向持倉等資料無歷史語意,已被跳過。詳見推薦面板的降級提示。"
     }
   },
   "replayWorkbench": {

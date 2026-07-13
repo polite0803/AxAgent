@@ -296,7 +296,7 @@ function GeneralTab() {
   return (
     <div className="p-6 pb-12">
       <SettingsGroup title={t("settings.agent.agentConfig")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="agent:maxIterations">
           <span className="flex items-center gap-2">
             <Gauge size={14} /> {t("settings.agent.maxIterations")}
           </span>
@@ -313,7 +313,7 @@ function GeneralTab() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.agent.permissionControl")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="agent:permissionMode">
           <span className="flex items-center gap-2">
             <Shield size={14} /> {t("settings.agent.permissionMode")}
           </span>
@@ -382,6 +382,7 @@ function FeaturesTab() {
             <div
               style={{ padding: "8px 0" }}
               className="flex items-center justify-between"
+              data-search-key={`agent:${item.key}`}
             >
               <div className="flex flex-col" style={{ flex: 1 }}>
                 <span

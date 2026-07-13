@@ -13,7 +13,7 @@
 //! - code: 24 hours
 //! - complex: 1 hour
 
-use sea_orm::{ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use sha2::{Digest, Sha256};
 
 // ─── Config ───
@@ -48,6 +48,13 @@ pub struct CacheStats {
     pub total_hits: usize,
 }
 
+// ─── Backend-aware helpers ───
+
+/// 获取当前数据库后端。
+fn backend_tag(db: &DatabaseConnection) -> DbBackend {
+    db.get_database_backend()
+}
+
 // ─── SemanticCache ───
 
 pub struct SemanticCache {
@@ -58,34 +65,62 @@ pub struct SemanticCache {
 impl SemanticCache {
     /// Create a new semantic cache backed by the application database.
     pub async fn new(db: DatabaseConnection, config: CacheConfig) -> Result<Self, String> {
-        // Create cache table if not exists
-        let create_sql = "
-            CREATE TABLE IF NOT EXISTS semantic_cache (
-                id TEXT PRIMARY KEY,
-                prompt_hash TEXT NOT NULL,
-                response TEXT NOT NULL,
-                model_id TEXT,
-                token_count INTEGER DEFAULT 0,
-                task_type TEXT DEFAULT 'moderate',
-                ttl_secs INTEGER NOT NULL,
-                created_at INTEGER NOT NULL,
-                hit_count INTEGER DEFAULT 0
-            );
-            CREATE INDEX IF NOT EXISTS idx_semantic_cache_hash ON semantic_cache(prompt_hash);
-            CREATE INDEX IF NOT EXISTS idx_semantic_cache_created ON semantic_cache(created_at);
-        ";
+        let be = backend_tag(&db);
+        Self::create_table(&db, be).await?;
+        tracing::info!(
+            "Semantic cache initialized (max_entries={}, default_ttl={}s, backend={:?})",
+            config.max_entries,
+            config.default_ttl_secs,
+            be,
+        );
+        Ok(Self { db, config })
+    }
 
-        db.execute_raw(Statement::from_string(DatabaseBackend::Sqlite, create_sql.to_string()))
+    /// 创建缓存表 + 索引。每条 SQL 单独执行（PG 不支持 `execute_raw` 多语句）。
+    async fn create_table(db: &DatabaseConnection, be: DbBackend) -> Result<(), String> {
+        let create_table = if be == DbBackend::Postgres {
+            // PG 用 BIGINT 匹配 entity i64；主键用 TEXT 保持与 SQLite 一致
+            "CREATE TABLE IF NOT EXISTS semantic_cache (\
+             id TEXT PRIMARY KEY, \
+             prompt_hash TEXT NOT NULL, \
+             response TEXT NOT NULL, \
+             model_id TEXT, \
+             token_count BIGINT DEFAULT 0, \
+             task_type TEXT DEFAULT 'moderate', \
+             ttl_secs BIGINT NOT NULL, \
+             created_at BIGINT NOT NULL, \
+             hit_count BIGINT DEFAULT 0)"
+        } else {
+            "CREATE TABLE IF NOT EXISTS semantic_cache (\
+             id TEXT PRIMARY KEY, \
+             prompt_hash TEXT NOT NULL, \
+             response TEXT NOT NULL, \
+             model_id TEXT, \
+             token_count INTEGER DEFAULT 0, \
+             task_type TEXT DEFAULT 'moderate', \
+             ttl_secs INTEGER NOT NULL, \
+             created_at INTEGER NOT NULL, \
+             hit_count INTEGER DEFAULT 0)"
+        };
+
+        db.execute_unprepared(create_table)
             .await
             .map_err(|e| format!("Failed to create cache table: {}", e))?;
 
-        tracing::info!(
-            "Semantic cache initialized (max_entries={}, default_ttl={}s)",
-            config.max_entries,
-            config.default_ttl_secs,
-        );
+        // 索引分开执行
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_semantic_cache_hash ON semantic_cache(prompt_hash)",
+        )
+        .await
+        .map_err(|e| format!("Failed to create hash index: {}", e))?;
 
-        Ok(Self { db, config })
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_semantic_cache_created ON semantic_cache(created_at)",
+        )
+        .await
+        .map_err(|e| format!("Failed to create created_at index: {}", e))?;
+
+        Ok(())
     }
 
     /// Normalize a prompt for consistent hashing.
@@ -127,14 +162,22 @@ impl SemanticCache {
             .unwrap_or_default()
             .as_secs() as i64;
 
+        let be = backend_tag(&self.db);
         let result = self
             .db
             .query_one_raw(Statement::from_sql_and_values(
-                DatabaseBackend::Sqlite,
-                "SELECT id, response, model_id, token_count, hit_count \
-                 FROM semantic_cache \
-                 WHERE prompt_hash = ?1 AND model_id IS NOT DISTINCT FROM ?2 AND (created_at + ttl_secs) > ?3 \
-                 LIMIT 1",
+                be,
+                if be == DbBackend::Postgres {
+                    "SELECT id, response, model_id, token_count, hit_count \
+                     FROM semantic_cache \
+                     WHERE prompt_hash = $1 AND model_id IS NOT DISTINCT FROM $2 AND (created_at + ttl_secs) > $3 \
+                     LIMIT 1"
+                } else {
+                    "SELECT id, response, model_id, token_count, hit_count \
+                     FROM semantic_cache \
+                     WHERE prompt_hash = ?1 AND model_id IS NOT DISTINCT FROM ?2 AND (created_at + ttl_secs) > ?3 \
+                     LIMIT 1"
+                },
                 vec![hash.clone().into(), model_id.map(|s| s.to_string()).into(), now.into()],
             ))
             .await
@@ -153,8 +196,8 @@ impl SemanticCache {
             let _ = self
                 .db
                 .execute_raw(Statement::from_sql_and_values(
-                    DatabaseBackend::Sqlite,
-                    "UPDATE semantic_cache SET hit_count = hit_count + 1 WHERE id = ?1",
+                    be,
+                    "UPDATE semantic_cache SET hit_count = hit_count + 1 WHERE id = $1",
                     vec![entry.id.clone().into()],
                 ))
                 .await;
@@ -185,33 +228,57 @@ impl SemanticCache {
             .unwrap_or_default()
             .as_secs() as i64;
 
-        self.db
-            .execute_raw(Statement::from_sql_and_values(
-                DatabaseBackend::Sqlite,
-                "INSERT OR REPLACE INTO semantic_cache \
-                 (id, prompt_hash, response, model_id, token_count, task_type, ttl_secs, created_at, hit_count) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)",
-                vec![
-                    hash.clone().into(),
-                    hash.clone().into(),
-                    response.to_string().into(),
-                    model_id.map(|s| s.to_string()).into(),
-                    token_count.into(),
-                    task_type.to_string().into(),
-                    ttl.into(),
-                    now.into(),
-                ],
-            ))
-            .await
-            .map_err(|e| format!("Insert error: {}", e))?;
+        let be = backend_tag(&self.db);
+        if be == DbBackend::Postgres {
+            self.db
+                .execute_raw(Statement::from_sql_and_values(
+                    be,
+                    "INSERT INTO semantic_cache \
+                     (id, prompt_hash, response, model_id, token_count, task_type, ttl_secs, created_at, hit_count) \
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0) \
+                     ON CONFLICT (id) DO UPDATE SET \
+                     response = EXCLUDED.response, token_count = EXCLUDED.token_count, \
+                     task_type = EXCLUDED.task_type, ttl_secs = EXCLUDED.ttl_secs, \
+                     created_at = EXCLUDED.created_at",
+                    vec![
+                        hash.clone().into(),
+                        hash.clone().into(),
+                        response.to_string().into(),
+                        model_id.map(|s| s.to_string()).into(),
+                        token_count.into(),
+                        task_type.to_string().into(),
+                        ttl.into(),
+                        now.into(),
+                    ],
+                ))
+                .await
+                .map_err(|e| format!("Insert error: {}", e))?;
+        } else {
+            self.db
+                .execute_raw(Statement::from_sql_and_values(
+                    be,
+                    "INSERT OR REPLACE INTO semantic_cache \
+                     (id, prompt_hash, response, model_id, token_count, task_type, ttl_secs, created_at, hit_count) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)",
+                    vec![
+                        hash.clone().into(),
+                        hash.clone().into(),
+                        response.to_string().into(),
+                        model_id.map(|s| s.to_string()).into(),
+                        token_count.into(),
+                        task_type.to_string().into(),
+                        ttl.into(),
+                        now.into(),
+                    ],
+                ))
+                .await
+                .map_err(|e| format!("Insert error: {}", e))?;
+        }
 
         // Evict oldest entries if over limit
         let count: Option<i64> = self
             .db
-            .query_one_raw(Statement::from_string(
-                DatabaseBackend::Sqlite,
-                "SELECT COUNT(*) FROM semantic_cache".to_string(),
-            ))
+            .query_one_raw(Statement::from_string(be, "SELECT COUNT(*) FROM semantic_cache"))
             .await
             .ok()
             .flatten()
@@ -223,9 +290,9 @@ impl SemanticCache {
                 let _ = self
                     .db
                     .execute_raw(Statement::from_sql_and_values(
-                        DatabaseBackend::Sqlite,
+                        be,
                         "DELETE FROM semantic_cache WHERE id IN (\
-                         SELECT id FROM semantic_cache ORDER BY created_at ASC LIMIT ?1)",
+                         SELECT id FROM semantic_cache ORDER BY created_at ASC LIMIT $1)",
                         vec![excess.into()],
                     ))
                     .await;
@@ -255,12 +322,11 @@ impl SemanticCache {
             .unwrap_or_default()
             .as_secs() as i64;
 
+        let be = backend_tag(&self.db);
+
         let total: i64 = self
             .db
-            .query_one_raw(Statement::from_string(
-                DatabaseBackend::Sqlite,
-                "SELECT COUNT(*) FROM semantic_cache".to_string(),
-            ))
+            .query_one_raw(Statement::from_string(be, "SELECT COUNT(*) FROM semantic_cache"))
             .await
             .ok()
             .flatten()
@@ -270,8 +336,12 @@ impl SemanticCache {
         let active: i64 = self
             .db
             .query_one_raw(Statement::from_sql_and_values(
-                DatabaseBackend::Sqlite,
-                "SELECT COUNT(*) FROM semantic_cache WHERE (created_at + ttl_secs) > ?1",
+                be,
+                if be == DbBackend::Postgres {
+                    "SELECT COUNT(*) FROM semantic_cache WHERE (created_at + ttl_secs) > $1"
+                } else {
+                    "SELECT COUNT(*) FROM semantic_cache WHERE (created_at + ttl_secs) > ?1"
+                },
                 vec![now.into()],
             ))
             .await
@@ -283,8 +353,8 @@ impl SemanticCache {
         let total_hits: i64 = self
             .db
             .query_one_raw(Statement::from_string(
-                DatabaseBackend::Sqlite,
-                "SELECT COALESCE(SUM(hit_count), 0) FROM semantic_cache".to_string(),
+                be,
+                "SELECT COALESCE(SUM(hit_count), 0) FROM semantic_cache",
             ))
             .await
             .ok()

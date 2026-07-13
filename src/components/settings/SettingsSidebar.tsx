@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { Input } from "antd";
 import {
   Bell,
   Bot,
@@ -36,6 +37,7 @@ import { useNavigate } from "react-router-dom";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
+import { SETTINGS_SEARCH_INDEX } from "./settingsSearchIndex";
 
 // 菜单图标 — 不设 color, 由 CSS .st-item / .st-item.active 通过 currentColor 控制
 const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
@@ -70,7 +72,36 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   imageGen: <Image size={14} />,
   cron: <Timer size={14} />,
   dynamicPages: <LayoutDashboard size={14} />,
+  localTools: <Wrench size={14} />,
+  mcpServers: <Network size={14} />,
 };
+
+/**
+ * 解析设置项 i18n key，回退到「去掉中间段」的平铺形式。
+ *
+ * zh-CN.json 中 `settings` 命名空间是混合结构：部分板块（`general`/`shortcuts`/
+ * `scheduler` 等）是 nested object，其他（`conversation`/`advanced`/`display`/`proxy`/
+ * `acp`/`appConfig`/`about`）是 string 或缺失，但它们的具体设置项以**平铺 key**
+ * 形式存储在 `settings` 顶层（如 `settings.multiModelDisplayMode`）。
+ *
+ * 因此对于 `settings.conversation.multiModelDisplayMode` 这种"看起来嵌套"的 key，
+ * 必须把去掉中间段后的 `settings.multiModelDisplayMode` 加入回退链，否则会
+ * 原样返回完整 key（截图 bug）。
+ */
+function resolveSettingsLabel(
+  t: (key: string | string[]) => string,
+  primary: string,
+  extraFallbacks: string[] = [],
+): string {
+  const fallbacks: string[] = [primary];
+  const parts = primary.split(".");
+  // 形如 "settings.<section>.<item>" → 去掉中间段 = "settings.<item>"
+  if (parts.length >= 3 && parts[0] === "settings") {
+    fallbacks.push(`settings.${parts[parts.length - 1]}`);
+  }
+  fallbacks.push(...extraFallbacks);
+  return t(fallbacks);
+}
 
 const TAB_GROUPS: Record<string, SettingsSection[]> = {
   model: [
@@ -165,6 +196,93 @@ export function SettingsSidebar() {
     return groups;
   }, [t, skillItems]);
 
+  // === 设置搜索（板块级 + 项级，Phase 1 + 2）===
+  // 合并「静态索引板块」、「索引内项级条目」、「技能动态注入板块」作为可搜索全集。
+  const [query, setQuery] = useState("");
+
+  interface SearchResult {
+    kind: "section" | "item";
+    key: string;
+    icon: React.ReactNode;
+    label: string;
+    /** 副标题 — 仅项级结果显示（父板块名） */
+    subLabel?: string;
+    keywords: string[];
+    /** 点击目标板块（项级结果 = 父 section，板块级结果 = 自身 section） */
+    targetSection: string;
+    /** 项级结果 → 高亮 itemKey */
+    itemKey?: string;
+  }
+
+  const allSearchable = useMemo(() => {
+    const results: SearchResult[] = [];
+    // 板块级
+    for (const entry of SETTINGS_SEARCH_INDEX) {
+      results.push({
+        kind: "section",
+        key: entry.section,
+        icon: MENU_ICONS[entry.section],
+        label: t([`settings.${entry.section}.title`, `settings.${entry.section}`]),
+        keywords: entry.keywords,
+        targetSection: entry.section,
+      });
+      // 项级
+      for (const item of entry.items ?? []) {
+        results.push({
+          kind: "item",
+          key: `${entry.section}:${item.itemKey}`,
+          icon: MENU_ICONS[entry.section],
+          label: resolveSettingsLabel(t, item.labelKey),
+          subLabel: resolveSettingsLabel(t, `settings.${entry.section}.title`, [
+            `settings.${entry.section}`,
+          ]),
+          keywords: item.keywords,
+          targetSection: entry.section,
+          itemKey: item.itemKey,
+        });
+      }
+    }
+    // 技能动态
+    for (const it of skillItems) {
+      results.push({
+        kind: "item",
+        key: it.key,
+        icon: it.icon,
+        label: it.label,
+        keywords: [],
+        targetSection: it.key,
+      });
+    }
+    return results;
+  }, [t, skillItems]);
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return [];
+    }
+    return allSearchable.filter((entry) => {
+      if (entry.label.toLowerCase().includes(q)) {
+        return true;
+      }
+      return entry.keywords.some((k) => {
+        const kw = k.toLowerCase();
+        return kw.includes(q) || q.includes(kw);
+      });
+    });
+  }, [query, allSearchable]);
+
+  const setSettingsHighlight = useUIStore((s) => s.setSettingsHighlight);
+
+  const handleSelect = useCallback(
+    (result: SearchResult) => {
+      setSettingsSection(result.targetSection as SettingsSection);
+      setSettingsHighlight(result.itemKey ?? null);
+      setQuery("");
+    },
+    [setSettingsSection, setSettingsHighlight],
+  );
+
   return (
     <div className="h-full flex flex-col" data-testid="settings-sidebar">
       <button
@@ -189,59 +307,101 @@ export function SettingsSidebar() {
         {!isSmall && <kbd className="settings-back-kbd">Esc</kbd>}
       </button>
 
+      <div className="st-search-box">
+        <Input
+          allowClear
+          prefix={<Search size={14} />}
+          placeholder={t("settings.searchPlaceholder")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onPressEnter={() => {
+            if (results.length > 0) {
+              handleSelect(results[0]);
+            }
+          }}
+        />
+      </div>
+
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {groupConfigs.map((group) => (
-          <div
-            key={group.key}
-            className={`st-group${collapsedGroups.has(group.key) ? " collapsed" : ""}`}
-          >
+        {query.trim()
+          ? (
+            <div className="st-search-results">
+              {results.length === 0
+                ? <div className="st-search-empty">{t("settings.searchNoResults")}</div>
+                : (
+                  <>
+                    <div className="st-search-header">
+                      {t("settings.searchResults", { count: results.length })}
+                    </div>
+                    {results.map((r) => (
+                      <div
+                        key={r.key}
+                        className={`st-item${settingsSection === r.key ? " active" : ""}`}
+                        onClick={() => handleSelect(r)}
+                      >
+                        {r.icon}
+                        <span className="st-item-text">
+                          <span>{r.label}</span>
+                          {r.subLabel && <span className="st-search-sub">{r.subLabel}</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+            </div>
+          )
+          : groupConfigs.map((group) => (
             <div
-              className="st-group-header"
-              onClick={() => toggleGroup(group.key)}
+              key={group.key}
+              className={`st-group${collapsedGroups.has(group.key) ? " collapsed" : ""}`}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
+              <div
+                className="st-group-header"
+                onClick={() => toggleGroup(group.key)}
               >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="3"
-                  fill="currentColor"
-                  fillOpacity=".12"
-                />
-              </svg>
-              <span>{group.label}</span>
-              <svg
-                className="arrow"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-            <div className="st-items">
-              {group.items.map((item) => (
-                <div
-                  key={item.key}
-                  className={`st-item${settingsSection === item.key ? " active" : ""}`}
-                  onClick={() => setSettingsSection(item.key as SettingsSection)}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
                 >
-                  {item.icon}
-                  <span className="st-item-text">{item.label}</span>
-                </div>
-              ))}
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="3"
+                    fill="currentColor"
+                    fillOpacity=".12"
+                  />
+                </svg>
+                <span>{group.label}</span>
+                <svg
+                  className="arrow"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+              <div className="st-items">
+                {group.items.map((item) => (
+                  <div
+                    key={item.key}
+                    className={`st-item${settingsSection === item.key ? " active" : ""}`}
+                    onClick={() => setSettingsSection(item.key as SettingsSection)}
+                  >
+                    {item.icon}
+                    <span className="st-item-text">{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );

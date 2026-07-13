@@ -34,6 +34,21 @@ export type KnowledgeDocument = {
   sourceConversationId?: string;
 };
 
+export type ImportDirectoryError = {
+  path: string;
+  error: string;
+};
+
+export type ImportDirectoryResult = {
+  baseId: string;
+  importedCount: number;
+  skippedCount: number;
+  errorCount: number;
+  imported: KnowledgeDocument[];
+  skipped: string[];
+  errors: ImportDirectoryError[];
+};
+
 export type RetrievalHit = {
   id: string;
   conversationId: string;

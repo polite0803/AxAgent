@@ -1461,6 +1461,9 @@
   },
   "settings": {
     "title": "Settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "{{count}} results",
+    "searchNoResults": "No matching settings found",
     "tabModel": "Model & Service",
     "tabAppearance": "Appearance",
     "tabExtensions": "Tools & Extensions",
@@ -2016,7 +2019,19 @@
       "addSource": "Add Source",
       "loadToWiki": "Load to Wiki",
       "ragTab": "Knowledge RAG",
-      "wikiTab": "Wiki"
+      "wikiTab": "Wiki",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "Advanced Retrieval Settings",
@@ -7002,7 +7017,9 @@
     "wiki": {
       "title": "Wiki Sources",
       "wikiList": "Wiki List"
-    }
+    },
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "Toggle Raw",
@@ -8278,69 +8295,6 @@
     "stepLogNoDetail": "(No detailed output)",
     "exitSignalAlert": "Exit signal scan complete:\nChecked {{checked}} items\n- Exit now: {{exitNow}} items\n- Caution: {{caution}} items",
     "exitSignalAlertNone": "Exit signal scan complete: {{checked}} items, no anomalies found."
-  },
-  "timeTravel": {
-    "backtestHint": "Replay mode: the following stats only aggregate replay data anchored at as-of {{date}}.",
-    "datePicker": {
-      "cancel": "Cancel",
-      "hint": "Select a past trading day...",
-      "ok": "Enter Replay",
-      "placeholder": "Select cutoff date"
-    },
-    "degradedMarker": {
-      "label": "Degraded · Some data has no history",
-      "labelWithCount": "Degraded · {{n}} items",
-      "tooltip": "In replay mode, capital flows, margin data, northbound positions etc. have no historical semantics..."
-    },
-    "degradedStyles": {
-      "description": "The following data styles are truncated due to as-of cutoff {{date}}...",
-      "hint": "Degraded doesn't mean wrong...",
-      "reason": "Reason: {{reason}}",
-      "title": "Data Degradation Due to As-Of Cutoff",
-      "vendor": "Source: {{name}}"
-    },
-    "modeSwitch": {
-      "confirmBody": "Live mode uses the latest market data...",
-      "confirmCancel": "Stay in Replay",
-      "confirmOk": "Switch to Live",
-      "confirmTitle": "Switch Back to Live Mode?",
-      "currentlyInReplay": "Currently replaying with anchor date {{date}}.",
-      "enteredReplay": "Entered replay mode: {{date}}",
-      "live": "Live",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Backtest",
-      "switchedToLive": "Switched to live mode",
-      "tooltipLive": "Click to enter replay mode (analyze as of a past date)",
-      "tooltipReplay": "Click to switch back to live mode"
-    },
-    "pageAnchor": {
-      "live": "Live",
-      "replay": "Replay",
-      "untilDate": "As of {{date}}"
-    },
-    "recommendationBanner": "Replay mode: recommendations based on data as of {{date}}...",
-    "replayBadge": {
-      "label": "Replay · {{date}}",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan",
-      "tooltip": "All data in this view..."
-    },
-    "replayWatermark": {
-      "label": "As of {{date}}"
-    },
-    "tour": {
-      "body": "Anchor all analysis and recommendations to a past date...",
-      "gotIt": "Got It",
-      "stepAnchor": "Click the \"Live\" pill anytime to enter replay mode.",
-      "title": "Time Travel Mode Available"
-    },
-    "violations": {
-      "chip": "⚠ {{n}} violation",
-      "chipAria": "This node has {{n}} future date reference violations",
-      "chip_plural": "⚠ {{n}} violations",
-      "markClass": "ax-violation-mark",
-      "tooltip": "This node's output references dates after the as-of anchor."
-    }
   },
   "trade": {
     "agentRole": {

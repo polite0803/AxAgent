@@ -22,6 +22,7 @@
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
+pub mod pg_ddl;
 pub mod v001_initial;
 pub mod v002_indices;
 pub mod v003_drop_dead_tables;
@@ -35,9 +36,11 @@ pub mod v010_stock_business_tables;
 pub mod v011_drop_node_results_snapshot;
 pub mod v012_news_archive_article_code_not_null;
 pub mod v013_stock_pipeline_runs;
+pub mod v014_pg_timestamp_int4_to_int8;
+pub mod v015_pg_business_int4_to_int8;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 13;
+pub const CURRENT_VERSION: i32 = 15;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -128,6 +131,16 @@ const MIGRATIONS: &[Migration] = &[
         version: 13,
         description: "v013_stock_pipeline_runs: create stock_pipeline_runs table for pipeline execution history",
         up: |db| Box::pin(v013_stock_pipeline_runs::up(db)),
+    },
+    Migration {
+        version: 14,
+        description: "v014_pg_timestamp_int4_to_int8: ALTER timestamp columns from INT4 to INT8 on PostgreSQL (matching SeaORM i64 entity)",
+        up: |db| Box::pin(v014_pg_timestamp_int4_to_int8::up(db)),
+    },
+    Migration {
+        version: 15,
+        description: "v015_pg_business_int4_to_int8: ALTER max_tokens/thinking_budget from INT4 to INT8 on PostgreSQL",
+        up: |db| Box::pin(v015_pg_business_int4_to_int8::up(db)),
     },
 ];
 

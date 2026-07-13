@@ -417,7 +417,7 @@ function McpServerDetail({
 
       {!isBuiltin && (
         <>
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:name">
             <span>{t("settings.mcpServers.name")}</span>
             <Input
               id="mcp-server-settings-input-93"
@@ -432,7 +432,7 @@ function McpServerDetail({
             />
           </div>
           <Divider style={{ margin: "4px 0" }} />
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:transport">
             <span>{t("settings.mcpServers.transport")}</span>
             <Select
               id="mcp-server-settings-select-94"
@@ -479,7 +479,7 @@ function McpServerDetail({
 
       {server.transport === "stdio" && !isBuiltin && (
         <>
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:command">
             <span>{t("settings.mcpServers.command")}</span>
             <Input
               id="mcp-server-settings-input-95"
@@ -490,7 +490,7 @@ function McpServerDetail({
             />
           </div>
           <Divider style={{ margin: "4px 0" }} />
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:args">
             <span>{t("settings.mcpServers.args")}</span>
             <Input
               id="mcp-server-settings-input-96"
@@ -511,7 +511,7 @@ function McpServerDetail({
       {(server.transport === "http" || server.transport === "sse")
         && !isBuiltin && (
         <>
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:endpoint">
             <span>{t("settings.mcpServers.endpoint")}</span>
             <Input
               id="mcp-server-settings-input-97"
@@ -522,7 +522,11 @@ function McpServerDetail({
             />
           </div>
           <Divider style={{ margin: "4px 0" }} />
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div
+            style={rowStyle}
+            className="flex items-center justify-between"
+            data-search-key="mcpServers:customHeaders"
+          >
             <span>{t("settings.mcpServers.customHeaders")}</span>
             <Input.TextArea
               id="mcp-server-settings-input-textarea-98"
@@ -558,7 +562,7 @@ function McpServerDetail({
 
       {!isBuiltin && (
         <>
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:envVars">
             <span>{t("settings.mcpServers.envVars")}</span>
             <Input.TextArea
               id="mcp-server-settings-input-textarea-99"
@@ -594,7 +598,11 @@ function McpServerDetail({
 
       {!isBuiltin && (
         <>
-          <div style={rowStyle} className="flex items-center justify-between">
+          <div
+            style={rowStyle}
+            className="flex items-center justify-between"
+            data-search-key="mcpServers:discoverTimeout"
+          >
             <span>{t("settings.mcpServers.discoverTimeout")}</span>
             <InputNumber
               id="mcp-server-settings-inputnumber-100"
@@ -611,7 +619,7 @@ function McpServerDetail({
         </>
       )}
 
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:executeTimeout">
         <span>{t("settings.mcpServers.executeTimeout")}</span>
         <InputNumber
           id="mcp-server-settings-inputnumber-101"
@@ -626,7 +634,7 @@ function McpServerDetail({
       </div>
       <Divider style={{ margin: "4px 0" }} />
 
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:enabled">
         <span>{t("common.enabled")}</span>
         <Switch
           id="mcp-server-settings-switch-102"

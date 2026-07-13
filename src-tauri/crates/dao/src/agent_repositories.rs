@@ -166,4 +166,7 @@ pub fn register_repositories(db: &DatabaseConnection) {
     axagent_harness::repositories::set_settings_repository(Arc::new(
         crate::settings_repository::DaoSettingsRepository::new(db.clone()),
     ));
+    axagent_harness::repositories::set_provider_repository(Arc::new(
+        crate::provider_repository::DaoProviderRepository::new(db.clone()),
+    ));
 }

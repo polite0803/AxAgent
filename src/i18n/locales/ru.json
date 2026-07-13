@@ -1316,6 +1316,9 @@
   },
   "settings": {
     "title": "Настройки",
+    "searchPlaceholder": "Поиск настроек...",
+    "searchResults": "{{count}} результатов",
+    "searchNoResults": "Подходящие настройки не найдены",
     "providers": "Управление провайдерами",
     "conversationSettings": "Чат",
     "defaultModel": "Модель по умолчанию",
@@ -1813,7 +1816,19 @@
       "addSource": "Добавить источник данных",
       "loadToWiki": "Загрузить в Wiki",
       "ragTab": "RAG",
-      "wikiTab": "Вики"
+      "wikiTab": "Вики",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "Расширенные настройки извлечения",
@@ -6823,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "Переключить Raw",
@@ -7916,69 +7933,6 @@
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
       "executionMode": "Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "В ЭФИРЕ",
-      "replay": "Повтор {{date}}",
-      "sweep": "Пакетный бэктест",
-      "tooltipLive": "Нажмите, чтобы войти в режим повтора (анализ на прошедшую дату)",
-      "tooltipReplay": "Нажмите, чтобы вернуться в режим эфира",
-      "confirmTitle": "Вернуться в режим эфира?",
-      "confirmBody": "Режим эфира использует данные в реальном времени, и ранее сделанные выводы могут быть опровергнуты новой информацией. Режим повтора закрывает мир на выбранной прошедшей дате, предотвращая предвзятость look-ahead.",
-      "confirmOk": "Перейти в эфир",
-      "confirmCancel": "Остаться в повторе",
-      "currentlyInReplay": "Идёт повтор с якорем {{date}}.",
-      "enteredReplay": "Режим повтора активирован: {{date}}",
-      "switchedToLive": "Переключено в режим эфира"
-    },
-    "datePicker": {
-      "hint": "Выберите прошлый торговый день. Сегодня и будущие даты отключены (гипотеза закрытого мира).",
-      "placeholder": "Выберите дату-якорь",
-      "ok": "Запустить повтор",
-      "cancel": "Отмена"
-    },
-    "pageAnchor": {
-      "live": "В эфире",
-      "replay": "Повтор",
-      "untilDate": "по состоянию на {{date}}"
-    },
-    "replayBadge": {
-      "label": "Повтор · {{date}}",
-      "tooltip": "Все данные, промпты и вердикты в этом представлении привязаны к {{date}}. Не используйте для реальной торговли.",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "по состоянию на {{date}}"
-    },
-    "tour": {
-      "title": "Режим Путешествия во времени доступен",
-      "body": "Привязывайте все анализы и рекомендации к прошлому торговому дню, чтобы безопасно бэктестить стратегии без предвзятости look-ahead. Система будет отклонять будущие даты, а нарушения временных меток будут выделены на временной шкале.",
-      "gotIt": "Понятно",
-      "stepAnchor": "Нажмите на капсулу В ЭФИРЕ в любое время, чтобы войти в режим повтора."
-    },
-    "violations": {
-      "chip": "⚠ {{n}} нарушение",
-      "chip_plural": "⚠ {{n}} нарушений",
-      "chipAria": "{{n}} нарушение(-я) ссылок на будущее в этом узле",
-      "tooltip": "Вывод этого узла упоминает даты после якоря as-of. Считайте его вывод ненадёжным.",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "Режим повтора активен. Выбор, цены и диапазоны входа привязаны к {{date}}. Не использовать для реальной торговли.",
-    "backtestHint": "Эти статистики агрегируют все завершённые анализы (эфир + повтор) на {{date}}. Используйте Replay Workbench для фильтрации по режиму.",
-    "degradedStyles": {
-      "title": "Ухудшение источников данных из-за усечения as-of",
-      "description": "Следующие стили данных были ухудшены, так как дата as-of {{date}} обрезает историю, необходимую для полного сигнала.",
-      "reason": "Причина: {{reason}}",
-      "hint": "Ухудшенный результат — не ошибочный; он менее информативен. Относитесь к его достоверности как к более низкой, чем у не ухудшенных стилей.",
-      "vendor": "источник: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "Ухудшено · Часть данных без истории",
-      "labelWithCount": "Ухудшено · {{n}} элементов",
-      "tooltip": "В режиме повтора поток средств/маржа/северные активы и т.д. не имеют исторической семантики и были пропущены."
     }
   },
   "replayWorkbench": {

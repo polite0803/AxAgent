@@ -1316,6 +1316,9 @@
   },
   "settings": {
     "title": "सेटिंग्स",
+    "searchPlaceholder": "सेटिंग्स खोजें...",
+    "searchResults": "{{count}} परिणाम",
+    "searchNoResults": "कोई मेल खाती सेटिंग नहीं मिली",
     "providers": "प्रदाता प्रबंधन",
     "conversationSettings": "बातचीत",
     "defaultModel": "डिफ़ॉल्ट मॉडल",
@@ -1758,7 +1761,19 @@
       "addSource": "डेटा स्रोत जोड़ें",
       "loadToWiki": "Wiki में लोड करें",
       "ragTab": "RAG",
-      "wikiTab": "विकी"
+      "wikiTab": "विकी",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "उन्नत पुनर्प्राप्ति सेटिंग्स",
@@ -6823,7 +6838,9 @@
     "description": "Description",
     "rootPath": "Root Path",
     "embeddingModel": "Embedding Model",
-    "embeddingRequired": "Please select an embedding model"
+    "embeddingRequired": "Please select an embedding model",
+    "importSelectBase": "Please select a target knowledge base",
+    "backToList": "Back to list"
   },
   "chatMarkdown": {
     "toggleRaw": "Raw टॉगल",
@@ -7916,69 +7933,6 @@
       "lowAgreementHint": "Views diverge significantly",
       "llmMissingHint": "Agreement score: {{score}}/100",
       "executionMode": "Execution Mode"
-    }
-  },
-  "timeTravel": {
-    "modeSwitch": {
-      "live": "लाइव",
-      "replay": "{{date}} पर रीप्ले",
-      "sweep": "स्वीप बैकटेस्ट",
-      "tooltipLive": "रीप्ले मोड में प्रवेश करने के लिए क्लिक करें (पिछली तारीख पर विश्लेषण)",
-      "tooltipReplay": "लाइव मोड पर वापस जाने के लिए क्लिक करें",
-      "confirmTitle": "क्या लाइव मोड पर वापस जाना है?",
-      "confirmBody": "लाइव मोड वास्तविक समय के डेटा का उपयोग करता है और पहले निकाले गए निष्कर्ष नई जानकारी से अमान्य हो सकते हैं। रीप्ले मोड लुक-अहेड पक्षपात से बचने के लिए चुनी गई पिछली तारीख पर दुनिया को बंद कर देता है।",
-      "confirmOk": "लाइव पर जाएँ",
-      "confirmCancel": "रीप्ले में रहें",
-      "currentlyInReplay": "{{date}} को एंकर करके रीप्ले चल रहा है।",
-      "enteredReplay": "रीप्ले मोड सक्रिय: {{date}}",
-      "switchedToLive": "लाइव मोड पर स्विच किया गया"
-    },
-    "datePicker": {
-      "hint": "पिछला ट्रेडिंग दिन चुनें. आज और भविष्य की तारीखें अक्षम हैं (बंद दुनिया धारणा).",
-      "placeholder": "as-of तारीख चुनें",
-      "ok": "रीप्ले शुरू करें",
-      "cancel": "रद्द करें"
-    },
-    "pageAnchor": {
-      "live": "लाइव",
-      "replay": "रीप्ले",
-      "untilDate": "{{date}} तक"
-    },
-    "replayBadge": {
-      "label": "रीप्ले · {{date}}",
-      "tooltip": "इस दृश्य का सारा डेटा, प्रॉम्प्ट और निर्णय {{date}} पर एंकर किए गए हैं। लाइव ट्रेडिंग के लिए उपयोग न करें।",
-      "replay": "Replay {{date}}",
-      "sweep": "Batch Scan"
-    },
-    "replayWatermark": {
-      "label": "{{date}} तक"
-    },
-    "tour": {
-      "title": "टाइम ट्रैवल मोड उपलब्ध है",
-      "body": "लुक-अहेड पक्षपात के बिना रणनीतियों का सुरक्षित रूप से बैकटेस्ट करने के लिए सभी विश्लेषण और सिफारिशें पिछले ट्रेडिंग दिन पर एंकर करें। सिस्टम भविष्य की तारीखों को अस्वीकार करेगा और टाइमस्टैम्प उल्लंघनों को टाइमलाइन पर हाइलाइट किया जाएगा।",
-      "gotIt": "समझ गया",
-      "stepAnchor": "कभी भी रीप्ले मोड में प्रवेश करने के लिए 'लाइव' पिल पर क्लिक करें।"
-    },
-    "violations": {
-      "chip": "⚠ {{n}} उल्लंघन",
-      "chip_plural": "⚠ {{n}} उल्लंघन",
-      "chipAria": "इस नोड पर {{n}} भविष्य-संदर्भ उल्लंघन",
-      "tooltip": "इस नोड का आउटपुट as-of एंकर के बाद की तारीखों का उल्लेख करता है। इसके निष्कर्ष को अविश्वसनीय मानें।",
-      "markClass": "ax-violation-mark"
-    },
-    "recommendationBanner": "रीप्ले मोड सक्रिय। चयन, कीमतें और प्रवेश सीमाएँ {{date}} पर एंकर की गई हैं। लाइव ट्रेडिंग के लिए उपयोग न करें।",
-    "backtestHint": "ये आंकड़े {{date}} तक सभी पूर्ण विश्लेषणों (लाइव + रीप्ले) को एकत्र करते हैं। मोड के अनुसार फ़िल्टर करने के लिए रीप्ले वर्कबेंच का उपयोग करें।",
-    "degradedStyles": {
-      "title": "as-of ट्रंकेशन के कारण डेटा स्रोतों का अवनमन",
-      "description": "निम्नलिखित डेटा शैलियों की विश्वसनीयता कम हुई क्योंकि as-of तिथि {{date}} पूर्ण संकेत के लिए आवश्यक इतिहास को काटती है।",
-      "reason": "कारण: {{reason}}",
-      "hint": "अवनत परिणाम गलत नहीं है; यह कम जानकारीपूर्ण है। इसके विश्वास को गैर-अवनत शैलियों से कम मानें।",
-      "vendor": "विक्रेता: {{name}}"
-    },
-    "degradedMarker": {
-      "label": "अवनत · कुछ डेटा का इतिहास नहीं",
-      "labelWithCount": "अवनत · {{n}} आइटम",
-      "tooltip": "रीप्ले मोड में मनी फ्लो/मार्जिन/नॉर्थ-बाउंड होल्डिंग आदि का कोई ऐतिहासिक अर्थ नहीं है, छोड़ दिया गया।"
     }
   },
   "replayWorkbench": {

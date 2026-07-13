@@ -8,28 +8,9 @@
 //! 注意：v002/v003 引入的新增索引 / 死表清理 **不应** 写到这里；
 //! 这条 migration 的语义是"项目第一次启动时的 schema"。
 
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr};
 
-/// 把 SQLite 风格 DDL 转成 PostgreSQL 兼容写法。
-///
-/// 仅做保守、确定性的字符串替换，不触碰语义：
-/// - `AUTOINCREMENT` 是 SQLite 专有，PG 用 `SERIAL`/`BIGSERIAL` 表达自增；
-/// - `datetime('now')` 是 SQLite 函数，PG 用 `CURRENT_TIMESTAMP::text`；
-/// - 其余类型（`TEXT`/`INTEGER`/`BIGINT`/`REAL`）与约束在两种库下通用。
-fn pg_ddl(sql: &str) -> String {
-    sql.replace(" AUTOINCREMENT", "")
-        .replace("INTEGER NOT NULL PRIMARY KEY", "SERIAL PRIMARY KEY")
-        .replace("INTEGER PRIMARY KEY", "SERIAL PRIMARY KEY")
-        .replace("BIGINT PRIMARY KEY", "BIGSERIAL PRIMARY KEY")
-        .replace("datetime('now')", "CURRENT_TIMESTAMP::text")
-}
-
-/// 按后端执行 DDL：PostgreSQL 下先经 [`pg_ddl`] 转换，SQLite 原样执行。
-async fn exec_ddl(db: &DatabaseConnection, is_pg: bool, sql: &str) -> Result<(), DbErr> {
-    let s = if is_pg { pg_ddl(sql) } else { sql.to_string() };
-    db.execute_unprepared(&s).await?;
-    Ok(())
-}
+pub use super::pg_ddl::{exec_ddl, pg_ddl};
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let is_pg = db.get_database_backend() == DbBackend::Postgres;

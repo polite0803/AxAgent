@@ -132,6 +132,7 @@ export function AcpSettings() {
         <div
           style={{ padding: "6px 0" }}
           className="flex items-center justify-between"
+          data-search-key="acp:serverAddress"
         >
           <span className="flex items-center gap-2">
             <Server size={14} /> {t("acp.serverAddress")}
@@ -148,6 +149,7 @@ export function AcpSettings() {
         <div
           style={{ padding: "6px 0" }}
           className="flex items-center justify-between"
+          data-search-key="acp:connectionStatus"
         >
           <span className="flex items-center gap-2">
             <Link2 size={14} /> {t("acp.connectionStatus")}
@@ -189,6 +191,7 @@ export function AcpSettings() {
         <div
           style={{ padding: "6px 0" }}
           className="flex items-center justify-between"
+          data-search-key="acp:workdir"
         >
           <span className="flex items-center gap-2">
             <Plus size={14} /> {t("acp.workdir")}

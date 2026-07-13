@@ -124,14 +124,14 @@ export function DataManager() {
   return (
     <div className="p-6 pb-12">
       <SettingsGroup title={t("settings.groupData")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="data:exportData">
           <span>{t("settings.exportData")}</span>
           <Button icon={<Share2 size={16} />} onClick={handleExport}>
             {t("settings.exportData")}
           </Button>
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="data:importData">
           <span>{t("settings.importData")}</span>
           <Button icon={<Upload size={16} />} onClick={handleImport}>
             {t("settings.importData")}
@@ -146,7 +146,7 @@ export function DataManager() {
           </Text>
         }
       >
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="data:clearData">
           <span>{t("settings.clearData")}</span>
           <Popconfirm
             title={t("settings.clearConfirm")}

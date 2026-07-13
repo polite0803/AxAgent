@@ -20,6 +20,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // 2) 创建版本历史表
     // `AUTOINCREMENT` 是 SQLite 专有；PostgreSQL 用 `SERIAL` 表达自增主键。
+    // `created_at` 用 BIGINT 匹配 entity 里 `i64`（PG 下 `INTEGER` 变 INT4 报错）。
     let create_sql = if is_pg {
         "CREATE TABLE IF NOT EXISTS dynamic_ui_schema_versions (\
          id SERIAL PRIMARY KEY, \
@@ -31,7 +32,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
          category TEXT NOT NULL DEFAULT 'custom', \
          tags TEXT NOT NULL DEFAULT '[]', \
          change_log TEXT NOT NULL DEFAULT '', \
-         created_at INTEGER NOT NULL)"
+         created_at BIGINT NOT NULL)"
     } else {
         "CREATE TABLE IF NOT EXISTS dynamic_ui_schema_versions (\
          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \
