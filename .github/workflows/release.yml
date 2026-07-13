@@ -208,7 +208,7 @@ jobs:
         if: contains(matrix.target, 'windows')
         shell: pwsh
         run: |
-          $exe = "src-tauri/target/${{ matrix.target }}/release/AxAgent.exe"
+          $exe = "src-tauri/target/${{ matrix.target }}/release/AxInvest.exe"
           $arch = if ("${{ matrix.target }}" -match "aarch64") { "arm64" } else { "x64" }
           $zipName = "AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-${arch}-portable.zip"
           Compress-Archive -Path $exe -DestinationPath $zipName

@@ -73,7 +73,7 @@ jobs:
       - name: Package Windows portable (zip)
         shell: pwsh
         run: |
-          $exe = "src-tauri/target/x86_64-pc-windows-msvc/release/AxAgent.exe"
+          $exe = "src-tauri/target/x86_64-pc-windows-msvc/release/AxInvest.exe"
           $zipName = "AxAgent_${{ github.ref_name }}_windows-x64-portable.zip"
           Compress-Archive -Path $exe -DestinationPath $zipName
 

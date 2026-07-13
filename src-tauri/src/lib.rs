@@ -35,6 +35,7 @@ mod window_state;
 #[cfg(mobile)]
 mod tray {
     #[tauri::command]
+    #[allow(dead_code)]
     pub fn set_tray_labels(_app: tauri::AppHandle, _show_label: String, _quit_label: String) {}
 }
 

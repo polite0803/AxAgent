@@ -15,6 +15,7 @@ const SANDBOX_TIMEOUT_SECS: u64 = 30;
 /// 安全包装：剥离 `require`、`process`、`globalThis`、`global`、`Buffer`，
 /// 限制 CPU/内存，禁止子进程，禁止 socket，关闭原生 module 加载。
 /// 不依赖任何第三方包，直接走 Node `--frozen-intrinsics` + 预置沙箱 wrapper。
+#[cfg(not(target_os = "android"))]
 const SANDBOX_PROLOGUE: &str = r#"
 'use strict';
 (function () {

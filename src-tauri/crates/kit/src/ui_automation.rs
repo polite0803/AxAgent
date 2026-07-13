@@ -5,6 +5,7 @@
 use anyhow::Result;
 #[cfg(target_os = "android")]
 use axagent_harness::constants::android_msg;
+#[cfg(not(target_os = "android"))]
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use serde::{Deserialize, Serialize};
 

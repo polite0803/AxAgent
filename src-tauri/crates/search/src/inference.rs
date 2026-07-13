@@ -197,6 +197,7 @@ impl InferenceEngineTrait for InferenceEngine {
 
 // ── Worker 主循环 ──────────────────────────────────────────────────────────
 
+#[allow(unused_variables)]
 fn worker_main(
     gguf: &Path,
     tok: &Path,
@@ -208,7 +209,7 @@ fn worker_main(
     let loaded = load_candle_model(gguf, tok, kind);
 
     #[cfg(target_os = "android")]
-    let loaded: Option<()> = None;
+    let _loaded: Option<()> = None;
 
     for msg in rx {
         match msg {
