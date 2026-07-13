@@ -134,7 +134,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
                     },
                     Some(other) => {
                         // 其它类型（TEXT/TIMESTAMP 等）：不在本 migration 范围
-                        tracing::debug!("[v101] {table}.{column}: unexpected type '{other}', skipping");
+                        tracing::debug!(
+                            "[v101] {table}.{column}: unexpected type '{other}', skipping"
+                        );
                         skipped += 1;
                     },
                     None => {
