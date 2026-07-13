@@ -33,7 +33,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         return Ok(());
     }
 
-    tracing::info!("[v011] Checking {} business column(s) for INT4→INT8 upgrade", ALTER_TARGETS.len());
+    tracing::info!(
+        "[v011] Checking {} business column(s) for INT4→INT8 upgrade",
+        ALTER_TARGETS.len()
+    );
 
     let mut altered = 0;
     let mut skipped = 0;
@@ -78,10 +81,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         }
     }
 
-    tracing::info!(
-        "[v011] done: {} altered, {} skipped, {} missing",
-        altered, skipped, missing
-    );
+    tracing::info!("[v011] done: {} altered, {} skipped, {} missing", altered, skipped, missing);
 
     Ok(())
 }

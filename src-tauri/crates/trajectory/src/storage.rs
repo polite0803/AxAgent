@@ -235,10 +235,7 @@ impl TrajectoryStorage {
         // ISO8601 / RFC3339 格式为 year-first、zero-padded，字符串字典序与时序一致，
         // 不需要 datetime() 函数（该函数是 SQLite 专有，PostgreSQL 不存在）。
         let old_trajectories = trajectories::Entity::find()
-            .filter(sea_orm::sea_query::Expr::cust(format!(
-                "created_at < '{}'",
-                cutoff_str
-            )))
+            .filter(sea_orm::sea_query::Expr::cust(format!("created_at < '{}'", cutoff_str)))
             .all(self.db.as_ref())
             .await?;
         let count = old_trajectories.len();

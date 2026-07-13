@@ -296,7 +296,7 @@ function SourceCard({
       default:
         break;
     }
-  }, [source.containerType, source.id, navigate, onViewDocument, source]);
+  }, [navigate, onViewDocument, source]);
 
   return (
     <Card
@@ -401,14 +401,9 @@ function KnowledgeTab({
     loadBases();
   }, [loadBases]);
 
-  const [selectedBase, setSelectedBase] = useState<KnowledgeBase | null>(null);
-
-  // 自动选中第一个知识库（如有），让文档管理直接可见
-  useEffect(() => {
-    if (bases.length > 0 && !selectedBase) {
-      setSelectedBase(bases[0]);
-    }
-  }, [bases, selectedBase]);
+  const [selectedBase, setSelectedBase] = useState<KnowledgeBase | null>(
+    bases.length > 0 ? bases[0] : null,
+  );
 
   const handleViewDocument = useCallback((source: UnifiedSource) => {
     const base = bases.find((b) => b.name === source.name);

@@ -22,6 +22,7 @@
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
+pub mod pg_ddl;
 pub mod v001_initial;
 pub mod v002_indices;
 pub mod v003_drop_dead_tables;
@@ -31,7 +32,6 @@ pub mod v006_vec_collections;
 pub mod v007_dynamic_ui_version;
 pub mod v008_credentials_and_rl_policies;
 pub mod v009_tool_adaptation;
-pub mod pg_ddl;
 pub mod v010_pg_timestamp_int4_to_int8;
 pub mod v011_pg_business_int4_to_int8;
 
