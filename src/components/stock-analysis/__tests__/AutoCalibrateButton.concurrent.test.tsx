@@ -37,7 +37,9 @@ describe("AutoCalibrateButton — R2-Bug-X: 防并发点击", () => {
     expect(btnCode).toMatch(/disabled=\{loading\}/);
 
     // 4. 应用按钮必须显式 disabled={applying}
-    const applyBtnStart = src.lastIndexOf("<Button", src.indexOf("应用选中项"));
+    // 注: 应用按钮文案走 i18n 键 calibrateApplySelected（不硬编码中文），
+    // 故以键名定位按钮，而非字面量 "应用选中项"。
+    const applyBtnStart = src.lastIndexOf("<Button", src.indexOf("calibrateApplySelected"));
     expect(applyBtnStart).toBeGreaterThan(0);
     const applyBtnEnd = src.indexOf("</Button>", applyBtnStart);
     const applyBtnCode = src.slice(applyBtnStart, applyBtnEnd);

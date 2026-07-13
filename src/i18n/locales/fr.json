@@ -8135,7 +8135,9 @@
       "version": "Version"
     },
     "strategy": {
-      "strategyForm": { "paramsJson": "Params JSON" },
+      "strategyForm": {
+        "paramsJson": "Params JSON"
+      },
       "builtin": "Built-in Strategy",
       "description": "Strategy Description",
       "lastUpdated": "Last Updated",
@@ -8593,7 +8595,17 @@
     "agentFailed": "Échec",
     "modelProviderSummary": "Résumé modèles/fournisseurs",
     "totalProviders": "Fournisseurs",
-    "totalModels": "Modèles"
+    "totalModels": "Modèles",
+    "usageTrend": "Tendance d'utilisation",
+    "noUsageData": "Aucune donnée d'utilisation",
+    "costOverview": "Aperçu des coûts",
+    "totalCost": "Coût total",
+    "avgCostPerSession": "Coût moyen / session",
+    "totalAgentTokens": "Tokens Agent totaux",
+    "dailyAvgCost": "Coût moyen quotidien",
+    "costByProvider": "Coût par fournisseur",
+    "inputTokens": "Tokens d'entrée",
+    "outputTokens": "Tokens de sortie"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10116,17 +10128,6 @@
     "tab.evolution": "Evolution",
     "tab.reflection": "Reflection",
     "experiment.executeTrade": "Execute Trade",
-    "debugPanel.show": "🔍 Show",
-    "debugPanel.hide": "🔍 Hide",
-    "debugPanel.toggleTitle": "Toggle Debug Panel",
-    "settings.title": "Stock Analysis Settings",
-    "settings.sheet.events": "Event Calendar",
-    "settings.sheet.more": "More",
-    "settings.sheet.north": "North-bound Capital",
-    "settings.sheet.sectors": "Sector Heatmap",
-    "tab.evolution": "Evolution",
-    "tab.reflection": "Reflection",
-    "experiment.executeTrade": "Execute Trade",
     "workflow.stopLoss": "止损价",
     "workflow.targetPrice": "目标价",
     "valueAssessment.buffettLabel": "巴菲特",
@@ -10235,5 +10236,19 @@
     "progress": "Progression",
     "history": "Historique",
     "noHistory": "Pas d'historique"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "En direct",
+      "replay": "Relecture",
+      "untilDate": "Relecture jusqu'au {{date}}"
+    },
+    "datePicker": {
+      "placeholder": "Choisir la date de relecture"
+    },
+    "degradedMarker": {
+      "tooltip": "Certaines méthodes d'analyse ne sont pas disponibles en mode relecture",
+      "labelWithCount": "{{n}} dégradées"
+    }
   }
 }

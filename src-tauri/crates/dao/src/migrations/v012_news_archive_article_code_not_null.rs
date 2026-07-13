@@ -67,7 +67,26 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     }
 
     if backend == DatabaseBackend::Postgres {
-        // PG 路径：先回填 NULL（避免 ALTER 因残留 NULL 失败），再直接改列
+        // PG 路径：先确认表存在（v010 可能因 schema_version 元数据不一致未创建，
+        // 或用户手动删除导致 table missing）。若不存在，本 migration 为 no-op。
+        let table_exists: bool = db
+            .query_one_raw(Statement::from_string(
+                DatabaseBackend::Postgres,
+                "SELECT 1 FROM information_schema.tables \
+                 WHERE table_schema = current_schema() \
+                   AND table_name = 'news_archive'",
+            ))
+            .await?
+            .is_some();
+        if !table_exists {
+            tracing::warn!(
+                "[v012] news_archive table does not exist — migration skipped \
+                 (table may have been dropped manually or v010 was not applied)"
+            );
+            return Ok(());
+        }
+
+        // 先回填 NULL（避免 ALTER 因残留 NULL 失败），再直接改列
         db.execute_unprepared(
             "UPDATE news_archive SET article_code = 'gen_' || md5(random()::text) \
              WHERE article_code IS NULL",

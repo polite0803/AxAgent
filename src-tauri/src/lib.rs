@@ -244,7 +244,9 @@ pub fn run() {
                     {
                         windows_utils::show_error_dialog("AxAgent", &format!("数据库初始化失败: {}", e));
                     }
-                    panic!("Fatal: database initialization failed: {}", e);
+                    // 不要 panic 导致栈溢出；返回 Err 让 Tauri 优雅退出
+                    let err_msg = format!("数据库初始化失败: {}", e);
+                    return Err(err_msg.into());
                 }
             };
 

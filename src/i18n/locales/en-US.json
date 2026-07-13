@@ -8714,7 +8714,17 @@
     "agentFailed": "Failed",
     "modelProviderSummary": "Model / Provider Summary",
     "totalProviders": "Providers",
-    "totalModels": "Models"
+    "totalModels": "Models",
+    "usageTrend": "Usage Trend",
+    "noUsageData": "No usage data",
+    "costOverview": "Cost Overview",
+    "totalCost": "Total Cost",
+    "avgCostPerSession": "Avg Cost / Session",
+    "totalAgentTokens": "Total Agent Tokens",
+    "dailyAvgCost": "Daily Avg Cost",
+    "costByProvider": "Cost by Provider",
+    "inputTokens": "Input Tokens",
+    "outputTokens": "Output Tokens"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10579,5 +10589,19 @@
     "progress": "Progress",
     "history": "History",
     "noHistory": "No history yet"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "Live",
+      "replay": "Replay",
+      "untilDate": "Replay until {{date}}"
+    },
+    "datePicker": {
+      "placeholder": "Select replay date"
+    },
+    "degradedMarker": {
+      "tooltip": "Some analysis methods are unavailable in replay mode",
+      "labelWithCount": "{{n}} degraded"
+    }
   }
 }

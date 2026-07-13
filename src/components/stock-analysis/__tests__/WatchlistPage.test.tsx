@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback ?? key,
+    // 第二参数可能是插值选项对象（如 { count }），此时应返回 key 本身，
+    // 不能把对象当 fallback 返回（否则 React 渲染对象子节点会抛错）。
+    t: (key: string, fallback?: unknown) => (typeof fallback === "string" ? fallback : key),
   }),
   initReactI18next: { type: "3rdParty", init: () => {} },
 }));

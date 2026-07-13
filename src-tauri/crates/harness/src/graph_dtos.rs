@@ -83,6 +83,7 @@ impl RelevanceSignalExt for RelevanceSignal {
 
 // ── LinkGraph — full graph data structure ──
 
+#[derive(Debug, Clone)]
 pub struct LinkGraph {
     nodes: HashMap<String, GraphNode>,
     edges: Vec<GraphEdge>,

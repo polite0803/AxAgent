@@ -125,3 +125,6 @@ axagent-layout-v4.html
 
 # Generated output files
 output/
+
+# AxInvest 专属知识源（lemonhu 数据集，体积大，保留在本地/外部存储）
+knowledge-sources/

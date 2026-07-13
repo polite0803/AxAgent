@@ -8024,7 +8024,9 @@
       "version": "Version"
     },
     "strategy": {
-      "strategyForm": { "paramsJson": "Params JSON" },
+      "strategyForm": {
+        "paramsJson": "Params JSON"
+      },
       "builtin": "Built-in Strategy",
       "description": "Strategy Description",
       "lastUpdated": "Last Updated",
@@ -8581,7 +8583,17 @@
     "agentFailed": "فشل",
     "modelProviderSummary": "ملخص النماذج والمزودين",
     "totalProviders": "المزودون",
-    "totalModels": "النماذج"
+    "totalModels": "النماذج",
+    "usageTrend": "اتجاه الاستخدام",
+    "noUsageData": "لا توجد بيانات استخدام",
+    "costOverview": "نظرة عامة على التكلفة",
+    "totalCost": "التكلفة الإجمالية",
+    "avgCostPerSession": "متوسط التكلفة / الجلسة",
+    "totalAgentTokens": "إجمالي رموز الوكيل",
+    "dailyAvgCost": "متوسط التكلفة اليومية",
+    "costByProvider": "التكلفة حسب الموفر",
+    "inputTokens": "رموز الإدخال",
+    "outputTokens": "رموز الإخراج"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10104,17 +10116,6 @@
     "tab.evolution": "Evolution",
     "tab.reflection": "Reflection",
     "experiment.executeTrade": "Execute Trade",
-    "debugPanel.show": "🔍 Show",
-    "debugPanel.hide": "🔍 Hide",
-    "debugPanel.toggleTitle": "Toggle Debug Panel",
-    "settings.title": "Stock Analysis Settings",
-    "settings.sheet.events": "Event Calendar",
-    "settings.sheet.more": "More",
-    "settings.sheet.north": "North-bound Capital",
-    "settings.sheet.sectors": "Sector Heatmap",
-    "tab.evolution": "Evolution",
-    "tab.reflection": "Reflection",
-    "experiment.executeTrade": "Execute Trade",
     "workflow.stopLoss": "止损价",
     "workflow.targetPrice": "目标价",
     "valueAssessment.buffettLabel": "巴菲特",
@@ -10223,5 +10224,19 @@
     "progress": "التقدم",
     "history": "السجل",
     "noHistory": "لا يوجد سجل"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "مباشر",
+      "replay": "إعادة",
+      "untilDate": "إعادة حتى {{date}}"
+    },
+    "datePicker": {
+      "placeholder": "اختر تاريخ الإعادة"
+    },
+    "degradedMarker": {
+      "tooltip": "بعض طرق التحليل غير متاحة في وضع الإعادة",
+      "labelWithCount": "{{n}} منخفضة"
+    }
   }
 }

@@ -8138,7 +8138,9 @@
       "version": "Version"
     },
     "strategy": {
-      "strategyForm": { "paramsJson": "Params JSON" },
+      "strategyForm": {
+        "paramsJson": "Params JSON"
+      },
       "builtin": "Built-in Strategy",
       "description": "Strategy Description",
       "lastUpdated": "Last Updated",
@@ -8596,7 +8598,17 @@
     "agentFailed": "विफल",
     "modelProviderSummary": "मॉडल/प्रदाता सारांश",
     "totalProviders": "प्रदाता",
-    "totalModels": "मॉडल"
+    "totalModels": "मॉडल",
+    "usageTrend": "उपयोग प्रवृत्ति",
+    "noUsageData": "कोई उपयोग डेटा नहीं",
+    "costOverview": "लागत अवलोकन",
+    "totalCost": "कुल लागत",
+    "avgCostPerSession": "औसत लागत / सत्र",
+    "totalAgentTokens": "कुल Agent टोकन",
+    "dailyAvgCost": "दैनिक औसत लागत",
+    "costByProvider": "प्रदाता अनुसार लागत",
+    "inputTokens": "इनपुट टोकन",
+    "outputTokens": "आउटपुट टोकन"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10119,17 +10131,6 @@
     "tab.evolution": "Evolution",
     "tab.reflection": "Reflection",
     "experiment.executeTrade": "Execute Trade",
-    "debugPanel.show": "🔍 Show",
-    "debugPanel.hide": "🔍 Hide",
-    "debugPanel.toggleTitle": "Toggle Debug Panel",
-    "settings.title": "Stock Analysis Settings",
-    "settings.sheet.events": "Event Calendar",
-    "settings.sheet.more": "More",
-    "settings.sheet.north": "North-bound Capital",
-    "settings.sheet.sectors": "Sector Heatmap",
-    "tab.evolution": "Evolution",
-    "tab.reflection": "Reflection",
-    "experiment.executeTrade": "Execute Trade",
     "workflow.stopLoss": "止损价",
     "workflow.targetPrice": "目标价",
     "valueAssessment.buffettLabel": "巴菲特",
@@ -10238,5 +10239,19 @@
     "progress": "प्रगति",
     "history": "इतिहास",
     "noHistory": "कोई इतिहास नहीं"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "लाइव",
+      "replay": "रीप्ले",
+      "untilDate": "{{date}} तक रीप्ले"
+    },
+    "datePicker": {
+      "placeholder": "रीप्ले तिथि चुनें"
+    },
+    "degradedMarker": {
+      "tooltip": "रीप्ले मोड में कुछ विश्लेषण विधियाँ उपलब्ध नहीं हैं",
+      "labelWithCount": "{{n}} अवनत"
+    }
   }
 }

@@ -8123,7 +8123,9 @@
       "version": "Version"
     },
     "strategy": {
-      "strategyForm": { "paramsJson": "Params JSON" },
+      "strategyForm": {
+        "paramsJson": "Params JSON"
+      },
       "builtin": "Built-in Strategy",
       "description": "Strategy Description",
       "lastUpdated": "Last Updated",
@@ -8581,7 +8583,17 @@
     "agentFailed": "Ошибок",
     "modelProviderSummary": "Сводка по моделям и провайдерам",
     "totalProviders": "Провайдеры",
-    "totalModels": "Модели"
+    "totalModels": "Модели",
+    "usageTrend": "Тенденция использования",
+    "noUsageData": "Нет данных об использовании",
+    "costOverview": "Обзор затрат",
+    "totalCost": "Общая стоимость",
+    "avgCostPerSession": "Средняя стоимость / сессия",
+    "totalAgentTokens": "Всего токенов агента",
+    "dailyAvgCost": "Среднедневная стоимость",
+    "costByProvider": "Стоимость по провайдеру",
+    "inputTokens": "Входные токены",
+    "outputTokens": "Выходные токены"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10104,17 +10116,6 @@
     "tab.evolution": "Evolution",
     "tab.reflection": "Reflection",
     "experiment.executeTrade": "Execute Trade",
-    "debugPanel.show": "🔍 Show",
-    "debugPanel.hide": "🔍 Hide",
-    "debugPanel.toggleTitle": "Toggle Debug Panel",
-    "settings.title": "Stock Analysis Settings",
-    "settings.sheet.events": "Event Calendar",
-    "settings.sheet.more": "More",
-    "settings.sheet.north": "North-bound Capital",
-    "settings.sheet.sectors": "Sector Heatmap",
-    "tab.evolution": "Evolution",
-    "tab.reflection": "Reflection",
-    "experiment.executeTrade": "Execute Trade",
     "workflow.stopLoss": "止损价",
     "workflow.targetPrice": "目标价",
     "valueAssessment.buffettLabel": "巴菲特",
@@ -10223,5 +10224,19 @@
     "progress": "Прогресс",
     "history": "История",
     "noHistory": "Истории нет"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "В реальном времени",
+      "replay": "Воспроизведение",
+      "untilDate": "Воспроизвести до {{date}}"
+    },
+    "datePicker": {
+      "placeholder": "Выберите дату воспроизведения"
+    },
+    "degradedMarker": {
+      "tooltip": "Некоторые методы анализа недоступны в режиме воспроизведения",
+      "labelWithCount": "{{n}} ухудшено"
+    }
   }
 }

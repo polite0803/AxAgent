@@ -10,8 +10,13 @@
 //  5. unwrap_or_default() 吞错,返回空 Vec → 前端画布无节点
 //
 // 修复: 改用 stock-analysis 同款 Rust 类型构造路径(WorkflowNode::Trigger /
-// SubWorkflow / Agent / Storage + WorkflowNodeBase 全字段),编译器会强制要求
+// Code / Agent / Storage + WorkflowNodeBase 全字段),编译器会强制要求
 // 所有必填字段,根除此类 schema 漂移。
+//
+// 说明: v2 起反思模板已删除 sub-analysis 的 SubWorkflowNode(不再重跑完整
+// stock-analysis DAG,改由 run_reflection_workflow 注入 sub-analysis 变量),
+// 因此节点类型为 Trigger / Code(定量对比+硬裁决验证) / Agent / Storage,
+// 不再要求 SubWorkflow。本测试只校验"用 Rust 类型构造、不裸写 json!"这一核心约束。
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -54,9 +59,9 @@ describe("stock_analysis_setup.rs — seed_reflection_workflow_template", () => 
     }
   })();
 
-  it("应使用 Rust 类型构造 4 个节点(Trigger / SubWorkflow / Agent / Storage),不用 serde_json::json!", () => {
+  it("应使用 Rust 类型构造节点(Trigger / Code / Agent / Storage),不用 serde_json::json!", () => {
     expect(body).toMatch(/WorkflowNode::Trigger\s*\(/);
-    expect(body).toMatch(/WorkflowNode::SubWorkflow\s*\(/);
+    expect(body).toMatch(/WorkflowNode::Code\s*\(/);
     expect(body).toMatch(/WorkflowNode::Agent\s*\(/);
     expect(body).toMatch(/WorkflowNode::Storage\s*\(/);
     // 主节点数组不应再裸写 JSON(变量/trigger_config 仍可用 json! 但节点本身必须用类型)

@@ -8740,7 +8740,17 @@
     "agentFailed": "失败",
     "modelProviderSummary": "模型/提供商概览",
     "totalProviders": "提供商数",
-    "totalModels": "模型数"
+    "totalModels": "模型数",
+    "usageTrend": "使用趋势",
+    "noUsageData": "暂无使用数据",
+    "costOverview": "成本概览",
+    "totalCost": "总费用",
+    "avgCostPerSession": "单次会话平均费用",
+    "totalAgentTokens": "Agent Token 总数",
+    "dailyAvgCost": "日均费用",
+    "costByProvider": "按 Provider 分摊费用",
+    "inputTokens": "输入 Token",
+    "outputTokens": "输出 Token"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" 未注册",
@@ -10573,5 +10583,19 @@
     "progress": "执行进度",
     "history": "历史记录",
     "noHistory": "暂无执行历史"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "实时分析",
+      "replay": "历史回放",
+      "untilDate": "回放至 {{date}}"
+    },
+    "datePicker": {
+      "placeholder": "选择回放日期"
+    },
+    "degradedMarker": {
+      "tooltip": "部分分析方法在回放模式下不可用",
+      "labelWithCount": "降级 {{n}} 项"
+    }
   }
 }

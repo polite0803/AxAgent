@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
-import { PageTimeAnchor } from "@/components/time-travel/PageTimeAnchor";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useAgentPanelStore, useOnboardingStore } from "@/stores";
 import { theme } from "antd";
@@ -141,7 +140,6 @@ export function AppHeader() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        <PageTimeAnchor />
         {agentInTheLoopEnabled && (
           <Tooltip title={isAgentPanelOpen ? t("appHeader.closeAgentPanel") : t("appHeader.openAgentPanel")}>
             <button

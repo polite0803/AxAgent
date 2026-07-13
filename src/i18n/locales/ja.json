@@ -8088,7 +8088,9 @@
       "version": "Version"
     },
     "strategy": {
-      "strategyForm": { "paramsJson": "Params JSON" },
+      "strategyForm": {
+        "paramsJson": "Params JSON"
+      },
       "builtin": "Built-in Strategy",
       "description": "Strategy Description",
       "lastUpdated": "Last Updated",
@@ -8630,7 +8632,17 @@
     "agentFailed": "失敗",
     "modelProviderSummary": "モデル/プロバイダー概要",
     "totalProviders": "プロバイダー数",
-    "totalModels": "モデル数"
+    "totalModels": "モデル数",
+    "usageTrend": "利用傾向",
+    "noUsageData": "利用データなし",
+    "costOverview": "コスト概要",
+    "totalCost": "総費用",
+    "avgCostPerSession": "セッション平均コスト",
+    "totalAgentTokens": "Agent 総トークン",
+    "dailyAvgCost": "日次平均コスト",
+    "costByProvider": "プロバイダー別コスト",
+    "inputTokens": "入力トークン",
+    "outputTokens": "出力トークン"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10084,17 +10096,6 @@
     "tab.evolution": "進化",
     "tab.reflection": "振り返り",
     "experiment.executeTrade": "取引実行",
-    "debugPanel.show": "表示",
-    "debugPanel.hide": "非表示",
-    "debugPanel.toggleTitle": "Toggle Debug Panel",
-    "settings.title": "Stock Analysis Settings",
-    "settings.sheet.events": "Event Calendar",
-    "settings.sheet.more": "More",
-    "settings.sheet.north": "North-bound Capital",
-    "settings.sheet.sectors": "Sector Heatmap",
-    "tab.evolution": "進化",
-    "tab.reflection": "振り返り",
-    "experiment.executeTrade": "取引実行",
     "workflow.stopLoss": "ストップロス",
     "workflow.targetPrice": "目標価格",
     "valueAssessment.buffettLabel": "巴菲特",
@@ -10272,5 +10273,19 @@
     "progress": "進捗",
     "history": "履歴",
     "noHistory": "履歴なし"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "ライブ",
+      "replay": "リプレイ",
+      "untilDate": "{{date}} までリプレイ"
+    },
+    "datePicker": {
+      "placeholder": "リプレイ日を選択"
+    },
+    "degradedMarker": {
+      "tooltip": "リプレイモードでは一部の方法が利用できません",
+      "labelWithCount": "{{n}} 件劣化"
+    }
   }
 }

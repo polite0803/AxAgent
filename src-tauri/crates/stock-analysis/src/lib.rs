@@ -33,6 +33,7 @@ pub mod risk;
 pub mod rules;
 pub mod schema_serde_regression;
 pub mod scoring;
+pub mod concept_index;
 pub mod screener;
 pub mod signals;
 pub mod trade_import;

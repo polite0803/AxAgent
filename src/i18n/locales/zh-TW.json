@@ -8139,7 +8139,9 @@
       "version": "Version"
     },
     "strategy": {
-      "strategyForm": { "paramsJson": "Params JSON" },
+      "strategyForm": {
+        "paramsJson": "Params JSON"
+      },
       "builtin": "Built-in Strategy",
       "description": "Strategy Description",
       "lastUpdated": "Last Updated",
@@ -8631,7 +8633,17 @@
     "agentFailed": "失敗",
     "modelProviderSummary": "模型/提供商概覽",
     "totalProviders": "提供商數",
-    "totalModels": "模型數"
+    "totalModels": "模型數",
+    "usageTrend": "使用趨勢",
+    "noUsageData": "暫無使用資料",
+    "costOverview": "成本總覽",
+    "totalCost": "總費用",
+    "avgCostPerSession": "單次會話平均費用",
+    "totalAgentTokens": "Agent Token 總數",
+    "dailyAvgCost": "日均費用",
+    "costByProvider": "按 Provider 分攤費用",
+    "inputTokens": "輸入 Token",
+    "outputTokens": "輸出 Token"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -9570,17 +9582,6 @@
     "tab.evolution": "进化",
     "tab.reflection": "反思",
     "experiment.executeTrade": "执行交易",
-    "debugPanel.show": "显示",
-    "debugPanel.hide": "隐藏",
-    "debugPanel.toggleTitle": "Toggle Debug Panel",
-    "settings.title": "Stock Analysis Settings",
-    "settings.sheet.events": "Event Calendar",
-    "settings.sheet.more": "More",
-    "settings.sheet.north": "North-bound Capital",
-    "settings.sheet.sectors": "Sector Heatmap",
-    "tab.evolution": "进化",
-    "tab.reflection": "反思",
-    "experiment.executeTrade": "执行交易",
     "workflow.stopLoss": "止损价",
     "workflow.targetPrice": "目标价",
     "valueAssessment.buffettLabel": "巴菲特",
@@ -10272,5 +10273,19 @@
     "progress": "執行進度",
     "history": "歷史記錄",
     "noHistory": "暫無執行歷史"
+  },
+  "timeTravel": {
+    "pageAnchor": {
+      "live": "即時分析",
+      "replay": "歷史回放",
+      "untilDate": "回放至 {{date}}"
+    },
+    "datePicker": {
+      "placeholder": "選擇回放日期"
+    },
+    "degradedMarker": {
+      "tooltip": "部分分析方法在回放模式下不可用",
+      "labelWithCount": "降級 {{n}} 項"
+    }
   }
 }
