@@ -2,8 +2,6 @@
 
 use std::path::PathBuf;
 
-/// Android 包名
-
 /// Returns the canonical AxAgent home directory and ensures it exists.
 ///
 /// - macOS / Linux: `~/.axagent/`
