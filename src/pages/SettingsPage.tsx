@@ -479,7 +479,50 @@ export function SettingsPage() {
     };
   }, []);
 
-  // 检查是否是技能设置段
+  // === Phase 2 项级搜索高亮定位 ===
+  // 当 settingsHighlight 非空时，等待 lazy 组件挂载后滚动定位 + 闪烁。
+  const settingsHighlight = useUIStore((s) => s.settingsHighlight);
+  const setSettingsHighlight = useUIStore((s) => s.setSettingsHighlight);
+
+  useEffect(() => {
+    if (!settingsHighlight) {
+      return;
+    }
+
+    let cancelled = false;
+    let retriesLeft = 20; // ~2s 超时
+
+    const tryHighlight = () => {
+      if (cancelled || retriesLeft <= 0) {
+        setSettingsHighlight(null);
+        return;
+      }
+      const el = document.querySelector(`[data-search-key="${settingsHighlight}"]`);
+      if (!el) {
+        retriesLeft--;
+        setTimeout(tryHighlight, 100);
+        return;
+      }
+
+      // 滚动到目标位置，留出顶部间距
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("st-highlight-flash");
+
+      // 2s 后清除高亮
+      setTimeout(() => {
+        if (!cancelled) {
+          el.classList.remove("st-highlight-flash");
+          setSettingsHighlight(null);
+        }
+      }, 2000);
+    };
+
+    setTimeout(tryHighlight, 50);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [settingsSection, settingsHighlight, setSettingsHighlight]);
   const isSkillSection = typeof settingsSection === "string" && settingsSection.startsWith("skill:");
   const skillSectionData = isSkillSection
     ? skillSections.find(

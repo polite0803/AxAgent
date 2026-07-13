@@ -43,6 +43,9 @@ interface UIState {
   previousPage: PageKey;
   sidebarCollapsed: boolean;
   settingsSection: SettingsSection;
+  /** Phase 2 项级搜索 — 选中某设置项后，切板块 + 滚动定位 + 闪烁 */
+  settingsHighlight: string | null;
+  setSettingsHighlight: (key: string | null) => void;
   selectedProviderId: string | null;
   workflowEditorOpen: boolean;
   /** 根据窗口宽度自动检测的布局模式 */
@@ -94,6 +97,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   previousPage: "chat",
   sidebarCollapsed: true,
   settingsSection: "general",
+  settingsHighlight: null,
   selectedProviderId: null,
   workflowEditorOpen: false,
   deviceLayout: resolveDeviceLayout(window.innerWidth),
@@ -133,6 +137,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSettingsSection: (section) => set({ settingsSection: section }),
+  setSettingsHighlight: (key) => set({ settingsHighlight: key }),
   setSelectedProviderId: (id) => set({ selectedProviderId: id }),
   openWorkflowEditor: () => {
     set({ settingsSection: "workflow", workflowEditorOpen: true });

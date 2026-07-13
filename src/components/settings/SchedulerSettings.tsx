@@ -611,7 +611,11 @@ export function SchedulerSettings() {
   return (
     <div>
       <SettingsGroup title={t("settings.scheduler.autoBackup")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div
+          style={rowStyle}
+          className="flex items-center justify-between"
+          data-search-key="scheduler:autoBackupEnabled"
+        >
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             id="scheduler-settings-switch-150"
@@ -620,7 +624,7 @@ export function SchedulerSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="scheduler:backupInterval">
           <span>{t("settings.scheduler.backupInterval")}</span>
           <div className="flex items-center gap-2">
             <InputNumber
@@ -639,7 +643,7 @@ export function SchedulerSettings() {
           </div>
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="scheduler:maxBackupCount">
           <span>{t("settings.scheduler.maxCount")}</span>
           <InputNumber
             id="scheduler-settings-inputnumber-152"
@@ -671,7 +675,11 @@ export function SchedulerSettings() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.scheduler.webdavSync")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div
+          style={rowStyle}
+          className="flex items-center justify-between"
+          data-search-key="scheduler:webdavSyncEnabled"
+        >
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             id="scheduler-settings-switch-153"
@@ -680,7 +688,7 @@ export function SchedulerSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="scheduler:syncInterval">
           <span>{t("settings.scheduler.syncInterval")}</span>
           <Select
             id="scheduler-settings-select-154"
@@ -691,7 +699,11 @@ export function SchedulerSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div
+          style={rowStyle}
+          className="flex items-center justify-between"
+          data-search-key="scheduler:maxRemoteBackups"
+        >
           <span>{t("settings.scheduler.maxRemoteBackups")}</span>
           <InputNumber
             id="scheduler-settings-inputnumber-155"
@@ -718,7 +730,11 @@ export function SchedulerSettings() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.scheduler.closedLoop")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div
+          style={rowStyle}
+          className="flex items-center justify-between"
+          data-search-key="scheduler:closedLoopEnabled"
+        >
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             id="scheduler-settings-switch-156"
@@ -727,7 +743,7 @@ export function SchedulerSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="scheduler:nudgeInterval">
           <span>{t("settings.scheduler.nudgeInterval")}</span>
           <Select
             id="scheduler-settings-select-157"

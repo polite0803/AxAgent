@@ -1461,6 +1461,9 @@
   },
   "settings": {
     "title": "Settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "{{count}} results",
+    "searchNoResults": "No matching settings found",
     "tabModel": "Model & Service",
     "tabAppearance": "Appearance",
     "tabExtensions": "Tools & Extensions",
@@ -2016,7 +2019,19 @@
       "addSource": "Add Source",
       "loadToWiki": "Load to Wiki",
       "ragTab": "Knowledge RAG",
-      "wikiTab": "Wiki"
+      "wikiTab": "Wiki",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "Advanced Retrieval Settings",

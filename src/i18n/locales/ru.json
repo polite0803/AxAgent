@@ -1317,6 +1317,9 @@
   },
   "settings": {
     "title": "Настройки",
+    "searchPlaceholder": "Поиск настроек...",
+    "searchResults": "{{count}} результатов",
+    "searchNoResults": "Подходящие настройки не найдены",
     "providers": "Управление провайдерами",
     "conversationSettings": "Чат",
     "defaultModel": "Модель по умолчанию",
@@ -1813,7 +1816,19 @@
       "addSource": "Добавить источник данных",
       "loadToWiki": "Загрузить в Wiki",
       "ragTab": "RAG",
-      "wikiTab": "Вики"
+      "wikiTab": "Вики",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "Расширенные настройки извлечения",

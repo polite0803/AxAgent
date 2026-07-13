@@ -61,6 +61,7 @@ macro_rules! register_all_commands {
             commands::knowledge::reorder_knowledge_bases,
             commands::knowledge::list_knowledge_documents,
             commands::knowledge::add_knowledge_document,
+            commands::knowledge::import_knowledge_directory,
             commands::knowledge::delete_knowledge_document,
             commands::knowledge::search_knowledge_base,
             commands::knowledge::rebuild_knowledge_index,

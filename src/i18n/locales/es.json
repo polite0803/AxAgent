@@ -1317,6 +1317,9 @@
   },
   "settings": {
     "title": "Configuración",
+    "searchPlaceholder": "Buscar ajustes...",
+    "searchResults": "{{count}} resultados",
+    "searchNoResults": "No se encontraron ajustes coincidentes",
     "providers": "Gestión de proveedores",
     "conversationSettings": "Conversación",
     "defaultModel": "Modelo predeterminado",
@@ -1760,7 +1763,19 @@
       "addSource": "Añadir fuente de datos",
       "loadToWiki": "Cargar a Wiki",
       "ragTab": "RAG",
-      "wikiTab": "Wiki"
+      "wikiTab": "Wiki",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "Configuración de recuperación avanzada",

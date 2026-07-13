@@ -36,7 +36,7 @@ export function ConversationSettings() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.groupMessageStyle")}>
-        <div className="flex items-center justify-between" style={rowStyle}>
+        <div className="flex items-center justify-between" style={rowStyle} data-search-key="conversation:bubbleStyle">
           <span>{t("settings.bubbleStyle")}</span>
           <SettingsSelect
             value={settings.bubble_style}
@@ -49,7 +49,11 @@ export function ConversationSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div className="flex items-center justify-between" style={rowStyle}>
+        <div
+          className="flex items-center justify-between"
+          style={rowStyle}
+          data-search-key="conversation:renderUserMarkdown"
+        >
           <div>
             <div>{t("settings.renderUserMarkdown")}</div>
             <div style={{ fontSize: 12, color: token.colorTextDescription }}>
@@ -74,7 +78,11 @@ export function ConversationSettings() {
         >
           {t("settings.multiModelDisplayModeDesc")}
         </div>
-        <div className="flex items-center justify-between" style={rowStyle}>
+        <div
+          className="flex items-center justify-between"
+          style={rowStyle}
+          data-search-key="conversation:multiModelDisplayMode"
+        >
           <span>{t("settings.multiModelDisplayMode")}</span>
           <SettingsSelect
             value={settings.multi_model_display_mode ?? "tabs"}
@@ -110,7 +118,11 @@ export function ConversationSettings() {
         >
           {t("settings.chatMinimapEnabledDesc")}
         </div>
-        <div className="flex items-center justify-between" style={rowStyle}>
+        <div
+          className="flex items-center justify-between"
+          style={rowStyle}
+          data-search-key="conversation:chatMinimapEnabled"
+        >
           <span>{t("settings.chatMinimapEnabled")}</span>
           <Switch
             id="conversation-settings-switch-44"
@@ -121,7 +133,11 @@ export function ConversationSettings() {
         {settings.chat_minimap_enabled && (
           <>
             <Divider style={{ margin: "4px 0" }} />
-            <div className="flex items-center justify-between" style={rowStyle}>
+            <div
+              className="flex items-center justify-between"
+              style={rowStyle}
+              data-search-key="conversation:chatMinimapStyle"
+            >
               <span>{t("settings.chatMinimapStyle")}</span>
               <SettingsSelect
                 value={settings.chat_minimap_style ?? "faq"}

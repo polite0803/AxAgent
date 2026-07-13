@@ -57,7 +57,7 @@ export function ProxySettings() {
   return (
     <div className="p-6 pb-12">
       <SettingsGroup title={t("settings.groupProxy")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="proxy:proxyType">
           <span>{t("settings.proxyType")}</span>
           <SettingsSelect
             value={settings.proxy_type ?? "none"}
@@ -77,7 +77,7 @@ export function ProxySettings() {
             backgroundColor: "var(--border-color)",
           }}
         />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="proxy:proxyAddress">
           <span>{t("settings.proxyAddress")}</span>
           <Input
             id="proxy-settings-input-148"
@@ -95,7 +95,7 @@ export function ProxySettings() {
             backgroundColor: "var(--border-color)",
           }}
         />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="proxy:proxyPort">
           <span>{t("settings.proxyPort")}</span>
           <InputNumber
             id="proxy-settings-inputnumber-149"

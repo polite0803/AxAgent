@@ -143,6 +143,7 @@ export function ShortcutSettings() {
         <div
           style={{ padding: "4px 0" }}
           className="flex items-center justify-between"
+          data-search-key="shortcuts:enableGlobalShortcuts"
         >
           <span>{t("settings.enableGlobalShortcuts")}</span>
           <Switch
@@ -157,6 +158,7 @@ export function ShortcutSettings() {
         <div
           style={{ padding: "4px 0" }}
           className="flex items-center justify-between"
+          data-search-key="shortcuts:enableShortcutRegistrationLogs"
         >
           <span>{t("settings.enableShortcutRegistrationLogs")}</span>
           <Switch
@@ -173,6 +175,7 @@ export function ShortcutSettings() {
         <div
           style={{ padding: "4px 0" }}
           className="flex items-center justify-between"
+          data-search-key="shortcuts:enableShortcutTriggerToast"
         >
           <span>{t("settings.enableShortcutTriggerToast")}</span>
           <Switch

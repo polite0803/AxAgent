@@ -5,7 +5,7 @@ import { IconEditor } from "@/components/shared/IconEditor";
 import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { invoke, listen, logIpcError } from "@/lib/invoke";
 import { useKnowledgeStore, useSettingsStore } from "@/stores";
-import type { IndexingStatus, KnowledgeBase, KnowledgeDocument } from "@/types";
+import type { ImportDirectoryResult, IndexingStatus, KnowledgeBase, KnowledgeDocument } from "@/types";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -19,6 +19,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
+  Alert,
   Button,
   Collapse,
   Divider,
@@ -34,6 +35,7 @@ import {
   Select,
   Space,
   Spin,
+  Statistic,
   Switch,
   Table,
   Tag,
@@ -45,6 +47,7 @@ import type { MenuProps } from "antd";
 import {
   BookOpen,
   FileText,
+  FolderOpen,
   GripVertical,
   MoreHorizontal,
   Pencil,
@@ -330,6 +333,7 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
     loadDocuments,
     addDocument,
     deleteDocument,
+    importDirectory,
   } = useKnowledgeStore();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -360,6 +364,16 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
     VectorSearchResult[] | null
   >(null);
   const [searching, setSearching] = useState(false);
+
+  // Import directory state
+  const [importDirModalOpen, setImportDirModalOpen] = useState(false);
+  const [importDirPath, setImportDirPath] = useState("");
+  const [importRecursive, setImportRecursive] = useState(true);
+  const [importExtensionsText, setImportExtensionsText] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportDirectoryResult | null>(
+    null,
+  );
 
   // Chunks modal state
   const [chunksModalOpen, setChunksModalOpen] = useState(false);
@@ -630,6 +644,66 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
       // user cancelled or error
     }
   }, [base.id, addDocument, loadDocuments, t]);
+
+  const handleOpenImportDir = useCallback(() => {
+    setImportResult(null);
+    setImportDirModalOpen(true);
+  }, []);
+
+  const handleSelectImportDir = useCallback(async () => {
+    try {
+      const selected = await open({ directory: true, multiple: false });
+      if (typeof selected === "string" && selected.length > 0) {
+        setImportDirPath(selected);
+      }
+    } catch {
+      // user cancelled
+    }
+  }, []);
+
+  const handleImportDir = useCallback(async () => {
+    if (!importDirPath) {
+      messageApi.warning(t("settings.knowledge.importSelectFirst"));
+      return;
+    }
+    const exts = importExtensionsText
+      .split(",")
+      .map((e) => e.trim().replace(/^\./, "").toLowerCase())
+      .filter((e) => e.length > 0);
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const result = await importDirectory(
+        base.id,
+        importDirPath,
+        importRecursive,
+        exts.length > 0 ? exts : undefined,
+      );
+      setImportResult(result);
+      const summary = t("settings.knowledge.importDone", {
+        imported: result.importedCount,
+        skipped: result.skippedCount,
+        error: result.errorCount,
+      });
+      if (result.errorCount > 0) {
+        messageApi.warning(summary);
+      } else {
+        messageApi.success(summary);
+      }
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setImporting(false);
+    }
+  }, [
+    importDirPath,
+    importExtensionsText,
+    importRecursive,
+    base.id,
+    importDirectory,
+    messageApi,
+    t,
+  ]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim() || !base.embeddingProvider) {
@@ -1588,6 +1662,13 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
           <Tooltip title={t("settings.knowledge.addDocument")}>
             <Button icon={<Plus size={14} />} onClick={handleAddDocuments} />
           </Tooltip>
+          <Tooltip title={t("settings.knowledge.importDirectory")}>
+            <Button
+              icon={<FolderOpen size={14} />}
+              onClick={handleOpenImportDir}
+              data-testid="import-directory-btn"
+            />
+          </Tooltip>
           <Popconfirm
             title={t("settings.knowledge.rebuildIndexConfirm")}
             placement="bottom"
@@ -1741,6 +1822,166 @@ function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
         size="small"
         bordered
       />
+
+      {/* Import Directory Modal */}
+      <Modal
+        title={t("settings.knowledge.importDirTitle")}
+        open={importDirModalOpen}
+        onCancel={() => {
+          if (!importing) {
+            setImportDirModalOpen(false);
+          }
+        }}
+        footer={importResult
+          ? [
+            <Button
+              key="close"
+              onClick={() => setImportDirModalOpen(false)}
+            >
+              {t("common.close")}
+            </Button>,
+          ]
+          : [
+            <Button
+              key="cancel"
+              onClick={() => setImportDirModalOpen(false)}
+              disabled={importing}
+            >
+              {t("common.cancel")}
+            </Button>,
+            <Button
+              key="ok"
+              type="primary"
+              loading={importing}
+              disabled={!importDirPath}
+              onClick={handleImportDir}
+            >
+              {t("settings.knowledge.importStart")}
+            </Button>,
+          ]}
+        mask={{ enabled: true, blur: true }}
+        data-testid="import-directory-modal"
+      >
+        {importResult
+          ? (
+            <div className="flex flex-col gap-3">
+              <Alert
+                type={importResult.errorCount > 0 ? "warning" : "success"}
+                showIcon
+                message={t("settings.knowledge.importDone", {
+                  imported: importResult.importedCount,
+                  skipped: importResult.skippedCount,
+                  error: importResult.errorCount,
+                })}
+              />
+              <div className="flex gap-6">
+                <Statistic
+                  title={t("settings.knowledge.importedCount")}
+                  value={importResult.importedCount}
+                  valueStyle={{ color: "var(--ant-color-success)" }}
+                />
+                <Statistic
+                  title={t("settings.knowledge.importSkipped")}
+                  value={importResult.skippedCount}
+                  valueStyle={{ color: "var(--ant-color-text-secondary)" }}
+                />
+                <Statistic
+                  title={t("settings.knowledge.errorCount")}
+                  value={importResult.errorCount}
+                  valueStyle={{
+                    color: importResult.errorCount > 0
+                      ? "var(--ant-color-error)"
+                      : undefined,
+                  }}
+                />
+              </div>
+              {importResult.skipped.length > 0 && (
+                <Collapse
+                  ghost
+                  size="small"
+                  items={[
+                    {
+                      key: "skipped",
+                      label: `${t("settings.knowledge.importSkipped")} (${importResult.skipped.length})`,
+                      children: (
+                        <ul className="m-0 pl-4 text-xs" style={{ color: "var(--ant-color-text-secondary)" }}>
+                          {importResult.skipped.map((p) => <li key={p} className="break-all">{p}</li>)}
+                        </ul>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+              {importResult.errors.length > 0 && (
+                <Collapse
+                  ghost
+                  size="small"
+                  items={[
+                    {
+                      key: "errors",
+                      label: `${t("settings.knowledge.importErrors")} (${importResult.errors.length})`,
+                      children: (
+                        <ul className="m-0 pl-4 text-xs" style={{ color: "var(--ant-color-error)" }}>
+                          {importResult.errors.map((e) => (
+                            <li key={e.path} className="break-all">
+                              {e.path}: {e.error}
+                            </li>
+                          ))}
+                        </ul>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+            </div>
+          )
+          : (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="import-dir-path"
+                  readOnly
+                  value={importDirPath}
+                  placeholder={t("settings.knowledge.selectFolder")}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  icon={<FolderOpen size={14} />}
+                  onClick={handleSelectImportDir}
+                >
+                  {t("settings.knowledge.selectFolder")}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">
+                  {t("settings.knowledge.importRecursive")}
+                </span>
+                <Switch
+                  id="import-dir-recursive"
+                  checked={importRecursive}
+                  onChange={setImportRecursive}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm">
+                  {t("settings.knowledge.importExtensions")}
+                </span>
+                <Input
+                  id="import-dir-extensions"
+                  value={importExtensionsText}
+                  onChange={(e) => setImportExtensionsText(e.target.value)}
+                  placeholder="md, txt, pdf"
+                />
+              </div>
+              {importing && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Spin size="small" />
+                  {t("settings.knowledge.importing")}
+                </div>
+              )}
+            </div>
+          )}
+      </Modal>
 
       {/* Chunks Modal */}
       <Modal

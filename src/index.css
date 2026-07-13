@@ -2929,6 +2929,57 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .st-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
 .st-item.active svg { opacity: 1; }
 
+/* 设置搜索框 */
+.st-search-box {
+  padding: 10px 12px 8px;
+  flex-shrink: 0;
+}
+.st-search-box .ant-input-affix-wrapper,
+.st-search-box .ant-input {
+  background: var(--bg-2);
+  border-color: var(--border-light);
+}
+.st-search-box .ant-input-prefix {
+  color: var(--muted);
+  margin-right: 6px;
+}
+
+/* 设置搜索结果 */
+.st-search-results {
+  padding: 4px 8px 8px;
+}
+.st-search-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-2);
+  padding: 8px 6px 4px;
+}
+.st-search-empty {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 14px 10px;
+  text-align: center;
+}
+
+/* Phase 2 项级搜索结果 — 副标题（父板块名） */
+.st-search-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+/* Phase 2 项级搜索 — 高亮闪烁动画 */
+@keyframes st-highlight-pulse {
+  0%, 100% { background-color: transparent; }
+  20% { background-color: var(--color-primary-bg, rgba(22,119,255,0.15)); }
+  60% { background-color: var(--color-primary-bg, rgba(22,119,255,0.08)); }
+}
+.st-highlight-flash {
+  animation: st-highlight-pulse 2s ease-out;
+  border-radius: 6px;
+}
+
 
 .settings-content {
   flex: 1;

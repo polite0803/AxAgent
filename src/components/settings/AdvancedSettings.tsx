@@ -38,6 +38,7 @@ function BashValidationSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:dangerousCmdDetect"
       >
         <span>{t("advanced.dangerousCmdDetect")}</span>
         <Switch
@@ -50,6 +51,7 @@ function BashValidationSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:networkCmdDetect"
       >
         <span>{t("advancedSettings.networkCmdDetect")}</span>
         <Switch
@@ -62,6 +64,7 @@ function BashValidationSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:cmdTimeout"
       >
         <span>{t("advanced.cmdTimeout")}</span>
         <InputNumber
@@ -102,6 +105,7 @@ function PermissionEnforcerSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:defaultPermission"
       >
         <span>{t("advancedSettings.defaultPermission")}</span>
         <Select
@@ -126,6 +130,7 @@ function PermissionEnforcerSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:fileWriteConfirm"
       >
         <span>{t("advanced.fileWriteConfirm")}</span>
         <Switch
@@ -138,6 +143,7 @@ function PermissionEnforcerSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:networkConfirm"
       >
         <span>{t("advancedSettings.networkConfirm")}</span>
         <Switch
@@ -150,6 +156,7 @@ function PermissionEnforcerSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:shellConfirm"
       >
         <span>{t("advancedSettings.shellConfirm")}</span>
         <Switch
@@ -180,6 +187,7 @@ function ModeSelectorSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:defaultMode"
       >
         <span>{t("advancedSettings.defaultMode")}</span>
         <Select
@@ -199,6 +207,7 @@ function ModeSelectorSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:tokenBudgetLimit"
       >
         <span>{t("advancedSettings.tokenBudgetLimit")}</span>
         <InputNumber
@@ -215,6 +224,7 @@ function ModeSelectorSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:enableTokenBudget"
       >
         <span>{t("advancedSettings.enableTokenBudget")}</span>
         <Switch
@@ -246,6 +256,7 @@ function RecoveryRecipesSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:autoRetry"
       >
         <span>{t("advancedSettings.autoRetry")}</span>
         <Switch
@@ -258,6 +269,7 @@ function RecoveryRecipesSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:maxRetries"
       >
         <span>{t("advancedSettings.maxRetries")}</span>
         <InputNumber
@@ -273,6 +285,7 @@ function RecoveryRecipesSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:retryDelay"
       >
         <span>{t("advancedSettings.retryDelay")}</span>
         <InputNumber
@@ -288,6 +301,7 @@ function RecoveryRecipesSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:modelFallback"
       >
         <span>{t("advancedSettings.modelFallback")}</span>
         <Switch
@@ -321,6 +335,7 @@ function GreenContractSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:cpuLimit"
       >
         <span>{t("advancedSettings.cpuLimit")}</span>
         <Slider
@@ -335,6 +350,7 @@ function GreenContractSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:memoryLimit"
       >
         <span>{t("advancedSettings.memoryLimit")}</span>
         <InputNumber
@@ -351,6 +367,7 @@ function GreenContractSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:enableIdleDetection"
       >
         <span>{t("advancedSettings.enableIdleDetection")}</span>
         <Switch
@@ -363,6 +380,7 @@ function GreenContractSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:idleTimeout"
       >
         <span>{t("advancedSettings.idleTimeout")}</span>
         <InputNumber
@@ -399,6 +417,7 @@ function CompactionThresholdSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:autoCompressThreshold"
       >
         <span>{t("advancedSettings.autoCompressThreshold")}</span>
         <InputNumber
@@ -415,6 +434,7 @@ function CompactionThresholdSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:warningBuffer"
       >
         <span>{t("advancedSettings.warningBuffer")}</span>
         <InputNumber
@@ -431,6 +451,7 @@ function CompactionThresholdSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:maxConsecutiveFailures"
       >
         <span>{t("advancedSettings.maxConsecutiveFailures")}</span>
         <InputNumber
@@ -446,6 +467,7 @@ function CompactionThresholdSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:enableMemoryCompression"
       >
         <span>{t("advancedSettings.enableMemoryCompression")}</span>
         <Switch
@@ -476,6 +498,7 @@ function DreamConsolidationSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:enableDream"
       >
         <span>{t("advancedSettings.enableDream")}</span>
         <Switch
@@ -488,6 +511,7 @@ function DreamConsolidationSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:dreamMinInterval"
       >
         <span>{t("advancedSettings.minInterval")}</span>
         <InputNumber
@@ -503,6 +527,7 @@ function DreamConsolidationSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:dreamMinSessions"
       >
         <span>{t("advancedSettings.minNewSessions")}</span>
         <InputNumber
@@ -518,6 +543,7 @@ function DreamConsolidationSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:dreamMaxDuration"
       >
         <span>{t("advancedSettings.maxDuration")}</span>
         <InputNumber
@@ -543,6 +569,7 @@ function LspDiagnosticsSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:enableLspDiagnostics"
       >
         <span>{t("advancedSettings.enableLspDiagnostics")}</span>
         <Switch
@@ -555,6 +582,7 @@ function LspDiagnosticsSection() {
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}
+        data-search-key="advanced:diagnosticLevel"
       >
         <span>{t("advancedSettings.diagnosticLevelLabel")}</span>
         <Select

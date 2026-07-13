@@ -1318,6 +1318,9 @@
   },
   "settings": {
     "title": "设置",
+    "searchPlaceholder": "搜索设置项...",
+    "searchResults": "{{count}} 个结果",
+    "searchNoResults": "未找到相关设置",
     "providers": "服务商管理",
     "conversationSettings": "对话设置",
     "defaultModel": "默认模型",
@@ -1841,7 +1844,19 @@
       "addSource": "添加数据源",
       "loadToWiki": "加载到Wiki",
       "ragTab": "知识库 RAG",
-      "wikiTab": "知识库"
+      "wikiTab": "知识库",
+      "importDirectory": "导入文件夹",
+      "importDirTitle": "导入文件夹到知识库",
+      "importRecursive": "递归子目录",
+      "importExtensions": "扩展名过滤（逗号分隔，留空表示全部支持类型）",
+      "importStart": "开始导入",
+      "importing": "正在导入，请稍候…",
+      "importDone": "已导入 {{imported}} 个、跳过 {{skipped}} 个、失败 {{error}} 个",
+      "importSkipped": "已跳过（不支持类型）",
+      "importErrors": "错误明细",
+      "importedCount": "已导入",
+      "errorCount": "失败",
+      "importSelectFirst": "请先选择文件夹"
     },
     "rag": {
       "advanced": "高级检索设置",

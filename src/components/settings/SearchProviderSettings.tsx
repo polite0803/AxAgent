@@ -309,7 +309,7 @@ function SearchProviderDetail({
         </div>
       </div>
 
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:name">
         <span>{t("settings.searchProviders.name")}</span>
         <Input
           id="search-provider-settings-input-159"
@@ -319,7 +319,7 @@ function SearchProviderDetail({
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:type">
         <span>{t("settings.searchProviders.type")}</span>
         <Select
           id="search-provider-settings-select-160"
@@ -331,7 +331,7 @@ function SearchProviderDetail({
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:endpoint">
         <span>{t("settings.searchProviders.endpoint")}</span>
         <Input
           id="search-provider-settings-input-161"
@@ -342,7 +342,7 @@ function SearchProviderDetail({
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:apiKey">
         <span>API Key</span>
         <Space.Compact style={{ width: 280 }}>
           <Input.Password
@@ -359,7 +359,7 @@ function SearchProviderDetail({
         </Space.Compact>
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:resultLimit">
         <span>{t("settings.searchProviders.resultLimit")}</span>
         <InputNumber
           id="search-provider-settings-inputnumber-163"
@@ -371,7 +371,7 @@ function SearchProviderDetail({
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:timeout">
         <span>{t("settings.searchProviders.timeout")}</span>
         <InputNumber
           id="search-provider-settings-inputnumber-164"
@@ -385,7 +385,7 @@ function SearchProviderDetail({
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div style={rowStyle} className="flex items-center justify-between">
+      <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:enabled">
         <span>{t("common.enabled")}</span>
         <Switch
           id="search-provider-settings-switch-165"

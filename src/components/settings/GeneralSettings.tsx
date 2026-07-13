@@ -29,7 +29,7 @@ export function GeneralSettings() {
     <div className="p-6 pb-12">
       {/* Language */}
       <SettingsGroup title={t("settings.groupLanguage")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="general:language">
           <span>{t("settings.language")}</span>
           <SettingsSelect
             value={i18n.language}
@@ -54,7 +54,7 @@ export function GeneralSettings() {
 
       {/* Startup */}
       <SettingsGroup title={t("settings.groupStartup")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="general:autoStart">
           <span>{t("settings.autoStart")}</span>
           <Switch
             id="general-settings-switch-60"
@@ -78,7 +78,7 @@ export function GeneralSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="general:showOnStart">
           <span>{t("settings.showOnStart")}</span>
           <Switch
             id="general-settings-switch-61"
@@ -87,7 +87,7 @@ export function GeneralSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="general:alwaysOnTop">
           <span>{t("desktop.alwaysOnTop")}</span>
           <Switch
             id="general-settings-switch-62"
@@ -104,7 +104,7 @@ export function GeneralSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="general:startMinimized">
           <span>{t("desktop.startMinimized")}</span>
           <Switch
             id="general-settings-switch-63"
@@ -117,7 +117,7 @@ export function GeneralSettings() {
 
       {/* Tray & Window */}
       <SettingsGroup title={t("settings.groupTray")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="general:minimizeToTray">
           <span>{t("settings.minimizeToTray")}</span>
           <Switch
             id="general-settings-switch-64"
@@ -136,7 +136,11 @@ export function GeneralSettings() {
 
       {/* Workspace */}
       <SettingsGroup title={t("settings.groupWorkspace")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div
+          style={rowStyle}
+          className="flex items-center justify-between"
+          data-search-key="general:defaultWorkspaceDir"
+        >
           <span>{t("settings.defaultWorkspaceDir")}</span>
           <div className="flex items-center gap-2">
             {settings.default_workspace_dir

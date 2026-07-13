@@ -5,7 +5,84 @@ use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_harness::types::*;
 use axagent_search::rag::KnowledgeContainer;
+use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
+
+/// 目录导入结果（单文档批量导入的汇总）。
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportDirectoryError {
+    pub path: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportDirectoryResult {
+    pub base_id: String,
+    pub imported_count: usize,
+    pub skipped_count: usize,
+    pub error_count: usize,
+    pub imported: Vec<KnowledgeDocument>,
+    pub skipped: Vec<String>,
+    pub errors: Vec<ImportDirectoryError>,
+}
+
+/// document-parser 支持解析的扩展名；目录导入仅收录这些类型。
+fn is_supported_knowledge_ext(ext: &str) -> bool {
+    matches!(
+        ext.to_ascii_lowercase().as_str(),
+        "txt" | "md" | "markdown" | "csv" | "html" | "htm" | "xml" | "json" | "pdf" | "docx"
+            | "xlsx" | "pptx"
+    )
+}
+
+/// 收集目录下的可导入文件，跳过隐藏文件/目录与不支持的扩展名。
+/// `extensions` 指定时仅收录该白名单内的扩展名，否则使用 [`is_supported_knowledge_ext`]。
+fn collect_importable_files(
+    dir: &std::path::Path,
+    recursive: bool,
+    extensions: &Option<Vec<String>>,
+    files: &mut Vec<PathBuf>,
+    skipped: &mut Vec<String>,
+) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_type = entry.file_type()?;
+
+        // 跳过隐藏项（如 .git / .DS_Store）
+        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            if name.starts_with('.') {
+                continue;
+            }
+        }
+
+        if file_type.is_dir() {
+            if recursive {
+                collect_importable_files(&path, recursive, extensions, files, skipped)?;
+            }
+        } else if file_type.is_file() {
+            let ext = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|s| s.to_ascii_lowercase());
+            let allowed = match extensions {
+                Some(exts) => ext
+                    .as_ref()
+                    .map(|e| exts.iter().any(|x| x.eq_ignore_ascii_case(e)))
+                    .unwrap_or(false),
+                None => ext.as_deref().map(is_supported_knowledge_ext).unwrap_or(false),
+            };
+            if allowed {
+                files.push(path);
+            } else {
+                skipped.push(path.to_string_lossy().to_string());
+            }
+        }
+    }
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn list_knowledge_bases(
@@ -114,6 +191,120 @@ pub async fn add_knowledge_document(
     }
 
     Ok(doc)
+}
+
+/// 批量导入一个目录下的文档到指定知识库。
+///
+/// - `directory_path`：要导入的目录绝对路径
+/// - `recursive`：是否递归子目录（默认 false）
+/// - `extensions`：可选扩展名白名单（不含点，如 `["md", "txt"]`），未指定则使用支持的类型集
+///
+/// 仅收录 document-parser 支持的类型；其余文件计入 `skipped`。
+/// 若知识库配置了 embedding 提供方，每个文档会被标记为 pending 并入队索引任务。
+#[tauri::command]
+pub async fn import_knowledge_directory(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    base_id: String,
+    directory_path: String,
+    recursive: Option<bool>,
+    extensions: Option<Vec<String>>,
+) -> Result<ImportDirectoryResult, String> {
+    let dir = PathBuf::from(&directory_path);
+    if !dir.exists() || !dir.is_dir() {
+        return Err(format!("路径不存在或不是目录: {directory_path}"));
+    }
+
+    let recursive = recursive.unwrap_or(false);
+
+    let mut files = Vec::new();
+    let mut skipped = Vec::new();
+    collect_importable_files(&dir, recursive, &extensions, &mut files, &mut skipped).map_err(
+        |e| format!("读取目录失败 {directory_path}: {e}"),
+    )?;
+
+    let kb =
+        axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id).await.map_err(
+            |e| e.to_string(),
+        )?;
+    let has_embedding = kb.embedding_provider.is_some();
+
+    let mut result = ImportDirectoryResult {
+        base_id: base_id.clone(),
+        imported_count: 0,
+        skipped_count: 0,
+        error_count: 0,
+        imported: Vec::new(),
+        skipped,
+        errors: Vec::new(),
+    };
+
+    for path in files {
+        let abs = path.to_string_lossy().to_string();
+        let mime = axagent_document_parser::mime_from_extension(&path).to_string();
+
+        // 递归导入时用相对路径作为标题，避免重名；非递归用文件名
+        let title = if recursive {
+            path.strip_prefix(&dir)
+                .map(|p| p.to_string_lossy().replace('\\', "/"))
+                .unwrap_or_else(|_| {
+                    path.file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_default()
+                })
+        } else {
+            path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default()
+        };
+
+        match axagent_dao::repo::knowledge::add_document(
+            state.harness.db(),
+            &base_id,
+            &title,
+            &abs,
+            &mime,
+            None,
+        )
+        .await
+        {
+            Ok(doc) => {
+                if has_embedding {
+                    let _ = axagent_dao::repo::knowledge::update_document_status(
+                        state.harness.db(),
+                        &doc.id,
+                        "pending",
+                    )
+                    .await;
+                    if let Err(e) = crate::index_queue::enqueue_job_sync(
+                        &state,
+                        &app,
+                        jobs::JOB_TYPE_INDEX_DOCUMENT,
+                        "kb",
+                        &base_id,
+                        &doc.id,
+                        None,
+                        None,
+                    ) {
+                        tracing::warn!("[knowledge] 目录导入入队索引失败 {}: {}", doc.id, e);
+                    }
+                }
+                result.imported_count += 1;
+                result.imported.push(doc);
+            },
+            Err(e) => {
+                result.error_count += 1;
+                result.errors.push(ImportDirectoryError {
+                    path: abs,
+                    error: e.to_string(),
+                });
+            },
+        }
+    }
+
+    result.skipped_count = result.skipped.len();
+
+    Ok(result)
 }
 
 #[tauri::command]

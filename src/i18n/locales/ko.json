@@ -1317,6 +1317,9 @@
   },
   "settings": {
     "title": "설정",
+    "searchPlaceholder": "설정 검색...",
+    "searchResults": "{{count}}개 결과",
+    "searchNoResults": "일치하는 설정을 찾을 수 없습니다",
     "providers": "공급자 관리",
     "conversationSettings": "대화",
     "defaultModel": "기본 모델",
@@ -1873,7 +1876,19 @@
       "addSource": "데이터 소스 추가",
       "loadToWiki": "Wiki에 로드",
       "ragTab": "RAG",
-      "wikiTab": "위키"
+      "wikiTab": "위키",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "고급 검색 설정",

@@ -69,7 +69,7 @@ function ServiceHealthSection() {
   return (
     <SettingsGroup title={t("settings.groupServiceHealth")}>
       {report && (
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:overallStatus">
           <span>{t("settings.overallStatus")}</span>
           <Tag color={STATUS_COLOR[report.overall]}>
             {report.overall.toUpperCase()}
@@ -194,12 +194,12 @@ export function AboutPage() {
       </div>
 
       <SettingsGroup title={t("settings.groupAppInfo")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:appVersion">
           <span>{t("settings.version")}</span>
           <Text type="secondary">{appVersion}</Text>
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:openSource">
           <span>{t("settings.openSource")}</span>
           <Text type="secondary">AGPL-3.0</Text>
         </div>
@@ -208,7 +208,7 @@ export function AboutPage() {
       {isTauri() && <ServiceHealthSection />}
 
       <SettingsGroup title={t("settings.groupLinks")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:checkUpdate">
           <span>{t("settings.checkUpdate")}</span>
           <Button
             icon={<RefreshCw size={16} className={checking ? "animate-spin" : ""} />}
@@ -219,7 +219,7 @@ export function AboutPage() {
           </Button>
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:updateCheckInterval">
           <span>{t("settings.updateCheckInterval")}</span>
           <InputNumber
             id="about-page-inputnumber-1"
@@ -234,7 +234,7 @@ export function AboutPage() {
         {isTauri() && (
           <>
             <Divider style={{ margin: "4px 0" }} />
-            <div style={rowStyle} className="flex items-center justify-between">
+            <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:developerTools">
               <span>{t("settings.developerTools")}</span>
               <Button
                 icon={<Terminal size={16} />}
@@ -247,7 +247,7 @@ export function AboutPage() {
         )}
       </SettingsGroup>
       <SettingsGroup title={t("help.onboardingReplay")}>
-        <div style={rowStyle} className="flex items-center justify-between">
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:replayTutorial">
           <span>{t("help.onboardingReplayDesc")}</span>
           <Button
             icon={<GraduationCap size={16} />}

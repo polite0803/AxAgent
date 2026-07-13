@@ -7,6 +7,7 @@ import type {
   FileRow,
   FileSortKey,
   FilesPageEntry,
+  ImportDirectoryResult,
   KnowledgeBase,
   KnowledgeDocument,
   UpdateKnowledgeBaseInput,
@@ -81,6 +82,12 @@ interface KnowledgeState {
     knowledgeBaseId: string,
     documentId: string,
   ) => Promise<void>;
+  importDirectory: (
+    baseId: string,
+    directoryPath: string,
+    recursive?: boolean,
+    extensions?: string[],
+  ) => Promise<ImportDirectoryResult>;
   setSelectedBaseId: (id: string | null) => void;
   setupEventListeners: () => Promise<() => void>;
 }
@@ -259,6 +266,22 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
         id: documentId,
       });
       await get().loadDocuments(knowledgeBaseId);
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  importDirectory: async (baseId, directoryPath, recursive = false, extensions?: string[]) => {
+    try {
+      const result = await invoke<ImportDirectoryResult>("import_knowledge_directory", {
+        baseId,
+        directoryPath,
+        recursive,
+        extensions,
+      });
+      await get().loadDocuments(baseId);
+      return result;
     } catch (e) {
       set({ error: String(e) });
       throw e;

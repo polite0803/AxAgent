@@ -1317,6 +1317,9 @@
   },
   "settings": {
     "title": "設定",
+    "searchPlaceholder": "設定を検索...",
+    "searchResults": "{{count}} 件の結果",
+    "searchNoResults": "一致する設定が見つかりません",
     "providers": "プロバイダー管理",
     "conversationSettings": "会話",
     "defaultModel": "デフォルトモデル",
@@ -1873,7 +1876,19 @@
       "recentSources": "最近のソース",
       "addSource": "ソースを追加",
       "loadToWiki": "Wiki にロード",
-      "ragTab": "ナレッジ RAG"
+      "ragTab": "ナレッジ RAG",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "queryEnhancement": {

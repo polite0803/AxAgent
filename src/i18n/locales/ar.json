@@ -1317,6 +1317,9 @@
   },
   "settings": {
     "title": "الإعدادات",
+    "searchPlaceholder": "ابحث في الإعدادات...",
+    "searchResults": "{{count}} نتائج",
+    "searchNoResults": "لم يتم العثور على إعدادات مطابقة",
     "providers": "إدارة المزوّدين",
     "conversationSettings": "المحادثة",
     "defaultModel": "النموذج الافتراضي",
@@ -1836,7 +1839,19 @@
       "addSource": "إضافة مصدر بيانات",
       "loadToWiki": "تحميل إلى الويكي",
       "ragTab": "RAG",
-      "wikiTab": "ويكي"
+      "wikiTab": "ويكي",
+      "importDirectory": "Import Folder",
+      "importDirTitle": "Import Folder into Knowledge Base",
+      "importRecursive": "Recursive Subdirectories",
+      "importExtensions": "Extension filter (comma-separated, empty = all supported types)",
+      "importStart": "Start Import",
+      "importing": "Importing, please wait…",
+      "importDone": "Imported {{imported}}, skipped {{skipped}}, failed {{error}}",
+      "importSkipped": "Skipped (unsupported type)",
+      "importErrors": "Error Details",
+      "importedCount": "Imported",
+      "errorCount": "Failed",
+      "importSelectFirst": "Please select a folder first"
     },
     "rag": {
       "advanced": "إعدادات الاسترجاع المتقدمة",
