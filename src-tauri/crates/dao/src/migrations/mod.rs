@@ -20,7 +20,7 @@
 //! `migrations::run_migrations`，确保所有已有 call sites 继续工作。
 //! 旧 DROP seaql_migrations 行为已删除（无 seaql 依赖）。
 
-use sea_orm::{ConnectionTrait, DatabaseBackend, DbErr, Statement};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
 pub mod v001_initial;
 pub mod v002_indices;
@@ -117,7 +117,9 @@ const MIGRATIONS: &[Migration] = &[
 /// 所以顶层 API 接收 `&DatabaseConnection`；ddl.rs shim 已经更新
 /// 成强类型。
 pub async fn run_migrations(db: &sea_orm::DatabaseConnection) -> Result<(), DbErr> {
-    // 1) 确保 version tracking 表存在
+    let backend = db.get_database_backend();
+
+    // 1) 确保 version tracking 表存在（ANSI DDL，SQLite/PG 通用）
     db.execute_unprepared(
         "CREATE TABLE IF NOT EXISTS axagent_schema_version (\
          version INTEGER NOT NULL PRIMARY KEY, \
@@ -136,7 +138,7 @@ pub async fn run_migrations(db: &sea_orm::DatabaseConnection) -> Result<(), DbEr
         }
         // db.clone() 是 Arc +1，up() 内部 await 时持有一个 owned 副本。
         (m.up)(db.clone()).await?;
-        record_version(db, m.version, m.description).await?;
+        record_version(db, backend, m.version, m.description).await?;
     }
 
     Ok(())
@@ -145,7 +147,7 @@ pub async fn run_migrations(db: &sea_orm::DatabaseConnection) -> Result<(), DbEr
 async fn read_max_version(db: &sea_orm::DatabaseConnection) -> Result<i32, DbErr> {
     let row = db
         .query_one_raw(Statement::from_string(
-            DatabaseBackend::Sqlite,
+            db.get_database_backend(),
             "SELECT COALESCE(MAX(version), 0) AS v FROM axagent_schema_version",
         ))
         .await?;
@@ -161,6 +163,7 @@ async fn read_max_version(db: &sea_orm::DatabaseConnection) -> Result<i32, DbErr
 
 async fn record_version(
     db: &sea_orm::DatabaseConnection,
+    backend: DbBackend,
     version: i32,
     description: &str,
 ) -> Result<(), DbErr> {
@@ -168,12 +171,22 @@ async fn record_version(
     let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
 
     // 参数化查询：避免 format! 拼接 SQL 带来的注入风险与转义负担。
-    // Sea-ORM 2.0 中 execute 接受 StatementBuilder，原始 Statement 需走 execute_raw。
-    let stmt = Statement::from_sql_and_values(
-        DatabaseBackend::Sqlite,
-        "INSERT OR IGNORE INTO axagent_schema_version (version, applied_at, description) VALUES (?, ?, ?)",
-        [version.into(), now.into(), description.into()],
-    );
+    // SQLite 用 `INSERT OR IGNORE`；PostgreSQL 用 `ON CONFLICT DO NOTHING`
+    // （二者语义等价：版本号冲突时静默跳过，保证幂等）。
+    let stmt = if backend == DbBackend::Postgres {
+        Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "INSERT INTO axagent_schema_version (version, applied_at, description) \
+             VALUES ($1, $2, $3) ON CONFLICT (version) DO NOTHING",
+            [version.into(), now.into(), description.into()],
+        )
+    } else {
+        Statement::from_sql_and_values(
+            DbBackend::Sqlite,
+            "INSERT OR IGNORE INTO axagent_schema_version (version, applied_at, description) VALUES (?, ?, ?)",
+            [version.into(), now.into(), description.into()],
+        )
+    };
     db.execute_raw(stmt).await?;
     Ok(())
 }
@@ -200,7 +213,7 @@ mod tests {
         ] {
             let row = db
                 .query_one_raw(Statement::from_sql_and_values(
-                    DatabaseBackend::Sqlite,
+                    DbBackend::Sqlite,
                     "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
                     [(*table).into()],
                 ))
@@ -213,7 +226,7 @@ mod tests {
         for dead in &["categories", "apps", "context_packs"] {
             let row = db
                 .query_one_raw(Statement::from_sql_and_values(
-                    DatabaseBackend::Sqlite,
+                    DbBackend::Sqlite,
                     "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
                     [(*dead).into()],
                 ))
@@ -236,7 +249,7 @@ mod tests {
         // schema_version 表应只有 CURRENT_VERSION 行（与迁移数量一致）
         let count_row = db
             .query_one_raw(Statement::from_string(
-                DatabaseBackend::Sqlite,
+                DbBackend::Sqlite,
                 "SELECT COUNT(*) AS cnt FROM axagent_schema_version",
             ))
             .await
@@ -263,7 +276,7 @@ mod tests {
         ] {
             let row = db
                 .query_one_raw(Statement::from_sql_and_values(
-                    DatabaseBackend::Sqlite,
+                    DbBackend::Sqlite,
                     "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
                     [(*idx).into()],
                 ))

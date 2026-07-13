@@ -913,18 +913,36 @@ pub async fn search_conversations(
         preview: String,
     }
 
-    let fts_rows = FtsRow::find_by_statement(Statement::from_sql_and_values(
-        DatabaseBackend::Sqlite,
-        "SELECT m.conversation_id, snippet(messages_fts, 0, '', '', '...', 32) as preview \
-         FROM messages_fts \
-         JOIN messages m ON m.rowid = messages_fts.rowid \
-         WHERE messages_fts MATCH ? \
-         GROUP BY m.conversation_id \
-         ORDER BY rank",
-        [query.into()],
-    ))
-    .all(db)
-    .await?;
+    let (backend, sql) = if db.get_database_backend() == DbBackend::Postgres {
+        // PostgreSQL：tsvector 生成列 + ts_rank/ts_headline。
+        (
+            DbBackend::Postgres,
+            "SELECT m.conversation_id, \
+                ts_headline('simple', m.content, plainto_tsquery('simple', $1), 'MaxWords=32, MinWords=5') as preview \
+             FROM messages m \
+             WHERE m.content_tsv @@ plainto_tsquery('simple', $1) \
+             GROUP BY m.conversation_id \
+             ORDER BY ts_rank(m.content_tsv, plainto_tsquery('simple', $1))"
+                .to_string(),
+        )
+    } else {
+        // SQLite：FTS5 虚拟表 + MATCH/snippet。
+        (
+            DbBackend::Sqlite,
+            "SELECT m.conversation_id, snippet(messages_fts, 0, '', '', '...', 32) as preview \
+             FROM messages_fts \
+             JOIN messages m ON m.rowid = messages_fts.rowid \
+             WHERE messages_fts MATCH ? \
+             GROUP BY m.conversation_id \
+             ORDER BY rank"
+                .to_string(),
+        )
+    };
+
+    let fts_rows =
+        FtsRow::find_by_statement(Statement::from_sql_and_values(backend, sql, [query.into()]))
+            .all(db)
+            .await?;
 
     let mut results = Vec::with_capacity(fts_rows.len());
     for fts in fts_rows {

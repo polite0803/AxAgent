@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use sea_orm::ConnectionTrait;
+use sea_orm::{ConnectionTrait, DbBackend};
 use tauri::State;
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -21,11 +21,27 @@ pub async fn session_search(
 ) -> Result<Vec<SessionSearchResult>, String> {
     let max = limit.unwrap_or(10);
 
-    let rows = state
-        .harness
-        .db()
-        .query_all_raw(sea_orm::Statement::from_sql_and_values(
-            sea_orm::DatabaseBackend::Sqlite,
+    let db = state.harness.db();
+    let (backend, sql, params) = if db.get_database_backend() == DbBackend::Postgres {
+        // PostgreSQL：用 tsvector 生成列 + ts_rank/ts_headline 替代 FTS5。
+        (
+            DbBackend::Postgres,
+            "SELECT \
+                m.conversation_id, \
+                m.role, \
+                ts_headline('simple', m.content, plainto_tsquery('simple', $1), 'MaxWords=24, MinWords=5') as snippet, \
+                ts_rank(m.content_tsv, plainto_tsquery('simple', $1)) as rank \
+            FROM messages m \
+            WHERE m.content_tsv @@ plainto_tsquery('simple', $1) \
+            ORDER BY rank \
+            LIMIT $2"
+                .to_string(),
+            vec![query.clone().into(), (max as i64).into()],
+        )
+    } else {
+        // SQLite：FTS5 虚拟表 + MATCH/bm25/snippet。
+        (
+            DbBackend::Sqlite,
             "SELECT \
                 m.conversation_id, \
                 m.role, \
@@ -35,9 +51,14 @@ pub async fn session_search(
             JOIN messages m ON m.rowid = messages_fts.rowid \
             WHERE messages_fts MATCH ? \
             ORDER BY rank \
-            LIMIT ?",
-            vec![query.into(), (max as i64).into()],
-        ))
+            LIMIT ?"
+                .to_string(),
+            vec![query.clone().into(), (max as i64).into()],
+        )
+    };
+
+    let rows = db
+        .query_all_raw(sea_orm::Statement::from_sql_and_values(backend, sql, params))
         .await
         .map_err(|e| e.to_string())?;
 
