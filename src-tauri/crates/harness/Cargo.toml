@@ -12,7 +12,7 @@ futures = "0.3"
 hex = { workspace = true }
 regex = "1"
 reqwest = { workspace = true }
-schemars = "0.8"
+schemars = "1.2"
 sea-orm = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
