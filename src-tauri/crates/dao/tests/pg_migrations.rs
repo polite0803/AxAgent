@@ -7,7 +7,7 @@
 //!
 //! 测试动作：
 //! 1. 连维护库（`/postgres`），幂等 DROP+CREATE 专用测试库 `axagent_pg_migtest`；
-//! 2. 在其上跑完整 `run_migrations`（v001–v009）；
+//! 2. 在其上跑完整 `run_migrations`（v100 consolidated）；
 //! 3. 断言核心表、tsvector 生成列、GIN 索引、`schema_version = 9`；
 //! 4. 插入会话+消息，跑 PG 全文检索 SQL，验证 tsvector 真实生效。
 //!
@@ -103,7 +103,7 @@ async fn pg_migrations_apply_and_search_works() {
         assert!(row.is_some(), "tsvector column {col} should exist on PostgreSQL");
     }
 
-    // 3c) schema_version 应有 9 行，MAX(version) = 9
+    // 3c) schema_version 应只有 1 行，MAX(version) = 100（v100 合并迁移）
     let max_row = db
         .query_one_raw(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -114,7 +114,7 @@ async fn pg_migrations_apply_and_search_works() {
         .unwrap()
         .expect("max version row");
     let max_v: i32 = max_row.try_get_by("v").unwrap();
-    assert_eq!(max_v, 9, "schema version should be 9, got {max_v}");
+    assert_eq!(max_v, 100, "schema version should be 100 (v100 consolidated), got {max_v}");
 
     // 4) 端到端：插入会话+消息，跑 PG 全文检索，验证 tsvector 真实生效
     db.execute_unprepared(
