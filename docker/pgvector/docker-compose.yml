@@ -1,0 +1,34 @@
+# pgvector instance for AxAgent end-to-end vector-store validation.
+#
+# Usage:
+#   cd docker/pgvector
+#   docker compose up -d
+#   docker exec -i pgvector_pg psql -U axagent -d axagent -c "CREATE EXTENSION IF NOT EXISTS vector;"
+#
+# Then, from the repo root:
+#   AXAGENT_TEST_PG_URL="postgres://axagent:axagent@127.0.0.1:5432/axagent" \
+#     cargo test -p axagent-search --test pg_integration
+#
+# The integration test creates the `vector` extension automatically, but the
+# database/role above must already exist (see the init script).
+
+services:
+  pg:
+    image: pgvector/pgvector:pg17
+    container_name: pgvector_pg
+    environment:
+      POSTGRES_USER: axagent
+      POSTGRES_PASSWORD: axagent
+      POSTGRES_DB: axagent
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U axagent -d axagent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgvector_data:

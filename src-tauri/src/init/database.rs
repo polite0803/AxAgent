@@ -52,6 +52,86 @@ pub struct DatabaseInitResult {
 /// Android：主线程已调用 `axagent_home()` + `create_dir_all()`，
 /// 子线程中 `dirs::data_dir()` 因缺少 JNI 上下文不可用。
 /// 此函数跳过路径解析，直接使用传入的目录。
+/// 解析数据库连接配置（DB 外持久化于 `{app_dir}/db_config.json`）。
+///
+/// 返回 `(连接 URL, 是否 SQLite)`。未配置文件时回退到默认本地 SQLite。
+fn resolve_db_url(app_dir: &Path, master_key: &[u8; 32]) -> Result<(String, bool), String> {
+    let cfg_path = app_dir.join("db_config.json");
+    if !cfg_path.exists() {
+        return Ok((format!("sqlite:{}/axagent.db", app_dir.display()), true));
+    }
+    let content = std::fs::read_to_string(&cfg_path).map_err(|e| e.to_string())?;
+    let cfg: axagent_dao::config::DbConfig =
+        serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    build_db_url(&cfg, app_dir, master_key)
+}
+
+/// 根据 DbConfig 解析数据库连接 URL 与是否 SQLite。
+///
+/// PostgreSQL 密码优先使用明文 `pg_password`（连接测试/前端回传），
+/// 缺失时回退解密 `pg_password_enc`（启动时从盘读取）。
+/// 供 `init_database_with_dir`（启动）与 `test_db_connection` 命令共用，
+/// 避免解析逻辑重复。
+pub(crate) fn build_db_url(
+    cfg: &axagent_dao::config::DbConfig,
+    app_dir: &Path,
+    master_key: &[u8; 32],
+) -> Result<(String, bool), String> {
+    if cfg.db_type == "postgres" {
+        let host = cfg.pg_host.clone().unwrap_or_else(|| "localhost".to_string());
+        let port = cfg.pg_port.unwrap_or(5432);
+        let database = cfg.pg_database.clone().unwrap_or_else(|| "axagent".to_string());
+        let user = cfg.pg_user.clone().unwrap_or_else(|| "postgres".to_string());
+        let password = match &cfg.pg_password {
+            Some(pw) if !pw.is_empty() => pw.clone(),
+            _ => match &cfg.pg_password_enc {
+                Some(enc) => axagent_crypto::decrypt_key(enc, master_key)
+                    .map_err(|e| format!("解密数据库密码失败: {}", e))?,
+                None => String::new(),
+            },
+        };
+        let sslmode = if cfg.use_ssl.unwrap_or(false) {
+            "require"
+        } else {
+            "disable"
+        };
+        let mut url = format!(
+            "postgres://{}:{}@{}:{}/{}?sslmode={}",
+            pg_url_encode(&user),
+            pg_url_encode(&password),
+            host,
+            port,
+            database,
+            sslmode
+        );
+        if let Some(schema) = &cfg.pg_schema {
+            if !schema.is_empty() {
+                url.push_str(&format!("&search_path={}", pg_url_encode(schema)));
+            }
+        }
+        Ok((url, false))
+    } else {
+        let path =
+            cfg.sqlite_path.clone().unwrap_or_else(|| format!("{}/axagent.db", app_dir.display()));
+        Ok((format!("sqlite:{}", path), true))
+    }
+}
+
+/// 对 PostgreSQL 连接 URL 中的 user/password 做最小 percent-encode，
+/// 转义 `@ : / % & # ?` 及空格，避免破坏 URL 结构。
+fn pg_url_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '@' | ':' | '/' | '%' | '&' | '#' | '?' | ' ' => {
+                out.push_str(&format!("%{:02X}", c as u8));
+            },
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResult, String> {
     axagent_storage::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
         tracing::warn!(
@@ -60,33 +140,36 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
         );
     });
 
-    let db_path = format!("sqlite:{}/axagent.db", app_dir.display());
-
     let key_path = app_dir.join("master.key");
     let master_key = load_or_create_master_key(&key_path, &app_dir)?;
 
-    // 注册 sqlite-vec 扩展。在 Android 上默认跳过（见 vector_store.rs），
+    // 解析数据库连接配置（DB 外持久化于 {app_dir}/db_config.json）
+    let (db_url, is_sqlite) = resolve_db_url(&app_dir, &master_key)?;
+
+    // 仅 SQLite 注册 sqlite-vec 扩展。在 Android 上默认跳过（见 vector_store.rs），
     // 在桌面平台用 catch_unwind 防止 FFI 异常 panic。
-    let vec_registration = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        axagent_search::vector_store::register_sqlite_vec_extension();
-    }));
-    if let Err(e) = vec_registration {
-        let msg = if let Some(s) = e.downcast_ref::<String>() {
-            s.clone()
-        } else if let Some(s) = e.downcast_ref::<&str>() {
-            s.to_string()
-        } else {
-            "unknown panic payload".to_string()
-        };
-        tracing::error!(
-            "sqlite-vec extension registration panicked: {} — vector search will be unavailable",
-            msg
-        );
+    if is_sqlite {
+        let vec_registration = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            axagent_search::vector_store::register_sqlite_vec_extension();
+        }));
+        if let Err(e) = vec_registration {
+            let msg = if let Some(s) = e.downcast_ref::<String>() {
+                s.clone()
+            } else if let Some(s) = e.downcast_ref::<&str>() {
+                s.to_string()
+            } else {
+                "unknown panic payload".to_string()
+            };
+            tracing::error!(
+                "sqlite-vec extension registration panicked: {} — vector search will be unavailable",
+                msg
+            );
+        }
     }
-    axagent_tools::global_state::set_db_path(&db_path);
+    axagent_tools::global_state::set_db_path(&db_url);
 
     // 直接使用当前 tokio runtime，不再创建嵌套 Runtime
-    let db_handle = axagent_dao::db::create_pool(&db_path)
+    let db_handle = axagent_dao::db::create_pool(&db_url)
         .await
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
@@ -106,10 +189,13 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
     // 供 consumer crate（rt-workflow 等）通过 trait 访问器获取，避免直接依赖 axagent-entities。
     axagent_dao::agent_repositories::register_repositories(&db_handle.conn);
 
-    Ok(DatabaseInitResult { db_handle, db_path, master_key, app_dir })
+    Ok(DatabaseInitResult { db_handle, db_path: db_url, master_key, app_dir })
 }
 
-fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32], String> {
+pub(crate) fn load_or_create_master_key(
+    key_path: &Path,
+    app_dir: &Path,
+) -> Result<[u8; 32], String> {
     if key_path.exists() {
         let mut bytes =
             std::fs::read(key_path).map_err(|e| format!("failed to read master key: {}", e))?;

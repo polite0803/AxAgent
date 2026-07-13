@@ -11,6 +11,7 @@ pub use axagent_entities;
 
 pub mod agent_repositories;
 pub mod background_task_repository;
+pub mod config;
 pub mod conversation_repository;
 pub mod db;
 pub mod ddl;

@@ -297,8 +297,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_disabled_config() {
-        let mut config = RerankConfig::default();
-        config.enabled = false;
+        let config = RerankConfig { enabled: false, ..Default::default() };
         let pipeline = create_rerank_pipeline(&config, None);
         let results = vec![make_result("1", "test content", 0.8)];
         let reranked = pipeline.execute("test", results, &config).await;
@@ -308,9 +307,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_top_n_limit() {
-        let mut config = RerankConfig::default();
-        config.top_n = 2;
-        config.candidate_k = 5;
+        let config = RerankConfig { top_n: 2, candidate_k: 5, ..Default::default() };
         let pipeline = create_rerank_pipeline(&config, None);
         let results = vec![
             make_result("1", "a", 0.3),

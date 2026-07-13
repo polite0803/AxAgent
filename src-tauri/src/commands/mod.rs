@@ -28,6 +28,7 @@ pub mod conversations;
 pub mod conversations_search;
 pub mod crash_report;
 pub mod dashboard;
+pub mod db_config;
 #[cfg(not(mobile))]
 pub mod desktop;
 pub mod dream;

@@ -64,6 +64,12 @@ impl HybridSearcher {
     }
 
     pub async fn ensure_fts5_index(&self, collection_id: &str) -> Result<()> {
+        if self.db.get_database_backend() == DbBackend::Postgres {
+            // PostgreSQL 关键词检索由 VectorStore 的 content_tsv 生成列 + GIN 索引承担。
+            // 直接复用 VectorStore 同名方法创建/校验 GIN 索引（幂等）。
+            return self.vector_store.ensure_fts5_index(collection_id).await;
+        }
+
         let safe_name = sanitize_name_for_table(collection_id);
         let meta_table = format!("vec_{safe_name}_meta");
         let fts_table = format!("{meta_table}_fts");
@@ -175,6 +181,10 @@ impl HybridSearcher {
         query: &str,
         top_k: usize,
     ) -> Result<Vec<Bm25Result>> {
+        if self.db.get_database_backend() == DbBackend::Postgres {
+            return self.bm25_search_pg(collection_id, query, top_k).await;
+        }
+
         let sanitized = sanitize_fts5_query(query);
         if sanitized.is_empty() {
             return Ok(vec![]);
@@ -228,12 +238,75 @@ impl HybridSearcher {
         }
     }
 
+    /// PostgreSQL keyword search: match against the `content_tsv` generated
+    /// column (`tsvector`) and rank with `ts_rank`. Falls back to substring
+    /// (`ILIKE`) matching when no tsvector hit is found.
+    async fn bm25_search_pg(
+        &self,
+        collection_id: &str,
+        query: &str,
+        top_k: usize,
+    ) -> Result<Vec<Bm25Result>> {
+        let trimmed = query.trim();
+        if trimmed.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let safe_name = sanitize_name_for_table(collection_id);
+        let meta_table = format!("vec_{safe_name}_meta");
+
+        let sql = format!(
+            "SELECT m.id, m.document_id, m.chunk_index, m.content, \
+             ts_rank(m.content_tsv, query) AS bm25_score \
+             FROM {meta_table} m, plainto_tsquery('simple', $1) query \
+             WHERE m.content_tsv @@ query \
+             ORDER BY bm25_score DESC \
+             LIMIT $2"
+        );
+
+        let rows = self
+            .db
+            .query_all_raw(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                &sql,
+                vec![trimmed.to_string().into(), (top_k as i64).into()],
+            ))
+            .await;
+
+        match rows {
+            Ok(rows) if !rows.is_empty() => {
+                let results: Vec<Bm25Result> = rows
+                    .into_iter()
+                    .filter_map(|row| {
+                        let id: String = row.try_get("", "id").ok()?;
+                        let document_id: String = row.try_get("", "document_id").ok()?;
+                        let chunk_index: i32 = row.try_get("", "chunk_index").ok()?;
+                        let content: String = row.try_get("", "content").ok()?;
+                        let rank: f64 = row.try_get("", "bm25_score").ok().unwrap_or(0.0);
+                        let bm25_score = rank as f32;
+                        Some(Bm25Result { id, document_id, chunk_index, content, bm25_score })
+                    })
+                    .collect();
+
+                if !results.is_empty() {
+                    return Ok(results);
+                }
+                self.bm25_search_fallback_pg(&meta_table, trimmed, top_k).await
+            },
+            _ => self.bm25_search_fallback_pg(&meta_table, trimmed, top_k).await,
+        }
+    }
+
     async fn bm25_search_fallback(
         &self,
         meta_table: &str,
         query: &str,
         top_k: usize,
     ) -> Result<Vec<Bm25Result>> {
+        if self.db.get_database_backend() == DbBackend::Postgres {
+            return self.bm25_search_fallback_pg(meta_table, query, top_k).await;
+        }
+
         let words: Vec<&str> = query.split_whitespace().take(8).collect();
         if words.is_empty() {
             return Ok(vec![]);
@@ -256,6 +329,58 @@ impl HybridSearcher {
             .db
             .query_all_raw(Statement::from_sql_and_values(
                 DbBackend::Sqlite,
+                &sql,
+                vec![(top_k as i64).into()],
+            ))
+            .await
+            .map_err(|e| AxAgentError::Provider(format!("BM25 fallback search failed: {}", e)))?;
+
+        let results: Vec<Bm25Result> = rows
+            .into_iter()
+            .filter_map(|row| {
+                let id: String = row.try_get("", "id").ok()?;
+                let document_id: String = row.try_get("", "document_id").ok()?;
+                let chunk_index: i32 = row.try_get("", "chunk_index").ok()?;
+                let content: String = row.try_get("", "content").ok()?;
+                let bm25_score: f32 = row.try_get("", "bm25_score").ok()?;
+
+                Some(Bm25Result { id, document_id, chunk_index, content, bm25_score })
+            })
+            .collect();
+
+        Ok(results)
+    }
+
+    /// PostgreSQL keyword fallback: substring (`ILIKE`) match when the tsvector
+    /// path yields nothing. Mirrors the SQLite `LIKE` fallback semantics.
+    async fn bm25_search_fallback_pg(
+        &self,
+        meta_table: &str,
+        query: &str,
+        top_k: usize,
+    ) -> Result<Vec<Bm25Result>> {
+        let words: Vec<&str> = query.split_whitespace().take(8).collect();
+        if words.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let conditions: Vec<String> =
+            words.iter().map(|w| format!("content ILIKE '%{}%'", w.replace('\'', "''"))).collect();
+        let where_clause = conditions.join(" OR ");
+
+        let sql = format!(
+            "SELECT id, document_id, chunk_index, content, \
+             (CASE WHEN content ILIKE '%{}%' THEN 1.0 ELSE 0.3 END) as bm25_score \
+             FROM {meta_table} \
+             WHERE {where_clause} \
+             LIMIT $1",
+            words.first().unwrap_or(&"").replace('\'', "''")
+        );
+
+        let rows = self
+            .db
+            .query_all_raw(Statement::from_sql_and_values(
+                DbBackend::Postgres,
                 &sql,
                 vec![(top_k as i64).into()],
             ))

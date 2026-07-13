@@ -42,6 +42,9 @@ const LazyShortcutSettings = lazy(() =>
 const LazyDataManager = lazy(() =>
   import("@/components/settings/DataManager").then((m) => ({ default: m.DataManager }))
 );
+const LazyDatabaseSettings = lazy(() =>
+  import("@/components/settings/DatabaseSettings").then((m) => ({ default: m.DatabaseSettings }))
+);
 const LazyStorageSpaceManager = lazy(() =>
   import("@/components/settings/StorageSpaceManager").then((m) => ({ default: m.StorageSpaceManager }))
 );
@@ -156,6 +159,11 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   data: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyDataManager />
+    </Suspense>
+  ),
+  database: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyDatabaseSettings />
     </Suspense>
   ),
   storage: () => (
