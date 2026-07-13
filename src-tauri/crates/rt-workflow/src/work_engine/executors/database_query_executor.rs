@@ -155,7 +155,7 @@ impl NodeExecutorTrait for DatabaseQueryExecutor {
             ));
         }
 
-        let rows = sqlx::query(&c.query)
+        let rows = sqlx::raw_sql(sqlx::AssertSqlSafe(c.query.clone()))
             .fetch_all(&pool)
             .await
             .map_err(|e| NodeError::exec_failed("DATABASE_QUERY_FAILED", e.to_string()));

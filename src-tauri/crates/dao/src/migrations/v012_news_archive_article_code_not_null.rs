@@ -26,15 +26,23 @@
 use sea_orm::{ConnectionTrait, DatabaseBackend, DbErr, Statement};
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
-    // 幂等检查：article_code 是否已是 NOT NULL
-    let row = db
-        .query_one_raw(Statement::from_string(
+    // 幂等检查：article_code 是否已是 NOT NULL — 使用 PRAGMA table_info 逐行读取
+    let rows = db
+        .query_all_raw(Statement::from_string(
             DatabaseBackend::Sqlite,
-            "SELECT notnull AS nn FROM pragma_table_info('news_archive') WHERE name='article_code'",
+            "PRAGMA table_info('news_archive')".to_string(),
         ))
         .await?;
-    let already_notnull: i32 = row.and_then(|r| r.try_get_by("nn").ok()).unwrap_or(0);
-    if already_notnull == 1 {
+    let already_notnull: bool = rows.iter().any(|row| {
+        let name: Option<String> = row.try_get_by("name").ok();
+        if name.as_deref() != Some("article_code") {
+            return false;
+        }
+        // `notnull` 列：0 = nullable, 1 = NOT NULL
+        let nn: i32 = row.try_get_by("notnull").unwrap_or(0);
+        nn == 1
+    });
+    if already_notnull {
         return Ok(());
     }
 

@@ -34,7 +34,7 @@ lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
 regex = "1"
 reqwest = { workspace = true }
 sha2 = { workspace = true }
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "mysql", "sqlite"] }
+sqlx = { version = "0.9", features = ["runtime-tokio", "postgres", "mysql", "sqlite"] }
 subtle = "2"
 tiny_http = "0.12"
 
