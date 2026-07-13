@@ -21,6 +21,7 @@ import {
   Puzzle,
   Search,
   Send,
+  Server,
   Settings,
   ShoppingBag,
   SlidersHorizontal,
@@ -46,6 +47,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   proxy: <Globe size={14} />,
   shortcuts: <Zap size={14} />,
   data: <Database size={14} />,
+  database: <Server size={14} />,
   storage: <HardDrive size={14} />,
   about: <Info size={14} />,
   searchProviders: <Search size={14} />,
@@ -91,6 +93,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
   network: ["proxy", "messageChannels", "webhooks", "acp"],
   data: [
     "data",
+    "database",
     "storage",
     "cloudWorkspace",
     "backup",

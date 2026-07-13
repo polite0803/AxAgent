@@ -741,6 +741,7 @@ export type SettingsSection =
   | "proxy"
   | "shortcuts"
   | "data"
+  | "database"
   | "storage"
   | "scheduler"
   | "backup"

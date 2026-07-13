@@ -35,8 +35,11 @@ impl axagent_harness::Persistence for DbHandle {
 }
 
 pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
-    let url = if db_path.starts_with("sqlite:") {
+    let is_sqlite = db_path.starts_with("sqlite:");
+    let url = if is_sqlite {
         format!("{}?mode=rwc", db_path)
+    } else if db_path.starts_with("postgres://") || db_path.starts_with("postgresql://") {
+        db_path.to_string()
     } else {
         format!("sqlite:{}?mode=rwc", db_path)
     };
@@ -49,19 +52,24 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
 
     let conn = Database::connect(opt).await?;
 
-    // 数据库完整性检测与自动恢复（在 PRAGMA 和迁移之前运行）
-    crate::integrity::auto_recover(&conn, &url).await?;
+    // SQLite 专有的完整性检测与 PRAGMA；PostgreSQL 跳过。
+    if is_sqlite {
+        // 数据库完整性检测与自动恢复（在 PRAGMA 和迁移之前运行）
+        crate::integrity::auto_recover(&conn, &url).await?;
 
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA journal_mode=WAL;")).await?;
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;")).await?;
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA busy_timeout=5000;"))
-        .await?;
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA synchronous=NORMAL;"))
-        .await?;
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA cache_size=-64000;"))
-        .await?;
-    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA temp_store=MEMORY;"))
-        .await?;
+        conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA journal_mode=WAL;"))
+            .await?;
+        conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
+            .await?;
+        conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA busy_timeout=5000;"))
+            .await?;
+        conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA synchronous=NORMAL;"))
+            .await?;
+        conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA cache_size=-64000;"))
+            .await?;
+        conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA temp_store=MEMORY;"))
+            .await?;
+    }
 
     // Run schema initialization
     crate::ddl::run_initialization(&conn).await?;

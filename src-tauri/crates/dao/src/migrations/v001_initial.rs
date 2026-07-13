@@ -8,9 +8,32 @@
 //! 注意：v002/v003 引入的新增索引 / 死表清理 **不应** 写到这里；
 //! 这条 migration 的语义是"项目第一次启动时的 schema"。
 
-use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr};
+
+/// 把 SQLite 风格 DDL 转成 PostgreSQL 兼容写法。
+///
+/// 仅做保守、确定性的字符串替换，不触碰语义：
+/// - `AUTOINCREMENT` 是 SQLite 专有，PG 用 `SERIAL`/`BIGSERIAL` 表达自增；
+/// - `datetime('now')` 是 SQLite 函数，PG 用 `CURRENT_TIMESTAMP::text`；
+/// - 其余类型（`TEXT`/`INTEGER`/`BIGINT`/`REAL`）与约束在两种库下通用。
+fn pg_ddl(sql: &str) -> String {
+    sql.replace(" AUTOINCREMENT", "")
+        .replace("INTEGER NOT NULL PRIMARY KEY", "SERIAL PRIMARY KEY")
+        .replace("INTEGER PRIMARY KEY", "SERIAL PRIMARY KEY")
+        .replace("BIGINT PRIMARY KEY", "BIGSERIAL PRIMARY KEY")
+        .replace("datetime('now')", "CURRENT_TIMESTAMP::text")
+}
+
+/// 按后端执行 DDL：PostgreSQL 下先经 [`pg_ddl`] 转换，SQLite 原样执行。
+async fn exec_ddl(db: &DatabaseConnection, is_pg: bool, sql: &str) -> Result<(), DbErr> {
+    let s = if is_pg { pg_ddl(sql) } else { sql.to_string() };
+    db.execute_unprepared(&s).await?;
+    Ok(())
+}
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
+    let is_pg = db.get_database_backend() == DbBackend::Postgres;
+
     // ========================================================================
     // SECTION A: Core tables
     // ========================================================================
@@ -74,7 +97,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             tokens_per_second REAL, first_token_latency_ms BIGINT, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     for sql in &[
@@ -101,7 +124,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             created_at INTEGER NOT NULL, \
             FOREIGN KEY (key_id) REFERENCES gateway_keys(id) ON DELETE CASCADE)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     let _ = db
@@ -367,7 +390,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             task_type TEXT NOT NULL DEFAULT 'moderate', ttl_secs INTEGER NOT NULL, \
             created_at INTEGER NOT NULL, hit_count INTEGER NOT NULL DEFAULT 0)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     // ========================================================================
@@ -418,7 +441,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             payload_json TEXT NOT NULL, updated_at BIGINT NOT NULL, \
             PRIMARY KEY(execution_id, node_id))",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     // ========================================================================
@@ -450,7 +473,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             source_info TEXT NOT NULL, created_at BIGINT NOT NULL)",
         // scheduled_tasks — 死表，CronJobStore 纯内存不碰 SQLite
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     // ========================================================================
@@ -496,7 +519,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             communication_pattern TEXT, version TEXT, metadata TEXT, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     // ========================================================================
@@ -528,7 +551,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             created_by TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             finished_at BIGINT)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     // ========================================================================
@@ -546,7 +569,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             note_id TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, \
             content_hash TEXT NOT NULL, author TEXT NOT NULL, created_at INTEGER NOT NULL)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     // ========================================================================
@@ -623,49 +646,78 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT PRIMARY KEY, key TEXT NOT NULL UNIQUE, value TEXT NOT NULL, \
             confidence REAL NOT NULL DEFAULT 0.0, updated_at TEXT NOT NULL)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     // ========================================================================
-    // SECTION H: FTS5 Virtual Tables
+    // SECTION H: 全文检索索引
+    //   SQLite: FTS5 虚拟表；PostgreSQL: tsvector 生成列 + GIN 索引
     // ========================================================================
 
-    for sql in &[
-        "CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(\
-            content, content=messages, content_rowid=rowid, tokenize='unicode61')",
-        "CREATE VIRTUAL TABLE IF NOT EXISTS trajectories_fts USING fts5(\
-            id UNINDEXED, session_id UNINDEXED, topic, summary, content, \
-            outcome UNINDEXED, quality_score UNINDEXED, created_at UNINDEXED, \
-            tokenize='porter unicode61')",
-        "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_memories_fts USING fts5(\
-            id UNINDEXED, memory_type UNINDEXED, content, entities, \
-            created_at UNINDEXED, tokenize='porter unicode61')",
-        "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_skills_fts USING fts5(\
-            id UNINDEXED, name, description, content, category UNINDEXED, \
-            tags, created_at UNINDEXED, tokenize='porter unicode61')",
-        "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_messages_fts USING fts5(\
-            id UNINDEXED, session_id UNINDEXED, role UNINDEXED, content, \
-            created_at UNINDEXED, tokenize='porter unicode61')",
-    ] {
-        db.execute_unprepared(sql).await?;
+    if !is_pg {
+        for sql in &[
+            "CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(\
+                content, content=messages, content_rowid=rowid, tokenize='unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectories_fts USING fts5(\
+                id UNINDEXED, session_id UNINDEXED, topic, summary, content, \
+                outcome UNINDEXED, quality_score UNINDEXED, created_at UNINDEXED, \
+                tokenize='porter unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_memories_fts USING fts5(\
+                id UNINDEXED, memory_type UNINDEXED, content, entities, \
+                created_at UNINDEXED, tokenize='porter unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_skills_fts USING fts5(\
+                id UNINDEXED, name, description, content, category UNINDEXED, \
+                tags, created_at UNINDEXED, tokenize='porter unicode61')",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_messages_fts USING fts5(\
+                id UNINDEXED, session_id UNINDEXED, role UNINDEXED, content, \
+                created_at UNINDEXED, tokenize='porter unicode61')",
+        ] {
+            exec_ddl(&db, is_pg, sql).await?;
+        }
+    } else {
+        // PostgreSQL：FTS5 不可用，改用 tsvector 生成列（GENERATED ALWAYS AS
+        // STORED 随基表内容自动维护，无需 SQLite 那种触发器）。
+        for sql in &[
+            "ALTER TABLE messages ADD COLUMN IF NOT EXISTS content_tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content, ''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_messages_content_tsv ON messages USING GIN (content_tsv)",
+            "ALTER TABLE trajectory_trajectories ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', \
+               COALESCE(topic,'')||' '||COALESCE(summary,'')||' '||COALESCE(outcome,'')||' '||COALESCE(patterns,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_trajectories_tsv ON trajectory_trajectories USING GIN (tsv)",
+            "ALTER TABLE trajectory_memories ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content,'')||' '||COALESCE(tags,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_memories_tsv ON trajectory_memories USING GIN (tsv)",
+            "ALTER TABLE trajectory_skills ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', \
+               COALESCE(name,'')||' '||COALESCE(description,'')||' '||COALESCE(content,'')||' '||COALESCE(category,'')||' '||COALESCE(tags,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_skills_tsv ON trajectory_skills USING GIN (tsv)",
+            "ALTER TABLE trajectory_messages ADD COLUMN IF NOT EXISTS tsv tsvector \
+             GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(content,'')||' '||COALESCE(role,''))) STORED",
+            "CREATE INDEX IF NOT EXISTS idx_traj_messages_tsv ON trajectory_messages USING GIN (tsv)",
+        ] {
+            db.execute_unprepared(sql).await?;
+        }
     }
 
     // ========================================================================
-    // SECTION I: FTS5 Triggers (messages_fts content-sync)
+    // SECTION I: FTS5 Triggers（仅 SQLite；PG 的 tsvector 由 GENERATED 列自动维护）
     // ========================================================================
 
-    for sql in &[
-        "CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN \
-         INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
-        "CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN \
-         INSERT INTO messages_fts(messages_fts, rowid, content) \
-         VALUES('delete', old.rowid, old.content); END",
-        "CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE OF content ON messages BEGIN \
-         INSERT INTO messages_fts(messages_fts, rowid, content) \
-         VALUES('delete', old.rowid, old.content); \
-         INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
-    ] {
-        db.execute_unprepared(sql).await?;
+    if !is_pg {
+        for sql in &[
+            "CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN \
+             INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
+            "CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN \
+             INSERT INTO messages_fts(messages_fts, rowid, content) \
+             VALUES('delete', old.rowid, old.content); END",
+            "CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE OF content ON messages BEGIN \
+             INSERT INTO messages_fts(messages_fts, rowid, content) \
+             VALUES('delete', old.rowid, old.content); \
+             INSERT INTO messages_fts(rowid, content) VALUES (new.rowid, new.content); END",
+        ] {
+            exec_ddl(&db, is_pg, sql).await?;
+        }
     }
 
     // ========================================================================
@@ -729,7 +781,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE INDEX IF NOT EXISTS idx_traj_learned_type ON trajectory_learned_patterns(pattern_type)",
         "CREATE INDEX IF NOT EXISTS idx_traj_prefs_key ON trajectory_preferences(key)",
     ] {
-        db.execute_unprepared(sql).await?;
+        exec_ddl(&db, is_pg, sql).await?;
     }
 
     Ok(())

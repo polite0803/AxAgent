@@ -364,7 +364,7 @@ mod tests {
 
         for (&cid, &score) in &result.cohesion_scores {
             assert!(
-                score >= 0.0 && score <= 1.0,
+                (0.0..=1.0).contains(&score),
                 "Community {} cohesion out of range: {}",
                 cid,
                 score

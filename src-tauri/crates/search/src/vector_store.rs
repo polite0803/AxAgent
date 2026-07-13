@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
+use sea_orm::{
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, QueryResult,
+    Statement, TransactionTrait, Value,
+};
 
 use axagent_harness::core_error::{AxAgentError, Result};
 
@@ -129,15 +132,19 @@ impl Default for HnswConfig {
     }
 }
 
-/// sqlite-vec–backed vector store for knowledge base embeddings.
+/// Vector store for knowledge base embeddings.
 ///
-/// Each knowledge base gets two tables in the shared SQLite database:
-/// - `vec_{id}_meta` — chunk metadata (id, document_id, content, …)
-/// - `vec_{id}`      — vec0 virtual table holding the embedding vectors
+/// Backend-agnostic facade over two implementations selected at runtime by the
+/// underlying `DatabaseConnection` backend:
 ///
-/// Collection metadata (dimensions, embedding model, index type, etc.) is
-/// tracked in the `vec_collections` registry table for fast lookup without
-/// relying on sqlite-vec pragma parsing.
+/// - **SQLite** (`DbBackend::Sqlite`): uses the `sqlite-vec` `vec0` virtual table
+///   for embeddings + an FTS5 trigram table for keyword search.
+/// - **PostgreSQL** (`DbBackend::Postgres`): uses a `VECTOR(n)` column (pgvector)
+///   for embeddings + a generated `tsvector` column (GIN-indexed) for keyword search.
+///
+/// The `vec_collections` registry table and all chunk-metadata (`*_meta`) tables
+/// are identical across backends; only the embedding storage and search operators
+/// differ, isolated in the per-method backend branches below.
 #[derive(Debug, Clone)]
 pub struct VectorStore {
     db: DatabaseConnection,
@@ -147,6 +154,16 @@ impl VectorStore {
     /// Create a VectorStore that uses an existing sea-orm connection.
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+
+    /// True when the underlying connection is PostgreSQL (pgvector path).
+    fn is_pg(&self) -> bool {
+        self.db.get_database_backend() == DbBackend::Postgres
+    }
+
+    /// The actual backend of the underlying connection (used for placeholder style).
+    fn be(&self) -> DbBackend {
+        self.db.get_database_backend()
     }
 
     fn is_valid_collection_id(collection_id: &str) -> bool {
@@ -170,6 +187,105 @@ impl VectorStore {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as i64)
             .unwrap_or(0)
+    }
+
+    // ── DDL builders (backend-specific) ──────────────────────────────────
+
+    /// CREATE TABLE for the metadata table. On PostgreSQL an extra generated
+    /// `tsvector` column backs keyword search.
+    fn meta_ddl(&self, name: &str) -> String {
+        if self.is_pg() {
+            format!(
+                "CREATE TABLE IF NOT EXISTS {name}_meta (\n  \
+                 rowid BIGINT PRIMARY KEY,\n  \
+                 id TEXT NOT NULL UNIQUE,\n  \
+                 document_id TEXT NOT NULL,\n  \
+                 chunk_index INTEGER NOT NULL,\n  \
+                 content TEXT NOT NULL,\n  \
+                 content_tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED\n)"
+            )
+        } else {
+            format!(
+                "CREATE TABLE IF NOT EXISTS {name}_meta (\n  \
+                 rowid INTEGER PRIMARY KEY AUTOINCREMENT,\n  \
+                 id TEXT NOT NULL UNIQUE,\n  \
+                 document_id TEXT NOT NULL,\n  \
+                 chunk_index INTEGER NOT NULL,\n  \
+                 content TEXT NOT NULL\n)"
+            )
+        }
+    }
+
+    /// CREATE for the embedding table (vec0 virtual table vs pgvector column).
+    fn vec_table_ddl(&self, name: &str, dimensions: usize, hnsw: Option<&HnswConfig>) -> String {
+        if self.is_pg() {
+            format!(
+                "CREATE TABLE IF NOT EXISTS {name} (rowid BIGINT PRIMARY KEY, embedding VECTOR({dimensions}))"
+            )
+        } else {
+            match hnsw {
+                Some(h) => format!(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}], hnsw(ef_construction={}, m={}, ef_search={}))",
+                    h.ef_construction, h.m, h.ef_search
+                ),
+                None => format!(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
+                ),
+            }
+        }
+    }
+
+    /// Ensure the pgvector ANN index exists (PostgreSQL only). Tries HNSW, then
+    /// ivfflat, then silently proceeds without an index (exact scan) — index is
+    /// a performance optimization, never a correctness requirement.
+    async fn ensure_vector_index(&self, name: &str, _dimensions: usize, hnsw: Option<&HnswConfig>) {
+        if !self.is_pg() {
+            return;
+        }
+        let m = hnsw.map(|h| h.m).unwrap_or(16);
+        let hnsw_sql = format!(
+            "CREATE INDEX IF NOT EXISTS idx_{name}_vec ON {name} USING hnsw (embedding vector_cosine_ops) WITH (m = {m})"
+        );
+        if let Err(e) = self.exec(&hnsw_sql).await {
+            tracing::warn!("PG HNSW index creation failed for {name}, trying ivfflat: {e}");
+            let ivf = format!(
+                "CREATE INDEX IF NOT EXISTS idx_{name}_vec ON {name} USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)"
+            );
+            if let Err(e2) = self.exec(&ivf).await {
+                tracing::warn!(
+                    "PG ivfflat index creation also failed for {name} (non-critical): {e2}"
+                );
+            }
+        }
+    }
+
+    /// INSERT statement for a single embedding row (cast to vector on PostgreSQL).
+    fn embedding_insert_sql(&self, name: &str) -> String {
+        if self.is_pg() {
+            format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2::vector)")
+        } else {
+            format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)")
+        }
+    }
+
+    /// Vector similarity search SELECT (vec0 MATCH+k vs pgvector `<=>`).
+    fn search_sql(&self, name: &str) -> String {
+        if self.is_pg() {
+            format!(
+                "SELECT m.id, m.document_id, m.chunk_index, m.content, v.embedding <=> $1::vector AS distance \
+                 FROM {name} v \
+                 JOIN {name}_meta m ON m.rowid = v.rowid \
+                 ORDER BY distance LIMIT $2"
+            )
+        } else {
+            format!(
+                "SELECT m.id, m.document_id, m.chunk_index, m.content, v.distance \
+                 FROM {name} v \
+                 JOIN {name}_meta m ON m.rowid = v.rowid \
+                 WHERE v.embedding MATCH $1 AND k = $2 \
+                 ORDER BY v.distance"
+            )
+        }
     }
 
     async fn registry_upsert_collection(
@@ -224,8 +340,8 @@ impl VectorStore {
     async fn registry_get_collection(&self, collection_id: &str) -> Option<(i32, String)> {
         // 参数化查询，避免 SQL 注入
         let stmt = Statement::from_sql_and_values(
-            DbBackend::Sqlite,
-            "SELECT dimensions, index_type FROM vec_collections WHERE collection_id = ?",
+            self.be(),
+            "SELECT dimensions, index_type FROM vec_collections WHERE collection_id = $1",
             [collection_id.into()],
         );
         let row = self.db.query_one_raw(stmt).await.ok().flatten();
@@ -245,7 +361,7 @@ impl VectorStore {
         // 参数化查询
         let _ = self
             .exec_with_params(
-                "DELETE FROM vec_collections WHERE collection_id = ?",
+                "DELETE FROM vec_collections WHERE collection_id = $1",
                 [collection_id.into()],
             )
             .await;
@@ -259,7 +375,7 @@ impl VectorStore {
             .exec_with_params(
                 &format!(
                     "UPDATE vec_collections SET index_type = 'disabled', updated_at = {now} \
-                     WHERE collection_id = ?"
+                     WHERE collection_id = $1"
                 ),
                 [collection_id.into()],
             )
@@ -275,7 +391,7 @@ impl VectorStore {
                 &format!(
                     "UPDATE vec_collections SET vector_count = (SELECT COUNT(*) FROM vec_{sanitized}_meta), \
                      updated_at = {now}, last_indexed_at = {now} \
-                     WHERE collection_id = ?"
+                     WHERE collection_id = $1"
                 ),
                 [collection_id.into()],
             )
@@ -283,6 +399,10 @@ impl VectorStore {
     }
 
     async fn registry_get_dimensions_pragma(&self, collection_id: &str) -> Result<Option<usize>> {
+        if self.is_pg() {
+            // PostgreSQL 维度以 vec_collections 注册表为准，无需解析列类型
+            return Ok(None);
+        }
         let name = Self::validated_collection_name(collection_id)?;
         let table_exists = self.table_exists(&name).await?;
         if !table_exists {
@@ -304,7 +424,7 @@ impl VectorStore {
         }))
     }
 
-    /// Ensure both the metadata and vec0 tables exist for a collection.
+    /// Ensure both the metadata and embedding tables exist for a collection.
     /// Validates that existing vector dimensions match the requested dimensions.
     /// Also registers collection metadata in vec_collections registry table.
     /// For existing collections that pre-date the registry (upgrades), this
@@ -313,16 +433,12 @@ impl VectorStore {
         validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
-        self.exec(&format!(
-            "CREATE TABLE IF NOT EXISTS {name}_meta (
-                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-                id TEXT NOT NULL UNIQUE,
-                document_id TEXT NOT NULL,
-                chunk_index INTEGER NOT NULL,
-                content TEXT NOT NULL
-            )"
-        ))
-        .await?;
+        if self.is_pg() {
+            // pgvector 扩展在 PostgreSQL 上按需启用（幂等）
+            let _ = self.exec("CREATE EXTENSION IF NOT EXISTS vector").await;
+        }
+
+        self.exec(&self.meta_ddl(&name)).await?;
 
         self.exec(&format!(
             "CREATE INDEX IF NOT EXISTS idx_{name}_doc ON {name}_meta(document_id)"
@@ -343,14 +459,16 @@ impl VectorStore {
                 self.registry_upsert_collection(collection_id, dimensions, "flat", None).await;
             }
         } else {
-            self.exec(&format!(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"
-            ))
-            .await?;
+            self.exec(&self.vec_table_ddl(&name, dimensions, None)).await?;
+            self.ensure_vector_index(&name, dimensions, None).await;
             self.registry_upsert_collection(collection_id, dimensions, "flat", None).await;
         }
 
-        let _ = self.ensure_fts5_index(collection_id).await;
+        if self.is_pg() {
+            // PostgreSQL 关键词检索由 meta 表的 content_tsv 生成列承担，无需 FTS5
+        } else {
+            let _ = self.ensure_fts5_index(collection_id).await;
+        }
 
         Ok(())
     }
@@ -369,8 +487,7 @@ impl VectorStore {
     }
 
     /// Prepare collection for (re)indexing: if dimensions match, does nothing;
-    /// if dimensions differ (embedding model changed), drops the old collection entirely
-    /// and creates a fresh one with the correct dimensions, allowing re-indexing to proceed.
+    /// if dimensions differ (embedding model changed), resets the collection.
     ///
     /// Unlike `ensure_collection`, which errors on dimension mismatch, this method
     /// automatically resets the collection, which is the desired behavior when
@@ -389,7 +506,9 @@ impl VectorStore {
 
         match existing_dims {
             Some(existing) if existing == dimensions => {
-                let _ = self.ensure_fts5_index(collection_id).await;
+                if !self.is_pg() {
+                    let _ = self.ensure_fts5_index(collection_id).await;
+                }
                 Ok(())
             },
             Some(_mismatched) => {
@@ -399,43 +518,50 @@ impl VectorStore {
                     new_dim = dimensions,
                     "Embedding dimensions changed, resetting collection for re-indexing"
                 );
-                // P2-3: 重命名旧表为 _bak_{ts} 而不是直接 DROP，
-                // 失败时回滚重命名，避免数据丢失
-                let ts = chrono::Utc::now().timestamp_millis();
-                let backup_name = format!("{name}_bak_{}", ts);
-                let backup_meta = format!("{meta_table}_bak_{}", ts);
-                let backup_fts = format!("{fts_table}_bak_{}", ts);
-                // 尝试重命名
-                let rename_res =
-                    self.exec(&format!("ALTER TABLE {name} RENAME TO {backup_name}")).await;
-                if rename_res.is_err() {
-                    // 旧表可能不存在（已删除），忽略
-                }
-                let _ =
-                    self.exec(&format!("ALTER TABLE {meta_table} RENAME TO {backup_meta}")).await;
-                let _ = self.exec(&format!("ALTER TABLE {fts_table} RENAME TO {backup_fts}")).await;
-                // 重建新表
-                match self.ensure_collection(collection_id, dimensions).await {
-                    Ok(()) => {
-                        // 重建成功后清理旧备份
-                        let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_name}")).await;
-                        let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_meta}")).await;
-                        let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_fts}")).await;
-                        self.registry_delete_collection(collection_id).await;
-                        Ok(())
-                    },
-                    Err(e) => {
-                        // 重建失败：回滚重命名，保留原表
-                        let _ =
-                            self.exec(&format!("ALTER TABLE {backup_name} RENAME TO {name}")).await;
-                        let _ = self
-                            .exec(&format!("ALTER TABLE {backup_meta} RENAME TO {meta_table}"))
-                            .await;
-                        let _ = self
-                            .exec(&format!("ALTER TABLE {backup_fts} RENAME TO {fts_table}"))
-                            .await;
-                        Err(e)
-                    },
+                if self.is_pg() {
+                    // PostgreSQL：直接 DROP + 重建向量表（content_tsv 由生成列维护）
+                    let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
+                    self.exec(&self.vec_table_ddl(&name, dimensions, None)).await?;
+                    self.ensure_vector_index(&name, dimensions, None).await;
+                    self.registry_delete_collection(collection_id).await;
+                    Ok(())
+                } else {
+                    // SQLite：重命名旧表为 _bak_{ts} 再重建，失败时回滚
+                    let ts = chrono::Utc::now().timestamp_millis();
+                    let backup_name = format!("{name}_bak_{}", ts);
+                    let backup_meta = format!("{meta_table}_bak_{}", ts);
+                    let backup_fts = format!("{fts_table}_bak_{}", ts);
+                    let rename_res =
+                        self.exec(&format!("ALTER TABLE {name} RENAME TO {backup_name}")).await;
+                    if rename_res.is_err() {
+                        // 旧表可能不存在（已删除），忽略
+                    }
+                    let _ = self
+                        .exec(&format!("ALTER TABLE {meta_table} RENAME TO {backup_meta}"))
+                        .await;
+                    let _ =
+                        self.exec(&format!("ALTER TABLE {fts_table} RENAME TO {backup_fts}")).await;
+                    match self.ensure_collection(collection_id, dimensions).await {
+                        Ok(()) => {
+                            let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_name}")).await;
+                            let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_meta}")).await;
+                            let _ = self.exec(&format!("DROP TABLE IF EXISTS {backup_fts}")).await;
+                            self.registry_delete_collection(collection_id).await;
+                            Ok(())
+                        },
+                        Err(e) => {
+                            let _ = self
+                                .exec(&format!("ALTER TABLE {backup_name} RENAME TO {name}"))
+                                .await;
+                            let _ = self
+                                .exec(&format!("ALTER TABLE {backup_meta} RENAME TO {meta_table}"))
+                                .await;
+                            let _ = self
+                                .exec(&format!("ALTER TABLE {backup_fts} RENAME TO {fts_table}"))
+                                .await;
+                            Err(e)
+                        },
+                    }
                 }
             },
             None => self.ensure_collection(collection_id, dimensions).await,
@@ -443,13 +569,6 @@ impl VectorStore {
     }
 
     /// Ensure a collection exists with HNSW indexing for faster approximate nearest neighbor search.
-    ///
-    /// HNSW is recommended for collections with > 10,000 vectors where search latency is critical.
-    /// For smaller collections, the default exact k-NN search is usually sufficient.
-    ///
-    /// Note: sqlite-vec HNSW support depends on the specific build version.
-    /// This method attempts to create an HNSW-indexed table but may fall back to
-    /// exact search if HNSW parameters are not supported.
     pub async fn ensure_collection_hnsw(
         &self,
         collection_id: &str,
@@ -459,16 +578,11 @@ impl VectorStore {
         validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
-        self.exec(&format!(
-            "CREATE TABLE IF NOT EXISTS {name}_meta (
-                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-                id TEXT NOT NULL UNIQUE,
-                document_id TEXT NOT NULL,
-                chunk_index INTEGER NOT NULL,
-                content TEXT NOT NULL
-            )"
-        ))
-        .await?;
+        if self.is_pg() {
+            let _ = self.exec("CREATE EXTENSION IF NOT EXISTS vector").await;
+        }
+
+        self.exec(&self.meta_ddl(&name)).await?;
 
         self.exec(&format!(
             "CREATE INDEX IF NOT EXISTS idx_{name}_doc ON {name}_meta(document_id)"
@@ -488,51 +602,22 @@ impl VectorStore {
             self.registry_upsert_collection(collection_id, dimensions, "hnsw", Some(&hnsw_config))
                 .await;
         } else {
-            let hnsw_sql = format!(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}], hnsw(ef_construction={}, m={}, ef_search={}))",
-                dimensions, hnsw_config.ef_construction, hnsw_config.m, hnsw_config.ef_search
-            );
-
-            let created_hnsw = if let Err(e) = self.exec(&hnsw_sql).await {
-                tracing::warn!(
-                    "HNSW table creation failed for {}, falling back to exact search: {}",
-                    name,
-                    e
-                );
-                self.exec(&format!(
-                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}])",
-                    dimensions
-                ))
-                .await?;
-                false
-            } else {
-                true
-            };
-
-            let idx_type = if created_hnsw { "hnsw" } else { "flat" };
-            self.registry_upsert_collection(
-                collection_id,
-                dimensions,
-                idx_type,
-                if created_hnsw {
-                    Some(&hnsw_config)
-                } else {
-                    None
-                },
-            )
-            .await;
+            self.exec(&self.vec_table_ddl(&name, dimensions, Some(&hnsw_config))).await?;
+            self.ensure_vector_index(&name, dimensions, Some(&hnsw_config)).await;
+            self.registry_upsert_collection(collection_id, dimensions, "hnsw", Some(&hnsw_config))
+                .await;
         }
 
-        let _ = self.ensure_fts5_index(collection_id).await;
+        if self.is_pg() {
+            // PostgreSQL 关键词检索由 content_tsv 生成列承担
+        } else {
+            let _ = self.ensure_fts5_index(collection_id).await;
+        }
 
         Ok(())
     }
 
     /// Upsert embedding records for a single document.
-    ///
-    /// All existing embeddings for the document (identified by `document_id` of
-    /// the first record) are deleted before the new records are inserted.
-    /// The entire delete+insert sequence is wrapped in a transaction for atomicity.
     pub async fn upsert_embeddings(
         &self,
         collection_id: &str,
@@ -561,33 +646,25 @@ impl VectorStore {
         let name = Self::validated_collection_name(collection_id)?;
         let doc_id = &records[0].document_id;
 
-        // Begin transaction for atomic delete+insert
-        self.exec("BEGIN IMMEDIATE").await?;
+        let txn = self.db.begin().await.map_err(Self::wrap)?;
 
         let result = async {
-            // Delete previous embeddings for this document.
-            self.delete_rows_by_document_inner(&name, doc_id).await?;
+            self.delete_rows_by_document_inner(&txn, &name, doc_id).await?;
 
-            // Determine the next safe rowid to avoid UNIQUE conflicts.
-            // We must check both _meta AND vec0 tables because orphan rows
-            // can exist in vec0 after a previous crash/panic mid-insert.
             let meta_max = self
-                .db
-                .query_one_raw(Statement::from_string(
-                    DbBackend::Sqlite,
-                    format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}_meta"),
-                ))
-                .await
-                .map_err(Self::wrap)?
+                .txn_query_one(
+                    &txn,
+                    &format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}_meta"),
+                )
+                .await?
                 .and_then(|r| r.try_get::<i64>("", "max_rid").ok())
                 .unwrap_or(0);
 
             let vec_max = self
-                .db
-                .query_one_raw(Statement::from_string(
-                    DbBackend::Sqlite,
-                    format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}"),
-                ))
+                .txn_query_one(
+                    &txn,
+                    &format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}"),
+                )
                 .await
                 .ok()
                 .flatten()
@@ -596,48 +673,40 @@ impl VectorStore {
 
             let start_rowid: i64 = meta_max.max(vec_max) + 1;
 
-            // Insert new records with explicit correlated rowids.
             for (rid, record) in (start_rowid..).zip(records.iter()) {
                 let vec_json = Self::embedding_to_json(&record.embedding);
 
-                // Insert embedding into vec0 with explicit rowid
-                self.db
-                    .execute_raw(Statement::from_sql_and_values(
-                        DbBackend::Sqlite,
-                        format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
-                        vec![rid.into(), vec_json.into()],
-                    ))
-                    .await
-                    .map_err(Self::wrap)?;
+                self.txn_exec_params(
+                    &txn,
+                    &self.embedding_insert_sql(&name),
+                    vec![rid.into(), vec_json.into()],
+                )
+                .await?;
 
-                // Insert meta with the same rowid
-                self.db
-                    .execute_raw(Statement::from_sql_and_values(
-                        DbBackend::Sqlite,
-                        format!(
-                            "INSERT INTO {name}_meta (rowid, id, document_id, chunk_index, content) \
-                             VALUES ($1, $2, $3, $4, $5)"
-                        ),
-                        vec![
-                            rid.into(),
-                            record.id.clone().into(),
-                            record.document_id.clone().into(),
-                            record.chunk_index.into(),
-                            record.content.clone().into(),
-                        ],
-                    ))
-                    .await
-                    .map_err(Self::wrap)?;
+                self.txn_exec_params(
+                    &txn,
+                    &format!(
+                        "INSERT INTO {name}_meta (rowid, id, document_id, chunk_index, content) \
+                         VALUES ($1, $2, $3, $4, $5)"
+                    ),
+                    vec![
+                        rid.into(),
+                        record.id.clone().into(),
+                        record.document_id.clone().into(),
+                        record.chunk_index.into(),
+                        record.content.clone().into(),
+                    ],
+                )
+                .await?;
             }
 
             Ok(())
         }
         .await;
 
-        // Commit or rollback
         match result {
             Ok(()) => {
-                self.exec("COMMIT").await?;
+                txn.commit().await.map_err(Self::wrap)?;
                 self.registry_update_vector_count(collection_id).await;
                 let cid = collection_id.to_string();
                 let db = self.clone();
@@ -647,7 +716,7 @@ impl VectorStore {
                 Ok(())
             },
             Err(e) => {
-                let _ = self.exec("ROLLBACK").await;
+                let _ = txn.rollback().await;
                 Err(e)
             },
         }
@@ -670,11 +739,10 @@ impl VectorStore {
             return Err(AxAgentError::NotFound("Collection not found".into()));
         }
 
-        // Determine next chunk_index for this document
         let max_index = self
             .db
             .query_one_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
+                self.be(),
                 format!("SELECT COALESCE(MAX(chunk_index), -1) AS max_idx FROM {meta_table} WHERE document_id = $1"),
                 vec![document_id.to_string().into()],
             ))
@@ -686,11 +754,10 @@ impl VectorStore {
         let chunk_index = max_index + 1;
         let chunk_id = format!("{}_{}", document_id, chunk_index);
 
-        // Determine next safe rowid
         let meta_max = self
             .db
             .query_one_raw(Statement::from_string(
-                DbBackend::Sqlite,
+                self.be(),
                 format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {meta_table}"),
             ))
             .await
@@ -701,7 +768,7 @@ impl VectorStore {
         let vec_max = self
             .db
             .query_one_raw(Statement::from_string(
-                DbBackend::Sqlite,
+                self.be(),
                 format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {name}"),
             ))
             .await
@@ -713,29 +780,24 @@ impl VectorStore {
         let rid: i64 = meta_max.max(vec_max) + 1;
         let vec_json = Self::embedding_to_json(embedding);
 
-        self.exec("BEGIN IMMEDIATE").await?;
+        let txn = self.db.begin().await.map_err(Self::wrap)?;
 
-        // Insert embedding into vec0
-        let vec_result = self
-            .db
-            .execute_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
+        if let Err(e) = self
+            .txn_exec_params(
+                &txn,
+                &self.embedding_insert_sql(&name),
                 vec![rid.into(), vec_json.into()],
-            ))
-            .await;
-
-        // Insert meta
-        if let Err(e) = vec_result {
-            let _ = self.exec("ROLLBACK").await;
-            return Err(Self::wrap(e));
+            )
+            .await
+        {
+            let _ = txn.rollback().await;
+            return Err(e);
         }
 
-        let meta_result = self
-            .db
-            .execute_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                format!(
+        if let Err(e) = self
+            .txn_exec_params(
+                &txn,
+                &format!(
                     "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
                          VALUES ($1, $2, $3, $4, $5)"
                 ),
@@ -746,14 +808,13 @@ impl VectorStore {
                     chunk_index.into(),
                     content.to_string().into(),
                 ],
-            ))
-            .await;
-
-        if let Err(e) = meta_result {
-            let _ = self.exec("ROLLBACK").await;
-            return Err(Self::wrap(e));
+            )
+            .await
+        {
+            let _ = txn.rollback().await;
+            return Err(e);
         }
-        self.exec("COMMIT").await?;
+        txn.commit().await.map_err(Self::wrap)?;
         self.registry_update_vector_count(collection_id).await;
         let cid = collection_id.to_string();
         let db = self.clone();
@@ -764,9 +825,6 @@ impl VectorStore {
     }
 
     /// Search for the most similar vectors in a knowledge base.
-    ///
-    /// Returns up to `top_k` results ordered by ascending distance.
-    /// If the collection does not exist yet, an empty vec is returned.
     pub async fn search(
         &self,
         knowledge_base_id: &str,
@@ -783,19 +841,11 @@ impl VectorStore {
 
         let vec_json = Self::embedding_to_json(&query_embedding);
 
-        let sql = format!(
-            "SELECT m.id, m.document_id, m.chunk_index, m.content, v.distance \
-             FROM {name} v \
-             JOIN {name}_meta m ON m.rowid = v.rowid \
-             WHERE v.embedding MATCH $1 AND k = $2 \
-             ORDER BY v.distance"
-        );
-
         let rows = match self
             .db
             .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                &sql,
+                self.be(),
+                self.search_sql(&name),
                 vec![vec_json.into(), (top_k as i64).into()],
             ))
             .await
@@ -846,49 +896,55 @@ impl VectorStore {
     }
 
     /// Drop both tables for a knowledge base.
-    ///
-    /// Silently succeeds if the tables do not exist.
-    /// Also removes the collection entry from vec_collections registry.
     pub async fn delete_collection(&self, knowledge_base_id: &str) -> Result<()> {
         validate_collection_name(knowledge_base_id)?;
         let name = Self::validated_collection_name(knowledge_base_id)?;
-        let fts_table = format!("{name}_meta_fts");
-        let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
-        let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}_meta")).await;
-        let _ = self.exec(&format!("DROP TABLE IF EXISTS {fts_table}")).await;
+        if self.is_pg() {
+            let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
+            let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}_meta")).await;
+        } else {
+            let fts_table = format!("{name}_meta_fts");
+            let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
+            let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}_meta")).await;
+            let _ = self.exec(&format!("DROP TABLE IF EXISTS {fts_table}")).await;
+        }
         self.registry_delete_collection(knowledge_base_id).await;
         Ok(())
     }
 
     /// Clear only the embedding vectors (vec0), keeping chunk metadata (_meta) intact.
-    /// This allows re-embedding without losing user edits or manually added chunks.
     pub async fn clear_embeddings(&self, collection_id: &str) -> Result<()> {
         validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
         let dim = self.get_collection_dimensions(collection_id).await?;
 
-        // P2-2: 先用临时名重命名旧 vec0 表；若 CREATE 失败则回滚重命名保留原表
+        if self.is_pg() {
+            // PostgreSQL：直接重建向量表（生成列 content_tsv 不受影响）
+            if let Some(d) = dim {
+                let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
+                self.exec(&self.vec_table_ddl(&name, d, None)).await?;
+                self.ensure_vector_index(&name, d, None).await;
+            } else {
+                self.registry_mark_disabled(collection_id).await;
+            }
+            self.registry_update_vector_count(collection_id).await;
+            return Ok(());
+        }
+
+        // ── SQLite 路径：用临时名重命名旧 vec0 表，失败则回滚 ──
         let ts = chrono::Utc::now().timestamp_millis();
         let tmp_name = format!("{name}_old_{}", ts);
 
-        // 1) 重命名旧表到临时名（vec0 表已存在时）
         let rename_res = self.exec(&format!("ALTER TABLE {name} RENAME TO {tmp_name}")).await;
         let renamed = rename_res.is_ok();
 
-        // 2) 用记录的维度重建 vec0
         if let Some(d) = dim {
-            let create_res = self
-                .exec(&format!(
-                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{d}])"
-                ))
-                .await;
+            let create_res = self.exec(&self.vec_table_ddl(&name, d, None)).await;
             if let Err(e) = create_res {
-                // CREATE 失败：回滚重命名
                 if renamed {
                     let _ = self.exec(&format!("ALTER TABLE {tmp_name} RENAME TO {name}")).await;
                 } else {
-                    // 没重命名过（说明原表不存在）→ 标记 collection 为 disabled
                     self.registry_mark_disabled(collection_id).await;
                 }
                 return Err(AxAgentError::Provider(format!(
@@ -897,11 +953,9 @@ impl VectorStore {
                 )));
             }
         } else {
-            // 没有维度信息：直接走兼容路径，禁用该 collection
             self.registry_mark_disabled(collection_id).await;
         }
 
-        // 3) 重建成功后再清理临时表
         if renamed {
             let _ = self.exec(&format!("DROP TABLE IF EXISTS {tmp_name}")).await;
         }
@@ -911,7 +965,6 @@ impl VectorStore {
     }
 
     /// List all chunk metadata with rowids for re-embedding.
-    /// Returns (rowid, chunk_id, content) tuples.
     pub async fn list_all_chunks(&self, collection_id: &str) -> Result<Vec<(i64, String, String)>> {
         validate_collection_name(collection_id)?;
         self.list_chunks_raw(collection_id, None).await
@@ -943,7 +996,7 @@ impl VectorStore {
         let rows = if let Some(doc_id) = document_id {
             self.db
                 .query_all_raw(Statement::from_sql_and_values(
-                    DbBackend::Sqlite,
+                    self.be(),
                     format!("SELECT rowid, id, content FROM \"{meta_table}\" WHERE document_id = $1 ORDER BY rowid"),
                     vec![doc_id.to_string().into()],
                 ))
@@ -952,7 +1005,7 @@ impl VectorStore {
         } else {
             self.db
                 .query_all_raw(Statement::from_string(
-                    DbBackend::Sqlite,
+                    self.be(),
                     format!("SELECT rowid, id, content FROM {meta_table} ORDER BY rowid"),
                 ))
                 .await
@@ -971,7 +1024,6 @@ impl VectorStore {
     }
 
     /// Re-insert embeddings for existing chunks (used after clear_embeddings).
-    /// The vec0 table must already exist (or be recreated with correct dimensions).
     pub async fn reinsert_embeddings(
         &self,
         collection_id: &str,
@@ -982,8 +1034,6 @@ impl VectorStore {
     }
 
     /// Insert or replace embeddings for specific rowids.
-    /// Creates vec0 if needed, deletes existing rows, then inserts new embeddings.
-    /// Wrapped in a transaction to prevent partial writes.
     pub async fn upsert_document_embeddings(
         &self,
         collection_id: &str,
@@ -997,26 +1047,27 @@ impl VectorStore {
         let dimensions = entries[0].1.len();
         let name = Self::validated_collection_name(collection_id)?;
 
-        // Ensure the vec0 table exists with correct dimensions
+        if self.is_pg() {
+            let _ = self.exec("CREATE EXTENSION IF NOT EXISTS vector").await;
+        }
+
         self.db
             .execute_raw(Statement::from_string(
-                DbBackend::Sqlite,
-                format!("CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dimensions}])"),
+                self.be(),
+                self.vec_table_ddl(&name, dimensions, None),
             ))
             .await
             .map_err(Self::wrap)?;
 
-        self.exec("BEGIN IMMEDIATE").await?;
+        let txn = self.db.begin().await.map_err(Self::wrap)?;
 
         for (rid, embedding) in &entries {
-            // P2-1: DELETE 失败时记录日志而非完全忽略
             if let Err(e) = self
-                .db
-                .execute_raw(Statement::from_sql_and_values(
-                    DbBackend::Sqlite,
-                    format!("DELETE FROM {name} WHERE rowid = $1"),
+                .txn_exec_params(
+                    &txn,
+                    &format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![(*rid).into()],
-                ))
+                )
                 .await
             {
                 tracing::warn!(
@@ -1029,20 +1080,19 @@ impl VectorStore {
 
             let vec_json = Self::embedding_to_json(embedding);
             if let Err(e) = self
-                .db
-                .execute_raw(Statement::from_sql_and_values(
-                    DbBackend::Sqlite,
-                    format!("INSERT INTO {name} (rowid, embedding) VALUES ($1, $2)"),
+                .txn_exec_params(
+                    &txn,
+                    &self.embedding_insert_sql(&name),
                     vec![(*rid).into(), vec_json.into()],
-                ))
+                )
                 .await
             {
-                let _ = self.exec("ROLLBACK").await;
-                return Err(Self::wrap(e));
+                let _ = txn.rollback().await;
+                return Err(e);
             };
         }
 
-        self.exec("COMMIT").await?;
+        txn.commit().await.map_err(Self::wrap)?;
         self.registry_update_vector_count(collection_id).await;
         let cid = collection_id.to_string();
         let db = self.clone();
@@ -1082,6 +1132,21 @@ impl VectorStore {
     }
 
     pub async fn ensure_fts5_index(&self, collection_id: &str) -> Result<()> {
+        if self.is_pg() {
+            // PostgreSQL 关键词检索由 meta 表的 content_tsv 生成列 + GIN 索引承担，
+            // 该索引在 meta_ddl 中已建；此处保证索引存在（幂等）。
+            let safe_name = Self::sanitize_collection_id(collection_id);
+            let meta_table = format!("vec_{safe_name}_meta");
+            if self.table_exists(&meta_table).await? {
+                let _ = self
+                    .exec(&format!(
+                        "CREATE INDEX IF NOT EXISTS idx_{meta_table}_tsv ON {meta_table} USING GIN (content_tsv)"
+                    ))
+                    .await;
+            }
+            return Ok(());
+        }
+
         validate_collection_name(collection_id)?;
         let safe_name = Self::sanitize_collection_id(collection_id);
         let meta_table = format!("vec_{safe_name}_meta");
@@ -1090,8 +1155,8 @@ impl VectorStore {
         let table_exists: bool = self
             .db
             .query_one_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?1",
+                self.be(),
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=$1",
                 vec![fts_table.clone().into()],
             ))
             .await
@@ -1128,7 +1193,7 @@ impl VectorStore {
         let populated: Option<i64> = self
             .db
             .query_one_raw(Statement::from_string(
-                DbBackend::Sqlite,
+                self.be(),
                 format!("SELECT COUNT(*) as cnt FROM {fts_table}"),
             ))
             .await
@@ -1148,6 +1213,10 @@ impl VectorStore {
     }
 
     pub async fn rebuild_fts_index(&self, collection_id: &str) {
+        if self.is_pg() {
+            // 生成列在内容变更时自动维护，无需手动 rebuild
+            return;
+        }
         if validate_collection_name(collection_id).is_err() {
             return;
         }
@@ -1157,8 +1226,8 @@ impl VectorStore {
         let exists: bool = self
             .db
             .query_one_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?1",
+                self.be(),
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=$1",
                 vec![fts_table.clone().into()],
             ))
             .await
@@ -1171,7 +1240,7 @@ impl VectorStore {
         }
     }
 
-    /// Delete a single chunk by its id from both vec0 and metadata tables.
+    /// Delete a single chunk by its id from both embedding and metadata tables.
     pub async fn delete_chunk(&self, collection_id: &str, chunk_id: &str) -> Result<()> {
         validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
@@ -1181,11 +1250,10 @@ impl VectorStore {
             return Ok(());
         }
 
-        // Get the rowid from _meta
         let row = self
             .db
             .query_one_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
+                self.be(),
                 format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
                 vec![chunk_id.to_string().into()],
             ))
@@ -1195,36 +1263,32 @@ impl VectorStore {
         if let Some(row) = row {
             let rid: i64 = row.try_get("", "rowid").map_err(Self::wrap)?;
 
-            self.exec("BEGIN IMMEDIATE").await?;
+            let txn = self.db.begin().await.map_err(Self::wrap)?;
 
-            // Delete from vec0
             if let Err(e) = self
-                .db
-                .execute_raw(Statement::from_sql_and_values(
-                    DbBackend::Sqlite,
-                    format!("DELETE FROM {name} WHERE rowid = $1"),
+                .txn_exec_params(
+                    &txn,
+                    &format!("DELETE FROM {name} WHERE rowid = $1"),
                     vec![rid.into()],
-                ))
+                )
                 .await
             {
-                let _ = self.exec("ROLLBACK").await;
-                return Err(Self::wrap(e));
+                let _ = txn.rollback().await;
+                return Err(e);
             }
-            // Delete from _meta
             if let Err(e) = self
-                .db
-                .execute_raw(Statement::from_sql_and_values(
-                    DbBackend::Sqlite,
-                    format!("DELETE FROM {meta_table} WHERE id = $1"),
+                .txn_exec_params(
+                    &txn,
+                    &format!("DELETE FROM {meta_table} WHERE id = $1"),
                     vec![chunk_id.to_string().into()],
-                ))
+                )
                 .await
             {
-                let _ = self.exec("ROLLBACK").await;
-                return Err(Self::wrap(e));
+                let _ = txn.rollback().await;
+                return Err(e);
             }
 
-            self.exec("COMMIT").await?;
+            txn.commit().await.map_err(Self::wrap)?;
         }
 
         self.registry_update_vector_count(collection_id).await;
@@ -1253,7 +1317,7 @@ impl VectorStore {
 
         self.db
             .execute_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
+                self.be(),
                 format!("UPDATE {meta_table} SET content = $1 WHERE id = $2"),
                 vec![new_content.to_string().into(), chunk_id.to_string().into()],
             ))
@@ -1278,11 +1342,10 @@ impl VectorStore {
             return Err(AxAgentError::NotFound("Collection not found".into()));
         }
 
-        // Get the rowid from _meta
         let row = self
             .db
             .query_one_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
+                self.be(),
                 format!("SELECT rowid FROM {meta_table} WHERE id = $1"),
                 vec![chunk_id.to_string().into()],
             ))
@@ -1293,11 +1356,10 @@ impl VectorStore {
         let rid: i64 = row.try_get("", "rowid").map_err(Self::wrap)?;
         let vec_json = Self::embedding_to_json(embedding);
 
-        // Update embedding in vec0
         self.db
             .execute_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                format!("UPDATE {name} SET embedding = $1 WHERE rowid = $2"),
+                self.be(),
+                format!("UPDATE {name} SET embedding = $1::vector WHERE rowid = $2"),
                 vec![vec_json.into(), rid.into()],
             ))
             .await
@@ -1308,41 +1370,55 @@ impl VectorStore {
 
     // ── private helpers ─────────────────────────────────────────────────
 
-    /// Delete rows from both vec0 and metadata tables by `document_id`.
+    /// Delete rows from both embedding and metadata tables by `document_id`.
+    /// 非事务路径：直接落在连接池连接上（单条删除自动提交，无需事务包裹）。
     async fn delete_rows_by_document(&self, table_name: &str, document_id: &str) -> Result<()> {
-        self.delete_rows_by_document_inner(table_name, document_id).await
-    }
+        self.exec_with_params(
+            &format!(
+                "DELETE FROM {table_name} WHERE rowid IN (SELECT rowid FROM {table_name}_meta WHERE document_id = $1)"
+            ),
+            vec![document_id.to_string().into()],
+        )
+        .await?;
 
-    /// Internal implementation of delete_rows_by_document (usable inside a transaction).
-    async fn delete_rows_by_document_inner(
-        &self,
-        table_name: &str,
-        document_id: &str,
-    ) -> Result<()> {
-        self.db
-            .execute_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                format!(
-                    "DELETE FROM {table_name} WHERE rowid IN (SELECT rowid FROM {table_name}_meta WHERE document_id = $1)"
-                ),
-                vec![document_id.to_string().into()],
-            ))
-            .await
-            .map_err(Self::wrap)?;
-
-        self.db
-            .execute_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                format!("DELETE FROM {table_name}_meta WHERE document_id = $1"),
-                vec![document_id.to_string().into()],
-            ))
-            .await
-            .map_err(Self::wrap)?;
+        self.exec_with_params(
+            &format!("DELETE FROM {table_name}_meta WHERE document_id = $1"),
+            vec![document_id.to_string().into()],
+        )
+        .await?;
 
         Ok(())
     }
 
-    /// Convert an embedding vector to a JSON array string for sqlite-vec.
+    /// Internal implementation of delete_rows_by_document (usable inside a transaction).
+    /// 必须在调用方通过 `self.db.begin()` 拿到的 `DatabaseTransaction` 上执行，
+    /// 以保证删除与随后的写入落在同一连接、同一事务内。
+    async fn delete_rows_by_document_inner(
+        &self,
+        txn: &DatabaseTransaction,
+        table_name: &str,
+        document_id: &str,
+    ) -> Result<()> {
+        self.txn_exec_params(
+            txn,
+            &format!(
+                "DELETE FROM {table_name} WHERE rowid IN (SELECT rowid FROM {table_name}_meta WHERE document_id = $1)"
+            ),
+            vec![document_id.to_string().into()],
+        ).await?;
+
+        self.txn_exec_params(
+            txn,
+            &format!("DELETE FROM {table_name}_meta WHERE document_id = $1"),
+            vec![document_id.to_string().into()],
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    /// Convert an embedding vector to a JSON array string (used for both backends;
+    /// on PostgreSQL it is cast to `vector` via `$2::vector` at the SQL level).
     fn embedding_to_json(embedding: &[f32]) -> String {
         let mut buf = String::from("[");
         for (i, v) in embedding.iter().enumerate() {
@@ -1350,7 +1426,6 @@ impl VectorStore {
                 buf.push(',');
             }
             use std::fmt::Write;
-            // 使用 write! 宏确保 locale 无关的浮点数格式（始终使用 "." 作为小数点）
             let _ = write!(buf, "{v:.16}");
         }
         buf.push(']');
@@ -1359,15 +1434,25 @@ impl VectorStore {
 
     /// Check whether a regular table exists in the database.
     async fn table_exists(&self, table_name: &str) -> Result<bool> {
-        let row = self
-            .db
-            .query_one_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=$1",
-                vec![table_name.to_string().into()],
-            ))
-            .await
-            .map_err(Self::wrap)?;
+        let row = if self.is_pg() {
+            self.db
+                .query_one_raw(Statement::from_sql_and_values(
+                    self.be(),
+                    "SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = $1",
+                    vec![table_name.to_string().into()],
+                ))
+                .await
+                .map_err(Self::wrap)?
+        } else {
+            self.db
+                .query_one_raw(Statement::from_sql_and_values(
+                    self.be(),
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=$1",
+                    vec![table_name.to_string().into()],
+                ))
+                .await
+                .map_err(Self::wrap)?
+        };
         Ok(row.is_some())
     }
 
@@ -1405,7 +1490,7 @@ impl VectorStore {
         let rows = self
             .db
             .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
+                self.be(),
                 &sql,
                 vec![document_id.to_string().into()],
             ))
@@ -1430,10 +1515,7 @@ impl VectorStore {
 
     /// Shorthand for executing a statement with no parameters.
     async fn exec(&self, sql: &str) -> Result<()> {
-        self.db
-            .execute_raw(Statement::from_string(DbBackend::Sqlite, sql))
-            .await
-            .map_err(Self::wrap)?;
+        self.db.execute_raw(Statement::from_string(self.be(), sql)).await.map_err(Self::wrap)?;
         Ok(())
     }
 
@@ -1443,9 +1525,33 @@ impl VectorStore {
         sql: &str,
         params: impl IntoIterator<Item = sea_orm::Value>,
     ) -> Result<()> {
-        let stmt = Statement::from_sql_and_values(DbBackend::Sqlite, sql, params);
+        let stmt = Statement::from_sql_and_values(self.be(), sql, params);
         self.db.execute_raw(stmt).await.map_err(Self::wrap)?;
         Ok(())
+    }
+
+    // ── 事务句柄辅助（绑定单一连接，杜绝连接池下 BEGIN/COMMIT 落到不同连接）──
+
+    async fn txn_exec_params(
+        &self,
+        txn: &DatabaseTransaction,
+        sql: &str,
+        params: Vec<Value>,
+    ) -> Result<()> {
+        txn.execute_raw(Statement::from_sql_and_values(self.be(), sql, params))
+            .await
+            .map_err(Self::wrap)?;
+        Ok(())
+    }
+
+    async fn txn_query_one(
+        &self,
+        txn: &DatabaseTransaction,
+        sql: &str,
+    ) -> Result<Option<QueryResult>> {
+        txn.query_one_raw(Statement::from_string(self.be(), sql.to_string()))
+            .await
+            .map_err(Self::wrap)
     }
 
     fn wrap(e: DbErr) -> AxAgentError {
@@ -1459,10 +1565,8 @@ mod tests {
 
     #[test]
     fn test_embedding_to_json_uses_dot_decimal() {
-        // 确保无论系统 locale 如何，浮点数始终使用 "." 作为小数点
         let embedding = vec![0.5_f32, -1.25_f32, 3.14160_f32];
         let json = VectorStore::embedding_to_json(&embedding);
-        // 不应包含逗号作为小数点（非英文 locale 的问题）
         assert!(!json.contains(",5"), "should not use comma as decimal: {json}");
         assert!(!json.contains(",25"), "should not use comma as decimal: {json}");
         assert!(json.contains("0.5"), "should use dot: {json}");

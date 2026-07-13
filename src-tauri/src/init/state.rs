@@ -100,16 +100,23 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     });
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
-        let db_file_path = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
-        let storage = axagent_trajectory::TrajectoryStorage::with_fts_path(
-            Arc::new(sea_db.clone()),
-            db_file_path,
-        )
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
+        // PostgreSQL 下 FTS5（基于 rusqlite）不可用，直接用无 FTS 的存储
+        // （trajectory 全文检索降级为空结果；基表的 tsvector 列已在 v001 预留）。
+        // SQLite 下走 with_fts_path 构建 FTS5 虚拟表。
+        let storage = if sea_db.get_database_backend() == sea_orm::DbBackend::Postgres {
             axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
-        });
+        } else {
+            let db_file_path = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
+            axagent_trajectory::TrajectoryStorage::with_fts_path(
+                Arc::new(sea_db.clone()),
+                db_file_path,
+            )
+            .await
+            .unwrap_or_else(|e| {
+                tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
+                axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
+            })
+        };
         Arc::new(storage)
     };
 

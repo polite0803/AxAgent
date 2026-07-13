@@ -7,6 +7,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use sea_orm::ConnectionTrait;
 use serde_json::Value;
 use std::sync::Mutex;
 
@@ -47,10 +48,64 @@ impl Tool for SessionSearchTool {
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let query = input.get("query").and_then(|v| v.as_str()).unwrap_or_default();
-        let limit = input.get("limit").and_then(|v| v.as_i64()).unwrap_or(10) as i32;
+        let limit = input.get("limit").and_then(|v| v.as_i64()).unwrap_or(10);
         if query.is_empty() {
             return Ok(ToolResult::error("Error: query 是必需的"));
         }
+
+        // 优先用共享的 SeaORM 连接（SQLite / PostgreSQL 通用，按后端分支查询）。
+        if let Some(db) = crate::global_state::get_sea_db() {
+            let (backend, sql, params) = if db.get_database_backend()
+                == sea_orm::DbBackend::Postgres
+            {
+                // PostgreSQL：tsvector 生成列 + ts_rank/ts_headline。
+                (
+                    sea_orm::DbBackend::Postgres,
+                    "SELECT m.conversation_id, \
+                        ts_headline('simple', m.content, plainto_tsquery('simple', $1), 'MaxWords=24, MinWords=5') as snippet, \
+                        ts_rank(m.content_tsv, plainto_tsquery('simple', $1)) as rank \
+                     FROM messages m \
+                     WHERE m.content_tsv @@ plainto_tsquery('simple', $1) \
+                     ORDER BY rank \
+                     LIMIT $2"
+                        .to_string(),
+                    vec![query.to_string().into(), limit.into()],
+                )
+            } else {
+                // SQLite：FTS5 虚拟表 + MATCH/bm25/snippet。
+                (
+                    sea_orm::DbBackend::Sqlite,
+                    "SELECT m.conversation_id, \
+                        snippet(messages_fts, 0, '>>', '<<', '...', 24) as snippet, \
+                        bm25(messages_fts) as rank \
+                     FROM messages_fts \
+                     JOIN messages m ON m.rowid = messages_fts.rowid \
+                     WHERE messages_fts MATCH ? \
+                     ORDER BY rank \
+                     LIMIT ?"
+                        .to_string(),
+                    vec![query.to_string().into(), limit.into()],
+                )
+            };
+
+            let rows = db
+                .query_all_raw(sea_orm::Statement::from_sql_and_values(backend, sql, params))
+                .await
+                .map_err(|e| ToolError::execution_failed(format!("会话搜索失败: {}", e)))?;
+
+            let formatted: Vec<String> = rows
+                .into_iter()
+                .filter_map(|row| {
+                    let conv_id: String = row.try_get("", "conversation_id").ok()?;
+                    let snippet: String = row.try_get("", "snippet").ok()?;
+                    Some(format!("[{}] {}", conv_id, snippet))
+                })
+                .collect();
+
+            return finish_search(query, formatted);
+        }
+
+        // 回退：无 SeaORM 连接时（旧路径）用 rusqlite 直连 SQLite FTS5。
         let db_path_str = match crate::global_state::get_db_path() {
             Some(p) => p,
             None => return Ok(ToolResult::error("会话搜索不可用：未配置数据库路径")),
@@ -71,16 +126,21 @@ impl Tool for SessionSearchTool {
                 .collect(),
             Err(e) => return Ok(ToolResult::error(format!("会话搜索错误 (FTS5 不可用): {}", e))),
         };
-        if rows.is_empty() {
-            Ok(ToolResult::success(format!("未找到 '{}' 的结果", query)))
-        } else {
-            Ok(ToolResult::success(format!(
-                "搜索 '{}' ({} 条):\n{}",
-                query,
-                rows.len(),
-                rows.join("\n")
-            )))
-        }
+        finish_search(query, rows)
+    }
+}
+
+/// 把搜索结果格式化为 ToolResult。
+fn finish_search(query: &str, rows: Vec<String>) -> Result<ToolResult, ToolError> {
+    if rows.is_empty() {
+        Ok(ToolResult::success(format!("未找到 '{}' 的结果", query)))
+    } else {
+        Ok(ToolResult::success(format!(
+            "搜索 '{}' ({} 条):\n{}",
+            query,
+            rows.len(),
+            rows.join("\n")
+        )))
     }
 }
 
