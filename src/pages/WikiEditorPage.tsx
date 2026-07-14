@@ -8,6 +8,7 @@ import { OperationTimeline } from "@/components/wiki/OperationTimeline";
 import { TagAggregationPanel } from "@/components/wiki/TagAggregationPanel";
 import { VersionHistoryPanel } from "@/components/wiki/VersionHistoryPanel";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
+import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { Note } from "@/types";
 import { DeleteOutlined, DownloadOutlined, EyeOutlined, HistoryOutlined, SaveOutlined } from "@ant-design/icons";
@@ -49,7 +50,8 @@ function markdownToHtml(md: string): string {
 export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const { getNote, updateNote, deleteNote, notes, loadNotes, exportNotePdf } = useWikiStore();
+  const { getNote, updateNote, deleteNote, notes, loadNotes, exportNoteHtml } = useWikiStore();
+  const { operations, loadOperations } = useLlmWikiStore();
 
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState("");
@@ -350,14 +352,19 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                 icon={<CheckSquare size={14} />}
                 onClick={() => setLintOpen(true)}
               >
-                Lint
+                {t("wiki.lint")}
               </Button>
               <Button
                 size="small"
                 icon={<History size={14} />}
-                onClick={() => setTimelineOpen(true)}
+                onClick={async () => {
+                  if (note?.vaultId) {
+                    await loadOperations(note.vaultId);
+                  }
+                  setTimelineOpen(true);
+                }}
               >
-                Timeline
+                {t("wiki.timeline")}
               </Button>
               <Button
                 size="small"
@@ -369,7 +376,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                       filters: [{ name: "HTML", extensions: ["html"] }],
                     });
                     if (filePath) {
-                      const result = await exportNotePdf(noteId, filePath);
+                      const result = await exportNoteHtml(noteId, filePath);
                       if (result) {
                         message.success(
                           t("wiki.exportedPdf", { path: result }),
@@ -462,20 +469,20 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         <BaseModal
           open={lintOpen}
           onCancel={() => setLintOpen(false)}
-          title="Lint Report"
+          title={t("wiki.lintReport")}
         >
           <LintReport wikiId={note.vaultId} />
         </BaseModal>
       )}
 
       <Modal
-        title="Operation Timeline"
+        title={t("wiki.operationTimeline")}
         open={timelineOpen}
         onCancel={() => setTimelineOpen(false)}
         footer={null}
         width={600}
       >
-        <OperationTimeline operations={[]} />
+        <OperationTimeline operations={operations} />
       </Modal>
     </div>
   );

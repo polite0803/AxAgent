@@ -309,6 +309,7 @@ mod tests {
     use super::{BashCommandInput, execute_bash};
     use axagent_runtime_core::sandbox::FilesystemIsolationMode;
 
+    #[cfg(unix)]
     #[test]
     fn executes_simple_command() {
         let output = execute_bash(BashCommandInput {

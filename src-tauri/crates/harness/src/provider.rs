@@ -25,7 +25,7 @@ pub trait ProviderAdapter: Send + Sync {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse>;
 
     fn chat_stream(
@@ -45,6 +45,20 @@ pub trait ProviderAdapter: Send + Sync {
 
     async fn validate_key(&self, ctx: &ProviderRequestContext) -> Result<bool> {
         self.list_models(ctx).await.map(|_| true)
+    }
+
+    // ── Realtime Voice API ──
+
+    /// 返回连接 LLM Realtime API 所需的 WebSocket URL 和认证信息。
+    /// 默认实现返回不支持错误，仅支持 RealtimeVoice 的 provider 需要覆写。
+    async fn realtime_config(
+        &self,
+        _ctx: &ProviderRequestContext,
+        _model: &str,
+    ) -> Result<RealtimeProviderConfig> {
+        Err(crate::core_error::AxAgentError::Provider(
+            "realtime voice is not supported by this provider".to_string(),
+        ))
     }
 
     // ── Response API (OpenAI Responses API 特有) ──
@@ -233,6 +247,21 @@ pub struct ProviderRequestContext {
     pub conversation: Option<String>,
     pub previous_response_id: Option<String>,
     pub store_response: Option<bool>,
+}
+
+// ── Realtime Voice ────────────────────────────────────────────
+
+/// Provider 返回的 Realtime WebSocket 连接配置
+#[derive(Debug, Clone)]
+pub struct RealtimeProviderConfig {
+    /// LLM 提供商的 Realtime WebSocket URL（如 wss://api.openai.com/v1/realtime）
+    pub ws_url: String,
+    /// API Key（用于 WebSocket 认证）
+    pub api_key: String,
+    /// 额外的自定义 HTTP Headers（如 OpenAI 的 Authorization 已自动处理）
+    pub headers: Option<std::collections::HashMap<String, String>>,
+    /// 提供商类型（openai / gemini 等），用于 RealtimeClient 选择协议适配
+    pub provider_type: String,
 }
 
 // ── URL 解析工具函数 ──────────────────────────────────────────

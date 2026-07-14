@@ -72,26 +72,6 @@ async function clipPage(wikiId, pageData) {
   }
 }
 
-// Handle extension icon click
-chrome.action.onClicked.addListener(async (tab) => {
-  try {
-    const response = await chrome.tabs.sendMessage(tab.id, { action: "getContent" });
-    if (response && response.content) {
-      // Open popup or process immediately
-      chrome.storage.local.get(["wikiId"], (result) => {
-        if (result.wikiId) {
-          clipPage(result.wikiId, {
-            ...response.content,
-            selection: response.selection,
-          });
-        }
-      });
-    }
-  } catch (error) {
-    console.error("Failed to get tab content:", error);
-  }
-});
-
 // Listen for installation
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {

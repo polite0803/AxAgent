@@ -167,7 +167,9 @@ pub use path_vars::PathEncoder;
 
 // ── MCP 共享类型（让 dao crate 不依赖 mcp） ──
 pub mod mcp_types;
-pub use mcp_types::DiscoveredTool;
+pub use mcp_types::{
+    DiscoveredTool, McpPrompt, McpPromptArgument, McpPromptResult, McpResource, McpResourceContent,
+};
 
 pub mod trajectory_scorer;
 pub mod trajectory_types;
@@ -175,7 +177,9 @@ pub mod trajectory_types;
 // ── Provider 契约重导出 ──
 pub use context_builder::build_provider_request_context;
 pub use has_provider_registry::HasProviderRegistry;
-pub use provider::{ProviderAdapter, ProviderProxyConfig, ProviderRequestContext};
+pub use provider::{
+    ProviderAdapter, ProviderProxyConfig, ProviderRequestContext, RealtimeProviderConfig,
+};
 pub use url_utils::{
     default_version_for_type, resolve_base_url, resolve_base_url_for_type, resolve_chat_url,
 };
@@ -200,7 +204,7 @@ pub use trajectory_service::{IntegrityCheck, IntegrityResult, TaskComplexity, Tr
 
 // ── Tool 契约重导出 ──
 pub use tool::{
-    DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, OutputSanitizer,
+    AskUserBridge, DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, OutputSanitizer,
     PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory, ToolContext, ToolInfo,
     ToolPermissions, ToolResult, parse_tool_name,
 };
@@ -287,8 +291,9 @@ pub use rl::{
 };
 pub mod dream;
 pub use dream::{
-    ConsolidationDataProvider, DistilledKnowledge, DreamConsolidationConfig,
-    DreamConsolidationResult, DreamConsolidator, ExperienceRecord, ReplaySample,
+    ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,
+    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState,
+    DreamConsolidator, DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
 };
 pub mod profile;
 pub use profile::{

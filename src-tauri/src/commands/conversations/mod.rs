@@ -10,6 +10,7 @@ pub mod streaming;
 use crate::AppState;
 #[cfg(test)]
 use crate::app_state::SemanticCacheState;
+use crate::commands::agent::cancel_agent_internal;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::thinking as thinking_err;
 use crate::commands::error_code::title as title_err;
@@ -657,16 +658,115 @@ pub async fn update_conversation(
     Ok(updated)
 }
 
+/// 取消对话关联的 agent 并清理所有运行时状态。
+/// 幂等操作——如果无运行中的 agent 则无副作用。
+async fn cancel_and_cleanup_agent(
+    app: &tauri::AppHandle,
+    app_state: &AppState,
+    conversation_id: &str,
+) {
+    // 调用共享的 agent 清理逻辑（取消 token、清理 prompter/paused/AskUser、emit 事件）
+    cancel_agent_internal(app, app_state, conversation_id, "Conversation deleted").await;
+
+    // 额外清理：删除会话时需要彻底清除所有状态，包括 always_allowed 和 running_agents
+    // （agent_cancel 命令中不会清理这两个，因为 RAII guard 负责 running_agents）
+    {
+        let mut always = app_state.agent_always_allowed.lock().await;
+        always.remove(conversation_id);
+    }
+    {
+        let mut running = app_state.running_agents.write().await;
+        running.remove(conversation_id);
+    }
+}
+
 #[tauri::command]
-pub async fn delete_conversation(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    delete_conversation_with_attachments(state.harness.db(), &id).await
+pub async fn delete_conversation(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<(), String> {
+    cancel_and_cleanup_agent(&app, state.inner(), &id).await;
+
+    let db = state.harness.db();
+    let file_store = axagent_storage::file_store::FileStore::new();
+
+    // 收集文件（事务外查询，避免事务持有过长时间）
+    let files = axagent_dao::repo::stored_file::list_stored_files_by_conversation(db, &id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 数据库事务：原子性删除所有关联记录
+    let txn = db.begin().await.map_err(|e| e.to_string())?;
+
+    // 1. 删除 stored_file 记录
+    axagent_entities::stored_files::Entity::delete_many()
+        .filter(axagent_entities::stored_files::Column::ConversationId.eq(&id))
+        .exec(&txn)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 2. 删除消息
+    axagent_entities::messages::Entity::delete_many()
+        .filter(axagent_entities::messages::Column::ConversationId.eq(&id))
+        .exec(&txn)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 3. 删除摘要
+    axagent_entities::conversation_summaries::Entity::delete_many()
+        .filter(axagent_entities::conversation_summaries::Column::ConversationId.eq(&id))
+        .exec(&txn)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 4. 删除 agent_sessions
+    axagent_entities::agent_sessions::Entity::delete_many()
+        .filter(axagent_entities::agent_sessions::Column::ConversationId.eq(&id))
+        .exec(&txn)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 5. 删除主对话
+    let result = axagent_entities::conversations::Entity::delete_by_id(&id)
+        .exec(&txn)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if result.rows_affected == 0 {
+        let _ = txn.rollback().await;
+        return Err(format!("Conversation {} not found", id));
+    }
+
+    txn.commit().await.map_err(|e| e.to_string())?;
+
+    // 事务成功后删除磁盘文件
+    for file in files {
+        let remaining = axagent_dao::repo::stored_file::count_stored_files_with_storage_path(
+            db,
+            &file.storage_path,
+        )
+        .await
+        .unwrap_or(1);
+        if remaining == 0 {
+            let _ = file_store.delete_file(&file.storage_path);
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn batch_delete_conversations(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     ids: Vec<String>,
 ) -> Result<usize, String> {
+    // 统一清理所有对话的 agent 运行时状态
+    for id in &ids {
+        cancel_and_cleanup_agent(&app, state.inner(), id).await;
+    }
+
     let db = state.harness.db().clone();
     let tasks: Vec<_> = ids
         .iter()
@@ -675,7 +775,62 @@ pub async fn batch_delete_conversations(
             let id = id.clone();
             tokio::spawn(async move {
                 let file_store = axagent_storage::file_store::FileStore::new();
-                delete_conversation_with_attachments_using(&db, &file_store, &id).await
+                let files =
+                    axagent_dao::repo::stored_file::list_stored_files_by_conversation(&db, &id)
+                        .await
+                        .map_err(|e| e.to_string())?;
+
+                let txn = db.begin().await.map_err(|e| e.to_string())?;
+
+                axagent_entities::stored_files::Entity::delete_many()
+                    .filter(axagent_entities::stored_files::Column::ConversationId.eq(&id))
+                    .exec(&txn)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                axagent_entities::messages::Entity::delete_many()
+                    .filter(axagent_entities::messages::Column::ConversationId.eq(&id))
+                    .exec(&txn)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                axagent_entities::conversation_summaries::Entity::delete_many()
+                    .filter(
+                        axagent_entities::conversation_summaries::Column::ConversationId.eq(&id),
+                    )
+                    .exec(&txn)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                axagent_entities::agent_sessions::Entity::delete_many()
+                    .filter(axagent_entities::agent_sessions::Column::ConversationId.eq(&id))
+                    .exec(&txn)
+                    .await
+                    .map_err(|e| e.to_string())?;
+
+                let result = axagent_entities::conversations::Entity::delete_by_id(&id)
+                    .exec(&txn)
+                    .await
+                    .map_err(|e| e.to_string())?;
+
+                if result.rows_affected == 0 {
+                    let _ = txn.rollback().await;
+                    return Err(format!("Conversation {} not found", id));
+                }
+
+                txn.commit().await.map_err(|e| e.to_string())?;
+
+                for file in files {
+                    let remaining =
+                        axagent_dao::repo::stored_file::count_stored_files_with_storage_path(
+                            &db,
+                            &file.storage_path,
+                        )
+                        .await
+                        .unwrap_or(1);
+                    if remaining == 0 {
+                        let _ = file_store.delete_file(&file.storage_path);
+                    }
+                }
+
+                Ok(())
             })
         })
         .collect();
@@ -685,7 +840,7 @@ pub async fn batch_delete_conversations(
         match result {
             Ok(Ok(())) => deleted += 1,
             Ok(Err(e)) => tracing::warn!("批量删除对话失败: {}", e),
-            Err(e) => tracing::warn!("批量删除任务 panic: {}", e),
+            Err(e) => tracing::warn!("批量删除任务 panic: {:?}", e),
         }
     }
     Ok(deleted)
@@ -710,14 +865,7 @@ pub async fn branch_conversation(
     .map_err(|e| e.to_string())
 }
 
-async fn delete_conversation_with_attachments(
-    db: &sea_orm::DatabaseConnection,
-    conversation_id: &str,
-) -> Result<(), String> {
-    let file_store = axagent_storage::file_store::FileStore::new();
-    delete_conversation_with_attachments_using(db, &file_store, conversation_id).await
-}
-
+#[cfg_attr(not(test), allow(dead_code))]
 async fn delete_conversation_with_attachments_using(
     db: &sea_orm::DatabaseConnection,
     file_store: &axagent_storage::file_store::FileStore,
@@ -730,6 +878,10 @@ async fn delete_conversation_with_attachments_using(
     for file in files {
         super::file_cleanup::delete_attachment_reference(db, file_store, &file.id).await?;
     }
+
+    axagent_dao::repo::message::clear_conversation_messages(db, conversation_id)
+        .await
+        .map_err(|e| e.to_string())?;
 
     // 清理关联数据（无 FK 约束，需手动删除避免孤行）
     if let Err(e) = axagent_dao::repo::conversation::delete_summary(db, conversation_id).await {
@@ -745,7 +897,9 @@ async fn delete_conversation_with_attachments_using(
 
     axagent_dao::repo::conversation::delete_conversation(db, conversation_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -1594,13 +1748,14 @@ pub(crate) async fn execute_tool_call(
                     return (ErrorResponse::err(tool_err::HTTP_NO_ENDPOINT), true);
                 },
             };
+            let auth = axagent_mcp::mcp_client::resolve_oauth_header(Some(&server.id)).await;
             match tokio::time::timeout(
                 timeout_duration,
                 axagent_mcp::mcp_client::call_tool_http(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
-                    None,
+                    auth.as_deref(),
                 ),
             )
             .await
@@ -1626,13 +1781,14 @@ pub(crate) async fn execute_tool_call(
                     return (ErrorResponse::err(tool_err::SSE_NO_ENDPOINT), true);
                 },
             };
+            let auth = axagent_mcp::mcp_client::resolve_oauth_header(Some(&server.id)).await;
             match tokio::time::timeout(
                 timeout_duration,
                 axagent_mcp::mcp_client::call_tool_sse(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
-                    None,
+                    auth.as_deref(),
                 ),
             )
             .await
@@ -1891,7 +2047,7 @@ pub(crate) async fn generate_ai_title_with(
         err
     })?;
 
-    let response = adapter.chat(ctx, request).await.map_err(|e| {
+    let response = adapter.chat(ctx, request.into()).await.map_err(|e| {
         let err = format!("Chat API error: {}", e);
         tracing::error!("[title-gen] {}", err);
         err
@@ -2592,6 +2748,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             axagent_trajectory::ParallelExecutionService::new(10),
         )),
         cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new_ephemeral()),
+        cron_scheduler: Arc::new(tokio::sync::RwLock::new(None)),
         platform_manager: Arc::new(
             axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
         ),
@@ -2617,6 +2774,8 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         dashboard_registry: None,
         webhook_subscription_manager: None,
+        #[cfg(not(mobile))]
+        pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
         semantic_cache: semantic_cache.clone(),
         prompt_cache: Arc::new(PromptCache::new()),
         harness: axagent_runtime::harness::RuntimeHarness::new(

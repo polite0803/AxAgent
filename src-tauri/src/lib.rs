@@ -528,7 +528,8 @@ pub fn run() {
             }
         }
 
-        // 优雅关闭：通知后台任务停止并等待完成 (S-39)
+        // 优雅关闭：先关闭所有 WebView 窗口，让 WebView2 有时间完成内部清理，
+        // 避免退出时出现 "Failed to unregister class Chrome_WidgetWin_0. Error = 1412" 错误。
         if let tauri::RunEvent::Exit = _event {
             let state = _app.state::<AppState>();
             state.shutdown_token.cancel();
@@ -536,6 +537,16 @@ pub fn run() {
                 flag.store(true, std::sync::atomic::Ordering::Relaxed);
             }
             tracing::info!("[shutdown] 正在停止后台任务...");
+
+            // 显式关闭所有 WebView 窗口，确保 WebView2 在 HWND 有效时完成窗口类注销，
+            // 避免 Chromium 内部在窗口已销毁后尝试 UnregisterClass 导致 ERROR_INVALID_WINDOW_HANDLE (1412)。
+            let windows: Vec<_> = _app.webview_windows().keys().cloned().collect();
+            for label in &windows {
+                if let Some(w) = _app.get_webview_window(label) {
+                    tracing::info!("[shutdown] 正在关闭窗口: {}", label);
+                    let _ = w.close();
+                }
+            }
 
             // 在独立线程中创建 current_thread runtime 执行清理，
             // 避免在已有 tokio runtime 中调用 block_on 导致 panic。

@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_agent::fine_tune::lora::LoRAAdapterInfo;
+use axagent_agent::fine_tune::lora::{LoRAAdapterInfo, LoRAConfigBuilder};
 use axagent_agent::fine_tune::trainer::TrainingStats;
-use axagent_agent::fine_tune::{ActiveModelConfig, BaseModelInfo, TrainingJob};
+use axagent_agent::fine_tune::{
+    ActiveModelConfig, BaseModelInfo, FineTuneTrainer, ModelManager, TrainingJob,
+};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Mutex;
 use tauri::command;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetInfo {
     pub id: String,
     pub name: String,
@@ -15,7 +19,7 @@ pub struct DatasetInfo {
     pub created_at: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingJobInfo {
     pub id: String,
     pub status: String,
@@ -24,6 +28,37 @@ pub struct TrainingJobInfo {
     pub progress_percent: f32,
     pub current_loss: f32,
     pub output_lora: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Sample {
+    input: String,
+    output: String,
+    system_prompt: Option<String>,
+}
+
+struct FineTuneState {
+    datasets: HashMap<String, DatasetInfo>,
+    samples: HashMap<String, Vec<Sample>>,
+    trainer: FineTuneTrainer,
+    model_manager: ModelManager,
+}
+
+impl Default for FineTuneState {
+    fn default() -> Self {
+        Self {
+            datasets: HashMap::new(),
+            samples: HashMap::new(),
+            trainer: FineTuneTrainer::new(),
+            model_manager: ModelManager::new(),
+        }
+    }
+}
+
+static FINE_TUNE_STATE: std::sync::OnceLock<Mutex<FineTuneState>> = std::sync::OnceLock::new();
+
+fn state() -> &'static Mutex<FineTuneState> {
+    FINE_TUNE_STATE.get_or_init(|| Mutex::new(FineTuneState::default()))
 }
 
 impl From<&TrainingJob> for TrainingJobInfo {
@@ -42,24 +77,29 @@ impl From<&TrainingJob> for TrainingJobInfo {
 
 #[command]
 pub fn list_datasets() -> Result<Vec<DatasetInfo>, String> {
-    Ok(vec![])
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(s.datasets.values().cloned().collect())
 }
 
 #[command]
 pub fn get_dataset(dataset_id: String) -> Result<DatasetInfo, String> {
-    let _ = dataset_id;
-    Err("Dataset not found".to_string())
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    s.datasets.get(&dataset_id).cloned().ok_or_else(|| "Dataset not found".to_string())
 }
 
 #[command]
 pub fn create_dataset(name: String, description: String) -> Result<DatasetInfo, String> {
-    Ok(DatasetInfo {
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let dataset = DatasetInfo {
         id: uuid::Uuid::new_v4().to_string(),
         name,
         description,
         num_samples: 0,
         created_at: chrono::Utc::now().to_rfc3339(),
-    })
+    };
+    s.datasets.insert(dataset.id.clone(), dataset.clone());
+    s.samples.insert(dataset.id.clone(), Vec::new());
+    Ok(dataset)
 }
 
 #[command]
@@ -69,88 +109,121 @@ pub fn add_sample(
     output: String,
     system_prompt: Option<String>,
 ) -> Result<(), String> {
-    let _ = (dataset_id, input, output, system_prompt);
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let samples = s.samples.get_mut(&dataset_id).ok_or_else(|| "Dataset not found".to_string())?;
+    samples.push(Sample { input, output, system_prompt });
+    let new_count = samples.len();
+    if let Some(ds) = s.datasets.get_mut(&dataset_id) {
+        ds.num_samples = new_count;
+    }
     Ok(())
 }
 
 #[command]
 pub fn delete_dataset(dataset_id: String) -> Result<(), String> {
-    let _ = dataset_id;
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    s.datasets.remove(&dataset_id);
+    s.samples.remove(&dataset_id);
     Ok(())
 }
 
 #[command]
 pub fn list_training_jobs() -> Result<Vec<TrainingJobInfo>, String> {
-    Ok(vec![])
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(s.trainer.list_jobs().iter().map(|j| TrainingJobInfo::from(*j)).collect())
 }
 
 #[command]
 pub fn get_training_job(job_id: String) -> Result<TrainingJobInfo, String> {
-    let _ = job_id;
-    Err("Training job not found".to_string())
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    s.trainer
+        .get_job(&job_id)
+        .map(|j| TrainingJobInfo::from(j))
+        .ok_or_else(|| "Training job not found".to_string())
 }
 
 #[command]
 pub fn create_training_job(
     dataset_id: String,
     base_model: String,
-    _rank: u32,
-    _alpha: u32,
-    _learning_rate: f32,
-    _batch_size: u32,
-    _epochs: u32,
+    rank: u32,
+    alpha: u32,
+    learning_rate: f32,
+    batch_size: u32,
+    epochs: u32,
 ) -> Result<TrainingJobInfo, String> {
-    Ok(TrainingJobInfo {
-        id: uuid::Uuid::new_v4().to_string(),
-        status: "Pending".to_string(),
-        dataset_id,
-        base_model,
-        progress_percent: 0.0,
-        current_loss: 0.0,
-        output_lora: None,
-    })
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+
+    let config = LoRAConfigBuilder::new()
+        .rank(rank)
+        .alpha(alpha)
+        .learning_rate(learning_rate)
+        .batch_size(batch_size)
+        .epochs(epochs)
+        .build();
+
+    let job = s.trainer.create_job(dataset_id, base_model, config);
+    Ok(TrainingJobInfo::from(&job))
 }
 
 #[command]
 pub fn start_training_job(job_id: String) -> Result<(), String> {
-    let _ = job_id;
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    s.trainer.start_training(&job_id).map_err(|e| format!("Start training failed: {:?}", e))?;
     Ok(())
 }
 
 #[command]
 pub fn cancel_training_job(job_id: String) -> Result<(), String> {
-    let _ = job_id;
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    s.trainer.cancel_training(&job_id).map_err(|e| format!("Cancel failed: {:?}", e))?;
     Ok(())
 }
 
 #[command]
 pub fn delete_training_job(job_id: String) -> Result<(), String> {
-    let _ = job_id;
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    s.trainer.delete_job(&job_id).map_err(|e| format!("Delete failed: {:?}", e))?;
     Ok(())
 }
 
 #[command]
 pub fn get_training_stats() -> Result<TrainingStats, String> {
-    Ok(TrainingStats { total_jobs: 0, completed_jobs: 0, running_jobs: 0, failed_jobs: 0 })
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(s.trainer.get_training_stats())
 }
 
 #[command]
 pub fn list_base_models() -> Result<Vec<BaseModelInfo>, String> {
-    Ok(vec![])
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(s.model_manager.get_base_models().iter().cloned().cloned().collect())
 }
 
 #[command]
 pub fn list_lora_adapters() -> Result<Vec<LoRAAdapterInfo>, String> {
-    Ok(vec![])
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    Ok(s.model_manager.get_lora_adapters().iter().cloned().cloned().collect())
 }
 
 #[command]
 pub fn set_active_model(base_model: String, adapter_ids: Vec<String>) -> Result<(), String> {
-    let _ = (base_model, adapter_ids);
+    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    s.model_manager.set_active_config(ActiveModelConfig {
+        base_model,
+        lora_adapters: adapter_ids,
+        system_prompt: None,
+        generation_params: Default::default(),
+    });
     Ok(())
 }
 
 #[command]
 pub fn get_active_model() -> Result<Option<ActiveModelConfig>, String> {
-    Ok(None)
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let config = s.model_manager.active_config.clone();
+    if config.base_model.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(config))
+    }
 }

@@ -145,7 +145,7 @@ pub async fn extract_memories_from_messages(
     };
 
     let response =
-        adapter.chat(ctx, request).await.map_err(|e| format!("LLM call failed: {}", e))?;
+        adapter.chat(ctx, request.into()).await.map_err(|e| format!("LLM call failed: {}", e))?;
 
     let items: Vec<ExtractedMemory> = match serde_json::from_str(&response.content) {
         Ok(parsed) => parsed,
@@ -236,7 +236,7 @@ pub async fn consolidate_memories(
     };
 
     let response = adapter
-        .chat(ctx, request)
+        .chat(ctx, request.into())
         .await
         .map_err(|e| format!("Consolidation LLM call failed: {}", e))?;
 
@@ -364,7 +364,7 @@ pub async fn extract_entities_from_messages(
     };
 
     let response = adapter
-        .chat(ctx, request)
+        .chat(ctx, request.into())
         .await
         .map_err(|e| format!("Entity extraction LLM call failed: {}", e))?;
 
@@ -463,7 +463,7 @@ pub async fn extract_incremental_memories(
     };
 
     let response = adapter
-        .chat(ctx, request)
+        .chat(ctx, request.into())
         .await
         .map_err(|e| format!("Incremental extraction LLM call failed: {}", e))?;
 

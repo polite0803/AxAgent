@@ -378,6 +378,9 @@ export function decrementMultiModelTotalRemaining(conversationId?: string) {
     if (key === DEFAULT_SESSION_KEY) {
       _multiModelTotalRemaining = session.multiModelTotalRemaining;
     }
+  } else if (key === DEFAULT_SESSION_KEY) {
+    // session 已被提前清理（如错误路径 reset），仍需递减全局变量防止 allDone 永不 resolve
+    _multiModelTotalRemaining--;
   }
 }
 export function setMultiModelDoneResolve(

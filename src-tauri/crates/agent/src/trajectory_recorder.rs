@@ -186,8 +186,11 @@ impl TrajectoryRecorder {
                 s.tool_results.as_ref().map(|r| r.iter().any(|tr| tr.is_error)).unwrap_or(false)
             });
 
-        if has_errors || state.steps.is_empty() {
+        if has_errors {
             TrajectoryOutcome::Failure
+        } else if state.steps.is_empty() {
+            // 无步骤、无错误：标记为 Abandoned（用户取消/任务被遗弃）
+            TrajectoryOutcome::Abandoned
         } else {
             TrajectoryOutcome::Success
         }

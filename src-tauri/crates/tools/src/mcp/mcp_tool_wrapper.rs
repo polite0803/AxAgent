@@ -43,6 +43,10 @@ impl Tool for McpToolWrapper {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        // 解析 OAuth 凭据（HTTP/SSE 传输需要）
+        let auth = axagent_mcp::mcp_client::resolve_oauth_header(Some(&self.server_id)).await;
+        let auth_ref = auth.as_deref();
+
         let result = match &self.transport {
             McpTransportConfig::Stdio { command, args, env } => {
                 axagent_mcp::mcp_client::call_tool_stdio_pooled(
@@ -61,7 +65,7 @@ impl Tool for McpToolWrapper {
                 })?
             },
             McpTransportConfig::Http { endpoint } => {
-                axagent_mcp::mcp_client::call_tool_http(endpoint, &self.tool_name, input, None)
+                axagent_mcp::mcp_client::call_tool_http(endpoint, &self.tool_name, input, auth_ref)
                     .await
                     .map_err(|e| {
                         ToolError::execution_failed_for(
@@ -71,7 +75,7 @@ impl Tool for McpToolWrapper {
                     })?
             },
             McpTransportConfig::Sse { endpoint } => {
-                axagent_mcp::mcp_client::call_tool_sse(endpoint, &self.tool_name, input, None)
+                axagent_mcp::mcp_client::call_tool_sse(endpoint, &self.tool_name, input, auth_ref)
                     .await
                     .map_err(|e| {
                         ToolError::execution_failed_for(

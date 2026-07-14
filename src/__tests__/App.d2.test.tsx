@@ -135,8 +135,6 @@ vi.mock("@/stores", () => ({
       selector({
         skills: [],
         loading: false,
-        navItems: [],
-        pages: [],
         commands: [],
         panels: [],
         settingsSections: [],

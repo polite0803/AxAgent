@@ -57,7 +57,7 @@ export function SshConfigModal({
             id="ssh-config-modal-input-65"
             value={host}
             onChange={(e) => setHost(e.target.value)}
-            placeholder="192.168.1.100 or server.example.com"
+            placeholder={t("sshConfig.hostPlaceholder")}
           />
         </div>
         <div>
@@ -80,7 +80,7 @@ export function SshConfigModal({
           />
         </div>
         <div>
-          <Text type="secondary">SSH Key Path (optional)</Text>
+          <Text type="secondary">{t("sshConfig.keyPathOptional")}</Text>
           <Input
             id="ssh-config-modal-input-68"
             value={keyPath}

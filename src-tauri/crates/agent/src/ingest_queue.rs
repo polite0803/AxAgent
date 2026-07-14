@@ -164,6 +164,7 @@ impl IngestQueue {
                             url: None,
                             title: None,
                             folder_context: None,
+                            content: None,
                         },
                     )
                 },
@@ -352,6 +353,7 @@ impl IngestQueue {
                         url: None,
                         title: None,
                         folder_context: Some(folder_context),
+                        content: None,
                     };
 
                     let task_id = self.enqueue(wiki_id, source).await;
@@ -463,6 +465,7 @@ mod tests {
             url: None,
             title: None,
             folder_context: None,
+            content: None,
         }
     }
 

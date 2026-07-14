@@ -46,9 +46,14 @@ export function CitationManager({
   selectedCitationId: externalSelectedId,
 }: CitationManagerProps) {
   const { t } = useTranslation();
-  const store = useStreamStore();
-  const citations = externalCitations ?? store.citations;
-  const selectedCitationId = externalSelectedId ?? store.selectedCitationId;
+  // 用选择器精确订阅，避免订阅整个 stream store 导致的无谓重渲染
+  const storeCitations = useStreamStore((s) => s.citations);
+  const storeSelectedCitationId = useStreamStore((s) => s.selectedCitationId);
+  const selectCitation = useStreamStore((s) => s.selectCitation);
+  const removeCitation = useStreamStore((s) => s.removeCitation);
+  const toggleInReport = useStreamStore((s) => s.toggleInReport);
+  const citations = externalCitations ?? storeCitations;
+  const selectedCitationId = externalSelectedId ?? storeSelectedCitationId;
   const citationsInReport = citations.filter((c) => c.inReport);
   const citationsNotInReport = citations.filter((c) => !c.inReport);
 
@@ -56,7 +61,7 @@ export function CitationManager({
     if (onCitationSelect) {
       onCitationSelect(citation);
     } else {
-      store.selectCitation(citation.id);
+      selectCitation(citation.id);
     }
   };
 
@@ -64,7 +69,7 @@ export function CitationManager({
     if (onCitationRemove) {
       onCitationRemove(citationId);
     } else {
-      store.removeCitation(citationId);
+      removeCitation(citationId);
     }
   };
 
@@ -72,7 +77,7 @@ export function CitationManager({
     if (onToggleInReport) {
       onToggleInReport(citationId);
     } else {
-      store.toggleInReport(citationId);
+      toggleInReport(citationId);
     }
   };
 

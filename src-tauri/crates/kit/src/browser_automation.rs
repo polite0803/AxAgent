@@ -5,6 +5,8 @@ use anyhow::Result;
 #[cfg(not(target_os = "android"))]
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_os = "android"))]
+use std::net::ToSocketAddrs;
+#[cfg(not(target_os = "android"))]
 use std::process::Stdio;
 #[cfg(not(target_os = "android"))]
 use std::sync::{Arc, OnceLock};
@@ -40,6 +42,95 @@ pub struct PlaywrightClient {
     stdin: tokio::process::ChildStdin,
     stdout_reader: BufReader<tokio::process::ChildStdout>,
     next_id: u64,
+}
+
+/// SECURITY (S4): 校验浏览器可访问的 URL，防止 SSRF。
+///
+/// 仅允许 `http` / `https` 协议；禁止回环、私网、链路本地、未指定地址、
+/// `0.0.0.0/8`、保留段以及 IPv4 映射的 IPv6 地址（`::ffff:127.0.0.1` 等）。
+/// 对域名会做 DNS 解析并逐一校验解析到的 IP（缓解 DNS 重绑定；
+/// 注意 TOCTOU：若需绝对安全应在解析后固定 IP 并携带 Host 头连接）。
+#[cfg(not(target_os = "android"))]
+pub fn validate_browser_url(url: &str) -> Result<(), String> {
+    let parsed = reqwest::Url::parse(url).map_err(|_| "无效的 URL：无法解析".to_string())?;
+    match parsed.scheme() {
+        "http" | "https" => {},
+        _ => return Err("仅允许 http/https 协议".to_string()),
+    }
+    let host = match parsed.host_str() {
+        Some(h) => h.to_lowercase(),
+        None => return Err("URL 缺少主机名".to_string()),
+    };
+
+    // 字面量 IP 直接校验
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        check_ip(&ip)?;
+        return Ok(());
+    }
+
+    // 主机名黑名单：常见本地/内网标识（部分云元数据域名形如 metadata 但解析到私网，交由下方 DNS 校验兜底）
+    if host == "localhost" || host.ends_with(".localhost") || host == "[::1]" {
+        return Err("禁止访问 localhost".to_string());
+    }
+
+    // DNS 解析并校验每一个解析到的 IP
+    let addrs = format!("{}:0", host)
+        .to_socket_addrs()
+        .map_err(|_| "DNS 解析失败".to_string())?
+        .map(|s| s.ip())
+        .collect::<Vec<_>>();
+    if addrs.is_empty() {
+        return Err("DNS 解析无结果".to_string());
+    }
+    for ip in &addrs {
+        check_ip(ip)?;
+    }
+    Ok(())
+}
+
+/// 校验单个 IP 是否为禁止访问的保留/内网地址。
+#[cfg(not(target_os = "android"))]
+fn check_ip(ip: &std::net::IpAddr) -> Result<(), String> {
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            // 0.0.0.0/8：首字节为 0（含 0.0.0.0 本身，亦被 is_unspecified 覆盖）
+            let is_zero_net = v4.octets()[0] == 0;
+            // 保留段 240.0.0.0/4（即首字节 >= 240），stable Rust 无 is_reserved
+            let is_reserved = v4.octets()[0] >= 240;
+            if v4.is_loopback()
+                || v4.is_private()
+                || v4.is_unspecified()
+                || v4.is_link_local()
+                || is_reserved
+                || is_zero_net
+            {
+                return Err(format!("禁止访问保留/内网地址 {}", ip));
+            }
+        },
+        std::net::IpAddr::V6(v6) => {
+            // IPv4 映射地址（::ffff:x.x.x.x）按内嵌的 IPv4 校验
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                let is_zero_net = v4.octets()[0] == 0;
+                let is_reserved = v4.octets()[0] >= 240;
+                if v4.is_loopback()
+                    || v4.is_private()
+                    || v4.is_unspecified()
+                    || v4.is_link_local()
+                    || is_reserved
+                    || is_zero_net
+                {
+                    return Err(format!("禁止访问保留/内网地址 {}", ip));
+                }
+                return Ok(());
+            }
+            // fe80::/10（链路本地）：前 10 位为 1111111010，即前两个字节为 0xfe80-0xfebf
+            let is_v6_link_local = (v6.segments()[0] & 0xffc0) == 0xfe80;
+            if v6.is_loopback() || v6.is_unspecified() || is_v6_link_local {
+                return Err(format!("禁止访问保留/内网地址 {}", ip));
+            }
+        },
+    }
+    Ok(())
 }
 
 #[cfg(not(target_os = "android"))]
@@ -89,7 +180,21 @@ impl PlaywrightClient {
         self.stdin.flush().await?;
 
         let mut response_line = String::new();
-        self.stdout_reader.read_line(&mut response_line).await?;
+        // 超时保护：避免 page.goto / fetch 卡死时整个浏览器池（单 Mutex）永久阻塞（修复 #6）
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(60),
+            self.stdout_reader.read_line(&mut response_line),
+        )
+        .await
+        {
+            Ok(Ok(_)) => {},
+            Ok(Err(e)) => anyhow::bail!("读取浏览器响应失败: {}", e),
+            Err(_) => {
+                // 超时：子进程可能已卡死，杀掉以释放资源；调用方会丢弃池中死实例并重建。
+                let _ = self.child.start_kill();
+                anyhow::bail!("浏览器操作超时（60s），已终止卡死的浏览器子进程");
+            },
+        }
         let response: BrowserResponse = serde_json::from_str(response_line.trim())?;
 
         if let Some(error) = response.error {
@@ -170,14 +275,29 @@ impl PlaywrightClient {
         Ok(())
     }
 
-    /// 在浏览器上下文中执行任意 JS 代码并返回序列化结果
-    /// 可用于绕过 TLS 指纹限制（如 EastMoney WAF），因为 Chromium 的 TLS 指纹与真实浏览器一致
-    pub async fn evaluate(&mut self, code: &str) -> Result<serde_json::Value> {
-        self.call("evaluate", serde_json::json!({ "code": code })).await
+    /// 健康检查：子进程是否仍在运行。
+    /// 用于浏览器池的自动重建（子进程崩溃后检测到已退出即重新启动，修复 #14）。
+    pub fn is_alive(&mut self) -> bool {
+        self.child.try_wait().map(|s| s.is_none()).unwrap_or(false)
     }
 
-    /// 通过浏览器 fetch API 发送 HTTP GET 请求，绕过 TLS 指纹检测
-    /// 内部使用 page.evaluate() 在 Chromium 上下文中执行 fetch，返回 JSON 响应
+    /// 在浏览器上下文中执行任意 JS 代码并返回序列化结果。
+    /// `arg` 作为 `page.evaluate(code, arg)` 的第二个参数传入（参数化，避免字符串拼接注入）。
+    /// 可用于绕过 TLS 指纹限制（如 EastMoney WAF），因为 Chromium 的 TLS 指纹与真实浏览器一致。
+    pub async fn evaluate(
+        &mut self,
+        code: &str,
+        arg: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value> {
+        let mut params = serde_json::json!({ "code": code });
+        if let Some(a) = arg {
+            params["arg"] = a;
+        }
+        self.call("evaluate", params).await
+    }
+
+    /// 通过浏览器 fetch API 发送 HTTP GET 请求，绕过 TLS 指纹检测。
+    /// 内部使用参数化的 page.evaluate(code, arg) 传递 url/headers，杜绝 JS 代码注入（修复 #11）。
     pub async fn fetch_json_via_browser(
         &mut self,
         url: &str,
@@ -189,25 +309,21 @@ impl PlaywrightClient {
             .collect::<serde_json::Map<_, _>>()
             .into();
 
-        let code = format!(
-            r#"(async () => {{
-                try {{
-                    const resp = await fetch("{}", {{
-                        method: "GET",
-                        headers: {},
-                        credentials: "omit",
-                    }});
-                    const text = await resp.text();
-                    return {{ ok: resp.ok, status: resp.status, body: text }};
-                }} catch (e) {{
-                    return {{ ok: false, status: 0, error: e.message }};
-                }}
-            }})()"#,
-            url, headers_obj
-        );
+        let code = r#"(async (arg) => {
+            try {
+                const resp = await fetch(arg.url, {
+                    method: "GET",
+                    headers: arg.headers,
+                    credentials: "omit",
+                });
+                const text = await resp.text();
+                return { ok: resp.ok, status: resp.status, body: text };
+            } catch (e) {
+                return { ok: false, status: 0, error: e.message };
+            }
+        })()"#;
 
-        let raw = self.evaluate(&code).await?;
-        Ok(raw)
+        self.evaluate(code, Some(serde_json::json!({ "url": url, "headers": headers_obj }))).await
     }
 
     /// 通过页面导航发送 HTTP GET 请求（绕过 CORS 和 TLS 指纹限制）

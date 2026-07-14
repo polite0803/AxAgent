@@ -55,6 +55,22 @@ const DANGEROUS_PATTERNS: &[&str] = &[
     "format c:",
     "del /s /q c:\\",
     "mkfs",
+    // Windows 危险命令
+    "rd /s /q",
+    "rd /s/q",
+    "powershell -enc",
+    "pwsh -enc",
+    "certutil -urlcache",
+    "bitsadmin /transfer",
+    "invoke-expression",
+    "iex ",
+    "net user ",
+    "net localgroup ",
+    "reg add ",
+    "reg delete ",
+    "schtasks /create",
+    "wmic process call create",
+    "start-process ",
     // 系统关机/重启
     "shutdown",
     "reboot",
@@ -247,7 +263,7 @@ impl SkillSandboxExecutor {
                         for var in DANGEROUS_ENV_VARS {
                             scmd.env_remove(var);
                         }
-                        // SECURITY: 限制工作目录到系统临时目录，防止越权访问用户文件
+                        // SECURITY: 设置工作目录到系统临时目录，仅作为 CWD 起点，不限制文件系统访问（子进程仍可通过绝对路径读写任何文件）
                         scmd.current_dir(std::env::temp_dir());
                         axagent_kit::utils::hide_window(scmd.as_std_mut());
                         scmd.output()
@@ -260,7 +276,7 @@ impl SkillSandboxExecutor {
                         for var in DANGEROUS_ENV_VARS {
                             scmd.env_remove(var);
                         }
-                        // SECURITY: 限制工作目录到系统临时目录，防止越权访问用户文件
+                        // SECURITY: 设置工作目录到系统临时目录，仅作为 CWD 起点，不限制文件系统访问（子进程仍可通过绝对路径读写任何文件）
                         scmd.current_dir(std::env::temp_dir());
                         scmd.output()
                     }

@@ -6,6 +6,7 @@ use crate::state::{
     AgentState, GatewayState, InfraState, LearningEngineState, MemoryState, SkillState, TaskState,
     ToolState,
 };
+use axagent_credential::CredentialManager;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
@@ -252,6 +253,7 @@ pub struct AppState {
     pub parallel_execution_service:
         Arc<tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>>,
     pub cron_job_store: Arc<axagent_runtime_core::CronJobStore>,
+    pub cron_scheduler: Arc<tokio::sync::RwLock<Option<Arc<axagent_runtime::cron::CronScheduler>>>>,
     pub platform_manager: Arc<axagent_runtime::message_gateway::platform_manager::PlatformManager>,
     pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,
@@ -291,7 +293,11 @@ pub struct AppState {
     pub sync_engine: Option<Arc<SyncEngine>>,
     pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
+    pub credential_manager: Arc<CredentialManager>,
     pub session_share_manager: SessionShareStore,
+    /// PTY 伪终端管理器，管理所有终端会话（仅桌面端可用）
+    #[cfg(not(mobile))]
+    pub pty_manager: Arc<axagent_runtime::pty::PtyManager>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

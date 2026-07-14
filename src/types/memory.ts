@@ -26,11 +26,13 @@ export type MemoryItem = {
   source: MemorySource;
   indexStatus: string;
   indexError?: string;
-  tier: MemoryTier;
-  importance: number;
-  nature: MemoryNature;
-  tags: string[];
-  accessCount: number;
+  // 以下字段后端 memory_items 表当前未持久化，可能不返回（见 memory_items 实体）。
+  // 标记为可选以如实反映契约，UI 需对 undefined 做降级渲染。
+  tier?: MemoryTier;
+  importance?: number;
+  nature?: MemoryNature;
+  tags?: string[];
+  accessCount?: number;
   expiresAt?: string;
   updatedAt: string;
 };

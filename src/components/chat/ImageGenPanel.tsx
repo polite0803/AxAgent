@@ -2,9 +2,20 @@
 
 import { invoke } from "@/lib/invoke";
 import { Button, Image, Input, message, Select, Slider, Space, Typography } from "antd";
-import { Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Download, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+interface ImageGenConfig {
+  default_provider: string;
+  flux_api_token: string;
+  openai_api_key: string;
+  openai_base_url: string;
+  default_width: number;
+  default_height: number;
+  default_steps: number;
+  save_to_artifact: boolean;
+}
 
 interface GeneratedImage {
   url?: string;
@@ -20,6 +31,14 @@ interface ImageGenResult {
   elapsed_ms: number;
 }
 
+interface CreateArtifactInput {
+  conversationId: string;
+  kind: string;
+  title: string;
+  content: string;
+  format: string;
+}
+
 const SIZE_PRESETS = [
   { label: "1:1 (1024×1024)", width: 1024, height: 1024 },
   { label: "16:9 (1344×768)", width: 1344, height: 768 },
@@ -32,14 +51,83 @@ const PROVIDERS = [
   { value: "dall-e", label: "DALL-E 3 (OpenAI)" },
 ];
 
+const QUALITY_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "hd", label: "HD" },
+];
+
 interface ImageGenPanelProps {
+  conversationId: string;
   apiKey?: string;
   defaultProvider?: string;
   onImageGenerated?: (images: GeneratedImage[]) => void;
 }
 
+/** 将 base64 或 URL 图片下载到本地 */
+function downloadImage(img: GeneratedImage, index: number) {
+  const link = document.createElement("a");
+  if (img.base64) {
+    link.href = `data:image/png;base64,${img.base64}`;
+    link.download = `axagent-image-${index}.png`;
+  } else if (img.url) {
+    link.href = img.url;
+    link.download = `axagent-image-${index}.png`;
+  } else {
+    return;
+  }
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+/** 将生成结果保存为 Artifact */
+async function saveToArtifact(
+  conversationId: string,
+  prompt: string,
+  result: ImageGenResult,
+) {
+  const imageMd = result.images
+    .map((img, i) => {
+      const caption = `${prompt} (${i + 1}/${result.images.length})`;
+      if (img.base64) {
+        return `![${caption}](data:image/png;base64,${img.base64})`;
+      }
+      if (img.url) {
+        return `![${caption}](${img.url})`;
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  const content = [
+    `## AI 生成图片: ${prompt}`,
+    "",
+    `**模型**: ${result.model_used}`,
+    `**耗时**: ${(result.elapsed_ms / 1000).toFixed(1)}s`,
+    "",
+    imageMd,
+  ].join("\n");
+
+  const input: CreateArtifactInput = {
+    conversationId,
+    kind: "draft",
+    title: `🎨 ${prompt.slice(0, 60)}${prompt.length > 60 ? "…" : ""}`,
+    content,
+    format: "markdown",
+  };
+
+  try {
+    await invoke("create_artifact", input);
+    message.success("已保存到 Artifact");
+  } catch {
+    // 静默失败，不阻断主流程
+  }
+}
+
 export function ImageGenPanel({
-  apiKey,
+  conversationId,
+  apiKey: propApiKey,
   defaultProvider = "flux",
   onImageGenerated,
 }: ImageGenPanelProps) {
@@ -49,8 +137,32 @@ export function ImageGenPanel({
   const [provider, setProvider] = useState(defaultProvider);
   const [sizePreset, setSizePreset] = useState(0);
   const [steps, setSteps] = useState(4);
+  const [quality, setQuality] = useState("standard");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImageGenResult | null>(null);
+  const [storedApiKey, setStoredApiKey] = useState<string | null>(null);
+  const [saveToArtifactSetting, setSaveToArtifactSetting] = useState(true);
+
+  // 当未传入 apiKey prop 时，尝试从配置自动加载
+  useEffect(() => {
+    if (propApiKey) {
+      setStoredApiKey(propApiKey);
+      return;
+    }
+    invoke<ImageGenConfig>("get_image_gen_config")
+      .then((config) => {
+        setSaveToArtifactSetting(config.save_to_artifact);
+        const key = provider === "flux" || config.default_provider === "flux"
+          ? config.flux_api_token
+          : config.openai_api_key;
+        if (key) { setStoredApiKey(key); }
+      })
+      .catch(() => {
+        // 忽略，让 UI 显示 "请配置 API Key"
+      });
+  }, [propApiKey, provider]);
+
+  const effectiveApiKey = propApiKey || storedApiKey;
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -58,7 +170,7 @@ export function ImageGenPanel({
       return;
     }
 
-    if (!apiKey) {
+    if (!effectiveApiKey) {
       message.error(t("imageGen.configureApiKey"));
       return;
     }
@@ -73,12 +185,18 @@ export function ImageGenPanel({
         width: SIZE_PRESETS[sizePreset].width,
         height: SIZE_PRESETS[sizePreset].height,
         steps: provider === "flux" ? steps : undefined,
+        quality: provider === "dall-e" ? quality : undefined,
         provider,
-        apiKey,
+        apiKey: effectiveApiKey,
       });
 
       setResult(res);
       onImageGenerated?.(res.images);
+
+      // save_to_artifact: 自动保存生成结果到 Artifact
+      if (saveToArtifactSetting && conversationId) {
+        await saveToArtifact(conversationId, prompt, res);
+      }
     } catch (e) {
       message.error(String(e));
     } finally {
@@ -140,6 +258,14 @@ export function ImageGenPanel({
           <Slider min={1} max={50} value={steps} onChange={setSteps} />
         </div>
       )}
+      {provider === "dall-e" && (
+        <Select
+          value={quality}
+          onChange={setQuality}
+          options={QUALITY_OPTIONS}
+          style={{ width: 180 }}
+        />
+      )}
 
       <Button
         type="primary"
@@ -161,12 +287,22 @@ export function ImageGenPanel({
             style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}
           >
             {result.images.map((img, i) => (
-              <Image
-                key={img.url || (img.base64 ? img.base64.slice(0, 20) : `img-${i}`)}
-                src={img.base64 ? `data:image/png;base64,${img.base64}` : img.url}
-                width={256}
-                style={{ borderRadius: 8 }}
-              />
+              <div key={img.url || (img.base64 ? img.base64.slice(0, 20) : `img-${i}`)}>
+                <Image
+                  src={img.base64 ? `data:image/png;base64,${img.base64}` : img.url}
+                  width={256}
+                  style={{ borderRadius: 8 }}
+                />
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Download size={12} />}
+                  onClick={() => downloadImage(img, i)}
+                  style={{ width: "100%", marginTop: 4 }}
+                >
+                  {t("common.download")}
+                </Button>
+              </div>
             ))}
           </div>
         </div>

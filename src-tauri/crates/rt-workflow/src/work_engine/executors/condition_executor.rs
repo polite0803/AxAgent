@@ -80,6 +80,7 @@ impl NodeExecutorTrait for ConditionExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: None,
+            control: None,
         })
     }
 }
@@ -208,6 +209,7 @@ impl ConditionExecutor {
                     "node_id": node_id,
                 }),
                 output_var: None,
+                control: None,
             }),
             Err(e) => {
                 // LLM 调用失败时降级为启发式
@@ -222,6 +224,7 @@ impl ConditionExecutor {
                         "node_id": node_id,
                     }),
                     output_var: None,
+                    control: None,
                 })
             },
         }
@@ -403,3 +406,4 @@ fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::
     // fallback：root 不是节点 ID，将整个 path 作为模板变量名直查
     context.variables.get(path).cloned()
 }
+

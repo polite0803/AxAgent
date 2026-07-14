@@ -179,7 +179,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let config_home = app_dir.clone();
     let mut plugin_config = PluginManagerConfig::new(config_home.clone());
     plugin_config.external_dirs = axagent_kit::skill_dirs::all_skills_dirs();
-    let plugin_manager = Arc::new(tokio::sync::RwLock::new(PluginManager::new(plugin_config)));
+    let npm_registry = Arc::new(axagent_npm::NpmRegistry::new());
+    let plugin_manager = Arc::new(tokio::sync::RwLock::new(
+        PluginManager::new(plugin_config).with_npm_registry(npm_registry),
+    ));
 
     // ── Extract every AppState field into a local so that the same values
     //    can be shared between the top-level `AppState` and the new domain
@@ -345,6 +348,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             // 及 pending 中的 Llm/Condition/LlmClassifier。缺此调用会导致 dispatch 时
             // panic("FallbackExecutor must be registered")。
             engine.init_dispatcher().await;
+            // ApprovalNode HITL: 注入数据库连接供 ApprovalOps 回调使用
+            engine.set_db(sea_db.clone());
             engine
         };
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
@@ -416,14 +421,17 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     #[cfg(not(target_os = "android"))]
     let browser_client: Arc<
         tokio::sync::Mutex<Option<axagent_kit::browser_automation::PlaywrightClient>>,
-    > = Arc::new(tokio::sync::Mutex::new(None));
+    > = axagent_kit::browser_automation::shared_browser_pool().clone();
     #[cfg(target_os = "android")]
     let browser_client: Arc<tokio::sync::Mutex<Option<()>>> =
         Arc::new(tokio::sync::Mutex::new(None));
+    let dream_data_provider = Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
+        shared_trajectory_storage.clone(),
+    ));
     let dream_consolidator =
-        Arc::new(axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(
-            axagent_trajectory::TrajectoryDreamDataProvider::new(shared_trajectory_storage.clone()),
-        )));
+        Arc::new(axagent_trajectory::DreamConsolidator::new().with_data_provider(
+            dream_data_provider.clone(),
+        ));
     let text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
             axagent_trajectory::ComputationGraph::new(),
@@ -457,9 +465,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::ProcessRewardModel::default().with_default_provider("general"),
         ));
-    let dream_data_provider = Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
-        shared_trajectory_storage.clone(),
-    ));
     let sandbox_executor: Arc<axagent_trajectory::SkillSandboxExecutor> = {
         #[cfg(not(target_os = "android"))]
         {
@@ -475,8 +480,15 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let file_authorizer = Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new());
     // M3: 设置审计日志持久化路径
     file_authorizer.set_audit_log_path(app_dir.join("audit.log")).await;
+
+    // ── 初始化 CredentialManager（AES-256-GCM 加密凭证存储） ──────────────
+    let credential_store =
+        axagent_credential::CredentialStore::new(app_dir.join("credentials"), master_key);
+    let credential_manager = Arc::new(axagent_credential::CredentialManager::new(credential_store));
     let session_share_manager: crate::app_state::SessionShareStore =
         Arc::new(TokioRwLock::new(std::collections::HashMap::new()));
+    #[cfg(not(mobile))]
+    let pty_manager = Arc::new(axagent_runtime::pty::PtyManager::new());
     let sandbox_executor_field: SandboxExecutorField = {
         #[cfg(not(target_os = "android"))]
         {
@@ -583,6 +595,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
     let tool_state = ToolState::new(auto_tool_creator.clone());
 
+    // 注册 MemoryRepository（给 MemoryFlush 等工具使用）
+    axagent_harness::repositories::set_memory_repository(Arc::new(
+        axagent_dao::memory_repository::DaoMemoryRepository::new(Arc::new(sea_db.clone())),
+    ));
+
     // 初始化 reflector 持久化
     {
         let r_clone = reflector.clone();
@@ -640,6 +657,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         auto_memory_extractor,
         parallel_execution_service,
         cron_job_store,
+        cron_scheduler: Arc::new(tokio::sync::RwLock::new(None)),
         platform_manager,
         platform_bridge,
         user_profile,
@@ -669,7 +687,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         sync_engine,
         plugin_manager,
         file_authorizer,
+        credential_manager,
         session_share_manager,
+        #[cfg(not(mobile))]
+        pty_manager,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,
         gateway_state,

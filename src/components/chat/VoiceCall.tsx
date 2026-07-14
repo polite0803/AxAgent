@@ -4,7 +4,7 @@ import { useVoiceChat } from "@/hooks/useVoiceChat";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
 import { Button, Spin, theme, Typography } from "antd";
 import { Loader, Mic, MicOff, Phone, Volume2 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 interface VoiceCallProps {
@@ -13,6 +13,7 @@ interface VoiceCallProps {
   port?: number;
   host?: string;
   config: RealtimeConfig;
+  apiKey: string;
 }
 
 function StatusDisplay({ state }: { state: VoiceSessionState }) {
@@ -54,7 +55,6 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
         return (
           <div className="flex flex-col items-center gap-4">
             <div className="voice-waveform">
-              {/* static 5-bar waveform visualization, safe to use index as key */}
               {[...Array(5)].map((_, i) => (
                 <div
                   key={i}
@@ -116,6 +116,7 @@ export function VoiceCall({
   port,
   host,
   config,
+  apiKey,
 }: VoiceCallProps) {
   const { t } = useTranslation();
   const { token: controlToken } = theme.useToken();
@@ -124,12 +125,15 @@ export function VoiceCall({
     port,
     host,
     config,
+    apiKey,
   });
 
-  // Auto-start when overlay becomes visible
-  if (visible && state === "Idle") {
-    start();
-  }
+  // Auto-start when overlay becomes visible — 用 useEffect 代替渲染副作用
+  useEffect(() => {
+    if (visible && state === "Idle") {
+      start();
+    }
+  }, [visible, state, start]);
 
   const handleEndCall = () => {
     stop();

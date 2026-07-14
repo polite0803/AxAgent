@@ -4,13 +4,22 @@ import { invoke } from "@/lib/invoke";
 import type {
   CreateDynamicUISchemaParams,
   DynamicUIFormDataRecord,
+  DynamicUIPinRecord,
   DynamicUISchemaRecord,
   DynamicUISchemaVersion,
   ListVersionsResponse,
+  PinDynamicUISchemaParams,
   SaveDynamicUIFormDataParams,
+  UpdateDynamicUIPinParams,
   UpdateDynamicUISchemaParams,
 } from "@/types";
 import { create } from "zustand";
+
+const FORM_CACHE_UNDEFINED_KEY = "__undefined__";
+
+function formCacheKey(schemaId: string, instanceKey?: string): string {
+  return `${schemaId}:${instanceKey ?? FORM_CACHE_UNDEFINED_KEY}`;
+}
 
 interface DynamicUIState {
   schemas: DynamicUISchemaRecord[];
@@ -33,6 +42,13 @@ interface DynamicUIState {
 
   setCurrentSchema: (schema: DynamicUISchemaRecord | null) => void;
 
+  // ── 导航钉入配置（后端持久化） ──
+  pins: DynamicUIPinRecord[];
+  fetchPins: () => Promise<void>;
+  pinSchema: (params: PinDynamicUISchemaParams) => Promise<DynamicUIPinRecord>;
+  unpinSchema: (schemaId: string) => Promise<void>;
+  updatePin: (schemaId: string, params: UpdateDynamicUIPinParams) => Promise<void>;
+
   // ── 版本管理 ──
   loadVersions: (schemaId: string) => Promise<DynamicUISchemaVersion[]>;
   getVersion: (versionId: number) => Promise<DynamicUISchemaVersion | null>;
@@ -46,6 +62,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   formDataCache: new Map(),
   versionList: [],
   versionLoading: false,
+  pins: [],
 
   fetchSchemas: async (category) => {
     set({ loading: true });
@@ -85,15 +102,81 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       schemas: state.schemas.map((s) => (s.id === id ? schema : s)),
       currentSchema: state.currentSchema?.id === id ? schema : state.currentSchema,
     }));
+    // 缺陷 6：标题变更时同步钉入导航配置的标题，避免侧栏显示旧标题
+    if (params.title) {
+      const pin = get().pins.find((p) => p.schema_id === id);
+      if (pin && pin.title !== params.title) {
+        await get().updatePin(id, { title: params.title });
+      }
+    }
     return schema;
   },
 
   deleteSchema: async (id) => {
     await invoke<void>("delete_dynamic_ui_schema", { id });
+    // 同步清理钉入导航配置，避免残留脏数据（缺陷 3）
+    if (get().pins.some((p) => p.schema_id === id)) {
+      await get().unpinSchema(id);
+    }
     set((state) => ({
       schemas: state.schemas.filter((s) => s.id !== id),
       currentSchema: state.currentSchema?.id === id ? null : state.currentSchema,
     }));
+  },
+
+  // ── 导航钉入配置（后端持久化） ──
+
+  fetchPins: async () => {
+    try {
+      const pins = await invoke<DynamicUIPinRecord[]>("list_dynamic_ui_pins");
+      set({ pins });
+    } catch {
+      // 忽略加载失败
+    }
+  },
+
+  pinSchema: async (params) => {
+    const record = await invoke<DynamicUIPinRecord>("pin_dynamic_ui_schema", {
+      schema_id: params.schema_id,
+      title: params.title,
+      group_name: params.group_name,
+      position: params.position ?? null,
+    });
+    set((state) => {
+      const others = state.pins.filter((p) => p.schema_id !== record.schema_id);
+      return { pins: [...others, record] };
+    });
+    return record;
+  },
+
+  unpinSchema: async (schemaId) => {
+    await invoke<void>("unpin_dynamic_ui_schema", { schema_id: schemaId });
+    set((state) => ({
+      pins: state.pins.filter((p) => p.schema_id !== schemaId),
+    }));
+  },
+
+  updatePin: async (schemaId, params) => {
+    const existing = get().pins.find((p) => p.schema_id === schemaId);
+    if (!existing) {
+      return;
+    }
+    const merged = {
+      schema_id: schemaId,
+      title: params.title ?? existing.title,
+      group_name: params.group_name ?? existing.group_name,
+      position: params.position ?? existing.position,
+    };
+    const record = await invoke<DynamicUIPinRecord>("pin_dynamic_ui_schema", {
+      schema_id: merged.schema_id,
+      title: merged.title,
+      group_name: merged.group_name,
+      position: merged.position,
+    });
+    set((state) => {
+      const others = state.pins.filter((p) => p.schema_id !== record.schema_id);
+      return { pins: [...others, record] };
+    });
   },
 
   saveFormData: async (params) => {
@@ -102,7 +185,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
     });
     try {
       const data = JSON.parse(params.form_data_json) as Record<string, unknown>;
-      const cacheKey = `${params.schema_id}:${params.instance_key || "default"}`;
+      const cacheKey = formCacheKey(params.schema_id, params.instance_key);
       set((state) => {
         const newCache = new Map(state.formDataCache);
         newCache.set(cacheKey, data);
@@ -115,7 +198,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   },
 
   loadFormData: async (schemaId, instanceKey) => {
-    const cacheKey = `${schemaId}:${instanceKey || "default"}`;
+    const cacheKey = formCacheKey(schemaId, instanceKey);
     const cached = get().formDataCache.get(cacheKey);
     if (cached) {
       return cached;
@@ -145,7 +228,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       schema_id: schemaId,
       instance_key: instanceKey || null,
     });
-    const cacheKey = `${schemaId}:${instanceKey || "default"}`;
+    const cacheKey = formCacheKey(schemaId, instanceKey);
     set((state) => {
       const newCache = new Map(state.formDataCache);
       newCache.delete(cacheKey);

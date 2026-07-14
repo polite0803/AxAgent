@@ -765,7 +765,7 @@ export interface GeneratedToolInfo {
 }
 
 // === Files Module ===
-export type FileCategory = "images" | "files";
+export type FileCategory = "images" | "files" | "backups";
 
 export type FileSortKey = "createdAt" | "size" | "name";
 
@@ -1610,15 +1610,18 @@ export type {
   DynamicAction,
   DynamicComponentType,
   DynamicUIFormDataRecord,
+  DynamicUIPinRecord,
   DynamicUIProps,
   DynamicUISchemaRecord,
   DynamicUISchemaVersion,
   EventHandler,
   ListVersionsResponse,
+  PinDynamicUISchemaParams,
   SaveDynamicUIFormDataParams,
   SchemaValidationError,
   SchemaValidationResult,
   UISchema,
+  UpdateDynamicUIPinParams,
   UpdateDynamicUISchemaParams,
 } from "./dynamicUI";
 export { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "./dynamicUI";
@@ -1634,4 +1637,5 @@ export interface DashboardStats {
   failed_agent_sessions: number;
   total_agent_tokens: number;
   total_cost_usd: number;
+  total_tool_calls: number;
 }

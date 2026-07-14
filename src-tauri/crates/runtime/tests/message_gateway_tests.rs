@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 测试用 `PlatformConfig::default()` 后逐字段赋值更易读，避免每个 case 重复写出全部字段。
+// rust 1.97 起 clippy::field_reassign_with-default 升级为 deny,在此显式 allow。
+#![allow(clippy::field_reassign_with_default)]
+
 use axagent_runtime::message_gateway::platform_config::{PlatformConfig, PlatformConfigExt};
 
 #[test]

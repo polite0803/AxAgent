@@ -230,10 +230,11 @@ export function DashboardPage() {
         invoke<DashboardStats>("get_dashboard_stats").catch(() => null),
         invoke<DailyUsage[]>("get_usage_trend", { days: 30 }).catch(() => []),
         invoke<CostByProvider[]>("get_cost_by_provider").catch(() => []),
-        fetchGatewayMetrics().catch(() => {}),
-        fetchProviders().catch(() => {}),
-        fetchConversations().catch(() => {}),
       ]);
+      // 独立加载 store 数据，不阻塞主数据渲染
+      fetchGatewayMetrics().catch(() => {});
+      fetchProviders().catch(() => {});
+      fetchConversations().catch(() => {});
       setBackendStats(stats);
       setDailyUsage(usage);
       setCostByProvider(cost);
@@ -270,7 +271,7 @@ export function DashboardPage() {
           ?? conversations.filter((c) => c.mode === "agent" || c.mode === "gateway").filter((c) =>
             c.workflow_status === "failed"
           ).length,
-        totalToolCalls: 0,
+        totalToolCalls: stats?.total_tool_calls ?? 0,
       },
       providerCount: providers.filter((p) => p.enabled).length,
       modelCount: providers
@@ -635,10 +636,12 @@ export function DashboardPage() {
           <Col xs={24} sm={12} md={8} lg={6}>
             <StatCard
               icon={<MessageSquare size={18} />}
-              title={t("dashboard.dailyAvgCost")}
+              title={t("dashboard.dailyAvgTokens")}
               value={dailyUsage.length > 0
-                ? `$${(dailyUsage.reduce((s, d) => s + d.total_cost_usd, 0) / dailyUsage.length).toFixed(2)}`
-                : "$0.00"}
+                ? formatNumber(
+                  Math.round(dailyUsage.reduce((s, d) => s + d.total_tokens, 0) / dailyUsage.length),
+                )
+                : "0"}
               color="#52c41a"
               loading={usageLoading}
             />
@@ -647,66 +650,87 @@ export function DashboardPage() {
       </div>
 
       {/* ── Cost by Provider ── */}
-      {costByProvider.length > 0 && (
-        <div>
-          <SectionHeader
-            title={t("dashboard.costByProvider")}
-            icon={<Cpu size={14} color={token.colorTextSecondary} />}
-          />
-          <Card
-            size="small"
-            styles={{ body: { padding: "16px 20px" } }}
-            style={{
-              borderColor: token.colorBorderSecondary,
-              background: token.colorBgContainer,
-            }}
-          >
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={costByProvider}
-                  dataKey="cost_usd"
-                  nameKey="provider_id"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={({ provider_id, cost_usd }: { provider_id: string; cost_usd: number }) =>
-                    `${provider_id}: $${cost_usd.toFixed(2)}`}
-                  labelLine
-                >
-                  {costByProvider.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={[
-                        "#1677ff",
-                        "#52c41a",
-                        "#faad14",
-                        "#ff4d4f",
-                        "#722ed1",
-                        "#13c2c2",
-                        "#eb2f96",
-                        "#fa8c16",
-                      ][i % 8]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number, name: string) => [
-                    `$${value.toFixed(2)}`,
-                    name,
-                  ]}
-                  contentStyle={{
-                    background: token.colorBgElevated,
-                    border: `1px solid ${token.colorBorder}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </div>
-      )}
+      {costByProvider.length > 0
+        ? (
+          <div>
+            <SectionHeader
+              title={t("dashboard.costByProvider")}
+              icon={<Cpu size={14} color={token.colorTextSecondary} />}
+            />
+            <Card
+              size="small"
+              styles={{ body: { padding: "16px 20px" } }}
+              style={{
+                borderColor: token.colorBorderSecondary,
+                background: token.colorBgContainer,
+              }}
+            >
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={costByProvider}
+                    dataKey="token_count"
+                    nameKey="provider_id"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({ provider_id, token_count }: { provider_id: string; token_count: number }) =>
+                      `${provider_id}: ${formatNumber(token_count)}`}
+                    labelLine
+                  >
+                    {costByProvider.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={[
+                          "#1677ff",
+                          "#52c41a",
+                          "#faad14",
+                          "#ff4d4f",
+                          "#722ed1",
+                          "#13c2c2",
+                          "#eb2f96",
+                          "#fa8c16",
+                        ][i % 8]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      formatNumber(value),
+                      name,
+                    ]}
+                    contentStyle={{
+                      background: token.colorBgElevated,
+                      border: `1px solid ${token.colorBorder}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+        )
+        : (
+          <div>
+            <SectionHeader
+              title={t("dashboard.costByProvider")}
+              icon={<Cpu size={14} color={token.colorTextSecondary} />}
+            />
+            <Card
+              size="small"
+              styles={{ body: { padding: "16px 20px" } }}
+              style={{
+                borderColor: token.colorBorderSecondary,
+                background: token.colorBgContainer,
+              }}
+            >
+              <div style={{ padding: "24px 0", textAlign: "center", color: token.colorTextQuaternary, fontSize: 13 }}>
+                {t("dashboard.noUsageData")}
+              </div>
+            </Card>
+          </div>
+        )}
     </div>
   );
 }

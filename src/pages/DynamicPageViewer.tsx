@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
+import { SchemaIdContext } from "@/components/dynamicUI/SchemaIdContext";
+import { RouteGuard } from "@/components/shared/RouteGuard";
 import { useDynamicUIStore } from "@/stores";
-import type { DynamicAction, UISchema } from "@/types";
+import type { UISchema } from "@/types";
 import { Result, Spin } from "antd";
-import { useCallback, useEffect, useReducer } from "react";
+import { useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 function parseSchema(json: string): UISchema | null {
   try {
@@ -19,7 +21,6 @@ function parseSchema(json: string): UISchema | null {
 export function DynamicPageViewer() {
   const { schemaId } = useParams<{ schemaId: string }>();
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const getSchema = useDynamicUIStore((s) => s.getSchema);
 
   type ViewState =
@@ -76,25 +77,6 @@ export function DynamicPageViewer() {
     };
   }, [schemaId, getSchema, t]);
 
-  const handleAction = useCallback(
-    (action: DynamicAction) => {
-      switch (action.type) {
-        case "navigate": {
-          const path = action.config?.path as string | undefined;
-          if (path) { navigate(path); }
-          break;
-        }
-        // Other action types are handled internally by DynamicUIRenderer
-        // via its EventHandlerEngine; we forward all actions here so the
-        // renderer's internal schema-update CustomEvent mechanism still
-        // receives them via onAction → executeActions pipeline.
-        default:
-          break;
-      }
-    },
-    [navigate],
-  );
-
   if (!schemaId) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
@@ -111,17 +93,19 @@ export function DynamicPageViewer() {
     );
   }
 
-  if (viewState.kind === "error") {
-    return (
-      <div style={{ padding: 48, textAlign: "center" }}>
-        <Result status="404" title="404" subTitle={viewState.message} />
-      </div>
-    );
-  }
+  const isError = viewState.kind === "error";
+  const errorSubTitle = isError ? viewState.message : undefined;
+  const readySchema = viewState.kind === "ready" ? viewState.schema : null;
 
   return (
-    <div className="p-6" style={{ flex: 1, overflow: "auto" }}>
-      <DynamicUIRenderer schema={viewState.schema} onAction={handleAction} />
-    </div>
+    <RouteGuard allowed={readySchema !== null} subTitle={errorSubTitle}>
+      {readySchema && (
+        <div className="p-6" style={{ flex: 1, overflow: "auto" }}>
+          <SchemaIdContext.Provider value={{ schemaId }}>
+            <DynamicUIRenderer schema={readySchema} />
+          </SchemaIdContext.Provider>
+        </div>
+      )}
+    </RouteGuard>
   );
 }

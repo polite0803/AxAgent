@@ -39,6 +39,7 @@ use crate::CircuitState;
 use crate::CodeSample;
 use crate::CodeStyleTemplate;
 use crate::ConsolidationDataProvider;
+use crate::ConsolidationSuggestion;
 use crate::ContentFilter;
 use crate::ContentType;
 use crate::DevExperienceProvider;
@@ -62,12 +63,17 @@ use crate::ExtractedRelation;
 use crate::FilterAction;
 use crate::GatewayService;
 use crate::GatewayStatus;
+use crate::KnowledgeType;
 use crate::IndexConfig;
 use crate::IndexJobStatus;
 use crate::IntegrityResult;
 use crate::LlmExecutionService;
 use crate::LogLevel;
 use crate::McpClientService;
+use crate::McpPrompt;
+use crate::McpPromptResult;
+use crate::McpResource;
+use crate::McpResourceContent;
 use crate::McpServerConfig;
 use crate::McpServerStore;
 use crate::McpToolCallResult;
@@ -102,7 +108,6 @@ use crate::RLTrainer;
 use crate::RateLimitResult;
 use crate::RateLimitStatus;
 use crate::RateLimiter;
-use crate::ReplaySample;
 use crate::RerankProvider;
 use crate::RetrievalQuality;
 use crate::RhaiEngineAdapter;
@@ -560,23 +565,32 @@ impl DevExperienceProvider for NoopDevExperienceProvider {
 pub struct NoopConsolidationDataProvider;
 #[async_trait]
 impl ConsolidationDataProvider for NoopConsolidationDataProvider {
-    async fn fetch_new_experiences(
+    async fn fetch_recent_experiences(
         &self,
         _limit: usize,
     ) -> std::result::Result<Vec<ExperienceRecord>, String> {
         Ok(Vec::new())
     }
-    async fn fetch_replay_samples(
-        &self,
-        _limit: usize,
-    ) -> std::result::Result<Vec<ReplaySample>, String> {
+    async fn fetch_experience_by_topic(&self, _topic: &str) -> std::result::Result<Vec<ExperienceRecord>, String> {
         Ok(Vec::new())
     }
-    async fn store_distilled(
+    async fn store_distilled_knowledge(
         &self,
-        _knowledge: DistilledKnowledge,
+        _knowledge: &DistilledKnowledge,
     ) -> std::result::Result<(), String> {
         Ok(())
+    }
+    async fn store_suggestion(
+        &self,
+        _suggestion: &ConsolidationSuggestion,
+    ) -> std::result::Result<(), String> {
+        Ok(())
+    }
+    async fn fetch_existing_knowledge(
+        &self,
+        _knowledge_type: &KnowledgeType,
+    ) -> std::result::Result<Vec<DistilledKnowledge>, String> {
+        Ok(Vec::new())
     }
 }
 
@@ -591,7 +605,7 @@ impl DreamConsolidator for NoopDreamConsolidator {
     async fn should_consolidate(&self) -> std::result::Result<bool, String> {
         Ok(false)
     }
-    fn config(&self) -> DreamConsolidationConfig {
+    async fn config(&self) -> DreamConsolidationConfig {
         DreamConsolidationConfig::default()
     }
 }
@@ -768,6 +782,37 @@ impl McpClientService for NoopMcpClientService {
         _args: serde_json::Value,
     ) -> std::result::Result<McpToolCallResult, String> {
         Ok(McpToolCallResult { success: false, content: serde_json::Value::Null })
+    }
+
+    async fn list_resources(
+        &self,
+        _server: &McpServerConfig,
+    ) -> std::result::Result<Vec<McpResource>, String> {
+        Ok(Vec::new())
+    }
+
+    async fn read_resource(
+        &self,
+        _server: &McpServerConfig,
+        _uri: &str,
+    ) -> std::result::Result<Vec<McpResourceContent>, String> {
+        Ok(Vec::new())
+    }
+
+    async fn list_prompts(
+        &self,
+        _server: &McpServerConfig,
+    ) -> std::result::Result<Vec<McpPrompt>, String> {
+        Ok(Vec::new())
+    }
+
+    async fn get_prompt(
+        &self,
+        _server: &McpServerConfig,
+        _name: &str,
+        _args: serde_json::Value,
+    ) -> std::result::Result<McpPromptResult, String> {
+        Ok(McpPromptResult { description: None, messages: serde_json::Value::Null })
     }
 }
 

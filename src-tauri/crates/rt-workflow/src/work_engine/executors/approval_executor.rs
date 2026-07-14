@@ -36,6 +36,7 @@ impl NodeExecutorTrait for ApprovalExecutor {
         let c = &n.config;
         Ok(NodeOutput {
             output: serde_json::json!({"status": "pending", "message": c.message, "timeout_secs": c.timeout_secs, "node_id": node.base_id()}),
+            control: None,
             output_var: if c.output_var.is_empty() {
                 None
             } else {
@@ -44,3 +45,4 @@ impl NodeExecutorTrait for ApprovalExecutor {
         })
     }
 }
+

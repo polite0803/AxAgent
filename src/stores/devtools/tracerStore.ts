@@ -198,7 +198,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   exportTrace: async (traceId: string, format: "json" | "csv") => {
     set({ isLoading: true, error: null });
     try {
-      await invoke("tracer_export_traces", { traceId, format });
+      await invoke("tracer_export_traces", { traceIds: [traceId], format });
       set({ isLoading: false });
     } catch (error) {
       set({

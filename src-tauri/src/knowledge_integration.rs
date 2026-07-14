@@ -1,38 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_search::rag::KnowledgeContainer;
-use serde::{Deserialize, Serialize};
-use tauri::State;
-
 use crate::AppState;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct IntegrationInsight {
-    pub insight_type: InsightType,
-    pub title: String,
-    pub description: String,
-    pub source_ids: Vec<SourceRef>,
-    pub confidence: f64,
-    pub suggested_action: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum InsightType {
-    Duplicate,
-    Stale,
-    Related,
-    Gap,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SourceRef {
-    pub container_id: String,
-    pub container_type: String,
-    pub item_id: String,
-    pub item_title: String,
-}
+use axagent_harness::repo_dtos::{InsightType, IntegrationInsight, SourceRef};
+use axagent_search::rag::KnowledgeContainer;
+use tauri::State;
 
 pub struct KnowledgeIntegrationEngine;
 
@@ -54,16 +25,9 @@ impl KnowledgeIntegrationEngine {
                     for (id_b, content_b, _) in &search_results[j] {
                         let similarity = self.calculate_text_similarity(content_a, content_b);
                         if similarity > 0.8 {
-                            let title_a = if content_a.len() >= 50 {
-                                &content_a[..50]
-                            } else {
-                                content_a.as_str()
-                            };
-                            let title_b = if content_b.len() >= 50 {
-                                &content_b[..50]
-                            } else {
-                                content_b.as_str()
-                            };
+                            // 使用按字符截断，避免对多字节 UTF-8（中文/emoji）按字节切片导致 panic
+                            let title_a = truncate_to_chars(content_a, 50);
+                            let title_b = truncate_to_chars(content_b, 50);
                             insights.push(IntegrationInsight {
                                 insight_type: InsightType::Duplicate,
                                 title: "Potential duplicate knowledge".to_string(),
@@ -74,19 +38,19 @@ impl KnowledgeIntegrationEngine {
                                 source_ids: vec![
                                     SourceRef {
                                         container_id: containers[i].id.clone(),
-                                        container_type: format!(
-                                            "{:?}",
-                                            containers[i].container_type
-                                        ),
+                                        // 用稳定的 container_type_str() 而非 Debug 格式化，
+                                        // 避免重命名 enum 变体时破坏前端契约
+                                        container_type: containers[i]
+                                            .container_type_str()
+                                            .to_string(),
                                         item_id: id_a.clone(),
                                         item_title: title_a.to_string(),
                                     },
                                     SourceRef {
                                         container_id: containers[j].id.clone(),
-                                        container_type: format!(
-                                            "{:?}",
-                                            containers[j].container_type
-                                        ),
+                                        container_type: containers[j]
+                                            .container_type_str()
+                                            .to_string(),
                                         item_id: id_b.clone(),
                                         item_title: title_b.to_string(),
                                     },
@@ -106,15 +70,18 @@ impl KnowledgeIntegrationEngine {
     }
 
     fn calculate_text_similarity(&self, a: &str, b: &str) -> f64 {
-        let words_a: std::collections::HashSet<&str> = a.split_whitespace().collect();
-        let words_b: std::collections::HashSet<&str> = b.split_whitespace().collect();
+        let tokens_a = tokenize(a);
+        let tokens_b = tokenize(b);
 
-        if words_a.is_empty() || words_b.is_empty() {
+        if tokens_a.is_empty() || tokens_b.is_empty() {
             return 0.0;
         }
 
-        let intersection = words_a.intersection(&words_b).count();
-        let union = words_a.union(&words_b).count();
+        let set_a: std::collections::HashSet<String> = tokens_a.into_iter().collect();
+        let set_b: std::collections::HashSet<String> = tokens_b.into_iter().collect();
+
+        let intersection = set_a.intersection(&set_b).count();
+        let union = set_a.union(&set_b).count();
 
         if union == 0 {
             return 0.0;
@@ -122,6 +89,25 @@ impl KnowledgeIntegrationEngine {
 
         intersection as f64 / union as f64
     }
+}
+
+/// 按字符数截断字符串，避免对多字节 UTF-8 按字节切片导致 `byte index not a char boundary` panic。
+fn truncate_to_chars(s: &str, max_chars: usize) -> String {
+    if s.chars().count() <= max_chars {
+        s.to_string()
+    } else {
+        s.chars().take(max_chars).collect()
+    }
+}
+
+/// 分词：有空格的文本按空白切分；无空格（如中文/日文）按字符切分，
+/// 使 Jaccard 相似度对 CJK 也有效（原本整段被视为一个词，相似度恒为 0）。
+fn tokenize(s: &str) -> Vec<String> {
+    let ws: Vec<&str> = s.split_whitespace().collect();
+    if !ws.is_empty() {
+        return ws.into_iter().map(|w| w.to_string()).collect();
+    }
+    s.chars().filter(|c| !c.is_whitespace()).map(|c| c.to_string()).collect()
 }
 
 #[tauri::command]

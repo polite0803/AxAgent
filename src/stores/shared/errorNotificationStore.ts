@@ -120,10 +120,17 @@ export const useErrorNotificationStore = create<ErrorNotificationState>((set, ge
   },
 
   dismissError: (id) => {
-    set((state) => ({
-      errors: state.errors.map((e) => e.id === id ? { ...e, dismissed: true } : e),
-      unreadCount: Math.max(0, state.unreadCount - 1),
-    }));
+    set((state) => {
+      const target = state.errors.find((e) => e.id === id);
+      // 已 dismissed 或不存在，不递减 unreadCount
+      if (!target || target.dismissed) {
+        return state;
+      }
+      return {
+        errors: state.errors.map((e) => e.id === id ? { ...e, dismissed: true } : e),
+        unreadCount: Math.max(0, state.unreadCount - 1),
+      };
+    });
   },
 
   dismissAll: () => {

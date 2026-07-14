@@ -48,10 +48,8 @@
     "scheduledAnalysis": "Scheduled"
   },
   "sidebar": {
-    "sectionWork": "Work",
     "sectionTools": "Tools",
     "sectionInfrastructure": "Infrastructure",
-    "sectionPlugins": "Plugins",
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
     "sectionInvest": "Invest",
@@ -126,6 +124,7 @@
     "manualCompress": "Compress now",
     "compressSuccess": "Context compressed",
     "compressFailed": "Compression failed",
+    "createConversationFailed": "Failed to create conversation",
     "agentInitFailed": "Failed to initialize agent session",
     "switchAgentModeNoConversation": "Please start a new conversation first before switching to Agent mode",
     "switchedTo": "Switched to: {{name}}",
@@ -303,6 +302,9 @@
     },
     "tool": {
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "success": "Success",
       "error": "Failed",
       "input": "Input",
@@ -458,6 +460,9 @@
       "status": {
         "pending": "Pending",
         "running": "Running",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)",
         "completed": "Completed",
         "failed": "Failed",
         "skipped": "Skipped"
@@ -465,6 +470,9 @@
       "workflowStatus": {
         "created": "Created",
         "running": "Running",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)",
         "completed": "Completed",
         "partiallyCompleted": "Partially Completed",
         "failed": "Failed",
@@ -937,6 +945,9 @@
     "status": "Status",
     "converged": "Converged",
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "idle": "Idle",
     "fitnessCurve": "Fitness Curve",
     "improved": "Improved",
@@ -960,6 +971,9 @@
       "pending": "Pending",
       "resume": "Resume",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "session": "sessions",
       "tokens": "tokens",
       "tool": "tools",
@@ -1129,6 +1143,9 @@
       "completed": "{{completed}} completed",
       "failed": "{{failed}} failed",
       "running": "{{running}} running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "cancelled": "Cancelled",
       "pending": "Pending",
       "totalEvents": "{{total}} events"
@@ -1154,6 +1171,9 @@
       "quality": "Quality",
       "replay": "Replay",
       "running": "{{count}} running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "selectTrajectory": "Select a trajectory to replay",
       "speed": "Speed",
       "step": "Step",
@@ -1222,6 +1242,9 @@
     "start": "Start Gateway",
     "stop": "Stop Gateway",
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "stopped": "Stopped",
     "createKey": "Create Key",
     "copyKey": "Copy Key",
@@ -1573,6 +1596,9 @@
       "engineNotFound": "Engine Not Found",
       "engineNotFoundDesc": "Engine \"{{name}}\" not found",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "stopped": "Stopped",
       "start": "Start",
       "stop": "Stop",
@@ -2206,6 +2232,7 @@
       "title": "Storage Space",
       "desc": "Configure data storage location and limits",
       "openFolder": "Open Folder",
+      "openFolderError": "Failed to open folder: {error}",
       "totalUsage": "Total Usage",
       "fileCount": "files",
       "images": "Images",
@@ -2332,6 +2359,9 @@
       "maxRemoteBackups": "Max Remote Backups",
       "status": "Status",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "saved": "Saved",
       "customTasks": "Custom Tasks",
       "addTask": "Add Task",
@@ -2862,15 +2892,40 @@
       "jsonEdit": "JSON Edit"
     },
     "persona": {
-      "editFailed": "Edit failed",
-      "switchFailed": "Switch failed",
-      "createFailed": "Create failed",
-      "saveFailed": "Save failed",
-      "emptyContent": "(empty)",
-      "personaList": "Persona List",
+      "activated": "Activated",
+      "activate": "Activate",
       "cancel": "Cancel",
+      "create": "New Persona",
+      "createFailed": "Create failed",
+      "createFirst": "Select or create a persona",
+      "description": "Manage agent personality and soul definition",
+      "editFailed": "Edit failed",
+      "emptyContent": "(empty)",
       "nameLabel": "Name",
-      "namePlaceholder": "my-persona"
+      "namePlaceholder": "my-persona",
+      "noPersona": "No persona",
+      "personaList": "Persona List",
+      "save": "Save",
+      "saved": "Saved",
+      "saveFailed": "Save failed",
+      "switchFailed": "Switch failed",
+      "switchSuccess": "Switched to {{name}}",
+      "title": "Persona Management",
+      "soul": {
+        "label": "SOUL.md (Soul Definition)",
+        "description": "Define the agent's core personality and behavior style",
+        "placeholder": "Enter soul definition..."
+      },
+      "identity": {
+        "label": "IDENTITY.md (Identity Declaration)",
+        "description": "Declare the agent's identity and role information",
+        "placeholder": "Agent identity declaration..."
+      },
+      "user": {
+        "label": "USER.md (User Profile)",
+        "description": "Describe the user's profile, preferences, and needs",
+        "placeholder": "User profile information..."
+      }
     }
   },
   "backup": {
@@ -2882,6 +2937,9 @@
     "status": "Status",
     "completed": "Completed",
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "failed": "Failed",
     "errorDetail": "Error Details",
     "description": "Description",
@@ -2895,6 +2953,7 @@
     "filePath": "File",
     "appVersion": "Version",
     "openFolder": "Open in Finder",
+    "openFolderError": "Failed to open folder: {error}",
     "selectMode": "Select",
     "batchDelete": "Delete ({{count}})",
     "batchDeleteConfirm": "Delete {{count}} selected backups?",
@@ -2964,6 +3023,7 @@
     "decrease": "Decrease",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "dismiss": "Dismiss",
     "comingSoon": "Coming Soon",
     "failed": "Failed",
     "errorDetail": "Error details",
@@ -3100,6 +3160,9 @@
       "approved": "Approved",
       "rejected": "Rejected",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "completed": "Completed",
       "error": "Error",
       "reviewing": "Reviewing",
@@ -3136,6 +3199,9 @@
     },
     "status": {
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "completed": "Completed"
     },
     "count": "{{running}} running / {{completed}} completed",
@@ -3148,6 +3214,9 @@
   },
   "agentStats": {
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "paused": "Paused",
     "loading": "Loading...",
     "tokens": "tokens",
@@ -3822,6 +3891,20 @@
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
       }
+    },
+    "approval": {
+      "panelTitle": "Pending Approvals",
+      "noPending": "No pending approvals",
+      "message": "Message",
+      "workflowId": "Workflow",
+      "status": "Status",
+      "expiresAt": "Expires",
+      "actions": "Actions",
+      "decision": "Decision",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "notePlaceholder": "Add a note (optional)"
     },
     "aiPanel": {
       "enterWorkflowDesc": "Please enter a workflow description",
@@ -4544,6 +4627,9 @@
       "runFullCheck": "Run full check",
       "runValidation": "Run validation",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "runtimeTrace": "Runtime trace",
       "startDebug": "Start debug",
       "staticCheck": "Static check",
@@ -4571,31 +4657,31 @@
     },
     "validation": {
       "validation": {
-        "title": "验证规则",
-        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-        "addRule": "添加规则",
-        "rule": "规则",
-        "ruleName": "规则名称",
-        "ruleNamePlaceholder": "给自己的规则取个名字",
-        "ruleType": "规则类型",
-        "description": "描述",
-        "descriptionPlaceholder": "这条规则是做什么的",
+        "title": "Validation Rules",
+        "noRules": "No validation rules. Click 'Add Rule' to start.",
+        "addRule": "Add Rule",
+        "rule": "Rule",
+        "ruleName": "Rule Name",
+        "ruleNamePlaceholder": "Give your rule a name",
+        "ruleType": "Rule Type",
+        "description": "Description",
+        "descriptionPlaceholder": "What does this rule do?",
         "schema": "JSON Schema",
-        "sourceNode": "源节点",
-        "selectNode": "选择节点",
-        "expectedPath": "expected path",
+        "sourceNode": "Source Node",
+        "selectNode": "Select Node",
+        "expectedPath": "Expected Path",
         "expectedPathPlaceholder": "e.g. output.status",
-        "assertionOp": "断言操作",
-        "expectedValue": "期望值",
-        "expectedValuePlaceholder": "输入期望值",
-        "metric": "指标",
-        "maxValue": "最大值",
-        "minValue": "最小值",
-        "onFailStrategy": "失败策略",
-        "warn": "仅警告",
-        "block": "阻止执行",
-        "continue": "继续执行",
-        "saved": "验证规则已保存"
+        "assertionOp": "Assertion Operation",
+        "expectedValue": "Expected Value",
+        "expectedValuePlaceholder": "Enter expected value",
+        "metric": "Metric",
+        "maxValue": "Max Value",
+        "minValue": "Min Value",
+        "onFailStrategy": "On Fail Strategy",
+        "warn": "Warn Only",
+        "block": "Block Execution",
+        "continue": "Continue Execution",
+        "saved": "Validation rules saved"
       }
     },
     "applySemanticCheck": "Apply",
@@ -4615,6 +4701,7 @@
     "replaceWithExisting": "Use Existing",
     "saveAsNew": "Save as New",
     "saved": "Saved",
+    "saveFailed": "Save failed",
     "semanticCheckApplied": "Semantic check applied",
     "semanticCheckDescription": "The following generated skills have high semantic similarity with existing skills",
     "semanticCheckTitle": "Similar Skills Found",
@@ -4635,6 +4722,7 @@
     "statusBar": {
       "unsaved": "Unsaved",
       "saved": "Saved",
+      "saveFailed": "Save failed",
       "nodes": "Nodes: {{count}}",
       "edges": "Edges: {{count}}",
       "errors": "{{count}} errors",
@@ -4768,7 +4856,10 @@
       "targetWorkflow": "Target Workflow",
       "contextMode": "Context Mode",
       "inherit": "Inherit",
-      "isolated": "Isolated"
+      "isolated": "Isolated",
+      "selectWorkflow": "",
+      "title": "",
+      "version": ""
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
@@ -5379,6 +5470,9 @@
     "status": {
       "idle": "Idle",
       "running": "Training",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "paused": "Paused",
       "completed": "Completed",
       "failed": "Failed"
@@ -5527,6 +5621,9 @@
     "runFailed": "Run failed",
     "runner": "Benchmark Runner",
     "running": "Running...",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "run": "Run Benchmark",
     "selection": "Benchmark Selection",
     "runConfig": "Run Configuration",
@@ -5613,6 +5710,9 @@
     "newToolDiscovered": "New auto tool discovered!",
     "newDreamKnowledge": "New dream knowledge consolidated",
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "idle": "Idle",
     "processed": "Processed: {{count}}",
     "engineNames": {
@@ -5788,8 +5888,11 @@
     "analyzeOutput": "Analyze Output",
     "clear": "Clear",
     "killProcess": "Kill Process",
+    "maximize": "Maximize",
+    "restore": "Restore",
     "closeSession": "Close Session",
     "local": "Local",
+    "more": "{{count}} more",
     "docker": "Docker",
     "ssh": "SSH",
     "sessions": "{{count}} sessions",
@@ -5925,10 +6028,10 @@
     "ingestSource": {
       "title": "Title",
       "type": "Type",
-      "status": "Status",
-      "chunks": "Chunks",
       "path": "Path",
-      "deleteNotImplemented": "Delete not implemented yet"
+      "deleteNotImplemented": "Delete not implemented yet",
+      "mimeType": "MIME Type",
+      "size": "Size"
     },
     "tips": {
       "doubleClick": "Double-click node to edit",
@@ -5968,29 +6071,7 @@
     "insertLink": "Insert Link",
     "lastCompiled": "Last compiled",
     "lastLinted": "Last linted",
-    "lint": {
-      "averageScore": "Average score",
-      "code": "Code",
-      "details": "Details",
-      "issues": "Issues",
-      "line": "Line",
-      "loadError": "Load failed",
-      "message": "Message",
-      "noIssues": "No issues",
-      "noResults": "No results",
-      "note": "Note",
-      "rerun": "Re-run",
-      "runLint": "Run lint",
-      "score": "Score",
-      "scoreUpdated": "Score updated",
-      "selectNote": "Select note",
-      "severity": "Severity",
-      "success": "Lint complete",
-      "totalIssues": "Total issues",
-      "totalNotes": "Total notes",
-      "updateScore": "Update score",
-      "viewDetails": "View details"
-    },
+    "lint": "Lint",
     "llm": {
       "backToList": "Back to list",
       "compile": "Compile",
@@ -6042,6 +6123,9 @@
       "noOperations": "No operations",
       "operationDetail": "Operation detail",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "title": "Operation Log",
       "total": "Total"
     },
@@ -6187,7 +6271,7 @@
     "export": "Export",
     "exportHtml": "HTML",
     "exportMarkdown": "Markdown",
-    "exportPdf": "Export PDF",
+    "exportPdf": "Export HTML",
     "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
     "exportedPdf": "Exported to {{path}}",
     "filteredByTag": "Filtered: {{tag}}",
@@ -6208,7 +6292,9 @@
     "vaultPath": "Vault path...",
     "wikiMeta": {
       "rootPath": "Root Path"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "notification": {
     "clear": "Clear",
@@ -6224,7 +6310,9 @@
     "dismiss": "Dismiss",
     "execute": "Execute",
     "learningSuggestions": "Learning Suggestions",
+    "snooze15": "Snooze (15 min)",
     "snooze30": "Snooze (30 min)",
+    "snooze1h": "Snooze (1 hour)",
     "noSuggestions": "No suggestions"
   },
   "proactive": {
@@ -6253,6 +6341,13 @@
     "overdue": "Overdue",
     "prefetchReady": "Prefetch ready",
     "prefetching": "Prefetching...",
+    "prefetchTypes": {
+      "codeCompletion": "Code Completion",
+      "searchResults": "Search Results",
+      "documentation": "Documentation",
+      "contextAnalysis": "Context Analysis",
+      "toolCache": "Tool Cache"
+    },
     "recurrenceUnitDay": "day",
     "recurrenceUnitDays": "days",
     "recurrenceUnitMonth": "month",
@@ -6338,7 +6433,6 @@
     "unknownError": "Unknown error",
     "retry": "Retry",
     "loading": "Loading skill component...",
-    "loadingPage": "Loading skill page...",
     "deps": {
       "allSatisfied": "All skill dependencies satisfied",
       "title": "Dependency Check",
@@ -6533,6 +6627,7 @@
     "ollamaDetected": "Ollama detected, {{count}} models available",
     "ollamaNotFound": "Ollama not detected, you can configure it manually later",
     "keysDetected": "{{count}} API Key(s) detected",
+    "applying": "Applying...",
     "noKeysDetected": "No API Key detected",
     "presetOllama": "Ollama Local",
     "presetOllamaDesc": "Use local models, data stays on your device",
@@ -6554,6 +6649,7 @@
     "previous": "Previous",
     "next": "Next",
     "done": "Done",
+    "downloadOllama": "Download Ollama",
     "tutorialStart": "Start Tutorial",
     "tutorialSkip": "Skip Tutorial",
     "tutorialSidebarTitle": "Session Management",
@@ -6672,6 +6768,9 @@
     "status": {
       "pending": "Pending",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "completed": "Completed",
       "failed": "Failed",
       "cancelled": "Cancelled"
@@ -6680,6 +6779,9 @@
     "attempts": "Attempt {attempts}/{maxRetries}",
     "viewSubSession": "View Sub-Session",
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "pending": "Pending",
     "failed": "Failed",
     "type": {
@@ -6691,6 +6793,9 @@
   },
   "agentHierarchy": {
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "completed": "Completed",
     "failed": "Failed",
     "title": "Agent Hierarchy",
@@ -7382,6 +7487,9 @@
   },
   "dreamStatus": {
     "running": "Dream consolidation running...",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "consolidating": "Dream consolidating...",
     "memoriesCount": "{{count}} memories",
     "patternsCount": "{{count}} patterns",
@@ -7449,13 +7557,16 @@
     "title": "SSH Configuration",
     "connect": "Connect",
     "host": "Host",
+    "hostPlaceholder": "192.168.1.100 or server.example.com",
     "port": "Port",
-    "username": "Username"
+    "username": "Username",
+    "keyPathOptional": "SSH Key Path (optional)"
   },
   "dockerConfig": {
     "title": "Docker Configuration",
     "connect": "Connect",
-    "socketPath": "Docker Socket Path"
+    "socketPath": "Docker Socket Path",
+    "defaultHint": "Leave empty for default Docker socket"
   },
   "datasetManager": {
     "title": "Fine-Tune Dataset Manager",
@@ -7488,6 +7599,9 @@
     "title": "Training Jobs",
     "totalJobs": "Total Jobs",
     "running": "Running",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "completed": "Completed",
     "failed": "Failed",
     "id": "ID",
@@ -7674,6 +7788,9 @@
       "completed": "Completed",
       "failed": "Failed",
       "running": "Running",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "total": "Total"
     },
     "tab": {
@@ -8047,6 +8164,9 @@
       "result": "Backtest Result",
       "run": "Run Backtest",
       "running": "Backtesting...",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "selectStrategy": "Select Strategy",
       "stabilityScore": "Stability Score",
       "startDate": "Start Date",
@@ -8159,6 +8279,9 @@
       "noInvalid": "No failed samples.",
       "runBtn": "Start Sweep",
       "running": "Running sweep {{done}} / {{total}} …",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)",
       "summary": "Sweep complete: {{total}} total, {{valid}} valid, {{invalid}} failed.",
       "violationNotice": "Recorded {{count}} as-of violations — see Invalid panel for details."
     },
@@ -8177,6 +8300,9 @@
     "desc": "Serenity's Bottleneck Method: automatically screen for potential stocks by identifying bottleneck links in the industry chain from market data",
     "run": "Run Serenity Screening",
     "running": "Screening...",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
     "settings": "Valuation Filters",
     "stage_loading": "Loading workflow template...",
     "stage_scanning": "Stage 0/4: Scanning market trends",
@@ -8355,6 +8481,7 @@
     "rechartsRequired": "Recharts is required for charts",
     "rechartsInstallHint": "Please run npm install recharts or pnpm add recharts",
     "unsupportedChartType": "Unsupported chart type: {{type}}",
+    "schemaNotFound": "Dynamic page not found",
     "filePreview": "File preview: {{fileName}}",
     "textFile": "Text file",
     "unknownFile": "Unknown file",
@@ -8471,31 +8598,6 @@
     "parseErrorCantValidate": "JSON parse error, cannot validate",
     "schemaAllValid": "Schema validation passed, all fields valid"
   },
-  "components_skill_SkillABTestResults": {
-    "暂无_A_B_测试数据": "暂无 A/B 测试数据",
-    "components_skill_Ski": "components_skill_SkillABTestResults.暂无_A_B_测试数据",
-    "指标": "指标",
-    "版本_A": "版本 A",
-    "版本_B": "版本 B",
-    "变化": "变化",
-    "优胜": "优胜",
-    "平局": "平局",
-    "推荐采用版本_A": " 推荐采用版本 A。",
-    "推荐采用版本_B": " 推荐采用版本 B。",
-    "两个版本无明显差异": " 两个版本无明显差异。"
-  },
-  "components_skill_SkillEvolutionViewer": {
-    "当前版本": "当前版本",
-    "总进化次数": "总进化次数",
-    "最近进化": "最近进化",
-    "A_B_测试结果": "A/B 测试结果",
-    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A_B_测试结果"
-  },
-  "components_skill_SkillVersionTimeline": {
-    "暂无进化历史": "暂无进化历史",
-    "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
-    "确认回滚": "确认回滚"
-  },
   "promptTemplate": {
     "unnamed": "Unnamed"
   },
@@ -8543,6 +8645,7 @@
     "tags": "Tags",
     "tagsPlaceholder": "Enter tags and press Enter",
     "jsonEditor": "JSON Schema",
+    "visualEditor": "Visual Editor",
     "jsonPlaceholder": "Enter JSON conforming to UISchema spec...",
     "parseError": "Parse Error",
     "schemaValid": "Schema validated",
@@ -8584,7 +8687,13 @@
     "versionInvalid": "Invalid version format (expected major.minor.patch)",
     "versionAutoHint": "Leave empty to auto-increment patch version",
     "rollbackArchive": "Pre-restore archive (restore to {version})",
-    "versionUpdatedAt": "Created At"
+    "versionUpdatedAt": "Created At",
+    "import": "Import",
+    "importSuccess": "Imported {{count}} UI(s) successfully",
+    "importInvalid": "Invalid or empty schema file",
+    "export": "Export",
+    "exportAll": "Export All",
+    "exportSuccess": "Exported successfully"
   },
   "visualEditor": {
     "palette": {
@@ -8693,6 +8802,7 @@
     "avgCostPerSession": "Avg Cost / Session",
     "totalAgentTokens": "Agent Total Tokens",
     "dailyAvgCost": "Daily Avg Cost",
+    "dailyAvgTokens": "Daily Avg Tokens",
     "costByProvider": "Cost by Provider"
   },
   "dataBinding": {

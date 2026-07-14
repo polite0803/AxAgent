@@ -185,11 +185,18 @@ export function useXtermEnhancement(
   );
 
   useEffect(() => {
+    let cleanedUp = false;
     let cleanupFn: (() => void) | undefined;
     initTerminal().then((cleanup) => {
-      cleanupFn = cleanup;
+      if (cleanedUp) {
+        // 组件在 initTerminal 完成前已卸载，直接执行清理
+        cleanup?.();
+      } else {
+        cleanupFn = cleanup;
+      }
     });
     return () => {
+      cleanedUp = true;
       if (cleanupFn) {
         cleanupFn();
       }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { FileCategory } from "@/types";
-import { FileText, Image } from "lucide-react";
+import { Archive, FileText, Image } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type { FileCategory };
@@ -15,4 +15,5 @@ export interface FileCategoryMeta {
 export const FILE_CATEGORIES: FileCategoryMeta[] = [
   { id: "images", labelKey: "files.images", icon: Image },
   { id: "files", labelKey: "files.files", icon: FileText },
+  { id: "backups", labelKey: "files.backups", icon: Archive },
 ];

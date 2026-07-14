@@ -333,7 +333,7 @@ impl ClosedLoopService {
                 } else {
                     None
                 },
-                created_at: chrono::Utc::now().timestamp(),
+                created_at: chrono::Utc::now().timestamp_millis(),
                 acknowledged: false,
             });
         }
@@ -397,7 +397,7 @@ impl ClosedLoopService {
                             } else {
                                 None
                             },
-                            created_at: chrono::Utc::now().timestamp(),
+                            created_at: chrono::Utc::now().timestamp_millis(),
                             acknowledged: false,
                         });
                     }
@@ -427,7 +427,7 @@ impl ClosedLoopService {
                         suggested_action: new_skill_proposal.suggested_content.clone(),
                         urgency: "medium".to_string(),
                         auto_action: None,
-                        created_at: chrono::Utc::now().timestamp(),
+                        created_at: chrono::Utc::now().timestamp_millis(),
                         acknowledged: false,
                     });
                 }
@@ -464,7 +464,7 @@ impl ClosedLoopService {
                     "low".to_string()
                 },
                 auto_action: None,
-                created_at: chrono::Utc::now().timestamp(),
+                created_at: chrono::Utc::now().timestamp_millis(),
                 acknowledged: false,
             });
         }

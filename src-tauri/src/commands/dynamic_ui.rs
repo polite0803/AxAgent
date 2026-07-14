@@ -4,6 +4,9 @@ use axagent_entities::dynamic_ui_form_data::Column as FormDataColumn;
 use axagent_entities::dynamic_ui_form_data::{
     ActiveModel as FormDataActiveModel, Entity as FormDataEntity, Model as FormDataModel,
 };
+use axagent_entities::dynamic_ui_pins::{
+    ActiveModel as PinActiveModel, Column as PinColumn, Entity as PinEntity, Model as PinModel,
+};
 use axagent_entities::dynamic_ui_schema_versions::{
     ActiveModel as VersionActiveModel, Entity as VersionEntity, Model as VersionModel,
 };
@@ -11,6 +14,7 @@ use axagent_entities::dynamic_ui_schemas::{
     ActiveModel as SchemaActiveModel, Column as SchemaColumn, Entity as SchemaEntity,
     Model as SchemaModel,
 };
+use axagent_runtime::llm_bridge::build_llm_bridge_from_db;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, Set,
 };
@@ -492,6 +496,11 @@ pub async fn restore_dynamic_ui_schema_version(
         .map_err(|e| format!("查询版本失败: {e}"))?
         .ok_or_else(|| format!("版本 {} 不存在", version_id))?;
 
+    // 校验版本归属：防止把 Schema A 的历史版本回滚到 Schema B（跨 Schema 数据污染）
+    if version.schema_id != schema_id {
+        return Err(format!("版本 {} 不属于 Schema {}，拒绝回滚", version_id, schema_id));
+    }
+
     // 保存当前版本的快照（回滚前存档）
     let old_version = schema.version.clone();
     create_version_snapshot(
@@ -503,8 +512,8 @@ pub async fn restore_dynamic_ui_schema_version(
     )
     .await?;
 
-    // 解析版本号用于递增
-    let restore_version = bump_patch(&version.version);
+    // 回滚后 live 版本直接沿用目标版本号（不 bump），使版本线清晰可追溯（D-08）
+    let restore_version = version.version.clone();
 
     // 将目标版本的 schema_json + 元数据写回主表
     let mut active: SchemaActiveModel = schema.into();
@@ -597,5 +606,346 @@ pub async fn delete_dynamic_ui_form_data(
         .exec(db)
         .await
         .map_err(|e| format!("删除表单数据失败: {e}"))?;
+    Ok(())
+}
+
+// ── NL2UI 自然语言编辑 ──
+
+/// NL2UI 编辑结果：修改后的完整 Schema + AI 简述
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EditSchemaNlResult {
+    /// 修改后的完整 Schema JSON 字符串
+    pub schema: String,
+    /// 编辑说明（AI 对本次修改的简述）
+    pub description: String,
+}
+
+/// NL2UI 编辑系统提示词：约束 LLM 只输出合法、完整的 UI Schema JSON
+const NL_EDIT_SYSTEM_PROMPT: &str = r#"你是一个 UI Schema 编辑器。你会收到一个已有的 UI Schema（JSON）和一条自然语言编辑指令。
+请严格按照指令修改 Schema，并只输出修改后的【完整】Schema JSON（不要省略任何未被指令修改的部分）。
+
+UI Schema 节点结构（每个节点都是一个 JSON 对象）：
+- version: 字符串，如 "1.0"
+- id: 字符串，节点唯一标识
+- type: 组件类型，必须是以下之一：
+  Container, Row, Column, Grid, Card, Tabs, Accordion, Form, Input, Number,
+  Select, DatePicker, Switch, Checkbox, Radio, Textarea, Table, Chart, List,
+  Dashboard, CodeEditor, FilePreview, Markdown, Image, Button, Text, Divider,
+  Progress, Tag, Tree, Timeline
+- props: 对象，组件属性（如 Input 的 {name,label,placeholder?,required?}；Text 的 {content,strong?}；Form 的 {layout,submitText?}）
+- children: 可选数组，子节点
+- events: 可选数组，事件处理器，如 {trigger:"onSubmit", actions:[{type:"store", config:{}}]}
+- dataSource / conditionalDisplay / style: 可选
+
+编辑规则：
+1. 输出必须是合法 JSON 对象，且是完整的根 Schema（必须包含 version、id、type、props）。
+2. 只修改指令要求的部分，完整保留其他结构与数据。
+3. 不要输出任何解释性文字，不要用 Markdown 代码块（```）包裹。
+4. 修改已有节点时复用其原有 id；新增节点请使用语义化 id。
+5. 如果指令要求新增字段，请将其放入合适的 Form 或容器节点的 children 中。"#;
+
+/// 去除 LLM 输出可能携带的 Markdown 代码块包裹（```json ... ``` 或 ``` ... ```）
+fn strip_code_fence(text: &str) -> String {
+    let trimmed = text.trim();
+    if let Some(rest) = trimmed.strip_prefix("```") {
+        let rest = rest.trim_start_matches("json").trim_start();
+        if let Some(end) = rest.rfind("```") {
+            return rest[..end].trim().to_string();
+        }
+        return rest.trim().to_string();
+    }
+    trimmed.to_string()
+}
+
+/// 基于自然语言指令编辑已有 UI Schema（缺陷 7 补齐：后端 AI 精准编辑）
+///
+/// 优先调用首个启用的 LLM provider 进行精准编辑；未配置 provider 或调用失败时返回错误，
+/// 由前端 `nl2ui-edit.ts` 降级为本地重新生成。
+#[tauri::command]
+pub async fn edit_dynamic_ui_schema_nl(
+    state: State<'_, AppState>,
+    existing_schema: String,
+    prompt: String,
+) -> Result<EditSchemaNlResult, String> {
+    if prompt.trim().is_empty() {
+        return Err("编辑指令不能为空".to_string());
+    }
+
+    // 1. 解析现有 schema，确保输入合法
+    let existing: serde_json::Value =
+        serde_json::from_str(&existing_schema).map_err(|e| format!("现有 Schema 解析失败: {e}"))?;
+
+    // 2. 获取 LLM bridge（首个启用的 provider）
+    let master_key = state.harness.master_key_owned();
+    let bridge = build_llm_bridge_from_db(&master_key)
+        .await
+        .ok_or_else(|| "未配置可用的 LLM provider，无法执行 AI 编辑".to_string())?;
+
+    // 3. 构造提示词
+    let existing_pretty = serde_json::to_string_pretty(&existing).map_err(|e| e.to_string())?;
+    let user_prompt = format!(
+        "现有 Schema:\n{existing_pretty}\n\n编辑指令: {prompt}\n\n请输出修改后的完整 Schema JSON。"
+    );
+
+    // 4. 调用 LLM
+    let response = bridge
+        .call_llm(NL_EDIT_SYSTEM_PROMPT, &user_prompt)
+        .await
+        .map_err(|e| format!("AI 编辑调用失败: {e}"))?;
+
+    // 5. 解析 LLM 输出（兼容 {schema, description} 包装或裸 schema）
+    let cleaned = strip_code_fence(&response);
+    let value: serde_json::Value = serde_json::from_str(&cleaned)
+        .map_err(|e| format!("AI 返回的 Schema 不是合法 JSON: {e}"))?;
+
+    let (schema_value, description) = if let Some(s) = value.get("schema") {
+        let desc = value.get("description").and_then(|d| d.as_str()).unwrap_or("").to_string();
+        (s.clone(), desc)
+    } else {
+        (value.clone(), String::new())
+    };
+
+    // 基本结构校验
+    if schema_value.get("type").is_none() || schema_value.get("id").is_none() {
+        return Err("AI 返回的 Schema 缺少必要字段 (type/id)".to_string());
+    }
+
+    let schema_str = serde_json::to_string(&schema_value).map_err(|e| e.to_string())?;
+    let description = if description.is_empty() {
+        format!("根据指令\"{prompt}\"完成编辑")
+    } else {
+        description
+    };
+
+    tracing::info!(prompt_len = prompt.len(), "AI 编辑 DynamicUI Schema");
+    Ok(EditSchemaNlResult { schema: schema_str, description })
+}
+
+// ── NL2UI 自然语言创建 ──
+
+/// NL2UI 创建结果：生成的完整 Schema + 标题 + 描述
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GenerateSchemaNlResult {
+    /// 生成的完整 Schema JSON 字符串
+    pub schema: String,
+    /// 推断出的页面标题
+    pub title: String,
+    /// 生成说明
+    pub description: String,
+}
+
+/// NL2UI 创建系统提示词：约束 LLM 直接输出一个完整的 UI Schema JSON（含标题/描述包装）
+const NL_GENERATE_SYSTEM_PROMPT: &str = r#"你是一个 UI Schema 生成器。你会收到一段自然语言描述，请生成一个完整的 UI Schema（JSON）。
+
+UI Schema 节点结构（每个节点都是一个 JSON 对象）：
+- version: 字符串，如 "1.0"
+- id: 字符串，节点唯一标识
+- type: 组件类型，必须是以下之一：
+  Container, Row, Column, Grid, Card, Tabs, Accordion, Form, Input, Number,
+  Select, DatePicker, Switch, Checkbox, Radio, Textarea, Table, Chart, List,
+  Dashboard, CodeEditor, FilePreview, Markdown, Image, Button, Text, Divider,
+  Progress, Tag, Tree, Timeline
+- props: 对象，组件属性（如 Input 的 {name,label,placeholder?,required?}；Text 的 {content,strong?}；Form 的 {layout,submitText?}）
+- children: 可选数组，子节点
+- events: 可选数组，事件处理器，如 {trigger:"onSubmit", actions:[{type:"store", config:{}}]}
+- dataSource / conditionalDisplay / style: 可选
+
+生成规则：
+1. 必须包含一个根节点（通常是 Container / Column / Card），并在合适位置内嵌一个 type 为 "Form" 的节点收纳输入字段（如需收集信息）。
+2. Form 节点的 events 必须包含 {trigger:"onSubmit", actions:[{type:"store", config:{}}]}，以便提交时保存数据。
+3. 根据描述推断合适的字段（姓名/邮箱/电话/标题/内容/日期/分类等），字段 name 使用英文 snake_case。
+4. 顶部用 Text 节点展示页面标题（props.content）。
+5. 只输出一个 JSON 对象，格式为：
+{
+  "title": "页面标题",
+  "description": "一句话描述这个页面的用途",
+  "schema": { /* 完整根 Schema JSON */ }
+}
+6. 不要输出任何解释性文字，不要用 Markdown 代码块（```）包裹最外层。"#;
+
+/// 基于自然语言描述生成完整 UI Schema（缺陷 1 补齐：后端 AI 生成）
+///
+/// 优先调用首个启用的 LLM provider 进行生成；未配置 provider 或调用失败时返回错误，
+/// 由前端 `nl2ui.ts` 降级为本地规则生成。
+#[tauri::command]
+pub async fn generate_dynamic_ui_schema_nl(
+    state: State<'_, AppState>,
+    prompt: String,
+) -> Result<GenerateSchemaNlResult, String> {
+    if prompt.trim().is_empty() {
+        return Err("生成指令不能为空".to_string());
+    }
+
+    // 1. 获取 LLM bridge（首个启用的 provider）
+    let master_key = state.harness.master_key_owned();
+    let bridge = build_llm_bridge_from_db(&master_key)
+        .await
+        .ok_or_else(|| "未配置可用的 LLM provider，无法执行 AI 生成".to_string())?;
+
+    // 2. 调用 LLM
+    let response = bridge
+        .call_llm(NL_GENERATE_SYSTEM_PROMPT, &prompt)
+        .await
+        .map_err(|e| format!("AI 生成调用失败: {e}"))?;
+
+    // 3. 解析 LLM 输出（兼容 {schema,title,description} 包装或裸 schema）
+    let cleaned = strip_code_fence(&response);
+    let value: serde_json::Value = serde_json::from_str(&cleaned)
+        .map_err(|e| format!("AI 返回的 Schema 不是合法 JSON: {e}"))?;
+
+    let (schema_value, title, description) = if let Some(s) = value.get("schema") {
+        let t = value.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let d = value.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        (s.clone(), t, d)
+    } else {
+        (value.clone(), String::new(), String::new())
+    };
+
+    // 基本结构校验
+    if schema_value.get("type").is_none() || schema_value.get("id").is_none() {
+        return Err("AI 返回的 Schema 缺少必要字段 (type/id)".to_string());
+    }
+
+    let schema_str = serde_json::to_string(&schema_value).map_err(|e| e.to_string())?;
+    let title = if title.is_empty() {
+        // 尝试从 schema 顶层 Text 节点推断标题
+        schema_value
+            .get("children")
+            .and_then(|c| c.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|n| n.get("props"))
+            .and_then(|p| p.get("content"))
+            .and_then(|c| c.as_str())
+            .unwrap_or("动态UI")
+            .to_string()
+    } else {
+        title
+    };
+    let description = if description.is_empty() {
+        format!("由自然语言生成：{}", prompt.chars().take(50).collect::<String>())
+    } else {
+        description
+    };
+
+    tracing::info!(prompt_len = prompt.len(), "AI 生成 DynamicUI Schema");
+    Ok(GenerateSchemaNlResult { schema: schema_str, title, description })
+}
+
+// ── 导航钉入配置（后端持久化，替代原 localStorage 方案） ──
+
+/// 导航钉入配置 DTO
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DynamicUIPinDTO {
+    pub schema_id: String,
+    pub title: String,
+    pub group_name: String,
+    pub position: i32,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+fn pin_model_to_dto(model: PinModel) -> DynamicUIPinDTO {
+    DynamicUIPinDTO {
+        schema_id: model.schema_id,
+        title: model.title,
+        group_name: model.group_name,
+        position: model.position,
+        created_at: model.created_at,
+        updated_at: model.updated_at,
+    }
+}
+
+/// 列出所有导航钉入配置
+#[tauri::command]
+pub async fn list_dynamic_ui_pins(
+    state: State<'_, AppState>,
+) -> Result<Vec<DynamicUIPinDTO>, String> {
+    let db = state.harness.db();
+    let models = PinEntity::find()
+        .order_by(PinColumn::GroupName, Order::Asc)
+        .order_by(PinColumn::Position, Order::Asc)
+        .all(db)
+        .await
+        .map_err(|e| format!("查询钉入列表失败: {e}"))?;
+    Ok(models.into_iter().map(pin_model_to_dto).collect())
+}
+
+/// 钉入（upsert）一个动态页面到导航。
+///
+/// - `position` 未提供时，自动取该分组内当前最大排序位 + 1（追加到末尾）。
+/// - 已存在同名 schema 的钉入时，覆盖其 title/group_name/position。
+#[tauri::command]
+pub async fn pin_dynamic_ui_schema(
+    state: State<'_, AppState>,
+    schema_id: String,
+    title: String,
+    group_name: String,
+    position: Option<i32>,
+) -> Result<DynamicUIPinDTO, String> {
+    let db = state.harness.db();
+    let now = now_iso();
+
+    // 先查 existing，再算 position（避免 update 时 max 包含自身的 race，D-09）
+    let existing = PinEntity::find_by_id(schema_id.clone())
+        .one(db)
+        .await
+        .map_err(|e| format!("查询钉入失败: {e}"))?;
+
+    let pos = match position {
+        Some(p) => p,
+        None => {
+            if let Some(ref existing_pin) = existing {
+                // 更新已有钉入且未传 position → 保留原有位置（D-09）
+                existing_pin.position
+            } else {
+                let max = PinEntity::find()
+                    .filter(PinColumn::GroupName.eq(&group_name))
+                    .all(db)
+                    .await
+                    .map_err(|e| format!("查询钉入失败: {e}"))?
+                    .into_iter()
+                    .map(|m| m.position)
+                    .max()
+                    .unwrap_or(-1);
+                max + 1
+            }
+        },
+    };
+
+    let model = if let Some(existing) = existing {
+        let mut active: PinActiveModel = existing.into();
+        active.title = Set(title);
+        active.group_name = Set(group_name.clone());
+        active.position = Set(pos);
+        active.updated_at = Set(now);
+        active.update(db).await.map_err(|e| format!("更新钉入失败: {e}"))?
+    } else {
+        let active = PinActiveModel {
+            schema_id: Set(schema_id.clone()),
+            title: Set(title),
+            group_name: Set(group_name.clone()),
+            position: Set(pos),
+            created_at: Set(now.clone()),
+            updated_at: Set(now),
+        };
+        active.insert(db).await.map_err(|e| format!("钉入失败: {e}"))?
+    };
+
+    tracing::info!(schema_id = %schema_id, group_name = %group_name, position = pos, "钉入 DynamicUI 到导航");
+    Ok(pin_model_to_dto(model))
+}
+
+/// 取消钉入（移除导航配置）
+#[tauri::command]
+pub async fn unpin_dynamic_ui_schema(
+    state: State<'_, AppState>,
+    schema_id: String,
+) -> Result<(), String> {
+    let db = state.harness.db();
+    PinEntity::delete_by_id(schema_id.clone())
+        .exec(db)
+        .await
+        .map_err(|e| format!("取消钉入失败: {e}"))?;
+    tracing::info!(schema_id = %schema_id, "取消钉入 DynamicUI");
     Ok(())
 }

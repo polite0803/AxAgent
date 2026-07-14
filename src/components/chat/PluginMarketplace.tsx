@@ -1,64 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { InstallOutcomeDto, PluginManifestDto, PluginSummaryDto } from "@/types";
 import { Badge, Button, Card, Descriptions, Input, message, Modal, Space, Tag, Typography } from "antd";
 import { CheckCircle, Code2, Loader2, PackageSearch, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
-interface PluginSummary {
-  id: string;
-  name: string;
-  version: string;
-  description: string;
-  kind: string;
-  enabled: boolean;
-  tools: string[];
-  mcp_servers: string[];
-  skills: string[];
-}
-
-interface PluginManifest {
-  name: string;
-  version: string;
-  description: string;
-  permissions: string[];
-  default_enabled: boolean;
-  hooks: Record<string, string[]>;
-  tools: { name: string; description: string }[];
-  mcp_servers: { name: string; command: string }[];
-  skills: { name: string; path: string }[];
-}
-
-interface InstallOutcome {
-  plugin_id: string;
-  version: string;
-  install_path: string;
-}
-
 export function PluginMarketplace() {
   const { t } = useTranslation();
-  const [plugins, setPlugins] = useState<PluginSummary[]>([]);
+  const [plugins, setPlugins] = useState<PluginSummaryDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [installing, setInstalling] = useState<string | null>(null);
   const [installInput, setInstallInput] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
-  const [confirmManifest, setConfirmManifest] = useState<PluginManifest | null>(
+  const [confirmManifest, setConfirmManifest] = useState<PluginManifestDto | null>(
     null,
   );
   const [confirmSource, setConfirmSource] = useState("");
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
-    fetchPlugins();
-  }, []);
-
-  const fetchPlugins = async () => {
+  const fetchPlugins = useCallback(async () => {
     setLoading(true);
     try {
       const { invoke, logIpcError } = await import("@/lib/invoke");
-      const data = await invoke<PluginSummary[]>("plugin_list").catch((e) => {
+      const data = await invoke<PluginSummaryDto[]>("plugin_list").catch((e) => {
         if (import.meta.env.DEV) {
           logIpcError("Failed to fetch plugins")(e);
         }
@@ -70,7 +36,11 @@ export function PluginMarketplace() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlugins();
+  }, [fetchPlugins]);
 
   const handleSearchInstall = async () => {
     const source = installInput.trim();
@@ -80,7 +50,7 @@ export function PluginMarketplace() {
     setSearchLoading(true);
     try {
       const { invoke } = await import("@/lib/invoke");
-      const manifest = await invoke<PluginManifest>("plugin_validate_source", {
+      const manifest = await invoke<PluginManifestDto>("plugin_validate_source", {
         source,
       });
       setConfirmManifest(manifest);
@@ -103,7 +73,7 @@ export function PluginMarketplace() {
     setConfirmManifest(null);
     try {
       const { invoke } = await import("@/lib/invoke");
-      const result = await invoke<InstallOutcome>("plugin_install", {
+      const result = await invoke<InstallOutcomeDto>("plugin_install", {
         source: confirmSource,
       });
       message.success(

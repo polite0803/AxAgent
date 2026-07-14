@@ -720,8 +720,10 @@ Only output the JSON, no other text."#,
         store: None,
     };
 
-    let response =
-        adapter.chat(&ctx, llm_request).await.map_err(|e| format!("LLM call failed: {}", e))?;
+    let response = adapter
+        .chat(&ctx, llm_request.into())
+        .await
+        .map_err(|e| format!("LLM call failed: {}", e))?;
 
     let content = response.content.trim();
 

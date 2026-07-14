@@ -61,7 +61,7 @@ interface KnowledgeState {
   clearError: () => void;
   openEntry: (path: string) => Promise<void>;
   revealEntry: (path: string) => Promise<void>;
-  cleanupMissingEntry: (entryId: string) => Promise<void>;
+  deleteEntry: (entryId: string) => Promise<void>;
 
   // --- Knowledge base management ---
   loadBases: () => Promise<void>;
@@ -154,11 +154,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
     }
   },
 
-  cleanupMissingEntry: async (entryId: string) => {
-    const row = get().rows.find((r) => r.id === entryId);
-    if (!row || !row.missing) {
-      return;
-    }
+  deleteEntry: async (entryId: string) => {
     try {
       await invoke("cleanup_missing_files_page_entry", { entryId });
       set((state) => ({ rows: state.rows.filter((r) => r.id !== entryId) }));

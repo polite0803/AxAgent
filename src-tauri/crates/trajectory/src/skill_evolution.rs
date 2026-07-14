@@ -320,6 +320,79 @@ fn serialize_steps(steps: &[ProcedureStep]) -> String {
     content
 }
 
+/// 多维度启发式技能质量评估函数。
+/// 在没有 LLM 时作为后备方案，从结构完整性、代码质量、可读性等维度评分。
+fn evaluate_skill_quality_heuristic(content: &str) -> f64 {
+    let mut score: f64 = 0.0;
+    let content_lower = content.to_lowercase();
+
+    // 1. 结构完整性 (0-0.3): 是否包含关键章节
+    let mut structure_score: f64 = 0.0;
+    let sections = ["# ", "## ", "```", "description", "usage", "example"];
+    for section in &sections {
+        if content_lower.contains(section) {
+            structure_score += 0.05_f64;
+        }
+    }
+    score += structure_score.min(0.3_f64);
+
+    // 2. 代码质量指标 (0-0.25): 错误处理、验证、注释
+    let mut quality_score: f64 = 0.0;
+    let quality_indicators: [(&str, f64); 6] = [
+        ("error", 0.05),
+        ("verify", 0.05),
+        ("check", 0.03),
+        ("validate", 0.05),
+        ("retry", 0.04),
+        ("fallback", 0.03),
+    ];
+    for (indicator, weight) in &quality_indicators {
+        if content_lower.contains(indicator) {
+            quality_score += weight;
+        }
+    }
+    // 检查是否有合理数量的步骤
+    let step_count = content_lower.matches("step").count();
+    quality_score += (step_count.min(3) as f64) * 0.02_f64;
+    score += quality_score.min(0.25_f64);
+
+    // 3. 内容充实度 (0-0.2): 长度适中，不过短也不过长
+    let len = content.len() as f64;
+    let fullness: f64 = if len < 100.0 {
+        0.0
+    } else if len < 500.0 {
+        (len - 100.0) / 400.0 * 0.15
+    } else if len < 5000.0 {
+        0.15 + (len - 500.0) / 4500.0 * 0.05
+    } else {
+        0.2
+    };
+    score += fullness;
+
+    // 4. 可读性 (0-0.15): 段落结构、格式
+    let mut readability: f64 = 0.0;
+    if content.contains('\n') {
+        readability += 0.03_f64;
+    }
+    if content.contains("```") {
+        readability += 0.04_f64;
+    }
+    if content.contains("- ") || content.contains("* ") {
+        readability += 0.04_f64;
+    }
+    if content.contains("> ") {
+        readability += 0.04_f64;
+    }
+    score += readability.min(0.15_f64);
+
+    // 5. 基础分 (0-0.1): 确保任何非空内容都有基础分
+    if !content.is_empty() {
+        score += 0.1_f64;
+    }
+
+    score.clamp(0.0, 1.0)
+}
+
 pub(crate) struct DefaultLlmEvolutionProvider;
 
 impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
@@ -347,26 +420,14 @@ impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
     }
 
     /// ⚠️ 此实现仅为测试/演示用途的后备评估函数。
-    /// 基于内容长度和关键词的简单启发式评分，不反映实际技能质量。
+    /// 基于多维度结构分析进行启发式评分，作为无 LLM 时的替代方案。
     /// 生产环境应在 ExternalLlmEvolutionProvider 中替换为真实的 LLM 评估。
     fn evaluate_quality(
         &self,
         content: &str,
         _context: &str,
     ) -> Pin<Box<dyn Future<Output = Result<f64, String>> + Send + '_>> {
-        // 简单启发式评分：仅用于测试/演示，不反映实际质量
-        let score = (content.len() as f64 / 500.0).min(1.0) * 0.3
-            + if content.contains("error") || content.contains("Error") {
-                0.3
-            } else {
-                0.0
-            }
-            + if content.contains("verify") || content.contains("check") {
-                0.2
-            } else {
-                0.0
-            }
-            + 0.2;
+        let score = evaluate_skill_quality_heuristic(content);
         Box::pin(async move { Ok(score.clamp(0.0, 1.0)) })
     }
 }

@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 use std::sync::{Arc, RwLock};
 
-use crate::dream_consolidation::{
+use axagent_harness::dream::{
     ConsolidationDataProvider, ConsolidationSuggestion, DistilledKnowledge, ExperienceRecord,
     KnowledgeType,
 };
+use async_trait::async_trait;
+
+use crate::dream_consolidation::ReplaySample;
 use crate::skill::Skill;
 use crate::storage::TrajectoryStorage;
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
@@ -114,75 +115,55 @@ fn distilled_knowledge_to_skill(knowledge: &DistilledKnowledge) -> Skill {
     )
 }
 
+#[async_trait]
 impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
-    fn fetch_recent_experiences(
-        &self,
-        limit: usize,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<ExperienceRecord>, String>> + Send + '_>> {
-        let storage = self.storage.clone();
-        Box::pin(async move {
-            let trajectories =
-                storage.get_trajectories(Some(limit)).await.map_err(|e| e.to_string())?;
-            Ok(trajectories.iter().map(trajectory_to_experience_record).collect())
-        })
+    async fn fetch_recent_experiences(&self, limit: usize) -> Result<Vec<ExperienceRecord>, String> {
+        let trajectories =
+            self.storage.get_trajectories(Some(limit)).await.map_err(|e| e.to_string())?;
+        Ok(trajectories.iter().map(trajectory_to_experience_record).collect())
     }
 
-    fn fetch_experience_by_topic(
-        &self,
-        topic: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<ExperienceRecord>, String>> + Send + '_>> {
-        let storage = self.storage.clone();
-        let topic_owned = topic.to_string();
-        Box::pin(async move {
-            let trajectories = storage.get_trajectories(None).await.map_err(|e| e.to_string())?;
-            Ok(trajectories
-                .iter()
-                .filter(|t| t.topic.contains(&topic_owned))
-                .map(trajectory_to_experience_record)
-                .collect())
-        })
+    async fn fetch_experience_by_topic(&self, topic: &str) -> Result<Vec<ExperienceRecord>, String> {
+        let trajectories =
+            self.storage.get_trajectories(None).await.map_err(|e| e.to_string())?;
+        Ok(trajectories
+            .iter()
+            .filter(|t| t.topic.contains(topic))
+            .map(trajectory_to_experience_record)
+            .collect())
     }
 
-    fn store_distilled_knowledge(
-        &self,
-        knowledge: &DistilledKnowledge,
-    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + '_>> {
-        let knowledge_clone = knowledge.clone();
-
+    async fn store_distilled_knowledge(&self, knowledge: &DistilledKnowledge) -> Result<(), String> {
         if let Ok(mut cache) = self.knowledge_cache.write() {
-            cache.insert(knowledge.id.clone(), knowledge_clone);
+            cache.insert(knowledge.id.clone(), knowledge.clone());
         }
 
-        let storage = self.storage.clone();
         let skill = distilled_knowledge_to_skill(knowledge);
-        Box::pin(async move { storage.save_skill(&skill).await.map_err(|e| e.to_string()) })
+        self.storage.save_skill(&skill).await.map_err(|e| e.to_string())
     }
 
-    fn store_suggestion(
-        &self,
-        suggestion: &ConsolidationSuggestion,
-    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + '_>> {
-        let suggestion_clone = suggestion.clone();
-
+    async fn store_suggestion(&self, suggestion: &ConsolidationSuggestion) -> Result<(), String> {
         if let Ok(mut cache) = self.suggestions_cache.write() {
-            cache.insert(suggestion.id.clone(), suggestion_clone);
+            cache.insert(suggestion.id.clone(), suggestion.clone());
         }
 
-        Box::pin(async move { Ok(()) })
+        Ok(())
     }
 
-    fn fetch_existing_knowledge(
+    async fn fetch_existing_knowledge(
         &self,
         knowledge_type: &KnowledgeType,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<DistilledKnowledge>, String>> + Send + '_>> {
-        let kt = knowledge_type.clone();
-        let result = self
-            .knowledge_cache
+    ) -> Result<Vec<DistilledKnowledge>, String> {
+        self.knowledge_cache
             .read()
-            .map(|cache| cache.values().filter(|k| k.knowledge_type == kt).cloned().collect())
-            .map_err(|e| format!("Knowledge cache read lock poisoned: {}", e));
-
-        Box::pin(async move { result })
+            .map(|cache| {
+                cache
+                    .values()
+                    .filter(|k| k.knowledge_type == *knowledge_type)
+                    .cloned()
+                    .collect()
+            })
+            .map_err(|e| format!("Knowledge cache read lock poisoned: {}", e))
     }
 }
 

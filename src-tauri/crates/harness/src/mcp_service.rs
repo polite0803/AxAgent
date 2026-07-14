@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
+use crate::mcp_types::{McpPrompt, McpPromptResult, McpResource, McpResourceContent};
+
 /// MCP server 的最小连接配置 —— 让 gateway 不依赖 `axagent_entities::mcp_servers::Model`
 /// 与 SeaORM。字段对齐 `mcp_client::discover_tools_unified` / `call_tool_unified`
 /// 所需的 transport/command/args/env/endpoint。
@@ -57,4 +59,22 @@ pub trait McpClientService: Send + Sync {
         tool_name: &str,
         args: serde_json::Value,
     ) -> Result<McpToolCallResult, String>;
+
+    // H1: resources / prompts support
+    async fn list_resources(&self, server: &McpServerConfig) -> Result<Vec<McpResource>, String>;
+
+    async fn read_resource(
+        &self,
+        server: &McpServerConfig,
+        uri: &str,
+    ) -> Result<Vec<McpResourceContent>, String>;
+
+    async fn list_prompts(&self, server: &McpServerConfig) -> Result<Vec<McpPrompt>, String>;
+
+    async fn get_prompt(
+        &self,
+        server: &McpServerConfig,
+        name: &str,
+        args: serde_json::Value,
+    ) -> Result<McpPromptResult, String>;
 }

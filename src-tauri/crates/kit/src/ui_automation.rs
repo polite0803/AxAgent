@@ -56,6 +56,48 @@ pub enum KeyModifier {
 
 pub struct UIAutomation;
 
+/// 将截图（物理像素）坐标转换为 Enigo 期望的逻辑坐标。
+///
+/// 截图由 xcap 返回物理像素，而 Enigo `Coordinate::Abs` 使用逻辑坐标（受显示器缩放影响）。
+/// 高 DPI 下若直接把物理坐标喂给 Enigo 会导致点击偏移甚至越界（修复 #7）。
+/// 这里按点所在显示器的真实 scale_factor 做除法；找不到显示器时退化为原坐标。
+#[cfg(not(target_os = "android"))]
+fn to_logical_coords(x: f64, y: f64) -> (i32, i32) {
+    if let Ok(monitors) = xcap::Monitor::all() {
+        for m in &monitors {
+            let mx = match m.x() {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let my = match m.y() {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let mw = match m.width() {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let mh = match m.height() {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let sf = match m.scale_factor() {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let sf = if sf > 0.0 { sf as f64 } else { 1.0 };
+            if x >= mx as f64
+                && x < (mx + mw as i32) as f64
+                && y >= my as f64
+                && y < (my + mh as i32) as f64
+            {
+                return ((x / sf) as i32, (y / sf) as i32);
+            }
+        }
+    }
+    (x as i32, y as i32)
+}
+
 impl UIAutomation {
     pub async fn get_accessible_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
         #[cfg(target_os = "windows")]
@@ -84,10 +126,11 @@ impl UIAutomation {
             MouseButton::Right => Button::Right,
             MouseButton::Middle => Button::Middle,
         };
+        let (lx, ly) = to_logical_coords(x, y);
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
         enigo
-            .move_mouse(x as i32, y as i32, Coordinate::Abs)
+            .move_mouse(lx, ly, Coordinate::Abs)
             .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
         enigo.button(btn, Direction::Click).map_err(|e| anyhow::anyhow!("鼠标点击失败: {e}"))?;
         Ok(())
@@ -103,8 +146,9 @@ impl UIAutomation {
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
         if let (Some(cx), Some(cy)) = (x, y) {
+            let (lx, ly) = to_logical_coords(cx, cy);
             enigo
-                .move_mouse(cx as i32, cy as i32, Coordinate::Abs)
+                .move_mouse(lx, ly, Coordinate::Abs)
                 .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
             enigo
                 .button(Button::Left, Direction::Click)
@@ -150,10 +194,11 @@ impl UIAutomation {
 
     #[cfg(not(target_os = "android"))]
     pub async fn scroll(x: f64, y: f64, delta: i32) -> Result<()> {
+        let (lx, ly) = to_logical_coords(x, y);
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
         enigo
-            .move_mouse(x as i32, y as i32, Coordinate::Abs)
+            .move_mouse(lx, ly, Coordinate::Abs)
             .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
         enigo.scroll(-delta, Axis::Vertical).map_err(|e| anyhow::anyhow!("滚动失败: {e}"))?;
         Ok(())
@@ -166,10 +211,11 @@ impl UIAutomation {
 
     #[cfg(not(target_os = "android"))]
     pub async fn move_mouse(x: f64, y: f64) -> Result<()> {
+        let (lx, ly) = to_logical_coords(x, y);
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
         enigo
-            .move_mouse(x as i32, y as i32, Coordinate::Abs)
+            .move_mouse(lx, ly, Coordinate::Abs)
             .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
         Ok(())
     }
@@ -187,22 +233,39 @@ impl UIAutomation {
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName UIAutomationClient
 $ui = [System.Windows.Automation.AutomationElement]::RootElement
-$cond = [System.Windows.Automation.Condition]::TrueCondition
-$elements = $ui.FindAll([System.Windows.Automation.TreeScope]::Children, $cond)
+# 仅匹配常见可交互控件类型（修复 #9：原实现只列顶层窗口，无法定位按钮/输入框）
+$ctlTypes = @('Button','Edit','ComboBox','Hyperlink','CheckBox','RadioButton','ListItem','TreeItem','MenuItem','Slider','Spinner')
+$conds = @()
+foreach ($t in $ctlTypes) {
+    $ct = [System.Windows.Automation.ControlType]::$t
+    $conds += [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, $ct)
+}
+$cond = [System.Windows.Automation.OrCondition]::new($conds)
+$elements = $ui.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
 $results = @()
+$count = 0
 foreach ($el in $elements) {
     try {
         $rect = $el.Current.BoundingRectangle
         if ($rect.Width -gt 0 -and $rect.Height -gt 0) {
+            $value = $null
+            try {
+                $vp = $el.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+                $value = $vp.Current.Value
+            } catch {}
             $results += @{
                 role = $el.Current.ControlType.ProgrammaticName
                 name = $el.Current.Name
+                value = [string]$value
                 x = $rect.X
                 y = $rect.Y
                 width = $rect.Width
                 height = $rect.Height
                 isClickable = -not $el.Current.IsOffscreen
+                isEditable = $el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit
             }
+            $count++
+            if ($count -ge 300) { break }
         }
     } catch {}
 }
@@ -227,10 +290,11 @@ $results | ConvertTo-Json -Compress
                 continue;
             }
 
+            let value = raw["value"].as_str().filter(|s| !s.is_empty()).map(|s| s.to_string());
             elements.push(UIElement {
                 role: raw["role"].as_str().unwrap_or("unknown").to_string(),
                 name,
-                value: None,
+                value,
                 bounds: CGRect {
                     x: raw["x"].as_f64().unwrap_or(0.0),
                     y: raw["y"].as_f64().unwrap_or(0.0),
@@ -238,7 +302,7 @@ $results | ConvertTo-Json -Compress
                     height: raw["height"].as_f64().unwrap_or(0.0),
                 },
                 is_clickable: raw["isClickable"].as_bool().unwrap_or(false),
-                is_editable: false,
+                is_editable: raw["isEditable"].as_bool().unwrap_or(false),
                 children_count: None,
                 application: String::new(),
                 window_title: String::new(),
@@ -428,18 +492,9 @@ fn map_key(key: &str) -> Key {
         "End" | "end" => Key::End,
         "PageUp" | "pageup" => Key::PageUp,
         "PageDown" | "pagedown" => Key::PageDown,
-        "Insert" | "insert" => {
-            #[cfg(not(target_os = "macos"))]
-            {
-                Key::Insert
-            }
-            #[cfg(target_os = "macos")]
-            {
-                Key::Unicode('⎀')
-            }
-        },
+        "Insert" | "insert" => Key::Insert,
         "CapsLock" | "capslock" => Key::CapsLock,
-        s if s.starts_with('F') || s.starts_with('f') => {
+        s if s.len() > 1 && (s.starts_with('F') || s.starts_with('f')) => {
             let n: u8 = s[1..].parse().unwrap_or(1);
             match n {
                 1 => Key::F1,

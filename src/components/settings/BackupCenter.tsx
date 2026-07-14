@@ -2,7 +2,7 @@
 
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useBackupStore } from "@/stores";
-import type { BackupManifest } from "@/types";
+import type { BackupManifest, RestoreStrategy } from "@/types";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   App,
@@ -32,8 +32,11 @@ function formatFileSize(bytes: number): string {
   if (bytes === 0) {
     return "0 B";
   }
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
@@ -58,6 +61,7 @@ export function BackupCenter() {
   const [restoreTarget, setRestoreTarget] = useState<BackupManifest | null>(
     null,
   );
+  const [restoreStrategy, setRestoreStrategy] = useState<RestoreStrategy>("overwrite");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [form] = Form.useForm();
   const [settingsForm] = Form.useForm();
@@ -88,9 +92,10 @@ export function BackupCenter() {
       return;
     }
     try {
-      await restoreBackup(restoreTarget.id);
+      await restoreBackup(restoreTarget.id, restoreStrategy);
       message.success(t("backup.restoreSuccess"));
       setRestoreTarget(null);
+      setRestoreStrategy("overwrite");
     } catch {
       message.error(t("error.unknown"));
     }
@@ -118,8 +123,10 @@ export function BackupCenter() {
     try {
       const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
       await revealItemInDir(filePath);
-    } catch {
-      message.error(t("error.unknown"));
+    } catch (e) {
+      message.error(
+        t("backup.openFolderError", { path: filePath, error: String(e) }),
+      );
     }
   };
 
@@ -347,12 +354,27 @@ export function BackupCenter() {
         title={t("backup.restore")}
         open={!!restoreTarget}
         onOk={handleRestore}
-        onCancel={() => setRestoreTarget(null)}
+        onCancel={() => {
+          setRestoreTarget(null);
+          setRestoreStrategy("overwrite");
+        }}
         okButtonProps={{ danger: true }}
         confirmLoading={loading}
         mask={{ enabled: true, blur: true }}
       >
         <Text type="warning">{t("backup.restoreWarning")}</Text>
+        <div style={{ marginTop: 12 }}>
+          <Select
+            value={restoreStrategy}
+            onChange={setRestoreStrategy}
+            style={{ width: "100%" }}
+            options={[
+              { label: t("backup.strategyOverwrite"), value: "overwrite" },
+              { label: t("backup.strategyMerge"), value: "merge" },
+              { label: t("backup.strategyDryRun"), value: "dry_run" },
+            ]}
+          />
+        </div>
       </Modal>
 
       {/* Auto-backup settings modal */}

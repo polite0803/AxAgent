@@ -17,8 +17,10 @@ pub async fn upload_file(
     conversation_id: Option<String>,
 ) -> Result<StoredFile, String> {
     const MAX_BASE64_SIZE: usize = 100 * 1024 * 1024;
+    // base64 编码膨胀约 33%，实际文件大小上限约为 75MB
+    const MAX_FILE_SIZE_MB: usize = MAX_BASE64_SIZE * 3 / 4 / (1024 * 1024);
     if data.len() > MAX_BASE64_SIZE {
-        return Err(format!("file too large (max {} MB)", MAX_BASE64_SIZE / (1024 * 1024)));
+        return Err(format!("file too large (max {} MB)", MAX_FILE_SIZE_MB));
     }
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD

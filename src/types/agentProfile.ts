@@ -14,6 +14,8 @@ export interface AgentProfile {
   description: string | null;
   /** i18n 键（用于内置预设），如 "expertPreset.generalAssistant.description" */
   descKey?: string;
+  /** 系统提示词（builtin/agency 来源有效，custom 来源为空） */
+  systemPrompt?: string;
   category: ExpertCategory;
   icon: string;
   /** AgentRole 类型字符串, null 表示自动推断 */

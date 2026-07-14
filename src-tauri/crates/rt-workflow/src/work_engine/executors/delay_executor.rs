@@ -73,6 +73,8 @@ impl NodeExecutorTrait for DelayExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: None,
+            control: None,
         })
     }
 }
+

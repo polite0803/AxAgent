@@ -226,7 +226,7 @@ impl SkillMatcher {
         for skill in installed_skills {
             let tags = skill.metadata.hermes.tags.clone();
 
-            let (score, _reasons) = calculate_match_score(
+            let (score, reasons) = calculate_match_score(
                 user_input,
                 &skill.id,
                 &skill.name,
@@ -246,7 +246,7 @@ impl SkillMatcher {
                 matches.push(SkillMatch {
                     skill: matched_skill,
                     match_score: score,
-                    match_reasons: Vec::new(),
+                    match_reasons: reasons,
                     source: MatchSource::Installed,
                 });
             }

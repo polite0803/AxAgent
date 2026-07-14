@@ -170,10 +170,14 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
     set((state) => {
       const buffer = state.outputBuffers[id] ?? [];
       const lines = data.split("\n");
+      // 先限制 lines 数量，再合并，避免创建超大数组
+      const maxLines = 5000;
+      const trimmedLines = lines.length > maxLines ? lines.slice(-maxLines) : lines;
+      const combined = [...buffer, ...trimmedLines];
       return {
         outputBuffers: {
           ...state.outputBuffers,
-          [id]: [...buffer, ...lines].slice(-5000),
+          [id]: combined.length > maxLines ? combined.slice(-maxLines) : combined,
         },
       };
     });

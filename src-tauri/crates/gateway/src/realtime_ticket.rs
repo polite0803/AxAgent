@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
+use tokio::sync::watch;
 use uuid::Uuid;
 
 /// A single-use ticket. Clone-able so we can hand the id back to the caller
@@ -37,10 +38,15 @@ pub struct Ticket {
 /// expired tickets out of the map every [`SWEEP_INTERVAL`] seconds so the
 /// store cannot grow unbounded under attack (a valid Bearer spamming
 /// `POST /v1/realtime-ticket` without ever consuming the tickets).
+///
+/// Call [`TicketStore::shutdown`] to gracefully terminate the sweeper task
+/// when the gateway server stops. This prevents zombie tasks from accumulating
+/// across multiple start/stop cycles in test or development environments.
 #[derive(Clone)]
 pub struct TicketStore {
     ttl: Duration,
     inner: Arc<Mutex<HashMap<String, Ticket>>>,
+    shutdown_tx: watch::Sender<()>,
 }
 
 /// How often the background sweeper wakes up. 10s is plenty given the 30s
@@ -51,8 +57,17 @@ const SWEEP_INTERVAL: Duration = Duration::from_secs(10);
 impl TicketStore {
     pub fn new(ttl: Duration) -> Self {
         let inner = Arc::new(Mutex::new(HashMap::new()));
-        Self::spawn_sweeper(inner.clone(), SWEEP_INTERVAL);
-        Self { ttl, inner }
+        let (shutdown_tx, shutdown_rx) = watch::channel(());
+        Self::spawn_sweeper(inner.clone(), SWEEP_INTERVAL, shutdown_rx);
+        Self { ttl, inner, shutdown_tx }
+    }
+
+    /// Signal the background sweeper task to terminate gracefully.
+    /// Safe to call multiple times; subsequent calls are no-ops.
+    /// After shutdown, the store remains usable for issue/consume/sweep_now
+    /// but expired tickets will no longer be cleaned automatically.
+    pub fn shutdown(&self) {
+        let _ = self.shutdown_tx.send(());
     }
 
     /// Issue a new ticket bound to `key_id`. The returned `Ticket.ticket_id`
@@ -101,15 +116,24 @@ impl TicketStore {
         removed
     }
 
-    fn spawn_sweeper(inner: Arc<Mutex<HashMap<String, Ticket>>>, interval: Duration) {
+    fn spawn_sweeper(
+        inner: Arc<Mutex<HashMap<String, Ticket>>>,
+        interval: Duration,
+        mut shutdown_rx: watch::Receiver<()>,
+    ) {
         tokio::spawn(async move {
-            // First tick fires immediately; skip it so we don't sweep an
-            // empty store on startup.
             let mut tick = tokio::time::interval(interval);
             tick.tick().await;
             loop {
-                tick.tick().await;
-                Self::sweep(&inner);
+                tokio::select! {
+                    _ = tick.tick() => {
+                        Self::sweep(&inner);
+                    }
+                    _ = shutdown_rx.changed() => {
+                        tracing::debug!("realtime ticket sweeper shutting down");
+                        break;
+                    }
+                }
             }
         });
     }
@@ -165,5 +189,21 @@ mod tests {
         let removed = store.sweep_now().await;
         assert!(removed >= 1, "sweep should have removed at least one ticket");
         assert!(store.consume(&ticket.ticket_id).await.is_none(), "expired ticket should be swept");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn shutdown_terminates_sweeper() {
+        let store = TicketStore::new(Duration::from_secs(30));
+        // Issue a ticket to confirm the store works.
+        let ticket = store.issue("key-1").await;
+        assert!(store.consume(&ticket.ticket_id).await.is_some());
+
+        // Shutdown should not panic and should be idempotent.
+        store.shutdown();
+        store.shutdown(); // Second call is a no-op.
+
+        // Store should still be usable after shutdown (manual sweep only).
+        let ticket2 = store.issue("key-2").await;
+        assert!(store.consume(&ticket2.ticket_id).await.is_some());
     }
 }

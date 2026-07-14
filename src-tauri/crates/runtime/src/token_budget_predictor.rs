@@ -242,7 +242,7 @@ mod tests {
             usage: None,
         };
         for _ in 0..25 {
-            predictor.evaluate(&[msg.clone()]);
+            predictor.evaluate(std::slice::from_ref(&msg));
         }
         assert!(predictor.history.len() <= 20);
     }

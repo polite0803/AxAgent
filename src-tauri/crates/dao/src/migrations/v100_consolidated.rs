@@ -188,6 +188,99 @@ const ALTER_TARGETS: &[(&str, &str)] = &[
     ("credentials", "updated_at"),
 ];
 
+// ============================================================================
+// REAL → DOUBLE PRECISION 目标列表
+// ============================================================================
+// SQLite 的 `REAL` 是 8 字节双精度（f64），但 PostgreSQL 的 `REAL` 是 4 字节
+// 单精度（f32，即 FLOAT4）。v100 的 DDL 中大量浮点列声明为 `REAL`，在 SQLite
+// 上与 entity 的 `f64` 匹配，但在 PG 上变成 FLOAT4，导致 SeaORM 解码报错：
+//
+//   `Rust type core::option::Option<f64> (as SQL type FLOAT8)
+//    is not compatible with SQL type FLOAT4`
+//
+// `pg_ddl()` 已修复（新表在 PG 上直接创建为 `DOUBLE PRECISION`）。本列表用于
+// 修正已存在的 PG 数据库：把 entity 为 `f64` 的列从 `real` ALTER 为
+// `double precision`。entity 为 `f32` 的列（`retrieval_threshold`、
+// `avg_reward`）保持 `REAL`，不在此列表中。
+// ============================================================================
+
+const REAL_TO_DOUBLE_TARGETS: &[(&str, &str)] = &[
+    // agent_sessions
+    ("agent_sessions", "total_cost_usd"),
+    // retrieval_hits
+    ("retrieval_hits", "score"),
+    // trajectories — 质量评分
+    ("trajectories", "quality_overall"),
+    ("trajectories", "quality_task_completion"),
+    ("trajectories", "quality_tool_efficiency"),
+    ("trajectories", "quality_reasoning_quality"),
+    ("trajectories", "quality_user_satisfaction"),
+    ("trajectories", "value_score"),
+    // trajectory_entities / trajectory_preferences
+    ("trajectory_entities", "confidence"),
+    ("trajectory_preferences", "confidence"),
+    // trajectory_memories
+    ("trajectory_memories", "importance"),
+    ("trajectory_memories", "decay_rate"),
+    // trajectory_patterns
+    ("trajectory_patterns", "success_rate"),
+    ("trajectory_patterns", "average_quality"),
+    ("trajectory_patterns", "average_value_score"),
+    // trajectory_relationships
+    ("trajectory_relationships", "weight"),
+    // trajectory_rewards
+    ("trajectory_rewards", "value"),
+    // trajectory_skills
+    ("trajectory_skills", "success_rate"),
+    ("trajectory_skills", "avg_execution_time_ms"),
+    // workflow_marketplace
+    ("workflow_marketplace", "rating_average"),
+    // models — 定价
+    ("models", "input_price_per_mtok"),
+    ("models", "output_price_per_mtok"),
+    // conversations — 采样参数
+    ("conversations", "temperature"),
+    ("conversations", "top_p"),
+    ("conversations", "frequency_penalty"),
+    // messages
+    ("messages", "tokens_per_second"),
+    // conversation_categories
+    ("conversation_categories", "default_temperature"),
+    ("conversation_categories", "default_top_p"),
+    ("conversation_categories", "default_frequency_penalty"),
+    // agent_profiles
+    ("agent_profiles", "suggested_temperature"),
+    // wiki_pages / notes
+    ("wiki_pages", "quality_score"),
+    ("notes", "quality_score"),
+];
+
+// ============================================================================
+// INTEGER → BOOLEAN 目标列表：entity 中声明为 `bool` 的列，在 DDL 中写作
+// `INTEGER`，PG 下需要 ALTER 为 `BOOLEAN`。幂等：仅 data_type = 'integer'
+// 才转换。
+// ============================================================================
+
+const BOOL_ALTER_TARGETS: &[(&str, &str)] = &[
+    ("agent_sessions", "workspace_locked"),
+    ("agent_profiles", "search_enabled"),
+    ("knowledge_attributes", "is_required"),
+    ("prompt_templates", "is_active"),
+    ("prompt_templates", "ab_test_enabled"),
+    ("prompt_templates", "is_favorite"),
+    ("wiki_templates", "is_builtin"),
+    ("workflow_marketplace", "is_featured"),
+    ("workflow_marketplace", "is_verified"),
+    ("workflow_marketplace", "is_public"),
+    ("workflow_marketplace_reviews", "is_hidden"),
+    ("workflow_templates", "is_preset"),
+    ("workflow_templates", "is_editable"),
+    ("workflow_templates", "is_public"),
+    ("workflow_template_versions", "is_preset"),
+    ("workflow_template_versions", "is_editable"),
+    ("workflow_template_versions", "is_public"),
+];
+
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let is_pg = db.get_database_backend() == DbBackend::Postgres;
 
@@ -449,7 +542,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, \
             summary_text TEXT NOT NULL, compressed_until_message_id TEXT, \
             token_count BIGINT, model_used TEXT, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // conversation_categories
         "CREATE TABLE IF NOT EXISTS conversation_categories (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, \
@@ -466,11 +560,12 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         // agent_sessions
         "CREATE TABLE IF NOT EXISTS agent_sessions (\
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, cwd TEXT, \
-            workspace_locked INTEGER NOT NULL DEFAULT 0, permission_mode TEXT NOT NULL, \
+            workspace_locked BOOLEAN NOT NULL DEFAULT FALSE, permission_mode TEXT NOT NULL, \
             runtime_status TEXT NOT NULL, sdk_context_json TEXT, \
             sdk_context_backup_json TEXT, total_tokens INTEGER NOT NULL DEFAULT 0, \
             total_cost_usd REAL NOT NULL DEFAULT 0.0, \
-            created_at TEXT NOT NULL, updated_at TEXT NOT NULL)",
+            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // wikis
         "CREATE TABLE IF NOT EXISTS wikis (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, root_path TEXT NOT NULL, \
@@ -540,7 +635,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             source TEXT NOT NULL DEFAULT 'builtin', tags TEXT, \
             suggested_provider_id TEXT, suggested_model_id TEXT, \
             suggested_temperature REAL, suggested_max_tokens BIGINT, \
-            search_enabled INTEGER, recommend_permission_mode TEXT, \
+            search_enabled BOOLEAN, recommend_permission_mode TEXT, \
             recommended_tools TEXT, disallowed_tools TEXT, recommended_workflows TEXT, \
             sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
             expert_id TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
@@ -568,16 +663,16 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS workflow_templates (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
             icon TEXT NOT NULL DEFAULT '', tags TEXT, version INTEGER NOT NULL DEFAULT 1, \
-            is_preset INTEGER NOT NULL DEFAULT 0, is_editable INTEGER NOT NULL DEFAULT 1, \
-            is_public INTEGER NOT NULL DEFAULT 0, trigger_config TEXT, \
+            is_preset BOOLEAN NOT NULL DEFAULT FALSE, is_editable BOOLEAN NOT NULL DEFAULT TRUE, \
+            is_public BOOLEAN NOT NULL DEFAULT FALSE, trigger_config TEXT, \
             nodes TEXT NOT NULL, edges TEXT NOT NULL, input_schema TEXT, output_schema TEXT, \
             variables TEXT, error_config TEXT, composite_source TEXT, tool_defs TEXT, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS workflow_template_versions (\
             id TEXT NOT NULL PRIMARY KEY, template_id TEXT NOT NULL, name TEXT NOT NULL, \
             description TEXT, icon TEXT NOT NULL DEFAULT '', tags TEXT, \
-            version INTEGER NOT NULL, is_preset INTEGER NOT NULL DEFAULT 0, \
-            is_editable INTEGER NOT NULL DEFAULT 1, is_public INTEGER NOT NULL DEFAULT 0, \
+            version INTEGER NOT NULL, is_preset BOOLEAN NOT NULL DEFAULT FALSE, \
+            is_editable BOOLEAN NOT NULL DEFAULT TRUE, is_public BOOLEAN NOT NULL DEFAULT FALSE, \
             trigger_config TEXT, nodes TEXT NOT NULL, edges TEXT NOT NULL, \
             input_schema TEXT, output_schema TEXT, variables TEXT, error_config TEXT, \
             created_at BIGINT NOT NULL)",
@@ -588,14 +683,13 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS workflow_marketplace (\
             id TEXT NOT NULL PRIMARY KEY, template_id TEXT NOT NULL, author_id TEXT NOT NULL, \
             name TEXT NOT NULL, description TEXT, category TEXT NOT NULL, \
-            icon TEXT NOT NULL DEFAULT '', tags TEXT, downloads BIGINT NOT NULL DEFAULT 0, \
-            rating_average REAL NOT NULL DEFAULT 0.0, rating_count INTEGER NOT NULL DEFAULT 0, \
-            is_featured INTEGER NOT NULL DEFAULT 0, is_verified INTEGER NOT NULL DEFAULT 0, \
-            is_public INTEGER NOT NULL DEFAULT 1, created_at BIGINT NOT NULL, \
+            icon TEXT NOT NULL DEFAULT '', tags TEXT, downloads BIGINT NOT NULL DEFAULT 0, rating_average REAL NOT NULL DEFAULT 0.0, rating_count INTEGER NOT NULL DEFAULT 0, \
+            is_featured BOOLEAN NOT NULL DEFAULT FALSE, is_verified BOOLEAN NOT NULL DEFAULT FALSE, \
+            is_public BOOLEAN NOT NULL DEFAULT TRUE, created_at BIGINT NOT NULL, \
             updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS workflow_marketplace_reviews (\
             id TEXT NOT NULL PRIMARY KEY, marketplace_id TEXT NOT NULL, user_id TEXT NOT NULL, \
-            rating INTEGER NOT NULL, comment TEXT, is_hidden INTEGER NOT NULL DEFAULT 0, \
+            rating INTEGER NOT NULL, comment TEXT, is_hidden BOOLEAN NOT NULL DEFAULT FALSE, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS workflow_snapshots (\
             id TEXT NOT NULL PRIMARY KEY, workflow_id TEXT NOT NULL, \
@@ -657,7 +751,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, \
             entity_id TEXT NOT NULL, name TEXT NOT NULL, attribute_type TEXT NOT NULL, \
             data_type TEXT NOT NULL, description TEXT, \
-            is_required INTEGER NOT NULL DEFAULT 0, default_value TEXT, constraints TEXT, \
+            is_required BOOLEAN NOT NULL DEFAULT FALSE, default_value TEXT, constraints TEXT, \
             validation_rules TEXT, metadata TEXT, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS knowledge_relations (\
@@ -687,11 +781,11 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS prompt_templates (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
             content TEXT NOT NULL, variables_schema TEXT, version INTEGER NOT NULL DEFAULT 1, \
-            is_active INTEGER NOT NULL DEFAULT 1, ab_test_enabled INTEGER NOT NULL DEFAULT 0, \
+            is_active BOOLEAN NOT NULL DEFAULT TRUE, ab_test_enabled BOOLEAN NOT NULL DEFAULT FALSE, \
             ab_test_variant TEXT, \
             category TEXT, tags TEXT, author TEXT, source TEXT, source_type TEXT, \
             format TEXT DEFAULT 'plain', metadata_json TEXT, \
-            usage_count INTEGER NOT NULL DEFAULT 0, is_favorite INTEGER NOT NULL DEFAULT 0, \
+            usage_count INTEGER NOT NULL DEFAULT 0, is_favorite BOOLEAN NOT NULL DEFAULT FALSE, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS prompt_template_versions (\
             id TEXT NOT NULL PRIMARY KEY, template_id TEXT NOT NULL, version INTEGER NOT NULL, \
@@ -716,7 +810,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS wiki_templates (\
             id TEXT NOT NULL PRIMARY KEY, wiki_id TEXT NOT NULL, name TEXT NOT NULL, \
             description TEXT, content TEXT NOT NULL, page_type TEXT, \
-            is_builtin INTEGER NOT NULL DEFAULT 0, \
+            is_builtin BOOLEAN NOT NULL DEFAULT FALSE, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS wiki_page_versions (\
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, wiki_id TEXT NOT NULL, \
@@ -743,7 +837,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             content TEXT NOT NULL, reasoning TEXT, tool_calls TEXT, tool_results TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_rewards (\
             id TEXT PRIMARY KEY, trajectory_id TEXT NOT NULL, reward_type TEXT NOT NULL, \
-            value REAL NOT NULL, created_at TEXT NOT NULL)",
+            step_index INTEGER NOT NULL DEFAULT 0, value REAL NOT NULL, created_at TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS trajectory_skills (\
             id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, \
             skill_type TEXT NOT NULL, content TEXT NOT NULL, category TEXT NOT NULL, \
@@ -823,6 +917,19 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
          schema_id TEXT NOT NULL, \
          form_data_json TEXT NOT NULL, \
          instance_key TEXT NOT NULL DEFAULT 'default', \
+         updated_at TEXT NOT NULL)",
+    )
+    .await?;
+
+    // --- v004b: Dynamic UI pins (导航钉入配置，后端持久化) ---
+
+    db.execute_unprepared(
+        "CREATE TABLE IF NOT EXISTS dynamic_ui_pins (\
+         schema_id TEXT NOT NULL PRIMARY KEY, \
+         title TEXT NOT NULL, \
+         group_name TEXT NOT NULL DEFAULT 'other', \
+         position INTEGER NOT NULL DEFAULT 0, \
+         created_at TEXT NOT NULL, \
          updated_at TEXT NOT NULL)",
     )
     .await?;
@@ -1009,6 +1116,122 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     }
 
     // ========================================================================
+    // PHASE 3.5: REAL → DOUBLE PRECISION 修正通道（仅 PG）
+    //   SQLite 的 `REAL` 是 8 字节双精度（f64），但 PG 的 `REAL` 是 4 字节
+    //   单精度（f32，FLOAT4）。v100 DDL 中浮点列声明为 `REAL`，在 PG 上变
+    //   FLOAT4，与 entity 的 `f64`（FLOAT8）不匹配。`pg_ddl()` 已修复新表，
+    //   本通道修正已存在 PG 数据库：把 entity 为 `f64` 的列从 `real` ALTER
+    //   为 `double precision`。幂等：仅 data_type = 'real' 才转换。
+    // ========================================================================
+
+    if is_pg {
+        let mut real_altered = 0usize;
+        let mut real_skipped = 0usize;
+        let mut real_missing = 0usize;
+
+        for (table, column) in REAL_TO_DOUBLE_TARGETS {
+            let row = db
+                .query_one_raw(sea_orm::Statement::from_string(
+                    DbBackend::Postgres,
+                    format!(
+                        "SELECT data_type FROM information_schema.columns \
+                         WHERE table_schema = current_schema() \
+                           AND table_name = '{table}' AND column_name = '{column}'"
+                    ),
+                ))
+                .await?;
+
+            match row {
+                None => {
+                    real_missing += 1;
+                },
+                Some(r) => {
+                    let data_type: Option<String> = r.try_get_by("data_type").ok();
+                    match data_type.as_deref() {
+                        Some("real") => {
+                            let sql = format!(
+                                "ALTER TABLE {table} \
+                                 ALTER COLUMN {column} TYPE DOUBLE PRECISION USING {column}::double precision"
+                            );
+                            db.execute_unprepared(&sql).await?;
+                            real_altered += 1;
+                        },
+                        _ => {
+                            real_skipped += 1;
+                        },
+                    }
+                },
+            }
+        }
+
+        tracing::info!(
+            "[v100] REAL→DOUBLE PRECISION pass done: {} ALTERed, {} skipped (already double precision), {} missing (table/column not found)",
+            real_altered,
+            real_skipped,
+            real_missing
+        );
+    } else {
+        tracing::info!("[v100] SQLite: REAL→DOUBLE PRECISION pass no-op");
+    }
+
+    // ========================================================================
+    // PHASE 3.6: INTEGER → BOOLEAN 修正通道（仅 PG）
+    //   entity 中声明为 `bool` 的列，在 DDL 中写作 `INTEGER`（SQLite 无 native
+    //   BOOLEAN），但 PG 下 SeaORM 强类型检查要求 `BOOL`。幂等：仅
+    //   data_type = 'integer' 才转换。
+    // ========================================================================
+
+    if is_pg {
+        let mut bool_altered = 0usize;
+        let mut bool_skipped = 0usize;
+        let mut bool_missing = 0usize;
+
+        for (table, column) in BOOL_ALTER_TARGETS {
+            let row = db
+                .query_one_raw(sea_orm::Statement::from_string(
+                    DbBackend::Postgres,
+                    format!(
+                        "SELECT data_type FROM information_schema.columns \
+                         WHERE table_schema = current_schema() \
+                           AND table_name = '{table}' AND column_name = '{column}'"
+                    ),
+                ))
+                .await?;
+
+            match row {
+                None => {
+                    bool_missing += 1;
+                },
+                Some(r) => {
+                    let data_type: Option<String> = r.try_get_by("data_type").ok();
+                    match data_type.as_deref() {
+                        Some("integer") => {
+                            let sql = format!(
+                                "ALTER TABLE {table} \
+                                 ALTER COLUMN {column} TYPE BOOLEAN USING {column}::boolean"
+                            );
+                            db.execute_unprepared(&sql).await?;
+                            bool_altered += 1;
+                        },
+                        _ => {
+                            bool_skipped += 1;
+                        },
+                    }
+                },
+            }
+        }
+
+        tracing::info!(
+            "[v100] INTEGER→BOOLEAN pass done: {} ALTERed, {} skipped (already BOOLEAN or not INTEGER), {} missing (table/column not found)",
+            bool_altered,
+            bool_skipped,
+            bool_missing
+        );
+    } else {
+        tracing::info!("[v100] SQLite: INTEGER→BOOLEAN pass no-op");
+    }
+
+    // ========================================================================
     // PHASE 4: 全部索引
     // ========================================================================
 
@@ -1102,6 +1325,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
          ON dynamic_ui_schemas (updated_at DESC)",
         "CREATE INDEX IF NOT EXISTS idx_dynamic_ui_form_data_schema \
          ON dynamic_ui_form_data (schema_id)",
+        "CREATE INDEX IF NOT EXISTS idx_dynamic_ui_pins_group \
+         ON dynamic_ui_pins (group_name, position)",
     ] {
         db.execute_unprepared(sql).await?;
     }
@@ -1221,6 +1446,53 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             db.execute_unprepared(sql).await?;
         }
     }
+
+    // ========================================================================
+    // PHASE 7: workflow_approvals 表 — ApprovalNode HITL 审批持久化
+    // ========================================================================
+
+    let create_approvals = if is_pg {
+        "CREATE TABLE IF NOT EXISTS workflow_approvals (
+            id TEXT NOT NULL PRIMARY KEY,
+            execution_id TEXT NOT NULL,
+            node_id TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            title TEXT NOT NULL DEFAULT '',
+            message TEXT NOT NULL DEFAULT '',
+            approver TEXT,
+            channels TEXT,
+            payload TEXT,
+            decision TEXT,
+            approver_actual TEXT,
+            comment TEXT,
+            timeout_secs BIGINT NOT NULL DEFAULT 86400,
+            expires_at BIGINT NOT NULL DEFAULT 0,
+            created_at BIGINT NOT NULL,
+            resolved_at BIGINT
+        )"
+    } else {
+        "CREATE TABLE IF NOT EXISTS workflow_approvals (
+            id TEXT NOT NULL PRIMARY KEY,
+            execution_id TEXT NOT NULL,
+            node_id TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            title TEXT NOT NULL DEFAULT '',
+            message TEXT NOT NULL DEFAULT '',
+            approver TEXT,
+            channels TEXT,
+            payload TEXT,
+            decision TEXT,
+            approver_actual TEXT,
+            comment TEXT,
+            timeout_secs INTEGER NOT NULL DEFAULT 86400,
+            expires_at INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            resolved_at INTEGER
+        )"
+    };
+    db.execute_unprepared(create_approvals).await?;
+    db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_wf_approvals_exec ON workflow_approvals(execution_id)").await?;
+    db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_wf_approvals_status ON workflow_approvals(status)").await?;
 
     Ok(())
 }

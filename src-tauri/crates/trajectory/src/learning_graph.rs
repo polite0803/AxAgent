@@ -13,6 +13,7 @@ use crate::insight::{InsightCategory, LearningInsight};
 use crate::skill::Skill;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 
 /// Node kind in the learning graph.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,6 +79,15 @@ pub struct CategoryCount {
     pub count: usize,
 }
 
+/// Build a consistent, content-derived ID for a memory node so that
+/// the same memory always maps to the same ID regardless of ordering.
+fn memory_node_id(mem: &ExtractedMemory) -> String {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    mem.content.hash(&mut hasher);
+    mem.source_trajectory.hash(&mut hasher);
+    format!("memory:{:x}", hasher.finish())
+}
+
 /// Build a LearningGraph from available data sources.
 ///
 /// This is a standalone function rather than a Service to avoid coupling
@@ -104,11 +114,11 @@ pub fn build_learning_graph(
         });
     }
 
-    // 2. Memory nodes
-    for (i, mem) in memories.iter().enumerate() {
+    // 2. Memory nodes — stable content-derived IDs
+    for mem in memories {
         let label = mem.content.chars().take(60).collect::<String>();
         nodes.push(GraphNode {
-            id: format!("memory:{}", i),
+            id: memory_node_id(mem),
             label,
             kind: NodeKind::Memory,
             category: match mem.memory_type {
@@ -119,7 +129,7 @@ pub fn build_learning_graph(
                 MemoryType::Project => "project",
             }
             .to_string(),
-            timestamp_ms: 0,
+            timestamp_ms: mem.created_at,
             use_count: 0,
             state: "active".to_string(),
             detail: Some(mem.content.chars().take(200).collect()),
@@ -146,10 +156,14 @@ pub fn build_learning_graph(
         });
     }
 
-    // 4. Compute edges between memory ↔ skill (lexical overlap)
+    // 4. Compute edges
+
+    // 4a. Memory ↔ Skill — lexical overlap (token intersection)
     let skill_nodes: Vec<&GraphNode> = nodes.iter().filter(|n| n.kind == NodeKind::Skill).collect();
     let memory_nodes: Vec<&GraphNode> =
         nodes.iter().filter(|n| n.kind == NodeKind::Memory).collect();
+    let insight_nodes: Vec<&GraphNode> =
+        nodes.iter().filter(|n| n.kind == NodeKind::Insight).collect();
 
     for mem_node in &memory_nodes {
         let mem_tokens = tokenize(&mem_node.label);
@@ -163,6 +177,46 @@ pub fn build_learning_graph(
                     edges.push(GraphEdge {
                         source: mem_node.id.clone(),
                         target: skill_node.id.clone(),
+                        weight,
+                        relation: "lexical_overlap".to_string(),
+                    });
+                }
+            }
+        }
+    }
+
+    // 4b. Insight ↔ Skill — match by category name
+    for insight_node in &insight_nodes {
+        for skill_node in &skill_nodes {
+            if insight_node.category == skill_node.category {
+                edges.push(GraphEdge {
+                    source: insight_node.id.clone(),
+                    target: skill_node.id.clone(),
+                    weight: 1.0,
+                    relation: "category_match".to_string(),
+                });
+            }
+        }
+    }
+
+    // 4c. Insight ↔ Memory — lexical overlap (same approach as memory ↔ skill)
+    for insight_node in &insight_nodes {
+        let insight_tokens = tokenize(&insight_node.label);
+        let insight_detail_tokens: HashSet<String> =
+            insight_node.detail.as_ref().map(|d| tokenize(d)).unwrap_or_default();
+        let combined_insight_tokens: HashSet<String> =
+            insight_tokens.union(&insight_detail_tokens).cloned().collect();
+
+        for mem_node in &memory_nodes {
+            let mem_tokens = tokenize(&mem_node.label);
+            let overlap = combined_insight_tokens.intersection(&mem_tokens).count();
+            if overlap > 0 {
+                let max_len = combined_insight_tokens.len().max(mem_tokens.len()).max(1);
+                let weight = overlap as f64 / max_len as f64;
+                if weight >= 0.15 {
+                    edges.push(GraphEdge {
+                        source: insight_node.id.clone(),
+                        target: mem_node.id.clone(),
                         weight,
                         relation: "lexical_overlap".to_string(),
                     });
@@ -200,15 +254,63 @@ pub fn build_learning_graph(
     }
 }
 
+/// Check if a character is CJK (Chinese / Japanese / Korean).
+fn is_cjk(c: char) -> bool {
+    let cp = c as u32;
+    matches!(cp,
+        // CJK Unified Ideographs
+        0x4E00..=0x9FFF |
+        // CJK Unified Ideographs Extension A
+        0x3400..=0x4DBF |
+        // CJK Unified Ideographs Extension B
+        0x20000..=0x2A6DF |
+        // CJK Compatibility Ideographs
+        0xF900..=0xFAFF |
+        // CJK Unified Ideographs Extension C–H (partial range, catch the key block)
+        0x2A700..=0x2B73F |
+        0x2B740..=0x2B81F |
+        0x2B820..=0x2CEAF |
+        // CJK Compatibility
+        0xFE30..=0xFE4F |
+        // Hiragana / Katakana
+        0x3040..=0x30FF |
+        0x31F0..=0x31FF |
+        // Hangul Syllables
+        0xAC00..=0xD7AF
+    )
+}
+
 /// Tokenize a string into a set of lowercase tokens (length >= 2).
+///
+/// For CJK text, falls back to individual character tokens so that
+/// Chinese/Japanese/Korean is not treated as a single un-splittable token.
 fn tokenize(text: &str) -> HashSet<String> {
     let lower = text.to_lowercase();
     let mut tokens: HashSet<String> = HashSet::new();
+
+    // First pass: split on non-alphanumeric (handles space-separated text)
     for t in lower.split(|c: char| !c.is_alphanumeric()) {
         let t = t.trim();
-        if t.len() >= 2 {
+        if t.is_empty() || t.len() < 2 {
+            continue;
+        }
+        // If this token contains CJK characters, split into individual chars
+        // so that Chinese text like "Rust编程" produces ["rust", "编", "程"]
+        if t.chars().any(is_cjk) {
+            for c in t.chars() {
+                if c.is_alphanumeric() && !c.is_ascii() {
+                    tokens.insert(c.to_string());
+                }
+            }
+            // Also keep ASCII sub-words (e.g. "Rust" in "Rust编程")
+            let ascii_part: String = t.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+            if ascii_part.len() >= 2 {
+                tokens.insert(ascii_part);
+            }
+        } else {
             tokens.insert(t.to_string());
         }
     }
+
     tokens
 }

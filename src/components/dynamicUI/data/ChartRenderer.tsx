@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { resolveDynamicArray } from "@/lib/dynamicUI/utils";
 import type { DynamicUIProps } from "@/types";
 import { Alert } from "antd";
 import { lazy, Suspense } from "react";
@@ -71,18 +72,7 @@ export const ChartRenderer: React.FC<DynamicUIProps> = ({
     seriesKey?: string;
   };
 
-  const chartData = data
-      || (dataContext
-        && Array.isArray(
-          (dataContext as Record<string, unknown>)[schema.id],
-        ))
-    ? (
-      (dataContext as Record<string, unknown>)[schema.id] as Record<
-        string,
-        unknown
-      >[]
-    )
-    : [];
+  const chartData = resolveDynamicArray(data, dataContext, schema.id);
 
   return (
     <div style={schema.style as React.CSSProperties}>

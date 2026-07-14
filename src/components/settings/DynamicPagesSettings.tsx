@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
+import { SchemaIdContext } from "@/components/dynamicUI/SchemaIdContext";
 import { VisualEditor } from "@/components/dynamicUI/VisualEditor";
-import { generateUIFromNL } from "@/lib/dynamicUI/nl2ui";
-import { editUIFromNL } from "@/lib/dynamicUI/nl2ui-edit";
+import { editUIFromNL, generateUIFromNLBackend } from "@/lib/dynamicUI/nl2ui-edit";
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
-import { getNextPosition, PIN_GROUPS, setPinnedSchema } from "@/lib/pinned-schemas";
+import { PIN_GROUPS } from "@/lib/pinned-schemas";
+import type { PinnedSchemaMap } from "@/lib/pinned-schemas";
 import { useDynamicUIStore } from "@/stores";
 import type { DynamicUISchemaRecord, UISchema } from "@/types";
 import { EditOutlined, SaveOutlined } from "@ant-design/icons";
@@ -35,7 +36,8 @@ const { Text, Paragraph, Title } = Typography;
 
 export function DynamicPagesSettings() {
   const { t } = useTranslation();
-  const { schemas, loading, fetchSchemas, createSchema, updateSchema } = useDynamicUIStore();
+  const { schemas, loading, fetchSchemas, createSchema, updateSchema, pins, pinSchema, unpinSchema, updatePin } =
+    useDynamicUIStore();
 
   const [selectedSchema, setSelectedSchema] = useState<DynamicUISchemaRecord | null>(null);
   const [previewSchema, setPreviewSchema] = useState<UISchema | null>(null);
@@ -43,6 +45,24 @@ export function DynamicPagesSettings() {
   // 固定到导航配置（仅创建时显示）
   const [pinToNav, setPinToNav] = useState(true);
   const [pinGroup, setPinGroup] = useState("dashboard");
+
+  // 编辑时的元数据字段（创建/编辑均可用，修复缺陷 8）
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("dashboard");
+
+  // 钉入配置：从后端持久化的 pins 派生（修复缺陷 2）
+  const pinnedMap: PinnedSchemaMap = useMemo(() => {
+    const m: PinnedSchemaMap = {};
+    for (const p of pins) {
+      m[p.schema_id] = {
+        schemaId: p.schema_id,
+        title: p.title,
+        group: p.group_name,
+        position: p.position,
+      };
+    }
+    return m;
+  }, [pins]);
 
   // 统一的编辑/创建弹窗状态
   const [editOpen, setEditOpen] = useState(false);
@@ -83,6 +103,8 @@ export function DynamicPagesSettings() {
     setEditParseError(null);
     setEditTitle("");
     setEditTags([]);
+    setEditDescription("");
+    setEditCategory("dashboard");
     setPinToNav(true);
     setPinGroup("dashboard");
     setEditOpen(true);
@@ -100,6 +122,8 @@ export function DynamicPagesSettings() {
       setEditParseError(null);
       setEditTitle(record.title);
       setEditTags(record.tags);
+      setEditDescription(record.description);
+      setEditCategory(record.category);
       setEditOpen(true);
     } catch {
       message.error(t("dynamicUIManager.invalidJson"));
@@ -133,33 +157,37 @@ export function DynamicPagesSettings() {
 
     setEditSaving(true);
     try {
+      if (!editTitle.trim()) {
+        message.warning(t("dynamicUIManager.titleRequired"));
+        setEditSaving(false);
+        return;
+      }
       if (isCreating) {
-        if (!editTitle.trim()) {
-          message.warning(t("dynamicUIManager.titleRequired"));
-          setEditSaving(false);
-          return;
-        }
         const record = await createSchema({
           title: editTitle,
-          description: "",
-          category: pinGroup,
+          description: editDescription,
+          category: editCategory,
           tags: editTags,
           schema_json: editJsonText,
         });
 
         if (pinToNav) {
-          const all = {};
-          const pos = getNextPosition(pinGroup, all);
-          setPinnedSchema({
-            schemaId: record.id,
+          await pinSchema({
+            schema_id: record.id,
             title: editTitle,
-            group: pinGroup,
-            position: pos,
+            group_name: pinGroup,
+            position: undefined,
           });
         }
         message.success(t("common.saved"));
       } else {
-        await updateSchema(editingRecord.id, { schema_json: editJsonText });
+        await updateSchema(editingRecord.id, {
+          title: editTitle,
+          description: editDescription,
+          category: editCategory,
+          tags: editTags,
+          schema_json: editJsonText,
+        });
         message.success(t("dynamicUIManager.updateSuccess"));
       }
       setEditOpen(false);
@@ -178,7 +206,7 @@ export function DynamicPagesSettings() {
       // 创建模式：从零生成
       setEditGenerating(true);
       try {
-        const result = await generateUIFromNL(editNlPrompt);
+        const result = await generateUIFromNLBackend(editNlPrompt);
         setEditSchema(result.schema);
         setEditJsonText(JSON.stringify(result.schema, null, 2));
         if (!editTitle) { setEditTitle(result.title); }
@@ -266,27 +294,69 @@ export function DynamicPagesSettings() {
       dataIndex: "id",
       key: "pinned",
       width: 100,
-      render: (_: string) => <Switch size="small" />,
+      render: (_: unknown, record: DynamicUISchemaRecord) => {
+        const cfg = pinnedMap[record.id];
+        return (
+          <Switch
+            size="small"
+            checked={!!cfg}
+            onChange={(checked) => {
+              if (checked) {
+                pinSchema({
+                  schema_id: record.id,
+                  title: record.title,
+                  group_name: "dashboard",
+                  position: undefined,
+                });
+              } else {
+                unpinSchema(record.id);
+              }
+            }}
+          />
+        );
+      },
     },
     {
       title: t("settings.dynamicPages.group"),
-      dataIndex: "category",
+      dataIndex: "id",
       key: "group",
       width: 130,
-      render: () => (
-        <Select
-          size="small"
-          value="dashboard"
-          style={{ width: 100 }}
-          options={PIN_GROUPS.map((g) => ({ label: t(g.labelKey), value: g.key }))}
-        />
-      ),
+      render: (_: unknown, record: DynamicUISchemaRecord) => {
+        const cfg = pinnedMap[record.id];
+        return (
+          <Select
+            size="small"
+            value={cfg?.group ?? "dashboard"}
+            disabled={!cfg}
+            style={{ width: 100 }}
+            onChange={(g) => {
+              updatePin(record.id, { group_name: g });
+            }}
+            options={PIN_GROUPS.map((g) => ({ label: t(g.labelKey), value: g.key }))}
+          />
+        );
+      },
     },
     {
       title: t("settings.dynamicPages.position"),
+      dataIndex: "id",
       key: "position",
       width: 90,
-      render: () => <InputNumber size="small" min={0} defaultValue={0} style={{ width: 70 }} />,
+      render: (_: unknown, record: DynamicUISchemaRecord) => {
+        const cfg = pinnedMap[record.id];
+        return (
+          <InputNumber
+            size="small"
+            min={0}
+            value={cfg?.position ?? 0}
+            disabled={!cfg}
+            style={{ width: 70 }}
+            onChange={(v) => {
+              updatePin(record.id, { position: typeof v === "number" ? v : 0 });
+            }}
+          />
+        );
+      },
     },
   ];
 
@@ -345,7 +415,9 @@ export function DynamicPagesSettings() {
               {selectedSchema.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
             </Space>
           </div>
-          <DynamicUIRenderer schema={previewSchema} />
+          <SchemaIdContext.Provider value={{ schemaId: selectedSchema.id }}>
+            <DynamicUIRenderer schema={previewSchema} />
+          </SchemaIdContext.Provider>
         </div>
       )}
 
@@ -374,32 +446,59 @@ export function DynamicPagesSettings() {
         }
       >
         {/* 创建模式下显示标题、标签、固定到导航 */}
-        {isCreating && (
-          <div className="flex flex-col gap-3 mt-2 mb-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Text type="secondary" className="block mb-1 text-xs">
-                  {t("dynamicUIManager.schemaTitle")}
-                </Text>
-                <Input
-                  placeholder={t("dynamicUIManager.titlePlaceholder")}
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                />
-              </div>
-              <div className="flex-1">
-                <Text type="secondary" className="block mb-1 text-xs">
-                  {t("dynamicUIManager.tags")}
-                </Text>
-                <Select
-                  mode="tags"
-                  className="w-full"
-                  placeholder={t("dynamicUIManager.tagsPlaceholder")}
-                  value={editTags}
-                  onChange={(v) => setEditTags(v)}
-                />
-              </div>
+        <div className="flex flex-col gap-3 mt-2 mb-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Text type="secondary" className="block mb-1 text-xs">
+                {t("dynamicUIManager.schemaTitle")}
+              </Text>
+              <Input
+                placeholder={t("dynamicUIManager.titlePlaceholder")}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
             </div>
+            <div className="flex-1">
+              <Text type="secondary" className="block mb-1 text-xs">
+                {t("dynamicUIManager.category")}
+              </Text>
+              <Select
+                className="w-full"
+                value={editCategory}
+                onChange={(v) => setEditCategory(v)}
+                options={["form", "dashboard", "report", "custom"].map((c) => ({
+                  label: t(`dynamicUIManager.cat${c.charAt(0).toUpperCase() + c.slice(1)}`),
+                  value: c,
+                }))}
+              />
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Text type="secondary" className="block mb-1 text-xs">
+                {t("dynamicUIManager.description")}
+              </Text>
+              <Input.TextArea
+                rows={2}
+                placeholder={t("dynamicUIManager.descPlaceholder")}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+            <div className="flex-1">
+              <Text type="secondary" className="block mb-1 text-xs">
+                {t("dynamicUIManager.tags")}
+              </Text>
+              <Select
+                mode="tags"
+                className="w-full"
+                placeholder={t("dynamicUIManager.tagsPlaceholder")}
+                value={editTags}
+                onChange={(v) => setEditTags(v)}
+              />
+            </div>
+          </div>
+          {isCreating && (
             <div className="border-t pt-3">
               <div className="flex items-center gap-6">
                 <Space>
@@ -418,9 +517,9 @@ export function DynamicPagesSettings() {
                 </Space>
               </div>
             </div>
-            <Divider className="my-0" />
-          </div>
-        )}
+          )}
+          <Divider className="my-0" />
+        </div>
 
         <Tabs
           activeKey={editMode}

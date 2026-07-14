@@ -218,7 +218,7 @@ pub(crate) async fn do_compress(
         .get(registry_key)
         .ok_or_else(|| "Provider adapter not found".to_string())?;
 
-    let response = adapter.chat(&ctx, request).await.map_err(|e| {
+    let response = adapter.chat(&ctx, request.into()).await.map_err(|e| {
         ErrorResponse::new(conv_err::INTERNAL)
             .with_detail(format!("Summary generation failed: {}", e))
     })?;
@@ -761,6 +761,7 @@ mod tests_conversation {
                 axagent_trajectory::ParallelExecutionService::new(10),
             )),
             cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new_ephemeral()),
+            cron_scheduler: Arc::new(tokio::sync::RwLock::new(None)),
             platform_manager: Arc::new(
                 axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
             ),
@@ -790,6 +791,8 @@ mod tests_conversation {
             proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
             dashboard_registry: None,
             webhook_subscription_manager: None,
+            #[cfg(not(mobile))]
+            pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(

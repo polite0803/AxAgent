@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 //! 测试工具和 fixture 生成器。
+//!
+//! 多个 test binary 共享同一份工具模块,但每个 test 只用其中一部分,
+//! 因此允许 `common` 模块内出现未使用的辅助函数。
+
+#![allow(dead_code)]
 
 use axagent_plugins::PluginManifest;
 use serde_json::json;

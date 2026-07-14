@@ -83,7 +83,7 @@ impl HermesAdapter {
     async fn chat_with_mode(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
         mode: ApiMode,
     ) -> Result<ChatResponse> {
         match mode {
@@ -207,7 +207,7 @@ impl ProviderAdapter for HermesAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         let mode = Self::resolve_api_mode(ctx);
         self.chat_with_mode(ctx, request, mode).await

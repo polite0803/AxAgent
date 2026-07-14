@@ -173,8 +173,55 @@ impl McpLauncher {
         for (k, v) in &server.env {
             cmd.env(k, v);
         }
+
+        // ── 路径穿越防护：cwd 必须在 plugin_root 范围内 ──
         if let Some(cwd) = &server.cwd {
-            cmd.current_dir(cwd);
+            let cwd_path = Path::new(cwd);
+            // 拒绝包含路径穿越的 cwd
+            if cwd_path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+                warn!(
+                    "mcp: blocked server `{}` — cwd contains path traversal: `{}`",
+                    server.name,
+                    cwd.display()
+                );
+                return Err(McpLaunchError::SpawnFailed {
+                    server: server.name.clone(),
+                    source: std::io::Error::new(
+                        std::io::ErrorKind::PermissionDenied,
+                        format!(
+                            "MCP cwd '{}' contains path traversal — blocked for security",
+                            cwd.display()
+                        ),
+                    ),
+                });
+            }
+
+            // cwd 必须在 plugin_root 范围内（相对路径会相对于 plugin_root 解析）
+            let resolved_cwd = if cwd_path.is_absolute() {
+                cwd_path.to_path_buf()
+            } else {
+                plugin_root.join(cwd_path)
+            };
+
+            if !resolved_cwd.starts_with(plugin_root) {
+                warn!(
+                    "mcp: blocked server `{}` — cwd `{}` escapes plugin_root",
+                    server.name,
+                    cwd.display()
+                );
+                return Err(McpLaunchError::SpawnFailed {
+                    server: server.name.clone(),
+                    source: std::io::Error::new(
+                        std::io::ErrorKind::PermissionDenied,
+                        format!(
+                            "MCP cwd '{}' is outside plugin directory — blocked for security",
+                            cwd.display()
+                        ),
+                    ),
+                });
+            }
+
+            cmd.current_dir(&resolved_cwd);
         } else {
             cmd.current_dir(plugin_root);
         }

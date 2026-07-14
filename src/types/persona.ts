@@ -3,6 +3,7 @@
 /** 人格列表项 */
 export interface PersonalityInfo {
   name: string;
+  version: string;
   description?: string;
   is_active: boolean;
 }
@@ -10,6 +11,7 @@ export interface PersonalityInfo {
 /** 人格完整详情 */
 export interface Personality {
   name: string;
+  version: string;
   description?: string;
   /** SOUL.md 内容 */
   content?: string;
@@ -17,4 +19,6 @@ export interface Personality {
   identity: string;
   /** 对应 USER.md 的 user 部分 */
   user: string;
+  /** 创建时间（UTC ISO 8601 字符串） */
+  created_at: string;
 }

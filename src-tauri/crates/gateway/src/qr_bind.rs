@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
+use tokio::sync::watch;
 use uuid::Uuid;
 
 /// 一次性的 QR 绑定令牌。
@@ -30,10 +31,13 @@ pub struct QrBindTicket {
 /// 模式与 `TicketStore` 完全相同，但语义不同：
 /// - TicketStore 用于 WebSocket 认证（短时、高频）
 /// - QrBindStore 用于平台用户绑定（中时、低频）
+///
+/// 后台清理任务在 `shutdown()` 被调用时优雅终止。
 #[derive(Clone)]
 pub struct QrBindStore {
     ttl: Duration,
     inner: Arc<Mutex<HashMap<String, QrBindTicket>>>,
+    shutdown_tx: watch::Sender<()>,
 }
 
 const QR_TTL: Duration = Duration::from_secs(300); // 5 分钟
@@ -48,8 +52,15 @@ impl Default for QrBindStore {
 impl QrBindStore {
     pub fn new() -> Self {
         let inner = Arc::new(Mutex::new(HashMap::new()));
-        Self::spawn_sweeper(inner.clone(), SWEEP_INTERVAL);
-        Self { ttl: QR_TTL, inner }
+        let (shutdown_tx, shutdown_rx) = watch::channel(());
+        Self::spawn_sweeper(inner.clone(), SWEEP_INTERVAL, shutdown_rx);
+        Self { ttl: QR_TTL, inner, shutdown_tx }
+    }
+
+    /// Signal the background sweeper task to terminate gracefully.
+    /// Safe to call multiple times; subsequent calls are no-ops.
+    pub fn shutdown(&self) {
+        let _ = self.shutdown_tx.send(());
     }
 
     /// 生成一个新的绑定令牌。
@@ -83,15 +94,26 @@ impl QrBindStore {
         before - map.len()
     }
 
-    fn spawn_sweeper(inner: Arc<Mutex<HashMap<String, QrBindTicket>>>, interval: Duration) {
+    fn spawn_sweeper(
+        inner: Arc<Mutex<HashMap<String, QrBindTicket>>>,
+        interval: Duration,
+        mut shutdown_rx: watch::Receiver<()>,
+    ) {
         tokio::spawn(async move {
             let mut tick = tokio::time::interval(interval);
             tick.tick().await; // 跳过首次立即触发
             loop {
-                tick.tick().await;
-                let now = Instant::now();
-                let mut map = inner.lock();
-                map.retain(|_, t| t.expires_at >= now);
+                tokio::select! {
+                    _ = tick.tick() => {
+                        let now = Instant::now();
+                        let mut map = inner.lock();
+                        map.retain(|_, t| t.expires_at >= now);
+                    }
+                    _ = shutdown_rx.changed() => {
+                        tracing::debug!("qr-bind sweeper shutting down");
+                        break;
+                    }
+                }
             }
         });
     }

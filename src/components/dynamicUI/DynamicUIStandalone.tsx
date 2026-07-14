@@ -107,6 +107,13 @@ export function DynamicUIStandalone({
       const formValues = (config?.values as Record<string, unknown>)
         ?? (config?.formValues as Record<string, unknown>)
         ?? formDataRef.current;
+
+      // 校验 formValues 是合法对象
+      if (typeof formValues !== "object" || formValues === null || Array.isArray(formValues)) {
+        console.warn("[DynamicUIStandalone] store action config 中的 values/formValues 必须为普通对象");
+        return;
+      }
+
       setFormData(formValues);
       formDataRef.current = formValues;
       if (autosave) {

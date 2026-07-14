@@ -46,7 +46,16 @@ class ComponentRegistry {
       }
     }
     const globalKey = type;
-    return this.registry.get(globalKey);
+    const entry = this.registry.get(globalKey);
+    if (entry) {
+      return entry;
+    }
+    // O(1) fallback via reverse index
+    const fullKey = this.typeIndex.get(type);
+    if (fullKey) {
+      return this.registry.get(fullKey);
+    }
+    return undefined;
   }
 
   getByCategory(category: string): ComponentRegistryEntry[] {

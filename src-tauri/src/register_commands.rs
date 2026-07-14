@@ -120,6 +120,13 @@ macro_rules! register_all_commands {
             commands::mcp::list_tool_executions,
             commands::mcp::hot_reload_mcp_server,
             commands::mcp::discover_available_mcp_servers,
+            commands::mcp::store_mcp_oauth_token,
+            commands::mcp::begin_mcp_oauth_authorization,
+            commands::mcp::complete_mcp_oauth_authorization,
+            commands::mcp::list_mcp_resources,
+            commands::mcp::read_mcp_resource,
+            commands::mcp::list_mcp_prompts,
+            commands::mcp::get_mcp_prompt,
             commands::local_tool::get_tool_count,
             commands::local_tool::list_local_tools,
             commands::local_tool::toggle_local_tool_group,
@@ -571,6 +578,7 @@ macro_rules! register_all_commands {
             commands::scheduled_task::create_backup_task,
             commands::scheduled_task::create_cleanup_task,
             commands::scheduled_task::load_scheduled_tasks_from_db,
+            commands::scheduled_task::get_task_execution_history,
             // Workflow template commands
             commands::workflow_template::list_workflow_templates,
             commands::workflow_template::get_workflow_template,
@@ -645,6 +653,10 @@ macro_rules! register_all_commands {
             // Loop 节点人工审查
             commands::work_engine::resume_loop_iteration,
             commands::work_engine::load_loop_checkpoint,
+            // Approval (HITL) commands
+            commands::work_engine::list_pending_approvals,
+            commands::work_engine::resume_approval,
+            commands::work_engine::cancel_approval,
             // User Profile & Style Migration commands
             commands::user_profile::get_user_profile,
             commands::user_profile::update_user_profile,
@@ -696,6 +708,8 @@ macro_rules! register_all_commands {
             commands::evaluator::evaluator_list_datasets,
             commands::evaluator::evaluator_import_dataset,
             commands::evaluator::evaluator_export_report,
+            commands::evaluator::evaluator_run_ab_test,
+            commands::evaluator::evaluator_get_ab_results,
             commands::rl::rl_list_policies,
             commands::rl::rl_get_policy,
             commands::rl::rl_create_policy,
@@ -801,7 +815,7 @@ macro_rules! register_all_commands {
             commands::wiki::wiki_import_knowledge_md,
             commands::wiki::wiki_export_markdown,
             commands::wiki::wiki_export_html,
-            commands::wiki::wiki_note_export_pdf,
+            commands::wiki::wiki_note_export_html,
             // Unified source management
             commands::sources::list_all_sources,
             commands::sources::get_source_config,
@@ -841,13 +855,21 @@ macro_rules! register_all_commands {
             commands::plugin::plugin_uninstall,
             commands::plugin::plugin_update,
             // PTY
+            #[cfg(not(mobile))]
             commands::pty::pty_create_session,
+            #[cfg(not(mobile))]
             commands::pty::pty_kill_session,
+            #[cfg(not(mobile))]
             commands::pty::pty_remove_session,
+            #[cfg(not(mobile))]
             commands::pty::pty_write,
+            #[cfg(not(mobile))]
             commands::pty::pty_resize,
+            #[cfg(not(mobile))]
             commands::pty::pty_list_sessions,
+            #[cfg(not(mobile))]
             commands::pty::pty_analyze_output,
+            #[cfg(not(mobile))]
             commands::pty::pty_get_suggestions,
             // File authorizer
             commands::files::file_authorize,
@@ -873,6 +895,9 @@ macro_rules! register_all_commands {
             commands::personality::personality_switch,
             commands::personality::personality_current,
             commands::personality::personality_create,
+            commands::personality::personality_create_bootstrap,
+            commands::personality::personality_update_identity,
+            commands::personality::personality_update_user,
             commands::personality::personality_delete,
             // Migration commands
             commands::migration::migration_detect,
@@ -892,10 +917,16 @@ macro_rules! register_all_commands {
             commands::dynamic_ui::save_dynamic_ui_form_data,
             commands::dynamic_ui::get_dynamic_ui_form_data,
             commands::dynamic_ui::delete_dynamic_ui_form_data,
+            // Dynamic UI 导航钉入配置（后端持久化）
+            commands::dynamic_ui::list_dynamic_ui_pins,
+            commands::dynamic_ui::pin_dynamic_ui_schema,
+            commands::dynamic_ui::unpin_dynamic_ui_schema,
             // Dynamic UI version management
             commands::dynamic_ui::list_dynamic_ui_schema_versions,
             commands::dynamic_ui::get_dynamic_ui_schema_version,
             commands::dynamic_ui::restore_dynamic_ui_schema_version,
+            commands::dynamic_ui::edit_dynamic_ui_schema_nl,
+            commands::dynamic_ui::generate_dynamic_ui_schema_nl,
             commands::orchestrator::orchestrate_mission,
         ]
     };

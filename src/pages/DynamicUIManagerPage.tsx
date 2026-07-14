@@ -1,16 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
-import { generateUIFromNL } from "@/lib/dynamicUI/nl2ui";
+import { SchemaIdContext } from "@/components/dynamicUI/SchemaIdContext";
+import { VisualEditor } from "@/components/dynamicUI/VisualEditor";
+import { generateUIFromNLBackend } from "@/lib/dynamicUI/nl2ui-edit";
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
 import { useDynamicUIStore } from "@/stores";
-import type { DynamicUISchemaRecord, DynamicUISchemaVersion, UISchema } from "@/types";
+import type {
+  CreateDynamicUISchemaParams,
+  DynamicUISchemaRecord,
+  DynamicUISchemaVersion,
+  UISchema,
+  UpdateDynamicUISchemaParams,
+} from "@/types";
 import {
   AppstoreAddOutlined,
   DeleteOutlined,
   EditOutlined,
+  ExportOutlined,
   EyeOutlined,
   HistoryOutlined,
+  ImportOutlined,
   PlusOutlined,
   RobotOutlined,
   RollbackOutlined,
@@ -38,7 +48,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -171,33 +181,30 @@ export function DynamicUIManagerPage() {
         return;
       }
 
-      const updateParams: Record<string, unknown> = {
+      const updateParams: UpdateDynamicUISchemaParams = {
         title: values.title,
         description: values.description,
         category: values.category,
         tags: values.tags,
         schema_json: jsonSchemaText,
+        version: values.version?.trim() || undefined,
+        change_log: values.change_log?.trim() || undefined,
       };
 
-      // 附加版本号和变更说明
-      if (values.version?.trim()) {
-        updateParams.version = values.version.trim();
-      }
-      if (values.change_log?.trim()) {
-        updateParams.change_log = values.change_log.trim();
-      }
-
       if (editingRecord) {
-        await updateSchema(editingRecord.id, updateParams as Parameters<typeof updateSchema>[1]);
+        await updateSchema(editingRecord.id, updateParams);
         message.success(t("dynamicUIManager.updateSuccess"));
       } else {
-        await createSchema({
+        // 注意：后端 CreateSchemaRequest 不支持 version/change_log，
+        // 创建时这两个字段会被静默忽略（如需在创建时指定版本号需后端扩展）
+        const createParams: CreateDynamicUISchemaParams = {
           title: values.title,
           description: values.description,
           category: values.category,
           tags: values.tags || [],
           schema_json: jsonSchemaText,
-        });
+        };
+        await createSchema(createParams);
         message.success(t("dynamicUIManager.createSuccess"));
       }
       setEditorOpen(false);
@@ -213,7 +220,7 @@ export function DynamicUIManagerPage() {
     }
     setGenerating(true);
     try {
-      const result = await generateUIFromNL(nlPrompt);
+      const result = await generateUIFromNLBackend(nlPrompt);
       setJsonSchemaText(JSON.stringify(result.schema, null, 2));
       form.setFieldsValue({
         title: form.getFieldValue("title") || result.title,
@@ -234,6 +241,100 @@ export function DynamicUIManagerPage() {
       setSelectedSchema(null);
     }
     message.success(t("dynamicUIManager.deleteSuccess"));
+  };
+
+  // ── 导入 / 导出（额外短板） ──
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerImport = () => fileInputRef.current?.click();
+
+  const downloadJson = (filename: string, data: unknown) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportSchema = (record: DynamicUISchemaRecord) => {
+    downloadJson(`${record.title || "schema"}.json`, {
+      title: record.title,
+      description: record.description,
+      category: record.category,
+      tags: record.tags,
+      schema_json: record.schema_json,
+    });
+    message.success(t("dynamicUIManager.exportSuccess"));
+  };
+
+  const handleExportAll = () => {
+    if (schemas.length === 0) {
+      message.warning(t("dynamicUIManager.noSchemas"));
+      return;
+    }
+    downloadJson(
+      "dynamic-ui-schemas.json",
+      schemas.map((s) => ({
+        title: s.title,
+        description: s.description,
+        category: s.category,
+        tags: s.tags,
+        schema_json: s.schema_json,
+      })),
+    );
+    message.success(t("dynamicUIManager.exportSuccess"));
+  };
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) {
+      return;
+    }
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      let count = 0;
+      for (const item of list) {
+        const schemaJson = typeof item === "string" ? item : item?.schema_json;
+        if (!schemaJson || typeof schemaJson !== "string") {
+          continue;
+        }
+        let schemaObj: UISchema;
+        try {
+          schemaObj = JSON.parse(schemaJson) as UISchema;
+        } catch {
+          continue;
+        }
+        const validation = validateSchema(schemaObj);
+        if (!validation.valid) {
+          continue;
+        }
+        const fallbackTitle = (schemaObj.props?.content as string) || "Imported UI";
+        await createSchema({
+          title: item?.title || fallbackTitle,
+          description: item?.description || "",
+          category: item?.category || "custom",
+          tags: item?.tags || [],
+          schema_json: schemaJson,
+        });
+        count += 1;
+      }
+      if (count > 0) {
+        message.success(t("dynamicUIManager.importSuccess", { count }));
+        await fetchSchemas();
+      } else {
+        message.warning(t("dynamicUIManager.importInvalid"));
+      }
+    } catch {
+      message.error(t("dynamicUIManager.importInvalid"));
+    }
   };
 
   // ── 版本管理 ──
@@ -257,6 +358,8 @@ export function DynamicUIManagerPage() {
       // 刷新版本列表
       await loadVersions(selectedSchema.id);
       setVersionPreview(null);
+      // 恢复后同步刷新预览（缺陷 5）
+      setSelectedSchema(result);
     } else {
       message.error(t("dynamicUIManager.restoreFailed"));
     }
@@ -314,7 +417,11 @@ export function DynamicUIManagerPage() {
               : null}
           </div>
           <div className="border rounded-lg p-4 bg-white dark:bg-gray-900">
-            <DynamicUIRenderer schema={schema} />
+            <SchemaIdContext.Provider
+              value={{ schemaId: isHistorical ? null : (selectedSchema?.id ?? null) }}
+            >
+              <DynamicUIRenderer schema={schema} />
+            </SchemaIdContext.Provider>
           </div>
         </div>
       );
@@ -350,7 +457,7 @@ export function DynamicUIManagerPage() {
       render: (ts: number) => new Date(ts * 1000).toLocaleString(),
     },
     {
-      title: t("common.action"),
+      title: t("common.actions"),
       key: "action",
       width: 160,
       render: (_: unknown, record: DynamicUISchemaVersion) => (
@@ -408,6 +515,24 @@ export function DynamicUIManagerPage() {
         <Card
           className="flex flex-col min-h-0"
           title={t("dynamicUIManager.schemaList")}
+          extra={
+            <Space size={4}>
+              <Button
+                size="small"
+                icon={<ImportOutlined />}
+                onClick={triggerImport}
+              >
+                {t("dynamicUIManager.import")}
+              </Button>
+              <Button
+                size="small"
+                icon={<ExportOutlined />}
+                onClick={handleExportAll}
+              >
+                {t("dynamicUIManager.exportAll")}
+              </Button>
+            </Space>
+          }
           styles={{ body: { flex: 1, overflow: "auto" } }}
         >
           <Spin spinning={loading}>
@@ -430,6 +555,13 @@ export function DynamicUIManagerPage() {
                       icon={<EyeOutlined />}
                       onClick={() => handlePreview(item)}
                     />,
+                    <Tooltip key="export" title={t("dynamicUIManager.export")}>
+                      <Button
+                        type="text"
+                        icon={<ExportOutlined />}
+                        onClick={() => handleExportSchema(item)}
+                      />
+                    </Tooltip>,
                     <Button
                       key="edit"
                       type="text"
@@ -627,10 +759,23 @@ export function DynamicUIManagerPage() {
               onChange={(k) => setEditorMode(k as "visual" | "json")}
               size="small"
               items={[
+                { key: "visual", label: t("dynamicUIManager.visualEditor") },
                 { key: "json", label: t("dynamicUIManager.jsonEditor") },
               ]}
             />
           </div>
+
+          {editorMode === "visual"
+            ? (
+              <div className="min-h-75">
+                <VisualEditor
+                  key={editingRecord?.id ?? "new"}
+                  schema={parsedPreview}
+                  onChange={(newSchema) => setJsonSchemaText(JSON.stringify(newSchema, null, 2))}
+                />
+              </div>
+            )
+            : null}
 
           {editorMode === "json"
             ? (
@@ -699,6 +844,15 @@ export function DynamicUIManagerPage() {
             )}
         </Spin>
       </Modal>
+
+      {/* 导入文件选择器（隐藏） */}
+      <input
+        type="file"
+        accept="application/json,.json"
+        style={{ display: "none" }}
+        ref={fileInputRef}
+        onChange={handleImportFile}
+      />
     </div>
   );
 }

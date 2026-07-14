@@ -1,0 +1,1654 @@
+[
+  {
+    "key": "agentPanel.chatEmpty",
+    "value": "No messages yet"
+  },
+  {
+    "key": "agentPanel.chatEmptyHint",
+    "value": "Send a message to start chatting"
+  },
+  {
+    "key": "agentPanel.chatNewConversation",
+    "value": "New Conversation"
+  },
+  {
+    "key": "agentPanel.chatStartHint",
+    "value": "Start a new Agent conversation"
+  },
+  {
+    "key": "agentPanel.closePanel",
+    "value": "Close Panel"
+  },
+  {
+    "key": "agentPanel.expandFullPanel",
+    "value": "Expand to Full Panel"
+  },
+  {
+    "key": "agentPanel.globalMode",
+    "value": "Global Mode"
+  },
+  {
+    "key": "agentPanel.miniMode",
+    "value": "Mini Mode"
+  },
+  {
+    "key": "agentPanel.miniPanelComingSoon",
+    "value": "Chat features coming soon"
+  },
+  {
+    "key": "agentPanel.newChat",
+    "value": "New Chat"
+  },
+  {
+    "key": "agentPanel.nlGen.applySkillFailed",
+    "value": "Failed to apply skill"
+  },
+  {
+    "key": "agentPanel.nlGen.applySkillSuccess",
+    "value": "Skill applied successfully"
+  },
+  {
+    "key": "agentPanel.nlGen.applyUIFailed",
+    "value": "Failed to save UI schema"
+  },
+  {
+    "key": "agentPanel.nlGen.applyUISuccess",
+    "value": "UI schema saved successfully"
+  },
+  {
+    "key": "agentPanel.nlGen.defaultUITitle",
+    "value": "Generated UI"
+  },
+  {
+    "key": "agentPanel.nlGen.skillTypeAutomation",
+    "value": "Automation"
+  },
+  {
+    "key": "agentPanel.nlGen.skillTypeChat",
+    "value": "Chat"
+  },
+  {
+    "key": "agentPanel.nlGen.skillTypeWorkflow",
+    "value": "Workflow"
+  },
+  {
+    "key": "agentPanel.nlGen.uiTypeReport",
+    "value": "Report"
+  },
+  {
+    "key": "agentPanel.openMiniPanel",
+    "value": "Open Agent Mini Panel"
+  },
+  {
+    "key": "agentPanel.openPanel",
+    "value": "Open AxAgent Panel"
+  },
+  {
+    "key": "agentPanel.tabs.chat",
+    "value": "Chat"
+  },
+  {
+    "key": "agentPanel.tabs.execution",
+    "value": "Execution"
+  },
+  {
+    "key": "agentPanel.tabs.nlGeneration",
+    "value": "NL Gen"
+  },
+  {
+    "key": "agentPanel.tabs.skill",
+    "value": "Skills"
+  },
+  {
+    "key": "agentPool.type.subAgent",
+    "value": "Sub-Agent"
+  },
+  {
+    "key": "agentPool.type.worker",
+    "value": "Worker"
+  },
+  {
+    "key": "appHeader.closeAgentPanel",
+    "value": "Close Agent Panel"
+  },
+  {
+    "key": "appHeader.openAgentPanel",
+    "value": "Open Agent Panel"
+  },
+  {
+    "key": "chat.attachmentOk",
+    "value": "OK"
+  },
+  {
+    "key": "chat.lambda",
+    "value": "λ (TD)"
+  },
+  {
+    "key": "chat.multiModelVote.strategyConsensus",
+    "value": "Unanimous Consensus"
+  },
+  {
+    "key": "chat.multiModelVote.strategyMajority",
+    "value": "Majority Vote"
+  },
+  {
+    "key": "chat.multiModelVote.strategyWeighted",
+    "value": "Confidence-Weighted"
+  },
+  {
+    "key": "chat.multiModelVote.title",
+    "value": "Multi-Model Decision Vote"
+  },
+  {
+    "key": "chat.multiModelVote.validCount",
+    "value": "Valid Decisions"
+  },
+  {
+    "key": "chat.multiModelVote.voteBreakdown",
+    "value": "Vote Breakdown"
+  },
+  {
+    "key": "citationManager.sourceType.web",
+    "value": "Web"
+  },
+  {
+    "key": "citationManager.sourceType.wikipedia",
+    "value": "Wikipedia"
+  },
+  {
+    "key": "cloudWorkspace.webdavUrl",
+    "value": "WebDAV URL"
+  },
+  {
+    "key": "compare.title",
+    "value": "Stock Comparison"
+  },
+  {
+    "key": "cronResult.prefix",
+    "value": "Cron: {{jobName}}"
+  },
+  {
+    "key": "dataBinding.agentDataNotFound",
+    "value": "Agent generated data \"{{generationId}}\" not found in execution store"
+  },
+  {
+    "key": "dataBinding.apiRequestFailed",
+    "value": "API request failed: {{statusText}}"
+  },
+  {
+    "key": "dataBinding.storeNotRegistered",
+    "value": "Store \"{{storeName}}\" not registered"
+  },
+  {
+    "key": "dataBinding.unknownSourceType",
+    "value": "Unknown data source type: {{type}}"
+  },
+  {
+    "key": "dreamStatus.separator",
+    "value": ", "
+  },
+  {
+    "key": "dualView.collapseToBubble",
+    "value": "Collapse to Bubble"
+  },
+  {
+    "key": "dualView.decision.action",
+    "value": "Trade Action"
+  },
+  {
+    "key": "dualView.decision.confidence",
+    "value": "Confidence"
+  },
+  {
+    "key": "dualView.decision.executionMode",
+    "value": "Execution Mode"
+  },
+  {
+    "key": "dualView.decision.field",
+    "value": "Decision Dimension"
+  },
+  {
+    "key": "dualView.decision.formula",
+    "value": "Formula View"
+  },
+  {
+    "key": "dualView.decision.formulaBadge",
+    "value": "Formula"
+  },
+  {
+    "key": "dualView.decision.formulaReasoningOmitted",
+    "value": "Formula has no reasoning chain"
+  },
+  {
+    "key": "dualView.decision.highAgreementHint",
+    "value": "High agreement between views"
+  },
+  {
+    "key": "dualView.decision.llm",
+    "value": "LLM View"
+  },
+  {
+    "key": "dualView.decision.llmMissingHint",
+    "value": "Agreement score: {{score}}/100"
+  },
+  {
+    "key": "dualView.decision.llmUnavailable",
+    "value": "LLM view unavailable"
+  },
+  {
+    "key": "dualView.decision.llmUnavailableHint",
+    "value": "LLM analysis is temporarily unavailable. Please check your model configuration or network connection"
+  },
+  {
+    "key": "dualView.decision.lowAgreementHint",
+    "value": "Views diverge significantly"
+  },
+  {
+    "key": "dualView.decision.midAgreementHint",
+    "value": "Partial agreement between views"
+  },
+  {
+    "key": "dualView.decision.positionPct",
+    "value": "Position %"
+  },
+  {
+    "key": "dualView.decision.reasoning",
+    "value": "Reasoning"
+  },
+  {
+    "key": "dualView.decision.reviewRecommended",
+    "value": "Manual Review Recommended"
+  },
+  {
+    "key": "dualView.decision.title",
+    "value": "Decision: Dual-View Comparison"
+  },
+  {
+    "key": "dualView.expand",
+    "value": "Expand as {{title}}"
+  },
+  {
+    "key": "dualView.expandToPanel",
+    "value": "Expand to Panel"
+  },
+  {
+    "key": "dualView.notRegistered",
+    "value": "Unregistered dual view: {{id}}"
+  },
+  {
+    "key": "dynamicUIManager.defaults.textareaLabel",
+    "value": "Textarea"
+  },
+  {
+    "key": "dynamicUIManager.import",
+    "value": "Import"
+  },
+  {
+    "key": "dynamicUIManager.importSuccess",
+    "value": "Imported {{count}} UI(s) successfully"
+  },
+  {
+    "key": "dynamicUIManager.importInvalid",
+    "value": "Invalid or empty schema file"
+  },
+  {
+    "key": "dynamicUIManager.export",
+    "value": "Export"
+  },
+  {
+    "key": "dynamicUIManager.exportAll",
+    "value": "Export All"
+  },
+  {
+    "key": "dynamicUIManager.exportSuccess",
+    "value": "Exported successfully"
+  },
+  {
+    "key": "evolution.engines.auto_tool_creator.desc",
+    "value": "Learns from frequent execution patterns and automatically creates new reusable tools"
+  },
+  {
+    "key": "evolution.engines.auto_tool_creator.name",
+    "value": "Auto Tool Creator"
+  },
+  {
+    "key": "evolution.engines.coevolution.desc",
+    "value": "Multi-agent coevolution environment that promotes cross-agent knowledge sharing and competition"
+  },
+  {
+    "key": "evolution.engines.coevolution.name",
+    "value": "Coevolution Environment"
+  },
+  {
+    "key": "evolution.engines.constitution.desc",
+    "value": "Rules system that constrains agent behavior to ensure safety and compliance"
+  },
+  {
+    "key": "evolution.engines.constitution.name",
+    "value": "Constitution Engine"
+  },
+  {
+    "key": "evolution.engines.dream_consolidator.desc",
+    "value": "Memory consolidation mechanism analogous to human REM sleep, optimizing knowledge representation offline"
+  },
+  {
+    "key": "evolution.engines.dream_consolidator.name",
+    "value": "Dream Consolidator"
+  },
+  {
+    "key": "evolution.engines.intrinsic_motivation.desc",
+    "value": "Self-driven learning system that simulates human curiosity-driven exploration behavior"
+  },
+  {
+    "key": "evolution.engines.intrinsic_motivation.name",
+    "value": "Intrinsic Motivation System"
+  },
+  {
+    "key": "evolution.engines.process_reward.desc",
+    "value": "Evaluates intermediate step quality rather than only final results, providing fine-grained feedback signals"
+  },
+  {
+    "key": "evolution.engines.process_reward.name",
+    "value": "Process Reward Model"
+  },
+  {
+    "key": "evolution.engines.sandbox.desc",
+    "value": "Securely executes untrusted code in an isolated environment to prevent system damage"
+  },
+  {
+    "key": "evolution.engines.sandbox.name",
+    "value": "Sandbox Executor"
+  },
+  {
+    "key": "evolution.engines.skill_evolution.desc",
+    "value": "Automatically evolves skill prompts and tool-calling strategies based on execution feedback"
+  },
+  {
+    "key": "evolution.engines.skill_evolution.name",
+    "value": "Skill Evolution Engine"
+  },
+  {
+    "key": "evolution.engines.text_grad.desc",
+    "value": "Textual gradient optimization engine, analogous to gradient descent but for text prompt optimization"
+  },
+  {
+    "key": "evolution.engines.text_grad.name",
+    "value": "TextGrad Optimizer"
+  },
+  {
+    "key": "expertCategory.devops",
+    "value": "DevOps"
+  },
+  {
+    "key": "expertCategory.finance",
+    "value": "Finance"
+  },
+  {
+    "key": "nav.portfolio",
+    "value": "Portfolio"
+  },
+  {
+    "key": "nav.scheduledAnalysis",
+    "value": "Scheduled"
+  },
+  {
+    "key": "nav.trade",
+    "value": "Trade"
+  },
+  {
+    "key": "nav.wiki",
+    "value": "Wiki"
+  },
+  {
+    "key": "portfolio.avgCost",
+    "value": "Avg Cost"
+  },
+  {
+    "key": "portfolio.holdings",
+    "value": "Holdings"
+  },
+  {
+    "key": "portfolio.importFailed",
+    "value": "Failed to parse holdings from VLM output"
+  },
+  {
+    "key": "portfolio.importHint",
+    "value": "Format: stockCode, shares, avgCost[, stockName] — one per line"
+  },
+  {
+    "key": "portfolio.importSuccess",
+    "value": "Imported {{count}} holdings"
+  },
+  {
+    "key": "portfolio.manualImport",
+    "value": "Manual Import"
+  },
+  {
+    "key": "portfolio.marketValue",
+    "value": "Market Value"
+  },
+  {
+    "key": "portfolio.pnl",
+    "value": "P&L"
+  },
+  {
+    "key": "portfolio.shares",
+    "value": "Shares"
+  },
+  {
+    "key": "portfolio.stock",
+    "value": "Stock"
+  },
+  {
+    "key": "portfolio.title",
+    "value": "Portfolio Tracking"
+  },
+  {
+    "key": "portfolio.totalCost",
+    "value": "Total Cost"
+  },
+  {
+    "key": "portfolio.totalMarketValue",
+    "value": "Total Value"
+  },
+  {
+    "key": "portfolio.vlmHint",
+    "value": "Paste the VLM raw output from screenshot recognition here"
+  },
+  {
+    "key": "portfolio.vlmImport",
+    "value": "VLM Import"
+  },
+  {
+    "key": "promptTemplate.unnamed",
+    "value": "Unnamed"
+  },
+  {
+    "key": "quant.backtest.endDate",
+    "value": "End Date"
+  },
+  {
+    "key": "quant.backtest.run",
+    "value": "Run Backtest"
+  },
+  {
+    "key": "quant.compare.compare",
+    "value": "Start Compare"
+  },
+  {
+    "key": "quant.compare.selectRuns",
+    "value": "Select backtest runs"
+  },
+  {
+    "key": "quant.strategy.lastUpdated",
+    "value": "Last Updated"
+  },
+  {
+    "key": "quant.tabs.rhai",
+    "value": "Rhai Script"
+  },
+  {
+    "key": "quant.tabs.strategies",
+    "value": "Strategies"
+  },
+  {
+    "key": "quant.trades.code",
+    "value": "Code"
+  },
+  {
+    "key": "quant.trades.fee",
+    "value": "Fee"
+  },
+  {
+    "key": "quant.trades.quantity",
+    "value": "Qty"
+  },
+  {
+    "key": "reflection.settings.maxInsights",
+    "value": "Max Insights"
+  },
+  {
+    "key": "reflection.settings.maxInsightsHint",
+    "value": "Keep at most N insight records"
+  },
+  {
+    "key": "replayWorkbench.description",
+    "value": "Anchor all data to a past date..."
+  },
+  {
+    "key": "replayWorkbench.exitBtn",
+    "value": "Switch to Live"
+  },
+  {
+    "key": "replayWorkbench.exitHint",
+    "value": "You are still in replay mode..."
+  },
+  {
+    "key": "replayWorkbench.notice",
+    "value": "All data in this workbench..."
+  },
+  {
+    "key": "replayWorkbench.step1.currentlyPicked",
+    "value": "Currently replaying with anchor date {{date}}"
+  },
+  {
+    "key": "replayWorkbench.step1.reselect",
+    "value": "Reselect"
+  },
+  {
+    "key": "replayWorkbench.step1.title",
+    "value": "Select Cutoff Date"
+  },
+  {
+    "key": "replayWorkbench.step2.analyze",
+    "value": "Analyze Stock"
+  },
+  {
+    "key": "replayWorkbench.step2.backtest",
+    "value": "View Backtest Stats"
+  },
+  {
+    "key": "replayWorkbench.step2.description",
+    "value": "All operations below inject as_of_date = {{date}} to the backend, sealing the world to that day."
+  },
+  {
+    "key": "replayWorkbench.step2.title",
+    "value": "Execute Replay-Aware Analysis"
+  },
+  {
+    "key": "replayWorkbench.step2.watchlist",
+    "value": "View Watchlist"
+  },
+  {
+    "key": "replayWorkbench.sweep.actionLabel",
+    "value": "Hypothetical Decision"
+  },
+  {
+    "key": "replayWorkbench.sweep.codesLabel",
+    "value": "Stock Codes (one per line or comma-separated)"
+  },
+  {
+    "key": "replayWorkbench.sweep.confidenceLabel",
+    "value": "Decision Confidence (0–1)"
+  },
+  {
+    "key": "replayWorkbench.sweep.dateRangeLabel",
+    "value": "As-of Cutoff Range (trading days only)"
+  },
+  {
+    "key": "replayWorkbench.sweep.exportCsv",
+    "value": "Export CSV"
+  },
+  {
+    "key": "replayWorkbench.sweep.exportJson",
+    "value": "Export JSON"
+  },
+  {
+    "key": "replayWorkbench.sweep.holdingDaysLabel",
+    "value": "Holding Days"
+  },
+  {
+    "key": "replayWorkbench.sweep.intro",
+    "value": "Batch run a \"stock × as-of cutoff\" backtest matrix. Forces date range reselection (does not inherit global TimeAnchor)."
+  },
+  {
+    "key": "replayWorkbench.sweep.invalidTitle",
+    "value": "Failed Samples"
+  },
+  {
+    "key": "replayWorkbench.sweep.noInvalid",
+    "value": "No failed samples."
+  },
+  {
+    "key": "replayWorkbench.sweep.runBtn",
+    "value": "Start Sweep"
+  },
+  {
+    "key": "replayWorkbench.sweep.running",
+    "value": "Running sweep {{done}} / {{total}} …"
+  },
+  {
+    "key": "replayWorkbench.sweep.summary",
+    "value": "Sweep complete: {{total}} total, {{valid}} valid, {{invalid}} failed."
+  },
+  {
+    "key": "replayWorkbench.sweep.title",
+    "value": "Replay Matrix"
+  },
+  {
+    "key": "replayWorkbench.sweep.violationNotice",
+    "value": "Recorded {{count}} as-of violations — see Invalid panel for details."
+  },
+  {
+    "key": "replayWorkbench.title",
+    "value": "Replay Workbench"
+  },
+  {
+    "key": "research.sourceTypeWeb",
+    "value": "Web"
+  },
+  {
+    "key": "research.sourceTypeWikipedia",
+    "value": "Wikipedia"
+  },
+  {
+    "key": "rl.checkpoints.load",
+    "value": "Load"
+  },
+  {
+    "key": "rl.checkpoints.save",
+    "value": "Save Checkpoint"
+  },
+  {
+    "key": "rl.checkpoints.saveModal",
+    "value": "Save Checkpoint"
+  },
+  {
+    "key": "rl.monitor.idle",
+    "value": "Training not started. Configure and start training."
+  },
+  {
+    "key": "rl.monitor.speed",
+    "value": "Speed"
+  },
+  {
+    "key": "rl.panel.config",
+    "value": "Config"
+  },
+  {
+    "key": "rl.panel.start",
+    "value": "Start Training"
+  },
+  {
+    "key": "rl.panel.stop",
+    "value": "Stop Training"
+  },
+  {
+    "key": "rl.panel.title",
+    "value": "RL Training Panel"
+  },
+  {
+    "key": "screener.tab.myFilter",
+    "value": "My Filters"
+  },
+  {
+    "key": "screener.tab.serenity",
+    "value": "Bottleneck Hunt"
+  },
+  {
+    "key": "screener.tab.smartReco",
+    "value": "Smart Recommendations"
+  },
+  {
+    "key": "screener.title",
+    "value": "Stock Screener"
+  },
+  {
+    "key": "sdk.acpRequestFailed",
+    "value": "ACP request failed: {{message}}"
+  },
+  {
+    "key": "serenityPanel.catalystContractAward",
+    "value": "Contract"
+  },
+  {
+    "key": "serenityPanel.catalystEarnings",
+    "value": "Earnings"
+  },
+  {
+    "key": "serenityPanel.catalystPolicy",
+    "value": "Policy"
+  },
+  {
+    "key": "serenityPanel.catalystProdRamp",
+    "value": "Ramp Up"
+  },
+  {
+    "key": "serenityPanel.exitNone",
+    "value": "None"
+  },
+  {
+    "key": "serenityPanel.exitNow",
+    "value": "Now"
+  },
+  {
+    "key": "serenityPanel.feedbackAvgReturn",
+    "value": "Avg Return"
+  },
+  {
+    "key": "serenityPanel.feedbackButton",
+    "value": "History Feedback"
+  },
+  {
+    "key": "serenityPanel.feedbackCatalyst",
+    "value": "Catalyst {{verified}}/{{total}}"
+  },
+  {
+    "key": "serenityPanel.feedbackProfitable",
+    "value": "Profitable/Total"
+  },
+  {
+    "key": "serenityPanel.feedbackTitle",
+    "value": "Feedback ({{count}} candidates)"
+  },
+  {
+    "key": "serenityPanel.settings",
+    "value": "Valuation Filters"
+  },
+  {
+    "key": "serenityPanel.timeframeLong",
+    "value": "6M+"
+  },
+  {
+    "key": "serenityPanel.timeframeMid",
+    "value": "3-6M"
+  },
+  {
+    "key": "serenityPanel.timeframeShort",
+    "value": "1-3M"
+  },
+  {
+    "key": "settings.evolution.categoryCore",
+    "value": "Core"
+  },
+  {
+    "key": "settings.evolution.categoryExperimental",
+    "value": "Experimental"
+  },
+  {
+    "key": "settings.evolution.categoryLearning",
+    "value": "Learning"
+  },
+  {
+    "key": "settings.evolution.categorySafety",
+    "value": "Safety"
+  },
+  {
+    "key": "settings.evolution.config",
+    "value": "Config"
+  },
+  {
+    "key": "settings.evolution.engineNotFound",
+    "value": "Engine Not Found"
+  },
+  {
+    "key": "settings.evolution.engineNotFoundDesc",
+    "value": "Engine \"{{name}}\" not found"
+  },
+  {
+    "key": "settings.evolution.logs",
+    "value": "Logs"
+  },
+  {
+    "key": "settings.evolution.noLogs",
+    "value": "No logs yet"
+  },
+  {
+    "key": "settings.evolution.refresh",
+    "value": "Refresh Status"
+  },
+  {
+    "key": "settings.evolution.saveConfig",
+    "value": "Save Config"
+  },
+  {
+    "key": "settings.evolution.startAll",
+    "value": "Start All"
+  },
+  {
+    "key": "settings.evolution.stats",
+    "value": "Stats"
+  },
+  {
+    "key": "settings.evolution.stop",
+    "value": "Stop"
+  },
+  {
+    "key": "settings.evolution.stopAll",
+    "value": "Stop All"
+  },
+  {
+    "key": "settings.evolution.stopped",
+    "value": "Stopped"
+  },
+  {
+    "key": "settings.frequencyPenalty",
+    "value": "Frequency Penalty"
+  },
+  {
+    "key": "settings.knowledge.wikiTab",
+    "value": "Wiki"
+  },
+  {
+    "key": "settings.platform.markerPrefixDesc",
+    "value": "Marker prefix (default CHAT2API, usually not needed)"
+  },
+  {
+    "key": "settings.searchProviders.zhipu",
+    "value": "Zhipu"
+  },
+  {
+    "key": "settings.skillsHub.invalidSkillFile",
+    "value": "Invalid skill file: missing name"
+  },
+  {
+    "key": "settings.skillsHub.noSkillsToExport",
+    "value": "No installed skills to export"
+  },
+  {
+    "key": "settings.temperature",
+    "value": "Temperature"
+  },
+  {
+    "key": "settings.toolCallingModeDesc",
+    "value": "Select the tool calling mode for this provider"
+  },
+  {
+    "key": "settings.toolCallingModeManaged",
+    "value": "Managed (AxAgent injects tools via system prompt, parses text for tool_calls — use for Chat2API-like gateways)"
+  },
+  {
+    "key": "settings.toolCallingModeNative",
+    "value": "Native (model built-in function calling)"
+  },
+  {
+    "key": "settings.userProfile.options.PascalCase",
+    "value": "PascalCase"
+  },
+  {
+    "key": "settings.userProfile.options.camelCase",
+    "value": "camelCase"
+  },
+  {
+    "key": "settings.userProfile.options.kebab-case",
+    "value": "kebab-case"
+  },
+  {
+    "key": "settings.userProfile.options.snake_case",
+    "value": "snake_case"
+  },
+  {
+    "key": "settings.zhipu",
+    "value": "Zhipu"
+  },
+  {
+    "key": "shortcuts.conflictApp2",
+    "value": "QQ/WeChat"
+  },
+  {
+    "key": "shortcuts.conflictApp3",
+    "value": "WeChat (Windows)"
+  },
+  {
+    "key": "shortcuts.invalidShortcut",
+    "value": "Invalid shortcut format"
+  },
+  {
+    "key": "shortcuts.shortcutNotSupported",
+    "value": "System does not support this shortcut combination"
+  },
+  {
+    "key": "sidebar.closeAgent",
+    "value": "Close Agent"
+  },
+  {
+    "key": "sidebar.openAgent",
+    "value": "Open Agent"
+  },
+  {
+    "key": "sidebar.sectionInvest",
+    "value": "Invest"
+  },
+  {
+    "key": "skill.abTest.change",
+    "value": "Change"
+  },
+  {
+    "key": "skill.abTest.conclusion",
+    "value": "Conclusion: Version A won {{winCountA}} items, Version B won {{winCountB}} items."
+  },
+  {
+    "key": "skill.abTest.noData",
+    "value": "No A/B test data yet"
+  },
+  {
+    "key": "skill.abTest.tie",
+    "value": "Tie"
+  },
+  {
+    "key": "skill.evolution.latestEvolution",
+    "value": "Latest Evolution"
+  },
+  {
+    "key": "skill.evolution.newVersion",
+    "value": "New (v{{version}})"
+  },
+  {
+    "key": "skill.evolution.noHistory",
+    "value": "This skill has no evolution history yet"
+  },
+  {
+    "key": "skill.evolution.none",
+    "value": "None"
+  },
+  {
+    "key": "skill.evolution.oldVersion",
+    "value": "Old (v{{version}})"
+  },
+  {
+    "key": "skill.evolution.rollback",
+    "value": "Rollback"
+  },
+  {
+    "key": "skill.evolution.rollbackConfirmMessage",
+    "value": "Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version."
+  },
+  {
+    "key": "sourceManager.embeddingRequired",
+    "value": "Please select an embedding model"
+  },
+  {
+    "key": "sourceManager.importSelectBase",
+    "value": "Please select a target knowledge base"
+  },
+  {
+    "key": "sourceManager.tab.wiki",
+    "value": "Wiki"
+  },
+  {
+    "key": "sourceManager.type.wiki",
+    "value": "Wiki"
+  },
+  {
+    "key": "terminal.ok",
+    "value": "OK"
+  },
+  {
+    "key": "trace.bottleneck.count",
+    "value": "Count"
+  },
+  {
+    "key": "trace.bottleneck.empty",
+    "value": "No bottleneck data"
+  },
+  {
+    "key": "trace.bottleneck.error",
+    "value": "Analysis failed"
+  },
+  {
+    "key": "trace.bottleneck.failurePatterns",
+    "value": "Failure Patterns"
+  },
+  {
+    "key": "trace.bottleneck.loading",
+    "value": "Loading bottleneck analysis..."
+  },
+  {
+    "key": "trace.bottleneck.timeDistribution",
+    "value": "Time Distribution"
+  },
+  {
+    "key": "trace.bottleneck.tokenConsumption",
+    "value": "Token Consumption"
+  },
+  {
+    "key": "trace.duration",
+    "value": "Duration: {{duration}}s"
+  },
+  {
+    "key": "trace.empty",
+    "value": "No execution trace data"
+  },
+  {
+    "key": "trace.error",
+    "value": "Load failed"
+  },
+  {
+    "key": "trace.errors",
+    "value": "Errors"
+  },
+  {
+    "key": "trace.feedback.error",
+    "value": "Submit failed"
+  },
+  {
+    "key": "trace.feedback.errorRetry",
+    "value": "Please retry later"
+  },
+  {
+    "key": "trace.feedback.helpful",
+    "value": "Helpful"
+  },
+  {
+    "key": "trace.feedback.notHelpful",
+    "value": "Not Helpful"
+  },
+  {
+    "key": "trace.feedback.question",
+    "value": "Was this execution helpful?"
+  },
+  {
+    "key": "trace.feedback.received",
+    "value": "Your feedback has been submitted and will be used to improve Agent execution."
+  },
+  {
+    "key": "trace.feedback.submit",
+    "value": "Submit Feedback"
+  },
+  {
+    "key": "trace.feedback.submitted",
+    "value": "Feedback submitted"
+  },
+  {
+    "key": "trace.feedback.thanks",
+    "value": "Thank you for your feedback"
+  },
+  {
+    "key": "trace.improvement.applied",
+    "value": "Improvement applied"
+  },
+  {
+    "key": "trace.improvement.apply",
+    "value": "Apply Improvement"
+  },
+  {
+    "key": "trace.improvement.error",
+    "value": "Generation failed"
+  },
+  {
+    "key": "trace.improvement.loading",
+    "value": "Generating improvement suggestions..."
+  },
+  {
+    "key": "trace.improvement.noSuggestions",
+    "value": "No improvement suggestions"
+  },
+  {
+    "key": "trace.improvement.problem",
+    "value": "Problem"
+  },
+  {
+    "key": "trace.improvement.suggestion",
+    "value": "Suggestion"
+  },
+  {
+    "key": "trace.loading",
+    "value": "Loading execution trace..."
+  },
+  {
+    "key": "trace.totalDuration",
+    "value": "Total Duration"
+  },
+  {
+    "key": "trace.totalSteps",
+    "value": "Total Steps"
+  },
+  {
+    "key": "trace.totalTokens",
+    "value": "Total Tokens"
+  },
+  {
+    "key": "traceExplorer.tab.bottleneck",
+    "value": "Bottleneck Analysis"
+  },
+  {
+    "key": "traceExplorer.tab.suggestions",
+    "value": "Suggestions"
+  },
+  {
+    "key": "trade.buy",
+    "value": "Buy"
+  },
+  {
+    "key": "trade.cost",
+    "value": "Cost"
+  },
+  {
+    "key": "trade.disabledHint",
+    "value": "Enable to record buy/sell trades. Tracks position cost and P&L."
+  },
+  {
+    "key": "trade.fillRequired",
+    "value": "Fill required fields"
+  },
+  {
+    "key": "trade.limitsBlocked",
+    "value": "Position limits blocked"
+  },
+  {
+    "key": "trade.pnl",
+    "value": "P&L"
+  },
+  {
+    "key": "trade.quantity",
+    "value": "Qty"
+  },
+  {
+    "key": "trade.recorded",
+    "value": "Recorded"
+  },
+  {
+    "key": "trade.sell",
+    "value": "Sell"
+  },
+  {
+    "key": "trade.stockCode",
+    "value": "Code"
+  },
+  {
+    "key": "trade.title",
+    "value": "Trading Log"
+  },
+  {
+    "key": "trade.toggleFailed",
+    "value": "Toggle failed"
+  },
+  {
+    "key": "visualEditor.components.Textarea",
+    "value": "Textarea"
+  },
+  {
+    "key": "visualEditor.palette.title",
+    "value": "Components"
+  },
+  {
+    "key": "visualEditor.property.placeholder.propKey",
+    "value": "Key"
+  },
+  {
+    "key": "visualEditor.property.selectHint",
+    "value": "Click a component on the canvas\nto edit its properties"
+  },
+  {
+    "key": "visualEditor.property.style.empty",
+    "value": "No style properties"
+  },
+  {
+    "key": "visualEditor.property.style.label",
+    "value": "Style Properties"
+  },
+  {
+    "key": "visualEditor.property.style.placeholder.propKey",
+    "value": "Property"
+  },
+  {
+    "key": "visualEditor.property.style.quickStyles",
+    "value": "Quick Styles"
+  },
+  {
+    "key": "watchlist.title",
+    "value": "Watchlist"
+  },
+  {
+    "key": "wiki.wiki",
+    "value": "Wiki"
+  },
+  {
+    "key": "workEngine.keepEditing",
+    "value": "Continue editing"
+  },
+  {
+    "key": "workEngine.unsavedContent",
+    "value": "You have unsaved changes. Are you sure you want to discard them?"
+  },
+  {
+    "key": "workflow.aiAssist.parallel.systemPrompt",
+    "value": "You are a workflow parallel-branch design expert. Based on the user's description, output the parallel node's `branches` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
+  },
+  {
+    "key": "workflow.aiAssist.switch.systemPrompt",
+    "value": "You are a workflow branching design expert. Based on the user's description, output the switch node's `cases` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
+  },
+  {
+    "key": "workflow.aiPanel.lockedByExpert",
+    "value": "System prompt is provided by the selected expert and cannot be modified"
+  },
+  {
+    "key": "workflow.back",
+    "value": "Back"
+  },
+  {
+    "key": "workflow.canvasTitle.clickToRename",
+    "value": "Click to rename"
+  },
+  {
+    "key": "workflow.caseLabel",
+    "value": "Case {{n}}"
+  },
+  {
+    "key": "workflow.contextMenu.label",
+    "value": "Node actions"
+  },
+  {
+    "key": "workflow.evolution.abTestTitle",
+    "value": "A/B Test ({{count}})"
+  },
+  {
+    "key": "workflow.evolution.confidence",
+    "value": "Confidence: {{value}}%"
+  },
+  {
+    "key": "workflow.evolution.latency",
+    "value": "Latency {{diff}}"
+  },
+  {
+    "key": "workflow.evolution.successRate",
+    "value": "Success Rate {{diff}}"
+  },
+  {
+    "key": "workflow.execution.nodeCompleted",
+    "value": "Node completed: {{label}}"
+  },
+  {
+    "key": "workflow.execution.startingNode",
+    "value": "Starting node: {{label}}"
+  },
+  {
+    "key": "workflow.execution.success",
+    "value": "Execution succeeded"
+  },
+  {
+    "key": "workflow.executor.executing",
+    "value": "Executing..."
+  },
+  {
+    "key": "workflow.executor.executionSuccess",
+    "value": "Execution Successful"
+  },
+  {
+    "key": "workflow.exportEmpty",
+    "value": "No nodes to export"
+  },
+  {
+    "key": "workflow.groupNode.folded",
+    "value": "folded"
+  },
+  {
+    "key": "workflow.importExport.importStructuralErrors",
+    "value": "Imported workflow has {{count}} structural error(s):\n{{details}}"
+  },
+  {
+    "key": "workflow.importExport.importValidationWarnings",
+    "value": "Imported workflow has {{count}} warning(s):\n{{details}}"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.account",
+    "value": "Account"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.alert",
+    "value": "Alert"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.config",
+    "value": "Config"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.kline",
+    "value": "KLine"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.market",
+    "value": "Market"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.news",
+    "value": "News"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.order",
+    "value": "Order"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.portfolio",
+    "value": "Portfolio"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.report",
+    "value": "Report"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.signal",
+    "value": "Signal"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.trade",
+    "value": "Trade"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.noun.user",
+    "value": "User"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.calc",
+    "value": "Calc"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.classify",
+    "value": "Classify"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.extract",
+    "value": "Extract"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.fetch",
+    "value": "Fetch"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.filter",
+    "value": "Filter"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.get",
+    "value": "Get"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.notify",
+    "value": "Notify"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.parse",
+    "value": "Parse"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.recommend",
+    "value": "Recommend"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.sort",
+    "value": "Sort"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.split",
+    "value": "Split"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.summarize",
+    "value": "Summarize"
+  },
+  {
+    "key": "workflow.layout.suggestTitle.verb.translate",
+    "value": "Translate"
+  },
+  {
+    "key": "workflow.layout.validate.cycle_no_exit",
+    "value": "Nodes [{{nodes}}] form a cycle without a break condition (loopBack)"
+  },
+  {
+    "key": "workflow.layout.validate.data_blackhole",
+    "value": "Aggregator node \"{{nodeId}}\" has indegree≥3 but outdegree=0, data has no exit"
+  },
+  {
+    "key": "workflow.layout.validate.dead_branch_decorative",
+    "value": "Container node \"{{nodeId}}\" (decorative) has no children and no connections"
+  },
+  {
+    "key": "workflow.layout.validate.dead_branch_scheduled",
+    "value": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges"
+  },
+  {
+    "key": "workflow.layout.validate.orphan_node",
+    "value": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)"
+  },
+  {
+    "key": "workflow.layout.validate.self_loop",
+    "value": "Edge {{edgeId}} is a self-loop (source === target)"
+  },
+  {
+    "key": "workflow.layout.validate.unconnected_port",
+    "value": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output"
+  },
+  {
+    "key": "workflow.layout.validate.workflow_ref_depth",
+    "value": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
+  },
+  {
+    "key": "workflow.layout.validate.workflow_ref_empty",
+    "value": "WorkflowRef node \"{{nodeId}}\" has no target workflow"
+  },
+  {
+    "key": "workflow.layout.validate.workflow_ref_self",
+    "value": "WorkflowRef node \"{{nodeId}}\" references itself"
+  },
+  {
+    "key": "workflow.list.title",
+    "value": "Workflows"
+  },
+  {
+    "key": "workflow.loopBackCycleDetected",
+    "value": "Loop-back edge would form a cycle, please adjust the target node"
+  },
+  {
+    "key": "workflow.nl2Skill.parametersLabel",
+    "value": "Parameters: "
+  },
+  {
+    "key": "workflow.nl2Skill.triggersLabel",
+    "value": "Triggers: "
+  },
+  {
+    "key": "workflow.nlParser.parsing",
+    "value": "Parsing..."
+  },
+  {
+    "key": "workflow.nlParser.planLabel",
+    "value": "Plan {{index}}: {{desc}}"
+  },
+  {
+    "key": "workflow.nodeKind.condition",
+    "value": "Routing"
+  },
+  {
+    "key": "workflow.paramKey",
+    "value": "param_{{n}}"
+  },
+  {
+    "key": "workflow.parse.analyzingIntent",
+    "value": "Analyzing intent..."
+  },
+  {
+    "key": "workflow.parse.buildingWorkflow",
+    "value": "Building workflow..."
+  },
+  {
+    "key": "workflow.parse.complete",
+    "value": "Complete"
+  },
+  {
+    "key": "workflow.parse.intentAnalysis",
+    "value": "Intent Analysis"
+  },
+  {
+    "key": "workflow.parse.matchingNodes",
+    "value": "Matching nodes..."
+  },
+  {
+    "key": "workflow.parse.optimizing",
+    "value": "Optimizing..."
+  },
+  {
+    "key": "workflow.phaseSeparator.defaultLabel",
+    "value": "Phase"
+  },
+  {
+    "key": "workflow.subWorkflowLabel",
+    "value": "Sub Workflow"
+  },
+  {
+    "key": "workflow.templateList.confirmDeleteMessage",
+    "value": "Are you sure to delete template {{name}}?"
+  },
+  {
+    "key": "workflow.templateList.copied",
+    "value": "Copied"
+  },
+  {
+    "key": "workflow.templateList.copyFailed",
+    "value": "Copy failed"
+  },
+  {
+    "key": "workflow.templateList.deleteFailed",
+    "value": "Delete failed"
+  },
+  {
+    "key": "workflow.templateList.importPresets",
+    "value": "Import"
+  },
+  {
+    "key": "workflow.templateList.presetsImportFailed",
+    "value": "Import failed"
+  },
+  {
+    "key": "workflow.validation.validation.addRule",
+    "value": "添加规则"
+  },
+  {
+    "key": "workflow.validation.validation.assertionOp",
+    "value": "断言操作"
+  },
+  {
+    "key": "workflow.validation.validation.block",
+    "value": "阻止执行"
+  },
+  {
+    "key": "workflow.validation.validation.continue",
+    "value": "继续执行"
+  },
+  {
+    "key": "workflow.validation.validation.description",
+    "value": "描述"
+  },
+  {
+    "key": "workflow.validation.validation.expectedValue",
+    "value": "期望值"
+  },
+  {
+    "key": "workflow.validation.validation.maxValue",
+    "value": "最大值"
+  },
+  {
+    "key": "workflow.validation.validation.metric",
+    "value": "指标"
+  },
+  {
+    "key": "workflow.validation.validation.minValue",
+    "value": "最小值"
+  },
+  {
+    "key": "workflow.validation.validation.noRules",
+    "value": "暂无验证规则。点击「添加规则」开始创建。"
+  },
+  {
+    "key": "workflow.validation.validation.onFailStrategy",
+    "value": "失败策略"
+  },
+  {
+    "key": "workflow.validation.validation.rule",
+    "value": "规则"
+  },
+  {
+    "key": "workflow.validation.validation.ruleName",
+    "value": "规则名称"
+  },
+  {
+    "key": "workflow.validation.validation.ruleType",
+    "value": "规则类型"
+  },
+  {
+    "key": "workflow.validation.validation.saved",
+    "value": "验证规则已保存"
+  },
+  {
+    "key": "workflow.validation.validation.selectNode",
+    "value": "选择节点"
+  },
+  {
+    "key": "workflow.validation.validation.sourceNode",
+    "value": "源节点"
+  },
+  {
+    "key": "workflow.validation.validation.title",
+    "value": "验证规则"
+  },
+  {
+    "key": "workflow.validation.validation.warn",
+    "value": "仅警告"
+  },
+  {
+    "key": "workflow.validationWarnings",
+    "value": "Workflow has {{count}} warning(s):\n{{details}}"
+  },
+  {
+    "key": "workflow.version.compareHint",
+    "value": "Comparing version {{v1}} with version {{v2}}"
+  },
+  {
+    "key": "workflow.version.compareSelected",
+    "value": "Compare selected ({{selected}}/2)"
+  },
+  {
+    "key": "workflow.version.confirmRestore",
+    "value": "Restore to version {{version}}?"
+  },
+  {
+    "key": "workflow.version.current",
+    "value": "Current version"
+  },
+  {
+    "key": "workflow.version.deletedNode",
+    "value": "- Removed node: {{id}} ({{desc}})"
+  },
+  {
+    "key": "workflow.version.modifiedNode",
+    "value": "~ Modified node: {{id}} ({{desc}})"
+  },
+  {
+    "key": "workflow.version.newNode",
+    "value": "+ Added node: {{id}} ({{desc}})"
+  },
+  {
+    "key": "workflow.version.versionManager",
+    "value": "Version Manager: {{name}}"
+  },
+  {
+    "key": "workflow.versionHistory.cannotLoadOldVersion",
+    "value": "Cannot load old version data"
+  },
+  {
+    "key": "workflow.versionHistory.compareFailed",
+    "value": "Comparison failed"
+  },
+  {
+    "key": "workflow.versionHistory.diffEdgeAdded",
+    "value": "Edge added ({{type}})"
+  },
+  {
+    "key": "workflow.versionHistory.diffEdgeRemoved",
+    "value": "Edge removed ({{type}})"
+  },
+  {
+    "key": "workflow.versionHistory.diffNodeAdded",
+    "value": "Node added"
+  },
+  {
+    "key": "workflow.versionHistory.diffNodeConfigChanged",
+    "value": "Node config changed"
+  },
+  {
+    "key": "workflow.versionHistory.diffNodeRemoved",
+    "value": "Node removed"
+  },
+  {
+    "key": "workflow.versionHistory.diffNodeTypeChanged",
+    "value": "Node type changed"
+  },
+  {
+    "key": "workflow.versionHistory.rollbackFailed",
+    "value": "Rollback failed: {{error}}"
+  },
+  {
+    "key": "workflow.versionHistory.rollbackTo",
+    "value": "Rollback to {{version}}"
+  }
+]

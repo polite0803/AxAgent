@@ -153,8 +153,10 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
         store: None,
     };
 
-    let response =
-        adapter.chat(&resolved.ctx, request).await.map_err(|e| format!("LLM API error: {}", e))?;
+    let response = adapter
+        .chat(&resolved.ctx, request.into())
+        .await
+        .map_err(|e| format!("LLM API error: {}", e))?;
 
     parse_llm_response(&prompt, &response.content, &resolved.model_id)
 }
@@ -230,8 +232,10 @@ Output ONLY the optimized prompt text, without any explanation or meta-commentar
         store: None,
     };
 
-    let response =
-        adapter.chat(&resolved.ctx, request).await.map_err(|e| format!("LLM API error: {}", e))?;
+    let response = adapter
+        .chat(&resolved.ctx, request.into())
+        .await
+        .map_err(|e| format!("LLM API error: {}", e))?;
 
     Ok(response.content)
 }
@@ -335,8 +339,10 @@ Rules:
         store: None,
     };
 
-    let response =
-        adapter.chat(&resolved.ctx, request).await.map_err(|e| format!("LLM API error: {}", e))?;
+    let response = adapter
+        .chat(&resolved.ctx, request.into())
+        .await
+        .map_err(|e| format!("LLM API error: {}", e))?;
 
     let json_str = match extract_json_from_response(&response.content) {
         Some(s) => s,

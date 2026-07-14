@@ -14,6 +14,7 @@ pub fn start_background_services(
     app_dir: std::path::PathBuf,
     _tray_language: String,
 ) {
+    init_mcp_oauth(state);
     start_auto_backup(app, state, app_dir.clone());
     start_webdav_sync(app, state, app_dir);
     #[cfg(not(mobile))]
@@ -36,6 +37,20 @@ pub fn start_background_services(
     start_trajectory_cleanup(state);
     start_index_job_service(app, state);
     start_plugins(state);
+}
+
+/// 初始化 MCP OAuth 凭据存储的全局单例。
+///
+/// 必须在任何 MCP 工具调用前完成，否则 `McpOAuthStore::try_global()` 返回 `None`，
+/// 受保护服务器将按匿名方式连接（很可能 401）。
+fn init_mcp_oauth(state: &AppState) {
+    let master_key = state.harness.master_key_owned();
+    let crypto = std::sync::Arc::new(
+        axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
+    );
+    let store = std::sync::Arc::new(axagent_mcp::mcp_oauth::McpOAuthStore::new(crypto));
+    axagent_mcp::mcp_oauth::McpOAuthStore::init_global(store);
+    tracing::info!("[McpOAuth] 全局 OAuth 凭据存储已初始化");
 }
 
 fn start_plugins(state: &AppState) {
@@ -515,7 +530,7 @@ fn start_rl_reward_computation(state: &AppState) {
             let mut total_advantages = 0;
             let mut total_prm_rewards = 0;
             for trajectory in &mut trajectories {
-                if trajectory.rewards.is_empty() {
+                {
                     let mut rewards = rl.compute_rewards(trajectory);
                     total_rewards += rewards.len();
                     rl.shape_rewards(&mut rewards);
@@ -1294,6 +1309,12 @@ fn start_cron_scheduler(state: &AppState) {
     });
 
     let scheduler = Arc::new(CronScheduler::new(store, Arc::new(executor)));
+
+    // 保存到 AppState 以便外部控制（停止/重启）
+    {
+        let mut state_scheduler = tauri::async_runtime::block_on(state.cron_scheduler.write());
+        *state_scheduler = Some(scheduler.clone());
+    }
 
     tauri::async_runtime::spawn(async move {
         scheduler.start().await;

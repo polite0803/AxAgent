@@ -59,7 +59,7 @@ struct Migration {
 
 const MIGRATIONS: &[Migration] = &[Migration {
     version: 100,
-    description: "v100_consolidated: consolidated DDL snapshot (replaces v001-v011) with all INT4→INT8 fixes",
+    description: "v100_consolidated: consolidated DDL snapshot (replaces v001-v011) with all INT4→INT8 and REAL→DOUBLE PRECISION fixes — also creates workflow_approvals table for ApprovalNode HITL",
     up: |db| Box::pin(v100_consolidated::up(db)),
 }];
 
@@ -202,7 +202,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应只有 CURRENT_VERSION 行（与迁移数量一致）
+        // schema_version 表应只有 1 行（v100 consolidated 单条迁移）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,

@@ -221,6 +221,8 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
         Ok(NodeOutput {
             output: enriched_output,
             output_var: Some(sub_node.config.output_var.clone()),
+            control: None,
         })
     }
 }
+

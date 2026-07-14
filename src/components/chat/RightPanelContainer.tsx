@@ -244,7 +244,7 @@ export function RightPanelContainer({
         labelKey: "chatRightPanel.imageGen",
         category: "extra",
         shouldRender: true,
-        render: () => <ImageGenPanel />,
+        render: () => <ImageGenPanel conversationId={conversationId} />,
       },
       {
         key: "visionAnalysis",

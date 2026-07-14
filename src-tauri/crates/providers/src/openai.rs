@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 1.97 起 clippy::items_after_test_module 升级为 warn(在 `-D warnings` 下变 deny),
+// 历史上把测试模块放在文件中间以贴近被测代码,这里显式 allow 保留现有排版。
+#![allow(clippy::items_after_test_module)]
+
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use axagent_harness::constants::default_url;
 use axagent_harness::core_error::{AxAgentError, Result};
@@ -669,7 +675,7 @@ impl ProviderAdapter for OpenAIAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         let url = Self::chat_url(ctx);
         let body = build_request(ctx, &request, &request.messages, false);
@@ -1163,5 +1169,21 @@ impl ProviderAdapter for OpenAIAdapter {
         let embeddings: Vec<Vec<f32>> = result.data.into_iter().map(|d| d.embedding).collect();
 
         Ok(EmbedResponse { embeddings, dimensions })
+    }
+
+    async fn realtime_config(
+        &self,
+        ctx: &ProviderRequestContext,
+        model: &str,
+    ) -> Result<axagent_harness::RealtimeProviderConfig> {
+        // OpenAI Realtime API 的 WebSocket 端点
+        let base = Self::base_url(ctx).replace("https://", "wss://").replace("http://", "ws://");
+        let ws_url = format!("{base}/realtime?model={model}");
+        Ok(axagent_harness::RealtimeProviderConfig {
+            ws_url,
+            api_key: ctx.api_key.clone(),
+            headers: None,
+            provider_type: "openai".to_string(),
+        })
     }
 }

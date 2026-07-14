@@ -127,6 +127,8 @@ impl NodeExecutorTrait for WebhookSendExecutor {
             } else {
                 Some(c.output_var.clone())
             },
+            control: None,
         })
     }
 }
+

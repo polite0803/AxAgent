@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #[cfg(not(target_os = "android"))]
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 #[cfg(not(target_os = "android"))]
 use async_trait::async_trait;
 #[cfg(not(target_os = "android"))]
-use axagent_kit::browser_automation::{PlaywrightClient, shared_browser_pool};
+use axagent_kit::browser_automation::{
+    PlaywrightClient, shared_browser_pool, validate_browser_url,
+};
 #[cfg(not(target_os = "android"))]
 use serde_json::Value;
 
@@ -30,6 +32,9 @@ macro_rules! browser_tool {
             fn is_concurrency_safe(&self) -> bool {
                 false
             }
+            fn check_permissions(&self, _input: &Value, _ctx: &ToolContext) -> PermissionResult {
+                PermissionResult::Ask("浏览器自动化需要用户确认。".into())
+            }
 
             async fn call(
                 &self,
@@ -38,17 +43,29 @@ macro_rules! browser_tool {
             ) -> Result<ToolResult, ToolError> {
                 {
                     let mut guard = shared_browser_pool().lock().await;
-                    if guard.is_none() {
+                    // 健康检查：实例不存在或子进程已退出则重建（修复 #14）
+                    let needs_launch = match guard.as_mut() {
+                        Some(c) => !c.is_alive(),
+                        None => true,
+                    };
+                    if needs_launch {
                         *guard = Some(PlaywrightClient::launch().await.map_err(|e| {
                             ToolError::execution_failed(format!("浏览器启动失败: {}", e))
                         })?);
                     }
                 }
                 let mut guard = shared_browser_pool().lock().await;
-                let $cl = guard
-                    .as_mut()
-                    .ok_or_else(|| ToolError::execution_failed("浏览器未启动".to_string()))?;
-                $body
+                let result = {
+                    let $cl = guard
+                        .as_mut()
+                        .ok_or_else(|| ToolError::execution_failed("浏览器未启动".to_string()))?;
+                    $body
+                };
+                // 执行失败（含子进程崩溃）时丢弃池中死实例，下次调用自动重建
+                if result.is_err() {
+                    *guard = None;
+                }
+                result
             }
         }
     };
@@ -64,6 +81,10 @@ browser_tool!(
         let url = input.get("url").and_then(|v| v.as_str()).unwrap_or_default().to_string();
         if url.is_empty() {
             return Ok(ToolResult::error("Error: url 是必需的"));
+        }
+        // SECURITY (S4): 与命令路径共用同一 SSRF 校验，防止 Agent 访问内网/云元数据
+        if let Err(detail) = validate_browser_url(&url) {
+            return Ok(ToolResult::error(format!("SSRF 防护: {}", detail)));
         }
         let r = c.navigate(&url).await.map_err(|e| ToolError::execution_failed(e.to_string()))?;
         Ok(ToolResult::success(format!("已导航到 {} - 标题: {}", r.url, r.title)))

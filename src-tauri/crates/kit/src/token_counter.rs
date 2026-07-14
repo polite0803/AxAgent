@@ -68,20 +68,20 @@ mod tests {
     fn test_english_text() {
         // "Hello, world!" = 13 chars → ~3 tokens (actual: 4 with GPT-4)
         let tokens = estimate_tokens("Hello, world!");
-        assert!(tokens >= 2 && tokens <= 6);
+        assert!((2..=6).contains(&tokens));
     }
 
     #[test]
     fn test_chinese_text() {
         // "你好世界" = 4 CJK chars → ~3 tokens (actual: 2-4 with GPT-4)
         let tokens = estimate_tokens("你好世界");
-        assert!(tokens >= 2 && tokens <= 5);
+        assert!((2..=5).contains(&tokens));
     }
 
     #[test]
     fn test_mixed_text() {
         let tokens = estimate_tokens("Hello 你好 world 世界");
-        assert!(tokens >= 4 && tokens <= 10);
+        assert!((4..=10).contains(&tokens));
     }
 
     #[test]

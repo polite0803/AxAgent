@@ -390,6 +390,7 @@ pub async fn delete_message(db: &DatabaseConnection, id: &str) -> Result<()> {
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("Message {}", id)))?;
 
+    let conversation_id = target.conversation_id.clone();
     let txn = db.begin().await?;
 
     if target.role == "assistant"
@@ -412,11 +413,15 @@ pub async fn delete_message(db: &DatabaseConnection, id: &str) -> Result<()> {
     }
 
     let result = messages::Entity::delete_by_id(id).exec(&txn).await?;
-    txn.commit().await?;
 
     if result.rows_affected == 0 {
+        txn.rollback().await?;
         return Err(AxAgentError::NotFound(format!("Message {}", id)));
     }
+
+    crate::repo::conversation::decrement_message_count_in_txn(&txn, &conversation_id).await?;
+
+    txn.commit().await?;
     Ok(())
 }
 
@@ -425,10 +430,15 @@ pub async fn clear_conversation_messages(
     db: &DatabaseConnection,
     conversation_id: &str,
 ) -> Result<u64> {
+    let txn = db.begin().await?;
+
     let result = messages::Entity::delete_many()
         .filter(messages::Column::ConversationId.eq(conversation_id))
-        .exec(db)
+        .exec(&txn)
         .await?;
+
+    crate::repo::conversation::set_message_count(&txn, conversation_id, 0).await?;
+    txn.commit().await?;
 
     Ok(result.rows_affected)
 }
@@ -702,19 +712,13 @@ pub async fn get_daily_message_usage(
         .iter()
         .filter_map(|r| {
             let date: Option<String> = r.try_get("", "date").ok();
-            date.map(|d| {
-                let prompt: u64 = r.try_get("", "total_prompt_tokens").unwrap_or(0);
-                let completion: u64 = r.try_get("", "total_completion_tokens").unwrap_or(0);
-                // Sonnet-tier pricing: $3/M input, $15/M output
-                let cost_usd = (prompt as f64 * 3.0 + completion as f64 * 15.0) / 1_000_000.0;
-                DailyUsage {
-                    date: d,
-                    message_count: r.try_get("", "message_count").unwrap_or(0),
-                    total_prompt_tokens: prompt,
-                    total_completion_tokens: completion,
-                    total_tokens: r.try_get("", "total_tokens").unwrap_or(0),
-                    total_cost_usd: (cost_usd * 100.0).round() / 100.0, // round to cents
-                }
+            date.map(|d| DailyUsage {
+                date: d,
+                message_count: r.try_get("", "message_count").unwrap_or(0),
+                total_prompt_tokens: r.try_get("", "total_prompt_tokens").unwrap_or(0),
+                total_completion_tokens: r.try_get("", "total_completion_tokens").unwrap_or(0),
+                total_tokens: r.try_get("", "total_tokens").unwrap_or(0),
+                total_cost_usd: 0.0,
             })
         })
         .collect();

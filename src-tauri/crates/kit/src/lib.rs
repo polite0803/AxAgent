@@ -37,6 +37,7 @@ pub mod bridge_impls;
 pub mod markdown_parser;
 pub mod marketplace;
 pub mod marketplace_service;
+pub mod permission;
 pub mod plan_compiler;
 pub mod preset_templates;
 pub mod prompts;

@@ -143,6 +143,7 @@ export function InputAreaControls(props: {
 
   // Voice
   hasRealtimeVoice: boolean;
+  onVoiceCallClick: () => void;
 }) {
   const { token } = theme.useToken();
   const {
@@ -561,14 +562,12 @@ export function InputAreaControls(props: {
           </Tooltip>
         )}
         {hasRealtimeVoice && (
-          <Tooltip
-            title={t("voice.startCall") + " - " + t("common.comingSoon")}
-          >
+          <Tooltip title={t("voice.startCall")}>
             <Button
               type="text"
               size="small"
               icon={<Mic size={14} />}
-              disabled
+              onClick={props.onVoiceCallClick}
             />
           </Tooltip>
         )}

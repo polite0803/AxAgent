@@ -290,6 +290,7 @@ impl NodeExecutorTrait for CodeExecutor {
                     "params": result,
                 }),
                 output_var: Some(code_node.config.output_var.clone()),
+                control: None,
             });
         }
 
@@ -309,6 +310,7 @@ impl NodeExecutorTrait for CodeExecutor {
                     "node_id": node.base_id(),
                 }),
                 output_var: Some(code_node.config.output_var.clone()),
+                control: None,
             });
         }
 
@@ -325,6 +327,8 @@ impl NodeExecutorTrait for CodeExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(code_node.config.output_var.clone()),
+            control: None,
         })
     }
 }
+

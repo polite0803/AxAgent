@@ -4,18 +4,17 @@ import { Icon } from "@/components/common/Icon";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
-import { NAV_ICON_COLORS } from "@/lib/iconColors";
 import { invoke, logIpcError } from "@/lib/invoke";
-import { getPinnedSchemas, getPinnedSchemasByGroup, PIN_GROUPS } from "@/lib/pinned-schemas";
+import { BUILTIN_PAGE_PATH } from "@/lib/pageRegistry";
+import { getPinnedSchemasByGroup, PIN_GROUPS } from "@/lib/pinned-schemas";
+import type { PinnedSchemaMap } from "@/lib/pinned-schemas";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
-import { resolveIconComponent } from "@/lib/skillIcons";
 import {
   useAgentPanelStore,
   useDynamicUIStore,
   useOnboardingStore,
   useSettingsStore,
-  useSkillExtensionStore,
   useUIStore,
   useUserProfileStore,
 } from "@/stores";
@@ -23,33 +22,16 @@ import type { AppSettings, PageKey } from "@/types";
 import { AppstoreAddOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
 import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
-import { createElement, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
-const pageKeyToPath: Record<PageKey, string> = {
-  chat: "/chat",
-  dashboard: "/dashboard",
-  knowledge: "/knowledge",
-  memory: "/memory",
-  link: "/link",
-  gateway: "/gateway",
-  files: "/files",
-  terminal: "/terminal",
-  workflow: "/workflow",
-  "dynamic-ui": "/dynamic-ui",
-  settings: "/settings",
-};
+/** 单一路径来源：直接复用 pageRegistry 的权威映射。 */
+const pageKeyToPath = BUILTIN_PAGE_PATH as Record<PageKey, string>;
 
 function pathToPageKey(path: string): PageKey {
-  if (path === "/chat") {
-    return "chat";
-  }
   if (path === "/" || path === "") {
     return "dashboard";
-  }
-  if (path.startsWith("/skill/")) {
-    return path;
   }
   const key = path.slice(1);
   if (key in pageKeyToPath) {
@@ -72,56 +54,56 @@ const builtinNavItems: NavItem[] = [
     key: "chat",
     icon: <Icon icon="fluent:chat-20-filled" size={17} />,
     labelKey: "nav.chat",
-    path: "/chat",
+    path: BUILTIN_PAGE_PATH.chat,
     isPlugin: false,
   },
   {
     key: "dashboard",
     icon: <Icon icon="fluent:grid-20-filled" size={17} />,
     labelKey: "nav.dashboard",
-    path: "/dashboard",
+    path: BUILTIN_PAGE_PATH.dashboard,
     isPlugin: false,
   },
   {
     key: "knowledge",
     icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
     labelKey: "nav.knowledge",
-    path: "/knowledge",
+    path: BUILTIN_PAGE_PATH.knowledge,
     isPlugin: false,
   },
   {
     key: "gateway",
     icon: <Icon icon="fluent:globe-20-filled" size={17} />,
     labelKey: "nav.gateway",
-    path: "/gateway",
+    path: BUILTIN_PAGE_PATH.gateway,
     isPlugin: false,
   },
   {
     key: "terminal",
     icon: <Icon icon="fluent:prompt-20-filled" size={17} />,
     labelKey: "nav.terminal",
-    path: "/terminal",
+    path: BUILTIN_PAGE_PATH.terminal,
     isPlugin: false,
   },
   {
     key: "files",
     icon: <Icon icon="fluent:folder-20-filled" size={17} />,
     labelKey: "nav.files",
-    path: "/files",
+    path: BUILTIN_PAGE_PATH.files,
     isPlugin: false,
   },
   {
     key: "workflow",
     icon: <Icon icon="fluent:flow-20-filled" size={17} />,
     labelKey: "nav.workflow",
-    path: "/workflow",
+    path: BUILTIN_PAGE_PATH.workflow,
     isPlugin: false,
   },
   {
     key: "dynamic-ui",
     icon: <Icon icon="fluent:apps-20-filled" size={17} />,
     labelKey: "nav.dynamicUI",
-    path: "/dynamic-ui",
+    path: BUILTIN_PAGE_PATH["dynamic-ui"],
     isPlugin: false,
   },
 ];
@@ -344,7 +326,6 @@ export function Sidebar() {
     profile.avatarValue,
   );
   const settings = useSettingsStore((s) => s.settings);
-  const skillNavItems = useSkillExtensionStore((s) => s.navItems);
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const toggleHelp = useOnboardingStore((s) => s.toggle);
@@ -353,36 +334,7 @@ export function Sidebar() {
   const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
 
   const sections = useMemo<SidebarSection[]>(() => {
-    const pluginItems: NavItem[] = [];
-    for (const item of skillNavItems) {
-      pluginItems.push({
-        key: `plugin:${item.id}`,
-        icon: createElement(resolveIconComponent(item.icon), { size: 18, color: NAV_ICON_COLORS.Router }),
-        labelKey: item.label,
-        path: `/skill/${item.skillName}/${item.pageId}`,
-        isPlugin: true,
-        pluginName: item.skillName,
-      });
-    }
-
-    const topPlugins = pluginItems.filter((i) => {
-      const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
-      return (orig?.position ?? 1) === 0;
-    });
-    const bottomPlugins = pluginItems.filter((i) => {
-      const orig = skillNavItems.find((n) => `plugin:${n.id}` === i.key);
-      return (orig?.position ?? 1) !== 0;
-    });
-
     const sections: SidebarSection[] = [];
-
-    if (topPlugins.length > 0) {
-      sections.push({
-        key: "work",
-        labelKey: "sidebar.sectionWork",
-        items: topPlugins,
-      });
-    }
 
     sections.push({
       key: "overview",
@@ -405,28 +357,31 @@ export function Sidebar() {
       ),
     });
 
-    if (bottomPlugins.length > 0) {
-      sections.push({
-        key: "plugins",
-        labelKey: "sidebar.sectionPlugins",
-        items: bottomPlugins,
-      });
-    }
-
     return sections.filter((s) => s.items.length > 0);
-  }, [skillNavItems]);
+  }, [builtinNavItems]);
 
   // ── 固定在导航的动态页面 ──
   const dynamicSchemas = useDynamicUIStore((s) => s.schemas);
   const fetchSchemas = useDynamicUIStore((s) => s.fetchSchemas);
+  const pins = useDynamicUIStore((s) => s.pins);
+  const fetchPins = useDynamicUIStore((s) => s.fetchPins);
   useEffect(() => {
     void fetchSchemas();
-  }, [fetchSchemas]);
+    void fetchPins();
+  }, [fetchSchemas, fetchPins]);
 
   const pinnedGroups = useMemo(() => {
     const schemasById = new Map(dynamicSchemas.map((s) => [s.id, s]));
-    const pinned = getPinnedSchemas();
-    const grouped = getPinnedSchemasByGroup(pinned);
+    const pinnedMap: PinnedSchemaMap = {};
+    for (const p of pins) {
+      pinnedMap[p.schema_id] = {
+        schemaId: p.schema_id,
+        title: p.title,
+        group: p.group_name,
+        position: p.position,
+      };
+    }
+    const grouped = getPinnedSchemasByGroup(pinnedMap);
     return grouped
       .map((g) => ({
         groupKey: g.group,
@@ -436,13 +391,14 @@ export function Sidebar() {
           .map((c) => ({
             key: `dynamic-ui-${c.schemaId}`,
             icon: <AppstoreAddOutlined />,
-            labelKey: c.title,
-            path: `/dynamic-ui?schema=${encodeURIComponent(c.title)}`,
+            // 缺陷 6：优先使用 schema 实时标题，保证改名后导航项同步更新
+            labelKey: schemasById.get(c.schemaId)?.title ?? c.title,
+            path: `/dynamic-ui/${c.schemaId}`,
             isPlugin: true,
           })),
       }))
       .filter((g) => g.items.length > 0);
-  }, [dynamicSchemas]);
+  }, [dynamicSchemas, pins]);
 
   return (
     <>

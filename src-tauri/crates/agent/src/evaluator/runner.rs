@@ -8,7 +8,7 @@ use tokio::sync::RwLock;
 
 use crate::evaluator::benchmark::{Benchmark, BenchmarkTask, Difficulty, EvaluationMetric};
 use crate::evaluator::metrics::{
-    AggregateMetrics, MetricsCalculator, contains_score, exact_match_score, levenshtein_similarity,
+    AggregateMetrics, contains_score, exact_match_score, levenshtein_similarity,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,12 +73,11 @@ pub struct ScoreResult {
 
 pub struct EvaluationRunner {
     config: RunnerConfig,
-    metrics_calculator: MetricsCalculator,
 }
 
 impl EvaluationRunner {
     pub fn new(config: RunnerConfig) -> Self {
-        Self { config, metrics_calculator: MetricsCalculator::new() }
+        Self { config }
     }
 
     pub fn with_config(&mut self, config: RunnerConfig) {
@@ -125,17 +124,11 @@ impl EvaluationRunner {
         let overall_score = scores.iter().map(|s| s.weighted_score).sum::<f32>();
         let success = scores.iter().all(|s| s.passed) && overall_score >= 0.5;
 
-        let mut score_map: HashMap<String, f32> = HashMap::new();
-        for s in &scores {
-            score_map.insert(s.criteria_name.clone(), s.raw_score);
-        }
-        let task_metrics = self.metrics_calculator.calculate_task_score(task, &score_map);
-
         TaskResult {
             task_id: task.id.clone(),
             task_name: task.name.clone(),
             difficulty: task.difficulty,
-            success: success && task_metrics.success,
+            success,
             duration_ms,
             scores,
             overall_score,
@@ -153,7 +146,7 @@ impl EvaluationRunner {
             "reasoning_002" => "设计分布式缓存系统需要考虑以下方面：\n1. 一致性模型（强一致性/最终一致性）\n2. 数据分片策略\n3. 复制机制\n4. 故障转移\n5. 缓存失效策略".to_string(),
             "tool_001" => "3".to_string(),
             "code_001" => "fn fibonacci(n: u32) -> u32 {\n    if n <= 1 {\n        n\n    } else {\n        fibonacci(n - 1) + fibonacci(n - 2)\n    }\n}".to_string(),
-            "error_001" => "这段代码看起来是正确的。let x = 5 创建了一个不可变绑定，println! 宏正确地使用了占位符 {}。没有明显的错误。".to_string(),
+            "error_001" => "这段代码有错误。变量 y 未定义就被使用，需要在作用域中先声明 y 变量才能使用 println! 输出。修正方案：先声明 let y = 某个值; 或使用已定义的变量 x。".to_string(),
             _ => format!("模拟响应: {}", task.input.query.chars().take(50).collect::<String>()),
         }
     }
@@ -185,14 +178,38 @@ impl EvaluationRunner {
         response: &str,
     ) -> f32 {
         let expected = task.expected_output.as_ref().map(|o| o.content.as_str()).unwrap_or("");
+        let has_expected = !expected.is_empty();
 
         match metric {
-            EvaluationMetric::ExactMatch => exact_match_score(expected, response),
-            EvaluationMetric::Contains => contains_score(expected, response),
-            EvaluationMetric::LevenshteinSimilarity => levenshtein_similarity(expected, response),
+            // 无 expected_output 时比较类指标返回 0.0
+            EvaluationMetric::ExactMatch => {
+                if has_expected {
+                    exact_match_score(expected, response)
+                } else {
+                    0.0
+                }
+            },
+            EvaluationMetric::Contains => {
+                if has_expected {
+                    contains_score(expected, response)
+                } else {
+                    0.0
+                }
+            },
+            EvaluationMetric::LevenshteinSimilarity => {
+                if has_expected {
+                    levenshtein_similarity(expected, response)
+                } else {
+                    0.0
+                }
+            },
             EvaluationMetric::SemanticSimilarity => {
-                let base = levenshtein_similarity(expected, response);
-                base * 0.8 + 0.2
+                if has_expected {
+                    let base = levenshtein_similarity(expected, response);
+                    base * 0.8 + 0.2
+                } else {
+                    0.0
+                }
             },
             EvaluationMetric::ToolCorrectness => {
                 if task.id == "tool_001" && response == "3" {
@@ -202,10 +219,10 @@ impl EvaluationRunner {
                 }
             },
             EvaluationMetric::OutputFormat => {
-                if expected.is_empty() {
-                    1.0
-                } else {
+                if has_expected {
                     0.8
+                } else {
+                    1.0
                 }
             },
             EvaluationMetric::Performance => 1.0,
@@ -301,13 +318,11 @@ impl BenchmarkRunnerState {
     }
 
     pub async fn run(&self, benchmark: &Benchmark, config: RunnerConfig) -> BenchmarkResult {
-        {
-            let mut runner = self.runner.write().await;
-            runner.with_config(config);
-        }
-
-        let runner = self.runner.read().await;
+        // 持写锁完成配置更新和执行，防止其他线程中途修改 config
+        let mut runner = self.runner.write().await;
+        runner.with_config(config);
         let result = runner.run_benchmark(benchmark).await;
+        drop(runner);
 
         {
             let mut current = self.current_result.write().await;

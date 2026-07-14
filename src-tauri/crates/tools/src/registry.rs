@@ -384,6 +384,8 @@ pub struct UnifiedToolRegistry {
     /// 注册的 Skill 工具：name → handler（register_skill_tool 填充）
     #[allow(clippy::disallowed_types)]
     pub skill_handlers: HashMap<String, SkillToolHandler>,
+    /// 用户提问桥接器（AskUserQuestion 工具阻塞等待用户输入）
+    pub ask_user_bridge: Option<Arc<dyn axagent_harness::AskUserBridge>>,
 }
 
 impl Clone for UnifiedToolRegistry {
@@ -406,6 +408,7 @@ impl Clone for UnifiedToolRegistry {
             working_dir: self.working_dir.clone(),
             tool_extra: self.tool_extra.clone(),
             skill_handlers: HashMap::new(), // handlers 不可 Clone，clone 时重置为空
+            ask_user_bridge: self.ask_user_bridge.clone(),
         }
     }
 }
@@ -486,6 +489,7 @@ impl UnifiedToolRegistry {
             working_dir,
             tool_extra: HashMap::new(),
             skill_handlers: HashMap::new(),
+            ask_user_bridge: None,
         };
         reg.init_all();
         reg
@@ -990,6 +994,7 @@ impl UnifiedToolRegistry {
                 extra: self.tool_extra.clone(),
                 permissions: None,
                 output_sanitizer: None,
+                ask_user_bridge: self.ask_user_bridge.clone(),
             };
 
             // ── 运行时 Schema 校验（M-05） ──
@@ -1101,6 +1106,7 @@ impl UnifiedToolRegistry {
                 endpoint,
                 &config.tool_name,
                 arguments,
+                Some(&config.server_id),
             ),
         )
         .await;

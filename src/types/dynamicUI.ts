@@ -276,6 +276,30 @@ export interface SaveDynamicUIFormDataParams {
   instance_key?: string;
 }
 
+// ── 导航钉入配置类型 ──
+
+export interface DynamicUIPinRecord {
+  schema_id: string;
+  title: string;
+  group_name: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PinDynamicUISchemaParams {
+  schema_id: string;
+  title: string;
+  group_name: string;
+  position?: number;
+}
+
+export interface UpdateDynamicUIPinParams {
+  title?: string;
+  group_name?: string;
+  position?: number;
+}
+
 // ── 版本管理类型 ──
 
 export interface DynamicUISchemaVersion {

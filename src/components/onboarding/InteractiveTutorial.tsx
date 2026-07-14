@@ -58,6 +58,8 @@ export function InteractiveTutorial() {
   const startTutorial = useOnboardingStore((s) => s.startTutorial);
   const tutorialCompleted = useOnboardingStore((s) => s.tutorialCompleted);
 
+  const [barDismissed, setBarDismissed] = useState(false);
+
   // 开始教程时自动导航到聊天页（带重试）
   const handleStartTutorial = () => {
     if (location.pathname !== "/") {
@@ -67,8 +69,11 @@ export function InteractiveTutorial() {
     let retries = 0;
     const tryStart = () => {
       const el = document.querySelector('[data-tutorial="chat-sidebar"]');
-      if (el || retries >= 5) {
+      if (el) {
         startTutorial();
+      } else if (retries >= 5) {
+        // 已达最大重试次数，不强行开始
+        return;
       } else {
         retries++;
         setTimeout(tryStart, 200);
@@ -207,8 +212,8 @@ export function InteractiveTutorial() {
     return null;
   }
 
-  // 开始按钮 — 仅桌面端显示
-  if (!tutorialActive) {
+  // 开始按钮 — 仅桌面端显示，且未被用户关闭
+  if (!tutorialActive && !barDismissed) {
     return (
       <div className="tutorial-start-bar">
         <Button type="link" size="small" onClick={handleStartTutorial}>
@@ -218,12 +223,17 @@ export function InteractiveTutorial() {
           type="link"
           size="small"
           style={{ color: "var(--color-text-secondary)", marginLeft: 4 }}
-          onClick={skipTutorial}
+          onClick={() => setBarDismissed(true)}
         >
           {t("common.close")}
         </Button>
       </div>
     );
+  }
+
+  // 教程未激活且不是显示开始栏的状态 → 不渲染任何内容
+  if (!tutorialActive) {
+    return null;
   }
 
   const bubbleStyle: React.CSSProperties = bubblePosition
@@ -255,6 +265,7 @@ export function InteractiveTutorial() {
       {/* 高亮槽 */}
       {spotlight && (
         <div
+          key={tutorialStep}
           className="tutorial-spotlight"
           style={{
             position: "fixed",

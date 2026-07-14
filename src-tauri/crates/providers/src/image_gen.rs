@@ -31,6 +31,8 @@ pub struct ImageGenRequest {
     pub seed: Option<u64>,
     pub model: Option<String>,
     pub n: Option<u32>,
+    #[serde(default)]
+    pub quality: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,6 +110,7 @@ struct ReplicateResponse {
     id: String,
     status: String,
     output: Option<Vec<String>>,
+    error: Option<serde_json::Value>,
 }
 
 #[async_trait]
@@ -118,9 +121,10 @@ impl ImageGenProvider for FluxProvider {
 
     async fn generate(&self, request: ImageGenRequest) -> Result<ImageGenResponse> {
         let start = std::time::Instant::now();
+        let model_version = request.model.as_deref().unwrap_or("black-forest-labs/flux-schnell");
 
         let prediction = ReplicatePrediction {
-            version: "black-forest-labs/flux-schnell".to_string(),
+            version: model_version.to_string(),
             input: ReplicateInput {
                 prompt: request.prompt,
                 negative_prompt: request.negative_prompt,
@@ -142,6 +146,7 @@ impl ImageGenProvider for FluxProvider {
         let mut replicate_resp: ReplicateResponse = resp.json().await?;
 
         let poll_url = format!("{}/{}", default_url::REPLICATE_API, replicate_resp.id);
+        let mut timed_out = true;
         for _ in 0..60 {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             let poll_resp = self
@@ -152,10 +157,25 @@ impl ImageGenProvider for FluxProvider {
                 .await?;
             replicate_resp = poll_resp.json().await?;
             if replicate_resp.status == "succeeded" || replicate_resp.status == "failed" {
+                timed_out = false;
                 break;
             }
         }
 
+        if timed_out {
+            return Err(ImageGenError::Timeout);
+        }
+
+        if replicate_resp.status == "failed" {
+            let err_msg = replicate_resp
+                .error
+                .as_ref()
+                .map(|e| e.to_string())
+                .unwrap_or_else(|| "Unknown error".to_string());
+            return Err(ImageGenError::PredictionFailed(err_msg));
+        }
+
+        let model_short = model_version.split('/').next_back().unwrap_or("flux");
         let images = replicate_resp
             .output
             .unwrap_or_default()
@@ -172,7 +192,7 @@ impl ImageGenProvider for FluxProvider {
 
         Ok(ImageGenResponse {
             images,
-            model_used: "flux-schnell".to_string(),
+            model_used: model_short.to_string(),
             elapsed_ms: start.elapsed().as_millis() as u64,
         })
     }
@@ -213,13 +233,14 @@ impl ImageGenProvider for DallEProvider {
         let start = std::time::Instant::now();
 
         let size = format!("{}x{}", request.width.unwrap_or(1024), request.height.unwrap_or(1024));
+        let quality = request.quality.as_deref().unwrap_or("standard");
 
         let body = serde_json::json!({
             "model": request.model.as_deref().unwrap_or("dall-e-3"),
             "prompt": request.prompt,
             "n": request.n.unwrap_or(1),
             "size": size,
-            "quality": "standard",
+            "quality": quality,
             "response_format": "b64_json"
         });
 

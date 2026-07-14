@@ -23,7 +23,7 @@ export const EXPERT_CATEGORY_KEYS = [
 
 export type ExpertCategoryKey = (typeof EXPERT_CATEGORY_KEYS)[number];
 
-/** @deprecated 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name, 其余字段基本一致 */
+/** 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name */
 export interface ExpertRole {
   /** 唯一标识，如 "code-reviewer" */
   id: string;

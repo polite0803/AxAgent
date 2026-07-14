@@ -567,3 +567,81 @@ fn sanitize_fts5_query(query: &str) -> String {
 
     tokens.join(" OR ")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hybrid_search_options_default_fusion_rrf() {
+        let opts = HybridSearchOptions::default();
+        assert_eq!(opts.fusion, FusionAlgorithm::Rrf);
+        assert!((opts.vector_weight - 0.7).abs() < f32::EPSILON);
+        assert!((opts.bm25_weight - 0.3).abs() < f32::EPSILON);
+        assert_eq!(opts.top_k, 10);
+        assert_eq!(opts.rrf_k, 60.0);
+    }
+
+    #[test]
+    fn test_hybrid_search_options_weighted_fusion() {
+        let opts = HybridSearchOptions {
+            fusion: FusionAlgorithm::Weighted,
+            vector_weight: 0.5,
+            bm25_weight: 0.5,
+            ..Default::default()
+        };
+        assert_eq!(opts.fusion, FusionAlgorithm::Weighted);
+        assert!((opts.vector_weight - 0.5).abs() < f32::EPSILON);
+        assert!((opts.bm25_weight - 0.5).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_hybrid_search_result_serialization() {
+        let result = HybridSearchResult {
+            id: "test-id".to_string(),
+            document_id: "doc-id".to_string(),
+            chunk_index: 3,
+            content: "test content".to_string(),
+            vector_score: Some(0.85),
+            bm25_score: Some(0.42),
+            combined_score: 0.65,
+        };
+        let json = serde_json::to_value(&result).unwrap();
+        assert_eq!(json["id"], "test-id");
+        assert_eq!(json["chunk_index"], 3);
+        assert!((json["combined_score"].as_f64().unwrap() - 0.65).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_fusion_algorithm_serde() {
+        assert_eq!(serde_json::to_value(FusionAlgorithm::Rrf).unwrap(), "Rrf");
+        assert_eq!(serde_json::to_value(FusionAlgorithm::Weighted).unwrap(), "Weighted");
+    }
+
+    #[test]
+    fn test_fusion_algorithm_default_is_rrf() {
+        assert_eq!(FusionAlgorithm::default(), FusionAlgorithm::Rrf);
+    }
+
+    #[test]
+    fn test_sanitize_name_for_table() {
+        assert_eq!(sanitize_name_for_table("my-collection"), "my_collection");
+        assert_eq!(sanitize_name_for_table("simple"), "simple");
+        assert_eq!(sanitize_name_for_table("a-b-c"), "a_b_c");
+    }
+
+    #[test]
+    fn test_hybrid_search_result_default_combined() {
+        let result = HybridSearchResult {
+            id: "id".into(),
+            document_id: "doc".into(),
+            chunk_index: 0,
+            content: "".into(),
+            vector_score: None,
+            bm25_score: None,
+            combined_score: 0.0,
+        };
+        assert_eq!(result.combined_score, 0.0);
+        assert!(result.vector_score.is_none());
+    }
+}

@@ -362,7 +362,7 @@ function CronManagerWrapper() {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await invoke("delete_scheduled_task", { id });
+        await invoke("delete_scheduled_task", { taskId: id });
         message.success(t("common.success"));
         loadJobs();
       } catch {
@@ -376,9 +376,9 @@ function CronManagerWrapper() {
     async (id: string, enabled: boolean) => {
       try {
         if (enabled) {
-          await invoke("resume_scheduled_task", { id });
+          await invoke("resume_scheduled_task", { taskId: id });
         } else {
-          await invoke("pause_scheduled_task", { id });
+          await invoke("pause_scheduled_task", { taskId: id });
         }
         loadJobs();
       } catch {

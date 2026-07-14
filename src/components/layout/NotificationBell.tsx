@@ -1,63 +1,46 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // 通知铃铛 — 显示 Agent 生命周期通知和未读计数
+// 使用统一的 notification 工具库，与 NotificationCenter 共享数据
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
+import { addNotification, getNotifications, type Notification } from "@/lib/notification";
 import { BellOutlined } from "@ant-design/icons";
 import { Badge, Empty, theme, Typography } from "antd";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
-interface NotificationItem {
-  id: string;
-  type: "success" | "error" | "warning" | "info";
-  message: string;
-  time: number;
-}
-
-// 全局通知列表（模块级，跨组件共享）
-const globalNotifications: NotificationItem[] = [];
-let listeners: Array<() => void> = [];
-
-// eslint-disable-next-line react-refresh/only-export-components
+/** 推送一条通知（兼容旧 API，供 agentStore 等调用） */
 export function pushNotification(
-  type: NotificationItem["type"],
+  type: Notification["type"],
   message: string,
 ) {
-  const item: NotificationItem = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    type,
-    message,
-    time: Date.now(),
-  };
-  globalNotifications.unshift(item);
-  // 保留最近 50 条
-  if (globalNotifications.length > 50) {
-    globalNotifications.length = 50;
-  }
-  listeners.forEach((fn) => fn());
+  addNotification({ type, title: message });
 }
 
 export function NotificationBell() {
-  const [, setTick] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>(getNotifications);
   const [open, setOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const { token } = theme.useToken();
 
-  // 订阅全局通知变化
-  const refresh = useCallback(() => setTick((n) => n + 1), []);
-  useState(() => {
-    listeners.push(refresh);
+  // 监听 CustomEvent 实时更新
+  const handleNotificationEvent = useCallback(() => {
+    setNotifications(getNotifications());
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("axagent:notification", handleNotificationEvent);
     return () => {
-      listeners = listeners.filter((l) => l !== refresh);
+      window.removeEventListener("axagent:notification", handleNotificationEvent);
     };
-  });
+  }, [handleNotificationEvent]);
 
-  const unreadCount = globalNotifications.length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const items = globalNotifications.length === 0
+  const items = notifications.length === 0
     ? [
       {
         key: "empty",
@@ -70,7 +53,7 @@ export function NotificationBell() {
         disabled: true,
       },
     ]
-    : globalNotifications.slice(0, 20).map((n) => ({
+    : notifications.slice(0, 20).map((n) => ({
       key: n.id,
       label: (
         <div style={{ maxWidth: 320, padding: "4px 0" }}>
@@ -84,11 +67,11 @@ export function NotificationBell() {
                 : token.colorSuccess,
             }}
           >
-            {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.message}
+            {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.title}
           </Text>
           <div>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {new Date(n.time).toLocaleTimeString(i18n.language)}
+              {new Date(n.timestamp).toLocaleTimeString(i18n.language)}
             </Text>
           </div>
         </div>

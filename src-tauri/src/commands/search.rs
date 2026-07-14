@@ -4,6 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::search as search_err;
 use axagent_harness::types::{CreateSearchProviderInput, SearchProvider};
+use axagent_search::search::{SearchServiceConfig, execute_search_with_config};
 use tauri::command;
 
 /// 列出所有搜索提供商
@@ -149,145 +150,74 @@ pub async fn test_search_provider(
 }
 
 /// 执行搜索
-/// 当 provider_id 无效或提供商未配置时，自动降级到 DuckDuckGo 免费搜索。
+/// 通过 search crate 统一执行，当 provider 无效或未配置时自动降级到 DuckDuckGo。
 #[command]
 pub async fn execute_search(
     state: tauri::State<'_, AppState>,
     provider_id: String,
     query: String,
 ) -> Result<serde_json::Value, String> {
-    // 尝试从 DB 获取提供商配置，失败则走 DDG 免费搜索
-    let provider = match axagent_dao::repo::search_provider::get_search_provider(
-        state.harness.db(),
-        &provider_id,
-    )
-    .await
-    {
-        Ok(p) => p,
-        Err(_) => {
-            // 无匹配提供商 — 直接走 DuckDuckGo 免费搜索
-            return search_via_ddg(&query).await;
+    // 尝试从 DB 获取提供商配置
+    let provider =
+        axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &provider_id)
+            .await
+            .ok();
+
+    let provider = match provider {
+        Some(p) => p,
+        None => {
+            // 无匹配提供商 — 走 search crate 的 DDG 免费搜索
+            let resp = axagent_search::search::execute_search("ddg", None, "", &query, 5, 15000)
+                .await
+                .map_err(|e| e.to_string())?;
+            return Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?);
         },
     };
 
-    // 提供商无 API Key 或 endpoint → 走 DDG 免费搜索
-    let api_key: Option<String> = match get_search_api_key(
-        state.harness.db(),
-        &provider_id,
-        state.harness.master_key(),
-    )
-    .await
-    {
-        Ok(Some(k)) if !k.is_empty() => Some(k),
-        _ => None,
-    };
-
-    let Some(endpoint) = &provider.endpoint else {
-        return search_via_ddg(&query).await;
-    };
-    if api_key.is_none() {
-        return search_via_ddg(&query).await;
-    };
-
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_millis(provider.timeout_ms as u64))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let mut req =
-        client.post(endpoint).header("Content-Type", "application/json").json(&serde_json::json!({
-            "q": query,
-            "max_results": provider.result_limit
-        }));
-    if let Some(ref key) = api_key {
-        req = req.header("X-API-Key", key);
-    }
-
-    let resp = req.send().await.map_err(|e| e.to_string())?;
-    let text = resp.text().await.map_err(|e| e.to_string())?;
-
-    let json: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    let results = json
-        .get("results")
-        .or_else(|| json.get("organic"))
-        .or_else(|| json.get("data"))
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .map(|item| {
-                    serde_json::json!({
-                        "title": item.get("title").and_then(|v| v.as_str()).unwrap_or(""),
-                        "content": item.get("snippet").or(item.get("content")).or(item.get("description")).and_then(|v| v.as_str()).unwrap_or(""),
-                        "url": item.get("url").or(item.get("link")).and_then(|v| v.as_str()).unwrap_or(""),
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
+    // 尝试获取 API Key
+    let api_key = get_search_api_key(state.harness.db(), &provider_id, state.harness.master_key())
+        .await
+        .ok()
+        .flatten()
         .unwrap_or_default();
 
-    Ok(serde_json::json!({
-        "ok": true,
-        "results": results,
-    }))
-}
+    let has_api_key = !api_key.is_empty();
+    let endpoint = provider.endpoint.clone();
+    let has_endpoint = endpoint.as_ref().is_some_and(|e| !e.is_empty());
 
-/// DuckDuckGo 免费搜索兜底 — 无需 API Key，始终可用。
-async fn search_via_ddg(query: &str) -> Result<serde_json::Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let provider_type = &provider.provider_type;
 
-    let url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
-    tracing::debug!("[search] DDG fallback: GET {}", url);
-
-    let resp = client
-        .get(&url)
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-        .send()
-        .await
-        .map_err(|e| format!("DDG request failed: {e}"))?;
-
-    let status = resp.status();
-    let html = resp.text().await.map_err(|e| format!("DDG read failed: {e}"))?;
-
-    if !status.is_success() {
-        tracing::warn!("[search] DDG returned HTTP {}", status.as_u16());
-        return Ok(serde_json::json!({"ok": true, "results": [], "provider": "ddg"}));
+    if has_api_key && has_endpoint {
+        // 有完整配置 — 走 search crate 的统一入口
+        let config = SearchServiceConfig {
+            provider_type: provider_type.clone(),
+            endpoint: endpoint.clone(),
+            api_key: Some(api_key),
+            max_results: provider.result_limit,
+            timeout_ms: provider.timeout_ms,
+            region: provider.region.clone(),
+            safe_search: provider.safe_search.map(|b| if b { 1i32 } else { 0 }),
+        };
+        let resp = execute_search_with_config(&config, &query).await.map_err(|e| e.to_string())?;
+        Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?)
+    } else if !api_key.is_empty() && !has_endpoint {
+        // 有 API Key 但没 endpoint — 走 search crate 的 provider 特定搜索
+        let config = SearchServiceConfig {
+            provider_type: provider_type.clone(),
+            endpoint: None,
+            api_key: Some(api_key),
+            max_results: provider.result_limit,
+            timeout_ms: provider.timeout_ms,
+            region: provider.region.clone(),
+            safe_search: provider.safe_search.map(|b| if b { 1i32 } else { 0 }),
+        };
+        let resp = execute_search_with_config(&config, &query).await.map_err(|e| e.to_string())?;
+        Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?)
+    } else {
+        // 无 API Key 或无 endpoint — DDG 免费搜索降级
+        let resp = axagent_search::search::execute_search("ddg", None, "", &query, 5, 15000)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?)
     }
-
-    // 简易 HTML 解析：提取 .result__a 和 .result__snippet
-    let results: Vec<serde_json::Value> = html
-        .split("result__a")
-        .skip(1)
-        .filter_map(|chunk| {
-            let title = chunk.split("</a>").next()?.rsplit('>').next()?.trim().to_string();
-            let snippet = chunk
-                .split("result__snippet")
-                .nth(1)?
-                .split("</td>")
-                .next()?
-                .rsplit('>')
-                .next()?
-                .trim()
-                .to_string();
-            if title.is_empty() && snippet.is_empty() {
-                return None;
-            }
-            Some(serde_json::json!({
-                "title": title,
-                "content": snippet,
-                "url": "",
-            }))
-        })
-        .take(5)
-        .collect();
-
-    tracing::debug!("[search] DDG parsed {} results for '{}'", results.len(), query);
-
-    Ok(serde_json::json!({
-        "ok": true,
-        "results": results,
-        "provider": "ddg",
-    }))
 }

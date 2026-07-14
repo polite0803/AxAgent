@@ -35,6 +35,7 @@ pub mod event_bus;
 pub mod event_emitter;
 pub mod experience_pipeline;
 pub mod fact_checker;
+pub mod fallback_adapter;
 pub mod feedback_orchestrator;
 pub mod fine_tune;
 pub mod frontend_adapter;
@@ -108,6 +109,9 @@ pub use reflector::{Reflection, Reflector, TaskExecutionRecord};
 // provider_adapter — 外部引用：commands/agent, commands/plan
 pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
 
+// fallback_adapter — 外部引用：commands/agent
+pub use fallback_adapter::FallbackProviderAdapter;
+
 // llm_bridge — 外部引用：runtime/llm_bridge
 pub use llm_bridge::ProviderLlmBridge;
 
@@ -155,7 +159,8 @@ pub use evaluator::{
 
 // fine_tune — 外部引用：commands/fine_tune
 pub use fine_tune::{
-    ActiveModelConfig, BaseModelInfo, TrainingJob, lora::LoRAAdapterInfo,
+    ActiveModelConfig, BaseModelInfo, FineTuneTrainer, ModelManager, TrainingJob,
+    lora::{LoRAAdapterInfo, LoRAConfig, LoRAConfigBuilder},
     trainer::TrainingStats as FineTuneTrainingStats,
 };
 

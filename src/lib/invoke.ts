@@ -624,16 +624,19 @@ export interface PersonalityCreateBootstrapInput {
 
 export interface PersonalityInfo {
   name: string;
+  version: string;
   description?: string;
   is_active: boolean;
 }
 
 export interface Personality {
   name: string;
+  version: string;
   description?: string;
   content?: string;
   identity: string;
   user: string;
+  created_at: string;
 }
 
 export function personalityList(): Promise<PersonalityInfo[]> {

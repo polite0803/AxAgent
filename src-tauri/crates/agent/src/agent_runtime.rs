@@ -152,6 +152,12 @@ impl AgentRuntime {
             },
         }
 
+        // 加载激活的人格并注入到系统提示词
+        let personality_prompt = crate::personality::PersonalityManager::get_active()
+            .ok()
+            .flatten()
+            .map(|p| p.system_prompt_injection());
+
         let processor = crate::noop_kit::NoopSlashCommandProcessor;
         let preprocessed = crate::slash_command::apply_slash_command_for_agent(input, &processor);
 
@@ -167,6 +173,12 @@ impl AgentRuntime {
             }
         } else {
             preprocessed.modified_text
+        };
+
+        // 将人格内容注入到 effective_input 之前（作为系统指令段）
+        let effective_input = match &personality_prompt {
+            Some(p) => format!("{}\n\n{}", p, effective_input),
+            None => effective_input,
         };
 
         // Take ownership of the prompter so the reference doesn't borrow self.config

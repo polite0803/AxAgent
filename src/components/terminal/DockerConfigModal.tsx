@@ -42,7 +42,7 @@ export function DockerConfigModal({
             onChange={(e) => setSocketPath(e.target.value)}
           />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            Leave empty for default Docker socket
+            {t("dockerConfig.defaultHint")}
           </Text>
         </div>
       </div>

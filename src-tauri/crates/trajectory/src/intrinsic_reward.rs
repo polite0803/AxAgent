@@ -53,6 +53,10 @@ impl ProgressTracker {
 
     pub fn record(&mut self, score: f64) {
         self.performance_history.push(score);
+        // 限制历史长度，防止无限增长导致内存泄漏
+        if self.performance_history.len() > 10_000 {
+            self.performance_history.drain(0..5_000);
+        }
     }
 
     pub fn compute_learning_progress(&self) -> f64 {

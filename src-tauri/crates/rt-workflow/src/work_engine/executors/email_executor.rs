@@ -167,6 +167,8 @@ impl NodeExecutorTrait for EmailExecutor {
             } else {
                 Some(c.output_var.clone())
             },
+            control: None,
         })
     }
 }
+

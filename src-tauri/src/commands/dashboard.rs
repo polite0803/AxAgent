@@ -175,82 +175,87 @@ pub struct DashboardStats {
     pub failed_agent_sessions: i64,
     pub total_agent_tokens: i64,
     pub total_cost_usd: f64,
+    pub total_tool_calls: i64,
 }
 
 #[tauri::command]
 pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<DashboardStats, String> {
     let db = state.harness.db();
 
+    // 会话总数
     let total_conversations = axagent_entities::conversations::Entity::find()
         .count(db)
         .await
         .map_err(|e| e.to_string())?;
 
-    let total_messages = axagent_entities::messages::Entity::find()
-        .filter(axagent_entities::messages::Column::IsActive.eq(1))
-        .count(db)
+    // 消息聚合查询：COUNT + SUM tokens，避免全表加载到内存
+    let msg_stats = db
+        .query_all_raw(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Sqlite,
+            "SELECT \
+             COUNT(*) as total_messages, \
+             COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens, \
+             COALESCE(SUM(completion_tokens), 0) as total_completion_tokens, \
+             COALESCE(SUM(token_count), 0) as total_token_count \
+             FROM messages WHERE is_active = 1",
+            vec![],
+        ))
         .await
         .map_err(|e| e.to_string())?;
 
-    let rows = axagent_entities::messages::Entity::find()
-        .filter(axagent_entities::messages::Column::IsActive.eq(1))
-        .all(db)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let total_prompt_tokens: i64 = rows.iter().filter_map(|m| m.prompt_tokens).sum();
-    let total_completion_tokens: i64 = rows.iter().filter_map(|m| m.completion_tokens).sum();
-    // 兜底: 若 prompt/completion 全部为 None, 尝试用 token_count
-    let total_tokens_from_messages = if total_prompt_tokens == 0 && total_completion_tokens == 0 {
-        rows.iter().filter_map(|m| m.token_count).sum::<i64>()
-    } else {
-        0
-    };
-
-    let agent_sessions = axagent_entities::agent_sessions::Entity::find()
-        .all(db)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let total_agent_sessions = agent_sessions.len() as i64;
-    let total_agent_tokens: i64 = agent_sessions.iter().map(|s| s.total_tokens as i64).sum();
-    let completed_agent_sessions =
-        agent_sessions.iter().filter(|s| s.runtime_status == "completed").count() as i64;
-    let failed_agent_sessions =
-        agent_sessions.iter().filter(|s| s.runtime_status == "failed").count() as i64;
-    let total_cost_usd: f64 = agent_sessions.iter().map(|s| s.total_cost_usd).sum();
-
-    // Estimate conversation message costs using sonnet-tier pricing ($3/M input, $15/M output)
-    let msg_cost: f64 = {
-        let input_per_token = 3.0 / 1_000_000.0;
-        let output_per_token = 15.0 / 1_000_000.0;
-        let all_messages = rows; // already loaded above
-        // Pair user messages (prompt) and assistant messages (completion)
-        let mut i = 0;
-        let mut cost = 0.0_f64;
-        while i < all_messages.len() {
-            if all_messages[i].role == "user" {
-                let prompt_tokens = all_messages[i].prompt_tokens.unwrap_or(0) as f64;
-                let completion =
-                    all_messages.get(i + 1).and_then(|m| m.completion_tokens).unwrap_or(0) as f64;
-                cost += prompt_tokens * input_per_token + completion * output_per_token;
-                i += 2;
-            } else {
-                i += 1;
-            }
-        }
-        cost
-    };
+    let first_row = msg_stats.first();
+    let total_messages: i64 =
+        first_row.and_then(|r| r.try_get("", "total_messages").ok()).unwrap_or(0);
+    let total_prompt_tokens: i64 =
+        first_row.and_then(|r| r.try_get("", "total_prompt_tokens").ok()).unwrap_or(0);
+    let total_completion_tokens: i64 =
+        first_row.and_then(|r| r.try_get("", "total_completion_tokens").ok()).unwrap_or(0);
+    let total_token_count: i64 =
+        first_row.and_then(|r| r.try_get("", "total_token_count").ok()).unwrap_or(0);
 
     let total_tokens = if total_prompt_tokens > 0 || total_completion_tokens > 0 {
         total_prompt_tokens + total_completion_tokens
     } else {
-        total_tokens_from_messages
+        total_token_count
     };
+
+    // 智能体会话聚合查询
+    let session_stats = db
+        .query_all_raw(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Sqlite,
+            "SELECT \
+             COUNT(*) as total_sessions, \
+             COALESCE(SUM(total_tokens), 0) as total_agent_tokens, \
+             COALESCE(SUM(total_cost_usd), 0.0) as total_cost_usd, \
+             COALESCE(SUM(CASE WHEN runtime_status = 'completed' THEN 1 ELSE 0 END), 0) as completed, \
+             COALESCE(SUM(CASE WHEN runtime_status = 'failed' THEN 1 ELSE 0 END), 0) as failed \
+             FROM agent_sessions",
+            vec![],
+        ))
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let session_row = session_stats.first();
+    let total_agent_sessions: i64 =
+        session_row.and_then(|r| r.try_get("", "total_sessions").ok()).unwrap_or(0);
+    let total_agent_tokens: i64 =
+        session_row.and_then(|r| r.try_get("", "total_agent_tokens").ok()).unwrap_or(0);
+    let total_cost_usd: f64 =
+        session_row.and_then(|r| r.try_get("", "total_cost_usd").ok()).unwrap_or(0.0);
+    let completed_agent_sessions: i64 =
+        session_row.and_then(|r| r.try_get("", "completed").ok()).unwrap_or(0);
+    let failed_agent_sessions: i64 =
+        session_row.and_then(|r| r.try_get("", "failed").ok()).unwrap_or(0);
+
+    // 工具调用统计
+    let total_tool_calls = axagent_entities::tool_executions::Entity::find()
+        .count(db)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(DashboardStats {
         total_conversations: total_conversations as i64,
-        total_messages: total_messages as i64,
+        total_messages,
         total_prompt_tokens,
         total_completion_tokens,
         total_tokens,
@@ -258,26 +263,24 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
         completed_agent_sessions,
         failed_agent_sessions,
         total_agent_tokens,
-        total_cost_usd: total_cost_usd + msg_cost,
+        total_cost_usd,
+        total_tool_calls: total_tool_calls as i64,
     })
 }
 
+/// 按提供商统计网关使用量。成本数据由 agent_sessions 跟踪，此处仅返回用量。
 #[tauri::command]
 pub async fn get_cost_by_provider(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_harness::types::CostByProvider>, String> {
     let db = state.harness.db();
-    let input_per_token = 3.0 / 1_000_000.0;
-    let output_per_token = 15.0 / 1_000_000.0;
 
     let rows = db
         .query_all_raw(sea_orm::Statement::from_sql_and_values(
             sea_orm::DatabaseBackend::Sqlite,
             "SELECT gu.provider_id, \
              COUNT(*) as request_count, \
-             COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count, \
-             COALESCE(SUM(gu.request_tokens), 0) as request_tokens, \
-             COALESCE(SUM(gu.response_tokens), 0) as response_tokens \
+             COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count \
              FROM gateway_usage gu \
              GROUP BY gu.provider_id \
              ORDER BY token_count DESC",
@@ -288,17 +291,11 @@ pub async fn get_cost_by_provider(
 
     let results: Vec<axagent_harness::types::CostByProvider> = rows
         .iter()
-        .map(|r| {
-            let request_tokens: u64 = r.try_get("", "request_tokens").unwrap_or(0);
-            let response_tokens: u64 = r.try_get("", "response_tokens").unwrap_or(0);
-            let cost =
-                request_tokens as f64 * input_per_token + response_tokens as f64 * output_per_token;
-            axagent_harness::types::CostByProvider {
-                provider_id: r.try_get("", "provider_id").unwrap_or_default(),
-                request_count: r.try_get("", "request_count").unwrap_or(0),
-                token_count: r.try_get("", "token_count").unwrap_or(0),
-                cost_usd: (cost * 100.0).round() / 100.0,
-            }
+        .map(|r| axagent_harness::types::CostByProvider {
+            provider_id: r.try_get("", "provider_id").unwrap_or_default(),
+            request_count: r.try_get("", "request_count").unwrap_or(0),
+            token_count: r.try_get("", "token_count").unwrap_or(0),
+            cost_usd: 0.0,
         })
         .collect();
 

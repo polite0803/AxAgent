@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 1.97 起 clippy::items_after_test_module 升级为 warn(在 `-D warnings` 下变 deny),
+// 历史上把测试模块放在文件中间以贴近被测代码,这里显式 allow 保留现有排版。
+#![allow(clippy::items_after_test_module)]
+
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use axagent_harness::constants::default_url;
 use axagent_harness::core_error::{AxAgentError, Result};
@@ -505,7 +511,7 @@ impl ProviderAdapter for GeminiAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         let base_url = Self::base_url(ctx);
         // 不在 URL 中传递 API key,改用 x-goog-api-key header (更安全,且避免 URL 日志泄露)
@@ -571,7 +577,7 @@ impl ProviderAdapter for GeminiAdapter {
 
         Ok(ChatResponse {
             id: simple_id(),
-            model: request.model,
+            model: request.model.clone(),
             content,
             thinking: if thinking.is_empty() {
                 None

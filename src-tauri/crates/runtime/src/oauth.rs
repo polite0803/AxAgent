@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::collections::BTreeMap;
-use std::fs::{self, File};
-use std::io::{self, Read};
+use std::fs;
+use std::io;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -316,8 +316,18 @@ pub fn parse_oauth_callback_query(query: &str) -> Result<OAuthCallbackParams, St
 }
 
 fn generate_random_token(bytes: usize) -> io::Result<String> {
+    // 使用 uuid crate 的 OS 安全 RNG 替代 /dev/urandom，
+    // 否则在 Windows / 非 Unix 平台无法读取随机源。
     let mut buffer = vec![0_u8; bytes];
-    File::open("/dev/urandom")?.read_exact(&mut buffer)?;
+    let mut offset = 0;
+    while offset < bytes {
+        let random = uuid::Uuid::new_v4();
+        let b = random.as_bytes();
+        let end = (offset + b.len()).min(bytes);
+        let copy_len = end - offset;
+        buffer[offset..end].copy_from_slice(&b[..copy_len]);
+        offset = end;
+    }
     Ok(base64url_encode(&buffer))
 }
 

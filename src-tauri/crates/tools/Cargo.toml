@@ -10,6 +10,7 @@ axagent-document-parser = { path = "../document-parser" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 axagent-mcp = { path = "../mcp" }
+axagent-providers = { path = "../providers" }
 axagent-search = { path = "../search" }
 base64 = "0.22"
 chrono = { workspace = true }

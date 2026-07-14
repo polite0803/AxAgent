@@ -17,6 +17,7 @@ pub struct EvaluationScore {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskMetrics {
     pub task_id: String,
+    pub difficulty: Difficulty,
     pub success: bool,
     pub duration_ms: u64,
     pub scores: Vec<EvaluationScore>,
@@ -72,6 +73,7 @@ impl MetricsCalculator {
 
         TaskMetrics {
             task_id: task.id.clone(),
+            difficulty: task.difficulty,
             success,
             duration_ms: 0,
             scores: eval_scores,
@@ -105,9 +107,19 @@ impl MetricsCalculator {
         };
 
         let mut score_breakdown: HashMap<String, f32> = HashMap::new();
-        let difficulty_distribution: HashMap<String, usize> = HashMap::new();
+        let mut difficulty_distribution: HashMap<String, usize> = HashMap::new();
 
         for metric in task_metrics {
+            // 填充难度分布
+            let difficulty_label = match metric.difficulty {
+                Difficulty::Easy => "easy",
+                Difficulty::Medium => "medium",
+                Difficulty::Hard => "hard",
+                Difficulty::Expert => "expert",
+            };
+            *difficulty_distribution.entry(difficulty_label.to_string()).or_insert(0) += 1;
+
+            // 累加评分
             for score in &metric.scores {
                 *score_breakdown.entry(score.criteria_name.clone()).or_insert(0.0) +=
                     score.raw_score;
@@ -231,6 +243,9 @@ pub fn exact_match_score(expected: &str, actual: &str) -> f32 {
 }
 
 pub fn contains_score(expected: &str, actual: &str) -> f32 {
+    if expected.trim().is_empty() {
+        return 0.0;
+    }
     let actual_lower = actual.to_lowercase();
     let expected_lower = expected.to_lowercase();
     let expected_parts: Vec<&str> = expected_lower.split(',').map(|s| s.trim()).collect();
@@ -332,6 +347,18 @@ mod tests {
     #[test]
     fn test_contains_score_no_match() {
         let score = contains_score("xyz", "hello world");
+        assert!((score - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_contains_score_empty_expected() {
+        let score = contains_score("", "hello world");
+        assert!((score - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_contains_score_whitespace_expected() {
+        let score = contains_score("   ", "hello world");
         assert!((score - 0.0).abs() < 0.001);
     }
 

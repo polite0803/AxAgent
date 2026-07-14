@@ -4,13 +4,12 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { IpcReconnectBanner } from "@/components/layout/IpcReconnectBanner";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageContextProvider } from "@/components/shared/PageContextProvider";
-import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { useIpcHealth } from "@/hooks/useIpcHealth";
-import { useSkillExtensionStore } from "@/stores";
+import { BUILTIN_PAGE_PATH, DEFAULT_HOME } from "@/lib/pageRegistry";
 import { Button, Result, Spin } from "antd";
-import { lazy, memo, Suspense, useMemo } from "react";
+import { lazy, memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 const LazyChatPage = lazy(() =>
   import("@/pages/ChatPage").then((m) => ({
@@ -68,6 +67,9 @@ const LazyLearningGraphPage = lazy(() =>
 const LazyDynamicUIManagerPage = lazy(() =>
   import("@/pages/DynamicUIManagerPage").then((m) => ({ default: m.DynamicUIManagerPage }))
 );
+const LazyDynamicPageViewer = lazy(() =>
+  import("@/pages/DynamicPageViewer").then((m) => ({ default: m.DynamicPageViewer }))
+);
 
 function PageLoader() {
   return (
@@ -91,45 +93,6 @@ function SafeLazyPage({ Page }: { Page: React.LazyExoticComponent<React.Componen
   );
 }
 
-/** 动态技能页面：通过当前路径从 store 中匹配页面并渲染 */
-function SkillRoutePage() {
-  const location = useLocation();
-  const pages = useSkillExtensionStore((s) => s.pages);
-  const { t } = useTranslation();
-  const pathname = location.pathname;
-
-  const page = useMemo(() => {
-    return pages.find((p) => `/skill/${p.skillName}/${p.id}` === pathname);
-  }, [pages, pathname]);
-
-  if (!page) {
-    return (
-      <div
-        style={{
-          padding: 24,
-          textAlign: "center",
-          color: "var(--color-text-secondary)",
-        }}
-      >
-        <Spin size="large" style={{ marginBottom: 16 }} />
-        <div>{t("skill.loadingPage")}</div>
-      </div>
-    );
-  }
-
-  return (
-    <SkillPageRenderer
-      componentType={page.componentType}
-      componentConfig={page.componentConfig}
-      skillName={page.skillName}
-    />
-  );
-}
-
-const SkillPageByParam = lazy(
-  () => import("@/components/skill/SkillPageByParam").then((m) => ({ default: m.SkillPageByParam })),
-);
-
 function NotFoundRoute() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -140,7 +103,7 @@ function NotFoundRoute() {
         title="404"
         subTitle={t("error.pageNotFound")}
         extra={
-          <Button type="primary" onClick={() => navigate("/")}>
+          <Button type="primary" onClick={() => navigate(DEFAULT_HOME)}>
             {t("common.back")}
           </Button>
         }
@@ -151,17 +114,6 @@ function NotFoundRoute() {
 
 export const ContentArea = memo(function ContentArea() {
   const { ipcHealthy } = useIpcHealth();
-  const skillPages = useSkillExtensionStore((s) => s.pages);
-
-  const pluginRoutes = useMemo(() => {
-    return skillPages.map((page) => (
-      <Route
-        key={page.id}
-        path={`/skill/${page.skillName}/${page.id}`}
-        element={<SkillRoutePage />}
-      />
-    ));
-  }, [skillPages]);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -169,9 +121,9 @@ export const ContentArea = memo(function ContentArea() {
       <AppHeader />
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to={DEFAULT_HOME} replace />} />
           <Route
-            path="/chat"
+            path={BUILTIN_PAGE_PATH.chat}
             element={
               <PageContextProvider page="chat">
                 <SafeLazyPage Page={LazyChatPage} />
@@ -179,15 +131,20 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/dashboard"
+            path={BUILTIN_PAGE_PATH.dashboard}
             element={
               <PageContextProvider page="dashboard">
                 <SafeLazyPage Page={LazyDashboardPage} />
               </PageContextProvider>
             }
           />
+          {
+            /* /knowledge 与 /llm-wiki 共用 KnowledgeHubPage（LLM 知识库）。
+               二者仅 page 上下文不同（"knowledge" vs "wiki"），属同组件双入口别名，
+               保留 /llm-wiki 以兼容旧书签。路径已收归 BUILTIN_PAGE_PATH，禁止散写。 */
+          }
           <Route
-            path="/knowledge"
+            path={BUILTIN_PAGE_PATH.knowledge}
             element={
               <PageContextProvider page="knowledge">
                 <SafeLazyPage Page={LazyKnowledgeHubPage} />
@@ -195,15 +152,21 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/memory"
+            path={BUILTIN_PAGE_PATH.memory}
             element={
               <PageContextProvider page="memory">
                 <SafeLazyPage Page={LazyMemoryPage} />
               </PageContextProvider>
             }
           />
+          {
+            /* /link 与 /gateway 共用 GatewayLinkPage。
+               /link 承载 OAuth / 网关连接回调（带 token 参数），page 上下文为 "link"；
+               /gateway 为常规网关管理页，page 上下文为 "gateway"。
+               二者语义不同（连接回调 vs 管理），不可合并。 */
+          }
           <Route
-            path="/link"
+            path={BUILTIN_PAGE_PATH.link}
             element={
               <PageContextProvider page="link">
                 <SafeLazyPage Page={LazyGatewayLinkPage} />
@@ -211,7 +174,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/gateway"
+            path={BUILTIN_PAGE_PATH.gateway}
             element={
               <PageContextProvider page="gateway">
                 <SafeLazyPage Page={LazyGatewayLinkPage} />
@@ -219,7 +182,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/settings/*"
+            path={`${BUILTIN_PAGE_PATH.settings}/*`}
             element={
               <PageContextProvider page="settings">
                 <SafeLazyPage Page={LazySettingsPage} />
@@ -227,7 +190,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/workflow"
+            path={BUILTIN_PAGE_PATH.workflow}
             element={
               <PageContextProvider page="workflow">
                 <SafeLazyPage Page={LazyWorkflowPage} />
@@ -235,7 +198,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/llm-wiki"
+            path={BUILTIN_PAGE_PATH.llmWiki}
             element={
               <PageContextProvider page="wiki">
                 <SafeLazyPage Page={LazyKnowledgeHubPage} />
@@ -243,7 +206,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/llm-wiki/:wikiId/graph"
+            path={`${BUILTIN_PAGE_PATH.llmWiki}/:wikiId/graph`}
             element={
               <PageContextProvider page="wiki">
                 <SafeLazyPage Page={LazyWikiGraphPage} />
@@ -251,7 +214,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/llm-wiki/:wikiId/ingest"
+            path={`${BUILTIN_PAGE_PATH.llmWiki}/:wikiId/ingest`}
             element={
               <PageContextProvider page="wiki">
                 <SafeLazyPage Page={LazyIngestPage} />
@@ -259,15 +222,20 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/llm-wiki/:wikiId/edit/:noteId"
+            path={`${BUILTIN_PAGE_PATH.llmWiki}/:wikiId/edit/:noteId`}
             element={
               <PageContextProvider page="wiki">
                 <SafeLazyPage Page={LazyWikiEditPage} />
               </PageContextProvider>
             }
           />
+          {
+            /* /wiki 与 /llm-wiki 并非别名：/wiki 渲染 WikiGraphPage（知识图谱视图），
+               /llm-wiki 渲染 KnowledgeHubPage（LLM 知识库）。二者 page 上下文均为 "wiki"，
+               但组件不同，属独立功能入口，不可合并。 */
+          }
           <Route
-            path="/wiki"
+            path={BUILTIN_PAGE_PATH.wiki}
             element={
               <PageContextProvider page="wiki">
                 <SafeLazyPage Page={LazyWikiGraphPage} />
@@ -275,7 +243,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/wiki/:wikiId"
+            path={`${BUILTIN_PAGE_PATH.wiki}/:wikiId`}
             element={
               <PageContextProvider page="wiki">
                 <SafeLazyPage Page={LazyWikiGraphPage} />
@@ -283,7 +251,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/quickbar"
+            path={BUILTIN_PAGE_PATH.quickbar}
             element={
               <PageContextProvider page="quickbar">
                 <SafeLazyPage Page={LazyQuickBarPage} />
@@ -291,7 +259,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/files"
+            path={BUILTIN_PAGE_PATH.files}
             element={
               <PageContextProvider page="files">
                 <SafeLazyPage Page={LazyFilesPage} />
@@ -299,7 +267,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/terminal"
+            path={BUILTIN_PAGE_PATH.terminal}
             element={
               <PageContextProvider page="terminal">
                 <SafeLazyPage Page={LazyTerminalPage} />
@@ -307,7 +275,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/dynamic-ui"
+            path={BUILTIN_PAGE_PATH["dynamic-ui"]}
             element={
               <PageContextProvider page="dynamic-ui">
                 <SafeLazyPage Page={LazyDynamicUIManagerPage} />
@@ -315,7 +283,15 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/devtools/trace-explorer"
+            path={`${BUILTIN_PAGE_PATH["dynamic-ui"]}/:schemaId`}
+            element={
+              <PageContextProvider page="dynamic-ui">
+                <SafeLazyPage Page={LazyDynamicPageViewer} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.devtoolsTraceExplorer}
             element={
               <PageContextProvider page="devtools">
                 <SafeLazyPage Page={LazyTraceExplorer} />
@@ -323,7 +299,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/devtools/benchmark"
+            path={BUILTIN_PAGE_PATH.devtoolsBenchmark}
             element={
               <PageContextProvider page="devtools">
                 <SafeLazyPage Page={LazyBenchmarkRunner} />
@@ -331,7 +307,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/devtools/tool-recommender"
+            path={BUILTIN_PAGE_PATH.devtoolsToolRecommender}
             element={
               <PageContextProvider page="devtools">
                 <SafeLazyPage Page={LazyToolRecommender} />
@@ -339,7 +315,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/devtools/fine-tune"
+            path={BUILTIN_PAGE_PATH.devtoolsFineTune}
             element={
               <PageContextProvider page="devtools">
                 <SafeLazyPage Page={LazyFineTune} />
@@ -347,7 +323,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path="/devtools/rl-training"
+            path={BUILTIN_PAGE_PATH.devtoolsRlTraining}
             element={
               <PageContextProvider page="devtools">
                 <SafeLazyPage Page={LazyRLTrainingPanel} />
@@ -355,26 +331,14 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
 
-          {/* 技能声明式动态路由 */}
-          {pluginRoutes}
-
           {/* 学习图 */}
           <Route
-            path="/learning-graph"
+            path={BUILTIN_PAGE_PATH.learningGraph}
             element={
               <PageContextProvider page="learning-graph">
                 <SafeLazyPage Page={LazyLearningGraphPage} />
               </PageContextProvider>
             }
-          />
-          {/* 技能 catch-all 路由 */}
-          <Route
-            path="/skill/:skillName"
-            element={<SafeLazyPage Page={SkillPageByParam} />}
-          />
-          <Route
-            path="/skill/:skillName/:pageId"
-            element={<SafeLazyPage Page={SkillPageByParam} />}
           />
           <Route path="*" element={<NotFoundRoute />} />
         </Routes>

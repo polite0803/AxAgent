@@ -52,6 +52,8 @@ pub struct IngestSource {
     pub url: Option<String>,
     pub title: Option<String>,
     pub folder_context: Option<String>,
+    /// 如果提供，parse_source 将直接使用此内容而非从文件系统读取
+    pub content: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -760,6 +762,10 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     }
 
     async fn parse_source(&self, source: &IngestSource) -> Result<String, String> {
+        // 如果直接提供了内容，优先使用，避免从文件系统读取
+        if let Some(content) = &source.content {
+            return Ok(content.clone());
+        }
         match source.source_type {
             IngestSourceType::WebArticle => {
                 if let Some(url) = &source.url {

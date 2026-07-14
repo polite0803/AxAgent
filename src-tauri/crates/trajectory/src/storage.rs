@@ -163,6 +163,7 @@ impl TrajectoryStorage {
                 trajectory_id: Set(t.id.clone()),
                 reward_type: Set(format!("{:?}", r.reward_type)),
                 value: Set(r.value),
+                step_index: Set(r.step_index as i32),
                 created_at: Set(chrono::DateTime::from_timestamp_millis(r.timestamp_ms as i64)
                     .unwrap_or_else(Utc::now)
                     .to_rfc3339()),
@@ -375,7 +376,7 @@ impl TrajectoryStorage {
                 RewardSignal {
                     reward_type: rt,
                     value: r.value,
-                    step_index: 0,
+                    step_index: r.step_index as usize,
                     timestamp_ms: ct.timestamp_millis() as u64,
                     metadata: serde_json::Value::Null,
                 }

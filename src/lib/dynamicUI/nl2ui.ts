@@ -135,27 +135,45 @@ function detectFields(prompt: string, genId: (p: string) => string): UISchema[] 
   }
 
   if (fields.length === 0) {
-    fields.push({
-      version: "1.0",
-      id: genId("field"),
-      type: "Input",
-      props: {
-        name: "title",
-        label: "标题",
-        placeholder: "请输入标题",
-        required: true,
-      },
-    });
-    fields.push({
-      version: "1.0",
-      id: genId("field"),
-      type: "Textarea",
-      props: {
-        name: "content",
-        label: "内容",
-        placeholder: "请输入内容",
-      },
-    });
+    const lower = prompt.toLowerCase();
+    if (
+      lower.includes("dashboard") || lower.includes("仪表盘")
+      || lower.includes("report") || lower.includes("报表")
+      || lower.includes("chart") || lower.includes("图表")
+    ) {
+      fields.push({
+        version: "1.0",
+        id: genId("field"),
+        type: "Chart",
+        props: {
+          name: "chart",
+          label: "图表",
+          chartType: "line",
+        },
+      });
+    } else {
+      fields.push({
+        version: "1.0",
+        id: genId("field"),
+        type: "Input",
+        props: {
+          name: "title",
+          label: "标题",
+          placeholder: "请输入标题",
+          required: true,
+        },
+      });
+      fields.push({
+        version: "1.0",
+        id: genId("field"),
+        type: "Textarea",
+        props: {
+          name: "content",
+          label: "内容",
+          placeholder: "请输入内容",
+        },
+      });
+    }
   }
 
   return fields;

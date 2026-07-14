@@ -28,6 +28,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
+import { setDefaultNavigate } from "@/lib/actionRouter";
 import { invoke, isTauri, listen } from "@/lib/invoke";
 import { useAgentPanelStore, useSettingsStore, useSkillStore, useStreamStore, useUIStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
@@ -115,6 +116,11 @@ function AppInner() {
   const location = useLocation();
   const navigate = useNavigate();
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
+
+  // 注册全局默认导航器：供非 React 调用方（如技能生命周期钩子）通过 ActionRouter 导航
+  useEffect(() => {
+    setDefaultNavigate(navigate);
+  }, [navigate]);
   const handleCloseCmdPalette = useCallback(() => setCmdOpen(false), [setCmdOpen]);
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");

@@ -487,6 +487,7 @@ impl NodeExecutorTrait for LoopExecutor {
                 "node_id": node_id,
             }),
             output_var: Some(output_var_key),
+            control: None,
         })
     }
 }
@@ -648,3 +649,4 @@ mod tests {
         assert!(!evaluate_continue_condition("partial.length < 2", &[json!(1), json!(2)], 0));
     }
 }
+

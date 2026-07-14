@@ -210,26 +210,28 @@ async fn restart_auto_backup(
             // 用 catch_unwind 包裹单次周期执行体；panic 不会杀死整个周期任务，
             // 日志 + emit 失败事件后继续下一轮循环
             let result = AssertUnwindSafe(async {
-                // Read current settings to get backup_dir
-                let backup_dir = match get_settings(&db).await {
+                // Read current settings to get backup_dir and notify_backup
+                let (backup_dir, notify) = match get_settings(&db).await {
                     Ok(s) => {
                         let decoded = axagent_storage::path_vars::decode_path_opt(&s.backup_dir);
-                        backup::resolve_backup_dir(decoded.as_deref(), &app_dir)
+                        (backup::resolve_backup_dir(decoded.as_deref(), &app_dir), s.notify_backup)
                     },
-                    Err(_) => backup::resolve_backup_dir(None, &app_dir),
+                    Err(_) => (backup::resolve_backup_dir(None, &app_dir), true),
                 };
 
                 // Create auto backup (SQLite format for speed)
                 match backup::create_backup(&db, "sqlite", &backup_dir, &DefaultPathEncoder).await {
                     Ok(_) => {
                         tracing::info!("Auto-backup created successfully");
-                        let _ = app_for_emit.emit(
-                            "auto-backup-completed",
-                            serde_json::json!({
-                                "success": true,
-                                "message": "Auto-backup created successfully",
-                            }),
-                        );
+                        if notify {
+                            let _ = app_for_emit.emit(
+                                "auto-backup-completed",
+                                serde_json::json!({
+                                    "success": true,
+                                    "message": "Auto-backup created successfully",
+                                }),
+                            );
+                        }
                         if let Err(e) =
                             backup::cleanup_old_backups(&db, max_count, &DefaultPathEncoder).await
                         {
@@ -238,13 +240,15 @@ async fn restart_auto_backup(
                     },
                     Err(e) => {
                         tracing::warn!("Auto-backup failed: {}", e);
-                        let _ = app_for_emit.emit(
-                            "auto-backup-completed",
-                            serde_json::json!({
-                                "success": false,
-                                "error": e.to_string(),
-                            }),
-                        );
+                        if notify {
+                            let _ = app_for_emit.emit(
+                                "auto-backup-completed",
+                                serde_json::json!({
+                                    "success": false,
+                                    "error": e.to_string(),
+                                }),
+                            );
+                        }
                     },
                 }
             })
@@ -376,11 +380,15 @@ pub async fn download_cloud_backup(
         .unwrap_or_else(|| "cloud_backup.db".to_string());
     let local_path = backup_dir.join(&file_name);
 
-    // Canonicalize to prevent path traversal: verify the resolved path is within backup_dir
-    let canonical = local_path.canonicalize().map_err(|e| format!("路径解析失败: {}", e))?;
+    // SECURITY: 先创建空文件再 canonicalize（canonicalize 要求文件已存在），
+    // 然后验证解析后的路径是否仍在 backup_dir 内，防止 cloud_key 路径穿越。
+    // 校验通过后用实际数据覆盖空文件。
+    std::fs::write(&local_path, &[]).map_err(|e| format!("创建临时文件失败: {}", e))?;
     let backup_canonical =
         backup_dir.canonicalize().map_err(|e| format!("备份目录解析失败: {}", e))?;
+    let canonical = local_path.canonicalize().map_err(|e| format!("路径解析失败: {}", e))?;
     if !canonical.starts_with(&backup_canonical) {
+        let _ = std::fs::remove_file(&local_path);
         return Err("路径穿越检测失败：cloud_key 指向了备份目录之外的位置".to_string());
     }
 

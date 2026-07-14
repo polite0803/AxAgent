@@ -19,6 +19,7 @@ import { generateSandboxHtml } from "@/sdk/sandboxTemplate";
 import type { SkillHostApi, SkillHostStore, SkillHostUi, SkillPermissions } from "@/sdk/types";
 import { notification, theme as antdTheme } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SkillErrorFallback, SkillLoadingSkeleton } from "./SkillErrorFallback";
 
 /** 沙箱加载超时（毫秒） */
@@ -52,8 +53,18 @@ export function SkillSandboxContainer({
 
   const { token: themeToken } = antdTheme.useToken();
   const currentTheme: "light" | "dark" = themeToken.colorBgBase === "#ffffff" ? "light" : "dark";
+  const navigate = useNavigate();
 
   const loadSandbox = useCallback(async () => {
+    // 重试时先移除上一次绑定的 message 监听，避免监听器累积泄漏
+    if (messageHandlerRef.current) {
+      window.removeEventListener("message", messageHandlerRef.current);
+      messageHandlerRef.current = null;
+    }
+    if (rpcHandlerRef.current) {
+      window.removeEventListener("message", rpcHandlerRef.current);
+      rpcHandlerRef.current = null;
+    }
     const entry = (componentConfig.entry as string) || "index.html";
     const props = (componentConfig.props as Record<string, unknown>) || {};
 
@@ -84,7 +95,7 @@ export function SkillSandboxContainer({
 
     const hostUi: SkillHostUi = {
       navigate: (path: string): void => {
-        window.location.hash = path;
+        navigate(path);
       },
       notify: (
         message: string,

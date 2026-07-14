@@ -10,6 +10,8 @@ pub struct Model {
     pub trajectory_id: String,
     pub reward_type: String,
     pub value: f64,
+    /// 关联到 trajectory_steps.step_index，便于按步骤回放奖励信号
+    pub step_index: i32,
     pub created_at: String,
 }
 

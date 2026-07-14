@@ -78,9 +78,56 @@ pub async fn personality_create(
         version: payload.version.unwrap_or_else(|| "1.0.0".to_string()),
         description: payload.description.unwrap_or_default(),
         content: payload.content,
+        identity: String::new(),
+        user: String::new(),
         created_at: chrono::Utc::now(),
     };
     axagent_agent::personality::PersonalityManager::save(&personality).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PersonalityCreateBootstrapPayload {
+    pub name: String,
+    pub soul: Option<String>,
+    pub identity: Option<String>,
+    pub user: Option<String>,
+}
+
+#[tauri::command]
+pub async fn personality_create_bootstrap(
+    payload: PersonalityCreateBootstrapPayload,
+    _state: State<'_, AppState>,
+) -> Result<(), String> {
+    let personality = axagent_agent::personality::Personality {
+        name: payload.name,
+        version: "1.0.0".to_string(),
+        description: String::new(),
+        content: payload.soul.unwrap_or_default(),
+        identity: payload.identity.unwrap_or_default(),
+        user: payload.user.unwrap_or_default(),
+        created_at: chrono::Utc::now(),
+    };
+    axagent_agent::personality::PersonalityManager::save(&personality).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn personality_update_identity(
+    name: String,
+    identity: String,
+    _state: State<'_, AppState>,
+) -> Result<(), String> {
+    axagent_agent::personality::PersonalityManager::save_identity(&name, &identity)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn personality_update_user(
+    name: String,
+    user: String,
+    _state: State<'_, AppState>,
+) -> Result<(), String> {
+    axagent_agent::personality::PersonalityManager::save_user(&name, &user)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

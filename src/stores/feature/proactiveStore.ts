@@ -10,6 +10,7 @@ import type {
   ProactiveConfig,
   ProactiveSuggestion,
   Reminder,
+  ReminderListResult,
 } from "@/types";
 import { create } from "zustand";
 import { useAppConfigStore } from "./appConfigStore";
@@ -295,8 +296,8 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   fetchReminders: async () => {
     set({ isLoading: true, error: null });
     try {
-      const reminders = await invoke<Reminder[]>("proactive_list_reminders");
-      set({ reminders, isLoading: false });
+      const result = await invoke<ReminderListResult>("reminder_list");
+      set({ reminders: result.active, isLoading: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to fetch reminders",
@@ -370,8 +371,12 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   addReminder: async (input: ReminderInput) => {
     set({ isAdding: true, error: null });
     try {
-      const reminder = await invoke<Reminder>("proactive_add_reminder", {
-        reminder: input,
+      const reminder = await invoke<Reminder>("reminder_create", {
+        title: input.title,
+        description: input.description || null,
+        scheduledAt: input.scheduled_at,
+        recurrenceFrequency: input.recurrence?.frequency ?? null,
+        recurrenceInterval: input.recurrence?.interval ?? null,
       });
       set((state) => ({
         reminders: [...state.reminders, reminder],
@@ -387,7 +392,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
 
   removeReminder: async (id: string) => {
     try {
-      await invoke("proactive_delete_reminder", { id });
+      await invoke("reminder_delete", { id });
       set((state) => ({
         reminders: state.reminders.filter((r) => r.id !== id),
         error: null,
@@ -401,7 +406,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
 
   completeReminder: async (id: string) => {
     try {
-      await invoke("proactive_complete_reminder", { id });
+      await invoke<Reminder>("reminder_complete", { id });
       set((state) => ({
         reminders: state.reminders.map((r) => r.id === id ? { ...r, completed: true } : r),
         error: null,

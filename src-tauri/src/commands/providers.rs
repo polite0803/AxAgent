@@ -443,7 +443,7 @@ pub async fn test_model(
         store: None,
     };
     let start = Instant::now();
-    adapter.chat(&ctx, request).await.map_err(|e| e.to_string())?;
+    adapter.chat(&ctx, request.into()).await.map_err(|e| e.to_string())?;
     Ok(start.elapsed().as_millis() as u64)
 }
 

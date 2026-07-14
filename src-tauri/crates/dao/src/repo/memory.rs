@@ -84,6 +84,13 @@ pub async fn create_namespace(
 }
 
 pub async fn delete_namespace(db: &DatabaseConnection, id: &str) -> Result<()> {
+    // 先删除所有关联的 memory_items
+    let _ = memory_items::Entity::delete_many()
+        .filter(memory_items::Column::NamespaceId.eq(id))
+        .exec(db)
+        .await?;
+
+    // 再删除 namespace
     let result = memory_namespaces::Entity::delete_by_id(id).exec(db).await?;
 
     if result.rows_affected == 0 {
@@ -169,7 +176,11 @@ pub async fn add_item(db: &DatabaseConnection, input: CreateMemoryItemInput) -> 
         title: Set(input.title),
         content: Set(input.content),
         source: Set(source),
-        ..Default::default()
+        // 显式设置 NOT NULL 列，不依赖迁移默认值：
+        // index_status 用统一常量，updated_at 写 RFC3339，保证前端可解析
+        index_status: Set(constants::status::PENDING.to_string()),
+        index_error: Set(None),
+        updated_at: Set(current_rfc3339()),
     };
 
     am.insert(db).await?;

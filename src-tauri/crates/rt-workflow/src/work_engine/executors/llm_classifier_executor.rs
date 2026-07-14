@@ -133,6 +133,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                 } else {
                     Some(c.output_var.clone())
                 },
+                control: None,
             });
         }
 
@@ -191,7 +192,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                 } else {
                     request.clone()
                 };
-            let secondary_response = adapter.chat(&req_ctx, secondary_request).await;
+            let secondary_response = adapter.chat(&req_ctx, secondary_request.into()).await;
             if let Ok(sec_resp) = secondary_response {
                 use axagent_harness::consistency_check::check_consistency;
                 let primary_val = serde_json::json!(response.response.content);
@@ -267,6 +268,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             } else {
                 Some(c.output_var.clone())
             },
+            control: None,
         })
     }
 }
@@ -569,3 +571,4 @@ mod tests {
         );
     }
 }
+

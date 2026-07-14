@@ -32,6 +32,9 @@ export type KnowledgeDocument = {
   docType: string;
   indexError?: string;
   sourceConversationId?: string;
+  // 后端 KnowledgeDocumentDto 实际返回（repo_dtos.rs），此前缺失
+  createdAt?: number;
+  updatedAt?: number;
 };
 
 export type ImportDirectoryError = {

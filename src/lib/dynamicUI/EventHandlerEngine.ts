@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { getActionRouter } from "@/lib/actionRouter";
+import { getActionRouter, getDefaultNavigate } from "@/lib/actionRouter";
 import type { ActionContext } from "@/lib/actionRouter";
 import type { DynamicAction, EventHandler, UISchema } from "@/types";
 
@@ -20,6 +20,8 @@ export interface ExecuteActionsOptions {
   onAction?: (action: DynamicAction) => void;
   /** 用于隔离 schema-update 事件的 scope id（通常是 DynamicUIRenderer 的 rendererId） */
   scope?: string;
+  /** 路由导航函数；未提供时回退到模块级默认导航器 */
+  navigate?: (path: string) => void;
 }
 
 /**
@@ -30,13 +32,14 @@ export async function executeActions(
   actions: DynamicAction[],
   options: ExecuteActionsOptions = {},
 ): Promise<void> {
-  const { context, onAction, scope } = options;
+  const { context, onAction, scope, navigate } = options;
   const router = getActionRouter();
   const actionCtx: ActionContext = {
     skillName: context?.skillName
       ? String(context.skillName)
       : "DynamicUI",
     pageParams: (context?.pageParams as Record<string, string>) || {},
+    navigate: navigate ?? getDefaultNavigate() ?? undefined,
   };
 
   for (const action of actions) {
@@ -111,6 +114,7 @@ export function handleEvents(
   context?: Record<string, unknown>,
   onAction?: (action: DynamicAction) => void,
   scope?: string,
+  navigate?: (path: string) => void,
 ): Record<string, (...args: unknown[]) => void> {
   const bindings: Record<string, (...args: unknown[]) => void> = {};
 
@@ -120,8 +124,9 @@ export function handleEvents(
       continue;
     }
 
-    bindings[trigger] = (..._args: unknown[]) => {
-      void executeActions([...handler.actions], { context, onAction, scope });
+    bindings[trigger] = (...args: unknown[]) => {
+      const eventContext = { ...(context || {}), _eventArgs: args };
+      void executeActions([...handler.actions], { context: eventContext, onAction, scope, navigate });
     };
   }
 

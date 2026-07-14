@@ -6,7 +6,7 @@ use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
-use axagent_agent::AxAgentApiClient;
+use axagent_agent::{AxAgentApiClient, FallbackProviderAdapter};
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
@@ -40,10 +40,115 @@ use pricing::{check_token_budget, estimate_cost_usd};
 
 mod skill_execution;
 use skill_execution::{
-    SKILL_MCP_REGISTRY, SkillExecutionContext, SkillStep, build_agent_system_prompt,
+    SkillExecutionContext, SkillStep, build_agent_system_prompt,
     check_and_suggest_workflow_match, execute_skill_sync, infer_agent_role,
     load_enabled_skill_contents, load_skill_tools,
 };
+
+/// AskUser 桥接器的具体实现，由 wiring 层注入到 UnifiedToolRegistry。
+/// 当 LLM 调用 AskUserQuestionTool 时，通过此桥接器：
+/// 1. emit `agent-ask-user` 事件到前端
+/// 2. 阻塞等待用户通过 `agent_respond_ask` 回复
+#[derive(Debug, Clone)]
+struct AppAskUserBridge {
+    app_handle: AppHandle,
+    ask_senders: Arc<
+        tokio::sync::Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>,
+    >,
+    conversation_id: String,
+    assistant_message_id: String,
+}
+
+impl axagent_harness::AskUserBridge for AppAskUserBridge {
+    fn ask_user_blocking(
+        &self,
+        ask_id: String,
+        questions_json: serde_json::Value,
+        _conversation_id: &str,
+    ) -> Result<String, String> {
+        let questions = questions_json["questions"]
+            .as_array()
+            .map(|arr| {
+                arr.iter()
+                    .map(|q| {
+                        let question = q["question"].as_str().unwrap_or("");
+                        let multi = q["multiSelect"].as_bool().unwrap_or(false);
+                        let options: Vec<String> = q["options"]
+                            .as_array()
+                            .map(|a| {
+                                a.iter()
+                                    .filter_map(|o| o["label"].as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        serde_json::json!({
+                            "question": question,
+                            "multiSelect": multi,
+                            "options": options,
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        // 提取第一个问题的文本作为主问题
+        let question_text =
+            questions.first().and_then(|q| q["question"].as_str()).unwrap_or("").to_string();
+        let options: Vec<String> = questions
+            .first()
+            .and_then(|q| q["options"].as_array())
+            .map(|a| a.iter().filter_map(|o| o.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_default();
+
+        let event_payload = serde_json::json!({
+            "conversationId": self.conversation_id,
+            "assistantMessageId": self.assistant_message_id,
+            "askId": ask_id,
+            "question": question_text,
+            "options": options,
+        });
+
+        let _ = self.app_handle.emit("agent-ask-user", &event_payload);
+
+        // 创建 oneshot channel 并阻塞等待用户回复
+        let (tx, rx) = tokio::sync::oneshot::channel();
+
+        // 需要同步插入 sender（在 async 上下文中使用 block_in_place + block_on）
+        let ask_senders = self.ask_senders.clone();
+        let ask_id_clone = ask_id.clone();
+        tokio::task::block_in_place(|| {
+            let handle = tokio::runtime::Handle::current();
+            handle.block_on(async {
+                let mut senders = ask_senders.lock().await;
+                senders.insert(ask_id_clone, tx);
+            });
+        });
+
+        // 阻塞等待用户回复，5 分钟超时
+        let ask_senders_cleanup = self.ask_senders.clone();
+        let ask_id_cleanup = ask_id.clone();
+        tokio::task::block_in_place(|| {
+            let handle = tokio::runtime::Handle::current();
+            handle.block_on(async {
+                match tokio::time::timeout(std::time::Duration::from_secs(300), rx).await {
+                    Ok(Ok(answer)) => Ok(answer),
+                    Ok(Err(_)) => {
+                        // sender 被丢弃，清理 ask_senders
+                        let mut senders = ask_senders_cleanup.lock().await;
+                        senders.remove(&ask_id_cleanup);
+                        Err("用户提问通道已关闭".to_string())
+                    },
+                    Err(_) => {
+                        // 超时，清理 ask_senders
+                        let mut senders = ask_senders_cleanup.lock().await;
+                        senders.remove(&ask_id_cleanup);
+                        Err("等待用户回复超时（5 分钟）".to_string())
+                    },
+                }
+            })
+        })
+    }
+}
 
 /// Async RAII guard that removes a conversation ID from AppState::running_agents on drop.
 /// Ensures cleanup even if the spawned task panics.
@@ -311,6 +416,29 @@ pub async fn agent_query(
             return Err(ErrorResponse::new(agent_err::RUNNING).into());
         }
         running.insert(conversation_id.clone());
+
+        // 安全网：超时自动清理 running_agents，防止 panic 导致 guard 未正确 drop
+        {
+            let cid = conversation_id.clone();
+            let running = app_state.running_agents.clone();
+            let cancel = app_state.agent_cancel_tokens.clone();
+            let paused = app_state.agent_paused.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(600)).await;
+                // 10 分钟后如果还在 running_agents 中，说明 guard 未能正常 drop（panic 等）
+                let mut agents = running.write().await;
+                if agents.remove(&cid) {
+                    tracing::warn!(
+                        "agent_query: timeout cleanup removed stale running_agents entry for {}",
+                        cid
+                    );
+                    cancel.remove(&cid);
+                    let mut p = paused.lock().await;
+                    p.remove(&cid);
+                }
+            });
+        }
+
         AsyncRunningAgentGuard {
             conversation_id: conversation_id.clone(),
             running_agents: app_state.running_agents.clone(),
@@ -340,13 +468,11 @@ pub async fn agent_query(
         .map_err(|e| e.to_string())?;
     info!("[agent_query] Got provider keys count: {}", prov.keys.len());
 
-    // Get active key
-    let key = prov
-        .keys
-        .iter()
-        .find(|k| k.enabled)
-        .ok_or_else(|| "No active API key for provider".to_string())?;
-    info!("[agent_query] Found active key");
+    // Get active key (使用 DAO 层的 round-robin 轮询逻辑)
+    let key = provider::get_active_key(app_state.harness.db(), &request.provider_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    info!("[agent_query] Found active key (rotation_index={})", key.rotation_index);
 
     // Decrypt key
     let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
@@ -390,6 +516,33 @@ pub async fn agent_query(
         model_param_overrides.as_ref().and_then(|p| p.thinking_param_style.clone());
     let request_delay_ms = model_param_overrides.as_ref().and_then(|p| p.request_delay_ms);
 
+    // 当模型不在 DB 中时，从模型名推断关键参数，确保 o-series 等模型正确使用 max_completion_tokens
+    let use_max_completion_tokens = use_max_completion_tokens.or_else(|| {
+        let model_lower = request.model_id.to_lowercase();
+        if model_lower.contains("o1-") || model_lower.contains("o3-") || model_lower.contains("o4-")
+        {
+            tracing::info!(
+                "[agent_query] Model '{}' not in DB, inferring use_max_completion_tokens=true",
+                request.model_id
+            );
+            Some(true)
+        } else {
+            None
+        }
+    });
+
+    let thinking_param_style = thinking_param_style.or_else(|| {
+        let model_lower = request.model_id.to_lowercase();
+        // 检测可能的 thinking 模型（如 DeepSeek R1 系列）
+        if model_lower.contains("deepseek-r1") || model_lower.contains("deepseek-reasoner") {
+            Some("deepseek".to_string())
+        } else if model_lower.contains("claude") && model_lower.contains("3.5") {
+            Some("anthropic".to_string())
+        } else {
+            None
+        }
+    });
+
     // Resolve effective model parameters: request options → model overrides → defaults
     let effective_temperature =
         request.options.as_ref().and_then(|o| o.temperature).or_else(|| {
@@ -411,6 +564,68 @@ pub async fn agent_query(
         app_state.harness.get_adapter_for_provider(&prov).await.ok_or_else(|| {
             format!("No adapter available for provider type {:?}", prov.provider_type)
         })?;
+
+    // 构建 fallback 适配器：加载其他已启用的提供商作为备用
+    let adapter = {
+        let all_providers =
+            provider::list_providers(app_state.harness.db()).await.unwrap_or_default();
+        let mut fallback_adapters: Vec<Arc<dyn ProviderAdapter>> = Vec::new();
+        let mut fallback_contexts: Vec<ProviderRequestContext> = Vec::new();
+        for fb_prov in &all_providers {
+            if fb_prov.id == prov.id || !fb_prov.enabled {
+                continue;
+            }
+            if let Some(fb_key) = fb_prov.keys.iter().find(|k| k.enabled) {
+                if let Ok(fb_api_key) = axagent_crypto::decrypt_key(
+                    &fb_key.key_encrypted,
+                    app_state.harness.master_key(),
+                ) {
+                    let fb_base_url =
+                        resolve_base_url_for_type(&fb_prov.api_host, &fb_prov.provider_type);
+                    let fb_ctx = ProviderRequestContext {
+                        api_key: fb_api_key,
+                        key_id: fb_key.id.clone(),
+                        provider_id: fb_prov.id.clone(),
+                        base_url: Some(fb_base_url),
+                        api_path: fb_prov.api_path.clone(),
+                        proxy_config:
+                            axagent_harness::types::provider_model::resolve_provider_proxy(
+                                &fb_prov.proxy_config,
+                                &settings,
+                            ),
+                        custom_headers: fb_prov
+                            .custom_headers
+                            .as_ref()
+                            .and_then(|s| serde_json::from_str(s).ok()),
+                        api_mode: None,
+                        conversation: None,
+                        previous_response_id: None,
+                        store_response: None,
+                    };
+                    if let Some(fb_adapter) =
+                        app_state.harness.get_adapter_for_provider(fb_prov).await
+                    {
+                        fallback_adapters.push(fb_adapter);
+                        fallback_contexts.push(fb_ctx);
+                        tracing::info!(
+                            "[agent_query] Registered fallback provider: {} ({:?})",
+                            fb_prov.id,
+                            fb_prov.provider_type
+                        );
+                    }
+                }
+            }
+        }
+        if fallback_adapters.is_empty() {
+            adapter
+        } else {
+            tracing::info!(
+                "[agent_query] FallbackAdapter created with {} fallback(s)",
+                fallback_adapters.len()
+            );
+            Arc::new(FallbackProviderAdapter::new(adapter, fallback_adapters, fallback_contexts))
+        }
+    };
 
     // Load MCP tools for enabled servers (same logic as Q&A mode)
     let mcp_ids = request.enabled_mcp_server_ids.clone().unwrap_or_default();
@@ -644,7 +859,6 @@ pub async fn agent_query(
     // This is done AFTER tool_registry is fully configured to ensure MCP tools are available
     // The skill handlers will use a global registry for MCP tool execution
     if skill_tools_count > 0 {
-        let _ = SKILL_MCP_REGISTRY.set(std::sync::Arc::new(tool_registry.clone()));
         let skill_ctx = SkillExecutionContext::new(
             app.clone(),
             &app_state,
@@ -653,6 +867,7 @@ pub async fn agent_query(
             ctx.api_key.clone(),
             conversation_id.clone(),
             streaming_message_id.clone(),
+            std::sync::Arc::new(tool_registry.clone()),
         );
         for (tool_name, skill) in &skill_map {
             let skill_name = skill.name.clone();
@@ -1237,6 +1452,14 @@ pub async fn agent_query(
     // P4: Save input for trajectory recording (request.input is moved below)
     let trajectory_input = request.input.clone();
 
+    // 注入 AskUserBridge 到工具注册表，使 AskUserQuestionTool 能够阻塞等待用户回复
+    tool_registry.ask_user_bridge = Some(Arc::new(AppAskUserBridge {
+        app_handle: app.clone(),
+        ask_senders: app_state.agent_ask_senders.clone(),
+        conversation_id: conversation_id.clone(),
+        assistant_message_id: streaming_message_id.clone(),
+    }));
+
     // Build runtime via factory, then delegate to session_manager.
     // This keeps axagent-runtime-core out of the agent crate's dependencies.
     let mut runtime = create_conversation_runtime(
@@ -1288,8 +1511,11 @@ pub async fn agent_query(
         always_map.insert(conversation_id.clone(), updated_always);
     }
 
-    // Remove the prompter from AppState now that the turn is complete
+    // Remove the prompter from AppState now that the turn is complete.
+    // Clear any pending permission requests first to avoid leaking blocked
+    // threads that would otherwise wait for the 5-minute timeout.
     {
+        prompter.clear_pending();
         let mut prompters = app_state.agent_prompters.lock().await;
         prompters.remove(&conversation_id);
     }
@@ -1881,13 +2107,17 @@ pub async fn agent_respond_ask(
     }
 }
 
-/// Cancel an agent task
-#[tauri::command]
-pub async fn agent_cancel(
-    app: AppHandle,
-    app_state: State<'_, AppState>,
-    request: AgentCancelRequest,
-) -> Result<AgentCancelResponse, String> {
+/// Shared internal agent cancellation logic.
+/// Used by both `agent_cancel` command and `delete_conversation` cleanup.
+/// Performs the common cleanup steps: cancel token, prompter, paused, AskUser senders, event emit.
+/// Callers that need to additionally clean `always_allowed` or `running_agents`
+/// should do so after calling this function.
+pub(crate) async fn cancel_agent_internal(
+    app: &tauri::AppHandle,
+    app_state: &AppState,
+    conversation_id: &str,
+    reason: &str,
+) {
     // Trigger the cancel token to abort the run_turn loop.
     // Only set the flag — do NOT remove the token here.
     // The token will be cleaned up by agent_query after run_turn_with_tools
@@ -1895,17 +2125,54 @@ pub async fn agent_cancel(
     // the flag yet but the token (and its Arc) is already gone.
     {
         let tokens = &app_state.agent_cancel_tokens;
-        if let Some(token) = tokens.get(&request.conversation_id) {
+        if let Some(token) = tokens.get(conversation_id) {
             token.store(true, std::sync::atomic::Ordering::Release);
-            info!("[agent_cancel] Set cancel token for conversationId={}", request.conversation_id);
-        } else {
-            info!(
-                "[agent_cancel] No cancel token found for conversationId={} (may have already completed)",
-                request.conversation_id
-            );
+            info!("[cancel_agent_internal] Set cancel token for conversationId={}", conversation_id);
         }
     }
 
+    // Clean up the permission prompter for this conversation.
+    // Call clear_pending() first to unblock any waiting rx.recv() calls,
+    // then remove from the map.
+    {
+        let mut prompters = app_state.agent_prompters.lock().await;
+        if let Some(prompter) = prompters.get(conversation_id) {
+            prompter.clear_pending();
+        }
+        prompters.remove(conversation_id);
+    }
+
+    // Clean up paused state — if the agent was paused when cancelled,
+    // the paused entry would otherwise remain indefinitely.
+    {
+        let mut paused = app_state.agent_paused.lock().await;
+        paused.remove(conversation_id);
+    }
+
+    // Clean up AskUser senders — if the agent was waiting for an AskUser
+    // response when cancelled, the oneshot sender would leak.
+    {
+        let mut ask_senders = app_state.agent_ask_senders.lock().await;
+        ask_senders.retain(|k, _| !k.starts_with(conversation_id));
+    }
+
+    // Emit cancellation event so frontend can clean up
+    let _ = app.emit(
+        "agent-cancelled",
+        serde_json::json!({
+            "conversationId": conversation_id,
+            "reason": reason,
+        }),
+    );
+}
+
+/// Cancel an agent task
+#[tauri::command]
+pub async fn agent_cancel(
+    app: AppHandle,
+    app_state: State<'_, AppState>,
+    request: AgentCancelRequest,
+) -> Result<AgentCancelResponse, String> {
     // Note: We intentionally do NOT remove from running_agents here.
     // The AsyncRunningAgentGuard (RAII) in agent_query is the sole owner of
     // that entry and will remove it on Drop. Removing it here would
@@ -1913,32 +2180,13 @@ pub async fn agent_cancel(
     // The cancel token (set above) is what actually stops the agent loop;
     // running_agents is only a concurrency guard for agent_query entry.
 
-    // Clean up the permission prompter for this conversation.
-    // Call clear_pending() first to unblock any waiting rx.recv() calls,
-    // then remove from the map.
-    {
-        let mut prompters = app_state.agent_prompters.lock().await;
-        if let Some(prompter) = prompters.get(&request.conversation_id) {
-            prompter.clear_pending();
-        }
-        prompters.remove(&request.conversation_id);
-    }
-
-    // Clean up paused state — if the agent was paused when cancelled,
-    // the paused entry would otherwise remain indefinitely.
-    {
-        let mut paused = app_state.agent_paused.lock().await;
-        paused.remove(&request.conversation_id);
-    }
-
-    // Emit cancellation event so frontend can clean up
-    let _ = app.emit(
-        "agent-cancelled",
-        serde_json::json!({
-            "conversationId": request.conversation_id,
-            "reason": "User cancelled",
-        }),
-    );
+    cancel_agent_internal(
+        &app,
+        app_state.inner(),
+        &request.conversation_id,
+        "User cancelled",
+    )
+    .await;
 
     Ok(())
 }
@@ -1962,7 +2210,9 @@ pub async fn agent_pause(
     app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<(), String> {
-    // Verify the agent is actually running
+    // Verify the agent is actually running and insert into paused set atomically.
+    // Hold the running_agents read lock while inserting to close the TOCTOU window
+    // where the agent could complete between the check and the insert.
     {
         let running = app_state.running_agents.read().await;
         if !running.contains(&conversation_id) {
@@ -1970,9 +2220,6 @@ pub async fn agent_pause(
                 .with_detail(format!("No running agent for conversation {}", conversation_id))
                 .into());
         }
-    }
-
-    {
         let mut paused = app_state.agent_paused.lock().await;
         paused.insert(conversation_id.clone());
     }
@@ -2023,14 +2270,21 @@ pub async fn agent_resume(
     Ok(())
 }
 
-/// Check if an agent is paused.
+/// Check if an agent is paused. An agent is only considered paused if it is
+/// both in the paused set AND still running (to filter out stale entries).
 #[tauri::command]
 pub async fn agent_is_paused(
     app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<bool, String> {
     let paused = app_state.agent_paused.lock().await;
-    Ok(paused.contains(&conversation_id))
+    if !paused.contains(&conversation_id) {
+        return Ok(false);
+    }
+    drop(paused);
+    // 双重检查：agent 必须仍在运行中
+    let running = app_state.running_agents.read().await;
+    Ok(running.contains(&conversation_id))
 }
 
 /// Runtime statistics for a running agent.
@@ -2081,10 +2335,9 @@ pub async fn agent_runtime_stats(
         ask.keys().filter(|k| k.starts_with(&conversation_id)).count()
     };
     let active_tool_calls = {
-        // An agent is actively processing tool calls if it's running and has
-        // pending permission requests (tools waiting for approval) or if it's
-        // running but not paused (tools executing after approval).
-        if running && !paused { 1 } else { 0 }
+        // 使用实际挂起的权限请求数作为活跃工具调用计数。
+        // 当工具等待审批时，pending_permissions 反映实际并发数。
+        pending_permissions
     };
 
     // Read real-time execution progress from the SessionManager.

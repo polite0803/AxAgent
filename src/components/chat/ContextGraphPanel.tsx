@@ -20,14 +20,11 @@ import {
 import { theme, Typography } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";
 import { BookOpen, Brain, ChevronDown, ChevronUp, GitBranch, Link2, Puzzle, Search, Wrench, Zap } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "@xyflow/react/dist/style.css";
 import { useKnowledgeStore, useMcpStore, useMemoryStore, useSkillExtensionStore } from "@/stores";
-import type { KnowledgeBase } from "@/types";
-import type { MemoryNamespace } from "@/types";
-import type { McpServer } from "@/types";
-import type { Skill } from "@/types";
+import type { KnowledgeBase, McpServer, MemoryNamespace, Skill } from "@/types";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -417,18 +414,18 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     });
   };
 
-  // Update nodes/edges when layout changes
+  // 当布局变化时，将节点/边同步到 React Flow 状态。
+  // 用 useEffect 取代原先 render 期改写 ref + setTimeout 触发 setState 的反模式。
   const prevLayoutRef = React.useRef<string>("");
-  const layoutKey = JSON.stringify(layout);
-  // eslint-disable-next-line react-hooks/refs
-  if (layoutKey !== prevLayoutRef.current) {
-    // eslint-disable-next-line react-hooks/refs
+  useEffect(() => {
+    const layoutKey = JSON.stringify(layout);
+    if (layoutKey === prevLayoutRef.current) {
+      return;
+    }
     prevLayoutRef.current = layoutKey;
-    setTimeout(() => {
-      setRfNodes(layout.nodes);
-      setRfEdges(layout.edges);
-    }, 0);
-  }
+    setRfNodes(layout.nodes);
+    setRfEdges(layout.edges);
+  }, [layout, setRfNodes, setRfEdges]);
 
   const totalSources = knowledgeBaseIds.length
     + memoryNamespaceIds.length

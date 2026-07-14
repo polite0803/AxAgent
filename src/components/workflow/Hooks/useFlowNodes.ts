@@ -459,6 +459,9 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     }
     const seenEdgeKeys = new Set<string>();
 
+    // 构建有效节点 ID 集合，用于过滤引用不存在节点的边
+    const validNodeIds = new Set(flowNodes.map((fn) => fn.id));
+
     const childPortMap = new Map<string, string>();
     for (const node of nodes) {
       if (node.type !== "parallel") { continue; }
@@ -487,6 +490,8 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     // - 子节点为孤儿 hidden（无 parent）：保留 hidden，避免误显示。
     const flowEdges: Edge[] = [];
     for (const edge of edges as WorkflowEdge[]) {
+      // 过滤引用不存在节点的边（脏数据场景）
+      if (!validNodeIds.has(edge.source) || !validNodeIds.has(edge.target)) { continue; }
       const sourceParent = childToParent.get(edge.source);
       const targetParent = childToParent.get(edge.target);
 

@@ -6,6 +6,7 @@
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
+use uuid::Uuid;
 
 // ============================================================
 // TodoWriteTool
@@ -152,11 +153,30 @@ impl Tool for AskUserQuestionTool {
         false
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let questions = input["questions"].as_array().ok_or_else(|| {
             ToolError::invalid_input_for("AskUserQuestion", "questions 必须是数组")
         })?;
 
+        // 如果有 ask_user_bridge，阻塞等待用户真实回复
+        if let Some(ref bridge) = ctx.ask_user_bridge {
+            let conversation_id = ctx.conversation_id.as_deref().unwrap_or("unknown");
+            let ask_id = format!("{}-ask-{}", conversation_id, Uuid::new_v4());
+            match bridge.ask_user_blocking(ask_id, input.clone(), conversation_id) {
+                Ok(answer) => {
+                    return Ok(ToolResult::success(format!("## 用户回复\n\n{}", answer)));
+                },
+                Err(e) => {
+                    return Ok(ToolResult::success(format!(
+                        "## 用户提问（未收到回复）\n\n{}\n\n**错误**: {}",
+                        serde_json::to_string_pretty(&questions).unwrap_or_default(),
+                        e
+                    )));
+                },
+            }
+        }
+
+        // 降级：无 ask_user_bridge 时返回纯文本
         let mut output = String::from("## 用户提问\n\n");
         for (i, q) in questions.iter().enumerate() {
             let question = q["question"].as_str().unwrap_or("");

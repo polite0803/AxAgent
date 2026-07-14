@@ -630,6 +630,7 @@ impl NodeExecutorTrait for AgentExecutor {
                     "tool_calls_made": [], "node_id": node.base_id(), "dry_run": true,
                 }),
                 output_var: Some(an.config.output_var.clone()),
+                control: None,
             });
         }
 
@@ -1108,6 +1109,7 @@ impl NodeExecutorTrait for AgentExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(an.config.output_var.clone()),
+            control: None,
         })
     }
 }
@@ -1402,6 +1404,7 @@ impl AgentExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(an.config.output_var.clone()),
+            control: None,
         })
     }
 }
@@ -2681,3 +2684,4 @@ fn validate_strict_mode_output(
     }
     Ok(())
 }
+

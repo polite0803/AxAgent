@@ -13,6 +13,7 @@ use crate::memory::MemoryService;
 use crate::pattern::PatternLearner;
 use crate::storage::TrajectoryStorage;
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -28,6 +29,8 @@ pub struct ExtractedMemory {
     pub confidence: f64,
     pub source_trajectory: String,
     pub extraction_reason: String,
+    /// Unix timestamp in milliseconds
+    pub created_at: i64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -91,9 +94,10 @@ impl AutoMemoryExtractor {
         }
 
         if let Some(cached) = self.extraction_cache.get(&trajectory.id) {
+            let insights = self.generate_insights(cached, trajectory);
             return Some(MemoryExtractionResult {
                 extracted_memories: cached.clone(),
-                insights_generated: Vec::new(),
+                insights_generated: insights,
                 trajectories_analyzed: 1,
             });
         }
@@ -148,6 +152,7 @@ impl AutoMemoryExtractor {
                     confidence: 0.7,
                     source_trajectory: trajectory.id.clone(),
                     extraction_reason: "First user message indicates task context".to_string(),
+                    created_at: Utc::now().timestamp_millis(),
                 });
                 *seen_content.entry(first_user.content.clone()).or_insert(0) += 1;
             }
@@ -181,6 +186,7 @@ impl AutoMemoryExtractor {
                             confidence: 0.8,
                             source_trajectory: trajectory.id.clone(),
                             extraction_reason: "Repeated tool combination detected".to_string(),
+                            created_at: Utc::now().timestamp_millis(),
                         });
                     }
                 }
@@ -204,6 +210,7 @@ impl AutoMemoryExtractor {
                         source_trajectory: trajectory.id.clone(),
                         extraction_reason: "Multiple detailed reasoning chains observed"
                             .to_string(),
+                        created_at: Utc::now().timestamp_millis(),
                     });
                 }
             }
@@ -217,6 +224,7 @@ impl AutoMemoryExtractor {
                     confidence: 0.9,
                     source_trajectory: trajectory.id.clone(),
                     extraction_reason: "Successful task completion".to_string(),
+                    created_at: Utc::now().timestamp_millis(),
                 });
             },
             TrajectoryOutcome::Failure => {
@@ -242,6 +250,7 @@ impl AutoMemoryExtractor {
                         confidence: 0.6,
                         source_trajectory: trajectory.id.clone(),
                         extraction_reason: "Failed task with error indicators".to_string(),
+                        created_at: Utc::now().timestamp_millis(),
                     });
                 }
             },
@@ -255,16 +264,24 @@ impl AutoMemoryExtractor {
                     confidence: 0.65,
                     source_trajectory: trajectory.id.clone(),
                     extraction_reason: "Partial task completion".to_string(),
+                    created_at: Utc::now().timestamp_millis(),
                 });
             },
             TrajectoryOutcome::Abandoned => {},
         }
 
+        // 用标准哈希集合去重，缓存命中时也保证一致性
+        let mut dedup_set = std::collections::HashSet::new();
+        for memory in &memories {
+            let key = memory.content.chars().take(50).collect::<String>();
+            dedup_set.insert(key);
+        }
         let deduplicated: Vec<_> = memories
             .into_iter()
             .filter(|m| {
                 let key = m.content.chars().take(50).collect::<String>();
-                *seen_content.entry(key).or_insert(0) == 1
+                // seen_content 的 key 与去重 key 类型不同；这里改用 dedup_set 查首次出现
+                dedup_set.take(&key).is_some()
             })
             .take(MAX_MEMORY_ENTRIES_PER_TRAJECTORY)
             .collect();
@@ -314,7 +331,7 @@ impl AutoMemoryExtractor {
         &self,
         memories: &[ExtractedMemory],
     ) -> anyhow::Result<usize> {
-        let memory_service = self.memory_service.blocking_write();
+        let memory_service = self.memory_service.write().await;
         let mut applied = 0;
 
         for memory in memories {

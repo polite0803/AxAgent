@@ -137,6 +137,9 @@ pub async fn create_conversation(
         system_prompt: Set(system_prompt.map(|s| s.to_string())),
         message_count: Set(0),
         is_pinned: Set(0),
+        enabled_mcp_server_ids: Set("[]".to_string()),
+        enabled_knowledge_base_ids: Set("[]".to_string()),
+        enabled_memory_namespace_ids: Set("[]".to_string()),
         enabled_skill_ids: Set("[]".to_string()),
         enabled_wiki_ids: Set("[]".to_string()),
         mode: Set("agent".to_string()),
@@ -314,8 +317,10 @@ pub async fn archive_to_knowledge_base(
     conversation_id: &str,
     knowledge_base_id: &str,
 ) -> Result<(Conversation, KnowledgeDocument)> {
+    let txn = db.begin().await?;
+
     let conv = conversations::Entity::find_by_id(conversation_id)
-        .one(db)
+        .one(&txn)
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
 
@@ -329,7 +334,7 @@ pub async fn archive_to_knowledge_base(
     let existing_doc = knowledge_documents::Entity::find()
         .filter(knowledge_documents::Column::KnowledgeBaseId.eq(knowledge_base_id))
         .filter(knowledge_documents::Column::SourceConversationId.eq(conversation_id))
-        .one(db)
+        .one(&txn)
         .await?;
     if existing_doc.is_some() {
         return Err(AxAgentError::Validation(format!(
@@ -350,13 +355,13 @@ pub async fn archive_to_knowledge_base(
         .filter(messages::Column::ConversationId.eq(conversation_id))
         .filter(messages::Column::IsActive.eq(1))
         .order_by_asc(messages::Column::CreatedAt)
-        .all(db)
+        .all(&txn)
         .await?;
 
     let all_msgs_with_scaffold = messages::Entity::find()
         .filter(messages::Column::ConversationId.eq(conversation_id))
         .order_by_asc(messages::Column::CreatedAt)
-        .all(db)
+        .all(&txn)
         .await?;
 
     let mut text_parts: Vec<String> = Vec::new();
@@ -421,7 +426,7 @@ pub async fn archive_to_knowledge_base(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    doc_am.insert(db).await?;
+    doc_am.insert(&txn).await?;
 
     let entity_id = gen_id();
     let entity_props = serde_json::json!({
@@ -451,7 +456,7 @@ pub async fn archive_to_knowledge_base(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    entity_am.insert(db).await?;
+    entity_am.insert(&txn).await?;
 
     let attr_defs = [
         ("title", "string", "Conversation title"),
@@ -480,7 +485,7 @@ pub async fn archive_to_knowledge_base(
             created_at: Set(now),
             updated_at: Set(now),
         };
-        attr_am.insert(db).await?;
+        attr_am.insert(&txn).await?;
     }
 
     if !flow_steps.is_empty() {
@@ -505,7 +510,7 @@ pub async fn archive_to_knowledge_base(
             created_at: Set(now),
             updated_at: Set(now),
         };
-        flow_am.insert(db).await?;
+        flow_am.insert(&txn).await?;
     }
 
     struct Turn {
@@ -639,7 +644,7 @@ pub async fn archive_to_knowledge_base(
             created_at: Set(now),
             updated_at: Set(now),
         };
-        qa_entity_am.insert(db).await?;
+        qa_entity_am.insert(&txn).await?;
 
         let rel_id = gen_id();
         let rel_am = knowledge_relations::ActiveModel {
@@ -654,7 +659,7 @@ pub async fn archive_to_knowledge_base(
             created_at: Set(now),
             updated_at: Set(now),
         };
-        rel_am.insert(db).await?;
+        rel_am.insert(&txn).await?;
 
         if let Some(prev_id) = &prev_qa_entity_id {
             let seq_rel_id = gen_id();
@@ -670,7 +675,7 @@ pub async fn archive_to_knowledge_base(
                 created_at: Set(now),
                 updated_at: Set(now),
             };
-            seq_rel_am.insert(db).await?;
+            seq_rel_am.insert(&txn).await?;
         }
         prev_qa_entity_id = Some(qa_entity_id);
     }
@@ -680,11 +685,14 @@ pub async fn archive_to_knowledge_base(
     am.is_archived = Set(new_archived);
     let new_memory_status = match am.memory_status.as_ref() {
         s if s == "extracted" => "both",
+        s if s == "both" => "both",
         _ => "archived",
     };
     am.memory_status = Set(new_memory_status.to_string());
     am.updated_at = Set(now);
-    am.update(db).await?;
+    am.update(&txn).await?;
+
+    txn.commit().await?;
 
     let updated_conv = get_conversation(db, conversation_id).await?;
 
@@ -779,9 +787,11 @@ pub async fn branch_conversation(
     as_child: bool,
     custom_title: Option<&str>,
 ) -> Result<Conversation> {
+    let txn = db.begin().await?;
+
     // 1. Load source conversation
     let source = conversations::Entity::find_by_id(conversation_id)
-        .one(db)
+        .one(&txn)
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
 
@@ -790,7 +800,7 @@ pub async fn branch_conversation(
         .filter(messages::Column::ConversationId.eq(conversation_id))
         .filter(messages::Column::IsActive.eq(1))
         .order_by_asc(messages::Column::CreatedAt)
-        .all(db)
+        .all(&txn)
         .await?;
 
     // 3. Find the target message index
@@ -862,7 +872,7 @@ pub async fn branch_conversation(
         updated_at: Set(now),
         ..Default::default()
     }
-    .insert(db)
+    .insert(&txn)
     .await?;
 
     // 7. Copy messages — assign new IDs and remap parent_message_id references
@@ -896,9 +906,11 @@ pub async fn branch_conversation(
             first_token_latency_ms: Set(msg.first_token_latency_ms),
             ..Default::default()
         }
-        .insert(db)
+        .insert(&txn)
         .await?;
     }
+
+    txn.commit().await?;
 
     get_conversation(db, &new_id).await
 }
@@ -913,7 +925,19 @@ pub async fn search_conversations(
         preview: String,
     }
 
-    let (backend, sql) = if db.get_database_backend() == DbBackend::Postgres {
+    // 清理FTS特殊语法：保留单词字符、汉字、空格，转义特殊字符
+    let sanitized: String = query
+        .chars()
+        .filter(|c| {
+            c.is_alphanumeric()
+                || *c == ' '
+                || *c == '_'
+                || (*c >= '\u{4e00}' && *c <= '\u{9fff}')
+                || (*c >= '\u{3040}' && *c <= '\u{30ff}')
+        })
+        .collect();
+
+    let (backend, sql, values) = if db.get_database_backend() == DbBackend::Postgres {
         // PostgreSQL：tsvector 生成列 + ts_rank/ts_headline。
         (
             DbBackend::Postgres,
@@ -924,9 +948,16 @@ pub async fn search_conversations(
              GROUP BY m.conversation_id \
              ORDER BY ts_rank(m.content_tsv, plainto_tsquery('simple', $1))"
                 .to_string(),
+            vec![sanitized.into()],
         )
     } else {
         // SQLite：FTS5 虚拟表 + MATCH/snippet。
+        // 简单分词，用双引号包裹每个token避免语法解析错误
+        let quoted_tokens: Vec<String> = sanitized
+            .split_whitespace()
+            .map(|token| format!("\"{}\"", token.replace('"', "")))
+            .collect();
+        let match_query = quoted_tokens.join(" AND ");
         (
             DbBackend::Sqlite,
             "SELECT m.conversation_id, snippet(messages_fts, 0, '', '', '...', 32) as preview \
@@ -936,13 +967,13 @@ pub async fn search_conversations(
              GROUP BY m.conversation_id \
              ORDER BY rank"
                 .to_string(),
+            vec![match_query.into()],
         )
     };
 
-    let fts_rows =
-        FtsRow::find_by_statement(Statement::from_sql_and_values(backend, sql, [query.into()]))
-            .all(db)
-            .await?;
+    let fts_rows = FtsRow::find_by_statement(Statement::from_sql_and_values(backend, sql, values))
+        .all(db)
+        .await?;
 
     let mut results = Vec::with_capacity(fts_rows.len());
     for fts in fts_rows {
@@ -958,7 +989,7 @@ pub async fn search_conversations(
 
 pub async fn increment_message_count(db: &DatabaseConnection, conversation_id: &str) -> Result<()> {
     db.execute_raw(Statement::from_sql_and_values(
-        DatabaseBackend::Sqlite,
+        db.get_database_backend(),
         "UPDATE conversations SET message_count = message_count + 1, updated_at = ? WHERE id = ?",
         vec![now_ts().into(), conversation_id.into()],
     ))
@@ -968,9 +999,55 @@ pub async fn increment_message_count(db: &DatabaseConnection, conversation_id: &
 
 pub async fn decrement_message_count(db: &DatabaseConnection, conversation_id: &str) -> Result<()> {
     db.execute_raw(Statement::from_sql_and_values(
-        DatabaseBackend::Sqlite,
+        db.get_database_backend(),
         "UPDATE conversations SET message_count = MAX(0, message_count - 1), updated_at = ? WHERE id = ?",
         vec![now_ts().into(), conversation_id.into()],
+    ))
+    .await?;
+    Ok(())
+}
+
+pub async fn set_message_count<C: sea_orm::ConnectionTrait>(
+    db: &C,
+    conversation_id: &str,
+    count: i32,
+) -> Result<()> {
+    db.execute_raw(Statement::from_sql_and_values(
+        sea_orm::ConnectionTrait::get_database_backend(db),
+        "UPDATE conversations SET message_count = ?, updated_at = ? WHERE id = ?",
+        vec![count.into(), now_ts().into(), conversation_id.into()],
+    ))
+    .await?;
+    Ok(())
+}
+
+pub async fn decrement_message_count_by(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+    by: i32,
+) -> Result<()> {
+    let by_val: sea_orm::Value = by.into();
+    let now_val: sea_orm::Value = now_ts().into();
+    let id_val: sea_orm::Value = conversation_id.into();
+    db.execute_raw(Statement::from_sql_and_values(
+        db.get_database_backend(),
+        "UPDATE conversations SET message_count = MAX(0, message_count - ?), updated_at = ? WHERE id = ?",
+        vec![by_val, now_val, id_val],
+    ))
+    .await?;
+    Ok(())
+}
+
+pub async fn decrement_message_count_in_txn(
+    txn: &DatabaseTransaction,
+    conversation_id: &str,
+) -> Result<()> {
+    let now_val: sea_orm::Value = now_ts().into();
+    let id_val: sea_orm::Value = conversation_id.into();
+    txn.execute_raw(Statement::from_sql_and_values(
+        sea_orm::ConnectionTrait::get_database_backend(txn),
+        "UPDATE conversations SET message_count = MAX(0, message_count - 1), updated_at = ? WHERE id = ?",
+        vec![now_val, id_val],
     ))
     .await?;
     Ok(())

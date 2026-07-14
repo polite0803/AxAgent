@@ -265,8 +265,10 @@ pub async fn generate_research_report(
     };
 
     // 5. 调用 LLM
-    let response =
-        adapter.chat(&ctx, chat_request).await.map_err(|e| format!("LLM 调用失败: {}", e))?;
+    let response = adapter
+        .chat(&ctx, chat_request.into())
+        .await
+        .map_err(|e| format!("LLM 调用失败: {}", e))?;
 
     let json_text = extract_json(&response.content).map_err(|e| format!("JSON 提取失败: {}", e))?;
 

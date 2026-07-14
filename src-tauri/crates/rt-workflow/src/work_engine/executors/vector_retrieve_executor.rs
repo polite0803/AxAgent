@@ -60,6 +60,7 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(vr.config.output_var.clone()),
+            control: None,
         })
     }
 }
@@ -77,3 +78,4 @@ fn resolve_query_template(
     }
     result
 }
+

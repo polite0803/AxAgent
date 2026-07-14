@@ -272,7 +272,7 @@ export function ExpertSelector({
     setEditingExpert(role);
     setEditName(role.name);
     setEditDesc(role.description ?? "");
-    setEditPrompt(""); // systemPrompt 已从 AgentProfile 移除，编辑时显示为空
+    setEditPrompt(role.systemPrompt ?? "");
     setEditCategory(role.category as ExpertCategory);
   };
 
@@ -287,6 +287,7 @@ export function ExpertSelector({
           name: editName,
           description: editDesc,
           category: editCategory,
+          system_prompt: editPrompt,
         });
       } else if (editingExpert.source === "custom") {
         updateCustomRole({
@@ -294,6 +295,7 @@ export function ExpertSelector({
           name: editName,
           description: editDesc,
           category: editCategory,
+          systemPrompt: editPrompt,
         });
       }
       app.message.success(t("expertSelector.expertUpdated"));
@@ -356,7 +358,7 @@ export function ExpertSelector({
       onCancel={onClose}
       footer={null}
       width={720}
-      destroyOnHidden
+      destroyOnClose
     >
       <div
         style={{
@@ -750,45 +752,6 @@ export function ExpertSelector({
                                   {tag}
                                 </Tag>
                               ))}
-                              {
-                                /*
-                                <Popover
-                                  title={`${role.icon} ${role.name} - ${t("expertSelector.capabilityDetail")}`}
-                                  content={
-                                    <div
-                                      style={{
-                                        maxWidth: 360,
-                                        maxHeight: 200,
-                                        overflowY: "auto",
-                                        fontSize: 12,
-                                        lineHeight: 1.6,
-                                        whiteSpace: "pre-wrap",
-                                      }}
-                                    >
-                                      {role.systemPrompt.slice(0, 600)}
-                                      {role.systemPrompt.length > 600
-                                        ? "..."
-                                        : ""}
-                                    </div>
-                                  }
-                                  trigger="click"
-                                >
-                                  <Tag
-                                    color="blue"
-                                    style={{
-                                      fontSize: 10,
-                                      lineHeight: "16px",
-                                      padding: "0 4px",
-                                      margin: 0,
-                                      cursor: "pointer",
-                                    }}
-                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                  >
-                                    <Info size={10} style={{ marginRight: 2 }} /> {t("expertSelector.detail")}
-                                  </Tag>
-                                </Popover>
-                              )} */
-                              }
                             </div>
                           </div>
                         </div>
@@ -811,7 +774,7 @@ export function ExpertSelector({
         okText={t("common.save")}
         cancelText={t("common.cancel")}
         width={560}
-        destroyOnHidden
+        destroyOnClose
       >
         {editingExpert && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -905,7 +868,7 @@ export function ExpertSelector({
         okText={t("common.create")}
         cancelText={t("common.cancel")}
         width={520}
-        destroyOnHidden
+        destroyOnClose
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 12 }}>

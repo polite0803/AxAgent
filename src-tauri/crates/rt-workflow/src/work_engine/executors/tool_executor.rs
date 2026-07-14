@@ -128,6 +128,7 @@ impl NodeExecutorTrait for ToolExecutor {
                     "node_id": node.base_id(),
                 }),
                 output_var: Some(tool_node.config.output_var.clone()),
+                control: None,
             });
         }
 
@@ -165,6 +166,7 @@ impl NodeExecutorTrait for ToolExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(tool_node.config.output_var.clone()),
+            control: None,
         })
     }
 }
@@ -186,3 +188,4 @@ fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::
     // fallback：root 不是节点 ID，将整个 path 作为模板变量名直查
     context.variables.get(path).cloned()
 }
+

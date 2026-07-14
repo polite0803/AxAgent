@@ -2,12 +2,15 @@
 
 import type { DynamicUIProps } from "@/types";
 import { Typography } from "antd";
+import DOMPurify from "dompurify";
 import { lazy, Suspense } from "react";
 
 /**
  * Markdown 渲染组件。
  * 优先复用项目现有的 Markdown 渲染组件（NodeRenderer for markstream-react），
  * 如果不可用，降级为纯文本展示。
+ *
+ * 安全：输入 content 经 DOMPurify 去除所有 HTML 标签，防范 NL2UI / 导入 Schema 引入的存储型 XSS（D-07）。
  */
 export const MarkdownView: React.FC<DynamicUIProps> = ({ schema }) => {
   const { content = "", className } = schema.props as {
@@ -16,6 +19,13 @@ export const MarkdownView: React.FC<DynamicUIProps> = ({ schema }) => {
   };
 
   if (!content) {
+    return null;
+  }
+
+  // 白名单为空 → 剥离所有 HTML 标签（保留纯文本供 markdown 渲染器安全处理）
+  const safeContent = DOMPurify.sanitize(String(content), { ALLOWED_TAGS: [] });
+
+  if (!safeContent) {
     return null;
   }
 
@@ -29,11 +39,11 @@ export const MarkdownView: React.FC<DynamicUIProps> = ({ schema }) => {
           <Typography.Paragraph
             style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
           >
-            {String(content)}
+            {safeContent}
           </Typography.Paragraph>
         }
       >
-        <LazyMarkdownRenderer content={String(content)} />
+        <LazyMarkdownRenderer content={safeContent} />
       </Suspense>
     </div>
   );

@@ -1,47 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * Unified page registry — single source of truth for all built-in routes.
+ * Unified page registry — 内置路由路径的单一真相源（single source of truth）。
  *
- * New built-in pages should be added here; the home-page selector in
- * GeneralSettings and the ContentArea redirect will pick them up
- * automatically. Skill / dynamic pages are registered separately via
- * skillExtensionStore.pages and appended at render time.
+ * 所有内置页面的路径在此集中声明。以下位置必须从此处 import，禁止散写硬编码：
+ *   - ContentArea 的 <Route path=...> 字面量
+ *   - Sidebar 的 builtinNavItems / pathToPageKey
+ *   - usePageRouting 的 path→key 映射
+ *
+ * 新增内置页面时：
+ *   1. 在 BUILTIN_PAGE_PATH 增加 key→path；
+ *   2. 在 ContentArea 增加对应 <Route path={BUILTIN_PAGE_PATH.xxx}> 与懒加载组件；
+ *   3. 在 Sidebar builtinNavItems 增加导航项（path 引用本表）。
  */
 
-export interface RegistryPage {
-  /** Path the route listens on, e.g. "/knowledge" */
-  path: string;
-  /** i18n label key used in nav / dropdown, e.g. "nav.knowledge" */
-  labelKey: string;
-}
+/** 应用冷启动后的默认首页路径（"/" 重定向目标）。 */
+export const DEFAULT_HOME = "/dashboard";
 
 /**
- * Ordered list of built-in pages that are valid home-page targets.
- * The order here controls the order in the settings drop-down.
- *
- * Pages excluded:
- * - "settings" → makes no sense as a landing page
- * - "devtools" → debug-only
- * - "link"     → transient connection flows
- * - "marketplace" → no route defined
- */
-export const BUILTIN_HOME_PAGES: RegistryPage[] = [
-  { path: "/chat", labelKey: "nav.chat" },
-  { path: "/dashboard", labelKey: "nav.dashboard" },
-  { path: "/knowledge", labelKey: "nav.knowledge" },
-  { path: "/memory", labelKey: "nav.memory" },
-  { path: "/gateway", labelKey: "nav.gateway" },
-  { path: "/terminal", labelKey: "nav.terminal" },
-  { path: "/files", labelKey: "nav.files" },
-  { path: "/workflow", labelKey: "nav.workflow" },
-  { path: "/dynamic-ui", labelKey: "nav.dynamicUI" },
-  { path: "/wiki", labelKey: "nav.wiki" },
-];
-
-/**
- * Full key→path mapping for all built-in pages (including those not
- * exposed in the home-page selector — used by sidebar etc.).
+ * key→path 映射，覆盖所有内置页面（含未进入导航栏的 link/marketplace 等）。
  */
 export const BUILTIN_PAGE_PATH: Record<string, string> = {
   chat: "/chat",
@@ -57,4 +34,13 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   "dynamic-ui": "/dynamic-ui",
   marketplace: "/marketplace",
   wiki: "/wiki",
+  // 以下为历史兼容入口 / devtools 等次要路由，同样收归此处以消除散写硬编码
+  llmWiki: "/llm-wiki",
+  learningGraph: "/learning-graph",
+  quickbar: "/quickbar",
+  devtoolsTraceExplorer: "/devtools/trace-explorer",
+  devtoolsBenchmark: "/devtools/benchmark",
+  devtoolsToolRecommender: "/devtools/tool-recommender",
+  devtoolsFineTune: "/devtools/fine-tune",
+  devtoolsRlTraining: "/devtools/rl-training",
 };

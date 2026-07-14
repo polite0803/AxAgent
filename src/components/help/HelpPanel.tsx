@@ -242,6 +242,7 @@ export function HelpPanel() {
             type="button"
             onClick={closeHelp}
             className="help-panel__close"
+            aria-label={t("common.close")}
           >
             <X size={16} />
           </button>

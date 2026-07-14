@@ -205,9 +205,11 @@ impl KeyVerifyLimiter {
     /// 记录一次失败。冷却期内被 ban 时，刷新 first_ts（防重置攻击）。
     pub fn record_failure(&self, ip: &str) {
         // 先检查容量，必要时淘汰（在外层释放锁，闭包内不持有 map）
+        // FIX: 应与 max_entries 比较而非 max_failures（后者是失败阈值如 5，
+        // 远小于 max_entries=10,000，导致过早淘汰，内存保护机制失效）。
         {
             let mut map = self.failures.lock();
-            if map.len() >= self.max_failures as usize {
+            if map.len() >= self.max_entries {
                 self.evict_if_needed(&mut map);
             }
         }

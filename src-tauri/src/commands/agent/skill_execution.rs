@@ -5,6 +5,7 @@ use crate::commands::skills;
 use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_harness::types::settings_chat::ChatTool;
 use axagent_providers::ProviderAdapter;
+use axagent_tools::registry::UnifiedToolRegistry;
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -272,10 +273,6 @@ pub(super) struct SkillTaskContext {
     constraints: Option<Vec<String>>,
 }
 
-pub(super) static SKILL_MCP_REGISTRY: std::sync::OnceLock<
-    std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,
-> = std::sync::OnceLock::new();
-
 #[derive(Clone)]
 pub(super) struct SkillExecutionRecord {
     skill_name: String,
@@ -392,13 +389,6 @@ pub(super) fn get_skill_output_tracker() -> &'static SkillOutputTracker {
     SKILL_OUTPUT_TRACKER.get_or_init(SkillOutputTracker::new)
 }
 
-pub(super) fn get_skill_mcp_registry()
--> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
-    SKILL_MCP_REGISTRY
-        .get_or_init(|| std::sync::Arc::new(axagent_tools::registry::UnifiedToolRegistry::new()))
-        .clone()
-}
-
 pub(super) fn detect_inter_skill_dependencies(
     task: &str,
     recent_skills: &[SkillExecutionRecord],
@@ -433,6 +423,7 @@ pub(super) fn detect_inter_skill_dependencies(
 pub(super) struct SkillExecutionContext {
     sea_db: sea_orm::DatabaseConnection,
     conversation_id: String,
+    mcp_registry: Arc<UnifiedToolRegistry>,
 }
 
 impl SkillExecutionContext {
@@ -444,12 +435,13 @@ impl SkillExecutionContext {
         _api_key: String,
         conversation_id: String,
         _message_id: String,
+        mcp_registry: Arc<UnifiedToolRegistry>,
     ) -> Self {
-        Self { sea_db: app_state.harness.db().clone(), conversation_id }
+        Self { sea_db: app_state.harness.db().clone(), conversation_id, mcp_registry }
     }
 
-    fn mcp_registry(&self) -> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
-        get_skill_mcp_registry()
+    fn mcp_registry(&self) -> Arc<UnifiedToolRegistry> {
+        self.mcp_registry.clone()
     }
 }
 

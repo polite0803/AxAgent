@@ -5,7 +5,6 @@ import { BenchmarkReportView } from "@/components/benchmark/BenchmarkReportView"
 import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
 import { TaskList } from "@/components/benchmark/TaskList";
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import type { BenchmarkTask, TaskResult } from "@/types";
 import { Button, Card, message, Spin, Tabs, theme } from "antd";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -87,22 +86,6 @@ export function BenchmarkRunner() {
         <Tabs
           items={[
             { key: "report", label: t("benchmark.report"), children: <BenchmarkReportView report={currentReport} /> },
-            {
-              key: "tasks",
-              label: t("benchmark.tasks"),
-              children: (
-                <TaskList
-                  tasks={
-                    (currentReport as unknown as { tasks: BenchmarkTask[] }).tasks
-                      ?? [] /* SAFE: IPC response shape; runtime validation via ?? [] */
-                  }
-                  results={
-                    (currentReport as unknown as { results: TaskResult[] }).results
-                      ?? [] /* SAFE: IPC response shape; runtime validation via ?? [] */
-                  }
-                />
-              ),
-            },
           ]}
         />
       )}

@@ -1,0 +1,2 @@
+warning: axagent@2.8.5: Windows: set main thread stack to 8MB (8388608)
+    Checking axagent v2.8.5 (D:\OneManager\AxAgent\src-tauri)

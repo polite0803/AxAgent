@@ -152,10 +152,10 @@ impl ProviderAdapter for ManagedToolAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
-        let (transformed, tools) = self.transform_request(request);
-        let mut response = self.inner.chat(ctx, transformed).await?;
+        let (transformed, tools) = self.transform_request((*request).clone());
+        let mut response = self.inner.chat(ctx, Arc::new(transformed)).await?;
 
         // 非流式响应：从 content 中解析 tool_calls
         if let Some(ref tools) = tools {
@@ -200,6 +200,14 @@ impl ProviderAdapter for ManagedToolAdapter {
 
     async fn validate_key(&self, ctx: &ProviderRequestContext) -> Result<bool> {
         self.inner.validate_key(ctx).await
+    }
+
+    async fn realtime_config(
+        &self,
+        ctx: &ProviderRequestContext,
+        model: &str,
+    ) -> Result<axagent_harness::RealtimeProviderConfig> {
+        self.inner.realtime_config(ctx, model).await
     }
 }
 
@@ -736,11 +744,9 @@ mod tests {
     fn test_parse_params_multiple() {
         let pm = default_pm();
         // Actually simpler: construct directly
-        let inner = format!(
-            r#"<|CHAT2API|parameter name="a"><![CDATA[1]]></|CHAT2API|parameter>\
-               <|CHAT2API|parameter name="b"><![CDATA["hello"]]></|CHAT2API|parameter>"#
-        );
-        let value = parse_params(&inner, &pm);
+        let inner = r#"<|CHAT2API|parameter name="a"><![CDATA[1]]></|CHAT2API|parameter>\
+               <|CHAT2API|parameter name="b"><![CDATA["hello"]]></|CHAT2API|parameter>"#;
+        let value = parse_params(inner, &pm);
         assert_eq!(value["a"], 1);
         assert_eq!(value["b"], "hello");
     }
@@ -846,13 +852,11 @@ mod tests {
     #[test]
     fn test_custom_prefix_parse() {
         let pm = custom_pm("MYGATE");
-        let block = format!(
-            "<|MYGATE|tool_calls><|MYGATE|invoke name=\"my_tool\">\
+        let block = "<|MYGATE|tool_calls><|MYGATE|invoke name=\"my_tool\">\
              <|MYGATE|parameter name=\"x\"><![CDATA[42]]></|MYGATE|parameter>\
-             </|MYGATE|invoke></|MYGATE|tool_calls>"
-        );
+             </|MYGATE|invoke></|MYGATE|tool_calls>";
         let allowed: HashSet<String> = ["my_tool"].iter().map(|s| s.to_string()).collect();
-        let calls = parse_tool_calls_block(&block, &allowed, &pm).unwrap();
+        let calls = parse_tool_calls_block(block, &allowed, &pm).unwrap();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].function.name, "my_tool");
     }
@@ -896,7 +900,7 @@ mod tests {
         async fn chat(
             &self,
             _ctx: &ProviderRequestContext,
-            _req: ChatRequest,
+            _req: Arc<ChatRequest>,
         ) -> Result<ChatResponse> {
             Ok(ChatResponse::default())
         }

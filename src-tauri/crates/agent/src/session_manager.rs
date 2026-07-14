@@ -850,7 +850,7 @@ impl Clone for ChannelPermissionPrompter {
 
 impl PermissionPrompter for ChannelPermissionPrompter {
     fn decide(&mut self, request: &PermissionRequest) -> PermissionPromptDecision {
-        // Check "always allowed" first
+        // Check "always allowed" first — match by tool_name
         if let Ok(set) = self.inner.always_allowed.lock()
             && set.contains(&request.tool_name)
         {

@@ -10,6 +10,11 @@ export type Wiki = {
   sourceCount: number;
   createdAt: number;
   updatedAt: number;
+  // 后端 Wiki 实际返回（rag_voice_etc.rs），此前缺失导致读取恒为 undefined
+  embeddingProvider?: string;
+  embeddingDimensions?: number;
+  retrievalThreshold?: number;
+  retrievalTopK?: number;
 };
 
 export type WikiSource = {
@@ -25,6 +30,27 @@ export type WikiSource = {
   createdAt: number;
   updatedAt: number;
 };
+
+// ── Ingest / Query 结果类型（此前定义在 store 内，统一收归 @/types） ──
+
+export interface IngestResult {
+  source_id: string;
+  raw_path: string;
+  title: string;
+}
+
+export interface QueryResult {
+  pages: PageResult[];
+  total: number;
+}
+
+export interface PageResult {
+  note_id: string;
+  title: string;
+  content_snippet: string;
+  relevance_score: number;
+  link_paths: string[];
+}
 
 export type WikiPage = {
   id: string;

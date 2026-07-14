@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { loadAudioWorklet } from "@/lib/audioProcessorWorklet";
 import { logIpcError } from "@/lib/invoke";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
 import { App } from "antd";
@@ -18,10 +19,88 @@ const RECONNECT_BASE_DELAY_MS = 1000;
 /** 最大退避延迟（毫秒） */
 const RECONNECT_MAX_DELAY_MS = 30000;
 
+// ─── 音频播放 ───
+
+/** 将 base64 PCM16 解码为 Float32 ArrayBuffer */
+function decodePcm16(base64Audio: string): Float32Array {
+  const raw = atob(base64Audio);
+  const samples = new Int16Array(raw.length / 2);
+  for (let i = 0; i < samples.length; i++) {
+    const lo = raw.charCodeAt(i * 2);
+    const hi = raw.charCodeAt(i * 2 + 1);
+    samples[i] = (hi << 8) | lo;
+  }
+  const float = new Float32Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    float[i] = samples[i] / 32768;
+  }
+  return float;
+}
+
+class AudioPlayback {
+  private ctx: AudioContext;
+  private queue: AudioBuffer[] = [];
+  private isPlaying = false;
+  private source: AudioBufferSourceNode | null = null;
+  private gainNode: GainNode;
+
+  constructor(ctx: AudioContext) {
+    this.ctx = ctx;
+    this.gainNode = ctx.createGain();
+    this.gainNode.gain.value = 1;
+    this.gainNode.connect(ctx.destination);
+  }
+
+  enqueue(base64Audio: string): void {
+    const floatData = decodePcm16(base64Audio);
+    const buffer = this.ctx.createBuffer(1, floatData.length, this.ctx.sampleRate);
+    buffer.getChannelData(0).set(floatData);
+    this.queue.push(buffer);
+    if (!this.isPlaying) {
+      this.playNext();
+    }
+  }
+
+  flush(): void {
+    // 等待当前播放结束即可，不需要特殊处理
+  }
+
+  private playNext(): void {
+    if (this.queue.length === 0) {
+      this.isPlaying = false;
+      return;
+    }
+    this.isPlaying = true;
+    const buffer = this.queue.shift()!;
+    this.source = this.ctx.createBufferSource();
+    this.source.buffer = buffer;
+    this.source.connect(this.gainNode);
+    this.source.onended = () => {
+      this.source = null;
+      this.playNext();
+    };
+    this.source.start();
+  }
+
+  stop(): void {
+    if (this.source) {
+      this.source.stop();
+      this.source = null;
+    }
+    this.queue = [];
+    this.isPlaying = false;
+  }
+
+  close(): void {
+    this.stop();
+  }
+}
+
 interface UseVoiceChatOptions {
   port?: number;
   host?: string;
   config: RealtimeConfig;
+  apiKey: string;
 }
 
 interface UseVoiceChatReturn {
@@ -36,6 +115,7 @@ export function useVoiceChat({
   port = 8080,
   host = "127.0.0.1",
   config,
+  apiKey,
 }: UseVoiceChatOptions): UseVoiceChatReturn {
   const { t } = useTranslation();
   const { message } = App.useApp();
@@ -57,6 +137,8 @@ export function useVoiceChat({
   const shouldReconnectRef = useRef(false);
   const stateRef = useRef<VoiceSessionState>("Idle");
   const connectWebSocketRef = useRef<() => void>(() => {});
+  const ticketRef = useRef("");
+  const audioPlaybackRef = useRef<AudioPlayback | null>(null);
 
   // Keep refs in sync with state after each render
   useEffect(() => {
@@ -82,6 +164,8 @@ export function useVoiceChat({
     sourceRef.current = null;
     analyserRef.current?.disconnect();
     analyserRef.current = null;
+    audioPlaybackRef.current?.close();
+    audioPlaybackRef.current = null;
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -178,8 +262,9 @@ export function useVoiceChat({
         sampleRate: config.audio_format.sample_rate,
       });
       audioCtxRef.current = audioCtx;
+      audioPlaybackRef.current = new AudioPlayback(audioCtx);
 
-      await audioCtx.audioWorklet.addModule("/audio-processor.js");
+      await loadAudioWorklet(audioCtx);
 
       const source = audioCtx.createMediaStreamSource(stream);
       sourceRef.current = source;
@@ -193,16 +278,32 @@ export function useVoiceChat({
       workletRef.current = worklet;
       source.connect(worklet);
 
+      // 获取 ticket
+      const ticketResp = await fetch(
+        `http://${host}:${port}/v1/realtime-ticket`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}` },
+        },
+      );
+      if (!ticketResp.ok) {
+        throw new Error(`Ticket request failed: ${ticketResp.status}`);
+      }
+      const { ticket } = await ticketResp.json() as { ticket: string };
+      ticketRef.current = ticket;
+
       connectWebSocketRef.current();
     } catch (err) {
       const errMsg = err instanceof DOMException && err.name === "NotAllowedError"
         ? t("voice.micPermissionDenied")
+        : err instanceof Error
+        ? err.message
         : t("voice.micError");
       message.error(errMsg);
       cleanup();
       setState("Idle");
     }
-  }, [config, cleanup, message, t]);
+  }, [config, apiKey, cleanup, message, t, host, port]);
 
   // ── WebSocket 连接与重连 ──
 
@@ -212,21 +313,29 @@ export function useVoiceChat({
       wsRef.current = null;
     }
 
-    const ws = new WebSocket(`ws://${host}:${port}/v1/realtime`);
+    const ticket = ticketRef.current;
+    if (!ticket) {
+      message.error("No ticket available. Please start again.");
+      return;
+    }
+
+    const ws = new WebSocket(`ws://${host}:${port}/v1/realtime?ticket=${ticket}`);
     wsRef.current = ws;
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
       reconnectAttemptsRef.current = 0;
-      ws.send(JSON.stringify({ type: "session.config", config }));
-      setState("Connected");
-      setTimeout(() => setState("Speaking"), 300);
-      runVAD();
+      // 发送 session.create 而非 session.config
+      ws.send(
+        JSON.stringify({
+          type: "session.create",
+          model: config.model_id,
+        }),
+      );
     };
 
     const worklet = workletRef.current;
     if (worklet) {
-      // 清除旧 handler，避免闭包持有旧的 ws 引用
       worklet.port.onmessage = null;
       worklet.port.onmessage = (e: MessageEvent) => {
         if (ws.readyState === WebSocket.OPEN && !isMutedRef.current) {
@@ -235,7 +344,34 @@ export function useVoiceChat({
       };
     }
 
-    ws.onmessage = (_e: MessageEvent) => {
+    ws.onmessage = (e: MessageEvent) => {
+      try {
+        const msg = JSON.parse(e.data as string) as Record<string, unknown>;
+        switch (msg.type) {
+          case "session.created":
+            setState("Connected");
+            runVAD();
+            break;
+          case "response.text.delta":
+            // 可选的文本转录展示，暂不处理
+            break;
+          case "response.audio.delta":
+            setState("Listening");
+            audioPlaybackRef.current?.enqueue(msg.delta as string);
+            break;
+          case "response.audio.done":
+            audioPlaybackRef.current?.flush();
+            break;
+          case "response.done":
+            setState("Speaking");
+            break;
+          case "error":
+            logIpcError("VoiceChat.serverError")(msg.message as string);
+            break;
+        }
+      } catch {
+        logIpcError("VoiceChat.parseError")("Failed to parse server message");
+      }
     };
 
     ws.onerror = () => {
@@ -274,7 +410,7 @@ export function useVoiceChat({
         connectWebSocketRef.current();
       }, delay);
     };
-  }, [host, port, config, cleanup, runVAD, message, t]);
+  }, [host, port, config.model_id, cleanup, runVAD, message, t]);
 
   // Keep connectWebSocketRef in sync
   useEffect(() => {
@@ -282,7 +418,7 @@ export function useVoiceChat({
   }, [connectWebSocket]);
 
   const stop = useCallback(() => {
-    if (state === "Idle" || state === "Disconnecting") {
+    if (stateRef.current === "Idle" || stateRef.current === "Disconnecting") {
       return;
     }
     setState("Disconnecting");
@@ -293,7 +429,7 @@ export function useVoiceChat({
     }
     cleanup();
     setState("Idle");
-  }, [state, cleanup]);
+  }, [cleanup]);
 
   const toggleMute = useCallback(() => {
     const newMuted = !isMuted;

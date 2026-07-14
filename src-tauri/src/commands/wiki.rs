@@ -328,7 +328,7 @@ pub async fn wiki_notes_search(
         .await
         .map_err(|e| e.to_string())?;
 
-    if let Some(ref _ep) = wiki.embedding_provider {
+    if wiki.embedding_provider.is_some() {
         match wiki_notes_search_hybrid(&state, &vault_id, &query, top_k).await {
             Ok(results) => return Ok(results),
             Err(e) => {
@@ -996,6 +996,9 @@ pub async fn wiki_import_knowledge_md(
     let raw = read_to_string_blocking(knowledge_path.to_path_buf())
         .await
         .map_err(|e| format!("Failed to read KNOWLEDGE.md: {}", e))?;
+    // 归一化换行符：Windows 下 KNOWLEDGE.md 常为 CRLF，若不在分割前统一，
+    // 则 "\n## " 无法匹配（实际为 "\r## "），导致整篇无法按章节导入。
+    let raw = raw.replace("\r\n", "\n").replace('\r', "\n");
 
     // 解析章节：按 `## ` 分割，跳过第一个（标题/引言）
     let sections: Vec<&str> = raw.split("\n## ").collect();
@@ -1280,7 +1283,7 @@ li {{ padding: 4px 0; }}
 }
 
 #[tauri::command]
-pub async fn wiki_note_export_pdf(
+pub async fn wiki_note_export_html(
     state: State<'_, AppState>,
     note_id: String,
     output_path: String,
@@ -1325,11 +1328,9 @@ ul, ol {{ padding-left: 2em; }}
         html_body,
     );
 
-    let html_output = if output.extension().map(|e| e == "pdf").unwrap_or(false) {
-        output.with_extension("html")
-    } else {
-        output.to_path_buf()
-    };
+    // 内容始终为 HTML，统一输出为 .html 文件（即便调用方传入 .pdf 后缀也改写为 .html，
+    // 本命令并不真正生成 PDF，避免名实不符）。
+    let html_output = output.with_extension("html");
 
     write_file_blocking(html_output.clone(), html.into_bytes()).await.map_err(|e| e.to_string())?;
 

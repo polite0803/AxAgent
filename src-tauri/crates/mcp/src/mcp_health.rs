@@ -55,33 +55,65 @@ impl McpHealthMonitor {
     pub fn start(self) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             let mut tick = tokio::time::interval(self.check_interval);
-            tick.tick().await;
+            // 首次即时检查（L2 修复：不跳过第一拍，立即探测）
+            let reports = self.check_now().await;
+            if !reports.is_empty() {
+                tracing::info!(
+                    "[McpHealth] 启动时即时健康检查完成，{} 个连接已探测",
+                    reports.len()
+                );
+            }
 
             loop {
                 tick.tick().await;
-                tracing::debug!(
-                    "[McpHealth] 执行定期健康检查 (池中 {} 个连接)",
-                    self.pool.len().await
-                );
+                let reports = self.check_now().await;
+                for r in &reports {
+                    match &r.status {
+                        HealthStatus::Healthy => {
+                            tracing::debug!("[McpHealth] {} 健康", r.server_id);
+                        },
+                        HealthStatus::Unhealthy { reason } => {
+                            tracing::warn!("[McpHealth] {} 不健康: {reason}", r.server_id);
+                        },
+                    }
+                }
+                if reports.is_empty() {
+                    tracing::debug!(
+                        "[McpHealth] 健康检查完成，池中无活动连接 ({} 个)",
+                        self.pool.len().await
+                    );
+                }
             }
         })
     }
 
     pub async fn check_now(&self) -> Vec<HealthReport> {
-        let reports = Vec::new();
         let pool_size = self.pool.len().await;
 
         tracing::info!("[McpHealth] 全量健康检查开始，池中有 {pool_size} 个连接");
 
         if pool_size == 0 {
-            return reports;
+            return Vec::new();
         }
 
-        let after_check = self.pool.len().await;
-        if after_check < pool_size {
-            let evicted = pool_size - after_check;
-            tracing::warn!("[McpHealth] 健康检查期间驱逐了 {} 个不健康连接", evicted);
-            self.increment_unhealthy_count("evicted_pool", evicted).await;
+        // 实际探测每个连接的存活状态，并驱逐死亡连接
+        let probe_results = self.pool.probe_and_evict().await;
+
+        let mut reports = Vec::with_capacity(probe_results.len());
+        for (key, alive) in probe_results {
+            let server_id = key.server_id.clone().unwrap_or_else(|| key.command.clone());
+            if alive {
+                self.reset_unhealthy_count(&server_id).await;
+                reports.push(HealthReport { server_id, status: HealthStatus::Healthy });
+            } else {
+                self.increment_unhealthy_count(&server_id, 1).await;
+                reports.push(HealthReport {
+                    server_id: server_id.clone(),
+                    status: HealthStatus::Unhealthy {
+                        reason: "连接探测失败（list_all_tools 超时/错误）".into(),
+                    },
+                });
+            }
         }
 
         reports

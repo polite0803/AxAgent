@@ -1,0 +1,257 @@
+const fs = require("fs");
+const path = require("path");
+
+const ROOT = path.join(__dirname, "..", "src", "i18n", "locales");
+
+const translations = {
+  de: {
+    addRule: "Regel hinzufügen",
+    rule: "Regel",
+    ruleName: "Regelname",
+    ruleNamePlaceholder: "Namen für die Regel eingeben",
+    ruleType: "Regeltyp",
+    description: "Beschreibung",
+    descriptionPlaceholder: "Was macht diese Regel?",
+    expectedPath: "Erwarteter Pfad",
+    expectedPathPlaceholder: "z.B. output.status",
+    assertionOp: "Assertionsoperation",
+    expectedValue: "Erwarteter Wert",
+    expectedValuePlaceholder: "Erwarteten Wert eingeben",
+    metric: "Metrik",
+    maxValue: "Maximalwert",
+    minValue: "Minimalwert",
+    onFailStrategy: "Fehlerstrategie",
+    warn: "Nur warnen",
+    block: "Ausführung blockieren",
+    continue: "Ausführung fortsetzen",
+    noRules: "Keine Validierungsregeln. Klicken Sie auf 'Regel hinzufügen', um zu beginnen.",
+    saved: "Validierungsregeln gespeichert",
+    title: "Validierungsregeln",
+    sourceNode: "Quellknoten",
+    selectNode: "Knoten auswählen",
+    schema: "JSON Schema",
+  },
+  es: {
+    addRule: "Agregar regla",
+    rule: "Regla",
+    ruleName: "Nombre de regla",
+    ruleNamePlaceholder: "Asigne un nombre a su regla",
+    ruleType: "Tipo de regla",
+    description: "Descripción",
+    descriptionPlaceholder: "¿Qué hace esta regla?",
+    expectedPath: "Ruta esperada",
+    expectedPathPlaceholder: "ej. output.status",
+    assertionOp: "Operación de aserción",
+    expectedValue: "Valor esperado",
+    expectedValuePlaceholder: "Ingrese el valor esperado",
+    metric: "Métrica",
+    maxValue: "Valor máximo",
+    minValue: "Valor mínimo",
+    onFailStrategy: "Estrategia en caso de fallo",
+    warn: "Solo advertir",
+    block: "Bloquear ejecución",
+    continue: "Continuar ejecución",
+    noRules: "Sin reglas de validación. Haga clic en 'Agregar regla' para comenzar.",
+    saved: "Reglas de validación guardadas",
+    title: "Reglas de validación",
+    sourceNode: "Nodo de origen",
+    selectNode: "Seleccionar nodo",
+    schema: "Esquema JSON",
+  },
+  fr: {
+    addRule: "Ajouter une règle",
+    rule: "Règle",
+    ruleName: "Nom de la règle",
+    ruleNamePlaceholder: "Donnez un nom à votre règle",
+    ruleType: "Type de règle",
+    description: "Description",
+    descriptionPlaceholder: "Que fait cette règle ?",
+    expectedPath: "Chemin attendu",
+    expectedPathPlaceholder: "ex. output.status",
+    assertionOp: "Opération d'assertion",
+    expectedValue: "Valeur attendue",
+    expectedValuePlaceholder: "Entrez la valeur attendue",
+    metric: "Métrique",
+    maxValue: "Valeur maximale",
+    minValue: "Valeur minimale",
+    onFailStrategy: "Stratégie en cas d'échec",
+    warn: "Avertir uniquement",
+    block: "Bloquer l'exécution",
+    continue: "Continuer l'exécution",
+    noRules: "Aucune règle de validation. Cliquez sur 'Ajouter une règle' pour commencer.",
+    saved: "Règles de validation enregistrées",
+    title: "Règles de validation",
+    sourceNode: "Nœud source",
+    selectNode: "Sélectionner un nœud",
+    schema: "Schéma JSON",
+  },
+  ru: {
+    addRule: "Добавить правило",
+    rule: "Правило",
+    ruleName: "Имя правила",
+    ruleNamePlaceholder: "Дайте имя вашему правилу",
+    ruleType: "Тип правила",
+    description: "Описание",
+    descriptionPlaceholder: "Что делает это правило?",
+    expectedPath: "Ожидаемый путь",
+    expectedPathPlaceholder: "напр. output.status",
+    assertionOp: "Операция утверждения",
+    expectedValue: "Ожидаемое значение",
+    expectedValuePlaceholder: "Введите ожидаемое значение",
+    metric: "Метрика",
+    maxValue: "Макс. значение",
+    minValue: "Мин. значение",
+    onFailStrategy: "Стратегия при сбое",
+    warn: "Только предупреждение",
+    block: "Блокировать выполнение",
+    continue: "Продолжить выполнение",
+    noRules: "Нет правил проверки. Нажмите 'Добавить правило', чтобы начать.",
+    saved: "Правила проверки сохранены",
+    title: "Правила проверки",
+    sourceNode: "Исходный узел",
+    selectNode: "Выбрать узел",
+    schema: "Схема JSON",
+  },
+  hi: {
+    addRule: "नियम जोड़ें",
+    rule: "नियम",
+    ruleName: "नियम का नाम",
+    ruleNamePlaceholder: "अपने नियम को एक नाम दें",
+    ruleType: "नियम प्रकार",
+    description: "विवरण",
+    descriptionPlaceholder: "यह नियम क्या करता है?",
+    expectedPath: "अपेक्षित पथ",
+    expectedPathPlaceholder: "जैसे output.status",
+    assertionOp: "अभिकथन संचालन",
+    expectedValue: "अपेक्षित मान",
+    expectedValuePlaceholder: "अपेक्षित मान दर्ज करें",
+    metric: "मीट्रिक",
+    maxValue: "अधिकतम मान",
+    minValue: "न्यूनतम मान",
+    onFailStrategy: "विफलता रणनीति",
+    warn: "केवल चेतावनी",
+    block: "निष्पादन रोकें",
+    continue: "निष्पादन जारी रखें",
+    noRules: "कोई सत्यापन नियम नहीं। 'नियम जोड़ें' पर क्लिक करें।",
+    saved: "सत्यापन नियम सहेजे गए",
+    title: "सत्यापन नियम",
+    sourceNode: "स्रोत नोड",
+    selectNode: "नोड चुनें",
+    schema: "JSON स्कीमा",
+  },
+  ar: {
+    addRule: "إضافة قاعدة",
+    rule: "قاعدة",
+    ruleName: "اسم القاعدة",
+    ruleNamePlaceholder: "أعطِ قاعدتك اسمًا",
+    ruleType: "نوع القاعدة",
+    description: "الوصف",
+    descriptionPlaceholder: "ماذا تفعل هذه القاعدة؟",
+    expectedPath: "المسار المتوقع",
+    expectedPathPlaceholder: "مثال output.status",
+    assertionOp: "عملية التأكيد",
+    expectedValue: "القيمة المتوقعة",
+    expectedValuePlaceholder: "أدخل القيمة المتوقعة",
+    metric: "مقياس",
+    maxValue: "القيمة القصوى",
+    minValue: "القيمة الدنيا",
+    onFailStrategy: "استراتيجية الفشل",
+    warn: "تحذير فقط",
+    block: "منع التنفيذ",
+    continue: "متابعة التنفيذ",
+    noRules: "لا توجد قواعد تحقق. انقر على 'إضافة قاعدة' للبدء.",
+    saved: "تم حفظ قواعد التحقق",
+    title: "قواعد التحقق",
+    sourceNode: "العقدة المصدر",
+    selectNode: "اختر عقدة",
+    schema: "مخطط JSON",
+  },
+  ja: {
+    addRule: "ルール追加",
+    rule: "ルール",
+    ruleName: "ルール名",
+    ruleNamePlaceholder: "ルールに名前を付けてください",
+    ruleType: "ルールタイプ",
+    description: "説明",
+    descriptionPlaceholder: "このルールは何をしますか？",
+    expectedPath: "期待パス",
+    expectedPathPlaceholder: "例 output.status",
+    assertionOp: "アサーション操作",
+    expectedValue: "期待値",
+    expectedValuePlaceholder: "期待値を入力",
+    metric: "指標",
+    maxValue: "最大値",
+    minValue: "最小値",
+    onFailStrategy: "失敗時戦略",
+    warn: "警告のみ",
+    block: "実行ブロック",
+    continue: "実行継続",
+    noRules: "検証ルールがありません。「ルール追加」をクリックして開始してください。",
+    saved: "検証ルールを保存しました",
+    title: "検証ルール",
+    sourceNode: "ソースノード",
+    selectNode: "ノード選択",
+    schema: "JSONスキーマ",
+  },
+};
+
+const chineseKeys = {
+  addRule: "添加规则",
+  rule: "规则",
+  ruleName: "规则名称",
+  ruleNamePlaceholder: "给自己的规则取个名字",
+  ruleType: "规则类型",
+  description: "描述",
+  descriptionPlaceholder: "这条规则是做什么的",
+  expectedPath: "期望路径",
+  expectedPathPlaceholder: "例如 output.status",
+  assertionOp: "断言操作",
+  expectedValue: "期望值",
+  expectedValuePlaceholder: "输入期望值",
+  metric: "指标",
+  maxValue: "最大值",
+  minValue: "最小值",
+  onFailStrategy: "失败策略",
+  warn: "仅警告",
+  block: "阻止执行",
+  continue: "继续执行",
+  noRules: "暂无验证规则。点击「添加规则」开始创建。",
+  saved: "验证规则已保存",
+  title: "验证规则",
+  sourceNode: "源节点",
+  selectNode: "选择节点",
+  schema: "JSON Schema",
+};
+
+for (const [lang, trans] of Object.entries(translations)) {
+  const filePath = path.join(ROOT, `${lang}.json`);
+  if (!fs.existsSync(filePath)) {
+    console.log(`Skipping ${lang}: file not found`);
+    continue;
+  }
+
+  let content = fs.readFileSync(filePath, "utf8");
+  let changed = false;
+
+  for (const [key, cnValue] of Object.entries(chineseKeys)) {
+    const newValue = trans[key];
+    if (!newValue) { continue; }
+
+    const searchStr = `"${key}": "${cnValue}"`;
+    if (content.includes(searchStr)) {
+      const replaceStr = `"${key}": "${newValue}"`;
+      content = content.replace(searchStr, replaceStr);
+      changed = true;
+      console.log(`  ${lang}: "${key}" -> "${newValue}"`);
+    }
+  }
+
+  if (changed) {
+    fs.writeFileSync(filePath, content, "utf8");
+    console.log(`✓ ${lang}: fixed validation section`);
+  } else {
+    console.log(`- ${lang}: no changes needed`);
+  }
+}
+
+console.log("\nDone!");

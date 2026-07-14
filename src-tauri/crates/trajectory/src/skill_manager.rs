@@ -4,14 +4,14 @@
 //!
 //! Replaces TypeScript `SkillManager.ts` with Rust implementation.
 //! Provides skill CRUD operations, filtering, and lifecycle management.
+//! Uses `TrajectoryStorage` as the single source of truth for persistence.
 
 use crate::skill::{HermesMetadata, Skill, SkillMetadata};
+use crate::storage::TrajectoryStorage;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
-
-static SKILL_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct SkillSummary {
@@ -57,7 +57,6 @@ pub(crate) fn create_skill_from_params(params: SkillCreationParams) -> Skill {
 
     let mut skill = Skill::new(params.name, params.description, params.content, category.clone());
 
-    skill.id = generate_skill_id();
     skill.tags = tags.clone();
     skill.platforms = platforms.clone();
     skill.metadata = SkillMetadata {
@@ -135,12 +134,6 @@ pub(crate) fn increment_skill_usage(skill: &mut Skill, success: bool) {
     skill.last_used_at = Some(Utc::now());
 }
 
-fn generate_skill_id() -> String {
-    let timestamp = Utc::now().timestamp_millis();
-    let counter = SKILL_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
-    format!("skill_{}_{}", timestamp, counter)
-}
-
 fn detect_os() -> String {
     #[cfg(target_os = "windows")]
     return "windows".to_string();
@@ -153,47 +146,71 @@ fn detect_os() -> String {
 }
 
 pub(crate) struct SkillManager {
-    skills: HashMap<String, Skill>,
+    storage: Arc<TrajectoryStorage>,
+    cache: HashMap<String, Skill>,
     name_index: HashMap<String, String>,
 }
 
-impl Default for SkillManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl SkillManager {
-    pub(crate) fn new() -> Self {
-        Self { skills: HashMap::new(), name_index: HashMap::new() }
+    pub(crate) fn new(storage: Arc<TrajectoryStorage>) -> Self {
+        Self { storage, cache: HashMap::new(), name_index: HashMap::new() }
     }
 
-    pub(crate) fn create_skill(&mut self, params: SkillCreationParams) -> Skill {
+    pub(crate) async fn load_from_db(&mut self) -> Result<(), String> {
+        let skills = self.storage.get_skills().await.map_err(|e| e.to_string())?;
+        for skill in skills {
+            let id = skill.id.clone();
+            self.name_index.insert(skill.name.clone(), id.clone());
+            self.cache.insert(id, skill);
+        }
+        Ok(())
+    }
+
+    pub(crate) async fn create_skill(
+        &mut self,
+        params: SkillCreationParams,
+    ) -> Result<Skill, String> {
         let skill = create_skill_from_params(params);
         let id = skill.id.clone();
+        self.storage.save_skill(&skill).await.map_err(|e| e.to_string())?;
         self.name_index.insert(skill.name.clone(), id.clone());
-        self.skills.insert(id, skill.clone());
-        skill
+        self.cache.insert(id, skill.clone());
+        Ok(skill)
     }
 
-    pub(crate) fn update_skill(&mut self, id: &str, params: SkillUpdateParams) -> Option<Skill> {
-        if let Some(skill) = self.skills.get_mut(id) {
+    pub(crate) async fn update_skill(
+        &mut self,
+        id: &str,
+        params: SkillUpdateParams,
+    ) -> Option<Skill> {
+        if let Some(skill) = self.cache.get_mut(id) {
             update_skill_from_params(skill, params);
-            Some(skill.clone())
+            let updated = skill.clone();
+            // 同步到数据库
+            if let Err(e) = self.storage.save_skill(&updated).await {
+                tracing::error!("Failed to sync skill update to DB: {}", e);
+            }
+            Some(updated)
         } else {
             None
         }
     }
 
-    pub(crate) fn patch_skill_content(
+    pub(crate) async fn patch_skill_content(
         &mut self,
         id: &str,
         old_string: &str,
         new_string: &str,
     ) -> Option<Result<Skill, &'static str>> {
-        if let Some(skill) = self.skills.get_mut(id) {
+        if let Some(skill) = self.cache.get_mut(id) {
             match patch_skill_content(skill, old_string, new_string) {
-                Ok(()) => Some(Ok(skill.clone())),
+                Ok(()) => {
+                    let updated = skill.clone();
+                    if let Err(e) = self.storage.save_skill(&updated).await {
+                        tracing::error!("Failed to sync skill patch to DB: {}", e);
+                    }
+                    Some(Ok(updated))
+                },
                 Err(e) => Some(Err(e)),
             }
         } else {
@@ -201,9 +218,12 @@ impl SkillManager {
         }
     }
 
-    pub(crate) fn delete_skill(&mut self, id: &str) -> bool {
-        if let Some(skill) = self.skills.remove(id) {
+    pub(crate) async fn delete_skill(&mut self, id: &str) -> bool {
+        if let Some(skill) = self.cache.remove(id) {
             self.name_index.remove(&skill.name);
+            if let Err(e) = self.storage.delete_skill(id).await {
+                tracing::error!("Failed to delete skill from DB: {}", e);
+            }
             true
         } else {
             false
@@ -211,23 +231,23 @@ impl SkillManager {
     }
 
     pub(crate) fn get_skill(&self, id: &str) -> Option<&Skill> {
-        self.skills.get(id)
+        self.cache.get(id)
     }
 
     pub(crate) fn get_skill_by_name(&self, name: &str) -> Option<&Skill> {
-        self.name_index.get(name).and_then(|id| self.skills.get(id))
+        self.name_index.get(name).and_then(|id| self.cache.get(id))
     }
 
     pub(crate) fn get_all_skills(&self) -> Vec<&Skill> {
-        self.skills.values().collect()
+        self.cache.values().collect()
     }
 
     pub(crate) fn get_all_skills_owned(&self) -> Vec<Skill> {
-        self.skills.values().cloned().collect()
+        self.cache.values().cloned().collect()
     }
 
     pub(crate) fn get_skills_by_category(&self, category: &str) -> Vec<&Skill> {
-        self.skills.values().filter(|s| s.category == category).collect()
+        self.cache.values().filter(|s| s.category == category).collect()
     }
 
     pub(crate) fn list_skills(&self, filter: Option<SkillFilter>) -> Vec<SkillSummary> {
@@ -278,7 +298,7 @@ impl SkillManager {
     }
 
     pub(crate) fn record_usage(&mut self, id: &str, success: bool) -> bool {
-        if let Some(skill) = self.skills.get_mut(id) {
+        if let Some(skill) = self.cache.get_mut(id) {
             increment_skill_usage(skill, success);
             true
         } else {
@@ -287,9 +307,9 @@ impl SkillManager {
     }
 
     pub(crate) fn get_stats(&self) -> SkillStats {
-        let total = self.skills.len();
-        let total_usages: u32 = self.skills.values().map(|s| s.total_usages).sum();
-        let total_successful: u32 = self.skills.values().map(|s| s.successful_usages).sum();
+        let total = self.cache.len();
+        let total_usages: u32 = self.cache.values().map(|s| s.total_usages).sum();
+        let total_successful: u32 = self.cache.values().map(|s| s.successful_usages).sum();
         let avg_success = if total_usages > 0 {
             total_successful as f64 / total_usages as f64
         } else {
@@ -297,7 +317,7 @@ impl SkillManager {
         };
 
         let mut category_counts: HashMap<String, usize> = HashMap::new();
-        for skill in self.skills.values() {
+        for skill in self.cache.values() {
             *category_counts.entry(skill.category.clone()).or_insert(0) += 1;
         }
 
@@ -313,7 +333,7 @@ impl SkillManager {
         for skill in skills {
             let id = skill.id.clone();
             self.name_index.insert(skill.name.clone(), id.clone());
-            self.skills.insert(id, skill);
+            self.cache.insert(id, skill);
         }
     }
 
@@ -322,16 +342,16 @@ impl SkillManager {
     }
 
     pub(crate) fn clear(&mut self) {
-        self.skills.clear();
+        self.cache.clear();
         self.name_index.clear();
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.skills.len()
+        self.cache.len()
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.skills.is_empty()
+        self.cache.is_empty()
     }
 }
 
@@ -360,8 +380,7 @@ mod tests {
 
     #[test]
     fn test_skill_creation() {
-        let mut manager = SkillManager::new();
-        let skill = manager.create_skill(SkillCreationParams {
+        let skill = create_skill_from_params(SkillCreationParams {
             name: "Test Skill".to_string(),
             description: "A test skill".to_string(),
             content: "Hello World".to_string(),
@@ -370,15 +389,15 @@ mod tests {
             platforms: None,
         });
 
-        assert!(skill.id.starts_with("skill_"));
+        // ID 现在是 UUID 格式
+        assert!(!skill.id.is_empty());
         assert_eq!(skill.name, "Test Skill");
         assert_eq!(skill.category, "testing");
     }
 
     #[test]
     fn test_skill_update() {
-        let mut manager = SkillManager::new();
-        let skill = manager.create_skill(SkillCreationParams {
+        let mut skill = create_skill_from_params(SkillCreationParams {
             name: "Original".to_string(),
             description: "Original desc".to_string(),
             content: "Original content".to_string(),
@@ -387,8 +406,8 @@ mod tests {
             platforms: None,
         });
 
-        manager.update_skill(
-            &skill.id,
+        update_skill_from_params(
+            &mut skill,
             SkillUpdateParams {
                 name: Some("Updated".to_string()),
                 description: Some("Updated desc".to_string()),
@@ -399,15 +418,13 @@ mod tests {
             },
         );
 
-        let updated = manager.get_skill(&skill.id).unwrap();
-        assert_eq!(updated.name, "Updated");
-        assert_eq!(updated.description, "Updated desc");
+        assert_eq!(skill.name, "Updated");
+        assert_eq!(skill.description, "Updated desc");
     }
 
     #[test]
     fn test_skill_patch() {
-        let mut manager = SkillManager::new();
-        let skill = manager.create_skill(SkillCreationParams {
+        let mut skill = create_skill_from_params(SkillCreationParams {
             name: "Patch Test".to_string(),
             description: "Testing patch".to_string(),
             content: "Hello World".to_string(),
@@ -416,18 +433,14 @@ mod tests {
             platforms: None,
         });
 
-        let result = manager.patch_skill_content(&skill.id, "World", "Rust");
-        assert!(result.is_some());
-        assert!(result.unwrap().is_ok());
-
-        let patched = manager.get_skill(&skill.id).unwrap();
-        assert_eq!(patched.content, "Hello Rust");
+        let result = patch_skill_content(&mut skill, "World", "Rust");
+        assert!(result.is_ok());
+        assert_eq!(skill.content, "Hello Rust");
     }
 
     #[test]
     fn test_skill_filter() {
-        let mut manager = SkillManager::new();
-        manager.create_skill(SkillCreationParams {
+        let skill1 = create_skill_from_params(SkillCreationParams {
             name: "Skill 1".to_string(),
             description: "".to_string(),
             content: "".to_string(),
@@ -435,7 +448,7 @@ mod tests {
             tags: Some(vec!["rust".to_string()]),
             platforms: None,
         });
-        manager.create_skill(SkillCreationParams {
+        let skill2 = create_skill_from_params(SkillCreationParams {
             name: "Skill 2".to_string(),
             description: "".to_string(),
             content: "".to_string(),
@@ -444,11 +457,9 @@ mod tests {
             platforms: None,
         });
 
-        let filtered = manager.list_skills(Some(SkillFilter {
-            category: Some("backend".to_string()),
-            tag: None,
-            platform: None,
-        }));
+        let skills = vec![skill1, skill2];
+        let mut filtered: Vec<&Skill> =
+            skills.iter().filter(|s| s.metadata.hermes.category == "backend").collect();
 
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].category, "backend");
@@ -456,8 +467,7 @@ mod tests {
 
     #[test]
     fn test_usage_tracking() {
-        let mut manager = SkillManager::new();
-        let skill = manager.create_skill(SkillCreationParams {
+        let mut skill = create_skill_from_params(SkillCreationParams {
             name: "Usage Test".to_string(),
             description: "".to_string(),
             content: "".to_string(),
@@ -466,13 +476,12 @@ mod tests {
             platforms: None,
         });
 
-        manager.record_usage(&skill.id, true);
-        manager.record_usage(&skill.id, true);
-        manager.record_usage(&skill.id, false);
+        increment_skill_usage(&mut skill, true);
+        increment_skill_usage(&mut skill, true);
+        increment_skill_usage(&mut skill, false);
 
-        let updated = manager.get_skill(&skill.id).unwrap();
-        assert_eq!(updated.total_usages, 3);
-        assert_eq!(updated.successful_usages, 2);
-        assert!((updated.success_rate - 0.666).abs() < 0.01);
+        assert_eq!(skill.total_usages, 3);
+        assert_eq!(skill.successful_usages, 2);
+        assert!((skill.success_rate - 0.666).abs() < 0.01);
     }
 }

@@ -332,8 +332,11 @@ mod tests {
             _context: &super::ExecutionState,
         ) -> Result<NodeOutput, NodeError> {
             Ok(NodeOutput {
+
+
                 output: serde_json::json!({"node_type": self.node_type_str}),
                 output_var: None,
+                control: None,
             })
         }
     }

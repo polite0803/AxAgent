@@ -30,6 +30,7 @@ import {
   useUIStore,
 } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
+import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
@@ -217,6 +218,10 @@ export function InputArea() {
     };
   }, [attachmentObjectUrls]);
   const [voiceCallVisible, setVoiceCallVisible] = useState(false);
+  const [voiceApiKey, setVoiceApiKey] = useState("");
+  const gatewayKeys = useGatewayStore((s) => s.keys);
+  const fetchGatewayKeys = useGatewayStore((s) => s.fetchKeys);
+  const decryptKey = useGatewayStore((s) => s.decryptKey);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -2253,6 +2258,20 @@ export function InputArea() {
   }, []);
 
   // Listen for Escape to close voice overlay
+  // 加载 gateway API key 用于语音通话鉴权
+  React.useEffect(() => {
+    if (gatewayKeys.length === 0) {
+      fetchGatewayKeys();
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (gatewayKeys.length > 0 && !voiceApiKey) {
+      const enabledKey = gatewayKeys.find((k) => k.enabled) || gatewayKeys[0];
+      decryptKey(enabledKey.id).then(setVoiceApiKey).catch(() => {});
+    }
+  }, [gatewayKeys, decryptKey, voiceApiKey]);
+
   React.useEffect(() => {
     const onEscape = () => setVoiceCallVisible(false);
     window.addEventListener("axagent:escape", onEscape);
@@ -3063,14 +3082,12 @@ export function InputArea() {
               </Tooltip>
             )}
             {hasRealtimeVoice && (
-              <Tooltip
-                title={t("voice.startCall") + " - " + t("common.comingSoon")}
-              >
+              <Tooltip title={t("voice.startCall")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<Mic size={14} />}
-                  disabled
+                  onClick={() => setVoiceCallVisible(true)}
                 />
               </Tooltip>
             )}
@@ -3282,6 +3299,7 @@ export function InputArea() {
           visible={voiceCallVisible}
           onClose={() => setVoiceCallVisible(false)}
           config={voiceConfig}
+          apiKey={voiceApiKey}
         />
       )}
 

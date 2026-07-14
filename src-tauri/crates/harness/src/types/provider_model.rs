@@ -198,16 +198,17 @@ impl ModelType {
     // Business methods extracted to free functions below.
 }
 
-/// Auto-detect model type from model_id string
+/// Auto-detect model type from model_id string.
+///
+/// 使用更精确的匹配策略避免误判：
+/// - Embedding：text-embedding-* 或 embedding-* 前缀
+/// - Voice：tts-*, whisper-*, realtime 等明确语音模型标识
+/// - 其余为 Chat 类型
 pub fn detect_model_type(model_id: &str) -> ModelType {
     let id = model_id.to_lowercase();
-    if id.contains("embed") {
+    if id.contains("text-embedding") || id.starts_with("embedding") || id.contains("-embedding") {
         ModelType::Embedding
-    } else if id.contains("realtime")
-        || id.contains("tts")
-        || id.contains("whisper")
-        || id.contains("audio")
-    {
+    } else if id.contains("tts-") || id.contains("whisper-") || id.contains("realtime") {
         ModelType::Voice
     } else {
         ModelType::Chat

@@ -167,8 +167,13 @@ pub struct IngestSourceInput {
     pub path: String,
     pub url: Option<String>,
     pub title: Option<String>,
+    /// 内联文本内容，提供后将直接作为源内容使用，不从文件系统读取
+    pub content: Option<String>,
 }
 
+// 注意：输出结构刻意保持 snake_case（无 rename_all）。前端 `src/types/llmWiki.ts`
+// 的 IngestResult/QueryResult/PageResult 依赖 snake_case 字段名，请勿添加
+// `#[serde(rename_all = "camelCase")]`，否则会破坏前后端契约。
 #[derive(Debug, Serialize)]
 pub struct IngestResultOutput {
     pub source_id: String,
@@ -204,6 +209,7 @@ pub async fn llm_wiki_ingest(
         url: input.url,
         title: input.title,
         folder_context: None,
+        content: input.content,
     };
 
     let result = pipeline.ingest(&input.wiki_id, source).await?;
@@ -281,6 +287,7 @@ pub struct CompileInput {
     pub source_ids: Vec<String>,
 }
 
+// 输出结构刻意保持 snake_case（无 rename_all），前端类型依赖此契约，勿改。
 #[derive(Debug, Serialize)]
 pub struct CompileResultOutput {
     pub new_pages: Vec<CompiledPageOutput>,
@@ -288,6 +295,7 @@ pub struct CompileResultOutput {
     pub errors: Vec<String>,
 }
 
+// 输出结构刻意保持 snake_case（无 rename_all），前端类型依赖此契约，勿改。
 #[derive(Debug, Serialize)]
 pub struct CompiledPageOutput {
     pub title: String,
@@ -508,12 +516,14 @@ pub struct QueryInput {
     pub offset: Option<usize>,
 }
 
+// 输出结构刻意保持 snake_case（无 rename_all），前端类型依赖此契约，勿改。
 #[derive(Debug, Serialize)]
 pub struct QueryResultOutput {
     pub pages: Vec<PageResultOutput>,
     pub total: usize,
 }
 
+// 输出结构刻意保持 snake_case（无 rename_all），前端类型依赖此契约，勿改。
 #[derive(Debug, Serialize)]
 pub struct PageResultOutput {
     pub note_id: String,
@@ -887,6 +897,7 @@ pub async fn write_base64_to_file(
         url: None,
         title: Some(input.file_name.clone()),
         folder_context: None,
+        content: None,
     };
 
     let result = pipeline.ingest(&input.wiki_id, source).await?;

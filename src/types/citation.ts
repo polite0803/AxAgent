@@ -19,7 +19,9 @@ export interface Citation {
   credibility: number;
   inReport: boolean;
   accessedAt?: string;
-  usedInSection?: string;
+  // 后端 Citation 实际返回（research_state.rs），此前缺失
+  quotedText?: string;
+  pageNumber?: number;
 }
 
 export interface CitationStatsData {

@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #[cfg(not(target_os = "android"))]
-use axagent_kit::browser_automation::{ExtractedElement, NavigateResult, ScreenshotResult};
+use axagent_kit::browser_automation::{
+    ExtractedElement, NavigateResult, PlaywrightClient, ScreenshotResult, validate_browser_url,
+};
 #[cfg(not(target_os = "android"))]
 use tauri::State;
 
 #[cfg(not(target_os = "android"))]
 use crate::AppState;
+#[cfg(not(target_os = "android"))]
+use crate::commands::error::ErrorCategory;
 #[cfg(not(target_os = "android"))]
 use crate::commands::error::ErrorResponse;
 #[cfg(not(target_os = "android"))]
@@ -15,10 +19,13 @@ use crate::commands::error_code::browser as browser_err;
 #[cfg(not(target_os = "android"))]
 async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
     let mut client_guard = state.browser_client.lock().await;
-    if client_guard.is_none() {
-        let client = axagent_kit::browser_automation::PlaywrightClient::launch()
-            .await
-            .map_err(|e| e.to_string())?;
+    // 健康检查：若已有实例但子进程已退出，则重建（修复 #14）
+    let needs_launch = match client_guard.as_mut() {
+        Some(c) => !c.is_alive(),
+        None => true,
+    };
+    if needs_launch {
+        let client = PlaywrightClient::launch().await.map_err(|e| e.to_string())?;
         *client_guard = Some(client);
     }
     Ok(())
@@ -30,47 +37,14 @@ pub async fn browser_navigate(
     state: State<'_, AppState>,
     url: String,
 ) -> Result<NavigateResult, String> {
-    // SECURITY (S4): SSRF 防护 — 仅允许 http/https 协议，阻止内网地址
-    let parsed =
-        reqwest::Url::parse(&url).map_err(|_| ErrorResponse::new(browser_err::INVALID_URL))?;
-    match parsed.scheme() {
-        "http" | "https" => {},
-        _ => return Err(ErrorResponse::new(browser_err::SCHEME_NOT_ALLOWED).into()),
-    }
-    let host = parsed.host_str().unwrap_or("");
-    let host_lower = host.to_lowercase();
-    if host_lower == "localhost"
-        || host_lower == "0.0.0.0"
-        || host_lower == "::1"
-        || host_lower == "[::1]"
-        || host_lower.starts_with("127.")
-        || host_lower.starts_with("10.")
-        || host_lower.starts_with("192.168.")
-        || host_lower.starts_with("169.254.")
-        || host_lower.starts_with("172.")
-    {
-        return Err(ErrorResponse::new(browser_err::ADDRESS_NOT_ALLOWED).into());
-    }
-    // 检查非 IP 字面量是否解析为私网
-    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-        match ip {
-            std::net::IpAddr::V4(v4)
-                if v4.is_loopback()
-                    || v4.is_private()
-                    || v4.is_unspecified()
-                    || v4.is_link_local() =>
-            {
-                return Err(ErrorResponse::new(browser_err::ADDRESS_NOT_ALLOWED).into());
-            },
-            std::net::IpAddr::V6(v6)
-                if v6.is_loopback()
-                    || v6.is_unspecified()
-                    || v6.segments()[0] & 0xFFC0 == 0xFE80 =>
-            {
-                return Err(ErrorResponse::new(browser_err::ADDRESS_NOT_ALLOWED).into());
-            },
-            _ => {},
-        }
+    // SECURITY (S4): SSRF 防护 — 统一调用可复用的校验函数。
+    // 仅允许 http/https，且禁止内网/回环/链路本地/保留地址（含 IPv4 映射 IPv6、
+    // 0.0.0.0/8，并对域名做 DNS 解析校验），见 axagent_kit::browser_automation::validate_browser_url。
+    if let Err(detail) = validate_browser_url(&url) {
+        return Err(ErrorResponse::new(browser_err::ADDRESS_NOT_ALLOWED)
+            .with_detail(detail)
+            .with_category(ErrorCategory::PermissionDenied)
+            .into());
     }
 
     ensure_browser_client(&state).await?;

@@ -53,7 +53,6 @@ mod skill_manager;
 mod skill_matcher;
 mod skill_proposal;
 mod skills_hub_adapter;
-mod skills_hub_client;
 mod storage;
 mod style_applier;
 mod style_extractor;
@@ -170,8 +169,6 @@ pub use skill_matcher::{Complexity, estimate_complexity_public};
 pub use skill_proposal::SkillProposalService;
 
 pub use skills_hub_adapter::SkillsHubAdapter;
-
-pub use skills_hub_client::{SkillsHubConfig, SkillsHubSearchResult, SkillsHubSkill};
 
 pub use storage::{
     TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectorySession, TrajectoryStatistics,

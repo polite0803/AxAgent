@@ -112,6 +112,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     id: row.id,
     name: row.name,
     description: row.description,
+    systemPrompt: row.system_prompt,
     category: row.category as ExpertCategory,
     icon: CATEGORY_ICONS[row.category] ?? "🤖",
     source: "agency",
@@ -144,7 +145,6 @@ interface ExpertState {
   getAllRoles: () => AgentProfile[];
   getRolesByCategory: () => Record<string, AgentProfile[]>;
   getRoleById: (id: string) => AgentProfile | undefined;
-  getSystemPrompt: (roleId: string | null) => string | null;
   getCategoryLabel: (roleId: string | null) => string;
 
   recordSwitch: (conversationId: string, roleId: string) => void;
@@ -224,14 +224,6 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     return get()
       .getAllRoles()
       .find((r) => r.id === id);
-  },
-
-  getSystemPrompt: (roleId: string | null) => {
-    if (!roleId) {
-      return null;
-    }
-    // systemPrompt 已从 AgentProfile 移除，运行时从 Role+Expert 拼接
-    return null;
   },
 
   getCategoryLabel: (roleId: string | null) => {

@@ -655,15 +655,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         params.target,
       );
       if (wouldCycle) {
-        if (sourceHandle === "loopBack") {
-          message.warning(t("workflow.loopBackCycleDetected"));
-          return;
+        // loopBack 边天然就是环（Loop 节点的回边），不应拒绝。
+        // 非 loopBack 的环才给出警告。
+        if (sourceHandle !== "loopBack") {
+          message.warning(
+            t("workflow.cycleDetectedOnConnect", {
+              defaultValue: "This edge creates a cycle without a loopBack marker — the workflow engine may reject it.",
+            }),
+          );
         }
-        message.warning(
-          t("workflow.cycleDetectedOnConnect", {
-            defaultValue: "This edge creates a cycle without a loopBack marker — the workflow engine may reject it.",
-          }),
-        );
       }
       // Determine edge type based on sourceHandle
       let edgeType: WorkflowEdge["edge_type"] = "direct";
@@ -1005,15 +1005,27 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     };
 
     if (currentTemplate.id) {
-      const ok = await updateTemplate(currentTemplate.id, input);
-      if (ok) {
-        message.success(t("workflow.saved"));
+      try {
+        const ok = await updateTemplate(currentTemplate.id, input);
+        if (ok) {
+          message.success(t("workflow.saved"));
+        } else {
+          message.error(t("workflow.saveFailed"));
+        }
+      } catch (e) {
+        message.error(String(e));
       }
     } else {
-      const newId = await createTemplate(input);
-      if (newId) {
-        await loadTemplate(newId);
-        message.success(t("workflow.saved"));
+      try {
+        const newId = await createTemplate(input);
+        if (newId) {
+          await loadTemplate(newId);
+          message.success(t("workflow.saved"));
+        } else {
+          message.error(t("workflow.saveFailed"));
+        }
+      } catch (e) {
+        message.error(String(e));
       }
     }
   }, [

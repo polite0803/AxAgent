@@ -310,6 +310,7 @@ impl McpToolRegistry {
                 endpoint.as_deref(),
                 tool_name,
                 arguments.clone(),
+                Some(server_name),
             )
             .await
             .map_err(|e| format!("MCP 工具调用失败: {e}"))?;

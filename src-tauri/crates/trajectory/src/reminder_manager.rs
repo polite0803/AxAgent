@@ -289,6 +289,82 @@ impl ReminderManager {
             }
         }
     }
+
+    // ── 持久化 ────────────────────────────────────────────────────
+
+    /// 持久化快照（可序列化）
+    fn to_snapshot(&self) -> ReminderSnapshot {
+        ReminderSnapshot {
+            config: self.config.clone(),
+            reminders: self.reminders.values().cloned().collect(),
+            schedules: self.schedules.values().cloned().collect(),
+            notifications: self.notifications.clone(),
+            completed_history: self.completed_history.clone(),
+        }
+    }
+
+    /// 从快照恢复
+    fn from_snapshot(snapshot: ReminderSnapshot) -> Self {
+        let mut reminders = HashMap::new();
+        let mut schedules = HashMap::new();
+        for r in snapshot.reminders {
+            let schedule = ReminderSchedule {
+                reminder_id: r.id.clone(),
+                next_trigger: r.scheduled_at,
+                recurrence: r.recurrence.clone(),
+            };
+            schedules.insert(r.id.clone(), schedule);
+            reminders.insert(r.id.clone(), r);
+        }
+        Self {
+            config: snapshot.config,
+            reminders,
+            schedules,
+            notifications: snapshot.notifications,
+            completed_history: snapshot.completed_history,
+        }
+    }
+
+    /// 保存到 JSON 文件
+    pub fn save_to_file(&self, path: &std::path::Path) -> Result<(), String> {
+        let snapshot = self.to_snapshot();
+        let json = serde_json::to_string_pretty(&snapshot)
+            .map_err(|e| format!("序列化提醒数据失败: {e}"))?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("创建提醒数据目录失败: {e}"))?;
+        }
+        std::fs::write(path, json).map_err(|e| format!("写入提醒数据失败: {e}"))?;
+        tracing::info!(path = %path.display(), "ReminderManager 已保存");
+        Ok(())
+    }
+
+    /// 从 JSON 文件加载
+    pub fn load_from_file(path: &std::path::Path) -> Result<Self, String> {
+        if !path.exists() {
+            tracing::info!(path = %path.display(), "提醒数据文件不存在，使用空状态");
+            return Ok(Self::new());
+        }
+        let json = std::fs::read_to_string(path).map_err(|e| format!("读取提醒数据失败: {e}"))?;
+        let snapshot: ReminderSnapshot =
+            serde_json::from_str(&json).map_err(|e| format!("解析提醒数据失败: {e}"))?;
+        tracing::info!(
+            path = %path.display(),
+            reminders = snapshot.reminders.len(),
+            notifications = snapshot.notifications.len(),
+            "ReminderManager 已加载",
+        );
+        Ok(Self::from_snapshot(snapshot))
+    }
+}
+
+/// 可序列化的 ReminderManager 快照
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ReminderSnapshot {
+    config: ReminderManagerConfig,
+    reminders: Vec<Reminder>,
+    schedules: Vec<ReminderSchedule>,
+    notifications: Vec<ReminderNotification>,
+    completed_history: Vec<Reminder>,
 }
 
 #[derive(Debug, Clone)]

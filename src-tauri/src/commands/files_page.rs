@@ -322,7 +322,7 @@ pub async fn list_files_page_entries(
 ) -> Result<Vec<FilesPageEntry>, String> {
     let entries = match category.as_str() {
         "images" | "files" => {
-            // images 分类在 SQL 层用 LIKE 过滤，避免全表加载后在内存中筛选
+            // images/files 分类在 SQL 层过滤，避免全表加载后在内存中筛选
             let files = if category == "images" {
                 axagent_dao::repo::stored_file::list_stored_files_by_category(
                     state.harness.db(),
@@ -333,9 +333,14 @@ pub async fn list_files_page_entries(
                 .await
                 .map_err(|e| e.to_string())?
             } else {
-                axagent_dao::repo::stored_file::list_all_stored_files(state.harness.db())
-                    .await
-                    .map_err(|e| e.to_string())?
+                axagent_dao::repo::stored_file::list_stored_files_not_like_category(
+                    state.harness.db(),
+                    "image/%",
+                    500,
+                    0,
+                )
+                .await
+                .map_err(|e| e.to_string())?
             };
             if category == "images" {
                 build_image_entries(&files)

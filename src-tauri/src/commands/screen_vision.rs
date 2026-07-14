@@ -2,6 +2,7 @@
 
 use axagent_harness::types::ProviderType;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_kit::permission::ensure_computer_control_granted;
 use axagent_kit::screen_vision::UIElementInfo;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -139,6 +140,7 @@ pub async fn analyze_screen(
     provider_id: String,
     model_id: String,
 ) -> Result<ScreenAnalysisResult, String> {
+    ensure_computer_control_granted()?;
     let screenshot = capture_screenshot(monitor_index).await?;
     let VisionContext { adapter, ctx } =
         build_vision_context(state.harness.db(), state.harness.master_key(), &provider_id).await?;
@@ -205,6 +207,7 @@ pub async fn find_element_on_screen(
     provider_id: String,
     model_id: String,
 ) -> Result<Option<UIElementInfo>, String> {
+    ensure_computer_control_granted()?;
     let screenshot = capture_screenshot(monitor_index).await?;
     let VisionContext { adapter, ctx } =
         build_vision_context(state.harness.db(), state.harness.master_key(), &provider_id).await?;
@@ -228,20 +231,13 @@ pub async fn suggest_screen_action(
     provider_id: String,
     model_id: String,
 ) -> Result<Vec<SuggestedActionInfo>, String> {
+    ensure_computer_control_granted()?;
     let screenshot = capture_screenshot(monitor_index).await?;
     let VisionContext { adapter, ctx } =
         build_vision_context(state.harness.db(), state.harness.master_key(), &provider_id).await?;
 
-    let actions = axagent_providers::screen_vision::suggest_next_action(
-        adapter.as_ref(),
-        &ctx,
-        model_id.clone(),
-        &screenshot.image_base64,
-        &current_task,
-    )
-    .await
-    .map_err(|e| format!("Screen analysis failed: {}", e))?;
-
+    // 单次模型调用同时返回 elements 与 suggested_actions（analyze_screen 的提示已包含二者），
+    // 避免重复调用大模型浪费 token（修复 #20）
     let analysis = axagent_providers::screen_vision::analyze_screen(
         adapter.as_ref(),
         &ctx,
@@ -252,7 +248,7 @@ pub async fn suggest_screen_action(
     .await
     .map_err(|e| format!("Screen analysis failed: {}", e))?;
 
-    Ok(map_actions_to_info(&actions, &analysis.elements))
+    Ok(map_actions_to_info(&analysis.suggested_actions, &analysis.elements))
 }
 
 #[tauri::command]
@@ -261,6 +257,7 @@ pub async fn click_element_at_position(
     y: f64,
     button: Option<String>,
 ) -> Result<(), String> {
+    ensure_computer_control_granted()?;
     use axagent_kit::ui_automation::MouseButton;
 
     let btn = match button.as_deref().unwrap_or("left") {
@@ -283,6 +280,7 @@ pub async fn execute_vision_action(
     y: f64,
     text: Option<String>,
 ) -> Result<(), String> {
+    ensure_computer_control_granted()?;
     use axagent_kit::ui_automation::UIAutomation;
 
     match action_type.to_lowercase().as_str() {

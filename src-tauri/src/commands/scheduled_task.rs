@@ -6,7 +6,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
-use axagent_runtime_core::{CronJob, CronJobStatus, TaskConfig, TaskRunResult};
+use axagent_runtime_core::{CronJob, CronJobStatus, ExecutionRecord, TaskConfig, TaskRunResult};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -37,10 +37,10 @@ fn validate_cron_expression(cron: &str) -> Result<(), String> {
     if parts.len() != 5 {
         return Err(format!("Cron must have exactly 5 fields, got {}: '{}'", parts.len(), cron));
     }
-    // 检查 minute 字段（第一字段），拒绝每分钟执行
+    // 检查 minute 字段（第一字段），拒绝过于频繁的执行
     let minute = parts[0];
     if minute == "*" || minute == "*/1" {
-        return Err("Cron 'every minute' is not allowed — minimum interval is 1 minute".to_string());
+        return Err("Cron 表达式过于频繁：不允许每分钟执行，最小间隔为 2 分钟".to_string());
     }
     // 检查 */N 模式中 N < 1 的情况（实际上 N=1 已被上面覆盖）
     if let Some(rest) = minute.strip_prefix("*/") {
@@ -288,13 +288,53 @@ pub async fn execute_scheduled_task(
     let job = state.cron_job_store.get(&task_id).await.ok_or_else(|| {
         ErrorResponse::err_with_detail(task_err::NOT_FOUND, format!("Task not found: {}", task_id))
     })?;
-    let result = TaskRunResult {
-        success: true,
-        output: Some(format!("Task '{}' executed manually", job.name)),
-        error: None,
-        duration_ms: 0,
-        executed_at: axagent_runtime_core::cron_job::now_millis(),
+
+    let started = axagent_runtime_core::cron_job::now_millis();
+
+    // 如果关联了工作流，真正执行工作流
+    let result = if let Some(ref wf_id) = job.workflow_id {
+        let opts = axagent_runtime::work_engine::RunOptions::default();
+        match state.work_engine.run_workflow(wf_id, opts).await {
+            Ok(workflow) => {
+                tracing::info!(
+                    "[execute_scheduled_task] 工作流任务 '{}' 手动执行完成: {:?}",
+                    job.name,
+                    workflow.status
+                );
+                axagent_runtime_core::TaskRunResult {
+                    success: true,
+                    output: Some(format!("{:?}", workflow.status)),
+                    error: None,
+                    duration_ms: (axagent_runtime_core::cron_job::now_millis() - started) as u64,
+                    executed_at: started,
+                }
+            },
+            Err(e) => {
+                let err_msg = format!("{:?}", e);
+                tracing::error!(
+                    "[execute_scheduled_task] 工作流任务 '{}' 手动执行失败: {err_msg}",
+                    job.name
+                );
+                axagent_runtime_core::TaskRunResult {
+                    success: false,
+                    output: None,
+                    error: Some(err_msg),
+                    duration_ms: (axagent_runtime_core::cron_job::now_millis() - started) as u64,
+                    executed_at: started,
+                }
+            },
+        }
+    } else {
+        // 无工作流关联的任务，记录为简单执行
+        axagent_runtime_core::TaskRunResult {
+            success: true,
+            output: Some(format!("任务 '{}' 已手动触发（无关联工作流）", job.name)),
+            error: None,
+            duration_ms: 0,
+            executed_at: started,
+        }
     };
+
     state.cron_job_store.record_run(&task_id, result.clone()).await;
     Ok(TaskRunResultDto {
         success: result.success,
@@ -391,9 +431,17 @@ pub async fn create_cleanup_task(
 }
 
 #[tauri::command]
-pub async fn load_scheduled_tasks_from_db(state: State<'_, AppState>) -> Result<(), String> {
-    // CronJobStore 为内存存储；DB 持久化可在后续添加。
-    // 当前保持命令兼容，不做实际操作。
-    let _ = state;
-    Ok(())
+pub async fn load_scheduled_tasks_from_db(state: State<'_, AppState>) -> Result<usize, String> {
+    let count = state.cron_job_store.reload_from_db().await;
+    tracing::info!("[scheduled_task] 从 DB 重新加载了 {count} 个定时任务");
+    Ok(count)
+}
+
+#[tauri::command]
+pub async fn get_task_execution_history(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<Vec<ExecutionRecord>, String> {
+    require_operator(&state)?;
+    Ok(state.cron_job_store.get_execution_history(&task_id).await)
 }
