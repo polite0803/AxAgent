@@ -430,7 +430,9 @@ export function WelcomeWizard() {
           marginTop: 24,
         }}
       >
-        <Button onClick={dismissWizard}>{t("onboarding.skip")}</Button>
+        <Button onClick={dismissWizard} data-testid="onboarding-skip">
+          {t("onboarding.skip")}
+        </Button>
         <div style={{ display: "flex", gap: 8 }}>
           {currentStep > 0 && (
             <Button onClick={() => setStep(currentStep - 1)}>
