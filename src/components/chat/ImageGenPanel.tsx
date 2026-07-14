@@ -118,7 +118,7 @@ async function saveToArtifact(
   };
 
   try {
-    await invoke("create_artifact", input);
+    await invoke("create_artifact", input as Record<string, unknown>);
     message.success("已保存到 Artifact");
   } catch {
     // 静默失败，不阻断主流程

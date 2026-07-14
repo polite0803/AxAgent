@@ -40,7 +40,7 @@ export const useApprovalStore = create<ApprovalStore>((set, get) => ({
     }
   },
 
-  resumeApproval: async (executionId, approvalId, decision, decidedBy, note) => {
+  resumeApproval: async (_executionId, approvalId, decision, decidedBy, note) => {
     try {
       const result = await invoke<boolean>("resume_approval", {
         approvalId,
@@ -59,7 +59,7 @@ export const useApprovalStore = create<ApprovalStore>((set, get) => ({
     }
   },
 
-  cancelApproval: async (executionId, approvalId, cancelledBy) => {
+  cancelApproval: async (_executionId, approvalId, _cancelledBy) => {
     try {
       const result = await invoke<boolean>("cancel_approval", {
         approvalId,

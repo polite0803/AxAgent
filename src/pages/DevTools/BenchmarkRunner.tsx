@@ -3,7 +3,6 @@
 import { BenchmarkConfig } from "@/components/benchmark/BenchmarkConfig";
 import { BenchmarkReportView } from "@/components/benchmark/BenchmarkReportView";
 import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
-import { TaskList } from "@/components/benchmark/TaskList";
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
 import { Button, Card, message, Spin, Tabs, theme } from "antd";
 import { useEffect } from "react";
