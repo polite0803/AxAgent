@@ -14,10 +14,7 @@ use tauri::command;
 use tracing::warn;
 
 static FINE_TUNE_DIR: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".axagent")
-        .join("fine_tune")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("fine_tune")
 });
 
 fn datasets_file() -> PathBuf {
@@ -95,26 +92,22 @@ fn persist_datasets(state: &FineTuneState) -> Result<(), String> {
     ensure_dir()?;
     let json = serde_json::to_string_pretty(&state.datasets)
         .map_err(|e| format!("Serialize datasets: {}", e))?;
-    fs::write(datasets_file(), json)
-        .map_err(|e| format!("Write datasets: {}", e))?;
+    fs::write(datasets_file(), json).map_err(|e| format!("Write datasets: {}", e))?;
     let samples_json = serde_json::to_string_pretty(&state.samples)
         .map_err(|e| format!("Serialize samples: {}", e))?;
-    fs::write(samples_file(), samples_json)
-        .map_err(|e| format!("Write samples: {}", e))?;
+    fs::write(samples_file(), samples_json).map_err(|e| format!("Write samples: {}", e))?;
     Ok(())
 }
 
 fn load_datasets(state: &mut FineTuneState) -> Result<(), String> {
     let path = datasets_file();
     if path.exists() {
-        let json = fs::read_to_string(&path)
-            .map_err(|e| format!("Read datasets: {}", e))?;
+        let json = fs::read_to_string(&path).map_err(|e| format!("Read datasets: {}", e))?;
         state.datasets = serde_json::from_str(&json).unwrap_or_default();
     }
     let samples_path = samples_file();
     if samples_path.exists() {
-        let json = fs::read_to_string(&samples_path)
-            .map_err(|e| format!("Read samples: {}", e))?;
+        let json = fs::read_to_string(&samples_path).map_err(|e| format!("Read samples: {}", e))?;
         state.samples = serde_json::from_str(&json).unwrap_or_default();
     }
     Ok(())

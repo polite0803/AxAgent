@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use crate::app_state::AppState;
 use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
-use crate::app_state::AppState;
-use tauri::{command, State};
+use tauri::{State, command};
 use tokio::sync::Mutex;
 
 static BENCHMARK_SUITE: std::sync::OnceLock<Mutex<BenchmarkSuite>> = std::sync::OnceLock::new();
@@ -156,7 +156,13 @@ async fn resolve_benchmark_provider(
     db: &sea_orm::DatabaseConnection,
     provider_registry: &std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>,
     master_key: &str,
-) -> Result<Option<(std::sync::Arc<dyn axagent_harness::provider::ProviderAdapter>, axagent_harness::provider::ProviderRequestContext)>, String> {
+) -> Result<
+    Option<(
+        std::sync::Arc<dyn axagent_harness::provider::ProviderAdapter>,
+        axagent_harness::provider::ProviderRequestContext,
+    )>,
+    String,
+> {
     use axagent_dao::repo::provider;
     use axagent_harness::types::provider_model::provider_registry_key;
 
@@ -216,7 +222,9 @@ pub async fn evaluator_run_ab_test(
     let mut sim_metrics = None;
 
     // Try to get a real provider from the harness and run a real benchmark
-    if let Ok(Some((adapter, _ctx))) = resolve_benchmark_provider(&db, &provider_registry, master_key).await {
+    if let Ok(Some((adapter, _ctx))) =
+        resolve_benchmark_provider(&db, &provider_registry, master_key).await
+    {
         let runner = EvaluationRunner::new(RunnerConfig::default()).with_provider(adapter);
         let suite = suite().lock().await;
         if let Some(benchmark) = suite.get("reasoning") {
@@ -224,12 +232,17 @@ pub async fn evaluator_run_ab_test(
             let total_tasks = result.task_results.len() as f64;
             let successful = result.task_results.iter().filter(|t| t.success).count() as f64;
             let avg_score = if total_tasks > 0.0 {
-                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>() / total_tasks
+                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>()
+                    / total_tasks
             } else {
                 0.0
             };
             real_metrics = Some(AbTestVersionMetrics {
-                success_rate: if total_tasks > 0.0 { successful / total_tasks } else { 0.0 },
+                success_rate: if total_tasks > 0.0 {
+                    successful / total_tasks
+                } else {
+                    0.0
+                },
                 avg_tokens: 0,
                 avg_duration: result.duration_ms as f64 / 1000.0,
             });
@@ -245,12 +258,17 @@ pub async fn evaluator_run_ab_test(
             let total_tasks = result.task_results.len() as f64;
             let successful = result.task_results.iter().filter(|t| t.success).count() as f64;
             let avg_score = if total_tasks > 0.0 {
-                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>() / total_tasks
+                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>()
+                    / total_tasks
             } else {
                 0.0
             };
             sim_metrics = Some(AbTestVersionMetrics {
-                success_rate: if total_tasks > 0.0 { successful / total_tasks } else { 0.0 },
+                success_rate: if total_tasks > 0.0 {
+                    successful / total_tasks
+                } else {
+                    0.0
+                },
                 avg_tokens: 0,
                 avg_duration: result.duration_ms as f64 / 1000.0,
             });
@@ -312,9 +330,21 @@ pub async fn evaluator_run_ab_test(
         conclusion: format!(
             "版本 {} ({}) 在成功率上表现更优（{}% vs {}%）。",
             winner,
-            if winner == "A" { &version_a } else { &version_b },
-            if winner == "A" { version_a_metrics.success_rate * 100.0 } else { version_b_metrics.success_rate * 100.0 },
-            if winner == "A" { version_b_metrics.success_rate * 100.0 } else { version_a_metrics.success_rate * 100.0 },
+            if winner == "A" {
+                &version_a
+            } else {
+                &version_b
+            },
+            if winner == "A" {
+                version_a_metrics.success_rate * 100.0
+            } else {
+                version_b_metrics.success_rate * 100.0
+            },
+            if winner == "A" {
+                version_b_metrics.success_rate * 100.0
+            } else {
+                version_a_metrics.success_rate * 100.0
+            },
         ),
     };
 
