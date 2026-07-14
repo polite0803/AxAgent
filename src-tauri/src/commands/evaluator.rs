@@ -241,8 +241,7 @@ pub async fn evaluator_run_ab_test(
     let master_key = state.harness.master_key();
     let provider_registry = state.harness.provider_registry().clone();
 
-    let provider_resolved =
-        resolve_benchmark_provider(&db, &provider_registry, master_key).await;
+    let provider_resolved = resolve_benchmark_provider(&db, &provider_registry, master_key).await;
 
     let (version_a_metrics, version_b_metrics) = if let Ok(Some((adapter, ctx))) = provider_resolved
     {
@@ -252,20 +251,27 @@ pub async fn evaluator_run_ab_test(
         let total_a = result_a.task_results.len() as f64;
         let success_a = result_a.task_results.iter().filter(|t| t.success).count() as f64;
 
-        let runner_b = EvaluationRunner::new(RunnerConfig::default())
-            .with_provider(adapter, ctx);
+        let runner_b = EvaluationRunner::new(RunnerConfig::default()).with_provider(adapter, ctx);
         let result_b = runner_b.run_benchmark(&benchmark).await;
         let total_b = result_b.task_results.len() as f64;
         let success_b = result_b.task_results.iter().filter(|t| t.success).count() as f64;
 
         (
             AbTestVersionMetrics {
-                success_rate: if total_a > 0.0 { success_a / total_a } else { 0.0 },
+                success_rate: if total_a > 0.0 {
+                    success_a / total_a
+                } else {
+                    0.0
+                },
                 avg_tokens: 0,
                 avg_duration: result_a.duration_ms as f64 / 1000.0,
             },
             AbTestVersionMetrics {
-                success_rate: if total_b > 0.0 { success_b / total_b } else { 0.0 },
+                success_rate: if total_b > 0.0 {
+                    success_b / total_b
+                } else {
+                    0.0
+                },
                 avg_tokens: 0,
                 avg_duration: result_b.duration_ms as f64 / 1000.0,
             },
@@ -327,7 +333,11 @@ pub async fn evaluator_run_ab_test(
         conclusion: format!(
             "版本 {} ({}) 在成功率上表现更优（{}% vs {}%）。",
             winner,
-            if winner == "A" { &version_a } else { &version_b },
+            if winner == "A" {
+                &version_a
+            } else {
+                &version_b
+            },
             if winner == "A" {
                 version_a_metrics.success_rate * 100.0
             } else {

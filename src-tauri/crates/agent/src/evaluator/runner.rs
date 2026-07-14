@@ -196,23 +196,19 @@ impl EvaluationRunner {
             store: None,
         });
 
-        let ctx = self
-            .provider_ctx
-            .as_ref()
-            .cloned()
-            .unwrap_or_else(|| ProviderRequestContext {
-                api_key: String::new(),
-                key_id: String::new(),
-                provider_id: String::new(),
-                base_url: None,
-                api_path: None,
-                proxy_config: None,
-                custom_headers: None,
-                api_mode: None,
-                conversation: None,
-                previous_response_id: None,
-                store_response: None,
-            });
+        let ctx = self.provider_ctx.as_ref().cloned().unwrap_or_else(|| ProviderRequestContext {
+            api_key: String::new(),
+            key_id: String::new(),
+            provider_id: String::new(),
+            base_url: None,
+            api_path: None,
+            proxy_config: None,
+            custom_headers: None,
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        });
 
         provider
             .chat(&ctx, request)

@@ -1363,7 +1363,9 @@ pub async fn shared_memory_get(
 
 /// 获取共享记忆统计信息
 #[tauri::command]
-pub async fn shared_memory_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+pub async fn shared_memory_stats(
+    app_state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
     let mem = app_state.shared_memory.read().await;
     let stats = mem.stats();
     serde_json::to_value(stats).map_err(|e| e.to_string())
