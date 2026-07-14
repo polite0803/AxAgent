@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { act, renderHook } from "@testing-library/react";
-import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { RealtimeConfig } from "@/types";
 import { useVoiceChat } from "@/hooks/useVoiceChat";
+import type { RealtimeConfig } from "@/types";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
 // ── Mock 工厂 ────────────────────────────────────────────────
 
@@ -93,10 +93,12 @@ function renderVoiceChat(apiKey = defaultApiKey) {
 
 function simulateWsMessage(type: string, extra: Record<string, unknown> = {}) {
   const ws = mockWsInstances[0];
-  if (!ws || !ws.onmessage) return;
-  ws.onmessage(new MessageEvent("message", {
-    data: JSON.stringify({ type, ...extra }),
-  }));
+  if (!ws || !ws.onmessage) { return; }
+  ws.onmessage(
+    new MessageEvent("message", {
+      data: JSON.stringify({ type, ...extra }),
+    }),
+  );
 }
 
 async function flushTimers(): Promise<void> {
@@ -131,23 +133,35 @@ describe("useVoiceChat", () => {
       configurable: true,
     });
 
-    vi.stubGlobal("AudioContext", class {
-      state = "running";
-      sampleRate = 24000;
-      destination = {} as AudioDestinationNode;
-      createGain = () => ({ gain: { value: 1 } as unknown as AudioParam, connect: vi.fn() });
-      createBuffer = vi.fn();
-      createBufferSource = () => ({
-        buffer: null, connect: vi.fn(), start: vi.fn(), stop: vi.fn(),
-        get onended() { return null; }, set onended(_: unknown) {},
-      });
-      createMediaStreamSource = vi.fn(() => ({ connect: vi.fn(), disconnect: vi.fn() }));
-      createAnalyser = () => ({
-        fftSize: 2048, getFloatTimeDomainData: vi.fn(), connect: vi.fn(), disconnect: vi.fn(),
-      });
-      close = vi.fn().mockResolvedValue(undefined);
-      audioWorklet = { addModule: vi.fn().mockResolvedValue(undefined) };
-    });
+    vi.stubGlobal(
+      "AudioContext",
+      class {
+        state = "running";
+        sampleRate = 24000;
+        destination = {} as AudioDestinationNode;
+        createGain = () => ({ gain: { value: 1 } as unknown as AudioParam, connect: vi.fn() });
+        createBuffer = vi.fn();
+        createBufferSource = () => ({
+          buffer: null,
+          connect: vi.fn(),
+          start: vi.fn(),
+          stop: vi.fn(),
+          get onended() {
+            return null;
+          },
+          set onended(_: unknown) {},
+        });
+        createMediaStreamSource = vi.fn(() => ({ connect: vi.fn(), disconnect: vi.fn() }));
+        createAnalyser = () => ({
+          fftSize: 2048,
+          getFloatTimeDomainData: vi.fn(),
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        });
+        close = vi.fn().mockResolvedValue(undefined);
+        audioWorklet = { addModule: vi.fn().mockResolvedValue(undefined) };
+      },
+    );
 
     vi.stubGlobal("AudioWorkletNode", MockAudioWorkletNode);
     vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(42));
