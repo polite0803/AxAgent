@@ -398,6 +398,21 @@ pub async fn agent_query(
     // AgentProfile 未产生有效提示词时，降级到请求中携带的 system_prompt
     let effective_system_prompt = effective_system_prompt.or_else(|| request.system_prompt.clone());
 
+    // Load active persona and prepend its system prompt injection.
+    // The persona defines the agent's identity, tone, and behavioral guidelines.
+    // It is prepended before the role/expert prompts so it acts as the
+    // foundational layer of the system prompt.
+    let persona_prompt = axagent_agent::personality::PersonalityManager::get_active()
+        .ok()
+        .flatten()
+        .map(|p| p.system_prompt_injection());
+
+    let effective_system_prompt = match (persona_prompt, effective_system_prompt) {
+        (Some(p), Some(s)) => Some(format!("{}\n\n{}", p, s)),
+        (Some(p), None) => Some(p),
+        (None, s) => s,
+    };
+
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point
     // we emit an "agent-message-id" event so the frontend can remap the

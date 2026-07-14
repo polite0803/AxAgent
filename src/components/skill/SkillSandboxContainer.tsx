@@ -301,6 +301,7 @@ export function SkillSandboxContainer({
     componentId,
     componentConfig,
     permissions,
+    navigate,
   ]);
 
   useEffect(() => {

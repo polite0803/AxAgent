@@ -39,8 +39,25 @@ export function PluginMarketplace() {
   }, []);
 
   useEffect(() => {
-    fetchPlugins();
-  }, [fetchPlugins]);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { invoke, logIpcError } = await import("@/lib/invoke");
+        const data = await invoke<PluginSummaryDto[]>("plugin_list").catch((e) => {
+          if (import.meta.env.DEV) {
+            logIpcError("Failed to fetch plugins")(e);
+          }
+          return [];
+        });
+        setPlugins(data);
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const handleSearchInstall = async () => {
     const source = installInput.trim();

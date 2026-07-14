@@ -23,7 +23,6 @@ vi.mock("@/lib/audioProcessorWorklet", () => ({
 
 vi.mock("antd", () => {
   const MockApp = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (MockApp as any).useApp = () => ({
     message: { info: vi.fn(), success: vi.fn(), error: messageError, warning: vi.fn() },
   });

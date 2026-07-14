@@ -9,7 +9,7 @@ async-trait = "0.1"
 axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 chrono = { workspace = true }
-dirs = "5"
+dirs = "6"
 reqwest = { workspace = true }
 sea-orm = { workspace = true }
 serde = { workspace = true }

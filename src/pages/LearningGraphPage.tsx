@@ -158,18 +158,23 @@ export function LearningGraphPage() {
 
   // Fetch graph data (initial load)
   useEffect(() => {
-    if (!isTauri()) {
-      setLoading(false);
-      return;
-    }
-    setErrorMsg(null);
-    invoke<LearningGraph>("get_learning_graph")
-      .then((data) => setGraph(data))
-      .catch((err) => {
+    const load = async () => {
+      if (!isTauri()) {
+        setLoading(false);
+        return;
+      }
+      setErrorMsg(null);
+      try {
+        const data = await invoke<LearningGraph>("get_learning_graph");
+        setGraph(data);
+      } catch (err) {
         console.error("Failed to fetch learning graph:", err);
         setErrorMsg(typeof err === "string" ? err : "Failed to fetch learning graph");
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
   // Manual refresh — uses its own refreshing flag so the loading overlay only

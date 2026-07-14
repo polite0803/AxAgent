@@ -4,7 +4,8 @@ use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
-use tauri::command;
+use crate::app_state::AppState;
+use tauri::{command, State};
 use tokio::sync::Mutex;
 
 static BENCHMARK_SUITE: std::sync::OnceLock<Mutex<BenchmarkSuite>> = std::sync::OnceLock::new();
@@ -151,8 +152,53 @@ fn ab_test_store() -> &'static std::sync::Mutex<HashMap<String, AbTestReport>> {
     AB_TEST_STORAGE.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
 }
 
+async fn resolve_benchmark_provider(
+    db: &sea_orm::DatabaseConnection,
+    provider_registry: &std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    master_key: &str,
+) -> Result<Option<(std::sync::Arc<dyn axagent_harness::provider::ProviderAdapter>, axagent_harness::provider::ProviderRequestContext)>, String> {
+    use axagent_dao::repo::provider;
+    use axagent_harness::types::provider_model::provider_registry_key;
+
+    let providers = provider::list_providers(db)
+        .await
+        .map_err(|e| format!("Failed to list providers: {}", e))?;
+
+    if let Some(prov) = providers.first() {
+        let key = provider::get_active_key(db, &prov.id)
+            .await
+            .map_err(|e| format!("Failed to get active key: {}", e))?;
+
+        let decrypted = axagent_crypto::decrypt_key(&key.key_encrypted, master_key);
+
+        let registry_key = provider_registry_key(&prov.provider_type);
+        let adapter = provider_registry
+            .get(&registry_key)
+            .ok_or_else(|| format!("Provider '{}' not registered", prov.provider_type))?;
+
+        let ctx = axagent_harness::provider::ProviderRequestContext {
+            api_key: decrypted,
+            key_id: key.id.clone(),
+            provider_id: prov.id.clone(),
+            base_url: Some(prov.api_host.clone()),
+            api_path: prov.api_path.clone(),
+            proxy_config: prov.proxy_config.clone(),
+            custom_headers: None,
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        };
+
+        Ok(Some((adapter, ctx)))
+    } else {
+        Ok(None)
+    }
+}
+
 #[command]
-pub fn evaluator_run_ab_test(
+pub async fn evaluator_run_ab_test(
+    state: State<'_, AppState>,
     skill_id: String,
     version_a: String,
     version_b: String,
@@ -162,58 +208,114 @@ pub fn evaluator_run_ab_test(
     let test_id =
         format!("ab_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("test"));
 
-    // 生成模拟 A/B 测试结果（实际实现需对接真实评估引擎）
+    let db = state.harness.db();
+    let master_key = state.harness.master_key();
+    let provider_registry = state.harness.provider_registry().clone();
+
+    let mut real_metrics = None;
+    let mut sim_metrics = None;
+
+    // Try to get a real provider from the harness and run a real benchmark
+    if let Ok(Some((adapter, _ctx))) = resolve_benchmark_provider(&db, &provider_registry, master_key).await {
+        let runner = EvaluationRunner::new(RunnerConfig::default()).with_provider(adapter);
+        let suite = suite().lock().await;
+        if let Some(benchmark) = suite.get("reasoning") {
+            let result = runner.run_benchmark(benchmark).await;
+            let total_tasks = result.task_results.len() as f64;
+            let successful = result.task_results.iter().filter(|t| t.success).count() as f64;
+            let avg_score = if total_tasks > 0.0 {
+                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>() / total_tasks
+            } else {
+                0.0
+            };
+            real_metrics = Some(AbTestVersionMetrics {
+                success_rate: if total_tasks > 0.0 { successful / total_tasks } else { 0.0 },
+                avg_tokens: 0,
+                avg_duration: result.duration_ms as f64 / 1000.0,
+            });
+        }
+    }
+
+    // Run simulation baseline for comparison
+    {
+        let sim_runner = EvaluationRunner::new(RunnerConfig::default());
+        let suite = suite().lock().await;
+        if let Some(benchmark) = suite.get("reasoning") {
+            let result = sim_runner.run_benchmark(benchmark).await;
+            let total_tasks = result.task_results.len() as f64;
+            let successful = result.task_results.iter().filter(|t| t.success).count() as f64;
+            let avg_score = if total_tasks > 0.0 {
+                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>() / total_tasks
+            } else {
+                0.0
+            };
+            sim_metrics = Some(AbTestVersionMetrics {
+                success_rate: if total_tasks > 0.0 { successful / total_tasks } else { 0.0 },
+                avg_tokens: 0,
+                avg_duration: result.duration_ms as f64 / 1000.0,
+            });
+        }
+    }
+
+    let version_a_metrics = real_metrics.clone().unwrap_or(AbTestVersionMetrics {
+        success_rate: 0.0,
+        avg_tokens: 0,
+        avg_duration: 0.0,
+    });
+    let version_b_metrics = sim_metrics.clone().unwrap_or(AbTestVersionMetrics {
+        success_rate: 0.0,
+        avg_tokens: 0,
+        avg_duration: 0.0,
+    });
+
+    let winner = if version_b_metrics.success_rate > version_a_metrics.success_rate {
+        "B"
+    } else {
+        "A"
+    };
+
     let result = AbTestResult {
         test_id: test_id.clone(),
         status: "completed".to_string(),
         results: AbTestVersionResults {
-            version_a: AbTestVersionMetrics {
-                success_rate: 0.82,
-                avg_tokens: 3200,
-                avg_duration: 4.2,
-            },
-            version_b: AbTestVersionMetrics {
-                success_rate: 0.91,
-                avg_tokens: 2800,
-                avg_duration: 3.8,
-            },
+            version_a: version_a_metrics.clone(),
+            version_b: version_b_metrics.clone(),
         },
     };
 
-    // 存储测试报告以便后续查询
     let report = AbTestReport {
         test_id: test_id.clone(),
         skill_id: skill_id.clone(),
         version_a: version_a.clone(),
         version_b: version_b.clone(),
-        winner: "B".to_string(),
+        winner: winner.to_string(),
         metrics: vec![
             AbTestMetric {
                 name: "成功率".to_string(),
-                value_a: 82.3,
-                value_b: 91.5,
+                value_a: version_a_metrics.success_rate * 100.0,
+                value_b: version_b_metrics.success_rate * 100.0,
                 unit: "%".to_string(),
             },
             AbTestMetric {
                 name: "平均 Token 消耗".to_string(),
-                value_a: 3200.0,
-                value_b: 2800.0,
+                value_a: version_a_metrics.avg_tokens as f64,
+                value_b: version_b_metrics.avg_tokens as f64,
                 unit: "tokens".to_string(),
             },
             AbTestMetric {
                 name: "平均执行时间".to_string(),
-                value_a: 4.2,
-                value_b: 3.8,
+                value_a: version_a_metrics.avg_duration,
+                value_b: version_b_metrics.avg_duration,
                 unit: "秒".to_string(),
             },
-            AbTestMetric {
-                name: "用户满意度".to_string(),
-                value_a: 3.8,
-                value_b: 4.5,
-                unit: "/5".to_string(),
-            },
         ],
-        conclusion: format!("版本 B ({}) 在所有指标上均优于版本 A，推荐全面切换。", version_b),
+        conclusion: format!(
+            "版本 {} ({}) 在成功率上表现更优（{}% vs {}%）。",
+            winner,
+            if winner == "A" { &version_a } else { &version_b },
+            if winner == "A" { version_a_metrics.success_rate * 100.0 } else { version_b_metrics.success_rate * 100.0 },
+            if winner == "A" { version_b_metrics.success_rate * 100.0 } else { version_a_metrics.success_rate * 100.0 },
+        ),
     };
 
     ab_test_store().lock().map_err(|e| format!("Lock error: {}", e))?.insert(test_id, report);

@@ -11,13 +11,13 @@ axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 chrono = { version = "0.4", features = ["serde"] }
-dirs = "5"
+dirs = "6"
 futures = "0.3"
 itertools = "0.13"
 rand = "0.8"
 regex = "1"
 reqwest = { workspace = true }
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 sea-orm = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

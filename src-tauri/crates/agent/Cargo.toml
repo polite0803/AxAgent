@@ -16,7 +16,7 @@ axagent-harness = { path = "../harness" }
 backon = "1.6"
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
-dirs = "5"
+dirs = "6"
 docx-rs = "0.4"
 fastrand = "2.0"
 futures = "0.3"

@@ -2263,7 +2263,7 @@ export function InputArea() {
     if (gatewayKeys.length === 0) {
       fetchGatewayKeys();
     }
-  }, []);
+  }, [fetchGatewayKeys, gatewayKeys.length]);
 
   React.useEffect(() => {
     if (gatewayKeys.length > 0 && !voiceApiKey) {

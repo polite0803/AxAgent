@@ -7,8 +7,26 @@ use axagent_agent::fine_tune::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::command;
+use tracing::warn;
+
+static FINE_TUNE_DIR: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".axagent")
+        .join("fine_tune")
+});
+
+fn datasets_file() -> PathBuf {
+    FINE_TUNE_DIR.join("datasets.json")
+}
+
+fn samples_file() -> PathBuf {
+    FINE_TUNE_DIR.join("samples.json")
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetInfo {
@@ -57,8 +75,49 @@ impl Default for FineTuneState {
 
 static FINE_TUNE_STATE: std::sync::OnceLock<Mutex<FineTuneState>> = std::sync::OnceLock::new();
 
+fn ensure_dir() -> Result<(), String> {
+    fs::create_dir_all(&*FINE_TUNE_DIR)
+        .map_err(|e| format!("Failed to create fine_tune directory: {}", e))
+}
+
 fn state() -> &'static Mutex<FineTuneState> {
-    FINE_TUNE_STATE.get_or_init(|| Mutex::new(FineTuneState::default()))
+    FINE_TUNE_STATE.get_or_init(|| {
+        let mut s = FineTuneState::default();
+        // Load persisted datasets and samples from disk
+        if let Err(e) = load_datasets(&mut s) {
+            warn!("[fine_tune] Failed to load datasets from disk: {}", e);
+        }
+        Mutex::new(s)
+    })
+}
+
+fn persist_datasets(state: &FineTuneState) -> Result<(), String> {
+    ensure_dir()?;
+    let json = serde_json::to_string_pretty(&state.datasets)
+        .map_err(|e| format!("Serialize datasets: {}", e))?;
+    fs::write(datasets_file(), json)
+        .map_err(|e| format!("Write datasets: {}", e))?;
+    let samples_json = serde_json::to_string_pretty(&state.samples)
+        .map_err(|e| format!("Serialize samples: {}", e))?;
+    fs::write(samples_file(), samples_json)
+        .map_err(|e| format!("Write samples: {}", e))?;
+    Ok(())
+}
+
+fn load_datasets(state: &mut FineTuneState) -> Result<(), String> {
+    let path = datasets_file();
+    if path.exists() {
+        let json = fs::read_to_string(&path)
+            .map_err(|e| format!("Read datasets: {}", e))?;
+        state.datasets = serde_json::from_str(&json).unwrap_or_default();
+    }
+    let samples_path = samples_file();
+    if samples_path.exists() {
+        let json = fs::read_to_string(&samples_path)
+            .map_err(|e| format!("Read samples: {}", e))?;
+        state.samples = serde_json::from_str(&json).unwrap_or_default();
+    }
+    Ok(())
 }
 
 impl From<&TrainingJob> for TrainingJobInfo {
@@ -99,6 +158,7 @@ pub fn create_dataset(name: String, description: String) -> Result<DatasetInfo, 
     };
     s.datasets.insert(dataset.id.clone(), dataset.clone());
     s.samples.insert(dataset.id.clone(), Vec::new());
+    let _ = persist_datasets(&s); // Best-effort persist
     Ok(dataset)
 }
 
@@ -116,6 +176,7 @@ pub fn add_sample(
     if let Some(ds) = s.datasets.get_mut(&dataset_id) {
         ds.num_samples = new_count;
     }
+    let _ = persist_datasets(&s); // Best-effort persist
     Ok(())
 }
 
@@ -124,6 +185,7 @@ pub fn delete_dataset(dataset_id: String) -> Result<(), String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     s.datasets.remove(&dataset_id);
     s.samples.remove(&dataset_id);
+    let _ = persist_datasets(&s); // Best-effort persist
     Ok(())
 }
 

@@ -145,21 +145,19 @@ export function ImageGenPanel({
 
   // 当未传入 apiKey prop 时，尝试从配置自动加载
   useEffect(() => {
-    if (propApiKey) {
-      setStoredApiKey(propApiKey);
-      return;
+    if (!propApiKey) {
+      invoke<ImageGenConfig>("get_image_gen_config")
+        .then((config) => {
+          setSaveToArtifactSetting(config.save_to_artifact);
+          const key = provider === "flux" || config.default_provider === "flux"
+            ? config.flux_api_token
+            : config.openai_api_key;
+          if (key) { setStoredApiKey(key); }
+        })
+        .catch(() => {
+          // 忽略，让 UI 显示 "请配置 API Key"
+        });
     }
-    invoke<ImageGenConfig>("get_image_gen_config")
-      .then((config) => {
-        setSaveToArtifactSetting(config.save_to_artifact);
-        const key = provider === "flux" || config.default_provider === "flux"
-          ? config.flux_api_token
-          : config.openai_api_key;
-        if (key) { setStoredApiKey(key); }
-      })
-      .catch(() => {
-        // 忽略，让 UI 显示 "请配置 API Key"
-      });
   }, [propApiKey, provider]);
 
   const effectiveApiKey = propApiKey || storedApiKey;

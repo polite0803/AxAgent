@@ -56,8 +56,20 @@ export function DashboardPluginsSettings() {
   }, [t]);
 
   useEffect(() => {
-    loadPlugins();
-  }, [loadPlugins]);
+    const load = async () => {
+      try {
+        const result = await invoke<DashboardPluginInfo[]>(
+          "dashboard_list_plugins",
+        );
+        setPlugins(Array.isArray(result) ? result : []);
+      } catch (error) {
+        message.error(t("settings.plugins.loadFailed", { error }));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [t]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

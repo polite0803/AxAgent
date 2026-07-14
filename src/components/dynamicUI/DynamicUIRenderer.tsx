@@ -212,7 +212,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
         }
       }
     };
-  }, [schema.events, schema.id, onAction, scope]);
+  }, [schema.events, schema.id, onAction, scope, navigate]);
 
   const entry = componentRegistry.get(schema.type);
 

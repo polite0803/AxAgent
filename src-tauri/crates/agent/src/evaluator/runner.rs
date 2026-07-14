@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::provider::ProviderAdapter;
+use axagent_harness::types::settings_chat::{ChatContent, ChatMessage, ChatRequest};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -73,11 +75,17 @@ pub struct ScoreResult {
 
 pub struct EvaluationRunner {
     config: RunnerConfig,
+    provider: Option<Arc<dyn ProviderAdapter>>,
 }
 
 impl EvaluationRunner {
     pub fn new(config: RunnerConfig) -> Self {
-        Self { config }
+        Self { config, provider: None }
+    }
+
+    pub fn with_provider(mut self, provider: Arc<dyn ProviderAdapter>) -> Self {
+        self.provider = Some(provider);
+        self
     }
 
     pub fn with_config(&mut self, config: RunnerConfig) {
@@ -117,10 +125,25 @@ impl EvaluationRunner {
     async fn run_task(&self, task: &BenchmarkTask) -> TaskResult {
         let start_time = std::time::Instant::now();
 
-        let response = self.simulate_agent_response(task).await;
+        let response = if let Some(provider) = &self.provider {
+            self.call_llm_for_task(provider, task).await
+        } else {
+            self.simulate_agent_response(task).await
+        };
+
         let duration_ms = start_time.elapsed().as_millis() as u64;
 
-        let scores = self.evaluate_task(task, &response);
+        let (response_text, error) = match response {
+            Ok(text) => (Some(text.clone()), None),
+            Err(e) => (None, Some(e)),
+        };
+
+        let scores = if let Some(ref text) = response_text {
+            self.evaluate_task(task, text)
+        } else {
+            Vec::new()
+        };
+
         let overall_score = scores.iter().map(|s| s.weighted_score).sum::<f32>();
         let success = scores.iter().all(|s| s.passed) && overall_score >= 0.5;
 
@@ -132,10 +155,59 @@ impl EvaluationRunner {
             duration_ms,
             scores,
             overall_score,
-            response: Some(response.clone()),
-            error: None,
+            response: response_text,
+            error,
             trace_id: None,
         }
+    }
+
+    async fn call_llm_for_task(
+        &self,
+        provider: &Arc<dyn ProviderAdapter>,
+        task: &BenchmarkTask,
+    ) -> Result<String, String> {
+        let request = Arc::new(ChatRequest {
+            model: "default".to_string(),
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(task.input.query.clone()),
+                tool_calls: None,
+                tool_call_id: None,
+            }],
+            stream: false,
+            temperature: None,
+            top_p: None,
+            max_tokens: Some(2048),
+            tools: None,
+            thinking_budget: None,
+            use_max_completion_tokens: None,
+            thinking_param_style: None,
+            api_mode: None,
+            instructions: None,
+            conversation: None,
+            previous_response_id: None,
+            store: None,
+        });
+
+        let ctx = axagent_harness::provider::ProviderRequestContext {
+            api_key: String::new(),
+            key_id: String::new(),
+            provider_id: String::new(),
+            base_url: None,
+            api_path: None,
+            proxy_config: None,
+            custom_headers: None,
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        };
+
+        provider
+            .chat(&ctx, request)
+            .await
+            .map(|response| response.content)
+            .map_err(|e| format!("LLM call failed: {}", e))
     }
 
     // i18n-exempt: Example strings for benchmark evaluation — testing data, not UI

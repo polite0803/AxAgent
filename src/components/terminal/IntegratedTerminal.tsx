@@ -51,11 +51,14 @@ export function IntegratedTerminal({
 
   // 使用 ref 避免 onData/onResize 回调捕获过期状态
   const activeSessionIdRef = useRef(activeSessionId);
-  activeSessionIdRef.current = activeSessionId;
   const writeToSessionRef = useRef(writeToSession);
-  writeToSessionRef.current = writeToSession;
   const resizeSessionRef = useRef(resizeSession);
-  resizeSessionRef.current = resizeSession;
+
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+    writeToSessionRef.current = writeToSession;
+    resizeSessionRef.current = resizeSession;
+  }, [activeSessionId, writeToSession, resizeSession]);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const activeOutput = useMemo(

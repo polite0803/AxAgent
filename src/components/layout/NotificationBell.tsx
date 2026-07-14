@@ -3,6 +3,7 @@
 // 通知铃铛 — 显示 Agent 生命周期通知和未读计数
 // 使用统一的 notification 工具库，与 NotificationCenter 共享数据
 
+/* eslint-disable react-refresh/only-export-components */
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { addNotification, getNotifications, type Notification } from "@/lib/notification";
 import { BellOutlined } from "@ant-design/icons";

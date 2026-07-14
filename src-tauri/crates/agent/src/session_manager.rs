@@ -267,7 +267,7 @@ impl SessionManager {
 
     /// Test-only constructor: accepts a pre-constructed `AgentSessionRepository`.
     /// 仅在 `testing` feature 启用时可用，调用方负责构造 repo（避免 agent crate 依赖 dao）。
-    #[cfg(feature = "testing")]
+    #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
     pub fn new_for_test(session_repo: Arc<dyn AgentSessionRepository>) -> Self {
         Self::new(session_repo)

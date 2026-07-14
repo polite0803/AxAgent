@@ -358,7 +358,7 @@ export function Sidebar() {
     });
 
     return sections.filter((s) => s.items.length > 0);
-  }, [builtinNavItems]);
+  }, []);
 
   // ── 固定在导航的动态页面 ──
   const dynamicSchemas = useDynamicUIStore((s) => s.schemas);

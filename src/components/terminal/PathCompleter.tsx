@@ -235,6 +235,7 @@ export function usePathCompleter(
     cycleSuggestion,
     acceptSuggestion,
     cancelCompletion,
+    suggestions.length,
   ]);
 
   return {
