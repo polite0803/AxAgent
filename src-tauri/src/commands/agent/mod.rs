@@ -40,9 +40,8 @@ use pricing::{check_token_budget, estimate_cost_usd};
 
 mod skill_execution;
 use skill_execution::{
-    SkillExecutionContext, SkillStep, build_agent_system_prompt,
-    check_and_suggest_workflow_match, execute_skill_sync, infer_agent_role,
-    load_enabled_skill_contents, load_skill_tools,
+    SkillExecutionContext, SkillStep, build_agent_system_prompt, check_and_suggest_workflow_match,
+    execute_skill_sync, infer_agent_role, load_enabled_skill_contents, load_skill_tools,
 };
 
 /// AskUser 桥接器的具体实现，由 wiring 层注入到 UnifiedToolRegistry。
@@ -2127,7 +2126,10 @@ pub(crate) async fn cancel_agent_internal(
         let tokens = &app_state.agent_cancel_tokens;
         if let Some(token) = tokens.get(conversation_id) {
             token.store(true, std::sync::atomic::Ordering::Release);
-            info!("[cancel_agent_internal] Set cancel token for conversationId={}", conversation_id);
+            info!(
+                "[cancel_agent_internal] Set cancel token for conversationId={}",
+                conversation_id
+            );
         }
     }
 
@@ -2180,13 +2182,8 @@ pub async fn agent_cancel(
     // The cancel token (set above) is what actually stops the agent loop;
     // running_agents is only a concurrency guard for agent_query entry.
 
-    cancel_agent_internal(
-        &app,
-        app_state.inner(),
-        &request.conversation_id,
-        "User cancelled",
-    )
-    .await;
+    cancel_agent_internal(&app, app_state.inner(), &request.conversation_id, "User cancelled")
+        .await;
 
     Ok(())
 }

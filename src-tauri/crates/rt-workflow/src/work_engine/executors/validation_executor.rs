@@ -126,4 +126,3 @@ fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::
     }
     Some(current)
 }
-

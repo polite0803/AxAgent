@@ -56,4 +56,3 @@ impl NodeExecutorTrait for DocumentParserExecutor {
         })
     }
 }
-

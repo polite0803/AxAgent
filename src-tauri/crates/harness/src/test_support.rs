@@ -63,10 +63,10 @@ use crate::ExtractedRelation;
 use crate::FilterAction;
 use crate::GatewayService;
 use crate::GatewayStatus;
-use crate::KnowledgeType;
 use crate::IndexConfig;
 use crate::IndexJobStatus;
 use crate::IntegrityResult;
+use crate::KnowledgeType;
 use crate::LlmExecutionService;
 use crate::LogLevel;
 use crate::McpClientService;
@@ -571,7 +571,10 @@ impl ConsolidationDataProvider for NoopConsolidationDataProvider {
     ) -> std::result::Result<Vec<ExperienceRecord>, String> {
         Ok(Vec::new())
     }
-    async fn fetch_experience_by_topic(&self, _topic: &str) -> std::result::Result<Vec<ExperienceRecord>, String> {
+    async fn fetch_experience_by_topic(
+        &self,
+        _topic: &str,
+    ) -> std::result::Result<Vec<ExperienceRecord>, String> {
         Ok(Vec::new())
     }
     async fn store_distilled_knowledge(

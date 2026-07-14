@@ -188,4 +188,3 @@ fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::
     // fallback：root 不是节点 ID，将整个 path 作为模板变量名直查
     context.variables.get(path).cloned()
 }
-

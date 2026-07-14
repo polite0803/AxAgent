@@ -78,4 +78,3 @@ fn resolve_query_template(
     }
     result
 }
-

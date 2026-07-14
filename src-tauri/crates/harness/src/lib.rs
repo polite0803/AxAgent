@@ -292,8 +292,8 @@ pub use rl::{
 pub mod dream;
 pub use dream::{
     ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,
-    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState,
-    DreamConsolidator, DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
+    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamConsolidator,
+    DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
 };
 pub mod profile;
 pub use profile::{

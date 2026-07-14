@@ -46,7 +46,14 @@ pub async fn nudge_execute(
         let recent = ns.get_recent_nudges(50);
         let nudge_content: String = recent.iter().find(|n| n.id == nudge_id).map_or_else(
             || format!("nudge {} executed", nudge_id),
-            |n| format!("[Nudge] {}: {} (entity: {})", n.reason, n.suggested_action.as_deref().unwrap_or(""), n.entity_name),
+            |n| {
+                format!(
+                    "[Nudge] {}: {} (entity: {})",
+                    n.reason,
+                    n.suggested_action.as_deref().unwrap_or(""),
+                    n.entity_name
+                )
+            },
         );
         drop(ns); // 释放 nudge_service 锁，避免死锁
 

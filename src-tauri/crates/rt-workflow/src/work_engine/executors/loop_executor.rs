@@ -649,4 +649,3 @@ mod tests {
         assert!(!evaluate_continue_condition("partial.length < 2", &[json!(1), json!(2)], 0));
     }
 }
-

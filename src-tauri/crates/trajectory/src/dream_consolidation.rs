@@ -25,8 +25,8 @@ use tokio::sync::Mutex;
 // 类型定义和 trait 接口统一来自 harness
 pub use axagent_harness::dream::{
     ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,
-    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState,
-    DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
+    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamEventEmitter,
+    ExperienceRecord, KnowledgeType, SuggestionType,
 };
 
 // ---------------------------------------------------------------------------

@@ -155,4 +155,3 @@ impl NodeExecutorTrait for AggregatorExecutor {
         })
     }
 }
-

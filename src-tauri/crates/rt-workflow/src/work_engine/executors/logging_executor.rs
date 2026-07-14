@@ -51,4 +51,3 @@ impl NodeExecutorTrait for LoggingExecutor {
         })
     }
 }
-

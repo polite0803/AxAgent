@@ -187,15 +187,20 @@ pub type DreamEventEmitter = Option<Arc<dyn Fn(&str, serde_json::Value) + Send +
 #[async_trait]
 pub trait ConsolidationDataProvider: Send + Sync {
     /// 获取最近的经验记录（用于经验回放）
-    async fn fetch_recent_experiences(&self, limit: usize) -> Result<Vec<ExperienceRecord>, String>;
+    async fn fetch_recent_experiences(&self, limit: usize)
+    -> Result<Vec<ExperienceRecord>, String>;
 
     /// 按主题查询经验
-    async fn fetch_experience_by_topic(&self, _topic: &str) -> Result<Vec<ExperienceRecord>, String> {
+    async fn fetch_experience_by_topic(
+        &self,
+        _topic: &str,
+    ) -> Result<Vec<ExperienceRecord>, String> {
         self.fetch_recent_experiences(100).await
     }
 
     /// 存储已蒸馏的知识
-    async fn store_distilled_knowledge(&self, knowledge: &DistilledKnowledge) -> Result<(), String>;
+    async fn store_distilled_knowledge(&self, knowledge: &DistilledKnowledge)
+    -> Result<(), String>;
 
     /// 存储巩固建议
     async fn store_suggestion(&self, suggestion: &ConsolidationSuggestion) -> Result<(), String>;

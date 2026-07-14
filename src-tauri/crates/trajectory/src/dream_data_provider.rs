@@ -3,11 +3,11 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+use async_trait::async_trait;
 use axagent_harness::dream::{
     ConsolidationDataProvider, ConsolidationSuggestion, DistilledKnowledge, ExperienceRecord,
     KnowledgeType,
 };
-use async_trait::async_trait;
 
 use crate::dream_consolidation::ReplaySample;
 use crate::skill::Skill;
@@ -117,15 +117,20 @@ fn distilled_knowledge_to_skill(knowledge: &DistilledKnowledge) -> Skill {
 
 #[async_trait]
 impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
-    async fn fetch_recent_experiences(&self, limit: usize) -> Result<Vec<ExperienceRecord>, String> {
+    async fn fetch_recent_experiences(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<ExperienceRecord>, String> {
         let trajectories =
             self.storage.get_trajectories(Some(limit)).await.map_err(|e| e.to_string())?;
         Ok(trajectories.iter().map(trajectory_to_experience_record).collect())
     }
 
-    async fn fetch_experience_by_topic(&self, topic: &str) -> Result<Vec<ExperienceRecord>, String> {
-        let trajectories =
-            self.storage.get_trajectories(None).await.map_err(|e| e.to_string())?;
+    async fn fetch_experience_by_topic(
+        &self,
+        topic: &str,
+    ) -> Result<Vec<ExperienceRecord>, String> {
+        let trajectories = self.storage.get_trajectories(None).await.map_err(|e| e.to_string())?;
         Ok(trajectories
             .iter()
             .filter(|t| t.topic.contains(topic))
@@ -133,7 +138,10 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
             .collect())
     }
 
-    async fn store_distilled_knowledge(&self, knowledge: &DistilledKnowledge) -> Result<(), String> {
+    async fn store_distilled_knowledge(
+        &self,
+        knowledge: &DistilledKnowledge,
+    ) -> Result<(), String> {
         if let Ok(mut cache) = self.knowledge_cache.write() {
             cache.insert(knowledge.id.clone(), knowledge.clone());
         }
@@ -157,11 +165,7 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
         self.knowledge_cache
             .read()
             .map(|cache| {
-                cache
-                    .values()
-                    .filter(|k| k.knowledge_type == *knowledge_type)
-                    .cloned()
-                    .collect()
+                cache.values().filter(|k| k.knowledge_type == *knowledge_type).cloned().collect()
             })
             .map_err(|e| format!("Knowledge cache read lock poisoned: {}", e))
     }

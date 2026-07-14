@@ -428,10 +428,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let dream_data_provider = Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
         shared_trajectory_storage.clone(),
     ));
-    let dream_consolidator =
-        Arc::new(axagent_trajectory::DreamConsolidator::new().with_data_provider(
-            dream_data_provider.clone(),
-        ));
+    let dream_consolidator = Arc::new(
+        axagent_trajectory::DreamConsolidator::new()
+            .with_data_provider(dream_data_provider.clone()),
+    );
     let text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
             axagent_trajectory::ComputationGraph::new(),

@@ -129,4 +129,3 @@ impl NodeExecutorTrait for MergeExecutor {
         })
     }
 }
-

@@ -2684,4 +2684,3 @@ fn validate_strict_mode_output(
     }
     Ok(())
 }
-

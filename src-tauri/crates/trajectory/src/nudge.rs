@@ -154,10 +154,7 @@ impl NudgeService {
     }
 
     pub fn start_session(&mut self, session_id: String) -> &mut Self {
-        self.session = Some(NudgeSession {
-            session_id,
-            nudges: Vec::new(),
-        });
+        self.session = Some(NudgeSession { session_id, nudges: Vec::new() });
         self
     }
 
@@ -289,16 +286,25 @@ impl NudgeService {
     /// Always syncs history regardless of whether the nudge was found in session.
     pub fn take_nudge_action(&mut self, nudge_id: &str, action: NudgeAction) -> bool {
         let now = Utc::now().timestamp_millis();
-        let dismiss_time = if action == NudgeAction::Dismissed { Some(now) } else { None };
+        let dismiss_time = if action == NudgeAction::Dismissed {
+            Some(now)
+        } else {
+            None
+        };
 
         // Update session
         let found_in_session = if let Some(session) = &mut self.session {
-            session.nudges.iter_mut().find(|n| n.id == nudge_id).map(|n| {
-                n.action_taken = Some(action);
-                if let Some(t) = dismiss_time {
-                    n.dismissed_at = Some(t);
-                }
-            }).is_some()
+            session
+                .nudges
+                .iter_mut()
+                .find(|n| n.id == nudge_id)
+                .map(|n| {
+                    n.action_taken = Some(action);
+                    if let Some(t) = dismiss_time {
+                        n.dismissed_at = Some(t);
+                    }
+                })
+                .is_some()
         } else {
             false
         };
@@ -509,7 +515,7 @@ mod tests {
                 confidence: 0.85,
             },
             reason: "Auto-add test".to_string(),
-            urgency: Urgency::Low,  // Low urgency → filtered by normal flow
+            urgency: Urgency::Low, // Low urgency → filtered by normal flow
             suggested_action: None,
         }];
 

@@ -21,10 +21,7 @@ pub struct NodeOutput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NodeControl {
     /// 挂起整个工作流，等待外部审批/信号后恢复
-    Suspend {
-        resume_token: String,
-        approval: ApprovalRequest,
-    },
+    Suspend { resume_token: String, approval: ApprovalRequest },
 }
 
 /// 审批请求数据（由 ApprovalExecutor 产生，引擎通过 ApprovalOps 持久化）

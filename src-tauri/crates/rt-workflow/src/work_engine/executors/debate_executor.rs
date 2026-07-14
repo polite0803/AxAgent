@@ -58,4 +58,3 @@ impl NodeExecutorTrait for DebateExecutor {
         })
     }
 }
-

@@ -131,4 +131,3 @@ fn build_output(trigger_type: &str, config: &serde_json::Value) -> serde_json::V
         "timestamp": chrono::Utc::now().timestamp_millis(),
     })
 }
-

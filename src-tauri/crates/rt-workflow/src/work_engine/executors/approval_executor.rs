@@ -45,4 +45,3 @@ impl NodeExecutorTrait for ApprovalExecutor {
         })
     }
 }
-

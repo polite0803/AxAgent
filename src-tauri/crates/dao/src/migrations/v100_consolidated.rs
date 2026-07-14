@@ -1491,8 +1491,14 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         )"
     };
     db.execute_unprepared(create_approvals).await?;
-    db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_wf_approvals_exec ON workflow_approvals(execution_id)").await?;
-    db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_wf_approvals_status ON workflow_approvals(status)").await?;
+    db.execute_unprepared(
+        "CREATE INDEX IF NOT EXISTS idx_wf_approvals_exec ON workflow_approvals(execution_id)",
+    )
+    .await?;
+    db.execute_unprepared(
+        "CREATE INDEX IF NOT EXISTS idx_wf_approvals_status ON workflow_approvals(status)",
+    )
+    .await?;
 
     Ok(())
 }

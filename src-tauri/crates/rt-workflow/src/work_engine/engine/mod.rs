@@ -1993,7 +1993,11 @@ impl WorkEngine {
 
                         // ── Approval Suspend 检测 ──
                         if let Some(ctrl) = output.control.as_ref() {
-                            if let crate::work_engine::node_executor_trait::NodeControl::Suspend { approval, .. } = ctrl {
+                            if let crate::work_engine::node_executor_trait::NodeControl::Suspend {
+                                approval,
+                                ..
+                            } = ctrl
+                            {
                                 tracing::info!(
                                     execution_id = %execution_id,
                                     node_id = %nr.node_id,
@@ -2026,7 +2030,12 @@ impl WorkEngine {
                                             created_at: now_ms,
                                             resolved_at: None,
                                         };
-                                        if let Err(e) = axagent_dao::repo::workflow_approval::save_approval(db, &record).await {
+                                        if let Err(e) =
+                                            axagent_dao::repo::workflow_approval::save_approval(
+                                                db, &record,
+                                            )
+                                            .await
+                                        {
                                             tracing::error!(error = %e, "[Approval] 保存审批记录失败");
                                         }
                                     }
@@ -2042,7 +2051,9 @@ impl WorkEngine {
                                 }
                                 // 等待 resume signal（复用 pause_signal，与断点模式同构）
                                 let pause_sig = {
-                                    self.executions.lock().await
+                                    self.executions
+                                        .lock()
+                                        .await
                                         .get(&execution_id)
                                         .and_then(|s| s.pause_signal.clone())
                                 };
