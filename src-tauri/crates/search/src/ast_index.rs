@@ -162,35 +162,35 @@ impl AstIndex {
         for f in &functions {
             tx.execute(
                 "INSERT INTO ast_functions (id, file_path, name, signature, line_start, line_end, visibility, language) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
-                params![f.id, f.file_path, f.name, f.signature, f.line_start, f.line_end, f.visibility, f.language],
+                params![f.id, f.file_path, f.name, f.signature, f.line_start as i64, f.line_end as i64, f.visibility, f.language],
             ).map_err(|e| format!("insert fn: {e}"))?;
             total += 1;
         }
         for c in &classes {
             tx.execute(
                 "INSERT INTO ast_classes (id, file_path, name, line_start, line_end, language, parent_class) VALUES (?1,?2,?3,?4,?5,?6,?7)",
-                params![c.id, c.file_path, c.name, c.line_start, c.line_end, c.language, c.parent_class],
+                params![c.id, c.file_path, c.name, c.line_start as i64, c.line_end as i64, c.language, c.parent_class],
             ).map_err(|e| format!("insert cls: {e}"))?;
             total += 1;
         }
         for i in &interfaces {
             tx.execute(
                 "INSERT INTO ast_interfaces (id, file_path, name, line_start, language) VALUES (?1,?2,?3,?4,?5)",
-                params![i.id, i.file_path, i.name, i.line_start, i.language],
+                params![i.id, i.file_path, i.name, i.line_start as i64, i.language],
             ).map_err(|e| format!("insert iface: {e}"))?;
             total += 1;
         }
         for v in &variables {
             tx.execute(
                 "INSERT INTO ast_variables (id, file_path, name, type_annotation, line, language) VALUES (?1,?2,?3,?4,?5,?6)",
-                params![v.id, v.file_path, v.name, v.type_annotation, v.line, v.language],
+                params![v.id, v.file_path, v.name, v.type_annotation, v.line as i64, v.language],
             ).map_err(|e| format!("insert var: {e}"))?;
             total += 1;
         }
         for e in &call_edges {
             tx.execute(
                 "INSERT INTO ast_call_edges (caller_file, caller_function, callee_name, line) VALUES (?1,?2,?3,?4)",
-                params![e.caller_file, e.caller_function, e.callee_name, e.line],
+                params![e.caller_file, e.caller_function, e.callee_name, e.line as i64],
             ).map_err(|e| format!("insert edge: {e}"))?;
             total += 1;
         }
@@ -221,14 +221,14 @@ impl AstIndex {
             .prepare("SELECT id, file_path, name, signature, line_start, line_end, visibility, language FROM ast_functions WHERE name LIKE ?1 OR signature LIKE ?1 LIMIT ?2")
             .map_err(|e| format!("prepare: {e}"))?;
         let rows = stmt
-            .query_map(params![format!("%{query}%"), limit], |row| {
+            .query_map(params![format!("%{query}%"), limit as i64], |row| {
                 Ok(FunctionDef {
                     id: row.get(0)?,
                     file_path: row.get(1)?,
                     name: row.get(2)?,
                     signature: row.get(3)?,
-                    line_start: row.get(4)?,
-                    line_end: row.get(5)?,
+                    line_start: row.get::<_, i64>(4)? as usize,
+                    line_end: row.get::<_, i64>(5)? as usize,
                     visibility: row.get(6)?,
                     language: row.get(7)?,
                 })
@@ -249,13 +249,13 @@ impl AstIndex {
             .prepare("SELECT id, file_path, name, line_start, line_end, language, parent_class FROM ast_classes WHERE name LIKE ?1 LIMIT ?2")
             .map_err(|e| format!("prepare: {e}"))?;
         let rows = stmt
-            .query_map(params![format!("%{query}%"), limit], |row| {
+            .query_map(params![format!("%{query}%"), limit as i64], |row| {
                 Ok(ClassDef {
                     id: row.get(0)?,
                     file_path: row.get(1)?,
                     name: row.get(2)?,
-                    line_start: row.get(3)?,
-                    line_end: row.get(4)?,
+                    line_start: row.get::<_, i64>(3)? as usize,
+                    line_end: row.get::<_, i64>(4)? as usize,
                     language: row.get(5)?,
                     parent_class: row.get(6)?,
                 })
@@ -281,7 +281,7 @@ impl AstIndex {
                     caller_file: row.get(0)?,
                     caller_function: row.get(1)?,
                     callee_name: row.get(2)?,
-                    line: row.get(3)?,
+                    line: row.get::<_, i64>(3)? as usize,
                 })
             })
             .map_err(|e| format!("query: {e}"))?;
@@ -304,7 +304,7 @@ impl AstIndex {
             let sql = format!("SELECT DISTINCT file_path FROM {table} WHERE name LIKE ?1 LIMIT ?2");
             let mut stmt = self.conn.prepare(&sql).map_err(|e| format!("prepare {table}: {e}"))?;
             let rows = stmt
-                .query_map(params![&pattern, limit], |row| row.get::<_, String>(0))
+                .query_map(params![&pattern, limit as i64], |row| row.get::<_, String>(0))
                 .map_err(|e| format!("query {table}: {e}"))?;
             for path in rows.flatten() {
                 results.insert(path);

@@ -1333,3 +1333,55 @@ async fn update_conversation_memory_status(
 
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// 共享记忆命令（从 agent 模块迁移）
+// ---------------------------------------------------------------------------
+
+/// 列出命名空间中的所有共享记忆条目
+#[tauri::command]
+pub async fn shared_memory_list(
+    app_state: State<'_, AppState>,
+    namespace: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    let mem = app_state.shared_memory.read().await;
+    let entries = mem.list(&namespace);
+    Ok(entries.iter().filter_map(|e| serde_json::to_value(e).ok()).collect())
+}
+
+/// 获取指定共享记忆条目
+#[tauri::command]
+pub async fn shared_memory_get(
+    app_state: State<'_, AppState>,
+    key: String,
+    namespace: String,
+) -> Result<serde_json::Value, String> {
+    let mem = app_state.shared_memory.read().await;
+    let entry = mem.get(&key, &namespace).map_err(|e| e.to_string())?;
+    serde_json::to_value(entry).map_err(|e| e.to_string())
+}
+
+/// 获取共享记忆统计信息
+#[tauri::command]
+pub async fn shared_memory_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let mem = app_state.shared_memory.read().await;
+    let stats = mem.stats();
+    serde_json::to_value(stats).map_err(|e| e.to_string())
+}
+
+/// 手动刷新记忆（前端触发）
+#[tauri::command]
+pub async fn memory_flush(
+    app_state: State<'_, AppState>,
+    content: String,
+    target: Option<String>,
+    category: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let valid_target = target.as_deref().unwrap_or("memory");
+    let _valid_category = category.as_deref().unwrap_or("insight");
+
+    // 使用 MemoryService 持久化记忆
+    let ms = app_state.memory_service.read().await;
+    let result = ms.add_memory(valid_target, &content).await;
+    serde_json::to_value(result).map_err(|e| e.to_string())
+}

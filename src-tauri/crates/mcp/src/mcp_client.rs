@@ -1510,6 +1510,8 @@ fn resource_contents_to_mcp(
                     blob: Some(encoded),
                 });
             },
+            // 兜底：rmcp 2.x 将 ResourceContents 标记为 non_exhaustive，未来新增变体时不破坏调用方
+            _ => {},
         }
     }
     out

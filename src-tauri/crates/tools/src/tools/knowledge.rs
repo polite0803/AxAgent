@@ -177,7 +177,7 @@ impl Tool for SearchKnowledgeTool {
         })?;
 
         let rows: Vec<String> = stmt
-            .query_map(rusqlite::params![like_pattern, top_k], |row| {
+            .query_map(rusqlite::params![like_pattern, top_k as i64], |row| {
                 let content: String = row.get(0)?;
                 Ok(content)
             })

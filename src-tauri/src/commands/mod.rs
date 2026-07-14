@@ -93,6 +93,7 @@ pub mod skills;
 pub mod skills_hub;
 pub mod sources;
 pub mod spawn_guard;
+pub mod sub_agent;
 pub mod storage;
 #[cfg(not(mobile))]
 pub mod terminal;
@@ -109,3 +110,4 @@ pub mod workflow_ai_apply;
 pub mod workflow_ai_diagnose;
 pub mod workflow_template;
 pub mod workflow_yaml;
+pub mod workflows;

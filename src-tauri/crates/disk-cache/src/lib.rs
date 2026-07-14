@@ -132,10 +132,10 @@ impl DiskCache {
                 query_hash: row.get(1)?,
                 query_text: row.get(2)?,
                 results_json: row.get(3)?,
-                result_count: row.get(4)?,
+                result_count: row.get::<_, i64>(4)? as usize,
                 hit_count: row.get(5)?,
-                created_at: row.get(6)?,
-                last_accessed_at: row.get(7)?,
+                created_at: row.get::<_, i64>(6)? as u64,
+                last_accessed_at: row.get::<_, i64>(7)? as u64,
             })
         });
 
@@ -144,7 +144,7 @@ impl DiskCache {
                 self.conn
                     .execute(
                         "UPDATE l2_search_results SET hit_count = hit_count + 1, last_accessed_at = ?1 WHERE id = ?2",
-                        params![Self::now_secs(), cached.id],
+                        params![Self::now_secs() as i64, cached.id],
                     )
                     .map_err(|e| format!("update hit: {e}"))?;
                 cached.hit_count += 1;
@@ -168,7 +168,7 @@ impl DiskCache {
         self.conn
             .execute(
                 "INSERT OR REPLACE INTO l2_search_results (query_hash, query_text, results_json, result_count, created_at, last_accessed_at) VALUES (?1,?2,?3,?4,?5,?6)",
-                params![query_hash, query_text, results_json, result_count, now, now],
+                params![query_hash, query_text, results_json, result_count as i64, now as i64, now as i64],
             )
             .map_err(|e| format!("store search: {e}"))?;
 
@@ -180,7 +180,7 @@ impl DiskCache {
         let cutoff =
             Self::now_secs().saturating_sub(self.config.search_result_ttl_days as u64 * 86400);
         self.conn
-            .execute("DELETE FROM l2_search_results WHERE last_accessed_at < ?1 AND id NOT IN (SELECT id FROM l2_search_results ORDER BY last_accessed_at DESC LIMIT ?2)", params![cutoff, self.config.max_search_results])
+            .execute("DELETE FROM l2_search_results WHERE last_accessed_at < ?1 AND id NOT IN (SELECT id FROM l2_search_results ORDER BY last_accessed_at DESC LIMIT ?2)", params![cutoff as i64, self.config.max_search_results as i64])
             .map_err(|e| format!("evict search: {e}"))?;
         Ok(())
     }
@@ -198,7 +198,7 @@ impl DiskCache {
         self.conn
             .execute(
                 "INSERT INTO l2_summaries (conversation_id, summary_text, compressed_message_count, created_at) VALUES (?1,?2,?3,?4)",
-                params![conversation_id, summary_text, compressed_message_count, now],
+                params![conversation_id, summary_text, compressed_message_count as i64, now as i64],
             )
             .map_err(|e| format!("store summary: {e}"))?;
 
@@ -219,8 +219,8 @@ impl DiskCache {
                     id: row.get(0)?,
                     conversation_id: row.get(1)?,
                     summary_text: row.get(2)?,
-                    compressed_message_count: row.get(3)?,
-                    created_at: row.get(4)?,
+                    compressed_message_count: row.get::<_, i64>(3)? as usize,
+                    created_at: row.get::<_, i64>(4)? as u64,
                 })
             })
             .map_err(|e| format!("query summaries: {e}"))?;
@@ -235,7 +235,7 @@ impl DiskCache {
     fn evict_old_summaries(&self) -> Result<(), String> {
         let cutoff = Self::now_secs().saturating_sub(self.config.summary_ttl_days as u64 * 86400);
         self.conn
-            .execute("DELETE FROM l2_summaries WHERE created_at < ?1 AND id NOT IN (SELECT id FROM l2_summaries ORDER BY created_at DESC LIMIT ?2)", params![cutoff, self.config.max_summaries])
+            .execute("DELETE FROM l2_summaries WHERE created_at < ?1 AND id NOT IN (SELECT id FROM l2_summaries ORDER BY created_at DESC LIMIT ?2)", params![cutoff as i64, self.config.max_summaries as i64])
             .map_err(|e| format!("evict summaries: {e}"))?;
         Ok(())
     }
@@ -254,7 +254,7 @@ impl DiskCache {
         self.conn
             .execute(
                 "INSERT OR REPLACE INTO l2_index_snapshots (snapshot_id, file_count, definition_count, snapshot_path, created_at) VALUES (?1,?2,?3,?4,?5)",
-                params![snapshot_id, file_count, definition_count, snapshot_path, now],
+                params![snapshot_id, file_count as i64, definition_count as i64, snapshot_path, now as i64],
             )
             .map_err(|e| format!("record snapshot: {e}"))?;
 
@@ -270,13 +270,13 @@ impl DiskCache {
             .map_err(|e| format!("prepare: {e}"))?;
 
         let rows = stmt
-            .query_map(params![self.config.max_snapshots], |row| {
+            .query_map(params![self.config.max_snapshots as i64], |row| {
                 Ok(IndexSnapshotMeta {
                     snapshot_id: row.get(0)?,
-                    file_count: row.get(1)?,
-                    definition_count: row.get(2)?,
+                    file_count: row.get::<_, i64>(1)? as usize,
+                    definition_count: row.get::<_, i64>(2)? as usize,
                     snapshot_path: row.get(3)?,
-                    created_at: row.get(4)?,
+                    created_at: row.get::<_, i64>(4)? as u64,
                 })
             })
             .map_err(|e| format!("list snapshots: {e}"))?;
@@ -292,7 +292,7 @@ impl DiskCache {
         self.conn
             .execute(
                 "DELETE FROM l2_index_snapshots WHERE snapshot_id NOT IN (SELECT snapshot_id FROM l2_index_snapshots ORDER BY created_at DESC LIMIT ?1)",
-                params![self.config.max_snapshots],
+                params![self.config.max_snapshots as i64],
             )
             .map_err(|e| format!("evict snapshots: {e}"))?;
         Ok(())

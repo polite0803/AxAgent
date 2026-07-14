@@ -465,12 +465,12 @@ pub(super) struct SkillExecutionResult {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(super) struct SkillStep {
-    pub(super) step: usize,
-    pub(super) action: String,
-    pub(super) description: String,
+pub(crate) struct SkillStep {
+    pub(crate) step: usize,
+    pub(crate) action: String,
+    pub(crate) description: String,
     #[serde(default)]
-    pub(super) needs: Vec<usize>,
+    pub(crate) needs: Vec<usize>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -520,7 +520,7 @@ pub(super) fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
     tool_name.map(|name| McpToolCall { tool_name: name, arguments })
 }
 
-pub(super) fn infer_agent_role(
+pub(crate) fn infer_agent_role(
     action: &str,
     description: &str,
 ) -> axagent_runtime::agent_roles::AgentRole {

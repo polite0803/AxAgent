@@ -5,6 +5,8 @@ use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
+use serde::Serialize;
+use std::collections::HashMap;
 use tauri::{State, command};
 use tokio::sync::Mutex;
 
@@ -32,6 +34,7 @@ pub fn evaluator_get_benchmark(benchmark_id: String) -> Result<Option<Benchmark>
 
 #[command]
 pub async fn evaluator_run_benchmark(
+    state: State<'_, AppState>,
     benchmark_id: String,
     config: RunnerConfig,
 ) -> Result<BenchmarkResult, String> {
@@ -41,7 +44,19 @@ pub async fn evaluator_run_benchmark(
             .cloned()
             .ok_or_else(|| format!("Benchmark not found: {}", benchmark_id))?
     };
-    let runner = EvaluationRunner::new(config);
+
+    let db = state.harness.db();
+    let master_key = state.harness.master_key();
+    let provider_registry = state.harness.provider_registry().clone();
+
+    let runner = if let Ok(Some((adapter, ctx))) =
+        resolve_benchmark_provider(&db, &provider_registry, master_key).await
+    {
+        EvaluationRunner::new(config).with_provider(adapter, ctx)
+    } else {
+        EvaluationRunner::new(config)
+    };
+
     Ok(runner.run_benchmark(&benchmark).await)
 }
 
@@ -91,9 +106,6 @@ pub fn evaluator_export_report(report: BenchmarkReport, format: String) -> Resul
 }
 
 // ── A/B 测试 ──
-
-use serde::Serialize;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AbTestResult {
@@ -155,7 +167,7 @@ fn ab_test_store() -> &'static std::sync::Mutex<HashMap<String, AbTestReport>> {
 async fn resolve_benchmark_provider(
     db: &sea_orm::DatabaseConnection,
     provider_registry: &std::sync::Arc<dyn axagent_harness::registry::ProviderRegistry>,
-    master_key: &str,
+    master_key: &[u8; 32],
 ) -> Result<
     Option<(
         std::sync::Arc<dyn axagent_harness::provider::ProviderAdapter>,
@@ -175,12 +187,13 @@ async fn resolve_benchmark_provider(
             .await
             .map_err(|e| format!("Failed to get active key: {}", e))?;
 
-        let decrypted = axagent_crypto::decrypt_key(&key.key_encrypted, master_key);
+        let decrypted = axagent_crypto::decrypt_key(&key.key_encrypted, master_key)
+            .map_err(|e| format!("Failed to decrypt key: {}", e))?;
 
         let registry_key = provider_registry_key(&prov.provider_type);
         let adapter = provider_registry
             .get(&registry_key)
-            .ok_or_else(|| format!("Provider '{}' not registered", prov.provider_type))?;
+            .ok_or_else(|| format!("Provider '{:?}' not registered", prov.provider_type))?;
 
         let ctx = axagent_harness::provider::ProviderRequestContext {
             api_key: decrypted,
@@ -210,81 +223,65 @@ pub async fn evaluator_run_ab_test(
     version_b: String,
     dataset_id: Option<String>,
 ) -> Result<AbTestResult, String> {
-    let _ = dataset_id;
     let test_id =
         format!("ab_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("test"));
+
+    let benchmark = {
+        let s = suite().lock().await;
+        let all: Vec<_> = s.all().iter().cloned().collect();
+        if let Some(ref ds_id) = dataset_id {
+            all.iter().find(|b| b.id == *ds_id).cloned().or_else(|| all.first().cloned())
+        } else {
+            all.first().cloned()
+        }
+        .ok_or_else(|| "No benchmark available. Import a dataset first.".to_string())?
+    };
 
     let db = state.harness.db();
     let master_key = state.harness.master_key();
     let provider_registry = state.harness.provider_registry().clone();
 
-    let mut real_metrics = None;
-    let mut sim_metrics = None;
+    let provider_resolved =
+        resolve_benchmark_provider(&db, &provider_registry, master_key).await;
 
-    // Try to get a real provider from the harness and run a real benchmark
-    if let Ok(Some((adapter, _ctx))) =
-        resolve_benchmark_provider(&db, &provider_registry, master_key).await
+    let (version_a_metrics, version_b_metrics) = if let Ok(Some((adapter, ctx))) = provider_resolved
     {
-        let runner = EvaluationRunner::new(RunnerConfig::default()).with_provider(adapter);
-        let suite = suite().lock().await;
-        if let Some(benchmark) = suite.get("reasoning") {
-            let result = runner.run_benchmark(benchmark).await;
-            let total_tasks = result.task_results.len() as f64;
-            let successful = result.task_results.iter().filter(|t| t.success).count() as f64;
-            let avg_score = if total_tasks > 0.0 {
-                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>()
-                    / total_tasks
-            } else {
-                0.0
-            };
-            real_metrics = Some(AbTestVersionMetrics {
-                success_rate: if total_tasks > 0.0 {
-                    successful / total_tasks
-                } else {
-                    0.0
-                },
+        let runner_a = EvaluationRunner::new(RunnerConfig::default())
+            .with_provider(adapter.clone(), ctx.clone());
+        let result_a = runner_a.run_benchmark(&benchmark).await;
+        let total_a = result_a.task_results.len() as f64;
+        let success_a = result_a.task_results.iter().filter(|t| t.success).count() as f64;
+
+        let runner_b = EvaluationRunner::new(RunnerConfig::default())
+            .with_provider(adapter, ctx);
+        let result_b = runner_b.run_benchmark(&benchmark).await;
+        let total_b = result_b.task_results.len() as f64;
+        let success_b = result_b.task_results.iter().filter(|t| t.success).count() as f64;
+
+        (
+            AbTestVersionMetrics {
+                success_rate: if total_a > 0.0 { success_a / total_a } else { 0.0 },
                 avg_tokens: 0,
-                avg_duration: result.duration_ms as f64 / 1000.0,
-            });
-        }
-    }
-
-    // Run simulation baseline for comparison
-    {
+                avg_duration: result_a.duration_ms as f64 / 1000.0,
+            },
+            AbTestVersionMetrics {
+                success_rate: if total_b > 0.0 { success_b / total_b } else { 0.0 },
+                avg_tokens: 0,
+                avg_duration: result_b.duration_ms as f64 / 1000.0,
+            },
+        )
+    } else {
         let sim_runner = EvaluationRunner::new(RunnerConfig::default());
-        let suite = suite().lock().await;
-        if let Some(benchmark) = suite.get("reasoning") {
-            let result = sim_runner.run_benchmark(benchmark).await;
-            let total_tasks = result.task_results.len() as f64;
-            let successful = result.task_results.iter().filter(|t| t.success).count() as f64;
-            let avg_score = if total_tasks > 0.0 {
-                result.task_results.iter().map(|t| t.overall_score as f64).sum::<f64>()
-                    / total_tasks
-            } else {
-                0.0
-            };
-            sim_metrics = Some(AbTestVersionMetrics {
-                success_rate: if total_tasks > 0.0 {
-                    successful / total_tasks
-                } else {
-                    0.0
-                },
-                avg_tokens: 0,
-                avg_duration: result.duration_ms as f64 / 1000.0,
-            });
-        }
-    }
-
-    let version_a_metrics = real_metrics.clone().unwrap_or(AbTestVersionMetrics {
-        success_rate: 0.0,
-        avg_tokens: 0,
-        avg_duration: 0.0,
-    });
-    let version_b_metrics = sim_metrics.clone().unwrap_or(AbTestVersionMetrics {
-        success_rate: 0.0,
-        avg_tokens: 0,
-        avg_duration: 0.0,
-    });
+        let result = sim_runner.run_benchmark(&benchmark).await;
+        let total = result.task_results.len() as f64;
+        let success = result.task_results.iter().filter(|t| t.success).count() as f64;
+        let metrics = AbTestVersionMetrics {
+            success_rate: if total > 0.0 { success / total } else { 0.0 },
+            avg_tokens: 0,
+            avg_duration: result.duration_ms as f64 / 1000.0,
+        };
+        (metrics.clone(), metrics)
+    };
 
     let winner = if version_b_metrics.success_rate > version_a_metrics.success_rate {
         "B"
@@ -330,11 +327,7 @@ pub async fn evaluator_run_ab_test(
         conclusion: format!(
             "版本 {} ({}) 在成功率上表现更优（{}% vs {}%）。",
             winner,
-            if winner == "A" {
-                &version_a
-            } else {
-                &version_b
-            },
+            if winner == "A" { &version_a } else { &version_b },
             if winner == "A" {
                 version_a_metrics.success_rate * 100.0
             } else {

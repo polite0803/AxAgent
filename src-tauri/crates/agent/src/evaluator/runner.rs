@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_harness::provider::ProviderAdapter;
+use axagent_harness::provider::{ProviderAdapter, ProviderRequestContext};
 use axagent_harness::types::settings_chat::{ChatContent, ChatMessage, ChatRequest};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -76,15 +76,21 @@ pub struct ScoreResult {
 pub struct EvaluationRunner {
     config: RunnerConfig,
     provider: Option<Arc<dyn ProviderAdapter>>,
+    provider_ctx: Option<ProviderRequestContext>,
 }
 
 impl EvaluationRunner {
     pub fn new(config: RunnerConfig) -> Self {
-        Self { config, provider: None }
+        Self { config, provider: None, provider_ctx: None }
     }
 
-    pub fn with_provider(mut self, provider: Arc<dyn ProviderAdapter>) -> Self {
+    pub fn with_provider(
+        mut self,
+        provider: Arc<dyn ProviderAdapter>,
+        ctx: ProviderRequestContext,
+    ) -> Self {
         self.provider = Some(provider);
+        self.provider_ctx = Some(ctx);
         self
     }
 
@@ -128,7 +134,7 @@ impl EvaluationRunner {
         let response = if let Some(provider) = &self.provider {
             self.call_llm_for_task(provider, task).await
         } else {
-            self.simulate_agent_response(task).await
+            Ok(self.simulate_agent_response(task).await)
         };
 
         let duration_ms = start_time.elapsed().as_millis() as u64;
@@ -173,6 +179,7 @@ impl EvaluationRunner {
                 content: ChatContent::Text(task.input.query.clone()),
                 tool_calls: None,
                 tool_call_id: None,
+                thinking: None,
             }],
             stream: false,
             temperature: None,
@@ -189,19 +196,23 @@ impl EvaluationRunner {
             store: None,
         });
 
-        let ctx = axagent_harness::provider::ProviderRequestContext {
-            api_key: String::new(),
-            key_id: String::new(),
-            provider_id: String::new(),
-            base_url: None,
-            api_path: None,
-            proxy_config: None,
-            custom_headers: None,
-            api_mode: None,
-            conversation: None,
-            previous_response_id: None,
-            store_response: None,
-        };
+        let ctx = self
+            .provider_ctx
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| ProviderRequestContext {
+                api_key: String::new(),
+                key_id: String::new(),
+                provider_id: String::new(),
+                base_url: None,
+                api_path: None,
+                proxy_config: None,
+                custom_headers: None,
+                api_mode: None,
+                conversation: None,
+                previous_response_id: None,
+                store_response: None,
+            });
 
         provider
             .chat(&ctx, request)

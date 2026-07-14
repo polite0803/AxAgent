@@ -139,3 +139,51 @@ pub async fn rl_compute_rewards(
         "advantage_count": advantages.len(),
     }))
 }
+
+// ---------------------------------------------------------------------------
+// 反馈命令（从 agent 模块迁移）
+// ---------------------------------------------------------------------------
+
+/// 记录反馈信号用于 RealTimeLearning
+#[tauri::command]
+pub async fn record_feedback(
+    app_state: State<'_, AppState>,
+    feedback_type: String,
+    source: String,
+    content: String,
+) -> Result<(), String> {
+    use crate::commands::error::ErrorResponse;
+    use crate::commands::error_code::agent as agent_err;
+
+    let ft = match feedback_type.as_str() {
+        "success" => axagent_trajectory::FeedbackType::Success,
+        "failure" => axagent_trajectory::FeedbackType::Failure,
+        "partial" => axagent_trajectory::FeedbackType::Partial,
+        "correction" => axagent_trajectory::FeedbackType::Correction,
+        _ => {
+            return Err(ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Unknown feedback type: {}", feedback_type))
+                .to_string());
+        },
+    };
+    let fs = match source.as_str() {
+        "user" => axagent_trajectory::FeedbackSource::User,
+        "system" => axagent_trajectory::FeedbackSource::System,
+        "self" => axagent_trajectory::FeedbackSource::Self_,
+        _ => {
+            return Err(ErrorResponse::new(agent_err::INTERNAL)
+                .with_detail(format!("Unknown feedback source: {}", source))
+                .to_string());
+        },
+    };
+
+    let mut rl = app_state.realtime_learning.lock().await;
+    rl.record_feedback(axagent_trajectory::FeedbackSignal {
+        feedback_type: ft,
+        source: fs,
+        content,
+        timestamp: chrono::Utc::now().timestamp_millis(),
+        context: None,
+    });
+    Ok(())
+}
