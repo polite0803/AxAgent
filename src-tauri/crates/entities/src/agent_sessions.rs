@@ -17,8 +17,8 @@ pub struct Model {
     pub sdk_context_backup_json: Option<String>,
     pub total_tokens: i32,
     pub total_cost_usd: f64,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

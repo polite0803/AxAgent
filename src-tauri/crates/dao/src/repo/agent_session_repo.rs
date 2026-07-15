@@ -54,7 +54,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             .one(self.db.as_ref())
             .await?;
 
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Utc::now().timestamp();
 
         if let Some(model) = existing {
             let mut am: agent_sessions::ActiveModel = model.into();
@@ -97,7 +97,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
                 sdk_context_backup_json: Set(None),
                 total_tokens: Set(0),
                 total_cost_usd: Set(0.0),
-                created_at: Set(now.clone()),
+                created_at: Set(now),
                 updated_at: Set(now),
             };
             let inserted = model.insert(self.db.as_ref()).await?;
@@ -111,7 +111,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             .await?
             .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Utc::now().timestamp();
         let mut am: agent_sessions::ActiveModel = model.into();
         am.runtime_status = Set(runtime_status.to_string());
         am.updated_at = Set(now);
@@ -132,7 +132,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             .await?
             .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Utc::now().timestamp();
         let mut am: agent_sessions::ActiveModel = model.clone().into();
         am.runtime_status = Set(runtime_status.to_string());
         if let Some(ctx) = sdk_context_json {

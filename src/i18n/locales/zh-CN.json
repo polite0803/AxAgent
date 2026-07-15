@@ -8732,8 +8732,8 @@
     "versionHistory": {
       "vA": "vA",
       "vB": "vB",
-      "viewDiff": "",
-      "viewSnapshot": ""
+      "viewDiff": "查看差异",
+      "viewSnapshot": "查看快照"
     },
     "versionHistoryLoadFailed": "版本历史加载失败",
     "versionHistoryTitle": "版本历史",
@@ -8746,10 +8746,10 @@
       "inherit": "继承",
       "isolated": "隔离",
       "targetWorkflow": "目标工作流",
-      "version": "",
-      "inputMapping": "",
-      "selectWorkflow": "",
-      "title": ""
+      "version": "版本",
+      "inputMapping": "输入映射",
+      "selectWorkflow": "选择工作流",
+      "title": "标题"
     },
     "workflowSavedAsNew": "工作流已另存为新技能",
     "workflowUpdated": "工作流已更新",

@@ -1765,8 +1765,8 @@ impl AgentSessionRepository for EmptyAgentSessionRepository {
             sdk_context_backup_json: None,
             total_tokens: 0,
             total_cost_usd: 0.0,
-            created_at: String::new(),
-            updated_at: String::new(),
+            created_at: 0,
+            updated_at: 0,
         })
     }
     async fn update_agent_session_status(&self, _id: &str, _runtime_status: &str) -> Result<()> {

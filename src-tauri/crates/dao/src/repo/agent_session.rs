@@ -38,7 +38,7 @@ pub async fn upsert_agent_session(
         .one(db)
         .await?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
 
     if let Some(model) = existing {
         let mut am: agent_sessions::ActiveModel = model.into();
@@ -79,7 +79,7 @@ pub async fn upsert_agent_session(
             sdk_context_backup_json: Set(None),
             total_tokens: Set(0),
             total_cost_usd: Set(0.0),
-            created_at: Set(now.clone()),
+            created_at: Set(now),
             updated_at: Set(now),
         };
         let inserted = model.insert(db).await?;
@@ -111,7 +111,7 @@ pub async fn update_agent_session_status(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.into();
     am.runtime_status = Set(runtime_status.to_string());
     am.updated_at = Set(now);
@@ -132,7 +132,7 @@ pub async fn update_agent_session_cwd(db: &DatabaseConnection, id: &str, cwd: &s
         ));
     }
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.into();
     am.cwd = Set(Some(cwd.to_string()));
     am.workspace_locked = Set(1);
@@ -152,7 +152,7 @@ pub async fn update_agent_session_permission_mode(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.into();
     am.permission_mode = Set(permission_mode.to_string());
     am.updated_at = Set(now);
@@ -162,7 +162,7 @@ pub async fn update_agent_session_permission_mode(
 
 /// Reset all running/waiting_approval sessions to idle (for app startup recovery).
 pub async fn reset_running_sessions(db: &DatabaseConnection) -> Result<u64> {
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let result = agent_sessions::Entity::update_many()
         .col_expr(agent_sessions::Column::RuntimeStatus, Expr::value("idle"))
         .col_expr(agent_sessions::Column::UpdatedAt, Expr::value(now))
@@ -191,7 +191,7 @@ pub async fn update_agent_session_after_query(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.clone().into();
     am.runtime_status = Set(runtime_status.to_string());
     if let Some(ctx) = sdk_context_json {

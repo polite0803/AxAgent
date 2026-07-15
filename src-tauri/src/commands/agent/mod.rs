@@ -224,6 +224,88 @@ fn parse_domain_str(s: &str) -> Option<ToolDomain> {
     }
 }
 
+/// AgentProfile 解析后的工具上下文。
+///
+/// 由 `resolve_profile_tool_context` 统一产出，供 `agent_query` 和
+/// `get_tool_count` 共享，保证筛选语义一致（禁区 12：禁止重复定义）。
+#[derive(Default)]
+pub(crate) struct ProfileToolContext {
+    /// 角色 + 专家合并的工具域（不含默认兜底的 Core/General）
+    pub active_domains: HashSet<ToolDomain>,
+    /// 岗位（AgentRole）的 system_prompt
+    pub role_system_prompt: Option<String>,
+    /// 技能（Expert）的 system_prompt
+    pub expert_system_prompt: Option<String>,
+    /// 已解析的岗位名（用于状态展示）
+    pub effective_role_name: Option<String>,
+    /// Profile 自身的推荐工具（白名单字符串）
+    pub recommended_tools: Vec<String>,
+    /// Profile 自身的禁用工具（黑名单字符串）
+    pub disallowed_tools: Vec<String>,
+}
+
+/// 解析 AgentProfile 的工具上下文（角色 + 专家 + Profile 自身）。
+///
+/// 与 `agent_query` 中的三源合并逻辑保持一致：
+/// - Layer 1: `profile.agent_role` → AgentRole 的 `active_domains` + system_prompt
+/// - Layer 2: `profile.expert_id` → Expert 的 `active_domains` + system_prompt
+/// - Layer 3: Profile 自身的 `recommended_tools` / `disallowed_tools`
+///
+/// 返回 `None` 表示 profile 不存在或查询失败（调用方应回退到默认路径）。
+pub(crate) async fn resolve_profile_tool_context(
+    app_state: &AppState,
+    profile_id: &str,
+) -> Option<ProfileToolContext> {
+    let profile =
+        axagent_dao::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
+            .await
+            .ok()?;
+
+    let mut ctx = ProfileToolContext::default();
+
+    // Layer 1: AgentRole system_prompt（岗位）+ active_domains
+    if let Some(ref role_name) = profile.agent_role {
+        if let Some(resolved) = axagent_runtime::agent_roles::resolve(role_name).await {
+            ctx.effective_role_name = Some(resolved.name.clone());
+            if !resolved.system_prompt.is_empty() {
+                ctx.role_system_prompt = Some(resolved.system_prompt);
+            }
+            for d in &resolved.active_domains {
+                if let Some(td) = parse_domain_str(d) {
+                    ctx.active_domains.insert(td);
+                }
+            }
+        }
+    }
+
+    // Layer 2: Expert domain knowledge（技能）+ active_domains
+    if let Some(ref expert_id) = profile.expert_id {
+        if let Ok(Some(expert)) = axagent_entities::agency_experts::Entity::find_by_id(expert_id)
+            .one(app_state.harness.db())
+            .await
+        {
+            if !expert.system_prompt.is_empty() {
+                ctx.expert_system_prompt = Some(expert.system_prompt);
+            }
+            if let Some(ref domains_json) = expert.active_domains {
+                if let Ok(domains) = serde_json::from_str::<Vec<String>>(domains_json) {
+                    for d in &domains {
+                        if let Some(td) = parse_domain_str(d) {
+                            ctx.active_domains.insert(td);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Layer 3: Profile 自身推荐/禁用工具
+    ctx.recommended_tools = profile.recommended_tools;
+    ctx.disallowed_tools = profile.disallowed_tools;
+
+    Some(ctx)
+}
+
 /// 构建带 streaming 事件回调的 `AxAgentApiClient`。
 ///
 /// `agent_query` 内的 if/else 分支（`AxAgentApiClient::new` vs `with_tools`）的 60 行
@@ -341,65 +423,31 @@ pub async fn agent_query(
     let enabled_skill_ids = conversation.enabled_skill_ids.clone();
 
     // AgentProfile = AgentRole + Expert（两两组装，运行时拼接提示词）
-    // 不再持久化预合并的 system_prompt，修改 Expert/Role 后自动生效
-    let mut role_system_prompt: Option<String> = None;
-    let mut expert_system_prompt: Option<String> = None;
-    let mut effective_role_name: Option<String> = None;
-    let mut profile_recommended_tools: Vec<String> = Vec::new();
-    let mut profile_disallowed_tools: Vec<String> = Vec::new();
-    let mut profile_active_domains: std::collections::HashSet<ToolDomain> =
-        std::collections::HashSet::new();
-
-    if let Some(ref profile_id) = request.agent_profile_id {
-        if let Ok(profile) =
-            axagent_dao::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
-                .await
-        {
-            // Layer 1: AgentRole system_prompt（岗位）+ active_domains
-            if let Some(ref role_name) = profile.agent_role {
-                if let Some(resolved) = axagent_runtime::agent_roles::resolve(role_name).await {
-                    effective_role_name = Some(resolved.name.clone());
-                    if !resolved.system_prompt.is_empty() {
-                        role_system_prompt = Some(resolved.system_prompt);
-                    }
-                    // 岗位的工具域
-                    for d in &resolved.active_domains {
-                        if let Some(td) = parse_domain_str(d) {
-                            profile_active_domains.insert(td);
-                        }
-                    }
-                }
-            }
-
-            // Layer 2: Expert domain knowledge（技能）+ active_domains
-            if let Some(ref expert_id) = profile.expert_id {
-                if let Ok(Some(expert)) =
-                    axagent_entities::agency_experts::Entity::find_by_id(expert_id)
-                        .one(app_state.harness.db())
-                        .await
-                        .map_err(|e| e.to_string())
-                {
-                    if !expert.system_prompt.is_empty() {
-                        expert_system_prompt = Some(expert.system_prompt);
-                    }
-                    // 人才的工具域
-                    if let Some(ref domains_json) = expert.active_domains {
-                        if let Ok(domains) = serde_json::from_str::<Vec<String>>(domains_json) {
-                            for d in &domains {
-                                if let Some(td) = parse_domain_str(d) {
-                                    profile_active_domains.insert(td);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 合并 Profile 自身推荐/禁用工具
-            profile_recommended_tools.extend(profile.recommended_tools);
-            profile_disallowed_tools = profile.disallowed_tools;
+    // 不再持久化预合并的 system_prompt，修改 Expert/Role 后自动生效。
+    // 解析逻辑统一收敛到 `resolve_profile_tool_context`，供 `agent_query` 和
+    // `get_tool_count` 共享，避免筛选语义漂移（禁区 12）。
+    let (
+        role_system_prompt,
+        expert_system_prompt,
+        effective_role_name,
+        profile_recommended_tools,
+        profile_disallowed_tools,
+        profile_active_domains,
+    ) = if let Some(ref profile_id) = request.agent_profile_id {
+        match resolve_profile_tool_context(&app_state, profile_id).await {
+            Some(ctx) => (
+                ctx.role_system_prompt,
+                ctx.expert_system_prompt,
+                ctx.effective_role_name,
+                ctx.recommended_tools,
+                ctx.disallowed_tools,
+                ctx.active_domains,
+            ),
+            None => Default::default(),
         }
-    }
+    } else {
+        Default::default()
+    };
 
     // 提示词拼接：Role → Expert（两部分动态拼接，不在 DB 中预缓存）
     let mut prompt_parts: Vec<&str> = Vec::new();
@@ -2487,21 +2535,12 @@ pub async fn agent_get_session(
     .map_err(|e| e.to_string())?;
 
     if let Some(session) = session {
-        // Parse timestamps
-        let created_at = chrono::DateTime::parse_from_str(&session.created_at, "%Y-%m-%d %H:%M:%S")
-            .unwrap_or_else(|_| chrono::Utc::now().into())
-            .timestamp();
-        let last_active_at =
-            chrono::DateTime::parse_from_str(&session.updated_at, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_else(|_| chrono::Utc::now().into())
-                .timestamp();
-
         Ok(AgentGetSessionResponse {
             conversation_id: request.conversation_id,
             name: None,
             metadata: None,
-            created_at,
-            last_active_at,
+            created_at: session.created_at,
+            last_active_at: session.updated_at,
         })
     } else {
         // Create a new session if none exists
@@ -2514,14 +2553,8 @@ pub async fn agent_get_session(
         .await
         .map_err(|e| e.to_string())?;
 
-        let created_at =
-            chrono::DateTime::parse_from_str(&new_session.created_at, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_else(|_| chrono::Utc::now().into())
-                .timestamp();
-        let last_active_at =
-            chrono::DateTime::parse_from_str(&new_session.updated_at, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_else(|_| chrono::Utc::now().into())
-                .timestamp();
+        let created_at = new_session.created_at;
+        let last_active_at = new_session.updated_at;
 
         Ok(AgentGetSessionResponse {
             conversation_id: request.conversation_id,
