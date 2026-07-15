@@ -5377,6 +5377,9 @@
       "noEvolutionRecord": "No evolution record — trigger first evolution",
       "abTestTitle": "A/B Test ({{count}})",
       "winner": "{{winner}} Won"
+    },
+    "workflowRefNode": {
+      "noWorkflow": ""
     }
   },
   "atomicSkill": {

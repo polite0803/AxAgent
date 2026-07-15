@@ -5962,7 +5962,9 @@
       "visualEditorDesc": "使用拖拽式 DAG 編輯器創建和編輯工作流"
     },
     "zhipu": "智譜",
-    "groupVoice": "語音"
+    "groupVoice": "語音",
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker 前綴（預設 CHAT2API，通常無需修改）"
   },
   "settingsPage": {
     "refreshPage": "刷新頁面"
@@ -8883,7 +8885,9 @@
       "version": "版本",
       "restore": "還原",
       "viewDiff": "檢視差異",
-      "viewSnapshot": "檢視快照"
+      "viewSnapshot": "檢視快照",
+      "vA": "",
+      "vB": ""
     },
     "versionHistoryLoadFailed": "版本歷史載入失敗",
     "versionHistoryTitle": "版本歷史",
@@ -8902,6 +8906,15 @@
       "inputMapping": "輸入對應"
     },
     "workflowSavedAsNew": "工作流已另存為新技能",
-    "workflowUpdated": "工作流已更新"
+    "workflowUpdated": "工作流已更新",
+    "spanDetail": {
+      "parentSpan": ""
+    },
+    "traceDetail": {
+      "userId": ""
+    },
+    "voiceChat": {
+      "noTicket": ""
+    }
   }
 }

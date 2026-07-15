@@ -5938,7 +5938,9 @@
       "visualEditorDesc": "إنشاء وتحرير سير العمل باستخدام محرر DAG بالسحب والإفلات"
     },
     "zhipu": "زيبو",
-    "groupVoice": "الصوت"
+    "groupVoice": "الصوت",
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "بادئة العلامة (الافتراضي CHAT2API، عادة لا تحتاج إلى تعديل)"
   },
   "settingsPage": {
     "refreshPage": "تحديث الصفحة"

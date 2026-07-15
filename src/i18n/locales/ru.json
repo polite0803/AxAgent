@@ -8841,9 +8841,18 @@
       "inherit": "Inherit",
       "isolated": "Isolated",
       "targetWorkflow": "Target Workflow",
-      "version": ""
+      "version": "",
+      "inputMapping": "",
+      "selectWorkflow": "",
+      "title": ""
     },
     "workflowSavedAsNew": "Рабочий процесс сохранён как новый",
-    "workflowUpdated": "Рабочий процесс обновлён"
+    "workflowUpdated": "Рабочий процесс обновлён",
+    "workflowRefNode": {
+      "noWorkflow": ""
+    }
+  },
+  "workflowRefNode": {
+    "noWorkflow": ""
   }
 }

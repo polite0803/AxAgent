@@ -8820,5 +8820,8 @@
     },
     "workflowSavedAsNew": "워크플로우가 새로 저장되었습니다",
     "workflowUpdated": "워크플로우가 업데이트되었습니다"
+  },
+  "workflowRefNode": {
+    "noWorkflow": ""
   }
 }
