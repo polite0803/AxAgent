@@ -792,11 +792,10 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
           if (!target) { return prev; }
         }
         updater(target);
-        onChange(next);
         return next;
       });
     },
-    [onChange, selectedId],
+    [selectedId],
   );
 
   return (

@@ -81,7 +81,7 @@ export function ToolRecommendationPanel() {
             </Button>
           </Space>
 
-          {error && <Alert type="error" message={error} showIcon />}
+          {error && <Alert type="error" title={error} showIcon />}
 
           {isLoading && (
             <div style={{ textAlign: "center", padding: "40px" }}>

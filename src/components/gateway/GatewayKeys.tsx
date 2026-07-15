@@ -214,7 +214,7 @@ export function GatewayKeys() {
         {createdKey
           ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <Alert message={t("gateway.copyWarning")} type="warning" showIcon />
+              <Alert title={t("gateway.copyWarning")} type="warning" showIcon />
               <Input.TextArea
                 id="gateway-keys-input-textarea-41"
                 value={createdKey}

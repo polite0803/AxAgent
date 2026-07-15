@@ -118,8 +118,16 @@ function scanFile(f, rel) {
 
 const all = [];
 for (const f of files) {
-  const rel = f.replace(root + "/", "");
+  const rel = normalizePath(f);
   all.push(...scanFile(f, rel));
+}
+
+// ── 路径规范化：将绝对路径转为相对于 root 的路径，统一用 / 分隔 ──
+function normalizePath(p) {
+  let s = p;
+  if (s.startsWith(root)) s = s.slice(root.length);
+  s = s.replace(/\\/g, "/").replace(/^\/+/, "");
+  return s;
 }
 
 // ── 加载 allowlist ──
@@ -127,8 +135,9 @@ let allowSet = new Set();
 try {
   const al = JSON.parse(readFileSync(ALLOWLIST, "utf8"));
   for (const e of al.entries || []) {
+    const nf = normalizePath(e.file);
     for (const ln of (e.lines || "").split(",")) {
-      if (ln) allowSet.add(e.file + ":" + ln);
+      if (ln) allowSet.add(nf + ":" + ln);
     }
   }
 } catch {}

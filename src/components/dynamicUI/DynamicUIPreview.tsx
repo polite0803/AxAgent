@@ -122,10 +122,10 @@ export const DynamicUIPreview: React.FC = () => {
           className="flex-1 min-w-0 overflow-auto"
         >
           {parseError
-            ? <Alert type="error" message={t("dynamicUIPreview.jsonParseError")} description={parseError} showIcon />
+            ? <Alert type="error" title={t("dynamicUIPreview.jsonParseError")} description={parseError} showIcon />
             : schema
             ? <DynamicUIRenderer schema={schema} />
-            : <Alert type="info" message={t("dynamicUIPreview.waitingForJson")} showIcon />}
+            : <Alert type="info" title={t("dynamicUIPreview.waitingForJson")} showIcon />}
         </Card>
       </div>
 

@@ -31,7 +31,7 @@ class MultiModelErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        this.props.fallback ?? <Alert type="warning" message="Multi-model display error" showIcon />
+        this.props.fallback ?? <Alert type="warning" title="Multi-model display error" showIcon />
       );
     }
     return this.props.children;

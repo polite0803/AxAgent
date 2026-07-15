@@ -430,7 +430,7 @@ export function DynamicUIManagerPage() {
         </div>
       );
     } catch {
-      return <Alert type="error" message={t("dynamicUIManager.invalidSchema")} />;
+      return <Alert type="error" title={t("dynamicUIManager.invalidSchema")} />;
     }
   };
 
@@ -793,12 +793,12 @@ export function DynamicUIManagerPage() {
                     <Alert
                       type="error"
                       className="mt-2"
-                      message={t("dynamicUIManager.parseError")}
+                      title={t("dynamicUIManager.parseError")}
                       description={<pre className="whitespace-pre-wrap m-0">{parseError}</pre>}
                     />
                   )
                   : parsedPreview
-                  ? <Alert type="success" className="mt-2" message={t("dynamicUIManager.schemaValid")} />
+                  ? <Alert type="success" className="mt-2" title={t("dynamicUIManager.schemaValid")} />
                   : null}
               </>
             )

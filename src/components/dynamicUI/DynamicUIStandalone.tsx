@@ -154,7 +154,7 @@ export function DynamicUIStandalone({
   }
 
   if (error || !schema) {
-    return <Alert type="error" message={error || "Schema not found"} showIcon />;
+    return <Alert type="error" title={error || "Schema not found"} showIcon />;
   }
 
   return (
