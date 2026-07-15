@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
+import { message } from "@/lib/toast";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type {
   CreatePromptTemplateInput,
@@ -21,7 +22,7 @@ import {
   StarFilled,
   StarOutlined,
 } from "@ant-design/icons";
-import { Button, Empty, Form, Input, message, Modal, Select, Space, Spin, Tag, theme, Typography } from "antd";
+import { Button, Empty, Form, Input, Modal, Select, Space, Spin, Tag, theme, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PromptImportModal } from "./PromptImportModal";

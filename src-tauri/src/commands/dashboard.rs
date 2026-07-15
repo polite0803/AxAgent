@@ -176,6 +176,14 @@ pub struct DashboardStats {
     pub total_agent_tokens: i64,
     pub total_cost_usd: f64,
     pub total_tool_calls: i64,
+    /// 今日（本地时区）消息数
+    pub today_messages: i64,
+    /// 今日（本地时区）输入 token 数
+    pub today_prompt_tokens: i64,
+    /// 今日（本地时区）输出 token 数
+    pub today_completion_tokens: i64,
+    /// 今日（本地时区）总 token 数 = today_prompt_tokens + today_completion_tokens
+    pub today_tokens: i64,
 }
 
 #[tauri::command]
@@ -218,6 +226,29 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
     } else {
         total_token_count
     };
+
+    // 今日（本地时区）消息统计：messages.created_at 是毫秒时间戳
+    let today_start_millis = axagent_harness::util_fns::today_start_local_ts() * 1000;
+    let today_msg_stats = db
+        .query_all_raw(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Sqlite,
+            "SELECT \
+             COUNT(*) as today_messages, \
+             COALESCE(SUM(prompt_tokens), 0) as today_prompt_tokens, \
+             COALESCE(SUM(completion_tokens), 0) as today_completion_tokens \
+             FROM messages WHERE is_active = 1 AND created_at >= ?",
+            vec![today_start_millis.into()],
+        ))
+        .await
+        .map_err(|e| e.to_string())?;
+    let today_row = today_msg_stats.first();
+    let today_messages: i64 =
+        today_row.and_then(|r| r.try_get("", "today_messages").ok()).unwrap_or(0);
+    let today_prompt_tokens: i64 =
+        today_row.and_then(|r| r.try_get("", "today_prompt_tokens").ok()).unwrap_or(0);
+    let today_completion_tokens: i64 =
+        today_row.and_then(|r| r.try_get("", "today_completion_tokens").ok()).unwrap_or(0);
+    let today_tokens = today_prompt_tokens + today_completion_tokens;
 
     // 智能体会话聚合查询
     let session_stats = db
@@ -265,6 +296,10 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
         total_agent_tokens,
         total_cost_usd,
         total_tool_calls: total_tool_calls as i64,
+        today_messages,
+        today_prompt_tokens,
+        today_completion_tokens,
+        today_tokens,
     })
 }
 

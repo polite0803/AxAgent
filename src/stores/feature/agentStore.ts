@@ -3,6 +3,7 @@
 import { pushNotification } from "@/components/layout/NotificationBell";
 import i18n from "@/i18n";
 import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useConversationStore } from "@/stores/domain/conversationStore";
 import { useStreamStore } from "@/stores/domain/streamStore";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
@@ -26,7 +27,6 @@ import type {
   UpdateAgentProfileInput,
 } from "@/types";
 import type { ToolExecution } from "@/types";
-import { message } from "antd";
 import { create } from "zustand";
 import { setupExecutionEventListeners, useExecutionStore } from "./executionStore";
 

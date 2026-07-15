@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke, logIpcError } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import {
   Background,
   type Edge,
@@ -12,7 +13,7 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
-import { Button, message, Spin, theme } from "antd";
+import { Button, Spin, theme } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";
 import {
   AlertTriangle,

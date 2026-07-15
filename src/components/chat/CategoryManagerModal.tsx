@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { message } from "@/lib/toast";
 import { useCategoryStore, useConversationStore } from "@/stores";
 import type { ConversationCategory } from "@/types";
-import { Avatar, Button, Empty, message, Modal, Popconfirm, theme } from "antd";
+import { Avatar, Button, Empty, Modal, Popconfirm, theme } from "antd";
 import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

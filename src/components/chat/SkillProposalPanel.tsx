@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /* eslint-disable react-refresh/only-export-components */
+import { message } from "@/lib/toast";
 import { useSkillStore } from "@/stores";
 import type { SkillProposal } from "@/types";
-import { Button, Card, Empty, message, Modal, Space, Spin, Tag, theme, Typography } from "antd";
+import { Button, Card, Empty, Modal, Space, Spin, Tag, theme, Typography } from "antd";
 import { Check, Lightbulb, Sparkles, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

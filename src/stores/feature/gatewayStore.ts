@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { invoke } from "@/lib/invoke";
+import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import type {
   CliToolInfo,
   ConnectedProgram,
@@ -19,6 +19,9 @@ import type {
   UsageByProvider,
 } from "@/types";
 import { create } from "zustand";
+
+// 全局事件监听 unlisten 句柄，避免 HMR 重复注册
+let _gatewayStatusUnlisten: UnlistenFn | null = null;
 
 interface GatewayState {
   status: GatewayStatus;
@@ -158,6 +161,8 @@ export const useGatewayStore = create<GatewayState>((set) => ({
       await invoke("start_gateway");
       const status = await invoke<GatewayStatus>("get_gateway_status");
       set({ status, error: null });
+      // 启动后主动刷新 metrics，让前端立即显示最新统计
+      void useGatewayStore.getState().fetchMetrics();
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -169,6 +174,8 @@ export const useGatewayStore = create<GatewayState>((set) => ({
       await invoke("stop_gateway");
       const status = await invoke<GatewayStatus>("get_gateway_status");
       set({ status, error: null });
+      // 停止后也刷新 metrics（保持数据一致性）
+      void useGatewayStore.getState().fetchMetrics();
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -373,3 +380,31 @@ export const useGatewayStore = create<GatewayState>((set) => ({
     }
   },
 }));
+
+/**
+ * 初始化网关状态事件监听：当后端 emit "gateway-status-changed" 事件时，
+ * 自动拉取最新 status 和 metrics，保证 UI 状态与后端同步。
+ *
+ * 幂等：多次调用不会重复注册（HMR 友好）。
+ * 返回 unlisten 函数（测试用），生产环境通常不需要调用。
+ */
+export function initGatewayStatusListener(): () => void {
+  if (_gatewayStatusUnlisten) {
+    // 已注册过，返回 no-op
+    return () => {};
+  }
+  // listen 是 async，立即保存 Promise 以避免并发初始化竞态
+  const unlistenPromise = listen("gateway-status-changed", () => {
+    void useGatewayStore.getState().fetchStatus();
+    void useGatewayStore.getState().fetchMetrics();
+  });
+  // 用 placeholder 占位，避免并发初始化
+  _gatewayStatusUnlisten = () => {};
+  void unlistenPromise.then((fn) => {
+    _gatewayStatusUnlisten = fn;
+  });
+  return () => {
+    _gatewayStatusUnlisten?.();
+    _gatewayStatusUnlisten = null;
+  };
+}

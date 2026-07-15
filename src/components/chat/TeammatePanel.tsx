@@ -5,7 +5,8 @@ import type { AgentPoolItem, TeammateStatus, WorkerMessage } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, TeamOutlined } from "@ant-design/icons";
 
 const _EMPTY: never[] = [];
-import { Button, Collapse, message, Tag, theme, Typography } from "antd";
+import { message } from "@/lib/toast";
+import { Button, Collapse, Tag, theme, Typography } from "antd";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type CreateTeamData, CreateTeamModal, type TeammateBackendType } from "./CreateTeamModal";

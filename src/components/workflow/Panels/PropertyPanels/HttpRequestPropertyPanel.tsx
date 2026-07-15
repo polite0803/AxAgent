@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Button, Divider, Input, InputNumber, message, Select, theme } from "antd";
+import { message } from "@/lib/toast";
+import { Button, Divider, Input, InputNumber, Select, theme } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";

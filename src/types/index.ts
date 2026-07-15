@@ -1641,4 +1641,12 @@ export interface DashboardStats {
   total_agent_tokens: number;
   total_cost_usd: number;
   total_tool_calls: number;
+  /** 今日（本地时区）消息数 */
+  today_messages: number;
+  /** 今日（本地时区）输入 token 数 */
+  today_prompt_tokens: number;
+  /** 今日（本地时区）输出 token 数 */
+  today_completion_tokens: number;
+  /** 今日（本地时区）总 token 数 */
+  today_tokens: number;
 }

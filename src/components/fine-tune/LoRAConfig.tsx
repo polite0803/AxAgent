@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
 import { RocketOutlined, SettingOutlined } from "@ant-design/icons";
-import { Button, Card, Divider, Form, message, Select, Slider, Space } from "antd";
+import { Button, Card, Divider, Form, Select, Slider, Space } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 

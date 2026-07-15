@@ -1583,19 +1583,17 @@ export function InputArea() {
     hasOlderMessages,
   ]);
 
-  const { hasRealtimeVoice, hasReasoning, hasVision } = React.useMemo(
+  // 语音通话入口是否可用：实时语音走 AxAgent 本地网关 + STT/TTS 编排，
+  // 与具体模型的 RealtimeVoice 能力无关（普通聊天模型不可编辑该能力，导致按钮永不出现）。
+  // 只要有活跃且不处于工作流模式的会话，即显示语音入口。
+  const { voiceAvailable, hasReasoning, hasVision } = React.useMemo(
     () => ({
-      hasRealtimeVoice: activeConversation
-        ? !!findModelByIds(
-          providers,
-          activeConversation.provider_id,
-          activeConversation.model_id,
-        )?.capabilities.includes("RealtimeVoice")
-        : false,
+      voiceAvailable: !!activeConversation
+        && activeConversation.session_type !== "workflow",
       hasReasoning: supportsReasoning(currentModel),
       hasVision: modelHasCapability(currentModel, "Vision"),
     }),
-    [activeConversation, currentModel, providers],
+    [activeConversation, currentModel],
   );
 
   // Current model key for excluding from multi-select (no longer used - users can select any model)
@@ -3101,7 +3099,7 @@ export function InputArea() {
                 />
               </Tooltip>
             )}
-            {hasRealtimeVoice && (
+            {voiceAvailable && (
               <>
                 <Tooltip title={voiceWakeup.active ? t("voice.wakeupActive") : t("voice.wakeup")}>
                   <Button
@@ -3331,7 +3329,7 @@ export function InputArea() {
 
       {/* ModelRoutingConfigPanel removed */}
 
-      {hasRealtimeVoice && (
+      {voiceAvailable && (
         <VoiceCall
           visible={voiceCallVisible}
           onClose={() => setVoiceCallVisible(false)}

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { InstallOutcomeDto, PluginManifestDto, PluginSummaryDto } from "@/types";
-import { Badge, Button, Card, Descriptions, Input, message, Modal, Space, Tag, Typography } from "antd";
+import { Badge, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography } from "antd";
 import { CheckCircle, Code2, Loader2, PackageSearch, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

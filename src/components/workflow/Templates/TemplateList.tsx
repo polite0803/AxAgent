@@ -2,8 +2,9 @@
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Card, Empty, Input, message, Modal, Select, Spin, Tag, theme } from "antd";
+import { Button, Card, Empty, Input, Modal, Select, Spin, Tag, theme } from "antd";
 import { Copy, Download, Edit2, Eye, History, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";

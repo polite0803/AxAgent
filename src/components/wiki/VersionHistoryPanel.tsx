@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { message } from "@/lib/toast";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { NoteVersion } from "@/types";
 import { HistoryOutlined, RollbackOutlined } from "@ant-design/icons";
-import { Button, Drawer, Empty, message, Popconfirm, Space, Spin, theme, Typography } from "antd";
+import { Button, Drawer, Empty, Popconfirm, Space, Spin, theme, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 const { Text } = Typography;

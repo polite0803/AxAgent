@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { useWorkflowEditorStore } from "@/stores";
-import { message } from "antd";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { NODE_TYPE_MAP, type WorkflowNode } from "../types";

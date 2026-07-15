@@ -1,9 +1,20 @@
 {
   "app": {
-    "quickBar": "QuickBar"
+    "quickBar": "QuickBar",
+    "name": "AxAgent",
+    "description": "Smart Work Assistant",
+    "newSkillProposal": "New Skill Proposal Found: {name}",
+    "title": "Smart Chat Assistant"
   },
   "appHeader": {
-    "agentPanel": "Agent Panel"
+    "agentPanel": "Agent Panel",
+    "closeAgentPanel": "Close Agent Panel",
+    "dashboardContext": "System Status Overview",
+    "filesContext": "File Management",
+    "gatewayContext": "Gateway Running",
+    "knowledgeContext": "Knowledge Base Overview",
+    "openAgentPanel": "Open Agent Panel",
+    "terminalContext": "Terminal Session"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -36,10 +47,25 @@
     "trade": "Trade",
     "watchlist": "Watchlist",
     "portfolio": "Portfolio",
-    "scheduledAnalysis": "Scheduled"
+    "scheduledAnalysis": "Scheduled",
+    "dynamicUI": "Dynamic Pages"
   },
   "sidebar": {
-    "agentPanel": "Agent Panel"
+    "agentPanel": "Agent Panel",
+    "closeAgent": "Close Agent",
+    "collapse": "Collapse Sidebar",
+    "expand": "Expand Sidebar",
+    "openAgent": "Open Agent",
+    "sectionInfrastructure": "Infrastructure",
+    "sectionInvest": "Invest",
+    "sectionInvestDiscover": "Discover",
+    "sectionInvestExecute": "Execute",
+    "sectionInvestMonitor": "Monitor",
+    "sectionInvestReview": "Review",
+    "sectionOverview": "Overview",
+    "sectionTools": "Tools",
+    "sectionPlugins": "Plugins",
+    "sectionWork": "Work"
   },
   "knowledge": {
     "commonPanel": "Common Panel",
@@ -1483,40 +1509,40 @@
     "proxy": "Proxy",
     "messageChannels": "Message Channels",
     "platform": {
-      "enable": "Enable",
-      "generalSettings": "General Settings",
-      "enableApiServer": "Enable API Server",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "activeSessions": "Active Sessions",
       "apiServerPort": "API Server Port",
-      "autoSyncMessages": "Auto Sync Messages",
-      "maxHistoryPerSession": "Max History Per Session",
-      "wechatMode": "Mode",
-      "wechatModeOfficial": "Official Account (Webhook)",
-      "wechatModeCustomer": "Customer Service (Polling, Experimental)",
-      "placeholder": {
-        "telegramBotToken": "Get from @BotFather",
-        "discordDevPortal": "Get from Discord Developer Portal",
-        "slackAppToken": "xapp-... from Slack App → App-Level Tokens",
-        "webhookVerify": "For Meta webhook verification",
-        "apiVersion": "Default v18.0",
-        "dingtalkAgent": "DingTalk App AgentId"
-      },
-      "tabConfig": "Platform Config",
-      "tabStatus": "Connection Status",
-      "applyConfig": "Apply Config",
+      "applyConfig": "Apply Settings",
+      "applyErrors": "Error: {{errors}}",
+      "applyFailed": "Apply Settings Failed",
       "applyStarted": "Started: {{platforms}}",
       "applyStopped": "Stopped: {{platforms}}",
-      "applyErrors": "Errors: {{errors}}",
-      "applyFailed": "Failed to apply config",
-      "saveConfigFailed": "Failed to save config: {{error}}",
+      "autoSyncMessages": "Auto Sync Messages",
+      "enable": "Enable",
+      "enableApiServer": "Enable API Server",
+      "generalSettings": "General Settings",
+      "lastActivity": "Last Active",
+      "markerPrefixDesc": "Marker Prefix (Default CHAT2API, Usually No Need To Modify)",
+      "maxHistoryPerSession": "Max History Per Session",
+      "noStatuses": "No Connection Status",
+      "placeholder": {
+        "apiVersion": "Default v18.0",
+        "dingtalkAgent": "DingTalk Application AgentId",
+        "discordDevPortal": "Get From Discord Developer Portal",
+        "slackAppToken": "xapp-... Get From Slack App → App-Level Tokens",
+        "telegramBotToken": "Get From @BotFather",
+        "webhookVerify": "For Meta Webhook Verification"
+      },
+      "saveConfigFailed": "Save Settings Failed: {{error}}",
       "status": "Status",
-      "statusDisabled": "Disabled",
       "statusConnected": "Connected",
       "statusConnecting": "Connecting",
-      "lastActivity": "Last Activity",
-      "activeSessions": "Active Sessions",
-      "noStatuses": "No statuses available",
-      "markerPrefixPlaceholder": "CHAT2API",
-      "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)"
+      "statusDisabled": "Disabled",
+      "tabConfig": "Platform Settings",
+      "tabStatus": "Connection Status",
+      "wechatMode": "Run Mode",
+      "wechatModeCustomer": "Customer Service Mode (Polling Receive, Experimental)",
+      "wechatModeOfficial": "Official Account Mode (Webhook Receive)"
     },
     "webhooks": "Webhooks",
     "advanced": "Advanced",
@@ -2038,7 +2064,14 @@
       "importErrors": "Error Details",
       "importedCount": "Imported",
       "errorCount": "Failed",
-      "importSelectFirst": "Please select a folder first"
+      "importSelectFirst": "Please select a folder first",
+      "autoIndex": "Auto Index",
+      "autoIndexHint": "Automatically update index when files change",
+      "maxResults": "Max Results",
+      "scoreThreshold": "Score Threshold",
+      "vectorStore": "Vector Store",
+      "webCrawlDepth": "Web Crawl Depth",
+      "webCrawlPages": "Crawl Pages"
     },
     "rag": {
       "advanced": "Advanced Retrieval Settings",
@@ -2921,9 +2954,15 @@
         "noSamplesTitle": "No usable samples found",
         "failed": "Auto-learning failed",
         "updatedFields": "Updated fields"
-      }
+      },
+      "name": "Name",
+      "systemPrompt": "System Prompt",
+      "type": "Type",
+      "visibility": "Visibility"
     },
-    "groupVoice": "Voice"
+    "groupVoice": "Voice",
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)"
   },
   "backup": {
     "title": "Backup Center",
@@ -3782,7 +3821,11 @@
       "workflowRef": "Workflow Ref",
       "phaseSeparator": "Phase Separator",
       "groupFrame": "Group",
-      "toolSetSelector": "Tool Set"
+      "toolSetSelector": "Tool Set",
+      "webhook": "Webhook",
+      "apiCall": "API Call",
+      "script": "Script",
+      "timer": "Timer"
     },
     "aiAssist": {
       "btn": {
@@ -3819,7 +3862,9 @@
       },
       "trigger": {
         "cronHint": "Standard cron expression, e.g. `0 9 * * *`."
-      }
+      },
+      "fix": "Fix",
+      "optimize": "Optimize"
     },
     "nodeKind": {
       "input": "Input",
@@ -3829,7 +3874,11 @@
       "condition": "Routing",
       "loop": "Loop",
       "container": "Container",
-      "storage": "Storage"
+      "storage": "Storage",
+      "data": "Data",
+      "logic": "Logic",
+      "trigger": "Trigger",
+      "transform": "Transform"
     },
     "layout": {
       "suggestTitle": {
@@ -3893,7 +3942,51 @@
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
-      }
+      },
+      "autoLayout": "Auto Layout",
+      "canvas": "Canvas",
+      "collapseAll": "Collapse All",
+      "condensed": "Condensed",
+      "connectionMode": "Connection Mode",
+      "defaultEdgeType": "Default Edge Type",
+      "expandAll": "Expand All",
+      "fitView": "Fit View",
+      "floating": "Floating",
+      "gridSize": "Grid Size",
+      "horizontal": "Horizontal",
+      "layoutDirection": "Layout Direction",
+      "locked": "Locked",
+      "minimap": "Minimap",
+      "nodeSize": "Node Size",
+      "orientation": "Orientation",
+      "portLayout": "Port Layout",
+      "readonly": "Read Only",
+      "showGrid": "Show Grid",
+      "snapToGrid": "Snap to Grid",
+      "straight": "Straight",
+      "strict": "Strict",
+      "vertical": "Vertical",
+      "zoomControl": "Zoom Control",
+      "bezier": "Bezier",
+      "smoothStep": "Smooth Step",
+      "free": "Free",
+      "ortho": "Ortho",
+      "large": "Large",
+      "medium": "Medium",
+      "small": "Small",
+      "compact": "Compact",
+      "standard": "Standard",
+      "comfortable": "Comfortable",
+      "left": "Left",
+      "right": "Right",
+      "top": "Top",
+      "bottom": "Bottom",
+      "center": "Center",
+      "border": "Border",
+      "gradient": "Gradient",
+      "solid": "Solid",
+      "dashed": "Dashed",
+      "dotted": "Dotted"
     },
     "approval": {
       "panelTitle": "Pending Approvals",
@@ -3944,7 +4037,6 @@
       "getRecommendation": "Get Recommendation",
       "recommendedNodeTypes": "Recommended Node Types",
       "dragHint": "Drag these node types from the left panel onto the canvas",
-      "clickCanvasToAdd": "Selected \"{{label}}\" — click on the canvas to place the node",
       "noRecommendations": "No recommendations yet",
       "aiAssistant": "AI Assistant",
       "replaceConfirmTitle": "Confirm Replace",
@@ -3970,7 +4062,6 @@
         "applied": "Applied",
         "appliedHint": "Applied {{count}} / {{total}} in this session",
         "empty": "No changes to preview",
-        "promptLength": "Prompt length: {{from}} → {{to}} chars",
         "noBefore": "(new item, no prior content)",
         "noAfter": "(deletion, no new content)",
         "noChanges": "No field changes",
@@ -3982,13 +4073,13 @@
         "nodesEdgesLabel": "{{nodes}} nodes / {{edges}} edges",
         "newNodes": "{{count}} new nodes",
         "nodeNotFound": "Node not found",
+        "edgeNotFound": "Edge not found",
+        "promptLength": "Prompt Length: {{from}} → {{to}} Characters",
         "deleted": "— Deleted —",
-        "deletedCount": "— Deleted {{count}} —",
-        "edgeNotFound": "Edge not found"
+        "deletedCount": "— Deleted {{count}} —"
       },
       "applyToNode": "Apply to node",
       "chatMode": "Chat mode",
-      "chatPlaceholder": "Type a message…",
       "chatWelcome": "Hi, I'm your AI assistant.",
       "chatWelcomeHint": "Ask me about workflow or node configuration.",
       "dragCanvasToAdd": "Drag to canvas to add",
@@ -4004,7 +4095,13 @@
       "evolutionHistory": "Evolution History",
       "evolutionFallback": "Optimization",
       "verified": "Verified",
-      "hasEvolution": "Has evolution records"
+      "hasEvolution": "Has evolution records",
+      "progressAnalyzing": "Analyzing Intent",
+      "progressMatching": "Matching Nodes",
+      "progressBuilding": "Building Workflow",
+      "progressOptimizing": "Optimizing",
+      "clickCanvasToAdd": "Selected \"{{label}}\" — Click Canvas To Place Node",
+      "chatPlaceholder": "Type A Message…"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -4033,12 +4130,40 @@
       "importPresetsTitle": "Import built-in experts",
       "importPresets": "Import",
       "noTemplates": "No templates",
-      "noMatchFound": "No matching templates"
+      "noMatchFound": "No matching templates",
+      "blank": "Blank Workflow",
+      "category": "Category",
+      "createConfirm": "Create a new workflow from this template?",
+      "description": "Description",
+      "empty": "No Templates",
+      "name": "Template Name",
+      "official": "Official Templates",
+      "popular": "Popular",
+      "preview": "Preview",
+      "recent": "Recent",
+      "title": "Workflow Templates",
+      "useTemplate": "Use Template",
+      "version": "Version",
+      "community": "Community",
+      "recommended": "Recommended",
+      "all": "All"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
     "aiAssistant": "AI Assistant",
-    "debugPanel": "Debug Panel",
+    "debugPanel": {
+      "trace": "Trace",
+      "spans": "Spans",
+      "tokens": "Tokens",
+      "nodeId": "Node ID",
+      "type": "Type",
+      "status": "Status",
+      "duration": "Duration",
+      "subWorkflow": "Sub Workflow",
+      "executionId": "Execution ID",
+      "workflowId": "Workflow ID",
+      "parentExecution": "Parent Execution"
+    },
     "undo": "Undo",
     "redo": "Redo",
     "autoLayout": "Auto Layout",
@@ -4110,12 +4235,12 @@
     "saveAsImage": "Save as Image",
     "exportEmpty": "No nodes to export",
     "leftPanel": {
+      "layout": "Layout Helper",
+      "legacySuffix": " (Legacy)",
       "nodesTab": "Nodes",
-      "searchNodes": "Search nodes...",
-      "legacySuffix": "(Legacy)",
-      "layout": "Layout",
-      "templatesTab": "Templates",
-      "searchTemplates": "Search templates..."
+      "searchNodes": "Search Nodes",
+      "searchTemplates": "Search Templates",
+      "templatesTab": "Templates"
     },
     "knowledgeSettings": {
       "title": "Knowledge"
@@ -4237,7 +4362,12 @@
       "rollback": "Rollback to This Version",
       "rollbackConfirm": "Confirm rollback?",
       "rollbackTo": "Rollback to {{version}}",
-      "rolledBack": "Rolled back"
+      "rolledBack": "Rolled back",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "View Diff",
+      "viewSnapshot": "View Snapshot",
+      "restore": "Restore"
     },
     "versionHistoryLoadFailed": "Failed to load version history",
     "versionLoaded": "Version {{version}} loaded",
@@ -4842,18 +4972,28 @@
     },
     "containerNode": {
       "nodes": "nodes",
-      "branchTimeout": "Branch timeout configured"
+      "branchTimeout": "Branch timeout configured",
+      "collapse": "Collapse",
+      "expand": "Expand"
     },
     "swarmNode": {
       "agents": "Agents",
       "rounds": "rounds",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "addAgent": "Add Agent"
+      "addAgent": "Add Agent",
+      "agent": "Agent",
+      "handoff": "Handoff",
+      "mode": "Mode",
+      "parallel": "Parallel",
+      "sequential": "Sequential",
+      "task": "Task"
     },
     "groupNode": {
       "untitled": "Group",
-      "folded": "folded"
+      "folded": "folded",
+      "add": "Add Group",
+      "remove": "Remove Group"
     },
     "workflowRef": {
       "targetWorkflow": "Target Workflow",
@@ -4862,13 +5002,14 @@
       "isolated": "Isolated",
       "selectWorkflow": "",
       "title": "",
-      "version": ""
+      "version": "",
+      "inputMapping": "Input Mapping"
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
     },
     "canvasTitle": {
-      "clickToRename": "Click to rename"
+      "clickToRename": "Click To Rename"
     },
     "node": {
       "tickMode": "Tick Mode",
@@ -4878,7 +5019,10 @@
       "clickToExpandPorts": "Click to expand ports",
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "type": "Type"
+      "type": "Type",
+      "description": "Description",
+      "name": "Name",
+      "version": "Version"
     },
     "debateNode": {
       "debaters": "debaters",
@@ -4907,7 +5051,9 @@
       "configureHint": "Configure trigger conditions and parameters",
       "statusActive": "Running",
       "statusDisabled": "Disabled",
-      "statusUnconfigured": "Unconfigured"
+      "statusUnconfigured": "Unconfigured",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "Not set",
@@ -5218,7 +5364,10 @@
       "title": "Workflow Legend",
       "toggleLabel": "{{action}} legend",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "end": "End",
+      "start": "Start",
+      "running": "Running"
     },
     "back": "Back",
     "caseLabel": "Case {{n}}",
@@ -5226,7 +5375,7 @@
     "subWorkflowLabel": "Sub Workflow",
     "nodesCount": "{{count}} nodes",
     "contextMenu": {
-      "label": "Node actions"
+      "label": "Node Actions"
     },
     "nodeConfig": {
       "add_debater": "Add debater",
@@ -5286,7 +5435,17 @@
       "confirmRestore": "Restore to version {{version}}?",
       "compareSelected": "Compare selected ({{selected}}/2)",
       "clearSelection": "Clear selection",
-      "versionManager": "Version Manager: {{name}}"
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "Archived",
+      "changelog": "Changelog",
+      "comparison": "Version Comparison",
+      "diff": "Diff",
+      "draft": "Draft",
+      "latest": "Latest",
+      "noHistory": "No Version History",
+      "renamed": "Renamed",
+      "restored": "Restored",
+      "updatedAt": "Updated At"
     },
     "duplicateSuffix": "{{name}} (copy)",
     "fromTemplate": "{{name}} (from template)",
@@ -5306,7 +5465,11 @@
       "edgeCount": "{{count}} edges",
       "edit": "Edit",
       "duplicate": "Duplicate",
-      "deleteConfirm": "Are you sure you want to delete this workflow?"
+      "deleteConfirm": "Are you sure you want to delete this workflow?",
+      "confirmDelete": "Confirm delete this workflow?",
+      "createWorkflow": "Create Workflow",
+      "noWorkflows": "No workflows yet, click the button above to create",
+      "search": "Search Workflow"
     },
     "executor": {
       "inputVariables": "Input Variables",
@@ -5319,12 +5482,19 @@
       "close": "Close",
       "execute": "Execute Workflow",
       "executionSuccess": "Execution Successful",
-      "executionFailed": "Execution Failed"
+      "executionFailed": "Execution Failed",
+      "failed": "Failed",
+      "inputVars": "Input Variables",
+      "nodeStatus": "Node Execution Status",
+      "runningNode": "Running Workflow Node",
+      "success": "Success",
+      "waiting": "Waiting"
     },
     "log": {
       "empty": "No logs",
       "clear": "Clear Logs",
-      "export": "Export Logs"
+      "export": "Export Logs",
+      "noLogs": "No Logs"
     },
     "nlParser": {
       "naturalLanguageDesc": "Natural Language Description",
@@ -5342,7 +5512,15 @@
       "edges": "Edges",
       "variables": "Variables",
       "alternatives": "Alternatives",
-      "planLabel": "Plan {{index}}: {{desc}}"
+      "planLabel": "Plan {{index}}: {{desc}}",
+      "constraints": "Constraints (Optional)",
+      "description": "Natural Language Description",
+      "generating": "Parsing",
+      "suggestions": "AI Suggestions",
+      "example1": "Fetch the latest articles from specified websites every day at 8 AM",
+      "example2": "Analyze new emails with AI upon receipt and notify if urgent",
+      "example3": "Validate data before writing to database after user submits form",
+      "exampleConstraint": "e.g., execution time no more than 5 minutes, retry on error"
     },
     "nl2Skill": {
       "triggers": "Triggers",
@@ -5354,14 +5532,27 @@
       "required": "Required",
       "optional": "Optional",
       "parsingPhases": "Parsing Phases",
-      "applySkill": "Apply This Skill"
+      "applySkill": "Apply This Skill",
+      "generate": "Generate Skill",
+      "generating": "Generating...",
+      "instruction": "Describe the skill you want",
+      "preview": "Preview",
+      "result": "Generation Result",
+      "title": "Natural Language to Skill",
+      "validate": "Validate",
+      "validating": "Validating..."
     },
     "nl2UI": {
       "rootType": "Root Type",
       "componentCount": "Component Count",
       "depthLevel": "Depth",
       "components": "{{count}} components",
-      "applyUI": "Apply This UI"
+      "applyUI": "Apply This UI",
+      "generate": "Generate",
+      "generating": "Generating...",
+      "instruction": "Describe the UI you want",
+      "result": "Generation Result",
+      "title": "Natural Language to UI"
     },
     "evolution": {
       "noNodes": "No nodes on current canvas",
@@ -5376,10 +5567,78 @@
       "latency": "Latency {{diff}}",
       "noEvolutionRecord": "No evolution record — trigger first evolution",
       "abTestTitle": "A/B Test ({{count}})",
-      "winner": "{{winner}} Won"
+      "winner": "{{winner}} Won",
+      "apply": "Apply",
+      "current": "Current Version",
+      "diff": "Diff",
+      "evolutionHistory": "Evolution History",
+      "generation": "Generation {{n}}",
+      "improved": "Improved",
+      "performance": "Performance",
+      "revert": "Revert",
+      "score": "Score",
+      "viewDiff": "View Diff"
     },
     "workflowRefNode": {
       "noWorkflow": ""
+    },
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## AI Generated Image",
+      "model": "**Model**",
+      "duration": "**Duration**",
+      "savedToArtifact": "Saved to Artifact"
+    },
+    "chatSidebar": {
+      "menu": "Menu"
+    },
+    "inputArea": {
+      "resizeHandle": "Resize",
+      "uploadFile": "Upload File"
+    },
+    "appHeader": {
+      "agentPanel": "Agent Panel"
+    },
+    "sidebar": {
+      "agentPanel": "Agent Panel"
+    },
+    "errorBoundary": {
+      "pageError": "Page Error"
+    },
+    "chatPage": {
+      "resizeHandle": "Resize"
+    },
+    "spanDetail": {
+      "parentSpan": "Parent Span"
+    },
+    "traceDetail": {
+      "userId": "User ID"
+    },
+    "settingsPanel": {
+      "featureFlags": "Feature Flags"
+    },
+    "skillTimeline": {
+      "promptDiff": "Prompt Diff"
+    },
+    "chartPreview": {
+      "title": "Chart Preview"
+    },
+    "htmlPreview": {
+      "title": "HTML Preview"
+    },
+    "reactPreview": {
+      "title": "React Preview"
     }
   },
   "atomicSkill": {
@@ -5471,7 +5730,8 @@
       "time": "Time",
       "action": "Action",
       "load": "Load",
-      "delete": "Delete"
+      "delete": "Delete",
+      "noCheckpoints": "No Checkpoints"
     },
     "status": {
       "idle": "Idle",
@@ -5491,14 +5751,17 @@
       "reward": "Reward",
       "speed": "Speed",
       "lossCurve": "Loss Curve",
-      "rewardCurve": "Reward Curve"
+      "rewardCurve": "Reward Curve",
+      "step": "Current Step",
+      "title": "Training Monitor"
     },
     "config": {
       "algorithm": "Algorithm",
       "learningRate": "Learning Rate",
       "batchSize": "Batch Size",
       "epochs": "Epochs",
-      "maxSteps": "Max Steps"
+      "maxSteps": "Max Steps",
+      "title": "Training Settings"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -5883,7 +6146,10 @@
     "yourReview": "Your Review"
   },
   "searchProvider": {
-    "apiKey": "API Key"
+    "apiKey": "API Key",
+    "tavily": "Tavily",
+    "bocha": "Bocha",
+    "zhipu": "Zhipu"
   },
   "terminal": {
     "online": "Online",
@@ -6035,7 +6301,9 @@
       "path": "Path",
       "deleteNotImplemented": "Delete not implemented yet",
       "mimeType": "MIME Type",
-      "size": "Size"
+      "size": "Size",
+      "chunks": "Chunks",
+      "status": "Status"
     },
     "tips": {
       "doubleClick": "Double-click node to edit",
@@ -6075,7 +6343,29 @@
     "insertLink": "Insert Link",
     "lastCompiled": "Last compiled",
     "lastLinted": "Last linted",
-    "lint": "Lint",
+    "lint": {
+      "averageScore": "Durchschnittspunktzahl",
+      "code": "Code",
+      "details": "Details",
+      "issues": "Probleme",
+      "line": "Zeile",
+      "loadError": "Laden fehlgeschlagen",
+      "message": "Nachricht",
+      "noIssues": "Keine Probleme",
+      "noResults": "Keine Ergebnisse",
+      "note": "Notiz",
+      "score": "Punktzahl",
+      "scoreUpdated": "Punktzahl aktualisiert",
+      "severity": "Schweregrad",
+      "success": "Lint abgeschlossen",
+      "totalIssues": "Gesamtprobleme",
+      "totalNotes": "Gesamte Notizen",
+      "updateScore": "Punktzahl aktualisieren",
+      "viewDetails": "Details anzeigen",
+      "rerun": "Rerun",
+      "runLint": "Run Lint",
+      "selectNote": "Select Note"
+    },
     "llm": {
       "backToList": "Back to list",
       "compile": "Compile",
@@ -6505,7 +6795,8 @@
       "newVersion": "New (v{{version}})",
       "confirmRollback": "Confirm Rollback",
       "rollbackConfirmMessage": "Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version."
-    }
+    },
+    "loadingPage": "Loading skill page..."
   },
   "tool": {
     "common": {
@@ -7278,7 +7569,26 @@
     "generatedImageTitle": "## AI Generated Image",
     "model": "**Model**",
     "duration": "**Duration**",
-    "savedToArtifact": "Saved to Artifact"
+    "savedToArtifact": "Saved to Artifact",
+    "openaiApiKeyPlaceholder": "sk-...",
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "providerDalle": "DALL-E 3 (OpenAI)",
+    "providerFlux": "Flux (Replicate)",
+    "replicateApiTokenPlaceholder": "r8_...",
+    "autoSaveArtifact": "Auto Save as Artifact",
+    "configureApiKey": "Please Configure API Key",
+    "defaultProvider": "Default Provider",
+    "elapsed": "Elapsed",
+    "enterPrompt": "Please Enter Prompt",
+    "generateImage": "Generate Image",
+    "inferenceSteps": "Inference Steps",
+    "loading": "Loading...",
+    "negativePrompt": "Negative Prompt (Optional)",
+    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiBaseUrl": "OpenAI Base URL",
+    "promptPlaceholder": "Describe the image you want to generate...",
+    "replicateApiToken": "Replicate API Token",
+    "title": "Image Generation"
   },
   "diffViewer": {
     "newFile": "New",
@@ -7539,7 +7849,8 @@
     "teamCreated": "Team \"{{name}}\" created with {{count}} teammates"
   },
   "chatPage": {
-    "resizeHandle": "resize handle"
+    "resizeHandle": "resize handle",
+    "loading": "Loading..."
   },
   "sshConfig": {
     "title": "SSH Configuration",
@@ -7622,7 +7933,20 @@
     "emptyResult": "No result"
   },
   "errorBoundary": {
-    "pageError": "Page Error"
+    "pageError": "Page Error",
+    "copied": "Copied",
+    "copyError": "Copy Error",
+    "errorDetails": "Error Details",
+    "moduleError": "Module Error",
+    "panelLoadFailed": "⚠️ Panel \"{{tabKey}}\" Load Failed",
+    "refreshPage": "Refresh Page",
+    "retry": "Retry",
+    "retryLoad": "Retry Loading This Module",
+    "somethingWentWrong": "Something Went Wrong",
+    "title": "Something Went Wrong",
+    "tryAgain": "Try Again",
+    "unexpectedError": "Unexpected Error",
+    "unknownError": "Unknown Error"
   },
   "appInit": {
     "idle": "Preparing to start...",
@@ -7744,7 +8068,14 @@
       "storeInsightsHint": "Insights will be saved locally and available across sessions",
       "subtitle": "Configure auto-reflection and insight management",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "Minimum Confidence",
+      "minConfidenceHint": "Insights with confidence below this value will be ignored",
+      "strategy": "Reflection Strategy",
+      "strategyHint": "Select reflection trigger strategy",
+      "triggerOnComplete": "Trigger on Complete",
+      "triggerOnError": "Trigger on Error",
+      "triggerOnIdle": "Trigger on Idle"
     },
     "useful": "Useful"
   },
@@ -8265,9 +8596,9 @@
   "screener": {
     "placeholder": "Filter stocks by conditions",
     "tab": {
-      "myFilter": "My Filters",
-      "smartReco": "Smart Recommendations",
-      "serenity": "Bottleneck Hunt"
+      "myFilter": "My Filter",
+      "serenity": "Bottleneck Mining",
+      "smartReco": "Smart Recommendation"
     },
     "title": "Stock Screener"
   },
@@ -8379,7 +8710,14 @@
       "planner": "Planner",
       "researcher": "Researcher",
       "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "synthesizer": "Synthesizer",
+      "analyst": "Analyst",
+      "decisionMaker": "Decision Maker",
+      "riskManager": "Risk Manager",
+      "strategist": "Strategist",
+      "supervisor": "Supervisor",
+      "trader": "Trader",
+      "validator": "Validator"
     },
     "buy": "Buy",
     "cost": "Cost",
@@ -8396,15 +8734,7 @@
     "stockCode": "Code",
     "stockName": "Name",
     "title": "Trading Log",
-    "toggleFailed": "Toggle failed",
-    "agentRole.coordinator": "Coordinator",
-    "agentRole.researcher": "Researcher",
-    "agentRole.planner": "Planner",
-    "agentRole.developer": "Developer",
-    "agentRole.reviewer": "Reviewer",
-    "agentRole.browser": "Browser",
-    "agentRole.synthesizer": "Synthesizer",
-    "agentRole.executor": "Executor"
+    "toggleFailed": "Toggle failed"
   },
   "watchlist": {
     "placeholder": "Manage your watchlist and price alerts",
@@ -8438,7 +8768,31 @@
     "retry": "Retry"
   },
   "dynamicUI": {
-    "uiSchemaJson": "UI Schema JSON"
+    "uiSchemaJson": "UI Schema JSON",
+    "button": "Button",
+    "dataLoadFailed": "Data Load Failed",
+    "downloadFile": "Download File",
+    "fieldRequired": "{{field}} is required",
+    "filePreview": "File Preview: {{fileName}}",
+    "loadingChart": "Loading Chart Component...",
+    "moreErrors": "... and {{count}} more errors",
+    "noData": "No Data",
+    "pleaseEnter": "Please enter {{label}}",
+    "pleaseSelect": "Please select {{label}}",
+    "previewNotSupported": "Preview Not Supported for This File Type",
+    "rechartsInstallHint": "Please run npm install recharts or pnpm add recharts",
+    "rechartsRequired": "Recharts is required for chart functionality",
+    "registerHint": "Please register this component via componentRegistry.register()",
+    "renderFailed": "Component \"{{type}}\" Render Failed",
+    "schemaValidationFailed": "Schema Validation Failed",
+    "section": "Section",
+    "submit": "Submit",
+    "tab": "Tab",
+    "textFile": "Text File",
+    "unknownFile": "Unknown File",
+    "unregisteredComponent": "Unregistered Component: {{type}}",
+    "unsupportedChartType": "Unsupported Chart Type: {{type}}",
+    "schemaNotFound": "Specified Dynamic Page Not Found"
   },
   "agentPanel": {
     "openPanel": "Open AxAgent Panel",
@@ -8500,7 +8854,9 @@
       "failurePatterns": "Failure Patterns",
       "failureReason": "Failure Reason",
       "count": "Count",
-      "percentage": "Percentage"
+      "percentage": "Percentage",
+      "bottleneck": "Bottleneck",
+      "reason": "Failure Reason"
     },
     "feedback": {
       "thanks": "Thank you for your feedback",
@@ -8534,7 +8890,8 @@
       "thinking": "Thinking",
       "toolCall": "Tool Call",
       "waitingPermission": "Waiting Permission",
-      "error": "Error"
+      "error": "Error",
+      "permission": "Waiting for Permission"
     },
     "duration": "Duration: {{duration}}s"
   },
@@ -8658,7 +9015,11 @@
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "Basic",
+      "data": "Data",
+      "layout": "Layout",
+      "navigation": "Navigation"
     },
     "components": {
       "Container": "Container",
@@ -8691,7 +9052,13 @@
       "Text": "Text",
       "Divider": "Divider",
       "Progress": "Progress",
-      "Tag": "Tag"
+      "Tag": "Tag",
+      "Heading": "Heading",
+      "Link": "Link",
+      "Paragraph": "Paragraph",
+      "Slider": "Slider",
+      "Space": "Space",
+      "Tooltip": "Tooltip"
     },
     "canvas": {
       "leafNode": "leaf node",
@@ -8700,7 +9067,13 @@
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
       "rootHint": "root-level child(ren)",
-      "livePreview": "Live Preview"
+      "livePreview": "Live Preview",
+      "addNode": "Add Node",
+      "deleteNode": "Delete Node",
+      "duplicate": "Duplicate",
+      "moveDown": "Move Down",
+      "moveUp": "Move Up",
+      "pasteNode": "Paste Node"
     },
     "property": {
       "title": "Property Panel",
@@ -8723,7 +9096,19 @@
       "placeholder": {
         "propKey": "Key",
         "propValue": "Value"
-      }
+      },
+      "children": "Children",
+      "componentType": "Component Type",
+      "defaultValue": "Default Value",
+      "description": "Description",
+      "label": "Label",
+      "name": "Name",
+      "options": "Options",
+      "props": "Props",
+      "required": "Required",
+      "rules": "Validation Rules",
+      "type": "Type",
+      "value": "Value"
     },
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit Fullscreen"
@@ -8846,5 +9231,30 @@
   },
   "reactPreview": {
     "title": "React Preview"
+  },
+  "components_skill_SkillABTestResults": {
+    "components_skill_Ski": "components_skill_SkillABTestResults.No AB Test Data",
+    "两个版本无明显差异": " No significant difference between the two versions.",
+    "优胜": "Winner",
+    "变化": "Change",
+    "平局": "Tie",
+    "指标": "Metric",
+    "推荐采用版本_A": " Recommending Version A.",
+    "推荐采用版本_B": " Recommending Version B.",
+    "暂无_A_B_测试数据": "No A/B Test Data",
+    "版本_A": "Version A",
+    "版本_B": "Version B"
+  },
+  "components_skill_SkillEvolutionViewer": {
+    "A_B_测试结果": "A/B Test Results",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A/B Test Results",
+    "当前版本": "Current Version",
+    "总进化次数": "Total Evolutions",
+    "最近进化": "Latest Evolution"
+  },
+  "components_skill_SkillVersionTimeline": {
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.No Evolution History",
+    "暂无进化历史": "No Evolution History",
+    "确认回滚": "Confirm Rollback"
   }
 }

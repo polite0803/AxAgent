@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { CopyButton } from "@/components/common/CopyButton";
+import { message } from "@/lib/toast";
 import { useGatewayStore } from "@/stores";
 import type { GatewayRequestLog } from "@/types";
-import { Button, Card, Col, Empty, message, Row, Statistic, Table, Tag, theme } from "antd";
+import { Button, Card, Col, Empty, Row, Statistic, Table, Tag, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowDown, ArrowUp, PlayCircle, Power, RefreshCw, Router } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";

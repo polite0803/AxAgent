@@ -4,10 +4,10 @@ import i18n from "@/i18n";
 import { isTauri } from "@/lib/invoke";
 import { invoke } from "@/lib/invoke";
 import { SHORTCUT_ACTION_LABEL_KEYS, type ShortcutAction } from "@/lib/shortcuts";
+import { message } from "@/lib/toast";
 import { useSettingsStore } from "@/stores";
 import type { GatewayStatus } from "@/types";
 import { getAllWindows, getCurrentWindow } from "@tauri-apps/api/window";
-import { message } from "antd";
 
 function notifyShortcutTriggered(action: ShortcutAction) {
   const settings = useSettingsStore.getState().settings;

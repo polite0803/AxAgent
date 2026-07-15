@@ -17,6 +17,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/link": "nav.link",
   "/files": "nav.files",
   "/workflow": "nav.workflow",
+  "/dynamic-ui": "nav.dynamicUI",
   "/wiki": "nav.wiki",
   "/terminal": "nav.terminal",
 };

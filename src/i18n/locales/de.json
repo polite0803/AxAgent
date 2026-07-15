@@ -245,7 +245,10 @@
       "completed": "Abgeschlossen",
       "failed": "Fehlgeschlagen",
       "pending": "Ausstehend",
-      "running": "Läuft"
+      "running": "Läuft",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "summary": "Agent Pool ({completed}/{total})",
     "type": {
@@ -301,7 +304,8 @@
     "description": "KI-gestützter Arbeitsassistent",
     "name": "AxAgent",
     "newSkillProposal": "Neuer Fähigkeitsvorschlag: {name}",
-    "title": "Intelligenter Arbeitsbereich"
+    "title": "Intelligenter Arbeitsbereich",
+    "quickBar": "QuickBar"
   },
   "appHeader": {
     "closeAgentPanel": "Close Agent Panel",
@@ -310,7 +314,8 @@
     "gatewayContext": "Gateway",
     "knowledgeContext": "Wissen",
     "openAgentPanel": "Open Agent Panel",
-    "terminalContext": "Terminal"
+    "terminalContext": "Terminal",
+    "agentPanel": "Agent Panel"
   },
   "appInit": {
     "applyConfig": "Konfiguration wird angewendet...",
@@ -1738,7 +1743,10 @@
         "created": "Erstellt",
         "failed": "Fehlgeschlagen",
         "partiallyCompleted": "Teilweise abgeschlossen",
-        "running": "Läuft"
+        "running": "Läuft",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       }
     },
     "workflowLabel": "Workflow",
@@ -1759,7 +1767,8 @@
     "viewThinking": "Denken anzeigen"
   },
   "chatPage": {
-    "loading": "Laden..."
+    "loading": "Laden...",
+    "resizeHandle": "resize handle"
   },
   "chatRightPanel": {
     "agent": "Agent",
@@ -2491,7 +2500,8 @@
     "unknownFile": "Unbekannte Datei",
     "unregisteredComponent": "Nicht registrierte Komponente: {{type}}",
     "unsupportedChartType": "Nicht unterstützter Diagrammtyp: {{type}}",
-    "schemaNotFound": "Dynamische Seite nicht gefunden"
+    "schemaNotFound": "Dynamische Seite nicht gefunden",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "dynamicUIManager": {
     "addChild": "Kind hinzufügen",
@@ -2576,7 +2586,9 @@
     "importInvalid": "Invalid or empty schema file",
     "export": "Export",
     "exportAll": "Export All",
-    "exportSuccess": "Exported successfully"
+    "exportSuccess": "Exported successfully",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} errors",
@@ -3152,7 +3164,10 @@
     "providerFlux": "Flux (Replicate)",
     "replicateApiToken": "Replicate API-Token",
     "replicateApiTokenPlaceholder": "r8_...",
-    "title": "Bildgenerierung"
+    "title": "Bildgenerierung",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "input": {
     "recordAudio": "Audio aufnehmen",
@@ -3425,7 +3440,10 @@
     "selectAgent": "Agent auswählen, um Nachrichten anzuzeigen",
     "status": {
       "completed": "Abgeschlossen",
-      "running": "Läuft"
+      "running": "Läuft",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "tabs": {
       "agents": "Agenten",
@@ -3462,7 +3480,8 @@
     "trade": "Trade",
     "watchlist": "Watchlist",
     "wiki": "Wiki",
-    "workflow": "Workflow"
+    "workflow": "Workflow",
+    "dynamicUI": "Dynamische Seiten"
   },
   "notification": {
     "clear": "Löschen",
@@ -3531,7 +3550,9 @@
     "tutorialSkip": "Tutorial überspringen",
     "tutorialStart": "Tutorial starten",
     "welcome": "Willkommen bei AxAgent",
-    "welcomeDesc": "Intelligenter AI-Desktop-Client mit Multi-Modell-Unterstützung, autonomer Agent-Ausführung und Wissensdatenbank-Suche"
+    "welcomeDesc": "Intelligenter AI-Desktop-Client mit Multi-Modell-Unterstützung, autonomer Agent-Ausführung und Wissensdatenbank-Suche",
+    "downloadOllama": "Ollama herunterladen",
+    "applying": "Wird angewendet…"
   },
   "pasteButton": {
     "clipboardUnavailable": "Zum manuellen Einfügen lange drücken",
@@ -3612,7 +3633,10 @@
       "pending": "Ausstehend",
       "rejected": "Abgelehnt",
       "reviewing": "Überprüfung läuft",
-      "running": "Läuft"
+      "running": "Läuft",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "stepsApproved": "Schritte genehmigt",
     "strategyDirect": "Direkt ausführen",
@@ -3707,7 +3731,14 @@
     "today": "Heute",
     "tomorrow": "Morgen",
     "unknown": "Unbekannt",
-    "yesterday": "Gestern"
+    "yesterday": "Gestern",
+    "prefetchTypes": {
+      "codeCompletion": "Code-Vervollständigung",
+      "searchResults": "Suchergebnisse",
+      "documentation": "Dokumentation",
+      "contextAnalysis": "Kontextanalyse",
+      "toolCache": "Tool-Cache"
+    }
   },
   "profile": {
     "codingStyle": "Code-Stil",
@@ -4113,7 +4144,14 @@
       "subtitle": "Configure auto-reflection and insight management",
       "title": "Reflection Settings",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "Mindestkonfidenz",
+      "minConfidenceHint": "Erkenntnisse mit einer Konfidenz unter diesem Wert werden ignoriert",
+      "strategy": "Reflexionsstrategie",
+      "strategyHint": "Reflexionsauslöser-Strategie wählen",
+      "triggerOnComplete": "Bei Abschluss auslösen",
+      "triggerOnError": "Bei Fehler auslösen",
+      "triggerOnIdle": "Bei Inaktivität auslösen"
     },
     "startReflection": "Reflexion starten",
     "summary": "Zusammenfassung",
@@ -4296,14 +4334,16 @@
       "saveModal": "Save Checkpoint",
       "step": "Step",
       "time": "Time",
-      "title": "Checkpoints"
+      "title": "Checkpoints",
+      "noCheckpoints": "Keine Checkpoints"
     },
     "config": {
       "algorithm": "Algorithm",
       "batchSize": "Batch Size",
       "epochs": "Epochs",
       "learningRate": "Learning Rate",
-      "maxSteps": "Max Steps"
+      "maxSteps": "Max Steps",
+      "title": "Trainingskonfiguration"
     },
     "createPolicy": "Neue Richtlinie erstellen",
     "experiences": "Erfahrungen",
@@ -4318,7 +4358,9 @@
       "lossCurve": "Loss Curve",
       "reward": "Reward",
       "rewardCurve": "Reward Curve",
-      "speed": "Speed"
+      "speed": "Speed",
+      "step": "Aktueller Schritt",
+      "title": "Trainingsüberwachung"
     },
     "panel": {
       "checkpoints": "Checkpoints",
@@ -4343,7 +4385,10 @@
       "failed": "Failed",
       "idle": "Idle",
       "paused": "Paused",
-      "running": "Training"
+      "running": "Training",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "train": "Trainieren"
   },
@@ -4364,9 +4409,9 @@
   "screener": {
     "placeholder": "Aktien nach Kriterien filtern",
     "tab": {
-      "myFilter": "Mein Filter",
-      "serenity": "Bottleneck Hunt",
-      "smartReco": "Smarte Tipps"
+      "myFilter": "Meine Filter",
+      "serenity": "Serenity",
+      "smartReco": "Intelligente Aktienempfehlungen"
     },
     "title": "Aktiensuche"
   },
@@ -4392,7 +4437,8 @@
   "searchProvider": {
     "bocha": "Bocha",
     "tavily": "Tavily",
-    "zhipu": "Zhipu"
+    "zhipu": "Zhipu",
+    "apiKey": "API Key"
   },
   "serenityPanel": {
     "analyzing": "Analysiere Industriekettendaten, LLM-Inferenz benötigt 1-3 Minuten...",
@@ -5059,7 +5105,14 @@
       "vectorNotConfigured": "Nicht konfiguriert",
       "vectorReady": "Bereit",
       "viewChunks": "Abschnitte",
-      "wikiTab": "Wiki"
+      "wikiTab": "Wiki",
+      "autoIndex": "Automatische Indizierung",
+      "autoIndexHint": "Index bei Dateiänderungen automatisch aktualisieren",
+      "maxResults": "Maximale Ergebnisanzahl",
+      "scoreThreshold": "Score-Schwellenwert",
+      "vectorStore": "Vektorspeicher",
+      "webCrawlDepth": "Web-Crawl-Tiefe",
+      "webCrawlPages": "Anzahl gecrawlter Seiten"
     },
     "knowledgeSettings": {
       "title": "Wissen"
@@ -5361,14 +5414,19 @@
         "noSamplesTitle": "Keine verwendbaren Proben gefunden",
         "failed": "Automatisches Lernen fehlgeschlagen",
         "updatedFields": "Aktualisierte Felder"
-      }
+      },
+      "name": "Name",
+      "systemPrompt": "System-Prompt",
+      "type": "Typ",
+      "visibility": "Sichtbarkeit"
     },
     "platform": {
+      "markerPrefixPlaceholder": "CHAT2API",
       "activeSessions": "Aktive Sitzungen",
-      "apiServerPort": "API-Server-Port",
+      "apiServerPort": "API Server-Port",
       "applyConfig": "Konfiguration anwenden",
       "applyErrors": "Fehler: {{errors}}",
-      "applyFailed": "Konfiguration konnte nicht angewendet werden",
+      "applyFailed": "Konfiguration anwenden fehlgeschlagen",
       "applyStarted": "Gestartet: {{platforms}}",
       "applyStopped": "Gestoppt: {{platforms}}",
       "autoSyncMessages": "Nachrichten automatisch synchronisieren",
@@ -5376,28 +5434,27 @@
       "enableApiServer": "API Server aktivieren",
       "generalSettings": "Allgemeine Einstellungen",
       "lastActivity": "Letzte Aktivität",
-      "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)",
-      "markerPrefixPlaceholder": "CHAT2API",
-      "maxHistoryPerSession": "Max. Verlauf pro Sitzung",
-      "noStatuses": "Keine Status verfügbar",
+      "markerPrefixDesc": "Marker-Präfix (Standard CHAT2API, normalerweise keine Änderung erforderlich)",
+      "maxHistoryPerSession": "Maximale Verlaufsnachrichten pro Sitzung",
+      "noStatuses": "Keine Verbindungsstatus vorhanden",
       "placeholder": {
         "apiVersion": "Standard v18.0",
         "dingtalkAgent": "DingTalk-App AgentId",
-        "discordDevPortal": "Vom Discord Developer Portal erhalten",
-        "slackAppToken": "xapp-... von Slack App → App-Level Tokens",
-        "telegramBotToken": "Von @BotFather erhalten",
-        "webhookVerify": "Für Meta Webhook-Verifizierung"
+        "discordDevPortal": "Vom Discord Developer Portal abrufen",
+        "slackAppToken": "xapp-... aus Slack App → App-Level Tokens abrufen",
+        "telegramBotToken": "Von @BotFather abrufen",
+        "webhookVerify": "Für Meta-Webhook-Verifizierung"
       },
-      "saveConfigFailed": "Konfiguration konnte nicht gespeichert werden: {{error}}",
+      "saveConfigFailed": "Speichern der Konfiguration fehlgeschlagen: {{error}}",
       "status": "Status",
       "statusConnected": "Verbunden",
-      "statusConnecting": "Verbinde",
+      "statusConnecting": "Verbindung wird hergestellt",
       "statusDisabled": "Deaktiviert",
-      "tabConfig": "Plattform-Konfiguration",
+      "tabConfig": "Plattform-Einstellungen",
       "tabStatus": "Verbindungsstatus",
-      "wechatMode": "Modus",
-      "wechatModeCustomer": "Kundendienst (Polling, experimentell)",
-      "wechatModeOfficial": "Offizielles Konto (Webhook)"
+      "wechatMode": "Ausführungsmodus",
+      "wechatModeCustomer": "Kundenservice-Modus (Polling-Empfang, experimentell)",
+      "wechatModeOfficial": "Offizieller-Konto-Modus (Webhook-Empfang)"
     },
     "plugins": {
       "installFailed": "Installation fehlgeschlagen: {{error}}",
@@ -5954,7 +6011,9 @@
       "visualEditorDesc": "Workflows mit Drag-and-Drop-DAG-Editor erstellen und bearbeiten"
     },
     "zhipu": "Zhipu",
-    "groupVoice": "Sprache"
+    "groupVoice": "Sprache",
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker-Präfix (Standard CHAT2API, normalerweise keine Änderung erforderlich)"
   },
   "settingsPage": {
     "refreshPage": "Seite aktualisieren"
@@ -5983,7 +6042,10 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvestReview": "Review",
     "sectionOverview": "Übersicht",
-    "sectionTools": "Werkzeuge"
+    "sectionTools": "Werkzeuge",
+    "agentPanel": "Agent Panel",
+    "sectionPlugins": "Plugins",
+    "sectionWork": "Arbeit"
   },
   "skill": {
     "abTest": {
@@ -6093,7 +6155,8 @@
     "storeNotWritable": "Speicher \"{{name}}\" nicht beschreibbar",
     "timeoutError": "Sandbox-Ladezeitüberschreitung, bitte erneut versuchen",
     "uninstall": "Deinstallieren",
-    "unknownError": "Unbekannter Fehler"
+    "unknownError": "Unbekannter Fehler",
+    "loadingPage": "Skill-Seite wird geladen…"
   },
   "skillEditor": {
     "actionAdd": "Aktion hinzufügen",
@@ -6557,7 +6620,9 @@
       "loading": "Loading bottleneck analysis...",
       "percentage": "Percentage",
       "timeDistribution": "Time Distribution",
-      "tokenConsumption": "Token Consumption"
+      "tokenConsumption": "Token Consumption",
+      "bottleneck": "Flaschenhals",
+      "reason": "Fehlerursache"
     },
     "duration": "Duration: {{duration}}s",
     "empty": "No execution trace data",
@@ -6592,7 +6657,8 @@
       "error": "Error",
       "thinking": "Thinking",
       "toolCall": "Tool Call",
-      "waitingPermission": "Waiting Permission"
+      "waitingPermission": "Waiting Permission",
+      "permission": "Warten auf Berechtigung"
     }
   },
   "traceExplorer": {
@@ -6608,13 +6674,20 @@
   "trade": {
     "agentRole": {
       "browser": "Browser",
-      "coordinator": "Coordinator",
-      "developer": "Developer",
-      "executor": "Executor",
-      "planner": "Planner",
-      "researcher": "Researcher",
-      "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "coordinator": "Koordinator",
+      "developer": "Entwickler",
+      "executor": "Ausführer",
+      "planner": "Planer",
+      "researcher": "Forscher",
+      "reviewer": "Prüfer",
+      "synthesizer": "Synthesizer",
+      "analyst": "Analyst",
+      "decisionMaker": "Entscheider",
+      "riskManager": "Risikomanager",
+      "strategist": "Stratege",
+      "supervisor": "Supervisor",
+      "trader": "Händler",
+      "validator": "Validator"
     },
     "buy": "Buy",
     "cost": "Cost",
@@ -6678,14 +6751,24 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "leafNode": "leaf node",
       "rootHint": "root-level child(ren)",
-      "livePreview": "实时预览"
+      "livePreview": "Live-Vorschau",
+      "addNode": "Knoten hinzufügen",
+      "deleteNode": "Knoten löschen",
+      "duplicate": "Duplizieren",
+      "moveDown": "Nach unten",
+      "moveUp": "Nach oben",
+      "pasteNode": "Knoten einfügen"
     },
     "categories": {
       "container": "Layout & Containers",
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "Basis",
+      "data": "Daten",
+      "layout": "Layout",
+      "navigation": "Navigation"
     },
     "components": {
       "Accordion": "Accordion",
@@ -6718,7 +6801,13 @@
       "Text": "Text",
       "Textarea": "Textarea",
       "Timeline": "Timeline",
-      "Tree": "Tree"
+      "Tree": "Tree",
+      "Heading": "Überschrift",
+      "Link": "Link",
+      "Paragraph": "Absatz",
+      "Slider": "Schieberegler",
+      "Space": "Abstand",
+      "Tooltip": "Tooltip"
     },
     "palette": {
       "title": "Components"
@@ -6744,10 +6833,22 @@
         "basic": "Basic",
         "style": "Style"
       },
-      "title": "Property Panel"
+      "title": "Property Panel",
+      "children": "Untergeordnete Elemente",
+      "componentType": "Komponententyp",
+      "defaultValue": "Standardwert",
+      "description": "Beschreibung",
+      "label": "Label",
+      "name": "Name",
+      "options": "Optionen",
+      "props": "Eigenschaften",
+      "required": "Pflichtfeld",
+      "rules": "Validierungsregeln",
+      "type": "Typ",
+      "value": "Wert"
     },
-    "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏"
+    "fullscreen": "Vollbild",
+    "exitFullscreen": "Vollbild beenden"
   },
   "voice": {
     "connected": "Verbunden",
@@ -6899,7 +7000,9 @@
       "path": "Pfad",
       "status": "Status",
       "title": "Titel",
-      "type": "Typ"
+      "type": "Typ",
+      "mimeType": "MIME-Typ",
+      "size": "Größe"
     },
     "insertLink": "Link einfügen",
     "keepEditing": "Weiter bearbeiten",
@@ -6919,17 +7022,17 @@
       "noIssues": "Keine Probleme",
       "noResults": "Keine Ergebnisse",
       "note": "Notiz",
-      "rerun": "Erneut ausführen",
-      "runLint": "Lint ausführen",
       "score": "Punktzahl",
       "scoreUpdated": "Punktzahl aktualisiert",
-      "selectNote": "Notiz auswählen",
       "severity": "Schweregrad",
       "success": "Lint abgeschlossen",
       "totalIssues": "Gesamtprobleme",
       "totalNotes": "Gesamte Notizen",
       "updateScore": "Punktzahl aktualisieren",
-      "viewDetails": "Details anzeigen"
+      "viewDetails": "Details anzeigen",
+      "rerun": "Erneut ausführen",
+      "runLint": "Lint ausführen",
+      "selectNote": "Notiz auswählen"
     },
     "llm": {
       "backToList": "Zurück zur Liste",
@@ -7162,7 +7265,9 @@
     },
     "wikiMeta": {
       "rootPath": "Wurzelpfad"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "workEngine": {
     "cancel": "Abbrechen",
@@ -7248,7 +7353,9 @@
       "tooltip": "KI-gestützte Optimierung",
       "trigger": {
         "cronHint": "Standard-Cron-Ausdruck, z. B. `0 9 * * *`."
-      }
+      },
+      "fix": "Reparieren",
+      "optimize": "Optimieren"
     },
     "approval": {
       "panelTitle": "Genehmigungen",
@@ -7266,101 +7373,105 @@
     },
     "aiAssistant": "KI-Assistent",
     "aiPanel": {
-      "actionAddEdge": "Kante hinzufügen",
-      "actionAddNodes": "Knoten hinzufügen",
-      "actionApply": "Anwenden",
-      "actionApplyAll": "{{count}} Änderungen prüfen",
-      "actionDeleteEdge": "Kante löschen",
-      "actionDeleteNodes": "Knoten löschen",
-      "actionGenerateWorkflow": "Workflow generieren",
-      "actionModifyNode": "Knoten aktualisieren",
-      "actionOptimizePrompt": "Prompt optimieren",
-      "actionUpdateEdge": "Kante aktualisieren",
-      "aiAssistant": "KI-Assistent",
-      "applyToNode": "Auf Knoten anwenden",
-      "canvasStatus": "{{nodes}} Knoten, {{edges}} Kanten",
-      "chatMode": "Chat-Modus",
-      "chatPlaceholder": "Nachricht eingeben…",
-      "chatWelcome": "Hallo, ich bin Ihr KI-Assistent.",
-      "chatWelcomeHint": "Fragen Sie mich zu Workflows oder Knotenkonfigurationen.",
-      "clickCanvasToAdd": "„{{label}}\" ausgewählt — klicken Sie auf den Canvas, um den Knoten zu platzieren",
-      "copiedToClipboard": "In die Zwischenablage kopiert",
-      "copy": "Kopieren",
-      "currentCanvasState": "Aktueller Canvas-Zustand:",
-      "describeContext": "Beschreiben Sie den Workflow-Kontext und die Ziele",
-      "describeWorkflow": "Beschreiben Sie Ihren Workflow",
-      "diffPreview": {
-        "after": "Nachher",
-        "applied": "Angewendet",
-        "appliedHint": "{{count}} / {{total}} in dieser Sitzung angewendet",
-        "apply": "Dieses anwenden",
-        "applyAll": "Alle anwenden",
-        "applyAllFailed": "Alle anwenden fehlgeschlagen",
-        "applyFailed": "Anwendung fehlgeschlagen",
-        "before": "Vorher",
-        "cancel": "Abbrechen",
-        "deleted": "— Gelöscht —",
-        "deletedCount": "— {{count}} gelöscht —",
-        "edgeNotFound": "Kante nicht gefunden",
-        "empty": "Keine Änderungen zur Vorschau",
-        "newNodes": "{{count}} neue Knoten",
-        "noAfter": "(gelöscht, kein neuer Inhalt)",
-        "noBefore": "(neues Element, kein Vorinhalt)",
-        "noChanges": "Keine Feldänderungen",
-        "nodeNotFound": "Knoten nicht gefunden",
-        "nodesEdgesLabel": "{{nodes}} Knoten / {{edges}} Kanten",
-        "promptLength": "Promptlänge: {{from}} → {{to}} Zeichen",
-        "rollbackBatch": "Stapel zurücksetzen",
-        "rollbackSuccess": "Stapel zurückgesetzt",
-        "rollbackTip": "Den gesamten KI-Änderungsstapel rückgängig machen",
-        "subtitle": "Bitte prüfe diese {{count}} Änderungen, bevor du sie anwendest",
-        "title": "KI-Bearbeitungsvorschau"
-      },
-      "dragCanvasToAdd": "Auf Leinwand ziehen",
-      "dragHint": "Ziehen Sie diese Knotentypen vom linken Panel auf den Canvas",
-      "dragHintUpdated": "Leinwand per Prompt aktualisiert",
-      "enterAgentPrompt": "Agent-Prompt zur Optimierung eingeben",
-      "enterContext": "Bitte geben Sie Kontextinformationen ein",
-      "enterPromptToOptimize": "Bitte geben Sie einen Prompt zur Optimierung ein",
-      "enterWorkflowDesc": "Bitte geben Sie eine Workflow-Beschreibung ein",
-      "evolutionFallback": "Optimierung",
-      "evolutionHistory": "Evolutionsverlauf",
-      "explanation": "Erklärung",
-      "fillFromSelectedNode": "Ausgewählten Knoten übernehmen",
-      "generateBtn": "Workflow generieren",
-      "generateMergeBtn": "Zusammenführung erzeugen",
-      "generatePlaceholder": "Beispiel: Einen Code-Review-Workflow erstellen, der die Codebasis-Struktur erkundet...",
-      "generating": "Generierung...",
-      "generationFailed": "Generierung fehlgeschlagen",
-      "getRecommendation": "Empfehlung abrufen",
-      "hasEvolution": "Hat Evolutionsaufzeichnungen",
+      "enterWorkflowDesc": "Please enter a workflow description",
+      "workflowGenerated": "Workflow generated",
+      "explanation": "Explanation",
+      "generationFailed": "Generation failed",
+      "enterPromptToOptimize": "Please enter a prompt to optimize",
+      "promptOptimized": "Prompt optimized",
+      "optimizationFailed": "Optimization failed",
+      "enterContext": "Please enter context information",
+      "recommendationGenerated": "Recommendations generated",
+      "recommendationFailed": "Recommendation failed",
+      "copiedToClipboard": "Copied to clipboard",
       "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
-      "mergeMode": "Zusammenführungsmodus",
-      "noRecommendations": "Noch keine Empfehlungen",
-      "optimizationFailed": "Optimierung fehlgeschlagen",
-      "optimizeBtn": "Prompt optimieren",
-      "optimizePlaceholder": "Fügen Sie Ihren Prompt ein...",
-      "optimizedResult": "Optimiertes Ergebnis",
-      "optimizing": "Optimierung...",
-      "promptAppliedToNode": "Prompt auf Knoten angewendet",
-      "promptOptimized": "Prompt optimiert",
-      "recommendPlaceholder": "Beispiel: Ich erstelle einen automatisierten Test-Workflow...",
-      "recommendationFailed": "Empfehlung fehlgeschlagen",
-      "recommendationGenerated": "Empfehlungen generiert",
-      "recommendedNodeTypes": "Empfohlene Knotentypen",
-      "recommending": "Empfehlung...",
-      "replaceCanvasWarning": "Der generierte Workflow ersetzt den aktuellen Canvas-Inhalt",
-      "replaceConfirmContent": "Die aktuelle Leinwand hat {{nodes}} Knoten und {{edges}} Kanten. Die Generierung wird alle ersetzen. Fortfahren?",
-      "replaceConfirmTitle": "Ersetzen bestätigen",
-      "replaceMode": "Ersetzungsmodus",
-      "retry": "Wiederholen",
+      "tabGenerateWorkflow": "Generate Workflow",
+      "describeWorkflow": "Describe your workflow",
+      "generatePlaceholder": "Example: Create a code review workflow that explores the codebase structure...",
+      "generating": "Generating...",
+      "generateBtn": "Generate Workflow",
+      "currentCanvasState": "Current canvas state:",
+      "canvasStatus": "{{nodes}} nodes, {{edges}} edges",
+      "replaceCanvasWarning": "Generated workflow will replace current canvas content",
+      "tabOptimizePrompt": "Optimize Prompt",
+      "enterAgentPrompt": "Enter Agent Prompt to optimize",
+      "optimizePlaceholder": "Paste your prompt...",
+      "optimizing": "Optimizing...",
+      "optimizeBtn": "Optimize Prompt",
+      "optimizedResult": "Optimized Result",
+      "copy": "Copy",
+      "tabRecommend": "Recommend Nodes",
+      "describeContext": "Describe the workflow context and goals",
+      "recommendPlaceholder": "Example: I'm building an automated testing workflow...",
+      "recommending": "Recommending...",
+      "getRecommendation": "Get Recommendation",
+      "recommendedNodeTypes": "Recommended Node Types",
+      "dragHint": "Drag these node types from the left panel onto the canvas",
+      "noRecommendations": "No recommendations yet",
+      "aiAssistant": "AI Assistant",
+      "replaceConfirmTitle": "Confirm Replace",
+      "replaceConfirmContent": "The current canvas has {{nodes}} nodes and {{edges}} edges. Generating will replace all of them. Continue?",
+      "actionGenerateWorkflow": "Generate Workflow",
+      "actionAddNodes": "Add Node(s)",
+      "actionModifyNode": "Update Node",
+      "actionDeleteNodes": "Delete Node(s)",
+      "actionAddEdge": "Add Edge",
+      "actionUpdateEdge": "Update Edge",
+      "actionDeleteEdge": "Delete Edge",
+      "actionOptimizePrompt": "Optimize Prompt",
+      "actionApply": "Apply",
+      "actionApplyAll": "Review {{count}} changes",
+      "diffPreview": {
+        "title": "AI Edit Preview",
+        "subtitle": "Please review these {{count}} changes before applying to your workflow",
+        "before": "Before",
+        "after": "After",
+        "apply": "Apply this",
+        "applyAll": "Apply All",
+        "cancel": "Cancel",
+        "applied": "Applied",
+        "appliedHint": "Applied {{count}} / {{total}} in this session",
+        "empty": "No changes to preview",
+        "noBefore": "(new item, no prior content)",
+        "noAfter": "(deletion, no new content)",
+        "noChanges": "No field changes",
+        "applyFailed": "Apply failed",
+        "applyAllFailed": "Apply All failed",
+        "rollbackBatch": "Rollback Batch",
+        "rollbackSuccess": "Batch rolled back",
+        "rollbackTip": "Undo the entire batch of AI changes",
+        "nodesEdgesLabel": "{{nodes}} nodes / {{edges}} edges",
+        "newNodes": "{{count}} new nodes",
+        "nodeNotFound": "Node not found",
+        "edgeNotFound": "Edge not found",
+        "promptLength": "Prompt-Länge: {{from}} → {{to}} Zeichen",
+        "deleted": "— Gelöscht —",
+        "deletedCount": "— {{count}} gelöscht —"
+      },
+      "applyToNode": "Apply to node",
+      "chatMode": "Chat mode",
+      "chatWelcome": "Hi, I'm your AI assistant.",
+      "chatWelcomeHint": "Ask me about workflow or node configuration.",
+      "dragCanvasToAdd": "Drag to canvas to add",
+      "dragHintUpdated": "Canvas updated from prompt",
+      "fillFromSelectedNode": "Fill from selected node",
+      "generateMergeBtn": "Generate merge",
+      "mergeMode": "Merge mode",
+      "promptAppliedToNode": "Prompt applied to node",
+      "replaceMode": "Replace mode",
+      "retry": "Retry",
+      "toolsMode": "Tools mode",
       "tabEvolution": "Evolution",
-      "tabGenerateWorkflow": "Workflow generieren",
-      "tabOptimizePrompt": "Prompt optimieren",
-      "tabRecommend": "Knoten empfehlen",
-      "toolsMode": "Werkzeugmodus",
-      "verified": "Verifiziert",
-      "workflowGenerated": "Workflow generiert"
+      "evolutionHistory": "Evolution History",
+      "evolutionFallback": "Optimization",
+      "verified": "Verified",
+      "hasEvolution": "Has evolution records",
+      "progressAnalyzing": "Absicht wird analysiert",
+      "progressMatching": "Knoten werden zugeordnet",
+      "progressBuilding": "Workflow wird erstellt",
+      "progressOptimizing": "Wird optimiert",
+      "clickCanvasToAdd": "\"{{label}}\" ausgewählt — Auf die Leinwand klicken, um den Knoten zu platzieren",
+      "chatPlaceholder": "Nachricht eingeben…"
     },
     "applySemanticCheck": "Anwenden",
     "applyUpgrade": "Upgrade anwenden",
@@ -7375,7 +7486,7 @@
     },
     "batchEditMode": "Sammelbearbeitungsmodus",
     "canvasTitle": {
-      "clickToRename": "Click to rename"
+      "clickToRename": "Zum Umbenennen klicken"
     },
     "caseLabel": "Case {{n}}",
     "categories": {
@@ -7422,10 +7533,12 @@
     "confirmDeleteTemplate": "Sind Sie sicher, dass Sie die Vorlage „{{name}}“ löschen möchten?",
     "containerNode": {
       "branchTimeout": "Branch timeout configured",
-      "nodes": "nodes"
+      "nodes": "nodes",
+      "collapse": "Einklappen",
+      "expand": "Ausklappen"
     },
     "contextMenu": {
-      "label": "Node actions"
+      "label": "Knotenaktionen"
     },
     "copy": "Kopieren",
     "copyNode": "Knoten kopieren",
@@ -7533,7 +7646,19 @@
       "waitingForNodes": "Wartet auf Knoten",
       "warnings": "Warnungen"
     },
-    "debugPanel": "Debug-Panel",
+    "debugPanel": {
+      "trace": "Trace",
+      "spans": "Spans",
+      "tokens": "Tokens",
+      "nodeId": "Knoten-ID",
+      "type": "Typ",
+      "status": "Status",
+      "duration": "Dauer",
+      "subWorkflow": "Unter-Workflow",
+      "executionId": "Ausführungs-ID",
+      "workflowId": "Workflow-ID",
+      "parentExecution": "Übergeordnete Ausführung"
+    },
     "decompositionSaved": "Zerlegung gespeichert",
     "decorativeContainerNoEdges": "Dekorative Container können keine ein- oder ausgehenden Kanten haben",
     "defaultWorkflowName": "New Workflow",
@@ -7825,7 +7950,17 @@
       "title": "Evolution Status",
       "triggerAll": "Trigger All Evolution",
       "triggerEvolution": "Trigger Evolution",
-      "winner": "{{winner}} Won"
+      "winner": "{{winner}} Won",
+      "apply": "Anwenden",
+      "current": "Aktuelle Version",
+      "diff": "Diff",
+      "evolutionHistory": "Evolutionshistorie",
+      "generation": "Generation {{n}}",
+      "improved": "Verbessert",
+      "performance": "Leistung",
+      "revert": "Zurücksetzen",
+      "score": "Score",
+      "viewDiff": "Diff anzeigen"
     },
     "execution": {
       "nodeCompleted": "Node completed: {{label}}",
@@ -7843,7 +7978,13 @@
       "inputVariables": "Input Variables",
       "nodeExecutionStatus": "Node Execution Status",
       "outputResult": "Output Result",
-      "status": "Status"
+      "status": "Status",
+      "failed": "Fehlgeschlagen",
+      "inputVars": "Eingabevariablen",
+      "nodeStatus": "Knoten-Ausführungsstatus",
+      "runningNode": "Workflow-Knoten wird ausgeführt",
+      "success": "Erfolgreich",
+      "waiting": "Wartend"
     },
     "existingSkill": "Vorhandener Skill",
     "expandLeftPanel": "Linken Bereich ausklappen",
@@ -7861,7 +8002,9 @@
     "generatingUpgrade": "Upgrade-Vorschlag wird generiert...",
     "groupNode": {
       "folded": "folded",
-      "untitled": "Group"
+      "untitled": "Group",
+      "add": "Gruppe hinzufügen",
+      "remove": "Gruppe entfernen"
     },
     "importExport": {
       "axagentFolderHint": "Wählen Sie einen Ordner mit AxAgent-Format-JSON-Dateien. Alle Workflow-Vorlagen werden automatisch gescannt und importiert.",
@@ -7994,21 +8137,68 @@
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference",
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself"
-      }
+      },
+      "autoLayout": "Automatische Anordnung",
+      "canvas": "Canvas",
+      "collapseAll": "Alle einklappen",
+      "condensed": "Kompakt",
+      "connectionMode": "Verbindungsmodus",
+      "defaultEdgeType": "Standard-Verbindungstyp",
+      "expandAll": "Alle ausklappen",
+      "fitView": "Ansicht anpassen",
+      "floating": "Schwebend",
+      "gridSize": "Rastergröße",
+      "horizontal": "Horizontal",
+      "layoutDirection": "Anordnungsrichtung",
+      "locked": "Gesperrt",
+      "minimap": "Minimap",
+      "nodeSize": "Knotengröße",
+      "orientation": "Ausrichtung",
+      "portLayout": "Port-Layout",
+      "readonly": "Schreibgeschützt",
+      "showGrid": "Raster anzeigen",
+      "snapToGrid": "Am Raster ausrichten",
+      "straight": "Gerade",
+      "strict": "Strikt",
+      "vertical": "Vertikal",
+      "zoomControl": "Zoom-Steuerung",
+      "bezier": "Bézier-Kurve",
+      "smoothStep": "Geglättete Stufe",
+      "free": "Frei",
+      "ortho": "Orthogonal",
+      "large": "Groß",
+      "medium": "Mittel",
+      "small": "Klein",
+      "compact": "Kompakt",
+      "standard": "Standard",
+      "comfortable": "Komfortabel",
+      "left": "Links",
+      "right": "Rechts",
+      "top": "Oben",
+      "bottom": "Unten",
+      "center": "Zentriert",
+      "border": "Rahmen",
+      "gradient": "Gradient",
+      "solid": "Durchgezogen",
+      "dashed": "Gestrichelt",
+      "dotted": "Gepunktet"
     },
     "leftPanel": {
-      "layout": "Layout",
-      "legacySuffix": "(veraltet)",
+      "layout": "Layout-Hilfe",
+      "legacySuffix": " (Legacy)",
       "nodesTab": "Knoten",
-      "searchNodes": "Knoten suchen...",
-      "searchTemplates": "Vorlagen suchen...",
+      "searchNodes": "Knoten suchen",
+      "searchTemplates": "Vorlagen suchen",
       "templatesTab": "Vorlagen"
     },
     "legend": {
       "collapse": "Collapse",
       "expand": "Expand",
       "title": "Workflow Legend",
-      "toggleLabel": "{{action}} legend"
+      "toggleLabel": "{{action}} legend",
+      "end": "Ende",
+      "start": "Start",
+      "running": "Wird ausgeführt"
     },
     "list": {
       "active": "Active",
@@ -8025,14 +8215,19 @@
       "nodeCount": "{{count}} nodes",
       "searchPlaceholder": "Search workflows...",
       "templates": "Templates",
-      "title": "Workflows"
+      "title": "Workflows",
+      "confirmDelete": "Diesen Workflow wirklich löschen?",
+      "createWorkflow": "Workflow erstellen",
+      "noWorkflows": "Noch keine Workflows. Klicken Sie auf die Schaltfläche oben, um einen zu erstellen.",
+      "search": "Workflow suchen"
     },
     "loadThisVersion": "Diese Version laden",
     "loadingVersion": "Version wird geladen...",
     "log": {
       "clear": "Clear Logs",
       "empty": "No logs",
-      "export": "Export Logs"
+      "export": "Export Logs",
+      "noLogs": "Keine Logs"
     },
     "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "loopNode": {
@@ -8071,14 +8266,27 @@
       "tools": "Tools",
       "triggers": "Triggers",
       "triggersLabel": "Triggers: ",
-      "unit": ""
+      "unit": "",
+      "generate": "Skill erstellen",
+      "generating": "Wird erstellt…",
+      "instruction": "Beschreiben Sie das gewünschte Skill",
+      "preview": "Vorschau",
+      "result": "Ergebnis",
+      "title": "Skill aus natürlicher Sprache",
+      "validate": "Validieren",
+      "validating": "Wird validiert…"
     },
     "nl2UI": {
       "applyUI": "Apply This UI",
       "componentCount": "Component Count",
       "components": "{{count}} components",
       "depthLevel": "Depth",
-      "rootType": "Root Type"
+      "rootType": "Root Type",
+      "generate": "Erstellen",
+      "generating": "Wird erstellt…",
+      "instruction": "Beschreiben Sie die gewünschte UI",
+      "result": "Ergebnis",
+      "title": "UI aus natürlicher Sprache"
     },
     "nlParser": {
       "aiSuggestion": "AI Suggestion",
@@ -8096,7 +8304,15 @@
       "parsing": "Parsing...",
       "planLabel": "Plan {{index}}: {{desc}}",
       "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
-      "variables": "Variables"
+      "variables": "Variables",
+      "constraints": "Einschränkungen (optional)",
+      "description": "Beschreibung in natürlicher Sprache",
+      "generating": "Wird analysiert",
+      "suggestions": "KI-Vorschläge",
+      "example1": "Täglich um 8 Uhr morgens die neuesten Artikel einer bestimmten Website abrufen",
+      "example2": "Nach Erhalt einer neuen E-Mail den Inhalt mit KI analysieren und bei Dringlichkeit benachrichtigen",
+      "example3": "Nach Absenden des Formulars durch den Benutzer die Daten zuerst validieren und dann in die Datenbank schreiben",
+      "exampleConstraint": "z. B.: Ausführungszeit nicht mehr als 5 Minuten, bei Fehler erneut versuchen"
     },
     "noDescription": "Keine Beschreibung",
     "noExecutionHistory": "Kein Ausführungsverlauf",
@@ -8113,7 +8329,10 @@
       "outputs": "Outputs",
       "retryEnabled": "Wiederholung aktiviert",
       "tickMode": "Tick-Modus",
-      "type": "Type"
+      "type": "Type",
+      "description": "Beschreibung",
+      "name": "Name",
+      "version": "Version"
     },
     "nodeConfig": {
       "add_debater": "Diskutant hinzufügen",
@@ -8134,7 +8353,11 @@
       "loop": "Loop",
       "output": "Output",
       "storage": "Storage",
-      "tool": "Tool"
+      "tool": "Tool",
+      "data": "Daten",
+      "logic": "Logik",
+      "trigger": "Trigger",
+      "transform": "Transformation"
     },
     "nodeTypes": {
       "agent": "Agent",
@@ -8171,7 +8394,11 @@
       "validation": "Validierung",
       "vectorRetrieve": "Vektorabfrage",
       "webhookSend": "Webhook senden",
-      "workflowRef": "Workflow Ref"
+      "workflowRef": "Workflow Ref",
+      "webhook": "Webhook",
+      "apiCall": "API-Aufruf",
+      "script": "Skript",
+      "timer": "Timer"
     },
     "nodesCount": "{{count}} nodes",
     "nodesPasted": "{{count}} Knoten eingefügt",
@@ -8662,7 +8889,13 @@
       "agents": "Agents",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "rounds": "rounds"
+      "rounds": "rounds",
+      "agent": "Agent",
+      "handoff": "Übergabe",
+      "mode": "Modus",
+      "parallel": "Parallel",
+      "sequential": "Sequenziell",
+      "task": "Aufgabe"
     },
     "tag": "Tag",
     "templateDeleted": "Vorlage gelöscht",
@@ -8695,7 +8928,23 @@
       "tagPlaceholder": "Filter by tag",
       "typePlaceholder": "Filter by type",
       "versionHistory": "Version history",
-      "view": "View"
+      "view": "View",
+      "blank": "Leerer Workflow",
+      "category": "Kategorie",
+      "createConfirm": "Neuen Workflow aus dieser Vorlage erstellen?",
+      "description": "Beschreibung",
+      "empty": "Keine Vorlagen",
+      "name": "Vorlagenname",
+      "official": "Offizielle Vorlagen",
+      "popular": "Beliebt",
+      "preview": "Vorschau",
+      "recent": "Zuletzt verwendet",
+      "title": "Workflow-Vorlagen",
+      "useTemplate": "Vorlage verwenden",
+      "version": "Version",
+      "community": "Community",
+      "recommended": "Empfohlen",
+      "all": "Alle"
     },
     "templateName": "Vorlagenname",
     "templateSaved": "Vorlage gespeichert",
@@ -8714,7 +8963,9 @@
       "statusActive": "Running",
       "statusDisabled": "Disabled",
       "statusUnconfigured": "Unconfigured",
-      "title": "Auslöser"
+      "title": "Auslöser",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "type": "Typ",
     "undo": "Rückgängig",
@@ -8739,23 +8990,23 @@
         "descriptionPlaceholder": "Was macht diese Regel?",
         "expectedPath": "expected path",
         "expectedPathPlaceholder": "e.g. output.status",
-        "expectedValue": "期望值",
-        "expectedValuePlaceholder": "输入期望值",
-        "maxValue": "最大值",
-        "metric": "指标",
-        "minValue": "最小值",
-        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-        "onFailStrategy": "失败策略",
-        "rule": "规则",
-        "ruleName": "规则名称",
-        "ruleNamePlaceholder": "给自己的规则取个名字",
-        "ruleType": "规则类型",
-        "saved": "验证规则已保存",
+        "expectedValue": "Erwarteter Wert",
+        "expectedValuePlaceholder": "Erwarteten Wert eingeben",
+        "maxValue": "Maximalwert",
+        "metric": "Metrik",
+        "minValue": "Minimalwert",
+        "noRules": "Keine Validierungsregeln. Klicken Sie auf „Regel hinzufügen“, um eine zu erstellen.",
+        "onFailStrategy": "Fehlerstrategie",
+        "rule": "Regel",
+        "ruleName": "Regelname",
+        "ruleNamePlaceholder": "Geben Sie Ihrer Regel einen Namen",
+        "ruleType": "Regeltyp",
+        "saved": "Validierungsregel gespeichert",
         "schema": "JSON Schema",
-        "selectNode": "选择节点",
-        "sourceNode": "源节点",
-        "title": "验证规则",
-        "warn": "仅警告"
+        "selectNode": "Knoten auswählen",
+        "sourceNode": "Quellknoten",
+        "title": "Validierungsregel",
+        "warn": "Nur Warnung"
       }
     },
     "validationFailed": "Validierung fehlgeschlagen",
@@ -8795,7 +9046,17 @@
       "timeline": "Timeline",
       "updateTime": "Update Time",
       "version": "Version",
-      "versionManager": "Version Manager: {{name}}"
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "Archiviert",
+      "changelog": "Änderungsprotokoll",
+      "comparison": "Versionsvergleich",
+      "diff": "Diff",
+      "draft": "Entwurf",
+      "latest": "Aktuell",
+      "noHistory": "Keine Versionshistorie",
+      "renamed": "Umbenannt",
+      "restored": "Wiederhergestellt",
+      "updatedAt": "Aktualisiert am"
     },
     "versionHistory": {
       "cannotLoadOldVersion": "Cannot load old version data",
@@ -8823,7 +9084,12 @@
       "rollbackTo": "Rollback to {{version}}",
       "rolledBack": "Rolled back",
       "title": "Versionsverlauf - {{name}}",
-      "version": "Version {{version}}"
+      "version": "Version {{version}}",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "Diff anzeigen",
+      "viewSnapshot": "Snapshot anzeigen",
+      "restore": "Wiederherstellen"
     },
     "versionHistoryLoadFailed": "Versionsverlauf konnte nicht geladen werden",
     "versionHistoryTitle": "Versionsverlauf - {{name}}",
@@ -8837,9 +9103,158 @@
       "isolated": "Isolated",
       "targetWorkflow": "Target Workflow",
       "title": "",
-      "version": ""
+      "version": "",
+      "inputMapping": "Eingabe-Zuordnung",
+      "selectWorkflow": "Workflow auswählen"
     },
     "workflowSavedAsNew": "Workflow als neu gespeichert",
-    "workflowUpdated": "Workflow aktualisiert"
+    "workflowUpdated": "Workflow aktualisiert",
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## KI-generiertes Bild",
+      "model": "**Modell**",
+      "duration": "**Dauer**",
+      "savedToArtifact": "In Artifact gespeichert"
+    },
+    "chatSidebar": {
+      "menu": "Menü"
+    },
+    "inputArea": {
+      "resizeHandle": "Größe anpassen",
+      "uploadFile": "Datei hochladen"
+    },
+    "appHeader": {
+      "agentPanel": "Agent-Panel"
+    },
+    "sidebar": {
+      "agentPanel": "Agent-Panel"
+    },
+    "errorBoundary": {
+      "pageError": "Seitenfehler"
+    },
+    "chatPage": {
+      "resizeHandle": "Größe anpassen"
+    },
+    "spanDetail": {
+      "parentSpan": "Übergeordneter Span"
+    },
+    "traceDetail": {
+      "userId": "Benutzer-ID"
+    },
+    "settingsPanel": {
+      "featureFlags": "Funktions-Flags"
+    },
+    "skillTimeline": {
+      "promptDiff": "Prompt-Vergleich"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "Kein Workflow referenziert"
+    },
+    "chartPreview": {
+      "title": "Diagrammvorschau"
+    },
+    "htmlPreview": {
+      "title": "HTML-Vorschau"
+    },
+    "reactPreview": {
+      "title": "React-Vorschau"
+    }
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
+  },
+  "components_skill_SkillABTestResults": {
+    "components_skill_Ski": "components_skill_SkillABTestResults.Keine_A_B_Testdaten",
+    "两个版本无明显差异": " Kein deutlicher Unterschied zwischen den beiden Versionen.",
+    "优胜": "Gewinner",
+    "变化": "Änderung",
+    "平局": "Unentschieden",
+    "指标": "Metrik",
+    "推荐采用版本_A": " Version A wird empfohlen.",
+    "推荐采用版本_B": " Version B wird empfohlen.",
+    "暂无_A_B_测试数据": "Keine A/B-Testdaten verfügbar",
+    "版本_A": "Version A",
+    "版本_B": "Version B"
+  },
+  "components_skill_SkillEvolutionViewer": {
+    "A_B_测试结果": "A/B-Testergebnisse",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A_B_Testergebnisse",
+    "当前版本": "Aktuelle Version",
+    "总进化次数": "Gesamte Evolutionszahl",
+    "最近进化": "Letzte Evolution"
+  },
+  "components_skill_SkillVersionTimeline": {
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.Keine_Evolutionshistorie",
+    "暂无进化历史": "Keine Evolutionshistorie",
+    "确认回滚": "Rollback bestätigen"
   }
 }

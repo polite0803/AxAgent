@@ -14,6 +14,36 @@ pub fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
+/// 返回"本地时区今日 00:00:00"对应的 Unix 时间戳（秒）。
+///
+/// 用于 dashboard / gateway 的"今日"统计：避免 `chrono::Utc::now().date_naive()`
+/// 带来的 UTC 日切换偏移（对中国用户，UTC 日等于本地 08:00 才切换，凌晨 0–8 点
+/// 看到的"今日"会变成 UTC 的"昨日"）。
+///
+/// 若本地时区检测失败（极少见），回退到 UTC 今日 0 点。
+pub fn today_start_local_ts() -> i64 {
+    use chrono::{Datelike, TimeZone};
+    let now_local = chrono::Local::now();
+    chrono::Local
+        .with_ymd_and_hms(now_local.year(), now_local.month(), now_local.day(), 0, 0, 0)
+        .single()
+        .map(|dt| dt.timestamp())
+        .unwrap_or_else(|| {
+            // 回退：UTC 今日 0 点
+            chrono::Utc::now()
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap_or_else(|| {
+                    chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
+                        .expect("1970-01-01 is a valid NaiveDate")
+                        .and_hms_opt(0, 0, 0)
+                        .expect("00:00:00 is a valid NaiveTime")
+                })
+                .and_utc()
+                .timestamp()
+        })
+}
+
 /// 获取当前时间的 RFC3339 格式字符串
 pub fn current_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()

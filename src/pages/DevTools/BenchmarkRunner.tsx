@@ -3,8 +3,9 @@
 import { BenchmarkConfig } from "@/components/benchmark/BenchmarkConfig";
 import { BenchmarkReportView } from "@/components/benchmark/BenchmarkReportView";
 import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
+import { message } from "@/lib/toast";
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import { Button, Card, message, Spin, Tabs, theme } from "antd";
+import { Button, Card, Spin, Tabs, theme } from "antd";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 

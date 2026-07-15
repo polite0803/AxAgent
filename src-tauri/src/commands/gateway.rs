@@ -6,7 +6,7 @@ use crate::commands::error_code::gateway as gateway_err;
 use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_dao::repo::cli_config::CliTool;
 use axagent_harness::types::*;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 struct GatewayRuntimeSettings {
     listen_address: String,
@@ -463,13 +463,15 @@ pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Resu
 
 #[tauri::command]
 pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMetrics, String> {
+    // NOTE: active_connections 暂硬编码为 0（DAO 层）。
+    // 真正实现需要 GatewayServer 内置连接计数中间件，留待后续。
     axagent_dao::repo::gateway::get_gateway_metrics(state.harness.db())
         .await
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn start_gateway(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     {
         let gw = state.gateway.lock().await;
         if gw.as_ref().is_some_and(|s| s.is_running()) {
@@ -529,15 +531,19 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     *gw = Some(server);
+    // 通知前端：网关状态已变更（启动）
+    let _ = app.emit("gateway-status-changed", ());
     Ok(())
 }
 
 #[tauri::command]
-pub async fn stop_gateway(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn stop_gateway(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     let mut gw = state.gateway.lock().await;
     if let Some(mut server) = gw.take() {
         server.stop().await.map_err(|e| e.to_string())?;
     }
+    // 通知前端：网关状态已变更（停止）
+    let _ = app.emit("gateway-status-changed", ());
     Ok(())
 }
 

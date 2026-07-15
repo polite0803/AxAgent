@@ -14,7 +14,6 @@ import type {
   UpdateDynamicUISchemaParams,
 } from "@/types";
 import {
-  AppstoreAddOutlined,
   DeleteOutlined,
   EditOutlined,
   ExportOutlined,
@@ -501,15 +500,7 @@ export function DynamicUIManagerPage() {
   return (
     <div className="h-full flex flex-col p-4">
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <Title level={3} style={{ margin: 0 }}>
-            <AppstoreAddOutlined className="mr-2" />
-            {t("dynamicUIManager.title")}
-          </Title>
-          <Paragraph type="secondary" style={{ margin: 0 }}>
-            {t("dynamicUIManager.subtitle")}
-          </Paragraph>
-        </div>
+        <div />
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           {t("dynamicUIManager.createNew")}
         </Button>

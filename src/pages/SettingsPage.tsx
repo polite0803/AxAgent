@@ -4,9 +4,10 @@ import { SettingsSidebar } from "@/components/settings";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { Button, message, Result, Spin, theme } from "antd";
+import { Button, Result, Spin, theme } from "antd";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 

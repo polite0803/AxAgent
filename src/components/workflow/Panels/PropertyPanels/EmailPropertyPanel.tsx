@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Divider, Input, message, theme } from "antd";
+import { message } from "@/lib/toast";
+import { Divider, Input, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";

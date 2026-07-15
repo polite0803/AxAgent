@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Button, Card, Empty, message, Spin, Switch, Table, Tag, Typography } from "antd";
+import { Button, Card, Empty, Spin, Switch, Table, Tag, Typography } from "antd";
 import { FolderOpen, PanelRight, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

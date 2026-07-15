@@ -2,7 +2,7 @@
 
 import { Icon } from "@/components/common/Icon";
 import { invoke } from "@/lib/invoke";
-import { useConversationStore, useGatewayStore, useProviderStore } from "@/stores";
+import { initGatewayStatusListener, useConversationStore, useGatewayStore, useProviderStore } from "@/stores";
 import { CostByProvider, DailyUsage, DashboardStats } from "@/types";
 import { Card, Col, Flex, Row, Spin, Statistic, theme } from "antd";
 import { Bot, Cpu, Database, Globe, MessageSquare, TrendingUp, Zap } from "lucide-react";
@@ -27,6 +27,10 @@ interface DashboardData {
   conversationCount: number;
   totalMessages: number;
   totalTokens: number;
+  /** 今日（本地时区）消息数（messages 表） */
+  todayMessages: number;
+  /** 今日（本地时区）token 数（messages 表：prompt+completion） */
+  todayTokens: number;
   gatewayMetrics: {
     totalRequests: number;
     totalTokens: number;
@@ -213,7 +217,9 @@ export function DashboardPage() {
   const conversations = useConversationStore((s) => s.conversations);
   const fetchConversations = useConversationStore((s) => s.fetchConversations);
   const gatewayMetrics = useGatewayStore((s) => s.metrics);
+  const gatewayStatus = useGatewayStore((s) => s.status);
   const fetchGatewayMetrics = useGatewayStore((s) => s.fetchMetrics);
+  const fetchGatewayStatus = useGatewayStore((s) => s.fetchStatus);
   const providers = useProviderStore((s) => s.providers);
   const fetchProviders = useProviderStore((s) => s.fetchProviders);
 
@@ -223,6 +229,8 @@ export function DashboardPage() {
   const [costByProvider, setCostByProvider] = useState<CostByProvider[]>([]);
   const [usageLoading, setUsageLoading] = useState(true);
 
+  // 初次加载 + 5s 轮询 + 事件订阅
+  // 事件由后端 start_gateway/stop_gateway 命令 emit "gateway-status-changed"
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -233,6 +241,7 @@ export function DashboardPage() {
         invoke<CostByProvider[]>("get_cost_by_provider").catch(() => []),
       ]);
       // 独立加载 store 数据，不阻塞主数据渲染
+      fetchGatewayStatus().catch(() => {});
       fetchGatewayMetrics().catch(() => {});
       fetchProviders().catch(() => {});
       fetchConversations().catch(() => {});
@@ -243,7 +252,21 @@ export function DashboardPage() {
       setUsageLoading(false);
     };
     load();
-  }, [fetchGatewayMetrics, fetchProviders, fetchConversations]);
+
+    // 5s 轮询 status + metrics，参考 GatewayOverview 的实现
+    const interval = setInterval(() => {
+      fetchGatewayStatus().catch(() => {});
+      fetchGatewayMetrics().catch(() => {});
+    }, 5000);
+
+    // 监听后端事件：网关启停时立即刷新（覆盖用户在别的页面操作网关的场景）
+    const cleanupEventListener = initGatewayStatusListener();
+
+    return () => {
+      clearInterval(interval);
+      cleanupEventListener();
+    };
+  }, [fetchGatewayMetrics, fetchGatewayStatus, fetchProviders, fetchConversations]);
 
   const dashboardData = useMemo<DashboardData>(() => {
     const g = gatewayMetrics;
@@ -251,7 +274,11 @@ export function DashboardPage() {
     return {
       conversationCount: stats?.total_conversations ?? conversations.length,
       totalMessages: stats?.total_messages ?? conversations.reduce((sum, c) => sum + (c.message_count || 0), 0),
-      totalTokens: stats?.total_tokens ?? g?.total_tokens ?? 0,
+      // 总 token：明确语义为"AxAgent 内聊天产生的 token"，不与 Gateway 转发的 token 混用 fallback
+      totalTokens: stats?.total_tokens ?? 0,
+      // 今日 token（messages 表）：AxAgent 内聊天今日消耗
+      todayMessages: stats?.today_messages ?? 0,
+      todayTokens: stats?.today_tokens ?? 0,
       gatewayMetrics: g
         ? {
           totalRequests: g.total_requests,
@@ -383,7 +410,10 @@ export function DashboardPage() {
               <Col span={12}>
                 <Statistic
                   title={t("dashboard.totalTokens")}
-                  value={formatNumber(data.gatewayMetrics?.totalTokens ?? data.totalTokens)}
+                  // 总 Token = AxAgent 内聊天 token + Gateway 转发 token（两源相加，避免 fallback 语义混淆）
+                  value={formatNumber(
+                    data.totalTokens + (data.gatewayMetrics?.totalTokens ?? 0),
+                  )}
                   styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 />
               </Col>
@@ -397,14 +427,20 @@ export function DashboardPage() {
               <Col span={12}>
                 <Statistic
                   title={t("dashboard.todayRequests")}
-                  value={formatNumber(data.gatewayMetrics?.todayRequests ?? 0)}
+                  // 今日请求 = AxAgent 内今日消息数 + Gateway 今日请求数
+                  value={formatNumber(
+                    data.todayMessages + (data.gatewayMetrics?.todayRequests ?? 0),
+                  )}
                   styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 />
               </Col>
               <Col span={12}>
                 <Statistic
                   title={t("dashboard.todayTokenUsage")}
-                  value={formatNumber(data.gatewayMetrics?.todayTokens ?? 0)}
+                  // 今日 token = AxAgent 内聊天今日 token + Gateway 转发今日 token
+                  value={formatNumber(
+                    data.todayTokens + (data.gatewayMetrics?.todayTokens ?? 0),
+                  )}
                   styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                 />
               </Col>
@@ -428,27 +464,27 @@ export function DashboardPage() {
               background: token.colorBgContainer,
             }}
           >
-            {data.gatewayMetrics
+            {gatewayStatus.is_running
               ? (
                 <Row gutter={[8, 8]}>
                   <Col span={8}>
                     <Statistic
                       title={t("dashboard.totalRequests")}
-                      value={formatNumber(data.gatewayMetrics.totalRequests)}
+                      value={formatNumber(data.gatewayMetrics?.totalRequests ?? 0)}
                       styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                   <Col span={8}>
                     <Statistic
                       title={t("dashboard.todayRequests")}
-                      value={formatNumber(data.gatewayMetrics.todayRequests)}
+                      value={formatNumber(data.gatewayMetrics?.todayRequests ?? 0)}
                       styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
                   <Col span={8}>
                     <Statistic
                       title={t("dashboard.activeConnections")}
-                      value={data.gatewayMetrics.activeConnections}
+                      value={data.gatewayMetrics?.activeConnections ?? 0}
                       styles={{ content: { fontSize: 18, fontWeight: 600, color: token.colorText } }}
                     />
                   </Col>
@@ -638,9 +674,10 @@ export function DashboardPage() {
             <StatCard
               icon={<MessageSquare size={18} />}
               title={t("dashboard.dailyAvgTokens")}
+              // 日均 token = 30 天总 token / 30（不是除以"有数据的天数"）
               value={dailyUsage.length > 0
                 ? formatNumber(
-                  Math.round(dailyUsage.reduce((s, d) => s + d.total_tokens, 0) / dailyUsage.length),
+                  Math.round(dailyUsage.reduce((s, d) => s + d.total_tokens, 0) / 30),
                 )
                 : "0"}
               color="#52c41a"

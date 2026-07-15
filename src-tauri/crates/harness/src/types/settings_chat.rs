@@ -227,7 +227,7 @@ impl Default for AppSettings {
             shortcut_show_quick_bar: "CommandOrControl+Shift+Space".to_string(),
             gateway_auto_start: false,
             gateway_listen_address: "127.0.0.1".to_string(),
-            gateway_port: 8080,
+            gateway_port: 8000,
             gateway_ssl_enabled: false,
             gateway_ssl_mode: "upload".to_string(),
             gateway_ssl_cert_path: None,

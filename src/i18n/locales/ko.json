@@ -245,7 +245,10 @@
       "completed": "완료",
       "failed": "실패",
       "pending": "대기 중",
-      "running": "실행 중"
+      "running": "실행 중",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "summary": "Agent Pool ({completed}/{total})",
     "type": {
@@ -301,7 +304,8 @@
     "description": "AI 기반 워크 어시스턴트",
     "name": "AxAgent",
     "newSkillProposal": "새 스킬 제안: {name}",
-    "title": "스마트 워크스페이스"
+    "title": "스마트 워크스페이스",
+    "quickBar": "QuickBar"
   },
   "appHeader": {
     "closeAgentPanel": "Close Agent Panel",
@@ -310,7 +314,8 @@
     "gatewayContext": "게이트웨이",
     "knowledgeContext": "지식",
     "openAgentPanel": "Open Agent Panel",
-    "terminalContext": "터미널"
+    "terminalContext": "터미널",
+    "agentPanel": "Agent Panel"
   },
   "appInit": {
     "applyConfig": "설정 적용 중...",
@@ -1738,7 +1743,10 @@
         "created": "생성됨",
         "failed": "실패",
         "partiallyCompleted": "부분 완료",
-        "running": "실행 중"
+        "running": "실행 중",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       }
     },
     "workflowLabel": "워크플로우",
@@ -1759,7 +1767,8 @@
     "viewThinking": "사고 보기"
   },
   "chatPage": {
-    "loading": "로딩 중..."
+    "loading": "로딩 중...",
+    "resizeHandle": "resize handle"
   },
   "chatRightPanel": {
     "agent": "에이전트",
@@ -2491,7 +2500,8 @@
     "unknownFile": "알 수 없는 파일",
     "unregisteredComponent": "등록되지 않은 컴포넌트: {{type}}",
     "unsupportedChartType": "지원되지 않는 차트 유형: {{type}}",
-    "schemaNotFound": "동적 페이지를 찾을 수 없습니다"
+    "schemaNotFound": "동적 페이지를 찾을 수 없습니다",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "dynamicUIManager": {
     "addChild": "자식 추가",
@@ -2576,7 +2586,9 @@
     "importInvalid": "Invalid or empty schema file",
     "export": "Export",
     "exportAll": "Export All",
-    "exportSuccess": "Exported successfully"
+    "exportSuccess": "Exported successfully",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} errors",
@@ -3152,7 +3164,10 @@
     "providerFlux": "Flux (Replicate)",
     "replicateApiToken": "Replicate API 토큰",
     "replicateApiTokenPlaceholder": "r8_...",
-    "title": "이미지 생성"
+    "title": "이미지 생성",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "input": {
     "recordAudio": "오디오 녹음",
@@ -3425,7 +3440,10 @@
     "selectAgent": "에이전트를 선택하여 메시지 보기",
     "status": {
       "completed": "완료",
-      "running": "실행 중"
+      "running": "실행 중",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "tabs": {
       "agents": "에이전트",
@@ -3462,7 +3480,8 @@
     "trade": "Trade",
     "watchlist": "관심종목",
     "wiki": "위키",
-    "workflow": "워크플로우"
+    "workflow": "워크플로우",
+    "dynamicUI": "동적 페이지"
   },
   "notification": {
     "clear": "지우기",
@@ -3531,7 +3550,9 @@
     "tutorialSkip": "튜토리얼 건너뛰기",
     "tutorialStart": "튜토리얼 시작",
     "welcome": "AxAgent에 오신 것을 환영합니다",
-    "welcomeDesc": "멀티 모델, 에이전트 자율 실행, 지식 베이스 검색을 지원하는 스마트 AI 데스크톱 클라이언트"
+    "welcomeDesc": "멀티 모델, 에이전트 자율 실행, 지식 베이스 검색을 지원하는 스마트 AI 데스크톱 클라이언트",
+    "downloadOllama": "Ollama 다운로드",
+    "applying": "적용 중…"
   },
   "pasteButton": {
     "clipboardUnavailable": "길게 눌러 수동으로 붙여넣기",
@@ -3612,7 +3633,10 @@
       "pending": "대기 중",
       "rejected": "거부됨",
       "reviewing": "검토 중",
-      "running": "실행 중"
+      "running": "실행 중",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "stepsApproved": "단계 승인됨",
     "strategyDirect": "직접 실행",
@@ -3707,7 +3731,14 @@
     "today": "오늘",
     "tomorrow": "내일",
     "unknown": "알 수 없음",
-    "yesterday": "어제"
+    "yesterday": "어제",
+    "prefetchTypes": {
+      "codeCompletion": "코드 자동 완성",
+      "searchResults": "검색 결과",
+      "documentation": "문서",
+      "contextAnalysis": "컨텍스트 분석",
+      "toolCache": "도구 캐시"
+    }
   },
   "profile": {
     "codingStyle": "코딩 스타일",
@@ -4113,7 +4144,14 @@
       "subtitle": "Configure auto-reflection and insight management",
       "title": "Reflection Settings",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "최소 신뢰도",
+      "minConfidenceHint": "이 신뢰도보다 낮은 인사이트는 무시됩니다",
+      "strategy": "성찰 전략",
+      "strategyHint": "성찰 트리거 전략 선택",
+      "triggerOnComplete": "완료 시 트리거",
+      "triggerOnError": "오류 시 트리거",
+      "triggerOnIdle": "유휴 시 트리거"
     },
     "startReflection": "리플렉션 시작",
     "summary": "요약",
@@ -4296,14 +4334,16 @@
       "saveModal": "Save Checkpoint",
       "step": "Step",
       "time": "Time",
-      "title": "Checkpoints"
+      "title": "Checkpoints",
+      "noCheckpoints": "체크포인트 없음"
     },
     "config": {
       "algorithm": "Algorithm",
       "batchSize": "Batch Size",
       "epochs": "Epochs",
       "learningRate": "Learning Rate",
-      "maxSteps": "Max Steps"
+      "maxSteps": "Max Steps",
+      "title": "훈련 설정"
     },
     "createPolicy": "새 정책 만들기",
     "experiences": "경험",
@@ -4318,7 +4358,9 @@
       "lossCurve": "Loss Curve",
       "reward": "Reward",
       "rewardCurve": "Reward Curve",
-      "speed": "Speed"
+      "speed": "Speed",
+      "step": "현재 스텝",
+      "title": "훈련 모니터링"
     },
     "panel": {
       "checkpoints": "Checkpoints",
@@ -4343,7 +4385,10 @@
       "failed": "Failed",
       "idle": "Idle",
       "paused": "Paused",
-      "running": "Training"
+      "running": "Training",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "train": "학습"
   },
@@ -4365,8 +4410,8 @@
     "placeholder": "조건으로 종목을 검색",
     "tab": {
       "myFilter": "내 필터",
-      "serenity": "Bottleneck Hunt",
-      "smartReco": "스마트 추천"
+      "serenity": "병목 발굴",
+      "smartReco": "스마트 추천 주식"
     },
     "title": "종목 스크리너"
   },
@@ -4392,7 +4437,8 @@
   "searchProvider": {
     "bocha": "Bocha",
     "tavily": "Tavily",
-    "zhipu": "Zhipu"
+    "zhipu": "Zhipu",
+    "apiKey": "API Key"
   },
   "serenityPanel": {
     "analyzing": "산업 체인 데이터 분석 중, LLM 추론에 1-3 분 소요...",
@@ -5059,7 +5105,14 @@
       "vectorNotConfigured": "설정되지 않음",
       "vectorReady": "준비됨",
       "viewChunks": "청크",
-      "wikiTab": "위키"
+      "wikiTab": "위키",
+      "autoIndex": "자동 인덱싱",
+      "autoIndexHint": "파일 변경 시 자동으로 인덱스 업데이트",
+      "maxResults": "최대 결과 수",
+      "scoreThreshold": "점수 임계값",
+      "vectorStore": "벡터 저장소",
+      "webCrawlDepth": "웹 크롤링 깊이",
+      "webCrawlPages": "크롤링 페이지 수"
     },
     "knowledgeSettings": {
       "title": "지식"
@@ -5361,43 +5414,47 @@
         "noSamplesTitle": "사용 가능한 샘플 없음",
         "failed": "자동 학습 실패",
         "updatedFields": "업데이트된 필드"
-      }
+      },
+      "name": "이름",
+      "systemPrompt": "시스템 프롬프트",
+      "type": "유형",
+      "visibility": "표시 여부"
     },
     "platform": {
-      "activeSessions": "활성 세션",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "activeSessions": "활성 세션 수",
       "apiServerPort": "API Server 포트",
       "applyConfig": "설정 적용",
       "applyErrors": "오류: {{errors}}",
       "applyFailed": "설정 적용 실패",
       "applyStarted": "시작됨: {{platforms}}",
       "applyStopped": "중지됨: {{platforms}}",
-      "autoSyncMessages": "메시지 자동 동기화",
+      "autoSyncMessages": "자동 메시지 동기화",
       "enable": "활성화",
       "enableApiServer": "API Server 활성화",
       "generalSettings": "일반 설정",
       "lastActivity": "마지막 활동",
-      "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)",
-      "markerPrefixPlaceholder": "CHAT2API",
-      "maxHistoryPerSession": "세션당 최대 기록 수",
-      "noStatuses": "상태 정보 없음",
+      "markerPrefixDesc": "Marker 접두사(기본 CHAT2API, 일반적으로 수정 불필요)",
+      "maxHistoryPerSession": "세션당 최대 기록 메시지 수",
+      "noStatuses": "연결 상태 없음",
       "placeholder": {
         "apiVersion": "기본 v18.0",
-        "dingtalkAgent": "DingTalk 앱 AgentId",
-        "discordDevPortal": "Discord Developer Portal 에서 가져오기",
-        "slackAppToken": "xapp-... Slack App → App-Level Tokens",
-        "telegramBotToken": "@BotFather 에서 가져오기",
-        "webhookVerify": "Meta webhook 확인용"
+        "dingtalkAgent": "딩톡 앱 AgentId",
+        "discordDevPortal": "Discord Developer Portal에서 가져오기",
+        "slackAppToken": "xapp-... Slack App → App-Level Tokens에서 가져오기",
+        "telegramBotToken": "@BotFather에서 가져오기",
+        "webhookVerify": "Meta webhook 검증용"
       },
       "saveConfigFailed": "설정 저장 실패: {{error}}",
       "status": "상태",
       "statusConnected": "연결됨",
       "statusConnecting": "연결 중",
-      "statusDisabled": "비활성화",
+      "statusDisabled": "비활성화됨",
       "tabConfig": "플랫폼 설정",
       "tabStatus": "연결 상태",
-      "wechatMode": "모드",
-      "wechatModeCustomer": "고객 서비스 (폴링, 실험적)",
-      "wechatModeOfficial": "공식 계정 (Webhook)"
+      "wechatMode": "실행 모드",
+      "wechatModeCustomer": "고객 서비스 모드(폴링 수신, 실험적)",
+      "wechatModeOfficial": "공식 계정 모드(Webhook 수신)"
     },
     "plugins": {
       "installFailed": "설치 실패: {{error}}",
@@ -5954,7 +6011,9 @@
       "visualEditorDesc": "드래그 앤 드롭 DAG 에디터로 워크플로우 만들기 및 편집"
     },
     "zhipu": "지푸",
-    "groupVoice": "음성"
+    "groupVoice": "음성",
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker 접두사(기본 CHAT2API, 일반적으로 수정 불필요)"
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"
@@ -5983,7 +6042,10 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvestReview": "Review",
     "sectionOverview": "개요",
-    "sectionTools": "도구"
+    "sectionTools": "도구",
+    "agentPanel": "Agent Panel",
+    "sectionPlugins": "플러그인",
+    "sectionWork": "워크"
   },
   "skill": {
     "abTest": {
@@ -6093,7 +6155,8 @@
     "storeNotWritable": "스토어 \"{{name}}\"에 쓸 수 없습니다",
     "timeoutError": "샌드박스 로드 시간이 초과되었습니다. 다시 시도하세요",
     "uninstall": "제거",
-    "unknownError": "알 수 없는 오류"
+    "unknownError": "알 수 없는 오류",
+    "loadingPage": "스킬 페이지 로딩 중..."
   },
   "skillEditor": {
     "actionAdd": "액션 추가",
@@ -6557,7 +6620,9 @@
       "loading": "Loading bottleneck analysis...",
       "percentage": "Percentage",
       "timeDistribution": "Time Distribution",
-      "tokenConsumption": "Token Consumption"
+      "tokenConsumption": "Token Consumption",
+      "bottleneck": "병목",
+      "reason": "실패 사유"
     },
     "duration": "Duration: {{duration}}s",
     "empty": "No execution trace data",
@@ -6592,7 +6657,8 @@
       "error": "Error",
       "thinking": "Thinking",
       "toolCall": "Tool Call",
-      "waitingPermission": "Waiting Permission"
+      "waitingPermission": "Waiting Permission",
+      "permission": "권한 대기"
     }
   },
   "traceExplorer": {
@@ -6607,14 +6673,21 @@
   },
   "trade": {
     "agentRole": {
-      "browser": "Browser",
-      "coordinator": "Coordinator",
-      "developer": "Developer",
-      "executor": "Executor",
-      "planner": "Planner",
-      "researcher": "Researcher",
-      "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "browser": "브라우저",
+      "coordinator": "코디네이터",
+      "developer": "개발자",
+      "executor": "실행자",
+      "planner": "플래너",
+      "researcher": "리서처",
+      "reviewer": "리뷰어",
+      "synthesizer": "신시사이저",
+      "analyst": "애널리스트",
+      "decisionMaker": "결정권자",
+      "riskManager": "리스크 관리자",
+      "strategist": "전략가",
+      "supervisor": "감독자",
+      "trader": "트레이더",
+      "validator": "검증자"
     },
     "buy": "Buy",
     "cost": "Cost",
@@ -6678,14 +6751,24 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "leafNode": "leaf node",
       "rootHint": "root-level child(ren)",
-      "livePreview": "实时预览"
+      "livePreview": "실시간 미리보기",
+      "addNode": "노드 추가",
+      "deleteNode": "노드 삭제",
+      "duplicate": "복제",
+      "moveDown": "아래로 이동",
+      "moveUp": "위로 이동",
+      "pasteNode": "노드 붙여넣기"
     },
     "categories": {
       "container": "Layout & Containers",
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "기본",
+      "data": "데이터",
+      "layout": "레이아웃",
+      "navigation": "내비게이션"
     },
     "components": {
       "Accordion": "Accordion",
@@ -6718,7 +6801,13 @@
       "Text": "Text",
       "Textarea": "Textarea",
       "Timeline": "Timeline",
-      "Tree": "Tree"
+      "Tree": "Tree",
+      "Heading": "제목",
+      "Link": "링크",
+      "Paragraph": "단락",
+      "Slider": "슬라이더",
+      "Space": "간격",
+      "Tooltip": "툴팁"
     },
     "palette": {
       "title": "Components"
@@ -6744,10 +6833,22 @@
         "basic": "Basic",
         "style": "Style"
       },
-      "title": "Property Panel"
+      "title": "Property Panel",
+      "children": "하위 컴포넌트",
+      "componentType": "컴포넌트 유형",
+      "defaultValue": "기본값",
+      "description": "설명",
+      "label": "레이블",
+      "name": "이름",
+      "options": "옵션",
+      "props": "속성",
+      "required": "필수",
+      "rules": "검증 규칙",
+      "type": "유형",
+      "value": "값"
     },
-    "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏"
+    "fullscreen": "전체 화면",
+    "exitFullscreen": "전체 화면 종료"
   },
   "voice": {
     "connected": "연결됨",
@@ -6899,7 +7000,9 @@
       "title": "제목",
       "type": "유형",
       "mimeType": "MIME 유형",
-      "size": "크기"
+      "size": "크기",
+      "chunks": "Chunks",
+      "status": "Status"
     },
     "insertLink": "링크 삽입",
     "keepEditing": "편집 계속",
@@ -6908,7 +7011,29 @@
     "linkedNoteTitle": "새 링크된 노트",
     "linkedPrefix": "관련",
     "linkedRef": "관련",
-    "lint": "Lint",
+    "lint": {
+      "averageScore": "Durchschnittspunktzahl",
+      "code": "Code",
+      "details": "Details",
+      "issues": "Probleme",
+      "line": "Zeile",
+      "loadError": "Laden fehlgeschlagen",
+      "message": "Nachricht",
+      "noIssues": "Keine Probleme",
+      "noResults": "Keine Ergebnisse",
+      "note": "Notiz",
+      "score": "Punktzahl",
+      "scoreUpdated": "Punktzahl aktualisiert",
+      "severity": "Schweregrad",
+      "success": "Lint abgeschlossen",
+      "totalIssues": "Gesamtprobleme",
+      "totalNotes": "Gesamte Notizen",
+      "updateScore": "Punktzahl aktualisieren",
+      "viewDetails": "Details anzeigen",
+      "rerun": "다시 실행",
+      "runLint": "Lint 실행",
+      "selectNote": "노트 선택"
+    },
     "llm": {
       "backToList": "목록으로 돌아가기",
       "compile": "컴파일",
@@ -7228,7 +7353,9 @@
       "tooltip": "AI로 최적화 또는 생성",
       "trigger": {
         "cronHint": "표준 cron 표현식 (예: `0 9 * * *`)."
-      }
+      },
+      "fix": "수정",
+      "optimize": "최적화"
     },
     "approval": {
       "panelTitle": "승인",
@@ -7246,101 +7373,105 @@
     },
     "aiAssistant": "AI 어시스턴트",
     "aiPanel": {
-      "actionAddEdge": "엣지 추가",
-      "actionAddNodes": "노드 추가",
-      "actionApply": "적용",
-      "actionApplyAll": "{{count}}개 변경 검토",
-      "actionDeleteEdge": "엣지 삭제",
-      "actionDeleteNodes": "노드 삭제",
-      "actionGenerateWorkflow": "워크플로우 생성",
-      "actionModifyNode": "노드 업데이트",
-      "actionOptimizePrompt": "프롬프트 최적화",
-      "actionUpdateEdge": "엣지 업데이트",
-      "aiAssistant": "AI 어시스턴트",
-      "applyToNode": "노드에 적용",
-      "canvasStatus": "{{nodes}}개 노드, {{edges}}개 엣지",
-      "chatMode": "채팅 모드",
-      "chatPlaceholder": "메시지 입력…",
-      "chatWelcome": "안녕하세요, AI 어시스턴트입니다.",
-      "chatWelcomeHint": "워크플로우나 노드 설정에 관해 물어보세요.",
-      "clickCanvasToAdd": "\"{{label}}\" 선택됨 — 캔버스를 클릭하여 노드 배치",
-      "copiedToClipboard": "클립보드에 복사됨",
-      "copy": "복사",
-      "currentCanvasState": "현재 캔버스 상태:",
-      "describeContext": "워크플로 컨텍스트와 목표를 설명하세요",
-      "describeWorkflow": "워크플로를 설명하세요",
-      "diffPreview": {
-        "after": "이후",
-        "applied": "적용됨",
-        "appliedHint": "이 세션에서 {{count}} / {{total}} 적용됨",
-        "apply": "이 항목 적용",
-        "applyAll": "모두 적용",
-        "applyAllFailed": "모두 적용 실패",
-        "applyFailed": "적용 실패",
-        "before": "이전",
-        "cancel": "취소",
-        "deleted": "— 삭제됨 —",
-        "deletedCount": "— {{count}}개 삭제 —",
-        "edgeNotFound": "엣지를 찾을 수 없음",
-        "empty": "미리볼 변경 없음",
-        "newNodes": "새 노드 {{count}}개",
-        "noAfter": "(삭제됨, 새 내용 없음)",
-        "noBefore": "(새 항목, 이전 내용 없음)",
-        "noChanges": "필드 변경 없음",
-        "nodeNotFound": "노드를 찾을 수 없음",
-        "nodesEdgesLabel": "노드 {{nodes}}개 / 엣지 {{edges}}개",
-        "promptLength": "프롬프트 길이: {{from}} → {{to}} 자",
-        "rollbackBatch": "배치 롤백",
-        "rollbackSuccess": "배치 롤백됨",
-        "rollbackTip": "AI 변경 배치 전체를 실행 취소",
-        "subtitle": "워크플로우에 적용하기 전 {{count}}개 변경을 검토하세요",
-        "title": "AI 편집 미리보기"
-      },
-      "dragCanvasToAdd": "캔버스로 드래그하여 추가",
-      "dragHint": "이 노드 유형들을 왼쪽 패널에서 캔버스로 드래그하세요",
-      "dragHintUpdated": "프롬프트로 캔버스를 업데이트했습니다",
-      "enterAgentPrompt": "최적화할 에이전트 프롬프트 입력",
-      "enterContext": "컨텍스트 정보를 입력하세요",
-      "enterPromptToOptimize": "최적화할 프롬프트를 입력하세요",
-      "enterWorkflowDesc": "워크플로 설명을 입력하세요",
-      "evolutionFallback": "최적화",
-      "evolutionHistory": "진화 기록",
-      "explanation": "설명",
-      "fillFromSelectedNode": "선택한 노드에서 채우기",
-      "generateBtn": "워크플로우 생성",
-      "generateMergeBtn": "병합 생성",
-      "generatePlaceholder": "예: 코드베이스 구조를 탐색하는 코드 리뷰 워크플로 생성...",
-      "generating": "생성 중...",
-      "generationFailed": "생성 실패",
-      "getRecommendation": "추천 받기",
-      "hasEvolution": "진화 기록 있음",
+      "enterWorkflowDesc": "Please enter a workflow description",
+      "workflowGenerated": "Workflow generated",
+      "explanation": "Explanation",
+      "generationFailed": "Generation failed",
+      "enterPromptToOptimize": "Please enter a prompt to optimize",
+      "promptOptimized": "Prompt optimized",
+      "optimizationFailed": "Optimization failed",
+      "enterContext": "Please enter context information",
+      "recommendationGenerated": "Recommendations generated",
+      "recommendationFailed": "Recommendation failed",
+      "copiedToClipboard": "Copied to clipboard",
       "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
-      "mergeMode": "병합 모드",
-      "noRecommendations": "아직 추천이 없습니다",
-      "optimizationFailed": "최적화 실패",
-      "optimizeBtn": "프롬프트 최적화",
-      "optimizePlaceholder": "프롬프트를 붙여넣으세요...",
-      "optimizedResult": "최적화 결과",
-      "optimizing": "최적화 중...",
-      "promptAppliedToNode": "프롬프트가 노드에 적용되었습니다",
-      "promptOptimized": "프롬프트가 최적화되었습니다",
-      "recommendPlaceholder": "예: 자동화된 테스트 워크플로를 구축하고 있습니다...",
-      "recommendationFailed": "추천 생성 실패",
-      "recommendationGenerated": "추천이 생성되었습니다",
-      "recommendedNodeTypes": "추천 노드 유형",
-      "recommending": "추천 중...",
-      "replaceCanvasWarning": "생성된 워크플로는 현재 캔버스 콘텐츠를 대체합니다",
-      "replaceConfirmContent": "현재 캔버스에 {{nodes}}개의 노드와 {{edges}}개의 간선이 있습니다. 생성 시 모두 교체됩니다. 계속하시겠습니까?",
-      "replaceConfirmTitle": "바꾸기 확인",
-      "replaceMode": "대체 모드",
-      "retry": "재시도",
-      "tabEvolution": "진화",
-      "tabGenerateWorkflow": "워크플로우 생성",
-      "tabOptimizePrompt": "프롬프트 최적화",
-      "tabRecommend": "노드 추천",
-      "toolsMode": "도구 모드",
-      "verified": "검증됨",
-      "workflowGenerated": "워크플로가 생성되었습니다"
+      "tabGenerateWorkflow": "Generate Workflow",
+      "describeWorkflow": "Describe your workflow",
+      "generatePlaceholder": "Example: Create a code review workflow that explores the codebase structure...",
+      "generating": "Generating...",
+      "generateBtn": "Generate Workflow",
+      "currentCanvasState": "Current canvas state:",
+      "canvasStatus": "{{nodes}} nodes, {{edges}} edges",
+      "replaceCanvasWarning": "Generated workflow will replace current canvas content",
+      "tabOptimizePrompt": "Optimize Prompt",
+      "enterAgentPrompt": "Enter Agent Prompt to optimize",
+      "optimizePlaceholder": "Paste your prompt...",
+      "optimizing": "Optimizing...",
+      "optimizeBtn": "Optimize Prompt",
+      "optimizedResult": "Optimized Result",
+      "copy": "Copy",
+      "tabRecommend": "Recommend Nodes",
+      "describeContext": "Describe the workflow context and goals",
+      "recommendPlaceholder": "Example: I'm building an automated testing workflow...",
+      "recommending": "Recommending...",
+      "getRecommendation": "Get Recommendation",
+      "recommendedNodeTypes": "Recommended Node Types",
+      "dragHint": "Drag these node types from the left panel onto the canvas",
+      "noRecommendations": "No recommendations yet",
+      "aiAssistant": "AI Assistant",
+      "replaceConfirmTitle": "Confirm Replace",
+      "replaceConfirmContent": "The current canvas has {{nodes}} nodes and {{edges}} edges. Generating will replace all of them. Continue?",
+      "actionGenerateWorkflow": "Generate Workflow",
+      "actionAddNodes": "Add Node(s)",
+      "actionModifyNode": "Update Node",
+      "actionDeleteNodes": "Delete Node(s)",
+      "actionAddEdge": "Add Edge",
+      "actionUpdateEdge": "Update Edge",
+      "actionDeleteEdge": "Delete Edge",
+      "actionOptimizePrompt": "Optimize Prompt",
+      "actionApply": "Apply",
+      "actionApplyAll": "Review {{count}} changes",
+      "diffPreview": {
+        "title": "AI Edit Preview",
+        "subtitle": "Please review these {{count}} changes before applying to your workflow",
+        "before": "Before",
+        "after": "After",
+        "apply": "Apply this",
+        "applyAll": "Apply All",
+        "cancel": "Cancel",
+        "applied": "Applied",
+        "appliedHint": "Applied {{count}} / {{total}} in this session",
+        "empty": "No changes to preview",
+        "noBefore": "(new item, no prior content)",
+        "noAfter": "(deletion, no new content)",
+        "noChanges": "No field changes",
+        "applyFailed": "Apply failed",
+        "applyAllFailed": "Apply All failed",
+        "rollbackBatch": "Rollback Batch",
+        "rollbackSuccess": "Batch rolled back",
+        "rollbackTip": "Undo the entire batch of AI changes",
+        "nodesEdgesLabel": "{{nodes}} nodes / {{edges}} edges",
+        "newNodes": "{{count}} new nodes",
+        "nodeNotFound": "Node not found",
+        "edgeNotFound": "Edge not found",
+        "promptLength": "프롬프트 길이: {{from}} → {{to}} 문자",
+        "deleted": "— 삭제됨 —",
+        "deletedCount": "— 삭제됨 {{count}} —"
+      },
+      "applyToNode": "Apply to node",
+      "chatMode": "Chat mode",
+      "chatWelcome": "Hi, I'm your AI assistant.",
+      "chatWelcomeHint": "Ask me about workflow or node configuration.",
+      "dragCanvasToAdd": "Drag to canvas to add",
+      "dragHintUpdated": "Canvas updated from prompt",
+      "fillFromSelectedNode": "Fill from selected node",
+      "generateMergeBtn": "Generate merge",
+      "mergeMode": "Merge mode",
+      "promptAppliedToNode": "Prompt applied to node",
+      "replaceMode": "Replace mode",
+      "retry": "Retry",
+      "toolsMode": "Tools mode",
+      "tabEvolution": "Evolution",
+      "evolutionHistory": "Evolution History",
+      "evolutionFallback": "Optimization",
+      "verified": "Verified",
+      "hasEvolution": "Has evolution records",
+      "progressAnalyzing": "의도 분석 중",
+      "progressMatching": "노드 매칭 중",
+      "progressBuilding": "워크플로 구축 중",
+      "progressOptimizing": "최적화 중",
+      "clickCanvasToAdd": "\"{{label}}\" 선택됨 — 노드를 배치하려면 캔버스를 클릭하세요",
+      "chatPlaceholder": "메시지 입력…"
     },
     "applySemanticCheck": "적용",
     "applyUpgrade": "업그레이드 적용",
@@ -7355,7 +7486,7 @@
     },
     "batchEditMode": "일괄 편집 모드",
     "canvasTitle": {
-      "clickToRename": "Click to rename"
+      "clickToRename": "클릭하여 이름 변경"
     },
     "caseLabel": "Case {{n}}",
     "categories": {
@@ -7402,10 +7533,12 @@
     "confirmDeleteTemplate": "템플릿을 삭제하시겠습니까?",
     "containerNode": {
       "branchTimeout": "Branch timeout configured",
-      "nodes": "nodes"
+      "nodes": "nodes",
+      "collapse": "접기",
+      "expand": "펼치기"
     },
     "contextMenu": {
-      "label": "Node actions"
+      "label": "노드 작업"
     },
     "copy": "복사",
     "copyNode": "노드 복사",
@@ -7503,7 +7636,7 @@
       "totalDuration": "총 소요 시간",
       "totalEdges": "총 엣지",
       "totalNodes": "총 노드",
-      "traceSnapshot": "Trace 快照",
+      "traceSnapshot": "Trace 스냅샷",
       "unreachableNodesCount": "도달 불가 노드",
       "variableSnapshots": "변수 스냅샷",
       "variables": "변수",
@@ -7513,7 +7646,19 @@
       "waitingForNodes": "노드 대기 중",
       "warnings": "경고"
     },
-    "debugPanel": "디버그 패널",
+    "debugPanel": {
+      "trace": "Trace",
+      "spans": "Spans",
+      "tokens": "Tokens",
+      "nodeId": "노드 ID",
+      "type": "유형",
+      "status": "상태",
+      "duration": "소요 시간",
+      "subWorkflow": "하위 워크플로우",
+      "executionId": "실행 ID",
+      "workflowId": "워크플로우 ID",
+      "parentExecution": "상위 실행"
+    },
     "decompositionSaved": "분해가 저장되었습니다",
     "decorativeContainerNoEdges": "장식 컨테이너는 들어오거나 나가는 엣지를 가질 수 없습니다",
     "defaultWorkflowName": "New Workflow",
@@ -7805,7 +7950,17 @@
       "title": "Evolution Status",
       "triggerAll": "Trigger All Evolution",
       "triggerEvolution": "Trigger Evolution",
-      "winner": "{{winner}} Won"
+      "winner": "{{winner}} Won",
+      "apply": "적용",
+      "current": "현재 버전",
+      "diff": "차이",
+      "evolutionHistory": "진화 기록",
+      "generation": "제 {{n}}대",
+      "improved": "개선됨",
+      "performance": "성능",
+      "revert": "되돌리기",
+      "score": "점수",
+      "viewDiff": "차이 보기"
     },
     "execution": {
       "nodeCompleted": "Node completed: {{label}}",
@@ -7823,7 +7978,13 @@
       "inputVariables": "Input Variables",
       "nodeExecutionStatus": "Node Execution Status",
       "outputResult": "Output Result",
-      "status": "Status"
+      "status": "Status",
+      "failed": "실패",
+      "inputVars": "입력 변수",
+      "nodeStatus": "노드 실행 상태",
+      "runningNode": "워크플로우 노드 실행 중",
+      "success": "성공",
+      "waiting": "대기 중"
     },
     "existingSkill": "기존 스킬",
     "expandLeftPanel": "왼쪽 패널 펼치기",
@@ -7841,7 +8002,9 @@
     "generatingUpgrade": "업그레이드 제안 생성 중...",
     "groupNode": {
       "folded": "folded",
-      "untitled": "Group"
+      "untitled": "Group",
+      "add": "그룹 추가",
+      "remove": "그룹 제거"
     },
     "importExport": {
       "axagentFolderHint": "AxAgent 형식 JSON 파일이 포함된 폴더를 선택하세요. 모든 워크플로 템플릿이 자동으로 스캔되어 가져와집니다.",
@@ -7974,21 +8137,68 @@
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference",
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself"
-      }
+      },
+      "autoLayout": "자동 정렬",
+      "canvas": "캔버스",
+      "collapseAll": "모두 접기",
+      "condensed": "컴팩트",
+      "connectionMode": "연결 모드",
+      "defaultEdgeType": "기본 연결 유형",
+      "expandAll": "모두 펼치기",
+      "fitView": "화면에 맞춤",
+      "floating": "부동",
+      "gridSize": "그리드 크기",
+      "horizontal": "수평",
+      "layoutDirection": "정렬 방향",
+      "locked": "잠김",
+      "minimap": "미니맵",
+      "nodeSize": "노드 크기",
+      "orientation": "방향",
+      "portLayout": "포트 레이아웃",
+      "readonly": "읽기 전용",
+      "showGrid": "그리드 표시",
+      "snapToGrid": "그리드에 맞춤",
+      "straight": "직선",
+      "strict": "엄격",
+      "vertical": "수직",
+      "zoomControl": "줌 컨트롤",
+      "bezier": "베지어 곡선",
+      "smoothStep": "부드러운 계단",
+      "free": "자유",
+      "ortho": "직교",
+      "large": "큼",
+      "medium": "중간",
+      "small": "작음",
+      "compact": "컴팩트",
+      "standard": "표준",
+      "comfortable": "여유",
+      "left": "왼쪽",
+      "right": "오른쪽",
+      "top": "위",
+      "bottom": "아래",
+      "center": "가운데",
+      "border": "테두리",
+      "gradient": "그라데이션",
+      "solid": "실선",
+      "dashed": "파선",
+      "dotted": "점선"
     },
     "leftPanel": {
-      "layout": "Layout",
-      "legacySuffix": "(레거시)",
+      "layout": "레이아웃 보조",
+      "legacySuffix": " (구버전)",
       "nodesTab": "노드",
-      "searchNodes": "노드 검색...",
-      "searchTemplates": "템플릿 검색...",
+      "searchNodes": "노드 검색",
+      "searchTemplates": "템플릿 검색",
       "templatesTab": "템플릿"
     },
     "legend": {
       "collapse": "Collapse",
       "expand": "Expand",
       "title": "Workflow Legend",
-      "toggleLabel": "{{action}} legend"
+      "toggleLabel": "{{action}} legend",
+      "end": "종료",
+      "start": "시작",
+      "running": "실행 중"
     },
     "list": {
       "active": "Active",
@@ -8005,14 +8215,19 @@
       "nodeCount": "{{count}} nodes",
       "searchPlaceholder": "Search workflows...",
       "templates": "Templates",
-      "title": "Workflows"
+      "title": "Workflows",
+      "confirmDelete": "이 워크플로우를 삭제하시겠습니까?",
+      "createWorkflow": "워크플로우 생성",
+      "noWorkflows": "워크플로우가 없습니다. 위쪽 버튼을 클릭하여 생성하세요",
+      "search": "워크플로우 검색"
     },
     "loadThisVersion": "이 버전 로드",
     "loadingVersion": "버전 불러오는 중...",
     "log": {
       "clear": "Clear Logs",
       "empty": "No logs",
-      "export": "Export Logs"
+      "export": "Export Logs",
+      "noLogs": "로그 없음"
     },
     "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
     "loopNode": {
@@ -8051,14 +8266,27 @@
       "tools": "Tools",
       "triggers": "Triggers",
       "triggersLabel": "Triggers: ",
-      "unit": ""
+      "unit": "",
+      "generate": "스킬 생성",
+      "generating": "생성 중...",
+      "instruction": "원하는 스킬을 설명하세요",
+      "preview": "미리보기",
+      "result": "생성 결과",
+      "title": "자연어 스킬 생성",
+      "validate": "검증",
+      "validating": "검증 중..."
     },
     "nl2UI": {
       "applyUI": "Apply This UI",
       "componentCount": "Component Count",
       "components": "{{count}} components",
       "depthLevel": "Depth",
-      "rootType": "Root Type"
+      "rootType": "Root Type",
+      "generate": "생성",
+      "generating": "생성 중...",
+      "instruction": "원하는 UI를 설명하세요",
+      "result": "생성 결과",
+      "title": "자연어 UI 생성"
     },
     "nlParser": {
       "aiSuggestion": "AI Suggestion",
@@ -8076,7 +8304,15 @@
       "parsing": "Parsing...",
       "planLabel": "Plan {{index}}: {{desc}}",
       "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
-      "variables": "Variables"
+      "variables": "Variables",
+      "constraints": "제약 조건(선택)",
+      "description": "자연어 설명",
+      "generating": "파싱 중",
+      "suggestions": "AI 제안",
+      "example1": "매일 아침 8시에 지정된 웹사이트의 최신 기사 크롤링",
+      "example2": "새 이메일 수신 시 AI로 내용 분석, 긴급 시 알림",
+      "example3": "사용자 폼 제출 후 데이터 검증 후 데이터베이스에 기록",
+      "exampleConstraint": "예: 실행 시간 5분 이내, 오류 시 재시도"
     },
     "noDescription": "설명 없음",
     "noExecutionHistory": "실행 기록 없음",
@@ -8093,7 +8329,10 @@
       "outputs": "Outputs",
       "retryEnabled": "재시도 활성화",
       "tickMode": "Tick 모드",
-      "type": "Type"
+      "type": "Type",
+      "description": "설명",
+      "name": "이름",
+      "version": "버전"
     },
     "nodeConfig": {
       "add_debater": "토론자 추가",
@@ -8114,7 +8353,11 @@
       "loop": "Loop",
       "output": "Output",
       "storage": "Storage",
-      "tool": "Tool"
+      "tool": "Tool",
+      "data": "데이터",
+      "logic": "로직",
+      "trigger": "트리거",
+      "transform": "변환"
     },
     "nodeTypes": {
       "agent": "에이전트",
@@ -8151,7 +8394,11 @@
       "validation": "검증",
       "vectorRetrieve": "벡터 검색",
       "webhookSend": "Webhook 전송",
-      "workflowRef": "Workflow Ref"
+      "workflowRef": "Workflow Ref",
+      "webhook": "Webhook",
+      "apiCall": "API 호출",
+      "script": "스크립트",
+      "timer": "타이머"
     },
     "nodesCount": "{{count}} nodes",
     "nodesPasted": "{{count}}개 노드 붙여넣음",
@@ -8186,7 +8433,7 @@
     "pasteJsonData": "JSON 데이터 붙여넣기",
     "pasteJsonPlaceholder": "템플릿 JSON 데이터 붙여넣기...",
     "phaseSeparator": {
-      "defaultLabel": "Phase"
+      "defaultLabel": "단계"
     },
     "preset": "프리셋",
     "preview": "미리보기",
@@ -8642,7 +8889,13 @@
       "agents": "Agents",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "rounds": "rounds"
+      "rounds": "rounds",
+      "agent": "에이전트",
+      "handoff": "핸드오프",
+      "mode": "모드",
+      "parallel": "병렬",
+      "sequential": "순차",
+      "task": "태스크"
     },
     "tag": "태그",
     "templateDeleted": "템플릿 삭제됨",
@@ -8675,7 +8928,23 @@
       "tagPlaceholder": "Filter by tag",
       "typePlaceholder": "Filter by type",
       "versionHistory": "Version history",
-      "view": "View"
+      "view": "View",
+      "blank": "빈 워크플로우",
+      "category": "분류",
+      "createConfirm": "이 템플릿으로 새 워크플로우를 생성하시겠습니까?",
+      "description": "설명",
+      "empty": "템플릿 없음",
+      "name": "템플릿 이름",
+      "official": "공식 템플릿",
+      "popular": "인기",
+      "preview": "미리보기",
+      "recent": "최근 사용",
+      "title": "워크플로우 템플릿",
+      "useTemplate": "템플릿 사용",
+      "version": "버전",
+      "community": "커뮤니티",
+      "recommended": "추천",
+      "all": "전체"
     },
     "templateName": "템플릿 이름",
     "templateSaved": "템플릿 저장됨",
@@ -8694,7 +8963,9 @@
       "statusActive": "Running",
       "statusDisabled": "Disabled",
       "statusUnconfigured": "Unconfigured",
-      "title": "트리거"
+      "title": "트리거",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "type": "유형",
     "undo": "실행 취소",
@@ -8711,31 +8982,31 @@
     "uploadJsonFile": "JSON 파일 업로드",
     "validation": {
       "validation": {
-        "addRule": "添加规则",
-        "assertionOp": "断言操作",
-        "block": "阻止执行",
-        "continue": "继续执行",
-        "description": "描述",
-        "descriptionPlaceholder": "这条规则是做什么的",
-        "expectedPath": "期望路径",
-        "expectedPathPlaceholder": "例如 output.status",
-        "expectedValue": "期望值",
-        "expectedValuePlaceholder": "输入期望值",
-        "maxValue": "最大值",
-        "metric": "指标",
-        "minValue": "最小值",
-        "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-        "onFailStrategy": "失败策略",
-        "rule": "规则",
-        "ruleName": "规则名称",
-        "ruleNamePlaceholder": "给自己的规则取个名字",
-        "ruleType": "规则类型",
-        "saved": "验证规则已保存",
+        "addRule": "규칙 추가",
+        "assertionOp": "어설션 연산",
+        "block": "실행 차단",
+        "continue": "실행 계속",
+        "description": "설명",
+        "descriptionPlaceholder": "이 규칙의 용도를 설명하세요",
+        "expectedPath": "예상 경로",
+        "expectedPathPlaceholder": "예: output.status",
+        "expectedValue": "예상 값",
+        "expectedValuePlaceholder": "예상 값 입력",
+        "maxValue": "최댓값",
+        "metric": "지표",
+        "minValue": "최솟값",
+        "noRules": "검증 규칙이 없습니다.「규칙 추가」를 클릭하여 생성하세요.",
+        "onFailStrategy": "실패 전략",
+        "rule": "규칙",
+        "ruleName": "규칙 이름",
+        "ruleNamePlaceholder": "규칙 이름을 입력하세요",
+        "ruleType": "규칙 유형",
+        "saved": "검증 규칙이 저장되었습니다",
         "schema": "JSON Schema",
-        "selectNode": "选择节点",
-        "sourceNode": "源节点",
-        "title": "验证规则",
-        "warn": "仅警告"
+        "selectNode": "노드 선택",
+        "sourceNode": "소스 노드",
+        "title": "검증 규칙",
+        "warn": "경고만"
       }
     },
     "validationFailed": "유효성 검사 실패",
@@ -8775,7 +9046,17 @@
       "timeline": "Timeline",
       "updateTime": "Update Time",
       "version": "Version",
-      "versionManager": "Version Manager: {{name}}"
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "보관됨",
+      "changelog": "변경 이력",
+      "comparison": "버전 비교",
+      "diff": "차이",
+      "draft": "초안",
+      "latest": "최신",
+      "noHistory": "버전 기록 없음",
+      "renamed": "이름 변경",
+      "restored": "되돌림 완료",
+      "updatedAt": "업데이트 시간"
     },
     "versionHistory": {
       "cannotLoadOldVersion": "Cannot load old version data",
@@ -8803,7 +9084,12 @@
       "rollbackTo": "Rollback to {{version}}",
       "rolledBack": "Rolled back",
       "title": "버전 기록 - {{name}}",
-      "version": "버전 {{version}}"
+      "version": "버전 {{version}}",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "차이 보기",
+      "viewSnapshot": "스냅샷 보기",
+      "restore": "되돌리기"
     },
     "versionHistoryLoadFailed": "버전 기록을 불러오지 못했습니다",
     "versionHistoryTitle": "버전 기록 - {{name}}",
@@ -8816,12 +9102,159 @@
       "inherit": "Inherit",
       "isolated": "Isolated",
       "targetWorkflow": "Target Workflow",
-      "version": ""
+      "version": "",
+      "inputMapping": "입력 매핑",
+      "selectWorkflow": "워크플로우 선택",
+      "title": "제목"
     },
     "workflowSavedAsNew": "워크플로우가 새로 저장되었습니다",
-    "workflowUpdated": "워크플로우가 업데이트되었습니다"
+    "workflowUpdated": "워크플로우가 업데이트되었습니다",
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## AI 생성 이미지",
+      "model": "**모델**",
+      "duration": "**소요 시간**",
+      "savedToArtifact": "Artifact에 저장됨"
+    },
+    "chatSidebar": {
+      "menu": "메뉴"
+    },
+    "inputArea": {
+      "resizeHandle": "크기 조정",
+      "uploadFile": "파일 업로드"
+    },
+    "appHeader": {
+      "agentPanel": "Agent 패널"
+    },
+    "sidebar": {
+      "agentPanel": "Agent 패널"
+    },
+    "errorBoundary": {
+      "pageError": "페이지 오류"
+    },
+    "chatPage": {
+      "resizeHandle": "크기 조정"
+    },
+    "spanDetail": {
+      "parentSpan": "상위 Span"
+    },
+    "traceDetail": {
+      "userId": "사용자 ID"
+    },
+    "settingsPanel": {
+      "featureFlags": "기능 플래그"
+    },
+    "skillTimeline": {
+      "promptDiff": "프롬프트 비교"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "참조된 워크플로우 없음"
+    },
+    "chartPreview": {
+      "title": "차트 미리보기"
+    },
+    "htmlPreview": {
+      "title": "HTML 미리보기"
+    },
+    "reactPreview": {
+      "title": "React 미리보기"
+    }
   },
   "workflowRefNode": {
     "noWorkflow": ""
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
+  },
+  "components_skill_SkillABTestResults": {
+    "components_skill_Ski": "components_skill_SkillABTestResults.A/B_테스트_데이터_없음",
+    "两个版本无明显差异": "두 버전 간에 뚜렷한 차이가 없습니다.",
+    "优胜": "우수",
+    "变化": "변화",
+    "平局": "무승부",
+    "指标": "지표",
+    "推荐采用版本_A": "버전 A 채택을 권장합니다.",
+    "推荐采用版本_B": "버전 B 채택을 권장합니다.",
+    "暂无_A_B_测试数据": "A/B 테스트 데이터 없음",
+    "版本_A": "버전 A",
+    "版本_B": "버전 B"
+  },
+  "components_skill_SkillEvolutionViewer": {
+    "A_B_测试结果": "A/B 테스트 결과",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A/B_테스트_결과",
+    "当前版本": "현재 버전",
+    "总进化次数": "총 진화 횟수",
+    "最近进化": "최근 진화"
+  },
+  "components_skill_SkillVersionTimeline": {
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.진화_기록_없음",
+    "暂无进化历史": "진화 기록 없음",
+    "确认回滚": "롤백 확인"
   }
 }

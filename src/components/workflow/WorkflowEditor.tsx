@@ -36,8 +36,9 @@ import {
 } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 
+import { message } from "@/lib/toast";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
-import { Button, message, Modal, Spin, theme } from "antd";
+import { Button, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { CanvasTitleBar } from "./CanvasTitleBar";

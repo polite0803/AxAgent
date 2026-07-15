@@ -245,6 +245,11 @@ pub async fn update_message_usage(
     if let Some(crt) = cache_read_tokens {
         am.cache_read_tokens = Set(Some(crt));
     }
+    // 同步写入 token_count 字段，作为 prompt+completion 的便利合计，
+    // 避免 dashboard 的 fallback 分支永远拿到 NULL（虽然当前 fallback 几乎不触发）。
+    if let (Some(pt), Some(ct)) = (prompt_tokens, completion_tokens) {
+        am.token_count = Set(Some(pt + ct));
+    }
     am.update(db).await?;
     Ok(())
 }
@@ -684,9 +689,10 @@ pub async fn get_daily_message_usage(
 ) -> Result<Vec<DailyUsage>> {
     use sea_orm::Statement;
 
-    let since = chrono::Utc::now()
+    // 用本地时区作为"天"分界，避免凌晨 0–8 点把"今日"算到昨日
+    let since = chrono::Local::now()
         .checked_sub_signed(chrono::Duration::days(days as i64))
-        .unwrap_or(chrono::DateTime::UNIX_EPOCH)
+        .unwrap_or_else(chrono::Local::now)
         .timestamp_millis();
 
     let rows = db
@@ -694,7 +700,7 @@ pub async fn get_daily_message_usage(
             db.get_database_backend(),
             r#"
                 SELECT
-                    date(created_at / 1000, 'unixepoch') as date,
+                    date(created_at / 1000, 'unixepoch', 'localtime') as date,
                     COUNT(*) as message_count,
                     COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens,
                     COALESCE(SUM(completion_tokens), 0) as total_completion_tokens,

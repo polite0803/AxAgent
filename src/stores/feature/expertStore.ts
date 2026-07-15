@@ -3,8 +3,8 @@
 import { BUILTIN_EXPERT_PRESETS, type BuiltinExpertPreset } from "@/data/expertPresets";
 import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
-import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";

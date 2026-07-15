@@ -2,6 +2,7 @@
 
 import { IngestPanel } from "@/components/wiki/IngestPanel";
 import { logIpcError } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import type { WikiSource } from "@/types";
 import {
@@ -12,7 +13,7 @@ import {
   LeftOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Card, message, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
+import { Button, Card, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
