@@ -486,18 +486,16 @@ impl McpConnectionPool {
         // 容量保护：若池已满，淘汰最久未使用的连接
         {
             let mut conns = self.connections.lock().await;
-            if conns.len() >= self.max_connections {
-                if let Some(oldest_key) =
+            if conns.len() >= self.max_connections
+                && let Some(oldest_key) =
                     conns.iter().min_by_key(|(_, v)| v.last_used).map(|(k, _)| k.clone())
-                {
-                    if let Some(pooled) = conns.remove(&oldest_key) {
-                        pooled.cancel_token.cancel();
-                        info!(
-                            "[McpPool] Evicted oldest connection '{}' to make room (max={})",
-                            oldest_key.command, self.max_connections
-                        );
-                    }
-                }
+                && let Some(pooled) = conns.remove(&oldest_key)
+            {
+                pooled.cancel_token.cancel();
+                info!(
+                    "[McpPool] Evicted oldest connection '{}' to make room (max={})",
+                    oldest_key.command, self.max_connections
+                );
             }
             conns.insert(
                 key.clone(),
@@ -1880,7 +1878,7 @@ pub async fn get_prompt_sse(
     auth_header: Option<&str>,
 ) -> Result<axagent_harness::mcp_types::McpPromptResult> {
     let params_obj = if args.is_object() {
-        args.as_object().map(|m| m.clone())
+        args.as_object().cloned()
     } else {
         None
     };
@@ -2273,14 +2271,12 @@ impl HttpSessionPool {
         // Capacity management
         {
             let mut conns = self.connections.lock().await;
-            if conns.len() >= self.max_connections {
-                if let Some(oldest_key) =
+            if conns.len() >= self.max_connections
+                && let Some(oldest_key) =
                     conns.iter().min_by_key(|(_, v)| v.last_used).map(|(k, _)| k.clone())
-                {
-                    if let Some(pooled) = conns.remove(&oldest_key) {
-                        pooled.cancel_token.cancel();
-                    }
-                }
+                && let Some(pooled) = conns.remove(&oldest_key)
+            {
+                pooled.cancel_token.cancel();
             }
             conns.insert(
                 key,
@@ -2318,6 +2314,11 @@ impl HttpSessionPool {
 
     pub async fn len(&self) -> usize {
         self.connections.lock().await.len()
+    }
+
+    /// 池中是否没有任何缓存连接。
+    pub async fn is_empty(&self) -> bool {
+        self.connections.lock().await.is_empty()
     }
 
     /// Probe all cached connections and return liveness results.

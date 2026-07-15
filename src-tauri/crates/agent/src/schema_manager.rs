@@ -357,7 +357,7 @@ impl SchemaManager {
         let schema_path = PathBuf::from(&wiki.root_path).join("SCHEMA.md");
         let content = fs::read_to_string(&schema_path).await.map_err(AxAgentError::Io)?;
 
-        let content_hash = format!("{:x}", md5::compute(&content));
+        let content_hash = hex::encode(md5::compute(&content).as_ref());
 
         let schema_version = SchemaVersion {
             version: version.to_string(),

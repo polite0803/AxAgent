@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use chrono::TimeZone;
 use sea_orm::EntityTrait;
 use tauri::State;
 
@@ -31,14 +30,22 @@ pub async fn get_learning_graph(
             .map_err(|e| format!("Failed to load skills: {}", e))?;
         rows.into_iter()
             .map(|r| {
-                let created_at = chrono::Utc
-                    .datetime_from_str(&r.created_at, "%Y-%m-%d %H:%M:%S%.f")
-                    .or_else(|_| chrono::Utc.datetime_from_str(&r.created_at, "%+"))
-                    .unwrap_or_else(|_| chrono::Utc::now());
-                let updated_at = chrono::Utc
-                    .datetime_from_str(&r.updated_at, "%Y-%m-%d %H:%M:%S%.f")
-                    .or_else(|_| chrono::Utc.datetime_from_str(&r.updated_at, "%+"))
-                    .unwrap_or_else(|_| chrono::Utc::now());
+                let created_at =
+                    chrono::NaiveDateTime::parse_from_str(&r.created_at, "%Y-%m-%d %H:%M:%S%.f")
+                        .map(|n| n.and_utc())
+                        .or_else(|_| {
+                            chrono::DateTime::parse_from_rfc3339(&r.created_at)
+                                .map(|dt| dt.with_timezone(&chrono::Utc))
+                        })
+                        .unwrap_or_else(|_| chrono::Utc::now());
+                let updated_at =
+                    chrono::NaiveDateTime::parse_from_str(&r.updated_at, "%Y-%m-%d %H:%M:%S%.f")
+                        .map(|n| n.and_utc())
+                        .or_else(|_| {
+                            chrono::DateTime::parse_from_rfc3339(&r.updated_at)
+                                .map(|dt| dt.with_timezone(&chrono::Utc))
+                        })
+                        .unwrap_or_else(|_| chrono::Utc::now());
                 axagent_trajectory::Skill {
                     id: r.id,
                     name: r.name,

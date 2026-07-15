@@ -3245,7 +3245,9 @@
     "disconnecting": "Disconnecting...",
     "startCall": "Start Voice Call",
     "endCall": "End Call",
-    "toggleMute": "Toggle Mute"
+    "toggleMute": "Toggle Mute",
+    "wakeup": "Voice Wake",
+    "wakeupActive": "Wakeup Listening"
   },
   "shortcuts": {
     "newConversation": "New Conversation",

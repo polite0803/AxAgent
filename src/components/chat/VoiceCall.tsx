@@ -121,12 +121,13 @@ export function VoiceCall({
   const { t } = useTranslation();
   const { token: controlToken } = theme.useToken();
   const btnTextColor = controlToken.colorWhite;
-  const { state, isMuted, start, stop, toggleMute } = useVoiceChat({
-    port,
-    host,
-    config,
-    apiKey,
-  });
+  const { state, isMuted, userTranscript, assistantTranscript, start, stop, toggleMute } =
+    useVoiceChat({
+      port,
+      host,
+      config,
+      apiKey,
+    });
 
   // Auto-start when overlay becomes visible — 用 useEffect 代替渲染副作用
   useEffect(() => {
@@ -150,8 +151,31 @@ export function VoiceCall({
       style={{ background: controlToken.colorBgMask }}
     >
       {/* Status display */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 w-full px-8">
         <StatusDisplay state={state} />
+
+        {/* 字幕：用户侧识别文本（右对齐）与 AI 文本增量（左对齐） */}
+        <div className="w-full max-w-md flex flex-col gap-3">
+          {userTranscript && (
+            <div
+              className="self-end max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-relaxed"
+              style={{ background: controlToken.colorPrimary, color: controlToken.colorWhite }}
+            >
+              {userTranscript}
+            </div>
+          )}
+          {assistantTranscript && (
+            <div
+              className="self-start max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-relaxed"
+              style={{
+                background: controlToken.colorFillSecondary,
+                color: controlToken.colorText,
+              }}
+            >
+              {assistantTranscript}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Controls */}

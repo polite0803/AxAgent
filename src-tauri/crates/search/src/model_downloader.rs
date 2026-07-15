@@ -336,12 +336,20 @@ impl ModelDownloader {
     /// 计算文件的 SHA256 哈希（流式读取，避免一次性加载到内存）
     pub fn sha256_file(path: &Path) -> Result<String> {
         use sha2::{Digest, Sha256};
+        use std::io::Read;
         let file =
             std::fs::File::open(path).map_err(axagent_harness::core_error::AxAgentError::Io)?;
         let mut reader = std::io::BufReader::new(file);
         let mut hasher = Sha256::new();
-        std::io::copy(&mut reader, &mut hasher)
-            .map_err(axagent_harness::core_error::AxAgentError::Io)?;
+        // sha2 0.11 起 Sha256 不再直接实现 io::Write，改为手动分块读取更新（保持流式，避免整文件入内存）。
+        let mut buf = [0u8; 8192];
+        loop {
+            let n = reader.read(&mut buf).map_err(axagent_harness::core_error::AxAgentError::Io)?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+        }
         Ok(hex::encode(hasher.finalize()))
     }
 }

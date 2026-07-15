@@ -6787,7 +6787,9 @@
     "micPermissionDenied": "麥克風權限被拒絕",
     "speaking": "正在聆聽...",
     "startCall": "開始語音通話",
-    "toggleMute": "切換靜音"
+    "toggleMute": "切換靜音",
+    "wakeup": "語音喚醒",
+    "wakeupActive": "語音喚醒監聽中"
   },
   "watchlist": {
     "placeholder": "管理你的自選股和價格提醒",

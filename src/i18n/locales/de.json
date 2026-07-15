@@ -6740,7 +6740,9 @@
     "micPermissionDenied": "Mikrofonberechtigung verweigert",
     "speaking": "Hört Ihnen zu…",
     "startCall": "Sprachanruf starten",
-    "toggleMute": "Stummschaltung umschalten"
+    "toggleMute": "Stummschaltung umschalten",
+    "wakeup": "Sprachweck",
+    "wakeupActive": "Aufwachen aktiv"
   },
   "watchlist": {
     "placeholder": "Watchlist und Preisalarme verwalten",

@@ -42,6 +42,10 @@ pub mod workflow_node_deserializer;
 pub mod workflow_types;
 #[macro_use]
 pub mod reliability;
+pub mod speech;
+pub use speech::{
+    AudioChunkStream, SpeakRequest, SpeechCapabilities, SpeechInput, unsupported_speech_stream,
+};
 
 // ── Persistence 契约 ──
 /// `Persistence` trait（实际定义在 `persistence_mod`）

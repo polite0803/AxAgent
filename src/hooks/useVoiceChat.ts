@@ -106,6 +106,10 @@ interface UseVoiceChatOptions {
 interface UseVoiceChatReturn {
   state: VoiceSessionState;
   isMuted: boolean;
+  /** 用户侧语音识别文本（字幕） */
+  userTranscript: string;
+  /** AI 文本响应（字幕） */
+  assistantTranscript: string;
   start: () => Promise<void>;
   stop: () => void;
   toggleMute: () => void;
@@ -122,6 +126,8 @@ export function useVoiceChat({
 
   const [state, setState] = useState<VoiceSessionState>("Idle");
   const [isMuted, setIsMuted] = useState(false);
+  const [userTranscript, setUserTranscript] = useState("");
+  const [assistantTranscript, setAssistantTranscript] = useState("");
   const isMutedRef = useRef(false);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -139,6 +145,10 @@ export function useVoiceChat({
   const connectWebSocketRef = useRef<() => void>(() => {});
   const ticketRef = useRef("");
   const audioPlaybackRef = useRef<AudioPlayback | null>(null);
+  /** AI 是否正在播报（用于打断判定） */
+  const aiRespondingRef = useRef(false);
+  /** VAD 上一帧是否检测到语音（用于检测「开始说话」的上升沿） */
+  const prevSpeakingRef = useRef(false);
 
   // Keep refs in sync with state after each render
   useEffect(() => {
@@ -190,6 +200,16 @@ export function useVoiceChat({
     }
   }, []);
 
+  /// 主动打断：停止本地播放、清空部分字幕、向后端发送 response.cancel
+  const interrupt = useCallback(() => {
+    audioPlaybackRef.current?.stop();
+    aiRespondingRef.current = false;
+    setAssistantTranscript("");
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "response.cancel" }));
+    }
+  }, []);
+
   const runVAD = useCallback(() => {
     const analyser = analyserRef.current;
     if (!analyser) {
@@ -205,13 +225,20 @@ export function useVoiceChat({
         sum += data[i] * data[i];
       }
       const rms = Math.sqrt(sum / data.length);
+      const isSpeech = rms > VAD_THRESHOLD;
+
+      // 用户打断：AI 正在播报时检测到用户开口 → 立即停止播放并通知后端中止生成
+      if (isSpeech && !prevSpeakingRef.current && aiRespondingRef.current) {
+        interrupt();
+      }
+      prevSpeakingRef.current = isSpeech;
 
       setState((prev) => {
         if (prev !== "Speaking" && prev !== "Listening") {
           return prev;
         }
 
-        if (rms > VAD_THRESHOLD) {
+        if (isSpeech) {
           if (vadTimerRef.current !== null) {
             clearTimeout(vadTimerRef.current);
             vadTimerRef.current = null;
@@ -232,7 +259,7 @@ export function useVoiceChat({
     };
 
     rafRef.current = requestAnimationFrame(tick);
-  }, []);
+  }, [interrupt]);
 
   const start = useCallback(async () => {
     if (stateRef.current !== "Idle") {
@@ -325,11 +352,12 @@ export function useVoiceChat({
 
     ws.onopen = () => {
       reconnectAttemptsRef.current = 0;
-      // 发送 session.create 而非 session.config
+      // 发送 session.create（带音色），而非 session.config
       ws.send(
         JSON.stringify({
           type: "session.create",
           model: config.model_id,
+          voice: config.voice,
         }),
       );
     };
@@ -350,13 +378,22 @@ export function useVoiceChat({
         switch (msg.type) {
           case "session.created":
             setState("Connected");
+            setUserTranscript("");
+            setAssistantTranscript("");
             runVAD();
             break;
+          case "conversation.item.input_audio_transcription.completed":
+            // 用户侧语音识别结果（字幕）
+            setUserTranscript((msg.transcript as string) ?? "");
+            setAssistantTranscript("");
+            break;
           case "response.text.delta":
-            // 可选的文本转录展示，暂不处理
+            // AI 文本增量（字幕）
+            setAssistantTranscript((prev) => prev + (msg.delta as string));
             break;
           case "response.audio.delta":
             setState("Listening");
+            aiRespondingRef.current = true;
             audioPlaybackRef.current?.enqueue(msg.delta as string);
             break;
           case "response.audio.done":
@@ -364,6 +401,7 @@ export function useVoiceChat({
             break;
           case "response.done":
             setState("Speaking");
+            aiRespondingRef.current = false;
             break;
           case "error":
             logIpcError("VoiceChat.serverError")(msg.message as string);
@@ -448,5 +486,5 @@ export function useVoiceChat({
     };
   }, [cleanup]);
 
-  return { state, isMuted, start, stop, toggleMute };
+  return { state, isMuted, userTranscript, assistantTranscript, start, stop, toggleMute };
 }

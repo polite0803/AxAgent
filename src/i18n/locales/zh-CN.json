@@ -6774,7 +6774,9 @@
     "micPermissionDenied": "麦克风权限被拒绝",
     "speaking": "正在聆听...",
     "startCall": "开始语音通话",
-    "toggleMute": "切换静音"
+    "toggleMute": "切换静音",
+    "wakeup": "语音唤醒",
+    "wakeupActive": "语音唤醒监听中"
   },
   "watchlist": {
     "placeholder": "管理你的自选股和价格提醒",

@@ -6765,7 +6765,9 @@
     "micPermissionDenied": "Permiso de micrófono denegado",
     "speaking": "Escuchándole...",
     "startCall": "Iniciar llamada de voz",
-    "toggleMute": "Activar/desactivar silencio"
+    "toggleMute": "Activar/desactivar silencio",
+    "wakeup": "Activación por voz",
+    "wakeupActive": "Escucha activa"
   },
   "watchlist": {
     "placeholder": "Gestionar lista y alertas de precio",

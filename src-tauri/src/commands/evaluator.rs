@@ -228,7 +228,7 @@ pub async fn evaluator_run_ab_test(
 
     let benchmark = {
         let s = suite().lock().await;
-        let all: Vec<_> = s.all().iter().cloned().collect();
+        let all: Vec<_> = s.all().into_iter().cloned().collect();
         if let Some(ref ds_id) = dataset_id {
             all.iter().find(|b| b.id == *ds_id).cloned().or_else(|| all.first().cloned())
         } else {

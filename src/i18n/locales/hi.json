@@ -6765,7 +6765,9 @@
     "micPermissionDenied": "माइक्रोफ़ोन अनुमति अस्वीकृत",
     "speaking": "आपको सुन रहा है...",
     "startCall": "वॉयस कॉल शुरू करें",
-    "toggleMute": "म्यूट टॉगल करें"
+    "toggleMute": "म्यूट टॉगल करें",
+    "wakeup": "वॉयस वेक",
+    "wakeupActive": "वेकअप सुन रहा है"
   },
   "watchlist": {
     "placeholder": "वॉचलिस्ट और मूल्य अलर्ट प्रबंधित करें",

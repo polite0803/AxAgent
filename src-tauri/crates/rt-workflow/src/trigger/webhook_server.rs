@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 use subtle::ConstantTimeEq;
 
@@ -63,7 +63,7 @@ fn verify_hmac(secret: &str, body: &[u8], sig_hex: &str) -> bool {
     let Ok(sig_bytes) = hex::decode(sig_hex) else {
         return false;
     };
-    let Ok(mut mac) = <Hmac<Sha256> as Mac>::new_from_slice(secret.as_bytes()) else {
+    let Ok(mut mac) = <Hmac<Sha256> as KeyInit>::new_from_slice(secret.as_bytes()) else {
         return false;
     };
     mac.update(body);

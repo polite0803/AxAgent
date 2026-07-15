@@ -167,7 +167,7 @@ fn compute_file_checksum(path: &Path) -> Result<String> {
     let data = std::fs::read(path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to read file for checksum: {}", e)))?;
     let hash = Sha256::digest(&data);
-    Ok(format!("{:x}", hash))
+    Ok(hex::encode(hash))
 }
 
 pub async fn count_objects(db: &DatabaseConnection) -> Result<String> {

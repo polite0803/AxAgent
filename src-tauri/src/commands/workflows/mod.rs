@@ -9,7 +9,7 @@ use axagent_runtime::agent_roles;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{Emitter, State};
 
 // ── 类型定义 ──
 

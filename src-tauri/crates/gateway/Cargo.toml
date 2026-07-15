@@ -8,10 +8,11 @@ publish = false
 axagent-harness = { path = "../harness" }
 axum = { version = "0.8", features = ["ws"] }
 axum-server = { version = "0.7", features = ["tls-rustls"] }
+base64 = { workspace = true }
 futures = "0.3"
-governor = "0.8"
+governor = "0.10"
 hex = { workspace = true }
-hmac = "0.12"
+hmac = "0.13"
 http = "1"
 parking_lot = "0.12"
 prometheus = "0.14"

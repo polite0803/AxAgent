@@ -6765,7 +6765,9 @@
     "micPermissionDenied": "マイクの権限が拒否されました",
     "speaking": "聞いています...",
     "startCall": "通話を開始",
-    "toggleMute": "ミュートを切り替え"
+    "toggleMute": "ミュートを切り替え",
+    "wakeup": "音声起動",
+    "wakeupActive": "起動待機中"
   },
   "watchlist": {
     "placeholder": "Manage your watchlist and price alerts",

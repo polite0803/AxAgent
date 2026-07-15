@@ -8,7 +8,7 @@ use axagent_crypto::{decrypt_key, encrypt_key};
 use axagent_dao::repo::{backup, settings as settings_repo};
 use axagent_storage::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};
 use futures::FutureExt;
-use sea_orm::{ConnectionTrait, DatabaseConnection, PaginatorTrait, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::panic::AssertUnwindSafe;

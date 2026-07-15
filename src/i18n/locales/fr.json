@@ -6765,7 +6765,9 @@
     "micPermissionDenied": "Permission du microphone refusée",
     "speaking": "À votre écoute…",
     "startCall": "Démarrer l'appel vocal",
-    "toggleMute": "Activer/Désactiver le silence"
+    "toggleMute": "Activer/Désactiver le silence",
+    "wakeup": "Réveil vocal",
+    "wakeupActive": "Écoute active"
   },
   "watchlist": {
     "placeholder": "Gérer la liste de suivi et les alertes",

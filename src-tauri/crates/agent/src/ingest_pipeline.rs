@@ -680,7 +680,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     fn compute_sha256(&self, content: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
-        format!("{:x}", hasher.finalize())
+        hex::encode(hasher.finalize())
     }
 
     fn cache_path(wiki_id: &str) -> String {

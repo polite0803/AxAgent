@@ -6740,7 +6740,9 @@
     "micPermissionDenied": "마이크 권한이 거부되었습니다",
     "speaking": "듣고 있습니다...",
     "startCall": "통화 시작",
-    "toggleMute": "음소거 전환"
+    "toggleMute": "음소거 전환",
+    "wakeup": "음성 웨이크",
+    "wakeupActive": "웨이크업 대기 중"
   },
   "watchlist": {
     "placeholder": "관심종목과 가격 알림을 관리",

@@ -91,6 +91,7 @@ pub mod settings;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;
+pub mod smart_router;
 pub mod sources;
 pub mod spawn_guard;
 pub mod storage;

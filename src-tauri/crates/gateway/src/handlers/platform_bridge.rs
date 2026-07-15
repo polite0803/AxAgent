@@ -39,7 +39,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use subtle::ConstantTimeEq;
@@ -343,7 +343,7 @@ async fn verify_webhook_auth(headers: &HeaderMap, body: &[u8], state: &GatewayAp
     {
         // 期望密钥：用 master_key 派生一段长为 32 字节的子密钥
         let mut expected = [0u8; 32];
-        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(&state.master_key)
+        let mut mac = <Hmac<Sha256> as KeyInit>::new_from_slice(&state.master_key)
             .expect("HMAC accepts any key length");
         mac.update(b"bearer-token-v1");
         let bytes = mac.finalize().into_bytes();
@@ -367,7 +367,7 @@ async fn verify_webhook_auth(headers: &HeaderMap, body: &[u8], state: &GatewayAp
             return false;
         };
 
-        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(&state.master_key)
+        let mut mac = <Hmac<Sha256> as KeyInit>::new_from_slice(&state.master_key)
             .expect("HMAC accepts any key length");
         mac.update(body);
         let computed = mac.finalize().into_bytes();

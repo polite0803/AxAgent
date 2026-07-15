@@ -42,6 +42,7 @@ license = "AGPL-3.0-only"
 
 [workspace.dependencies]
 anyhow = "1"
+base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 dashmap = "6"
 enigo = "0.6"
@@ -55,7 +56,7 @@ sea-orm = { version = "2.0.0-rc.40", features = ["sqlx-sqlite", "sqlx-postgres",
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-sha2 = "0.10"
+sha2 = "0.11"
 sqlite-vec = "0.1.8-alpha.1"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
@@ -147,11 +148,11 @@ dashmap = { workspace = true }
 dirs = "6"
 futures = "0.3"
 hex = { workspace = true }
-hostname = "0.3"
+hostname = "0.4"
 lazy_static = { workspace = true }
 notify = "9.0.0-rc.4"
 open = "5"
-rcgen = "0.13"
+rcgen = "0.14"
 reqwest = { workspace = true }
 rusqlite = { version = "0.39", features = ["bundled"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "ring"] }
@@ -189,7 +190,7 @@ objc2 = { version = "0.6", features = ["relax-sign-encoding"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
-android_logger = "0.14"
+android_logger = "0.15"
 log = { version = "0.4" }
 tracing-log = "0.2"
 
@@ -208,7 +209,7 @@ debug = true
 
 [dev-dependencies]
 axagent-agent = { path = "crates/agent", features = ["testing"] }
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 
 [[bench]]
 name = "tool_exec_bench"

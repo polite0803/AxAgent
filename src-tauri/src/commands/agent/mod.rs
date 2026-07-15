@@ -5,7 +5,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
-use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
+use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_agent::{AxAgentApiClient, FallbackProviderAdapter};
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
@@ -22,7 +22,7 @@ use dashmap::DashMap;
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::atomic::AtomicBool;
 use tracing::info;
 

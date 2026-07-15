@@ -249,7 +249,7 @@ pub fn generate_state() -> io::Result<String> {
 #[must_use]
 pub fn code_challenge_s256(verifier: &str) -> String {
     let digest = Sha256::digest(verifier.as_bytes());
-    base64url_encode(&digest)
+    base64url_encode(digest.as_ref())
 }
 
 #[must_use]

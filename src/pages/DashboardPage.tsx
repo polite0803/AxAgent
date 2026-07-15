@@ -189,14 +189,15 @@ function DailyUsageChart({ data, loading }: { data: DailyUsage[]; loading: boole
             borderRadius: 8,
             fontSize: 12,
           }}
-          formatter={(value: number, name: string) => [
-            value.toLocaleString(),
-            name === "total_prompt_tokens"
-              ? t("dashboard.inputTokens")
-              : name === "total_completion_tokens"
-              ? t("dashboard.outputTokens")
-              : t("dashboard.totalTokens"),
-          ]}
+          formatter={(value, name) => (
+            <span>
+              {Number(value ?? 0).toLocaleString()} {name === "total_prompt_tokens"
+                ? t("dashboard.inputTokens")
+                : name === "total_completion_tokens"
+                ? t("dashboard.outputTokens")
+                : t("dashboard.totalTokens")}
+            </span>
+          )}
         />
         <Bar dataKey="total_prompt_tokens" stackId="a" fill="#1677ff" radius={[2, 2, 0, 0]} />
         <Bar dataKey="total_completion_tokens" stackId="a" fill="#52c41a" radius={[2, 2, 0, 0]} />
@@ -674,8 +675,7 @@ export function DashboardPage() {
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    label={({ provider_id, token_count }: { provider_id: string; token_count: number }) =>
-                      `${provider_id}: ${formatNumber(token_count)}`}
+                    label={(props) => `${props.payload.provider_id}: ${formatNumber(props.payload.token_count)}`}
                     labelLine
                   >
                     {costByProvider.map((_, i) => (
@@ -695,10 +695,11 @@ export function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number, name: string) => [
-                      formatNumber(value),
-                      name,
-                    ]}
+                    formatter={(value, name) => (
+                      <span>
+                        {formatNumber(Number(value ?? 0))} {name}
+                      </span>
+                    )}
                     contentStyle={{
                       background: token.colorBgElevated,
                       border: `1px solid ${token.colorBorder}`,

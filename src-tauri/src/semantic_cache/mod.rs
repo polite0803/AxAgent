@@ -146,7 +146,7 @@ impl SemanticCache {
     fn hash_prompt(normalized: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(normalized.as_bytes());
-        format!("{:x}", hasher.finalize())
+        hex::encode(hasher.finalize())
     }
 
     /// Check the cache for a matching prompt and model.

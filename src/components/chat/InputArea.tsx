@@ -64,6 +64,7 @@ import {
   Music,
   Paperclip,
   Play,
+  RadioTower,
   Plug,
   Scissors,
   Shield,
@@ -91,6 +92,7 @@ import { ModelSelector } from "./ModelSelector";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { PromptTemplateSelector } from "./PromptTemplateSelector";
 import { VoiceCall } from "./VoiceCall";
+import { useVoiceWakeup } from "@/hooks/useVoiceWakeup";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
   return new Promise((resolve, reject) => {
@@ -219,6 +221,17 @@ export function InputArea() {
   }, [attachmentObjectUrls]);
   const [voiceCallVisible, setVoiceCallVisible] = useState(false);
   const [voiceApiKey, setVoiceApiKey] = useState("");
+
+  // 语音唤醒：轻量常驻监听，命中后打开语音通话浮层（通话已打开时不重复触发）
+  const voiceCallVisibleRef = useRef(false);
+  voiceCallVisibleRef.current = voiceCallVisible;
+  const voiceWakeup = useVoiceWakeup({
+    onWake: () => {
+      if (!voiceCallVisibleRef.current) {
+        setVoiceCallVisible(true);
+      }
+    },
+  });
   const gatewayKeys = useGatewayStore((s) => s.keys);
   const fetchGatewayKeys = useGatewayStore((s) => s.fetchKeys);
   const decryptKey = useGatewayStore((s) => s.decryptKey);
@@ -3082,14 +3095,33 @@ export function InputArea() {
               </Tooltip>
             )}
             {hasRealtimeVoice && (
-              <Tooltip title={t("voice.startCall")}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<Mic size={14} />}
-                  onClick={() => setVoiceCallVisible(true)}
-                />
-              </Tooltip>
+              <>
+                <Tooltip title={voiceWakeup.active ? t("voice.wakeupActive") : t("voice.wakeup")}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={
+                      <span className={voiceWakeup.active ? "animate-pulse" : ""}>
+                        <RadioTower size={14} />
+                      </span>
+                    }
+                    onClick={() => (voiceWakeup.active ? voiceWakeup.stop() : voiceWakeup.start())}
+                    style={
+                      voiceWakeup.active
+                        ? { color: token.colorPrimary, background: token.colorPrimaryBg }
+                        : undefined
+                    }
+                  />
+                </Tooltip>
+                <Tooltip title={t("voice.startCall")}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Mic size={14} />}
+                    onClick={() => setVoiceCallVisible(true)}
+                  />
+                </Tooltip>
+              </>
             )}
           </div>
           <div className="flex items-center gap-2 ml-auto">

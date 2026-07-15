@@ -21,7 +21,7 @@ rusqlite = { version = "0.39", features = ["bundled"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sha2 = "0.10"
+sha2 = "0.11"
 sqlite-vec = { workspace = true }
 tokenizers = "0.23"
 tokio = { workspace = true }

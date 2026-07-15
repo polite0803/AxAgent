@@ -677,6 +677,9 @@ mod tests_conversation {
             similarity_threshold: 0.85,
         }));
         let state = crate::AppState {
+            credential_manager: Arc::new(axagent_credential::CredentialManager::new(
+                axagent_credential::CredentialStore::new(temp_dir.join("credentials"), [0; 32]),
+            )),
             gateway: Arc::new(Mutex::new(None)),
             close_to_tray: Arc::new(AtomicBool::new(false)),
             app_data_dir: temp_dir.clone(),

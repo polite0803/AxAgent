@@ -6727,7 +6727,9 @@
     "micPermissionDenied": "تم رفض إذن الميكروفون",
     "speaking": "أستمع إليك...",
     "startCall": "بدء مكالمة صوتية",
-    "toggleMute": "تبديل كتم الصوت"
+    "toggleMute": "تبديل كتم الصوت",
+    "wakeup": "التنبيه الصوتي",
+    "wakeupActive": "الاستماع للتنبيه"
   },
   "watchlist": {
     "placeholder": "إدارة قائمة المراقبة وتنبيهات الأسعار",

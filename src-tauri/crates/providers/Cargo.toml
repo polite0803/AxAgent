@@ -10,7 +10,7 @@ async-trait = "0.1"
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 futures = "0.3"
-reqwest = { workspace = true, features = ["stream", "socks", "rustls", "native-tls-vendored"] }
+reqwest = { workspace = true, features = ["stream", "socks", "rustls", "native-tls-vendored", "multipart"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
