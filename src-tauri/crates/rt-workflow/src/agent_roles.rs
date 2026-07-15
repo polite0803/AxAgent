@@ -134,6 +134,9 @@ pub struct FileRoleDefinition {
     /// 允许的工具列表
     #[serde(default)]
     pub allowed_tools: Vec<String>,
+    /// 该角色自动激活的工具功能域（如 ["core", "general", "invest"]）
+    #[serde(default)]
+    pub active_domains: Vec<String>,
     /// 最大并发数
     #[serde(default = "default_max_concurrent")]
     pub max_concurrent: usize,
@@ -220,7 +223,7 @@ impl FileRoleRegistry {
             name: r.name.clone(),
             system_prompt: r.system_prompt.clone(),
             default_tools: r.allowed_tools.clone(),
-            active_domains: Vec::new(),
+            active_domains: r.active_domains.clone(),
             max_concurrent: r.max_concurrent,
             timeout_seconds: r.timeout_seconds,
             source: r.source.clone(),

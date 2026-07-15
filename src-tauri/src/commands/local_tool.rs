@@ -103,14 +103,26 @@ pub async fn get_tool_count(
     registry.load_enabled_state(state.harness.db()).await;
 
     let Some(profile_id) = agent_profile_id else {
-        // 无 profile：返回全局已启用工具数
-        return Ok(registry.count_enabled_tools());
+        // 无 profile：按自由对话默认域 Core + General 筛选（与 agent_query 一致），
+        // 避免显示全局已启用工具数导致用户看到的数量与实际传给 LLM 的不一致。
+        let mut domains = HashSet::new();
+        domains.insert(ToolDomain::Core);
+        domains.insert(ToolDomain::General);
+        let chat_tools = registry.get_chat_tools_for_domains(&domains, None);
+        let names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        return Ok(names.len() as u32);
     };
 
     // 解析 profile 上下文（与 agent_query 一致的三源合并）
     let Some(ctx) = resolve_profile_tool_context(&state, &profile_id).await else {
-        // profile 不存在或查询失败：回退到全局总数，避免显示 0 误导用户
-        return Ok(registry.count_enabled_tools());
+        // profile 不存在或查询失败：回退到默认自由对话域 Core + General，
+        // 避免显示全局已启用数导致与实际传给 LLM 的工具数不一致。
+        let mut domains = HashSet::new();
+        domains.insert(ToolDomain::Core);
+        domains.insert(ToolDomain::General);
+        let chat_tools = registry.get_chat_tools_for_domains(&domains, None);
+        let names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        return Ok(names.len() as u32);
     };
 
     // 三源合并活跃域（与 agent_query 的 ② 分支保持一致：确保 Core 始终存在）

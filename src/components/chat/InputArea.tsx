@@ -1584,12 +1584,12 @@ export function InputArea() {
   ]);
 
   // 语音通话入口是否可用：实时语音走 AxAgent 本地网关 + STT/TTS 编排，
-  // 与具体模型的 RealtimeVoice 能力无关（普通聊天模型不可编辑该能力，导致按钮永不出现）。
-  // 只要有活跃且不处于工作流模式的会话，即显示语音入口。
+  // 与具体模型的 RealtimeVoice 能力无关（普通聊天模型不可编辑该能力，导致按钮永不出现），
+  // 也不依赖某个已选中的会话（realtime 通话使用独立 config，与 conversation 解耦）。
+  // 仅在「工作流会话」下隐藏；无活跃会话或普通会话均显示语音入口。
   const { voiceAvailable, hasReasoning, hasVision } = React.useMemo(
     () => ({
-      voiceAvailable: !!activeConversation
-        && activeConversation.session_type !== "workflow",
+      voiceAvailable: activeConversation?.session_type !== "workflow",
       hasReasoning: supportsReasoning(currentModel),
       hasVision: modelHasCapability(currentModel, "Vision"),
     }),
