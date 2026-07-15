@@ -2801,6 +2801,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         #[cfg(target_os = "android")]
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
         dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
+        cost_aware_router: Arc::new(crate::smart_router::CostAwareRouter::new()),
         text_grad_engine: Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::TextGradEngine::new(
                 axagent_trajectory::ComputationGraph::new(),

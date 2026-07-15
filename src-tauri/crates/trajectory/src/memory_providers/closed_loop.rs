@@ -541,6 +541,8 @@ impl ClosedLoopService {
                                 created_at: now,
                                 updated_at: now,
                                 last_used_at: None,
+                                consecutive_failures: 0,
+                                last_failure_at: None,
                                 metadata: crate::skill::SkillMetadata {
                                     hermes: crate::skill::HermesMetadata {
                                         tags: vec![],

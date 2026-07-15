@@ -726,6 +726,8 @@ fn start_skill_evolution(state: &AppState) {
         let interval = std::time::Duration::from_secs(45 * 60);
         let success_threshold = 0.5;
         let min_usages = 3;
+        // P1: 连续失败次数阈值，达到即触发自动进化
+        let auto_trigger_consecutive_failures: u32 = 3;
         loop {
             tokio::time::sleep(interval).await;
             let skills: Vec<axagent_trajectory::Skill> = match trajectory_storage.get_skills().await
@@ -738,14 +740,18 @@ fn start_skill_evolution(state: &AppState) {
             };
             let weak_skills: Vec<_> = skills
                 .into_iter()
-                .filter(|s| s.total_usages >= min_usages && s.success_rate < success_threshold)
+                .filter(|s| {
+                    s.consecutive_failures >= auto_trigger_consecutive_failures
+                        || (s.total_usages >= min_usages && s.success_rate < success_threshold)
+                })
                 .collect();
             if weak_skills.is_empty() {
                 continue;
             }
             tracing::info!(
-                "[evolution] Found {} skills below success threshold ({:.0}%)",
+                "[evolution] Found {} skills to evolve (consecutive_failures>={} or success<{:.0}%)",
                 weak_skills.len(),
+                auto_trigger_consecutive_failures,
                 success_threshold * 100.0
             );
             let test_trajectories: Vec<axagent_trajectory::Trajectory> =

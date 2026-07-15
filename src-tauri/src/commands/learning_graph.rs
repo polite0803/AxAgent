@@ -74,6 +74,8 @@ pub async fn get_learning_graph(
                     created_at,
                     updated_at,
                     last_used_at: None,
+                    consecutive_failures: 0,
+                    last_failure_at: None,
                     metadata: axagent_trajectory::SkillMetadata {
                         hermes: axagent_trajectory::HermesMetadata {
                             tags: Vec::new(),

@@ -37,6 +37,12 @@ pub struct EvolutionConfig {
     pub use_llm_mutation: bool,
     pub use_execution_validation: bool,
     pub validation_rounds: usize,
+    /// 自动触发进化的连续失败次数阈值（达到即触发进化）
+    pub auto_trigger_consecutive_failures: u32,
+    /// 自动触发进化的最小使用次数（与 success_threshold 联动）
+    pub auto_trigger_min_usages: u32,
+    /// 自动触发进化的成功率阈值（低于此值且达到 min_usages 即触发）
+    pub auto_trigger_success_threshold: f64,
 }
 
 impl Default for EvolutionConfig {
@@ -52,6 +58,9 @@ impl Default for EvolutionConfig {
             use_llm_mutation: true,
             use_execution_validation: true,
             validation_rounds: 3,
+            auto_trigger_consecutive_failures: 3,
+            auto_trigger_min_usages: 3,
+            auto_trigger_success_threshold: 0.5,
         }
     }
 }
@@ -794,6 +803,21 @@ impl SkillEvolutionEngine {
 
     pub fn is_running(&self) -> bool {
         self.population.is_some()
+    }
+
+    /// 判断 Skill 是否需要自动进化
+    /// 条件1：连续失败次数 >= auto_trigger_consecutive_failures
+    /// 条件2：总使用次数 >= auto_trigger_min_usages 且成功率 < auto_trigger_success_threshold
+    pub fn should_auto_evolve(&self, skill: &Skill) -> bool {
+        if skill.consecutive_failures >= self.config.auto_trigger_consecutive_failures {
+            return true;
+        }
+        if skill.total_usages >= self.config.auto_trigger_min_usages
+            && skill.success_rate < self.config.auto_trigger_success_threshold
+        {
+            return true;
+        }
+        false
     }
 }
 

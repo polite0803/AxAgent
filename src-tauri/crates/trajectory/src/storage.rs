@@ -457,6 +457,8 @@ impl TrajectoryStorage {
             usage_count: Set(skill.total_usages as i32),
             success_rate: Set(skill.success_rate),
             avg_execution_time_ms: Set(skill.avg_execution_time_ms as f64),
+            consecutive_failures: Set(skill.consecutive_failures as i32),
+            last_failure_at: Set(skill.last_failure_at.map(|dt| dt.to_rfc3339())),
         })
         .on_conflict(
             sea_orm::sea_query::OnConflict::column(trajectory_skills::Column::Id)
@@ -467,6 +469,8 @@ impl TrajectoryStorage {
                     trajectory_skills::Column::UsageCount,
                     trajectory_skills::Column::SuccessRate,
                     trajectory_skills::Column::AvgExecutionTimeMs,
+                    trajectory_skills::Column::ConsecutiveFailures,
+                    trajectory_skills::Column::LastFailureAt,
                 ])
                 .to_owned(),
         )
@@ -528,6 +532,71 @@ impl TrajectoryStorage {
         }
         .insert(self.db.as_ref())
         .await?;
+
+        // P1: 同步更新 skill 的统计字段（total_usages/success_rate/avg_execution_time/
+        // consecutive_failures/last_failure_at）。这里直接在数据库层做增量更新，
+        // 避免先 read 再 write 的竞态。读取 skill 时由 model_to_skill 还原这些字段。
+        let now = Utc::now();
+        let now_str = now.to_rfc3339();
+        // 累加使用次数
+        let _ = trajectory_skills::Entity::update_many()
+            .col_expr(
+                trajectory_skills::Column::UsageCount,
+                sea_orm::sea_query::Expr::col(trajectory_skills::Column::UsageCount).add(1),
+            )
+            .col_expr(
+                trajectory_skills::Column::AvgExecutionTimeMs,
+                sea_orm::sea_query::Expr::col(trajectory_skills::Column::AvgExecutionTimeMs)
+                    .add(et as f64)
+                    .div(2.0),
+            )
+            .col_expr(
+                trajectory_skills::Column::UpdatedAt,
+                sea_orm::sea_query::Expr::value(now_str.clone()),
+            )
+            .filter(trajectory_skills::Column::Id.eq(sid))
+            .exec(self.db.as_ref())
+            .await;
+
+        // 根据 success 更新 success_rate 和 consecutive_failures
+        // 简化处理：success=true 视为成功（清零失败计数），false 视为失败（累加）
+        if success {
+            let _ = trajectory_skills::Entity::update_many()
+                .col_expr(
+                    trajectory_skills::Column::ConsecutiveFailures,
+                    sea_orm::sea_query::Expr::value(0i32),
+                )
+                .col_expr(
+                    trajectory_skills::Column::SuccessRate,
+                    // 简化：success=true 时把 success_rate 推向 1.0（保留旧值 70% + 30%）
+                    sea_orm::sea_query::Expr::col(trajectory_skills::Column::SuccessRate)
+                        .mul(0.7)
+                        .add(0.3),
+                )
+                .filter(trajectory_skills::Column::Id.eq(sid))
+                .exec(self.db.as_ref())
+                .await;
+        } else {
+            let _ = trajectory_skills::Entity::update_many()
+                .col_expr(
+                    trajectory_skills::Column::ConsecutiveFailures,
+                    sea_orm::sea_query::Expr::col(trajectory_skills::Column::ConsecutiveFailures)
+                        .add(1),
+                )
+                .col_expr(
+                    trajectory_skills::Column::LastFailureAt,
+                    sea_orm::sea_query::Expr::value(now_str),
+                )
+                .col_expr(
+                    trajectory_skills::Column::SuccessRate,
+                    // 简化：success=false 时把 success_rate 推向 0.0（保留旧值 70%）
+                    sea_orm::sea_query::Expr::col(trajectory_skills::Column::SuccessRate).mul(0.7),
+                )
+                .filter(trajectory_skills::Column::Id.eq(sid))
+                .exec(self.db.as_ref())
+                .await;
+        }
+
         Ok(())
     }
 
@@ -1251,6 +1320,10 @@ fn model_to_skill(s: &trajectory_skills::Model) -> Skill {
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now()),
         last_used_at: None,
+        consecutive_failures: Ord::max(s.consecutive_failures, 0) as u32,
+        last_failure_at: s.last_failure_at.as_ref().and_then(|t| {
+            chrono::DateTime::parse_from_rfc3339(t).map(|dt| dt.with_timezone(&Utc)).ok()
+        }),
         metadata: crate::skill::SkillMetadata::default(),
     }
 }

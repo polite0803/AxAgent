@@ -28,6 +28,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -360,6 +361,9 @@ pub struct CostAwareRouter {
     cost_budget_limit_usd: AtomicU64,
     /// Total cost spent so far.
     total_cost_spent: AtomicU64,
+    /// 可选的数据库连接，用于持久化路由历史与统计。
+    /// 为 None 时退化为纯内存模式（向后兼容）。
+    db: Option<Arc<sea_orm::DatabaseConnection>>,
 }
 
 impl CostAwareRouter {
@@ -375,7 +379,119 @@ impl CostAwareRouter {
             min_confidence: 0.6,
             cost_budget_limit_usd: AtomicU64::new(0),
             total_cost_spent: AtomicU64::new(0),
+            db: None,
         }
+    }
+
+    /// 创建带数据库连接的实例，用于持久化路由历史与统计。
+    /// 调用方应在构造后立即调用 `load_from_db()` 恢复历史状态。
+    pub fn with_db(db: Arc<sea_orm::DatabaseConnection>) -> Self {
+        let mut router = Self::new();
+        router.db = Some(db);
+        router
+    }
+
+    /// 从数据库加载全部路由历史，重建内存中的 history / 统计 / 原子计数器。
+    ///
+    /// 启动时调用一次。无 DB 连接时静默返回 Ok(())。
+    /// 加载策略：按时间倒序取最近 10000 条，聚合重建全部内存状态。
+    pub async fn load_from_db(&self) -> Result<(), String> {
+        let Some(ref db) = self.db else {
+            return Ok(());
+        };
+
+        let entries = Self::load_all_history(db).await?;
+
+        // 重建统计用的临时累加器
+        let mut global: HashMap<ModelTier, TierStats> = HashMap::new();
+        let mut buckets: HashMap<String, HashMap<ModelTier, TierStats>> = HashMap::new();
+        let mut ml_override_count: u64 = 0;
+        let mut ml_override_success: u64 = 0;
+        let mut cost_saved_micro: u64 = 0;
+        let mut total_cost_micro: u64 = 0;
+
+        for entry in &entries {
+            // 只有有 outcome 的记录才贡献统计
+            if let Some(outcome) = &entry.outcome {
+                let cost_usd = outcome.cost_usd.unwrap_or(0.0);
+                let latency_ms = outcome.latency_ms.unwrap_or(0);
+
+                // global stats
+                let stats = global.entry(entry.selected_tier).or_default();
+                stats.sample_count += 1;
+                stats.total_latency_ms += latency_ms;
+                stats.total_cost_usd += cost_usd;
+                if outcome.success {
+                    stats.success_count += 1;
+                } else {
+                    stats.failure_count += 1;
+                }
+
+                // bucket stats
+                if let Some(features) = &entry.features {
+                    let bucket = self.compute_bucket(features);
+                    let stats =
+                        buckets.entry(bucket).or_default().entry(entry.selected_tier).or_default();
+                    stats.sample_count += 1;
+                    stats.total_latency_ms += latency_ms;
+                    stats.total_cost_usd += cost_usd;
+                    if outcome.success {
+                        stats.success_count += 1;
+                    } else {
+                        stats.failure_count += 1;
+                    }
+                }
+
+                // ML override 计数（selected != heuristic 视为 ML 覆盖）
+                let was_ml_override = entry.selected_tier != entry.heuristic_tier;
+                if was_ml_override {
+                    ml_override_count += 1;
+                    if outcome.success {
+                        ml_override_success += 1;
+                    }
+                }
+
+                // cost_saved：用户降级且成功时累计节省
+                if outcome.user_override
+                    && let Some(user_tier) = outcome.user_tier
+                {
+                    if user_tier.cost_per_1k_tokens() < entry.selected_tier.cost_per_1k_tokens()
+                        && outcome.success
+                    {
+                        let saved = (entry.selected_tier.cost_per_1k_tokens()
+                            - user_tier.cost_per_1k_tokens())
+                            * outcome.tokens_used.unwrap_or(0) as f64
+                            / 1000.0;
+                        cost_saved_micro += (saved * 1_000_000.0) as u64;
+                    }
+                }
+
+                // total cost
+                total_cost_micro += (cost_usd * 1_000_000.0) as u64;
+            }
+        }
+
+        // 写入内存状态（lock 后批量替换，不跨 await 持有锁）
+        {
+            let mut history = self.history.lock().unwrap();
+            *history = entries;
+        }
+        {
+            let mut global_lock = self.global_stats.lock().unwrap();
+            *global_lock = global;
+        }
+        {
+            let mut buckets_lock = self.bucket_stats.lock().unwrap();
+            *buckets_lock = buckets;
+        }
+
+        // 重建原子计数器
+        self.ml_override_count.store(ml_override_count, Ordering::Relaxed);
+        self.ml_override_success.store(ml_override_success, Ordering::Relaxed);
+        self.cost_saved_usd.store(cost_saved_micro, Ordering::Relaxed);
+        self.total_cost_spent.store(total_cost_micro, Ordering::Relaxed);
+
+        Ok(())
     }
 
     /// Main routing function: heuristic + ML optimization.
@@ -541,8 +657,21 @@ impl CostAwareRouter {
     }
 
     /// Record a routing decision (before LLM call).
+    ///
+    /// 内存 push 后异步写入 DB（如已配置 db）。写入失败仅记录警告，
+    /// 不影响路由决策主流程。
     pub fn record_decision(&self, entry: RouteHistoryEntry) {
+        let entry_for_db = entry.clone();
         self.history.lock().unwrap().push(entry);
+
+        if let Some(ref db) = self.db {
+            let db = db.clone();
+            tokio::spawn(async move {
+                if let Err(e) = Self::insert_route_history(&db, &entry_for_db).await {
+                    tracing::warn!("Smart Router: 写入 route_history 失败: {}", e);
+                }
+            });
+        }
     }
 
     /// Record feedback after LLM call. Updates ML statistics.
@@ -615,8 +744,23 @@ impl CostAwareRouter {
         // Update total cost
         self.total_cost_spent.fetch_add((cost_usd * 1_000_000.0) as u64, Ordering::Relaxed);
 
+        // 准备异步 DB 回写（在 drop history 锁之前取数据，之后 spawn）
+        let db_for_update = self.db.clone();
+        let prompt_hash_owned = prompt_hash.to_string();
+
         // Return updated stats
         drop(history);
+
+        // 异步更新 DB 中对应记录的 outcome 字段
+        if let Some(db) = db_for_update {
+            tokio::spawn(async move {
+                if let Err(e) = Self::update_route_outcome(&db, &prompt_hash_owned, &outcome).await
+                {
+                    tracing::warn!("Smart Router: 更新 route_history outcome 失败: {}", e);
+                }
+            });
+        }
+
         Some(self.compute_stats())
     }
 
@@ -719,6 +863,155 @@ impl CostAwareRouter {
             1.0
         };
         success_rate * 0.6 + cost_score * 0.4
+    }
+
+    // ─── DB 持久化辅助方法 ───
+
+    /// 插入一条路由决策记录到 DB（决策时尚无 outcome）。
+    async fn insert_route_history(
+        db: &sea_orm::DatabaseConnection,
+        entry: &RouteHistoryEntry,
+    ) -> Result<(), String> {
+        use axagent_entities::route_history::{ActiveModel, Column, Entity};
+        use sea_orm::{
+            ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter, QueryOrder,
+        };
+
+        // 生成 UUID 作为主键
+        let id = uuid::Uuid::new_v4().to_string();
+
+        // 序列化 features（如有）
+        let features_json =
+            entry.features.as_ref().map(|f| serde_json::to_string(f).unwrap_or_default());
+
+        // 检查是否已存在同 prompt_hash 的记录（去重，避免重复插入）
+        let existing = Entity::find()
+            .filter(Column::PromptHash.eq(&entry.prompt_hash))
+            .order_by_desc(Column::Timestamp)
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if existing.is_some() {
+            // 已存在同 hash 记录，跳过插入（避免重复）
+            return Ok(());
+        }
+
+        let active = ActiveModel {
+            id: ActiveValue::set(id),
+            prompt_hash: ActiveValue::set(entry.prompt_hash.clone()),
+            prompt_preview: ActiveValue::set(entry.prompt_preview.clone()),
+            heuristic_tier: ActiveValue::set(entry.heuristic_tier.as_str().to_string()),
+            selected_tier: ActiveValue::set(entry.selected_tier.as_str().to_string()),
+            outcome_success: ActiveValue::set(None),
+            outcome_quality_score: ActiveValue::set(None),
+            outcome_user_override: ActiveValue::set(None),
+            outcome_user_tier: ActiveValue::set(None),
+            outcome_latency_ms: ActiveValue::set(None),
+            outcome_tokens_used: ActiveValue::set(None),
+            outcome_cost_usd: ActiveValue::set(None),
+            timestamp: ActiveValue::set(entry.timestamp),
+            features_json: ActiveValue::set(features_json),
+        };
+
+        active.insert(db).await.map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// 按 prompt_hash 更新对应记录的 outcome 字段。
+    /// 找不到记录时静默返回 Ok(())（可能记录尚未写入或已过期）。
+    async fn update_route_outcome(
+        db: &sea_orm::DatabaseConnection,
+        prompt_hash: &str,
+        outcome: &RouteOutcome,
+    ) -> Result<(), String> {
+        use axagent_entities::route_history::{ActiveModel, Column, Entity};
+        use sea_orm::{
+            ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter, QueryOrder,
+        };
+
+        // 找到对应 prompt_hash 的最新记录
+        let model = Entity::find()
+            .filter(Column::PromptHash.eq(prompt_hash))
+            .order_by_desc(Column::Timestamp)
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let Some(model) = model else {
+            return Ok(()); // 记录不存在，静默跳过
+        };
+
+        let user_tier_str = outcome.user_tier.as_ref().map(|t| t.as_str().to_string());
+
+        let mut active: ActiveModel = model.into();
+        active.outcome_success = ActiveValue::set(Some(outcome.success));
+        active.outcome_quality_score = ActiveValue::set(outcome.quality_score.map(|v| v as f64));
+        active.outcome_user_override = ActiveValue::set(Some(outcome.user_override));
+        active.outcome_user_tier = ActiveValue::set(user_tier_str);
+        active.outcome_latency_ms = ActiveValue::set(outcome.latency_ms.map(|v| v as i64));
+        active.outcome_tokens_used = ActiveValue::set(outcome.tokens_used.map(|v| v as i64));
+        active.outcome_cost_usd = ActiveValue::set(outcome.cost_usd);
+
+        active.update(db).await.map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// 从 DB 加载全部路由历史（按时间倒序，最多 10000 条）。
+    async fn load_all_history(
+        db: &sea_orm::DatabaseConnection,
+    ) -> Result<Vec<RouteHistoryEntry>, String> {
+        use axagent_entities::route_history::{Column, Entity};
+        use sea_orm::{EntityTrait, QueryOrder, QuerySelect};
+
+        let models = Entity::find()
+            .order_by_desc(Column::Timestamp)
+            .limit(10000)
+            .all(db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let mut entries = Vec::with_capacity(models.len());
+        for m in models {
+            let heuristic_tier = parse_model_tier(&m.heuristic_tier);
+            let selected_tier = parse_model_tier(&m.selected_tier);
+            let features = m
+                .features_json
+                .as_ref()
+                .and_then(|s| serde_json::from_str::<TaskFeatureVector>(s).ok());
+
+            // outcome_success 为 None 表示尚无反馈
+            let outcome = m.outcome_success.map(|success| RouteOutcome {
+                success,
+                quality_score: m.outcome_quality_score.map(|v| v as f32),
+                user_override: m.outcome_user_override.unwrap_or(false),
+                user_tier: m.outcome_user_tier.as_deref().map(parse_model_tier),
+                latency_ms: m.outcome_latency_ms.map(|v| v as u64),
+                tokens_used: m.outcome_tokens_used.map(|v| v as u32),
+                cost_usd: m.outcome_cost_usd,
+            });
+
+            entries.push(RouteHistoryEntry {
+                prompt_hash: m.prompt_hash,
+                prompt_preview: m.prompt_preview,
+                heuristic_tier,
+                selected_tier,
+                outcome,
+                timestamp: m.timestamp,
+                features,
+            });
+        }
+        Ok(entries)
+    }
+}
+
+/// 把字符串解析回 ModelTier。未知值默认 Balanced（保守选择）。
+fn parse_model_tier(s: &str) -> ModelTier {
+    match s {
+        "budget" => ModelTier::Budget,
+        "balanced" => ModelTier::Balanced,
+        "premium" => ModelTier::Premium,
+        _ => ModelTier::Balanced,
     }
 }
 

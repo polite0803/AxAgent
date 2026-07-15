@@ -105,6 +105,8 @@ impl SkillsHubAdapter {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             last_used_at: None,
+            consecutive_failures: 0,
+            last_failure_at: None,
             metadata: SkillMetadata {
                 hermes: HermesMetadata {
                     tags: manifest.tags.clone(),

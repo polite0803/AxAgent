@@ -432,8 +432,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_trajectory::DreamConsolidator::new()
             .with_data_provider(dream_data_provider.clone()),
     );
-    // Smart Router：ML 成本感知路由器实例化
-    let cost_aware_router = Arc::new(crate::smart_router::CostAwareRouter::new());
+    // Smart Router：ML 成本感知路由器实例化（带 DB 持久化，加载历史决策与统计）
+    let cost_aware_router =
+        Arc::new(crate::smart_router::CostAwareRouter::with_db(Arc::new(sea_db.clone())));
+    cost_aware_router.load_from_db().await.map_err(|e| format!("加载路由历史失败: {}", e))?;
     let text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
             axagent_trajectory::ComputationGraph::new(),

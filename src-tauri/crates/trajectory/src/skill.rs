@@ -31,6 +31,10 @@ pub struct Skill {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub last_used_at: Option<DateTime<Utc>>,
+    /// 连续失败次数：Success/Partial 时清零，Failure 时累加
+    pub consecutive_failures: u32,
+    /// 最近一次失败时间（ISO8601），用于失败窗口分析
+    pub last_failure_at: Option<DateTime<Utc>>,
     pub metadata: SkillMetadata,
 }
 
@@ -254,6 +258,8 @@ impl Skill {
             created_at: now,
             updated_at: now,
             last_used_at: None,
+            consecutive_failures: 0,
+            last_failure_at: None,
             metadata: SkillMetadata::default(),
         }
     }
@@ -315,8 +321,18 @@ impl Skill {
         match execution.outcome {
             SkillOutcome::Success => {
                 self.successful_usages += 1;
+                // 成功清零连续失败计数
+                self.consecutive_failures = 0;
             },
-            SkillOutcome::Partial | SkillOutcome::Failure => {},
+            SkillOutcome::Partial => {
+                // Partial 视为部分成功，清零连续失败计数
+                self.consecutive_failures = 0;
+            },
+            SkillOutcome::Failure => {
+                // Failure 累加连续失败计数并记录时间
+                self.consecutive_failures = self.consecutive_failures.saturating_add(1);
+                self.last_failure_at = Some(execution.timestamp);
+            },
         }
 
         let n = self.total_usages as f64;
