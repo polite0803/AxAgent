@@ -242,8 +242,10 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 
     // Legacy v1 format: nonce(12) + ciphertext (SHA256-based KDF)
     // Only available with "backup_v1_compat" feature gate.
+    // 此处调用 deprecated 的 v1 解密函数是「向后兼容读取」的预期行为，
+    // 辅助函数显式 allow(deprecated) 以避免 -D warnings 在 CI 中阻断构建。
     #[cfg(feature = "backup_v1_compat")]
-    return decrypt_backup_key_v1(enc_data);
+    return legacy_decrypt_backup_v1(enc_data);
 
     #[cfg(not(feature = "backup_v1_compat"))]
     Err(AxAgentError::Crypto(
@@ -251,6 +253,18 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
          Use auto_upgrade_backup_to_v2() to migrate this backup to v2 (Argon2id) format."
             .to_string(),
     ))
+}
+
+/// v1 备份密钥解密的 thin wrapper。
+///
+/// `decrypt_backup_key_v1` 已被 `#[deprecated]` 标记（v1 KDF 不安全），
+/// 但 `backup_v1_compat` feature 的存在目的就是允许读取遗留 v1 数据。
+/// 直接调用会触发 `-D deprecated`，因此用此 wrapper 显式 `allow(deprecated)`，
+/// 把弃用警告隔离在单一调用点上，便于将来移除 v1 支持时一并清理。
+#[cfg(feature = "backup_v1_compat")]
+#[allow(deprecated)]
+fn legacy_decrypt_backup_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
+    decrypt_backup_key_v1(enc_data)
 }
 
 /// Legacy decrypt for v1 backups (SHA256 KDF, fixed salt).

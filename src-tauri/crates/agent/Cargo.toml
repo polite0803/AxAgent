@@ -41,12 +41,12 @@ urlencoding = "2.1"
 uuid = { version = "1.6.1", features = ["v4"] }
 
 [dev-dependencies]
-axagent-dao = { path = "../dao" }
-# 技术债：以下两个实现层 crate 在 src/ 的 #[cfg(test)] 模块中使用，违反 AGENTS.md 铁律 5
-# （consumer crate 测试禁止引入实现层 crate，应通过 axagent_harness::test_support::* mock）
-# axagent-tools 已移除（pre_validator.rs 已改用 NoopToolRegistry）
-axagent-kit = { path = "../kit" }
-axagent-migration = { path = "../migration" }
+# 测试已全部迁移至 axagent_harness::test_support::* mock，不再依赖实现层 crate
+# （符合 AGENTS.md 铁律 5：consumer crate 测试禁止引入实现层 crate）
+# - axagent-dao 已移除（session_manager.rs 改用 empty_agent_session_repo()）
+# - axagent-kit 已移除（plan_compiler 已上移至 harness，hierarchical_planner.rs 直接走 harness）
+# - axagent-migration 已移除（不再需要 setup_test_db 初始化内存数据库）
+# - axagent-tools 早已移除（pre_validator.rs 改用 NoopToolRegistry）
 insta = { workspace = true }
 proptest = "1"
 tauri = { version = "2", features = ["test"] }

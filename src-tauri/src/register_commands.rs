@@ -723,6 +723,7 @@ macro_rules! register_all_commands {
             commands::rl::rl_export_model,
             commands::rl::rl_import_model,
             commands::research::generate_research_report,
+            commands::research::deep_research_topic,
             commands::reflection::reflect_on_task,
             commands::reflection::get_reflection_history,
             commands::reflection::clear_reflection_history,

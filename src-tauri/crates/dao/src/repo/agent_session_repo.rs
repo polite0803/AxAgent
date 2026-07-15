@@ -7,6 +7,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use axagent_entities::agent_sessions;
+use axagent_entities::conversations;
 use axagent_harness::agent_session_repo::AgentSessionRepository;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AgentSession;
@@ -68,6 +69,21 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             let updated = am.update(self.db.as_ref()).await?;
             Ok(model_to_agent_session(updated))
         } else {
+            // 确保 conversations 行存在，否则 FOREIGN KEY 约束会失败
+            let conv_exists = conversations::Entity::find_by_id(conversation_id)
+                .one(self.db.as_ref())
+                .await?
+                .is_some();
+            if !conv_exists {
+                let now_ts = chrono::Utc::now().timestamp();
+                let stmt = sea_orm::Statement::from_sql_and_values(
+                    sea_orm::DatabaseBackend::Sqlite,
+                    "INSERT OR IGNORE INTO conversations (id, title, model_id, provider_id, created_at, updated_at) VALUES ($1, '[auto]', 'unknown', 'unknown', $2, $2)",
+                    [conversation_id.to_string().into(), now_ts.into()],
+                );
+                self.db.as_ref().execute_raw(stmt).await?;
+            }
+
             let id = gen_id();
             let workspace_locked = cwd.is_some();
             let model = agent_sessions::ActiveModel {

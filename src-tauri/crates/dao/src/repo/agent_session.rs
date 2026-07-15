@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_entities::agent_sessions;
+use axagent_entities::conversations;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AgentSession;
 use axagent_harness::util_fns::gen_id;
@@ -52,6 +53,19 @@ pub async fn upsert_agent_session(
         let updated = am.update(db).await?;
         Ok(model_to_agent_session(updated))
     } else {
+        // 确保 conversations 行存在，否则 FOREIGN KEY 约束会失败
+        let conv_exists =
+            conversations::Entity::find_by_id(conversation_id).one(db).await?.is_some();
+        if !conv_exists {
+            let now_ts = chrono::Utc::now().timestamp();
+            let stmt = sea_orm::Statement::from_sql_and_values(
+                sea_orm::DatabaseBackend::Sqlite,
+                "INSERT OR IGNORE INTO conversations (id, title, model_id, provider_id, created_at, updated_at) VALUES ($1, '[auto]', 'unknown', 'unknown', $2, $2)",
+                [conversation_id.to_string().into(), now_ts.into()],
+            );
+            db.execute_raw(stmt).await?;
+        }
+
         let id = gen_id();
         let workspace_locked = cwd.is_some();
         let model = agent_sessions::ActiveModel {

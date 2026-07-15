@@ -43,6 +43,6 @@ pub async fn sub_agent_get_messages(
     agent_id: String,
 ) -> Result<Vec<Value>, String> {
     let registry = app_state.sub_agent_registry.read().await;
-    let messages = registry.message_bus().peek_all(&agent_id);
+    let messages = registry.message_bus().peek_all(&agent_id).await;
     Ok(messages.iter().filter_map(|m| serde_json::to_value(m).ok()).collect())
 }

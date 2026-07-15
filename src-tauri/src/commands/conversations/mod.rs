@@ -2698,7 +2698,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             axagent_runtime::shared_memory::SharedMemory::new(),
         )),
         sub_agent_registry: Arc::new(tokio::sync::RwLock::new(
-            axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+            axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default(),
         )),
         trajectory_storage: trajectory_storage.clone(),
         memory_service: memory_service.clone(),
@@ -2802,6 +2802,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
         dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
         cost_aware_router: Arc::new(crate::smart_router::CostAwareRouter::new()),
+        stream_reporter: Arc::new(tokio::sync::RwLock::new(None)),
         text_grad_engine: Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::TextGradEngine::new(
                 axagent_trajectory::ComputationGraph::new(),
@@ -2911,7 +2912,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         memory: crate::state::MemoryState::new(
             Arc::new(tokio::sync::RwLock::new(axagent_runtime::shared_memory::SharedMemory::new())),
             Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+                axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default(),
             )),
             memory_service.clone(),
             Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),

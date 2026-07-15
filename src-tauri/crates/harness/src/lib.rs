@@ -31,7 +31,8 @@ pub mod conversation_model;
 pub use conversation_model::{ContentBlock, ConversationMessage, SessionInfo, TokenUsage};
 pub mod core_error;
 pub mod error_codes;
-mod persistence_mod;
+pub mod persistence_mod;
+pub mod plan_compiler;
 pub mod plan_types;
 pub mod platform_config;
 pub mod rag_config;
@@ -306,11 +307,18 @@ pub use dream::{
     DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamConsolidator,
     DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
 };
+// ── 用户自适应共享枚举（Verbosity/TechnicalLevel/ContentFormat） ──
+// 同时被 profile::UserProfile::update_style 和 trajectory 的 RealTimeLearning 使用
+pub mod adaptation;
+pub use adaptation::{ContentFormat, TechnicalLevel, Verbosity};
 pub mod profile;
 pub use profile::{
-    CodingStyleProfile, CommentStyle, CommunicationProfile, DomainKnowledgeProfile, ExpertiseLevel,
-    IndentationStyle, LearningState, NamingConvention, ProfileTone, ProfileUpdate, UserProfile,
-    UserProfileService, WorkHabitProfile,
+    CodePattern, CodingStyleProfile, CommentStyle, CommunicationProfile, DetailLevel,
+    DomainKnowledgeProfile, ExpertiseArea, ExpertiseLevel, ExplanationDepth, FormatPreference,
+    IndentationStyle, LearningState, LearningTaskType, ModuleOrgStyle, NamingConvention,
+    ProfileUpdate, RecentTopic, ResponseLength, SkillLevel, TimeRange, Tone, ToolUsagePattern,
+    UpdateSource, UserProfile, UserProfileService, WorkHabitProfile, WorkflowPreference,
+    calculate_confidence,
 };
 pub mod style;
 pub use style::{

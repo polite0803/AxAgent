@@ -226,8 +226,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let reflector = Arc::new(axagent_agent::Reflector::new());
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
         Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
-    let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> =
-        Arc::new(TokioRwLock::new(axagent_trajectory::SubAgentRegistry::new().unwrap_or_default()));
+    let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
+        TokioRwLock::new(axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default()),
+    );
     let nudge_service: Arc<tokio::sync::Mutex<axagent_trajectory::NudgeService>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new()));
     let closed_loop_service =
@@ -437,6 +438,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let cost_aware_router =
         Arc::new(crate::smart_router::CostAwareRouter::with_db(Arc::new(sea_db.clone())));
     cost_aware_router.load_from_db().await.map_err(|e| format!("加载路由历史失败: {}", e))?;
+    // Orchestrator 流式报告器初始化（暂不绑定 AppHandle，后续按需注入）
+    let stream_reporter: Arc<
+        TokioRwLock<Option<Arc<dyn axagent_harness::streaming::AgentStreamReporter>>>,
+    > = Arc::new(TokioRwLock::new(None));
     let text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
             axagent_trajectory::ComputationGraph::new(),
@@ -679,6 +684,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         browser_client,
         dream_consolidator,
         cost_aware_router,
+        stream_reporter,
         text_grad_engine,
         auto_tool_creator,
         intrinsic_motivation,

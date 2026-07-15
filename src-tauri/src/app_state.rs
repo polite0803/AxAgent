@@ -280,6 +280,9 @@ pub struct AppState {
     pub dream_consolidator: Arc<axagent_trajectory::DreamConsolidator>,
     /// Smart Router：ML 成本感知路由器（启发式 + 历史统计 + 成本预算）
     pub cost_aware_router: Arc<crate::smart_router::CostAwareRouter>,
+    /// Orchestrator 流式报告器（多 Agent 实时协作的 chunk 推送）
+    pub stream_reporter:
+        Arc<TokioRwLock<Option<Arc<dyn axagent_harness::streaming::AgentStreamReporter>>>>,
     pub text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
     pub auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
     pub intrinsic_motivation:
