@@ -494,11 +494,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_trajectory_recorder_determine_outcome_failure_on_empty() {
+    async fn test_trajectory_recorder_determine_outcome_abandoned_on_empty() {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         let traj = recorder.stop_recording().await;
-        assert_eq!(traj.outcome, TrajectoryOutcome::Failure);
+        assert_eq!(traj.outcome, TrajectoryOutcome::Abandoned);
     }
 
     #[tokio::test]
