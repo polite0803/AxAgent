@@ -222,8 +222,10 @@ impl NudgeService {
         // Auto-add high-confidence candidates that were NOT already added normally
         if self.config.auto_add_high_confidence {
             for candidate in &filtered_candidates {
+                // Auto-add catches low-urgency high-confidence candidates filtered by normal flow.
+                // Normal flow already handles High/Medium urgency above the threshold.
                 if candidate.entity.confidence > 0.8
-                    && candidate.urgency == Urgency::High
+                    && candidate.urgency != Urgency::High
                     && !existing_ids.contains(&candidate.entity.id)
                     // Skip if already in new_nudges (e.g. passed both normal and auto-add)
                     && !new_nudges.iter().any(|n| n.entity_id == candidate.entity.id)
@@ -583,7 +585,7 @@ mod tests {
                 confidence: 0.7,
             },
             reason: "Test".to_string(),
-            urgency: Urgency::Low,
+            urgency: Urgency::Medium,
             suggested_action: None,
         }];
 

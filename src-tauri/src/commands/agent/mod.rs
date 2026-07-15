@@ -331,7 +331,7 @@ pub async fn agent_query(
     // 不再持久化预合并的 system_prompt，修改 Expert/Role 后自动生效
     let mut role_system_prompt: Option<String> = None;
     let mut expert_system_prompt: Option<String> = None;
-    let mut effective_agent_role: Option<axagent_runtime::agent_roles::AgentRole> = None;
+    let mut effective_role_name: Option<String> = None;
     let mut profile_recommended_tools: Vec<String> = Vec::new();
     let mut profile_disallowed_tools: Vec<String> = Vec::new();
 
@@ -343,10 +343,9 @@ pub async fn agent_query(
             // Layer 1: AgentRole system_prompt（岗位）
             if let Some(ref role_name) = profile.agent_role {
                 if let Some(resolved) =
-                    axagent_runtime::agent_roles::AgentRole::resolve(role_name).await
+                    axagent_runtime::agent_roles::resolve(role_name).await
                 {
-                    effective_agent_role =
-                        axagent_runtime::agent_roles::AgentRole::from_str_opt(&resolved.name);
+                    effective_role_name = Some(resolved.name.clone());
                     if !resolved.system_prompt.is_empty() {
                         role_system_prompt = Some(resolved.system_prompt);
                     }
@@ -1028,22 +1027,25 @@ pub async fn agent_query(
 
     // Apply agent role if specified — sets role on session and filters tools
     // Apply agent role: prefer agent_profile.agent_role > request.role > auto-estimate
-    let mut resolved_role = if let Some(role) = effective_agent_role {
-        info!("[agent_query] Using role from agent_profile: {}", role);
-        Some(role)
-    } else if let Some(role) =
-        request.role.as_deref().and_then(axagent_runtime::agent_roles::AgentRole::from_str_opt)
-    {
-        info!("[agent_query] Using role from request: {}", role);
-        Some(role)
-    } else {
-        None
-    };
+    let mut resolved_role: Option<axagent_runtime::agent_roles::ResolvedRole> = None;
+    if let Some(ref role_name) = effective_role_name {
+        resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
+        if let Some(ref r) = resolved_role {
+            info!("[agent_query] Using role from agent_profile: {}", r.name);
+        }
+    }
+    if resolved_role.is_none() {
+        if let Some(role_name) = request.role.as_deref() {
+            resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
+            if let Some(ref r) = resolved_role {
+                info!("[agent_query] Using role from request: {}", r.name);
+            }
+        }
+    }
 
     // Filter chat_tools by role's allowed tools, plus profile recommended/disallowed
-    if let Some(role) = resolved_role {
-        let allowed_tools: Vec<&str> = role.default_tools();
-        let mut allowed_set: HashSet<&str> = allowed_tools.iter().copied().collect();
+    if let Some(ref role) = resolved_role {
+        let mut allowed_set: HashSet<&str> = role.default_tools.iter().map(|s| s.as_str()).collect();
         for t in &profile_recommended_tools {
             allowed_set.insert(t.as_str());
         }
@@ -1053,7 +1055,7 @@ pub async fn agent_query(
         chat_tools.retain(|t| allowed_set.contains(t.function.name.as_str()));
         info!(
             "[agent_query] Role '{}' filtered tools: {} remaining (profile: +{}/-{})",
-            role,
+            role.name,
             chat_tools.len(),
             profile_recommended_tools.len(),
             profile_disallowed_tools.len(),
@@ -1062,34 +1064,27 @@ pub async fn agent_query(
 
     // Smart decision: if no explicit role was set, estimate task complexity
     // and auto-assign a role for high-complexity multi-step tasks.
-    resolved_role = if resolved_role.is_none() {
+    if resolved_role.is_none() {
         let complexity = axagent_trajectory::estimate_complexity_public(&request.input);
         info!("[agent_query] Auto-estimated task complexity: {:?}", complexity);
         match complexity {
             axagent_trajectory::Complexity::High => {
-                // High complexity tasks benefit from the Coordinator role
-                // which is designed for task decomposition and orchestration
-                let auto_role = axagent_runtime::agent_roles::AgentRole::Coordinator;
-                info!("[agent_query] Auto-assigning role '{}' for high-complexity task", auto_role);
-                Some(auto_role)
+                let role_name = "coordinator";
+                resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
+                if let Some(ref r) = resolved_role {
+                    info!("[agent_query] Auto-assigning role '{}' for high-complexity task", r.name);
+                }
             },
             axagent_trajectory::Complexity::Medium => {
-                // Medium complexity: use Developer role for implementation tasks
-                let auto_role = axagent_runtime::agent_roles::AgentRole::Developer;
-                info!(
-                    "[agent_query] Auto-assigning role '{}' for medium-complexity task",
-                    auto_role
-                );
-                Some(auto_role)
+                let role_name = "developer";
+                resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
+                if let Some(ref r) = resolved_role {
+                    info!("[agent_query] Auto-assigning role '{}' for medium-complexity task", r.name);
+                }
             },
-            axagent_trajectory::Complexity::Low => {
-                // Low complexity: no role filtering needed, use all tools
-                None
-            },
+            axagent_trajectory::Complexity::Low => {},
         }
-    } else {
-        resolved_role
-    };
+    }
 
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = request.enabled_knowledge_base_ids.clone().unwrap_or_default();

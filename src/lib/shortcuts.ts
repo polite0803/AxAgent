@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import i18n from "@/i18n";
 import type { AppSettings } from "@/types";
 
 export type ShortcutAction =
@@ -408,15 +409,15 @@ const KNOWN_EXTERNAL_CONFLICTS: Array<{
       "control+shift+a",
       "command+shift+a",
     ],
-    apps: "飞书/微信/企业微信/钉钉",
+    apps: i18n.t("shortcuts.feishuWechat"),
   },
   {
     accelerators: ["control+alt+a", "command+alt+a"],
-    apps: "QQ/微信",
+    apps: i18n.t("shortcuts.qqWechat"),
   },
   {
     accelerators: ["alt+a"],
-    apps: "微信 (Windows)",
+    apps: i18n.t("shortcuts.wechatWindows"),
   },
 ];
 
