@@ -37,7 +37,8 @@
     "compare": "对比",
     "quant": "量化",
     "replayWorkbench": "回放工作台",
-    "pipeline": "股票管道"
+    "pipeline": "股票管道",
+    "workspace": "股票工作区"
   },
   "sidebar": {
     "sectionWork": "工作",
@@ -48,6 +49,7 @@
     "expand": "展开侧边栏",
     "collapse": "收起侧边栏",
     "sectionInvestDiscover": "发现",
+    "sectionInvestWorkspace": "工作区",
     "sectionInvestMonitor": "跟踪",
     "sectionInvestExecute": "执行",
     "sectionInvestReview": "复盘",
@@ -2669,9 +2671,7 @@
       "statusConnecting": "连接中",
       "lastActivity": "最后活跃",
       "activeSessions": "活跃会话数",
-      "noStatuses": "暂无连接状态",
-      "markerPrefixPlaceholder": "CHAT2API",
-      "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）"
+      "noStatuses": "暂无连接状态"
     },
     "advanced": "高级设置",
     "evolution": {
@@ -2728,7 +2728,9 @@
       "cancel": "取消",
       "nameLabel": "名称",
       "namePlaceholder": "my-persona"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）"
   },
   "backup": {
     "title": "备份中心",
@@ -10596,6 +10598,81 @@
     "degradedMarker": {
       "tooltip": "部分分析方法在回放模式下不可用",
       "labelWithCount": "降级 {{n}} 项"
+    }
+  },
+  "workspace": {
+    "title": "股票工作区",
+    "viewPlaceholder": "视图占位 — 当前股票: {{code}}（阶段 3 迁入）",
+    "viewPlaceholderNoStock": "请选择股票开始分析",
+    "view": {
+      "analysis": "分析",
+      "monitor": "监控",
+      "trade": "交易",
+      "backtest": "回测",
+      "compare": "对比",
+      "review": "复盘",
+      "more": "更多",
+      "watchlist": "自选股",
+      "portfolio": "持仓",
+      "reflection": "反思",
+      "evolution": "进化",
+      "currentStock": "当前股票",
+      "moreHint": "更多工具",
+      "backtestHint": "策略回测与批量回放",
+      "compareHint": "多股横向对比"
+    },
+    "mode": {
+      "simple": "简洁",
+      "professional": "专业",
+      "toggleHint": "切换信息密度"
+    },
+    "stockSwitcher": {
+      "title": "股票切换",
+      "search": "搜索股票...",
+      "recent": "最近",
+      "watchlist": "自选股",
+      "holdings": "持仓",
+      "empty": "暂无股票，请搜索",
+      "addWatchlist": "加自选",
+      "collapse": "折叠",
+      "expand": "展开"
+    },
+    "contextSidebar": {
+      "title": "上下文",
+      "collapse": "折叠侧栏",
+      "expand": "展开侧栏",
+      "placeholder": "上下文面板（阶段 4 迁入）"
+    },
+    "decisionHero": {
+      "noDecision": "暂无决策",
+      "noDecisionHint": "请先运行分析",
+      "noDecisionNoStock": "请先选择股票",
+      "position": "仓位",
+      "targetPrice": "目标价",
+      "stopLoss": "止损",
+      "confidence": "信心",
+      "consensus": "一致性",
+      "consensusHigh": "高一致",
+      "consensusMedium": "中一致",
+      "consensusLow": "低一致",
+      "consensusConflict": "决策冲突",
+      "consensusConflictHint": "公式与 LLM 决策冲突，建议人工复核",
+      "consensusFallback": "决策降级",
+      "consensusFallbackHint": "数据质量不足，决策来自降级路径",
+      "formula": "公式",
+      "llm": "LLM",
+      "actionMatch": "行动一致",
+      "actionMismatch": "行动分歧",
+      "positionGap": "仓位差距",
+      "confidenceGap": "信心差距",
+      "viewDetail": "查看详细决策",
+      "hideDetail": "收起",
+      "holdingDays": "持有天数",
+      "timeframe": "时间框架",
+      "riskLevel": "风险",
+      "expectedUpside": "预期涨幅",
+      "asOf": "截止",
+      "live": "实时"
     }
   }
 }

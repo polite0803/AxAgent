@@ -85,6 +85,9 @@ const LazyReplayWorkbenchPage = lazy(() =>
   import("@/pages/ReplayWorkbenchPage").then((m) => ({ default: m.ReplayWorkbenchPage }))
 );
 const LazyPipelinePage = lazy(() => import("@/pages/PipelinePage").then((m) => ({ default: m.PipelinePage })));
+const LazyStockWorkspacePage = lazy(() =>
+  import("@/pages/StockWorkspacePage").then((m) => ({ default: m.StockWorkspacePage }))
+);
 
 function PageLoader() {
   return (
@@ -328,6 +331,22 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="dynamic-ui">
                 <SafeLazyPage Page={LazyDynamicUIManagerPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/workspace"
+            element={
+              <PageContextProvider page="workspace">
+                <SafeLazyPage Page={LazyStockWorkspacePage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path="/workspace/:stockCode"
+            element={
+              <PageContextProvider page="workspace">
+                <SafeLazyPage Page={LazyStockWorkspacePage} />
               </PageContextProvider>
             }
           />

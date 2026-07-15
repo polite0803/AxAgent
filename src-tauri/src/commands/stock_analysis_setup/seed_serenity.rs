@@ -1330,9 +1330,9 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         icon: Set("search".into()),
         tags: Set(Some(tags_json)),
         version: Set(TEMPLATE_VERSION),
-        is_preset: Set(true),
-        is_editable: Set(true),
-        is_public: Set(true),
+        is_preset: Set(1),
+        is_editable: Set(1),
+        is_public: Set(1),
         trigger_config: Set(Some(
             serde_json::to_string(&TriggerConfig {
                 trigger_type: TriggerType::Manual,

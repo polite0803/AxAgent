@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! v101_pg_int4_to_int8_axinvest: AxInvest 合并迁移，处理 PG 下 INT4 → INT8
+//! v200_pg_int4_to_int8_axinvest: AxInvest 合并迁移，处理 PG 下 INT4 → INT8
 //!
 //! ## 背景
 //!
@@ -11,9 +11,15 @@
 //!     因为 SeaORM entity 把这些字段声明为 `i64`，但 PG 表里是 `INT4`。
 //!
 //! 上游 `v100_consolidated` 包含一份更大的全量 `ALTER_TARGETS` 列表，理论上
-//! 已覆盖本文件所有目标。本 v101 作为 AxInvest 兜底迁移保留：若未来上游
+//! 已覆盖本文件所有目标。本 v200 作为 AxInvest 兜底迁移保留：若未来上游
 //! 移除某些列，本迁移可独立保证 AxInvest 关键业务列（时间戳 + max_tokens /
 //! thinking_budget）的类型正确性。
+//!
+//! ## 版本号策略
+//!
+//! AxInvest 本地迁移从 **v200** 起编号，预留 v101–v199 给上游 AxAgent 未来
+//! 新增迁移使用，避免合并上游时版本号冲突。本文件原名 `v101_pg_int4_to_int8_axinvest.rs`，
+//! 现重命名为 v200 以落实该策略。
 //!
 //! ## 安全
 //!
@@ -26,7 +32,7 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr};
 
 /// 受影响 (table, column) 列表。合并 v014（时间戳）+ v015（业务列 max_tokens / thinking_budget）。
 ///
-/// 仅保留 AxInvest 关键业务列；上游 v100 已覆盖更多列，本 v101 作为独立兜底。
+/// 仅保留 AxInvest 关键业务列；上游 v100 已覆盖更多列，本 v200 作为独立兜底。
 const ALTER_TARGETS: &[(&str, &str)] = &[
     // ======== 时间戳列（来自 v014）========
     ("providers", "created_at"),
@@ -80,12 +86,12 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // SQLite 无类型问题，no-op
     if backend == DbBackend::Sqlite {
-        tracing::info!("[v101] SQLite backend: INT4→INT8 no-op");
+        tracing::info!("[v200] SQLite backend: INT4→INT8 no-op");
         return Ok(());
     }
 
     tracing::info!(
-        "[v101] PostgreSQL detected: checking {} column(s) for INT4→INT8 upgrade",
+        "[v200] PostgreSQL detected: checking {} column(s) for INT4→INT8 upgrade",
         ALTER_TARGETS.len()
     );
 
@@ -126,7 +132,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
                         );
                         db.execute_unprepared(&alter_sql).await?;
                         altered += 1;
-                        tracing::info!("[v101] {table}.{column}: INT4 → INT8");
+                        tracing::info!("[v200] {table}.{column}: INT4 → INT8");
                     },
                     Some("bigint") => {
                         // 已是 INT8，幂等跳过
@@ -135,7 +141,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
                     Some(other) => {
                         // 其它类型（TEXT/TIMESTAMP 等）：不在本 migration 范围
                         tracing::debug!(
-                            "[v101] {table}.{column}: unexpected type '{other}', skipping"
+                            "[v200] {table}.{column}: unexpected type '{other}', skipping"
                         );
                         skipped += 1;
                     },
@@ -148,7 +154,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     }
 
     tracing::info!(
-        "[v101] done: {} altered, {} skipped (already INT8 or wrong type), {} missing (table/column not present)",
+        "[v200] done: {} altered, {} skipped (already INT8 or wrong type), {} missing (table/column not present)",
         altered,
         skipped,
         missing

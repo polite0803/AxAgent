@@ -35,6 +35,7 @@
     "quant": "クオンツ",
     "replayWorkbench": "リプレイワークベンチ",
     "pipeline": "株式パイプライン",
+    "workspace": "株ワークスペース",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -47,6 +48,7 @@
     "collapse": "サイドバーを折りたたみ",
     "sectionInvest": "Invest",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "ワークスペース",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -2710,7 +2712,9 @@
       "aiEditPlaceholder": "変更内容を説明してください。例：検索ボックスを追加、2カラムレイアウトに変更...",
       "schemaPreview": "スキーマプレビュー",
       "jsonEdit": "JSON編集"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常は変更不要）"
   },
   "backup": {
     "title": "バックアップセンター",
@@ -10286,6 +10290,81 @@
     "degradedMarker": {
       "tooltip": "リプレイモードでは一部の方法が利用できません",
       "labelWithCount": "{{n}} 件劣化"
+    }
+  },
+  "workspace": {
+    "title": "株ワークスペース",
+    "viewPlaceholder": "ビュープレースホルダー — 現在の銘柄: {{code}}（フェーズ3移行）",
+    "viewPlaceholderNoStock": "銘柄を選択して分析を開始してください",
+    "view": {
+      "analysis": "分析",
+      "monitor": "モニター",
+      "trade": "取引",
+      "review": "レビュー",
+      "more": "その他",
+      "backtest": "バックテスト",
+      "compare": "比較",
+      "watchlist": "ウォッチリスト",
+      "portfolio": "ポートフォリオ",
+      "reflection": "振り返り",
+      "evolution": "進化",
+      "currentStock": "現在銘柄",
+      "moreHint": "その他ツール",
+      "backtestHint": "戦略バックテストと一括再生",
+      "compareHint": "複数銘柄横比較"
+    },
+    "mode": {
+      "simple": "シンプル",
+      "professional": "プロフェッショナル",
+      "toggleHint": "情報密度の切り替え"
+    },
+    "stockSwitcher": {
+      "title": "銘柄切り替え",
+      "search": "銘柄を検索...",
+      "recent": "最近",
+      "watchlist": "ウォッチリスト",
+      "holdings": "保有銘柄",
+      "empty": "銘柄がありません、検索してください",
+      "addWatchlist": "ウォッチリストに追加",
+      "collapse": "折りたたむ",
+      "expand": "展開"
+    },
+    "contextSidebar": {
+      "title": "コンテキスト",
+      "collapse": "サイドバーを折りたたむ",
+      "expand": "サイドバーを展開",
+      "placeholder": "コンテキストパネル（フェーズ4移行）"
+    },
+    "decisionHero": {
+      "noDecision": "決定なし",
+      "noDecisionHint": "先に分析を実行してください",
+      "noDecisionNoStock": "先に銘柄を選択してください",
+      "position": "ポジション",
+      "targetPrice": "目標",
+      "stopLoss": "ストップロス",
+      "confidence": "信頼度",
+      "consensus": "コンセンサス",
+      "consensusHigh": "高い一致",
+      "consensusMedium": "中程度の一致",
+      "consensusLow": "低い一致",
+      "consensusConflict": "決定の矛盾",
+      "consensusConflictHint": "数式とLLMの決定が矛盾、手動レビューを推奨",
+      "consensusFallback": "決定劣化",
+      "consensusFallbackHint": "データ品質不足、フォールバックパスからの決定",
+      "formula": "数式",
+      "llm": "LLM",
+      "actionMatch": "アクション一致",
+      "actionMismatch": "アクション不一致",
+      "positionGap": "ポジション差",
+      "confidenceGap": "信頼度差",
+      "viewDetail": "詳細を表示",
+      "hideDetail": "非表示",
+      "holdingDays": "保有日数",
+      "timeframe": "期間",
+      "riskLevel": "リスク",
+      "expectedUpside": "予想上昇幅",
+      "asOf": "現在日",
+      "live": "ライブ"
     }
   }
 }

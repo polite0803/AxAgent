@@ -33,6 +33,7 @@
     "compare": "對比",
     "replayWorkbench": "回放工作台",
     "pipeline": "股票管道",
+    "workspace": "股票工作區",
     "recommend": "推薦",
     "quant": "量化",
     "portfolio": "[TODO] Portfolio",
@@ -47,6 +48,7 @@
     "expand": "展開側邊欄",
     "collapse": "收起側邊欄",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "工作區",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -2710,7 +2712,9 @@
       "aiEditPlaceholder": "描述修改內容，例如：添加一個搜索框、改為兩列佈局...",
       "schemaPreview": "Schema 預覽",
       "jsonEdit": "JSON 編輯"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker 前綴（預設 CHAT2API，通常無需修改）"
   },
   "backup": {
     "title": "備份中心",
@@ -10286,6 +10290,81 @@
     "degradedMarker": {
       "tooltip": "部分分析方法在回放模式下不可用",
       "labelWithCount": "降級 {{n}} 項"
+    }
+  },
+  "workspace": {
+    "title": "股票工作區",
+    "viewPlaceholder": "檢視佔位 — 當前股票：{{code}}（第三階段遷移）",
+    "viewPlaceholderNoStock": "請選擇股票以開始分析",
+    "view": {
+      "analysis": "分析",
+      "monitor": "監控",
+      "trade": "交易",
+      "review": "回顧",
+      "more": "更多",
+      "backtest": "回測",
+      "compare": "對比",
+      "watchlist": "自選股",
+      "portfolio": "持倉",
+      "reflection": "反思",
+      "evolution": "進化",
+      "currentStock": "當前股票",
+      "moreHint": "更多工具",
+      "backtestHint": "策略回測與批量回放",
+      "compareHint": "多股橫向對比"
+    },
+    "mode": {
+      "simple": "簡單",
+      "professional": "專業",
+      "toggleHint": "切換資訊密度"
+    },
+    "stockSwitcher": {
+      "title": "股票切換器",
+      "search": "搜尋股票...",
+      "recent": "最近",
+      "watchlist": "自選",
+      "holdings": "持倉",
+      "empty": "暫無股票，請搜尋",
+      "addWatchlist": "加入自選",
+      "collapse": "收起",
+      "expand": "展開"
+    },
+    "contextSidebar": {
+      "title": "上下文",
+      "collapse": "收起側邊欄",
+      "expand": "展開側邊欄",
+      "placeholder": "上下文面板（第四階段遷移）"
+    },
+    "decisionHero": {
+      "noDecision": "暫無決策",
+      "noDecisionHint": "請先執行分析",
+      "noDecisionNoStock": "請先選擇股票",
+      "position": "持倉",
+      "targetPrice": "目標價",
+      "stopLoss": "停損",
+      "confidence": "信心",
+      "consensus": "共識",
+      "consensusHigh": "高一致性",
+      "consensusMedium": "中一致性",
+      "consensusLow": "低一致性",
+      "consensusConflict": "決策衝突",
+      "consensusConflictHint": "公式與 LLM 決策衝突，建議人工審查",
+      "consensusFallback": "決策降級",
+      "consensusFallbackHint": "資料品質不足，決策來自備援路徑",
+      "formula": "公式",
+      "llm": "LLM",
+      "actionMatch": "動作一致",
+      "actionMismatch": "動作不一致",
+      "positionGap": "持倉差距",
+      "confidenceGap": "信心差距",
+      "viewDetail": "查看詳情",
+      "hideDetail": "隱藏",
+      "holdingDays": "持有天數",
+      "timeframe": "時間範圍",
+      "riskLevel": "風險",
+      "expectedUpside": "預期漲幅",
+      "asOf": "截至",
+      "live": "即時"
     }
   }
 }

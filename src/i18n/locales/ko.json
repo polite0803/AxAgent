@@ -35,6 +35,7 @@
     "quant": "量化",
     "replayWorkbench": "回放工作台",
     "pipeline": "주식 파이프라인",
+    "workspace": "주식 워크스페이스",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -47,6 +48,7 @@
     "expand": "사이드바 펼치기",
     "collapse": "사이드바 접기",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "워크스페이스",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -2710,7 +2712,9 @@
       "aiEditPlaceholder": "변경 사항 설명, 예: 검색 상자 추가, 2열 레이아웃으로 변경...",
       "schemaPreview": "스키마 미리보기",
       "jsonEdit": "JSON 편집"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 일반적으로 수정 불필요)"
   },
   "backup": {
     "title": "백업 센터",
@@ -10286,6 +10290,81 @@
     "degradedMarker": {
       "tooltip": "리플레이 모드에서는 일부 분석 방법을 사용할 수 없습니다",
       "labelWithCount": "{{n}}개 저하"
+    }
+  },
+  "workspace": {
+    "title": "주식 워크스페이스",
+    "viewPlaceholder": "뷰 자리표시자 — 현재 주식: {{code}} (3단계 마이그레이션)",
+    "viewPlaceholderNoStock": "분석을 시작하려면 주식을 선택하세요",
+    "view": {
+      "analysis": "분석",
+      "monitor": "모니터",
+      "trade": "거래",
+      "review": "리뷰",
+      "more": "더보기",
+      "backtest": "백테스트",
+      "compare": "비교",
+      "watchlist": "관심종목",
+      "portfolio": "포트폴리오",
+      "reflection": "회고",
+      "evolution": "진화",
+      "currentStock": "현재 종목",
+      "moreHint": "더 많은 도구",
+      "backtestHint": "전략 백테스트 및 일괄 재생",
+      "compareHint": "다중 종목 비교"
+    },
+    "mode": {
+      "simple": "간단",
+      "professional": "전문",
+      "toggleHint": "정보 밀도 전환"
+    },
+    "stockSwitcher": {
+      "title": "주식 전환기",
+      "search": "주식 검색...",
+      "recent": "최근",
+      "watchlist": "관심종목",
+      "holdings": "보유",
+      "empty": "주식이 없습니다, 검색하세요",
+      "addWatchlist": "관심종목 추가",
+      "collapse": "접기",
+      "expand": "펼치기"
+    },
+    "contextSidebar": {
+      "title": "컨텍스트",
+      "collapse": "사이드바 접기",
+      "expand": "사이드바 펼치기",
+      "placeholder": "컨텍스트 패널 (4단계 마이그레이션)"
+    },
+    "decisionHero": {
+      "noDecision": "결정 없음",
+      "noDecisionHint": "먼저 분석을 실행하세요",
+      "noDecisionNoStock": "먼저 주식을 선택하세요",
+      "position": "포지션",
+      "targetPrice": "목표가",
+      "stopLoss": "스탑로스",
+      "confidence": "신뢰도",
+      "consensus": "합의",
+      "consensusHigh": "높은 일치",
+      "consensusMedium": "중간 일치",
+      "consensusLow": "낮은 일치",
+      "consensusConflict": "결정 충돌",
+      "consensusConflictHint": "공식과 LLM 결정이 충돌, 수동 검토 권장",
+      "consensusFallback": "결정 저하",
+      "consensusFallbackHint": "데이터 품질 부족, 폴백 경로의 결정",
+      "formula": "공식",
+      "llm": "LLM",
+      "actionMatch": "액션 일치",
+      "actionMismatch": "액션 불일치",
+      "positionGap": "포지션 격차",
+      "confidenceGap": "신뢰도 격차",
+      "viewDetail": "상세 보기",
+      "hideDetail": "숨기기",
+      "holdingDays": "보유 일수",
+      "timeframe": "기간",
+      "riskLevel": "위험",
+      "expectedUpside": "예상 상승폭",
+      "asOf": "기준일",
+      "live": "실시간"
     }
   }
 }

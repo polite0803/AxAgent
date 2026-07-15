@@ -728,6 +728,7 @@ export type BuiltinPageKey =
   | "pipeline"
   | "quant"
   | "replay-workbench"
+  | "workspace"
   | "settings"
   | "marketplace"
   | "wiki";

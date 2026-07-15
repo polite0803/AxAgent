@@ -35,6 +35,7 @@
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
     "pipeline": "स्टॉक पाइपलाइन",
+    "workspace": "स्टॉक वर्कस्पेस",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -47,6 +48,7 @@
     "expand": "साइडबार विस्तृत करें",
     "collapse": "साइडबार संकुचित करें",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "वर्कस्पेस",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -2710,7 +2712,9 @@
       "aiEditPlaceholder": "बदलावों का वर्णन करें, जैसे: सर्च बॉक्स जोड़ें, दो-कॉलम लेआउट में बदलें...",
       "schemaPreview": "स्कीमा पूर्वावलोकन",
       "jsonEdit": "JSON संपादन"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "मार्कर उपसर्ग (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधित करने की आवश्यकता नहीं)"
   },
   "backup": {
     "title": "बैकअप केंद्र",
@@ -10252,6 +10256,81 @@
     "degradedMarker": {
       "tooltip": "रीप्ले मोड में कुछ विश्लेषण विधियाँ उपलब्ध नहीं हैं",
       "labelWithCount": "{{n}} अवनत"
+    }
+  },
+  "workspace": {
+    "title": "स्टॉक वर्कस्पेस",
+    "viewPlaceholder": "दृश्य प्लेसहोल्डर — वर्तमान स्टॉक: {{code}} (चरण 3 माइग्रेशन)",
+    "viewPlaceholderNoStock": "विश्लेषण शुरू करने के लिए कृपया एक स्टॉक चुनें",
+    "view": {
+      "analysis": "विश्लेषण",
+      "monitor": "मॉनिटर",
+      "trade": "ट्रेड",
+      "review": "समीक्षा",
+      "more": "अधिक",
+      "backtest": "बैकटेस्ट",
+      "compare": "तुलना",
+      "watchlist": "निगरानी सूची",
+      "portfolio": "पोर्टफोलियो",
+      "reflection": "प्रतिबिंब",
+      "evolution": "विकास",
+      "currentStock": "वर्तमान स्टॉक",
+      "moreHint": "अधिक उपकरण",
+      "backtestHint": "रणनीति बैकटेस्ट और बैच रीप्ले",
+      "compareHint": "बहु-स्टॉक तुलना"
+    },
+    "mode": {
+      "simple": "सरल",
+      "professional": "प्रोफेशनल",
+      "toggleHint": "सूचना घनत्व टॉगल करें"
+    },
+    "stockSwitcher": {
+      "title": "स्टॉक स्विचर",
+      "search": "स्टॉक खोजें...",
+      "recent": "हाल ही में",
+      "watchlist": "वॉचलिस्ट",
+      "holdings": "होल्डिंग्स",
+      "empty": "कोई स्टॉक नहीं, कृपया खोजें",
+      "addWatchlist": "वॉचलिस्ट में जोड़ें",
+      "collapse": "संकुचित करें",
+      "expand": "विस्तृत करें"
+    },
+    "contextSidebar": {
+      "title": "संदर्भ",
+      "collapse": "साइडबार संकुचित करें",
+      "expand": "साइडबार विस्तृत करें",
+      "placeholder": "संदर्भ पैनल (चरण 4 माइग्रेशन)"
+    },
+    "decisionHero": {
+      "noDecision": "कोई निर्णय नहीं",
+      "noDecisionHint": "कृपया पहले विश्लेषण चलाएं",
+      "noDecisionNoStock": "कृपया पहले एक स्टॉक चुनें",
+      "position": "पोजीशन",
+      "targetPrice": "लक्ष्य",
+      "stopLoss": "स्टॉप लॉस",
+      "confidence": "विश्वास",
+      "consensus": "सर्वसम्मति",
+      "consensusHigh": "उच्च सहमति",
+      "consensusMedium": "मध्यम सहमति",
+      "consensusLow": "निम्न सहमति",
+      "consensusConflict": "निर्णय टकराव",
+      "consensusConflictHint": "सूत्र और LLM निर्णय टकराव, मैन्युअल समीक्षा अनुशंसित",
+      "consensusFallback": "निर्णय अवनत",
+      "consensusFallbackHint": "अपर्याप्त डेटा गुणवत्ता, फॉलबैक पथ से निर्णय",
+      "formula": "सूत्र",
+      "llm": "LLM",
+      "actionMatch": "क्रिया मेल",
+      "actionMismatch": "क्रिया बेमेल",
+      "positionGap": "पोजीशन अंतर",
+      "confidenceGap": "विश्वास अंतर",
+      "viewDetail": "विवरण देखें",
+      "hideDetail": "छुपाएं",
+      "holdingDays": "धारण दिन",
+      "timeframe": "समय सीमा",
+      "riskLevel": "जोखिम",
+      "expectedUpside": "अपेक्षित वृद्धि",
+      "asOf": "तिथि तक",
+      "live": "लाइव"
     }
   }
 }

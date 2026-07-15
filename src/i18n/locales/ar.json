@@ -34,6 +34,7 @@
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
     "pipeline": "خط أنابيب الأسهم",
+    "workspace": "مساحة الأسهم",
     "recommend": "Recommend",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
@@ -47,6 +48,7 @@
     "expand": "توسيع الشريط الجانبي",
     "collapse": "طي الشريط الجانبي",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "مساحة العمل",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor",
@@ -2710,7 +2712,9 @@
       "deepseekBalance": "رصيد DeepSeek",
       "noValidKey": "لا مفتاح صالح"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "بادئة العلامة (الافتراضي CHAT2API، عادةً لا تحتاج إلى تعديل)"
   },
   "backup": {
     "title": "مركز النسخ الاحتياطي",
@@ -10237,6 +10241,81 @@
     "degradedMarker": {
       "tooltip": "بعض طرق التحليل غير متاحة في وضع الإعادة",
       "labelWithCount": "{{n}} منخفضة"
+    }
+  },
+  "workspace": {
+    "title": "مساحة الأسهم",
+    "viewPlaceholder": "عنصر نائب للعرض — السهم الحالي: {{code}} (مرحلة 3 للترحيل)",
+    "viewPlaceholderNoStock": "يرجى تحديد سهم لبدء التحليل",
+    "view": {
+      "analysis": "تحليل",
+      "monitor": "مراقبة",
+      "trade": "تداول",
+      "review": "مراجعة",
+      "more": "المزيد",
+      "backtest": "اختبار خلفي",
+      "compare": "مقارنة",
+      "watchlist": "قائمة المراقبة",
+      "portfolio": "المحفظة",
+      "reflection": "تأمل",
+      "evolution": "تطور",
+      "currentStock": "السهم الحالي",
+      "moreHint": "المزيد من الأدوات",
+      "backtestHint": "اختبار الاستراتيجية الخلفي وإعادة التشغيل الدفعي",
+      "compareHint": "مقارنة أسهم متعددة"
+    },
+    "mode": {
+      "simple": "بسيط",
+      "professional": "احترافي",
+      "toggleHint": "تبديل كثافة المعلومات"
+    },
+    "stockSwitcher": {
+      "title": "مبدل الأسهم",
+      "search": "البحث عن أسهم...",
+      "recent": "الأحدث",
+      "watchlist": "قائمة المراقبة",
+      "holdings": "الممتلكات",
+      "empty": "لا توجد أسهم، يرجى البحث",
+      "addWatchlist": "إضافة إلى قائمة المراقبة",
+      "collapse": "طي",
+      "expand": "توسيع"
+    },
+    "contextSidebar": {
+      "title": "السياق",
+      "collapse": "طي الشريط الجانبي",
+      "expand": "توسيع الشريط الجانبي",
+      "placeholder": "لوحة السياق (مرحلة 4 للترحيل)"
+    },
+    "decisionHero": {
+      "noDecision": "لا يوجد قرار",
+      "noDecisionHint": "يرجى تشغيل التحليل أولاً",
+      "noDecisionNoStock": "يرجى تحديد سهم أولاً",
+      "position": "المركز",
+      "targetPrice": "الهدف",
+      "stopLoss": "وقف الخسارة",
+      "confidence": "الثقة",
+      "consensus": "إجماع",
+      "consensusHigh": "توافق عالي",
+      "consensusMedium": "توافق متوسط",
+      "consensusLow": "توافق منخفض",
+      "consensusConflict": "تعارض القرار",
+      "consensusConflictHint": "تعارض قرارات الصيغة وLLM، يوصى بالمراجعة اليدوية",
+      "consensusFallback": "قرار متدهور",
+      "consensusFallbackHint": "جودة بيانات غير كافية، قرار من مسار احتياطي",
+      "formula": "صيغة",
+      "llm": "LLM",
+      "actionMatch": "تطابق الإجراء",
+      "actionMismatch": "عدم تطابق الإجراء",
+      "positionGap": "فجوة المركز",
+      "confidenceGap": "فجوة الثقة",
+      "viewDetail": "عرض التفاصيل",
+      "hideDetail": "إخفاء",
+      "holdingDays": "أيام التملك",
+      "timeframe": "الإطار الزمني",
+      "riskLevel": "المخاطرة",
+      "expectedUpside": "الصعود المتوقع",
+      "asOf": "حتى",
+      "live": "مباشر"
     }
   }
 }

@@ -25,14 +25,24 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 // ============================================================================
 // v100 是合并后的唯一迁移。历史 v001–v011 已合并至此文件，旧文件已删除。
 // 所有未来变更直接加在 v100 上或创建新版本。
+//
+// ============================================================================
+// AxInvest 版本号策略：本地迁移从 v200 起编号
+// ============================================================================
+// - v100：上游 AxAgent 合并迁移（来自 ecba666de `refactor(dao): consolidate
+//   v001–v011 → v100 merged migration`），上游 master 当前最新版本号。
+// - v101–v199：预留段。留给上游 AxAgent 未来新增迁移使用，避免合并上游时
+//   版本号冲突。AxInvest 新增迁移一律跳过本段。
+// - v200+：AxInvest 本地迁移段。所有 AxInvest 独有的 schema 变更从这里
+//   起单调递增。新增 v201/v202/... 时仅累加 CURRENT_VERSION 即可。
 // ============================================================================
 
 pub mod pg_ddl;
 pub mod v100_consolidated;
-pub mod v101_pg_int4_to_int8_axinvest;
+pub mod v200_pg_int4_to_int8_axinvest;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 101;
+pub const CURRENT_VERSION: i32 = 200;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -65,9 +75,9 @@ const MIGRATIONS: &[Migration] = &[
         up: |db| Box::pin(v100_consolidated::up(db)),
     },
     Migration {
-        version: 101,
-        description: "v101_pg_int4_to_int8_axinvest: AxInvest-targeted INT4→INT8 fix for timestamps + max_tokens/thinking_budget (merged from v014/v015)",
-        up: |db| Box::pin(v101_pg_int4_to_int8_axinvest::up(db)),
+        version: 200,
+        description: "v200_pg_int4_to_int8_axinvest: AxInvest-targeted INT4→INT8 fix for timestamps + max_tokens/thinking_budget (merged from v014/v015; renamed from v101 to free up v101–v199 for upstream)",
+        up: |db| Box::pin(v200_pg_int4_to_int8_axinvest::up(db)),
     },
 ];
 
@@ -210,7 +220,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表行数应等于 CURRENT_VERSION（每版本一行）
+        // schema_version 表行数应等于 MIGRATIONS 数组长度（每条 migration 一行）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -219,11 +229,12 @@ mod tests {
             .await
             .unwrap()
             .expect("count row");
-        let cnt: i32 = cnt_row.try_get_by("cnt").unwrap();
+        let cnt: i32 = count_row.try_get_by("cnt").unwrap();
         assert_eq!(
-            cnt, CURRENT_VERSION,
-            "schema_version should have exactly {} rows",
-            CURRENT_VERSION
+            cnt,
+            MIGRATIONS.len() as i32,
+            "schema_version should have exactly {} rows (one per migration)",
+            MIGRATIONS.len()
         );
     }
 

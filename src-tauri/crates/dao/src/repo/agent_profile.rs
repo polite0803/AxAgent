@@ -26,7 +26,7 @@ fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
         suggested_model_id: m.suggested_model_id,
         suggested_temperature: m.suggested_temperature,
         suggested_max_tokens: m.suggested_max_tokens.map(|v| v as u32),
-        search_enabled: m.search_enabled,
+        search_enabled: m.search_enabled.map(|v| v != 0),
         recommend_permission_mode: m.recommend_permission_mode,
         recommended_tools: parse_json_arr(&m.recommended_tools),
         disallowed_tools: parse_json_arr(&m.disallowed_tools),
@@ -153,7 +153,7 @@ pub async fn upsert_agent_profile(
         suggested_model_id: Set(suggested_model_id.map(|s| s.to_string())),
         suggested_temperature: Set(suggested_temperature),
         suggested_max_tokens: Set(suggested_max_tokens),
-        search_enabled: Set(search_enabled),
+        search_enabled: Set(search_enabled.map(|v| if v { 1 } else { 0 })),
         recommend_permission_mode: Set(recommend_permission_mode.map(|s| s.to_string())),
         recommended_tools: Set(if recommended_tools.is_empty() {
             None

@@ -55,7 +55,7 @@ impl AgentProfileRepository for DaoAgentProfileRepository {
             suggested_model_id: m.suggested_model_id,
             suggested_temperature: m.suggested_temperature,
             suggested_max_tokens: m.suggested_max_tokens.map(|v| v as u32),
-            search_enabled: m.search_enabled,
+            search_enabled: m.search_enabled.map(|v| v != 0),
             recommend_permission_mode: m.recommend_permission_mode,
             recommended_tools: parse_json_arr(&m.recommended_tools),
             disallowed_tools: parse_json_arr(&m.disallowed_tools),

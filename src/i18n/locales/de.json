@@ -35,6 +35,7 @@
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
     "pipeline": "Aktien-Pipeline",
+    "workspace": "Aktien-Arbeitsbereich",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -47,6 +48,7 @@
     "expand": "Seitenleiste erweitern",
     "collapse": "Seitenleiste einklappen",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "Arbeitsbereich",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -2710,7 +2712,9 @@
       "aiEditPlaceholder": "Änderungen beschreiben, z.B.: Suchfeld hinzufügen, auf Zweispaltenlayout umstellen...",
       "schemaPreview": "Schema-Vorschau",
       "jsonEdit": "JSON-Bearbeitung"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker-Präfix (Standard CHAT2API, normalerweise nicht ändern)"
   },
   "backup": {
     "title": "Sicherungscenter",
@@ -10249,6 +10253,81 @@
     "degradedMarker": {
       "tooltip": "Einige Analysemethoden sind im Replay-Modus nicht verfügbar",
       "labelWithCount": "{{n}} eingeschränkt"
+    }
+  },
+  "workspace": {
+    "title": "Aktien-Arbeitsbereich",
+    "viewPlaceholder": "Ansichts-Platzhalter — aktuelle Aktie: {{code}} (Phase 3 Migration)",
+    "viewPlaceholderNoStock": "Bitte wählen Sie eine Aktie aus, um die Analyse zu starten",
+    "view": {
+      "analysis": "Analyse",
+      "monitor": "Überwachung",
+      "trade": "Handel",
+      "review": "Überprüfung",
+      "more": "Mehr",
+      "backtest": "Backtest",
+      "compare": "Vergleichen",
+      "watchlist": "Beobachtungsliste",
+      "portfolio": "Portfolio",
+      "reflection": "Reflexion",
+      "evolution": "Evolution",
+      "currentStock": "Aktuelle Aktie",
+      "moreHint": "Weitere Werkzeuge",
+      "backtestHint": "Strategie-Backtest und Stapelwiedergabe",
+      "compareHint": "Multi-Aktien-Vergleich"
+    },
+    "mode": {
+      "simple": "Einfach",
+      "professional": "Professionell",
+      "toggleHint": "Informationsdichte umschalten"
+    },
+    "stockSwitcher": {
+      "title": "Aktien-Umschalter",
+      "search": "Aktien suchen...",
+      "recent": "Zuletzt",
+      "watchlist": "Watchlist",
+      "holdings": "Bestand",
+      "empty": "Keine Aktien, bitte suchen",
+      "addWatchlist": "Zur Watchlist hinzufügen",
+      "collapse": "Einklappen",
+      "expand": "Ausklappen"
+    },
+    "contextSidebar": {
+      "title": "Kontext",
+      "collapse": "Seitenleiste einklappen",
+      "expand": "Seitenleiste ausklappen",
+      "placeholder": "Kontextpanel (Phase 4 Migration)"
+    },
+    "decisionHero": {
+      "noDecision": "Keine Entscheidung",
+      "noDecisionHint": "Bitte zuerst Analyse ausführen",
+      "noDecisionNoStock": "Bitte zuerst eine Aktie auswählen",
+      "position": "Position",
+      "targetPrice": "Ziel",
+      "stopLoss": "Stop-Loss",
+      "confidence": "Konfidenz",
+      "consensus": "Konsens",
+      "consensusHigh": "Hohe Übereinstimmung",
+      "consensusMedium": "Mittlere Übereinstimmung",
+      "consensusLow": "Niedrige Übereinstimmung",
+      "consensusConflict": "Entscheidungskonflikt",
+      "consensusConflictHint": "Formel- und LLM-Entscheidungen im Konflikt, manuelle Überprüfung empfohlen",
+      "consensusFallback": "Entscheidung eingeschränkt",
+      "consensusFallbackHint": "Unzureichende Datenqualität, Entscheidung aus Fallback-Pfad",
+      "formula": "Formel",
+      "llm": "LLM",
+      "actionMatch": "Aktion übereinstimmend",
+      "actionMismatch": "Aktion nicht übereinstimmend",
+      "positionGap": "Positionsabweichung",
+      "confidenceGap": "Konfidenzabweichung",
+      "viewDetail": "Details anzeigen",
+      "hideDetail": "Ausblenden",
+      "holdingDays": "Halteage",
+      "timeframe": "Zeitraum",
+      "riskLevel": "Risiko",
+      "expectedUpside": "Erwartetes Kurspotenzial",
+      "asOf": "Stand",
+      "live": "Live"
     }
   }
 }

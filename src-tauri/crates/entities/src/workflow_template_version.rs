@@ -14,9 +14,9 @@ pub struct Model {
     pub icon: String,
     pub tags: Option<String>,
     pub version: i32,
-    pub is_preset: bool,
-    pub is_editable: bool,
-    pub is_public: bool,
+    pub is_preset: i32,
+    pub is_editable: i32,
+    pub is_public: i32,
     pub trigger_config: Option<String>,
     #[sea_orm(column_type = "Text")]
     pub nodes: String,

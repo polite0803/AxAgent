@@ -35,6 +35,7 @@
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
     "pipeline": "Конвейер акций",
+    "workspace": "Рабочая область акций",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -47,6 +48,7 @@
     "expand": "Развернуть боковую панель",
     "collapse": "Свернуть боковую панель",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "Рабочая область",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -2710,7 +2712,9 @@
       "aiEditPlaceholder": "Опишите изменения, например: добавить поиск, изменить на двухколоночный макет...",
       "schemaPreview": "Предпросмотр схемы",
       "jsonEdit": "JSON-редактор"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Префикс маркера (по умолчанию CHAT2API, обычно не нужно менять)"
   },
   "backup": {
     "title": "Центр резервного копирования",
@@ -10237,6 +10241,81 @@
     "degradedMarker": {
       "tooltip": "Некоторые методы анализа недоступны в режиме воспроизведения",
       "labelWithCount": "{{n}} ухудшено"
+    }
+  },
+  "workspace": {
+    "title": "Рабочая область акций",
+    "viewPlaceholder": "Заполнитель представления — текущая акция: {{code}} (миграция Фаза 3)",
+    "viewPlaceholderNoStock": "Выберите акцию для начала анализа",
+    "view": {
+      "analysis": "Анализ",
+      "monitor": "Монитор",
+      "trade": "Торговля",
+      "review": "Обзор",
+      "more": "Ещё",
+      "backtest": "Бэктест",
+      "compare": "Сравнить",
+      "watchlist": "Список наблюдения",
+      "portfolio": "Портфель",
+      "reflection": "Рефлексия",
+      "evolution": "Эволюция",
+      "currentStock": "Текущая акция",
+      "moreHint": "Больше инструментов",
+      "backtestHint": "Бэктест стратегии и пакетное воспроизведение",
+      "compareHint": "Сравнение нескольких акций"
+    },
+    "mode": {
+      "simple": "Простой",
+      "professional": "Профессиональный",
+      "toggleHint": "Переключить плотность информации"
+    },
+    "stockSwitcher": {
+      "title": "Переключатель акций",
+      "search": "Поиск акций...",
+      "recent": "Недавние",
+      "watchlist": "Список наблюдения",
+      "holdings": "Позиции",
+      "empty": "Нет акций, выполните поиск",
+      "addWatchlist": "Добавить в список наблюдения",
+      "collapse": "Свернуть",
+      "expand": "Развернуть"
+    },
+    "contextSidebar": {
+      "title": "Контекст",
+      "collapse": "Свернуть боковую панель",
+      "expand": "Развернуть боковую панель",
+      "placeholder": "Панель контекста (миграция Фаза 4)"
+    },
+    "decisionHero": {
+      "noDecision": "Нет решения",
+      "noDecisionHint": "Сначала запустите анализ",
+      "noDecisionNoStock": "Сначала выберите акцию",
+      "position": "Позиция",
+      "targetPrice": "Цель",
+      "stopLoss": "Стоп-лосс",
+      "confidence": "Уверенность",
+      "consensus": "Консенсус",
+      "consensusHigh": "Высокое согласие",
+      "consensusMedium": "Среднее согласие",
+      "consensusLow": "Низкое согласие",
+      "consensusConflict": "Конфликт решений",
+      "consensusConflictHint": "Решения формулы и LLM противоречат, рекомендуется ручная проверка",
+      "consensusFallback": "Решение ухудшено",
+      "consensusFallbackHint": "Недостаточное качество данных, решение из резервного пути",
+      "formula": "Формула",
+      "llm": "LLM",
+      "actionMatch": "Действие совпадает",
+      "actionMismatch": "Действие не совпадает",
+      "positionGap": "Разрыв позиции",
+      "confidenceGap": "Разрыв уверенности",
+      "viewDetail": "Подробнее",
+      "hideDetail": "Скрыть",
+      "holdingDays": "Дней удержания",
+      "timeframe": "Период",
+      "riskLevel": "Риск",
+      "expectedUpside": "Ожидаемый рост",
+      "asOf": "По состоянию на",
+      "live": "В реальном времени"
     }
   }
 }

@@ -35,6 +35,7 @@
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
     "pipeline": "Pipeline d'Actions",
+    "workspace": "Espace Actions",
     "portfolio": "Portfolio",
     "scheduledAnalysis": "Scheduled"
   },
@@ -47,6 +48,7 @@
     "expand": "Développer la barre latérale",
     "collapse": "Réduire la barre latérale",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "Espace de travail",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -2710,7 +2712,9 @@
       "aiEditPlaceholder": "Décrivez les modifications, ex: ajouter une barre de recherche, passer en deux colonnes...",
       "schemaPreview": "Aperçu du schéma",
       "jsonEdit": "Édition JSON"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Préfixe du marqueur (par défaut CHAT2API, généralement pas besoin de modifier)"
   },
   "backup": {
     "title": "Centre de sauvegarde",
@@ -10249,6 +10253,81 @@
     "degradedMarker": {
       "tooltip": "Certaines méthodes d'analyse ne sont pas disponibles en mode relecture",
       "labelWithCount": "{{n}} dégradées"
+    }
+  },
+  "workspace": {
+    "title": "Espace Actions",
+    "viewPlaceholder": "Espace réservé — action actuelle : {{code}} (migration Phase 3)",
+    "viewPlaceholderNoStock": "Veuillez sélectionner une action pour commencer l'analyse",
+    "view": {
+      "analysis": "Analyse",
+      "monitor": "Surveiller",
+      "trade": "Trader",
+      "review": "Revue",
+      "more": "Plus",
+      "backtest": "Backtest",
+      "compare": "Comparer",
+      "watchlist": "Liste de surveillance",
+      "portfolio": "Portefeuille",
+      "reflection": "Réflexion",
+      "evolution": "Évolution",
+      "currentStock": "Action actuelle",
+      "moreHint": "Plus d'outils",
+      "backtestHint": "Backtest de stratégie et relecture par lot",
+      "compareHint": "Comparaison multi-actions"
+    },
+    "mode": {
+      "simple": "Simple",
+      "professional": "Professionnel",
+      "toggleHint": "Basculer la densité d'informations"
+    },
+    "stockSwitcher": {
+      "title": "Sélecteur d'actions",
+      "search": "Rechercher des actions...",
+      "recent": "Récent",
+      "watchlist": "Liste de suivi",
+      "holdings": "Positions",
+      "empty": "Aucune action, veuillez rechercher",
+      "addWatchlist": "Ajouter à la liste de suivi",
+      "collapse": "Réduire",
+      "expand": "Développer"
+    },
+    "contextSidebar": {
+      "title": "Contexte",
+      "collapse": "Réduire la barre latérale",
+      "expand": "Développer la barre latérale",
+      "placeholder": "Panneau de contexte (migration Phase 4)"
+    },
+    "decisionHero": {
+      "noDecision": "Aucune décision",
+      "noDecisionHint": "Veuillez d'abord lancer l'analyse",
+      "noDecisionNoStock": "Veuillez d'abord sélectionner une action",
+      "position": "Position",
+      "targetPrice": "Objectif",
+      "stopLoss": "Stop loss",
+      "confidence": "Confiance",
+      "consensus": "Consensus",
+      "consensusHigh": "Fort accord",
+      "consensusMedium": "Accord moyen",
+      "consensusLow": "Faible accord",
+      "consensusConflict": "Conflit de décision",
+      "consensusConflictHint": "Conflit entre les décisions de la formule et du LLM, vérification manuelle recommandée",
+      "consensusFallback": "Décision dégradée",
+      "consensusFallbackHint": "Qualité des données insuffisante, décision du chemin de secours",
+      "formula": "Formule",
+      "llm": "LLM",
+      "actionMatch": "Action correspondante",
+      "actionMismatch": "Action non correspondante",
+      "positionGap": "Écart de position",
+      "confidenceGap": "Écart de confiance",
+      "viewDetail": "Voir les détails",
+      "hideDetail": "Masquer",
+      "holdingDays": "Jours de détention",
+      "timeframe": "Horizon",
+      "riskLevel": "Risque",
+      "expectedUpside": "Hausse attendue",
+      "asOf": "Au",
+      "live": "En direct"
     }
   }
 }

@@ -620,7 +620,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       enabledWikiIds: prefState.enabledWikiIds,
     });
     // 同步偏好状态到 preferenceStore（两个不同 store 的 setState，不能合并）
-    getPref().setState(prefState);
+    // 可能 preferenceStore 模块尚未完成初始化（模块评价时序），跳过即可——数据已在 conversationStore 中
+    if (_prefStore) {
+      _prefStore.setState(prefState);
+    }
     // 保留尚未持久化的 temp- 消息，防止被服务端返回的列表覆盖丢失
     const tempIds = get().messages.flatMap((m) => m.id.startsWith("temp-") ? [m.id] : []);
     get()
@@ -787,9 +790,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         error: null,
       }));
       // Sync preference state from the created conversation
-      getPref().setState(
-        conversationPreferenceStateFromConversation(conversation),
-      );
+      // 防御：preferenceStore 可能尚未完成模块级初始化
+      if (_prefStore) {
+        _prefStore.setState(
+          conversationPreferenceStateFromConversation(conversation),
+        );
+      }
       return conversation;
     } catch (e) {
       set({ error: String(e) });
@@ -812,8 +818,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         error: null,
       }));
       // Sync preference state if this is the active conversation
-      if (get().activeConversationId === id) {
-        getPref().setState(
+      if (get().activeConversationId === id && _prefStore) {
+        _prefStore.setState(
           conversationPreferenceStateFromConversation(updated),
         );
       }

@@ -79,6 +79,10 @@ export { useWorkflowStore } from "./feature/workflowStore";
 export { useStockAnalysisStore } from "./feature/stockAnalysisStore";
 export type { ExperimentRecord } from "./feature/stockAnalysisStore";
 
+// ── AxInvest 股票工作区（激进重构：单股票全生命周期） ──
+export { useWorkspaceStore } from "./feature/workspaceStore";
+export type { RecentStock, UserMode, WorkspaceView } from "./feature/workspaceStore";
+
 // ── AxInvest quant 模块（回测 + 策略管理）──
 export { useBacktestStore } from "./feature/quant";
 export { useStrategyStore } from "./feature/quant";

@@ -415,10 +415,12 @@ pub fn run() {
             #[cfg(mobile)]
             let tray_language = "en".to_string();
 
-            // 异步启动：不阻塞 UI
-            let _seed_db = state.harness.db().clone();
+            // 异步启动：不阻塞 UI — 种子化股票分析专家/角色/Profile/工作流模板（UPSERT 幂等）
+            let seed_db = state.harness.db().clone();
             tauri::async_runtime::spawn(async move {
-                // 股票业务种子化（stock_analysis_setup）已在另一分支维护
+                if let Err(e) = crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&seed_db).await {
+                    tracing::error!("[startup] 股票业务种子化失败: {e}");
+                }
             });
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 

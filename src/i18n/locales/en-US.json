@@ -39,6 +39,7 @@
     "quant": "Quant",
     "replayWorkbench": "Replay Workbench",
     "pipeline": "Stock Pipeline",
+    "workspace": "Stock Workspace",
     "screener": "Screener",
     "recommend": "Recommend",
     "stockAnalysis": "Stock Analysis",
@@ -56,6 +57,7 @@
     "collapse": "Collapse sidebar",
     "sectionInvest": "Invest",
     "sectionInvestDiscover": "Discover",
+    "sectionInvestWorkspace": "Workspace",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
@@ -1511,9 +1513,7 @@
       "statusConnecting": "Connecting",
       "lastActivity": "Last Activity",
       "activeSessions": "Active Sessions",
-      "noStatuses": "No statuses available",
-      "markerPrefixPlaceholder": "CHAT2API",
-      "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)"
+      "noStatuses": "No statuses available"
     },
     "webhooks": "Webhooks",
     "advanced": "Advanced",
@@ -2871,7 +2871,9 @@
       "cancel": "Cancel",
       "nameLabel": "Name",
       "namePlaceholder": "my-persona"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)"
   },
   "backup": {
     "title": "Backup Center",
@@ -10602,6 +10604,81 @@
     "degradedMarker": {
       "tooltip": "Some analysis methods are unavailable in replay mode",
       "labelWithCount": "{{n}} degraded"
+    }
+  },
+  "workspace": {
+    "title": "Stock Workspace",
+    "viewPlaceholder": "View placeholder — current stock: {{code}} (Phase 3 migration)",
+    "viewPlaceholderNoStock": "Please select a stock to start analysis",
+    "view": {
+      "analysis": "Analysis",
+      "monitor": "Monitor",
+      "trade": "Trade",
+      "review": "Review",
+      "more": "More",
+      "backtest": "Backtest",
+      "compare": "Compare",
+      "watchlist": "Watchlist",
+      "portfolio": "Portfolio",
+      "reflection": "Reflection",
+      "evolution": "Evolution",
+      "currentStock": "Current stock",
+      "moreHint": "More tools",
+      "backtestHint": "Strategy backtest and batch replay",
+      "compareHint": "Multi-stock comparison"
+    },
+    "mode": {
+      "simple": "Simple",
+      "professional": "Professional",
+      "toggleHint": "Toggle information density"
+    },
+    "stockSwitcher": {
+      "title": "Stock Switcher",
+      "search": "Search stocks...",
+      "recent": "Recent",
+      "watchlist": "Watchlist",
+      "holdings": "Holdings",
+      "empty": "No stocks, please search",
+      "addWatchlist": "Add to watchlist",
+      "collapse": "Collapse",
+      "expand": "Expand"
+    },
+    "contextSidebar": {
+      "title": "Context",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "placeholder": "Context panel (Phase 4 migration)"
+    },
+    "decisionHero": {
+      "noDecision": "No decision",
+      "noDecisionHint": "Please run analysis first",
+      "noDecisionNoStock": "Please select a stock first",
+      "position": "Position",
+      "targetPrice": "Target",
+      "stopLoss": "Stop loss",
+      "confidence": "Confidence",
+      "consensus": "Consensus",
+      "consensusHigh": "High agreement",
+      "consensusMedium": "Medium agreement",
+      "consensusLow": "Low agreement",
+      "consensusConflict": "Decision conflict",
+      "consensusConflictHint": "Formula and LLM decisions conflict, manual review recommended",
+      "consensusFallback": "Decision degraded",
+      "consensusFallbackHint": "Insufficient data quality, decision from fallback path",
+      "formula": "Formula",
+      "llm": "LLM",
+      "actionMatch": "Action match",
+      "actionMismatch": "Action mismatch",
+      "positionGap": "Position gap",
+      "confidenceGap": "Confidence gap",
+      "viewDetail": "View details",
+      "hideDetail": "Hide",
+      "holdingDays": "Holding days",
+      "timeframe": "Timeframe",
+      "riskLevel": "Risk",
+      "expectedUpside": "Expected upside",
+      "asOf": "As of",
+      "live": "Live"
     }
   }
 }

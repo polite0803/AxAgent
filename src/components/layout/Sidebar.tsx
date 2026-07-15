@@ -18,6 +18,7 @@ import {
   useSkillExtensionStore,
   useUIStore,
   useUserProfileStore,
+  useWorkspaceStore,
 } from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
 import { AppstoreAddOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
@@ -39,6 +40,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   workflow: "/workflow",
   "dynamic-ui": "/dynamic-ui",
   "stock-analysis": "/stock-analysis",
+  workspace: "/workspace",
   screener: "/screener",
   watchlist: "/watchlist",
   portfolio: "/portfolio",
@@ -133,6 +135,13 @@ const builtinNavItems: NavItem[] = [
     icon: <Icon icon="fluent:apps-20-filled" size={17} />,
     labelKey: "nav.dynamicUI",
     path: "/dynamic-ui",
+    isPlugin: false,
+  },
+  {
+    key: "workspace",
+    icon: <Icon icon="fluent:target-20-filled" size={17} />,
+    labelKey: "nav.workspace",
+    path: "/workspace",
     isPlugin: false,
   },
   {
@@ -439,6 +448,7 @@ export function Sidebar() {
   const toggleAgentPanel = useAgentPanelStore((s) => s.toggle);
   const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
   const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
+  const recentStocks = useWorkspaceStore((s) => s.recentStocks);
 
   const sections = useMemo<SidebarSection[]>(() => {
     const pluginItems: NavItem[] = [];
@@ -491,6 +501,12 @@ export function Sidebar() {
         n.key === "gateway" || n.key === "terminal" || n.key === "files" || n.key === "workflow"
         || n.key === "dynamic-ui"
       ),
+    });
+
+    sections.push({
+      key: "invest-workspace",
+      labelKey: "sidebar.sectionInvestWorkspace",
+      items: builtinNavItems.filter((n) => n.key === "workspace"),
     });
 
     sections.push({
@@ -601,6 +617,34 @@ export function Sidebar() {
               </Tooltip>
             );
           })}
+          {/* invest-workspace section：展开时显示最近股票快捷列表 */}
+          {section.key === "invest-workspace" && !sidebarCollapsed && recentStocks.length > 0 && (
+            <div className="mt-0.5 mb-1 space-y-0.5">
+              {!sidebarCollapsed && (
+                <div
+                  className="text-sm px-3 pt-1 pb-0.5"
+                  style={{ color: "var(--muted)", fontSize: 11 }}
+                >
+                  {t("workspace.stockSwitcher.recent")}
+                </div>
+              )}
+              {recentStocks.slice(0, 5).map((stock) => (
+                <button
+                  key={stock.code}
+                  type="button"
+                  onClick={() => navigate(`/workspace/${stock.code}`)}
+                  className="w-full flex items-center gap-1.5 px-3 py-1 rounded text-left transition-colors hover:opacity-70"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
+                  <LineChart size={12} style={{ color: "var(--muted)", flexShrink: 0 }} />
+                  <span className="text-sm truncate flex-1">{stock.name}</span>
+                  <span className="text-sm font-mono" style={{ color: "var(--muted)", fontSize: 11 }}>
+                    {stock.code}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       ))}
 
