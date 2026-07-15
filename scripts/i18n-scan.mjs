@@ -97,13 +97,16 @@ function stripComments(lines) {
 function scanFile(f, rel) {
   let content;
   try { content = readFileSync(f, "utf8"); } catch { return []; }
+  // 测试文件（__tests__ / *.test.* / *.spec.*）中的汉字属于测试名 / i18n 夹具 / 断言文本，
+  // 均非用户可见 UI，不应触发 Rule 1（CJK 硬编码）检查。
+  const inTestFile = /\/__tests__\/|\.test\.|\.spec\./.test(rel);
   const cleaned = stripComments(content.split("\n"));
   const out = [];
   cleaned.forEach((line, idx) => {
     const lnum = idx + 1;
     const text = line.trim();
     if (!text) return;
-    if (isCJK(text)) out.push({ rule: 1, file: rel, line: lnum, content: text });
+    if (isCJK(text) && !inTestFile) out.push({ rule: 1, file: rel, line: lnum, content: text });
     if (/message\.(success|error|warning|info)\(\s*['"]/.test(text))
       out.push({ rule: 2, file: rel, line: lnum, content: text });
     if (/placeholder\s*=\s*"([A-Za-z][^"]{2,})"/.test(text))
