@@ -91,6 +91,13 @@ fn init_if_needed() {
     *dirs = Some(compute_skill_dirs(&ext));
 }
 
+/// Return the source kind name for this application's own skills
+/// (the first entry in SKILL_DIR_PRIORITY, e.g. "axagent").
+/// Used to distinguish self-owned skills from other apps' skills.
+pub fn self_source_kind() -> &'static str {
+    SKILL_DIR_PRIORITY.first().copied().unwrap_or("axagent")
+}
+
 /// Reload skill directories from config. Useful when new skill sources are
 /// added at runtime (e.g., marketplace installs a skill into a new directory)
 /// without restarting the application.

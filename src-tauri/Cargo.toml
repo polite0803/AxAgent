@@ -205,7 +205,12 @@ opt-level = "s"
 
 [profile.dev]
 opt-level = 0
-debug = true
+# line-tables-only: 仅生成行号表，保留 panic 回溯的源文件+行号。
+# 相比 debug = true（完整符号表），编译时间降 30-50%，链接时间降 50%+。
+# 代价：调试器里看不到局部变量值；
+#       需要完整调试时执行 `CARGO_PROFILE_DEV_DEBUG=true cargo build` 覆盖。
+debug = "line-tables-only"
+incremental = true
 
 [dev-dependencies]
 axagent-agent = { path = "crates/agent", features = ["testing"] }
@@ -222,6 +227,3 @@ harness = false
 [[bench]]
 name = "search_bench"
 harness = false
-
-[profile.dev.package."*"]
-opt-level = 0

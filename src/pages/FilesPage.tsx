@@ -13,7 +13,7 @@ export function FilesPage() {
   return (
     <div className="fl-layout">
       <div className="fl-sidebar">
-        <div className="fl-sidebar-title">{t("filesContext")}</div>
+        <div className="fl-sidebar-title">{t("appHeader.filesContext")}</div>
         <FilesSidebar activeCategory={category} onSelect={setCategory} />
       </div>
       <div className="fl-body">

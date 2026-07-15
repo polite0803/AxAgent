@@ -163,6 +163,10 @@ impl SkillSandboxExecutor {
         Self::new(SandboxPolicy::default())
     }
 
+    pub fn policy(&self) -> &SandboxPolicy {
+        &self.policy
+    }
+
     fn validate_step(&self, step: &ProcedureStep) -> StepValidationResult {
         let mut violations = Vec::new();
 

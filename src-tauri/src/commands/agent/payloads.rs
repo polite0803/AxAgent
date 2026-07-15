@@ -153,6 +153,7 @@ pub struct AgentQueryRequest {
     /// Agent role for role-based tool filtering and system prompt selection.
     /// When set, only tools matching the role's `default_tools()` are exposed
     /// to the LLM, and the role's system prompt is prepended.
+    #[allow(dead_code)]
     pub role: Option<String>,
     /// Agent profile ID from the agent_profiles table. AgentProfile 是 Expert（技能）
     /// 和 AgentRole（岗位）的统一组装体，是 Agent 的唯一入口。

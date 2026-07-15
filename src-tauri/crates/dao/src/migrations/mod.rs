@@ -22,18 +22,11 @@
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
-// ============================================================================
-// v100 是合并后的唯一迁移。历史 v001–v011 已合并至此文件，旧文件已删除。
-// 所有未来变更直接加在 v100 上或创建新版本。
-// ============================================================================
-
 pub mod pg_ddl;
 pub mod v100_consolidated;
-pub mod v101_route_history;
-pub mod v102_skill_failure_fields;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 102;
+pub const CURRENT_VERSION: i32 = 100;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -59,23 +52,11 @@ struct Migration {
     up: MigrationFn,
 }
 
-const MIGRATIONS: &[Migration] = &[
-    Migration {
-        version: 100,
-        description: "v100_consolidated: consolidated DDL snapshot (replaces v001-v011) with all INT4→INT8 and REAL→DOUBLE PRECISION fixes — also creates workflow_approvals table for ApprovalNode HITL",
-        up: |db| Box::pin(v100_consolidated::up(db)),
-    },
-    Migration {
-        version: 101,
-        description: "v101_route_history: Smart Router 路由历史持久化表（CostAwareRouter 决策 + 反馈）",
-        up: |db| Box::pin(v101_route_history::up(db)),
-    },
-    Migration {
-        version: 102,
-        description: "v102_skill_failure_fields: add consecutive_failures and last_failure_at columns to trajectory_skills for evolution feedback loop",
-        up: |db| Box::pin(v102_skill_failure_fields::up(db)),
-    },
-];
+const MIGRATIONS: &[Migration] = &[Migration {
+    version: 100,
+    description: "v100_consolidated: consolidated DDL snapshot with all ALTER passes (REAL→DOUBLE PRECISION + INTEGER→BOOLEAN) and route_history + active_domains columns",
+    up: |db| Box::pin(v100_consolidated::up(db)),
+}];
 
 /// 执行所有尚未应用的 schema 迁移。
 ///
@@ -226,7 +207,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 3, "schema_version should have exactly 3 rows (v100 + v101 + v102)");
+        assert_eq!(cnt, 1, "schema_version should have exactly 1 row (v100 consolidated only)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

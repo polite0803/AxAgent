@@ -40,23 +40,48 @@ interface PrefStoreHandle {
   setState(state: unknown): void;
 }
 
-// eslint-disable-next-line no-var
-var _prefStore: PrefStoreHandle | null = null; // NOSONAR
-let _prefStateSynced = false;
+// 所有状态存放在 globalThis，避免两个问题：
+// 1) HMR 重载 conversationStore 模块时模块级变量重置，但 globalThis 不会丢失
+// 2) conversationStore ↔ preferenceStore 循环依赖导致 preferenceStore 在
+//    conversationStore 模块体执行到 let/const/var 赋值前调用 _injectPreferenceStore，
+//    此时模块级变量（包括 var，因为赋值不会 hoist）均不可用。
+//    _injectPreferenceStore 直接用字符串字面量，不依赖任何模块级变量。
+const _PREF_STORE_KEY = "__axagent_prefStore__";
+const _PREF_SYNCED_KEY = "__axagent_prefSynced__";
+
+function _g(): Record<string, unknown> {
+  return globalThis as Record<string, unknown>;
+}
+
+function _getPrefStore(): PrefStoreHandle | null {
+  return (_g()[_PREF_STORE_KEY] as PrefStoreHandle | null | undefined) ?? null;
+}
+function _getPrefSynced(): boolean {
+  return (_g()[_PREF_SYNCED_KEY] as boolean | undefined) ?? false;
+}
 
 /**
  * 注入 preferenceStore 引用。在测试中也可直接调用以注入 mock。
+ *
+ * 注意：由于存在 conversationStore ↔ preferenceStore 的循环依赖，
+ * preferenceStore 模块体可能在 conversationStore 模块体执行到
+ * let/const 声明之前就调用本函数。因此本函数不得访问任何模块级变量，
+ * 只能直接使用 globalThis 字面量和字符串字面量。
  */
 export function _injectPreferenceStore(store: PrefStoreHandle): void {
-  _prefStore = store;
+  const g = globalThis as Record<string, unknown>;
+  g["__axagent_prefStore__"] = store;
+  g["__axagent_prefSynced__"] = false;
 }
 
 function syncPrefState(): void {
-  if (_prefStateSynced || !_prefStore) { return; }
-  _prefStateSynced = true;
+  if (_getPrefSynced()) { return; }
+  const store = _getPrefStore();
+  if (!store) { return; }
+  _g()[_PREF_SYNCED_KEY] = true;
   (async () => {
     try {
-      const prefState = _prefStore!.getState();
+      const prefState = store.getState();
       useConversationStore.setState({
         searchEnabled: prefState.searchEnabled,
         searchProviderId: prefState.searchProviderId,
@@ -74,13 +99,17 @@ function syncPrefState(): void {
 }
 
 function getPref(): PrefStoreHandle {
-  if (!_prefStore) {
+  const store = _getPrefStore();
+  if (!store) {
+    // 循环依赖导致 preferenceStore 顶层执行时调用本模块，此时还未注入；
+    // HMR 重载场景下 globalThis 会保留之前的引用，不会走到这里。
+    // 走到这里说明是首次模块加载竞态，抛错由调用方 try/catch 处理。
     throw new Error("preferenceStore_not_initialized");
   }
-  if (!_prefStateSynced) {
+  if (!_getPrefSynced()) {
     syncPrefState();
   }
-  return _prefStore;
+  return store;
 }
 
 // 单调递增计数器，与 Date.now() 组合防止同毫秒 ID 重复

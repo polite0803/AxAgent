@@ -88,6 +88,7 @@ impl AgencyExpertRepository for DaoAgencyExpertRepository {
             imported_at: m.imported_at,
             recommended_workflows: m.recommended_workflows,
             recommended_tools: m.recommended_tools,
+            active_domains: m.active_domains,
         }))
     }
 }
@@ -99,12 +100,14 @@ impl AgentRoleRepository for DaoAgentRoleRepository {
             agent_roles::Entity::find_by_id(id).one(&self.db).await.map_err(|e| e.to_string())?;
         Ok(row.map(|m| {
             let tools: Vec<String> = parse_json_arr(&m.default_tools);
+            let domains: Vec<String> = parse_json_arr(&m.active_domains);
             AgentRoleDto {
                 id: m.id,
                 name: m.name,
                 description: m.description,
                 system_prompt: m.system_prompt,
                 default_tools: tools,
+                active_domains: domains,
                 max_concurrent: m.max_concurrent,
                 timeout_seconds: m.timeout_seconds,
                 source: m.source,

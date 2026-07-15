@@ -211,6 +211,19 @@ fn emit_status(
     );
 }
 
+/// 将字符串形式的 domain 名解析为 ToolDomain 枚举值
+fn parse_domain_str(s: &str) -> Option<ToolDomain> {
+    match s.to_lowercase().as_str() {
+        "core" => Some(ToolDomain::Core),
+        "general" => Some(ToolDomain::General),
+        "devops" => Some(ToolDomain::Devops),
+        "ai_media" => Some(ToolDomain::AiMedia),
+        "invest" => Some(ToolDomain::Invest),
+        "opc" => Some(ToolDomain::Opc),
+        _ => None,
+    }
+}
+
 /// 构建带 streaming 事件回调的 `AxAgentApiClient`。
 ///
 /// `agent_query` 内的 if/else 分支（`AxAgentApiClient::new` vs `with_tools`）的 60 行
@@ -334,25 +347,31 @@ pub async fn agent_query(
     let mut effective_role_name: Option<String> = None;
     let mut profile_recommended_tools: Vec<String> = Vec::new();
     let mut profile_disallowed_tools: Vec<String> = Vec::new();
+    let mut profile_active_domains: std::collections::HashSet<ToolDomain> =
+        std::collections::HashSet::new();
 
     if let Some(ref profile_id) = request.agent_profile_id {
         if let Ok(profile) =
             axagent_dao::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
                 .await
         {
-            // Layer 1: AgentRole system_prompt（岗位）
+            // Layer 1: AgentRole system_prompt（岗位）+ active_domains
             if let Some(ref role_name) = profile.agent_role {
-                if let Some(resolved) =
-                    axagent_runtime::agent_roles::resolve(role_name).await
-                {
+                if let Some(resolved) = axagent_runtime::agent_roles::resolve(role_name).await {
                     effective_role_name = Some(resolved.name.clone());
                     if !resolved.system_prompt.is_empty() {
                         role_system_prompt = Some(resolved.system_prompt);
                     }
+                    // 岗位的工具域
+                    for d in &resolved.active_domains {
+                        if let Some(td) = parse_domain_str(d) {
+                            profile_active_domains.insert(td);
+                        }
+                    }
                 }
             }
 
-            // Layer 2: Expert domain knowledge（技能）
+            // Layer 2: Expert domain knowledge（技能）+ active_domains
             if let Some(ref expert_id) = profile.expert_id {
                 if let Ok(Some(expert)) =
                     axagent_entities::agency_experts::Entity::find_by_id(expert_id)
@@ -363,10 +382,14 @@ pub async fn agent_query(
                     if !expert.system_prompt.is_empty() {
                         expert_system_prompt = Some(expert.system_prompt);
                     }
-                    // 合并 Expert 的推荐工具
-                    if let Some(ref tools_json) = expert.recommended_tools {
-                        if let Ok(tools) = serde_json::from_str::<Vec<String>>(tools_json) {
-                            profile_recommended_tools.extend(tools);
+                    // 人才的工具域
+                    if let Some(ref domains_json) = expert.active_domains {
+                        if let Ok(domains) = serde_json::from_str::<Vec<String>>(domains_json) {
+                            for d in &domains {
+                                if let Some(td) = parse_domain_str(d) {
+                                    profile_active_domains.insert(td);
+                                }
+                            }
                         }
                     }
                 }
@@ -754,30 +777,25 @@ pub async fn agent_query(
         .map(|v| v.iter().cloned().collect())
         .unwrap_or_default();
 
-    // 解析活跃功能域
-    let active_domains: std::collections::HashSet<ToolDomain> = request
-        .options
-        .as_ref()
-        .and_then(|o| o.active_domains.as_ref())
-        .map(|v| {
-            v.iter()
-                .filter_map(|s| match s.to_lowercase().as_str() {
-                    "core" => Some(ToolDomain::Core),
-                    "general" => Some(ToolDomain::General),
-                    "devops" => Some(ToolDomain::Devops),
-                    "ai_media" => Some(ToolDomain::AiMedia),
-                    "invest" => Some(ToolDomain::Invest),
-                    "opc" => Some(ToolDomain::Opc),
-                    _ => None,
-                })
-                .collect()
-        })
-        .unwrap_or_else(|| {
-            let mut default = std::collections::HashSet::new();
-            default.insert(ToolDomain::Core);
-            default.insert(ToolDomain::General);
-            default
-        });
+    // 解析活跃功能域（三源合并：前端显式 > 角色/专家组合 > 默认）
+    let active_domains: std::collections::HashSet<ToolDomain> = if let Some(ref domains) =
+        request.options.as_ref().and_then(|o| o.active_domains.as_ref()).filter(|v| !v.is_empty())
+    {
+        // ① 前端显式传入
+        domains.iter().filter_map(|s| parse_domain_str(s)).collect()
+    } else if !profile_active_domains.is_empty() {
+        // ② 角色/专家组合（role.active_domains ∪ expert.active_domains）
+        // 确保 Core 始终存在
+        let mut d = profile_active_domains;
+        d.insert(ToolDomain::Core);
+        d
+    } else {
+        // ③ 默认（自由对话无任何关联）
+        let mut d = std::collections::HashSet::new();
+        d.insert(ToolDomain::Core);
+        d.insert(ToolDomain::General);
+        d
+    };
 
     let unified_chat_tools: Vec<ChatTool> = tool_registry
         .get_chat_tools_for_domains(&active_domains, None)
@@ -1025,64 +1043,26 @@ pub async fn agent_query(
         .await
         .map_err(|e| e.to_string())?;
 
-    // Apply agent role if specified — sets role on session and filters tools
-    // Apply agent role: prefer agent_profile.agent_role > request.role > auto-estimate
-    let mut resolved_role: Option<axagent_runtime::agent_roles::ResolvedRole> = None;
-    if let Some(ref role_name) = effective_role_name {
-        resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
-        if let Some(ref r) = resolved_role {
-            info!("[agent_query] Using role from agent_profile: {}", r.name);
-        }
-    }
-    if resolved_role.is_none() {
-        if let Some(role_name) = request.role.as_deref() {
-            resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
-            if let Some(ref r) = resolved_role {
-                info!("[agent_query] Using role from request: {}", r.name);
+    // ── 工具微调：extra_tools / blocked_tools ──
+    // 来源：AgentProfile.recommended_tools（额外追加） + disallowed_tools（排除）
+    if !profile_recommended_tools.is_empty() || !profile_disallowed_tools.is_empty() {
+        let extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
+        let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
+        // blocked: 从 domain 结果中移除
+        chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
+        // extra: 从注册表 ToolInfo 列表匹配并追加完整 schema
+        let all_info = tool_registry.tools.list_all();
+        for info in &all_info {
+            if extra_names.contains(&info.name) && !existing_names.contains(&info.name) {
+                chat_tools.push(ChatTool {
+                    r#type: "function".into(),
+                    function: ChatToolFunction {
+                        name: info.name.clone(),
+                        description: Some(info.description.clone()),
+                        parameters: Some(info.input_schema.clone()),
+                    },
+                });
             }
-        }
-    }
-
-    // Filter chat_tools by role's allowed tools, plus profile recommended/disallowed
-    if let Some(ref role) = resolved_role {
-        let mut allowed_set: HashSet<&str> = role.default_tools.iter().map(|s| s.as_str()).collect();
-        for t in &profile_recommended_tools {
-            allowed_set.insert(t.as_str());
-        }
-        for t in &profile_disallowed_tools {
-            allowed_set.remove(t.as_str());
-        }
-        chat_tools.retain(|t| allowed_set.contains(t.function.name.as_str()));
-        info!(
-            "[agent_query] Role '{}' filtered tools: {} remaining (profile: +{}/-{})",
-            role.name,
-            chat_tools.len(),
-            profile_recommended_tools.len(),
-            profile_disallowed_tools.len(),
-        );
-    }
-
-    // Smart decision: if no explicit role was set, estimate task complexity
-    // and auto-assign a role for high-complexity multi-step tasks.
-    if resolved_role.is_none() {
-        let complexity = axagent_trajectory::estimate_complexity_public(&request.input);
-        info!("[agent_query] Auto-estimated task complexity: {:?}", complexity);
-        match complexity {
-            axagent_trajectory::Complexity::High => {
-                let role_name = "coordinator";
-                resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
-                if let Some(ref r) = resolved_role {
-                    info!("[agent_query] Auto-assigning role '{}' for high-complexity task", r.name);
-                }
-            },
-            axagent_trajectory::Complexity::Medium => {
-                let role_name = "developer";
-                resolved_role = axagent_runtime::agent_roles::resolve(role_name).await;
-                if let Some(ref r) = resolved_role {
-                    info!("[agent_query] Auto-assigning role '{}' for medium-complexity task", r.name);
-                }
-            },
-            axagent_trajectory::Complexity::Low => {},
         }
     }
 
@@ -1335,7 +1315,7 @@ pub async fn agent_query(
         effective_system_prompt.as_deref(),
         rag_context_parts.as_deref(),
         &skill_contents,
-        resolved_role,
+        effective_role_name.as_deref(),
         working_memory_text.as_deref(),
         // nudge_messages 通过 runtime.set_nudge_lines 在每次 LLM 调用前动态注入，此处传 None 避免重复
         None,

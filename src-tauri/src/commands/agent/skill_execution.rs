@@ -520,36 +520,33 @@ pub(super) fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
     tool_name.map(|name| McpToolCall { tool_name: name, arguments })
 }
 
-pub(crate) fn infer_agent_role(
-    action: &str,
-    description: &str,
-) -> axagent_runtime::agent_roles::AgentRole {
+pub(crate) fn infer_agent_role(action: &str, description: &str) -> &'static str {
     let combined = format!("{} {}", action, description).to_lowercase();
     if combined.contains("research") || combined.contains("search") || combined.contains("find") {
-        axagent_runtime::agent_roles::AgentRole::Researcher
+        "researcher"
     } else if combined.contains("code")
         || combined.contains("develop")
         || combined.contains("write")
         || combined.contains("build")
     {
-        axagent_runtime::agent_roles::AgentRole::Developer
+        "developer"
     } else if combined.contains("review")
         || combined.contains("check")
         || combined.contains("verify")
     {
-        axagent_runtime::agent_roles::AgentRole::Reviewer
+        "reviewer"
     } else if combined.contains("browser")
         || combined.contains("navigate")
         || combined.contains("click")
     {
-        axagent_runtime::agent_roles::AgentRole::Browser
+        "browser"
     } else if combined.contains("plan")
         || combined.contains("coordinate")
         || combined.contains("manage")
     {
-        axagent_runtime::agent_roles::AgentRole::Coordinator
+        "coordinator"
     } else {
-        axagent_runtime::agent_roles::AgentRole::Executor
+        "executor"
     }
 }
 
@@ -802,7 +799,7 @@ pub(super) fn build_agent_system_prompt(
     custom_prompt: Option<&str>,
     rag_context: Option<&[String]>,
     skills: &[(String, String)],
-    role: Option<axagent_runtime::agent_roles::AgentRole>,
+    role: Option<&str>,
     working_memory: Option<&str>,
     nudge_messages: Option<&[String]>,
     insight_messages: Option<&[String]>,
@@ -817,7 +814,7 @@ pub(super) fn build_agent_system_prompt(
 
     // If a role is specified, prepend the role's system prompt
     if let Some(r) = role {
-        prompts.push(r.system_prompt().to_string());
+        prompts.push(r.to_string());
     }
 
     // If the user has a custom system prompt / persona, prepend it

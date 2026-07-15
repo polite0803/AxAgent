@@ -52,6 +52,7 @@ export function ExpertSelector({
   const [editDesc, setEditDesc] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
   const [editCategory, setEditCategory] = useState<ExpertCategory>("general");
+  const [editDomains, setEditDomains] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRole, setNewRole] = useState<Partial<AgentProfile>>({
@@ -274,6 +275,7 @@ export function ExpertSelector({
     setEditDesc(role.description ?? "");
     setEditPrompt(role.systemPrompt ?? "");
     setEditCategory(role.category as ExpertCategory);
+    setEditDomains(role.activeDomains ?? []);
   };
 
   const handleEditSave = async () => {
@@ -288,6 +290,7 @@ export function ExpertSelector({
           description: editDesc,
           category: editCategory,
           system_prompt: editPrompt,
+          active_domains: editDomains,
         });
       } else if (editingExpert.source === "custom") {
         updateCustomRole({
@@ -358,7 +361,7 @@ export function ExpertSelector({
       onCancel={onClose}
       footer={null}
       width={720}
-      destroyOnClose
+      destroyOnHidden
     >
       <div
         style={{
@@ -774,7 +777,7 @@ export function ExpertSelector({
         okText={t("common.save")}
         cancelText={t("common.cancel")}
         width={560}
-        destroyOnClose
+        destroyOnHidden
       >
         {editingExpert && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -845,6 +848,34 @@ export function ExpertSelector({
                   marginBottom: 4,
                 }}
               >
+                {t("settings.toolAccess")}
+              </label>
+              <Select
+                mode="multiple"
+                value={editDomains}
+                onChange={(v) => setEditDomains(v)}
+                size="small"
+                style={{ width: "100%" }}
+                placeholder={t("settings.toolAccess")}
+                options={[
+                  { value: "core", label: "Core" },
+                  { value: "general", label: "General" },
+                  { value: "devops", label: "Devops" },
+                  { value: "ai_media", label: "AI Media" },
+                  { value: "invest", label: "Invest" },
+                  { value: "opc", label: "OPC" },
+                ]}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: token.colorTextTertiary,
+                  marginBottom: 4,
+                }}
+              >
                 {t("expertSelector.prompt")}
               </label>
               <Input.TextArea
@@ -868,7 +899,7 @@ export function ExpertSelector({
         okText={t("common.create")}
         cancelText={t("common.cancel")}
         width={520}
-        destroyOnClose
+        destroyOnHidden
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 12 }}>

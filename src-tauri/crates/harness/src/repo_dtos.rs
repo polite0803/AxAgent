@@ -272,6 +272,7 @@ pub struct AgencyExpertDto {
     pub imported_at: i64,
     pub recommended_workflows: Option<String>,
     pub recommended_tools: Option<String>,
+    pub active_domains: Option<String>,
 }
 
 /// Agent Role DTO（岗位定义，来自 DB `agent_roles` 表）
@@ -282,6 +283,7 @@ pub struct AgentRoleDto {
     pub description: Option<String>,
     pub system_prompt: String,
     pub default_tools: Vec<String>,
+    pub active_domains: Vec<String>,
     pub max_concurrent: i32,
     pub timeout_seconds: i64,
     pub source: String,

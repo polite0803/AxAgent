@@ -507,7 +507,7 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
 
 /// P3 #12: 提取公共前置逻辑 — 验证 skill_name、定位 SKILL.md、安全检查、读取内容。
 /// Returns (canonical_path, content) 供调用方继续执行特有操作。
-fn validate_and_read_skill_md(name: &str) -> Result<(PathBuf, String), String> {
+pub(crate) fn validate_and_read_skill_md(name: &str) -> Result<(PathBuf, String), String> {
     validate_skill_name(name)?;
     let path = skills_dir().join(name).join("SKILL.md");
     if !path.exists() {
@@ -555,7 +555,7 @@ pub async fn skill_edit(name: String, content: String) -> Result<String, ErrorRe
 
 /// Find the end position of YAML frontmatter (after the second `---` marker).
 /// Uses byte-level search to correctly handle \r\n line endings on Windows.
-fn find_frontmatter_end(content: &str) -> Option<usize> {
+pub(crate) fn find_frontmatter_end(content: &str) -> Option<usize> {
     let trimmed = content.trim_start();
     if !trimmed.starts_with("---") {
         return None;

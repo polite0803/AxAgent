@@ -262,7 +262,6 @@ const REAL_TO_DOUBLE_TARGETS: &[(&str, &str)] = &[
 // ============================================================================
 
 const BOOL_ALTER_TARGETS: &[(&str, &str)] = &[
-    ("agent_sessions", "workspace_locked"),
     ("agent_profiles", "search_enabled"),
     ("knowledge_attributes", "is_required"),
     ("prompt_templates", "is_active"),
@@ -560,7 +559,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         // agent_sessions
         "CREATE TABLE IF NOT EXISTS agent_sessions (\
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, cwd TEXT, \
-            workspace_locked BOOLEAN NOT NULL DEFAULT FALSE, permission_mode TEXT NOT NULL, \
+            workspace_locked INTEGER NOT NULL DEFAULT 0, permission_mode TEXT NOT NULL, \
             runtime_status TEXT NOT NULL, sdk_context_json TEXT, \
             sdk_context_backup_json TEXT, total_tokens INTEGER NOT NULL DEFAULT 0, \
             total_cost_usd REAL NOT NULL DEFAULT 0.0, \
@@ -626,7 +625,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
             category TEXT NOT NULL, system_prompt TEXT NOT NULL, color TEXT, \
             source_dir TEXT NOT NULL, is_enabled INTEGER NOT NULL DEFAULT 1, \
-            imported_at INTEGER NOT NULL, recommended_workflows TEXT, recommended_tools TEXT)",
+            imported_at INTEGER NOT NULL, recommended_workflows TEXT, recommended_tools TEXT, \
+            active_domains TEXT)",
         // agent_profiles
         "CREATE TABLE IF NOT EXISTS agent_profiles (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
@@ -646,7 +646,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             max_concurrent INTEGER NOT NULL DEFAULT 3, \
             timeout_seconds BIGINT NOT NULL DEFAULT 600, \
             source TEXT NOT NULL DEFAULT 'builtin', sort_order INTEGER NOT NULL DEFAULT 0, \
-            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
+            active_domains TEXT)",
         // semantic_cache
         "CREATE TABLE IF NOT EXISTS semantic_cache (\
             id TEXT NOT NULL PRIMARY KEY, prompt_hash TEXT NOT NULL, response TEXT NOT NULL, \
@@ -844,7 +845,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             tags TEXT NOT NULL, scenarios TEXT NOT NULL DEFAULT '[]', \
             parameters TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, \
             usage_count INTEGER NOT NULL DEFAULT 0, success_rate REAL NOT NULL DEFAULT 0.0, \
-            avg_execution_time_ms REAL NOT NULL DEFAULT 0.0)",
+            avg_execution_time_ms REAL NOT NULL DEFAULT 0.0, \
+            consecutive_failures INTEGER NOT NULL DEFAULT 0, last_failure_at TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_skill_executions (\
             id TEXT PRIMARY KEY, skill_id TEXT NOT NULL, trajectory_id TEXT, \
             success INTEGER NOT NULL, execution_time_ms INTEGER NOT NULL, \
@@ -893,6 +895,28 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             confidence REAL NOT NULL DEFAULT 0.0, updated_at TEXT NOT NULL)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
+    }
+
+    // --- v101: Smart Router 路由历史持久化表（route_history） ---
+
+    {
+        let rh = "\
+            CREATE TABLE IF NOT EXISTS route_history (\
+                id TEXT NOT NULL PRIMARY KEY, prompt_hash TEXT NOT NULL, \
+                prompt_preview TEXT NOT NULL, heuristic_tier TEXT NOT NULL, \
+                selected_tier TEXT NOT NULL, outcome_success INTEGER, \
+                outcome_quality_score REAL, outcome_user_override INTEGER, \
+                outcome_user_tier TEXT, outcome_latency_ms BIGINT, \
+                outcome_tokens_used BIGINT, outcome_cost_usd REAL, \
+                timestamp BIGINT NOT NULL, features_json TEXT)";
+        exec_ddl(&db, is_pg, rh).await?;
+        exec_ddl(&db, is_pg, "CREATE INDEX IF NOT EXISTS idx_route_history_prompt_hash ON route_history(prompt_hash)").await?;
+        exec_ddl(
+            &db,
+            is_pg,
+            "CREATE INDEX IF NOT EXISTS idx_route_history_timestamp ON route_history(timestamp)",
+        )
+        .await?;
     }
 
     // --- v004: Dynamic UI schemas ---

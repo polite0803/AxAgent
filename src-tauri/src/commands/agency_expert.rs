@@ -40,6 +40,7 @@ pub struct AgencyExpertRow {
     pub is_enabled: bool,
     pub recommended_workflows: Option<Vec<String>>,
     pub recommended_tools: Option<Vec<String>>,
+    pub active_domains: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -409,6 +410,7 @@ pub async fn import_agency_experts(
                 imported_at: Set(now),
                 recommended_workflows: Set(recommended_workflows_json),
                 recommended_tools: Set(recommended_tools_json),
+                active_domains: Set(None),
             };
 
             // 使用 UPSERT 支持重复导入：已存在的记录会被更新
@@ -466,6 +468,7 @@ pub async fn list_agency_experts(
             color: m.color,
             source_dir: m.source_dir,
             is_enabled: m.is_enabled != 0,
+            active_domains: m.active_domains.and_then(|s| serde_json::from_str(&s).ok()),
             recommended_workflows: m
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),
@@ -712,6 +715,7 @@ pub struct UpdateExpertRequest {
     pub category: Option<String>,
     pub system_prompt: Option<String>,
     pub is_enabled: Option<bool>,
+    pub active_domains: Option<Vec<String>>,
 }
 
 #[tauri::command]
@@ -745,6 +749,10 @@ pub async fn update_agency_expert(
     }
     if let Some(enabled) = request.is_enabled {
         am.is_enabled = Set(if enabled { 1 } else { 0 });
+    }
+    if let Some(domains) = request.active_domains {
+        let json = serde_json::to_string(&domains).unwrap_or_default();
+        am.active_domains = Set(if domains.is_empty() { None } else { Some(json) });
     }
 
     am.update(db).await.map_err(|e| {
@@ -792,6 +800,7 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
             color: m.color,
             source_dir: m.source_dir,
             is_enabled: m.is_enabled != 0,
+            active_domains: m.active_domains.and_then(|s| serde_json::from_str(&s).ok()),
             recommended_workflows: m
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),

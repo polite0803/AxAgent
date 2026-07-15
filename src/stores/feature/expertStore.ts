@@ -81,6 +81,7 @@ interface AgencyExpertRow {
   is_enabled: boolean;
   recommended_workflows: string[] | null;
   recommended_tools: string[] | null;
+  active_domains: string[] | null;
 }
 
 function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
@@ -121,6 +122,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     recommendPermissionMode: PERMISSION_BY_CATEGORY[row.category] ?? "default",
     recommendedWorkflows: row.recommended_workflows ?? undefined,
     recommendedTools: row.recommended_tools ?? undefined,
+    activeDomains: row.active_domains ?? undefined,
     sortOrder: 0,
     isEnabled: row.is_enabled,
     createdAt: Date.now(),
@@ -169,6 +171,7 @@ interface ExpertState {
       category?: string;
       system_prompt?: string;
       is_enabled?: boolean;
+      active_domains?: string[];
     },
   ) => Promise<void>;
   exportAgencyExperts: () => Promise<string>;

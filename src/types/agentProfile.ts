@@ -30,6 +30,8 @@ export interface AgentProfile {
   recommendPermissionMode?: AgentBehaviorMode;
   recommendedTools?: string[];
   disallowedTools?: string[];
+  /** 工具域列表（仅 agency/custom 来源有效，展示用；builtin 无此字段） */
+  activeDomains?: string[];
   recommendedWorkflows?: string[];
   sortOrder: number;
   isEnabled: boolean;

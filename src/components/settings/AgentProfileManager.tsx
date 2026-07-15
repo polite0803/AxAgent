@@ -24,6 +24,7 @@ import {
   Spin,
   Tag,
   theme,
+  Tooltip,
   Typography,
 } from "antd";
 import {
@@ -31,6 +32,7 @@ import {
   Code,
   Database,
   Edit,
+  Edit3,
   FileText,
   FolderOpen,
   Globe,
@@ -82,7 +84,7 @@ export function AgentProfileManager() {
   const [form, setForm] = useState<CreateAgentProfileInput>(() => emptyProfile());
   const [saving, setSaving] = useState(false);
   const [roleOptions, setRoleOptions] = useState<
-    { value: string; label: string }[]
+    { value: string; label: string; activeDomains?: string[] }[]
   >([]);
   const [expertOptions, setExpertOptions] = useState<
     { value: string; label: string }[]
@@ -96,14 +98,28 @@ export function AgentProfileManager() {
 
   const loadRoles = useCallback(async () => {
     try {
-      const roles: { id: string; name: string }[] = await invoke("list_agent_roles");
-      setRoleOptions(Array.isArray(roles) ? roles.map((r) => ({ value: r.id, label: r.name })) : []);
+      const roles: { id: string; name: string; active_domains?: string[] }[] = await invoke("list_agent_roles");
+      setRoleOptions(
+        Array.isArray(roles) ? roles.map((r) => ({ value: r.id, label: r.name, activeDomains: r.active_domains })) : [],
+      );
     } catch {
       /* fallback */
     }
   }, []);
 
   const [importingRoles, setImportingRoles] = useState(false);
+  const [roleEditorOpen, setRoleEditorOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<
+    {
+      id: string;
+      name: string;
+      description: string;
+      systemPrompt: string;
+      activeDomains: string[];
+      source: string;
+    } | null
+  >(null);
+  const [editRoleSaving, setEditRoleSaving] = useState(false);
   const handleImportRoles = async () => {
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
@@ -138,6 +154,42 @@ export function AgentProfileManager() {
       setImportingRoles(false);
     }
   };
+
+  const handleEditRole = useCallback((roleId: string) => {
+    const role = roleOptions.find((r) => r.value === roleId);
+    if (!role) { return; }
+    setEditingRole({
+      id: roleId,
+      name: role.label,
+      description: "",
+      systemPrompt: "",
+      activeDomains: role.activeDomains ?? [],
+      source: "custom",
+    });
+    setRoleEditorOpen(true);
+  }, [roleOptions]);
+
+  const handleRoleEditorOk = useCallback(async () => {
+    if (!editingRole) { return; }
+    setEditRoleSaving(true);
+    try {
+      await invoke("save_agent_role", {
+        id: editingRole.id,
+        name: editingRole.name,
+        description: editingRole.description || null,
+        systemPrompt: editingRole.systemPrompt,
+        activeDomains: editingRole.activeDomains,
+        source: editingRole.source,
+      });
+      message.success(t("agentProfile.saveSuccess"));
+      setRoleEditorOpen(false);
+      await loadRoles();
+    } catch (e: any) {
+      message.error(String(e));
+    } finally {
+      setEditRoleSaving(false);
+    }
+  }, [editingRole, loadRoles]);
 
   const loadExperts = useCallback(async () => {
     try {
@@ -487,6 +539,72 @@ export function AgentProfileManager() {
           ))
         )}
 
+      {/* Role Editor Modal */}
+      <Modal
+        title={t("chat.workflow.agentProfileEdit")}
+        open={roleEditorOpen}
+        onCancel={() => setRoleEditorOpen(false)}
+        onOk={handleRoleEditorOk}
+        confirmLoading={editRoleSaving}
+        okText={t("common.save")}
+        cancelText={t("common.cancel")}
+        width={560}
+        destroyOnClose
+      >
+        {editingRole && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>ID</Text>
+              <Input size="small" value={editingRole.id} disabled />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>{t("common.name")}</Text>
+              <Input
+                size="small"
+                value={editingRole.name}
+                onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>{t("common.description")}</Text>
+              <Input
+                size="small"
+                value={editingRole.description}
+                onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
+              />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>{t("chat.workflow.agentProfileSystemPrompt")}</Text>
+              <Input.TextArea
+                rows={6}
+                size="small"
+                value={editingRole.systemPrompt}
+                onChange={(e) => setEditingRole({ ...editingRole, systemPrompt: e.target.value })}
+              />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>{t("settings.toolAccess")}</Text>
+              <Select
+                mode="multiple"
+                value={editingRole.activeDomains}
+                onChange={(v) => setEditingRole({ ...editingRole, activeDomains: v })}
+                size="small"
+                style={{ width: "100%" }}
+                placeholder={t("settings.toolAccess")}
+                options={[
+                  { value: "core", label: "Core" },
+                  { value: "general", label: "General" },
+                  { value: "devops", label: "Devops" },
+                  { value: "ai_media", label: "AI Media" },
+                  { value: "invest", label: "Invest" },
+                  { value: "opc", label: "OPC" },
+                ]}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Modal
         title={editingProfile
           ? `${t("chat.workflow.agentProfileEdit")} ${editingProfile.name}`
@@ -552,18 +670,31 @@ export function AgentProfileManager() {
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("chat.workflow.agentProfileRole")}
             </Text>
-            <Select
-              id="agent-profile-manager-select-34"
-              size="small"
-              style={{ width: "100%" }}
-              value={form.agentRole ?? ""}
-              onChange={(v) => setForm((prev) => ({ ...prev, agentRole: v || undefined }))}
-              options={[
-                { value: "", label: t("chat.workflow.agentProfileAutoRole") },
-                ...roleOptions,
-              ]}
-              allowClear
-            />
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <div style={{ flex: 1 }}>
+                <Select
+                  id="agent-profile-manager-select-34"
+                  size="small"
+                  style={{ width: "100%" }}
+                  value={form.agentRole ?? ""}
+                  onChange={(v) => setForm((prev) => ({ ...prev, agentRole: v || undefined }))}
+                  options={[
+                    { value: "", label: t("chat.workflow.agentProfileAutoRole") },
+                    ...roleOptions,
+                  ]}
+                  allowClear
+                />
+              </div>
+              <Tooltip title={t("common.edit")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Edit3 size={14} />}
+                  onClick={() => form.agentRole && handleEditRole(form.agentRole)}
+                  disabled={!form.agentRole}
+                />
+              </Tooltip>
+            </div>
           </div>
           <div>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -581,6 +712,47 @@ export function AgentProfileManager() {
               ]}
               allowClear
             />
+          </div>
+          <div
+            style={{
+              gridColumn: "span 2",
+              padding: 8,
+              background: token.colorBgContainerDisabled,
+              borderRadius: 6,
+              fontSize: 12,
+              color: token.colorTextSecondary,
+              lineHeight: 1.6,
+            }}
+          >
+            {form.agentRole || form.expertId
+              ? (
+                <>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                    {t("settings.toolAccess") + " " + t("common.inherit")}
+                  </div>
+                  {form.agentRole && (
+                    <div>
+                      {t("chat.workflow.agentProfileRole")}: <Tag>{form.agentRole}</Tag> {"\u2192"}{" "}
+                      {t("common.inherit")}
+                    </div>
+                  )}
+                  {form.expertId && (
+                    <div>
+                      {t("agentProfile.expertLabel")}:{" "}
+                      <Tag>{expertOptions.find((e) => e.value === form.expertId)?.label ?? form.expertId}</Tag>{" "}
+                      {"\u2192"} {t("common.inherit")}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 4, color: token.colorTextQuaternary }}>
+                    {t("settings.toolAccess") + ": " + t("common.inherit") + " (role + expert + extra/blocked)"}
+                  </div>
+                </>
+              )
+              : (
+                <div style={{ color: token.colorTextQuaternary }}>
+                  {t("settings.toolAccess") + ": Core + General (" + t("common.default") + ")"}
+                </div>
+              )}
           </div>
           <div style={{ gridColumn: "span 2" }}>
             <Text type="secondary" style={{ fontSize: 12 }}>

@@ -21,7 +21,6 @@ fn main() {
     #[cfg(target_os = "windows")]
     {
         println!("cargo:rustc-link-arg=/STACK:8388608");
-        println!("cargo:warning=Windows: set main thread stack to 8MB (8388608)");
     }
 
     tauri_build::build()

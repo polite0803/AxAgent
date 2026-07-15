@@ -10,7 +10,7 @@ pub struct Model {
     pub id: String,
     pub conversation_id: String,
     pub cwd: Option<String>,
-    pub workspace_locked: bool,
+    pub workspace_locked: i32,
     pub permission_mode: String,
     pub runtime_status: String,
     pub sdk_context_json: Option<String>,

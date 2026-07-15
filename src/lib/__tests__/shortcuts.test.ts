@@ -1,6 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// Mock i18n so that the module-level i18n.t() calls in shortcuts.ts return
+// the expected Chinese text rather than translation keys.
+vi.mock("@/i18n", () => ({
+  default: {
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        "shortcuts.feishuWechat": "飞书/微信",
+        "shortcuts.qqWechat": "QQ/微信",
+        "shortcuts.wechatWindows": "微信截图",
+      };
+      return map[key] ?? key;
+    },
+  },
+}));
 
 import type { AppSettings } from "@/types";
 import {

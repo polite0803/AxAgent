@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vite
 const messageError = vi.fn();
 
 vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: vi.fn() },
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
@@ -225,7 +226,13 @@ describe("useVoiceChat", () => {
     await flushTimers();
 
     expect(mockWsInstances[0].send).toHaveBeenCalledWith(
-      JSON.stringify({ type: "session.create", model: defaultConfig.model_id }),
+      JSON.stringify({
+        type: "session.create",
+        model: defaultConfig.model_id,
+        voice: null,
+        stt_provider: null,
+        tts_provider: null,
+      }),
     );
   });
 

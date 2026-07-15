@@ -14,6 +14,8 @@ pub struct Model {
     pub system_prompt: String,
     #[sea_orm(column_name = "default_tools")]
     pub default_tools: Option<String>,
+    #[sea_orm(column_name = "active_domains")]
+    pub active_domains: Option<String>,
     pub max_concurrent: i32,
     pub timeout_seconds: i64,
     pub source: String,

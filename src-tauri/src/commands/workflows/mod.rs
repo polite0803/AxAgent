@@ -5,7 +5,7 @@ use crate::commands::agent::skill_execution::{self, SkillStep};
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 use crate::commands::spawn_guard::SpawnGuard;
-use axagent_runtime::agent_roles;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -310,17 +310,7 @@ fn skill_steps_to_nodes_edges_with_offset(
         let step_id = format!("{}_step_{}", skill_id, s.step);
         step_offset_map.insert(s.step, step_id.clone());
 
-        let role = skill_execution::infer_agent_role(&s.action, &s.description);
-        let role_str = match role {
-            agent_roles::AgentRole::Researcher => "researcher",
-            agent_roles::AgentRole::Developer => "developer",
-            agent_roles::AgentRole::Reviewer => "reviewer",
-            agent_roles::AgentRole::Planner => "planner",
-            agent_roles::AgentRole::Synthesizer => "synthesizer",
-            agent_roles::AgentRole::Executor => "executor",
-            agent_roles::AgentRole::Coordinator => "coordinator",
-            agent_roles::AgentRole::Browser => "browser",
-        };
+        let role_str = skill_execution::infer_agent_role(&s.action, &s.description);
 
         let node = serde_json::json!({
             "id": step_id,

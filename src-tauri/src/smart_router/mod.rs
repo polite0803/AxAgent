@@ -958,18 +958,42 @@ impl CostAwareRouter {
     }
 
     /// 从 DB 加载全部路由历史（按时间倒序，最多 10000 条）。
+    ///
+    /// 如果 `route_history` 表尚不存在（例如 PostgreSQL 迁移首次启动前），
+    /// 静默返回空 Vec，不阻塞整个应用启动。表会在下次 migration 运行时创建。
     async fn load_all_history(
         db: &sea_orm::DatabaseConnection,
     ) -> Result<Vec<RouteHistoryEntry>, String> {
         use axagent_entities::route_history::{Column, Entity};
         use sea_orm::{EntityTrait, QueryOrder, QuerySelect};
 
-        let models = Entity::find()
-            .order_by_desc(Column::Timestamp)
-            .limit(10000)
-            .all(db)
-            .await
-            .map_err(|e| e.to_string())?;
+        let models =
+            match Entity::find().order_by_desc(Column::Timestamp).limit(10000).all(db).await {
+                Ok(m) => m,
+                Err(e) => {
+                    // Try to extract SQLSTATE code 42P01 (undefined_table) from
+                    // the SeaORM/sqlx error chain — locale-independent.
+                    let is_undefined_table = try_extract_pg_code_42p01(&e) || {
+                        // Fallback: locale-dependent string matching.
+                        // English:   relation "route_history" does not exist
+                        // Chinese:   关系 "route_history" 不存在
+                        // SQLite:    no such table: route_history
+                        let msg = e.to_string();
+                        msg.contains("does not exist")
+                            || msg.contains("no such table")
+                            || msg.contains("不存在")
+                    };
+
+                    if is_undefined_table {
+                        tracing::info!(
+                            "Smart Router: route_history table not found (first start?), \
+                         starting with empty history"
+                        );
+                        return Ok(Vec::new());
+                    }
+                    return Err(e.to_string());
+                },
+            };
 
         let mut entries = Vec::with_capacity(models.len());
         for m in models {
@@ -1013,6 +1037,23 @@ fn parse_model_tier(s: &str) -> ModelTier {
         "premium" => ModelTier::Premium,
         _ => ModelTier::Balanced,
     }
+}
+
+/// Try to extract PostgreSQL SQLSTATE code from a SeaORM `DbErr` and check
+/// for `42P01` (undefined_table / 关系不存在). Locale-independent.
+///
+/// Walks the error chain: `DbErr::Query → RuntimeErr::SqlxError →
+/// sqlx::Error::Database → PgDatabaseError::code()`.
+fn try_extract_pg_code_42p01(err: &sea_orm::DbErr) -> bool {
+    use sea_orm::RuntimeErr;
+    use std::ops::Deref;
+    let sea_orm::DbErr::Query(RuntimeErr::SqlxError(e)) = err else {
+        return false;
+    };
+    let sea_orm::sqlx::Error::Database(dbe) = e.deref() else {
+        return false;
+    };
+    dbe.code().is_some_and(|c| c == "42P01")
 }
 
 impl Default for CostAwareRouter {

@@ -60,7 +60,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             let mut am: agent_sessions::ActiveModel = model.into();
             if let Some(cwd) = cwd {
                 am.cwd = Set(Some(cwd.to_string()));
-                am.workspace_locked = Set(true);
+                am.workspace_locked = Set(1);
             }
             if let Some(pm) = permission_mode {
                 am.permission_mode = Set(pm.to_string());
@@ -85,7 +85,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             }
 
             let id = gen_id();
-            let workspace_locked = cwd.is_some();
+            let workspace_locked = if cwd.is_some() { 1 } else { 0 };
             let model = agent_sessions::ActiveModel {
                 id: Set(id),
                 conversation_id: Set(conversation_id.to_string()),

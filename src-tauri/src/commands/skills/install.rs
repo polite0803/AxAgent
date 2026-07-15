@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use super::management::{find_frontmatter_end, validate_and_read_skill_md};
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
@@ -143,6 +144,7 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
                 source_path: p
                     .metadata
                     .root
+                    .as_deref()
                     .map(|p| p.to_string_lossy().to_string())
                     .unwrap_or_default(),
                 enabled,
@@ -152,6 +154,7 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
                 when_to_use: None,
                 group: None,
                 manifest,
+                domain: read_skill_domain_from_frontmatter(p.metadata.root.as_deref()),
             };
             let existing = seen.get(&info.name);
             let should_replace = match existing {
@@ -207,6 +210,7 @@ pub async fn get_skill(
 
     let source_path =
         plugin.metadata.root.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+    let domain = read_skill_domain_from_frontmatter(plugin.metadata.root.as_deref());
     let skill_dir = plugin.metadata.root.unwrap_or(PathBuf::new());
 
     // List files in skill directory
@@ -245,6 +249,7 @@ pub async fn get_skill(
         when_to_use: None,
         group: None,
         manifest: raw_manifest_json,
+        domain,
     };
 
     Ok(SkillDetail { info, content, files, manifest: install_meta })
@@ -1045,4 +1050,91 @@ pub async fn uninstall_skill_group(group: String) -> Result<(), String> {
     }
 
     Err(format!("Skill group '{}' not found", group))
+}
+
+/// Read the `domain` field from a skill's SKILL.md frontmatter.
+fn read_skill_domain_from_frontmatter(skill_root: Option<&std::path::Path>) -> Option<String> {
+    let root = skill_root?;
+    let skill_md = root.join("SKILL.md");
+    let content = std::fs::read_to_string(&skill_md).ok()?;
+    let trimmed = content.trim_start();
+    if !trimmed.starts_with("---") {
+        return None;
+    }
+    let end = trimmed[3..].find("---")?;
+    let yaml_str = &trimmed[3..3 + end];
+    let parsed: serde_json::Value = serde_yaml::from_str(yaml_str).ok()?;
+    parsed.get("domain").and_then(|v| v.as_str()).map(|s| s.to_string())
+}
+
+#[tauri::command]
+pub async fn skill_set_domain(name: String, domain: String) -> Result<String, ErrorResponse> {
+    // Validate domain value
+    let domain = domain.to_lowercase();
+    let valid_domains = ["core", "general", "devops", "ai_media", "invest", "opc"];
+    if !valid_domains.contains(&domain.as_str()) {
+        return Err(ErrorResponse::new(format!(
+            "Invalid domain '{}'. Must be one of: {}",
+            domain,
+            valid_domains.join(", "),
+        )));
+    }
+
+    let (canonical_path, existing) = validate_and_read_skill_md(&name)?;
+
+    // Update or insert the `domain:` field in YAML frontmatter
+    let edited = if let Some(fm_end) = find_frontmatter_end(&existing) {
+        let frontmatter = &existing[..fm_end];
+        let body = &existing[fm_end..];
+        let updated_fm = upsert_yaml_field(frontmatter, "domain", &domain);
+        format!("{}{}", updated_fm, body)
+    } else {
+        // No frontmatter: wrap the whole content with frontmatter containing domain
+        format!("---\ndomain: {}\n---\n\n{}", domain, existing)
+    };
+
+    std::fs::write(&canonical_path, &edited).map_err(|e| e.to_string())?;
+    Ok(format!("Skill '{}' domain set to {}", name, domain))
+}
+
+/// Upsert a top-level YAML field in frontmatter text (e.g. `domain: invest`).
+/// Handles leading `---\n` and trailing `\n---`.
+fn upsert_yaml_field(frontmatter: &str, key: &str, value: &str) -> String {
+    let trimmed = frontmatter.trim_start();
+    let prefix = &frontmatter[..frontmatter.len() - trimmed.len()];
+    let without_prefix = trimmed;
+
+    // Try to match an existing line `key: ...` or `key:...`
+    let key_pattern = format!("{}:", key);
+    let replaced: String = without_prefix
+        .lines()
+        .enumerate()
+        .map(|(i, line)| {
+            let stripped = line.trim_start();
+            if stripped.starts_with(&key_pattern) || stripped.starts_with(&format!("{}:", key)) {
+                format!("{}: {}", key, value)
+            } else if i == 0 && line.starts_with("---") {
+                // First line: keep the frontmatter open marker, insert domain after it
+                line.to_string()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    if replaced.contains(&key_pattern) {
+        format!("{}{}", prefix, replaced)
+    } else {
+        // Key not found: insert after first --- line
+        let first_newline = without_prefix.find('\n').unwrap_or(without_prefix.len());
+        format!(
+            "{}{}\n{}: {}\n{}",
+            prefix,
+            &without_prefix[..first_newline],
+            key,
+            value,
+            without_prefix[first_newline..].trim_start()
+        )
+    }
 }

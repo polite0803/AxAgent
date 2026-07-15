@@ -88,7 +88,7 @@ export function DatabaseSettings() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t("settings.database.restartHint")}
+        title={t("settings.database.restartHint")}
       />
 
       <Form
@@ -119,7 +119,7 @@ export function DatabaseSettings() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={t("settings.database.pgNote")}
+                title={t("settings.database.pgNote")}
               />
               <Form.Item
                 name="pg_host"

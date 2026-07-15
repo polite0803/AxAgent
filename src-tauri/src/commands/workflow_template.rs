@@ -868,6 +868,7 @@ async fn ensure_agent_role(db: &DatabaseConnection, role_name: &str) -> Result<(
             description: Set(Some(format!("Auto-created from n8n import: {}", role_name))),
             system_prompt: Set(String::new()),
             default_tools: Set(None),
+            active_domains: Set(None),
             max_concurrent: Set(3),
             timeout_seconds: Set(600),
             source: Set("imported".to_string()),
@@ -916,6 +917,7 @@ async fn ensure_agent_profile(
             imported_at: Set(now),
             recommended_workflows: Set(None),
             recommended_tools: Set(None),
+            active_domains: Set(None),
         };
         agency_experts::Entity::insert(expert_am)
             .exec(db)

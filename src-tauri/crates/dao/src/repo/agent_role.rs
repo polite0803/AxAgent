@@ -10,6 +10,8 @@ use axagent_harness::types::AgentRoleDef;
 fn role_from_entity(m: agent_roles::Model) -> AgentRoleDef {
     let tools: Vec<String> =
         m.default_tools.as_deref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default();
+    let domains: Vec<String> =
+        m.active_domains.as_deref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default();
 
     AgentRoleDef {
         id: m.id,
@@ -17,6 +19,7 @@ fn role_from_entity(m: agent_roles::Model) -> AgentRoleDef {
         description: m.description,
         system_prompt: m.system_prompt,
         default_tools: tools,
+        active_domains: domains,
         max_concurrent: m.max_concurrent as usize,
         timeout_seconds: m.timeout_seconds as u64,
         source: m.source,
@@ -56,12 +59,14 @@ pub async fn upsert_agent_role(
     description: Option<&str>,
     system_prompt: &str,
     default_tools: &[String],
+    active_domains: &[String],
     max_concurrent: i32,
     timeout_seconds: i64,
     source: &str,
 ) -> Result<AgentRoleDef> {
     let now = axagent_harness::util_fns::now_ts();
     let tools_json = serde_json::to_string(default_tools).unwrap_or_default();
+    let domains_json = serde_json::to_string(active_domains).unwrap_or_default();
 
     let am = agent_roles::ActiveModel {
         id: Set(id.to_string()),
@@ -72,6 +77,11 @@ pub async fn upsert_agent_role(
             None
         } else {
             Some(tools_json)
+        }),
+        active_domains: Set(if active_domains.is_empty() {
+            None
+        } else {
+            Some(domains_json)
         }),
         max_concurrent: Set(max_concurrent),
         timeout_seconds: Set(timeout_seconds),
@@ -88,6 +98,7 @@ pub async fn upsert_agent_role(
                 .update_column(agent_roles::Column::Description)
                 .update_column(agent_roles::Column::SystemPrompt)
                 .update_column(agent_roles::Column::DefaultTools)
+                .update_column(agent_roles::Column::ActiveDomains)
                 .update_column(agent_roles::Column::MaxConcurrent)
                 .update_column(agent_roles::Column::TimeoutSeconds)
                 .update_column(agent_roles::Column::UpdatedAt)

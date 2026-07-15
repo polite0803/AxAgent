@@ -357,9 +357,7 @@ pub async fn list_checkpoints(state: State<'_, AppState>) -> Result<Vec<Checkpoi
 /// 从 TrajectoryStorage 采集最近的轨迹数据，计算奖励信号，
 /// 并更新奖励权重向量。返回训练后的指标摘要。
 #[command]
-pub async fn run_rl_training_step(
-    state: State<'_, AppState>,
-) -> Result<serde_json::Value, String> {
+pub async fn run_rl_training_step(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     // 1. 获取最近的轨迹数据
     let mut trajectories = state
         .trajectory_storage
@@ -404,11 +402,21 @@ pub async fn run_rl_training_step(
     }
     drop(rl_engine);
 
-    let avg_reward = if processed > 0 { total_reward / processed as f64 } else { 0.0 };
-    let avg_tool_eff =
-        if processed > 0 { total_tool_efficiency / processed as f64 } else { 0.0 };
-    let avg_reasoning =
-        if processed > 0 { total_reasoning_quality / processed as f64 } else { 0.0 };
+    let avg_reward = if processed > 0 {
+        total_reward / processed as f64
+    } else {
+        0.0
+    };
+    let avg_tool_eff = if processed > 0 {
+        total_tool_efficiency / processed as f64
+    } else {
+        0.0
+    };
+    let avg_reasoning = if processed > 0 {
+        total_reasoning_quality / processed as f64
+    } else {
+        0.0
+    };
 
     // 3. 计算简化损失
     let loss = (1.0 - avg_reward.clamp(0.0, 1.0)).max(0.0);

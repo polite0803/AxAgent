@@ -1758,7 +1758,7 @@ impl AgentSessionRepository for EmptyAgentSessionRepository {
             id: String::new(),
             conversation_id: conversation_id.to_string(),
             cwd: None,
-            workspace_locked: false,
+            workspace_locked: 0,
             permission_mode: permission_mode.unwrap_or("default").to_string(),
             runtime_status: String::new(),
             sdk_context_json: None,

@@ -60,6 +60,8 @@ export interface ExpertRole {
 
   /** 推荐的工具名称列表（导入时自动解析匹配） */
   recommendedTools?: string[];
+  /** 活跃工具域列表（例如 ["core", "invest"]） */
+  activeDomains?: string[];
   /** 推荐的工作流模板 ID 列表（导入时自动解析并创建） */
   recommendedWorkflows?: string[];
   /** @deprecated 指向对应的 AgentProfile ID，用于向后兼容过渡 */
