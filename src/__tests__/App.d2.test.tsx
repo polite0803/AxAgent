@@ -34,7 +34,18 @@ vi.mock("antd", () => ({
   App: Object.assign(
     ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     {
-      useApp: () => ({ modal: { confirm: vi.fn() } }),
+      useApp: () => ({
+        modal: { confirm: vi.fn() },
+        message: {
+          success: vi.fn(),
+          error: vi.fn(),
+          info: vi.fn(),
+          warning: vi.fn(),
+          loading: vi.fn(),
+          open: vi.fn(),
+          destroy: vi.fn(),
+        },
+      }),
     },
   ),
   Layout: Object.assign(
@@ -51,6 +62,16 @@ vi.mock("antd", () => ({
   Typography: {
     Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
     Paragraph: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+  },
+  message: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    loading: vi.fn(),
+    open: vi.fn(),
+    destroy: vi.fn(),
+    useMessage: () => [vi.fn(), null],
   },
   theme: {
     useToken: () => ({
@@ -165,6 +186,12 @@ vi.mock("@/stores", () => ({
       }),
     },
   ),
+  useAgentPanelStore: () => ({
+    isVisible: false,
+    togglePanel: vi.fn(),
+    showPanel: vi.fn(),
+    hidePanel: vi.fn(),
+  }),
 }));
 
 vi.mock("@/hooks/useKeyboardShortcuts", () => ({
@@ -185,6 +212,20 @@ vi.mock("@/lib/invoke", () => ({
   checkIpcHealth: vi.fn().mockResolvedValue({ ok: true }),
   listen: vi.fn().mockResolvedValue(() => {}),
   logIpcError: vi.fn(),
+}));
+
+vi.mock("@/lib/toast", () => ({
+  message: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    loading: vi.fn(),
+    open: vi.fn(),
+    destroy: vi.fn(),
+    useMessage: () => [vi.fn(), null],
+  },
+  setMessageInstance: vi.fn(),
 }));
 
 vi.mock("@/i18n", () => ({
@@ -276,6 +317,7 @@ vi.mock("@ant-design/icons", () =>
 
 vi.mock("@/lib/preloadChatRenderers", () => ({
   preloadChatRenderers,
+  preloadCommonPages: vi.fn(),
 }));
 
 vi.mock("@lobehub/ui", () => ({}));

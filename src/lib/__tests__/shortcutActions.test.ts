@@ -33,6 +33,18 @@ vi.mock("@/lib/invoke", () => ({
   invoke: mockInvoke,
 }));
 
+vi.mock("@/lib/toast", () => ({
+  message: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: mockMessageInfo,
+    warning: vi.fn(),
+    loading: vi.fn(),
+    open: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/shortcuts", async () => {
   const actual = await vi.importActual<typeof import("../shortcuts")>("../shortcuts");
   return {

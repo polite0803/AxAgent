@@ -13,6 +13,22 @@ vi.mock("@/lib/invoke", () => ({
   isTauri: () => false,
 }));
 
+vi.mock("@/lib/toast", () => ({
+  message: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    loading: vi.fn(),
+    open: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
+
+vi.mock("@/components/layout/NotificationBell", () => ({
+  pushNotification: vi.fn(),
+}));
+
 // 注入 preferenceStore 引用（Vitest 模块加载器下循环依赖不会自动触发注入）
 _injectPreferenceStore(usePreferenceStore);
 
