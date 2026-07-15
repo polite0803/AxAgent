@@ -1,54 +1,12 @@
 {
   "version": "2",
   "generated": "2026-07-15",
-  "total_entries": 93,
-  "total_files": 93,
+  "total_entries": 74,
+  "total_files": 74,
   "entries": [
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\App.tsx",
-      "lines": "295",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\__tests__\\WebSearchNode.test.tsx",
       "lines": "11,12,13,33",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\ArtifactPreview\\ChartPreview.tsx",
-      "lines": "54",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\ArtifactPreview\\HtmlPreview.tsx",
-      "lines": "90",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\ArtifactPreview\\ReactPreview.tsx",
-      "lines": "98",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\ChatSidebar.tsx",
-      "lines": "2297",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\InputArea.tsx",
-      "lines": "2533",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\InputAreaHidden.tsx",
-      "lines": "88",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -65,20 +23,8 @@
       "phase": 3
     },
     {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\devtools\\SpanDetail.tsx",
-      "lines": "64",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\devtools\\TraceDetail.tsx",
-      "lines": "124",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\dynamicUI\\DynamicUIPreview.tsx",
-      "lines": "24,30,100",
+      "lines": "24,30",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -95,20 +41,8 @@
       "phase": 3
     },
     {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\layout\\AppHeader.tsx",
-      "lines": "136",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\layout\\AppInitializer.tsx",
       "lines": "36,59,63,98",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\layout\\Sidebar.tsx",
-      "lines": "486",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -137,32 +71,14 @@
       "phase": 3
     },
     {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\SearchProviderSettings.tsx",
-      "lines": "509",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\SettingsPanel.tsx",
-      "lines": "378,446",
+      "lines": "446",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\settingsSearchIndex.ts",
       "lines": "41,46,52,54,56,57,59,66,71,76,81,86,93,98,103,108,113,118,123,128,133,141,143,145,146,147,148,149,151,152,161,166,171,176,181,186,191,198,203,208,213,218,223,228,233,238,243,248,255,260,265,270,275,282,287,292,297,302,308,310,311,313,315,323,328,333,338,343,348,353,358,363,370,375,380,385,390,397,402,407,412,417,422,429,434,439,444,451,456,461,466,471,476,481,486,491,496,501,506,511,518,523,528,533,538,543,548,553,558,563,568,573,578,583,588,593,598,603,608,613,618,623,628,633,638,643,648,653,658,663,668,675,680,685,690,695,700,705,710,715,722,727,732,737,742,747,752,757,762,767,772,777",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\shared\\ErrorBoundary.tsx",
-      "lines": "71",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\skill\\SkillVersionTimeline.tsx",
-      "lines": "98",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -186,31 +102,13 @@
     },
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\AIPanel\\AIPanel.tsx",
-      "lines": "45,46,47,48,240,259,281,304,311,322",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\DebugPanel.tsx",
-      "lines": "112,113,117,1747,1748,1749,1752,1756,1873,1874,1875,1878,1882",
+      "lines": "240,259,281,304,311,322",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\NLParserPanel.tsx",
       "lines": "18,19,20",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Nodes\\SubWorkflowNode.tsx",
-      "lines": "115,246",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Nodes\\WorkflowRefNode.tsx",
-      "lines": "92",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -289,12 +187,6 @@
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\VectorRetrievePropertyPanel.tsx",
       "lines": "55,56",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Templates\\VersionHistoryModal.tsx",
-      "lines": "326,335",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -487,12 +379,6 @@
     {
       "file": "D:\\OneManager\\AxAgent\\src\\lib\\storage.ts",
       "lines": "37,39,45",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\pages\\ChatPage.tsx",
-      "lines": "278,312",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
