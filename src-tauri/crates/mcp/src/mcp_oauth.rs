@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use base64::Engine;
-use rand::RngCore;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::sync::RwLock;
@@ -403,7 +403,7 @@ static PENDING_OAUTH: std::sync::OnceLock<Mutex<HashMap<String, PendingOAuthStat
 /// 生成 PKCE code_verifier 与 code_challenge（S256）。
 fn generate_pkce_pair() -> (String, String) {
     let mut buf = [0u8; 64];
-    rand::thread_rng().fill_bytes(&mut buf);
+    rand::rng().fill(&mut buf);
     let verifier = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(buf);
     let mut hasher = Sha256::new();
     hasher.update(verifier.as_bytes());
@@ -424,7 +424,7 @@ pub fn begin_oauth_authorization(
 ) -> std::result::Result<String, String> {
     let (verifier, challenge) = generate_pkce_pair();
     let mut state_buf = [0u8; 16];
-    rand::thread_rng().fill_bytes(&mut state_buf);
+    rand::rng().fill(&mut state_buf);
     let state = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(state_buf);
 
     let pending = PendingOAuthState {

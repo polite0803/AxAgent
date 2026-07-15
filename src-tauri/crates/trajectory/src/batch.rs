@@ -115,7 +115,7 @@ impl BatchProcessor {
     ) -> Vec<Trajectory> {
         match strategy {
             SamplingStrategy::Random => {
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 let mut trajectories: Vec<_> = trajectories.iter().collect();
                 trajectories.shuffle(&mut rng);
                 trajectories.into_iter().take(sample_size).cloned().collect()

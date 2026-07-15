@@ -5936,7 +5936,8 @@
       "visualEditor": "비주얼 에디터",
       "visualEditorDesc": "드래그 앤 드롭 DAG 에디터로 워크플로우 만들기 및 편집"
     },
-    "zhipu": "지푸"
+    "zhipu": "지푸",
+    "groupVoice": "음성"
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"
@@ -6742,7 +6743,11 @@
     "startCall": "통화 시작",
     "toggleMute": "음소거 전환",
     "wakeup": "음성 웨이크",
-    "wakeupActive": "웨이크업 대기 중"
+    "wakeupActive": "웨이크업 대기 중",
+    "voiceType": "음성 유형",
+    "sttProvider": "음성 인식 공급자",
+    "ttsProvider": "음성 합성 공급자",
+    "providerAuto": "자동 (LLM과 동일 공급자 사용)"
   },
   "watchlist": {
     "placeholder": "관심종목과 가격 알림을 관리",

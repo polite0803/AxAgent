@@ -5944,7 +5944,8 @@
       "visualEditor": "可視化編輯器",
       "visualEditorDesc": "使用拖拽式 DAG 編輯器創建和編輯工作流"
     },
-    "zhipu": "智譜"
+    "zhipu": "智譜",
+    "groupVoice": "語音"
   },
   "settingsPage": {
     "refreshPage": "刷新頁面"
@@ -6789,7 +6790,11 @@
     "startCall": "開始語音通話",
     "toggleMute": "切換靜音",
     "wakeup": "語音喚醒",
-    "wakeupActive": "語音喚醒監聽中"
+    "wakeupActive": "語音喚醒監聽中",
+    "voiceType": "語音類型",
+    "sttProvider": "語音識別提供商",
+    "ttsProvider": "語音合成提供商",
+    "providerAuto": "自動（使用 LLM 同一家）"
   },
   "watchlist": {
     "placeholder": "管理你的自選股和價格提醒",

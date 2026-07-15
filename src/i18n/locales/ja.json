@@ -5961,7 +5961,8 @@
       "visualEditor": "ビジュアルエディタ",
       "visualEditorDesc": "ドラッグ式 DAG エディタでワークフローを作成・編集"
     },
-    "zhipu": "Zhipu"
+    "zhipu": "Zhipu",
+    "groupVoice": "音声"
   },
   "settingsPage": {
     "refreshPage": "ページを更新"
@@ -6767,7 +6768,11 @@
     "startCall": "通話を開始",
     "toggleMute": "ミュートを切り替え",
     "wakeup": "音声起動",
-    "wakeupActive": "起動待機中"
+    "wakeupActive": "起動待機中",
+    "voiceType": "音声タイプ",
+    "sttProvider": "音声認識プロバイダー",
+    "ttsProvider": "音声合成プロバイダー",
+    "providerAuto": "自動（LLMと同じプロバイダーを使用）"
   },
   "watchlist": {
     "placeholder": "Manage your watchlist and price alerts",

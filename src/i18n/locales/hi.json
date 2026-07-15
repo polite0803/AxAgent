@@ -5961,7 +5961,8 @@
       "visualEditor": "विज़ुअल संपादक",
       "visualEditorDesc": "ड्रैग-एंड-ड्रॉप DAG संपादक से वर्कफ़्लो बनाएं"
     },
-    "zhipu": "ज़िपू"
+    "zhipu": "ज़िपू",
+    "groupVoice": "आवाज़"
   },
   "settingsPage": {
     "refreshPage": "पृष्ठ रीफ़्रेश करें"
@@ -6767,7 +6768,11 @@
     "startCall": "वॉयस कॉल शुरू करें",
     "toggleMute": "म्यूट टॉगल करें",
     "wakeup": "वॉयस वेक",
-    "wakeupActive": "वेकअप सुन रहा है"
+    "wakeupActive": "वेकअप सुन रहा है",
+    "voiceType": "आवाज़ प्रकार",
+    "sttProvider": "STT प्रदाता",
+    "ttsProvider": "TTS प्रदाता",
+    "providerAuto": "स्वचालित (उसी LLM प्रदाता का उपयोग करें)"
   },
   "watchlist": {
     "placeholder": "वॉचलिस्ट और मूल्य अलर्ट प्रबंधित करें",

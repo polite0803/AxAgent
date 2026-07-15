@@ -18,7 +18,7 @@ pub use axagent_harness::trajectory_types::{
 
 use crate::skill::{Skill, SkillModification, SkillValidationResult};
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
@@ -111,7 +111,7 @@ impl EvolutionPopulation {
             let parent1 = tournament_select(&self.individuals, 3);
             let parent2 = tournament_select(&self.individuals, 3);
 
-            let child = if rand::thread_rng().r#gen::<f64>() < config.crossover_rate {
+            let child = if rand::rng().random::<f64>() < config.crossover_rate {
                 crossover_genomes(&parent1, &parent2)
             } else {
                 parent1.clone()
@@ -149,7 +149,7 @@ impl EvolutionPopulation {
 }
 
 fn tournament_select(population: &[SkillGenome], tournament_size: usize) -> SkillGenome {
-    use rand::seq::SliceRandom;
+    use rand::seq::IndexedRandom;
 
     // P1-10: 空种群直接 panic 防护
     if population.is_empty() {
@@ -163,10 +163,10 @@ fn tournament_select(population: &[SkillGenome], tournament_size: usize) -> Skil
         };
     }
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let size = population.len().min(tournament_size);
     let indices: Vec<usize> = (0..population.len()).collect();
-    let selected: Vec<usize> = indices.choose_multiple(&mut rng, size).cloned().collect();
+    let selected: Vec<usize> = indices.sample(&mut rng, size).cloned().collect();
 
     if selected.is_empty() {
         return population[0].clone();
@@ -191,9 +191,9 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
         return parent1.clone();
     }
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
-    let cross_point = rng.gen_range(1..parent1.steps.len().max(2)).min(parent1.steps.len());
+    let cross_point = rng.random_range(1..parent1.steps.len().max(2)).min(parent1.steps.len());
 
     let mut child_steps = parent1.steps[..cross_point].to_vec();
     if cross_point < parent2.steps.len() {
@@ -205,7 +205,7 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
     SkillGenome {
         skill_id: parent1.skill_id.clone(),
         content: child_content,
-        description: if rng.r#gen::<bool>() {
+        description: if rng.random::<bool>() {
             parent1.description.clone()
         } else {
             parent2.description.clone()
@@ -216,17 +216,17 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
 }
 
 fn mutate_genome(genome: &SkillGenome, mutation_rate: f64) -> SkillGenome {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut new_steps: Vec<ProcedureStep> = genome.steps.clone();
 
     for i in 0..new_steps.len() {
         // P1-9: 修复判断逻辑——当随机数 < mutation_rate 时触发变异
-        if rng.r#gen::<f64>() >= mutation_rate {
+        if rng.random::<f64>() >= mutation_rate {
             continue;
         }
 
         // 随机选择有意义的变异类型
-        match rng.gen_range(0u8..4) {
+        match rng.random_range(0u8..4) {
             // 0: 交换相邻步骤顺序
             0 if i + 1 < new_steps.len() => {
                 let j = i + 1;

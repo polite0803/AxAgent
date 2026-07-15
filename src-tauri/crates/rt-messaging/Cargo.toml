@@ -7,13 +7,13 @@ publish = false
 [dependencies]
 anyhow = { workspace = true }
 async-trait = "0.1"
-hex = { workspace = true }
 axagent-crypto = { path = "../crypto" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 chrono = { workspace = true }
 flate2 = "1"
 futures = "0.3"
+hex = { workspace = true }
 regex = "1"
 reqwest = { workspace = true, features = ["multipart", "cookies"] }
 roxmltree = "0.21"

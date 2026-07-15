@@ -2926,7 +2926,8 @@
         "description": "Describe the user's profile, preferences, and needs",
         "placeholder": "User profile information..."
       }
-    }
+    },
+    "groupVoice": "Voice"
   },
   "backup": {
     "title": "Backup Center",
@@ -3247,7 +3248,11 @@
     "endCall": "End Call",
     "toggleMute": "Toggle Mute",
     "wakeup": "Voice Wake",
-    "wakeupActive": "Wakeup Listening"
+    "wakeupActive": "Wakeup Listening",
+    "voiceType": "Voice Type",
+    "sttProvider": "STT Provider",
+    "ttsProvider": "TTS Provider",
+    "providerAuto": "Auto (Use LLM provider)"
   },
   "shortcuts": {
     "newConversation": "New Conversation",

@@ -5961,7 +5961,8 @@
       "visualEditor": "Editor visual",
       "visualEditorDesc": "Crear y editar flujos de trabajo con el editor DAG de arrastrar y soltar"
     },
-    "zhipu": "Zhipu"
+    "zhipu": "Zhipu",
+    "groupVoice": "Voz"
   },
   "settingsPage": {
     "refreshPage": "Actualizar página"
@@ -6767,7 +6768,11 @@
     "startCall": "Iniciar llamada de voz",
     "toggleMute": "Activar/desactivar silencio",
     "wakeup": "Activación por voz",
-    "wakeupActive": "Escucha activa"
+    "wakeupActive": "Escucha activa",
+    "voiceType": "Tipo de voz",
+    "sttProvider": "Proveedor de STT",
+    "ttsProvider": "Proveedor de TTS",
+    "providerAuto": "Automático (usar el mismo proveedor LLM)"
   },
   "watchlist": {
     "placeholder": "Gestionar lista y alertas de precio",

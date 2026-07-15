@@ -631,6 +631,8 @@ export interface RealtimeConfig {
   model_id: string;
   voice: string | null;
   audio_format: AudioFormat;
+  stt_provider_id?: string | null;
+  tts_provider_id?: string | null;
 }
 
 // === Gateway Link (Client-side Gateway Connection) ===

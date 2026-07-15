@@ -5920,7 +5920,8 @@
       "visualEditor": "محرر مرئي",
       "visualEditorDesc": "إنشاء وتحرير سير العمل باستخدام محرر DAG بالسحب والإفلات"
     },
-    "zhipu": "زيبو"
+    "zhipu": "زيبو",
+    "groupVoice": "الصوت"
   },
   "settingsPage": {
     "refreshPage": "تحديث الصفحة"
@@ -6729,7 +6730,11 @@
     "startCall": "بدء مكالمة صوتية",
     "toggleMute": "تبديل كتم الصوت",
     "wakeup": "التنبيه الصوتي",
-    "wakeupActive": "الاستماع للتنبيه"
+    "wakeupActive": "الاستماع للتنبيه",
+    "voiceType": "نوع الصوت",
+    "sttProvider": "موفر التعرف على الكلام",
+    "ttsProvider": "موفر تركيب الكلام",
+    "providerAuto": "تلقائي (استخدام نفس موفر LLM)"
   },
   "watchlist": {
     "placeholder": "إدارة قائمة المراقبة وتنبيهات الأسعار",

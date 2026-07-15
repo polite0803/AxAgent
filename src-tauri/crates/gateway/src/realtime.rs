@@ -37,7 +37,12 @@ use crate::server::GatewayAppState;
 #[serde(tag = "type")]
 enum RealtimeClientMessage {
     #[serde(rename = "session.create")]
-    SessionCreate { model: String, voice: Option<String> },
+    SessionCreate {
+        model: String,
+        voice: Option<String>,
+        stt_provider: Option<String>,
+        tts_provider: Option<String>,
+    },
     /// 前端 VAD 检测到静音后发送：把当前缓冲的音频提交做 STT→LLM→TTS 一轮。
     #[serde(rename = "input_audio_buffer.commit")]
     AudioCommit,
@@ -385,7 +390,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
 
     // ── Phase 1: 等待 session.create ──────────────────────────────
 
-    let (resolved_model, voice_opt) = loop {
+    let (resolved_model, voice_opt, stt_provider_opt, tts_provider_opt) = loop {
         tokio::select! {
             biased;
             _ = tokio::time::sleep_until(
@@ -428,8 +433,8 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                             },
                         };
                         match client_msg {
-                            RealtimeClientMessage::SessionCreate { model, voice } => {
-                                break (model, voice);
+                            RealtimeClientMessage::SessionCreate { model, voice, stt_provider, tts_provider } => {
+                                break (model, voice, stt_provider, tts_provider);
                             },
                             _ => {
                                 let _ = send_msg(&mut socket, &RealtimeServerMessage::Error {
@@ -452,7 +457,8 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
 
     // ── Phase 2: 解析提供商并校验语音能力 ───────────────────────
 
-    let (provider_config, provider_key, _resolved_for_node) = match state
+    // 2a. LLM 主提供商
+    let (llm_provider_config, llm_provider_key, _resolved_for_node) = match state
         .adapter
         .providers()
         .resolve_model_for_node(Some(&resolved_model), None, None, None)
@@ -472,8 +478,8 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
         },
     };
 
-    let adapter =
-        match state.provider_registry.get(provider_type_to_str(&provider_config.provider_type)) {
+    let llm_adapter =
+        match state.provider_registry.get(provider_type_to_str(&llm_provider_config.provider_type)) {
             Some(a) => a,
             None => {
                 let _ = send_msg(
@@ -481,7 +487,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                     &RealtimeServerMessage::Error {
                         message: format!(
                             "Provider type '{}' not found in registry",
-                            provider_type_to_str(&provider_config.provider_type)
+                            provider_type_to_str(&llm_provider_config.provider_type)
                         ),
                     },
                 )
@@ -490,23 +496,44 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
             },
         };
 
-    // 语音能力校验：本会话需要同一个 provider 同时支持 STT / LLM / TTS。
-    // 既有的「系统模型服务商」只要实现了 harness 的语音 trait 即可，不绑定厂商。
-    let caps = adapter.supports_speech();
-    if !caps.stt || !caps.tts {
-        let _ = send_msg(
-            &mut socket,
-            &RealtimeServerMessage::Error {
-                message:
-                    "当前模型提供商不支持语音（需要同时支持 STT/TTS/LLM 的提供商，如 OpenAI 系列）"
-                        .to_string(),
-            },
-        )
-        .await;
-        return;
+    // 2b. 辅助函数：按 provider_id 查找适配器和解密 key
+    async fn resolve_speech_adapter<'a>(
+        provider_id: &str,
+        state: &'a GatewayAppState,
+    ) -> Result<(Arc<dyn ProviderAdapter>, ProviderRequestContext), String> {
+        let providers = state.adapter.providers();
+        let configs = providers.list_providers().await.map_err(|e| e.to_string())?;
+        let cfg = configs.iter().find(|p| p.id == provider_id)
+            .ok_or_else(|| format!("STT/TTS provider '{}' not found", provider_id))?;
+        let adapter = state.provider_registry
+            .get(provider_type_to_str(&cfg.provider_type))
+            .ok_or_else(|| format!("Provider type '{}' not in registry", provider_type_to_str(&cfg.provider_type)))?;
+        let caps = adapter.supports_speech();
+        if !caps.stt && !caps.tts {
+            return Err(format!("Provider '{}' (type '{}') does not support speech", provider_id, provider_type_to_str(&cfg.provider_type)));
+        }
+        let key = providers.get_active_key(&cfg.id).await.map_err(|e| e.to_string())?;
+        let decrypted = state.adapter.crypto().decrypt_key(&key.key_encrypted)
+            .map_err(|e| format!("Failed to decrypt key: {}", e))?;
+        let ctx = ProviderRequestContext {
+            api_key: decrypted,
+            key_id: key.id,
+            provider_id: cfg.id.clone(),
+            base_url: Some(cfg.api_host.clone()),
+            api_path: cfg.api_path.clone(),
+            proxy_config: cfg.proxy_config.clone(),
+            custom_headers: cfg.custom_headers.as_ref()
+                .and_then(|s| serde_json::from_str(s).ok()),
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        };
+        Ok((adapter, ctx))
     }
 
-    let decrypted_key = match state.adapter.crypto().decrypt_key(&provider_key.key_encrypted) {
+    // 2c. 解析 LLM key + ctx（沿用主提供商）
+    let llm_decrypted_key = match state.adapter.crypto().decrypt_key(&llm_provider_key.key_encrypted) {
         Ok(k) => k,
         Err(e) => {
             tracing::error!(error = %e, "Failed to decrypt provider key");
@@ -518,15 +545,14 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
             return;
         },
     };
-
-    let ctx = ProviderRequestContext {
-        api_key: decrypted_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider_config.id.clone(),
-        base_url: Some(provider_config.api_host.clone()),
-        api_path: provider_config.api_path.clone(),
-        proxy_config: provider_config.proxy_config.clone(),
-        custom_headers: provider_config
+    let llm_ctx = ProviderRequestContext {
+        api_key: llm_decrypted_key,
+        key_id: llm_provider_key.id.clone(),
+        provider_id: llm_provider_config.id.clone(),
+        base_url: Some(llm_provider_config.api_host.clone()),
+        api_path: llm_provider_config.api_path.clone(),
+        proxy_config: llm_provider_config.proxy_config.clone(),
+        custom_headers: llm_provider_config
             .custom_headers
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok()),
@@ -536,9 +562,47 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
         store_response: None,
     };
 
+    // 2d. 解析 STT / TTS 适配器（可选用不同提供商）
+    let (stt_adapter, stt_ctx) = match stt_provider_opt.as_ref() {
+        Some(pid) => match resolve_speech_adapter(pid, &state).await {
+            Ok(r) => r,
+            Err(e) => {
+                let _ = send_msg(&mut socket, &RealtimeServerMessage::Error { message: e }).await;
+                return;
+            },
+        },
+        None => (llm_adapter.clone(), llm_ctx.clone()),
+    };
+    let (tts_adapter, tts_ctx) = match tts_provider_opt.as_ref() {
+        Some(pid) => match resolve_speech_adapter(pid, &state).await {
+            Ok(r) => r,
+            Err(e) => {
+                let _ = send_msg(&mut socket, &RealtimeServerMessage::Error { message: e }).await;
+                return;
+            },
+        },
+        None => (llm_adapter.clone(), llm_ctx.clone()),
+    };
+
+    // 2e. 校验语音能力
+    let stt_caps = stt_adapter.supports_speech();
+    let tts_caps = tts_adapter.supports_speech();
+    if !stt_caps.stt || !tts_caps.tts {
+        let _ = send_msg(
+            &mut socket,
+            &RealtimeServerMessage::Error {
+                message:
+                    "当前模型提供商不支持语音（STT/TTS 提供商需分别支持语音能力）"
+                        .to_string(),
+            },
+        )
+        .await;
+        return;
+    }
+
     tracing::info!(
         session_id = %session_id,
-        provider = %provider_type_to_str(&provider_config.provider_type),
+        llm_provider = %provider_type_to_str(&llm_provider_config.provider_type),
         model = %resolved_model,
         "Voice session (local STT→LLM→TTS pipeline) started"
     );
@@ -697,8 +761,12 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                                 let audio = std::mem::take(&mut audio_buffer);
                                 let hist_len = history.lock().await.len();
                                 spawn_turn(
-                                    &adapter,
-                                    &ctx,
+                                    &stt_adapter,
+                                    &llm_adapter,
+                                    &tts_adapter,
+                                    &stt_ctx,
+                                    &llm_ctx,
+                                    &tts_ctx,
                                     &resolved_model,
                                     &voice_opt,
                                     &audio_format,
@@ -791,8 +859,12 @@ async fn abort_current_turn(
 /// 开启新一轮语音回合（STT→LLM→TTS）。
 #[allow(clippy::too_many_arguments)]
 fn spawn_turn(
-    adapter: &Arc<dyn ProviderAdapter>,
-    ctx: &ProviderRequestContext,
+    stt_adapter: &Arc<dyn ProviderAdapter>,
+    llm_adapter: &Arc<dyn ProviderAdapter>,
+    tts_adapter: &Arc<dyn ProviderAdapter>,
+    stt_ctx: &ProviderRequestContext,
+    llm_ctx: &ProviderRequestContext,
+    tts_ctx: &ProviderRequestContext,
     resolved_model: &str,
     voice_opt: &Option<String>,
     audio_format: &AudioFormat,
@@ -813,12 +885,12 @@ fn spawn_turn(
     *current_cancel = Some(cancel.clone());
 
     let deps = VoicePipelineDeps {
-        stt: adapter.clone(),
-        llm: adapter.clone(),
-        tts: adapter.clone(),
-        stt_ctx: ctx.clone(),
-        llm_ctx: ctx.clone(),
-        tts_ctx: ctx.clone(),
+        stt: stt_adapter.clone(),
+        llm: llm_adapter.clone(),
+        tts: tts_adapter.clone(),
+        stt_ctx: stt_ctx.clone(),
+        llm_ctx: llm_ctx.clone(),
+        tts_ctx: tts_ctx.clone(),
         chat_model: resolved_model.to_string(),
         voice: voice_opt.clone(),
         audio_format: audio_format.clone(),
@@ -849,7 +921,7 @@ mod tests {
         let json = r#"{"type":"session.create","model":"gpt-4o"}"#;
         let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
         match msg {
-            RealtimeClientMessage::SessionCreate { model, voice } => {
+            RealtimeClientMessage::SessionCreate { model, voice, .. } => {
                 assert_eq!(model, "gpt-4o");
                 assert_eq!(voice, None);
             },
@@ -862,7 +934,7 @@ mod tests {
         let json = r#"{"type":"session.create","model":"gpt-4o","voice":"nova"}"#;
         let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
         match msg {
-            RealtimeClientMessage::SessionCreate { model, voice } => {
+            RealtimeClientMessage::SessionCreate { model, voice, .. } => {
                 assert_eq!(model, "gpt-4o");
                 assert_eq!(voice.as_deref(), Some("nova"));
             },

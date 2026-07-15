@@ -5961,7 +5961,8 @@
       "visualEditor": "Визуальный редактор",
       "visualEditorDesc": "Создание и редактирование рабочих процессов с помощью DAG-редактора"
     },
-    "zhipu": "Zhipu"
+    "zhipu": "Zhipu",
+    "groupVoice": "Голос"
   },
   "settingsPage": {
     "refreshPage": "Обновить страницу"
@@ -6767,7 +6768,11 @@
     "startCall": "Начать звонок",
     "toggleMute": "Переключить микрофон",
     "wakeup": "Голосовое пробуждение",
-    "wakeupActive": "Ожидание активации"
+    "wakeupActive": "Ожидание активации",
+    "voiceType": "Тип голоса",
+    "sttProvider": "Провайдер STT",
+    "ttsProvider": "Провайдер TTS",
+    "providerAuto": "Авто (использовать того же провайдера LLM)"
   },
   "watchlist": {
     "placeholder": "Управление списком и оповещениями",

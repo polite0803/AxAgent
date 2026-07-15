@@ -17,10 +17,10 @@ backon = "1.6"
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
-hex = { workspace = true }
 docx-rs = "0.4"
 fastrand = "2.0"
 futures = "0.3"
+hex = { workspace = true }
 md5 = "0.8"
 pdf-extract = "0.8"
 regex = "1"

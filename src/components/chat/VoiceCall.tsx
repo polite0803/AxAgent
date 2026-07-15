@@ -121,13 +121,12 @@ export function VoiceCall({
   const { t } = useTranslation();
   const { token: controlToken } = theme.useToken();
   const btnTextColor = controlToken.colorWhite;
-  const { state, isMuted, userTranscript, assistantTranscript, start, stop, toggleMute } =
-    useVoiceChat({
-      port,
-      host,
-      config,
-      apiKey,
-    });
+  const { state, isMuted, userTranscript, assistantTranscript, start, stop, toggleMute } = useVoiceChat({
+    port,
+    host,
+    config,
+    apiKey,
+  });
 
   // Auto-start when overlay becomes visible — 用 useEffect 代替渲染副作用
   useEffect(() => {

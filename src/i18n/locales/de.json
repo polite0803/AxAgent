@@ -5936,7 +5936,8 @@
       "visualEditor": "Visueller Editor",
       "visualEditorDesc": "Workflows mit Drag-and-Drop-DAG-Editor erstellen und bearbeiten"
     },
-    "zhipu": "Zhipu"
+    "zhipu": "Zhipu",
+    "groupVoice": "Sprache"
   },
   "settingsPage": {
     "refreshPage": "Seite aktualisieren"
@@ -6742,7 +6743,11 @@
     "startCall": "Sprachanruf starten",
     "toggleMute": "Stummschaltung umschalten",
     "wakeup": "Sprachweck",
-    "wakeupActive": "Aufwachen aktiv"
+    "wakeupActive": "Aufwachen aktiv",
+    "voiceType": "Stimmtyp",
+    "sttProvider": "STT-Anbieter",
+    "ttsProvider": "TTS-Anbieter",
+    "providerAuto": "Automatisch (gleicher LLM-Anbieter)"
   },
   "watchlist": {
     "placeholder": "Watchlist und Preisalarme verwalten",

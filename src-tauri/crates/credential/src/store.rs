@@ -9,7 +9,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit},
 };
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{CredentialError, Result};
@@ -70,7 +70,7 @@ impl CredentialStore {
             return key;
         }
         let mut key = [0u8; 32];
-        rand::thread_rng().fill(&mut key);
+        rand::rng().fill(&mut key);
         key
     }
 
@@ -79,7 +79,7 @@ impl CredentialStore {
             .map_err(|e| CredentialError::Crypto(format!("credential cipher init: {e}")))?;
 
         let mut nonce_bytes = [0u8; NONCE_SIZE];
-        rand::thread_rng().fill(&mut nonce_bytes);
+        rand::rng().fill(&mut nonce_bytes);
         let nonce = Nonce::try_from(&nonce_bytes[..]).expect("nonce 必须为 12 字节");
 
         let ciphertext = cipher

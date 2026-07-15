@@ -10,7 +10,7 @@ axagent-harness = { path = "../harness" }
 base64 = "0.22"
 dirs = "6"
 futures = "0.3"
-rand = "0.8"
+rand = "0.10"
 reqwest = { workspace = true }
 rmcp = { version = "2.2", features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
 serde = { workspace = true }

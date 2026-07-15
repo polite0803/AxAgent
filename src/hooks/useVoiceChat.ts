@@ -358,6 +358,8 @@ export function useVoiceChat({
           type: "session.create",
           model: config.model_id,
           voice: config.voice,
+          stt_provider: config.stt_provider_id ?? null,
+          tts_provider: config.tts_provider_id ?? null,
         }),
       );
     };

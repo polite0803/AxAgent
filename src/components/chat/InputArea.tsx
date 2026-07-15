@@ -8,6 +8,7 @@ import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { SkillToolbar } from "@/components/skill/SkillToolbar";
+import { useVoiceWakeup } from "@/hooks/useVoiceWakeup";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { findModelByIds, modelHasCapability, supportsReasoning } from "@/lib/modelCapabilities";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
@@ -28,6 +29,7 @@ import {
   useSettingsStore,
   useStreamStore,
   useUIStore,
+  useVoicePreferenceStore,
 } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useGatewayStore } from "@/stores/feature/gatewayStore";
@@ -35,6 +37,7 @@ import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
 import type { AttachmentInput, CreateMcpServerInput, McpServer, Model, ProviderConfig, RealtimeConfig } from "@/types";
+import { AudioOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Badge, Button, Checkbox, Form, Image, Input, Modal, Popover, Radio, Select, Tag, theme } from "antd";
@@ -64,7 +67,6 @@ import {
   Music,
   Paperclip,
   Play,
-  RadioTower,
   Plug,
   Scissors,
   Shield,
@@ -92,7 +94,6 @@ import { ModelSelector } from "./ModelSelector";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { PromptTemplateSelector } from "./PromptTemplateSelector";
 import { VoiceCall } from "./VoiceCall";
-import { useVoiceWakeup } from "@/hooks/useVoiceWakeup";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
   return new Promise((resolve, reject) => {
@@ -1657,13 +1658,19 @@ export function InputArea() {
     }
   }, [companionStorageKey]);
 
+  const ttsVoice = useVoicePreferenceStore((s) => s.ttsVoice);
+  const sttProviderId = useVoicePreferenceStore((s) => s.sttProviderId);
+  const ttsProviderId = useVoicePreferenceStore((s) => s.ttsProviderId);
+
   const voiceConfig: RealtimeConfig = React.useMemo(
     () => ({
       model_id: activeConversation?.model_id ?? "",
-      voice: null,
+      voice: ttsVoice,
       audio_format: { sample_rate: 24000, channels: 1, encoding: "Pcm16" },
+      stt_provider_id: sttProviderId || null,
+      tts_provider_id: ttsProviderId || null,
     }),
-    [activeConversation?.model_id],
+    [activeConversation?.model_id, ttsVoice, sttProviderId, ttsProviderId],
   );
 
   // Mutex to prevent concurrent mode switches (e.g. rapid double-clicks)
@@ -3102,15 +3109,13 @@ export function InputArea() {
                     size="small"
                     icon={
                       <span className={voiceWakeup.active ? "animate-pulse" : ""}>
-                        <RadioTower size={14} />
+                        <AudioOutlined style={{ fontSize: 14 }} />
                       </span>
                     }
                     onClick={() => (voiceWakeup.active ? voiceWakeup.stop() : voiceWakeup.start())}
-                    style={
-                      voiceWakeup.active
-                        ? { color: token.colorPrimary, background: token.colorPrimaryBg }
-                        : undefined
-                    }
+                    style={voiceWakeup.active
+                      ? { color: token.colorPrimary, background: token.colorPrimaryBg }
+                      : undefined}
                   />
                 </Tooltip>
                 <Tooltip title={t("voice.startCall")}>
