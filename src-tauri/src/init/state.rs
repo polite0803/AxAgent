@@ -432,6 +432,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_trajectory::DreamConsolidator::new()
             .with_data_provider(dream_data_provider.clone()),
     );
+    // Smart Router：ML 成本感知路由器实例化
+    let cost_aware_router = Arc::new(crate::smart_router::CostAwareRouter::new());
     let text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::TextGradEngine::new(
             axagent_trajectory::ComputationGraph::new(),
@@ -673,6 +675,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         planner_sessions,
         browser_client,
         dream_consolidator,
+        cost_aware_router,
         text_grad_engine,
         auto_tool_creator,
         intrinsic_motivation,

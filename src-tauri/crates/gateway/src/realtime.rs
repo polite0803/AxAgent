@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::ProviderAdapter;
+use axagent_harness::ProviderRequestContext;
+use axagent_harness::speech::{AudioChunkStream, SpeakRequest, SpeechInput};
+use axagent_harness::types::{AudioEncoding, AudioFormat, ChatContent, ChatMessage, ChatRequest};
 use axum::{
     Json,
     body::Bytes,
@@ -10,12 +14,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use axagent_harness::ProviderAdapter;
-use axagent_harness::speech::{AudioChunkStream, SpeakRequest, SpeechInput};
-use axagent_harness::types::{AudioFormat, AudioEncoding, ChatContent, ChatMessage, ChatRequest};
-use axagent_harness::ProviderRequestContext;
-use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -226,13 +226,7 @@ async fn run_voice_turn(
     // ── 1. STT：音频 → 文本 ──
     let transcript = match deps
         .stt
-        .transcribe(
-            &deps.stt_ctx,
-            SpeechInput {
-                data: audio,
-                format: deps.audio_format.clone(),
-            },
-        )
+        .transcribe(&deps.stt_ctx, SpeechInput { data: audio, format: deps.audio_format.clone() })
         .await
     {
         Ok(t) => t,
@@ -294,9 +288,7 @@ async fn run_voice_turn(
         store: None,
     };
 
-    let mut stream = deps
-        .llm
-        .chat_stream(&deps.llm_ctx, req, Some(cancel.clone()));
+    let mut stream = deps.llm.chat_stream(&deps.llm_ctx, req, Some(cancel.clone()));
     let mut acc = String::new();
     while let Some(chunk) = stream.next().await {
         if cancel.load(Ordering::SeqCst) {
@@ -479,7 +471,8 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
     };
 
     let llm_adapter =
-        match state.provider_registry.get(provider_type_to_str(&llm_provider_config.provider_type)) {
+        match state.provider_registry.get(provider_type_to_str(&llm_provider_config.provider_type))
+        {
             Some(a) => a,
             None => {
                 let _ = send_msg(
@@ -503,17 +496,32 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
     ) -> Result<(Arc<dyn ProviderAdapter>, ProviderRequestContext), String> {
         let providers = state.adapter.providers();
         let configs = providers.list_providers().await.map_err(|e| e.to_string())?;
-        let cfg = configs.iter().find(|p| p.id == provider_id)
+        let cfg = configs
+            .iter()
+            .find(|p| p.id == provider_id)
             .ok_or_else(|| format!("STT/TTS provider '{}' not found", provider_id))?;
-        let adapter = state.provider_registry
+        let adapter = state
+            .provider_registry
             .get(provider_type_to_str(&cfg.provider_type))
-            .ok_or_else(|| format!("Provider type '{}' not in registry", provider_type_to_str(&cfg.provider_type)))?;
+            .ok_or_else(|| {
+                format!(
+                    "Provider type '{}' not in registry",
+                    provider_type_to_str(&cfg.provider_type)
+                )
+            })?;
         let caps = adapter.supports_speech();
         if !caps.stt && !caps.tts {
-            return Err(format!("Provider '{}' (type '{}') does not support speech", provider_id, provider_type_to_str(&cfg.provider_type)));
+            return Err(format!(
+                "Provider '{}' (type '{}') does not support speech",
+                provider_id,
+                provider_type_to_str(&cfg.provider_type)
+            ));
         }
         let key = providers.get_active_key(&cfg.id).await.map_err(|e| e.to_string())?;
-        let decrypted = state.adapter.crypto().decrypt_key(&key.key_encrypted)
+        let decrypted = state
+            .adapter
+            .crypto()
+            .decrypt_key(&key.key_encrypted)
             .map_err(|e| format!("Failed to decrypt key: {}", e))?;
         let ctx = ProviderRequestContext {
             api_key: decrypted,
@@ -522,8 +530,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
             base_url: Some(cfg.api_host.clone()),
             api_path: cfg.api_path.clone(),
             proxy_config: cfg.proxy_config.clone(),
-            custom_headers: cfg.custom_headers.as_ref()
-                .and_then(|s| serde_json::from_str(s).ok()),
+            custom_headers: cfg.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
             api_mode: None,
             conversation: None,
             previous_response_id: None,
@@ -533,18 +540,21 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
     }
 
     // 2c. 解析 LLM key + ctx（沿用主提供商）
-    let llm_decrypted_key = match state.adapter.crypto().decrypt_key(&llm_provider_key.key_encrypted) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!(error = %e, "Failed to decrypt provider key");
-            let _ = send_msg(
-                &mut socket,
-                &RealtimeServerMessage::Error { message: "Failed to decrypt provider key".into() },
-            )
-            .await;
-            return;
-        },
-    };
+    let llm_decrypted_key =
+        match state.adapter.crypto().decrypt_key(&llm_provider_key.key_encrypted) {
+            Ok(k) => k,
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to decrypt provider key");
+                let _ = send_msg(
+                    &mut socket,
+                    &RealtimeServerMessage::Error {
+                        message: "Failed to decrypt provider key".into(),
+                    },
+                )
+                .await;
+                return;
+            },
+        };
     let llm_ctx = ProviderRequestContext {
         api_key: llm_decrypted_key,
         key_id: llm_provider_key.id.clone(),
@@ -591,9 +601,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
         let _ = send_msg(
             &mut socket,
             &RealtimeServerMessage::Error {
-                message:
-                    "当前模型提供商不支持语音（STT/TTS 提供商需分别支持语音能力）"
-                        .to_string(),
+                message: "当前模型提供商不支持语音（STT/TTS 提供商需分别支持语音能力）".to_string(),
             },
         )
         .await;
@@ -610,9 +618,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
     // 通知前端会话已建立
     if send_msg(
         &mut socket,
-        &RealtimeServerMessage::SessionCreated {
-            session_id: session_id.clone(),
-        },
+        &RealtimeServerMessage::SessionCreated { session_id: session_id.clone() },
     )
     .await
     .is_err()
@@ -622,11 +628,8 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
 
     // ── Phase 3: 本地语音闭环编排 ────────────────────────────────
 
-    let audio_format = AudioFormat {
-        sample_rate: 24_000,
-        channels: 1,
-        encoding: AudioEncoding::Pcm16,
-    };
+    let audio_format =
+        AudioFormat { sample_rate: 24_000, channels: 1, encoding: AudioEncoding::Pcm16 };
 
     let (tts_tx, mut tts_rx) = mpsc::channel::<String>(LLM_CHANNEL_SIZE);
     let (transcript_tx, mut transcript_rx) = mpsc::channel::<String>(LLM_CHANNEL_SIZE);
@@ -1073,8 +1076,12 @@ mod tests {
     #[test]
     fn constants_bounds() {
         assert!(REALTIME_IDLE_TIMEOUT.as_secs() >= 10);
-        assert!(REALTIME_MAX_MESSAGE_BYTES >= 1024 * 1024);
-        assert!(REALTIME_MAX_AUDIO_BYTES >= 1024 * 1024);
+        const {
+            assert!(REALTIME_MAX_MESSAGE_BYTES >= 1024 * 1024);
+        }
+        const {
+            assert!(REALTIME_MAX_AUDIO_BYTES >= 1024 * 1024);
+        }
         assert_eq!(TICKET_TTL_SECS, 30);
         assert_eq!(REALTIME_HEARTBEAT_INTERVAL.as_secs(), 30);
         assert_eq!(LLM_CHANNEL_SIZE, 64);

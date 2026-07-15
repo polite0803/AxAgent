@@ -28,8 +28,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 // ─── Task Feature Vector ───
 
@@ -63,14 +63,8 @@ impl TaskFeatureVector {
         let line_count = prompt.lines().count();
         let code_block_count = lower.matches("```").count() / 2;
 
-        let complex_count = COMPLEX_KEYWORDS
-            .iter()
-            .filter(|kw| lower.contains(*kw))
-            .count();
-        let trivial_count = TRIVIAL_KEYWORDS
-            .iter()
-            .filter(|kw| lower.contains(*kw))
-            .count();
+        let complex_count = COMPLEX_KEYWORDS.iter().filter(|kw| lower.contains(*kw)).count();
+        let trivial_count = TRIVIAL_KEYWORDS.iter().filter(|kw| lower.contains(*kw)).count();
 
         let complex_keyword_density = if prompt_len > 0 {
             complex_count as f32 / prompt_len as f32
@@ -149,17 +143,13 @@ impl TaskFeatureVector {
         weight += 0.10;
 
         // Keyword density similarity
-        let complex_sim = 1.0
-            - (self.complex_keyword_density - other.complex_keyword_density)
-                .abs()
-                .min(1.0);
+        let complex_sim =
+            1.0 - (self.complex_keyword_density - other.complex_keyword_density).abs().min(1.0);
         score += complex_sim * 0.15;
         weight += 0.15;
 
-        let trivial_sim = 1.0
-            - (self.trivial_keyword_density - other.trivial_keyword_density)
-                .abs()
-                .min(1.0);
+        let trivial_sim =
+            1.0 - (self.trivial_keyword_density - other.trivial_keyword_density).abs().min(1.0);
         score += trivial_sim * 0.10;
         weight += 0.10;
 
@@ -175,11 +165,7 @@ impl TaskFeatureVector {
         }
         weight += 0.15;
 
-        if weight > 0.0 {
-            score / weight
-        } else {
-            1.0
-        }
+        if weight > 0.0 { score / weight } else { 1.0 }
     }
 }
 
@@ -412,11 +398,9 @@ impl CostAwareRouter {
             ml_override: false,
             ml_confidence: None,
             estimated_cost_usd: Some(CostEstimate {
-                min_usd: heuristic.tier.cost_per_1k_tokens() * heuristic.min_tokens as f64
-                    / 1000.0
+                min_usd: heuristic.tier.cost_per_1k_tokens() * heuristic.min_tokens as f64 / 1000.0
                     * 0.5,
-                max_usd: heuristic.tier.cost_per_1k_tokens() * heuristic.min_tokens as f64
-                    / 1000.0
+                max_usd: heuristic.tier.cost_per_1k_tokens() * heuristic.min_tokens as f64 / 1000.0
                     * 1.5,
                 tier: heuristic.tier.as_str().to_string(),
             }),
@@ -458,7 +442,8 @@ impl CostAwareRouter {
             if tier_stats.confidence() < self.min_confidence {
                 continue;
             }
-            let score = self.compute_tier_score(tier_stats.success_rate(), tier_stats.avg_cost_usd());
+            let score =
+                self.compute_tier_score(tier_stats.success_rate(), tier_stats.avg_cost_usd());
             if score > best_score {
                 best_score = score;
                 best_tier = *tier;
@@ -468,8 +453,6 @@ impl CostAwareRouter {
         if best_tier == heuristic_tier {
             return None; // Heuristic was right
         }
-
-        drop(stats);
 
         let reason = if best_tier == ModelTier::Premium {
             format!(
@@ -483,17 +466,12 @@ impl CostAwareRouter {
                 "ML downgrade: heuristic={}, but {} achieves {:.0}% success at lower cost",
                 heuristic_tier.as_str(),
                 best_tier.as_str(),
-                (bucket_data
-                    .get(&best_tier)
-                    .map(|s| s.success_rate() * 100.0)
-                    .unwrap_or(0.0)) as u32
+                (bucket_data.get(&best_tier).map(|s| s.success_rate() * 100.0).unwrap_or(0.0))
+                    as u32
             )
         };
 
-        let confidence = bucket_data
-            .get(&best_tier)
-            .map(|s| s.confidence())
-            .unwrap_or(0.0);
+        let confidence = bucket_data.get(&best_tier).map(|s| s.confidence()).unwrap_or(0.0);
 
         Some(RouteDecision {
             tier: best_tier,
@@ -527,8 +505,7 @@ impl CostAwareRouter {
 
         let limit_f64 = f64::from_bits(limit);
         let spent = f64::from_bits(self.total_cost_spent.load(Ordering::Relaxed));
-        let estimated =
-            heuristic.tier.cost_per_1k_tokens() * heuristic.min_tokens as f64 / 1000.0;
+        let estimated = heuristic.tier.cost_per_1k_tokens() * heuristic.min_tokens as f64 / 1000.0;
 
         if spent + estimated <= limit_f64 {
             return None;
@@ -569,11 +546,7 @@ impl CostAwareRouter {
     }
 
     /// Record feedback after LLM call. Updates ML statistics.
-    pub fn record_feedback(
-        &self,
-        prompt_hash: &str,
-        outcome: RouteOutcome,
-    ) -> Option<RouteStats> {
+    pub fn record_feedback(&self, prompt_hash: &str, outcome: RouteOutcome) -> Option<RouteStats> {
         let mut history = self.history.lock().unwrap();
 
         // Find the entry and update it
@@ -605,11 +578,7 @@ impl CostAwareRouter {
         if let Some(features) = &features {
             let bucket = self.compute_bucket(features);
             let mut buckets = self.bucket_stats.lock().unwrap();
-            let stats = buckets
-                .entry(bucket)
-                .or_default()
-                .entry(selected_tier)
-                .or_default();
+            let stats = buckets.entry(bucket).or_default().entry(selected_tier).or_default();
             stats.sample_count += 1;
             stats.total_latency_ms += latency_ms;
             stats.total_cost_usd += cost_usd;
@@ -638,15 +607,13 @@ impl CostAwareRouter {
                         - user_tier.cost_per_1k_tokens())
                         * outcome.tokens_used.unwrap_or(0) as f64
                         / 1000.0;
-                    self.cost_saved_usd
-                        .fetch_add((saved * 1_000_000.0) as u64, Ordering::Relaxed);
+                    self.cost_saved_usd.fetch_add((saved * 1_000_000.0) as u64, Ordering::Relaxed);
                 }
             }
         }
 
         // Update total cost
-        self.total_cost_spent
-            .fetch_add((cost_usd * 1_000_000.0) as u64, Ordering::Relaxed);
+        self.total_cost_spent.fetch_add((cost_usd * 1_000_000.0) as u64, Ordering::Relaxed);
 
         // Return updated stats
         drop(history);
@@ -659,10 +626,7 @@ impl CostAwareRouter {
         let global = self.global_stats.lock().unwrap();
 
         let total_routes = history.len() as u64;
-        let total_feedback = history
-            .iter()
-            .filter(|e| e.outcome.is_some())
-            .count() as u64;
+        let total_feedback = history.iter().filter(|e| e.outcome.is_some()).count() as u64;
 
         let mut tier_distribution: HashMap<String, u64> = HashMap::new();
         let mut success_rate_by_tier: HashMap<String, f64> = HashMap::new();
@@ -689,16 +653,10 @@ impl CostAwareRouter {
 
         let user_override_count = history
             .iter()
-            .filter(|e| {
-                e.outcome
-                    .as_ref()
-                    .map(|o| o.user_override)
-                    .unwrap_or(false)
-            })
+            .filter(|e| e.outcome.as_ref().map(|o| o.user_override).unwrap_or(false))
             .count() as u64;
 
-        let cost_saved =
-            f64::from_bits(self.cost_saved_usd.load(Ordering::Relaxed)) / 1_000_000.0;
+        let cost_saved = f64::from_bits(self.cost_saved_usd.load(Ordering::Relaxed)) / 1_000_000.0;
 
         RouteStats {
             total_routes,
@@ -716,8 +674,7 @@ impl CostAwareRouter {
 
     /// Set cost budget limit.
     pub fn set_cost_budget(&self, limit_usd: f64) {
-        self.cost_budget_limit_usd
-            .store(limit_usd.to_bits(), Ordering::Relaxed);
+        self.cost_budget_limit_usd.store(limit_usd.to_bits(), Ordering::Relaxed);
     }
 
     /// Get current cost budget limit.
@@ -944,9 +901,8 @@ fn is_trivial_task(lower: &str, prompt_len: usize) -> bool {
         return true;
     }
 
-    let translation_patterns = [
-        "translate", "翻译", "traduire", "übersetzen", "翻成", "译为", "翻訳",
-    ];
+    let translation_patterns =
+        ["translate", "翻译", "traduire", "übersetzen", "翻成", "译为", "翻訳"];
     for pat in &translation_patterns {
         if lower.contains(pat) {
             return true;

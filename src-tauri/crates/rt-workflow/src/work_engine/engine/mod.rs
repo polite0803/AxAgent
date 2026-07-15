@@ -1992,27 +1992,27 @@ impl WorkEngine {
                         }
 
                         // ── Approval Suspend 检测 ──
-                        if let Some(ctrl) = output.control.as_ref() {
-                            if let crate::work_engine::node_executor_trait::NodeControl::Suspend {
+                        if let Some(ctrl) = output.control.as_ref()
+                            && let crate::work_engine::node_executor_trait::NodeControl::Suspend {
                                 approval,
                                 ..
                             } = ctrl
+                        {
+                            tracing::info!(
+                                execution_id = %execution_id,
+                                node_id = %nr.node_id,
+                                "[Approval] Suspend 触发，等待人工审批"
+                            );
+                            // 持久化审批请求到 workflow_approvals 表
                             {
-                                tracing::info!(
-                                    execution_id = %execution_id,
-                                    node_id = %nr.node_id,
-                                    "[Approval] Suspend 触发，等待人工审批"
-                                );
-                                // 持久化审批请求到 workflow_approvals 表
-                                {
-                                    let db_clone = {
-                                        let db_guard = self.db.lock().expect("db mutex poisoned");
-                                        db_guard.clone()
-                                    };
-                                    if let Some(db) = db_clone.as_ref() {
-                                        use axagent_harness::util_fns::now_ts;
-                                        let now_ms = now_ts() as i64;
-                                        let record = axagent_dao::repo::workflow_approval::WorkflowApprovalRecord {
+                                let db_clone = {
+                                    let db_guard = self.db.lock().expect("db mutex poisoned");
+                                    db_guard.clone()
+                                };
+                                if let Some(db) = db_clone.as_ref() {
+                                    use axagent_harness::util_fns::now_ts;
+                                    let now_ms = now_ts() as i64;
+                                    let record = axagent_dao::repo::workflow_approval::WorkflowApprovalRecord {
                                             id: uuid::Uuid::new_v4().to_string(),
                                             execution_id: approval.execution_id.clone(),
                                             node_id: approval.node_id.clone(),
@@ -2030,39 +2030,38 @@ impl WorkEngine {
                                             created_at: now_ms,
                                             resolved_at: None,
                                         };
-                                        if let Err(e) =
-                                            axagent_dao::repo::workflow_approval::save_approval(
-                                                db, &record,
-                                            )
-                                            .await
-                                        {
-                                            tracing::error!(error = %e, "[Approval] 保存审批记录失败");
-                                        }
-                                    }
-                                }
-                                // 标记暂停
-                                {
-                                    let mut executions = self.executions.lock().await;
-                                    if let Some(state) = executions.get_mut(&execution_id) {
-                                        state.status = ExecutionStatus::Paused;
-                                        state.current_node_id = Some(nr.node_id.clone());
-                                        state.updated_at = Utc::now().timestamp_millis();
-                                    }
-                                }
-                                // 等待 resume signal（复用 pause_signal，与断点模式同构）
-                                let pause_sig = {
-                                    self.executions
-                                        .lock()
+                                    if let Err(e) =
+                                        axagent_dao::repo::workflow_approval::save_approval(
+                                            db, &record,
+                                        )
                                         .await
-                                        .get(&execution_id)
-                                        .and_then(|s| s.pause_signal.clone())
-                                };
-                                if let Some(sig) = pause_sig {
-                                    sig.notified().await;
+                                    {
+                                        tracing::error!(error = %e, "[Approval] 保存审批记录失败");
+                                    }
                                 }
-                                // 恢复后继续处理下一节点结果
-                                continue;
                             }
+                            // 标记暂停
+                            {
+                                let mut executions = self.executions.lock().await;
+                                if let Some(state) = executions.get_mut(&execution_id) {
+                                    state.status = ExecutionStatus::Paused;
+                                    state.current_node_id = Some(nr.node_id.clone());
+                                    state.updated_at = Utc::now().timestamp_millis();
+                                }
+                            }
+                            // 等待 resume signal（复用 pause_signal，与断点模式同构）
+                            let pause_sig = {
+                                self.executions
+                                    .lock()
+                                    .await
+                                    .get(&execution_id)
+                                    .and_then(|s| s.pause_signal.clone())
+                            };
+                            if let Some(sig) = pause_sig {
+                                sig.notified().await;
+                            }
+                            // 恢复后继续处理下一节点结果
+                            continue;
                         }
                     },
                     Ok(Err(err)) => {

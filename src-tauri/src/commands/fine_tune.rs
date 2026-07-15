@@ -193,7 +193,7 @@ pub fn get_training_job(job_id: String) -> Result<TrainingJobInfo, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     s.trainer
         .get_job(&job_id)
-        .map(|j| TrainingJobInfo::from(j))
+        .map(TrainingJobInfo::from)
         .ok_or_else(|| "Training job not found".to_string())
 }
 

@@ -652,22 +652,25 @@ impl DreamConsolidator {
             }
         } else {
             // 无数据提供者时使用回调模式（向后兼容）
-            if config.run_memory_extraction && Utc::now() < deadline {
-                if let Some(callback) = on_memories {
-                    callback(0);
-                }
+            if config.run_memory_extraction
+                && Utc::now() < deadline
+                && let Some(callback) = on_memories
+            {
+                callback(0);
             }
 
-            if config.run_pattern_learning && Utc::now() < deadline {
-                if let Some(callback) = on_patterns {
-                    callback(0);
-                }
+            if config.run_pattern_learning
+                && Utc::now() < deadline
+                && let Some(callback) = on_patterns
+            {
+                callback(0);
             }
 
-            if config.run_proactive_suggestions && Utc::now() < deadline {
-                if let Some(callback) = on_suggestions {
-                    callback(0);
-                }
+            if config.run_proactive_suggestions
+                && Utc::now() < deadline
+                && let Some(callback) = on_suggestions
+            {
+                callback(0);
             }
         }
 

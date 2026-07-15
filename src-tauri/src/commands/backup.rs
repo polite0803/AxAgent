@@ -383,7 +383,7 @@ pub async fn download_cloud_backup(
     // SECURITY: 先创建空文件再 canonicalize（canonicalize 要求文件已存在），
     // 然后验证解析后的路径是否仍在 backup_dir 内，防止 cloud_key 路径穿越。
     // 校验通过后用实际数据覆盖空文件。
-    std::fs::write(&local_path, &[]).map_err(|e| format!("创建临时文件失败: {}", e))?;
+    std::fs::write(&local_path, []).map_err(|e| format!("创建临时文件失败: {}", e))?;
     let backup_canonical =
         backup_dir.canonicalize().map_err(|e| format!("备份目录解析失败: {}", e))?;
     let canonical = local_path.canonicalize().map_err(|e| format!("路径解析失败: {}", e))?;

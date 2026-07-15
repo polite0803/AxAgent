@@ -283,11 +283,12 @@ impl GatewayServer {
         // the gateway never ends up half-dead.
         let running = Arc::new(AtomicBool::new(true));
         let http_handle = Handle::new();
-        let https_handle: Option<Handle<SocketAddr>> = if https_binding.is_some() && https_router.is_some() {
-            Some(Handle::new())
-        } else {
-            None
-        };
+        let https_handle: Option<Handle<SocketAddr>> =
+            if https_binding.is_some() && https_router.is_some() {
+                Some(Handle::new())
+            } else {
+                None
+            };
         let http_task = {
             let server_handle = http_handle.clone();
             let running_flag = running.clone();

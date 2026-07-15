@@ -93,7 +93,7 @@ pub enum NudgeAction {
 /// Tracks which session produced nudges — used for dedup in `generate_nudges`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct NudgeSession {
+pub(crate) struct NudgeSession {
     session_id: String,
     nudges: Vec<Nudge>,
 }
@@ -158,7 +158,7 @@ impl NudgeService {
         self
     }
 
-    pub fn get_session(&self) -> Option<&NudgeSession> {
+    pub(crate) fn get_session(&self) -> Option<&NudgeSession> {
         self.session.as_ref()
     }
 
@@ -605,7 +605,7 @@ mod tests {
 
     #[test]
     fn test_nudge_id_uniqueness() {
-        let mut service = NudgeService::new();
+        let service = NudgeService::new();
         // Generate multiple IDs and verify uniqueness even in same millisecond
         let id1 = service.generate_nudge_id();
         let id2 = service.generate_nudge_id();

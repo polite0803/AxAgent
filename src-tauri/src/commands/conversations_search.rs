@@ -6,6 +6,7 @@ use tauri::State;
 
 /// 会话搜索查询参数，与前端 SearchQuery 类型对应。
 #[derive(Debug, Clone, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct SessionSearchQuery {
     pub query: String,
     pub regex: Option<bool>,
@@ -131,7 +132,7 @@ async fn search_postgres(
     if let Some(from) = date_from {
         if let Ok(ts) = parse_iso_timestamp(&from) {
             wheres.push(format!("m.created_at >= ${}", param_idx));
-            values.push((ts as i64).into());
+            values.push(ts.into());
             param_idx += 1;
         }
     }
@@ -139,7 +140,7 @@ async fn search_postgres(
     if let Some(to) = date_to {
         if let Ok(ts) = parse_iso_timestamp(&to) {
             wheres.push(format!("m.created_at <= ${}", param_idx));
-            values.push((ts as i64).into());
+            values.push(ts.into());
             param_idx += 1;
         }
     }
@@ -153,7 +154,7 @@ async fn search_postgres(
     // 根据查询模式选择 SELECT 列
     let snippet_col = if is_regex {
         // Regex 没有 ts_headline，直接用 content 截取
-        format!("SUBSTRING(m.content, 1, 200) as snippet")
+        "SUBSTRING(m.content, 1, 200) as snippet".to_string()
     } else if is_case_sensitive {
         format!(
             "ts_headline('english', m.content, plainto_tsquery('english', ${query_idx}), 'MaxWords=24, MinWords=5') as snippet",
@@ -243,14 +244,14 @@ async fn search_sqlite(
     if let Some(from) = date_from {
         if let Ok(ts) = parse_iso_timestamp(&from) {
             wheres.push("m.created_at >= ?".to_string());
-            values.push((ts as i64).into());
+            values.push(ts.into());
         }
     }
 
     if let Some(to) = date_to {
         if let Ok(ts) = parse_iso_timestamp(&to) {
             wheres.push("m.created_at <= ?".to_string());
-            values.push((ts as i64).into());
+            values.push(ts.into());
         }
     }
 
@@ -305,14 +306,14 @@ async fn search_sqlite_like(
     if let Some(from) = date_from {
         if let Ok(ts) = parse_iso_timestamp(&from) {
             wheres.push("m.created_at >= ?".to_string());
-            values.push((ts as i64).into());
+            values.push(ts.into());
         }
     }
 
     if let Some(to) = date_to {
         if let Ok(ts) = parse_iso_timestamp(&to) {
             wheres.push("m.created_at <= ?".to_string());
-            values.push((ts as i64).into());
+            values.push(ts.into());
         }
     }
 

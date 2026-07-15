@@ -170,7 +170,7 @@ pub async fn execute_search(
             let resp = axagent_search::search::execute_search("ddg", None, "", &query, 5, 15000)
                 .await
                 .map_err(|e| e.to_string())?;
-            return Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?);
+            return serde_json::to_value(&resp).map_err(|e| e.to_string());
         },
     };
 

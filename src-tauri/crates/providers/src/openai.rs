@@ -1194,20 +1194,12 @@ impl ProviderAdapter for OpenAIAdapter {
         SpeechCapabilities::all()
     }
 
-    async fn transcribe(
-        &self,
-        ctx: &ProviderRequestContext,
-        input: SpeechInput,
-    ) -> Result<String> {
+    async fn transcribe(&self, ctx: &ProviderRequestContext, input: SpeechInput) -> Result<String> {
         let base = Self::base_url(ctx);
         let url = format!("{}/audio/transcriptions", base.trim_end_matches('/'));
 
         // Whisper 需要带容器的音频（wav/mp3/...），把前端上传的裸 PCM16 包成 WAV。
-        let wav = pcm_to_wav(
-            &input.data,
-            input.format.sample_rate,
-            input.format.channels as u16,
-        );
+        let wav = pcm_to_wav(&input.data, input.format.sample_rate, input.format.channels as u16);
 
         let part = reqwest::multipart::Part::bytes(wav)
             .file_name("audio.wav")

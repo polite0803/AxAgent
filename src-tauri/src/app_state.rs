@@ -278,6 +278,8 @@ pub struct AppState {
     #[cfg(target_os = "android")]
     pub browser_client: Arc<tokio::sync::Mutex<Option<()>>>,
     pub dream_consolidator: Arc<axagent_trajectory::DreamConsolidator>,
+    /// Smart Router：ML 成本感知路由器（启发式 + 历史统计 + 成本预算）
+    pub cost_aware_router: Arc<crate::smart_router::CostAwareRouter>,
     pub text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
     pub auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
     pub intrinsic_motivation:

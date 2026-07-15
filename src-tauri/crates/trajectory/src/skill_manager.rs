@@ -457,8 +457,8 @@ mod tests {
             platforms: None,
         });
 
-        let skills = vec![skill1, skill2];
-        let mut filtered: Vec<&Skill> =
+        let skills = [skill1, skill2];
+        let filtered: Vec<&Skill> =
             skills.iter().filter(|s| s.metadata.hermes.category == "backend").collect();
 
         assert_eq!(filtered.len(), 1);
