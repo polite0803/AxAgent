@@ -5,7 +5,7 @@
 //! 将 builtin_handlers 中的 obsidian_get_vaults、obsidian_list_files、
 //! obsidian_read_file 迁移为 Tool trait。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
@@ -54,6 +54,11 @@ impl Tool for ObsidianGetVaultsTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Integration
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -89,6 +94,11 @@ impl Tool for ObsidianListFilesTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Integration
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -132,6 +142,11 @@ impl Tool for ObsidianReadFileTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Integration
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

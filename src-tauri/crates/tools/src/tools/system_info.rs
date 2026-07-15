@@ -4,7 +4,7 @@
 //!
 //! 将 builtin_handlers 中的 get_system_info、list_processes 迁移为 Tool trait 实现。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -29,6 +29,10 @@ impl Tool for GetSystemInfoTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::System
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -81,6 +85,10 @@ impl Tool for ListProcessesTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::System
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {

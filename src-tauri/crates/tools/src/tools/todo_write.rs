@@ -3,7 +3,7 @@
 //! TodoWriteTool / AskUserQuestionTool / NotebookEditTool
 //! 组合几个小工具到一个文件
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use uuid::Uuid;
@@ -55,6 +55,11 @@ impl Tool for TodoWriteTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -149,6 +154,11 @@ impl Tool for AskUserQuestionTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -260,6 +270,11 @@ impl Tool for NotebookEditTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileWrite
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }

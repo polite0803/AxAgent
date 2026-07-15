@@ -8,7 +8,7 @@
 //!
 //! 全部纯 Rust 实现，无需安装 Python/LibreOffice。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult, markdown};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult, markdown};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
@@ -40,6 +40,10 @@ impl Tool for ExportWordTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::FileWrite
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -900,6 +904,11 @@ impl Tool for RenderMarkdownTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileRead
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -961,6 +970,10 @@ impl Tool for ExportPdfTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::FileWrite
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1296,6 +1309,10 @@ impl Tool for ExportXlsxTool {
         ToolCategory::FileWrite
     }
 
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let markdown_text = input.get("markdown").and_then(|v| v.as_str()).unwrap_or_default();
         let output_path = input.get("output_path").and_then(|v| v.as_str()).unwrap_or_default();
@@ -1495,6 +1512,10 @@ impl Tool for ExportPptxTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::FileWrite
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1777,6 +1798,11 @@ impl Tool for ReadXlsxTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileRead
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -1828,6 +1854,11 @@ impl Tool for ReadPptxTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileRead
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

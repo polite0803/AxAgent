@@ -366,11 +366,8 @@ pub async fn stop_engine(state: State<'_, AppState>, engine_name: String) -> Res
     drop(runtime);
 
     // 真实引擎的停止操作
-    match engine_name.as_str() {
-        "dream_consolidator" => {
-            let _ = state.dream_consolidator.reset().await;
-        },
-        _ => {},
+    if engine_name.as_str() == "dream_consolidator" {
+        let _ = state.dream_consolidator.reset().await;
     }
 
     tracing::info!(target: "evolution_engine", engine = %engine_name, "Engine stopped");

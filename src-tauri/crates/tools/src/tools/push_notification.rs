@@ -2,7 +2,7 @@
 
 //! PushNotificationTool - 系统通知
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -30,6 +30,11 @@ impl Tool for PushNotificationTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Communication
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }

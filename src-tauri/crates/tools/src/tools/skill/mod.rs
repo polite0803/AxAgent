@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 
 pub mod env_config;
@@ -482,6 +482,11 @@ impl Tool for SkillsListTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -561,6 +566,11 @@ impl Tool for SkillViewTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -743,6 +753,11 @@ impl Tool for SkillReferenceTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -826,6 +841,11 @@ impl Tool for DiscoverSkillsTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -977,6 +997,11 @@ impl Tool for SkillBundleListTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -1032,6 +1057,11 @@ impl Tool for SkillBundleCreateTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -1084,6 +1114,11 @@ impl Tool for SkillBundleLoadTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -1180,6 +1215,11 @@ impl Tool for SkillBundleDeleteTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -1325,6 +1365,11 @@ impl Tool for SkillHubReviewTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }

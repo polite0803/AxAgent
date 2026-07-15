@@ -4,7 +4,7 @@
 //!
 //! 将 builtin_handlers 中的 ocr_image、ocr_detect_langs 迁移为 Tool trait。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
@@ -24,6 +24,10 @@ impl Tool for OcrImageTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -106,6 +110,11 @@ impl Tool for OcrDetectLangsTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

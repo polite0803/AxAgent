@@ -2,6 +2,8 @@
 
 #[cfg(not(target_os = "android"))]
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+#[cfg(target_os = "android")]
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 #[cfg(not(target_os = "android"))]
 use async_trait::async_trait;
 #[cfg(not(target_os = "android"))]
@@ -34,6 +36,10 @@ macro_rules! browser_tool {
             }
             fn check_permissions(&self, _input: &Value, _ctx: &ToolContext) -> PermissionResult {
                 PermissionResult::Ask("浏览器自动化需要用户确认。".into())
+            }
+
+            fn domain(&self) -> crate::ToolDomain {
+                crate::ToolDomain::General
             }
 
             async fn call(
@@ -266,6 +272,9 @@ macro_rules! android_browser_stub {
             }
             fn is_concurrency_safe(&self) -> bool {
                 false
+            }
+            fn domain(&self) -> ToolDomain {
+                ToolDomain::General
             }
             async fn call(
                 &self,

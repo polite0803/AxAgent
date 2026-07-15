@@ -4,7 +4,7 @@
 //!
 //! DatabaseQuery / DatabaseListTables / DatabaseMigrationStatus
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
 use serde_json::Value;
@@ -39,6 +39,11 @@ impl Tool for DatabaseQueryTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::System
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -107,6 +112,11 @@ impl Tool for DatabaseListTablesTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::System
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -151,6 +161,11 @@ impl Tool for DatabaseMigrationStatusTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::System
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

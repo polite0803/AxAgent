@@ -6,7 +6,7 @@
 //! git_log、git_branch、git_review 迁移为 Tool trait 实现。
 //! 实际 Git 操作委托给 axagent_kit::git_tools::GitTools。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -36,6 +36,10 @@ impl Tool for GitStatusTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::Vcs
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -89,6 +93,10 @@ impl Tool for GitDiffTool {
         ToolCategory::Vcs
     }
 
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -138,6 +146,10 @@ impl Tool for GitCommitTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::Vcs
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     fn is_destructive(&self) -> bool {
@@ -194,6 +206,10 @@ impl Tool for GitLogTool {
         ToolCategory::Vcs
     }
 
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -243,6 +259,11 @@ impl Tool for GitBranchTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Vcs
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_destructive(&self) -> bool {
         true
     }
@@ -312,6 +333,10 @@ impl Tool for GitReviewTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::Vcs
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     fn is_concurrency_safe(&self) -> bool {

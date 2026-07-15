@@ -6,7 +6,7 @@
 //! MediaDeliverTool: 处理投递指令，返回清理后的文本和媒体附件列表
 //! MediaPreviewTool: 生成媒体文件的预览信息
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
@@ -177,6 +177,11 @@ impl Tool for MediaDetectTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -256,6 +261,11 @@ impl Tool for MediaDeliverTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -348,6 +358,11 @@ impl Tool for MediaPreviewTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

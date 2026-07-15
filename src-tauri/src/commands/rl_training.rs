@@ -60,7 +60,6 @@ pub struct RlTrainingState {
 
 struct TrainingRuntime {
     state: RlTrainingState,
-    start_time: i64,
 }
 
 static TRAINING_RUNTIME: OnceLock<Mutex<HashMap<String, TrainingRuntime>>> = OnceLock::new();
@@ -71,10 +70,6 @@ fn training_runtime() -> &'static Mutex<HashMap<String, TrainingRuntime>> {
 
 fn generate_training_id() -> String {
     format!("training_{}", chrono::Utc::now().timestamp_millis())
-}
-
-fn generate_checkpoint_id() -> String {
-    format!("ckpt_{}", chrono::Utc::now().timestamp_millis())
 }
 
 fn timestamp_millis() -> i64 {
@@ -184,9 +179,7 @@ pub async fn start_rl_training(
             current_step: 0,
             checkpoints: Vec::new(),
         },
-        start_time: timestamp_millis(),
     };
-
     let mut store = training_runtime().lock().await;
     store.insert(training_id.clone(), runtime);
 
@@ -355,6 +348,6 @@ pub async fn list_checkpoints(state: State<'_, AppState>) -> Result<Vec<Checkpoi
     }
 
     // 按时间戳降序排列
-    all.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    all.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
     Ok(all)
 }

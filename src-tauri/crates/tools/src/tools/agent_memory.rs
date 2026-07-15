@@ -5,7 +5,7 @@
 //! SessionSearch (FTS5 全文搜索), MemoryFlush (记忆持久化),
 //! AgentCheckpoint, AgentStatus, AgentRemember
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use sea_orm::ConnectionTrait;
 use serde_json::Value;
@@ -42,6 +42,11 @@ impl Tool for SessionSearchTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -162,6 +167,11 @@ impl Tool for MemoryFlushTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_destructive(&self) -> bool {
         true
     }
@@ -251,6 +261,11 @@ impl Tool for AgentCheckpointTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_destructive(&self) -> bool {
         true
     }
@@ -286,6 +301,11 @@ impl Tool for AgentStatusTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -328,6 +348,11 @@ impl Tool for AgentRememberTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_destructive(&self) -> bool {
         true
     }

@@ -5,7 +5,7 @@
 //! GenerateImage (flux/dall-e), GenerateChartConfig (ECharts),
 //! SequentialThinking (逐步推理), Base64Image (图片编码)
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_providers::ImageGenProvider;
 use serde_json::Value;
@@ -35,6 +35,10 @@ impl Tool for GenerateImageTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -153,6 +157,11 @@ impl Tool for GenerateChartConfigTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -191,6 +200,11 @@ impl Tool for SequentialThinkingTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -240,6 +254,11 @@ impl Tool for Base64ImageTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

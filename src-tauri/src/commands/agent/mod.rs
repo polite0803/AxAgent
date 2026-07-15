@@ -10,7 +10,9 @@ use axagent_agent::{AxAgentApiClient, FallbackProviderAdapter};
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
-use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{
+    ProviderAdapter, ProviderRequestContext, ToolDomain, resolve_base_url_for_type,
+};
 use axagent_runtime_core::create_conversation_runtime;
 use axagent_runtime_core::execution_progress::AgentExecutionProgressSnapshot;
 use axagent_storage::cloud_workspace::CloudWorkspace;
@@ -745,15 +747,41 @@ pub async fn agent_query(
         }
     }
 
-    // ── 注入 axagent-tools 统一工具到 chat_tools ──
+    // ── 注入 axagent-tools 统一工具到 chat_tools（按功能域过滤）─
     let disabled_set: HashSet<String> = request
         .options
         .as_ref()
         .and_then(|o| o.disabled_tools.as_ref())
         .map(|v| v.iter().cloned().collect())
         .unwrap_or_default();
+
+    // 解析活跃功能域
+    let active_domains: std::collections::HashSet<ToolDomain> = request
+        .options
+        .as_ref()
+        .and_then(|o| o.active_domains.as_ref())
+        .map(|v| {
+            v.iter()
+                .filter_map(|s| match s.to_lowercase().as_str() {
+                    "core" => Some(ToolDomain::Core),
+                    "general" => Some(ToolDomain::General),
+                    "devops" => Some(ToolDomain::Devops),
+                    "ai_media" => Some(ToolDomain::AiMedia),
+                    "invest" => Some(ToolDomain::Invest),
+                    "opc" => Some(ToolDomain::Opc),
+                    _ => None,
+                })
+                .collect()
+        })
+        .unwrap_or_else(|| {
+            let mut default = std::collections::HashSet::new();
+            default.insert(ToolDomain::Core);
+            default.insert(ToolDomain::General);
+            default
+        });
+
     let unified_chat_tools: Vec<ChatTool> = tool_registry
-        .get_chat_tools()
+        .get_chat_tools_for_domains(&active_domains, None)
         .into_iter()
         .filter(|t| !disabled_set.contains(&t.function.name))
         .collect();
@@ -761,9 +789,11 @@ pub async fn agent_query(
     if !disabled_set.is_empty() {
         tool_registry = tool_registry.with_blocked_tools(disabled_set.into_iter().collect());
     }
+    let domain_names: Vec<String> = active_domains.iter().map(|d| d.as_str().to_string()).collect();
     info!(
-        "[agent] UnifiedToolRegistry provides {} tools to LLM ({} disabled)",
+        "[agent] UnifiedToolRegistry provides {} tools to LLM (domains: [{}], {} disabled)",
         unified_chat_tools.len(),
+        domain_names.join(", "),
         request
             .options
             .as_ref()

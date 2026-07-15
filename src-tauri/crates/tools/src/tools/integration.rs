@@ -4,7 +4,7 @@
 //!
 //! DifyListBases / DifySearch — Dify 知识库平台集成
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -32,6 +32,11 @@ impl Tool for DifyListBasesTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Integration
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -73,6 +78,10 @@ impl Tool for DifySearchTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::Integration
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {

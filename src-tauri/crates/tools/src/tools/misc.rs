@@ -4,7 +4,7 @@
 //!
 //! 远程文件管理, 缓存管理
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
@@ -28,6 +28,10 @@ impl Tool for RemoteFileUploadTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::FileWrite
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -94,6 +98,11 @@ impl Tool for RemoteFileListTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileRead
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -135,6 +144,11 @@ impl Tool for RemoteFileDeleteTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileWrite
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_destructive(&self) -> bool {
         true
     }
@@ -190,6 +204,11 @@ impl Tool for CacheInfoTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::System
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -228,6 +247,10 @@ impl Tool for CacheClearTool {
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::System
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
