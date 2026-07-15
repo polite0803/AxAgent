@@ -16,7 +16,7 @@ keyring = "4"
 libc = "0.2"
 regex = "1"
 reqwest = { workspace = true }
-scraper = "0.22"
+scraper = "0.27"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
@@ -29,7 +29,7 @@ uuid = { workspace = true }
 xcap = { workspace = true, features = ["wgc"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
+windows-sys = { version = "0.61", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
 windows = { version = "0.62", default-features = false, features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging"] }
 
 [features]

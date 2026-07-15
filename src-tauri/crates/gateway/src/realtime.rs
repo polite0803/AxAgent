@@ -497,9 +497,9 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
         };
 
     // 2b. 辅助函数：按 provider_id 查找适配器和解密 key
-    async fn resolve_speech_adapter<'a>(
+    async fn resolve_speech_adapter(
         provider_id: &str,
-        state: &'a GatewayAppState,
+        state: &GatewayAppState,
     ) -> Result<(Arc<dyn ProviderAdapter>, ProviderRequestContext), String> {
         let providers = state.adapter.providers();
         let configs = providers.list_providers().await.map_err(|e| e.to_string())?;
@@ -937,6 +937,35 @@ mod tests {
             RealtimeClientMessage::SessionCreate { model, voice, .. } => {
                 assert_eq!(model, "gpt-4o");
                 assert_eq!(voice.as_deref(), Some("nova"));
+            },
+            _ => panic!("expected SessionCreate"),
+        }
+    }
+
+    #[test]
+    fn deserialize_session_create_with_stt_tts_providers() {
+        let json = r#"{"type":"session.create","model":"gpt-4o","voice":"nova","stt_provider":"my-whisper","tts_provider":"my-tts"}"#;
+        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        match msg {
+            RealtimeClientMessage::SessionCreate { model, voice, stt_provider, tts_provider } => {
+                assert_eq!(model, "gpt-4o");
+                assert_eq!(voice.as_deref(), Some("nova"));
+                assert_eq!(stt_provider.as_deref(), Some("my-whisper"));
+                assert_eq!(tts_provider.as_deref(), Some("my-tts"));
+            },
+            _ => panic!("expected SessionCreate"),
+        }
+    }
+
+    #[test]
+    fn deserialize_session_create_only_stt_provider() {
+        let json = r#"{"type":"session.create","model":"gpt-4o","stt_provider":"custom-stt"}"#;
+        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        match msg {
+            RealtimeClientMessage::SessionCreate { model, stt_provider, tts_provider, .. } => {
+                assert_eq!(model, "gpt-4o");
+                assert_eq!(stt_provider.as_deref(), Some("custom-stt"));
+                assert_eq!(tts_provider, None);
             },
             _ => panic!("expected SessionCreate"),
         }
