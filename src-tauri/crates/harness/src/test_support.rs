@@ -1708,3 +1708,129 @@ impl WorkflowTemplateRepository for EmptyWorkflowTemplateRepository {
 pub fn empty_workflow_template_repo() -> Arc<dyn WorkflowTemplateRepository> {
     Arc::new(EmptyWorkflowTemplateRepository)
 }
+
+// ── NoteBacklinkRepository 测试替身 ──────────────────────────
+//
+// 为 consumer crate（agent 等）单元测试提供 NoteBacklinkRepository 的空实现，
+// 避免引入实现层 axagent-dao crate（违反 AGENTS.md 铁律 5）。
+
+use crate::wiki_dtos::{NoteBacklink, NoteBacklinkRepository};
+
+struct EmptyNoteBacklinkRepository;
+#[async_trait]
+impl NoteBacklinkRepository for EmptyNoteBacklinkRepository {
+    async fn count_by_target_note_id(&self, _note_id: &str) -> std::result::Result<usize, String> {
+        Ok(0)
+    }
+    async fn find_by_target_note_id(
+        &self,
+        _note_id: &str,
+    ) -> std::result::Result<Vec<NoteBacklink>, String> {
+        Ok(Vec::new())
+    }
+}
+
+/// 工厂：构造一个 `Arc<dyn NoteBacklinkRepository>` 测试替身（所有方法返回空值）
+pub fn empty_note_backlink_repo() -> Arc<dyn NoteBacklinkRepository> {
+    Arc::new(EmptyNoteBacklinkRepository)
+}
+
+// ── AgentSessionRepository 测试替身 ──────────────────────────
+//
+// 为 consumer crate（agent 等）单元测试提供 AgentSessionRepository 的空实现，
+// 避免引入实现层 axagent-dao crate（违反 AGENTS.md 铁律 5）。
+// 注意：upsert_agent_session 返回一个最小化的 AgentSession，字段均为默认值，
+// 仅供"不依赖具体会话数据"的测试使用。需要真实 DB 行为的测试应下沉到 wiring 层。
+
+use crate::agent_session_repo::AgentSessionRepository;
+use crate::types::AgentSession;
+
+struct EmptyAgentSessionRepository;
+#[async_trait]
+impl AgentSessionRepository for EmptyAgentSessionRepository {
+    async fn upsert_agent_session(
+        &self,
+        conversation_id: &str,
+        _cwd: Option<&str>,
+        permission_mode: Option<&str>,
+    ) -> Result<AgentSession> {
+        Ok(AgentSession {
+            id: String::new(),
+            conversation_id: conversation_id.to_string(),
+            cwd: None,
+            workspace_locked: false,
+            permission_mode: permission_mode.unwrap_or("default").to_string(),
+            runtime_status: String::new(),
+            sdk_context_json: None,
+            sdk_context_backup_json: None,
+            total_tokens: 0,
+            total_cost_usd: 0.0,
+            created_at: String::new(),
+            updated_at: String::new(),
+        })
+    }
+    async fn update_agent_session_status(&self, _id: &str, _runtime_status: &str) -> Result<()> {
+        Ok(())
+    }
+    async fn update_agent_session_after_query(
+        &self,
+        _id: &str,
+        _runtime_status: &str,
+        _sdk_context_json: Option<&str>,
+        _tokens_delta: i32,
+        _cost_delta: f64,
+    ) -> Result<()> {
+        Ok(())
+    }
+    async fn clear_sdk_context_by_conversation_id(&self, _conversation_id: &str) -> Result<()> {
+        Ok(())
+    }
+}
+
+/// 工厂：构造一个 `Arc<dyn AgentSessionRepository>` 测试替身（所有写方法返回 Ok(())，
+/// upsert 返回最小化 AgentSession）
+pub fn empty_agent_session_repo() -> Arc<dyn AgentSessionRepository> {
+    Arc::new(EmptyAgentSessionRepository)
+}
+
+// ── ToolRegistry 测试替身 ────────────────────────────────────
+//
+// 为 consumer crate（agent 等）单元测试提供 ToolRegistry 的空实现，
+// 避免引入实现层 axagent-tools crate（违反 AGENTS.md 铁律 5）。
+// get / find 返回 None，list 返回空 Vec，适合测试"工具不存在"的报错路径。
+
+use crate::registry::ToolRegistry as ToolRegistryTrait;
+use crate::tool::{Tool, ToolCategory, ToolInfo};
+
+/// 空实现的 ToolRegistry 测试替身。
+///
+/// - `get` / `find` 返回 `None`
+/// - `list` / `list_by_category` 返回空 Vec
+/// - `is_disabled` 返回 `false`
+/// - `execute_tool` 走 trait 默认实现（因 `find` 返回 None，会得到 `ToolError::not_found`）
+#[derive(Debug, Default)]
+pub struct NoopToolRegistry;
+
+#[async_trait::async_trait]
+impl ToolRegistryTrait for NoopToolRegistry {
+    fn get(&self, _name: &str) -> Option<Arc<dyn Tool>> {
+        None
+    }
+    fn find(&self, _name: &str) -> Option<Arc<dyn Tool>> {
+        None
+    }
+    fn list(&self) -> Vec<ToolInfo> {
+        Vec::new()
+    }
+    fn list_by_category(&self, _category: ToolCategory) -> Vec<ToolInfo> {
+        Vec::new()
+    }
+    fn is_disabled(&self, _name: &str) -> bool {
+        false
+    }
+}
+
+/// 工厂：构造一个 `Arc<dyn ToolRegistry>` 测试替身
+pub fn noop_tool_registry() -> Arc<dyn ToolRegistryTrait> {
+    Arc::new(NoopToolRegistry)
+}

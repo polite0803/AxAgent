@@ -5370,6 +5370,22 @@
         "label": "USER.md（ユーザープロファイル）",
         "description": "ユーザープロファイル、嗜好、ニーズの説明",
         "placeholder": "ユーザープロファイル情報..."
+      },
+      "autoLearn": {
+        "button": "会話から自動学習",
+        "title": "会話から自動学習",
+        "description": "会話履歴からユーザーのコードスタイルとコミュニケーション設定を抽出し、アクティブな Persona の USER.md を自動更新します",
+        "selectConversation": "会話を選択",
+        "selectPlaceholder": "会話を選択してください",
+        "noConversations": "会話がありません",
+        "start": "学習開始",
+        "close": "閉じる",
+        "success": "Persona「{{name}}」に学習して適用しました",
+        "successTitle": "学習完了、Persona「{{name}}」に適用しました",
+        "noSamples": "学習可能なコードまたはメッセージサンプルが見つかりません",
+        "noSamplesTitle": "利用可能なサンプルが見つかりません",
+        "failed": "自動学習に失敗しました",
+        "updatedFields": "更新されたフィールド"
       }
     },
     "platform": {

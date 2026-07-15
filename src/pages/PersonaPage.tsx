@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import {
+  type AutoLearnResult,
+  invoke,
+  personalityAutoLearnFromConversation,
   personalityCreateBootstrap,
   personalityGet,
   personalityList,
@@ -8,9 +11,24 @@ import {
   personalityUpdateIdentity,
   personalityUpdateUser,
 } from "@/lib/invoke";
-import type { Personality, PersonalityInfo } from "@/types";
-import { Button, Card, Empty, Input, message, Modal, Space, Spin, Tabs, Tag, theme, Typography } from "antd";
-import { Plus, Save, User } from "lucide-react";
+import type { Conversation, Personality, PersonalityInfo } from "@/types";
+import {
+  Alert,
+  Button,
+  Card,
+  Empty,
+  Input,
+  message,
+  Modal,
+  Select,
+  Space,
+  Spin,
+  Tabs,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
+import { Plus, Save, Sparkles, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -27,6 +45,15 @@ export function PersonaPage() {
   const [selectedLoading, setSelectedLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // 自动学习相关状态
+  const [autoLearnOpen, setAutoLearnOpen] = useState(false);
+  const [autoLearnLoading, setAutoLearnLoading] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
+  const [autoLearnResult, setAutoLearnResult] = useState<AutoLearnResult | null>(null);
+  const [autoLearnError, setAutoLearnError] = useState<string | null>(null);
 
   // 新建表单
   const [newName, setNewName] = useState("");
@@ -126,6 +153,59 @@ export function PersonaPage() {
       setSaving(false);
     }
   }, [selected, t]);
+
+  // 打开自动学习 Modal：拉取最近对话列表
+  const handleOpenAutoLearn = useCallback(async () => {
+    setAutoLearnOpen(true);
+    setAutoLearnResult(null);
+    setAutoLearnError(null);
+    setSelectedConversationId(undefined);
+    setConversationsLoading(true);
+    try {
+      const list = await invoke<Conversation[]>("list_conversations", undefined, 15_000);
+      // 仅展示有标题或非空的对话，最多 50 条避免过长
+      setConversations(list.slice(0, 50));
+    } catch {
+      // 浏览器模式静默
+      setConversations([]);
+    } finally {
+      setConversationsLoading(false);
+    }
+  }, []);
+
+  // 触发自动学习
+  const handleAutoLearn = useCallback(async () => {
+    if (!selectedConversationId) { return; }
+    setAutoLearnLoading(true);
+    setAutoLearnResult(null);
+    setAutoLearnError(null);
+    try {
+      const result = await personalityAutoLearnFromConversation(selectedConversationId);
+      setAutoLearnResult(result);
+      if (result.learned) {
+        message.success(
+          t("settings.persona.autoLearn.success", { name: result.persona_name }),
+        );
+        // 如果当前选中的就是被回写的 persona，刷新其 user 内容
+        if (selected && selected.name === result.persona_name) {
+          try {
+            const refreshed = await personalityGet(result.persona_name);
+            setSelected(refreshed);
+          } catch {
+            // 刷新失败不影响主流程
+          }
+        }
+      } else {
+        message.warning(t("settings.persona.autoLearn.noSamples"));
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setAutoLearnError(msg);
+      message.error(t("settings.persona.autoLearn.failed"));
+    } finally {
+      setAutoLearnLoading(false);
+    }
+  }, [selectedConversationId, selected, t]);
 
   const personaList = useMemo(
     () => (
@@ -297,9 +377,17 @@ export function PersonaPage() {
           </Title>
           <Text type="secondary">{t("settings.persona.description")}</Text>
         </div>
-        <Button type="primary" icon={<Plus size={16} />} onClick={() => setCreating(true)}>
-          {t("settings.persona.create")}
-        </Button>
+        <Space>
+          <Button
+            icon={<Sparkles size={16} />}
+            onClick={handleOpenAutoLearn}
+          >
+            {t("settings.persona.autoLearn.button")}
+          </Button>
+          <Button type="primary" icon={<Plus size={16} />} onClick={() => setCreating(true)}>
+            {t("settings.persona.create")}
+          </Button>
+        </Space>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: token.marginLG }}>
@@ -310,6 +398,99 @@ export function PersonaPage() {
           {editorPanel}
         </Card>
       </div>
+
+      {/* 自动学习 Modal */}
+      <Modal
+        title={t("settings.persona.autoLearn.title")}
+        open={autoLearnOpen}
+        onCancel={() => setAutoLearnOpen(false)}
+        footer={
+          <Space>
+            <Button onClick={() => setAutoLearnOpen(false)}>
+              {t("settings.persona.autoLearn.close")}
+            </Button>
+            <Button
+              type="primary"
+              loading={autoLearnLoading}
+              disabled={!selectedConversationId}
+              onClick={handleAutoLearn}
+            >
+              {t("settings.persona.autoLearn.start")}
+            </Button>
+          </Space>
+        }
+        width={600}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: token.margin }}>
+          <div>
+            <Text type="secondary">{t("settings.persona.autoLearn.description")}</Text>
+          </div>
+          <div>
+            <Text strong>{t("settings.persona.autoLearn.selectConversation")}</Text>
+            {conversationsLoading
+              ? (
+                <div style={{ marginTop: 8 }}>
+                  <Spin size="small" />
+                </div>
+              )
+              : (
+                <Select
+                  style={{ width: "100%", marginTop: 8 }}
+                  placeholder={t("settings.persona.autoLearn.selectPlaceholder")}
+                  value={selectedConversationId}
+                  onChange={setSelectedConversationId}
+                  showSearch
+                  optionFilterProp="label"
+                  options={conversations.map((c) => ({
+                    label: c.title || c.id,
+                    value: c.id,
+                  }))}
+                  notFoundContent={t("settings.persona.autoLearn.noConversations")}
+                />
+              )}
+          </div>
+          {autoLearnError && (
+            <Alert
+              type="error"
+              message={t("settings.persona.autoLearn.failed")}
+              description={autoLearnError}
+              showIcon
+            />
+          )}
+          {autoLearnResult && (
+            <Alert
+              type={autoLearnResult.learned ? "success" : "warning"}
+              message={autoLearnResult.learned
+                ? t("settings.persona.autoLearn.successTitle", {
+                  name: autoLearnResult.persona_name,
+                })
+                : t("settings.persona.autoLearn.noSamplesTitle")}
+              description={
+                <div style={{ whiteSpace: "pre-wrap" }}>
+                  <Paragraph style={{ marginBottom: token.marginXS }}>
+                    {autoLearnResult.style_summary}
+                  </Paragraph>
+                  {autoLearnResult.updated_fields.length > 0 && (
+                    <div>
+                      <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                        {t("settings.persona.autoLearn.updatedFields")}
+                      </Text>
+                      <div style={{ marginTop: 4 }}>
+                        {autoLearnResult.updated_fields.map((field) => (
+                          <Tag key={field} style={{ marginBottom: 4 }}>
+                            {field}
+                          </Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              }
+              showIcon
+            />
+          )}
+        </div>
+      </Modal>
 
       {/* 新建人格 Modal */}
       <Modal

@@ -42,12 +42,11 @@ uuid = { version = "1.6.1", features = ["v4"] }
 
 [dev-dependencies]
 axagent-dao = { path = "../dao" }
-# 技术债：以下三个实现层 crate 在 src/ 的 #[cfg(test)] 模块中使用，违反 AGENTS.md 铁律 5
+# 技术债：以下两个实现层 crate 在 src/ 的 #[cfg(test)] 模块中使用，违反 AGENTS.md 铁律 5
 # （consumer crate 测试禁止引入实现层 crate，应通过 axagent_harness::test_support::* mock）
-# 后续需重构测试代码改用 harness mock，再移除这些依赖
+# axagent-tools 已移除（pre_validator.rs 已改用 NoopToolRegistry）
 axagent-kit = { path = "../kit" }
 axagent-migration = { path = "../migration" }
-axagent-tools = { path = "../tools" }
 insta = { workspace = true }
 proptest = "1"
 tauri = { version = "2", features = ["test"] }

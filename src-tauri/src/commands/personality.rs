@@ -308,7 +308,7 @@ fn extract_code_blocks(content: &str) -> Vec<(String, String)> {
             let mut code_lines = Vec::new();
             let mut closed = false;
 
-            while let Some(inner) = lines.next() {
+            for inner in lines.by_ref() {
                 if inner.trim_start().starts_with("```") {
                     closed = true;
                     break;
@@ -440,7 +440,7 @@ fn pick_comment_style(patterns: &ExtractedCodePatterns) -> ProfileCommentStyle {
         }
     }
 
-    match best.map(|(s, freq)| (s, freq)) {
+    match best {
         Some((ExtCommentStyle::Documentation, _)) => ProfileCommentStyle::DocBlock,
         Some((_, f)) if f > 0.7 => ProfileCommentStyle::Extensive,
         Some((_, f)) if f < 0.3 => ProfileCommentStyle::Minimal,

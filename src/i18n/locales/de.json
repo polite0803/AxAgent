@@ -5345,6 +5345,22 @@
         "label": "USER.md (Benutzerprofil)",
         "description": "Beschreibung des Benutzerprofils, der Präferenzen und Anforderungen",
         "placeholder": "Benutzerprofilinformationen..."
+      },
+      "autoLearn": {
+        "button": "Automatisch aus Konversation lernen",
+        "title": "Automatisch aus Konversation lernen",
+        "description": "Extrahiert Code-Stil und Kommunikationseinstellungen aus dem Konversationsverlauf und aktualisiert die USER.md der aktiven Persona automatisch",
+        "selectConversation": "Konversation auswählen",
+        "selectPlaceholder": "Wählen Sie eine Konversation zum Lernen",
+        "noConversations": "Keine Konversationen verfügbar",
+        "start": "Lernen starten",
+        "close": "Schließen",
+        "success": "Gelernt und auf Persona \"{{name}}\" angewendet",
+        "successTitle": "Lernen abgeschlossen, auf Persona \"{{name}}\" angewendet",
+        "noSamples": "Keine verwendbaren Code- oder Nachrichtenproben gefunden",
+        "noSamplesTitle": "Keine verwendbaren Proben gefunden",
+        "failed": "Automatisches Lernen fehlgeschlagen",
+        "updatedFields": "Aktualisierte Felder"
       }
     },
     "platform": {

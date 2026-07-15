@@ -5370,6 +5370,22 @@
         "label": "USER.md (Perfil de usuario)",
         "description": "Descripción del perfil, preferencias y necesidades del usuario",
         "placeholder": "Información del perfil de usuario..."
+      },
+      "autoLearn": {
+        "button": "Aprendizaje automático desde la conversación",
+        "title": "Aprendizaje automático desde la conversación",
+        "description": "Extrae el estilo de código y las preferencias de comunicación del historial de conversación y actualiza automáticamente el USER.md del Persona activo",
+        "selectConversation": "Seleccionar una conversación",
+        "selectPlaceholder": "Elija una conversación para aprender",
+        "noConversations": "No hay conversaciones disponibles",
+        "start": "Iniciar aprendizaje",
+        "close": "Cerrar",
+        "success": "Aprendido y aplicado a Persona «{{name}}»",
+        "successTitle": "Aprendizaje completado, aplicado a Persona «{{name}}»",
+        "noSamples": "No se encontraron muestras de código o mensaje utilizables",
+        "noSamplesTitle": "No se encontraron muestras utilizables",
+        "failed": "Error en el aprendizaje automático",
+        "updatedFields": "Campos actualizados"
       }
     },
     "platform": {

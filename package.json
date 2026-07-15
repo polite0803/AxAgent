@@ -60,6 +60,7 @@
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@iconify/react": "^6.0.2",
     "@lobehub/icons": "^5.4.0",
+    "@lobehub/ui": "^5.20.3",
     "@monaco-editor/react": "^4.7.0",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-virtual": "^3.13.23",

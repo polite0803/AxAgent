@@ -189,16 +189,13 @@ impl IngestPipeline {
         self
     }
 
-    /// Test-only convenience constructor: creates daos from a DB connection.
+    /// Test-only constructor: 使用 harness mock 替代真实 DAO（合规铁律 5）
     #[cfg(test)]
-    pub fn new_for_test(db: Arc<sea_orm::DatabaseConnection>) -> Self {
-        use axagent_dao::repo::note_repository::DaoNoteRepository;
-        use axagent_dao::repo::wiki_repository::DaoWikiRepository;
-        use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
+    pub fn new_for_test() -> Self {
         Self::new(
-            Arc::new(DaoWikiRepository::new(db.clone())),
-            Arc::new(DaoWikiSourceRepository::new(db.clone())),
-            Arc::new(DaoNoteRepository::new(db)),
+            axagent_harness::test_support::empty_wiki_repo(),
+            axagent_harness::test_support::empty_wiki_source_repo(),
+            axagent_harness::test_support::empty_note_repo(),
         )
     }
 
@@ -931,12 +928,7 @@ mod tests {
     use super::*;
 
     async fn create_test_pipeline() -> IngestPipeline {
-        let db = Arc::new(
-            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
-                .await
-                .unwrap(),
-        );
-        IngestPipeline::new_for_test(db)
+        IngestPipeline::new_for_test()
     }
 
     #[test]

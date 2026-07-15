@@ -5345,6 +5345,22 @@
         "label": "USER.md (사용자 프로필)",
         "description": "사용자 프로필, 선호도 및 필요 사항 설명",
         "placeholder": "사용자 프로필 정보..."
+      },
+      "autoLearn": {
+        "button": "대화에서 자동 학습",
+        "title": "대화에서 자동 학습",
+        "description": "대화 기록에서 사용자의 코드 스타일과 소통 선호도를 추출하여 활성 Persona의 USER.md를 자동으로 업데이트합니다",
+        "selectConversation": "대화 선택",
+        "selectPlaceholder": "대화를 선택하세요",
+        "noConversations": "대화가 없습니다",
+        "start": "학습 시작",
+        "close": "닫기",
+        "success": "Persona \"{{name}}\"에 학습 및 적용 완료",
+        "successTitle": "학습 완료, Persona \"{{name}}\"에 적용됨",
+        "noSamples": "학습 가능한 코드 또는 메시지 샘플을 찾을 수 없습니다",
+        "noSamplesTitle": "사용 가능한 샘플 없음",
+        "failed": "자동 학습 실패",
+        "updatedFields": "업데이트된 필드"
       }
     },
     "platform": {

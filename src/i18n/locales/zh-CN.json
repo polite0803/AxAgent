@@ -5379,6 +5379,22 @@
         "label": "USER.md（用户画像）",
         "description": "描述用户的画像、偏好和需求",
         "placeholder": "用户画像信息..."
+      },
+      "autoLearn": {
+        "button": "从对话自动学习",
+        "title": "从对话自动学习",
+        "description": "从对话历史中提取用户的代码风格和沟通偏好，自动更新当前激活 Persona 的 USER.md",
+        "selectConversation": "选择对话",
+        "selectPlaceholder": "请选择一个对话",
+        "noConversations": "暂无对话",
+        "start": "开始学习",
+        "close": "关闭",
+        "success": "已成功学习并更新到 Persona「{{name}}」",
+        "successTitle": "学习完成，已更新到 Persona「{{name}}」",
+        "noSamples": "未找到可学习的代码或消息样本",
+        "noSamplesTitle": "未找到可用样本",
+        "failed": "自动学习失败",
+        "updatedFields": "已更新字段"
       }
     },
     "platform": {

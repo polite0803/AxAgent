@@ -81,7 +81,14 @@ pub mod page_type;
 pub mod repo_dtos;
 pub mod repositories;
 pub mod service_registry;
+pub mod streaming;
 pub mod wiki_dtos;
+
+// ── ServiceRegistryProvider 契约重导出 ──
+pub use service_registry::ServiceRegistryProvider;
+
+// ── Real-time 流式管道契约 ──
+pub use streaming::{AgentStreamChunk, AgentStreamReporter, NoopStreamReporter, StreamChunkKind};
 
 // ── Harness 约束修复模块 ──
 pub mod consistency_check;

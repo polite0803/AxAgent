@@ -2925,6 +2925,22 @@
         "label": "USER.md (User Profile)",
         "description": "Describe the user's profile, preferences, and needs",
         "placeholder": "User profile information..."
+      },
+      "autoLearn": {
+        "button": "Auto-Learn from Conversation",
+        "title": "Auto-Learn from Conversation",
+        "description": "Extract code style and communication preferences from conversation history, then update the active Persona's USER.md automatically",
+        "selectConversation": "Select a conversation",
+        "selectPlaceholder": "Choose a conversation to learn from",
+        "noConversations": "No conversations available",
+        "start": "Start Learning",
+        "close": "Close",
+        "success": "Learned and applied to Persona \"{{name}}\"",
+        "successTitle": "Learning complete, applied to Persona \"{{name}}\"",
+        "noSamples": "No usable code or message samples found",
+        "noSamplesTitle": "No usable samples found",
+        "failed": "Auto-learning failed",
+        "updatedFields": "Updated fields"
       }
     },
     "groupVoice": "Voice"

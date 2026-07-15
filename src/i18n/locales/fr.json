@@ -5370,6 +5370,22 @@
         "label": "USER.md (Profil utilisateur)",
         "description": "Description du profil, des préférences et des besoins de l'utilisateur",
         "placeholder": "Informations du profil utilisateur..."
+      },
+      "autoLearn": {
+        "button": "Apprentissage automatique depuis la conversation",
+        "title": "Apprentissage automatique depuis la conversation",
+        "description": "Extrait le style de code et les préférences de communication de l'historique de conversation, puis met à jour automatiquement le USER.md du Persona actif",
+        "selectConversation": "Sélectionner une conversation",
+        "selectPlaceholder": "Choisissez une conversation à apprendre",
+        "noConversations": "Aucune conversation disponible",
+        "start": "Commencer l'apprentissage",
+        "close": "Fermer",
+        "success": "Appris et appliqué au Persona « {{name}} »",
+        "successTitle": "Apprentissage terminé, appliqué au Persona « {{name}} »",
+        "noSamples": "Aucun échantillon de code ou de message utilisable trouvé",
+        "noSamplesTitle": "Aucun échantillon utilisable trouvé",
+        "failed": "Échec de l'apprentissage automatique",
+        "updatedFields": "Champs mis à jour"
       }
     },
     "platform": {

@@ -5388,6 +5388,22 @@
         "label": "USER.md（使用者設定檔）",
         "description": "使用者設定檔、偏好與需求的描述",
         "placeholder": "使用者設定檔資訊..."
+      },
+      "autoLearn": {
+        "button": "從對話自動學習",
+        "title": "從對話自動學習",
+        "description": "從對話歷史中提取使用者的程式碼風格與溝通偏好，自動更新目前啟用 Persona 的 USER.md",
+        "selectConversation": "選擇對話",
+        "selectPlaceholder": "請選擇一個對話",
+        "noConversations": "暫無對話",
+        "start": "開始學習",
+        "close": "關閉",
+        "success": "已成功學習並更新到 Persona「{{name}}」",
+        "successTitle": "學習完成，已更新到 Persona「{{name}}」",
+        "noSamples": "未找到可學習的程式碼或訊息樣本",
+        "noSamplesTitle": "未找到可用樣本",
+        "failed": "自動學習失敗",
+        "updatedFields": "已更新欄位"
       }
     },
     "platform": "平台",
