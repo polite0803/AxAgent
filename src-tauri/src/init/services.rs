@@ -1026,6 +1026,16 @@ fn start_dream_consolidation(state: &AppState) {
                     result.suggestions_generated,
                     result.duration_secs
                 );
+
+                // Dream↔Evolution 联动：发现新模式时提示可能需要触发技能进化
+                // 注意：不直接调用 SkillEvolutionEngine（避免循环依赖），
+                // 仅记录日志，由独立的 start_skill_evolution 定时任务在下一轮自动检测弱技能并进化
+                if result.patterns_discovered > 0 {
+                    tracing::info!(
+                        "[dream] 发现 {} 个新模式，下一轮 skill evolution 将评估是否需要进化相关技能",
+                        result.patterns_discovered
+                    );
+                }
             } else {
                 tracing::warn!(
                     "[dream] 巩固未执行: {}",

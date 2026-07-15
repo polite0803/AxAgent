@@ -2,7 +2,14 @@
 
 import { invoke, isTauri } from "@/lib/invoke";
 import type { GraphNode, LearningGraph } from "@/types";
-import { BookOutlined, BulbOutlined, DatabaseOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  ApartmentOutlined,
+  BookOutlined,
+  BulbOutlined,
+  DatabaseOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import {
   Background,
   Controls,
@@ -110,10 +117,39 @@ function InsightNode({ data }: NodeProps) {
   );
 }
 
+function EntityNode({ data }: NodeProps) {
+  const d = data as Record<string, unknown>;
+  const color = (d.color as string) || "#722ed1";
+  return (
+    <div
+      style={{
+        padding: "8px 14px",
+        borderRadius: 8,
+        border: `1px solid ${color}`,
+        background: `${color}22`,
+        fontSize: 13,
+        maxWidth: 200,
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <ApartmentOutlined style={{ color }} />
+        <Text ellipsis>{d.label as string}</Text>
+      </div>
+      {!!d.category && (
+        <Tag color="purple" style={{ fontSize: 10, marginTop: 4 }}>
+          {String(d.category)}
+        </Tag>
+      )}
+    </div>
+  );
+}
+
 const nodeTypes: NodeTypes = {
   skill: SkillNode,
   memory: MemoryNode,
   insight: InsightNode,
+  entity: EntityNode,
 };
 
 // ── Color map ─────────────────────────────────────────────────────────
@@ -122,6 +158,7 @@ const KIND_COLORS: Record<string, string> = {
   skill: "#4a9eff",
   memory: "#52c41a",
   insight: "#faad14",
+  entity: "#722ed1",
 };
 
 // ── Debounce hook ─────────────────────────────────────────────────────
@@ -241,7 +278,7 @@ export function LearningGraphPage() {
           ? t("learningGraph.lexicalOverlap")
           : e.relation === "category_match"
           ? t("learningGraph.insights")
-          : "",
+          : e.relation,
       }));
 
     setNodes(rfNodes);
@@ -298,6 +335,8 @@ export function LearningGraphPage() {
               <Text type="secondary">{t("learningGraph.memories")}</Text>
               <Badge count={stats.totalInsights} color="#faad14" showZero />
               <Text type="secondary">{t("learningGraph.insights")}</Text>
+              <Badge count={stats.totalEntities} color="#722ed1" showZero />
+              <Text type="secondary">{t("learningGraph.entities")}</Text>
               <Badge count={stats.totalEdges} color="#888" showZero />
               <Text type="secondary">{t("learningGraph.edges")}</Text>
             </div>
@@ -316,12 +355,13 @@ export function LearningGraphPage() {
           <Select
             value={filterKind}
             onChange={setFilterKind}
-            style={{ width: 100 }}
+            style={{ width: 120 }}
             options={[
               { value: "all", label: t("learningGraph.all") },
               { value: "skill", label: t("learningGraph.skills") },
               { value: "memory", label: t("learningGraph.memories") },
               { value: "insight", label: t("learningGraph.insights") },
+              { value: "entity", label: t("learningGraph.entities") },
             ]}
           />
           <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={isRefreshing}>
@@ -421,6 +461,8 @@ export function LearningGraphPage() {
                   ? t("learningGraph.skills")
                   : selectedNode.kind === "memory"
                   ? t("learningGraph.memories")
+                  : selectedNode.kind === "entity"
+                  ? t("learningGraph.entities")
                   : t("learningGraph.insights")}
               </Tag>
               <Tag>{selectedNode.category}</Tag>

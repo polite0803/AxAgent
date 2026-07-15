@@ -95,6 +95,17 @@ pub async fn get_learning_graph(
             .collect()
     };
 
-    let graph = axagent_trajectory::build_learning_graph(&skills, &memories, &insights);
+    // 4. 读取真实实体关系数据（trajectory_entities / trajectory_relationships 表）
+    let trajectory_storage = app_state.trajectory_storage.clone();
+    let entities = trajectory_storage.get_all_entities().await.unwrap_or_default();
+    let relationships = trajectory_storage.get_all_relationships().await.unwrap_or_default();
+
+    let graph = axagent_trajectory::build_learning_graph(
+        &skills,
+        &memories,
+        &insights,
+        &entities,
+        &relationships,
+    );
     Ok(graph)
 }

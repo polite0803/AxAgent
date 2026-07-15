@@ -3232,6 +3232,7 @@
     "all": "Todos",
     "detail": "Detalles",
     "edges": "Conexiones",
+    "entities": "Entidades",
     "emptyDescription": "Aún no hay datos. Complete tareas para generar el gráfico",
     "insights": "Perspectivas",
     "lexicalOverlap": "Relacionado",

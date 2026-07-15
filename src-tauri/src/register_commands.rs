@@ -902,6 +902,7 @@ macro_rules! register_all_commands {
             commands::personality::personality_update_identity,
             commands::personality::personality_update_user,
             commands::personality::personality_delete,
+            commands::personality::personality_auto_learn_from_conversation,
             // Migration commands
             commands::migration::migration_detect,
             commands::migration::migration_preview,

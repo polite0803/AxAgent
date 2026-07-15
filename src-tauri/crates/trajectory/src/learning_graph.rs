@@ -10,6 +10,7 @@
 
 use crate::auto_memory::{ExtractedMemory, MemoryType};
 use crate::insight::{InsightCategory, LearningInsight};
+use crate::memory_providers::entity::{Entity, Relationship};
 use crate::skill::Skill;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -22,6 +23,7 @@ pub enum NodeKind {
     Skill,
     Memory,
     Insight,
+    Entity,
 }
 
 /// A node in the learning graph.
@@ -66,6 +68,8 @@ pub struct GraphStats {
     pub total_memories: usize,
     #[serde(rename = "totalInsights")]
     pub total_insights: usize,
+    #[serde(rename = "totalEntities")]
+    pub total_entities: usize,
     #[serde(rename = "totalEdges")]
     pub total_edges: usize,
     #[serde(rename = "linkedNodes")]
@@ -96,6 +100,8 @@ pub fn build_learning_graph(
     skills: &[Skill],
     memories: &[ExtractedMemory],
     insights: &[LearningInsight],
+    entities: &[Entity],
+    relationships: &[Relationship],
 ) -> LearningGraph {
     let mut nodes: Vec<GraphNode> = Vec::new();
     let mut edges: Vec<GraphEdge> = Vec::new();
@@ -156,14 +162,57 @@ pub fn build_learning_graph(
         });
     }
 
-    // 4. Compute edges
+    // 4. Entity nodes — 来自 trajectory_entities 表的真实实体
+    for entity in entities {
+        // detail 拼接 aliases 与关键属性，便于前端展示
+        let mut detail_parts: Vec<String> = Vec::new();
+        if !entity.aliases.is_empty() {
+            detail_parts.push(format!("aliases: {}", entity.aliases.join(", ")));
+        }
+        if !entity.properties.is_empty() {
+            let props_str = entity
+                .properties
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .take(5)
+                .collect::<Vec<_>>()
+                .join(", ");
+            detail_parts.push(format!("props: {}", props_str));
+        }
+        detail_parts.push(format!("confidence: {:.2}", entity.confidence));
+        detail_parts.push(format!("mentions: {}", entity.mention_count));
+        nodes.push(GraphNode {
+            id: format!("entity:{}", entity.id),
+            label: entity.name.clone(),
+            kind: NodeKind::Entity,
+            category: entity.entity_type.to_string(),
+            timestamp_ms: entity.last_seen_at.timestamp_millis(),
+            use_count: entity.mention_count,
+            state: "active".to_string(),
+            detail: Some(detail_parts.join(" | ")),
+        });
+    }
 
-    // 4a. Memory ↔ Skill — lexical overlap (token intersection)
+    // 5. Compute edges
+
+    // 5a. 真实关系边（来自 trajectory_relationships 表）
+    for rel in relationships {
+        edges.push(GraphEdge {
+            source: format!("entity:{}", rel.source_id),
+            target: format!("entity:{}", rel.target_id),
+            weight: rel.weight,
+            relation: rel.relation_type.to_string(),
+        });
+    }
+
+    // 5b. Memory ↔ Skill — lexical overlap (token intersection) — 启发式补充
     let skill_nodes: Vec<&GraphNode> = nodes.iter().filter(|n| n.kind == NodeKind::Skill).collect();
     let memory_nodes: Vec<&GraphNode> =
         nodes.iter().filter(|n| n.kind == NodeKind::Memory).collect();
     let insight_nodes: Vec<&GraphNode> =
         nodes.iter().filter(|n| n.kind == NodeKind::Insight).collect();
+    let entity_nodes: Vec<&GraphNode> =
+        nodes.iter().filter(|n| n.kind == NodeKind::Entity).collect();
 
     for mem_node in &memory_nodes {
         let mem_tokens = tokenize(&mem_node.label);
@@ -185,7 +234,7 @@ pub fn build_learning_graph(
         }
     }
 
-    // 4b. Insight ↔ Skill — match by category name
+    // 5c. Insight ↔ Skill — match by category name
     for insight_node in &insight_nodes {
         for skill_node in &skill_nodes {
             if insight_node.category == skill_node.category {
@@ -199,7 +248,7 @@ pub fn build_learning_graph(
         }
     }
 
-    // 4c. Insight ↔ Memory — lexical overlap (same approach as memory ↔ skill)
+    // 5d. Insight ↔ Memory — lexical overlap (same approach as memory ↔ skill)
     for insight_node in &insight_nodes {
         let insight_tokens = tokenize(&insight_node.label);
         let insight_detail_tokens: HashSet<String> =
@@ -225,6 +274,65 @@ pub fn build_learning_graph(
         }
     }
 
+    // 5e. Entity ↔ Skill/Memory/Insight — lexical overlap 用于跨类型关联
+    for entity_node in &entity_nodes {
+        let entity_tokens = tokenize(&entity_node.label);
+        if entity_tokens.is_empty() {
+            continue;
+        }
+        // entity ↔ skill
+        for skill_node in &skill_nodes {
+            let skill_tokens = tokenize(&skill_node.label);
+            let overlap = entity_tokens.intersection(&skill_tokens).count();
+            if overlap > 0 {
+                let max_len = entity_tokens.len().max(skill_tokens.len()).max(1);
+                let weight = overlap as f64 / max_len as f64;
+                if weight >= 0.15 {
+                    edges.push(GraphEdge {
+                        source: entity_node.id.clone(),
+                        target: skill_node.id.clone(),
+                        weight,
+                        relation: "lexical_overlap".to_string(),
+                    });
+                }
+            }
+        }
+        // entity ↔ memory
+        for mem_node in &memory_nodes {
+            let mem_tokens = tokenize(&mem_node.label);
+            let overlap = entity_tokens.intersection(&mem_tokens).count();
+            if overlap > 0 {
+                let max_len = entity_tokens.len().max(mem_tokens.len()).max(1);
+                let weight = overlap as f64 / max_len as f64;
+                if weight >= 0.15 {
+                    edges.push(GraphEdge {
+                        source: entity_node.id.clone(),
+                        target: mem_node.id.clone(),
+                        weight,
+                        relation: "lexical_overlap".to_string(),
+                    });
+                }
+            }
+        }
+        // entity ↔ insight
+        for insight_node in &insight_nodes {
+            let insight_tokens = tokenize(&insight_node.label);
+            let overlap = entity_tokens.intersection(&insight_tokens).count();
+            if overlap > 0 {
+                let max_len = entity_tokens.len().max(insight_tokens.len()).max(1);
+                let weight = overlap as f64 / max_len as f64;
+                if weight >= 0.15 {
+                    edges.push(GraphEdge {
+                        source: entity_node.id.clone(),
+                        target: insight_node.id.clone(),
+                        weight,
+                        relation: "lexical_overlap".to_string(),
+                    });
+                }
+            }
+        }
+    }
+
     let linked: HashSet<String> =
         edges.iter().flat_map(|e| [e.source.clone(), e.target.clone()]).collect();
 
@@ -238,6 +346,7 @@ pub fn build_learning_graph(
     let total_skills = nodes.iter().filter(|n| n.kind == NodeKind::Skill).count();
     let total_memories = nodes.iter().filter(|n| n.kind == NodeKind::Memory).count();
     let total_insights = nodes.iter().filter(|n| n.kind == NodeKind::Insight).count();
+    let total_entities = nodes.iter().filter(|n| n.kind == NodeKind::Entity).count();
 
     let total_edges = edges.len();
     LearningGraph {
@@ -247,6 +356,7 @@ pub fn build_learning_graph(
             total_skills,
             total_memories,
             total_insights,
+            total_entities,
             total_edges,
             linked_nodes: linked.len(),
             categories,

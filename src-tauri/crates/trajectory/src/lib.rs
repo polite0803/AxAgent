@@ -177,7 +177,10 @@ pub use storage::{
 
 pub use style_applier::StyleApplier;
 
-pub use style_extractor::StyleExtractor;
+pub use style_extractor::{
+    CommentStyle, DocumentFormat, DocumentStyleProfile, ExtractedCodePatterns,
+    FormattingPreferences, IndentStyle, NamingPattern, NamingPatternType, StyleExtractor,
+};
 
 pub use style_vectorizer::{CodeSample, MessageSample, StyleVectorizer};
 
@@ -195,7 +198,11 @@ pub use trajectory::{
     TrajectoryToolResult,
 };
 
-pub use user_profile::{ExpertiseLevel, ProfileUpdate, UpdateSource, UserProfile};
+pub use user_profile::{
+    CommentStyle as ProfileCommentStyle, DetailLevel, ExpertiseLevel, ExplanationDepth,
+    IndentationStyle as ProfileIndentStyle, NamingConvention, ProfileUpdate, Tone, UpdateSource,
+    UserProfile,
+};
 
 // ── Extension methods migrated from harness ──────────────────────────
 

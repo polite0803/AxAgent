@@ -3232,6 +3232,7 @@
     "all": "すべて",
     "detail": "詳細",
     "edges": "関連",
+    "entities": "エンティティ",
     "emptyDescription": "データがありません。タスクを完了すると学習グラフが生成されます",
     "insights": "洞察",
     "lexicalOverlap": "関連",

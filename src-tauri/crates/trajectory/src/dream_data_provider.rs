@@ -1,21 +1,31 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use axagent_harness::dream::{
     ConsolidationDataProvider, ConsolidationSuggestion, DistilledKnowledge, ExperienceRecord,
     KnowledgeType,
 };
+use chrono::{TimeZone, Utc};
+use tokio::sync::RwLock;
 
 use crate::dream_consolidation::ReplaySample;
+use crate::memory_providers::service::{
+    AddMemoryRequest, MemoryEntry, MemoryNature, MemoryProvenance, MemoryService, MemoryTier,
+};
 use crate::skill::Skill;
 use crate::storage::TrajectoryStorage;
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 
+/// Dream 巩固系统从 Memory 融合数据时使用的 importance 阈值
+const MEMORY_IMPORTANCE_THRESHOLD: f64 = 0.6;
+
 pub struct TrajectoryDreamDataProvider {
     storage: Arc<TrajectoryStorage>,
+    /// Memory 服务引用（可选，便于向后兼容；存在时用于融合高 importance 数据）
+    memory_service: Option<Arc<RwLock<MemoryService>>>,
     knowledge_cache: RwLock<HashMap<String, DistilledKnowledge>>,
     suggestions_cache: RwLock<HashMap<String, ConsolidationSuggestion>>,
 }
@@ -24,26 +34,29 @@ impl TrajectoryDreamDataProvider {
     pub fn new(storage: Arc<TrajectoryStorage>) -> Self {
         Self {
             storage,
+            memory_service: None,
             knowledge_cache: RwLock::new(HashMap::new()),
             suggestions_cache: RwLock::new(HashMap::new()),
         }
     }
 
-    pub fn cached_knowledge_count(&self) -> usize {
-        self.knowledge_cache.read().map(|c| c.len()).unwrap_or(0)
+    /// 注入 MemoryService 引用，启用 Dream↔Memory 联动
+    pub fn with_memory_service(mut self, memory_service: Arc<RwLock<MemoryService>>) -> Self {
+        self.memory_service = Some(memory_service);
+        self
     }
 
-    pub fn cached_suggestions_count(&self) -> usize {
-        self.suggestions_cache.read().map(|c| c.len()).unwrap_or(0)
+    pub async fn cached_knowledge_count(&self) -> usize {
+        self.knowledge_cache.read().await.len()
     }
 
-    pub fn clear_caches(&self) {
-        if let Ok(mut cache) = self.knowledge_cache.write() {
-            cache.clear();
-        }
-        if let Ok(mut cache) = self.suggestions_cache.write() {
-            cache.clear();
-        }
+    pub async fn cached_suggestions_count(&self) -> usize {
+        self.suggestions_cache.read().await.len()
+    }
+
+    pub async fn clear_caches(&self) {
+        self.knowledge_cache.write().await.clear();
+        self.suggestions_cache.write().await.clear();
     }
 }
 
@@ -100,6 +113,28 @@ fn trajectory_to_experience_record(trajectory: &Trajectory) -> ExperienceRecord 
     }
 }
 
+/// 将 Memory 条目转换为 ExperienceRecord
+/// importance 直接映射为 quality_score（0.0-1.0 区间一致）
+fn memory_entry_to_experience_record(entry: &MemoryEntry) -> ExperienceRecord {
+    // 将 Unix 秒级时间戳转换为 DateTime<Utc>，失败则回退到当前时间
+    let timestamp = Utc.timestamp_opt(entry.created_at, 0).single().unwrap_or_else(Utc::now);
+
+    ExperienceRecord {
+        id: format!("memory_{}", entry.id),
+        session_id: entry
+            .provenance
+            .as_ref()
+            .and_then(|p| p.conversation_id.clone())
+            .unwrap_or_else(|| "memory".to_string()),
+        topic: entry.memory_type.clone(),
+        outcome: format!("memory_importance_{:.2}", entry.importance),
+        quality_score: entry.importance,
+        tool_sequence: Vec::new(),
+        reasoning_summary: entry.content.chars().take(200).collect(),
+        timestamp,
+    }
+}
+
 fn distilled_knowledge_to_skill(knowledge: &DistilledKnowledge) -> Skill {
     let name = format!(
         "{:?}-{}",
@@ -123,7 +158,39 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
     ) -> Result<Vec<ExperienceRecord>, String> {
         let trajectories =
             self.storage.get_trajectories(Some(limit)).await.map_err(|e| e.to_string())?;
-        Ok(trajectories.iter().map(trajectory_to_experience_record).collect())
+        let mut records: Vec<ExperienceRecord> =
+            trajectories.iter().map(trajectory_to_experience_record).collect();
+
+        // Dream↔Memory 联动：融合 Memory 中高 importance 的条目
+        if let Some(memory_service) = &self.memory_service {
+            let ms = memory_service.read().await;
+            let working_memory = ms.get_working_memory().await;
+            drop(ms);
+
+            let trajectory_count = records.len();
+            let mut memory_records: Vec<ExperienceRecord> = working_memory
+                .entries
+                .values()
+                .filter(|e| !e.is_expired() && e.importance >= MEMORY_IMPORTANCE_THRESHOLD)
+                .map(memory_entry_to_experience_record)
+                .collect();
+            let memory_count = memory_records.len();
+
+            // 合并两个数据源，按 quality_score 降序排序（高价值优先）
+            records.append(&mut memory_records);
+            records.sort_by(|a, b| {
+                b.quality_score.partial_cmp(&a.quality_score).unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+            tracing::debug!(
+                "[dream] fetch_recent_experiences: trajectory={}, memory={}, merged={}",
+                trajectory_count,
+                memory_count,
+                records.len()
+            );
+        }
+
+        Ok(records)
     }
 
     async fn fetch_experience_by_topic(
@@ -142,19 +209,61 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
         &self,
         knowledge: &DistilledKnowledge,
     ) -> Result<(), String> {
-        if let Ok(mut cache) = self.knowledge_cache.write() {
+        // 1. 写入内存缓存
+        {
+            let mut cache = self.knowledge_cache.write().await;
             cache.insert(knowledge.id.clone(), knowledge.clone());
         }
 
+        // 2. 写入 trajectory_skills 表
         let skill = distilled_knowledge_to_skill(knowledge);
-        self.storage.save_skill(&skill).await.map_err(|e| e.to_string())
+        self.storage.save_skill(&skill).await.map_err(|e| e.to_string())?;
+
+        // 3. Dream↔Memory 联动：同时写入 MemoryService
+        //    按 confidence 映射 tier 和 importance
+        if let Some(memory_service) = &self.memory_service {
+            let (tier, importance) = confidence_to_memory_tier(knowledge.confidence);
+
+            let req = AddMemoryRequest {
+                target: format!("dream_{:?}", knowledge.knowledge_type).to_lowercase(),
+                content: knowledge.content.clone(),
+                tier,
+                importance,
+                nature: MemoryNature::Semantic,
+                provenance: Some(MemoryProvenance {
+                    conversation_id: knowledge.source_session_ids.first().cloned(),
+                    message_id: None,
+                    extraction_method: "dream_consolidation".to_string(),
+                }),
+                tags: knowledge.applicability_tags.clone(),
+                expires_at: None,
+                namespace_id: None,
+            };
+
+            let ms = memory_service.read().await;
+            let result = ms.add_memory_advanced(req).await;
+            drop(ms);
+
+            if !result.success {
+                tracing::warn!(
+                    "[dream] Memory 写入失败（不影响 trajectory_skills）: {}",
+                    result.message
+                );
+            } else {
+                tracing::debug!(
+                    "[dream] 蒸馏知识已写入 Memory: tier={}, importance={:.2}",
+                    tier.as_str(),
+                    importance
+                );
+            }
+        }
+
+        Ok(())
     }
 
     async fn store_suggestion(&self, suggestion: &ConsolidationSuggestion) -> Result<(), String> {
-        if let Ok(mut cache) = self.suggestions_cache.write() {
-            cache.insert(suggestion.id.clone(), suggestion.clone());
-        }
-
+        let mut cache = self.suggestions_cache.write().await;
+        cache.insert(suggestion.id.clone(), suggestion.clone());
         Ok(())
     }
 
@@ -162,12 +271,22 @@ impl ConsolidationDataProvider for TrajectoryDreamDataProvider {
         &self,
         knowledge_type: &KnowledgeType,
     ) -> Result<Vec<DistilledKnowledge>, String> {
-        self.knowledge_cache
-            .read()
-            .map(|cache| {
-                cache.values().filter(|k| k.knowledge_type == *knowledge_type).cloned().collect()
-            })
-            .map_err(|e| format!("Knowledge cache read lock poisoned: {}", e))
+        let cache = self.knowledge_cache.read().await;
+        Ok(cache.values().filter(|k| k.knowledge_type == *knowledge_type).cloned().collect())
+    }
+}
+
+/// 根据 distilled knowledge 的 confidence 映射到 Memory 的 tier 和 importance
+/// - confidence >= 0.85 → LongTerm, importance=0.85
+/// - 0.6 <= confidence < 0.85 → Working, importance=0.6
+/// - confidence < 0.6 → ShortTerm, importance=0.4
+fn confidence_to_memory_tier(confidence: f64) -> (MemoryTier, f64) {
+    if confidence >= 0.85 {
+        (MemoryTier::LongTerm, 0.85)
+    } else if confidence >= 0.6 {
+        (MemoryTier::Working, 0.6)
+    } else {
+        (MemoryTier::ShortTerm, 0.4)
     }
 }
 
@@ -307,8 +426,8 @@ mod tests {
         assert_eq!(skill.content, knowledge.content);
     }
 
-    #[test]
-    fn test_knowledge_cache_store_and_retrieve() {
+    #[tokio::test]
+    async fn test_knowledge_cache_store_and_retrieve() {
         let provider = TrajectoryDreamDataProvider::new(Arc::new(TrajectoryStorage::new(
             Arc::new(sea_orm::DatabaseConnection::default()),
         )));
@@ -324,18 +443,18 @@ mod tests {
         };
 
         {
-            let mut cache = provider.knowledge_cache.write().unwrap();
+            let mut cache = provider.knowledge_cache.write().await;
             cache.insert(knowledge.id.clone(), knowledge.clone());
         }
 
-        assert_eq!(provider.cached_knowledge_count(), 1);
+        assert_eq!(provider.cached_knowledge_count().await, 1);
 
-        let cached = provider.knowledge_cache.read().unwrap().get("k1").cloned().unwrap();
+        let cached = provider.knowledge_cache.read().await.get("k1").cloned().unwrap();
         assert_eq!(cached.content, "Pattern A");
     }
 
-    #[test]
-    fn test_suggestions_cache_store_and_retrieve() {
+    #[tokio::test]
+    async fn test_suggestions_cache_store_and_retrieve() {
         let provider = TrajectoryDreamDataProvider::new(Arc::new(TrajectoryStorage::new(
             Arc::new(sea_orm::DatabaseConnection::default()),
         )));
@@ -350,18 +469,18 @@ mod tests {
         };
 
         {
-            let mut cache = provider.suggestions_cache.write().unwrap();
+            let mut cache = provider.suggestions_cache.write().await;
             cache.insert(suggestion.id.clone(), suggestion.clone());
         }
 
-        assert_eq!(provider.cached_suggestions_count(), 1);
+        assert_eq!(provider.cached_suggestions_count().await, 1);
 
-        let cached = provider.suggestions_cache.read().unwrap().get("sug1").cloned().unwrap();
+        let cached = provider.suggestions_cache.read().await.get("sug1").cloned().unwrap();
         assert_eq!(cached.content, "Improve X");
     }
 
-    #[test]
-    fn test_fetch_existing_knowledge_filters_by_type() {
+    #[tokio::test]
+    async fn test_fetch_existing_knowledge_filters_by_type() {
         let provider = TrajectoryDreamDataProvider::new(Arc::new(TrajectoryStorage::new(
             Arc::new(sea_orm::DatabaseConnection::default()),
         )));
@@ -386,31 +505,28 @@ mod tests {
         };
 
         {
-            let mut cache = provider.knowledge_cache.write().unwrap();
+            let mut cache = provider.knowledge_cache.write().await;
             cache.insert(k1.id.clone(), k1);
             cache.insert(k2.id.clone(), k2);
         }
 
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let tool_knowledge: Vec<DistilledKnowledge> = rt
-            .block_on(provider.fetch_existing_knowledge(&KnowledgeType::ToolUsagePattern))
-            .unwrap();
+        let tool_knowledge: Vec<DistilledKnowledge> =
+            provider.fetch_existing_knowledge(&KnowledgeType::ToolUsagePattern).await.unwrap();
         assert_eq!(tool_knowledge.len(), 1);
         assert_eq!(tool_knowledge[0].id, "k1");
 
-        let reasoning_knowledge: Vec<DistilledKnowledge> = rt
-            .block_on(provider.fetch_existing_knowledge(&KnowledgeType::ReasoningStrategy))
-            .unwrap();
+        let reasoning_knowledge: Vec<DistilledKnowledge> =
+            provider.fetch_existing_knowledge(&KnowledgeType::ReasoningStrategy).await.unwrap();
         assert_eq!(reasoning_knowledge.len(), 1);
         assert_eq!(reasoning_knowledge[0].id, "k2");
 
         let error_knowledge: Vec<DistilledKnowledge> =
-            rt.block_on(provider.fetch_existing_knowledge(&KnowledgeType::ErrorRecovery)).unwrap();
+            provider.fetch_existing_knowledge(&KnowledgeType::ErrorRecovery).await.unwrap();
         assert!(error_knowledge.is_empty());
     }
 
-    #[test]
-    fn test_store_suggestion_caches() {
+    #[tokio::test]
+    async fn test_store_suggestion_caches() {
         let provider = TrajectoryDreamDataProvider::new(Arc::new(TrajectoryStorage::new(
             Arc::new(sea_orm::DatabaseConnection::default()),
         )));
@@ -424,20 +540,19 @@ mod tests {
             created_at: Utc::now(),
         };
 
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(provider.store_suggestion(&suggestion)).unwrap();
+        provider.store_suggestion(&suggestion).await.unwrap();
 
-        assert_eq!(provider.cached_suggestions_count(), 1);
+        assert_eq!(provider.cached_suggestions_count().await, 1);
     }
 
-    #[test]
-    fn test_clear_caches() {
+    #[tokio::test]
+    async fn test_clear_caches() {
         let provider = TrajectoryDreamDataProvider::new(Arc::new(TrajectoryStorage::new(
             Arc::new(sea_orm::DatabaseConnection::default()),
         )));
 
         {
-            let mut kc = provider.knowledge_cache.write().unwrap();
+            let mut kc = provider.knowledge_cache.write().await;
             kc.insert(
                 "k1".to_string(),
                 DistilledKnowledge {
@@ -450,7 +565,7 @@ mod tests {
                     created_at: Utc::now(),
                 },
             );
-            let mut sc = provider.suggestions_cache.write().unwrap();
+            let mut sc = provider.suggestions_cache.write().await;
             sc.insert(
                 "s1".to_string(),
                 ConsolidationSuggestion {
@@ -464,13 +579,23 @@ mod tests {
             );
         }
 
-        assert_eq!(provider.cached_knowledge_count(), 1);
-        assert_eq!(provider.cached_suggestions_count(), 1);
+        assert_eq!(provider.cached_knowledge_count().await, 1);
+        assert_eq!(provider.cached_suggestions_count().await, 1);
 
-        provider.clear_caches();
+        provider.clear_caches().await;
 
-        assert_eq!(provider.cached_knowledge_count(), 0);
-        assert_eq!(provider.cached_suggestions_count(), 0);
+        assert_eq!(provider.cached_knowledge_count().await, 0);
+        assert_eq!(provider.cached_suggestions_count().await, 0);
+    }
+
+    #[test]
+    fn test_confidence_to_memory_tier() {
+        assert_eq!(confidence_to_memory_tier(0.9), (MemoryTier::LongTerm, 0.85));
+        assert_eq!(confidence_to_memory_tier(0.85), (MemoryTier::LongTerm, 0.85));
+        assert_eq!(confidence_to_memory_tier(0.7), (MemoryTier::Working, 0.6));
+        assert_eq!(confidence_to_memory_tier(0.6), (MemoryTier::Working, 0.6));
+        assert_eq!(confidence_to_memory_tier(0.5), (MemoryTier::ShortTerm, 0.4));
+        assert_eq!(confidence_to_memory_tier(0.0), (MemoryTier::ShortTerm, 0.4));
     }
 
     #[test]

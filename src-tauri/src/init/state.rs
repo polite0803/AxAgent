@@ -425,9 +425,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     #[cfg(target_os = "android")]
     let browser_client: Arc<tokio::sync::Mutex<Option<()>>> =
         Arc::new(tokio::sync::Mutex::new(None));
-    let dream_data_provider = Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
-        shared_trajectory_storage.clone(),
-    ));
+    let dream_data_provider = Arc::new(
+        axagent_trajectory::TrajectoryDreamDataProvider::new(shared_trajectory_storage.clone())
+            .with_memory_service(memory_service.clone()),
+    );
     let dream_consolidator = Arc::new(
         axagent_trajectory::DreamConsolidator::new()
             .with_data_provider(dream_data_provider.clone()),

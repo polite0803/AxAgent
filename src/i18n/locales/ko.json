@@ -3207,6 +3207,7 @@
     "all": "전체",
     "detail": "상세",
     "edges": "연결",
+    "entities": "엔티티",
     "emptyDescription": "데이터가 없습니다. 작업을 완료하면 학습 그래프가 생성됩니다",
     "insights": "통찰",
     "lexicalOverlap": "관련",

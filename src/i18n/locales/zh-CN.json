@@ -3232,6 +3232,7 @@
     "all": "全部",
     "detail": "详情",
     "edges": "关联",
+    "entities": "实体",
     "emptyDescription": "暂无数据，完成任务后会自动生成学习图",
     "insights": "洞察",
     "lexicalOverlap": "关联",

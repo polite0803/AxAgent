@@ -879,7 +879,7 @@ export interface SkillSimilarInfo {
 
 // ── Learning Graph Types ──
 
-export type NodeKind = "skill" | "memory" | "insight";
+export type NodeKind = "skill" | "memory" | "insight" | "entity";
 
 export interface GraphNode {
   id: string;
@@ -908,6 +908,7 @@ export interface GraphStats {
   totalSkills: number;
   totalMemories: number;
   totalInsights: number;
+  totalEntities: number;
   totalEdges: number;
   linkedNodes: number;
   categories: CategoryCount[];
