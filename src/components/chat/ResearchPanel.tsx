@@ -1,4 +1,3 @@
-import { List } from "@/components/common/AntdList";
 import { useStreamStore } from "@/stores";
 import type { Citation } from "@/types";
 import {
@@ -437,11 +436,9 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
               <Title level={5}>
                 {t("research.citations")} ({state.citations.length})
               </Title>
-              <List
-                size="small"
-                dataSource={state.citations}
-                renderItem={(item: Citation) => (
-                  <List.Item>
+              <div className="divide-y divide-gray-100">
+                {state.citations.map((item: Citation) => (
+                  <div key={item.id} style={{ padding: "8px 0" }}>
                     <Space>
                       <CheckCircleOutlined
                         style={{ color: item.inReport ? token.colorSuccess : token.colorTextQuaternary }}
@@ -450,9 +447,9 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
                       <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
                       <CredibilityBadge score={item.credibility} />
                     </Space>
-                  </List.Item>
-                )}
-              />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { TraceSummary } from "@/types";
-import { Card, DatePicker, Input, List, Space, Tag, Typography } from "antd";
+import { Card, DatePicker, Input, Space, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -124,17 +124,16 @@ export function TraceList() {
       <div className="text-xs text-zinc-500 mb-2">
         {t("devtools.traceCount", { count: traces.length })}
       </div>
-      <List
-        dataSource={traces}
-        renderItem={(trace) => (
+      <div className="divide-y divide-gray-100">
+        {traces.map((trace) => (
           <TraceItem
+            key={trace.trace_id}
             trace={trace}
             isSelected={trace.trace_id === selectedTraceId}
             onClick={() => handleSelect(trace)}
           />
-        )}
-        locale={{ emptyText: t("devtools.noTraces") }}
-      />
+        ))}
+      </div>
     </div>
   );
 }

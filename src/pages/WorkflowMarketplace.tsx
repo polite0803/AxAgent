@@ -10,7 +10,6 @@ import {
   Empty,
   Form,
   Input,
-  List,
   message,
   Modal,
   Rate,
@@ -378,27 +377,29 @@ export function WorkflowMarketplace() {
       </div>
 
       <Spin spinning={loadingReviews}>
-        <List
-          header={<Title level={5}>{t("marketplace.allReviews")}</Title>}
-          dataSource={reviews}
-          locale={{ emptyText: t("marketplace.noReviews") }}
-          renderItem={(item) => (
-            <List.Item>
-              <List.Item.Meta
-                avatar={<Rate disabled value={item.rating} />}
-                title={`User ${item.user_id.slice(0, 8)}`}
-                description={
-                  <div>
-                    {item.comment && <p>{item.comment}</p>}
-                    <Text type="secondary" className="text-xs">
-                      {formatDate(item.created_at)}
-                    </Text>
-                  </div>
-                }
-              />
-            </List.Item>
+        <Title level={5}>{t("marketplace.allReviews")}</Title>
+        {reviews.length === 0
+          ? <Empty description={t("marketplace.noReviews")} />
+          : (
+            <div className="divide-y divide-gray-100">
+              {reviews.map((item) => (
+                <div key={item.id} className="py-3">
+                  <Space align="start" size={12}>
+                    <Rate disabled value={item.rating} />
+                    <div>
+                      <Text strong>{`User ${item.user_id.slice(0, 8)}`}</Text>
+                      <div>
+                        {item.comment && <p>{item.comment}</p>}
+                        <Text type="secondary" className="text-xs">
+                          {formatDate(item.created_at)}
+                        </Text>
+                      </div>
+                    </div>
+                  </Space>
+                </div>
+              ))}
+            </div>
           )}
-        />
       </Spin>
     </div>
   );

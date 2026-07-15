@@ -6702,7 +6702,8 @@
       "dropPrompt": "Drop components here",
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "leafNode": "leaf node",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "livePreview": "实时预览"
     },
     "categories": {
       "container": "Layout & Containers",
@@ -6769,7 +6770,9 @@
         "style": "Style"
       },
       "title": "Property Panel"
-    }
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
   },
   "voice": {
     "connected": "कनेक्टेड",

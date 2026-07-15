@@ -17,6 +17,8 @@ import { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "@/types
 import {
   AppstoreAddOutlined,
   DeleteOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
   HolderOutlined,
   MinusCircleOutlined,
   PlusOutlined,
@@ -24,8 +26,9 @@ import {
 } from "@ant-design/icons";
 import { Button, Collapse, Divider, Empty, Input, Select, Tag, Tooltip } from "antd";
 import type { CollapseProps } from "antd/es/collapse";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { DynamicUIRenderer } from "./DynamicUIRenderer";
 
 import {
   closestCenter,
@@ -364,7 +367,7 @@ function VisualCanvas({
       )}
 
       {/* 子节点列表（可排序） */}
-      <div className="space-y-2">
+      <div className="space-y-2 mb-4">
         {children.map((child) => (
           <SortableCanvasItem
             key={child.id}
@@ -375,6 +378,21 @@ function VisualCanvas({
           />
         ))}
       </div>
+
+      {/* 实时可视化预览 — 渲染实际组件效果 */}
+      {children.length > 0 && (
+        <div
+          className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-[11px] text-gray-400 mb-2">
+            {t("visualEditor.canvas.livePreview")}
+          </div>
+          <div className="border rounded-lg p-3 bg-white dark:bg-gray-800 min-h-30 overflow-auto">
+            <DynamicUIRenderer schema={schema} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -659,6 +677,7 @@ function PropertyPanel({
 
 export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps) {
   const { t } = useTranslation();
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // 内部 schema（null 时自动创建 root）
   const [internalSchema, setInternalSchema] = useState<UISchema>(() =>
@@ -667,6 +686,22 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
 
   // 选中的节点 ID
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 全屏模式
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Escape 键退出全屏
+  useEffect(() => {
+    if (!isFullscreen) { return; }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsFullscreen(false);
+      }
+    };
+    // 使用 capture 确保在 Antd Modal 的 Escape 处理之前拦截
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
+  }, [isFullscreen]);
 
   // 默认 props 映射
   const defaultPropsMap = useMemo(() => getDefaultProps(t), [t]);
@@ -704,8 +739,10 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
 
       if (!activeData || !overData) { return; }
 
-      // 从组件面板拖入画布根容器
-      if (activeData.type === DRAG_TYPE_PALETTE && overData.type === "canvas-root") {
+      // 从组件面板拖入画布（根容器 或 任何子节点）
+      if (
+        activeData.type === DRAG_TYPE_PALETTE && (overData.type === "canvas-root" || overData.type === DRAG_TYPE_CANVAS)
+      ) {
         const itemType = activeData.itemType as DynamicComponentType;
         setInternalSchema((prev) => {
           const next = cloneSchema(prev);
@@ -763,89 +800,117 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
   );
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+    <div
+      ref={editorRef}
+      className={`relative flex border rounded-lg overflow-hidden transition-all duration-300 ${
+        isFullscreen ? "fixed inset-0 z-50 bg-white dark:bg-gray-900 h-auto w-auto rounded-none border-0 p-4" : "h-130"
+      }`}
     >
-      <div className="flex h-130 border rounded-lg overflow-hidden">
-        {/* 左侧：组件面板 */}
-        <div className="w-50 border-r border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-850">
-          <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-              <AppstoreAddOutlined size={12} />
-              {t("visualEditor.palette.title")}
-            </h4>
-          </div>
-          <ComponentPalette t={t} />
-        </div>
+      {/* 全屏切换按钮 */}
+      <button
+        type="button"
+        onClick={() => setIsFullscreen((v) => !v)}
+        className="absolute top-2 right-2 z-20 flex items-center gap-1 text-xs px-2.5 py-1.5 rounded
+                   bg-white/90 dark:bg-gray-700/90 hover:bg-gray-100 dark:hover:bg-gray-600
+                   border border-gray-300 dark:border-gray-500 shadow-md transition-colors"
+      >
+        {isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+        <span>
+          {isFullscreen ? t("visualEditor.exitFullscreen") : t("visualEditor.fullscreen")}
+        </span>
+      </button>
 
-        {/* 中间：画布 */}
-        <VisualCanvas
-          schema={internalSchema}
-          selectedId={isRootSelected ? null : selectedId}
-          onSelectNode={handleSelectNode}
-          t={t}
-        />
-
-        {/* 右侧：属性面板 */}
-        <div className="w-65 border-l border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden">
-          <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-              <SettingOutlined size={12} />
-              {t("visualEditor.property.title")}
-            </h4>
-            {selectedNode && !isRootSelected && (
-              <Button
-                size="small"
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => {
-                  setInternalSchema((prev) => {
-                    const next = cloneSchema(prev);
-                    if (next.children) {
-                      next.children = next.children.filter((c) => c.id !== selectedId);
-                      if (selectedId) { setSelectedId(null); }
-                    }
-                    onChange(next);
-                    return next;
-                  });
-                }}
-              >
-                {t("visualEditor.property.delete")}
-              </Button>
-            )}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div
+          ref={editorRef}
+          className={`flex border rounded-lg overflow-hidden transition-all duration-300 ${
+            isFullscreen
+              ? "fixed inset-0 z-50 bg-white dark:bg-gray-900 h-auto w-auto rounded-none border-0 p-4"
+              : "h-130"
+          }`}
+        >
+          {/* 左侧：组件面板 */}
+          <div className="w-50 border-r border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-800">
+            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                <AppstoreAddOutlined size={12} />
+                {t("visualEditor.palette.title")}
+              </h4>
+            </div>
+            <ComponentPalette t={t} />
           </div>
-          <PropertyPanel
-            selectedNode={selectedNode ?? null}
-            isRoot={isRootSelected}
-            onUpdateNode={handleUpdateSelectedNode}
-            defaultPropsMap={defaultPropsMap}
+
+          {/* 中间：画布 */}
+          <VisualCanvas
+            schema={internalSchema}
+            selectedId={isRootSelected ? null : selectedId}
+            onSelectNode={handleSelectNode}
             t={t}
           />
-        </div>
-      </div>
 
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {activeDragId?.startsWith("palette-")
-          ? (
-            <div className="bg-blue-500 text-white text-xs px-3 py-2 rounded shadow-lg flex items-center gap-2">
-              <AppstoreAddOutlined />
-              {activeDragId.replace("palette-", "")}
+          {/* 右侧：属性面板 */}
+          <div className="w-65 border-l border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden">
+            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                <SettingOutlined size={12} />
+                {t("visualEditor.property.title")}
+              </h4>
+              {selectedNode && !isRootSelected && (
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    setInternalSchema((prev) => {
+                      const next = cloneSchema(prev);
+                      if (next.children) {
+                        next.children = next.children.filter((c) => c.id !== selectedId);
+                        if (selectedId) { setSelectedId(null); }
+                      }
+                      onChange(next);
+                      return next;
+                    });
+                  }}
+                >
+                  {t("visualEditor.property.delete")}
+                </Button>
+              )}
             </div>
-          )
-          : activeDragId
-          ? (
-            <div className="bg-gray-700 dark:bg-gray-600 text-white text-xs px-3 py-2 rounded shadow-lg">
-              <HolderOutlined className="mr-1" />
-              {activeDragId}
-            </div>
-          )
-          : null}
-      </DragOverlay>
-    </DndContext>
+            <PropertyPanel
+              selectedNode={selectedNode ?? null}
+              isRoot={isRootSelected}
+              onUpdateNode={handleUpdateSelectedNode}
+              defaultPropsMap={defaultPropsMap}
+              t={t}
+            />
+          </div>
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeDragId?.startsWith("palette-")
+            ? (
+              <div className="bg-blue-500 text-white text-xs px-3 py-2 rounded shadow-lg flex items-center gap-2">
+                <AppstoreAddOutlined />
+                {activeDragId.replace("palette-", "")}
+              </div>
+            )
+            : activeDragId
+            ? (
+              <div className="bg-gray-700 dark:bg-gray-600 text-white text-xs px-3 py-2 rounded shadow-lg">
+                <HolderOutlined className="mr-1" />
+                {activeDragId}
+              </div>
+            )
+            : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 }

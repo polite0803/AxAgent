@@ -1,18 +1,9 @@
 {
   "app": {
-    "name": "AxAgent",
-    "title": "Smart Workspace",
-    "description": "AI-Powered Work Assistant",
-    "newSkillProposal": "New skill suggestion: {name}"
+    "quickBar": "QuickBar"
   },
   "appHeader": {
-    "knowledgeContext": "Knowledge Base Overview",
-    "gatewayContext": "Gateway Running",
-    "filesContext": "File Management",
-    "terminalContext": "Terminal Sessions",
-    "closeAgentPanel": "Close Agent Panel",
-    "openAgentPanel": "Open Agent Panel",
-    "dashboardContext": "System overview at a glance"
+    "agentPanel": "Agent Panel"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -48,18 +39,7 @@
     "scheduledAnalysis": "Scheduled"
   },
   "sidebar": {
-    "sectionTools": "Tools",
-    "sectionInfrastructure": "Infrastructure",
-    "expand": "Expand sidebar",
-    "collapse": "Collapse sidebar",
-    "sectionInvest": "Invest",
-    "sectionInvestDiscover": "Discover",
-    "sectionInvestMonitor": "Monitor",
-    "sectionInvestExecute": "Execute",
-    "sectionInvestReview": "Review",
-    "closeAgent": "Close Agent",
-    "openAgent": "Open Agent",
-    "sectionOverview": "Overview"
+    "agentPanel": "Agent Panel"
   },
   "knowledge": {
     "commonPanel": "Common Panel",
@@ -5900,9 +5880,7 @@
     "yourReview": "Your Review"
   },
   "searchProvider": {
-    "tavily": "Tavily",
-    "zhipu": "Zhipu",
-    "bocha": "Bocha"
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "Online",
@@ -7294,26 +7272,10 @@
     "done": "Done"
   },
   "imageGen": {
-    "title": "Image Generation",
-    "inferenceSteps": "Inference Steps",
-    "promptPlaceholder": "Describe the image you want to generate...",
-    "negativePrompt": "Negative Prompt (optional)",
-    "loading": "Loading...",
-    "defaultProvider": "Default Provider",
-    "autoSaveArtifact": "Auto Save as Artifact",
-    "enterPrompt": "Please enter a prompt",
-    "configureApiKey": "Please configure API Key",
-    "generateImage": "Generate Image",
-    "model": "Model",
-    "elapsed": "Elapsed",
-    "providerFlux": "Flux (Replicate)",
-    "providerDalle": "DALL-E 3 (OpenAI)",
-    "replicateApiToken": "Replicate API Token",
-    "replicateApiTokenPlaceholder": "r8_...",
-    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
-    "openaiApiKeyPlaceholder": "sk-...",
-    "openaiBaseUrl": "OpenAI Base URL",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "generatedImageTitle": "## AI Generated Image",
+    "model": "**Model**",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "New",
@@ -7574,7 +7536,7 @@
     "teamCreated": "Team \"{{name}}\" created with {{count}} teammates"
   },
   "chatPage": {
-    "loading": "Loading..."
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "SSH Configuration",
@@ -7657,20 +7619,7 @@
     "emptyResult": "No result"
   },
   "errorBoundary": {
-    "title": "Something went wrong",
-    "retryLoad": "Retry loading this module",
-    "panelLoadFailed": "⚠️ Panel \"{{tabKey}}\" failed to load",
-    "unknownError": "Unknown error",
-    "copied": "Copied",
-    "copyError": "Copy Error",
-    "errorDetails": "Error Details",
-    "moduleError": "Module Error",
-    "pageError": "Page Error",
-    "refreshPage": "Refresh Page",
-    "retry": "Retry",
-    "somethingWentWrong": "Something Went Wrong",
-    "tryAgain": "Try Again",
-    "unexpectedError": "Unexpected Error"
+    "pageError": "Page Error"
   },
   "appInit": {
     "idle": "Preparing to start...",
@@ -8486,30 +8435,7 @@
     "retry": "Retry"
   },
   "dynamicUI": {
-    "schemaValidationFailed": "Schema validation failed",
-    "moreErrors": "... and {{count}} more errors",
-    "unregisteredComponent": "Unregistered component: {{type}}",
-    "registerHint": "Please register this component via componentRegistry.register()",
-    "renderFailed": "Component \"{{type}}\" failed to render",
-    "submit": "Submit",
-    "tab": "Tab",
-    "section": "Section",
-    "dataLoadFailed": "Data loading failed",
-    "pleaseEnter": "Please enter {{label}}",
-    "pleaseSelect": "Please select {{label}}",
-    "fieldRequired": "{{field}} is required",
-    "button": "Button",
-    "noData": "No data",
-    "loadingChart": "Loading chart component...",
-    "rechartsRequired": "Recharts is required for charts",
-    "rechartsInstallHint": "Please run npm install recharts or pnpm add recharts",
-    "unsupportedChartType": "Unsupported chart type: {{type}}",
-    "schemaNotFound": "Dynamic page not found",
-    "filePreview": "File preview: {{fileName}}",
-    "textFile": "Text file",
-    "unknownFile": "Unknown file",
-    "previewNotSupported": "Preview is not supported for this file type",
-    "downloadFile": "Download file"
+    "uiSchemaJson": "UI Schema JSON"
   },
   "agentPanel": {
     "openPanel": "Open AxAgent Panel",
@@ -8770,7 +8696,8 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "livePreview": "Live Preview"
     },
     "property": {
       "title": "Property Panel",
@@ -8794,7 +8721,9 @@
         "propKey": "Key",
         "propValue": "Value"
       }
-    }
+    },
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen"
   },
   "dashboard": {
     "overview": "Overview",
@@ -8854,17 +8783,8 @@
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
   },
-  "imageGen": {
-    "generatedImageTitle": "## AI Generated Image",
-    "model": "**Model**",
-    "duration": "**Duration**",
-    "savedToArtifact": "Saved to Artifact"
-  },
   "voiceChat": {
     "noTicket": "No ticket available. Please start again."
-  },
-  "app": {
-    "quickBar": "QuickBar"
   },
   "chatSidebar": {
     "menu": "Menu"
@@ -8872,18 +8792,6 @@
   "inputArea": {
     "resizeHandle": "resize handle",
     "uploadFile": "Upload file"
-  },
-  "appHeader": {
-    "agentPanel": "Agent Panel"
-  },
-  "sidebar": {
-    "agentPanel": "Agent Panel"
-  },
-  "errorBoundary": {
-    "pageError": "Page Error"
-  },
-  "chatPage": {
-    "resizeHandle": "resize handle"
   },
   "debugPanel": {
     "trace": "Trace",
@@ -8904,17 +8812,11 @@
   "traceDetail": {
     "userId": "User ID"
   },
-  "searchProvider": {
-    "apiKey": "API Key"
-  },
   "settingsPanel": {
     "featureFlags": "Feature Flags"
   },
   "skillTimeline": {
     "promptDiff": "Prompt Diff"
-  },
-  "dynamicUI": {
-    "uiSchemaJson": "UI Schema JSON"
   },
   "subWorkflowNode": {
     "collapse": "Collapse",

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useRecommendationStore } from "@/stores/devtools/recommendationStore";
-import { Alert, Button, Card, Divider, Input, List, Progress, Space, Spin, Tag, Typography } from "antd";
+import { Alert, Button, Card, Divider, Input, Progress, Space, Spin, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -113,23 +113,28 @@ export function ToolRecommendationPanel() {
 
               <div>
                 <Title level={5}>{t("recommendation.recommendedTools")}</Title>
-                <List
-                  itemLayout="horizontal"
-                  dataSource={recommendations.tools}
-                  renderItem={(item) => (
-                    <List.Item
-                      actions={[
-                        <Tag
-                          color={getScoreColor(item.score)}
-                          key={item.tool_id}
-                        >
-                          Score: {(item.score * 100).toFixed(0)}%
-                        </Tag>,
-                      ]}
+                <div className="divide-y divide-gray-100">
+                  {recommendations.tools.map((item) => (
+                    <div
+                      key={item.tool_id}
+                      style={{
+                        padding: "12px 0",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                      }}
                     >
-                      <List.Item.Meta
-                        title={item.tool_name}
-                        description={
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500 }}>
+                          {item.tool_name}
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                            fontSize: 13,
+                            marginTop: 2,
+                          }}
+                        >
                           <div>
                             {item.reasons.map((reason, _idx) => (
                               <Tag key={reason} style={{ marginBottom: "4px" }}>
@@ -137,11 +142,14 @@ export function ToolRecommendationPanel() {
                               </Tag>
                             ))}
                           </div>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
+                        </div>
+                      </div>
+                      <Tag color={getScoreColor(item.score)}>
+                        Score: {(item.score * 100).toFixed(0)}%
+                      </Tag>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {recommendations.alternatives.length > 0 && (
@@ -151,30 +159,34 @@ export function ToolRecommendationPanel() {
                     <Title level={5}>
                       {t("recommendation.alternativeApproaches")}
                     </Title>
-                    <List
-                      itemLayout="horizontal"
-                      dataSource={recommendations.alternatives}
-                      renderItem={(alt) => (
-                        <List.Item>
-                          <List.Item.Meta
-                            title={alt.description}
-                            description={
-                              <div>
-                                <Text type="secondary">Tools:</Text>
-                                {alt.tools.map((tool, _idx) => <Tag key={tool}>{tool}</Tag>)}
-                                <br />
-                                <Text type="secondary">Tradeoffs:</Text>
-                                {alt.tradeoffs.map((tradeoff, _idx) => (
-                                  <Tag key={tradeoff} color="default">
-                                    {tradeoff}
-                                  </Tag>
-                                ))}
-                              </div>
-                            }
-                          />
-                        </List.Item>
-                      )}
-                    />
+                    <div className="divide-y divide-gray-100">
+                      {recommendations.alternatives.map((alt) => (
+                        <div key={alt.description} style={{ padding: "12px 0" }}>
+                          <div style={{ fontWeight: 500 }}>
+                            {alt.description}
+                          </div>
+                          <div
+                            style={{
+                              color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                              fontSize: 13,
+                              marginTop: 2,
+                            }}
+                          >
+                            <div>
+                              <Text type="secondary">Tools:</Text>
+                              {alt.tools.map((tool, _idx) => <Tag key={tool}>{tool}</Tag>)}
+                              <br />
+                              <Text type="secondary">Tradeoffs:</Text>
+                              {alt.tradeoffs.map((tradeoff, _idx) => (
+                                <Tag key={tradeoff} color="default">
+                                  {tradeoff}
+                                </Tag>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
@@ -198,11 +210,9 @@ export function ToolRecommendationPanel() {
           title={t("recommendation.availableTools")}
           style={{ marginTop: "16px" }}
         >
-          <List
-            grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
-            dataSource={availableTools}
-            renderItem={(tool) => (
-              <List.Item>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {availableTools.map((tool) => (
+              <div key={tool.name}>
                 <Card size="small" title={tool.name}>
                   <Paragraph type="secondary" ellipsis={{ rows: 2 }}>
                     {tool.description}
@@ -211,9 +221,9 @@ export function ToolRecommendationPanel() {
                     {tool.categories.map((cat) => <Tag key={cat}>{cat}</Tag>)}
                   </div>
                 </Card>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
         </Card>
       )}
     </div>

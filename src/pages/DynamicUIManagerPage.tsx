@@ -123,7 +123,8 @@ export function DynamicUIManagerPage() {
       form.setFieldsValue({ category: "custom", version: "", change_log: "" });
       setTimeout(() => setJsonSchemaText(""), 0);
     }
-  }, [editingRecord, form, setJsonSchemaText, editorOpen]);
+  }, [editingRecord, editorOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps — form/setJsonSchemaText are stable references
 
   const derivedParseError = useMemo(() => {
     if (!jsonSchemaText) { return null; }

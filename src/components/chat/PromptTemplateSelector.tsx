@@ -2,7 +2,7 @@
 
 import { usePromptTemplateStore } from "@/stores";
 import type { PromptTemplate } from "@/types";
-import { Input, List, Modal, Spin, Tag } from "antd";
+import { Input, Modal, Spin, Tag } from "antd";
 import { Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -124,12 +124,9 @@ export function PromptTemplateSelector({
 
       <div className="max-h-60 overflow-y-auto px-1">
         <Spin spinning={loading}>
-          <List
-            dataSource={filteredTemplates.slice(0, 10)}
-            size="small"
-            locale={{ emptyText: t("promptTemplates.noTemplates") }}
-            renderItem={(template) => (
-              <List.Item
+          <div className="divide-y divide-gray-100">
+            {filteredTemplates.slice(0, 10).map((template) => (
+              <div
                 className="cursor-pointer hover:bg-zinc-50 rounded px-2 py-1.5 transition-colors"
                 onClick={() => handleSelect(template)}
               >
@@ -158,9 +155,9 @@ export function PromptTemplateSelector({
                     {template.description || template.content.slice(0, 60)}
                   </span>
                 </div>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
         </Spin>
       </div>
 

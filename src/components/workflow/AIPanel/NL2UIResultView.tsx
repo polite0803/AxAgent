@@ -9,7 +9,7 @@ import {
   PlayCircleOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Button, Collapse, List, Progress, Space, Statistic, Tag, theme, Typography } from "antd";
+import { Button, Collapse, Progress, Space, Statistic, Tag, theme, Typography } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -95,11 +95,9 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
               key: "phases",
               label: t("workflow.nl2Skill.parsingPhases"),
               children: (
-                <List
-                  size="small"
-                  dataSource={phases}
-                  renderItem={(p) => (
-                    <List.Item style={{ padding: "2px 0" }}>
+                <div className="divide-y divide-gray-100">
+                  {phases.map((p) => (
+                    <div key={p.phase} style={{ padding: "2px 0" }}>
                       <Space>
                         {p.status === "done"
                           ? <CheckCircleOutlined style={{ color: token.colorSuccess }} />
@@ -107,9 +105,9 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
                         <Text strong>{p.phase}</Text>
                         <Text type="secondary">{p.detail}</Text>
                       </Space>
-                    </List.Item>
-                  )}
-                />
+                    </div>
+                  ))}
+                </div>
               ),
             },
           ]}
@@ -120,15 +118,13 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
           <Text strong>
             <BulbOutlined /> {t("workflow.nlParser.aiSuggestion")}：
           </Text>
-          <List
-            size="small"
-            dataSource={suggestions}
-            renderItem={(s) => (
-              <List.Item style={{ padding: "2px 0", border: "none" }}>
+          <div>
+            {suggestions.map((s, idx) => (
+              <div key={idx} style={{ padding: "2px 0", border: "none" }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>{s}</Text>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* 应用按钮 */}

@@ -6701,7 +6701,8 @@
       "duplicate": "複製",
       "moveDown": "下移",
       "moveUp": "上移",
-      "pasteNode": "貼上節點"
+      "pasteNode": "貼上節點",
+      "livePreview": "实时预览"
     },
     "categories": {
       "container": "版面與容器",
@@ -6790,7 +6791,9 @@
       "rules": "驗證規則",
       "type": "類型",
       "value": "值"
-    }
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
   },
   "voice": {
     "connected": "已連線",

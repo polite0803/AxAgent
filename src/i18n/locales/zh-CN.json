@@ -6713,7 +6713,8 @@
       "dropPrompt": "将组件拖放到此处",
       "emptyHint": "画布为空，从左侧拖入组件开始构建 UI",
       "leafNode": "叶子节点",
-      "rootHint": "个根级子组件"
+      "rootHint": "个根级子组件",
+      "livePreview": "实时预览"
     },
     "categories": {
       "container": "布局容器",
@@ -6780,7 +6781,9 @@
         "style": "样式"
       },
       "title": "属性面板"
-    }
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
   },
   "voice": {
     "connected": "已连接",

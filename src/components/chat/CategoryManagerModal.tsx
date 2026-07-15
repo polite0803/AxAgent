@@ -3,7 +3,7 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useCategoryStore, useConversationStore } from "@/stores";
 import type { ConversationCategory } from "@/types";
-import { Avatar, Button, Empty, List, message, Modal, Popconfirm, theme } from "antd";
+import { Avatar, Button, Empty, message, Modal, Popconfirm, theme } from "antd";
 import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -173,21 +173,63 @@ export function CategoryManagerModal({
             />
           )
           : (
-            <List
-              dataSource={categories}
-              renderItem={(category) => (
-                <List.Item
-                  actions={[
-                    <Tooltip title={t("chat.editCategory")} key="edit">
+            <div className="divide-y divide-gray-100">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  style={{
+                    padding: "12px 0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Avatar
+                      size={28}
+                      icon={<FolderOpen size={14} />}
+                      style={{
+                        backgroundColor: token.colorFillSecondary,
+                        color: token.colorTextSecondary,
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{category.name}</div>
+                      {category.system_prompt
+                        ? (
+                          <div
+                            style={{
+                              color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                              fontSize: 13,
+                              marginTop: 2,
+                            }}
+                          >
+                            <span
+                              style={{
+                                maxWidth: 200,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                display: "inline-block",
+                              }}
+                            >
+                              {category.system_prompt}
+                            </span>
+                          </div>
+                        )
+                        : null}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Tooltip title={t("chat.editCategory")}>
                       <Button
                         type="text"
                         size="small"
                         icon={<Pencil size={14} />}
                         onClick={() => openEdit(category)}
                       />
-                    </Tooltip>,
+                    </Tooltip>
                     <Popconfirm
-                      key="delete"
                       title={t("chat.deleteCategoryConfirm")}
                       onConfirm={() => handleDelete(category)}
                       okButtonProps={{ danger: true }}
@@ -200,40 +242,11 @@ export function CategoryManagerModal({
                           icon={<Trash2 size={14} />}
                         />
                       </Tooltip>
-                    </Popconfirm>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        size={28}
-                        icon={<FolderOpen size={14} />}
-                        style={{
-                          backgroundColor: token.colorFillSecondary,
-                          color: token.colorTextSecondary,
-                        }}
-                      />
-                    }
-                    title={category.name}
-                    description={category.system_prompt
-                      ? (
-                        <span
-                          style={{
-                            maxWidth: 200,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            display: "inline-block",
-                          }}
-                        >
-                          {category.system_prompt}
-                        </span>
-                      )
-                      : undefined}
-                  />
-                </List.Item>
-              )}
-            />
+                    </Popconfirm>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
       </Modal>
 

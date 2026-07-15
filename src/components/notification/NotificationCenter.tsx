@@ -9,7 +9,7 @@ import {
   markAsRead,
   type Notification,
 } from "@/lib/notification";
-import { Badge, Button, Empty, List, Popover, Space, Typography } from "antd";
+import { Badge, Button, Empty, Popover, Space, Typography } from "antd";
 import { AlertTriangle, Bell, Check, CheckCheck, Info, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -151,10 +151,9 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
           />
         )
         : (
-          <List
-            dataSource={notifications}
-            renderItem={(notification) => (
-              <List.Item
+          <div className="divide-y divide-gray-100">
+            {notifications.map((notification) => (
+              <div
                 style={{
                   padding: "12px 16px",
                   background: notification.read
@@ -225,9 +224,9 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
                     )}
                   </div>
                 </div>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
         )}
     </div>
   );

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { NLParseResult, WorkflowDefinition } from "@/types";
-import { Button, Card, List, Progress, Radio, Statistic, Tag, theme, Typography } from "antd";
+import { Button, Card, Progress, Radio, Statistic, Tag, theme, Typography } from "antd";
 import { Lightbulb, Workflow } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -141,20 +141,17 @@ export const NLParseResultView: React.FC<NLParseResultViewProps> = React.memo(({
           <Text strong style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
             {t("workflow.nlParser.aiSuggestion")}
           </Text>
-          <List
-            size="small"
-            dataSource={result.suggestions}
-            split={false}
-            renderItem={(item, idx) => (
+          <div>
+            {result.suggestions.map((item, idx) => (
               // FIXME: suggestions 是字符串数组，无稳定唯一标识，使用前缀+索引
-              <List.Item key={`suggestion-${idx}`} style={{ padding: "2px 0", border: "none" }}>
+              <div key={`suggestion-${idx}`} style={{ padding: "2px 0", border: "none" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
                   <Lightbulb size={12} style={{ marginTop: 2, color: token.colorWarning, flexShrink: 0 }} />
                   <Text style={{ fontSize: 12, color: token.colorTextSecondary }}>{item}</Text>
                 </div>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 

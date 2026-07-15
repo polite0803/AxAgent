@@ -35,7 +35,6 @@ import {
   Descriptions,
   Divider,
   Empty,
-  List,
   Modal,
   Row,
   Space,
@@ -1073,16 +1072,14 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
             : (
               <Space direction="vertical" className="w-full">
                 {validationResult.errors.length > 0 && (
-                  <List
-                    size="small"
-                    header={
+                  <div>
+                    <div className="py-2">
                       <Text type="danger" strong>
                         {t("workflow.debug.errors", { count: validationResult.errors.length })}
                       </Text>
-                    }
-                    dataSource={validationResult.errors}
-                    renderItem={(err) => (
-                      <List.Item>
+                    </div>
+                    {validationResult.errors.map((err, i) => (
+                      <div key={i} className="py-2">
                         <Space direction="vertical" size={0} className="w-full">
                           <Space>
                             <CloseCircleOutlined style={{ color: token.colorError }} />
@@ -1091,21 +1088,19 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           </Space>
                           {err.suggestion && <Text type="secondary" className="text-xs">{err.suggestion}</Text>}
                         </Space>
-                      </List.Item>
-                    )}
-                  />
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {validationResult.warnings.length > 0 && (
-                  <List
-                    size="small"
-                    header={
+                  <div>
+                    <div className="py-2">
                       <Text type="warning" strong>
                         {t("workflow.debug.warnings", { count: validationResult.warnings.length })}
                       </Text>
-                    }
-                    dataSource={validationResult.warnings}
-                    renderItem={(warn) => (
-                      <List.Item>
+                    </div>
+                    {validationResult.warnings.map((warn, i) => (
+                      <div key={i} className="py-2">
                         <Space direction="vertical" size={0}>
                           <Space>
                             <WarningOutlined style={{ color: token.colorWarning }} />
@@ -1113,9 +1108,9 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                             {warn.node_id && <Tag>{warn.node_id}</Tag>}
                           </Space>
                         </Space>
-                      </List.Item>
-                    )}
-                  />
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {validationResult.errors.length === 0 && validationResult.warnings.length === 0 && (
                   <div className="text-center py-4">
@@ -1632,24 +1627,9 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
             ),
             children: executionHistory.length > 0
               ? (
-                <List
-                  size="small"
-                  dataSource={executionHistory}
-                  renderItem={(item) => (
-                    <List.Item
-                      actions={[
-                        <Button
-                          key="view"
-                          type="link"
-                          size="small"
-                          onClick={async () => {
-                            await viewExecution(item.id);
-                          }}
-                        >
-                          {t("workflow.debug.view")}
-                        </Button>,
-                      ]}
-                    >
+                <div className="divide-y divide-gray-100">
+                  {executionHistory.map((item) => (
+                    <div key={item.id} className="py-3 flex items-center justify-between">
                       <Space>
                         <Tag color={statusColor(item.status)}>{item.status}</Tag>
                         <Text type="secondary" className="text-xs">
@@ -1661,9 +1641,18 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           </Text>
                         )}
                       </Space>
-                    </List.Item>
-                  )}
-                />
+                      <Button
+                        type="link"
+                        size="small"
+                        onClick={async () => {
+                          await viewExecution(item.id);
+                        }}
+                      >
+                        {t("workflow.debug.view")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               )
               : (
                 <Empty

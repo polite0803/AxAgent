@@ -8,7 +8,6 @@ import {
   Divider,
   Empty,
   Input,
-  List,
   message,
   Popconfirm,
   Space,
@@ -249,12 +248,51 @@ export function AcpSettings() {
             />
           )
           : (
-            <List
-              size="small"
-              dataSource={sessions}
-              renderItem={(s: Session) => (
-                <List.Item
-                  actions={[
+            <div className="divide-y divide-gray-100">
+              {sessions.map((s: Session) => (
+                <div key={s.sessionId} className="py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="pt-1">
+                        {s.status === "running"
+                          ? <Badge status="processing" />
+                          : s.status === "idle"
+                          ? <Badge status="success" />
+                          : <Badge status="default" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Space size={8}>
+                          <Text code style={{ fontSize: 12 }}>
+                            {s.sessionId.slice(0, 12)}...
+                          </Text>
+                          <Tag
+                            color={s.status === "running"
+                              ? "processing"
+                              : s.status === "idle"
+                              ? "success"
+                              : "default"}
+                          >
+                            {s.status}
+                          </Tag>
+                        </Space>
+                        <Descriptions size="small" column={2} colon={false}>
+                          <Descriptions.Item label={t("acp.directory")}>
+                            <Text style={{ fontSize: 12 }}>{s.workDir}</Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label={t("acp.permission")}>
+                            <Tag style={{ fontSize: 12 }}>{s.permissionMode}</Tag>
+                          </Descriptions.Item>
+                          <Descriptions.Item label={t("acp.activeTasks")}>
+                            <Text style={{ fontSize: 12 }}>{s.activeTasks}</Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label={t("acp.lastActive")}>
+                            <Text style={{ fontSize: 12 }}>
+                              {new Date(s.lastActive).toLocaleString("zh-CN")}
+                            </Text>
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </div>
+                    </div>
                     <Popconfirm
                       key="close"
                       title={t("acp.confirmClose")}
@@ -270,53 +308,11 @@ export function AcpSettings() {
                       >
                         {t("acp.close")}
                       </Button>
-                    </Popconfirm>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={s.status === "running"
-                      ? <Badge status="processing" />
-                      : s.status === "idle"
-                      ? <Badge status="success" />
-                      : <Badge status="default" />}
-                    title={
-                      <Space size={8}>
-                        <Text code style={{ fontSize: 12 }}>
-                          {s.sessionId.slice(0, 12)}...
-                        </Text>
-                        <Tag
-                          color={s.status === "running"
-                            ? "processing"
-                            : s.status === "idle"
-                            ? "success"
-                            : "default"}
-                        >
-                          {s.status}
-                        </Tag>
-                      </Space>
-                    }
-                    description={
-                      <Descriptions size="small" column={2} colon={false}>
-                        <Descriptions.Item label={t("acp.directory")}>
-                          <Text style={{ fontSize: 12 }}>{s.workDir}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t("acp.permission")}>
-                          <Tag style={{ fontSize: 12 }}>{s.permissionMode}</Tag>
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t("acp.activeTasks")}>
-                          <Text style={{ fontSize: 12 }}>{s.activeTasks}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t("acp.lastActive")}>
-                          <Text style={{ fontSize: 12 }}>
-                            {new Date(s.lastActive).toLocaleString("zh-CN")}
-                          </Text>
-                        </Descriptions.Item>
-                      </Descriptions>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+                    </Popconfirm>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
       </SettingsGroup>
 

@@ -16,7 +16,6 @@ import {
   Card,
   Col,
   Empty,
-  List,
   message,
   Progress,
   Row,
@@ -264,11 +263,9 @@ export function SyncStatus({
             />
           )
           : (
-            <List
-              size="small"
-              dataSource={queueItems.slice(0, 20)}
-              renderItem={(item) => (
-                <List.Item className="px-0">
+            <div className="divide-y divide-gray-100">
+              {queueItems.slice(0, 20).map((item) => (
+                <div key={item.id} className="py-3 px-0">
                   <div className="flex items-center justify-between w-full">
                     <Space>
                       <Badge status={getStatusColor(item.status)} />
@@ -289,9 +286,9 @@ export function SyncStatus({
                       </Text>
                     </Space>
                   </div>
-                </List.Item>
-              )}
-            />
+                </div>
+              ))}
+            </div>
           )}
         {queueItems.length > 20 && (
           <Text type="secondary" className="text-xs">

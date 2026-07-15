@@ -3,7 +3,7 @@
 import { invoke } from "@/lib/invoke";
 import { IngestResult, useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { DeleteOutlined, FileTextOutlined, FolderOutlined, LinkOutlined, UploadOutlined } from "@ant-design/icons";
-import { Button, Card, Form, Input, List, message, Progress, Select, Space, Typography, Upload } from "antd";
+import { Button, Card, Form, Input, message, Progress, Select, Space, Typography, Upload } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -221,33 +221,43 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
 
       {results.length > 0 && (
         <Card title={t("wiki.ingest.results")}>
-          <List
-            dataSource={results}
-            renderItem={(item, index) => (
-              <List.Item
-                actions={[
-                  <Button
-                    key="remove"
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={() => removeResult(index)}
-                  />,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={<FileTextOutlined />}
-                  title={item.title}
-                  description={
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {item.raw_path}
-                    </Text>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+          <div className="divide-y divide-gray-100">
+            {results.map((item, index) => (
+              <div key={index} style={{ padding: "12px 0" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <div>
+                      <FileTextOutlined />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{item.title}</div>
+                      <div
+                        style={{
+                          color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                          fontSize: 13,
+                          marginTop: 2,
+                        }}
+                      >
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {item.raw_path}
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+                  <Space>
+                    <Button
+                      key="remove"
+                      type="text"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={() => removeResult(index)}
+                    />
+                  </Space>
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
     </Space>

@@ -4,7 +4,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { LintIssue, LintResult } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, WarningOutlined } from "@ant-design/icons";
-import { Badge, Button, Card, Empty, List, Progress, Space, Spin, Tag, Typography } from "antd";
+import { Badge, Button, Card, Empty, Progress, Space, Spin, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 const { Text } = Typography;
@@ -279,20 +279,17 @@ export function QualityScore({
           <Text type="secondary" className="text-xs uppercase">
             {t("wiki.quality.issueList")}
           </Text>
-          <List
-            size="small"
-            className="mt-1 max-h-40 overflow-auto"
-            dataSource={details.issues.slice(0, 10)}
-            renderItem={(issue) => (
-              <List.Item className="px-0 py-1">
+          <div className="divide-y divide-gray-100 mt-1 max-h-40 overflow-auto">
+            {details.issues.slice(0, 10).map((issue) => (
+              <div key={`${issue.line}-${issue.message}`} className="px-0 py-1">
                 <Space size="small">
                   <Badge status={getIssueSeverityColor(issue.severity)} />
                   <Text className="text-xs">{issue.message}</Text>
                   {issue.line && <Tag className="text-xs">L{issue.line}</Tag>}
                 </Space>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
           {details.issues.length > 10 && (
             <Text type="secondary" className="text-xs">
               +{details.issues.length - 10} {t("wiki.quality.more")}

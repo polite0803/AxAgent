@@ -7,21 +7,7 @@ import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { BacklinkInfo, KnowledgeBase, Note, NoteLink } from "@/types";
 import { DeleteOutlined, LinkOutlined, SaveOutlined } from "@ant-design/icons";
 import { Background, Controls, Edge, MiniMap, Node, ReactFlow, useEdgesState, useNodesState } from "@xyflow/react";
-import {
-  Button,
-  Empty,
-  List,
-  message,
-  Modal,
-  Popconfirm,
-  Select,
-  Spin,
-  Tabs,
-  Tag,
-  theme,
-  Tooltip,
-  Typography,
-} from "antd";
+import { Button, Empty, message, Modal, Popconfirm, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
 import { ArrowLeftRight, BookOpen, GitGraph, Network, PenLine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
@@ -575,10 +561,10 @@ function BacklinkList({
   }
 
   return (
-    <List
-      dataSource={backlinks}
-      renderItem={(bl) => (
-        <List.Item
+    <div className="divide-y divide-gray-100">
+      {backlinks.map((bl) => (
+        <div
+          key={bl.noteId}
           className="cursor-pointer px-4 py-3 mx-2 my-0.5 rounded-xl transition-all duration-200 hover:shadow-sm"
           style={{ border: "none" }}
           onClick={() => onNavigate(bl.noteId)}
@@ -610,9 +596,9 @@ function BacklinkList({
               ))}
             </div>
           </div>
-        </List.Item>
-      )}
-    />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -642,13 +628,13 @@ function LinkList({
   const findNode = (id: string) => graphData?.nodes.find((n) => n.id === id);
 
   return (
-    <List
-      dataSource={links}
-      renderItem={(link) => {
+    <div className="divide-y divide-gray-100">
+      {links.map((link) => {
         const sourceNode = findNode(link.sourceNoteId);
         const targetNode = findNode(link.targetNoteId);
         return (
-          <List.Item
+          <div
+            key={`${link.sourceNoteId}-${link.targetNoteId}`}
             className="cursor-pointer px-4 py-3 mx-2 my-0.5 rounded-xl transition-all duration-200 hover:shadow-sm"
             style={{ border: "none" }}
             onClick={() =>
@@ -686,10 +672,10 @@ function LinkList({
                 </Text>
               </div>
             </div>
-          </List.Item>
+          </div>
         );
-      }}
-    />
+      })}
+    </div>
   );
 }
 

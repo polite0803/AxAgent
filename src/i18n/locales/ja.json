@@ -6702,7 +6702,8 @@
       "dropPrompt": "コンポーネントをここにドロップ",
       "emptyHint": "キャンバスは空です。左パネルからコンポーネントをドラッグしてUIを構築",
       "leafNode": "リーフノード",
-      "rootHint": "ルートレベルの子要素"
+      "rootHint": "ルートレベルの子要素",
+      "livePreview": "实时预览"
     },
     "categories": {
       "container": "レイアウトとコンテナ",
@@ -6769,7 +6770,9 @@
         "style": "スタイル"
       },
       "title": "プロパティパネル"
-    }
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
   },
   "voice": {
     "connected": "接続済み",
