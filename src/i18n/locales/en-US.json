@@ -8669,6 +8669,8 @@
     "tagsPlaceholder": "Enter tags and press Enter",
     "jsonEditor": "JSON Schema",
     "visualEditor": "Visual Editor",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value",
     "jsonPlaceholder": "Enter JSON conforming to UISchema spec...",
     "parseError": "Parse Error",
     "schemaValid": "Schema validated",
@@ -8851,5 +8853,14 @@
   },
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
+  },
+  "imageGen": {
+    "generatedImageTitle": "## AI Generated Image",
+    "model": "**Model**",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
   }
 }

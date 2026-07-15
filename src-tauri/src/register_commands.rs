@@ -933,6 +933,7 @@ macro_rules! register_all_commands {
             commands::dynamic_ui::edit_dynamic_ui_schema_nl,
             commands::dynamic_ui::generate_dynamic_ui_schema_nl,
             commands::orchestrator::orchestrate_mission,
+            commands::orchestrator::subscribe_orchestrator_stream,
         ]
     };
 }

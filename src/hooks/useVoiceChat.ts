@@ -342,7 +342,7 @@ export function useVoiceChat({
 
     const ticket = ticketRef.current;
     if (!ticket) {
-      message.error("No ticket available. Please start again.");
+      message.error(t("voiceChat.noTicket"));
       return;
     }
 

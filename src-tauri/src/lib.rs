@@ -276,6 +276,15 @@ pub fn run() {
             // Initialize pricing configuration from pricing.toml
             commands::agent::init_pricing_config(app.handle());
 
+            // 注入 Orchestrator 流式报告器（绑定 AppHandle 以便推送事件到前端）
+            {
+                let reporter = commands::orchestrator::create_stream_reporter(app.handle().clone());
+                let stream_reporter = state.stream_reporter.clone();
+                tauri::async_runtime::block_on(async {
+                    *stream_reporter.write().await = Some(reporter);
+                });
+            }
+
             // m7: validate agent_roles.yaml schema at startup
             {
                 let config_dir = app_dir.join("config");

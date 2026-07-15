@@ -85,6 +85,7 @@ async function saveToArtifact(
   conversationId: string,
   prompt: string,
   result: ImageGenResult,
+  t: (key: string) => string,
 ) {
   const imageMd = result.images
     .map((img, i) => {
@@ -101,10 +102,10 @@ async function saveToArtifact(
     .join("\n\n");
 
   const content = [
-    `## AI 生成图片: ${prompt}`,
+    `${t("imageGen.generatedImageTitle")}: ${prompt}`,
     "",
-    `**模型**: ${result.model_used}`,
-    `**耗时**: ${(result.elapsed_ms / 1000).toFixed(1)}s`,
+    `${t("imageGen.model")}: ${result.model_used}`,
+    `${t("imageGen.duration")}: ${(result.elapsed_ms / 1000).toFixed(1)}s`,
     "",
     imageMd,
   ].join("\n");
@@ -119,7 +120,7 @@ async function saveToArtifact(
 
   try {
     await invoke("create_artifact", input as unknown as Record<string, unknown>);
-    message.success("已保存到 Artifact");
+    message.success(t("imageGen.savedToArtifact"));
   } catch {
     // 静默失败，不阻断主流程
   }
@@ -193,7 +194,7 @@ export function ImageGenPanel({
 
       // save_to_artifact: 自动保存生成结果到 Artifact
       if (saveToArtifactSetting && conversationId) {
-        await saveToArtifact(conversationId, prompt, res);
+        await saveToArtifact(conversationId, prompt, res, t);
       }
     } catch (e) {
       message.error(String(e));

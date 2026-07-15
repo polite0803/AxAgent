@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated": "2026-07-14",
+  "generated": "2026-07-15",
   "total_entries": 519,
   "total_files": 519,
   "entries": [
@@ -762,7 +762,7 @@
     },
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\InputArea.tsx",
-      "lines": "2513",
+      "lines": "2513,2533",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -858,7 +858,7 @@
     },
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\GeneralSettings.tsx",
-      "lines": "74",
+      "lines": "74,84",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },

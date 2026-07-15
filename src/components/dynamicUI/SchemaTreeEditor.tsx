@@ -284,7 +284,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
                     <Input
                       size="small"
                       className="w-[40%] font-mono text-xs"
-                      placeholder="key"
+                      placeholder={t("dynamicUIManager.keyPlaceholder")}
                       value={entry.key}
                       onChange={(e) => handlePropChange(idx, "key", e.target.value)}
                       status={requiredProps.includes(entry.key) && !entry.value ? "warning" : undefined}
@@ -292,7 +292,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
                     <Input
                       size="small"
                       className="flex-1 font-mono text-xs"
-                      placeholder="value"
+                      placeholder={t("dynamicUIManager.valuePlaceholder")}
                       value={entry.value}
                       onChange={(e) => handlePropChange(idx, "value", e.target.value)}
                     />

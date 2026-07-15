@@ -106,7 +106,7 @@ async fn compute_real_metrics(state: &AppState, step: u64) -> Result<TrainingMet
 
     // 使用 RLEngine 计算奖励
     let rl_engine = state.rl_engine.read().await;
-    let weights = rl_engine.weights();
+    let _weights = rl_engine.weights();
 
     let mut total_reward = 0.0f64;
     let mut total_tool_efficiency = 0.0f64;

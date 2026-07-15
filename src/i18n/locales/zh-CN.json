@@ -2563,6 +2563,8 @@
     "invalidSchema": "Schema解析失败",
     "jsonEditor": "JSON Schema",
     "visualEditor": "可视化编辑",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value",
     "jsonPlaceholder": "请输入符合UISchema规范的JSON...",
     "nlInputPlaceholder": "描述你想要的UI，例如：一个包含姓名、邮箱、电话的联系表单",
     "noChildren": "暂无子节点",
@@ -8850,6 +8852,15 @@
       "version": ""
     },
     "workflowSavedAsNew": "工作流已另存为新技能",
-    "workflowUpdated": "工作流已更新"
+    "workflowUpdated": "工作流已更新",
+    "imageGen": {
+      "generatedImageTitle": "## AI 生成图片",
+      "model": "**模型**",
+      "duration": "**耗时**",
+      "savedToArtifact": "已保存到 Artifact"
+    },
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    }
   }
 }

@@ -103,6 +103,7 @@ impl AgentStreamReporter for TauriEventStreamReporter {
         // spawn 转发 task：broadcast::Receiver → mpsc::Receiver
         let (mpsc_tx, mpsc_rx) = mpsc::channel(256);
         tokio::spawn(async move {
+            let mut broadcast_rx = broadcast_rx;
             loop {
                 match broadcast_rx.recv().await {
                     Ok(chunk) => {
