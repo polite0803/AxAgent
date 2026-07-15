@@ -270,6 +270,8 @@ pub struct WorkEngine {
     /// `interrupt_signal.notified().await`，调用方通过 `resume_loop_iteration`
     /// 触发 `notify_waiters()` 唤醒。
     loop_interrupt_signals: Arc<Mutex<HashMap<String, std::sync::Arc<tokio::sync::Notify>>>>,
+    /// 数据库连接（用于 ApprovalOps 回调持久化审批记录等）。
+    db: Arc<std::sync::Mutex<Option<sea_orm::DatabaseConnection>>>,
 }
 
 /// P1-14: 提取节点的类型字符串（用于白名单校验）。
@@ -383,6 +385,11 @@ impl WorkEngine {
             state.status = ExecutionStatus::Running;
             state.updated_at = Utc::now().timestamp_millis();
         }
+    }
+
+    /// 注入数据库连接（供 ApprovalOps 回调使用）。
+    pub fn set_db(&self, db: sea_orm::DatabaseConnection) {
+        *self.db.lock().expect("db mutex poisoned") = Some(db);
     }
 
     /// 从模板 tool_defs 预编译 Rhai 工具（覆盖 DAG 扫描结果）
@@ -653,6 +660,7 @@ impl WorkEngine {
             tool_registry: Arc::new(std::sync::Mutex::new(None)),
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
+            db: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 
@@ -1983,6 +1991,79 @@ impl WorkEngine {
                             if let Some(wf) = workflows.get_mut(workflow_id) {
                                 skip_disabled_branch_nodes(wf, &wf.edges.clone(), &nr.node_id);
                             }
+                        }
+
+                        // ── Approval Suspend 检测 ──
+                        if let Some(ctrl) = output.control.as_ref()
+                            && let crate::work_engine::node_executor_trait::NodeControl::Suspend {
+                                approval,
+                                ..
+                            } = ctrl
+                        {
+                            tracing::info!(
+                                execution_id = %execution_id,
+                                node_id = %nr.node_id,
+                                "[Approval] Suspend 触发，等待人工审批"
+                            );
+                            // 持久化审批请求到 workflow_approvals 表
+                            {
+                                let db_clone = {
+                                    let db_guard = self.db.lock().expect("db mutex poisoned");
+                                    db_guard.clone()
+                                };
+                                if let Some(db) = db_clone.as_ref() {
+                                    use axagent_harness::util_fns::now_ts;
+                                    let now_ms = now_ts() as i64;
+                                    let record = axagent_dao::repo::workflow_approval::WorkflowApprovalRecord {
+                                            id: uuid::Uuid::new_v4().to_string(),
+                                            execution_id: approval.execution_id.clone(),
+                                            node_id: approval.node_id.clone(),
+                                            status: "pending".to_string(),
+                                            title: approval.title.clone(),
+                                            message: approval.message.clone(),
+                                            approver: approval.approver.clone(),
+                                            channels: Some(serde_json::to_string(&approval.channels).unwrap_or_default()),
+                                            payload: Some(approval.payload.to_string()),
+                                            decision: None,
+                                            approver_actual: None,
+                                            comment: None,
+                                            timeout_secs: approval.timeout_secs as i64,
+                                            expires_at: now_ms + (approval.timeout_secs as i64 * 1000),
+                                            created_at: now_ms,
+                                            resolved_at: None,
+                                        };
+                                    if let Err(e) =
+                                        axagent_dao::repo::workflow_approval::save_approval(
+                                            db, &record,
+                                        )
+                                        .await
+                                    {
+                                        tracing::error!(error = %e, "[Approval] 保存审批记录失败");
+                                    }
+                                }
+                            }
+                            // 标记暂停
+                            {
+                                let mut executions = self.executions.lock().await;
+                                if let Some(state) = executions.get_mut(&execution_id) {
+                                    state.status = ExecutionStatus::Paused;
+                                    state.current_node_id = Some(nr.node_id.clone());
+                                    state.updated_at = Utc::now().timestamp_millis();
+                                }
+                            }
+                            // 等待 resume signal（复用 pause_signal，与断点模式同构）
+                            let pause_sig = {
+                                self.executions
+                                    .lock()
+                                    .await
+                                    .get(&execution_id)
+                                    .and_then(|s| s.pause_signal.clone())
+                            };
+                            if let Some(sig) = pause_sig {
+                                sig.notified().await;
+                            }
+                            // 恢复后继续处理下一节点结果
+                            continue;
                         }
                     },
                     Ok(Err(err)) => {

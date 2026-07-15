@@ -61,6 +61,7 @@ pub async fn import_agent_roles(
                     role.description.as_deref(),
                     &role.system_prompt,
                     &role.default_tools,
+                    &role.active_domains,
                     role.max_concurrent as i32,
                     role.timeout_seconds as i64,
                     &role.source,
@@ -120,6 +121,35 @@ pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Re
     agent_role::delete_agent_role(app_state.harness.db(), &id).await.map_err(|e| e.to_string())
 }
 
+/// 保存（创建/更新）AgentRole — 前端角色编辑器的后端入口。
+#[tauri::command]
+pub async fn save_agent_role(
+    app_state: State<'_, AppState>,
+    id: String,
+    name: String,
+    description: Option<String>,
+    system_prompt: String,
+    active_domains: Vec<String>,
+    source: String,
+) -> Result<(), String> {
+    let default_tools: Vec<String> = Vec::new();
+    agent_role::upsert_agent_role(
+        app_state.harness.db(),
+        &id,
+        &name,
+        description.as_deref(),
+        &system_prompt,
+        &default_tools,
+        &active_domains,
+        3,
+        600,
+        &source,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// 解析 Open Agent Spec YAML 文件，无 agent block 则返回 None
 fn parse_open_agent_spec(yaml_str: &str) -> Result<AgentRoleDef, String> {
     let doc: serde_yaml::Value =
@@ -174,6 +204,7 @@ fn parse_open_agent_spec(yaml_str: &str) -> Result<AgentRoleDef, String> {
         description,
         system_prompt,
         default_tools: tools,
+        active_domains: Vec::new(),
         max_concurrent,
         timeout_seconds,
         source: "imported".to_string(),

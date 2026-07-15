@@ -101,7 +101,7 @@ Rules:
 
     let adapter: Arc<dyn ProviderAdapter> = Arc::new(OpenAIAdapter::new());
     let response: ChatResponse =
-        adapter.chat(&ctx, chat_request).await.map_err(|e| e.to_string())?;
+        adapter.chat(&ctx, chat_request.into()).await.map_err(|e| e.to_string())?;
 
     let text = response.content;
 

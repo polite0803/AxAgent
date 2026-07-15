@@ -2,7 +2,9 @@
 
 import { IngestPanel } from "@/components/wiki/IngestPanel";
 import { logIpcError } from "@/lib/invoke";
-import { useLlmWikiStore, WikiSource } from "@/stores/feature/llmWikiStore";
+import { message } from "@/lib/toast";
+import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import type { WikiSource } from "@/types";
 import {
   DeleteOutlined,
   FileTextOutlined,
@@ -11,7 +13,7 @@ import {
   LeftOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Card, message, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
+import { Button, Card, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -57,19 +59,12 @@ export function IngestPage() {
     navigate(-1);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "success";
-      case "processing":
-        return "processing";
-      case "pending":
-        return "default";
-      case "failed":
-        return "error";
-      default:
-        return "default";
-    }
+  const formatBytes = (bytes: number): string => {
+    if (!bytes || bytes <= 0) { return "0 B"; }
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const value = bytes / Math.pow(1024, i);
+    return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
   };
 
   const getSourceTypeIcon = (sourceType: string) => {
@@ -98,16 +93,16 @@ export function IngestPage() {
       render: (type: string) => <Tag icon={getSourceTypeIcon(type)}>{type.toUpperCase()}</Tag>,
     },
     {
-      title: t("wiki.ingestSource.status"),
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => <Tag color={getStatusColor(status)}>{status.toUpperCase()}</Tag>,
+      title: t("wiki.ingestSource.mimeType"),
+      dataIndex: "mimeType",
+      key: "mimeType",
+      render: (mime: string) => <Tag>{mime || "—"}</Tag>,
     },
     {
-      title: t("wiki.ingestSource.chunks"),
-      dataIndex: "chunkCount",
-      key: "chunkCount",
-      render: (count: number) => count || 0,
+      title: t("wiki.ingestSource.size"),
+      dataIndex: "sizeBytes",
+      key: "sizeBytes",
+      render: (size: number) => formatBytes(size),
     },
     {
       title: t("wiki.ingestSource.path"),

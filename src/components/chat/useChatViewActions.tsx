@@ -114,12 +114,17 @@ export function useChatViewActions({
   const [statsOpen, setStatsOpen] = useState(false);
   const [stats, setStats] = useState<ConversationStats | null>(null);
 
+  // 顶部「X 个工具」Tag 的数据源。
+  // - 无 profile 时：返回全局已启用工具总数（兼容旧行为）
+  // - 有 profile 时：返回按该 profile 工具域筛选后的工具数（与 agent_query 一致）
+  // 关键：依赖 agent_profile_id，切换专家后自动刷新显示
+  const agentProfileId = activeConversation?.agent_profile_id ?? undefined;
   const [toolCount, setToolCount] = useState(0);
   useEffect(() => {
-    invoke<number>("get_tool_count")
+    invoke<number>("get_tool_count", { agentProfileId })
       .then(setToolCount)
       .catch(logIpcError("get_tool_count"));
-  }, []);
+  }, [agentProfileId]);
 
   useEffect(() => {
     if (editingTitle && titleInputRef.current) {

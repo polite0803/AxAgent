@@ -1,94 +1,44 @@
-import { expect, test } from "@playwright/test";
+import { test } from "@playwright/test";
 
-test.describe("Agent Management E2E", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    await page.waitForTimeout(2000);
-  });
-
-  test("should display agent store and list agents", async ({ page }) => {
-    const agentStore = page.locator('[data-testid="agent-store"]');
-    if (await agentStore.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await expect(agentStore).toBeVisible();
-    }
-  });
-
-  test("should create a new agent", async ({ page }) => {
-    const createAgentBtn = page.locator('[data-testid="create-agent-btn"]');
-    if (await createAgentBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await createAgentBtn.click();
-      const agentForm = page.locator('[data-testid="agent-form"]');
-      if (await agentForm.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(agentForm).toBeVisible();
-      }
-    }
-  });
-
-  test("should show agent status indicators", async ({ page }) => {
-    const statusBadges = page.locator('[data-testid="agent-status-badge"]');
-    const count = await statusBadges.count();
-    if (count > 0) {
-      await expect(statusBadges.first()).toBeVisible();
-    }
-  });
-
-  test("should allow agent configuration", async ({ page }) => {
-    const agentSettingsBtn = page.locator('[data-testid="agent-settings-btn"]');
-    if (await agentSettingsBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await agentSettingsBtn.click();
-      const configPanel = page.locator('[data-testid="agent-config-panel"]');
-      if (await configPanel.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(configPanel).toBeVisible();
-      }
-    }
-  });
-});
-
+/**
+ * 知识库 E2E —— 目前为「显式待办」状态（test.fixme）。
+ *
+ * 背景（2026-07-14 缺陷核查 L18）：原有用例全部把断言包在
+ * `if (locator.isVisible().catch(() => false))` 里，且所用的 data-testid
+ * （knowledge-base-page / collections-list / create-collection-btn / …）
+ * 在整个代码库中并不存在。结果是无论功能是否正常，所有用例都 PASS，
+ * 提供零真实覆盖，属于「假阳性测试」。
+ *
+ * 为避免继续给出虚假的绿色信号，这里统一标记为 test.fixme：
+ * 它们会被报告为「待修复/跳过」，而不是「通过」。
+ *
+ * 恢复真实覆盖前需完成：
+ *   1. 在知识库页面组件（KnowledgeBasePage / 集合列表 / 新建按钮 /
+ *      搜索框 / 文档计数）上补齐稳定的 data-testid。
+ *   2. 去掉 isVisible() 条件保护，改为无条件断言真实 DOM。
+ *   3. 补充建库、导入文档、检索命中等关键路径的断言。
+ *
+ * 注：原文件还混入了一段与知识库无关的「Agent Management E2E」拷贝块，
+ * 已移除（Agent 相关用例应放在各自的 spec 中）。
+ */
 test.describe("Knowledge Base E2E", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/knowledge");
-    await page.waitForTimeout(2000);
+  test.fixme("should display knowledge base page", async () => {
+    // 待补齐 data-testid="knowledge-base-page" 后实现真实断言
   });
 
-  test("should display knowledge base page", async ({ page }) => {
-    const kbPage = page.locator('[data-testid="knowledge-base-page"]');
-    if (await kbPage.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await expect(kbPage).toBeVisible();
-    }
+  test.fixme("should list knowledge collections", async () => {
+    // 待补齐 data-testid="collections-list" 后实现真实断言
   });
 
-  test("should list knowledge collections", async ({ page }) => {
-    const collectionsList = page.locator('[data-testid="collections-list"]');
-    if (await collectionsList.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await expect(collectionsList).toBeVisible();
-    }
+  test.fixme("should create a new collection", async () => {
+    // 待补齐建库按钮/表单的 data-testid 后实现真实断言
   });
 
-  test("should create a new collection", async ({ page }) => {
-    const createCollectionBtn = page.locator('[data-testid="create-collection-btn"]');
-    if (await createCollectionBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await createCollectionBtn.click({ force: true });
-      const collectionForm = page.locator('[data-testid="collection-form"]');
-      if (await collectionForm.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(collectionForm).toBeVisible();
-      }
-    }
+  test.fixme("should display search functionality", async () => {
+    // 待补齐 data-testid="knowledge-search-input" 后实现真实断言
   });
 
-  test("should display search functionality", async ({ page }) => {
-    const searchInput = page.locator('[data-testid="knowledge-search-input"]');
-    if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await expect(searchInput).toBeVisible();
-      await searchInput.fill("test query");
-      await page.waitForTimeout(500);
-    }
-  });
-
-  test("should show document count per collection", async ({ page }) => {
-    const docCounts = page.locator('[data-testid="document-count"]');
-    const count = await docCounts.count();
-    if (count > 0) {
-      await expect(docCounts.first()).toBeVisible();
-    }
+  test.fixme("should show document count per collection", async () => {
+    // 待补齐 data-testid="document-count" 后实现真实断言
   });
 });

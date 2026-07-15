@@ -7,9 +7,8 @@ import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { invoke } from "@/lib/invoke";
 import { listen } from "@/lib/invoke";
 import { formatImportance, getNatureLabel, getTierColor, getTierLabel, TIER_COLORS } from "@/lib/memoryUtils";
-import type { MemoryNature, MemoryTier as MemoryTierType } from "@/lib/memoryUtils";
 import { useMemoryStore } from "@/stores";
-import type { MemoryItem, MemoryNamespace, MemorySource } from "@/types";
+import type { MemoryItem, MemoryNamespace, MemoryNature, MemorySource, MemoryTier as MemoryTierType } from "@/types";
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -740,44 +739,53 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       dataIndex: "tier",
       key: "tier",
       width: 90,
-      render: (tier: MemoryTierType) => (
-        <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
-          {getTierLabel(tier)}
-        </Tag>
-      ),
+      render: (tier?: MemoryTierType) =>
+        tier
+          ? (
+            <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
+              {getTierLabel(tier)}
+            </Tag>
+          )
+          : <Tag style={{ fontSize: 12 }}>—</Tag>,
     },
     {
       title: t("settings.memory.importance"),
       dataIndex: "importance",
       key: "importance",
       width: 70,
-      render: (importance: number) => (
-        <Tooltip title={`${(importance * 100).toFixed(0)}%`}>
-          <span
-            style={{
-              fontSize: 12,
-              color: importance >= 0.7
-                ? "#f59e0b"
-                : importance >= 0.4
-                ? "#3b82f6"
-                : "#94a3b8",
-            }}
-          >
-            {formatImportance(importance)}
-          </span>
-        </Tooltip>
-      ),
+      render: (importance?: number) =>
+        importance != null
+          ? (
+            <Tooltip title={`${(importance * 100).toFixed(0)}%`}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: importance >= 0.7
+                    ? "#f59e0b"
+                    : importance >= 0.4
+                    ? "#3b82f6"
+                    : "#94a3b8",
+                }}
+              >
+                {formatImportance(importance)}
+              </span>
+            </Tooltip>
+          )
+          : <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>—</span>,
     },
     {
       title: t("settings.memory.nature"),
       dataIndex: "nature",
       key: "nature",
       width: 80,
-      render: (nature: string) => (
-        <Tag style={{ fontSize: 12 }}>
-          {getNatureLabel(nature as "episodic" | "semantic")}
-        </Tag>
-      ),
+      render: (nature?: string) =>
+        nature
+          ? (
+            <Tag style={{ fontSize: 12 }}>
+              {getNatureLabel(nature as "episodic" | "semantic")}
+            </Tag>
+          )
+          : <Tag style={{ fontSize: 12 }}>—</Tag>,
     },
     {
       key: "actions",
@@ -886,11 +894,14 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       dataIndex: "tier",
       key: "tier",
       width: 80,
-      render: (tier: MemoryTierType) => (
-        <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
-          {getTierLabel(tier)}
-        </Tag>
-      ),
+      render: (tier?: MemoryTierType) =>
+        tier
+          ? (
+            <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
+              {getTierLabel(tier)}
+            </Tag>
+          )
+          : <Tag style={{ fontSize: 12 }}>—</Tag>,
     },
     {
       title: t("settings.memory.importance"),

@@ -6,6 +6,14 @@ async function dismissModals(page: import("@playwright/test").Page) {
     await closeBtn.click();
     await page.waitForTimeout(300);
   }
+  // 欢迎引导向导（WelcomeWizard）footer 为 null，没有 .ant-modal-footer，
+  // 关闭动作在弹窗体内的“跳过”按钮上（data-testid=onboarding-skip）。
+  // 直接点 X 在部分环境下不会真正 dismiss，必须点“跳过”才能关闭，否则会遮挡画布。
+  const skipBtn = page.getByTestId("onboarding-skip").first();
+  if (await skipBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await skipBtn.click();
+    await page.waitForTimeout(300);
+  }
   const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
   if (await okBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
     await okBtn.click();

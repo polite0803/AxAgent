@@ -4,8 +4,11 @@ import { invoke } from "@/lib/invoke";
 import type {
   CompiledPage,
   CompileResult,
+  IngestResult,
   LintIssue,
   LintResult,
+  PageResult,
+  QueryResult,
   SchemaVersion,
   Wiki,
   WikiOperation,
@@ -18,33 +21,17 @@ import { create } from "zustand";
 export type {
   CompiledPage,
   CompileResult,
+  IngestResult,
   LintIssue,
   LintResult,
+  PageResult,
+  QueryResult,
   SchemaVersion,
   Wiki,
   WikiOperation,
   WikiPage,
   WikiSource,
 };
-
-export interface IngestResult {
-  source_id: string;
-  raw_path: string;
-  title: string;
-}
-
-export interface QueryResult {
-  pages: PageResult[];
-  total: number;
-}
-
-export interface PageResult {
-  note_id: string;
-  title: string;
-  content_snippet: string;
-  relevance_score: number;
-  link_paths: string[];
-}
 
 interface LlmWikiState {
   wikis: Wiki[];

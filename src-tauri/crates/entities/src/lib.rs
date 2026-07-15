@@ -2,6 +2,9 @@
 
 //! SeaORM entity definitions for AxAgent database tables.
 
+// Smart Router 路由历史（v101 migration 创建）
+pub mod route_history;
+
 pub mod background_tasks;
 pub mod conversation_categories;
 pub mod conversation_summaries;
@@ -64,6 +67,7 @@ pub mod agent_sessions;
 
 // Wave 3: Atomic Skill & Work Engine entities
 pub mod generated_tools;
+pub mod workflow_approvals;
 pub mod workflow_executions;
 pub mod workflow_marketplace;
 pub mod workflow_marketplace_review;
@@ -98,6 +102,7 @@ pub mod trajectory_steps;
 
 // Dynamic UI entities
 pub mod dynamic_ui_form_data;
+pub mod dynamic_ui_pins;
 pub mod dynamic_ui_schema_versions;
 pub mod dynamic_ui_schemas;
 

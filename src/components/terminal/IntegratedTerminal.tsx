@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
-import { usePathCompleter } from "@/components/terminal/PathCompleter";
-import { useSlashCompleter } from "@/components/terminal/SlashCompleter";
-import { useXtermEnhancement } from "@/components/terminal/XtermEnhancement";
-import type { XtermEnhancementOptions } from "@/components/terminal/XtermEnhancement";
 import { logIpcError } from "@/lib/invoke";
 import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminalStore";
 import { Badge, Button, Empty, Select } from "antd";
@@ -53,12 +49,16 @@ export function IntegratedTerminal({
   const [isMaximized, setIsMaximized] = useState(false);
   const terminalReadyRef = useRef(false);
 
-  // 终端增强钩子（当 xterm 就绪后被 PathCompleter/SlashCompleter 等消费）
-  const enhancementOptions: XtermEnhancementOptions = { scrollback: 5000, fontSize: 14 };
-  void usePathCompleter;
-  void useSlashCompleter;
-  void useXtermEnhancement;
-  void enhancementOptions;
+  // 使用 ref 避免 onData/onResize 回调捕获过期状态
+  const activeSessionIdRef = useRef(activeSessionId);
+  const writeToSessionRef = useRef(writeToSession);
+  const resizeSessionRef = useRef(resizeSession);
+
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+    writeToSessionRef.current = writeToSession;
+    resizeSessionRef.current = resizeSession;
+  }, [activeSessionId, writeToSession, resizeSession]);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const activeOutput = useMemo(
@@ -124,22 +124,25 @@ export function IntegratedTerminal({
         }
       }
 
+      // 通过 ref 获取最新值，避免闭包过期
       xterm.onData((data: string) => {
-        if (activeSessionId) {
-          writeToSession(activeSessionId, data);
+        const sessionId = activeSessionIdRef.current;
+        if (sessionId) {
+          writeToSessionRef.current(sessionId, data);
         }
       });
 
       xterm.onResize(({ cols, rows }: { cols: number; rows: number }) => {
-        if (activeSessionId) {
-          resizeSession(activeSessionId, rows, cols);
+        const sessionId = activeSessionIdRef.current;
+        if (sessionId) {
+          resizeSessionRef.current(sessionId, rows, cols);
         }
       });
     } catch (e) {
       logIpcError("初始化 xterm")(e);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSessionId, resizeSession, writeToSession]);
+  }, []);
 
   useEffect(() => {
     initTerminal();
@@ -196,6 +199,9 @@ export function IntegratedTerminal({
   }, []);
 
   const handleCreateSession = async () => {
+    if (loading) {
+      return;
+    }
     try {
       await createSession({
         shell: defaultShell,
@@ -351,7 +357,7 @@ export function IntegratedTerminal({
             </>
           )}
 
-          <Tooltip title={isMaximized ? "Restore" : "Maximize"}>
+          <Tooltip title={isMaximized ? t("terminal.restore") : t("terminal.maximize")}>
             <Button
               size="small"
               type="text"
@@ -383,7 +389,7 @@ export function IntegratedTerminal({
             onClick={clearError}
             style={{ color: "#f38ba8", marginLeft: "auto", padding: "0 4px" }}
           >
-            Dismiss
+            {t("common.dismiss")}
           </Button>
         </div>
       )}

@@ -13,6 +13,7 @@ export function RLCheckpointManager() {
   const checkpoints = useRlTrainingStore((s) => s.checkpoints);
   const saveCheckpoint = useRlTrainingStore((s) => s.saveCheckpoint);
   const loadCheckpoint = useRlTrainingStore((s) => s.loadCheckpoint);
+  const deleteCheckpoint = useRlTrainingStore((s) => s.deleteCheckpoint);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [checkpointName, setCheckpointName] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export function RLCheckpointManager() {
           >
             {t("rl.checkpoints.load")}
           </Button>
-          <Button size="small" type="link" danger>
+          <Button size="small" type="link" danger onClick={() => deleteCheckpoint(record.id)}>
             {t("rl.checkpoints.delete")}
           </Button>
         </Space>

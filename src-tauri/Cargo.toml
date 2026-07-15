@@ -46,6 +46,7 @@ license = "AGPL-3.0-only"
 
 [workspace.dependencies]
 anyhow = "1"
+base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 dashmap = "6"
 enigo = "0.6"
@@ -53,7 +54,7 @@ hex = "0.4"
 image = { version = "0.25", features = ["png"] }
 insta = { version = "1.48", features = ["yaml", "json", "redactions"] }
 lazy_static = "1"
-libsqlite3-sys = { version = "0.30", features = ["bundled"] }
+libsqlite3-sys = { version = "0.37", features = ["bundled"] }
 moka = { version = "0.12", features = ["future"] }
 redb = "2"
 reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls", "http2", "gzip", "system-proxy"] }
@@ -61,14 +62,14 @@ sea-orm = { version = "2.0.0-rc.40", features = ["sqlx-sqlite", "sqlx-postgres",
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-sha2 = "0.10"
+sha2 = "0.11"
 sqlite-vec = "0.1.8-alpha.1"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
-xcap = "0.9.4"
+xcap = "0.9.6"
 
 [package]
 name = "axagent"
@@ -126,6 +127,7 @@ axagent-kit = { path = "crates/kit" }
 axagent-market-sim = { path = "crates/market-sim" }
 axagent-mcp = { path = "crates/mcp" }
 axagent-migration = { path = "crates/migration" }
+axagent-npm = { path = "crates/npm" }
 axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }
 axagent-prompt-guard = { path = "crates/prompt-guard" }
@@ -147,24 +149,24 @@ axagent-trajectory = { path = "crates/trajectory" }
 base64 = "0.22"
 chrono = { workspace = true }
 dashmap = { workspace = true }
-dirs = "5"
+dirs = "6"
 futures = "0.3"
 hex = { workspace = true }
-hostname = "0.3"
+hostname = "0.4"
 lazy_static = { workspace = true }
-notify = "8"
+notify = "9.0.0-rc.4"
 open = "5"
-rcgen = "0.13"
+rcgen = "0.14"
 reqwest = { workspace = true }
 rhai = "1"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "ring"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 sha2 = { workspace = true }
-tauri = { version = "2.11.1", features = ["tray-icon", "image-png", "devtools"] }
+tauri = { version = "2.11.5", features = ["tray-icon", "image-png", "devtools"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2.7"
@@ -177,28 +179,28 @@ tauri-plugin-updater = "2"
 tempfile = "3"
 tokio = { workspace = true }
 tokio-util = { version = "0.7", features = ["rt"] }
-toml = "0.8"
+toml = "1"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "chrono"] }
 urlencoding = "2"
 uuid = { workspace = true }
-zip = "2"
+zip = "8"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 font-kit = "0.14"
-tauri-plugin-mcp-bridge = "0.2"
+tauri-plugin-mcp-bridge = "0.12"
 
 [target.'cfg(target_vendor = "apple")'.dependencies]
 objc2 = { version = "0.6", features = ["relax-sign-encoding"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
-android_logger = "0.14"
+android_logger = "0.15"
 log = { version = "0.4" }
 tracing-log = "0.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
+windows-sys = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
 
 [profile.release]
 strip = true
@@ -208,11 +210,16 @@ opt-level = "s"
 
 [profile.dev]
 opt-level = 0
-debug = true
+# line-tables-only: 仅生成行号表，保留 panic 回溯的源文件+行号。
+# 相比 debug = true（完整符号表），编译时间降 30-50%，链接时间降 50%+。
+# 代价：调试器里看不到局部变量值；
+#       需要完整调试时执行 `CARGO_PROFILE_DEV_DEBUG=true cargo build` 覆盖。
+debug = "line-tables-only"
+incremental = true
 
 [dev-dependencies]
 axagent-agent = { path = "crates/agent", features = ["testing"] }
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 
 [[bench]]
 name = "tool_exec_bench"
@@ -225,6 +232,3 @@ harness = false
 [[bench]]
 name = "search_bench"
 harness = false
-
-[profile.dev.package."*"]
-opt-level = 0

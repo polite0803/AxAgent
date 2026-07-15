@@ -686,6 +686,9 @@ mod tests_conversation {
             similarity_threshold: 0.85,
         }));
         let state = crate::AppState {
+            credential_manager: Arc::new(axagent_credential::CredentialManager::new(
+                axagent_credential::CredentialStore::new(temp_dir.join("credentials"), [0; 32]),
+            )),
             gateway: Arc::new(Mutex::new(None)),
             close_to_tray: Arc::new(AtomicBool::new(false)),
             app_data_dir: temp_dir.clone(),
@@ -714,7 +717,7 @@ mod tests_conversation {
                 axagent_runtime::shared_memory::SharedMemory::new(),
             )),
             sub_agent_registry: Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+                axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default(),
             )),
             trajectory_storage: trajectory_storage.clone(),
             memory_service: memory_service.clone(),
@@ -951,7 +954,7 @@ mod tests_conversation {
                     axagent_runtime::shared_memory::SharedMemory::new(),
                 )),
                 Arc::new(tokio::sync::RwLock::new(
-                    axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+                    axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default(),
                 )),
                 memory_service.clone(),
                 Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),

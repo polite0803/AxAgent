@@ -45,7 +45,8 @@ pub use stats::{StatCategory, ToolMetadata, ToolUsageStats};
 pub use axagent_harness::parse_tool_name;
 #[doc(hidden)]
 pub use axagent_harness::{
-    PermissionResult, ProgressEntry, Tool, ToolCategory, ToolContext, ToolInfo, ToolResult,
+    PermissionResult, ProgressEntry, Tool, ToolCategory, ToolContext, ToolDomain, ToolInfo,
+    ToolResult,
 };
 #[doc(hidden)]
 pub use axagent_harness::{ToolError, ToolErrorKind};

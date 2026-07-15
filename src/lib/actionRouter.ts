@@ -13,6 +13,13 @@ export interface ActionContext {
   triggerEvent?: Event;
   permissions?: SkillPermissions;
   _chainDepth?: number;
+  /**
+   * 路由导航函数（由 React 调用方注入）。
+   * 在 BrowserRouter 下必须通过此函数导航；直接设置 window.location.hash 无效。
+   * 若未提供，回退到模块级 setDefaultNavigate 注册的导航器；
+   * 两者皆无则降级为 window.location.hash（不触发 SPA 路由，仅作兼容兜底）。
+   */
+  navigate?: (path: string) => void;
 }
 
 export interface ActionResult {
@@ -357,7 +364,13 @@ export class ActionRouter {
           };
         }
       }
-      window.location.hash = action.path;
+      const nav = ctx.navigate ?? getDefaultNavigate();
+      if (nav) {
+        nav(action.path);
+      } else {
+        // 兼容兜底：非 React 上下文（如纯 JS 环境）下降级为 hash 导航
+        window.location.hash = action.path;
+      }
       return { success: true };
     });
 
@@ -597,4 +610,18 @@ export function getActionRouter(): ActionRouter {
     _instance = new ActionRouter();
   }
   return _instance;
+}
+
+let _defaultNavigate: ((path: string) => void) | null = null;
+
+/**
+ * 注册全局默认导航函数（由 App 根组件在 Router 上下文内调用一次）。
+ * 用于没有 React 调用方显式注入 navigate 的场景（如技能生命周期钩子）。
+ */
+export function setDefaultNavigate(fn: (path: string) => void): void {
+  _defaultNavigate = fn;
+}
+
+export function getDefaultNavigate(): ((path: string) => void) | null {
+  return _defaultNavigate;
 }

@@ -74,6 +74,7 @@ pub mod profile;
 pub mod prompt_templates;
 pub mod provider_balance;
 pub mod providers;
+#[cfg(not(mobile))]
 pub mod pty;
 pub mod quant_backtest;
 #[cfg(not(mobile))]
@@ -93,6 +94,7 @@ pub mod settings;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;
+pub mod smart_router;
 pub mod sources;
 pub mod spawn_guard;
 pub mod stock_analysis;
@@ -100,6 +102,7 @@ pub mod stock_analysis_setup;
 pub mod stock_pipeline;
 pub mod stock_workflow;
 pub mod storage;
+pub mod sub_agent;
 #[cfg(not(mobile))]
 pub mod terminal;
 pub mod theme;
@@ -115,3 +118,4 @@ pub mod workflow_ai_apply;
 pub mod workflow_ai_diagnose;
 pub mod workflow_template;
 pub mod workflow_yaml;
+pub mod workflows;

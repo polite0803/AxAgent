@@ -3,8 +3,8 @@
 import { BUILTIN_EXPERT_PRESETS, type BuiltinExpertPreset } from "@/data/expertPresets";
 import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
-import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
@@ -81,6 +81,7 @@ interface AgencyExpertRow {
   is_enabled: boolean;
   recommended_workflows: string[] | null;
   recommended_tools: string[] | null;
+  active_domains: string[] | null;
 }
 
 function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
@@ -112,6 +113,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     id: row.id,
     name: row.name,
     description: row.description,
+    systemPrompt: row.system_prompt,
     category: row.category as ExpertCategory,
     icon: CATEGORY_ICONS[row.category] ?? "🤖",
     source: "agency",
@@ -120,6 +122,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     recommendPermissionMode: PERMISSION_BY_CATEGORY[row.category] ?? "default",
     recommendedWorkflows: row.recommended_workflows ?? undefined,
     recommendedTools: row.recommended_tools ?? undefined,
+    activeDomains: row.active_domains ?? undefined,
     sortOrder: 0,
     isEnabled: row.is_enabled,
     createdAt: Date.now(),
@@ -144,7 +147,6 @@ interface ExpertState {
   getAllRoles: () => AgentProfile[];
   getRolesByCategory: () => Record<string, AgentProfile[]>;
   getRoleById: (id: string) => AgentProfile | undefined;
-  getSystemPrompt: (roleId: string | null) => string | null;
   getCategoryLabel: (roleId: string | null) => string;
 
   recordSwitch: (conversationId: string, roleId: string) => void;
@@ -169,6 +171,7 @@ interface ExpertState {
       category?: string;
       system_prompt?: string;
       is_enabled?: boolean;
+      active_domains?: string[];
     },
   ) => Promise<void>;
   exportAgencyExperts: () => Promise<string>;
@@ -224,14 +227,6 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     return get()
       .getAllRoles()
       .find((r) => r.id === id);
-  },
-
-  getSystemPrompt: (roleId: string | null) => {
-    if (!roleId) {
-      return null;
-    }
-    // systemPrompt 已从 AgentProfile 移除，运行时从 Role+Expert 拼接
-    return null;
   },
 
   getCategoryLabel: (roleId: string | null) => {

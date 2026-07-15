@@ -128,7 +128,7 @@ export function initBackendStatusListeners() {
     });
   }).catch(logIpcError("listen:wiki-rebuild-complete"));
 
-  listen<{ knowledge_base_id: string }>("knowledge-rebuild-complete", () => {
+  listen<{ baseId: string }>("knowledge-rebuild-complete", () => {
     useBackendStatusStore.getState().upsertTask({
       id: "kb-rebuild",
       type: "knowledge-rebuild",

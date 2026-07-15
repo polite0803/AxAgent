@@ -13,6 +13,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tokio::sync::mpsc;
 
 use crate::decomposer::{MissionDecomposer, RuleBasedDecomposer};
 use crate::dynamic_subgraph::DynamicSubGraph;
@@ -20,6 +21,7 @@ use crate::types::{
     DecompositionPlan, OrchestrationError, OrchestrationEvent, OrchestrationStrategy,
     StructuredHandover, SubTaskStatus,
 };
+use axagent_harness::streaming::{AgentStreamChunk, AgentStreamReporter, StreamChunkKind};
 use axagent_harness::workflow_types::SubGraph;
 
 // ── OrchestratorState ──────────────────────────────────────────────────
@@ -81,6 +83,8 @@ pub struct OrchestratorExecutor {
     decomposer: Box<dyn MissionDecomposer>,
     /// Event listeners notified on state transitions.
     event_listeners: RwLock<Vec<OrchestrationEventHandler>>,
+    /// 可选的流式报告器 —— 用于多 Agent 实时协作场景推送流式 chunk
+    stream_reporter: Option<Arc<dyn AgentStreamReporter>>,
 }
 
 impl OrchestratorExecutor {
@@ -92,12 +96,22 @@ impl OrchestratorExecutor {
             subgraph_builder: RwLock::new(DynamicSubGraph::new()),
             decomposer,
             event_listeners: RwLock::new(Vec::new()),
+            stream_reporter: None,
         }
     }
 
     /// Create a new executor with the default rule-based decomposer.
     pub fn new() -> Self {
         Self::with_decomposer(Box::new(RuleBasedDecomposer::new()))
+    }
+
+    /// 注入流式报告器，启用实时 chunk 推送能力。
+    ///
+    /// 注入后，`report_sub_task_completed` / `report_sub_task_failed` 会自动向
+    /// reporter 发送对应类型的 chunk；上层可通过 `subscribe_to_subtask` 订阅。
+    pub fn with_stream_reporter(mut self, reporter: Arc<dyn AgentStreamReporter>) -> Self {
+        self.stream_reporter = Some(reporter);
+        self
     }
 
     // ── Event system ────────────────────────────────────────────────
@@ -209,6 +223,20 @@ impl OrchestratorExecutor {
     ) -> Result<Option<DecompositionPlan>, OrchestrationError> {
         self.update_sub_task_status(sub_task_id, SubTaskStatus::Completed).await?;
 
+        // 如有流式报告器，推送 Completed chunk
+        if let Some(ref reporter) = self.stream_reporter {
+            let chunk = AgentStreamChunk {
+                agent_id: sub_task_id.to_string(),
+                sub_task_id: sub_task_id.to_string(),
+                kind: StreamChunkKind::Completed,
+                payload: serde_json::json!({
+                    "handover": handover.as_ref().map(|h| format!("{:?}", h)).unwrap_or_default(),
+                }),
+                timestamp: chrono::Utc::now().timestamp_millis(),
+            };
+            reporter.report_chunk(chunk);
+        }
+
         self.emit(OrchestrationEvent::SubTaskCompleted {
             sub_task_id: sub_task_id.to_string(),
             handover,
@@ -236,6 +264,18 @@ impl OrchestratorExecutor {
             }
         }
 
+        // 如有流式报告器，推送 Failed chunk
+        if let Some(ref reporter) = self.stream_reporter {
+            let chunk = AgentStreamChunk {
+                agent_id: sub_task_id.to_string(),
+                sub_task_id: sub_task_id.to_string(),
+                kind: StreamChunkKind::Failed,
+                payload: serde_json::json!({ "error": error }),
+                timestamp: chrono::Utc::now().timestamp_millis(),
+            };
+            reporter.report_chunk(chunk);
+        }
+
         self.emit(OrchestrationEvent::SubTaskFailed {
             sub_task_id: sub_task_id.to_string(),
             error: error.to_string(),
@@ -243,6 +283,21 @@ impl OrchestratorExecutor {
         .await;
 
         self.monitor_and_maybe_replan().await
+    }
+
+    /// 订阅指定子任务（以 sub_task_id 作为 agent_id）的流式输出。
+    ///
+    /// 返回 `mpsc::Receiver<AgentStreamChunk>`，调用方可在异步上下文中持续接收 chunk。
+    /// 若未注入 stream_reporter，返回的 receiver 永远不会收到消息。
+    pub fn subscribe_to_subtask(&self, sub_task_id: &str) -> mpsc::Receiver<AgentStreamChunk> {
+        match &self.stream_reporter {
+            Some(reporter) => reporter.subscribe(sub_task_id),
+            None => {
+                // 无 reporter 时返回空 receiver（sender 立即丢弃，recv 会阻塞至取消）
+                let (_tx, rx) = mpsc::channel(1);
+                rx
+            },
+        }
     }
 
     /// Check plan status and trigger replan if needed.

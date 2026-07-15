@@ -382,15 +382,15 @@ impl AxAgentApiClient {
 
 impl ApiClient for AxAgentApiClient {
     fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError> {
-        // Apply request delay to avoid rate limits
-        // NOTE: `stream` 是同步 trait 方法，无法使用 `tokio::time::sleep`。
-        // 使用 `std::thread::sleep` 阻塞当前线程；若在 tokio worker 上调用，
-        // 会阻塞该 worker 但不会 panic（`block_on` 在已有 runtime 上下文中会 panic）。
-        // 长期方案是将 `ApiClient::stream` 改为 `async fn`。
+        // Apply request delay to avoid rate limits.
+        // `stream` 是同步 trait 方法，使用 `tokio::task::block_in_place`
+        // 通知 tokio 运行时当前线程即将阻塞，允许其将其他任务迁移到其他 worker。
         if let Some(delay_ms) = self.request_delay_ms
             && delay_ms > 0
         {
-            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+            tokio::task::block_in_place(|| {
+                std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+            });
         }
 
         // Convert Runtime's ApiRequest to AxAgent's ChatRequest

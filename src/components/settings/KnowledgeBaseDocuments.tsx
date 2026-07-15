@@ -22,7 +22,6 @@ import {
   Empty,
   Input,
   InputNumber,
-  List,
   message,
   Modal,
   Popconfirm,
@@ -1342,82 +1341,76 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                 {t("settings.rag.models")}
               </Space>
             ),
-            children: (
-              <List
-                size="small"
-                dataSource={modelList}
-                locale={{
-                  emptyText: <Empty description={t("settings.rag.modelNotDownloaded")} />,
-                }}
-                renderItem={(model: LocalModelInfo) => (
-                  <List.Item
-                    actions={[
-                      model.is_downloaded
-                        ? (
-                          <Popconfirm
-                            key="delete"
-                            title={t("settings.rag.modelDelete")}
-                            onConfirm={() => handleDeleteModel(model.name)}
-                            okText={t("common.yes")}
-                            cancelText={t("common.no")}
-                          >
-                            <Button size="small" danger icon={<DeleteOutlined />}>
-                              {t("settings.rag.modelDelete")}
+            children: modelList.length === 0
+              ? <Empty description={t("settings.rag.modelNotDownloaded")} />
+              : (
+                <div className="divide-y divide-gray-100">
+                  {modelList.map((model: LocalModelInfo) => (
+                    <div key={model.name} className="py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {model.is_downloaded
+                          ? (
+                            <CheckCircleOutlined
+                              style={{
+                                color: "var(--ant-color-success)",
+                                fontSize: 16,
+                              }}
+                            />
+                          )
+                          : (
+                            <ClockCircleOutlined
+                              style={{
+                                color: "var(--ant-color-text-secondary)",
+                                fontSize: 16,
+                              }}
+                            />
+                          )}
+                        <div className="flex flex-col gap-1">
+                          <span>{model.name}</span>
+                          <Space size={4}>
+                            <Tag>
+                              {model.model_type === "Reranker"
+                                ? t("settings.rag.rerankerModel")
+                                : t("settings.rag.judgeModel")}
+                            </Tag>
+                            <Typography.Text type="secondary">
+                              {formatBytes(model.size_bytes)}
+                            </Typography.Text>
+                          </Space>
+                        </div>
+                      </div>
+                      <div>
+                        {model.is_downloaded
+                          ? (
+                            <Popconfirm
+                              title={t("settings.rag.modelDelete")}
+                              onConfirm={() => handleDeleteModel(model.name)}
+                              okText={t("common.yes")}
+                              cancelText={t("common.no")}
+                            >
+                              <Button size="small" danger icon={<DeleteOutlined />}>
+                                {t("settings.rag.modelDelete")}
+                              </Button>
+                            </Popconfirm>
+                          )
+                          : (
+                            <Button
+                              size="small"
+                              type="primary"
+                              loading={downloading === model.name}
+                              icon={<DownloadOutlined />}
+                              onClick={() => handleDownloadModel(model.name)}
+                            >
+                              {downloading === model.name
+                                ? t("settings.rag.modelDownloading")
+                                : t("settings.rag.modelDownload")}
                             </Button>
-                          </Popconfirm>
-                        )
-                        : (
-                          <Button
-                            key="download"
-                            size="small"
-                            type="primary"
-                            loading={downloading === model.name}
-                            icon={<DownloadOutlined />}
-                            onClick={() => handleDownloadModel(model.name)}
-                          >
-                            {downloading === model.name
-                              ? t("settings.rag.modelDownloading")
-                              : t("settings.rag.modelDownload")}
-                          </Button>
-                        ),
-                    ]}
-                  >
-                    <List.Item.Meta
-                      avatar={model.is_downloaded
-                        ? (
-                          <CheckCircleOutlined
-                            style={{
-                              color: "var(--ant-color-success)",
-                              fontSize: 16,
-                            }}
-                          />
-                        )
-                        : (
-                          <ClockCircleOutlined
-                            style={{
-                              color: "var(--ant-color-text-secondary)",
-                              fontSize: 16,
-                            }}
-                          />
-                        )}
-                      title={model.name}
-                      description={
-                        <Space size={4}>
-                          <Tag>
-                            {model.model_type === "Reranker"
-                              ? t("settings.rag.rerankerModel")
-                              : t("settings.rag.judgeModel")}
-                          </Tag>
-                          <Typography.Text type="secondary">
-                            {formatBytes(model.size_bytes)}
-                          </Typography.Text>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
-            ),
+                          )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ),
           },
         ]}
       />

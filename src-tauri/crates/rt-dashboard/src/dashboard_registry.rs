@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::dashboard_plugin::{
-    DashboardPlugin, DashboardPluginAdapter, DashboardPluginManifest, PanelPosition, RenderOutput,
+    DashboardPanel, DashboardPlugin, DashboardPluginAdapter, DashboardPluginManifest,
+    PanelPosition, RenderOutput,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -16,7 +17,7 @@ pub struct DashboardPluginInfo {
     pub version: String,
     pub description: String,
     pub author: Option<String>,
-    pub panels: Vec<String>,
+    pub panels: Vec<DashboardPanel>,
     pub enabled: bool,
 }
 
@@ -104,7 +105,7 @@ impl DashboardRegistry {
                     version: manifest.version.clone(),
                     description: manifest.description.clone(),
                     author: manifest.author.clone(),
-                    panels: manifest.panels.iter().map(|p| p.id.clone()).collect(),
+                    panels: manifest.panels.clone(),
                     enabled: entry.enabled,
                 }
             })

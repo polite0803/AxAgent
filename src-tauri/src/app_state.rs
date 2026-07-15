@@ -6,6 +6,7 @@ use crate::state::{
     AgentState, GatewayState, InfraState, LearningEngineState, MemoryState, SkillState, TaskState,
     ToolState,
 };
+use axagent_credential::CredentialManager;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
@@ -252,6 +253,7 @@ pub struct AppState {
     pub parallel_execution_service:
         Arc<tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>>,
     pub cron_job_store: Arc<axagent_runtime_core::CronJobStore>,
+    pub cron_scheduler: Arc<tokio::sync::RwLock<Option<Arc<axagent_runtime::cron::CronScheduler>>>>,
     pub platform_manager: Arc<axagent_runtime::message_gateway::platform_manager::PlatformManager>,
     pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,
@@ -276,6 +278,11 @@ pub struct AppState {
     #[cfg(target_os = "android")]
     pub browser_client: Arc<tokio::sync::Mutex<Option<()>>>,
     pub dream_consolidator: Arc<axagent_trajectory::DreamConsolidator>,
+    /// Smart Router：ML 成本感知路由器（启发式 + 历史统计 + 成本预算）
+    pub cost_aware_router: Arc<crate::smart_router::CostAwareRouter>,
+    /// Orchestrator 流式报告器（多 Agent 实时协作的 chunk 推送）
+    pub stream_reporter:
+        Arc<TokioRwLock<Option<Arc<dyn axagent_harness::streaming::AgentStreamReporter>>>>,
     pub text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
     pub auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
     pub intrinsic_motivation:
@@ -291,6 +298,7 @@ pub struct AppState {
     pub sync_engine: Option<Arc<SyncEngine>>,
     pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
+    pub credential_manager: Arc<CredentialManager>,
     pub session_share_manager: SessionShareStore,
     /// A 股数据客户端（vendors + 缓存 + 健康追踪）
     pub astock_client: Arc<axagent_astock_data::AStockClient>,
@@ -298,6 +306,9 @@ pub struct AppState {
     pub trading_engine: Arc<TokioRwLock<axagent_stock_analysis::trading::TradingEngine>>,
     /// 实时监控器（T+0 / 盘口 / 异常波动），可选
     pub stock_monitor: Option<Arc<axagent_stock_analysis::monitor::RealtimeMonitor>>,
+    /// PTY 伪终端管理器，管理所有终端会话（仅桌面端可用）
+    #[cfg(not(mobile))]
+    pub pty_manager: Arc<axagent_runtime::pty::PtyManager>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

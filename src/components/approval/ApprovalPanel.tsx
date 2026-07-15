@@ -77,6 +77,13 @@ export function ApprovalPanel() {
                 {t("approval.workflowId")}: {record.workflow_id?.slice(0, 8)}...
               </Text>
             </div>
+            {record.approver && (
+              <div>
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  {t("approval.approver")}: {record.approver}
+                </Text>
+              </div>
+            )}
           </div>
         ),
       },

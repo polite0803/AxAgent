@@ -10,7 +10,7 @@
 //!   - Serialization round-trip (tool input/output JSON)
 
 use axagent_tools::registry::ToolRegistry;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 /// Build a minimal ToolRegistry with a representative set of mock tools
 /// registered under known names and aliases.
@@ -42,7 +42,7 @@ fn bench_registry_find_existing(c: &mut Criterion) {
     let reg = build_small_registry();
     c.bench_function("registry_find_existing", |b| {
         b.iter(|| {
-            black_box(reg.find(black_box("read_file")));
+            std::hint::black_box(reg.find(std::hint::black_box("read_file")));
         })
     });
 }
@@ -51,7 +51,7 @@ fn bench_registry_find_missing(c: &mut Criterion) {
     let reg = build_small_registry();
     c.bench_function("registry_find_missing", |b| {
         b.iter(|| {
-            black_box(reg.find(black_box("nonexistent_tool_xyz")));
+            std::hint::black_box(reg.find(std::hint::black_box("nonexistent_tool_xyz")));
         })
     });
 }
@@ -60,7 +60,7 @@ fn bench_registry_list_all(c: &mut Criterion) {
     let reg = build_small_registry();
     c.bench_function("registry_list_all", |b| {
         b.iter(|| {
-            black_box(reg.list_all());
+            std::hint::black_box(reg.list_all());
         })
     });
 }
@@ -69,7 +69,9 @@ fn bench_registry_by_category(c: &mut Criterion) {
     let reg = build_small_registry();
     c.bench_function("registry_by_category", |b| {
         b.iter(|| {
-            black_box(reg.by_category(black_box(axagent_harness::ToolCategory::System)));
+            std::hint::black_box(
+                reg.by_category(std::hint::black_box(axagent_harness::ToolCategory::System)),
+            );
         })
     });
 }
@@ -88,8 +90,8 @@ fn bench_json_deserialize_tool_input(c: &mut Criterion) {
 
     c.bench_function("json_deserialize_tool_input", |b| {
         b.iter(|| {
-            let v: serde_json::Value = serde_json::from_str(black_box(&raw)).unwrap();
-            black_box(v);
+            let v: serde_json::Value = serde_json::from_str(std::hint::black_box(&raw)).unwrap();
+            std::hint::black_box(v);
         })
     });
 }
@@ -108,8 +110,8 @@ fn bench_json_serialize_tool_output(c: &mut Criterion) {
 
     c.bench_function("json_serialize_tool_output", |b| {
         b.iter(|| {
-            let s = serde_json::to_string(black_box(&output)).unwrap();
-            black_box(s);
+            let s = serde_json::to_string(std::hint::black_box(&output)).unwrap();
+            std::hint::black_box(s);
         })
     });
 }

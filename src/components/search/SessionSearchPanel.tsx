@@ -8,8 +8,8 @@ import {
   Checkbox,
   Empty,
   Input,
-  List,
   Modal,
+  Pagination,
   Popconfirm,
   Select,
   Space,
@@ -54,13 +54,22 @@ export function SessionSearchPanel({
   const [showFilters, setShowFilters] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [filterName, setFilterName] = useState("");
+  // 分页状态：保留原 List pagination={{ pageSize: 20 }} 行为
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   useEffect(() => {
     if (visible) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowFilters(false);
+      setCurrentPage(1);
     }
   }, [visible]);
+
+  // 查询条件变化时重置到第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, isSearching]);
 
   const handleSearch = () => {
     if (query.trim()) {
@@ -135,7 +144,7 @@ export function SessionSearchPanel({
   };
 
   const renderResultItem = (result: SearchResult) => (
-    <List.Item
+    <div
       style={{
         padding: "12px 16px",
         cursor: "pointer",
@@ -183,7 +192,7 @@ export function SessionSearchPanel({
           </Text>
         </div>
       </div>
-    </List.Item>
+    </div>
   );
 
   return (
@@ -350,21 +359,31 @@ export function SessionSearchPanel({
 
           {results.length > 0
             ? (
-              <List
-                size="small"
-                dataSource={results}
-                renderItem={renderResultItem}
-                style={{
-                  maxHeight: 400,
-                  overflow: "auto",
-                  border: "1px solid var(--border, #45475a)",
-                  borderRadius: 8,
-                }}
-                pagination={{
-                  pageSize: 20,
-                  size: "small",
-                }}
-              />
+              <>
+                <div
+                  className="divide-y divide-gray-100"
+                  style={{
+                    maxHeight: 400,
+                    overflow: "auto",
+                    border: "1px solid var(--border, #45475a)",
+                    borderRadius: 8,
+                  }}
+                >
+                  {results
+                    .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                    .map(renderResultItem)}
+                </div>
+                {results.length > pageSize && (
+                  <Pagination
+                    current={currentPage}
+                    pageSize={pageSize}
+                    total={results.length}
+                    size="small"
+                    onChange={(page) => setCurrentPage(page)}
+                    style={{ textAlign: "right", marginTop: 8 }}
+                  />
+                )}
+              </>
             )
             : query && !isSearching
             ? (

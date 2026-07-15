@@ -65,8 +65,8 @@ describe("getEditableCapabilities", () => {
   });
 
   it("returns CHAT_MODEL_CAPABILITIES when type is null/undefined", () => {
-    expect(getEditableCapabilities(null)).toHaveLength(3);
-    expect(getEditableCapabilities(undefined)).toHaveLength(3);
+    expect(getEditableCapabilities(null)).toHaveLength(4);
+    expect(getEditableCapabilities(undefined)).toHaveLength(4);
   });
 });
 

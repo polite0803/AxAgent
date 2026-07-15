@@ -94,7 +94,7 @@ async fn send_to_vision_model(
         store: None,
     };
 
-    let response = adapter.chat(ctx, chat_request).await?;
+    let response = adapter.chat(ctx, chat_request.into()).await?;
     Ok(response.content)
 }
 
@@ -259,12 +259,7 @@ fn parse_actions_response(response: &str) -> Result<Vec<SuggestedAction>> {
 fn extract_json(text: &str) -> String {
     let trimmed = text.trim();
 
-    if trimmed.starts_with('{')
-        && let Some(end) = trimmed.rfind('}')
-    {
-        return trimmed[..=end].to_string();
-    }
-
+    // 1. 优先处理 ```json ... ``` 代码围栏
     if let Some(json_start) = trimmed.find("```json") {
         let after_json = &trimmed[json_start + 7..];
         if let Some(json_end) = after_json.find("```") {
@@ -272,5 +267,49 @@ fn extract_json(text: &str) -> String {
         }
     }
 
+    // 2. 括号平衡法定位最外层 JSON 对象，正确处理字符串字面量内的 {}（修复 #19）
+    if let Some(start) = trimmed.find('{')
+        && let Some(end) = find_matching_brace(trimmed, start)
+    {
+        return trimmed[start..=end].to_string();
+    }
+
+    // 3. 兜底：原样返回
     text.to_string()
+}
+
+/// 从 `start`（必须是 '{'）开始，扫描到匹配的 '}'。
+/// 正确处理字符串字面量（含转义），避免 JSON 字符串内的 `}` 被误判为结束括号。
+fn find_matching_brace(s: &str, start: usize) -> Option<usize> {
+    let bytes = s.as_bytes();
+    if bytes.get(start) != Some(&b'{') {
+        return None;
+    }
+    let mut depth: i32 = 0;
+    let mut in_string = false;
+    let mut escape = false;
+    for (i, &b) in bytes.iter().enumerate().skip(start) {
+        if in_string {
+            if escape {
+                escape = false;
+            } else if b == b'\\' {
+                escape = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match b {
+            b'{' => depth += 1,
+            b'}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(i);
+                }
+            },
+            b'"' => in_string = true,
+            _ => {},
+        }
+    }
+    None
 }

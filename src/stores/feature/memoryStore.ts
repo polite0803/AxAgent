@@ -73,10 +73,15 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   deleteNamespace: async (id) => {
     try {
       await invoke("delete_memory_namespace", { id });
-      set((s) => ({
-        namespaces: s.namespaces.filter((n) => n.id !== id),
-        error: null,
-      }));
+      set((s) => {
+        const isCurrentSelected = s.selectedNamespaceId === id;
+        return {
+          namespaces: s.namespaces.filter((n) => n.id !== id),
+          // 如果删除的是当前选中的 namespace，清空 items 和选中状态
+          ...(isCurrentSelected ? { items: [], selectedNamespaceId: null } : {}),
+          error: null,
+        };
+      });
     } catch (e) {
       set({ error: String(e) });
       throw e;

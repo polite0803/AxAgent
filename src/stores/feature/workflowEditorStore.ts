@@ -33,6 +33,7 @@ export interface ExpandedSubWorkflowData {
   /** 是否正在加载 */
   isLoading: boolean;
 }
+import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -1415,6 +1416,30 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     initNewTemplate: () => {
       const importedData = get().importedWorkflowData;
       const empty = createEmptyTemplate();
+      // 创建全新空白模板时自动添加一个默认 TriggerNode，作为工作流入口
+      const hasImportedNodes = !!(importedData?.nodes && importedData.nodes.length > 0);
+      const nodes = hasImportedNodes
+        ? importedData!.nodes
+        : [
+          {
+            id: `node-${crypto.randomUUID()}`,
+            type: "trigger" as const,
+            title: i18n.t("workflow.nodeTypes.trigger", "Trigger"),
+            description: "",
+            position: { x: 250, y: 200 },
+            retry: {
+              enabled: false,
+              max_retries: 3,
+              backoff_type: "Exponential" as const,
+              base_delay_ms: 1000,
+              max_delay_ms: 60000,
+            },
+            timeout: undefined,
+            enabled: true,
+            config: { type: "manual", config: {} },
+          } as WorkflowNode,
+        ];
+      const edges = importedData?.edges || [];
       set((state) => {
         state.currentTemplate = {
           ...empty,
@@ -1426,12 +1451,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           created_at: Date.now(),
           updated_at: Date.now(),
         } as WorkflowTemplateResponse;
-        state.nodes = importedData?.nodes || [];
-        state.edges = importedData?.edges || [];
+        state.nodes = nodes;
+        state.edges = edges;
         state.parentRefs = rebuildParentRefsFromNodes(state.nodes);
-        state.isDirty = !!(
-          importedData?.nodes && importedData.nodes.length > 0
-        );
+        state.isDirty = hasImportedNodes;
         state.isDecompositionTemplate = importedData?.isDecompositionWorkflow || false;
         state.pendingDecompositionSource = importedData?.decompositionSource || null;
         state.selectedNodeId = null;

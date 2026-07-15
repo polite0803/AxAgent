@@ -5,8 +5,9 @@
 //! GenerateImage (flux/dall-e), GenerateChartConfig (ECharts),
 //! SequentialThinking (逐步推理), Base64Image (图片编码)
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_providers::ImageGenProvider;
 use serde_json::Value;
 
 fn truncate_text(s: &str, max: usize) -> String {
@@ -36,28 +37,105 @@ impl Tool for GenerateImageTool {
         ToolCategory::AiMedia
     }
 
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let prompt = input.get("prompt").and_then(|v| v.as_str()).unwrap_or_default();
         if prompt.is_empty() {
             return Ok(ToolResult::error("Error: prompt 是必需的"));
         }
-        let provider = input.get("provider").and_then(|v| v.as_str()).unwrap_or("flux");
+        let provider_name = input.get("provider").and_then(|v| v.as_str()).unwrap_or("flux");
         let api_key = input.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
-        let width = input.get("width").and_then(|v| v.as_u64()).unwrap_or(1024);
-        let height = input.get("height").and_then(|v| v.as_u64()).unwrap_or(1024);
-
         if api_key.is_empty() {
             return Ok(ToolResult::error(
                 "Error: api_key 是必需的。请在设置中配置或通过参数提供。",
             ));
         }
-        Ok(ToolResult::success(format!(
-            "图片生成请求已提交: {}x{} via {} (prompt: {})",
-            width,
-            height,
-            provider,
-            truncate_text(prompt, 100)
-        )))
+        let width = input.get("width").and_then(|v| v.as_u64()).unwrap_or(1024) as u32;
+        let height = input.get("height").and_then(|v| v.as_u64()).unwrap_or(1024) as u32;
+        let steps = input.get("steps").and_then(|v| v.as_u64()).map(|s| s as u32);
+        let seed = input.get("seed").and_then(|v| v.as_u64());
+        let model = input.get("model").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let quality = input.get("quality").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+        let request = axagent_providers::image_gen::ImageGenRequest {
+            prompt: prompt.to_string(),
+            negative_prompt: input
+                .get("negative_prompt")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            width: Some(width),
+            height: Some(height),
+            steps,
+            seed,
+            model,
+            n: Some(1),
+            quality,
+        };
+
+        match provider_name {
+            "flux" | "Flux" => {
+                let provider = axagent_providers::image_gen::FluxProvider::new(api_key.to_string());
+                match provider.generate(request).await {
+                    Ok(resp) => {
+                        let mut lines = vec![format!(
+                            "✅ 图片生成成功！模型: {}，耗时: {:.1}s",
+                            resp.model_used,
+                            resp.elapsed_ms as f64 / 1000.0
+                        )];
+                        for (i, img) in resp.images.iter().enumerate() {
+                            if let Some(ref url) = img.url {
+                                lines.push(format!("图片 {}: {}", i + 1, url));
+                            } else if let Some(ref b64) = img.base64 {
+                                let preview = if b64.len() > 50 {
+                                    format!("{}...", &b64[..50])
+                                } else {
+                                    b64.clone()
+                                };
+                                lines.push(format!("图片 {} (base64): {}", i + 1, preview));
+                            }
+                        }
+                        Ok(ToolResult::success(lines.join("\n\n")))
+                    },
+                    Err(e) => Ok(ToolResult::error(format!("Flux 图片生成失败: {e}"))),
+                }
+            },
+            "dall-e" | "dalle" | "DALL-E" => {
+                let provider = axagent_providers::image_gen::DallEProvider::new(
+                    api_key.to_string(),
+                    input.get("base_url").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                );
+                match provider.generate(request).await {
+                    Ok(resp) => {
+                        let mut lines = vec![format!(
+                            "✅ 图片生成成功！模型: {}，耗时: {:.1}s",
+                            resp.model_used,
+                            resp.elapsed_ms as f64 / 1000.0
+                        )];
+                        for (i, img) in resp.images.iter().enumerate() {
+                            if let Some(ref url) = img.url {
+                                lines.push(format!("图片 {}: {}", i + 1, url));
+                            } else if let Some(ref b64) = img.base64 {
+                                let preview = if b64.len() > 50 {
+                                    format!("{}...", &b64[..50])
+                                } else {
+                                    b64.clone()
+                                };
+                                lines.push(format!("图片 {} (base64): {}", i + 1, preview));
+                            }
+                        }
+                        Ok(ToolResult::success(lines.join("\n\n")))
+                    },
+                    Err(e) => Ok(ToolResult::error(format!("DALL-E 图片生成失败: {e}"))),
+                }
+            },
+            _ => Ok(ToolResult::error(format!(
+                "不支持的 provider: {}。可用值: flux, dall-e",
+                provider_name
+            ))),
+        }
     }
 }
 
@@ -79,6 +157,11 @@ impl Tool for GenerateChartConfigTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -117,6 +200,11 @@ impl Tool for SequentialThinkingTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -166,6 +254,11 @@ impl Tool for Base64ImageTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::AiMedia
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::AiMedia
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

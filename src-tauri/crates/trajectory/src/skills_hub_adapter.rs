@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// ABANDONED(2026-07-05): 此模块经评估不建议继续维护。
-// 原因：依赖 skills_hub_client，仅做格式转换。
-// 若未来需求变更可解除此标记，当前通过 #[cfg(feature = "abandoned")] 隔离。
+//! Skills Hub adapter for Hermes skill format conversion
 
 use crate::skill::{HermesMetadata, Skill, SkillMetadata};
 use serde::{Deserialize, Serialize};
@@ -107,6 +105,8 @@ impl SkillsHubAdapter {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
             last_used_at: None,
+            consecutive_failures: 0,
+            last_failure_at: None,
             metadata: SkillMetadata {
                 hermes: HermesMetadata {
                     tags: manifest.tags.clone(),

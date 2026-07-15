@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Button, Card, Empty, message, Spin, Switch, Table, Tag, Typography } from "antd";
+import { Button, Card, Empty, Spin, Switch, Table, Tag, Typography } from "antd";
 import { FolderOpen, PanelRight, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph, Title } = Typography;
@@ -42,7 +43,7 @@ export function DashboardPluginsSettings() {
   const [installing, setInstalling] = useState(false);
   const [unloadingId, setUnloadingId] = useState<string | null>(null);
 
-  const loadPlugins = async () => {
+  const loadPlugins = useCallback(async () => {
     try {
       const result = await invoke<DashboardPluginInfo[]>(
         "dashboard_list_plugins",
@@ -53,12 +54,23 @@ export function DashboardPluginsSettings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
-    setTimeout(() => loadPlugins(), 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const load = async () => {
+      try {
+        const result = await invoke<DashboardPluginInfo[]>(
+          "dashboard_list_plugins",
+        );
+        setPlugins(Array.isArray(result) ? result : []);
+      } catch (error) {
+        message.error(t("settings.plugins.loadFailed", { error }));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [t]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

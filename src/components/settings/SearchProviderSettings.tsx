@@ -506,7 +506,7 @@ export function SearchProviderSettings() {
           </Form.Item>
           <Form.Item
             name="api_key"
-            label="API Key"
+            label={t("searchProvider.apiKey")}
             rules={[
               {
                 required: true,

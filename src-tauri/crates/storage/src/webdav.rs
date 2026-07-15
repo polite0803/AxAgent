@@ -515,7 +515,7 @@ pub fn create_backup_zip(
 
     let db_data = std::fs::read(db_path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to read database: {}", e)))?;
-    let db_checksum = format!("{:x}", Sha256::digest(&db_data));
+    let db_checksum = hex::encode(Sha256::digest(&db_data));
 
     zip.start_file("axagent.db", options)
         .map_err(|e| AxAgentError::Gateway(format!("ZIP error: {}", e)))?;
@@ -725,7 +725,7 @@ pub fn extract_backup_zip(
 pub fn verify_db_checksum(db_path: &Path, expected_checksum: &str) -> Result<bool> {
     let data = std::fs::read(db_path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to read db for checksum: {}", e)))?;
-    let actual = format!("{:x}", Sha256::digest(&data));
+    let actual = hex::encode(Sha256::digest(&data));
     Ok(actual == expected_checksum)
 }
 

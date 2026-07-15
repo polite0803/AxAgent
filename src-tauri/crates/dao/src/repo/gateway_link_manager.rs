@@ -223,7 +223,6 @@ impl GatewayLinkConnectionHandle {
         mut shutdown_rx: mpsc::Receiver<()>,
     ) {
         let mut health_check_interval = interval(manager.health_check_interval);
-        let mut reconnect_attempts: u32 = 0;
 
         loop {
             tokio::select! {
@@ -255,7 +254,6 @@ impl GatewayLinkConnectionHandle {
 
                                     if consecutive >= required {
                                         manager.update_link_state(&link_id, LinkConnectionState::Connected, None).await;
-                                        reconnect_attempts = 0;
                                         tracing::info!("Gateway link {} is now fully connected after {} consecutive health checks", link_id, consecutive);
                                     } else {
                                         tracing::debug!("Gateway link {} health check passed ({}/{} consecutive)", link_id, consecutive, required);
@@ -303,17 +301,19 @@ impl GatewayLinkConnectionHandle {
                             }
                         }
                         Some(LinkConnectionState::Reconnecting) => {
-                            if reconnect_attempts < manager.max_reconnect_attempts {
-                                let delay = manager.calculate_backoff_delay(reconnect_attempts);
+                            // FIX: 使用 manager 的全局计数器而非本地 reconnect_attempts，
+                            // 与 Connected/Disconnected 健康检查失败路径保持一致。
+                            let attempts = manager.increment_reconnect_attempts(&link_id).await;
+                            if attempts <= manager.max_reconnect_attempts {
+                                let delay = manager.calculate_backoff_delay(attempts);
                                 tokio::time::sleep(delay).await;
 
                                 match link_repo::connect_gateway_link(&db, &link_id, api_key.as_deref()).await {
                                     Ok(_) => {
-                                        reconnect_attempts = 0;
+                                        // Manager 内部通过 update_link_state 重置计数器
                                     }
                                     Err(e) => {
                                         tracing::warn!("Gateway link {} reconnect failed: {}", link_id, e);
-                                        reconnect_attempts += 1;
                                     }
                                 }
                             } else {

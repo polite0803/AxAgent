@@ -265,7 +265,8 @@ function isUrl(text: string): boolean {
 
 function isCalcExpr(text: string): boolean {
   const t = text.trim();
-  return /^[\d\s+\-*/().%^]+$/.test(t) && /[\d]/.test(t) && /[+\-*/]/.test(t);
+  // 必须以数字开头，只包含数字和运算符，且至少包含一个运算符
+  return /^\d[\d\s+\-*/().%^]*$/.test(t) && /[+\-*/]/.test(t);
 }
 
 function parseCommand(
@@ -759,6 +760,7 @@ function QuickBarResult({
         sourceType: "markdown",
         path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
         title: safeTitle,
+        content: result,
       });
       setResult(
         (p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`,
@@ -787,6 +789,10 @@ function QuickBarResult({
 
   const actionHover = (bg: string) => (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.backgroundColor = bg;
+  };
+
+  const actionLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.backgroundColor = "";
   };
 
   if (!hasResult && !showModelList) {
@@ -876,7 +882,7 @@ function QuickBarResult({
               copied ? token.colorSuccess : token.colorTextSecondary,
             )}
             onMouseEnter={actionHover(token.colorFillSecondary)}
-            onMouseLeave={actionHover("transparent")}
+            onMouseLeave={actionLeave}
           >
             <Copy size={12} /> {copied ? t("quickbar.result.copied") : t("quickbar.result.copy")}
           </button>
@@ -886,7 +892,7 @@ function QuickBarResult({
             onClick={handleSaveWiki}
             style={actionBtnStyle(token.colorTextSecondary)}
             onMouseEnter={actionHover(token.colorFillSecondary)}
-            onMouseLeave={actionHover("transparent")}
+            onMouseLeave={actionLeave}
           >
             <BookOpen size={12} /> {t("quickbar.result.saveWiki")}
           </button>
@@ -896,7 +902,7 @@ function QuickBarResult({
             onClick={handleContinue}
             style={actionBtnStyle(token.colorTextSecondary)}
             onMouseEnter={actionHover(token.colorFillSecondary)}
-            onMouseLeave={actionHover("transparent")}
+            onMouseLeave={actionLeave}
           >
             <ArrowRight size={12} /> {t("quickbar.result.continueAsk")}
           </button>
@@ -983,12 +989,13 @@ export function QuickBarPage() {
     } else {
       setTimeout(() => setShowCommands(false), 0);
     }
-  }, [input, commandMode, setShowCommands]);
+  }, [input, commandMode, setShowCommands, setSelectedCmd]);
 
-  const ensureConversation = useCallback(async (): Promise<string> => {
-    if (convId) {
-      return convId;
-    }
+  /** 获取当前可用的 provider 和 model，优先使用用户默认配置，否则 fallback 到第一个可用的 */
+  function resolveProviderModel(): {
+    providerId: string;
+    modelId: string;
+  } {
     const settings = useSettingsStore.getState().settings;
     const providers = useProviderStore.getState().providers;
     let provider = settings.default_provider_id
@@ -1004,10 +1011,18 @@ export function QuickBarPage() {
     if (!provider || !model) {
       throw new Error("No available provider/model");
     }
+    return { providerId: provider.id, modelId: model.model_id };
+  }
+
+  const ensureConversation = useCallback(async (): Promise<string> => {
+    if (convId) {
+      return convId;
+    }
+    const { providerId, modelId } = resolveProviderModel();
     const conversation = await invoke<{ id: string }>("create_conversation", {
       title: "QuickBar",
-      modelId: model.model_id,
-      providerId: provider.id,
+      modelId,
+      providerId,
     });
     setConvId(conversation.id);
     localStorage.setItem(QUICKBAR_CONV_KEY, conversation.id);
@@ -1126,7 +1141,6 @@ export function QuickBarPage() {
             agentProfileId: null,
           },
         },
-        0,
       );
       return cid;
     }), [startStream, ensureConversation, activeProviderId, activeModelId]);
@@ -1145,7 +1159,6 @@ export function QuickBarPage() {
             agentProfileId: null,
           },
         },
-        0,
       );
       return cid;
     }), [startStream, ensureConversation, activeProviderId, activeModelId]);
@@ -1164,7 +1177,6 @@ export function QuickBarPage() {
             agentProfileId: null,
           },
         },
-        0,
       );
       return cid;
     }), [startStream, ensureConversation, activeProviderId, activeModelId]);
@@ -1183,7 +1195,6 @@ export function QuickBarPage() {
             agentProfileId: null,
           },
         },
-        0,
       );
       return cid;
     }), [startStream, ensureConversation, activeProviderId, activeModelId]);
@@ -1262,6 +1273,7 @@ export function QuickBarPage() {
         sourceType: "markdown",
         path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
         title: safeTitle,
+        content: body,
       });
       setResult(`✅ ${t("quickbar.result.savedWiki")}`);
     } catch (e) {
@@ -1270,11 +1282,89 @@ export function QuickBarPage() {
     setLoading(false);
   }, [t, selectedWikiId]);
 
+  /** 安全数学求值：仅支持基本四则运算、取模、幂运算，不用 Function() */
+  function safeEval(expr: string): number {
+    // 词法分析：提取数字和运算符
+    const tokens = expr.match(/\d+\.?\d*|[+\-*/().%^]|pi/g);
+    if (!tokens) { throw new Error("Invalid expression"); }
+
+    // 替换 pi 为数字
+    const normalized = tokens.map((t) => (t === "pi" ? String(Math.PI) : t));
+
+    // 简单的递归下降求值器：只处理 +, -, *, /, %, ^
+    function parseAddSub(toks: string[], i: { index: number }): number {
+      let left = parseMulDiv(toks, i);
+      while (i.index < toks.length) {
+        const op = toks[i.index];
+        if (op !== "+" && op !== "-") { break; }
+        i.index++;
+        const right = parseMulDiv(toks, i);
+        left = op === "+" ? left + right : left - right;
+      }
+      return left;
+    }
+
+    function parseMulDiv(toks: string[], i: { index: number }): number {
+      let left = parsePow(toks, i);
+      while (i.index < toks.length) {
+        const op = toks[i.index];
+        if (op !== "*" && op !== "/" && op !== "%") { break; }
+        i.index++;
+        const right = parsePow(toks, i);
+        if (op === "*") { left = left * right; }
+        else if (op === "%") { left = left % right; }
+        else {
+          if (right === 0) { throw new Error("Division by zero"); }
+          left = left / right;
+        }
+      }
+      return left;
+    }
+
+    function parsePow(toks: string[], i: { index: number }): number {
+      let left = parseAtom(toks, i);
+      if (i.index < toks.length && toks[i.index] === "^") {
+        i.index++;
+        const right = parsePow(toks, i);
+        left = left ** right;
+      }
+      return left;
+    }
+
+    function parseAtom(toks: string[], i: { index: number }): number {
+      if (i.index >= toks.length) { throw new Error("Unexpected end"); }
+      const t = toks[i.index];
+      if (t === "(") {
+        i.index++;
+        const val = parseAddSub(toks, i);
+        if (i.index >= toks.length || toks[i.index] !== ")") { throw new Error("Missing )"); }
+        i.index++;
+        return val;
+      }
+      if (t === "-") {
+        i.index++;
+        return -parseAtom(toks, i);
+      }
+      const num = parseFloat(t);
+      if (isNaN(num)) { throw new Error(`Unexpected token: ${t}`); }
+      i.index++;
+      return num;
+    }
+
+    const idx = { index: 0 };
+    const result = parseAddSub(normalized, idx);
+    if (idx.index < normalized.length) {
+      throw new Error(`Unexpected token after expression: ${normalized[idx.index]}`);
+    }
+    return result;
+  }
+
   const runCalc = useCallback(async (expr: string) => {
     try {
-      const sanitized = expr.replace(/[^0-9+\-*/().%\s]/g, "");
-      const value = Function(`"use strict"; return (${sanitized})`)();
-      if (value === Infinity || value === -Infinity) {
+      const sanitized = expr.replace(/[^0-9+\-*/().%\s^]/g, "");
+      if (!sanitized.trim()) { throw new Error("Empty expression"); }
+      const value = safeEval(sanitized);
+      if (!isFinite(value)) {
         throw new Error("Division by zero");
       }
       setResult(
@@ -1311,22 +1401,11 @@ export function QuickBarPage() {
   const runNewConversation = useCallback(async () => {
     setLoading(true);
     try {
-      const settings = useSettingsStore.getState().settings;
-      const providers = useProviderStore.getState().providers;
-      let provider = settings.default_provider_id
-        ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
-        : undefined;
-      let model = provider?.models.find(
-        (m) => m.model_id === settings.default_model_id && m.enabled,
-      );
-      if (!provider || !model) {
-        provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
-        model = provider?.models.find((m) => m.enabled);
-      }
+      const { providerId, modelId } = resolveProviderModel();
       const conversation = await invoke<{ id: string }>("create_conversation", {
         title: "QuickBar",
-        modelId: model?.model_id ?? "",
-        providerId: provider?.id ?? "",
+        modelId,
+        providerId,
       });
       setConvId(conversation.id);
       localStorage.setItem(QUICKBAR_CONV_KEY, conversation.id);
@@ -1354,6 +1433,8 @@ export function QuickBarPage() {
             await runNewConversation();
             break;
           case "continue":
+            setCommandMode(true);
+            setTimeout(() => inputRef.current?.focus(), 50);
             break;
           case "model":
             setShowModelList(true);
@@ -1509,10 +1590,9 @@ export function QuickBarPage() {
 
   const handleContinue = useCallback(() => {
     setCommandMode(true);
-    setInput(`${result.slice(-500)}\n`);
-    setResult("");
+    setInput("");
     setTimeout(() => inputRef.current?.focus(), 50);
-  }, [result]);
+  }, []);
 
   const clearAll = useCallback(() => {
     setInput("");

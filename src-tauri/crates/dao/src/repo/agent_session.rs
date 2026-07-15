@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_entities::agent_sessions;
+use axagent_entities::conversations;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AgentSession;
 use axagent_harness::util_fns::gen_id;
@@ -12,7 +13,7 @@ fn model_to_agent_session(model: agent_sessions::Model) -> AgentSession {
         id: model.id,
         conversation_id: model.conversation_id,
         cwd: model.cwd,
-        workspace_locked: model.workspace_locked != 0,
+        workspace_locked: model.workspace_locked,
         permission_mode: model.permission_mode,
         runtime_status: model.runtime_status,
         sdk_context_json: model.sdk_context_json,
@@ -37,7 +38,7 @@ pub async fn upsert_agent_session(
         .one(db)
         .await?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
 
     if let Some(model) = existing {
         let mut am: agent_sessions::ActiveModel = model.into();
@@ -52,8 +53,21 @@ pub async fn upsert_agent_session(
         let updated = am.update(db).await?;
         Ok(model_to_agent_session(updated))
     } else {
+        // 确保 conversations 行存在，否则 FOREIGN KEY 约束会失败
+        let conv_exists =
+            conversations::Entity::find_by_id(conversation_id).one(db).await?.is_some();
+        if !conv_exists {
+            let now_ts = chrono::Utc::now().timestamp();
+            let stmt = sea_orm::Statement::from_sql_and_values(
+                sea_orm::DatabaseBackend::Sqlite,
+                "INSERT OR IGNORE INTO conversations (id, title, model_id, provider_id, created_at, updated_at) VALUES ($1, '[auto]', 'unknown', 'unknown', $2, $2)",
+                [conversation_id.to_string().into(), now_ts.into()],
+            );
+            db.execute_raw(stmt).await?;
+        }
+
         let id = gen_id();
-        let workspace_locked: i32 = if cwd.is_some() { 1 } else { 0 };
+        let workspace_locked = if cwd.is_some() { 1 } else { 0 };
         let model = agent_sessions::ActiveModel {
             id: Set(id),
             conversation_id: Set(conversation_id.to_string()),
@@ -65,7 +79,7 @@ pub async fn upsert_agent_session(
             sdk_context_backup_json: Set(None),
             total_tokens: Set(0),
             total_cost_usd: Set(0.0),
-            created_at: Set(now.clone()),
+            created_at: Set(now),
             updated_at: Set(now),
         };
         let inserted = model.insert(db).await?;
@@ -97,7 +111,7 @@ pub async fn update_agent_session_status(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.into();
     am.runtime_status = Set(runtime_status.to_string());
     am.updated_at = Set(now);
@@ -118,7 +132,7 @@ pub async fn update_agent_session_cwd(db: &DatabaseConnection, id: &str, cwd: &s
         ));
     }
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.into();
     am.cwd = Set(Some(cwd.to_string()));
     am.workspace_locked = Set(1);
@@ -138,7 +152,7 @@ pub async fn update_agent_session_permission_mode(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.into();
     am.permission_mode = Set(permission_mode.to_string());
     am.updated_at = Set(now);
@@ -148,7 +162,7 @@ pub async fn update_agent_session_permission_mode(
 
 /// Reset all running/waiting_approval sessions to idle (for app startup recovery).
 pub async fn reset_running_sessions(db: &DatabaseConnection) -> Result<u64> {
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let result = agent_sessions::Entity::update_many()
         .col_expr(agent_sessions::Column::RuntimeStatus, Expr::value("idle"))
         .col_expr(agent_sessions::Column::UpdatedAt, Expr::value(now))
@@ -177,7 +191,7 @@ pub async fn update_agent_session_after_query(
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = chrono::Utc::now().timestamp();
     let mut am: agent_sessions::ActiveModel = model.clone().into();
     am.runtime_status = Set(runtime_status.to_string());
     if let Some(ctx) = sdk_context_json {

@@ -65,7 +65,9 @@ pub use balance::{Balance, BalanceError, BalanceInfo, fetch_deepseek_balance};
 
 pub use cache_guard::CacheGuard;
 
-pub use cron_job::{CronJob, CronJobStatus, CronJobStore, TaskConfig, TaskRunResult};
+pub use cron_job::{
+    CronJob, CronJobStatus, CronJobStore, ExecutionRecord, TaskConfig, TaskRunResult,
+};
 
 pub use compact::{
     CompactionConfig, CompactionResult, adaptive_compaction_config, cleanup_task_boundary,

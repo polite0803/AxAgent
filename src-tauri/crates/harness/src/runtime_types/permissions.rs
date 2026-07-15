@@ -73,6 +73,9 @@ impl PermissionContext {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PermissionRequest {
     pub tool_name: String,
+    /// 工具调用的唯一 ID(由上层 agent 引擎分配),用于在 always-allowed 集合中
+    /// 按调用 ID 做去重/审计。`None` 表示 enforcer 内部生成的请求,无法按 ID 匹配。
+    pub tool_use_id: Option<String>,
     pub input: String,
     pub current_mode: PermissionMode,
     pub required_mode: PermissionMode,
@@ -425,6 +428,8 @@ impl PermissionPolicy {
     ) -> PermissionOutcome {
         let request = PermissionRequest {
             tool_name: tool_name.to_string(),
+            // enforcer 内部没有 tool_use_id 上下文,固定为 None
+            tool_use_id: None,
             input: input.to_string(),
             current_mode,
             required_mode,

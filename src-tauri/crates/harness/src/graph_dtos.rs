@@ -293,7 +293,8 @@ impl LinkGraph {
             .iter()
             .map(|n| {
                 let degree = self.get_degree(n) as f64;
-                if degree > 1.0 {
+                // guard: degree-1 must be > 1 to avoid ln(0) = -inf → 1/0 = inf
+                if degree > 2.0 {
                     1.0 / (degree - 1.0).ln()
                 } else {
                     0.0

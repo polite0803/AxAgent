@@ -25,7 +25,14 @@ export const NotificationPropertyPanel: React.FC<Props> = ({ node, onUpdate, onD
           onChange={(v) => sc("channel", v)}
           size="small"
           style={{ width: "100%" }}
-          options={[{ value: "webhook", label: "Webhook" }, { value: "log", label: "Log Only" }]}
+          options={[
+            { value: "webhook", label: "Webhook" },
+            { value: "slack", label: "Slack" },
+            { value: "wecom", label: "WeCom" },
+            { value: "dingtalk", label: "DingTalk" },
+            { value: "feishu", label: "Feishu" },
+            { value: "log", label: "Log Only" },
+          ]}
         />
       </div>
       <div>

@@ -43,7 +43,7 @@ impl SecureStore for KeyringStore {
     fn delete_secret(&self, key: &str) -> Result<(), String> {
         let entry = keyring::Entry::new(&self.service, key)
             .map_err(|e| format!("keyring entry creation failed: {}", e))?;
-        match entry.delete_password() {
+        match entry.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(e) => Err(format!("keyring delete failed: {}", e)),
         }

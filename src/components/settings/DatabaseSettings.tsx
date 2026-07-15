@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke, logIpcError } from "@/lib/invoke";
-import { Alert, Button, Card, Form, Input, InputNumber, message, Radio, Space, Switch, Typography } from "antd";
+import { Alert, App, Button, Card, Form, Input, InputNumber, Radio, Space, Switch, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +19,7 @@ interface DbConfigForm {
 
 export function DatabaseSettings() {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const [form] = Form.useForm<DbConfigForm>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -88,7 +89,7 @@ export function DatabaseSettings() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t("settings.database.restartHint")}
+        title={t("settings.database.restartHint")}
       />
 
       <Form
@@ -119,7 +120,7 @@ export function DatabaseSettings() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={t("settings.database.pgNote")}
+                title={t("settings.database.pgNote")}
               />
               <Form.Item
                 name="pg_host"

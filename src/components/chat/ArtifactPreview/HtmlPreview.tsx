@@ -3,6 +3,7 @@
 import { composeHtml, parseHtmlContent } from "@/lib/htmlParser";
 import type { ArtifactLanguage } from "@/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface HtmlPreviewProps {
   html: string;
@@ -22,6 +23,7 @@ export const HtmlPreview = memo(function HtmlPreview({
   sandbox = "allow-scripts",
   onError,
 }: HtmlPreviewProps) {
+  const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +89,7 @@ export const HtmlPreview = memo(function HtmlPreview({
     <iframe
       ref={iframeRef}
       sandbox={sandbox}
-      title="HTML Preview"
+      title={t("htmlPreview.title")}
       style={{
         width: "100%",
         height: "100%",

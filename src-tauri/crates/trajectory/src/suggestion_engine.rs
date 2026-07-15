@@ -291,7 +291,7 @@ impl SuggestionEngine {
 
     fn create_debug_suggestion(&self, error: &str) -> Vec<ProactiveSuggestion> {
         vec![ProactiveSuggestion::new(
-            SuggestionType::Optimization,
+            SuggestionType::Debug,
             format!("Debug: {}", error),
             "分析并修复错误".to_string(),
             SuggestionAction::ShowOptimizations { target: error.to_string() },

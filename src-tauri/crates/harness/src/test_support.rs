@@ -39,6 +39,7 @@ use crate::CircuitState;
 use crate::CodeSample;
 use crate::CodeStyleTemplate;
 use crate::ConsolidationDataProvider;
+use crate::ConsolidationSuggestion;
 use crate::ContentFilter;
 use crate::ContentType;
 use crate::DevExperienceProvider;
@@ -65,9 +66,14 @@ use crate::GatewayStatus;
 use crate::IndexConfig;
 use crate::IndexJobStatus;
 use crate::IntegrityResult;
+use crate::KnowledgeType;
 use crate::LlmExecutionService;
 use crate::LogLevel;
 use crate::McpClientService;
+use crate::McpPrompt;
+use crate::McpPromptResult;
+use crate::McpResource;
+use crate::McpResourceContent;
 use crate::McpServerConfig;
 use crate::McpServerStore;
 use crate::McpToolCallResult;
@@ -102,7 +108,6 @@ use crate::RLTrainer;
 use crate::RateLimitResult;
 use crate::RateLimitStatus;
 use crate::RateLimiter;
-use crate::ReplaySample;
 use crate::RerankProvider;
 use crate::RetrievalQuality;
 use crate::RhaiEngineAdapter;
@@ -560,23 +565,35 @@ impl DevExperienceProvider for NoopDevExperienceProvider {
 pub struct NoopConsolidationDataProvider;
 #[async_trait]
 impl ConsolidationDataProvider for NoopConsolidationDataProvider {
-    async fn fetch_new_experiences(
+    async fn fetch_recent_experiences(
         &self,
         _limit: usize,
     ) -> std::result::Result<Vec<ExperienceRecord>, String> {
         Ok(Vec::new())
     }
-    async fn fetch_replay_samples(
+    async fn fetch_experience_by_topic(
         &self,
-        _limit: usize,
-    ) -> std::result::Result<Vec<ReplaySample>, String> {
+        _topic: &str,
+    ) -> std::result::Result<Vec<ExperienceRecord>, String> {
         Ok(Vec::new())
     }
-    async fn store_distilled(
+    async fn store_distilled_knowledge(
         &self,
-        _knowledge: DistilledKnowledge,
+        _knowledge: &DistilledKnowledge,
     ) -> std::result::Result<(), String> {
         Ok(())
+    }
+    async fn store_suggestion(
+        &self,
+        _suggestion: &ConsolidationSuggestion,
+    ) -> std::result::Result<(), String> {
+        Ok(())
+    }
+    async fn fetch_existing_knowledge(
+        &self,
+        _knowledge_type: &KnowledgeType,
+    ) -> std::result::Result<Vec<DistilledKnowledge>, String> {
+        Ok(Vec::new())
     }
 }
 
@@ -591,7 +608,7 @@ impl DreamConsolidator for NoopDreamConsolidator {
     async fn should_consolidate(&self) -> std::result::Result<bool, String> {
         Ok(false)
     }
-    fn config(&self) -> DreamConsolidationConfig {
+    async fn config(&self) -> DreamConsolidationConfig {
         DreamConsolidationConfig::default()
     }
 }
@@ -768,6 +785,37 @@ impl McpClientService for NoopMcpClientService {
         _args: serde_json::Value,
     ) -> std::result::Result<McpToolCallResult, String> {
         Ok(McpToolCallResult { success: false, content: serde_json::Value::Null })
+    }
+
+    async fn list_resources(
+        &self,
+        _server: &McpServerConfig,
+    ) -> std::result::Result<Vec<McpResource>, String> {
+        Ok(Vec::new())
+    }
+
+    async fn read_resource(
+        &self,
+        _server: &McpServerConfig,
+        _uri: &str,
+    ) -> std::result::Result<Vec<McpResourceContent>, String> {
+        Ok(Vec::new())
+    }
+
+    async fn list_prompts(
+        &self,
+        _server: &McpServerConfig,
+    ) -> std::result::Result<Vec<McpPrompt>, String> {
+        Ok(Vec::new())
+    }
+
+    async fn get_prompt(
+        &self,
+        _server: &McpServerConfig,
+        _name: &str,
+        _args: serde_json::Value,
+    ) -> std::result::Result<McpPromptResult, String> {
+        Ok(McpPromptResult { description: None, messages: serde_json::Value::Null })
     }
 }
 
@@ -1659,4 +1707,130 @@ impl WorkflowTemplateRepository for EmptyWorkflowTemplateRepository {
 
 pub fn empty_workflow_template_repo() -> Arc<dyn WorkflowTemplateRepository> {
     Arc::new(EmptyWorkflowTemplateRepository)
+}
+
+// ── NoteBacklinkRepository 测试替身 ──────────────────────────
+//
+// 为 consumer crate（agent 等）单元测试提供 NoteBacklinkRepository 的空实现，
+// 避免引入实现层 axagent-dao crate（违反 AGENTS.md 铁律 5）。
+
+use crate::wiki_dtos::{NoteBacklink, NoteBacklinkRepository};
+
+struct EmptyNoteBacklinkRepository;
+#[async_trait]
+impl NoteBacklinkRepository for EmptyNoteBacklinkRepository {
+    async fn count_by_target_note_id(&self, _note_id: &str) -> std::result::Result<usize, String> {
+        Ok(0)
+    }
+    async fn find_by_target_note_id(
+        &self,
+        _note_id: &str,
+    ) -> std::result::Result<Vec<NoteBacklink>, String> {
+        Ok(Vec::new())
+    }
+}
+
+/// 工厂：构造一个 `Arc<dyn NoteBacklinkRepository>` 测试替身（所有方法返回空值）
+pub fn empty_note_backlink_repo() -> Arc<dyn NoteBacklinkRepository> {
+    Arc::new(EmptyNoteBacklinkRepository)
+}
+
+// ── AgentSessionRepository 测试替身 ──────────────────────────
+//
+// 为 consumer crate（agent 等）单元测试提供 AgentSessionRepository 的空实现，
+// 避免引入实现层 axagent-dao crate（违反 AGENTS.md 铁律 5）。
+// 注意：upsert_agent_session 返回一个最小化的 AgentSession，字段均为默认值，
+// 仅供"不依赖具体会话数据"的测试使用。需要真实 DB 行为的测试应下沉到 wiring 层。
+
+use crate::agent_session_repo::AgentSessionRepository;
+use crate::types::AgentSession;
+
+struct EmptyAgentSessionRepository;
+#[async_trait]
+impl AgentSessionRepository for EmptyAgentSessionRepository {
+    async fn upsert_agent_session(
+        &self,
+        conversation_id: &str,
+        _cwd: Option<&str>,
+        permission_mode: Option<&str>,
+    ) -> Result<AgentSession> {
+        Ok(AgentSession {
+            id: String::new(),
+            conversation_id: conversation_id.to_string(),
+            cwd: None,
+            workspace_locked: 0,
+            permission_mode: permission_mode.unwrap_or("default").to_string(),
+            runtime_status: String::new(),
+            sdk_context_json: None,
+            sdk_context_backup_json: None,
+            total_tokens: 0,
+            total_cost_usd: 0.0,
+            created_at: 0,
+            updated_at: 0,
+        })
+    }
+    async fn update_agent_session_status(&self, _id: &str, _runtime_status: &str) -> Result<()> {
+        Ok(())
+    }
+    async fn update_agent_session_after_query(
+        &self,
+        _id: &str,
+        _runtime_status: &str,
+        _sdk_context_json: Option<&str>,
+        _tokens_delta: i32,
+        _cost_delta: f64,
+    ) -> Result<()> {
+        Ok(())
+    }
+    async fn clear_sdk_context_by_conversation_id(&self, _conversation_id: &str) -> Result<()> {
+        Ok(())
+    }
+}
+
+/// 工厂：构造一个 `Arc<dyn AgentSessionRepository>` 测试替身（所有写方法返回 Ok(())，
+/// upsert 返回最小化 AgentSession）
+pub fn empty_agent_session_repo() -> Arc<dyn AgentSessionRepository> {
+    Arc::new(EmptyAgentSessionRepository)
+}
+
+// ── ToolRegistry 测试替身 ────────────────────────────────────
+//
+// 为 consumer crate（agent 等）单元测试提供 ToolRegistry 的空实现，
+// 避免引入实现层 axagent-tools crate（违反 AGENTS.md 铁律 5）。
+// get / find 返回 None，list 返回空 Vec，适合测试"工具不存在"的报错路径。
+
+use crate::registry::ToolRegistry as ToolRegistryTrait;
+use crate::tool::{Tool, ToolCategory, ToolInfo};
+
+/// 空实现的 ToolRegistry 测试替身。
+///
+/// - `get` / `find` 返回 `None`
+/// - `list` / `list_by_category` 返回空 Vec
+/// - `is_disabled` 返回 `false`
+/// - `execute_tool` 走 trait 默认实现（因 `find` 返回 None，会得到 `ToolError::not_found`）
+#[derive(Debug, Default)]
+pub struct NoopToolRegistry;
+
+#[async_trait::async_trait]
+impl ToolRegistryTrait for NoopToolRegistry {
+    fn get(&self, _name: &str) -> Option<Arc<dyn Tool>> {
+        None
+    }
+    fn find(&self, _name: &str) -> Option<Arc<dyn Tool>> {
+        None
+    }
+    fn list(&self) -> Vec<ToolInfo> {
+        Vec::new()
+    }
+    fn list_by_category(&self, _category: ToolCategory) -> Vec<ToolInfo> {
+        Vec::new()
+    }
+    fn is_disabled(&self, _name: &str) -> bool {
+        false
+    }
+}
+
+/// 工厂：构造一个 `Arc<dyn ToolRegistry>` 测试替身
+pub fn noop_tool_registry() -> Arc<dyn ToolRegistryTrait> {
+    Arc::new(NoopToolRegistry)
 }

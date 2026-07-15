@@ -11,12 +11,23 @@
 //! 通过时间门控和会话计数门控防止过度消耗资源，
 //! 使用互斥锁防止并发运行。
 //! 移植自 claude-code-main 的 autoDream 机制。
+//!
+//! DTO 类型和 trait 接口定义在 `axagent-harness` crate 中。
+//! 本模块仅包含实现逻辑和内部数据结构。
+
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::Mutex;
+
+// 类型定义和 trait 接口统一来自 harness
+pub use axagent_harness::dream::{
+    ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,
+    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamEventEmitter,
+    ExperienceRecord, KnowledgeType, SuggestionType,
+};
 
 // ---------------------------------------------------------------------------
 // 门控配置
@@ -28,109 +39,8 @@ const DEFAULT_MAX_CONSOLIDATION_SECS: u64 = 120;
 const LOCK_TIMEOUT_SECS: u64 = 5;
 
 // ---------------------------------------------------------------------------
-// 配置
+// 内部数据结构（不在 harness 契约中）
 // ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DreamConsolidationConfig {
-    pub enabled: bool,
-    pub min_interval_hours: i64,
-    pub min_new_sessions: u32,
-    pub max_consolidation_secs: u64,
-    pub run_memory_extraction: bool,
-    pub run_pattern_learning: bool,
-    pub run_proactive_suggestions: bool,
-    pub experience_replay_sample_size: usize,
-    pub contrastive_pair_threshold: f64,
-    pub distillation_min_quality: f64,
-}
-
-impl Default for DreamConsolidationConfig {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            min_interval_hours: DEFAULT_MIN_INTERVAL_HOURS,
-            min_new_sessions: DEFAULT_MIN_NEW_SESSIONS,
-            max_consolidation_secs: DEFAULT_MAX_CONSOLIDATION_SECS,
-            run_memory_extraction: true,
-            run_pattern_learning: true,
-            run_proactive_suggestions: true,
-            experience_replay_sample_size: 50,
-            contrastive_pair_threshold: 0.3,
-            distillation_min_quality: 0.6,
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 巩固结果
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DreamConsolidationResult {
-    pub executed: bool,
-    pub skip_reason: Option<String>,
-    pub memories_extracted: usize,
-    pub patterns_discovered: usize,
-    pub suggestions_generated: usize,
-    pub started_at: DateTime<Utc>,
-    pub duration_secs: u64,
-    pub error: Option<String>,
-    pub experience_replay_count: usize,
-    pub distilled_knowledge_count: usize,
-    pub contrastive_insights_count: usize,
-}
-
-impl DreamConsolidationResult {
-    pub fn skipped(reason: impl Into<String>) -> Self {
-        Self {
-            executed: false,
-            skip_reason: Some(reason.into()),
-            memories_extracted: 0,
-            patterns_discovered: 0,
-            suggestions_generated: 0,
-            started_at: Utc::now(),
-            duration_secs: 0,
-            error: None,
-            experience_replay_count: 0,
-            distilled_knowledge_count: 0,
-            contrastive_insights_count: 0,
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 状态跟踪
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DreamConsolidationState {
-    pub last_consolidation_at: Option<DateTime<Utc>>,
-    pub sessions_since_last: u32,
-    pub total_consolidations: u64,
-    pub total_memories_extracted: u64,
-    pub total_consolidation_secs: u64,
-    pub is_running: bool,
-    pub total_experience_replayed: u64,
-    pub total_distilled_knowledge: u64,
-    pub total_contrastive_insights: u64,
-}
-
-// ---------------------------------------------------------------------------
-// 经验回放
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExperienceRecord {
-    pub id: String,
-    pub session_id: String,
-    pub topic: String,
-    pub outcome: String,
-    pub quality_score: f64,
-    pub tool_sequence: Vec<String>,
-    pub reasoning_summary: String,
-    pub timestamp: DateTime<Utc>,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReplaySample {
@@ -140,107 +50,8 @@ pub struct ReplaySample {
 }
 
 // ---------------------------------------------------------------------------
-// 知识蒸馏
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DistilledKnowledge {
-    pub id: String,
-    pub source_session_ids: Vec<String>,
-    pub knowledge_type: KnowledgeType,
-    pub content: String,
-    pub confidence: f64,
-    pub applicability_tags: Vec<String>,
-    pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum KnowledgeType {
-    ToolUsagePattern,
-    ReasoningStrategy,
-    ErrorRecovery,
-    TaskDecomposition,
-    OptimizationHint,
-}
-
-// ---------------------------------------------------------------------------
-// 对比学习
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContrastivePair {
-    pub success: ExperienceRecord,
-    pub failure: ExperienceRecord,
-    pub topic: String,
-    pub differentiating_factors: Vec<String>,
-    pub insight: String,
-}
-
-// ---------------------------------------------------------------------------
-// 巩固建议
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConsolidationSuggestion {
-    pub id: String,
-    pub suggestion_type: SuggestionType,
-    pub content: String,
-    pub confidence: f64,
-    pub source_evidence: Vec<String>,
-    pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum SuggestionType {
-    SkillImprovement,
-    NewSkillProposal,
-    ToolUsageOptimization,
-    ErrorPrevention,
-    WorkflowEnhancement,
-}
-
-// ---------------------------------------------------------------------------
-// 巩固数据提供者 trait
-// ---------------------------------------------------------------------------
-
-pub trait ConsolidationDataProvider: Send + Sync {
-    fn fetch_recent_experiences(
-        &self,
-        limit: usize,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<ExperienceRecord>, String>> + Send + '_>>;
-
-    fn fetch_experience_by_topic(
-        &self,
-        topic: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<ExperienceRecord>, String>> + Send + '_>> {
-        let _ = topic;
-        self.fetch_recent_experiences(100)
-    }
-
-    fn store_distilled_knowledge(
-        &self,
-        knowledge: &DistilledKnowledge,
-    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + '_>>;
-
-    fn store_suggestion(
-        &self,
-        suggestion: &ConsolidationSuggestion,
-    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + '_>>;
-
-    fn fetch_existing_knowledge(
-        &self,
-        knowledge_type: &KnowledgeType,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<DistilledKnowledge>, String>> + Send + '_>>;
-}
-
-use std::future::Future;
-use std::pin::Pin;
-
-// ---------------------------------------------------------------------------
 // Dream 巩固调度器
 // ---------------------------------------------------------------------------
-
-pub type DreamEventEmitter = Option<Arc<dyn Fn(&str, serde_json::Value) + Send + Sync>>;
 
 pub struct DreamConsolidator {
     config: Arc<Mutex<DreamConsolidationConfig>>,
@@ -686,9 +497,9 @@ impl DreamConsolidator {
     /// 执行一次 Dream 巩固周期（完整实现）
     pub async fn consolidate(
         &self,
-        _on_memories: Option<&(dyn Fn(usize) + Send + Sync)>,
-        _on_patterns: Option<&(dyn Fn(usize) + Send + Sync)>,
-        _on_suggestions: Option<&(dyn Fn(usize) + Send + Sync)>,
+        on_memories: Option<&(dyn Fn(usize) + Send + Sync)>,
+        on_patterns: Option<&(dyn Fn(usize) + Send + Sync)>,
+        on_suggestions: Option<&(dyn Fn(usize) + Send + Sync)>,
     ) -> DreamConsolidationResult {
         let config = self.get_config().await;
 
@@ -740,6 +551,10 @@ impl DreamConsolidator {
                         experience_replay_count = replay.records.len();
                         memories_extracted = replay.records.len();
 
+                        if let Some(cb) = on_memories {
+                            cb(experience_replay_count);
+                        }
+
                         self.emit(
                             "dream-experience-replay",
                             serde_json::json!({
@@ -782,6 +597,10 @@ impl DreamConsolidator {
                                     contrastive_insights_count = pairs.len();
                                     patterns_discovered += pairs.len();
 
+                                    if let Some(cb) = on_patterns {
+                                        cb(contrastive_insights_count);
+                                    }
+
                                     self.emit(
                                         "dream-contrastive-learning",
                                         serde_json::json!({
@@ -803,6 +622,10 @@ impl DreamConsolidator {
                                         {
                                             Ok(suggestions) => {
                                                 suggestions_generated = suggestions.len();
+
+                                                if let Some(cb) = on_suggestions {
+                                                    cb(suggestions_generated);
+                                                }
                                             },
                                             Err(e) => {
                                                 self.emit(
@@ -829,25 +652,25 @@ impl DreamConsolidator {
             }
         } else {
             // 无数据提供者时使用回调模式（向后兼容）
-            if config.run_memory_extraction && Utc::now() < deadline {
-                if let Some(callback) = _on_memories {
-                    callback(0);
-                }
-                memories_extracted += 1;
+            if config.run_memory_extraction
+                && Utc::now() < deadline
+                && let Some(callback) = on_memories
+            {
+                callback(0);
             }
 
-            if config.run_pattern_learning && Utc::now() < deadline {
-                if let Some(callback) = _on_patterns {
-                    callback(0);
-                }
-                patterns_discovered += 1;
+            if config.run_pattern_learning
+                && Utc::now() < deadline
+                && let Some(callback) = on_patterns
+            {
+                callback(0);
             }
 
-            if config.run_proactive_suggestions && Utc::now() < deadline {
-                if let Some(callback) = _on_suggestions {
-                    callback(0);
-                }
-                suggestions_generated += 1;
+            if config.run_proactive_suggestions
+                && Utc::now() < deadline
+                && let Some(callback) = on_suggestions
+            {
+                callback(0);
             }
         }
 
@@ -896,6 +719,7 @@ impl DreamConsolidator {
         }
     }
 
+    /// 强制执行一次巩固（忽略门控条件）
     pub async fn consolidate_force(&self) -> DreamConsolidationResult {
         {
             let mut state = self.state.lock().await;
@@ -933,6 +757,23 @@ impl DreamConsolidator {
 impl Default for DreamConsolidator {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ── 实现 harness DreamConsolidator trait ──────────────────────────────────
+
+#[async_trait::async_trait]
+impl axagent_harness::dream::DreamConsolidator for DreamConsolidator {
+    async fn consolidate(&self) -> Result<DreamConsolidationResult, String> {
+        Ok(self.consolidate(None, None, None).await)
+    }
+
+    async fn should_consolidate(&self) -> Result<bool, String> {
+        Ok(self.should_consolidate().await)
+    }
+
+    async fn config(&self) -> DreamConsolidationConfig {
+        self.get_config().await
     }
 }
 

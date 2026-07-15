@@ -29,7 +29,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     setSortKey,
     clearError,
     revealEntry,
-    cleanupMissingEntry,
+    deleteEntry,
   } = useKnowledgeStore();
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -55,7 +55,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
       return;
     }
     try {
-      await Promise.all(selectedRowKeys.map((key) => cleanupMissingEntry(key)));
+      await Promise.all(selectedRowKeys.map((key) => deleteEntry(key)));
       setSelectedRowKeys([]);
       message.success(
         t("files.batchDeleteSuccess", { count: selectedRowKeys.length }),
@@ -68,7 +68,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     selectedRowKeys,
     activeCategory,
     loadCategory,
-    cleanupMissingEntry,
+    deleteEntry,
     message,
     t,
   ]);
@@ -77,7 +77,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
     async (id: string) => {
       try {
-        await cleanupMissingEntry(id);
+        await deleteEntry(id);
         setSelectedRowKeys((prev) => prev.filter((k) => k !== id));
         message.success(t("files.deleteSuccess"));
         void loadCategory(activeCategory);
@@ -85,7 +85,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
         message.error(String(e));
       }
     },
-    [activeCategory, loadCategory, cleanupMissingEntry, message, t],
+    [activeCategory, loadCategory, deleteEntry, message, t],
   );
 
   return (

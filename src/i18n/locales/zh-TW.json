@@ -2,7 +2,9 @@
   "app": {
     "name": "AxAgent",
     "title": "智聊助手",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "newSkillProposal": "發現新的技能建議: {name}",
+    "quickBar": "QuickBar"
   },
   "artifact": {
     "copiedToClipboard": "已複製到剪貼簿",
@@ -37,7 +39,8 @@
     "recommend": "推薦",
     "quant": "量化",
     "portfolio": "[TODO] Portfolio",
-    "scheduledAnalysis": "[TODO] Scheduled"
+    "scheduledAnalysis": "[TODO] Scheduled",
+    "dynamicUI": "動態頁面"
   },
   "sidebar": {
     "sectionWork": "工作",
@@ -54,7 +57,8 @@
     "sectionInvestReview": "Review",
     "closeAgent": "[TODO] Close Agent",
     "openAgent": "[TODO] Open Agent",
-    "sectionOverview": "概覽"
+    "sectionOverview": "概覽",
+    "agentPanel": "Agent Panel"
   },
   "chat": {
     "newConversation": "新建對話",
@@ -236,7 +240,10 @@
       "success": "成功",
       "error": "失敗",
       "input": "輸入參數",
-      "output": "執行結果"
+      "output": "執行結果",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "mcp": {
       "title": "MCP 工具",
@@ -348,7 +355,10 @@
         "running": "執行中",
         "completed": "已完成",
         "failed": "已失敗",
-        "skipped": "已跳過"
+        "skipped": "已跳過",
+        "strategyOverwrite": "Overwrite（覆蓋）",
+        "strategyMerge": "Merge（合併）",
+        "strategyDryRun": "Dry run（僅驗證）"
       },
       "workflowStatus": {
         "created": "已建立",
@@ -356,7 +366,10 @@
         "completed": "已完成",
         "partiallyCompleted": "部分完成",
         "failed": "已失敗",
-        "cancelled": "已取消"
+        "cancelled": "已取消",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "dagVisualization": "DAG 視覺化",
       "dagHint": "以有向無環圖方式查看工作流執行",
@@ -844,7 +857,10 @@
       "askUser": "個詢問",
       "loading": "加載中...",
       "failed": "失敗",
-      "iteration": "輪迭代"
+      "iteration": "輪迭代",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "benchmarks": {
       "failed": "失敗",
@@ -1009,7 +1025,10 @@
       "running": "{{running}} 執行中",
       "cancelled": "已取消",
       "pending": "等待中",
-      "totalEvents": "{{total}} 個事件"
+      "totalEvents": "{{total}} 個事件",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "agent": {
       "acceptEdits": "接受編輯",
@@ -1041,7 +1060,10 @@
       "goToEnd": "跳到結尾",
       "goToStart": "回到開始",
       "nextStep": "下一步",
-      "prevStep": "上一步"
+      "prevStep": "上一步",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "switchedTo": "已切換至：{{name}}",
     "contextGraph": {
@@ -1177,7 +1199,12 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "會話已清空",
+    "createConversationFailed": "建立對話失敗",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "gateway": {
     "title": "閘道",
@@ -1314,7 +1341,10 @@
     "tab": {
       "monitor": "監控"
     },
-    "cacheHitTokens": "快取命中 tokens"
+    "cacheHitTokens": "快取命中 tokens",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "settings": {
     "title": "設定",
@@ -1362,7 +1392,9 @@
       "statusConnecting": "連線中",
       "lastActivity": "最後活躍",
       "activeSessions": "活躍連線數",
-      "noStatuses": "暫無連線狀態"
+      "noStatuses": "暫無連線狀態",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker 前綴（預設 CHAT2API，通常無需修改）"
     },
     "shortcuts": {
       "label": "快捷鍵",
@@ -1394,7 +1426,10 @@
       "stopped": "[TODO] Stopped",
       "start": "[TODO] Start",
       "stop": "[TODO] Stop",
-      "noLogs": "[TODO] No logs yet"
+      "noLogs": "[TODO] No logs yet",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "data": {
       "title": "數據管理"
@@ -1836,7 +1871,14 @@
       "importErrors": "Error Details",
       "importedCount": "Imported",
       "errorCount": "Failed",
-      "importSelectFirst": "Please select a folder first"
+      "importSelectFirst": "Please select a folder first",
+      "autoIndex": "自動索引",
+      "autoIndexHint": "檔案變更時自動更新索引",
+      "maxResults": "最大結果數",
+      "scoreThreshold": "分數閾值",
+      "vectorStore": "向量儲存",
+      "webCrawlDepth": "網頁爬取深度",
+      "webCrawlPages": "爬取頁數"
     },
     "rag": {
       "advanced": "高級檢索設置",
@@ -2036,7 +2078,8 @@
       "restartRequired": "更改將在重啟後完全生效",
       "restartNow": "立即重啟",
       "restartLater": "稍後重啟",
-      "desc": "配置數據存儲位置和限制"
+      "desc": "配置數據存儲位置和限制",
+      "openFolderError": "開啟目錄失敗: {error}"
     },
     "filterProviders": "搜尋供應商...",
     "initProviders": "初始化供應商",
@@ -2235,7 +2278,10 @@
       "executed": "已執行",
       "quickCreated": "快速創建",
       "unknownTemplateType": "",
-      "refreshed": "已重新"
+      "refreshed": "已重新",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "localTools": {
       "title": "本地工具",
@@ -2714,7 +2760,68 @@
       "jsonEdit": "JSON 編輯"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker 前綴（預設 CHAT2API，通常無需修改）"
+    "markerPrefixDesc": "Marker 前綴（預設 CHAT2API，通常無需修改）",
+    "persona": {
+      "activated": "已啟用",
+      "activate": "啟用",
+      "cancel": "取消",
+      "create": "新增人格",
+      "createFailed": "建立失敗",
+      "createFirst": "請選擇或建立一個人格",
+      "description": "管理 Agent 的人格與靈魂定義",
+      "editFailed": "編輯失敗",
+      "emptyContent": "（空）",
+      "name": "名稱",
+      "nameLabel": "名稱",
+      "namePlaceholder": "my-persona",
+      "noPersona": "暫無人格",
+      "personaList": "人格列表",
+      "save": "儲存",
+      "saved": "已儲存",
+      "saveFailed": "儲存失敗",
+      "switchFailed": "切換失敗",
+      "switchSuccess": "已切換至 {{name}}",
+      "systemPrompt": "系統提示詞",
+      "title": "人格管理",
+      "type": "類型",
+      "visibility": "可見性",
+      "soul": {
+        "label": "SOUL.md（靈魂定義）",
+        "description": "Agent 的基本人格與行為風格定義",
+        "placeholder": "請輸入靈魂定義..."
+      },
+      "identity": {
+        "label": "IDENTITY.md（身份宣告）",
+        "description": "Agent 的身份宣告與角色資訊",
+        "placeholder": "Agent 的身份宣告..."
+      },
+      "user": {
+        "label": "USER.md（使用者設定檔）",
+        "description": "使用者設定檔、偏好與需求的描述",
+        "placeholder": "使用者設定檔資訊..."
+      },
+      "autoLearn": {
+        "button": "從對話自動學習",
+        "title": "從對話自動學習",
+        "description": "從對話歷史中提取使用者的程式碼風格與溝通偏好，自動更新目前啟用 Persona 的 USER.md",
+        "selectConversation": "選擇對話",
+        "selectPlaceholder": "請選擇一個對話",
+        "noConversations": "暫無對話",
+        "start": "開始學習",
+        "close": "關閉",
+        "success": "已成功學習並更新到 Persona「{{name}}」",
+        "successTitle": "學習完成，已更新到 Persona「{{name}}」",
+        "noSamples": "未找到可學習的程式碼或訊息樣本",
+        "noSamplesTitle": "未找到可用樣本",
+        "failed": "自動學習失敗",
+        "updatedFields": "已更新欄位"
+      }
+    },
+    "toolCallingMode": "工具呼叫模式",
+    "toolCallingModeDesc": "選擇工具呼叫的處理方式",
+    "toolCallingModeManaged": "託管模式",
+    "toolCallingModeNative": "原生模式",
+    "groupVoice": "語音"
   },
   "backup": {
     "title": "備份中心",
@@ -2785,7 +2892,11 @@
       "lastSync": "上次同步"
     },
     "backupSuccess": "備份成功",
-    "error": "操作失敗"
+    "error": "操作失敗",
+    "openFolderError": "開啟目錄失敗: {error}",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "common": {
     "confirm": "確認",
@@ -2934,7 +3045,8 @@
     "required": "必填項",
     "details": "[TODO] Details",
     "more": "More",
-    "action": "操作"
+    "action": "操作",
+    "dismiss": "忽略"
   },
   "multiAgent": {
     "title": "多智能體狀態",
@@ -2945,7 +3057,10 @@
     },
     "status": {
       "running": "執行中",
-      "completed": "已完成"
+      "completed": "已完成",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "count": "{{running}} 執行中 / {{completed}} 已完成",
     "noAgents": "暫無註冊的智能體",
@@ -2967,7 +3082,10 @@
     "loading": "加載中...",
     "failed": "失敗",
     "iteration": "輪迭代",
-    "askUser": "次提問"
+    "askUser": "次提問",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "image": {
     "loadError": "圖片載入失敗",
@@ -2985,7 +3103,13 @@
     "disconnecting": "中斷中...",
     "startCall": "開始語音通話",
     "endCall": "結束通話",
-    "toggleMute": "切換靜音"
+    "toggleMute": "切換靜音",
+    "wakeup": "語音喚醒",
+    "wakeupActive": "語音喚醒監聽中",
+    "voiceType": "語音類型",
+    "sttProvider": "語音識別提供商",
+    "ttsProvider": "語音合成提供商",
+    "providerAuto": "自動（使用 LLM 同一家）"
   },
   "shortcuts": {
     "newConversation": "新建對話",
@@ -3660,7 +3784,11 @@
       "evolutionFallback": "優化",
       "verified": "已驗證有效",
       "hasEvolution": "有進化記錄",
-      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
+      "progressAnalyzing": "正在分析意圖",
+      "progressMatching": "正在配對節點",
+      "progressBuilding": "正在建構工作流",
+      "progressOptimizing": "正在最佳化"
     },
     "previewInDevelopment": "預覽功能開發中",
     "publishInDevelopment": "發布功能開發中",
@@ -3778,7 +3906,12 @@
       "rollback": "Rollback to This Version",
       "rollbackConfirm": "Confirm rollback?",
       "rollbackTo": "Rollback to {{version}}",
-      "rolledBack": "Rolled back"
+      "rolledBack": "Rolled back",
+      "restore": "還原",
+      "viewDiff": "檢視差異",
+      "viewSnapshot": "檢視快照",
+      "vA": "",
+      "vB": ""
     },
     "versionHistoryLoadFailed": "版本歷史載入失敗",
     "versionLoaded": "版本已載入",
@@ -4191,7 +4324,10 @@
       "noTraceData": "暂无 Trace 数据",
       "showSpanTree": "显示 Span 树",
       "hideSpanTree": "隐藏 Span 树",
-      "noSpanData": "暂未解析到 Span 数据"
+      "noSpanData": "暂未解析到 Span 数据",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "validation": {
       "validation": {
@@ -4299,7 +4435,11 @@
       "workflowRef": "Workflow Ref",
       "phaseSeparator": "Phase Separator",
       "groupFrame": "Group",
-      "toolSetSelector": "Tool Set"
+      "toolSetSelector": "Tool Set",
+      "apiCall": "API 呼叫",
+      "script": "指令碼",
+      "timer": "計時器",
+      "webhook": "Webhook"
     },
     "undo": "復原",
     "redo": "重做",
@@ -4417,7 +4557,8 @@
         "CACHE_DESERIALIZE_FAILED": "快取資料解析失敗",
         "MODEL_NOT_CONFIGURED": "未設定模型",
         "NODE_NOT_FOUND": "節點未找到"
-      }
+      },
+      "saveFailed": "儲存失敗"
     },
     "agentNode": {
       "tools": "工具",
@@ -4513,7 +4654,9 @@
       "configureHint": "Configure trigger conditions and parameters",
       "statusActive": "Running",
       "statusDisabled": "Disabled",
-      "statusUnconfigured": "Unconfigured"
+      "statusUnconfigured": "Unconfigured",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "未設置",
@@ -4564,7 +4707,10 @@
       "clickToExpandPorts": "Click to expand ports",
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "type": "Type"
+      "type": "Type",
+      "description": "描述",
+      "name": "名稱",
+      "version": "版本"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (動態工具)",
@@ -4616,7 +4762,9 @@
       },
       "trigger": {
         "cronHint": "標準 cron 運算式，例如 `0 9 * * *`。"
-      }
+      },
+      "fix": "修復",
+      "optimize": "最佳化"
     },
     "diagnostic": {
       "title": "工作流程診斷",
@@ -4905,7 +5053,11 @@
       "condition": "Routing",
       "loop": "Loop",
       "container": "Container",
-      "storage": "Storage"
+      "storage": "Storage",
+      "data": "資料",
+      "logic": "邏輯",
+      "trigger": "觸發器",
+      "transform": "轉換"
     },
     "layout": {
       "suggestTitle": {
@@ -4969,7 +5121,51 @@
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
-      }
+      },
+      "autoLayout": "自動排列",
+      "canvas": "畫布",
+      "collapseAll": "全部收合",
+      "condensed": "緊湊",
+      "connectionMode": "連線模式",
+      "defaultEdgeType": "預設連線類型",
+      "expandAll": "全部展開",
+      "fitView": "適應視窗",
+      "floating": "浮動",
+      "gridSize": "網格大小",
+      "horizontal": "水平",
+      "layoutDirection": "排列方向",
+      "locked": "已鎖定",
+      "minimap": "迷你地圖",
+      "nodeSize": "節點大小",
+      "orientation": "方向",
+      "portLayout": "連接埠佈局",
+      "readonly": "唯讀",
+      "showGrid": "顯示網格",
+      "snapToGrid": "對齊網格",
+      "straight": "直線",
+      "strict": "嚴格",
+      "vertical": "垂直",
+      "zoomControl": "縮放控制",
+      "bezier": "貝氏曲線",
+      "smoothStep": "平滑階梯",
+      "free": "自由",
+      "ortho": "正交",
+      "large": "大",
+      "medium": "中",
+      "small": "小",
+      "compact": "緊湊",
+      "standard": "標準",
+      "comfortable": "舒適",
+      "left": "左",
+      "right": "右",
+      "top": "上",
+      "bottom": "下",
+      "center": "置中",
+      "border": "邊框",
+      "gradient": "漸層",
+      "solid": "實線",
+      "dashed": "虛線",
+      "dotted": "點線"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -4998,24 +5194,50 @@
       "importPresetsTitle": "Import built-in experts",
       "importPresets": "Import",
       "noTemplates": "No templates",
-      "noMatchFound": "No matching templates"
+      "noMatchFound": "No matching templates",
+      "blank": "空白工作流",
+      "category": "分類",
+      "createConfirm": "以此模板建立新工作流？",
+      "description": "描述",
+      "empty": "暫無模板",
+      "name": "模板名稱",
+      "official": "官方模板",
+      "popular": "熱門",
+      "preview": "預覽",
+      "recent": "最近使用",
+      "title": "工作流模板",
+      "useTemplate": "使用模板",
+      "version": "版本",
+      "community": "社群",
+      "recommended": "推薦",
+      "all": "全部"
     },
     "saveAsImage": "Save as Image",
     "exportEmpty": "No nodes to export",
     "containerNode": {
       "nodes": "nodes",
-      "branchTimeout": "Branch timeout configured"
+      "branchTimeout": "Branch timeout configured",
+      "collapse": "收合",
+      "expand": "展開"
     },
     "swarmNode": {
       "agents": "Agents",
       "rounds": "rounds",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "addAgent": "Add Agent"
+      "addAgent": "Add Agent",
+      "agent": "代理",
+      "handoff": "交接",
+      "mode": "模式",
+      "parallel": "並行",
+      "sequential": "順序",
+      "task": "任務"
     },
     "groupNode": {
       "untitled": "Group",
-      "folded": "folded"
+      "folded": "folded",
+      "add": "新增群組",
+      "remove": "移除群組"
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
@@ -5027,7 +5249,10 @@
       "title": "Workflow Legend",
       "toggleLabel": "{{action}} legend",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "end": "結束",
+      "start": "開始",
+      "running": "執行中"
     },
     "back": "Back",
     "caseLabel": "Case {{n}}",
@@ -5049,7 +5274,11 @@
       "targetWorkflow": "Target Workflow",
       "contextMode": "Context Mode",
       "inherit": "Inherit",
-      "isolated": "Isolated"
+      "isolated": "Isolated",
+      "selectWorkflow": "選擇工作流",
+      "title": "工作流參照",
+      "version": "版本",
+      "inputMapping": "輸入對應"
     },
     "durationMinutes": "{{minutes}} min",
     "durationSeconds": "{{seconds}} sec",
@@ -5073,11 +5302,243 @@
       "current": "[TODO] Current version",
       "optimizedConfig": "[TODO] Optimized node configuration",
       "addedBranch": "[TODO] Added conditional branch",
-      "initialCreation": "[TODO] Initial creation"
+      "initialCreation": "[TODO] Initial creation",
+      "action": "操作",
+      "changeSummary": "變更摘要",
+      "clearSelection": "清除選取",
+      "compareHint": "正在比較版本 {{v1}} 與版本 {{v2}}",
+      "compareSelected": "比較選取項（{{selected}}/2）",
+      "confirmRestore": "還原至版本 {{version}}？",
+      "currentWorkflowWillBeOverwritten": "目前工作流將被新版本覆蓋",
+      "deletedNode": "- 已移除節點：{{id}}（{{desc}}）",
+      "modifiedNode": "修改節點",
+      "newNode": "+ 已新增節點：{{id}}（{{desc}}）",
+      "noVersionHistory": "暫無版本歷史",
+      "restoreToVersion": "還原至此版本",
+      "status": "狀態",
+      "timeline": "時間軸",
+      "updateTime": "更新時間",
+      "version": "版本",
+      "versionManager": "版本管理員：{{name}}",
+      "archived": "已歸檔",
+      "changelog": "變更日誌",
+      "comparison": "版本比較",
+      "diff": "差異",
+      "draft": "草稿",
+      "latest": "最新",
+      "noHistory": "暫無版本歷史",
+      "renamed": "重新命名",
+      "restored": "已還原",
+      "updatedAt": "更新時間"
     },
     "duplicateSuffix": "[TODO] {{name}} (copy)",
     "fromTemplate": "[TODO] {{name}} (from template)",
-    "defaultWorkflowName": "[TODO] New Workflow"
+    "defaultWorkflowName": "[TODO] New Workflow",
+    "approval": {
+      "panelTitle": "待審批列表",
+      "noPending": "暫無待審批項",
+      "message": "審批訊息",
+      "workflowId": "工作流",
+      "status": "狀態",
+      "expiresAt": "過期時間",
+      "actions": "操作",
+      "decision": "審批結果",
+      "approve": "通過",
+      "reject": "拒絕",
+      "cancel": "取消",
+      "notePlaceholder": "添加備註（可選）"
+    },
+    "evolution": {
+      "abTestTitle": "A/B 測試（{{count}}）",
+      "abTestWon": "A/B 勝出",
+      "confidence": "信心度：{{value}}%",
+      "latency": "延遲 {{diff}}",
+      "noActiveABTest": "無進行中的 A/B 測試",
+      "noEvolutionRecord": "無進化記錄 — 觸發首次進化",
+      "noHistory": "暫無進化歷史",
+      "noNodes": "目前畫布無節點",
+      "successRate": "成功率 {{diff}}",
+      "title": "進化狀態",
+      "triggerAll": "觸發全部進化",
+      "triggerEvolution": "觸發進化",
+      "winner": "{{winner}} Won",
+      "apply": "套用",
+      "current": "目前版本",
+      "diff": "差異",
+      "evolutionHistory": "進化歷史",
+      "generation": "第 {{n}} 代",
+      "improved": "已改善",
+      "performance": "效能",
+      "revert": "還原",
+      "score": "分數",
+      "viewDiff": "檢視差異"
+    },
+    "executor": {
+      "close": "關閉",
+      "duration": "耗時",
+      "execute": "執行工作流",
+      "executing": "執行中",
+      "executionFailed": "執行失敗",
+      "executionLog": "執行日誌",
+      "executionSuccess": "執行成功",
+      "inputVariables": "輸入變數",
+      "nodeExecutionStatus": "節點執行狀態",
+      "outputResult": "輸出結果",
+      "status": "狀態",
+      "failed": "失敗",
+      "inputVars": "輸入變數",
+      "nodeStatus": "節點執行狀態",
+      "runningNode": "正在執行工作流節點",
+      "success": "成功",
+      "waiting": "等待中"
+    },
+    "list": {
+      "active": "活躍",
+      "all": "全部",
+      "archived": "已歸檔",
+      "createNew": "新增工作流",
+      "deleteConfirm": "確定要刪除此工作流嗎？",
+      "draft": "草稿",
+      "duplicate": "複製",
+      "edgeCount": "{{count}} edges",
+      "edit": "編輯",
+      "empty": "暫無工作流，點擊上方按鈕建立",
+      "noDescription": "無描述",
+      "nodeCount": "{{count}} nodes",
+      "searchPlaceholder": "Search workflows...",
+      "templates": "模板",
+      "title": "工作流",
+      "confirmDelete": "確定刪除此工作流？",
+      "createWorkflow": "建立工作流",
+      "noWorkflows": "暫無工作流，點擊上方按鈕建立",
+      "search": "搜尋工作流"
+    },
+    "log": {
+      "clear": "清除日誌",
+      "empty": "暫無日誌",
+      "export": "匯出日誌",
+      "noLogs": "暫無日誌"
+    },
+    "nl2Skill": {
+      "applySkill": "套用此技能",
+      "optional": "選填",
+      "parameters": "參數",
+      "parametersLabel": "參數：",
+      "parsingPhases": "解析階段",
+      "required": "必填",
+      "tools": "工具",
+      "triggers": "觸發器",
+      "triggersLabel": "觸發器：",
+      "unit": "",
+      "generate": "產生技能",
+      "generating": "產生中...",
+      "instruction": "描述你想要的技能",
+      "preview": "預覽",
+      "result": "產生結果",
+      "title": "自然語言產生技能",
+      "validate": "驗證",
+      "validating": "驗證中..."
+    },
+    "nl2UI": {
+      "applyUI": "套用此 UI",
+      "componentCount": "元件數量",
+      "components": "{{count}} components",
+      "depthLevel": "深度",
+      "rootType": "根類型",
+      "generate": "產生",
+      "generating": "產生中...",
+      "instruction": "描述你想要的 UI",
+      "result": "產生結果",
+      "title": "自然語言產生 UI"
+    },
+    "nlParser": {
+      "aiSuggestion": "AI 建議",
+      "alternatives": "替代方案",
+      "applySolution": "套用此方案",
+      "confidence": "解析信心度",
+      "constraintsOptional": "約束條件（選填）",
+      "constraintsPlaceholder": "e.g.: execution time no more than 5 minutes, retry 3 times on error",
+      "edges": "邊",
+      "examplePlaceholder": "e.g. {{example}}",
+      "naturalLanguageDesc": "自然語言描述",
+      "nodes": "節點",
+      "parseGenerate": "解析並產生",
+      "parseResult": "解析結果",
+      "parsing": "解析產生",
+      "planLabel": "方案 {{index}}：{{desc}}",
+      "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
+      "variables": "變數",
+      "constraints": "約束條件（選填）",
+      "description": "自然語言描述",
+      "generating": "解析中",
+      "suggestions": "AI 建議",
+      "example1": "每天早上 8 點抓取指定網站的最新文章",
+      "example2": "收到新郵件後用 AI 分析內容，如果是緊急則通知",
+      "example3": "使用者提交表單後先驗證資料再寫入資料庫",
+      "exampleConstraint": "例如：執行時間不超過 5 分鐘，出錯時重試"
+    },
+    "saveFailed": "儲存失敗",
+    "spanDetail": {
+      "parentSpan": ""
+    },
+    "traceDetail": {
+      "userId": ""
+    },
+    "voiceChat": {
+      "noTicket": ""
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## AI 生成圖片",
+      "model": "**模型**",
+      "duration": "**耗時**",
+      "savedToArtifact": "已儲存到 Artifact"
+    },
+    "chatSidebar": {
+      "menu": "選單"
+    },
+    "inputArea": {
+      "resizeHandle": "調整大小",
+      "uploadFile": "上傳檔案"
+    },
+    "appHeader": {
+      "agentPanel": "Agent 面板"
+    },
+    "sidebar": {
+      "agentPanel": "Agent 面板"
+    },
+    "errorBoundary": {
+      "pageError": "頁面錯誤"
+    },
+    "chatPage": {
+      "resizeHandle": "調整大小"
+    },
+    "settingsPanel": {
+      "featureFlags": "功能開關"
+    },
+    "skillTimeline": {
+      "promptDiff": "提示詞對比"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "未引用工作流"
+    },
+    "chartPreview": {
+      "title": "圖表預覽"
+    },
+    "htmlPreview": {
+      "title": "HTML 預覽"
+    },
+    "reactPreview": {
+      "title": "React 預覽"
+    }
   },
   "atomicSkill": {
     "entryType": "入口類型",
@@ -5160,10 +5621,28 @@
       "save": "[TODO] Save Checkpoint",
       "empty": "[TODO] No checkpoints",
       "saveModal": "[TODO] Save Checkpoint",
-      "namePlaceholder": "[TODO] Enter checkpoint name..."
+      "namePlaceholder": "[TODO] Enter checkpoint name...",
+      "action": "操作",
+      "delete": "刪除",
+      "load": "載入",
+      "loss": "損失",
+      "name": "檢查點名稱",
+      "reward": "獎勵",
+      "step": "步數",
+      "time": "時間",
+      "noCheckpoints": "暫無檢查點"
     },
     "monitor": {
-      "idle": "[TODO] Training not started. Configure and start training."
+      "idle": "[TODO] Training not started. Configure and start training.",
+      "currentStep": "目前步數",
+      "insufficientData": "資料不足",
+      "loss": "損失",
+      "lossCurve": "損失曲線",
+      "reward": "獎勵",
+      "rewardCurve": "獎勵曲線",
+      "speed": "速度",
+      "step": "目前步數",
+      "title": "訓練監控"
     },
     "panel": {
       "title": "[TODO] RL Training Panel",
@@ -5172,6 +5651,24 @@
       "config": "[TODO] Config",
       "monitor": "[TODO] Monitor",
       "checkpoints": "[TODO] Checkpoints"
+    },
+    "config": {
+      "algorithm": "演算法",
+      "batchSize": "批次大小",
+      "epochs": "訓練輪數",
+      "learningRate": "學習率",
+      "maxSteps": "最大步數",
+      "title": "訓練設定"
+    },
+    "status": {
+      "completed": "已完成",
+      "failed": "失敗",
+      "idle": "閒置",
+      "paused": "已暫停",
+      "running": "訓練中",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     }
   },
   "devtools": {
@@ -5340,7 +5837,10 @@
     "none": "無",
     "response": "回應",
     "report": "報告",
-    "tasks": "任務"
+    "tasks": "任務",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "traceExplorer": {
     "selectTrace": "選擇一個 trace 查看詳情",
@@ -5427,7 +5927,10 @@
         "name": "[TODO] Sandbox Executor",
         "desc": "[TODO] Securely executes untrusted code in an isolated environment to prevent system damage"
       }
-    }
+    },
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "promptTemplates": {
     "title": "提示詞模板",
@@ -5544,7 +6047,8 @@
   "searchProvider": {
     "tavily": "Tavily",
     "zhipu": "智譜",
-    "bocha": "博查"
+    "bocha": "博查",
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "在線",
@@ -5563,7 +6067,10 @@
     "analyzeOutput": "分析輸出",
     "clear": "清除",
     "killProcess": "終止進程",
-    "closeSession": "關閉會話"
+    "closeSession": "關閉會話",
+    "maximize": "最大化",
+    "restore": "還原",
+    "more": "還有 {{count}} 項"
   },
   "search": {
     "resultPrefix": "以下是聯網搜索結果，回答問題前請參考：\n\n",
@@ -5766,7 +6273,10 @@
       "operationDetail": "操作詳情",
       "running": "運行中",
       "title": "操作日誌",
-      "total": "總計"
+      "total": "總計",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "noSources": "暫無來源",
     "noteNotFound": "筆記未找到",
@@ -5964,7 +6474,9 @@
       "path": "路徑",
       "status": "狀態",
       "title": "標題",
-      "type": "類型"
+      "type": "類型",
+      "mimeType": "MIME 類型",
+      "size": "大小"
     },
     "wikiForm": {
       "description": "說明",
@@ -5973,7 +6485,9 @@
     },
     "wikiMeta": {
       "rootPath": "根路徑"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "notification": {
     "clear": "清除",
@@ -5990,7 +6504,9 @@
     "execute": "執行",
     "learningSuggestions": "學習建議",
     "snooze30": "稍後提醒（30分鐘）",
-    "noSuggestions": "暫無建議"
+    "noSuggestions": "暫無建議",
+    "snooze15": "稍後提醒（15分鐘）",
+    "snooze1h": "稍後提醒（1小時）"
   },
   "proactive": {
     "accept": "接受",
@@ -6052,6 +6568,13 @@
         "improvement": "改進",
         "warning": "警告"
       }
+    },
+    "prefetchTypes": {
+      "codeCompletion": "程式碼補全",
+      "searchResults": "搜尋結果",
+      "documentation": "文件",
+      "contextAnalysis": "上下文分析",
+      "toolCache": "工具快取"
     }
   },
   "review": {
@@ -6279,7 +6802,10 @@
       "cancelled": "已取消",
       "draft": "草稿",
       "approved_plan": "已批准",
-      "executing_plan": "執行已批准步驟"
+      "executing_plan": "執行已批准步驟",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "approveAll": "批准並執行",
     "approveStep": "批准此步驟",
@@ -6345,7 +6871,9 @@
     "referenceFile": "引用文件或路徑",
     "commands": "命令",
     "mentions": "提及",
-    "filterHint": "輸入篩選，↑↓ 選擇，Enter 確認"
+    "filterHint": "輸入篩選，↑↓ 選擇，Enter 確認",
+    "newConversation": "新建會話",
+    "stopGeneration": "停止生成"
   },
   "onboarding": {
     "welcome": "歡迎使用 AxAgent",
@@ -6392,7 +6920,9 @@
     "moreModels": "+{{count}} 個",
     "targetNotFound": "目標元素未找到，請先進入聊天頁面",
     "goToSettings": "前往設定新增 API Key",
-    "presetApplyFailed": "預設應用失敗"
+    "presetApplyFailed": "預設應用失敗",
+    "downloadOllama": "下載 Ollama",
+    "applying": "套用中…"
   },
   "help": {
     "title": "說明中心",
@@ -6609,7 +7139,10 @@
       "running": "運行",
       "completed": "完成",
       "failed": "失敗",
-      "cancelled": "取消"
+      "cancelled": "取消",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "messageLog": "消息日誌 ({count})",
     "attempts": "嘗試 {attempts}/{maxRetries}",
@@ -6622,14 +7155,20 @@
       "worker": "[TODO] Worker",
       "step": "[TODO] Step"
     },
-    "summary": "[TODO] Agent Pool ({completed}/{total})"
+    "summary": "[TODO] Agent Pool ({completed}/{total})",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "agentHierarchy": {
     "running": "運行中",
     "completed": "完成",
     "failed": "失敗",
     "title": "Agent 層級",
-    "count": "({count} 個)"
+    "count": "({count} 個)",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "progressBar": {
     "tool": {
@@ -6963,7 +7502,10 @@
       "completed": "完成",
       "failed": "失敗",
       "running": "運行中",
-      "total": "總任務"
+      "total": "總任務",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "tab": {
       "dataset": "數據集",
@@ -7386,7 +7928,10 @@
     "openaiApiKeyDalle": "OpenAI API 金鑰（DALL-E）",
     "openaiApiKeyPlaceholder": "sk-...",
     "openaiBaseUrl": "OpenAI 基礎 URL",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "新建",
@@ -7450,7 +7995,10 @@
     "completed": "鞏固完成",
     "completedTitle": "Dream 完成 ({{secs}}s)",
     "totalConsolidations": "纍計 {{count}} 次鞏固",
-    "statsSummary": "{{memories}} 記憶 · {{patterns}} 模式"
+    "statsSummary": "{{memories}} 記憶 · {{patterns}} 模式",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "expertBadge": {
     "generalAssistant": "通用助手",
@@ -7472,19 +8020,23 @@
     "teamCreated": "團隊 \"{{name}}\" 已創建，共 {{count}} 名隊友"
   },
   "chatPage": {
-    "loading": "加載中…"
+    "loading": "加載中…",
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "SSH 配置",
     "connect": "連接",
     "host": "主機",
     "port": "埠",
-    "username": "用戶名"
+    "username": "用戶名",
+    "hostPlaceholder": "例如 192.168.1.100 或 server.example.com",
+    "keyPathOptional": "SSH 金鑰路徑（可選）"
   },
   "dockerConfig": {
     "title": "Docker 配置",
     "connect": "連接",
-    "socketPath": "Docker Socket 路徑"
+    "socketPath": "Docker Socket 路徑",
+    "defaultHint": "留空使用預設 Docker socket"
   },
   "datasetManager": {
     "title": "微調數據集管理器",
@@ -7527,7 +8079,10 @@
     "loss": "損失",
     "loraOutput": "LoRA 輸出",
     "action": "操作",
-    "ready": "就緒"
+    "ready": "就緒",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）"
   },
   "errorRecovery": {
     "noError": "當前無錯誤需要恢復",
@@ -7677,7 +8232,14 @@
       "storeInsightsHint": "Insights will be saved locally and available across sessions",
       "subtitle": "Configure auto-reflection and insight management",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "最低信心度",
+      "minConfidenceHint": "信心度低於此值的洞察將被忽略",
+      "strategy": "反思策略",
+      "strategyHint": "選擇反思觸發策略",
+      "triggerOnComplete": "完成時觸發",
+      "triggerOnError": "錯誤時觸發",
+      "triggerOnIdle": "閒置時觸發"
     },
     "useful": "Useful"
   },
@@ -7839,7 +8401,8 @@
     "terminalContext": "終端",
     "closeAgentPanel": "[TODO] Close Agent Panel",
     "openAgentPanel": "[TODO] Open Agent Panel",
-    "dashboardContext": "系統運行狀態總覽"
+    "dashboardContext": "系統運行狀態總覽",
+    "agentPanel": "Agent Panel"
   },
   "errorNotification": {
     "retry": "重試"
@@ -7888,7 +8451,14 @@
       "planner": "Planner",
       "researcher": "Researcher",
       "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "synthesizer": "Synthesizer",
+      "analyst": "分析師",
+      "decisionMaker": "決策者",
+      "riskManager": "風控經理",
+      "strategist": "策略師",
+      "supervisor": "監督者",
+      "trader": "交易員",
+      "validator": "驗證者"
     }
   },
   "watchlist": {
@@ -7971,7 +8541,10 @@
       "invalidTitle": "失敗樣本",
       "noInvalid": "無失敗樣本。",
       "exportCsv": "匯出 CSV",
-      "exportJson": "匯出 JSON"
+      "exportJson": "匯出 JSON",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "notice": "此工作台中的所有資料、提示詞與結論都以選定日期為錨點。切回 Live 模式需要顯式確認。",
     "exitHint": "你仍在回放模式。在別處發起的任何新分析都會帶 as-of 錨點。",
@@ -8087,7 +8660,11 @@
     "stepLogRunning": "(正在執行...)",
     "stepLogNoDetail": "(無詳細輸出)",
     "exitSignalAlert": "退出信號掃描完成:\n檢查 {{checked}} 隻\n- 立即退出: {{exitNow}} 隻\n- 謹慎關注: {{caution}} 隻",
-    "exitSignalAlertNone": "退出信號掃描完成: {{checked}} 隻，暫無異常"
+    "exitSignalAlertNone": "退出信號掃描完成: {{checked}} 隻，暫無異常",
+    "strategyOverwrite": "Overwrite（覆蓋）",
+    "strategyMerge": "Merge（合併）",
+    "strategyDryRun": "Dry run（僅驗證）",
+    "settings": "[TODO] Valuation Filters"
   },
   "quant": {
     "backtest": {
@@ -8107,7 +8684,10 @@
       "title": "Strategy Backtest",
       "walkForward": "Walk-Forward",
       "walkForwardForceOff": "Disable Walk-Forward",
-      "walkForwardTitle": "Walk-Forward Backtest"
+      "walkForwardTitle": "Walk-Forward Backtest",
+      "strategyOverwrite": "Overwrite（覆蓋）",
+      "strategyMerge": "Merge（合併）",
+      "strategyDryRun": "Dry run（僅驗證）"
     },
     "common": {
       "empty": "No data"
@@ -8218,7 +8798,9 @@
     "textFile": "文本文件",
     "unknownFile": "未知文件",
     "previewNotSupported": "不支援預覽此文件類型",
-    "downloadFile": "下載文件"
+    "downloadFile": "下載文件",
+    "schemaNotFound": "找不到指定的動態頁面",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "visualEditor": {
     "palette": {
@@ -8229,7 +8811,11 @@
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "基礎",
+      "data": "資料",
+      "layout": "版面配置",
+      "navigation": "導航"
     },
     "components": {
       "Container": "Container",
@@ -8262,7 +8848,13 @@
       "Text": "Text",
       "Divider": "Divider",
       "Progress": "Progress",
-      "Tag": "Tag"
+      "Tag": "Tag",
+      "Heading": "標題",
+      "Link": "連結",
+      "Paragraph": "段落",
+      "Slider": "滑桿",
+      "Space": "間距",
+      "Tooltip": "提示"
     },
     "canvas": {
       "leafNode": "leaf node",
@@ -8270,7 +8862,14 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "addNode": "新增節點",
+      "deleteNode": "刪除節點",
+      "duplicate": "複製",
+      "moveDown": "下移",
+      "moveUp": "上移",
+      "pasteNode": "貼上節點",
+      "livePreview": "实时预览"
     },
     "property": {
       "title": "Property Panel",
@@ -8293,8 +8892,22 @@
       "placeholder": {
         "propKey": "Key",
         "propValue": "Value"
-      }
-    }
+      },
+      "children": "子元件",
+      "componentType": "元件類型",
+      "defaultValue": "預設值",
+      "description": "描述",
+      "label": "標籤",
+      "name": "名稱",
+      "options": "選項",
+      "props": "屬性",
+      "required": "必填",
+      "rules": "驗證規則",
+      "type": "類型",
+      "value": "值"
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",
@@ -8386,7 +8999,12 @@
       "empty": "[TODO] No bottleneck data",
       "timeDistribution": "[TODO] Time Distribution",
       "tokenConsumption": "[TODO] Token Consumption",
-      "failurePatterns": "[TODO] Failure Patterns"
+      "failurePatterns": "[TODO] Failure Patterns",
+      "count": "次數",
+      "failureReason": "失敗原因",
+      "percentage": "佔比",
+      "bottleneck": "瓶頸",
+      "reason": "失敗原因"
     },
     "feedback": {
       "thanks": "[TODO] Thank you for your feedback",
@@ -8415,7 +9033,15 @@
     "totalSteps": "[TODO] Total Steps",
     "totalDuration": "[TODO] Total Duration",
     "totalTokens": "[TODO] Total Tokens",
-    "errors": "[TODO] Errors"
+    "errors": "[TODO] Errors",
+    "duration": "耗時",
+    "type": {
+      "error": "錯誤",
+      "thinking": "思考",
+      "toolCall": "工具呼叫",
+      "waitingPermission": "等待權限",
+      "permission": "等待權限"
+    }
   },
   "components_devtools_RLTrainingConfig": {
     "算法": "[TODO] 算法",
@@ -8614,7 +9240,32 @@
     "versionInvalid": "版本號格式無效（應為 major.minor.patch）",
     "versionAutoHint": "不指定則自動遞增 patch 版本",
     "rollbackArchive": "回滾前存檔（回滾到 {version})",
-    "versionUpdatedAt": "建立時間"
+    "versionUpdatedAt": "建立時間",
+    "defaults": {
+      "buttonText": "按鈕",
+      "cardTitle": "卡片",
+      "checkboxLabel": "核取方塊",
+      "dateLabel": "日期",
+      "formSubmit": "提交",
+      "inputLabel": "輸入",
+      "inputPlaceholder": "Please enter",
+      "numberLabel": "數字",
+      "radioLabel": "單選",
+      "selectLabel": "選擇",
+      "switchLabel": "開關",
+      "tagText": "標籤",
+      "textContent": "文字",
+      "textareaLabel": "文字區域"
+    },
+    "visualEditor": "可視化編輯",
+    "import": "匯入",
+    "importSuccess": "成功匯入 {{count}} 個頁面",
+    "importInvalid": "檔案無效或為空",
+    "export": "匯出",
+    "exportAll": "匯出全部",
+    "exportSuccess": "匯出成功",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value"
   },
   "dashboard": {
     "overview": "概覽",
@@ -8647,7 +9298,8 @@
     "dailyAvgCost": "日均費用",
     "costByProvider": "按 Provider 分攤費用",
     "inputTokens": "輸入 Token",
-    "outputTokens": "輸出 Token"
+    "outputTokens": "輸出 Token",
+    "dailyAvgTokens": "日均Token"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10258,7 +10910,8 @@
     "emptyDescription": "暫無數據，完成任務後會自動生成學習圖",
     "useCount": "使用次數: {count}",
     "detail": "詳情",
-    "lexicalOverlap": "關聯"
+    "lexicalOverlap": "關聯",
+    "entities": "實體"
   },
   "skillStore": {
     "toggleSkillFailed": "切換 skill 狀態失敗"
@@ -10366,5 +11019,66 @@
       "asOf": "截至",
       "live": "即時"
     }
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }

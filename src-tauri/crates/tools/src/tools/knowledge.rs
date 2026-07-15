@@ -5,7 +5,7 @@
 //! 将 builtin_handlers 中的 list_knowledge_bases、search_knowledge、
 //! create_knowledge_entity/flow/interface、add_knowledge_document 迁移为 Tool trait。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -43,6 +43,10 @@ impl Tool for ListKnowledgeBasesTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::Knowledge
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -122,6 +126,10 @@ impl Tool for SearchKnowledgeTool {
         ToolCategory::Knowledge
     }
 
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let base_id = input.get("base_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
         let query = input.get("query").and_then(|v| v.as_str()).unwrap_or_default().to_string();
@@ -177,7 +185,7 @@ impl Tool for SearchKnowledgeTool {
         })?;
 
         let rows: Vec<String> = stmt
-            .query_map(rusqlite::params![like_pattern, top_k], |row| {
+            .query_map(rusqlite::params![like_pattern, top_k as i64], |row| {
                 let content: String = row.get(0)?;
                 Ok(content)
             })
@@ -236,6 +244,10 @@ impl Tool for CreateKnowledgeEntityTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::Knowledge
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -320,6 +332,10 @@ impl Tool for CreateKnowledgeFlowTool {
         ToolCategory::Knowledge
     }
 
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
         let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
@@ -399,6 +415,10 @@ impl Tool for CreateKnowledgeInterfaceTool {
         ToolCategory::Knowledge
     }
 
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
         let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
@@ -472,6 +492,10 @@ impl Tool for AddKnowledgeDocumentTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::Knowledge
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {

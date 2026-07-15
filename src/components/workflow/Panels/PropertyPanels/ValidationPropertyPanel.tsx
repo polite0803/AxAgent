@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Input, message, Select, theme } from "antd";
+import { Button, Input, Select, theme } from "antd";
 import { Sparkles } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";

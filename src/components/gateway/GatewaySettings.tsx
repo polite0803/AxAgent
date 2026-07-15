@@ -2,9 +2,10 @@
 
 import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useGatewayStore, useSettingsStore } from "@/stores";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Alert, Button, Card, Divider, Input, InputNumber, message, Radio, Switch, theme } from "antd";
+import { Alert, Button, Card, Divider, Input, InputNumber, Radio, Switch, theme } from "antd";
 import { Info, ShieldAlert, Upload as UploadIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

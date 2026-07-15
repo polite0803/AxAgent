@@ -14,8 +14,9 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock};
 use std::time::Instant;
+use tokio::sync::Mutex;
 
 static SCORE_NUMBER_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"(-?\d+\.?\d*)").expect("hardcoded regex is valid"));
@@ -64,9 +65,9 @@ impl LlmResponseCache {
     }
 
     /// Try to get a cached response. Returns `None` on miss or expiry.
-    fn get(&self, model: &str, system: &str, user: &str) -> Option<String> {
+    async fn get(&self, model: &str, system: &str, user: &str) -> Option<String> {
         let key = Self::cache_key(model, system, user);
-        let mut map = self.inner.lock().expect("llm_bridge lock");
+        let mut map = self.inner.lock().await;
         // Evict expired entries on every get (amortized cleanup)
         let now = Instant::now();
         map.retain(|_, (_, expiry)| now < *expiry);
@@ -74,9 +75,9 @@ impl LlmResponseCache {
     }
 
     /// Insert a cached response.
-    fn put(&self, model: &str, system: &str, user: &str, response: &str) {
+    async fn put(&self, model: &str, system: &str, user: &str, response: &str) {
         let key = Self::cache_key(model, system, user);
-        let mut map = self.inner.lock().expect("llm_bridge lock");
+        let mut map = self.inner.lock().await;
         // Evict oldest entry if at capacity
         if map.len() >= self.max_entries
             && let Some(oldest) =
@@ -100,51 +101,51 @@ impl Default for LlmResponseCache {
 mod tests {
     use super::*;
 
-    #[test]
-    fn cache_hit_same_key() {
+    #[tokio::test]
+    async fn cache_hit_same_key() {
         let cache = LlmResponseCache::new(600, 10);
-        cache.put("gpt-4", "You are helpful.", "Hello", "Hi there!");
-        let result = cache.get("gpt-4", "You are helpful.", "Hello");
+        cache.put("gpt-4", "You are helpful.", "Hello", "Hi there!").await;
+        let result = cache.get("gpt-4", "You are helpful.", "Hello").await;
         assert_eq!(result, Some("Hi there!".to_string()));
     }
 
-    #[test]
-    fn cache_miss_different_model() {
+    #[tokio::test]
+    async fn cache_miss_different_model() {
         let cache = LlmResponseCache::new(600, 10);
-        cache.put("gpt-4", "sys", "usr", "resp");
-        assert!(cache.get("gpt-3.5", "sys", "usr").is_none());
+        cache.put("gpt-4", "sys", "usr", "resp").await;
+        assert!(cache.get("gpt-3.5", "sys", "usr").await.is_none());
     }
 
-    #[test]
-    fn cache_miss_different_prompt() {
+    #[tokio::test]
+    async fn cache_miss_different_prompt() {
         let cache = LlmResponseCache::new(600, 10);
-        cache.put("gpt-4", "sys", "usr1", "resp");
-        assert!(cache.get("gpt-4", "sys", "usr2").is_none());
+        cache.put("gpt-4", "sys", "usr1", "resp").await;
+        assert!(cache.get("gpt-4", "sys", "usr2").await.is_none());
     }
 
-    #[test]
-    fn cache_expiry() {
+    #[tokio::test]
+    async fn cache_expiry() {
         let cache = LlmResponseCache::new(0, 10); // 0s TTL — expires immediately
-        cache.put("gpt-4", "sys", "usr", "resp");
+        cache.put("gpt-4", "sys", "usr", "resp").await;
         // Any small delay should make it expire
-        std::thread::sleep(std::time::Duration::from_millis(1));
-        assert!(cache.get("gpt-4", "sys", "usr").is_none());
+        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+        assert!(cache.get("gpt-4", "sys", "usr").await.is_none());
     }
 
-    #[test]
-    fn cache_eviction_at_capacity() {
+    #[tokio::test]
+    async fn cache_eviction_at_capacity() {
         let cache = LlmResponseCache::new(600, 2);
-        cache.put("m", "s1", "u1", "r1");
-        cache.put("m", "s2", "u2", "r2");
-        cache.put("m", "s3", "u3", "r3"); // should evict oldest
+        cache.put("m", "s1", "u1", "r1").await;
+        cache.put("m", "s2", "u2", "r2").await;
+        cache.put("m", "s3", "u3", "r3").await; // should evict oldest
         // At least one of the first two should be gone
         let hits = [
-            cache.get("m", "s1", "u1").is_some(),
-            cache.get("m", "s2", "u2").is_some(),
-            cache.get("m", "s3", "u3").is_some(),
+            cache.get("m", "s1", "u1").await.is_some(),
+            cache.get("m", "s2", "u2").await.is_some(),
+            cache.get("m", "s3", "u3").await.is_some(),
         ];
         assert!(hits.iter().filter(|&&x| x).count() <= 2);
-        assert!(cache.get("m", "s3", "u3").is_some());
+        assert!(cache.get("m", "s3", "u3").await.is_some());
     }
 }
 
@@ -276,7 +277,7 @@ impl ProviderLlmBridge {
         // 缓存键 = SHA-256(model || system_prompt || user_prompt)
         if temperature == 0.0
             && let Some(ref cache) = self.llm_cache
-            && let Some(cached) = cache.get(&self.model, system, user)
+            && let Some(cached) = cache.get(&self.model, system, user).await
         {
             tracing::debug!(
                 model = %self.model,
@@ -290,7 +291,7 @@ impl ProviderLlmBridge {
         // TODO P1: migrate to execute_llm() — currently blocked by custom caching + provider fallback logic
         // that needs to be adapted to LlmCallConfig.cache + RetryPolicy before migration
         let start = Instant::now();
-        match self.adapter.chat(&self.ctx, request.clone()).await {
+        match self.adapter.chat(&self.ctx, Arc::new(request.clone())).await {
             Ok(resp) => {
                 let latency = start.elapsed().as_millis() as u64;
                 // 记录成功
@@ -303,7 +304,7 @@ impl ProviderLlmBridge {
                 if temperature == 0.0
                     && let Some(ref cache) = self.llm_cache
                 {
-                    cache.put(&self.model, system, user, &resp.content);
+                    cache.put(&self.model, system, user, &resp.content).await;
                     tracing::debug!(
                         model = %self.model,
                         latency_ms = latency,
@@ -344,7 +345,7 @@ impl ProviderLlmBridge {
                 fb_request.model = fallback_entry.model_id.clone();
                 let fb_start = Instant::now();
                 // TODO P1: migrate to execute_llm() — fallback adapter call, needs RetryPolicy integration
-                match fb_adapter.chat(&self.ctx, fb_request).await {
+                match fb_adapter.chat(&self.ctx, Arc::new(fb_request)).await {
                     Ok(resp) => {
                         let latency = fb_start.elapsed().as_millis() as u64;
                         mgr.record_success(&fallback_entry.provider_id, latency).await;

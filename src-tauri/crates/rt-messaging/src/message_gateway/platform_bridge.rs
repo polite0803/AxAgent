@@ -100,7 +100,7 @@ impl PlatformBridge {
             store: None,
         };
 
-        let response = adapter.chat(&ctx, request).await?;
+        let response = adapter.chat(&ctx, request.into()).await?;
         Ok(response.content)
     }
 }

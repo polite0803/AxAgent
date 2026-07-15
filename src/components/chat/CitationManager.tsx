@@ -3,7 +3,7 @@
 import { useStreamStore } from "@/stores";
 import type { Citation, CitationStatsData } from "@/types";
 import { CheckCircleOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, List, Space, Tag, Typography } from "antd";
+import { Button, Space, Tag, Typography } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
@@ -46,9 +46,14 @@ export function CitationManager({
   selectedCitationId: externalSelectedId,
 }: CitationManagerProps) {
   const { t } = useTranslation();
-  const store = useStreamStore();
-  const citations = externalCitations ?? store.citations;
-  const selectedCitationId = externalSelectedId ?? store.selectedCitationId;
+  // 用选择器精确订阅，避免订阅整个 stream store 导致的无谓重渲染
+  const storeCitations = useStreamStore((s) => s.citations);
+  const storeSelectedCitationId = useStreamStore((s) => s.selectedCitationId);
+  const selectCitation = useStreamStore((s) => s.selectCitation);
+  const removeCitation = useStreamStore((s) => s.removeCitation);
+  const toggleInReport = useStreamStore((s) => s.toggleInReport);
+  const citations = externalCitations ?? storeCitations;
+  const selectedCitationId = externalSelectedId ?? storeSelectedCitationId;
   const citationsInReport = citations.filter((c) => c.inReport);
   const citationsNotInReport = citations.filter((c) => !c.inReport);
 
@@ -56,7 +61,7 @@ export function CitationManager({
     if (onCitationSelect) {
       onCitationSelect(citation);
     } else {
-      store.selectCitation(citation.id);
+      selectCitation(citation.id);
     }
   };
 
@@ -64,7 +69,7 @@ export function CitationManager({
     if (onCitationRemove) {
       onCitationRemove(citationId);
     } else {
-      store.removeCitation(citationId);
+      removeCitation(citationId);
     }
   };
 
@@ -72,7 +77,7 @@ export function CitationManager({
     if (onToggleInReport) {
       onToggleInReport(citationId);
     } else {
-      store.toggleInReport(citationId);
+      toggleInReport(citationId);
     }
   };
 
@@ -99,49 +104,59 @@ export function CitationManager({
           <Text type="secondary" className="text-sm">
             {t("citationManager.inReport", { count: citationsInReport.length })}
           </Text>
-          <List
-            size="small"
-            dataSource={citationsInReport}
-            renderItem={(item) => (
-              <List.Item
+          <div className="divide-y divide-gray-100">
+            {citationsInReport.map((item) => (
+              <div
+                key={item.id}
                 className={`cursor-pointer hover:bg-zinc-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
+                style={{
+                  padding: "8px 0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
                 onClick={() => handleSelect(item)}
-                actions={[
-                  <Button
-                    key="remove"
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <CheckCircleOutlined
+                    style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleRemove(item.id);
+                      handleToggle(item.id);
                     }}
-                  />,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <CheckCircleOutlined
-                      style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggle(item.id);
+                    className="cursor-pointer"
+                  />
+                  <div>
+                    <div style={{ fontWeight: 500 }}>
+                      <Text ellipsis>{item.sourceTitle}</Text>
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                        fontSize: 13,
+                        marginTop: 2,
                       }}
-                      className="cursor-pointer"
-                    />
-                  }
-                  title={<Text ellipsis>{item.sourceTitle}</Text>}
-                  description={
-                    <Space size="small">
-                      <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
-                      <CredibilityBadge score={item.credibility} />
-                    </Space>
-                  }
+                    >
+                      <Space size="small">
+                        <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
+                        <CredibilityBadge score={item.credibility} />
+                      </Space>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(item.id);
+                  }}
                 />
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -152,16 +167,48 @@ export function CitationManager({
               count: citationsNotInReport.length,
             })}
           </Text>
-          <List
-            size="small"
-            dataSource={citationsNotInReport}
-            renderItem={(item) => (
-              <List.Item
+          <div className="divide-y divide-gray-100">
+            {citationsNotInReport.map((item) => (
+              <div
+                key={item.id}
                 className={`cursor-pointer hover:bg-zinc-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
+                style={{
+                  padding: "8px 0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
                 onClick={() => handleSelect(item)}
-                actions={[
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <CheckCircleOutlined
+                    style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggle(item.id);
+                    }}
+                    className="cursor-pointer"
+                  />
+                  <div>
+                    <div style={{ fontWeight: 500 }}>
+                      <Text ellipsis>{item.sourceTitle}</Text>
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                        fontSize: 13,
+                        marginTop: 2,
+                      }}
+                    >
+                      <Space size="small">
+                        <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
+                        <CredibilityBadge score={item.credibility} />
+                      </Space>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <Button
-                    key="toggle"
                     type="text"
                     size="small"
                     icon={<CheckCircleOutlined />}
@@ -170,9 +217,8 @@ export function CitationManager({
                       handleToggle(item.id);
                     }}
                     title={t("citationManager.addToReport")}
-                  />,
+                  />
                   <Button
-                    key="delete"
                     type="text"
                     size="small"
                     danger
@@ -181,31 +227,11 @@ export function CitationManager({
                       e.stopPropagation();
                       handleRemove(item.id);
                     }}
-                  />,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <CheckCircleOutlined
-                      style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggle(item.id);
-                      }}
-                      className="cursor-pointer"
-                    />
-                  }
-                  title={<Text ellipsis>{item.sourceTitle}</Text>}
-                  description={
-                    <Space size="small">
-                      <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
-                      <CredibilityBadge score={item.credibility} />
-                    </Space>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -516,3 +516,130 @@ pub async fn load_loop_checkpoint(
         .map_err(|e| e.to_string())?;
     cp.map(serde_json::to_value).transpose().map_err(|e| e.to_string())
 }
+
+// ── Approval (HITL) Commands ──────────────────────────────────────────
+
+/// 列出所有待审批的工作流审批请求。
+/// 可选按 execution_id 过滤。
+#[tauri::command]
+pub async fn list_pending_approvals(
+    state: State<'_, AppState>,
+    execution_id: Option<String>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let db = state.harness.db();
+    // 先处理超时自动裁决
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let _ = axagent_dao::repo::workflow_approval::auto_resolve_timeouts(db, now_ms)
+        .await
+        .map_err(|e| format!("超时裁决处理失败: {}", e));
+
+    let records =
+        axagent_dao::repo::workflow_approval::list_pending_approvals(db, execution_id.as_deref())
+            .await
+            .map_err(|e| e.to_string())?;
+
+    records
+        .into_iter()
+        .map(|r| {
+            serde_json::to_value(serde_json::json!({
+                "id": r.id,
+                "execution_id": r.execution_id,
+                "node_id": r.node_id,
+                "workflow_id": "",
+                "title": r.title,
+                "message": r.message,
+                "status": r.status,
+                "approver": r.approver,
+                "timeout_secs": r.timeout_secs,
+                "expires_at": r.expires_at,
+                "created_at": r.created_at,
+            }))
+            .map_err(|e| e.to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()
+}
+
+/// 批准或拒绝一个审批请求。
+/// 决策后恢复对应工作流的执行。
+#[tauri::command]
+pub async fn resume_approval(
+    state: State<'_, AppState>,
+    approval_id: String,
+    decision: String,
+    decided_by: Option<String>,
+    note: Option<String>,
+) -> Result<bool, String> {
+    let db = state.harness.db();
+    let engine = &*state.work_engine;
+
+    // 1. 读取审批记录
+    let record = axagent_dao::repo::workflow_approval::get_approval_by_id(db, &approval_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("审批记录 {} 不存在", approval_id))?;
+
+    if record.status != "pending" {
+        return Err(format!(
+            "审批记录 {} 状态不是 pending（当前: {}）",
+            approval_id, record.status
+        ));
+    }
+
+    let is_approved = decision == "approved" || decision == "approve";
+
+    // 2. 更新审批记录
+    axagent_dao::repo::workflow_approval::resolve_approval(
+        db,
+        &approval_id,
+        if is_approved { "approved" } else { "rejected" },
+        decided_by.as_deref(),
+        note.as_deref(),
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // 3. 恢复工作流执行
+    let execution_id = &record.execution_id;
+    if is_approved {
+        engine.resume_breakpoints(execution_id).await;
+    } else {
+        // 拒绝时取消工作流
+        let _ = engine.cancel(execution_id).await;
+    }
+
+    Ok(true)
+}
+
+/// 取消（撤回）一个审批请求。
+#[tauri::command]
+pub async fn cancel_approval(
+    state: State<'_, AppState>,
+    approval_id: String,
+) -> Result<bool, String> {
+    let db = state.harness.db();
+    let engine = &*state.work_engine;
+
+    let record = axagent_dao::repo::workflow_approval::get_approval_by_id(db, &approval_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("审批记录 {} 不存在", approval_id))?;
+
+    if record.status != "pending" {
+        return Err(format!("审批记录 {} 状态不是 pending", approval_id));
+    }
+
+    axagent_dao::repo::workflow_approval::resolve_approval(
+        db,
+        &approval_id,
+        "cancelled",
+        None,
+        None,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // 取消对应的工作流
+    let _ = engine.cancel(&record.execution_id).await;
+
+    Ok(true)
+}

@@ -49,6 +49,7 @@ interface RlTrainingState {
   saveCheckpoint: (name: string) => Promise<void>;
   loadCheckpoint: (id: string) => Promise<void>;
   listCheckpoints: () => Promise<void>;
+  deleteCheckpoint: (id: string) => Promise<void>;
 }
 
 function generateMockMetrics(step: number): TrainingMetrics {
@@ -244,6 +245,15 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
       set({ checkpoints });
     } catch (err) {
       console.warn("[rlTrainingStore] listCheckpoints failed, using mock", err);
+    }
+  },
+
+  deleteCheckpoint: async (id: string) => {
+    set((s) => ({ checkpoints: s.checkpoints.filter((c) => c.id !== id) }));
+    try {
+      await invoke("delete_checkpoint", { checkpointId: id });
+    } catch (err) {
+      console.warn("[rlTrainingStore] deleteCheckpoint invoke failed", err);
     }
   },
 }));

@@ -27,6 +27,7 @@ export function InputAreaModals(props: {
   voiceCallVisible: boolean;
   setVoiceCallVisible: (v: boolean) => void;
   voiceConfig: RealtimeConfig;
+  voiceApiKey: string;
   isDragging: boolean;
   multiModelOpen: boolean;
   setMultiModelOpen: (v: boolean) => void;
@@ -56,6 +57,7 @@ export function InputAreaModals(props: {
     voiceCallVisible,
     setVoiceCallVisible,
     voiceConfig,
+    voiceApiKey,
     isDragging,
     multiModelOpen,
     setMultiModelOpen,
@@ -183,6 +185,7 @@ export function InputAreaModals(props: {
           visible={voiceCallVisible}
           onClose={() => setVoiceCallVisible(false)}
           config={voiceConfig}
+          apiKey={voiceApiKey}
         />
       )}
 

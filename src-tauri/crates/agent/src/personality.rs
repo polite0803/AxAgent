@@ -24,7 +24,14 @@ pub struct Personality {
     pub version: String,
     #[serde(default)]
     pub description: String,
+    /// SOUL.md 正文内容（人格定义）
     pub content: String,
+    /// IDENTITY.md 内容（身份声明/角色描述）
+    #[serde(default)]
+    pub identity: String,
+    /// USER.md 内容（用户画像/偏好）
+    #[serde(default)]
+    pub user: String,
     #[serde(default = "Utc::now")]
     pub created_at: DateTime<Utc>,
 }
@@ -50,6 +57,23 @@ impl Personality {
 
     fn soul_md_path(&self) -> PathBuf {
         self.dir_path().join("SOUL.md")
+    }
+
+    fn identity_md_path(&self) -> PathBuf {
+        self.dir_path().join("IDENTITY.md")
+    }
+
+    fn user_md_path(&self) -> PathBuf {
+        self.dir_path().join("USER.md")
+    }
+
+    /// 读取目录下可选的辅助文件（IDENTITY.md / USER.md），文件不存在则返回空字符串
+    fn read_optional(path: &PathBuf) -> String {
+        if path.exists() {
+            fs::read_to_string(path).unwrap_or_default()
+        } else {
+            String::new()
+        }
     }
 
     pub fn to_soul_md(&self) -> String {
@@ -102,6 +126,23 @@ impl Personality {
             frontmatter.name
         };
 
+        // 构造临时对象以获取目录路径
+        let tmp = Self {
+            name: p_name.clone(),
+            version: if frontmatter.version.is_empty() {
+                "1.0.0".to_string()
+            } else {
+                frontmatter.version.clone()
+            },
+            description: frontmatter.description.clone(),
+            content: content.clone(),
+            identity: String::new(),
+            user: String::new(),
+            created_at: Utc::now(),
+        };
+        let identity = Self::read_optional(&tmp.identity_md_path());
+        let user = Self::read_optional(&tmp.user_md_path());
+
         Self {
             name: p_name,
             version: if frontmatter.version.is_empty() {
@@ -111,6 +152,8 @@ impl Personality {
             },
             description: frontmatter.description,
             content,
+            identity,
+            user,
             created_at: Utc::now(),
         }
     }
@@ -198,7 +241,37 @@ impl PersonalityManager {
         fs::create_dir_all(&dir).map_err(|e| format!("Failed to create directory: {}", e))?;
         let content = personality.to_soul_md();
         fs::write(personality.soul_md_path(), content)
-            .map_err(|e| format!("Failed to write SOUL.md: {}", e))
+            .map_err(|e| format!("Failed to write SOUL.md: {}", e))?;
+        // 写入辅助文件
+        if !personality.identity.is_empty() {
+            fs::write(personality.identity_md_path(), &personality.identity)
+                .map_err(|e| format!("Failed to write IDENTITY.md: {}", e))?;
+        }
+        if !personality.user.is_empty() {
+            fs::write(personality.user_md_path(), &personality.user)
+                .map_err(|e| format!("Failed to write USER.md: {}", e))?;
+        }
+        Ok(())
+    }
+
+    /// 仅更新 IDENTITY.md（无需重写整个 SOUL.md）
+    pub fn save_identity(name: &str, identity: &str) -> Result<(), String> {
+        validate_personality_name(name)?;
+        let path = PERSONALITIES_DIR.join(name).join("IDENTITY.md");
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+        }
+        fs::write(&path, identity).map_err(|e| format!("Failed to write IDENTITY.md: {}", e))
+    }
+
+    /// 仅更新 USER.md
+    pub fn save_user(name: &str, user: &str) -> Result<(), String> {
+        validate_personality_name(name)?;
+        let path = PERSONALITIES_DIR.join(name).join("USER.md");
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+        }
+        fs::write(&path, user).map_err(|e| format!("Failed to write USER.md: {}", e))
     }
 
     pub fn delete(name: &str) -> Result<(), String> {
@@ -232,7 +305,11 @@ impl PersonalityManager {
             return Err(format!("Personality '{}' does not exist. Create it first.", name));
         }
         fs::write(&*ACTIVE_FILE, name)
-            .map_err(|e| format!("Failed to write active personality: {}", e))
+            .map_err(|e| format!("Failed to write active personality: {}", e))?;
+        // 设置环境变量用于条件上下文段
+        // SAFETY: 仅在 tokio runtime 外的同步上下文里设置/清除环境变量,不存在并发竞态
+        unsafe { std::env::set_var("AXAGENT_PERSONALITY", name) };
+        Ok(())
     }
 
     pub fn clear_active() -> Result<(), String> {
@@ -240,6 +317,7 @@ impl PersonalityManager {
             fs::remove_file(&*ACTIVE_FILE)
                 .map_err(|e| format!("Failed to clear active personality: {}", e))?;
         }
+        unsafe { std::env::remove_var("AXAGENT_PERSONALITY") };
         Ok(())
     }
 }

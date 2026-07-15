@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 1.97 起 clippy::items_after_test_module 升级为 warn(在 `-D warnings` 下变 deny),
+// 历史上把测试模块放在文件中间以贴近被测代码,这里显式 allow 保留现有排版。
+#![allow(clippy::items_after_test_module)]
+
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use axagent_harness::constants::default_url;
 use axagent_harness::core_error::{AxAgentError, Result};
@@ -357,7 +363,7 @@ impl ProviderAdapter for AnthropicAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         let url = Self::chat_url(ctx);
         let (system, messages) = convert_messages(&request.messages);

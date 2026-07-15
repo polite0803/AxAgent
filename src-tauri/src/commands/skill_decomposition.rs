@@ -57,7 +57,7 @@ lazy_static::lazy_static! {
 fn compute_content_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
-    format!("{:x}", hasher.finalize())
+    hex::encode(hasher.finalize())
 }
 
 // ── Types ──
@@ -721,8 +721,10 @@ Only output the JSON, no other text."#,
         store: None,
     };
 
-    let response =
-        adapter.chat(&ctx, llm_request).await.map_err(|e| format!("LLM call failed: {}", e))?;
+    let response = adapter
+        .chat(&ctx, llm_request.into())
+        .await
+        .map_err(|e| format!("LLM call failed: {}", e))?;
 
     let content = response.content.trim();
 

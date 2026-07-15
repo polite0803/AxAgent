@@ -86,7 +86,7 @@ impl WorkspaceUri {
             return PathBuf::from(&self.path);
         }
         // Hash the URI to create a unique cache directory
-        let hash = format!("{:x}", md5::compute(&self.raw));
+        let hash = hex::encode(md5::compute(&self.raw).as_ref());
         let bucket_or_host = if self.authority.is_empty() {
             "unknown"
         } else {

@@ -136,6 +136,7 @@ impl NodeExecutorTrait for NotificationExecutor {
             } else {
                 Some(c.output_var.clone())
             },
+            control: None,
         })
     }
 }

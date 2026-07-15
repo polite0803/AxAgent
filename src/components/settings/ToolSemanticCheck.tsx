@@ -2,9 +2,10 @@
 
 import type { ToolUpgradeSuggestion } from "@/components/workflow/types/workflow.types";
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useUIStore } from "@/stores";
 import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
-import { Button, Card, Empty, Input, List, message, Modal, Spin, Typography } from "antd";
+import { Button, Card, Empty, Input, Modal, Spin, Typography } from "antd";
 import { ArrowRight, CheckCircle, Search, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -283,35 +284,11 @@ export function ToolSemanticCheck() {
                   </div>
                 )
                 : (
-                  <List
-                    itemLayout="vertical"
-                    size="large"
-                    dataSource={matches}
-                    locale={{ emptyText: t("settings.toolSemanticCheck.empty") }}
-                    renderItem={(item) => (
-                      <List.Item
-                        key={item.tool_name}
-                        actions={[
-                          <Button
-                            key="upgrade"
-                            type="primary"
-                            icon={<Zap size={16} />}
-                            onClick={() =>
-                              handleMatchSelect(
-                                {
-                                  name: item.tool_name,
-                                  description: "",
-                                  tool_type: "local",
-                                },
-                                item.matches[0],
-                              )}
-                          >
-                            {t("settings.toolSemanticCheck.upgrade")}
-                          </Button>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          title={
+                  <div className="divide-y divide-gray-100">
+                    {matches.map((item) => (
+                      <div key={item.tool_name} style={{ padding: "16px 0" }}>
+                        <div>
+                          <div style={{ fontWeight: 500 }}>
                             <div className="flex items-center gap-2">
                               <Text strong>{item.tool_name}</Text>
                               <Text type="secondary">
@@ -322,12 +299,20 @@ export function ToolSemanticCheck() {
                                 )
                               </Text>
                             </div>
-                          }
-                          description={t(
-                            "settings.toolSemanticCheck.checkingTool",
-                            { tool: item.tool_name },
-                          )}
-                        />
+                          </div>
+                          <div
+                            style={{
+                              color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                              fontSize: 13,
+                              marginTop: 2,
+                            }}
+                          >
+                            {t(
+                              "settings.toolSemanticCheck.checkingTool",
+                              { tool: item.tool_name },
+                            )}
+                          </div>
+                        </div>
                         <div className="mt-2">
                           {item.matches.map((match, _index) => (
                             <Card
@@ -372,9 +357,27 @@ export function ToolSemanticCheck() {
                             </Card>
                           ))}
                         </div>
-                      </List.Item>
-                    )}
-                  />
+                        <div style={{ marginTop: 8 }}>
+                          <Button
+                            key="upgrade"
+                            type="primary"
+                            icon={<Zap size={16} />}
+                            onClick={() =>
+                              handleMatchSelect(
+                                {
+                                  name: item.tool_name,
+                                  description: "",
+                                  tool_type: "local",
+                                },
+                                item.matches[0],
+                              )}
+                          >
+                            {t("settings.toolSemanticCheck.upgrade")}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
             </Card>
           )

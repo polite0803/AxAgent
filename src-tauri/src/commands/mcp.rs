@@ -116,24 +116,33 @@ pub async fn test_mcp_server(
                     .as_deref()
                     .ok_or_else(|| format!("{} 服务器缺少 endpoint 配置", server.transport))?;
 
+                // 解析 OAuth 凭据（持久化存储 → 环境变量），无则按匿名连接
+                let auth = axagent_mcp::mcp_client::resolve_oauth_header(Some(&id)).await;
+
                 let tools = if server.transport == "http" {
-                    axagent_mcp::mcp_client::discover_tools_http(endpoint).await.map_err(|e| {
-                        serde_json::to_string(
-                            &ErrorResponse::new(mcp_err::CONNECT_FAILED).with_detail(e.to_string()),
-                        )
-                        .unwrap_or_else(|e| {
-                            format!("{{\"error\":\"serialization failed: {}\"}}", e)
-                        })
-                    })?
+                    axagent_mcp::mcp_client::discover_tools_http(endpoint, auth.as_deref())
+                        .await
+                        .map_err(|e| {
+                            serde_json::to_string(
+                                &ErrorResponse::new(mcp_err::CONNECT_FAILED)
+                                    .with_detail(e.to_string()),
+                            )
+                            .unwrap_or_else(|e| {
+                                format!("{{\"error\":\"serialization failed: {}\"}}", e)
+                            })
+                        })?
                 } else {
-                    axagent_mcp::mcp_client::discover_tools_sse(endpoint).await.map_err(|e| {
-                        serde_json::to_string(
-                            &ErrorResponse::new(mcp_err::CONNECT_FAILED).with_detail(e.to_string()),
-                        )
-                        .unwrap_or_else(|e| {
-                            format!("{{\"error\":\"serialization failed: {}\"}}", e)
-                        })
-                    })?
+                    axagent_mcp::mcp_client::discover_tools_sse(endpoint, auth.as_deref())
+                        .await
+                        .map_err(|e| {
+                            serde_json::to_string(
+                                &ErrorResponse::new(mcp_err::CONNECT_FAILED)
+                                    .with_detail(e.to_string()),
+                            )
+                            .unwrap_or_else(|e| {
+                                format!("{{\"error\":\"serialization failed: {}\"}}", e)
+                            })
+                        })?
                 };
                 Ok::<_, String>(serde_json::json!({
                     "ok": true,
@@ -291,7 +300,7 @@ async fn discover_mcp_tools_inner(
         server.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
     let endpoint = server.endpoint.as_deref();
 
-    // 使用统一的发现入口
+    // 使用统一的发现入口（携带 server_id 以注入 OAuth 凭据）
     let tools = tokio::time::timeout(
         timeout_duration,
         axagent_mcp::mcp_client::discover_tools_unified(
@@ -300,6 +309,7 @@ async fn discover_mcp_tools_inner(
             args.as_deref(),
             env.as_ref(),
             endpoint,
+            Some(id),
         ),
     )
     .await
@@ -395,6 +405,72 @@ pub async fn discover_available_mcp_servers() -> Result<Vec<DiscoveredMcpServer>
     Ok(servers)
 }
 
+/// 手动为 MCP 服务器写入 OAuth 凭据（适用于使用静态 Bearer Token /
+/// Personal Access Token 的服务器，或外部已完成授权后回填）。
+#[tauri::command]
+pub async fn store_mcp_oauth_token(
+    server_id: String,
+    token: String,
+    refresh_token: Option<String>,
+    expires_in_secs: Option<u64>,
+    scopes: Option<Vec<String>>,
+    token_endpoint: Option<String>,
+    client_id: Option<String>,
+) -> Result<(), String> {
+    let store = axagent_mcp::mcp_oauth::McpOAuthStore::try_global()
+        .ok_or_else(|| "MCP OAuth 存储尚未初始化".to_string())?;
+    let expires_at = expires_in_secs.map(|secs| {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+            + secs
+    });
+    store
+        .store(
+            &server_id,
+            axagent_mcp::mcp_oauth::McpOAuthCredentials {
+                access_token: token,
+                refresh_token,
+                expires_at,
+                scopes: scopes.unwrap_or_default(),
+                token_endpoint,
+                client_id,
+            },
+        )
+        .await;
+    Ok(())
+}
+
+/// 为受保护的 MCP 服务器发起 OAuth 2.1 (PKCE) 授权，返回需用户在浏览器打开的 URL。
+#[tauri::command]
+pub async fn begin_mcp_oauth_authorization(
+    server_id: String,
+    authorization_endpoint: String,
+    token_endpoint: String,
+    client_id: String,
+    redirect_uri: String,
+    scopes: Vec<String>,
+) -> Result<String, String> {
+    axagent_mcp::mcp_oauth::begin_oauth_authorization(
+        &server_id,
+        &authorization_endpoint,
+        &token_endpoint,
+        &client_id,
+        &redirect_uri,
+        &scopes,
+    )
+}
+
+/// 用授权码（浏览器回调所得）兑换并持久化 OAuth token。
+#[tauri::command]
+pub async fn complete_mcp_oauth_authorization(
+    server_id: String,
+    code: String,
+) -> Result<(), String> {
+    axagent_mcp::mcp_oauth::complete_oauth_authorization(&server_id, &code).await
+}
+
 /// 扫描 settings.json 配置文件路径
 fn discover_mcp_config_paths() -> Vec<std::path::PathBuf> {
     let mut paths = Vec::new();
@@ -408,4 +484,168 @@ fn discover_mcp_config_paths() -> Vec<std::path::PathBuf> {
     }
 
     paths
+}
+
+// ── H1: MCP Resources support ──
+
+/// List all resources from an MCP server.
+#[tauri::command]
+pub async fn list_mcp_resources(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<axagent_harness::mcp_types::McpResource>, String> {
+    let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
+    let timeout_duration = std::time::Duration::from_secs(timeout_secs);
+
+    let command = server.command.as_deref();
+    let args: Option<Vec<String>> =
+        server.args_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let env: Option<std::collections::HashMap<String, String>> =
+        server.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let endpoint = server.endpoint.as_deref();
+
+    tokio::time::timeout(
+        timeout_duration,
+        axagent_mcp::mcp_client::list_resources_unified(
+            &server.transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+            Some(&id),
+        ),
+    )
+    .await
+    .map_err(|_| {
+        serde_json::to_string(
+            &ErrorResponse::new(mcp_err::TOOL_DISCOVERY_TIMEOUT)
+                .with_detail(format!("资源列表查询超时（{} 秒）", timeout_secs)),
+        )
+        .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
+    })?
+    .map_err(|e| e.to_string())
+}
+
+/// Read a specific resource from an MCP server.
+#[tauri::command]
+pub async fn read_mcp_resource(
+    state: State<'_, AppState>,
+    id: String,
+    uri: String,
+) -> Result<Vec<axagent_harness::mcp_types::McpResourceContent>, String> {
+    let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let timeout_duration = std::time::Duration::from_secs(30);
+
+    let command = server.command.as_deref();
+    let args: Option<Vec<String>> =
+        server.args_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let env: Option<std::collections::HashMap<String, String>> =
+        server.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let endpoint = server.endpoint.as_deref();
+
+    tokio::time::timeout(
+        timeout_duration,
+        axagent_mcp::mcp_client::read_resource_unified(
+            &server.transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+            &uri,
+            Some(&id),
+        ),
+    )
+    .await
+    .map_err(|_| "MCP 资源读取超时（30 秒）".to_string())?
+    .map_err(|e| e.to_string())
+}
+
+// ── H1: MCP Prompts support ──
+
+/// List all prompts from an MCP server.
+#[tauri::command]
+pub async fn list_mcp_prompts(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<axagent_harness::mcp_types::McpPrompt>, String> {
+    let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
+    let timeout_duration = std::time::Duration::from_secs(timeout_secs);
+
+    let command = server.command.as_deref();
+    let args: Option<Vec<String>> =
+        server.args_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let env: Option<std::collections::HashMap<String, String>> =
+        server.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let endpoint = server.endpoint.as_deref();
+
+    tokio::time::timeout(
+        timeout_duration,
+        axagent_mcp::mcp_client::list_prompts_unified(
+            &server.transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+            Some(&id),
+        ),
+    )
+    .await
+    .map_err(|_| {
+        serde_json::to_string(
+            &ErrorResponse::new(mcp_err::TOOL_DISCOVERY_TIMEOUT)
+                .with_detail(format!("提示词列表查询超时（{} 秒）", timeout_secs)),
+        )
+        .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
+    })?
+    .map_err(|e| e.to_string())
+}
+
+/// Render a prompt from an MCP server with the given arguments.
+#[tauri::command]
+pub async fn get_mcp_prompt(
+    state: State<'_, AppState>,
+    id: String,
+    name: String,
+    args: serde_json::Value,
+) -> Result<axagent_harness::mcp_types::McpPromptResult, String> {
+    let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let timeout_duration = std::time::Duration::from_secs(30);
+
+    let command = server.command.as_deref();
+    let args_list: Option<Vec<String>> =
+        server.args_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let env: Option<std::collections::HashMap<String, String>> =
+        server.env_json.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let endpoint = server.endpoint.as_deref();
+
+    tokio::time::timeout(
+        timeout_duration,
+        axagent_mcp::mcp_client::get_prompt_unified(
+            &server.transport,
+            command,
+            args_list.as_deref(),
+            env.as_ref(),
+            endpoint,
+            &name,
+            args,
+            Some(&id),
+        ),
+    )
+    .await
+    .map_err(|_| "MCP 提示词渲染超时（30 秒）".to_string())?
+    .map_err(|e| e.to_string())
 }

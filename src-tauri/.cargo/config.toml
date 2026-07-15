@@ -1,5 +1,8 @@
 [target.x86_64-pc-windows-msvc]
+linker = "C:\\Program Files\\LLVM\\bin\\lld-link.exe"
 rustflags = ["-C", "target-feature=+crt-static"]
 
 [env]
 __TAURI_WORKSPACE__ = "true"
+RUSTC_WRAPPER = "sccache"
+SCCACHE_CACHE_SIZE = "50G"

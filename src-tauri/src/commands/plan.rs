@@ -328,7 +328,7 @@ async fn generate_plan_via_llm(
 
     // Call LLM
     let response =
-        adapter.chat(&ctx, request).await.map_err(|e| format!("LLM call failed: {}", e))?;
+        adapter.chat(&ctx, request.into()).await.map_err(|e| format!("LLM call failed: {}", e))?;
 
     // Parse JSON from response
     let plan_json = extract_json_from_text(&response.content).map_err(|e| {

@@ -1,7 +1,10 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::agent::resolve_profile_tool_context;
+use axagent_harness::ToolDomain;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use tauri::State;
 
 /// 单个本地工具信息（前端 DTO）
@@ -86,12 +89,72 @@ fn to_local_group(
 }
 
 // ── 获取已启用工具总数 ──
+//
+// 当传入 `agent_profile_id` 时，返回按该 profile 的工具域筛选后的工具数；
+// 否则返回全局已启用工具数（兼容旧调用方）。
+// 筛选语义与 `agent_query` 一致（共享 `resolve_profile_tool_context`）。
 
 #[tauri::command]
-pub async fn get_tool_count(state: State<'_, AppState>) -> Result<u32, String> {
+pub async fn get_tool_count(
+    state: State<'_, AppState>,
+    agent_profile_id: Option<String>,
+) -> Result<u32, String> {
     let mut registry = state.local_tool_registry.lock().await;
     registry.load_enabled_state(state.harness.db()).await;
-    Ok(registry.count_enabled_tools())
+
+    let Some(profile_id) = agent_profile_id else {
+        // 无 profile：按自由对话默认域 Core + General 筛选（与 agent_query 一致），
+        // 避免显示全局已启用工具数导致用户看到的数量与实际传给 LLM 的不一致。
+        let mut domains = HashSet::new();
+        domains.insert(ToolDomain::Core);
+        domains.insert(ToolDomain::General);
+        let chat_tools = registry.get_chat_tools_for_domains(&domains, None);
+        let names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        return Ok(names.len() as u32);
+    };
+
+    // 解析 profile 上下文（与 agent_query 一致的三源合并）
+    let Some(ctx) = resolve_profile_tool_context(&state, &profile_id).await else {
+        // profile 不存在或查询失败：回退到默认自由对话域 Core + General，
+        // 避免显示全局已启用数导致与实际传给 LLM 的工具数不一致。
+        let mut domains = HashSet::new();
+        domains.insert(ToolDomain::Core);
+        domains.insert(ToolDomain::General);
+        let chat_tools = registry.get_chat_tools_for_domains(&domains, None);
+        let names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        return Ok(names.len() as u32);
+    };
+
+    // 三源合并活跃域（与 agent_query 的 ② 分支保持一致：确保 Core 始终存在）
+    let active_domains: HashSet<ToolDomain> = if ctx.active_domains.is_empty() {
+        let mut d = HashSet::new();
+        d.insert(ToolDomain::Core);
+        d.insert(ToolDomain::General);
+        d
+    } else {
+        let mut d = ctx.active_domains;
+        d.insert(ToolDomain::Core);
+        d
+    };
+
+    // 按域筛选（注意：MCP 工具不受域过滤，与 agent_query 一致）
+    let chat_tools = registry.get_chat_tools_for_domains(&active_domains, None);
+    let mut names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
+
+    // 应用 disallowed_tools 黑名单
+    for name in &ctx.disallowed_tools {
+        names.remove(name);
+    }
+
+    // 应用 recommended_tools 白名单：从全量工具列表中追加缺失的推荐工具
+    let all_info = registry.tools.list_all();
+    for info in &all_info {
+        if ctx.recommended_tools.contains(&info.name) {
+            names.insert(info.name.clone());
+        }
+    }
+
+    Ok(names.len() as u32)
 }
 
 // ── 列出所有工具（含单工具启用状态） ──

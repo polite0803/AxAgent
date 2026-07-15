@@ -23,7 +23,7 @@ export const EXPERT_CATEGORY_KEYS = [
 
 export type ExpertCategoryKey = (typeof EXPERT_CATEGORY_KEYS)[number];
 
-/** @deprecated 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name, 其余字段基本一致 */
+/** 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name */
 export interface ExpertRole {
   /** 唯一标识，如 "code-reviewer" */
   id: string;
@@ -60,6 +60,8 @@ export interface ExpertRole {
 
   /** 推荐的工具名称列表（导入时自动解析匹配） */
   recommendedTools?: string[];
+  /** 活跃工具域列表（例如 ["core", "invest"]） */
+  activeDomains?: string[];
   /** 推荐的工作流模板 ID 列表（导入时自动解析并创建） */
   recommendedWorkflows?: string[];
   /** @deprecated 指向对应的 AgentProfile ID，用于向后兼容过渡 */

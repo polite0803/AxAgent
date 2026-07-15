@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import i18n from "@/i18n";
-import { checkIpcHealth, invoke, isTauri, logIpcError } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { preloadChatRenderers, preloadCommonPages } from "@/lib/preloadChatRenderers";
 import { useConversationStore, useOnboardingStore, useSettingsStore, useSkillExtensionStore } from "@/stores";
 import { Button, Result, Spin, theme, Typography } from "antd";
@@ -52,73 +52,70 @@ export function AppInitializer({ children }: AppInitializerProps) {
     setError(null);
 
     try {
-      setPhase("healthCheck");
+      // healthCheck 与 loadSettings 合并：fetchSettings 成功即代表 IPC 健康。
+      // 移除原 2 秒阻塞重试 — IPC 不可用时后续每个调用都有独立 catch 降级，
+      // 不应让首屏为单一健康检查等待。
+      setPhase("loadSettings");
+      const settingsPromise = useSettingsStore.getState().fetchSettings().catch((e) => {
+        logIpcError("get_settings")(e);
+      });
+
+      // 尽早显示窗口，不等其他初始化完成
       if (isTauri()) {
-        const health = await checkIpcHealth();
-        if (!health.ok) {
-          logIpcError("IPC 健康检查")(health.detail);
-          await new Promise((r) => setTimeout(r, 2000));
-          const retry = await checkIpcHealth();
-          if (!retry.ok) {
-            logIpcError("IPC 重试")(retry.detail);
-          }
-        }
+        void showWindow();
       }
 
-      setPhase("loadSettings");
-      try {
-        await useSettingsStore.getState().fetchSettings();
-      } catch (e) {
-        logIpcError("get_settings")(e);
-      }
+      await settingsPromise;
 
       setPhase("applyConfig");
-      if (isTauri()) {
-        const settings = useSettingsStore.getState().settings;
-        try {
-          await invoke("apply_startup_settings", {
-            alwaysOnTop: settings.always_on_top ?? false,
-            closeToTray: settings.minimize_to_tray ?? false,
-          });
-        } catch (e) {
-          logIpcError("apply_startup_settings")(e);
-        }
-
-        if (!import.meta.env.DEV) {
-          try {
-            const { enable, disable } = await import("@tauri-apps/plugin-autostart");
-            if (settings.auto_start) {
-              await enable();
-            } else {
-              await disable();
-            }
-          } catch (e) {
-            const errorStr = String(e);
-            if (!errorStr.includes("os error 2")) {
-              logIpcError("设置自启动")(e);
-            }
-          }
-        }
-      }
-
-      setPhase("startServices");
       const settings = useSettingsStore.getState().settings;
 
-      if (settings.language && i18n.language !== settings.language) {
-        await i18n.changeLanguage(settings.language);
-      }
-
-      useConversationStore.getState().startStreamListening();
-
-      useSkillExtensionStore.getState().fetchSkills().catch(logIpcError("list_skills"));
-
-      useOnboardingStore.getState().loadFromSettings();
-
-      await enableD2AndPreload();
+      // 并行执行无依赖的初始化任务（原为串行 await）
+      const parallelTasks: Promise<unknown>[] = [];
 
       if (isTauri()) {
-        await showWindow();
+        parallelTasks.push(
+          invoke("apply_startup_settings", {
+            alwaysOnTop: settings.always_on_top ?? false,
+            closeToTray: settings.minimize_to_tray ?? false,
+          }).catch((e) => logIpcError("apply_startup_settings")(e)),
+        );
+
+        if (!import.meta.env.DEV) {
+          parallelTasks.push(
+            (async () => {
+              try {
+                const { enable, disable } = await import("@tauri-apps/plugin-autostart");
+                if (settings.auto_start) {
+                  await enable();
+                } else {
+                  await disable();
+                }
+              } catch (e) {
+                const errorStr = String(e);
+                if (!errorStr.includes("os error 2")) {
+                  logIpcError("设置自启动")(e);
+                }
+              }
+            })(),
+          );
+        }
       }
+
+      if (settings.language && i18n.language !== settings.language) {
+        parallelTasks.push(i18n.changeLanguage(settings.language));
+      }
+
+      await Promise.all(parallelTasks);
+
+      setPhase("startServices");
+      useConversationStore.getState().startStreamListening();
+      useSkillExtensionStore.getState().fetchSkills().catch(logIpcError("list_skills"));
+      useOnboardingStore.getState().loadFromSettings();
+
+      // D2（WASM）/ Monaco / 页面预加载改为 fire-and-forget，不阻塞首屏。
+      // 这些是重型依赖，idle 时间加载即可，首屏渲染不应等待。
+      void enableD2AndPreload();
 
       setPhase("ready");
     } catch (e) {

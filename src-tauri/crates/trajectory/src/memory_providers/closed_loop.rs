@@ -333,7 +333,7 @@ impl ClosedLoopService {
                 } else {
                     None
                 },
-                created_at: chrono::Utc::now().timestamp(),
+                created_at: chrono::Utc::now().timestamp_millis(),
                 acknowledged: false,
             });
         }
@@ -397,7 +397,7 @@ impl ClosedLoopService {
                             } else {
                                 None
                             },
-                            created_at: chrono::Utc::now().timestamp(),
+                            created_at: chrono::Utc::now().timestamp_millis(),
                             acknowledged: false,
                         });
                     }
@@ -427,7 +427,7 @@ impl ClosedLoopService {
                         suggested_action: new_skill_proposal.suggested_content.clone(),
                         urgency: "medium".to_string(),
                         auto_action: None,
-                        created_at: chrono::Utc::now().timestamp(),
+                        created_at: chrono::Utc::now().timestamp_millis(),
                         acknowledged: false,
                     });
                 }
@@ -464,7 +464,7 @@ impl ClosedLoopService {
                     "low".to_string()
                 },
                 auto_action: None,
-                created_at: chrono::Utc::now().timestamp(),
+                created_at: chrono::Utc::now().timestamp_millis(),
                 acknowledged: false,
             });
         }
@@ -541,6 +541,8 @@ impl ClosedLoopService {
                                 created_at: now,
                                 updated_at: now,
                                 last_used_at: None,
+                                consecutive_failures: 0,
+                                last_failure_at: None,
                                 metadata: crate::skill::SkillMetadata {
                                     hermes: crate::skill::HermesMetadata {
                                         tags: vec![],

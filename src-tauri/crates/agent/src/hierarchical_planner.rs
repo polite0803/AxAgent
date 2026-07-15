@@ -1605,7 +1605,8 @@ mod tests {
         };
 
         let tool_names: Vec<String> = vec!["Read".into(), "Write".into()];
-        let (nodes, _edges) = axagent_kit::plan_compiler::compile_plan_to_dag(&plan, &tool_names);
+        let (nodes, _edges) =
+            axagent_harness::plan_compiler::compile_plan_to_dag(&plan, &tool_names);
 
         // 验证节点 ID 格式: p{pi}_t{ti}_{task.id}
         let expected_nid = format!("p0_t0_{}", task_id);
@@ -1659,7 +1660,7 @@ mod tests {
             updated_at: 0,
         };
 
-        let (nodes, edges) = axagent_kit::plan_compiler::compile_plan_to_dag(&plan, &[]);
+        let (nodes, edges) = axagent_harness::plan_compiler::compile_plan_to_dag(&plan, &[]);
 
         assert_eq!(nodes.len(), 4, "应生成 4 个节点（trigger + 2 tasks + end）");
         assert_eq!(nodes[1].base_id(), format!("p0_t0_{}", task0_id));
@@ -1697,7 +1698,7 @@ mod tests {
             updated_at: 0,
         };
 
-        let (nodes, edges) = axagent_kit::plan_compiler::compile_plan_to_dag(&plan, &[]);
+        let (nodes, edges) = axagent_harness::plan_compiler::compile_plan_to_dag(&plan, &[]);
 
         assert_eq!(nodes.len(), 4);
         // 验证阶段内任务依赖边
@@ -1730,7 +1731,7 @@ mod tests {
             updated_at: 0,
         };
 
-        let (nodes, _) = axagent_kit::plan_compiler::compile_plan_to_dag(&plan, &[]);
+        let (nodes, _) = axagent_harness::plan_compiler::compile_plan_to_dag(&plan, &[]);
 
         if let WorkflowNode::Tool(ref tn) = nodes[1] {
             assert_eq!(tn.config.output_var, format!("r_p0_t0_{}", task_id));

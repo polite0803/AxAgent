@@ -1,55 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(dead_code)]
-
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum CapabilityType {
-    ContextPrediction,
-    ProactiveSuggestion,
-    TaskPrefetch,
-    RoutineReminder,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct ProactiveCapability {
-    pub capability_type: CapabilityType,
-    pub confidence: f32,
-    pub trigger_conditions: Vec<TriggerCondition>,
-    pub action: ProactiveAction,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct TriggerCondition {
-    pub condition_type: TriggerConditionType,
-    pub threshold: Option<f32>,
-    pub context_key: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum TriggerConditionType {
-    FileOpened,
-    ErrorDetected,
-    TimeBased,
-    PatternMatch,
-    UserIdle,
-    LowActivity,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum ProactiveAction {
-    ShowSuggestion,
-    PrefetchResource,
-    SendReminder,
-    GenerateNudge,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextPrediction {
@@ -130,6 +84,7 @@ pub enum SuggestionType {
     Documentation,
     Test,
     Optimization,
+    Debug,
     Learning,
 }
 

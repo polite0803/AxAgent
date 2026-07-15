@@ -5,6 +5,7 @@
 //! CronJob + CronJobStore — 供 runtime/cron 调度器、tools/cron.rs 工具、
 //! 和 src/commands/ Tauri 命令共用。
 
+use chrono::Timelike;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -25,6 +26,23 @@ async fn ensure_table(db: &DatabaseConnection) {
             "CREATE TABLE IF NOT EXISTS cron_jobs (\
              id TEXT PRIMARY KEY NOT NULL, \
              data TEXT NOT NULL)",
+        )
+        .await;
+}
+
+/// 确保 cron_job_history 表存在（幂等）
+async fn ensure_history_table(db: &DatabaseConnection) {
+    let _ = db
+        .execute_unprepared(
+            "CREATE TABLE IF NOT EXISTS cron_job_history (\
+             id TEXT PRIMARY KEY NOT NULL, \
+             task_id TEXT NOT NULL, \
+             started_at INTEGER NOT NULL, \
+             completed_at INTEGER, \
+             success INTEGER NOT NULL DEFAULT 0, \
+             output TEXT, \
+             error TEXT, \
+             duration_ms INTEGER NOT NULL DEFAULT 0)",
         )
         .await;
 }
@@ -157,6 +175,56 @@ impl CronJob {
     }
 }
 
+/// 根据 cron 表达式和当前时间戳（毫秒）计算下次执行时间。
+/// 返回 None 表示无法计算（非循环任务或无效表达式）。
+fn calculate_next_run(schedule: &str, now_ms: i64) -> Option<i64> {
+    let parts: Vec<&str> = schedule.split_whitespace().collect();
+    if parts.len() != 5 {
+        return None;
+    }
+
+    let now_sec = now_ms / 1000;
+
+    // 处理 */N 间隔模式（仅分钟字段）
+    if let Some(step) = parts[0].strip_prefix("*/")
+        && let Ok(interval) = step.parse::<i64>()
+    {
+        let next = now_sec + interval * 60;
+        return Some(next * 1000);
+    }
+
+    // 处理 */N 间隔模式（仅小时字段，分钟为 0 时）
+    if parts[0] == "0"
+        && let Some(step) = parts[1].strip_prefix("*/")
+        && let Ok(interval) = step.parse::<i64>()
+    {
+        let next = now_sec + interval * 3600;
+        return Some(next * 1000);
+    }
+
+    // 对于具体时间点（如 "0 9 * * *"），计算下一次触发时间
+    // 使用简单的 UTC 时间计算
+    if let (Ok(minute), Ok(hour)) = (parts[0].parse::<i64>(), parts[1].parse::<i64>()) {
+        let target_sec = hour * 3600 + minute * 60;
+        let day_sec = 86400;
+        let current_day_sec = {
+            let dt = chrono::DateTime::from_timestamp(now_sec, 0)
+                .unwrap_or_else(|| chrono::DateTime::from_timestamp(0, 0).unwrap());
+            (dt.hour() as i64) * 3600 + (dt.minute() as i64) * 60
+        };
+
+        let offset = if target_sec > current_day_sec {
+            target_sec - current_day_sec
+        } else {
+            day_sec - current_day_sec + target_sec
+        };
+        return Some((now_sec + offset) * 1000);
+    }
+
+    // 兜底：30 秒后
+    Some(now_ms + 30_000)
+}
+
 // ── CronJobStore ──────────────────────────────────────────────
 
 pub struct CronJobStore {
@@ -179,6 +247,7 @@ impl CronJobStore {
     /// 避免因重启导致错过的任务被无限推后。
     pub async fn new(db: Arc<DatabaseConnection>) -> Self {
         ensure_table(&db).await;
+        ensure_history_table(&db).await;
 
         let jobs = Self::load_from_db(&db).await;
 
@@ -302,12 +371,36 @@ impl CronJobStore {
 
     pub async fn record_run(&self, id: &str, result: TaskRunResult) -> bool {
         let now = now_millis();
-        self.update(id, |job| {
-            job.last_run_at = Some(now);
-            job.run_count += 1;
-            job.last_result = Some(result);
-        })
-        .await
+        let updated = self
+            .update(id, |job| {
+                job.last_run_at = Some(now);
+                job.run_count += 1;
+                job.last_result = Some(result.clone());
+                job.next_run_at = calculate_next_run(&job.schedule, now);
+            })
+            .await;
+
+        // 同时保存到执行历史表
+        if updated {
+            let history_id = uuid::Uuid::new_v4().to_string();
+            let stmt = Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "INSERT INTO cron_job_history (id, task_id, started_at, completed_at, success, output, error, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    history_id.into(),
+                    id.to_string().into(),
+                    result.executed_at.into(),
+                    (result.executed_at + result.duration_ms as i64).into(),
+                    (result.success as i32).into(),
+                    result.output.clone().unwrap_or_default().into(),
+                    result.error.clone().unwrap_or_default().into(),
+                    (result.duration_ms as i64).into(),
+                ],
+            );
+            let _ = self.db.execute_raw(stmt).await;
+        }
+
+        updated
     }
 
     pub async fn count(&self) -> usize {
@@ -319,6 +412,56 @@ impl CronJobStore {
         let mut store = self.jobs.write().await;
         *store = jobs;
     }
+
+    /// 从 DB 重新加载所有任务（刷新内存状态）
+    pub async fn reload_from_db(&self) -> usize {
+        let jobs = Self::load_from_db(&self.db).await;
+        let count = jobs.len();
+        let mut store = self.jobs.write().await;
+        *store = jobs;
+        count
+    }
+
+    /// 查询指定任务的执行历史（最近 50 条，倒序）
+    pub async fn get_execution_history(&self, task_id: &str) -> Vec<ExecutionRecord> {
+        let stmt = Statement::from_sql_and_values(
+            DbBackend::Sqlite,
+            "SELECT id, task_id, started_at, completed_at, success, output, error, duration_ms \
+             FROM cron_job_history WHERE task_id = ? ORDER BY started_at DESC LIMIT 50",
+            [task_id.into()],
+        );
+        let rows = self.db.query_all_raw(stmt).await;
+        let Ok(rows) = rows else {
+            return Vec::new();
+        };
+        rows.into_iter()
+            .filter_map(|row| {
+                Some(ExecutionRecord {
+                    id: row.try_get_by_index::<String>(0).ok()?,
+                    task_id: row.try_get_by_index::<String>(1).ok()?,
+                    started_at: row.try_get_by_index::<i64>(2).ok()?,
+                    completed_at: row.try_get_by_index::<i64>(3).ok(),
+                    success: row.try_get_by_index::<i32>(4).ok()? != 0,
+                    output: row.try_get_by_index::<String>(5).ok(),
+                    error: row.try_get_by_index::<String>(6).ok(),
+                    duration_ms: row.try_get_by_index::<i64>(7).ok()?,
+                })
+            })
+            .collect()
+    }
+}
+
+/// 执行历史记录（供前端查询）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutionRecord {
+    pub id: String,
+    pub task_id: String,
+    pub started_at: i64,
+    pub completed_at: Option<i64>,
+    pub success: bool,
+    pub output: Option<String>,
+    pub error: Option<String>,
+    pub duration_ms: i64,
 }
 
 // ── Harness trait 实现 ──
@@ -327,7 +470,7 @@ impl From<axagent_harness::tool_service::CronJobData> for CronJob {
     fn from(data: axagent_harness::tool_service::CronJobData) -> Self {
         let now = now_millis();
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: data.name.clone(),
             name: data.name,
             description: data.description,
             schedule: data.schedule,

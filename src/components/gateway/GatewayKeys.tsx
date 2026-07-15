@@ -2,9 +2,10 @@
 
 import { CopyButton } from "@/components/common/CopyButton";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { message } from "@/lib/toast";
 import { useGatewayStore } from "@/stores";
 import type { GatewayKey } from "@/types";
-import { Alert, Button, Input, message, Modal, Popconfirm, Switch, Table, theme, Typography } from "antd";
+import { Alert, Button, Input, Modal, Popconfirm, Switch, Table, theme, Typography } from "antd";
 import { Check, Copy, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -214,7 +215,7 @@ export function GatewayKeys() {
         {createdKey
           ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <Alert message={t("gateway.copyWarning")} type="warning" showIcon />
+              <Alert title={t("gateway.copyWarning")} type="warning" showIcon />
               <Input.TextArea
                 id="gateway-keys-input-textarea-41"
                 value={createdKey}

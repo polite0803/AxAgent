@@ -81,10 +81,4 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipBtn.textContent = "Clip to Wiki";
     }
   });
-
-  // Handle settings link
-  document.getElementById("settingsLink").addEventListener("click", (e) => {
-    e.preventDefault();
-    chrome.runtime.openOptionsPage();
-  });
 });

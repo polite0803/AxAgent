@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, List, message, Modal, Select, Spin, Tag, theme, Tooltip } from "antd";
+import { Button, Modal, Select, Spin, Tag, theme, Tooltip } from "antd";
 import { History, RotateCcw } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -261,16 +262,43 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
           </div>
         )
         : (
-          <List
-            size="small"
-            dataSource={versions}
-            locale={{ emptyText: t("workflow.versionHistory.noHistory") }}
-            renderItem={(version) => {
+          <div className="divide-y divide-gray-100">
+            {versions.map((version) => {
               const isCurrent = version === template?.version;
               const isLatest = version === maxVersion;
               return (
-                <List.Item
-                  actions={[
+                <div
+                  key={version}
+                  style={{
+                    background: rollbackVersion === version ? `${token.colorWarningBg}` : undefined,
+                    padding: "8px 0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 500 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Tag color={isLatest ? "green" : isCurrent ? "blue" : "default"}>
+                          v{version}
+                        </Tag>
+                        {isCurrent && <Tag color="blue">{t("workflow.versionHistory.currentVersion")}</Tag>}
+                        {isLatest && !isCurrent && <Tag color="green">{t("workflow.versionHistory.latest")}</Tag>}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                        fontSize: 13,
+                        marginTop: 2,
+                      }}
+                    >
+                      {t("workflow.versionHistory.version", { version })}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <Tooltip key="rollback" title={t("workflow.versionHistory.rollbackTo", { v: version })}>
                       <Button
                         type="link"
@@ -281,7 +309,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                       >
                         {t("workflow.versionHistory.rollback")}
                       </Button>
-                    </Tooltip>,
+                    </Tooltip>
                     <Button
                       key="load"
                       type="link"
@@ -290,28 +318,12 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                       disabled={loading}
                     >
                       {t("workflow.versionHistory.loadThisVersion")}
-                    </Button>,
-                  ]}
-                  style={{
-                    background: rollbackVersion === version ? `${token.colorWarningBg}` : undefined,
-                  }}
-                >
-                  <List.Item.Meta
-                    title={
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Tag color={isLatest ? "green" : isCurrent ? "blue" : "default"}>
-                          v{version}
-                        </Tag>
-                        {isCurrent && <Tag color="blue">{t("workflow.versionHistory.currentVersion")}</Tag>}
-                        {isLatest && !isCurrent && <Tag color="green">{t("workflow.versionHistory.latest")}</Tag>}
-                      </div>
-                    }
-                    description={t("workflow.versionHistory.version", { version })}
-                  />
-                </List.Item>
+                    </Button>
+                  </div>
+                </div>
               );
-            }}
-          />
+            })}
+          </div>
         )}
 
       {/* ── 版本对比（仅 ≥2 版本时展示） ──────────────────── */}
@@ -323,7 +335,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             <span>{t("workflow.versionHistory.compareVersions")}</span>
             <Select
               size="small"
-              placeholder="vA"
+              placeholder={t("versionHistory.vA")}
               style={{ width: 80 }}
               value={diffVerA}
               onChange={setDiffVerA}
@@ -332,7 +344,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             <span style={{ color: token.colorTextQuaternary }}>vs</span>
             <Select
               size="small"
-              placeholder="vB"
+              placeholder={t("versionHistory.vB")}
               style={{ width: 80 }}
               value={diffVerB}
               onChange={setDiffVerB}

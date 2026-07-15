@@ -2,7 +2,9 @@
   "app": {
     "name": "AxAgent",
     "title": "Smart Workspace",
-    "description": "AI-Powered Work Assistant"
+    "description": "AI-Powered Work Assistant",
+    "quickBar": "QuickBar",
+    "newSkillProposal": "New Skill Proposal Found: {name}"
   },
   "appHeader": {
     "knowledgeContext": "Knowledge Base Overview",
@@ -11,7 +13,8 @@
     "terminalContext": "Terminal Sessions",
     "closeAgentPanel": "Close Agent Panel",
     "openAgentPanel": "Open Agent Panel",
-    "dashboardContext": "System overview at a glance"
+    "dashboardContext": "System overview at a glance",
+    "agentPanel": "Agent Panel"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -46,7 +49,8 @@
     "trade": "Trade",
     "watchlist": "Watchlist",
     "portfolio": "Portfolio",
-    "scheduledAnalysis": "Scheduled"
+    "scheduledAnalysis": "Scheduled",
+    "dynamicUI": "Dynamic Pages"
   },
   "sidebar": {
     "sectionWork": "Work",
@@ -63,7 +67,8 @@
     "sectionInvestReview": "Review",
     "closeAgent": "Close Agent",
     "openAgent": "Open Agent",
-    "sectionOverview": "Overview"
+    "sectionOverview": "Overview",
+    "agentPanel": "Agent Panel"
   },
   "knowledge": {
     "commonPanel": "Common Panel",
@@ -309,7 +314,10 @@
       "success": "Success",
       "error": "Failed",
       "input": "Input",
-      "output": "Output"
+      "output": "Output",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "mcp": {
       "title": "MCP Tools",
@@ -463,7 +471,10 @@
         "running": "Running",
         "completed": "Completed",
         "failed": "Failed",
-        "skipped": "Skipped"
+        "skipped": "Skipped",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "workflowStatus": {
         "created": "Created",
@@ -471,7 +482,10 @@
         "completed": "Completed",
         "partiallyCompleted": "Partially Completed",
         "failed": "Failed",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "dagVisualization": "DAG Visualization",
       "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
@@ -967,7 +981,10 @@
       "tokens": "tokens",
       "tool": "tools",
       "failed": "Failed",
-      "iteration": "iterations"
+      "iteration": "iterations",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "benchmarks": {
       "failed": "Failed",
@@ -1134,7 +1151,10 @@
       "running": "{{running}} running",
       "cancelled": "Cancelled",
       "pending": "Pending",
-      "totalEvents": "{{total}} events"
+      "totalEvents": "{{total}} events",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "agent": {
       "acceptEdits": "Accept Edits",
@@ -1166,7 +1186,10 @@
       "goToEnd": "Go to end",
       "goToStart": "Go to start",
       "nextStep": "Next step",
-      "prevStep": "Previous step"
+      "prevStep": "Previous step",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "agentInitTransient": "Agent session initialization failed due to a temporary connection issue. You can try again in a moment.",
     "switchAgentModeNoConversationInfo": "Switched to Agent mode. Send a message to create an Agent conversation.",
@@ -1213,7 +1236,12 @@
     },
     "proactiveInsights": "Proactive Insights & Reminders",
     "error": "Chat error",
-    "loadError": "Failed to load"
+    "loadError": "Failed to load",
+    "createConversationFailed": "Failed to create conversation",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
+    "clearHistoryDone": "Conversation cleared"
   },
   "gateway": {
     "title": "Gateway",
@@ -1350,7 +1378,10 @@
     "tab": {
       "monitor": "Monitor"
     },
-    "cacheHitTokens": "Cache hit tokens"
+    "cacheHitTokens": "Cache hit tokens",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "gatewayMonitor": {
     "refresh": "Refresh",
@@ -1513,7 +1544,9 @@
       "statusConnecting": "Connecting",
       "lastActivity": "Last Activity",
       "activeSessions": "Active Sessions",
-      "noStatuses": "No statuses available"
+      "noStatuses": "No statuses available",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker Prefix (Default CHAT2API, Usually No Need To Modify)"
     },
     "webhooks": "Webhooks",
     "advanced": "Advanced",
@@ -1576,7 +1609,10 @@
       "stopped": "Stopped",
       "start": "Start",
       "stop": "Stop",
-      "noLogs": "No logs yet"
+      "noLogs": "No logs yet",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "acp": "ACP",
     "language": "Language",
@@ -2032,7 +2068,14 @@
       "importErrors": "Error Details",
       "importedCount": "Imported",
       "errorCount": "Failed",
-      "importSelectFirst": "Please select a folder first"
+      "importSelectFirst": "Please select a folder first",
+      "autoIndex": "Auto Index",
+      "autoIndexHint": "Automatically update index when files change",
+      "maxResults": "Max Results",
+      "scoreThreshold": "Score Threshold",
+      "vectorStore": "Vector Store",
+      "webCrawlDepth": "Web Crawl Depth",
+      "webCrawlPages": "Crawl Pages"
     },
     "rag": {
       "advanced": "Advanced Retrieval Settings",
@@ -2232,7 +2275,8 @@
       "dirNotWritable": "Target directory is not writable",
       "restartRequired": "Changes will take full effect after restart",
       "restartNow": "Restart Now",
-      "restartLater": "Restart Later"
+      "restartLater": "Restart Later",
+      "openFolderError": "Failed to open folder: {error}"
     },
     "filterProviders": "Search providers...",
     "initProviders": "Initialize Providers",
@@ -2433,7 +2477,10 @@
       "executed": "Executed",
       "quickCreated": "Quick created",
       "refreshed": "Refreshed",
-      "unknownTemplateType": "Unknown template type"
+      "unknownTemplateType": "Unknown template type",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "userProfile": {
       "title": "User Profile",
@@ -2870,10 +2917,56 @@
       "personaList": "Persona List",
       "cancel": "Cancel",
       "nameLabel": "Name",
-      "namePlaceholder": "my-persona"
+      "namePlaceholder": "my-persona",
+      "activated": "Activated",
+      "activate": "Activate",
+      "create": "New Persona",
+      "createFirst": "Select or create a persona",
+      "description": "Manage agent personality and soul definition",
+      "noPersona": "No persona",
+      "save": "Save",
+      "saved": "Saved",
+      "switchSuccess": "Switched to {{name}}",
+      "title": "Persona Management",
+      "soul": {
+        "label": "SOUL.md (Soul Definition)",
+        "description": "Define the agent's core personality and behavior style",
+        "placeholder": "Enter soul definition..."
+      },
+      "identity": {
+        "label": "IDENTITY.md (Identity Declaration)",
+        "description": "Declare the agent's identity and role information",
+        "placeholder": "Agent identity declaration..."
+      },
+      "user": {
+        "label": "USER.md (User Profile)",
+        "description": "Describe the user's profile, preferences, and needs",
+        "placeholder": "User profile information..."
+      },
+      "autoLearn": {
+        "button": "Auto-Learn from Conversation",
+        "title": "Auto-Learn from Conversation",
+        "description": "Extract code style and communication preferences from conversation history, then update the active Persona's USER.md automatically",
+        "selectConversation": "Select a conversation",
+        "selectPlaceholder": "Choose a conversation to learn from",
+        "noConversations": "No conversations available",
+        "start": "Start Learning",
+        "close": "Close",
+        "success": "Learned and applied to Persona \"{{name}}\"",
+        "successTitle": "Learning complete, applied to Persona \"{{name}}\"",
+        "noSamples": "No usable code or message samples found",
+        "noSamplesTitle": "No usable samples found",
+        "failed": "Auto-learning failed",
+        "updatedFields": "Updated fields"
+      },
+      "name": "Name",
+      "systemPrompt": "System Prompt",
+      "type": "Type",
+      "visibility": "Visibility"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)"
+    "markerPrefixDesc": "Marker prefix (default CHAT2API, usually not needed)",
+    "groupVoice": "Voice"
   },
   "backup": {
     "title": "Backup Center",
@@ -2944,7 +3037,11 @@
       "lastSync": "Last sync"
     },
     "backupSuccess": "Backup successful",
-    "error": "Operation failed"
+    "error": "Operation failed",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
+    "openFolderError": "Failed to open folder: {error}"
   },
   "common": {
     "confirm": "Confirm",
@@ -3093,7 +3190,8 @@
     "required": "Required",
     "details": "Details",
     "more": "More",
-    "action": "Action"
+    "action": "Action",
+    "dismiss": "Dismiss"
   },
   "plan": {
     "defaultTitle": "Execution Plan",
@@ -3112,7 +3210,10 @@
       "cancelled": "Cancelled",
       "draft": "Draft",
       "approved_plan": "Approved",
-      "executing_plan": "Execute Approved Steps"
+      "executing_plan": "Execute Approved Steps",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "approveAll": "Approve & Execute",
     "approveStep": "Approve Step",
@@ -3140,7 +3241,10 @@
     },
     "status": {
       "running": "Running",
-      "completed": "Completed"
+      "completed": "Completed",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "count": "{{running}} running / {{completed}} completed",
     "noAgents": "No agents registered",
@@ -3162,7 +3266,10 @@
     "session": "session(s)",
     "askUser": "question(s)",
     "resume": "Resume",
-    "pause": "Pause"
+    "pause": "Pause",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "image": {
     "loadError": "Image failed to load",
@@ -3180,7 +3287,13 @@
     "disconnecting": "Disconnecting...",
     "startCall": "Start Voice Call",
     "endCall": "End Call",
-    "toggleMute": "Toggle Mute"
+    "toggleMute": "Toggle Mute",
+    "wakeup": "Voice Wake",
+    "wakeupActive": "Wakeup Listening",
+    "voiceType": "Voice Type",
+    "sttProvider": "STT Provider",
+    "ttsProvider": "TTS Provider",
+    "providerAuto": "Auto (Use LLM provider)"
   },
   "shortcuts": {
     "newConversation": "New Conversation",
@@ -3714,7 +3827,11 @@
       "workflowRef": "Workflow Ref",
       "phaseSeparator": "Phase Separator",
       "groupFrame": "Group",
-      "toolSetSelector": "Tool Set"
+      "toolSetSelector": "Tool Set",
+      "webhook": "Webhook",
+      "apiCall": "API Call",
+      "script": "Script",
+      "timer": "Timer"
     },
     "aiAssist": {
       "btn": {
@@ -3751,7 +3868,9 @@
       },
       "trigger": {
         "cronHint": "Standard cron expression, e.g. `0 9 * * *`."
-      }
+      },
+      "fix": "Fix",
+      "optimize": "Optimize"
     },
     "nodeKind": {
       "input": "Input",
@@ -3761,7 +3880,11 @@
       "condition": "Routing",
       "loop": "Loop",
       "container": "Container",
-      "storage": "Storage"
+      "storage": "Storage",
+      "data": "Data",
+      "logic": "Logic",
+      "trigger": "Trigger",
+      "transform": "Transform"
     },
     "layout": {
       "suggestTitle": {
@@ -3825,7 +3948,51 @@
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
-      }
+      },
+      "autoLayout": "Auto Layout",
+      "canvas": "Canvas",
+      "collapseAll": "Collapse All",
+      "condensed": "Condensed",
+      "connectionMode": "Connection Mode",
+      "defaultEdgeType": "Default Edge Type",
+      "expandAll": "Expand All",
+      "fitView": "Fit View",
+      "floating": "Floating",
+      "gridSize": "Grid Size",
+      "horizontal": "Horizontal",
+      "layoutDirection": "Layout Direction",
+      "locked": "Locked",
+      "minimap": "Minimap",
+      "nodeSize": "Node Size",
+      "orientation": "Orientation",
+      "portLayout": "Port Layout",
+      "readonly": "Read Only",
+      "showGrid": "Show Grid",
+      "snapToGrid": "Snap to Grid",
+      "straight": "Straight",
+      "strict": "Strict",
+      "vertical": "Vertical",
+      "zoomControl": "Zoom Control",
+      "bezier": "Bezier",
+      "smoothStep": "Smooth Step",
+      "free": "Free",
+      "ortho": "Ortho",
+      "large": "Large",
+      "medium": "Medium",
+      "small": "Small",
+      "compact": "Compact",
+      "standard": "Standard",
+      "comfortable": "Comfortable",
+      "left": "Left",
+      "right": "Right",
+      "top": "Top",
+      "bottom": "Bottom",
+      "center": "Center",
+      "border": "Border",
+      "gradient": "Gradient",
+      "solid": "Solid",
+      "dashed": "Dashed",
+      "dotted": "Dotted"
     },
     "aiPanel": {
       "enterWorkflowDesc": "Please enter a workflow description",
@@ -3922,7 +4089,11 @@
       "evolutionHistory": "Evolution History",
       "evolutionFallback": "Optimization",
       "verified": "Verified",
-      "hasEvolution": "Has evolution records"
+      "hasEvolution": "Has evolution records",
+      "progressAnalyzing": "Analyzing Intent",
+      "progressMatching": "Matching Nodes",
+      "progressBuilding": "Building Workflow",
+      "progressOptimizing": "Optimizing"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -3951,7 +4122,23 @@
       "importPresetsTitle": "Import built-in experts",
       "importPresets": "Import",
       "noTemplates": "No templates",
-      "noMatchFound": "No matching templates"
+      "noMatchFound": "No matching templates",
+      "blank": "Blank Workflow",
+      "category": "Category",
+      "createConfirm": "Create a new workflow from this template?",
+      "description": "Description",
+      "empty": "No Templates",
+      "name": "Template Name",
+      "official": "Official Templates",
+      "popular": "Popular",
+      "preview": "Preview",
+      "recent": "Recent",
+      "title": "Workflow Templates",
+      "useTemplate": "Use Template",
+      "version": "Version",
+      "community": "Community",
+      "recommended": "Recommended",
+      "all": "All"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -4155,7 +4342,12 @@
       "rollback": "Rollback to This Version",
       "rollbackConfirm": "Confirm rollback?",
       "rollbackTo": "Rollback to {{version}}",
-      "rolledBack": "Rolled back"
+      "rolledBack": "Rolled back",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "View Diff",
+      "viewSnapshot": "View Snapshot",
+      "restore": "Restore"
     },
     "versionHistoryLoadFailed": "Failed to load version history",
     "versionLoaded": "Version {{version}} loaded",
@@ -4571,7 +4763,10 @@
       "noTraceData": "No trace data",
       "showSpanTree": "Show Span Tree",
       "hideSpanTree": "Hide Span Tree",
-      "noSpanData": "No span data resolved"
+      "noSpanData": "No span data resolved",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "validation": {
       "validation": {
@@ -4671,7 +4866,8 @@
         "CACHE_DESERIALIZE_FAILED": "Cache data deserialization failed",
         "MODEL_NOT_CONFIGURED": "Model not configured",
         "NODE_NOT_FOUND": "Node not found"
-      }
+      },
+      "saveFailed": "Save failed"
     },
     "agentNode": {
       "tools": "🔧 Tools",
@@ -4755,24 +4951,38 @@
     },
     "containerNode": {
       "nodes": "nodes",
-      "branchTimeout": "Branch timeout configured"
+      "branchTimeout": "Branch timeout configured",
+      "collapse": "Collapse",
+      "expand": "Expand"
     },
     "swarmNode": {
       "agents": "Agents",
       "rounds": "rounds",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "addAgent": "Add Agent"
+      "addAgent": "Add Agent",
+      "agent": "Agent",
+      "handoff": "Handoff",
+      "mode": "Mode",
+      "parallel": "Parallel",
+      "sequential": "Sequential",
+      "task": "Task"
     },
     "groupNode": {
       "untitled": "Group",
-      "folded": "folded"
+      "folded": "folded",
+      "add": "Add Group",
+      "remove": "Remove Group"
     },
     "workflowRef": {
       "targetWorkflow": "Target Workflow",
       "contextMode": "Context Mode",
       "inherit": "Inherit",
-      "isolated": "Isolated"
+      "isolated": "Isolated",
+      "selectWorkflow": "",
+      "title": "",
+      "version": "",
+      "inputMapping": "Input Mapping"
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
@@ -4788,7 +4998,10 @@
       "clickToExpandPorts": "Click to expand ports",
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "type": "Type"
+      "type": "Type",
+      "description": "Description",
+      "name": "Name",
+      "version": "Version"
     },
     "debateNode": {
       "debaters": "debaters",
@@ -4817,7 +5030,9 @@
       "configureHint": "Configure trigger conditions and parameters",
       "statusActive": "Running",
       "statusDisabled": "Disabled",
-      "statusUnconfigured": "Unconfigured"
+      "statusUnconfigured": "Unconfigured",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "Not set",
@@ -5128,7 +5343,10 @@
       "title": "Workflow Legend",
       "toggleLabel": "{{action}} legend",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "end": "End",
+      "start": "Start",
+      "running": "Running"
     },
     "back": "Back",
     "caseLabel": "Case {{n}}",
@@ -5196,7 +5414,17 @@
       "confirmRestore": "Restore to version {{version}}?",
       "compareSelected": "Compare selected ({{selected}}/2)",
       "clearSelection": "Clear selection",
-      "versionManager": "Version Manager: {{name}}"
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "Archived",
+      "changelog": "Changelog",
+      "comparison": "Version Comparison",
+      "diff": "Diff",
+      "draft": "Draft",
+      "latest": "Latest",
+      "noHistory": "No Version History",
+      "renamed": "Renamed",
+      "restored": "Restored",
+      "updatedAt": "Updated At"
     },
     "duplicateSuffix": "{{name}} (copy)",
     "fromTemplate": "{{name}} (from template)",
@@ -5216,7 +5444,11 @@
       "edgeCount": "{{count}} edges",
       "edit": "Edit",
       "duplicate": "Duplicate",
-      "deleteConfirm": "Are you sure you want to delete this workflow?"
+      "deleteConfirm": "Are you sure you want to delete this workflow?",
+      "confirmDelete": "Confirm delete this workflow?",
+      "createWorkflow": "Create Workflow",
+      "noWorkflows": "No workflows yet, click the button above to create",
+      "search": "Search Workflow"
     },
     "executor": {
       "inputVariables": "Input Variables",
@@ -5229,12 +5461,19 @@
       "close": "Close",
       "execute": "Execute Workflow",
       "executionSuccess": "Execution Successful",
-      "executionFailed": "Execution Failed"
+      "executionFailed": "Execution Failed",
+      "failed": "Failed",
+      "inputVars": "Input Variables",
+      "nodeStatus": "Node Execution Status",
+      "runningNode": "Running Workflow Node",
+      "success": "Success",
+      "waiting": "Waiting"
     },
     "log": {
       "empty": "No logs",
       "clear": "Clear Logs",
-      "export": "Export Logs"
+      "export": "Export Logs",
+      "noLogs": "No Logs"
     },
     "nlParser": {
       "naturalLanguageDesc": "Natural Language Description",
@@ -5252,7 +5491,15 @@
       "edges": "Edges",
       "variables": "Variables",
       "alternatives": "Alternatives",
-      "planLabel": "Plan {{index}}: {{desc}}"
+      "planLabel": "Plan {{index}}: {{desc}}",
+      "constraints": "Constraints (Optional)",
+      "description": "Natural Language Description",
+      "generating": "Parsing",
+      "suggestions": "AI Suggestions",
+      "example1": "Fetch the latest articles from specified websites every day at 8 AM",
+      "example2": "Analyze new emails with AI upon receipt and notify if urgent",
+      "example3": "Validate data before writing to database after user submits form",
+      "exampleConstraint": "e.g., execution time no more than 5 minutes, retry on error"
     },
     "nl2Skill": {
       "triggers": "Triggers",
@@ -5264,14 +5511,27 @@
       "required": "Required",
       "optional": "Optional",
       "parsingPhases": "Parsing Phases",
-      "applySkill": "Apply This Skill"
+      "applySkill": "Apply This Skill",
+      "generate": "Generate Skill",
+      "generating": "Generating...",
+      "instruction": "Describe the skill you want",
+      "preview": "Preview",
+      "result": "Generation Result",
+      "title": "Natural Language to Skill",
+      "validate": "Validate",
+      "validating": "Validating..."
     },
     "nl2UI": {
       "rootType": "Root Type",
       "componentCount": "Component Count",
       "depthLevel": "Depth",
       "components": "{{count}} components",
-      "applyUI": "Apply This UI"
+      "applyUI": "Apply This UI",
+      "generate": "Generate",
+      "generating": "Generating...",
+      "instruction": "Describe the UI you want",
+      "result": "Generation Result",
+      "title": "Natural Language to UI"
     },
     "evolution": {
       "noNodes": "No nodes on current canvas",
@@ -5286,7 +5546,93 @@
       "latency": "Latency {{diff}}",
       "noEvolutionRecord": "No evolution record — trigger first evolution",
       "abTestTitle": "A/B Test ({{count}})",
-      "winner": "{{winner}} Won"
+      "winner": "{{winner}} Won",
+      "apply": "Apply",
+      "current": "Current Version",
+      "diff": "Diff",
+      "evolutionHistory": "Evolution History",
+      "generation": "Generation {{n}}",
+      "improved": "Improved",
+      "performance": "Performance",
+      "revert": "Revert",
+      "score": "Score",
+      "viewDiff": "View Diff"
+    },
+    "approval": {
+      "panelTitle": "Pending Approvals",
+      "noPending": "No pending approvals",
+      "message": "Message",
+      "workflowId": "Workflow",
+      "status": "Status",
+      "expiresAt": "Expires",
+      "actions": "Actions",
+      "decision": "Decision",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "notePlaceholder": "Add a note (optional)"
+    },
+    "saveFailed": "Save failed",
+    "workflowRefNode": {
+      "noWorkflow": ""
+    },
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## AI Generated Image",
+      "model": "**Model**",
+      "duration": "**Duration**",
+      "savedToArtifact": "Saved to Artifact"
+    },
+    "chatSidebar": {
+      "menu": "Menu"
+    },
+    "inputArea": {
+      "resizeHandle": "Resize",
+      "uploadFile": "Upload File"
+    },
+    "appHeader": {
+      "agentPanel": "Agent Panel"
+    },
+    "sidebar": {
+      "agentPanel": "Agent Panel"
+    },
+    "errorBoundary": {
+      "pageError": "Page Error"
+    },
+    "chatPage": {
+      "resizeHandle": "Resize"
+    },
+    "spanDetail": {
+      "parentSpan": "Parent Span"
+    },
+    "traceDetail": {
+      "userId": "User ID"
+    },
+    "settingsPanel": {
+      "featureFlags": "Feature Flags"
+    },
+    "skillTimeline": {
+      "promptDiff": "Prompt Diff"
+    },
+    "chartPreview": {
+      "title": "Chart Preview"
+    },
+    "htmlPreview": {
+      "title": "HTML Preview"
+    },
+    "reactPreview": {
+      "title": "React Preview"
     }
   },
   "atomicSkill": {
@@ -5378,14 +5724,18 @@
       "time": "Time",
       "action": "Action",
       "load": "Load",
-      "delete": "Delete"
+      "delete": "Delete",
+      "noCheckpoints": "No Checkpoints"
     },
     "status": {
       "idle": "Idle",
       "running": "Training",
       "paused": "Paused",
       "completed": "Completed",
-      "failed": "Failed"
+      "failed": "Failed",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "monitor": {
       "idle": "Training not started. Configure and start training.",
@@ -5395,14 +5745,17 @@
       "reward": "Reward",
       "speed": "Speed",
       "lossCurve": "Loss Curve",
-      "rewardCurve": "Reward Curve"
+      "rewardCurve": "Reward Curve",
+      "step": "Current Step",
+      "title": "Training Monitor"
     },
     "config": {
       "algorithm": "Algorithm",
       "learningRate": "Learning Rate",
       "batchSize": "Batch Size",
       "epochs": "Epochs",
-      "maxSteps": "Max Steps"
+      "maxSteps": "Max Steps",
+      "title": "Training Settings"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -5579,7 +5932,10 @@
     "none": "None",
     "response": "Response",
     "report": "Report",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details",
@@ -5666,7 +6022,10 @@
         "name": "Sandbox Executor",
         "desc": "Securely executes untrusted code in an isolated environment to prevent system damage"
       }
-    }
+    },
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "promptTemplates": {
     "title": "Prompt Templates",
@@ -5783,7 +6142,8 @@
   "searchProvider": {
     "tavily": "Tavily",
     "zhipu": "Zhipu",
-    "bocha": "Bocha"
+    "bocha": "Bocha",
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "Online",
@@ -5802,7 +6162,10 @@
     "errorsCount": "{{count}} error(s)",
     "ok": "OK",
     "dockerConnectPending": "Docker connect pending",
-    "sshConnectPending": "SSH connect pending"
+    "sshConnectPending": "SSH connect pending",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "more": "{{count}} more"
   },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
@@ -5932,7 +6295,9 @@
       "status": "Status",
       "chunks": "Chunks",
       "path": "Path",
-      "deleteNotImplemented": "Delete not implemented yet"
+      "deleteNotImplemented": "Delete not implemented yet",
+      "mimeType": "MIME Type",
+      "size": "Size"
     },
     "tips": {
       "doubleClick": "Double-click node to edit",
@@ -6047,7 +6412,10 @@
       "operationDetail": "Operation detail",
       "running": "Running",
       "title": "Operation Log",
-      "total": "Total"
+      "total": "Total",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "noSources": "No sources",
     "noteNotFound": "Note not found",
@@ -6212,7 +6580,9 @@
     "vaultPath": "Vault path...",
     "wikiMeta": {
       "rootPath": "Root Path"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "notification": {
     "clear": "Clear",
@@ -6229,7 +6599,9 @@
     "execute": "Execute",
     "learningSuggestions": "Learning Suggestions",
     "snooze30": "Snooze (30 min)",
-    "noSuggestions": "No suggestions"
+    "noSuggestions": "No suggestions",
+    "snooze15": "Snooze (15 min)",
+    "snooze1h": "Snooze (1 hour)"
   },
   "proactive": {
     "accept": "Accept",
@@ -6291,6 +6663,13 @@
         "improvement": "Improvement",
         "warning": "Warning"
       }
+    },
+    "prefetchTypes": {
+      "codeCompletion": "Code Completion",
+      "searchResults": "Search Results",
+      "documentation": "Documentation",
+      "contextAnalysis": "Context Analysis",
+      "toolCache": "Tool Cache"
     }
   },
   "review": {
@@ -6522,7 +6901,9 @@
     "referenceFile": "Reference file or path",
     "commands": "Commands",
     "mentions": "Mentions",
-    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm",
+    "newConversation": "New conversation",
+    "stopGeneration": "Stop generation"
   },
   "onboarding": {
     "welcome": "Welcome to AxAgent",
@@ -6569,7 +6950,9 @@
     "moreModels": "+{{count}} more",
     "targetNotFound": "Target element not found, please navigate to the chat page first",
     "goToSettings": "Go to Settings to add API Key",
-    "presetApplyFailed": "Preset application failed"
+    "presetApplyFailed": "Preset application failed",
+    "applying": "Applying...",
+    "downloadOllama": "Download Ollama"
   },
   "help": {
     "title": "Help Center",
@@ -6676,7 +7059,10 @@
       "running": "Running",
       "completed": "Completed",
       "failed": "Failed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "messageLog": "Message Log ({count})",
     "attempts": "Attempt {attempts}/{maxRetries}",
@@ -6689,14 +7075,20 @@
       "worker": "Worker",
       "step": "Step"
     },
-    "summary": "Agent Pool ({completed}/{total})"
+    "summary": "Agent Pool ({completed}/{total})",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "agentHierarchy": {
     "running": "Running",
     "completed": "Completed",
     "failed": "Failed",
     "title": "Agent Hierarchy",
-    "count": "({count})"
+    "count": "({count})",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "progressBar": {
     "tool": {
@@ -7187,7 +7579,10 @@
     "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
     "openaiApiKeyPlaceholder": "sk-...",
     "openaiBaseUrl": "OpenAI Base URL",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "New",
@@ -7392,7 +7787,10 @@
     "completed": "Consolidation completed",
     "completedTitle": "Dream completed ({{secs}}s)",
     "totalConsolidations": "{{count}} consolidations total",
-    "statsSummary": "{{memories}} memories · {{patterns}} patterns"
+    "statsSummary": "{{memories}} memories · {{patterns}} patterns",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "expertBadge": {
     "generalAssistant": "General Assistant",
@@ -7445,19 +7843,23 @@
     "teamCreated": "Team \"{{name}}\" created with {{count}} teammates"
   },
   "chatPage": {
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "SSH Configuration",
     "connect": "Connect",
     "host": "Host",
     "port": "Port",
-    "username": "Username"
+    "username": "Username",
+    "hostPlaceholder": "192.168.1.100 or server.example.com",
+    "keyPathOptional": "SSH Key Path (optional)"
   },
   "dockerConfig": {
     "title": "Docker Configuration",
     "connect": "Connect",
-    "socketPath": "Docker Socket Path"
+    "socketPath": "Docker Socket Path",
+    "defaultHint": "Leave empty for default Docker socket"
   },
   "datasetManager": {
     "title": "Fine-Tune Dataset Manager",
@@ -7500,7 +7902,10 @@
     "loss": "Loss",
     "loraOutput": "LoRA Output",
     "action": "Action",
-    "ready": "Ready"
+    "ready": "Ready",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "errorRecovery": {
     "noError": "No error to recover from",
@@ -7657,7 +8062,14 @@
       "storeInsightsHint": "Insights will be saved locally and available across sessions",
       "subtitle": "Configure auto-reflection and insight management",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "Minimum Confidence",
+      "minConfidenceHint": "Insights with confidence below this value will be ignored",
+      "strategy": "Reflection Strategy",
+      "strategyHint": "Select reflection trigger strategy",
+      "triggerOnComplete": "Trigger on Complete",
+      "triggerOnError": "Trigger on Error",
+      "triggerOnIdle": "Trigger on Idle"
     },
     "useful": "Useful"
   },
@@ -7676,7 +8088,10 @@
       "completed": "Completed",
       "failed": "Failed",
       "running": "Running",
-      "total": "Total"
+      "total": "Total",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "tab": {
       "dataset": "Dataset",
@@ -8058,7 +8473,10 @@
       "walkForwardTitle": "Walk-Forward Backtest",
       "yes": "Yes",
       "no": "No",
-      "foldSharpeChart": "Fold Sharpe Bar Chart"
+      "foldSharpeChart": "Fold Sharpe Bar Chart",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "common": {
       "empty": "No data"
@@ -8174,7 +8592,10 @@
       "runBtn": "Start Sweep",
       "running": "Running sweep {{done}} / {{total}} …",
       "summary": "Sweep complete: {{total}} total, {{valid}} valid, {{invalid}} failed.",
-      "violationNotice": "Recorded {{count}} as-of violations — see Invalid panel for details."
+      "violationNotice": "Recorded {{count}} as-of violations — see Invalid panel for details.",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "title": "Replay Workbench"
   },
@@ -8297,7 +8718,10 @@
     "stepLogRunning": "(Running...)",
     "stepLogNoDetail": "(No detailed output)",
     "exitSignalAlert": "Exit signal scan complete:\nChecked {{checked}} items\n- Exit now: {{exitNow}} items\n- Caution: {{caution}} items",
-    "exitSignalAlertNone": "Exit signal scan complete: {{checked}} items, no anomalies found."
+    "exitSignalAlertNone": "Exit signal scan complete: {{checked}} items, no anomalies found.",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "trade": {
     "agentRole": {
@@ -8308,7 +8732,14 @@
       "planner": "Planner",
       "researcher": "Researcher",
       "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "synthesizer": "Synthesizer",
+      "analyst": "Analyst",
+      "decisionMaker": "Decision Maker",
+      "riskManager": "Risk Manager",
+      "strategist": "Strategist",
+      "supervisor": "Supervisor",
+      "trader": "Trader",
+      "validator": "Validator"
     },
     "buy": "Buy",
     "cost": "Cost",
@@ -8392,7 +8823,9 @@
     "textFile": "Text file",
     "unknownFile": "Unknown file",
     "previewNotSupported": "Preview is not supported for this file type",
-    "downloadFile": "Download file"
+    "downloadFile": "Download file",
+    "uiSchemaJson": "UI Schema JSON",
+    "schemaNotFound": "Specified Dynamic Page Not Found"
   },
   "agentPanel": {
     "openPanel": "Open AxAgent Panel",
@@ -8454,7 +8887,9 @@
       "failurePatterns": "Failure Patterns",
       "failureReason": "Failure Reason",
       "count": "Count",
-      "percentage": "Percentage"
+      "percentage": "Percentage",
+      "bottleneck": "Bottleneck",
+      "reason": "Failure Reason"
     },
     "feedback": {
       "thanks": "Thank you for your feedback",
@@ -8488,7 +8923,8 @@
       "thinking": "Thinking",
       "toolCall": "Tool Call",
       "waitingPermission": "Waiting Permission",
-      "error": "Error"
+      "error": "Error",
+      "permission": "Waiting for Permission"
     },
     "duration": "Duration: {{duration}}s"
   },
@@ -8617,7 +9053,16 @@
     "versionInvalid": "Invalid version format (expected major.minor.patch)",
     "versionAutoHint": "Leave empty to auto-increment patch version",
     "rollbackArchive": "Pre-restore archive (restore to {version})",
-    "versionUpdatedAt": "Created At"
+    "versionUpdatedAt": "Created At",
+    "visualEditor": "Visual Editor",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value",
+    "import": "Import",
+    "importSuccess": "Imported {{count}} UI(s) successfully",
+    "importInvalid": "Invalid or empty schema file",
+    "export": "Export",
+    "exportAll": "Export All",
+    "exportSuccess": "Exported successfully"
   },
   "visualEditor": {
     "palette": {
@@ -8628,7 +9073,11 @@
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "Basic",
+      "data": "Data",
+      "layout": "Layout",
+      "navigation": "Navigation"
     },
     "components": {
       "Container": "Container",
@@ -8661,7 +9110,13 @@
       "Text": "Text",
       "Divider": "Divider",
       "Progress": "Progress",
-      "Tag": "Tag"
+      "Tag": "Tag",
+      "Heading": "Heading",
+      "Link": "Link",
+      "Paragraph": "Paragraph",
+      "Slider": "Slider",
+      "Space": "Space",
+      "Tooltip": "Tooltip"
     },
     "canvas": {
       "leafNode": "leaf node",
@@ -8669,7 +9124,14 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "livePreview": "Live Preview",
+      "addNode": "Add Node",
+      "deleteNode": "Delete Node",
+      "duplicate": "Duplicate",
+      "moveDown": "Move Down",
+      "moveUp": "Move Up",
+      "pasteNode": "Paste Node"
     },
     "property": {
       "title": "Property Panel",
@@ -8692,8 +9154,22 @@
       "placeholder": {
         "propKey": "Key",
         "propValue": "Value"
-      }
-    }
+      },
+      "children": "Children",
+      "componentType": "Component Type",
+      "defaultValue": "Default Value",
+      "description": "Description",
+      "label": "Label",
+      "name": "Name",
+      "options": "Options",
+      "props": "Props",
+      "required": "Required",
+      "rules": "Validation Rules",
+      "type": "Type",
+      "value": "Value"
+    },
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen"
   },
   "dashboard": {
     "overview": "Overview",
@@ -8726,7 +9202,8 @@
     "dailyAvgCost": "Daily Avg Cost",
     "costByProvider": "Cost by Provider",
     "inputTokens": "Input Tokens",
-    "outputTokens": "Output Tokens"
+    "outputTokens": "Output Tokens",
+    "dailyAvgTokens": "Daily Avg Tokens"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10572,7 +11049,8 @@
     "emptyDescription": "No data yet. Complete tasks to generate learning graph",
     "useCount": "Use count: {count}",
     "detail": "Details",
-    "lexicalOverlap": "Related"
+    "lexicalOverlap": "Related",
+    "entities": "Entities"
   },
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
@@ -10680,5 +11158,66 @@
       "asOf": "As of",
       "live": "Live"
     }
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }

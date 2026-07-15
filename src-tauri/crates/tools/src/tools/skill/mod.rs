@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 
 pub mod env_config;
@@ -56,6 +56,7 @@ struct SkillIndexEntry {
     fallback_for_toolsets: Vec<String>,
     skill_dir: PathBuf,
     source_kind: String,
+    domain: ToolDomain,
     required_environment_variables: Vec<RequiredEnvVar>,
     config_settings: Vec<SkillConfigSetting>,
 }
@@ -66,15 +67,16 @@ struct SkillIndex {
 }
 
 type SkillMetadata = (
-    String,
-    String,
-    String,
-    Vec<String>,
-    Vec<String>,
-    Vec<String>,
-    Vec<String>,
-    Vec<RequiredEnvVar>,
-    Vec<SkillConfigSetting>,
+    String,                  // description
+    String,                  // category
+    String,                  // version
+    Vec<String>,             // platforms
+    Vec<String>,             // tags
+    Vec<String>,             // requires_toolsets
+    Vec<String>,             // fallback_for_toolsets
+    Vec<RequiredEnvVar>,     // required_env_vars
+    Vec<SkillConfigSetting>, // config_settings
+    String,                  // domain
 );
 
 impl SkillIndex {
@@ -140,14 +142,31 @@ impl SkillIndex {
                     let (
                         description,
                         category,
-                        version,
+                        mut version,
                         platforms,
                         tags,
                         requires_toolsets,
                         fallback_for_toolsets,
                         required_env_vars,
                         config_settings,
+                        domain,
                     ) = Self::extract_metadata(&skill_dir);
+
+                    // 运行时只对本应用自身的技能进行版本检测；
+                    // 其它应用的技能（claude/codebuddy/workbuddy/trae/agents 等）不检测版本，使用默认值。
+                    // 判断依据取 kit::skill_dirs::self_source_kind()，fork 改项目名后自动适配。
+                    if source_kind != axagent_kit::skill_dirs::self_source_kind() {
+                        version = "1.0.0".to_string();
+                    }
+
+                    let domain_enum = match domain.as_str() {
+                        "invest" => ToolDomain::Invest,
+                        "devops" => ToolDomain::Devops,
+                        "ai_media" => ToolDomain::AiMedia,
+                        "opc" => ToolDomain::Opc,
+                        "core" => ToolDomain::Core,
+                        _ => ToolDomain::General,
+                    };
 
                     let candidate = SkillIndexEntry {
                         name,
@@ -160,6 +179,7 @@ impl SkillIndex {
                         fallback_for_toolsets,
                         skill_dir,
                         source_kind: source_kind.to_string(),
+                        domain: domain_enum,
                         required_environment_variables: required_env_vars,
                         config_settings,
                     };
@@ -185,6 +205,7 @@ impl SkillIndex {
         let mut fallback_for_toolsets = Vec::new();
         let mut required_env_vars = Vec::new();
         let mut config_settings = Vec::new();
+        let mut domain = "general".to_string();
 
         let skill_md = skill_dir.join("SKILL.md");
         if let Ok(content) = std::fs::read_to_string(&skill_md) {
@@ -198,6 +219,11 @@ impl SkillIndex {
                     .get("version")
                     .and_then(|v| v.as_str())
                     .unwrap_or("1.0.0")
+                    .to_string();
+                domain = frontmatter
+                    .get("domain")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("general")
                     .to_string();
                 if let Some(p) = frontmatter.get("platforms").and_then(|v| v.as_array()) {
                     platforms = p.iter().filter_map(|v| v.as_str().map(String::from)).collect();
@@ -339,6 +365,7 @@ impl SkillIndex {
             fallback_for_toolsets,
             required_env_vars,
             config_settings,
+            domain,
         )
     }
 
@@ -403,6 +430,7 @@ impl SkillIndex {
                 description: e.description.clone(),
                 category: e.category.clone(),
                 version: e.version.clone(),
+                domain: e.domain.as_str().to_string(),
             })
             .collect()
     }
@@ -452,6 +480,7 @@ struct SkillSummary {
     description: String,
     category: String,
     version: String,
+    domain: String,
 }
 
 // ── SkillsList (Level 0) ──
@@ -465,7 +494,7 @@ impl Tool for SkillsListTool {
     }
     fn description(&self) -> &str {
         "列出所有已安装技能的摘要信息（Level 0 — 渐进式披露）。\
-         返回每个技能的名称、描述、类别和版本，不加载完整内容以节省 token。\
+         返回每个技能的名称、描述、类别、版本和领域，不加载完整内容以节省 token。\
          可选按类别过滤。确定要使用的技能后，用 SkillView 加载完整内容。"
     }
     fn input_schema(&self) -> Value {
@@ -482,6 +511,11 @@ impl Tool for SkillsListTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -505,8 +539,8 @@ impl Tool for SkillsListTool {
         let mut out = String::from("## 已安装技能列表\n\n");
         for s in &skills {
             out.push_str(&format!(
-                "- **{}** (v{}): {} [{}]\n",
-                s.name, s.version, s.description, s.category
+                "- **{}** (v{}): {} [{}] [域:{}]\n",
+                s.name, s.version, s.description, s.category, s.domain
             ));
         }
         out.push_str(&format!(
@@ -561,6 +595,11 @@ impl Tool for SkillViewTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -743,6 +782,11 @@ impl Tool for SkillReferenceTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -826,6 +870,11 @@ impl Tool for DiscoverSkillsTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -859,8 +908,12 @@ impl Tool for DiscoverSkillsTool {
         let mut out = format!("## 技能搜索: '{}'\n\n", q);
         for e in &results {
             out.push_str(&format!(
-                "- **{}** (v{}): {} [{}]\n",
-                e.name, e.version, e.description, e.category
+                "- **{}** (v{}): {} [{}] [域:{}]\n",
+                e.name,
+                e.version,
+                e.description,
+                e.category,
+                e.domain.as_str()
             ));
         }
         out.push_str(&format!(
@@ -977,6 +1030,11 @@ impl Tool for SkillBundleListTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -1032,6 +1090,11 @@ impl Tool for SkillBundleCreateTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -1084,6 +1147,11 @@ impl Tool for SkillBundleLoadTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -1180,6 +1248,11 @@ impl Tool for SkillBundleDeleteTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -1325,6 +1398,11 @@ impl Tool for SkillHubReviewTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }

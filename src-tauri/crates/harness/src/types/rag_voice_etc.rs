@@ -179,15 +179,15 @@ pub struct AgentSession {
     pub id: String,
     pub conversation_id: String,
     pub cwd: Option<String>,
-    pub workspace_locked: bool,
+    pub workspace_locked: i32,
     pub permission_mode: String,
     pub runtime_status: String,
     pub sdk_context_json: Option<String>,
     pub sdk_context_backup_json: Option<String>,
     pub total_tokens: i32,
     pub total_cost_usd: f64,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 // Knowledge
@@ -967,6 +967,7 @@ pub struct SkillInfo {
     pub group: Option<String>,
     #[serde(default)]
     pub manifest: Option<serde_json::Value>,
+    pub domain: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1362,6 +1363,7 @@ pub struct AgentRoleDef {
     pub description: Option<String>,
     pub system_prompt: String,
     pub default_tools: Vec<String>,
+    pub active_domains: Vec<String>,
     pub max_concurrent: usize,
     pub timeout_seconds: u64,
     pub source: String,

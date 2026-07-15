@@ -3,6 +3,7 @@
 import { pushNotification } from "@/components/layout/NotificationBell";
 import i18n from "@/i18n";
 import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useConversationStore } from "@/stores/domain/conversationStore";
 import { useStreamStore } from "@/stores/domain/streamStore";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
@@ -26,7 +27,6 @@ import type {
   UpdateAgentProfileInput,
 } from "@/types";
 import type { ToolExecution } from "@/types";
-import { message } from "antd";
 import { create } from "zustand";
 import { setupExecutionEventListeners, useExecutionStore } from "./executionStore";
 
@@ -108,6 +108,7 @@ interface AgentStore {
   handleToolResult: (event: ToolResultEvent) => void;
   handlePermissionRequest: (event: PermissionRequestEvent) => void;
   handlePermissionResolved: (toolUseId: string, decision: string) => void;
+  handlePermissionTimeout: (event: { conversationId: string; requestId: string; toolName: string }) => void;
   handleAskUser: (event: AskUserEvent) => void;
   handleAskUserResolved: (askId: string) => void;
   respondAskUser: (askId: string, answer: string) => Promise<void>;
@@ -409,6 +410,27 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         pendingPermissions: rest,
         toolCalls: updatedToolCalls,
       };
+    });
+  },
+
+  handlePermissionTimeout: (event) => {
+    // 权限请求超时（5 分钟无响应），清理挂起的权限 UI
+    // 使用 requestId 作为 key（与 handlePermissionRequest 一致）
+    set((s) => {
+      const rest = { ...s.pendingPermissions };
+      delete rest[event.requestId];
+      const existing = s.toolCalls[event.requestId];
+      const updatedToolCalls = existing
+        ? {
+          ...s.toolCalls,
+          [event.requestId]: {
+            ...existing,
+            approvalStatus: "denied" as const,
+            approvalMessage: `Permission for "${event.toolName}" timed out`,
+          },
+        }
+        : s.toolCalls;
+      return { pendingPermissions: rest, toolCalls: updatedToolCalls };
     });
   },
 
@@ -862,6 +884,15 @@ export function setupAgentEventListeners(): () => void {
     listen<PermissionRequestEvent>("agent-permission-request", (event) => {
       store.handlePermissionRequest(event.payload);
     }),
+  );
+
+  unlisteners.push(
+    listen<{ conversationId: string; requestId: string; toolName: string }>(
+      "agent-permission-timeout",
+      (event) => {
+        store.handlePermissionTimeout(event.payload);
+      },
+    ),
   );
 
   unlisteners.push(

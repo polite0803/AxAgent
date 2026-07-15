@@ -14,6 +14,7 @@ export type SuggestionType =
   | "Documentation"
   | "Test"
   | "Optimization"
+  | "Debug"
   | "Learning";
 
 export type PredictedIntent =
@@ -81,7 +82,8 @@ export interface ProactiveSuggestion {
   suggestion_type: SuggestionType;
   title: string;
   description: string;
-  action: SuggestedAction;
+  /** Backend serializes SuggestionAction as { type, language?, context?, target?, topic? } etc. */
+  action: Record<string, unknown>;
   priority: Priority;
   created_at: string;
   expires_at: string;
@@ -236,4 +238,30 @@ export interface ReminderManagerConfig {
   snooze_duration_minutes: number;
   auto_cleanup_completed: boolean;
   cleanup_after_days: number;
+}
+
+// ── Reminder backend DTO ──
+
+export interface ReminderItem {
+  id: string;
+  title: string;
+  description: string;
+  scheduled_at: string;
+  completed: boolean;
+  recurrence?: ReminderRecurrence;
+  created_at: string;
+}
+
+export interface ReminderListResult {
+  active: ReminderItem[];
+  completed: ReminderItem[];
+  pending_notifications: ReminderNotificationItem[];
+}
+
+export interface ReminderNotificationItem {
+  notification_id: string;
+  reminder_id: string;
+  reminder_title: string;
+  triggered_at: string;
+  acknowledged: boolean;
 }

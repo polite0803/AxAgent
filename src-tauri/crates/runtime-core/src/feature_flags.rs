@@ -10,7 +10,7 @@
 //! |-----------|--------|------|
 //! | `FORK_SUBAGENT` | false | 隐式 fork 子 agent，共享 prompt cache |
 //! | `COORDINATOR_MODE` | false | 协调器模式（主 agent 只能 spawn worker） |
-//! | `PROACTIVE_MODE` | false | 主动模式（空闲时自动 tick） |
+//! | `PROACTIVE_MODE` | true | 主动模式（空闲时自动 tick） |
 //! | `SWARM_MODE` | false | 跨进程 Swarm/Teammate 协作 |
 //! | `REMOTE_AGENT` | false | 远程 agent 执行 |
 //! | `VERIFICATION_AGENT` | false | 独立的验证 agent |
@@ -47,7 +47,7 @@ const BUILTIN_FEATURE_FLAGS: &[FeatureFlagDef] = &[
     },
     FeatureFlagDef {
         name: "PROACTIVE_MODE",
-        default: false,
+        default: true,
         description: "主动模式（空闲时自动 tick）",
     },
     FeatureFlagDef {

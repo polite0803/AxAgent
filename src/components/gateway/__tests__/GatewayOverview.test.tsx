@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { message } from "antd";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GatewayOverview } from "../GatewayOverview";
 
@@ -26,9 +26,22 @@ let requestLogs: Array<Record<string, unknown>> = [];
 let recentLogsResponse: Array<Record<string, unknown>> = [];
 
 vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: vi.fn() },
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+}));
+
+vi.mock("@/lib/toast", () => ({
+  message: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    loading: vi.fn(),
+    open: vi.fn(),
+    destroy: vi.fn(),
+  },
 }));
 
 vi.mock("@/stores", () => ({
@@ -79,14 +92,7 @@ describe("GatewayOverview", () => {
 
   it("shows an error message when starting the gateway fails", async () => {
     startGateway.mockRejectedValueOnce(new Error("TLS cert missing"));
-    const errorSpy = vi.spyOn(message, "error").mockImplementation(() => {
-      const noop = () => {};
-      return {
-        then: undefined as never,
-        promise: Promise.resolve(),
-        close: noop,
-      } as never;
-    });
+    const errorSpy = vi.spyOn(message, "error");
 
     render(<GatewayOverview />);
 

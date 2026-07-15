@@ -561,6 +561,172 @@ impl Default for ServiceRegistry {
     }
 }
 
+// ── ServiceRegistryProvider trait ──────────────────────────────────────
+
+/// DI 容器抽象 trait —— consumer crate 通过此 trait 获取 repository，不依赖具体实现。
+///
+/// 与 `ServiceRegistry` struct 上的 inherent 方法不同，trait 方法返回 `Option<Arc<dyn T>>`：
+/// - 未初始化时返回 `None`，不 panic
+/// - 适合 consumer crate（agent / orchestrator / gateway 等）通过 `Arc<dyn ServiceRegistryProvider>`
+///   进行依赖注入，避免对具体 struct 的直接依赖
+///
+/// struct 的 inherent 方法（如 `note_repository()` 返回 `Arc<dyn T>` 并 panic）保持不变，
+/// 以维持向后兼容；新增的 trait 方法提供更宽容的接口。
+pub trait ServiceRegistryProvider: Send + Sync {
+    fn note_repository(&self) -> Option<Arc<dyn NoteRepository>>;
+    fn wiki_repository(&self) -> Option<Arc<dyn WikiRepository>>;
+    fn wiki_page_repository(&self) -> Option<Arc<dyn WikiPageRepository>>;
+    fn wiki_source_repository(&self) -> Option<Arc<dyn WikiSourceRepository>>;
+    fn wiki_operation_repository(&self) -> Option<Arc<dyn WikiOperationRepository>>;
+    fn note_backlink_repository(&self) -> Option<Arc<dyn NoteBacklinkRepository>>;
+    fn settings_repository(&self) -> Option<Arc<dyn SettingsRepository>>;
+    fn session_repository(&self) -> Option<Arc<dyn SessionRepository>>;
+    fn provider_repository(&self) -> Option<Arc<dyn ProviderRepository>>;
+    fn generated_tool_repository(&self) -> Option<Arc<dyn GeneratedToolRepository>>;
+    fn platform_config_repository(&self) -> Option<Arc<dyn PlatformConfigRepository>>;
+    fn conversation_repository(&self) -> Option<Arc<dyn ConversationRepository>>;
+    fn message_repository(&self) -> Option<Arc<dyn MessageRepository>>;
+    fn tool_execution_repository(&self) -> Option<Arc<dyn ToolExecutionRepository>>;
+    fn memory_repository(&self) -> Option<Arc<dyn MemoryRepository>>;
+    fn workflow_execution_repository(&self) -> Option<Arc<dyn WorkflowExecutionRepository>>;
+    fn loop_checkpoint_repository(&self) -> Option<Arc<dyn LoopCheckpointRepository>>;
+    fn workflow_template_repository(&self) -> Option<Arc<dyn WorkflowTemplateRepository>>;
+    fn background_task_repository(&self) -> Option<Arc<dyn BackgroundTaskRepository>>;
+    fn stored_file_repository(&self) -> Option<Arc<dyn StoredFileRepository>>;
+    fn knowledge_entity_repository(&self) -> Option<Arc<dyn KnowledgeEntityRepository>>;
+    fn knowledge_flow_repository(&self) -> Option<Arc<dyn KnowledgeFlowRepository>>;
+    fn knowledge_interface_repository(&self) -> Option<Arc<dyn KnowledgeInterfaceRepository>>;
+    fn knowledge_document_repository(&self) -> Option<Arc<dyn KnowledgeDocumentRepository>>;
+    fn trajectory_repository(&self) -> Option<Arc<dyn TrajectoryRepository>>;
+    fn agent_profile_repository(&self) -> Option<Arc<dyn AgentProfileRepository>>;
+    fn agency_expert_repository(&self) -> Option<Arc<dyn AgencyExpertRepository>>;
+    fn agent_role_repository(&self) -> Option<Arc<dyn AgentRoleRepository>>;
+    fn database_initializer(&self) -> Option<Arc<dyn DatabaseInitializer>>;
+    fn skill_dirs_provider(&self) -> Option<Arc<dyn SkillDirsProvider>>;
+}
+
+impl ServiceRegistryProvider for ServiceRegistry {
+    fn note_repository(&self) -> Option<Arc<dyn NoteRepository>> {
+        self.note_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn wiki_repository(&self) -> Option<Arc<dyn WikiRepository>> {
+        self.wiki_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn wiki_page_repository(&self) -> Option<Arc<dyn WikiPageRepository>> {
+        self.wiki_page_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn wiki_source_repository(&self) -> Option<Arc<dyn WikiSourceRepository>> {
+        self.wiki_source_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn wiki_operation_repository(&self) -> Option<Arc<dyn WikiOperationRepository>> {
+        self.wiki_operation_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn note_backlink_repository(&self) -> Option<Arc<dyn NoteBacklinkRepository>> {
+        self.backlink_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn settings_repository(&self) -> Option<Arc<dyn SettingsRepository>> {
+        self.settings_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn session_repository(&self) -> Option<Arc<dyn SessionRepository>> {
+        self.session_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn provider_repository(&self) -> Option<Arc<dyn ProviderRepository>> {
+        self.provider_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn generated_tool_repository(&self) -> Option<Arc<dyn GeneratedToolRepository>> {
+        self.generated_tool_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn platform_config_repository(&self) -> Option<Arc<dyn PlatformConfigRepository>> {
+        self.platform_config_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn conversation_repository(&self) -> Option<Arc<dyn ConversationRepository>> {
+        self.conversation_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn message_repository(&self) -> Option<Arc<dyn MessageRepository>> {
+        self.message_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn tool_execution_repository(&self) -> Option<Arc<dyn ToolExecutionRepository>> {
+        self.tool_execution_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn memory_repository(&self) -> Option<Arc<dyn MemoryRepository>> {
+        self.memory_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn workflow_execution_repository(&self) -> Option<Arc<dyn WorkflowExecutionRepository>> {
+        self.workflow_execution_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn loop_checkpoint_repository(&self) -> Option<Arc<dyn LoopCheckpointRepository>> {
+        self.loop_checkpoint_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn workflow_template_repository(&self) -> Option<Arc<dyn WorkflowTemplateRepository>> {
+        self.workflow_template_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn background_task_repository(&self) -> Option<Arc<dyn BackgroundTaskRepository>> {
+        self.background_task_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn stored_file_repository(&self) -> Option<Arc<dyn StoredFileRepository>> {
+        self.stored_file_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn knowledge_entity_repository(&self) -> Option<Arc<dyn KnowledgeEntityRepository>> {
+        self.knowledge_entity_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn knowledge_flow_repository(&self) -> Option<Arc<dyn KnowledgeFlowRepository>> {
+        self.knowledge_flow_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn knowledge_interface_repository(&self) -> Option<Arc<dyn KnowledgeInterfaceRepository>> {
+        self.knowledge_interface_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn knowledge_document_repository(&self) -> Option<Arc<dyn KnowledgeDocumentRepository>> {
+        self.knowledge_document_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn trajectory_repository(&self) -> Option<Arc<dyn TrajectoryRepository>> {
+        self.trajectory_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn agent_profile_repository(&self) -> Option<Arc<dyn AgentProfileRepository>> {
+        self.agent_profile_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn agency_expert_repository(&self) -> Option<Arc<dyn AgencyExpertRepository>> {
+        self.agency_expert_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn agent_role_repository(&self) -> Option<Arc<dyn AgentRoleRepository>> {
+        self.agent_role_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn database_initializer(&self) -> Option<Arc<dyn DatabaseInitializer>> {
+        self.db_init.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn skill_dirs_provider(&self) -> Option<Arc<dyn SkillDirsProvider>> {
+        self.skill_dirs.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+}
+
 /// 全局服务注册表实例 —— 向后兼容过渡方案。
 ///
 /// 后续可逐步迁移所有调用方到显式 DI 注入。

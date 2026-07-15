@@ -75,7 +75,7 @@ interface WikiState {
     wikiId: string,
     outputPath: string,
   ) => Promise<ExportStats | null>;
-  exportNotePdf: (noteId: string, outputPath: string) => Promise<string | null>;
+  exportNoteHtml: (noteId: string, outputPath: string) => Promise<string | null>;
 }
 
 export const useWikiStore = create<WikiState>((set) => ({
@@ -370,9 +370,9 @@ export const useWikiStore = create<WikiState>((set) => ({
     }
   },
 
-  exportNotePdf: async (noteId, outputPath) => {
+  exportNoteHtml: async (noteId, outputPath) => {
     try {
-      const htmlPath = await invoke<string>("wiki_note_export_pdf", {
+      const htmlPath = await invoke<string>("wiki_note_export_html", {
         noteId,
         outputPath,
       });

@@ -68,6 +68,7 @@ async fn pg_migrations_apply_and_search_works() {
         "trajectory_memories",
         "wiki_page_versions",
         "dynamic_ui_schema_versions",
+        "route_history",
     ];
     for t in tables {
         let row = db
@@ -103,7 +104,8 @@ async fn pg_migrations_apply_and_search_works() {
         assert!(row.is_some(), "tsvector column {col} should exist on PostgreSQL");
     }
 
-    // 3c) schema_version 应只有 1 行，MAX(version) = 100（v100 合并迁移）
+    // 3c) schema_version 应只有 3 行，MAX(version) = 102
+    //     （v100 consolidated + v101 route_history + v102 skill_failure_fields）
     let max_row = db
         .query_one_raw(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -114,7 +116,7 @@ async fn pg_migrations_apply_and_search_works() {
         .unwrap()
         .expect("max version row");
     let max_v: i32 = max_row.try_get_by("v").unwrap();
-    assert_eq!(max_v, 100, "schema version should be 100 (v100 consolidated), got {max_v}");
+    assert_eq!(max_v, 102, "schema version should be 102 (v100+v101+v102), got {max_v}");
 
     // 4) 端到端：插入会话+消息，跑 PG 全文检索，验证 tsvector 真实生效
     db.execute_unprepared(

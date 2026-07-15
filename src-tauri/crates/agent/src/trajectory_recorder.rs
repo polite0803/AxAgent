@@ -186,8 +186,11 @@ impl TrajectoryRecorder {
                 s.tool_results.as_ref().map(|r| r.iter().any(|tr| tr.is_error)).unwrap_or(false)
             });
 
-        if has_errors || state.steps.is_empty() {
+        if has_errors {
             TrajectoryOutcome::Failure
+        } else if state.steps.is_empty() {
+            // 无步骤、无错误：标记为 Abandoned（用户取消/任务被遗弃）
+            TrajectoryOutcome::Abandoned
         } else {
             TrajectoryOutcome::Success
         }
@@ -491,11 +494,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_trajectory_recorder_determine_outcome_failure_on_empty() {
+    async fn test_trajectory_recorder_determine_outcome_abandoned_on_empty() {
         let recorder = TrajectoryRecorder::new("sess1".into(), "user1".into(), "test topic".into());
         recorder.start_recording("input").await;
         let traj = recorder.stop_recording().await;
-        assert_eq!(traj.outcome, TrajectoryOutcome::Failure);
+        assert_eq!(traj.outcome, TrajectoryOutcome::Abandoned);
     }
 
     #[tokio::test]

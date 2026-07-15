@@ -4,7 +4,7 @@ import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { executeActionChain } from "@/lib/skillActionExecutor";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
-import { Input, List, Modal, Tag, theme, Typography } from "antd";
+import { Input, Modal, Tag, theme, Typography } from "antd";
 import { MessageSquare, Network, PanelLeftClose, Plus, Puzzle, Search, Settings, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -362,13 +362,12 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               >
                 {category}
               </Typography.Text>
-              <List
-                dataSource={cmds}
-                renderItem={(cmd) => {
+              <div className="divide-y divide-gray-100">
+                {cmds.map((cmd) => {
                   const idx = flatIndex++;
                   const isActive = idx === activeIndex;
                   return (
-                    <List.Item
+                    <div
                       key={cmd.id}
                       onClick={() => executeCommand(cmd)}
                       style={{
@@ -391,10 +390,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         <span style={{ flex: 1 }}>{cmd.label}</span>
                         {cmd.shortcut && <Tag style={{ margin: 0 }}>{cmd.shortcut}</Tag>}
                       </div>
-                    </List.Item>
+                    </div>
                   );
-                }}
-              />
+                })}
+              </div>
             </div>
           ))}
         </div>

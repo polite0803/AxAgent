@@ -2,7 +2,7 @@
 
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { BacklinkInfo } from "@/types";
-import { Empty, List, Spin, theme, Typography } from "antd";
+import { Empty, Spin, theme, Typography } from "antd";
 import { ArrowLeftRight, ChevronDown, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -136,10 +136,8 @@ export function BacklinkPanel({
       </div>
 
       {!collapsed && (
-        <List
-          dataSource={backlinks}
-          split={false}
-          renderItem={(bl) => (
+        <div>
+          {backlinks.map((bl) => (
             <div
               key={bl.noteId}
               className="mb-1.5 rounded-lg transition-colors duration-150"
@@ -183,8 +181,8 @@ export function BacklinkPanel({
                 </div>
               )}
             </div>
-          )}
-        />
+          ))}
+        </div>
       )}
     </div>
   );

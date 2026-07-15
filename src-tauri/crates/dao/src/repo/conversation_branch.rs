@@ -48,20 +48,32 @@ pub async fn create_branch(
     label: &str,
 ) -> Result<ConversationBranch> {
     let id = gen_id();
-
-    let count = conversation_branches::Entity::find()
-        .filter(conversation_branches::Column::ConversationId.eq(conversation_id))
-        .count(db)
-        .await? as i32;
-
     let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+    let backend = db.get_database_backend();
+    let (count_sql, count_values): (&str, Vec<sea_orm::Value>) = match backend {
+        sea_orm::DatabaseBackend::Postgres => (
+            "SELECT COALESCE(MAX(branch_index), -1) + 1 FROM conversation_branches WHERE conversation_id = $1",
+            vec![conversation_id.into()],
+        ),
+        _ => (
+            "SELECT COALESCE(MAX(branch_index), -1) + 1 FROM conversation_branches WHERE conversation_id = ?",
+            vec![conversation_id.into()],
+        ),
+    };
+
+    let count_result =
+        db.query_one_raw(Statement::from_sql_and_values(backend, count_sql, count_values)).await?;
+
+    let next_index: i32 =
+        count_result.and_then(|row| row.try_get_by_index::<i32>(0).ok()).unwrap_or(0);
 
     let am = conversation_branches::ActiveModel {
         id: Set(id.clone()),
         conversation_id: Set(conversation_id.to_string()),
         parent_message_id: Set(parent_message_id.to_string()),
         branch_label: Set(label.to_string()),
-        branch_index: Set(count),
+        branch_index: Set(next_index),
         compared_message_ids_json: Set(None),
         created_at: Set(now),
     };

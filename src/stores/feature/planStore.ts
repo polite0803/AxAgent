@@ -2,6 +2,7 @@
 
 import i18n from "@/i18n";
 import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import type {
   Plan,
   PlanExecuteRequest,
@@ -12,7 +13,6 @@ import type {
   PlanStepStatus,
   PlanStepUpdateEvent,
 } from "@/types";
-import { message } from "antd";
 import { create } from "zustand";
 
 // ── Plan Event Types (frontend-only, derived from backend events) ─────

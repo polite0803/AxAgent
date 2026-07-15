@@ -298,7 +298,7 @@ function MetricsPanel({ metrics }: { metrics: MetricsReport }) {
         good: false,
       },
       { key: "sortino", title: t("quant.metrics.sortino"), value: metrics.sortino, good: true },
-      { key: "calmar", title: t("quant.metrics.calmar"), value: (metrics.calmar ?? 0), good: true },
+      { key: "calmar", title: t("quant.metrics.calmar"), value: metrics.calmar ?? 0, good: true },
       {
         key: "profitFactor",
         title: t("quant.metrics.profitFactor"),

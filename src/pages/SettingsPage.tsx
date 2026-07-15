@@ -4,9 +4,10 @@ import { SettingsSidebar } from "@/components/settings";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { Button, message, Result, Spin, theme } from "antd";
+import { Button, Result, Spin, theme } from "antd";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -362,7 +363,7 @@ function CronManagerWrapper() {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await invoke("delete_scheduled_task", { id });
+        await invoke("delete_scheduled_task", { taskId: id });
         message.success(t("common.success"));
         loadJobs();
       } catch {
@@ -376,9 +377,9 @@ function CronManagerWrapper() {
     async (id: string, enabled: boolean) => {
       try {
         if (enabled) {
-          await invoke("resume_scheduled_task", { id });
+          await invoke("resume_scheduled_task", { taskId: id });
         } else {
-          await invoke("pause_scheduled_task", { id });
+          await invoke("pause_scheduled_task", { taskId: id });
         }
         loadJobs();
       } catch {

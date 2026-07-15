@@ -154,7 +154,10 @@ impl BenchmarkSuite {
                             context: None,
                             constraints: vec!["需要考虑一致性、可用性、分区容错性".to_string()],
                         },
-                        expected_output: None,
+                        expected_output: Some(TaskOutput {
+                            content: "一致性,分片,复制,故障转移,缓存".to_string(),
+                            format: "text".to_string(),
+                        }),
                         evaluation_criteria: vec![
                             EvaluationCriteria {
                                 name: "分解完整性".to_string(),
@@ -236,7 +239,10 @@ impl BenchmarkSuite {
                         context: None,
                         constraints: vec!["使用递归实现".to_string()],
                     },
-                    expected_output: None,
+                    expected_output: Some(TaskOutput {
+                        content: "fibonacci,递归,n <= 1".to_string(),
+                        format: "code".to_string(),
+                    }),
                     evaluation_criteria: vec![
                         EvaluationCriteria {
                             name: "语法正确性".to_string(),
@@ -270,11 +276,14 @@ impl BenchmarkSuite {
                     name: "错误识别与修正".to_string(),
                     description: "识别代码中的错误并提供修正方案".to_string(),
                     input: TaskInput {
-                        query: "以下代码有什么问题？\nfn main() {\n    let x = 5;\n    println!(\"{}\", x);\n}".to_string(),
+                        query: "以下代码有什么问题？\nfn main() {\n    let x = 5;\n    println!(\"{}\", y);\n}".to_string(),
                         context: None,
                         constraints: vec!["需要指出具体错误位置".to_string()],
                     },
-                    expected_output: None,
+                    expected_output: Some(TaskOutput {
+                        content: "y,未定义,undefined".to_string(),
+                        format: "text".to_string(),
+                    }),
                     evaluation_criteria: vec![
                         EvaluationCriteria {
                             name: "错误识别".to_string(),

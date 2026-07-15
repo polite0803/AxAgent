@@ -435,17 +435,34 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
   },
 
   triggerSkillEvolution: async (_skillId: string) => {
+    // 调用真进化命令 skill_evolution_start（调用 SkillEvolutionEngine::run 执行遗传算法）
+    // 注意：trigger_skill_evolution 是伪触发（只写日志），已废弃删除
     try {
-      await invoke("trigger_skill_evolution", { skillId: _skillId });
+      const result = await invoke<{
+        skill_id: string;
+        improved: boolean;
+        reason: string;
+        confidence: number;
+        quality_delta?: number;
+      }>("skill_evolution_start", { skillId: _skillId });
+
+      get().addEvolutionEvent({
+        engine: "skill_evolution",
+        timestamp: Date.now(),
+        type: result.improved ? "evolved" : "error",
+        detail: result.improved
+          ? `Skill ${_skillId} evolved: ${result.reason} (confidence: ${(result.confidence * 100).toFixed(1)}%)`
+          : `Skill ${_skillId} evolution skipped: ${result.reason}`,
+      });
     } catch (err) {
-      console.warn("[evolutionStore] triggerSkillEvolution failed, using mock", err);
+      console.warn("[evolutionStore] triggerSkillEvolution failed", err);
+      get().addEvolutionEvent({
+        engine: "skill_evolution",
+        timestamp: Date.now(),
+        type: "error",
+        detail: `Skill ${_skillId} evolution failed: ${err}`,
+      });
     }
-    get().addEvolutionEvent({
-      engine: "skill_evolution",
-      timestamp: Date.now(),
-      type: "evolved",
-      detail: `Skill ${_skillId} evolution triggered`,
-    });
   },
 
   addEvolutionEvent: (event: EvolutionEvent) => {

@@ -4,7 +4,7 @@
 //!
 //! SecurityAudit (npm/cargo audit), DeadCodeDetect, BundleAnalyze, IssueCreate, IssueList
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_kit::utils::hide_window;
 use serde_json::Value;
@@ -45,6 +45,11 @@ impl Tool for SecurityAuditTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Shell
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -107,6 +112,11 @@ impl Tool for DeadCodeDetectTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Shell
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -175,6 +185,11 @@ impl Tool for BundleAnalyzeTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Shell
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -256,6 +271,11 @@ impl Tool for IssueCreateTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Automation
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -322,6 +342,11 @@ impl Tool for IssueListTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Automation
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

@@ -334,6 +334,7 @@ mod tests {
             Ok(NodeOutput {
                 output: serde_json::json!({"node_type": self.node_type_str}),
                 output_var: None,
+                control: None,
             })
         }
     }

@@ -621,9 +621,11 @@ impl TextGradEngine {
         if learning_rate >= 1.0 {
             format!("{}\n\n<!-- TextGrad revision -->\n{}", content, gradient)
         } else {
-            let keep_chars = (content.len() as f64 * (1.0 - learning_rate)) as usize;
-            let keep_chars = keep_chars.max(1).min(content.len());
-            let preserved = &content[..keep_chars];
+            // content.len() 是字节数，必须用 truncate_to_char_boundary 对齐 char 边界，
+            // 否则在多字节 UTF-8（如中文）下索引到字符中间会 panic。
+            let keep_bytes = (content.len() as f64 * (1.0 - learning_rate)) as usize;
+            let keep_bytes = keep_bytes.max(1).min(content.len());
+            let preserved = truncate_to_char_boundary(content, keep_bytes);
             format!(
                 "{}\n\n<!-- TextGrad revision (lr={}) -->\n{}",
                 preserved, learning_rate, gradient

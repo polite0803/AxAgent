@@ -20,6 +20,11 @@ pub struct Model {
     pub usage_count: i32,
     pub success_rate: f64,
     pub avg_execution_time_ms: f64,
+    /// 连续失败次数：Failure 累加，Success/Partial 清零
+    #[sea_orm(default_value = 0)]
+    pub consecutive_failures: i32,
+    /// 最近一次失败时间（ISO8601 字符串），NULL 表示从未失败
+    pub last_failure_at: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

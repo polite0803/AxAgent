@@ -160,10 +160,22 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
     }
 
     try {
-      await invoke("evaluator_export_report", {
+      const content = await invoke<string>("evaluator_export_report", {
         report: currentReport,
         format,
       });
+      // 触发文件下载
+      const mimeType = format === "json" ? "application/json" : "text/markdown";
+      const ext = format === "json" ? "json" : "md";
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `benchmark-report-${currentReport.benchmark_id}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to export report",

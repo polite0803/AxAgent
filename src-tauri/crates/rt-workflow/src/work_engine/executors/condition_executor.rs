@@ -80,6 +80,7 @@ impl NodeExecutorTrait for ConditionExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: None,
+            control: None,
         })
     }
 }
@@ -208,6 +209,7 @@ impl ConditionExecutor {
                     "node_id": node_id,
                 }),
                 output_var: None,
+                control: None,
             }),
             Err(e) => {
                 // LLM 调用失败时降级为启发式
@@ -222,6 +224,7 @@ impl ConditionExecutor {
                         "node_id": node_id,
                     }),
                     output_var: None,
+                    control: None,
                 })
             },
         }

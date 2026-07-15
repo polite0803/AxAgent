@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import type { MemoryNature, MemoryTier } from "@/types";
+
 export interface MemoryRetrievedItem {
   content: string;
   score: number;
@@ -18,9 +20,6 @@ export interface RagContextRetrievedEvent {
   conversation_id: string;
   sources: MemorySourceResult[];
 }
-
-export type MemoryTier = "short_term" | "working" | "long_term" | "core";
-export type MemoryNature = "episodic" | "semantic";
 
 export interface MemoryEntry {
   id: string;

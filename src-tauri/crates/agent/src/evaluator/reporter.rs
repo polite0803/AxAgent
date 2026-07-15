@@ -205,15 +205,15 @@ impl ReportGenerator {
         for task in &report.task_breakdown {
             md.push_str(&format!("### {} ({})\n\n", task.task_name, task.difficulty));
             md.push_str(&format!(
-                "- **状态**: {} |\n",
+                "- **状态**: {}\n",
                 if task.success {
                     "✅ 通过"
                 } else {
                     "❌ 失败"
                 }
             ));
-            md.push_str(&format!("- **得分**: {} |\n", format_score(task.score)));
-            md.push_str(&format!("- **耗时**: {}ms |\n\n", task.duration_ms));
+            md.push_str(&format!("- **得分**: {}\n", format_score(task.score)));
+            md.push_str(&format!("- **耗时**: {}ms\n\n", task.duration_ms));
 
             md.push_str("| 评估项 | 得分 | 通过 |\n|:---|:---|:---|\n");
             for criteria in &task.criteria_scores {

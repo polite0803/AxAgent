@@ -102,11 +102,11 @@ impl From<PreValidationError> for ActionError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_tools::registry::ToolRegistry as ConcreteToolRegistry;
+    use axagent_harness::test_support::NoopToolRegistry;
 
     #[test]
     fn test_missing_tool_name() {
-        let registry = Arc::new(ConcreteToolRegistry::new()) as Arc<dyn ToolRegistry>;
+        let registry = Arc::new(NoopToolRegistry) as Arc<dyn ToolRegistry>;
         let validator = PreExecutionValidator::new(registry);
 
         let action = Action {
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_tool_not_found() {
-        let registry = Arc::new(ConcreteToolRegistry::new()) as Arc<dyn ToolRegistry>;
+        let registry = Arc::new(NoopToolRegistry) as Arc<dyn ToolRegistry>;
         let validator = PreExecutionValidator::new(registry);
 
         let action = Action {
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_non_tool_actions_pass_through() {
-        let registry = Arc::new(ConcreteToolRegistry::new()) as Arc<dyn ToolRegistry>;
+        let registry = Arc::new(NoopToolRegistry) as Arc<dyn ToolRegistry>;
         let validator = PreExecutionValidator::new(registry);
 
         let action = Action::llm_call("test prompt");

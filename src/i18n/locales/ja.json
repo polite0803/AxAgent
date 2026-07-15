@@ -2,7 +2,9 @@
   "app": {
     "name": "AxAgent",
     "title": "スマートワークスペース",
-    "description": "AI駆動のワークアシスタント"
+    "description": "AI駆動のワークアシスタント",
+    "newSkillProposal": "新しいスキル提案: {name}",
+    "quickBar": "QuickBar"
   },
   "artifact": {
     "copiedToClipboard": "クリップボードにコピーしました",
@@ -37,7 +39,8 @@
     "pipeline": "株式パイプライン",
     "workspace": "株ワークスペース",
     "portfolio": "Portfolio",
-    "scheduledAnalysis": "Scheduled"
+    "scheduledAnalysis": "Scheduled",
+    "dynamicUI": "ダイナミックページ"
   },
   "sidebar": {
     "sectionWork": "ワーク",
@@ -54,7 +57,8 @@
     "sectionInvestReview": "Review",
     "closeAgent": "Close Agent",
     "openAgent": "Open Agent",
-    "sectionOverview": "概要"
+    "sectionOverview": "概要",
+    "agentPanel": "Agent Panel"
   },
   "chat": {
     "newConversation": "新しい会話",
@@ -233,7 +237,10 @@
       "success": "成功",
       "error": "失敗",
       "input": "入力",
-      "output": "出力"
+      "output": "出力",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "mcp": {
       "title": "MCPツール",
@@ -345,7 +352,10 @@
         "running": "実行中",
         "completed": "完了",
         "failed": "失敗",
-        "skipped": "スキップ"
+        "skipped": "スキップ",
+        "strategyOverwrite": "Overwrite",
+        "strategyMerge": "Merge",
+        "strategyDryRun": "Dry run"
       },
       "workflowStatus": {
         "created": "作成済み",
@@ -353,7 +363,10 @@
         "completed": "完了",
         "partiallyCompleted": "部分完了",
         "failed": "失敗",
-        "cancelled": "キャンセル"
+        "cancelled": "キャンセル",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "dagVisualization": "DAG 可視化",
       "dagHint": "DAG を可視化するには Mermaid レンダラーにこのコードを貼り付けてください",
@@ -844,7 +857,10 @@
       "askUser": "質問",
       "loading": "読み込み中...",
       "failed": "失敗",
-      "iteration": "回の反復"
+      "iteration": "回の反復",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "benchmarks": {
       "failed": "失敗",
@@ -1009,7 +1025,10 @@
       "running": "{{running}} 実行中",
       "cancelled": "キャンセル",
       "pending": "保留中",
-      "totalEvents": "{{total}} 件のイベント"
+      "totalEvents": "{{total}} 件のイベント",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "agent": {
       "acceptEdits": "編集を許可",
@@ -1041,7 +1060,10 @@
       "goToEnd": "最後に移動",
       "goToStart": "最初に戻る",
       "nextStep": "次のステップ",
-      "prevStep": "前のステップ"
+      "prevStep": "前のステップ",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "switchedTo": "切り替えました: {{name}}",
     "contextGraph": {
@@ -1177,7 +1199,12 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "会話をクリアしました",
+    "createConversationFailed": "会話の作成に失敗しました",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "gateway": {
     "title": "ゲートウェイ",
@@ -1314,7 +1341,10 @@
     "tab": {
       "monitor": "モニター"
     },
-    "cacheHitTokens": "キャッシュヒットトークン"
+    "cacheHitTokens": "キャッシュヒットトークン",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "settings": {
     "title": "設定",
@@ -1362,7 +1392,9 @@
       "statusConnecting": "接続中",
       "lastActivity": "最終アクティビティ",
       "activeSessions": "アクティブセッション",
-      "noStatuses": "ステータスがありません"
+      "noStatuses": "ステータスがありません",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker プレフィックス（デフォルト CHAT2API、通常は変更不要）"
     },
     "shortcuts": {
       "label": "ショートカット",
@@ -1449,7 +1481,10 @@
       "stopped": "Stopped",
       "start": "Start",
       "stop": "Stop",
-      "noLogs": "No logs yet"
+      "noLogs": "No logs yet",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "data": {
       "title": "データ管理"
@@ -1891,7 +1926,14 @@
       "importErrors": "Error Details",
       "importedCount": "Imported",
       "errorCount": "Failed",
-      "importSelectFirst": "Please select a folder first"
+      "importSelectFirst": "Please select a folder first",
+      "autoIndex": "自動インデックス",
+      "autoIndexHint": "ファイル変更時に自動的にインデックスを更新",
+      "maxResults": "最大結果数",
+      "scoreThreshold": "スコア閾値",
+      "vectorStore": "ベクトルストレージ",
+      "webCrawlDepth": "Web クロール深度",
+      "webCrawlPages": "クロールページ数"
     },
     "rag": {
       "queryEnhancement": {
@@ -2091,7 +2133,8 @@
       "dirNotWritable": "対象ディレクトリに書き込みできません",
       "restartRequired": "変更は再起動後に完全に有効になります",
       "restartNow": "今すぐ再起動",
-      "restartLater": "後で再起動"
+      "restartLater": "後で再起動",
+      "openFolderError": "Open folder failed: {error}"
     },
     "filterProviders": "プロバイダーを検索...",
     "initProviders": "プロバイダーを初期化",
@@ -2283,7 +2326,10 @@
       "executed": "実行済み",
       "quickCreated": "クイック作成",
       "refreshed": "更新しました",
-      "unknownTemplateType": "不明なテンプレートタイプ"
+      "unknownTemplateType": "不明なテンプレートタイプ",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "localTools": {
       "groupAgent": "エージェント",
@@ -2714,7 +2760,68 @@
       "jsonEdit": "JSON編集"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常は変更不要）"
+    "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常は変更不要）",
+    "persona": {
+      "activated": "アクティブ",
+      "activate": "有効化",
+      "cancel": "キャンセル",
+      "create": "新しいペルソナ",
+      "createFailed": "作成失敗",
+      "createFirst": "ペルソナを選択または作成してください",
+      "description": "エージェントのペルソナとソウル定義を管理",
+      "editFailed": "編集失敗",
+      "emptyContent": "（空）",
+      "nameLabel": "名前",
+      "namePlaceholder": "my-persona",
+      "noPersona": "ペルソナがありません",
+      "personaList": "ペルソナリスト",
+      "save": "保存",
+      "saved": "保存済み",
+      "saveFailed": "保存失敗",
+      "switchFailed": "切り替え失敗",
+      "switchSuccess": "{{name}}に切り替えました",
+      "title": "ペルソナ管理",
+      "soul": {
+        "label": "SOUL.md（ソウル定義）",
+        "description": "エージェントの基本ペルソナと行動スタイルの定義",
+        "placeholder": "ソウル定義を入力..."
+      },
+      "identity": {
+        "label": "IDENTITY.md（アイデンティティ宣言）",
+        "description": "エージェントのアイデンティティ宣言とロール情報",
+        "placeholder": "エージェントのアイデンティティ宣言..."
+      },
+      "user": {
+        "label": "USER.md（ユーザープロファイル）",
+        "description": "ユーザープロファイル、嗜好、ニーズの説明",
+        "placeholder": "ユーザープロファイル情報..."
+      },
+      "autoLearn": {
+        "button": "会話から自動学習",
+        "title": "会話から自動学習",
+        "description": "会話履歴からユーザーのコードスタイルとコミュニケーション設定を抽出し、アクティブな Persona の USER.md を自動更新します",
+        "selectConversation": "会話を選択",
+        "selectPlaceholder": "会話を選択してください",
+        "noConversations": "会話がありません",
+        "start": "学習開始",
+        "close": "閉じる",
+        "success": "Persona「{{name}}」に学習して適用しました",
+        "successTitle": "学習完了、Persona「{{name}}」に適用しました",
+        "noSamples": "学習可能なコードまたはメッセージサンプルが見つかりません",
+        "noSamplesTitle": "利用可能なサンプルが見つかりません",
+        "failed": "自動学習に失敗しました",
+        "updatedFields": "更新されたフィールド"
+      },
+      "name": "名前",
+      "systemPrompt": "システムプロンプト",
+      "type": "タイプ",
+      "visibility": "可視性"
+    },
+    "toolCallingMode": "ツール呼び出しモード",
+    "toolCallingModeDesc": "Select the tool calling mode for this provider",
+    "toolCallingModeManaged": "Managed (AxAgent injects tools via system prompt, parses text for tool_calls — use for Chat2API-like gateways)",
+    "toolCallingModeNative": "Native (model built-in function calling)",
+    "groupVoice": "音声"
   },
   "backup": {
     "title": "バックアップセンター",
@@ -2785,7 +2892,11 @@
       "lastSync": "最終同期"
     },
     "backupSuccess": "バックアップ成功",
-    "error": "操作失敗"
+    "error": "操作失敗",
+    "openFolderError": "Open folder failed: {error}",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "common": {
     "confirm": "確認",
@@ -2934,7 +3045,8 @@
     "required": "必須",
     "details": "Details",
     "more": "More",
-    "action": "アクション"
+    "action": "アクション",
+    "dismiss": "閉じる"
   },
   "multiAgent": {
     "title": "マルチエージェント状態",
@@ -2945,7 +3057,10 @@
     },
     "status": {
       "running": "実行中",
-      "completed": "完了"
+      "completed": "完了",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "count": "{{running}} 実行中 / {{completed}} 完了",
     "noAgents": "登録されたエージェントがありません",
@@ -2967,7 +3082,10 @@
     "loading": "読み込み中...",
     "failed": "失敗",
     "iteration": "反復",
-    "askUser": "質問"
+    "askUser": "質問",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "image": {
     "loadError": "画像の読み込みに失敗しました",
@@ -2985,7 +3103,13 @@
     "disconnecting": "切断中...",
     "startCall": "通話を開始",
     "endCall": "通話を終了",
-    "toggleMute": "ミュートを切り替え"
+    "toggleMute": "ミュートを切り替え",
+    "wakeup": "音声起動",
+    "wakeupActive": "起動待機中",
+    "voiceType": "音声タイプ",
+    "sttProvider": "音声認識プロバイダー",
+    "ttsProvider": "音声合成プロバイダー",
+    "providerAuto": "自動（LLMと同じプロバイダーを使用）"
   },
   "shortcuts": {
     "newConversation": "新しい会話",
@@ -3660,7 +3784,11 @@
       "evolutionFallback": "最適化",
       "verified": "検証済み",
       "hasEvolution": "進化記録あり",
-      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
+      "progressAnalyzing": "インテントを分析中",
+      "progressMatching": "ノードをマッチング中",
+      "progressBuilding": "ワークフローを構築中",
+      "progressOptimizing": "最適化中"
     },
     "previewInDevelopment": "プレビュー機能は開発中です",
     "publishInDevelopment": "公開機能は開発中です",
@@ -3778,7 +3906,12 @@
       "rollback": "Rollback to This Version",
       "rollbackConfirm": "Confirm rollback?",
       "rollbackTo": "Rollback to {{version}}",
-      "rolledBack": "Rolled back"
+      "rolledBack": "Rolled back",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "差分を表示",
+      "viewSnapshot": "スナップショットを表示",
+      "restore": "復元"
     },
     "versionHistoryLoadFailed": "バージョン履歴の読み込みに失敗",
     "versionLoaded": "バージョン読み込み済み",
@@ -4191,7 +4324,10 @@
       "noTraceData": "暂无 Trace 数据",
       "showSpanTree": "显示 Span 树",
       "hideSpanTree": "隐藏 Span 树",
-      "noSpanData": "暂未解析到 Span 数据"
+      "noSpanData": "暂未解析到 Span 数据",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "validation": {
       "validation": {
@@ -4299,7 +4435,11 @@
       "workflowRef": "Workflow Ref",
       "phaseSeparator": "Phase Separator",
       "groupFrame": "Group",
-      "toolSetSelector": "Tool Set"
+      "toolSetSelector": "Tool Set",
+      "webhook": "Webhook",
+      "apiCall": "API 呼び出し",
+      "script": "スクリプト",
+      "timer": "タイマー"
     },
     "undo": "元に戻す",
     "redo": "やり直し",
@@ -4417,7 +4557,8 @@
         "CACHE_DESERIALIZE_FAILED": "キャッシュデータの逆シリアル化に失敗しました",
         "MODEL_NOT_CONFIGURED": "モデルが設定されていません",
         "NODE_NOT_FOUND": "ノードが見つかりません"
-      }
+      },
+      "saveFailed": "保存に失敗しました"
     },
     "agentNode": {
       "tools": "ツール",
@@ -4513,7 +4654,9 @@
       "configureHint": "Configure trigger conditions and parameters",
       "statusActive": "Running",
       "statusDisabled": "Disabled",
-      "statusUnconfigured": "Unconfigured"
+      "statusUnconfigured": "Unconfigured",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "未設定",
@@ -4564,7 +4707,10 @@
       "clickToExpandPorts": "Click to expand ports",
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "type": "Type"
+      "type": "Type",
+      "description": "説明",
+      "name": "名前",
+      "version": "バージョン"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (動的ツール)",
@@ -4616,7 +4762,9 @@
       },
       "trigger": {
         "cronHint": "標準 cron 式（例：`0 9 * * *`）。"
-      }
+      },
+      "fix": "修正",
+      "optimize": "最適化"
     },
     "diagnostic": {
       "title": "ワークフロー診断",
@@ -4905,7 +5053,11 @@
       "condition": "Routing",
       "loop": "Loop",
       "container": "Container",
-      "storage": "Storage"
+      "storage": "Storage",
+      "data": "データ",
+      "logic": "ロジック",
+      "trigger": "トリガー",
+      "transform": "変換"
     },
     "layout": {
       "suggestTitle": {
@@ -4969,7 +5121,51 @@
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
-      }
+      },
+      "autoLayout": "自動レイアウト",
+      "canvas": "キャンバス",
+      "collapseAll": "すべて折りたたむ",
+      "condensed": "コンパクト",
+      "connectionMode": "接続モード",
+      "defaultEdgeType": "デフォルト接続タイプ",
+      "expandAll": "すべて展開",
+      "fitView": "ビューに合わせる",
+      "floating": "フローティング",
+      "gridSize": "グリッドサイズ",
+      "horizontal": "水平",
+      "layoutDirection": "レイアウト方向",
+      "locked": "ロック済み",
+      "minimap": "ミニマップ",
+      "nodeSize": "ノードサイズ",
+      "orientation": "方向",
+      "portLayout": "ポートレイアウト",
+      "readonly": "読み取り専用",
+      "showGrid": "グリッドを表示",
+      "snapToGrid": "グリッドにスナップ",
+      "straight": "直線",
+      "strict": "厳格",
+      "vertical": "垂直",
+      "zoomControl": "ズームコントロール",
+      "bezier": "ベジェ曲線",
+      "smoothStep": "スムーズステップ",
+      "free": "フリー",
+      "ortho": "直交",
+      "large": "大",
+      "medium": "中",
+      "small": "小",
+      "compact": "コンパクト",
+      "standard": "標準",
+      "comfortable": "快適",
+      "left": "左",
+      "right": "右",
+      "top": "上",
+      "bottom": "下",
+      "center": "中央",
+      "border": "ボーダー",
+      "gradient": "グラデーション",
+      "solid": "実線",
+      "dashed": "破線",
+      "dotted": "点線"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -4998,24 +5194,50 @@
       "importPresetsTitle": "Import built-in experts",
       "importPresets": "Import",
       "noTemplates": "No templates",
-      "noMatchFound": "No matching templates"
+      "noMatchFound": "No matching templates",
+      "blank": "空のワークフロー",
+      "category": "カテゴリー",
+      "createConfirm": "このテンプレートから新しいワークフローを作成しますか？",
+      "description": "説明",
+      "empty": "テンプレートなし",
+      "name": "テンプレート名",
+      "official": "公式テンプレート",
+      "popular": "人気",
+      "preview": "プレビュー",
+      "recent": "最近使用したもの",
+      "title": "ワークフローテンプレート",
+      "useTemplate": "テンプレートを使用",
+      "version": "バージョン",
+      "community": "コミュニティ",
+      "recommended": "推奨",
+      "all": "すべて"
     },
     "saveAsImage": "Save as Image",
     "exportEmpty": "No nodes to export",
     "containerNode": {
       "nodes": "nodes",
-      "branchTimeout": "Branch timeout configured"
+      "branchTimeout": "Branch timeout configured",
+      "collapse": "折りたたむ",
+      "expand": "展開"
     },
     "swarmNode": {
       "agents": "Agents",
       "rounds": "rounds",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "addAgent": "Add Agent"
+      "addAgent": "Add Agent",
+      "agent": "エージェント",
+      "handoff": "引き継ぎ",
+      "mode": "モード",
+      "parallel": "並列",
+      "sequential": "順次",
+      "task": "タスク"
     },
     "groupNode": {
       "untitled": "Group",
-      "folded": "folded"
+      "folded": "folded",
+      "add": "グループを追加",
+      "remove": "グループを削除"
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
@@ -5027,7 +5249,10 @@
       "title": "Workflow Legend",
       "toggleLabel": "{{action}} legend",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "end": "終了",
+      "start": "開始",
+      "running": "実行中"
     },
     "back": "Back",
     "caseLabel": "Case {{n}}",
@@ -5049,7 +5274,11 @@
       "targetWorkflow": "Target Workflow",
       "contextMode": "Context Mode",
       "inherit": "Inherit",
-      "isolated": "Isolated"
+      "isolated": "Isolated",
+      "selectWorkflow": "",
+      "title": "",
+      "version": "",
+      "inputMapping": "入力マッピング"
     },
     "durationMinutes": "{{minutes}} min",
     "durationSeconds": "{{seconds}} sec",
@@ -5073,11 +5302,243 @@
       "current": "Current version",
       "optimizedConfig": "Optimized node configuration",
       "addedBranch": "Added conditional branch",
-      "initialCreation": "Initial creation"
+      "initialCreation": "Initial creation",
+      "action": "アクション",
+      "changeSummary": "変更概要",
+      "clearSelection": "選択をクリア",
+      "compareHint": "Comparing version {{v1}} with version {{v2}}",
+      "compareSelected": "Compare selected ({{selected}}/2)",
+      "confirmRestore": "Restore to version {{version}}?",
+      "currentWorkflowWillBeOverwritten": "現在のワークフローは新しいバージョンで上書きされます",
+      "deletedNode": "- Removed node: {{id}} ({{desc}})",
+      "modifiedNode": "~ Modified node: {{id}} ({{desc}})",
+      "newNode": "+ Added node: {{id}} ({{desc}})",
+      "noVersionHistory": "バージョン履歴なし",
+      "restoreToVersion": "このバージョンに復元",
+      "status": "ステータス",
+      "timeline": "タイムライン",
+      "updateTime": "更新時刻",
+      "version": "バージョン",
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "アーカイブ済み",
+      "changelog": "変更履歴",
+      "comparison": "バージョン比較",
+      "diff": "差分",
+      "draft": "下書き",
+      "latest": "最新",
+      "noHistory": "バージョン履歴なし",
+      "renamed": "名称変更",
+      "restored": "復元済み",
+      "updatedAt": "更新日時"
     },
     "duplicateSuffix": "{{name}} (copy)",
     "fromTemplate": "{{name}} (from template)",
-    "defaultWorkflowName": "New Workflow"
+    "defaultWorkflowName": "New Workflow",
+    "approval": {
+      "panelTitle": "承認",
+      "noPending": "保留中の承認はありません",
+      "message": "メッセージ",
+      "workflowId": "Workflow",
+      "status": "ステータス",
+      "expiresAt": "期限切れ",
+      "actions": "アクション",
+      "decision": "決定",
+      "approve": "承認",
+      "reject": "却下",
+      "cancel": "キャンセル",
+      "notePlaceholder": "メモを追加（任意）"
+    },
+    "evolution": {
+      "abTestTitle": "A/B Test ({{count}})",
+      "abTestWon": "A/B勝利",
+      "confidence": "Confidence: {{value}}%",
+      "latency": "Latency {{diff}}",
+      "noActiveABTest": "アクティブなA/Bテストなし",
+      "noEvolutionRecord": "進化記録なし — 最初の進化をトリガー",
+      "noHistory": "進化履歴なし",
+      "noNodes": "現在のキャンバスにノードなし",
+      "successRate": "Success Rate {{diff}}",
+      "title": "進化ステータス",
+      "triggerAll": "すべての進化をトリガー",
+      "triggerEvolution": "進化をトリガー",
+      "winner": "{{winner}} Won",
+      "apply": "適用",
+      "current": "現在のバージョン",
+      "diff": "差分",
+      "evolutionHistory": "進化履歴",
+      "generation": "第 {{n}} 世代",
+      "improved": "改善済み",
+      "performance": "パフォーマンス",
+      "revert": "元に戻す",
+      "score": "スコア",
+      "viewDiff": "差分を表示"
+    },
+    "executor": {
+      "close": "閉じる",
+      "duration": "所要時間",
+      "execute": "ワークフローを実行",
+      "executing": "Executing...",
+      "executionFailed": "実行失敗",
+      "executionLog": "実行ログ",
+      "executionSuccess": "Execution Successful",
+      "inputVariables": "入力変数",
+      "nodeExecutionStatus": "ノード実行ステータス",
+      "outputResult": "出力結果",
+      "status": "ステータス",
+      "failed": "失敗",
+      "inputVars": "入力変数",
+      "nodeStatus": "ノード実行状態",
+      "runningNode": "ワークフローノードを実行中",
+      "success": "成功",
+      "waiting": "待機中"
+    },
+    "list": {
+      "active": "アクティブ",
+      "all": "すべて",
+      "archived": "アーカイブ済み",
+      "createNew": "新規ワークフロー",
+      "deleteConfirm": "このワークフローを削除してもよろしいですか？",
+      "draft": "下書き",
+      "duplicate": "複製",
+      "edgeCount": "{{count}} edges",
+      "edit": "編集",
+      "empty": "ワークフローがありません。上のボタンをクリックして作成",
+      "noDescription": "説明なし",
+      "nodeCount": "{{count}} nodes",
+      "searchPlaceholder": "Search workflows...",
+      "templates": "テンプレート",
+      "title": "Workflows",
+      "confirmDelete": "このワークフローを削除しますか？",
+      "createWorkflow": "ワークフローを作成",
+      "noWorkflows": "ワークフローがありません。上のボタンをクリックして作成してください",
+      "search": "ワークフローを検索"
+    },
+    "log": {
+      "clear": "ログをクリア",
+      "empty": "ログなし",
+      "export": "ログをエクスポート",
+      "noLogs": "ログなし"
+    },
+    "nl2Skill": {
+      "applySkill": "このスキルを適用",
+      "optional": "任意",
+      "parameters": "パラメータ",
+      "parametersLabel": "Parameters: ",
+      "parsingPhases": "解析フェーズ",
+      "required": "必須",
+      "tools": "ツール",
+      "triggers": "トリガー",
+      "triggersLabel": "Triggers: ",
+      "unit": "",
+      "generate": "スキルを生成",
+      "generating": "生成中...",
+      "instruction": "欲しいスキルを説明してください",
+      "preview": "プレビュー",
+      "result": "生成結果",
+      "title": "自然言語からスキルを生成",
+      "validate": "検証",
+      "validating": "検証中..."
+    },
+    "nl2UI": {
+      "applyUI": "このUIを適用",
+      "componentCount": "コンポーネント数",
+      "components": "{{count}} components",
+      "depthLevel": "深度",
+      "rootType": "ルートタイプ",
+      "generate": "生成",
+      "generating": "生成中...",
+      "instruction": "欲しい UI を説明してください",
+      "result": "生成結果",
+      "title": "自然言語から UI を生成"
+    },
+    "nlParser": {
+      "aiSuggestion": "AIサジェスト",
+      "alternatives": "代替案",
+      "applySolution": "このプランを適用",
+      "confidence": "解析信頼度",
+      "constraintsOptional": "制約条件（任意）",
+      "constraintsPlaceholder": "e.g.: execution time no more than 5 minutes, retry 3 times on error",
+      "edges": "エッジ",
+      "examplePlaceholder": "e.g. {{example}}",
+      "naturalLanguageDesc": "自然言語の説明",
+      "nodes": "ノード",
+      "parseGenerate": "解析して生成",
+      "parseResult": "解析結果",
+      "parsing": "Parsing...",
+      "planLabel": "Plan {{index}}: {{desc}}",
+      "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
+      "variables": "変数",
+      "constraints": "制約条件（任意）",
+      "description": "自然言語の説明",
+      "generating": "解析中",
+      "suggestions": "AI の提案",
+      "example1": "毎日朝 8 時に指定したウェブサイトの最新記事を取得",
+      "example2": "新着メールを受信したら AI で内容を分析し、緊急の場合は通知",
+      "example3": "ユーザーがフォームを送信した後、データを検証してからデータベースに書き込む",
+      "exampleConstraint": "例：実行時間 5 分以内、エラー時にリトライ"
+    },
+    "saveFailed": "保存に失敗しました",
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## AI 生成画像",
+      "model": "**モデル**",
+      "duration": "**所要時間**",
+      "savedToArtifact": "Artifact に保存しました"
+    },
+    "chatSidebar": {
+      "menu": "メニュー"
+    },
+    "inputArea": {
+      "resizeHandle": "サイズ調整",
+      "uploadFile": "ファイルをアップロード"
+    },
+    "appHeader": {
+      "agentPanel": "Agent パネル"
+    },
+    "sidebar": {
+      "agentPanel": "Agent パネル"
+    },
+    "errorBoundary": {
+      "pageError": "ページエラー"
+    },
+    "chatPage": {
+      "resizeHandle": "サイズ調整"
+    },
+    "spanDetail": {
+      "parentSpan": "親 Span"
+    },
+    "traceDetail": {
+      "userId": "ユーザー ID"
+    },
+    "settingsPanel": {
+      "featureFlags": "機能フラグ"
+    },
+    "skillTimeline": {
+      "promptDiff": "プロンプト比較"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "ワークフローが参照されていません"
+    },
+    "chartPreview": {
+      "title": "チャートプレビュー"
+    },
+    "htmlPreview": {
+      "title": "HTML プレビュー"
+    },
+    "reactPreview": {
+      "title": "React プレビュー"
+    }
   },
   "atomicSkill": {
     "entryType": "エントリータイプ",
@@ -5160,10 +5621,28 @@
       "save": "Save Checkpoint",
       "empty": "No checkpoints",
       "saveModal": "Save Checkpoint",
-      "namePlaceholder": "Enter checkpoint name..."
+      "namePlaceholder": "Enter checkpoint name...",
+      "action": "アクション",
+      "delete": "削除",
+      "load": "Load",
+      "loss": "損失",
+      "name": "名前",
+      "reward": "報酬",
+      "step": "ステップ",
+      "time": "時間",
+      "noCheckpoints": "チェックポイントなし"
     },
     "monitor": {
-      "idle": "Training not started. Configure and start training."
+      "idle": "Training not started. Configure and start training.",
+      "currentStep": "現在のステップ",
+      "insufficientData": "データ不足",
+      "loss": "損失",
+      "lossCurve": "損失曲線",
+      "reward": "報酬",
+      "rewardCurve": "報酬曲線",
+      "speed": "Speed",
+      "step": "現在のステップ数",
+      "title": "訓練モニター"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -5172,6 +5651,24 @@
       "config": "Config",
       "monitor": "Monitor",
       "checkpoints": "Checkpoints"
+    },
+    "config": {
+      "algorithm": "アルゴリズム",
+      "batchSize": "バッチサイズ",
+      "epochs": "エポック",
+      "learningRate": "学習率",
+      "maxSteps": "最大ステップ数",
+      "title": "訓練設定"
+    },
+    "status": {
+      "completed": "完了",
+      "failed": "失敗数",
+      "idle": "アイドル",
+      "paused": "一時停止",
+      "running": "学習中",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     }
   },
   "devtools": {
@@ -5340,7 +5837,10 @@
     "none": "なし",
     "response": "応答",
     "report": "レポート",
-    "tasks": "タスク"
+    "tasks": "タスク",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "traceExplorer": {
     "selectTrace": "トレースを選択して詳細を表示",
@@ -5427,7 +5927,10 @@
         "name": "Sandbox Executor",
         "desc": "Securely executes untrusted code in an isolated environment to prevent system damage"
       }
-    }
+    },
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "promptTemplates": {
     "title": "プロンプトテンプレート",
@@ -5544,7 +6047,8 @@
   "searchProvider": {
     "tavily": "Tavily",
     "zhipu": "智譜",
-    "bocha": "博査"
+    "bocha": "博査",
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "オンライン",
@@ -5563,7 +6067,10 @@
     "analyzeOutput": "出力を分析",
     "clear": "クリア",
     "killProcess": "プロセスを強制終了",
-    "closeSession": "セッションを閉じる"
+    "closeSession": "セッションを閉じる",
+    "maximize": "最大化",
+    "restore": "元に戻す",
+    "more": "他 {{count}} 件"
   },
   "search": {
     "resultPrefix": "以下は Web 検索結果です。質問に答える前に参照してください：\n\n",
@@ -5766,7 +6273,10 @@
       "operationDetail": "操作詳細",
       "running": "実行中",
       "title": "操作ログ",
-      "total": "総計"
+      "total": "総計",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "noSources": "ソースがありません",
     "noteNotFound": "ノートが見つかりません",
@@ -5964,7 +6474,9 @@
       "path": "パス",
       "status": "ステータス",
       "title": "タイトル",
-      "type": "タイプ"
+      "type": "タイプ",
+      "mimeType": "MIME タイプ",
+      "size": "サイズ"
     },
     "wikiForm": {
       "description": "説明",
@@ -5973,7 +6485,9 @@
     },
     "wikiMeta": {
       "rootPath": "ルートパス"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "notification": {
     "clear": "クリア",
@@ -5990,7 +6504,9 @@
     "execute": "実行",
     "learningSuggestions": "学習提案",
     "snooze30": "後で通知（30 分）",
-    "noSuggestions": "提案がありません"
+    "noSuggestions": "提案がありません",
+    "snooze15": "後で通知（15 分）",
+    "snooze1h": "後で通知（1 時間）"
   },
   "proactive": {
     "accept": "採用",
@@ -6052,6 +6568,13 @@
         "improvement": "改善",
         "warning": "警告"
       }
+    },
+    "prefetchTypes": {
+      "codeCompletion": "コード補完",
+      "searchResults": "検索結果",
+      "documentation": "ドキュメント",
+      "contextAnalysis": "コンテキスト分析",
+      "toolCache": "ツールキャッシュ"
     }
   },
   "review": {
@@ -6279,7 +6802,10 @@
       "cancelled": "キャンセル済み",
       "draft": "下書き",
       "approved_plan": "承認済み",
-      "executing_plan": "承認済みステップを実行"
+      "executing_plan": "承認済みステップを実行",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "approveAll": "承認して実行",
     "approveStep": "このステップを承認",
@@ -6345,7 +6871,9 @@
     "referenceFile": "ファイルまたはパスを参照",
     "commands": "コマンド",
     "mentions": "メンション",
-    "filterHint": "入力して絞り込み、↑↓で選択、Enterで確定"
+    "filterHint": "入力して絞り込み、↑↓で選択、Enterで確定",
+    "newConversation": "新しい会話",
+    "stopGeneration": "生成を停止"
   },
   "onboarding": {
     "welcome": "AxAgent へようこそ",
@@ -6392,7 +6920,9 @@
     "moreModels": "他{{count}}件",
     "targetNotFound": "対象要素が見つかりません。先にチャットページに移動してください",
     "goToSettings": "設定に移動してAPIキーを追加",
-    "presetApplyFailed": "プリセットの適用に失敗しました"
+    "presetApplyFailed": "プリセットの適用に失敗しました",
+    "downloadOllama": "Ollama をダウンロード",
+    "applying": "適用中…"
   },
   "help": {
     "title": "ヘルプセンター",
@@ -6609,7 +7139,10 @@
       "running": "実行中",
       "completed": "完了",
       "failed": "失敗",
-      "cancelled": "キャンセル"
+      "cancelled": "キャンセル",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "messageLog": "メッセージログ ({count})",
     "attempts": "試行 {attempts}/{maxRetries}",
@@ -6622,14 +7155,20 @@
       "worker": "Worker",
       "step": "Step"
     },
-    "summary": "Agent Pool ({completed}/{total})"
+    "summary": "Agent Pool ({completed}/{total})",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "agentHierarchy": {
     "running": "実行中",
     "completed": "完了",
     "failed": "失敗",
     "title": "Agent 階層",
-    "count": "（{{count}} 件）"
+    "count": "（{{count}} 件）",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "progressBar": {
     "tool": {
@@ -6963,7 +7502,10 @@
       "completed": "完了",
       "failed": "失敗",
       "running": "実行中",
-      "total": "合計"
+      "total": "合計",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "tab": {
       "dataset": "データセット",
@@ -7386,7 +7928,10 @@
     "openaiApiKeyDalle": "OpenAI APIキー（DALL-E）",
     "openaiApiKeyPlaceholder": "sk-...",
     "openaiBaseUrl": "OpenAIベースURL",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "新規",
@@ -7450,7 +7995,10 @@
     "completed": "統合完了",
     "completedTitle": "ドリーム完了（{{secs}}秒）",
     "totalConsolidations": "合計{{count}}件の統合",
-    "statsSummary": "{{memories}}件のメモリ · {{patterns}}件のパターン"
+    "statsSummary": "{{memories}}件のメモリ · {{patterns}}件のパターン",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "expertBadge": {
     "generalAssistant": "汎用アシスタント",
@@ -7472,19 +8020,23 @@
     "teamCreated": "チーム「{{name}}」が{{count}}人のチームメイトで作成されました"
   },
   "chatPage": {
-    "loading": "読み込み中..."
+    "loading": "読み込み中...",
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "SSH設定",
     "connect": "接続",
     "host": "ホスト",
     "port": "ポート",
-    "username": "ユーザー名"
+    "username": "ユーザー名",
+    "hostPlaceholder": "例: 192.168.1.100 または server.example.com",
+    "keyPathOptional": "SSH キーパス（オプション）"
   },
   "dockerConfig": {
     "title": "Docker設定",
     "connect": "接続",
-    "socketPath": "Dockerソケットパス"
+    "socketPath": "Dockerソケットパス",
+    "defaultHint": "空欄でデフォルトのDockerソケットを使用"
   },
   "datasetManager": {
     "title": "ファインチューンデータセットマネージャー",
@@ -7527,7 +8079,10 @@
     "loss": "損失",
     "loraOutput": "LoRA出力",
     "action": "アクション",
-    "ready": "準備完了"
+    "ready": "準備完了",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "errorRecovery": {
     "noError": "復元するエラーがありません",
@@ -7684,7 +8239,14 @@
       "storeInsightsHint": "Insights will be saved locally and available across sessions",
       "subtitle": "Configure auto-reflection and insight management",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "最小信頼度",
+      "minConfidenceHint": "この値より信頼度の低いインサイトは無視されます",
+      "strategy": "リフレクション戦略",
+      "strategyHint": "リフレクションのトリガー戦略を選択",
+      "triggerOnComplete": "完了時にトリガー",
+      "triggerOnError": "エラー時にトリガー",
+      "triggerOnIdle": "アイドル時にトリガー"
     },
     "useful": "Useful"
   },
@@ -7846,7 +8408,8 @@
     "terminalContext": "ターミナル",
     "closeAgentPanel": "Close Agent Panel",
     "openAgentPanel": "Open Agent Panel",
-    "dashboardContext": "システユ概要"
+    "dashboardContext": "システユ概要",
+    "agentPanel": "Agent Panel"
   },
   "input": {
     "recordAudio": "音声を録音",
@@ -7965,7 +8528,11 @@
     "stepLogRunning": "(実行中...)",
     "stepLogNoDetail": "(詳細出力なし)",
     "exitSignalAlert": "出口シグナルスキャン完了:\nチェック {{checked}} 銘柄\n- 即時退出: {{exitNow}} 銘柄\n- 注意: {{caution}} 銘柄",
-    "exitSignalAlertNone": "出口シグナルスキャン完了: {{checked}} 銘柄、異常なし"
+    "exitSignalAlertNone": "出口シグナルスキャン完了: {{checked}} 銘柄、異常なし",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run",
+    "settings": "Valuation Filters"
   },
   "trade": {
     "title": "Trading Log",
@@ -8002,7 +8569,14 @@
       "planner": "Planner",
       "researcher": "Researcher",
       "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "synthesizer": "Synthesizer",
+      "analyst": "アナリスト",
+      "decisionMaker": "意思決定者",
+      "riskManager": "リスク管理者",
+      "strategist": "ストラテジスト",
+      "supervisor": "スーパーバイザー",
+      "trader": "トレーダー",
+      "validator": "バリデーター"
     }
   },
   "backtest": {
@@ -8059,7 +8633,10 @@
       "title": "Strategy Backtest",
       "walkForward": "Walk-Forward",
       "walkForwardForceOff": "Disable Walk-Forward",
-      "walkForwardTitle": "Walk-Forward Backtest"
+      "walkForwardTitle": "Walk-Forward Backtest",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "common": {
       "empty": "No data"
@@ -8171,7 +8748,10 @@
       "runBtn": "Start Sweep",
       "running": "Running sweep {{done}} / {{total}} …",
       "summary": "Sweep complete: {{total}} total, {{valid}} valid, {{invalid}} failed.",
-      "violationNotice": "Recorded {{count}} as-of violations — see Invalid panel for details."
+      "violationNotice": "Recorded {{count}} as-of violations — see Invalid panel for details.",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "title": "Replay Workbench"
   },
@@ -8217,7 +8797,9 @@
     "textFile": "テキストファイル",
     "unknownFile": "不明なファイル",
     "previewNotSupported": "このファイルタイプのプレビューはサポートされていません",
-    "downloadFile": "ファイルをダウンロード"
+    "downloadFile": "ファイルをダウンロード",
+    "schemaNotFound": "動的ページが見つかりません",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "visualEditor": {
     "palette": {
@@ -8228,7 +8810,11 @@
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "基本",
+      "data": "データ",
+      "layout": "レイアウト",
+      "navigation": "ナビゲーション"
     },
     "components": {
       "Container": "Container",
@@ -8261,7 +8847,13 @@
       "Text": "Text",
       "Divider": "Divider",
       "Progress": "Progress",
-      "Tag": "Tag"
+      "Tag": "Tag",
+      "Heading": "見出し",
+      "Link": "リンク",
+      "Paragraph": "段落",
+      "Slider": "スライダー",
+      "Space": "スペース",
+      "Tooltip": "ツールチップ"
     },
     "canvas": {
       "leafNode": "leaf node",
@@ -8269,7 +8861,14 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "livePreview": "实时预览",
+      "addNode": "ノードを追加",
+      "deleteNode": "ノードを削除",
+      "duplicate": "複製",
+      "moveDown": "下に移動",
+      "moveUp": "上に移動",
+      "pasteNode": "ノードを貼り付け"
     },
     "property": {
       "title": "Property Panel",
@@ -8292,8 +8891,22 @@
       "placeholder": {
         "propKey": "Key",
         "propValue": "Value"
-      }
-    }
+      },
+      "children": "子要素",
+      "componentType": "コンポーネントタイプ",
+      "defaultValue": "デフォルト値",
+      "description": "説明",
+      "label": "ラベル",
+      "name": "名前",
+      "options": "オプション",
+      "props": "プロパティ",
+      "required": "必須",
+      "rules": "バリデーションルール",
+      "type": "タイプ",
+      "value": "値"
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",
@@ -8385,7 +8998,12 @@
       "empty": "No bottleneck data",
       "timeDistribution": "Time Distribution",
       "tokenConsumption": "Token Consumption",
-      "failurePatterns": "Failure Patterns"
+      "failurePatterns": "Failure Patterns",
+      "count": "Count",
+      "failureReason": "失敗理由",
+      "percentage": "割合",
+      "bottleneck": "ボトルネック",
+      "reason": "失敗理由"
     },
     "feedback": {
       "thanks": "Thank you for your feedback",
@@ -8414,7 +9032,15 @@
     "totalSteps": "Total Steps",
     "totalDuration": "Total Duration",
     "totalTokens": "Total Tokens",
-    "errors": "Errors"
+    "errors": "Errors",
+    "duration": "Duration: {{duration}}s",
+    "type": {
+      "error": "エラー",
+      "thinking": "思考中",
+      "toolCall": "ツール呼び出し",
+      "waitingPermission": "権限待ち",
+      "permission": "権限待ち"
+    }
   },
   "components_devtools_RLTrainingConfig": {
     "算法": "算法",
@@ -8613,7 +9239,32 @@
     "versionInvalid": "無効なバージョン形式（major.minor.patch 形式）",
     "versionAutoHint": "未指定の場合はパッチバージョンが自動的にインクリメントされます",
     "rollbackArchive": "復元前のアーカイブ（{version} に復元）",
-    "versionUpdatedAt": "作成日時"
+    "versionUpdatedAt": "作成日時",
+    "defaults": {
+      "buttonText": "ボタン",
+      "cardTitle": "カード",
+      "checkboxLabel": "チェックボックス",
+      "dateLabel": "日付",
+      "formSubmit": "送信",
+      "inputLabel": "入力",
+      "inputPlaceholder": "Please enter",
+      "numberLabel": "数値",
+      "radioLabel": "ラジオ",
+      "selectLabel": "選択",
+      "switchLabel": "スイッチ",
+      "tagText": "タグ",
+      "textContent": "テキスト",
+      "textareaLabel": "Textarea"
+    },
+    "visualEditor": "ビジュアルエディタ",
+    "import": "Import",
+    "importSuccess": "Imported {{count}} UI(s) successfully",
+    "importInvalid": "Invalid or empty schema file",
+    "export": "Export",
+    "exportAll": "Export All",
+    "exportSuccess": "Exported successfully",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value"
   },
   "dashboard": {
     "overview": "概要",
@@ -8646,7 +9297,8 @@
     "dailyAvgCost": "日次平均コスト",
     "costByProvider": "プロバイダー別コスト",
     "inputTokens": "入力トークン",
-    "outputTokens": "出力トークン"
+    "outputTokens": "出力トークン",
+    "dailyAvgTokens": "1日あたりの平均トークン"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10258,7 +10910,8 @@
     "emptyDescription": "データがありません。タスクを完了すると学習グラフが生成されます",
     "useCount": "使用回数: {count}",
     "detail": "詳細",
-    "lexicalOverlap": "関連"
+    "lexicalOverlap": "関連",
+    "entities": "エンティティ"
   },
   "skillStore": {
     "toggleSkillFailed": "スキル状態の切り替えに失敗しました"
@@ -10366,5 +11019,66 @@
       "asOf": "現在日",
       "live": "ライブ"
     }
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }

@@ -1,25 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Badge, Button, Empty, List, Popover, Space, Typography } from "antd";
+import {
+  addNotification,
+  clearAllNotifications,
+  dismissNotification,
+  getNotifications,
+  markAllAsRead,
+  markAsRead,
+  type Notification,
+} from "@/lib/notification";
+import { Badge, Button, Empty, Popover, Space, Typography } from "antd";
 import { AlertTriangle, Bell, Check, CheckCheck, Info, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
-
-export interface Notification {
-  id: string;
-  type: "info" | "success" | "warning" | "error";
-  title: string;
-  message?: string;
-  timestamp: number;
-  read: boolean;
-  persistent?: boolean;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-}
 
 interface NotificationCenterProps {
   trigger?: React.ReactNode;
@@ -27,53 +22,44 @@ interface NotificationCenterProps {
 
 export function NotificationCenter({ trigger }: NotificationCenterProps) {
   const { t } = useTranslation();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>(getNotifications);
   const [visible, setVisible] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
-  useEffect(() => {
-    const stored = localStorage.getItem("axagent-notifications");
-    if (stored) {
-      try {
-        setTimeout(() => setNotifications(JSON.parse(stored)), 0);
-      } catch {
-        setTimeout(() => setNotifications([]), 0);
-      }
-    }
-  }, [setNotifications]);
+  // 监听 CustomEvent，实时更新通知列表
+  const handleNotificationEvent = useCallback(() => {
+    setNotifications(getNotifications());
+  }, []);
 
+  useEffect(() => {
+    window.addEventListener("axagent:notification", handleNotificationEvent);
+    return () => {
+      window.removeEventListener("axagent:notification", handleNotificationEvent);
+    };
+  }, [handleNotificationEvent]);
+
+  // 定时刷新"xx 分钟前"显示
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "axagent-notifications",
-        JSON.stringify(notifications),
-      );
-    } catch (e) {
-      console.warn("Failed to persist notifications", e);
-    }
-  }, [notifications]);
-
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setNotifications(markAsRead(id));
   };
 
   const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications(markAllAsRead());
   };
 
   const handleDismiss = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setNotifications(dismissNotification(id));
   };
 
   const handleClearAll = () => {
-    setNotifications((prev) => prev.filter((n) => n.persistent));
+    setNotifications(clearAllNotifications());
   };
 
   const getIcon = (type: Notification["type"]) => {
@@ -165,10 +151,9 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
           />
         )
         : (
-          <List
-            dataSource={notifications}
-            renderItem={(notification) => (
-              <List.Item
+          <div className="divide-y divide-gray-100">
+            {notifications.map((notification) => (
+              <div
                 style={{
                   padding: "12px 16px",
                   background: notification.read
@@ -239,9 +224,9 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
                     )}
                   </div>
                 </div>
-              </List.Item>
-            )}
-          />
+              </div>
+            ))}
+          </div>
         )}
     </div>
   );
@@ -271,37 +256,5 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   );
 }
 
-export function addNotification(
-  notification: Omit<Notification, "id" | "timestamp" | "read">,
-) {
-  const newNotification: Notification = {
-    ...notification,
-    id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    timestamp: Date.now(),
-    read: false,
-  };
-
-  let existing: Notification[];
-  try {
-    const stored = localStorage.getItem("axagent-notifications");
-    existing = stored ? JSON.parse(stored) : [];
-  } catch (e) {
-    console.warn("Failed to read notifications", e);
-    existing = [];
-  }
-
-  existing.unshift(newNotification);
-  if (existing.length > 50) {
-    existing.splice(50);
-  }
-
-  try {
-    localStorage.setItem("axagent-notifications", JSON.stringify(existing));
-  } catch (e) {
-    console.warn("Failed to persist notifications", e);
-  }
-
-  window.dispatchEvent(
-    new CustomEvent("axagent:notification", { detail: newNotification }),
-  );
-}
+// 向后兼容：重新导出 addNotification，旧代码仍可用
+export { addNotification };

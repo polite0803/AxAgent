@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { memo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ChartPreviewProps {
   option: Record<string, unknown>;
@@ -15,6 +16,7 @@ export const ChartPreview = memo(function ChartPreview({
   height,
   theme = "light",
 }: ChartPreviewProps) {
+  const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ window.addEventListener('resize', function() { chart.resize(); });
     <iframe
       ref={iframeRef}
       sandbox="allow-scripts"
-      title="Chart Preview"
+      title={t("chartPreview.title")}
       style={{
         width: width || "100%",
         height: height || 400,

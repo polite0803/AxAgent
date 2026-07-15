@@ -9,6 +9,7 @@ import type { DynamicAction, DynamicUIProps, UISchema } from "@/types";
 import { Alert, Skeleton } from "antd";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { SchemaRenderContext } from "./SchemaRenderContext";
 
 interface SchemaUpdateEventDetail {
@@ -22,11 +23,21 @@ interface SchemaUpdateEventDetail {
 
 const NEEDS_CHILD_PREPROCESSING = new Set(["Tabs", "Accordion", "Form"]);
 
+/** 结构化 / 容器类型：不应被父级 Skeleton 阻塞，让子节点自行管理加载状态 */
+const STRUCTURAL_TYPES = new Set(["Tabs", "Accordion", "Form", "Container", "Row", "Column", "Grid", "Card"]);
+
 function genRendererId(): string {
   return `dui-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function deepCloneSchema(schema: UISchema): UISchema {
+  if (typeof structuredClone === "function") {
+    try {
+      return structuredClone(schema);
+    } catch {
+      // 回退到 JSON 方式（处理不可结构化克隆的内容）
+    }
+  }
   return JSON.parse(JSON.stringify(schema));
 }
 
@@ -94,11 +105,14 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
   scope,
 }: SchemaNodeRendererProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [resolvedData, setResolvedData] = useState<unknown>(null);
   const [dataError, setDataError] = useState<Error | null>(null);
   const [dataLoading, setDataLoading] = useState<boolean>(!!schema.dataSource);
   const subscriberRef = useRef<DataSourceSubscriber | null>(null);
   const mountedRef = useRef(true);
+  // 缓存上次 dataSource 的内容摘要，避免 deepCloneSchema 产生新引用导致重复订阅（D-05）
+  const prevDataSourceKey = useRef<string | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -108,6 +122,13 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
   }, []);
 
   useEffect(() => {
+    // 内容级比较：deepCloneSchema 产生新引用，但内容未变时跳过重新订阅（D-05）
+    const dataSourceKey = JSON.stringify(schema.dataSource);
+    if (dataSourceKey === prevDataSourceKey.current) {
+      return;
+    }
+    prevDataSourceKey.current = dataSourceKey;
+
     if (subscriberRef.current) {
       subscriberRef.current.unsubscribe();
       subscriberRef.current = null;
@@ -154,12 +175,17 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
   }, [schema.dataSource, schema.id, setDataLoading]);
 
   const mergedContext = useMemo(() => {
-    const base = { ...(externalContext || {}) };
-    if (resolvedData && typeof resolvedData === "object") {
-      Object.assign(base, resolvedData as Record<string, unknown>);
+    const base = { ...externalContext };
+    if (resolvedData !== null && resolvedData !== undefined) {
+      // 将解析结果挂到 dataContext[schema.id]，供数据组件通过 schema.id 读取
+      // （见 resolveDynamicArray）；非数组对象保持平铺到顶层以兼容旧逻辑
+      base[schema.id] = resolvedData;
+      if (typeof resolvedData === "object" && !Array.isArray(resolvedData)) {
+        Object.assign(base, resolvedData as Record<string, unknown>);
+      }
     }
     return base;
-  }, [externalContext, resolvedData]);
+  }, [externalContext, resolvedData, schema.id]);
 
   const shouldRender = useMemo(
     () => evaluateConditions(schema.conditionalDisplay || [], mergedContext),
@@ -173,18 +199,20 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
     if (schema.events) {
       const { onMount } = getLifecycleHandlers(schema.events);
       if (onMount.length > 0) {
-        void executeActions(onMount, { context: mergedContextRef.current, onAction, scope });
+        void executeActions(onMount, { context: mergedContextRef.current, onAction, scope, navigate })
+          .catch((err) => console.error("[DynamicUIRenderer] onMount 生命周期动作执行失败", err));
       }
     }
     return () => {
       if (schema.events) {
         const { onUnmount } = getLifecycleHandlers(schema.events);
         if (onUnmount.length > 0) {
-          void executeActions(onUnmount, { context: mergedContextRef.current, onAction, scope });
+          void executeActions(onUnmount, { context: mergedContextRef.current, onAction, scope, navigate })
+            .catch((err) => console.error("[DynamicUIRenderer] onUnmount 生命周期动作执行失败", err));
         }
       }
     };
-  }, [schema.events, schema.id, onAction, scope]);
+  }, [schema.events, schema.id, onAction, scope, navigate]);
 
   const entry = componentRegistry.get(schema.type);
 
@@ -205,8 +233,8 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
 
   const processedProps = useMemo(() => {
     const base = {
-      ...(entry?.defaultProps || {}),
-      ...(schema.props || {}),
+      ...entry?.defaultProps,
+      ...schema.props,
     };
     if (resolvedData) {
       base.dataSource = resolvedData;
@@ -256,15 +284,15 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
   }, [schema.children, schema.type, renderSchema]);
 
   const eventBindings = useMemo(
-    () => handleEvents(schema.events || [], mergedContext, onAction, scope),
-    [schema.events, mergedContext, onAction, scope],
+    () => handleEvents(schema.events || [], mergedContext, onAction, scope, navigate),
+    [schema.events, mergedContext, onAction, scope, navigate],
   );
 
   if (!shouldRender) {
     return null;
   }
 
-  if (dataLoading && !resolvedData) {
+  if (dataLoading && !resolvedData && !STRUCTURAL_TYPES.has(schema.type)) {
     return <Skeleton active paragraph={{ rows: 2 }} />;
   }
 
@@ -301,9 +329,12 @@ export const DynamicUIRenderer: React.FC<DynamicUIProps> = React.memo(
       schemaRef.current = schema;
     }, [schema]);
 
+    // 使用 JSON.stringify 做内容级比较，避免父组件（如 Preview 编辑器）每次按键都产生新引用而清空本地更新（D-10）
+    const initialSchemaKey = JSON.stringify(initialSchema);
     useEffect(() => {
       setTimeout(() => setSchema(initialSchema), 0);
-    }, [initialSchema, setSchema]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialSchemaKey]);
 
     useEffect(() => {
       const handleSchemaUpdate = (event: Event) => {

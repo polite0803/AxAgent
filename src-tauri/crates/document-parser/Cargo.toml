@@ -7,6 +7,6 @@ description = "Document text extraction: PDF, DOCX, XLSX, PPTX, and plain text"
 
 [dependencies]
 axagent-harness = { path = "../harness" }
-pdf-extract = "0.7"
+pdf-extract = "0.12"
 tokio = { workspace = true }
-zip = "2"
+zip = "8"

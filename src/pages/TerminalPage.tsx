@@ -5,8 +5,8 @@ import { IntegratedTerminal } from "@/components/terminal/IntegratedTerminal";
 import { SshConfigModal } from "@/components/terminal/SshConfigModal";
 import { StatusBarWidget } from "@/components/terminal/StatusBarWidget";
 import { TerminalBackendSelector } from "@/components/terminal/TerminalBackendSelector";
+import { message } from "@/lib/toast";
 import { useTerminalStore } from "@/stores/feature/terminalStore";
-import { message } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 

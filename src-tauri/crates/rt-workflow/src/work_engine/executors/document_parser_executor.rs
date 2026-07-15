@@ -52,6 +52,7 @@ impl NodeExecutorTrait for DocumentParserExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(dp.config.output_var.clone()),
+            control: None,
         })
     }
 }

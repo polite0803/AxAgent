@@ -5,7 +5,7 @@ pub mod lora;
 pub mod trainer;
 
 pub use dataset::{DataFormat, DatasetMetadata, FineTuneDataset, FineTuneSample};
-pub use lora::{JobStatus, LoRAAdapterInfo, LoRAConfig, TrainingJob};
+pub use lora::{JobStatus, LoRAAdapterInfo, LoRAConfig, LoRAConfigBuilder, TrainingJob};
 pub use trainer::FineTuneTrainer;
 
 use serde::{Deserialize, Serialize};

@@ -148,7 +148,7 @@ impl FileIndex {
                 self.conn
                     .execute(
                         "INSERT OR REPLACE INTO file_index (path, extension, size_bytes, modified_at) VALUES (?1, ?2, ?3, ?4)",
-                        params![path_str, ext, size, modified],
+                        params![path_str, ext, size as i64, modified as i64],
                     )
                     .map_err(|e| format!("insert {path_str}: {e}"))?;
 
@@ -177,8 +177,8 @@ impl FileIndex {
                 Ok(FileEntry {
                     path: row.get(0)?,
                     extension: row.get(1)?,
-                    size_bytes: row.get(2)?,
-                    modified_at: row.get(3)?,
+                    size_bytes: row.get::<_, i64>(2)? as u64,
+                    modified_at: row.get::<_, i64>(3)? as u64,
                 })
             })
             .map_err(|e| format!("query: {e}"))?;
@@ -197,12 +197,12 @@ impl FileIndex {
             .prepare("SELECT path, extension, size_bytes, modified_at FROM file_index WHERE modified_at > ?1 ORDER BY modified_at DESC")
             .map_err(|e| format!("prepare: {e}"))?;
         let rows = stmt
-            .query_map(params![timestamp], |row| {
+            .query_map(params![timestamp as i64], |row| {
                 Ok(FileEntry {
                     path: row.get(0)?,
                     extension: row.get(1)?,
-                    size_bytes: row.get(2)?,
-                    modified_at: row.get(3)?,
+                    size_bytes: row.get::<_, i64>(2)? as u64,
+                    modified_at: row.get::<_, i64>(3)? as u64,
                 })
             })
             .map_err(|e| format!("query: {e}"))?;
@@ -225,12 +225,12 @@ impl FileIndex {
             .prepare("SELECT path, extension, size_bytes, modified_at FROM file_index WHERE size_bytes BETWEEN ?1 AND ?2 ORDER BY modified_at DESC")
             .map_err(|e| format!("prepare: {e}"))?;
         let rows = stmt
-            .query_map(params![min_bytes, max_bytes], |row| {
+            .query_map(params![min_bytes as i64, max_bytes as i64], |row| {
                 Ok(FileEntry {
                     path: row.get(0)?,
                     extension: row.get(1)?,
-                    size_bytes: row.get(2)?,
-                    modified_at: row.get(3)?,
+                    size_bytes: row.get::<_, i64>(2)? as u64,
+                    modified_at: row.get::<_, i64>(3)? as u64,
                 })
             })
             .map_err(|e| format!("query: {e}"))?;
@@ -253,8 +253,8 @@ impl FileIndex {
                 Ok(FileEntry {
                     path: row.get(0)?,
                     extension: row.get(1)?,
-                    size_bytes: row.get(2)?,
-                    modified_at: row.get(3)?,
+                    size_bytes: row.get::<_, i64>(2)? as u64,
+                    modified_at: row.get::<_, i64>(3)? as u64,
                 })
             })
             .map_err(|e| format!("query: {e}"))?;
@@ -277,7 +277,7 @@ impl FileIndex {
         self.conn
             .execute(
                 "INSERT OR REPLACE INTO file_index (path, extension, size_bytes, modified_at) VALUES (?1, ?2, ?3, ?4)",
-                params![path, extension, size_bytes, modified_at],
+                params![path, extension, size_bytes as i64, modified_at as i64],
             )
             .map_err(|e| format!("upsert {path}: {e}"))?;
         Ok(())
@@ -303,7 +303,9 @@ impl FileIndex {
     /// Get the last modification timestamp in the index.
     pub fn latest_modified(&self) -> Result<Option<u64>, String> {
         self.conn
-            .query_row("SELECT MAX(modified_at) FROM file_index", [], |row| row.get(0))
+            .query_row("SELECT MAX(modified_at) FROM file_index", [], |row| {
+                row.get::<_, Option<i64>>(0).map(|opt| opt.map(|v| v as u64))
+            })
             .map_err(|e| format!("latest_modified: {e}"))
     }
 
@@ -326,8 +328,8 @@ impl FileIndex {
                 Ok(FileEntry {
                     path: row.get(0)?,
                     extension: row.get(1)?,
-                    size_bytes: row.get(2)?,
-                    modified_at: row.get(3)?,
+                    size_bytes: row.get::<_, i64>(2)? as u64,
+                    modified_at: row.get::<_, i64>(3)? as u64,
                 })
             })
             .map_err(|e| format!("query: {e}"))?;

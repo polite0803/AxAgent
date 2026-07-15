@@ -14,7 +14,7 @@ pub use crate::mcp_manager::{McpManager, McpServerConfig, McpToolConfig};
 use crate::permissions::{PermissionMode, ToolPermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
-use crate::{Tool, ToolCategory, ToolError, ToolErrorKind, ToolInfo, ToolResult};
+use crate::{Tool, ToolCategory, ToolDomain, ToolError, ToolErrorKind, ToolInfo, ToolResult};
 use async_trait::async_trait;
 use axagent_harness::ToolExecutionAudit;
 use axagent_harness::runtime_types::conversation::ToolExecutor as RuntimeToolExecutor;
@@ -384,6 +384,8 @@ pub struct UnifiedToolRegistry {
     /// 注册的 Skill 工具：name → handler（register_skill_tool 填充）
     #[allow(clippy::disallowed_types)]
     pub skill_handlers: HashMap<String, SkillToolHandler>,
+    /// 用户提问桥接器（AskUserQuestion 工具阻塞等待用户输入）
+    pub ask_user_bridge: Option<Arc<dyn axagent_harness::AskUserBridge>>,
 }
 
 impl Clone for UnifiedToolRegistry {
@@ -406,6 +408,7 @@ impl Clone for UnifiedToolRegistry {
             working_dir: self.working_dir.clone(),
             tool_extra: self.tool_extra.clone(),
             skill_handlers: HashMap::new(), // handlers 不可 Clone，clone 时重置为空
+            ask_user_bridge: self.ask_user_bridge.clone(),
         }
     }
 }
@@ -486,6 +489,7 @@ impl UnifiedToolRegistry {
             working_dir,
             tool_extra: HashMap::new(),
             skill_handlers: HashMap::new(),
+            ask_user_bridge: None,
         };
         reg.init_all();
         reg
@@ -615,6 +619,64 @@ impl UnifiedToolRegistry {
             }
         }
         let mcp_allowed = !matches!(mode, crate::permissions::PermissionMode::ReadOnly);
+        if mcp_allowed {
+            for (key, config) in &self.mcp.mcp_tools {
+                if self.tools.disabled.contains(key) {
+                    continue;
+                }
+                out.push(axagent_harness::types::ChatTool {
+                    r#type: "function".into(),
+                    function: axagent_harness::types::ChatToolFunction {
+                        name: key.clone(),
+                        description: Some(config.description.clone().unwrap_or_default()),
+                        parameters: config.input_schema.clone(),
+                    },
+                });
+            }
+        }
+        out
+    }
+
+    /// 按功能域获取 ChatTool 列表（支持可选的 PermissionMode 过滤）
+    pub fn get_chat_tools_for_domains(
+        &self,
+        domains: &std::collections::HashSet<ToolDomain>,
+        mode: Option<&crate::permissions::PermissionMode>,
+    ) -> Vec<axagent_harness::types::ChatTool> {
+        let mut out = Vec::new();
+        for info in self.tools.list_all() {
+            if !self.groups.is_tool_enabled(&info) {
+                continue;
+            }
+            // ★ 领域过滤
+            if !domains.contains(&info.domain) {
+                continue;
+            }
+            // ★ 权限模式过滤（可选）
+            if let Some(mode) = mode {
+                let allowed = match mode {
+                    crate::permissions::PermissionMode::ReadOnly => info.is_read_only,
+                    crate::permissions::PermissionMode::Allow => true,
+                    crate::permissions::PermissionMode::DangerFullAccess => true,
+                    crate::permissions::PermissionMode::WorkspaceWrite => true,
+                    crate::permissions::PermissionMode::Prompt => true,
+                };
+                if !allowed {
+                    continue;
+                }
+            }
+            out.push(axagent_harness::types::ChatTool {
+                r#type: "function".into(),
+                function: axagent_harness::types::ChatToolFunction {
+                    name: info.name.clone(),
+                    description: Some(info.description.clone()),
+                    parameters: Some(info.input_schema.clone()),
+                },
+            });
+        }
+        // MCP 工具始终按原逻辑添加（领域无关）
+        let mcp_allowed =
+            mode.is_none_or(|m| !matches!(m, crate::permissions::PermissionMode::ReadOnly));
         if mcp_allowed {
             for (key, config) in &self.mcp.mcp_tools {
                 if self.tools.disabled.contains(key) {
@@ -991,6 +1053,7 @@ impl UnifiedToolRegistry {
                 extra: self.tool_extra.clone(),
                 permissions: None,
                 output_sanitizer: None,
+                ask_user_bridge: self.ask_user_bridge.clone(),
             };
 
             // ── 运行时 Schema 校验（M-05） ──
@@ -1102,6 +1165,7 @@ impl UnifiedToolRegistry {
                 endpoint,
                 &config.tool_name,
                 arguments,
+                Some(&config.server_id),
             ),
         )
         .await;
@@ -1261,6 +1325,7 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
                 input_schema: mcp.input_schema.clone().unwrap_or(serde_json::json!({})),
                 aliases: vec![mcp.tool_name.clone()],
                 category: ToolCategory::Integration,
+                domain: ToolDomain::Core,
                 is_concurrency_safe: true,
                 is_read_only: false,
                 is_destructive: false,
@@ -1283,6 +1348,7 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
                     input_schema: mcp.input_schema.clone().unwrap_or(serde_json::json!({})),
                     aliases: vec![mcp.tool_name.clone()],
                     category: ToolCategory::Integration,
+                    domain: ToolDomain::Core,
                     is_concurrency_safe: true,
                     is_read_only: false,
                     is_destructive: false,

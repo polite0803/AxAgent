@@ -50,9 +50,11 @@ interface SpanNodeProps {
   level: number;
   isSelected: boolean;
   onSelect: () => void;
+  selectedSpanId?: string;
+  onSelectSpan: (spanId: string) => void;
 }
 
-function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
+function SpanNode({ node, level, isSelected, onSelect, selectedSpanId, onSelectSpan }: SpanNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < 3);
   const hasChildren = node.children.length > 0;
 
@@ -115,8 +117,10 @@ function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
             key={child.id}
             node={child}
             level={level + 1}
-            isSelected={false}
-            onSelect={() => {}}
+            isSelected={selectedSpanId === child.id}
+            onSelect={() => onSelectSpan(child.id)}
+            selectedSpanId={selectedSpanId}
+            onSelectSpan={onSelectSpan}
           />
         ))}
     </div>
@@ -139,6 +143,8 @@ export function SpanTree({ spans }: SpanTreeProps) {
           level={0}
           isSelected={selectedSpan?.id === span.id}
           onSelect={() => selectSpan(span.id)}
+          selectedSpanId={selectedSpan?.id}
+          onSelectSpan={selectSpan}
         />
       ))}
     </div>

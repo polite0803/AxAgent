@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import type { SkillManifest } from "@/types";
-import { Button, Input, message, Modal, Space, Tabs, Typography } from "antd";
+import { Button, Input, Modal, Space, Tabs, Typography } from "antd";
 import { Lightbulb } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

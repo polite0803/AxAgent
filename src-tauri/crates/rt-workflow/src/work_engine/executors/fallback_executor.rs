@@ -44,6 +44,7 @@ impl NodeExecutorTrait for FallbackExecutor {
                 "message": "Unsupported node type, using fallback"
             }),
             output_var: None,
+            control: None,
         })
     }
 }

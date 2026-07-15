@@ -53,7 +53,6 @@ mod skill_manager;
 mod skill_matcher;
 mod skill_proposal;
 mod skills_hub_adapter;
-mod skills_hub_client;
 mod storage;
 mod style_applier;
 mod style_extractor;
@@ -171,8 +170,6 @@ pub use skill_proposal::SkillProposalService;
 
 pub use skills_hub_adapter::SkillsHubAdapter;
 
-pub use skills_hub_client::{SkillsHubConfig, SkillsHubSearchResult, SkillsHubSkill};
-
 pub use storage::{
     TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectorySession, TrajectoryStatistics,
     TrajectoryStorage,
@@ -180,7 +177,10 @@ pub use storage::{
 
 pub use style_applier::StyleApplier;
 
-pub use style_extractor::StyleExtractor;
+pub use style_extractor::{
+    CommentStyle, DocumentFormat, DocumentStyleProfile, ExtractedCodePatterns,
+    FormattingPreferences, IndentStyle, NamingPattern, NamingPatternType, StyleExtractor,
+};
 
 pub use style_vectorizer::{CodeSample, MessageSample, StyleVectorizer};
 
@@ -198,7 +198,11 @@ pub use trajectory::{
     TrajectoryToolResult,
 };
 
-pub use user_profile::{ExpertiseLevel, ProfileUpdate, UpdateSource, UserProfile};
+pub use user_profile::{
+    CommentStyle as ProfileCommentStyle, DetailLevel, ExpertiseLevel, ExplanationDepth,
+    IndentationStyle as ProfileIndentStyle, NamingConvention, ProfileUpdate, Tone, UpdateSource,
+    UserProfile,
+};
 
 // ── Extension methods migrated from harness ──────────────────────────
 

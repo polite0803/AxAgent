@@ -472,16 +472,11 @@ mod tests {
     }
 
     async fn make_lint_checker() -> LintChecker {
-        let db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
         LintChecker::new(
-            Arc::new(axagent_dao::repo::note_repository::DaoNoteRepository::new(db.clone())),
-            Arc::new(axagent_dao::repo::wiki_repository::DaoWikiRepository::new(db.clone())),
-            Arc::new(axagent_dao::repo::wiki_page_repository::DaoWikiPageRepository::new(
-                db.clone(),
-            )),
-            Arc::new(axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository::new(
-                db.clone(),
-            )),
+            axagent_harness::test_support::empty_note_repo(),
+            axagent_harness::test_support::empty_wiki_repo(),
+            axagent_harness::test_support::empty_wiki_page_repo(),
+            axagent_harness::test_support::empty_note_backlink_repo(),
             Box::new(crate::noop_kit::NoopMarkdownParser),
         )
     }

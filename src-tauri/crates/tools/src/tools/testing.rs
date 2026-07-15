@@ -5,7 +5,7 @@
 //! RunTests / RunTestCoverage / RunLinter
 
 use crate::utils::spawn::safe_spawn;
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::process::Command;
@@ -82,6 +82,11 @@ impl Tool for RunTestsTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Shell
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -153,6 +158,11 @@ impl Tool for RunLinterTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Shell
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -222,6 +232,11 @@ impl Tool for RunTestCoverageTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Shell
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }

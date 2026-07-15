@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
+import { message } from "@/lib/toast";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type {
   CreatePromptTemplateInput,
@@ -21,7 +22,7 @@ import {
   StarFilled,
   StarOutlined,
 } from "@ant-design/icons";
-import { Button, Empty, Form, Input, List, message, Modal, Select, Space, Spin, Tag, theme, Typography } from "antd";
+import { Button, Empty, Form, Input, Modal, Select, Space, Spin, Tag, theme, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PromptImportModal } from "./PromptImportModal";
@@ -294,85 +295,93 @@ export function PromptTemplatesSettings() {
         </div>
 
         {/* 列表 */}
-        {filteredTemplates.length === 0 ? <Empty description={t("promptTemplates.noTemplates")} /> : (
-          <List
-            dataSource={filteredTemplates}
-            renderItem={(tmpl) => (
-              <List.Item
-                actions={[
-                  <Button
-                    key="fav"
-                    type="text"
-                    size="small"
-                    icon={tmpl.isFavorite ? <StarFilled style={{ color: token.colorWarning }} /> : <StarOutlined />}
-                    onClick={() => toggleFavorite(tmpl.id)}
-                  />,
-                  <Button
-                    key="history"
-                    type="text"
-                    size="small"
-                    icon={<HistoryOutlined />}
-                    onClick={() => handleViewHistory(tmpl)}
-                  >
-                    {t("promptTemplates.history")}
-                  </Button>,
-                  <Button
-                    key="edit"
-                    type="text"
-                    size="small"
-                    icon={<EditOutlined />}
-                    onClick={() => handleEdit(tmpl)}
-                  >
-                    {t("common.edit")}
-                  </Button>,
-                  <Button
-                    key="delete"
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDelete(tmpl)}
-                  >
-                    {t("common.delete")}
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={
-                    <Space wrap size={[0, 4]}>
-                      <span>{tmpl.name}</span>
-                      {tmpl.isActive && <Tag color="green">{t("common.active")}</Tag>}
-                      {tmpl.abTestEnabled && <Tag color="blue">{t("promptTemplates.abTest")}</Tag>}
-                      {tmpl.category && <Tag>{tmpl.category}</Tag>}
-                      <Tag color="default">v{tmpl.version}</Tag>
-                      {tmpl.sourceType === "imported" && (
-                        <Tag color="purple">
-                          {t("promptTemplates.imported")}
-                        </Tag>
-                      )}
-                    </Space>
-                  }
-                  description={
+        {filteredTemplates.length === 0
+          ? <Empty description={t("promptTemplates.noTemplates")} />
+          : (
+            <div className="divide-y divide-gray-100">
+              {filteredTemplates.map((tmpl) => (
+                <div key={tmpl.id} style={{ padding: "12px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div>
-                      <div className="text-xs text-zinc-500">
-                        {tmpl.description || tmpl.content.slice(0, 80) + "..."}
-                      </div>
-                      {tmpl.tags && tmpl.tags.length > 0 && (
-                        <div className="mt-1">
-                          {tmpl.tags.map((tag) => (
-                            <Tag key={tag} className="text-xs" color="geekblue">
-                              {tag}
+                      <div style={{ fontWeight: 500 }}>
+                        <Space wrap size={[0, 4]}>
+                          <span>{tmpl.name}</span>
+                          {tmpl.isActive && <Tag color="green">{t("common.active")}</Tag>}
+                          {tmpl.abTestEnabled && <Tag color="blue">{t("promptTemplates.abTest")}</Tag>}
+                          {tmpl.category && <Tag>{tmpl.category}</Tag>}
+                          <Tag color="default">v{tmpl.version}</Tag>
+                          {tmpl.sourceType === "imported" && (
+                            <Tag color="purple">
+                              {t("promptTemplates.imported")}
                             </Tag>
-                          ))}
+                          )}
+                        </Space>
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                          fontSize: 13,
+                          marginTop: 2,
+                        }}
+                      >
+                        <div>
+                          <div className="text-xs text-zinc-500">
+                            {tmpl.description || tmpl.content.slice(0, 80) + "..."}
+                          </div>
+                          {tmpl.tags && tmpl.tags.length > 0 && (
+                            <div className="mt-1">
+                              {tmpl.tags.map((tag) => (
+                                <Tag key={tag} className="text-xs" color="geekblue">
+                                  {tag}
+                                </Tag>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        )}
+                    <Space>
+                      <Button
+                        key="fav"
+                        type="text"
+                        size="small"
+                        icon={tmpl.isFavorite ? <StarFilled style={{ color: token.colorWarning }} /> : <StarOutlined />}
+                        onClick={() => toggleFavorite(tmpl.id)}
+                      />
+                      <Button
+                        key="history"
+                        type="text"
+                        size="small"
+                        icon={<HistoryOutlined />}
+                        onClick={() => handleViewHistory(tmpl)}
+                      >
+                        {t("promptTemplates.history")}
+                      </Button>
+                      <Button
+                        key="edit"
+                        type="text"
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => handleEdit(tmpl)}
+                      >
+                        {t("common.edit")}
+                      </Button>
+                      <Button
+                        key="delete"
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDelete(tmpl)}
+                      >
+                        {t("common.delete")}
+                      </Button>
+                    </Space>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
       </div>
 
       {/* 导入弹窗 */}
@@ -478,55 +487,63 @@ export function PromptTemplatesSettings() {
         width={700}
       >
         <div className="py-2">
-          {versions.length === 0 ? <Empty description={t("promptTemplates.noVersions")} /> : (
-            <List
-              dataSource={versions}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    <Button
-                      key="view"
-                      size="small"
-                      onClick={() =>
-                        setViewingVersionContent(
-                          viewingVersionContent?.id === item.id ? null : item,
-                        )}
-                    >
-                      {viewingVersionContent?.id === item.id
-                        ? t("common.hide")
-                        : t("common.view")}
-                    </Button>,
-                    <Button
-                      key="rollback"
-                      size="small"
-                      icon={<RollbackOutlined />}
-                      onClick={() => handleRollback(item)}
-                    >
-                      {t("promptTemplates.rollback")}
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={
-                      <Space>
-                        <Tag color="blue">v{item.version}</Tag>
-                        {item.category && <Tag>{item.category}</Tag>}
-                      </Space>
-                    }
-                    description={
+          {versions.length === 0
+            ? <Empty description={t("promptTemplates.noVersions")} />
+            : (
+              <div className="divide-y divide-gray-100">
+                {versions.map((item) => (
+                  <div key={item.id} style={{ padding: "12px 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
-                        {item.changelog && (
-                          <Text type="secondary" className="text-xs">
-                            {item.changelog}
-                          </Text>
-                        )}
+                        <div style={{ fontWeight: 500 }}>
+                          <Space>
+                            <Tag color="blue">v{item.version}</Tag>
+                            {item.category && <Tag>{item.category}</Tag>}
+                          </Space>
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                            fontSize: 13,
+                            marginTop: 2,
+                          }}
+                        >
+                          <div>
+                            {item.changelog && (
+                              <Text type="secondary" className="text-xs">
+                                {item.changelog}
+                              </Text>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
-          )}
+                      <Space>
+                        <Button
+                          key="view"
+                          size="small"
+                          onClick={() =>
+                            setViewingVersionContent(
+                              viewingVersionContent?.id === item.id ? null : item,
+                            )}
+                        >
+                          {viewingVersionContent?.id === item.id
+                            ? t("common.hide")
+                            : t("common.view")}
+                        </Button>
+                        <Button
+                          key="rollback"
+                          size="small"
+                          icon={<RollbackOutlined />}
+                          onClick={() => handleRollback(item)}
+                        >
+                          {t("promptTemplates.rollback")}
+                        </Button>
+                      </Space>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
           {/* 版本内容查看 */}
           {viewingVersionContent && (

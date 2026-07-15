@@ -146,6 +146,7 @@ impl NodeExecutorTrait for LlmExecutor {
                     "dry_run": true, "node_id": node.base_id(),
                 }),
                 output_var: None,
+                control: None,
             });
         }
 
@@ -224,6 +225,7 @@ impl NodeExecutorTrait for LlmExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: None,
+            control: None,
         })
     }
 }

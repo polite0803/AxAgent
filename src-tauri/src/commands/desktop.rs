@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::proxy as proxy_err;
+use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::Manager;
 
@@ -62,17 +63,25 @@ pub async fn get_desktop_capabilities() -> Result<serde_json::Value, String> {
     ]))
 }
 
+#[derive(Debug, Serialize)]
+pub struct DesktopNotificationResult {
+    pub sent: bool,
+    pub method: String, // "native" | "log"
+}
+
 #[tauri::command]
 pub async fn send_desktop_notification(
     app: tauri::AppHandle,
     title: String,
     body: String,
-) -> Result<(), String> {
+) -> Result<DesktopNotificationResult, String> {
     #[cfg(feature = "notification")]
     {
         use tauri_plugin_notification::NotificationExt;
         match app.notification().builder().title(&title).body(&body).show() {
-            Ok(()) => return Ok(()),
+            Ok(()) => {
+                return Ok(DesktopNotificationResult { sent: true, method: "native".to_string() });
+            },
             Err(e) => {
                 tracing::warn!("Native notification failed, falling back to log: {}", e);
             },
@@ -83,7 +92,7 @@ pub async fn send_desktop_notification(
         body = %body,
         "Desktop notification (placeholder — notification plugin not available or failed)"
     );
-    Ok(())
+    Ok(DesktopNotificationResult { sent: false, method: "log".to_string() })
 }
 
 #[tauri::command]

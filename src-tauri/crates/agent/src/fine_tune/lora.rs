@@ -108,7 +108,7 @@ pub struct TrainingMetrics {
 
 impl TrainingJob {
     pub fn new(id: String, dataset_id: String, base_model: String, config: LoRAConfig) -> Self {
-        let total_steps = config.batch_size * config.epochs;
+        let epochs = config.epochs;
         Self {
             id,
             status: JobStatus::Pending,
@@ -116,7 +116,7 @@ impl TrainingJob {
             dataset_id,
             base_model,
             output_lora: None,
-            progress: TrainingProgress::new(3, total_steps),
+            progress: TrainingProgress::new(epochs, 0),
             metrics: TrainingMetrics::default(),
         }
     }

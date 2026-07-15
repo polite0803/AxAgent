@@ -119,8 +119,16 @@ export const useSearchStore = create<SearchState>()(
             offset: searchQuery?.offset ?? 0,
           };
 
+          // 后端 session_search 支持 query / regex / case_sensitive / session_filter / date_from / date_to / limit / offset
           const results = await invoke<SearchResult[]>("session_search", {
-            query: fullQuery,
+            query: fullQuery.query,
+            limit: fullQuery.limit ?? searchOptions.limit,
+            regex: fullQuery.regex ?? undefined,
+            caseSensitive: fullQuery.case_sensitive ?? undefined,
+            sessionFilter: fullQuery.session_filter ?? undefined,
+            dateFrom: fullQuery.date_from ?? undefined,
+            dateTo: fullQuery.date_to ?? undefined,
+            offset: fullQuery.offset ?? undefined,
           });
 
           set({ results, isSearching: false });
@@ -209,14 +217,19 @@ export const useSearchStore = create<SearchState>()(
       },
 
       executeSearch: async (providerId: string, query: string) => {
-        const result = await invoke<{
-          ok: boolean;
-          results: SearchResultItem[];
-        }>("execute_search", {
-          providerId,
-          query,
-        });
-        return result;
+        try {
+          const result = await invoke<{
+            ok: boolean;
+            results: SearchResultItem[];
+          }>("execute_search", {
+            providerId,
+            query,
+          });
+          return result;
+        } catch (e) {
+          logIpcError("Failed to execute search")(e);
+          return { ok: false, results: [] };
+        }
       },
     }),
     {

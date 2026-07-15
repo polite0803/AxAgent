@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_harness::provider::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::types::settings_chat::{ChatContent, ChatMessage, ChatRequest};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -8,7 +10,7 @@ use tokio::sync::RwLock;
 
 use crate::evaluator::benchmark::{Benchmark, BenchmarkTask, Difficulty, EvaluationMetric};
 use crate::evaluator::metrics::{
-    AggregateMetrics, MetricsCalculator, contains_score, exact_match_score, levenshtein_similarity,
+    AggregateMetrics, contains_score, exact_match_score, levenshtein_similarity,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,12 +75,23 @@ pub struct ScoreResult {
 
 pub struct EvaluationRunner {
     config: RunnerConfig,
-    metrics_calculator: MetricsCalculator,
+    provider: Option<Arc<dyn ProviderAdapter>>,
+    provider_ctx: Option<ProviderRequestContext>,
 }
 
 impl EvaluationRunner {
     pub fn new(config: RunnerConfig) -> Self {
-        Self { config, metrics_calculator: MetricsCalculator::new() }
+        Self { config, provider: None, provider_ctx: None }
+    }
+
+    pub fn with_provider(
+        mut self,
+        provider: Arc<dyn ProviderAdapter>,
+        ctx: ProviderRequestContext,
+    ) -> Self {
+        self.provider = Some(provider);
+        self.provider_ctx = Some(ctx);
+        self
     }
 
     pub fn with_config(&mut self, config: RunnerConfig) {
@@ -118,31 +131,90 @@ impl EvaluationRunner {
     async fn run_task(&self, task: &BenchmarkTask) -> TaskResult {
         let start_time = std::time::Instant::now();
 
-        let response = self.simulate_agent_response(task).await;
+        let response = if let Some(provider) = &self.provider {
+            self.call_llm_for_task(provider, task).await
+        } else {
+            Ok(self.simulate_agent_response(task).await)
+        };
+
         let duration_ms = start_time.elapsed().as_millis() as u64;
 
-        let scores = self.evaluate_task(task, &response);
+        let (response_text, error) = match response {
+            Ok(text) => (Some(text.clone()), None),
+            Err(e) => (None, Some(e)),
+        };
+
+        let scores = if let Some(ref text) = response_text {
+            self.evaluate_task(task, text)
+        } else {
+            Vec::new()
+        };
+
         let overall_score = scores.iter().map(|s| s.weighted_score).sum::<f32>();
         let success = scores.iter().all(|s| s.passed) && overall_score >= 0.5;
-
-        let mut score_map: HashMap<String, f32> = HashMap::new();
-        for s in &scores {
-            score_map.insert(s.criteria_name.clone(), s.raw_score);
-        }
-        let task_metrics = self.metrics_calculator.calculate_task_score(task, &score_map);
 
         TaskResult {
             task_id: task.id.clone(),
             task_name: task.name.clone(),
             difficulty: task.difficulty,
-            success: success && task_metrics.success,
+            success,
             duration_ms,
             scores,
             overall_score,
-            response: Some(response.clone()),
-            error: None,
+            response: response_text,
+            error,
             trace_id: None,
         }
+    }
+
+    async fn call_llm_for_task(
+        &self,
+        provider: &Arc<dyn ProviderAdapter>,
+        task: &BenchmarkTask,
+    ) -> Result<String, String> {
+        let request = Arc::new(ChatRequest {
+            model: "default".to_string(),
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(task.input.query.clone()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            }],
+            stream: false,
+            temperature: None,
+            top_p: None,
+            max_tokens: Some(2048),
+            tools: None,
+            thinking_budget: None,
+            use_max_completion_tokens: None,
+            thinking_param_style: None,
+            api_mode: None,
+            instructions: None,
+            conversation: None,
+            previous_response_id: None,
+            store: None,
+        });
+
+        let ctx = self.provider_ctx.as_ref().cloned().unwrap_or_else(|| ProviderRequestContext {
+            api_key: String::new(),
+            key_id: String::new(),
+            provider_id: String::new(),
+            base_url: None,
+            api_path: None,
+            proxy_config: None,
+            custom_headers: None,
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        });
+
+        provider
+            .chat(&ctx, request)
+            .await
+            .map(|response| response.content)
+            .map_err(|e| format!("LLM call failed: {}", e))
     }
 
     // i18n-exempt: Example strings for benchmark evaluation — testing data, not UI
@@ -153,7 +225,7 @@ impl EvaluationRunner {
             "reasoning_002" => "设计分布式缓存系统需要考虑以下方面：\n1. 一致性模型（强一致性/最终一致性）\n2. 数据分片策略\n3. 复制机制\n4. 故障转移\n5. 缓存失效策略".to_string(),
             "tool_001" => "3".to_string(),
             "code_001" => "fn fibonacci(n: u32) -> u32 {\n    if n <= 1 {\n        n\n    } else {\n        fibonacci(n - 1) + fibonacci(n - 2)\n    }\n}".to_string(),
-            "error_001" => "这段代码看起来是正确的。let x = 5 创建了一个不可变绑定，println! 宏正确地使用了占位符 {}。没有明显的错误。".to_string(),
+            "error_001" => "这段代码有错误。变量 y 未定义就被使用，需要在作用域中先声明 y 变量才能使用 println! 输出。修正方案：先声明 let y = 某个值; 或使用已定义的变量 x。".to_string(),
             _ => format!("模拟响应: {}", task.input.query.chars().take(50).collect::<String>()),
         }
     }
@@ -185,14 +257,38 @@ impl EvaluationRunner {
         response: &str,
     ) -> f32 {
         let expected = task.expected_output.as_ref().map(|o| o.content.as_str()).unwrap_or("");
+        let has_expected = !expected.is_empty();
 
         match metric {
-            EvaluationMetric::ExactMatch => exact_match_score(expected, response),
-            EvaluationMetric::Contains => contains_score(expected, response),
-            EvaluationMetric::LevenshteinSimilarity => levenshtein_similarity(expected, response),
+            // 无 expected_output 时比较类指标返回 0.0
+            EvaluationMetric::ExactMatch => {
+                if has_expected {
+                    exact_match_score(expected, response)
+                } else {
+                    0.0
+                }
+            },
+            EvaluationMetric::Contains => {
+                if has_expected {
+                    contains_score(expected, response)
+                } else {
+                    0.0
+                }
+            },
+            EvaluationMetric::LevenshteinSimilarity => {
+                if has_expected {
+                    levenshtein_similarity(expected, response)
+                } else {
+                    0.0
+                }
+            },
             EvaluationMetric::SemanticSimilarity => {
-                let base = levenshtein_similarity(expected, response);
-                base * 0.8 + 0.2
+                if has_expected {
+                    let base = levenshtein_similarity(expected, response);
+                    base * 0.8 + 0.2
+                } else {
+                    0.0
+                }
             },
             EvaluationMetric::ToolCorrectness => {
                 if task.id == "tool_001" && response == "3" {
@@ -202,10 +298,10 @@ impl EvaluationRunner {
                 }
             },
             EvaluationMetric::OutputFormat => {
-                if expected.is_empty() {
-                    1.0
-                } else {
+                if has_expected {
                     0.8
+                } else {
+                    1.0
                 }
             },
             EvaluationMetric::Performance => 1.0,
@@ -301,13 +397,11 @@ impl BenchmarkRunnerState {
     }
 
     pub async fn run(&self, benchmark: &Benchmark, config: RunnerConfig) -> BenchmarkResult {
-        {
-            let mut runner = self.runner.write().await;
-            runner.with_config(config);
-        }
-
-        let runner = self.runner.read().await;
+        // 持写锁完成配置更新和执行，防止其他线程中途修改 config
+        let mut runner = self.runner.write().await;
+        runner.with_config(config);
         let result = runner.run_benchmark(benchmark).await;
+        drop(runner);
 
         {
             let mut current = self.current_result.write().await;

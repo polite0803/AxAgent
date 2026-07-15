@@ -1648,3 +1648,216 @@ async fn search_google_pse(
         })
         .collect())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_safe_url_allows_public_https() {
+        assert!(is_safe_url("https://example.com/page"));
+        assert!(is_safe_url("https://api.github.com/repos"));
+        assert!(is_safe_url("http://example.com"));
+    }
+
+    #[test]
+    fn test_is_safe_url_blocks_localhost() {
+        assert!(!is_safe_url("http://localhost:8080"));
+        assert!(!is_safe_url("http://127.0.0.1"));
+        assert!(!is_safe_url("http://127.0.0.1:11434/api"));
+        assert!(!is_safe_url("http://[::1]"));
+        assert!(!is_safe_url("http://[::]"));
+        assert!(!is_safe_url("http://0.0.0.0"));
+    }
+
+    #[test]
+    fn test_is_safe_url_blocks_private_ranges() {
+        assert!(!is_safe_url("http://192.168.1.1"));
+        assert!(!is_safe_url("http://10.0.0.1"));
+        assert!(!is_safe_url("http://172.16.0.1"));
+        assert!(!is_safe_url("http://172.31.255.255"));
+    }
+
+    #[test]
+    fn test_is_safe_url_blocks_link_local_and_multicast() {
+        assert!(!is_safe_url("http://169.254.169.254"));
+        assert!(!is_safe_url("http://224.0.0.1"));
+    }
+
+    #[test]
+    fn test_is_safe_url_blocks_non_http_schemes() {
+        assert!(!is_safe_url("file:///etc/passwd"));
+        assert!(!is_safe_url("ftp://example.com"));
+        assert!(!is_safe_url("data:text/plain,hello"));
+    }
+
+    #[test]
+    fn test_is_safe_url_blocks_cgnat() {
+        assert!(!is_safe_url("http://100.64.0.1"));
+        assert!(!is_safe_url("http://100.127.255.255"));
+        assert!(is_safe_url("http://100.63.255.255"));
+        assert!(is_safe_url("http://100.128.0.1"));
+    }
+
+    #[test]
+    fn test_credibility_high_for_official_sites() {
+        assert_eq!(estimate_credibility("https://arxiv.org/abs/2401.00001"), 0.9);
+        assert_eq!(estimate_credibility("https://github.com/user/repo"), 0.9);
+        assert_eq!(estimate_credibility("https://en.wikipedia.org/wiki/Rust"), 0.9);
+        assert_eq!(estimate_credibility("https://stackoverflow.com/questions/123"), 0.9);
+        assert_eq!(estimate_credibility("https://pubmed.gov/123456"), 0.9);
+        assert_eq!(estimate_credibility("https://rust-lang.org/learn"), 0.9);
+    }
+
+    #[test]
+    fn test_credibility_medium_for_normal_sites() {
+        assert_eq!(estimate_credibility("https://example.com/page"), 0.7);
+        assert_eq!(estimate_credibility("https://news.ycombinator.com/item?id=123"), 0.7);
+    }
+
+    #[test]
+    fn test_credibility_low_for_empty_url() {
+        assert_eq!(estimate_credibility(""), 0.5);
+        assert_eq!(estimate_credibility("no-slash-url"), 0.5);
+    }
+
+    #[test]
+    fn test_default_endpoint_known_providers() {
+        assert_eq!(default_endpoint("tavily"), "https://api.tavily.com/search");
+        assert_eq!(default_endpoint("zhipu"), "https://open.bigmodel.cn/api/paas/v4/web_search");
+        assert_eq!(default_endpoint("bocha"), "https://api.bochaai.com/v1/web-search");
+    }
+
+    #[test]
+    fn test_default_endpoint_unknown_provider() {
+        assert_eq!(default_endpoint("unknown"), "");
+        assert_eq!(default_endpoint(""), "");
+    }
+
+    #[test]
+    fn test_expand_search_queries_adds_year() {
+        let result = expand_search_queries("deep learning");
+        let has_year = result.queries.iter().any(|q| q.contains("最新 2026"));
+        assert!(has_year);
+    }
+
+    #[test]
+    fn test_expand_search_queries_max_five() {
+        let result = expand_search_queries("a long query with many words to test");
+        assert!(result.queries.len() <= 5);
+    }
+
+    #[test]
+    fn test_expand_search_queries_dedup() {
+        let result = expand_search_queries("hello world");
+        let unique: std::collections::HashSet<&str> =
+            result.queries.iter().map(|s| s.as_str()).collect();
+        assert_eq!(unique.len(), result.queries.len());
+    }
+
+    #[test]
+    fn test_expand_search_queries_chinese_english_terms() {
+        let result = expand_search_queries("机器学习 transformer");
+        let has_en =
+            result.queries.iter().any(|q| q.contains("machine learning") || q.contains("ML"));
+        assert!(has_en);
+    }
+
+    #[test]
+    fn test_rerank_empty_results() {
+        let mut results: Vec<DocSearchResult> = vec![];
+        rerank_search_results("test", &mut results);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_rerank_title_match_first() {
+        let mut results = vec![
+            DocSearchResult {
+                title: "Unrelated".into(),
+                content: "content".into(),
+                url: "https://a.com".into(),
+                credibility: None,
+                relevance_score: None,
+            },
+            DocSearchResult {
+                title: "Rust Programming Guide".into(),
+                content: "learn rust".into(),
+                url: "https://b.com".into(),
+                credibility: None,
+                relevance_score: None,
+            },
+        ];
+        rerank_search_results("rust", &mut results);
+        assert_eq!(results[0].title, "Rust Programming Guide");
+    }
+
+    #[test]
+    fn test_rerank_prefers_url_over_no_url() {
+        let mut results = vec![
+            DocSearchResult {
+                title: "No URL".into(),
+                content: "content".into(),
+                url: "".into(),
+                credibility: None,
+                relevance_score: None,
+            },
+            DocSearchResult {
+                title: "Has URL".into(),
+                content: "content".into(),
+                url: "https://example.com".into(),
+                credibility: None,
+                relevance_score: None,
+            },
+        ];
+        rerank_search_results("test", &mut results);
+        assert!(!results[0].url.is_empty());
+    }
+
+    #[test]
+    fn test_is_official_source_known() {
+        assert!(is_official_source("https://github.com/rust-lang/rust"));
+        assert!(is_official_source("https://docs.microsoft.com/en-us/dotnet"));
+        assert!(is_official_source("https://python.org"));
+    }
+
+    #[test]
+    fn test_is_official_source_unknown() {
+        assert!(!is_official_source("https://randomblog.example.com"));
+    }
+
+    #[test]
+    fn test_search_service_config_default() {
+        let config = SearchServiceConfig::default();
+        assert_eq!(config.provider_type, "ddg");
+        assert_eq!(config.max_results, 5);
+        assert_eq!(config.timeout_ms, 15000);
+    }
+
+    #[test]
+    fn test_classify_search_intent_must_search_news() {
+        assert!(matches!(
+            classify_search_intent("latest technology news today"),
+            SearchIntent::MustSearch
+        ));
+    }
+
+    #[test]
+    fn test_classify_search_intent_should_search_howto() {
+        assert!(matches!(
+            classify_search_intent("how to use async/await in Rust"),
+            SearchIntent::ShouldSearch
+        ));
+    }
+
+    #[test]
+    fn test_classify_search_intent_should_search_definition() {
+        assert!(matches!(classify_search_intent("什么是 REST API"), SearchIntent::ShouldSearch));
+        assert!(matches!(classify_search_intent("define monad"), SearchIntent::ShouldSearch));
+        // default fallback is also ShouldSearch
+        assert!(matches!(
+            classify_search_intent("history of ancient rome"),
+            SearchIntent::ShouldSearch
+        ));
+    }
+}

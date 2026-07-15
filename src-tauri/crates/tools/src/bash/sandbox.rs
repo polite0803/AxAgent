@@ -238,7 +238,9 @@ mod tests {
     #[test]
     fn docker_detect_does_not_panic() {
         let available = super::detect_docker_available();
-        assert!(available == true || available == false);
+        // 原 `available == true || available == false` 是恒真 tautology,
+        // 改用布尔双重否定形式表达"确认返回类型是 bool"且不浪费一次比较。
+        assert!(available || !available);
     }
 
     #[test]

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use axagent_harness::constants::default_url;
 use axagent_harness::core_error::{AxAgentError, Result};
@@ -526,7 +528,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         let url = Self::chat_url(ctx);
         let body = build_request(&request, false);

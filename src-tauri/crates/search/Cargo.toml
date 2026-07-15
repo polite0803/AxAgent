@@ -7,21 +7,21 @@ publish = false
 [dependencies]
 async-trait = "0.1"
 axagent-harness = { path = "../harness" }
-candle-core = "0.8"
-candle-transformers = "0.8"
+candle-core = "0.11"
+candle-transformers = "0.11"
 chrono = { workspace = true }
-dirs = "5"
+dirs = "6"
 futures = "0.3"
 hex = "0.4"
-libsqlite3-sys = { workspace = true }
+libsqlite3-sys = { version = "0.37", features = ["bundled"] }
 quick_cache = "0.4"
 regex = "1"
 reqwest = { workspace = true, features = ["cookies", "stream"] }
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sha2 = "0.10"
+sha2 = "0.11"
 sqlite-vec = { workspace = true }
 tokenizers = "0.23"
 tokio = { workspace = true }
@@ -29,19 +29,19 @@ tracing = { workspace = true }
 urlencoding = "2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-notify = { version = "8", default-features = false }
+notify = { version = "9.0.0-rc.4", default-features = false }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-notify = { version = "8", default-features = false }
+notify = { version = "9.0.0-rc.4", default-features = false }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
+notify = { version = "9.0.0-rc.4", default-features = false, features = ["macos_kqueue"] }
 
 [target.'cfg(windows)'.dependencies]
-notify = { version = "8", default-features = false }
+notify = { version = "9.0.0-rc.4", default-features = false }
 
 [target.'cfg(not(any(target_os = "linux", target_os = "macos", windows)))'.dependencies]
-notify = { version = "8", default-features = false }
+notify = { version = "9.0.0-rc.4", default-features = false }
 
 [dev-dependencies]
 tempfile = "3"

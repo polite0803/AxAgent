@@ -98,7 +98,7 @@ fn test_token_usage_types() {
 #[test]
 fn test_provider_type_enum() {
     use axagent_harness::types::ProviderType;
-    let types = vec![
+    let types = [
         ProviderType::OpenAI,
         ProviderType::Anthropic,
         ProviderType::Gemini,

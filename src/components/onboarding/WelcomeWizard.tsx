@@ -181,6 +181,27 @@ export function WelcomeWizard() {
                   : t("onboarding.ollamaNotFound")}
               </Text>
             </div>
+            {!ollamaAvailable && (
+              <div style={{ marginTop: 8, paddingLeft: 24, display: "flex", gap: 8 }}>
+                <Button
+                  size="small"
+                  type="link"
+                  onClick={() => window.open("https://ollama.com/download", "_blank")}
+                >
+                  {t("onboarding.downloadOllama")}
+                </Button>
+                <Button
+                  size="small"
+                  type="link"
+                  onClick={() => {
+                    completeWizard();
+                    navigate("/settings");
+                  }}
+                >
+                  {t("onboarding.goToSettings")}
+                </Button>
+              </div>
+            )}
             {ollamaModels.length > 0 && (
               <div style={{ marginTop: 8, paddingLeft: 24 }}>
                 {ollamaModels.slice(0, 5).map((m) => (
@@ -263,7 +284,7 @@ export function WelcomeWizard() {
                   {selectedPreset === p.key && <CheckCircle2 size={18} style={{ color: p.color }} />}
                   {applying && selectedPreset === p.key && (
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      ...
+                      {t("onboarding.applying")}
                     </Text>
                   )}
                 </div>
@@ -409,7 +430,9 @@ export function WelcomeWizard() {
           marginTop: 24,
         }}
       >
-        <Button onClick={dismissWizard}>{t("onboarding.skip")}</Button>
+        <Button onClick={dismissWizard} data-testid="onboarding-skip">
+          {t("onboarding.skip")}
+        </Button>
         <div style={{ display: "flex", gap: 8 }}>
           {currentStep > 0 && (
             <Button onClick={() => setStep(currentStep - 1)}>

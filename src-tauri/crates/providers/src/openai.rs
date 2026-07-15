@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 1.97 起 clippy::items_after_test_module 升级为 warn(在 `-D warnings` 下变 deny),
+// 历史上把测试模块放在文件中间以贴近被测代码,这里显式 allow 保留现有排版。
+#![allow(clippy::items_after_test_module)]
+
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use axagent_harness::constants::default_url;
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::speech::{AudioChunkStream, SpeakRequest, SpeechCapabilities, SpeechInput};
 use axagent_harness::types::*;
 use futures::Stream;
 use futures::StreamExt;
@@ -669,7 +676,7 @@ impl ProviderAdapter for OpenAIAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         let url = Self::chat_url(ctx);
         let body = build_request(ctx, &request, &request.messages, false);
@@ -1164,4 +1171,139 @@ impl ProviderAdapter for OpenAIAdapter {
 
         Ok(EmbedResponse { embeddings, dimensions })
     }
+
+    async fn realtime_config(
+        &self,
+        ctx: &ProviderRequestContext,
+        model: &str,
+    ) -> Result<axagent_harness::RealtimeProviderConfig> {
+        // OpenAI Realtime API 的 WebSocket 端点
+        let base = Self::base_url(ctx).replace("https://", "wss://").replace("http://", "ws://");
+        let ws_url = format!("{base}/realtime?model={model}");
+        Ok(axagent_harness::RealtimeProviderConfig {
+            ws_url,
+            api_key: ctx.api_key.clone(),
+            headers: None,
+            provider_type: "openai".to_string(),
+        })
+    }
+
+    // ── Speech: STT / TTS ──
+
+    fn supports_speech(&self) -> SpeechCapabilities {
+        SpeechCapabilities::all()
+    }
+
+    async fn transcribe(&self, ctx: &ProviderRequestContext, input: SpeechInput) -> Result<String> {
+        let base = Self::base_url(ctx);
+        let url = format!("{}/audio/transcriptions", base.trim_end_matches('/'));
+
+        // Whisper 需要带容器的音频（wav/mp3/...），把前端上传的裸 PCM16 包成 WAV。
+        let wav = pcm_to_wav(&input.data, input.format.sample_rate, input.format.channels as u16);
+
+        let part = reqwest::multipart::Part::bytes(wav)
+            .file_name("audio.wav")
+            .mime_str("audio/wav")
+            .map_err(|e| AxAgentError::Provider(format!("STT audio part error: {e}")))?;
+        let form = reqwest::multipart::Form::new()
+            .part("file", part)
+            .text("model", "whisper-1")
+            .text("response_format", "json");
+
+        let resp = crate::apply_request_headers(
+            self.get_client(ctx)?
+                .post(&url)
+                .header("Authorization", format!("Bearer {}", ctx.api_key))
+                .multipart(form),
+            ctx,
+        )
+        .send()
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("STT request failed: {e}")))?;
+
+        if !resp.status().is_success() {
+            let s = resp.status();
+            let t = resp.text().await.unwrap_or_default();
+            return Err(AxAgentError::Provider(format!("OpenAI STT API error {s}: {t}")));
+        }
+
+        #[derive(serde::Deserialize)]
+        struct SttResp {
+            text: String,
+        }
+
+        let result: SttResp = resp
+            .json()
+            .await
+            .map_err(|e| AxAgentError::Provider(format!("STT parse error: {e}")))?;
+        Ok(result.text)
+    }
+
+    async fn speech(
+        &self,
+        ctx: &ProviderRequestContext,
+        req: SpeakRequest,
+    ) -> Result<AudioChunkStream> {
+        let base = Self::base_url(ctx);
+        let url = format!("{}/audio/speech", base.trim_end_matches('/'));
+        let model = req.model.clone().unwrap_or_else(|| "tts-1".to_string());
+        let voice = req.voice.clone().unwrap_or_else(|| "alloy".to_string());
+
+        let body = serde_json::json!({
+            "model": model,
+            "input": req.text,
+            "voice": voice,
+            // OpenAI `pcm` 返回 24kHz 16-bit 小端 PCM，正好匹配前端 24kHz PCM16 解码。
+            "response_format": "pcm",
+        });
+
+        let resp = crate::apply_request_headers(
+            self.get_client(ctx)?
+                .post(&url)
+                .header("Authorization", format!("Bearer {}", ctx.api_key))
+                .json(&body),
+            ctx,
+        )
+        .send()
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("TTS request failed: {e}")))?;
+
+        if !resp.status().is_success() {
+            let s = resp.status();
+            let t = resp.text().await.unwrap_or_default();
+            return Err(AxAgentError::Provider(format!("OpenAI TTS API error {s}: {t}")));
+        }
+
+        // 直接以传输层流的方式转发音频字节，实现「边合成边播」。
+        let stream = resp.bytes_stream().map(|r| {
+            r.map(|b| b.to_vec())
+                .map_err(|e| AxAgentError::Provider(format!("TTS stream error: {e}")))
+        });
+        Ok(Box::pin(stream))
+    }
+}
+
+/// 把裸 PCM16 字节包成标准 WAV 文件头（44 字节），供 Whisper 等 API 使用。
+fn pcm_to_wav(pcm: &[u8], sample_rate: u32, channels: u16) -> Vec<u8> {
+    let bits_per_sample: u16 = 16;
+    let byte_rate = sample_rate * channels as u32 * bits_per_sample as u32 / 8;
+    let block_align = channels * bits_per_sample / 8;
+    let data_len = pcm.len() as u32;
+
+    let mut wav = Vec::with_capacity(44 + pcm.len());
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&(36 + data_len).to_le_bytes());
+    wav.extend_from_slice(b"WAVE");
+    wav.extend_from_slice(b"fmt ");
+    wav.extend_from_slice(&16u32.to_le_bytes()); // fmt chunk 大小（PCM）
+    wav.extend_from_slice(&1u16.to_le_bytes()); // audio format = PCM
+    wav.extend_from_slice(&channels.to_le_bytes());
+    wav.extend_from_slice(&sample_rate.to_le_bytes());
+    wav.extend_from_slice(&byte_rate.to_le_bytes());
+    wav.extend_from_slice(&block_align.to_le_bytes());
+    wav.extend_from_slice(&bits_per_sample.to_le_bytes());
+    wav.extend_from_slice(b"data");
+    wav.extend_from_slice(&data_len.to_le_bytes());
+    wav.extend_from_slice(pcm);
+    wav
 }

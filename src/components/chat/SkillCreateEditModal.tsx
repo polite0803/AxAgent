@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { useSkillStore } from "@/stores";
-import { Form, Input, message, Modal } from "antd";
+import { Form, Input, Modal } from "antd";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 

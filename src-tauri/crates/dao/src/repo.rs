@@ -39,6 +39,7 @@ pub mod skill;
 pub mod stored_file;
 pub mod tool_execution;
 pub mod vec_collection;
+pub mod workflow_approval;
 pub mod workflow_execution;
 pub mod workflow_template;
 

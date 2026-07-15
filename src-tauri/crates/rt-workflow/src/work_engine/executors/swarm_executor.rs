@@ -58,6 +58,7 @@ impl NodeExecutorTrait for SwarmExecutor {
                     "agent_steps": [],
                 }),
                 output_var: Some(output_var),
+                control: None,
             });
         }
 
@@ -169,6 +170,7 @@ impl NodeExecutorTrait for SwarmExecutor {
         Ok(NodeOutput {
             output: final_output,
             output_var: Some(output_var),
+            control: None,
         })
     }
 }
@@ -233,3 +235,4 @@ impl SwarmExecutor {
         }
     }
 }
+

@@ -6,6 +6,11 @@
 use axagent_harness::SharedFeatureFlagProvider;
 use std::time::{Duration, Instant};
 
+/// 每分钟最大 tick 数量
+const MAX_TICKS_PER_MINUTE: u64 = 6;
+/// 每分钟 tick 计数的滑动窗口时长
+const TICK_WINDOW_SECS: u64 = 60;
+
 /// 主动模式管理器
 pub struct ProactiveMode {
     /// 当前状态
@@ -18,6 +23,8 @@ pub struct ProactiveMode {
     last_api_error: Option<Instant>,
     /// tick 计数
     tick_count: u64,
+    /// 最近一分钟 tick 时间戳（滑动窗口，用于限速）
+    tick_timestamps: Vec<Instant>,
     /// Feature flag 提供者
     feature_flags: SharedFeatureFlagProvider,
 }
@@ -64,6 +71,7 @@ impl ProactiveMode {
             last_user_input: Instant::now(),
             last_api_error: None,
             tick_count: 0,
+            tick_timestamps: Vec::new(),
             feature_flags,
         }
     }
@@ -131,6 +139,12 @@ impl ProactiveMode {
         {
             return false;
         }
+        // 限速：最近一分钟内 tick 不超过 MAX_TICKS_PER_MINUTE
+        let cutoff = Instant::now() - Duration::from_secs(TICK_WINDOW_SECS);
+        let recent_ticks = self.tick_timestamps.iter().filter(|t| **t > cutoff).count();
+        if recent_ticks >= MAX_TICKS_PER_MINUTE as usize {
+            return false;
+        }
         self.last_user_input.elapsed() >= self.tick_interval
     }
 
@@ -153,6 +167,10 @@ impl ProactiveMode {
     /// 记录一次 tick
     pub fn record_tick(&mut self) {
         self.tick_count += 1;
+        self.tick_timestamps.push(Instant::now());
+        // 清理超过窗口期的旧时间戳
+        let cutoff = Instant::now() - Duration::from_secs(TICK_WINDOW_SECS);
+        self.tick_timestamps.retain(|t| *t > cutoff);
     }
 
     /// 是否处于活跃状态

@@ -3,6 +3,7 @@
 import type { Model, ModelCapability, ModelType, ProviderConfig } from "@/types";
 
 const CHAT_MODEL_CAPABILITIES: ModelCapability[] = [
+  "TextChat",
   "Vision",
   "FunctionCalling",
   "Reasoning",

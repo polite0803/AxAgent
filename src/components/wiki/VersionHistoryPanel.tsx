@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { message } from "@/lib/toast";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { NoteVersion } from "@/types";
 import { HistoryOutlined, RollbackOutlined } from "@ant-design/icons";
-import { Button, Drawer, Empty, List, message, Popconfirm, Spin, theme, Typography } from "antd";
+import { Button, Drawer, Empty, Popconfirm, Space, Spin, theme, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 const { Text } = Typography;
@@ -193,11 +194,10 @@ export function VersionHistoryPanel({
         )
         : (
           <div className="flex flex-col h-full">
-            <List
-              className="flex-1 overflow-auto"
-              dataSource={versions}
-              renderItem={(version) => (
-                <List.Item
+            <div className="flex-1 overflow-auto divide-y divide-gray-100">
+              {versions.map((version) => (
+                <div
+                  key={version.id}
                   style={{
                     cursor: "pointer",
                     backgroundColor: selectedVersion?.id === version.id
@@ -209,59 +209,67 @@ export function VersionHistoryPanel({
                       : "3px solid transparent",
                   }}
                   onClick={() => handleSelectVersion(version)}
-                  actions={[
-                    <Tooltip key="diff" title={t("wiki.compareDiff")}>
-                      <Button
-                        size="small"
-                        type={diffVersion?.id === version.id ? "primary" : "text"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDiff(version);
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>
+                        <span className="text-sm">
+                          <Text type="secondary" className="text-xs">
+                            {formatTimestamp(version.createdAt)}
+                          </Text>
+                          <Text
+                            className="ml-2 text-xs font-mono"
+                            style={{ color: token.colorTextQuaternary }}
+                          >
+                            {shortHash(version.contentHash)}
+                          </Text>
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                          fontSize: 13,
+                          marginTop: 2,
                         }}
                       >
-                        Diff
-                      </Button>
-                    </Tooltip>,
-                    <Popconfirm
-                      key="restore"
-                      title={t("wiki.confirmRestore")}
-                      onConfirm={() => handleRestore(version.id)}
-                      okText={t("wiki.restore")}
-                    >
-                      <Button
-                        size="small"
-                        icon={<RollbackOutlined />}
-                        loading={restoring}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {t("wiki.restore")}
-                      </Button>
-                    </Popconfirm>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={
-                      <span className="text-sm">
-                        <Text type="secondary" className="text-xs">
-                          {formatTimestamp(version.createdAt)}
-                        </Text>
-                        <Text
-                          className="ml-2 text-xs font-mono"
-                          style={{ color: token.colorTextQuaternary }}
+                        <span className="text-xs">
+                          {version.author} &middot; {version.title}
+                        </span>
+                      </div>
+                    </div>
+                    <Space>
+                      <Tooltip key="diff" title={t("wiki.compareDiff")}>
+                        <Button
+                          size="small"
+                          type={diffVersion?.id === version.id ? "primary" : "text"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDiff(version);
+                          }}
                         >
-                          {shortHash(version.contentHash)}
-                        </Text>
-                      </span>
-                    }
-                    description={
-                      <span className="text-xs">
-                        {version.author} &middot; {version.title}
-                      </span>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+                          Diff
+                        </Button>
+                      </Tooltip>
+                      <Popconfirm
+                        key="restore"
+                        title={t("wiki.confirmRestore")}
+                        onConfirm={() => handleRestore(version.id)}
+                        okText={t("wiki.restore")}
+                      >
+                        <Button
+                          size="small"
+                          icon={<RollbackOutlined />}
+                          loading={restoring}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {t("wiki.restore")}
+                        </Button>
+                      </Popconfirm>
+                    </Space>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             {selectedVersion && !diffVersion && (
               <div

@@ -28,6 +28,25 @@ pub struct CaptureRegion {
 
 pub struct ScreenCapture;
 
+/// 主显示器缩放因子（用于 high-DPI 坐标换算，修复 #15）。
+/// `xcap` 仅在 computer-use 特性下可用；其它构建回退为 1.0。
+#[cfg(feature = "computer-use")]
+#[allow(dead_code)]
+fn primary_scale_factor() -> f64 {
+    xcap::Monitor::all()
+        .ok()
+        .and_then(|monitors| monitors.into_iter().next())
+        .and_then(|m| m.scale_factor().ok())
+        .filter(|s| *s > 0.0)
+        .map(|s| s as f64)
+        .unwrap_or(1.0)
+}
+
+#[cfg(not(feature = "computer-use"))]
+fn primary_scale_factor() -> f64 {
+    1.0
+}
+
 #[cfg(target_os = "windows")]
 fn is_black_frame(image: &image::RgbaImage) -> bool {
     let pixels = image.as_raw();
@@ -250,17 +269,53 @@ impl ScreenCapture {
 
     #[cfg(target_os = "windows")]
     async fn capture_windows_region(&self, region: CaptureRegion) -> Result<ScreenCaptureResult> {
-        let full = self.capture_windows_full(0).await?;
+        use xcap::Monitor;
+        // xcap::Monitor 不是 Send，必须在 spawn_blocking 中隔离使用
+        let monitor_info =
+            tokio::task::spawn_blocking(move || -> Result<Vec<(i32, i32, u32, u32)>> {
+                let monitors = Monitor::all()?;
+                monitors
+                    .iter()
+                    .map(|m| Ok((m.x()?, m.y()?, m.width()?, m.height()?)))
+                    .collect::<Result<Vec<_>>>()
+            })
+            .await??;
+
+        // 选择包含 region 左上角的显示器，并记录其原点（物理像素），以支持多显示器（修复 #17）
+        let mut chosen: Option<(usize, i32, i32)> = None;
+        for (i, (mx, my, mw, mh)) in monitor_info.iter().enumerate() {
+            if region.x >= *mx
+                && region.x < mx + *mw as i32
+                && region.y >= *my
+                && region.y < my + *mh as i32
+            {
+                chosen = Some((i, *mx, *my));
+                break;
+            }
+        }
+        let (mi, mon_x, mon_y) = match chosen {
+            Some((i, mx, my)) => (i, mx, my),
+            None => {
+                let m = monitor_info.first().ok_or_else(|| anyhow::anyhow!("未找到可用显示器"))?;
+                (0, m.0, m.1)
+            },
+        };
+
+        let full = self.capture_windows_full(mi as u32).await?;
         let scale_factor = full.scale_factor;
         let mut full_image = self.base64_to_image(&full.image_base64)?;
-        let cropped = crop_image(&mut full_image, region.x, region.y, region.width, region.height)?;
+
+        // region 坐标为虚拟桌面物理像素，减去显示器原点得到显示器内相对坐标
+        let rel_x = region.x - mon_x;
+        let rel_y = region.y - mon_y;
+        let cropped = crop_image(&mut full_image, rel_x, rel_y, region.width, region.height)?;
         let base64 = self.image_to_base64(&cropped)?;
 
         Ok(ScreenCaptureResult {
             image_base64: base64,
             width: region.width,
             height: region.height,
-            monitor_index: 0,
+            monitor_index: mi as u32,
             captured_at: current_rfc3339(),
             scale_factor,
         })
@@ -314,7 +369,7 @@ impl ScreenCapture {
             height,
             monitor_index: 0,
             captured_at: current_rfc3339(),
-            scale_factor: 1.0,
+            scale_factor: primary_scale_factor(),
         })
     }
 
@@ -343,7 +398,7 @@ impl ScreenCapture {
             height,
             monitor_index: 0,
             captured_at: current_rfc3339(),
-            scale_factor: 1.0,
+            scale_factor: primary_scale_factor(),
         })
     }
 

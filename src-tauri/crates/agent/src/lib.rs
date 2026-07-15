@@ -16,7 +16,6 @@ pub mod action_executor;
 pub mod agent_adapter;
 pub mod agent_config;
 pub mod agent_runtime;
-pub mod blackboard;
 pub mod checkpoint;
 pub mod citation_tracker;
 pub mod content_synthesizer;
@@ -28,6 +27,7 @@ pub mod credibility_evaluator;
 pub mod cycle_detector;
 pub mod deep_research;
 pub mod environment_probe;
+pub mod shared_blackboard;
 // error_classifier merged into recovery_strategies
 pub mod error_recovery_engine;
 pub mod evaluator;
@@ -35,6 +35,7 @@ pub mod event_bus;
 pub mod event_emitter;
 pub mod experience_pipeline;
 pub mod fact_checker;
+pub mod fallback_adapter;
 pub mod feedback_orchestrator;
 pub mod fine_tune;
 pub mod frontend_adapter;
@@ -77,7 +78,6 @@ pub mod search_planner;
 pub mod search_provider;
 pub mod self_verifier;
 pub mod session_manager;
-pub mod shared_blackboard;
 pub mod slash_command;
 pub mod source_classifier;
 pub mod source_validator;
@@ -107,6 +107,9 @@ pub use reflector::{Reflection, Reflector, TaskExecutionRecord};
 
 // provider_adapter — 外部引用：commands/agent, commands/plan
 pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
+
+// fallback_adapter — 外部引用：commands/agent
+pub use fallback_adapter::FallbackProviderAdapter;
 
 // llm_bridge — 外部引用：runtime/llm_bridge
 pub use llm_bridge::ProviderLlmBridge;
@@ -155,8 +158,16 @@ pub use evaluator::{
 
 // fine_tune — 外部引用：commands/fine_tune
 pub use fine_tune::{
-    ActiveModelConfig, BaseModelInfo, TrainingJob, lora::LoRAAdapterInfo,
+    ActiveModelConfig, BaseModelInfo, FineTuneTrainer, ModelManager, TrainingJob,
+    lora::{LoRAAdapterInfo, LoRAConfig, LoRAConfigBuilder},
     trainer::TrainingStats as FineTuneTrainingStats,
+};
+
+// deep_research — 外部引用：commands/research
+pub use deep_research::{
+    Contradiction, CorroboratedFinding, DeepResearchConfig, DeepResearchResult,
+    DeepResearchSearchItem, DeepResearcher, DeepResearcherBuilder, ResearchFinding, ResearchPhase,
+    ResearchQuery, ResearchRound,
 };
 
 // agent_runtime — 内部引用：agent_adapter

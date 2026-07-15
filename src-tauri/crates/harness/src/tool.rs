@@ -12,6 +12,37 @@ use serde_json::Value;
 use std::sync::Arc;
 use tracing::warn;
 
+/// 工具所处功能域 — 用于按需加载工具 schema 给 LLM
+///
+/// - `Core`：文件/Shell/网络/Agent 等绝对必备工具，永远随请求发送
+/// - `General`：常用开发工具（Git/浏览器/文档），默认启用，非必要场景可跳过
+/// - `Devops`：CI/CD、安全审计、打包分析等运维工具
+/// - `AiMedia`：图片生成、媒体投递等 AI 媒体工具
+/// - `Invest`：投资分析业务工具（AxInvest）
+/// - `Opc`：一人公司业务工具（AxOPC）
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ToolDomain {
+    Core,
+    General,
+    Devops,
+    AiMedia,
+    Invest,
+    Opc,
+}
+
+impl ToolDomain {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ToolDomain::Core => "core",
+            ToolDomain::General => "general",
+            ToolDomain::Devops => "devops",
+            ToolDomain::AiMedia => "ai_media",
+            ToolDomain::Invest => "invest",
+            ToolDomain::Opc => "opc",
+        }
+    }
+}
+
 /// 工具所属类别
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ToolCategory {
@@ -103,6 +134,22 @@ impl ToolCategory {
 // `tool_permissions` 模块。保留此处的 re-export 以保证向后兼容。
 pub use crate::tool_permissions::ToolPermissions;
 
+/// 用户提问桥接器 — 工具调用此接口向用户提问并阻塞等待回复。
+/// 由 wiring 层注入具体实现（emit 前端事件 + 阻塞等待 oneshot 回复）。
+pub trait AskUserBridge: Send + Sync + std::fmt::Debug {
+    /// 向用户提问并阻塞等待回复。
+    /// `ask_id` 是唯一标识符，用于匹配前端响应。
+    /// `questions_json` 是 `AskUserQuestionTool` 的输入 JSON。
+    /// `conversation_id` 是当前对话 ID。
+    /// 返回用户的回答字符串，或错误信息。
+    fn ask_user_blocking(
+        &self,
+        ask_id: String,
+        questions_json: serde_json::Value,
+        conversation_id: &str,
+    ) -> Result<String, String>;
+}
+
 /// 工具执行上下文
 #[derive(Debug, Clone)]
 pub struct ToolContext {
@@ -126,6 +173,8 @@ pub struct ToolContext {
     pub permissions: Option<Arc<ToolPermissions>>,
     /// 输出脱敏器（可选，None 不过滤）
     pub output_sanitizer: Option<Arc<dyn OutputSanitizer>>,
+    /// 用户提问桥接器（可选，None 表示 AskUserQuestion 工具降级为纯文本输出）
+    pub ask_user_bridge: Option<Arc<dyn AskUserBridge>>,
 }
 
 impl ToolContext {
@@ -141,6 +190,7 @@ impl ToolContext {
             extra: std::collections::HashMap::new(),
             permissions: None,
             output_sanitizer: None,
+            ask_user_bridge: None,
         }
     }
 
@@ -261,6 +311,7 @@ pub struct ToolInfo {
     pub input_schema: Value,
     pub aliases: Vec<String>,
     pub category: ToolCategory,
+    pub domain: ToolDomain,
     pub is_concurrency_safe: bool,
     pub is_read_only: bool,
     pub is_destructive: bool,
@@ -325,6 +376,11 @@ pub trait Tool: Send + Sync {
         true
     }
 
+    /// 工具所属功能域（默认 Core，业务工具应覆盖此方法）
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Core
+    }
+
     /// 核心执行逻辑
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError>;
 
@@ -382,6 +438,7 @@ impl ToolInfo {
             input_schema: tool.input_schema(),
             aliases: tool.aliases().iter().map(|s| s.to_string()).collect(),
             category: tool.category(),
+            domain: tool.domain(),
             is_concurrency_safe: tool.is_concurrency_safe(),
             is_read_only: tool.is_read_only(),
             is_destructive: tool.is_destructive(),

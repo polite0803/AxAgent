@@ -12,7 +12,6 @@ import {
   Divider,
   Empty,
   InputNumber,
-  List,
   message,
   Popconfirm,
   Radio,
@@ -375,7 +374,7 @@ function FeaturesTab() {
 
   return (
     <div className="p-6 pb-12">
-      <SettingsGroup title="Feature Flags">
+      <SettingsGroup title={t("settingsPanel.featureFlags")}>
         {FEATURE_FLAG_META.map((item, idx) => (
           <div key={item.key}>
             {idx > 0 && <Divider style={{ margin: "2px 0" }} />}
@@ -739,39 +738,35 @@ function HooksTab() {
                       </Text>
                     )
                     : (
-                      <List
-                        size="small"
-                        dataSource={hook.commands}
-                        renderItem={(cmd) => (
-                          <List.Item
-                            actions={[
-                              <Popconfirm
-                                key="del"
-                                title={t("settings.agent.confirmRemove")}
-                                onConfirm={() => removeCommand(hook.event, cmd.id)}
-                                okText={t("common.confirm")}
-                                cancelText={t("common.cancel")}
-                              >
-                                <Button
-                                  size="small"
-                                  type="text"
-                                  danger
-                                  icon={<Trash2 size={13} />}
-                                />
-                              </Popconfirm>,
-                            ]}
-                          >
-                            <Code
-                              size={12}
-                              style={{ marginRight: 8, opacity: 0.5 }}
-                            />
-                            <Text code style={{ fontSize: 12 }}>
-                              {cmd.command}
-                            </Text>
-                          </List.Item>
-                        )}
-                        style={{ marginTop: 4 }}
-                      />
+                      <div className="divide-y divide-gray-100" style={{ marginTop: 4 }}>
+                        {hook.commands.map((cmd, i) => (
+                          <div key={cmd.id ?? i} className="py-2 flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Code
+                                size={12}
+                                style={{ marginRight: 8, opacity: 0.5 }}
+                              />
+                              <Text code style={{ fontSize: 12 }}>
+                                {cmd.command}
+                              </Text>
+                            </div>
+                            <Popconfirm
+                              title={t("settings.agent.confirmRemove")}
+                              onConfirm={() =>
+                                removeCommand(hook.event, cmd.id)}
+                              okText={t("common.confirm")}
+                              cancelText={t("common.cancel")}
+                            >
+                              <Button
+                                size="small"
+                                type="text"
+                                danger
+                                icon={<Trash2 size={13} />}
+                              />
+                            </Popconfirm>
+                          </div>
+                        ))}
+                      </div>
                     )}
 
                   <Button

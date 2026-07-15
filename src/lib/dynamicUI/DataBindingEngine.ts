@@ -3,6 +3,7 @@
 import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import type { DataSourceConfig } from "@/types";
+import { getNestedValue } from "./utils";
 
 /**
  * 数据绑定引擎：解析 DataSourceConfig 并返回实际数据。
@@ -63,7 +64,10 @@ export async function resolveDataSource(
     }
 
     case "agent-generated": {
-      const { generationId } = config.config as { generationId: string };
+      const { generationId, selector } = config.config as {
+        generationId: string;
+        selector?: string;
+      };
       const { useExecutionStore } = await import("@/stores");
       const executionState = useExecutionStore.getState();
       const generation =
@@ -74,6 +78,9 @@ export async function resolveDataSource(
         throw new Error(
           i18n.t("dataBinding.agentDataNotFound", { generationId }),
         );
+      }
+      if (selector) {
+        return getNestedValue(generation as Record<string, unknown>, selector);
       }
       return generation;
     }
@@ -127,7 +134,8 @@ export async function subscribeDataSource(
   }
 
   // Store 类型数据源 — 通过 StoreRegistry 获取 store 并执行响应式订阅
-  if (config.type === "store") {
+  // 如果已配置轮询，则跳过 store 订阅避免双重回调
+  if (config.type === "store" && !(config.polling && config.polling > 0)) {
     const { storeName, selector } = config.config as {
       storeName: string;
       selector?: string;
@@ -135,11 +143,10 @@ export async function subscribeDataSource(
     const { getStoreRegistry } = await import("@/lib/storeRegistry");
     const store = getStoreRegistry().get(storeName);
     if (store && typeof store.subscribe === "function") {
-      const getNested = getNestedValue;
       const unsubscribe = store.subscribe(() => {
         if (cancelled) { return; }
         const state = store.get() as Record<string, unknown>;
-        const data = selector ? getNested(state, selector) : state;
+        const data = selector ? getNestedValue(state, selector) : state;
         onData(data);
       });
       cleanupFns.push(unsubscribe);
@@ -154,26 +161,4 @@ export async function subscribeDataSource(
       }
     },
   };
-}
-
-/**
- * 使用点号分隔的路径获取嵌套对象值。
- * 如 "user.profile.name" -> obj.user.profile.name
- */
-function getNestedValue(
-  obj: Record<string, unknown>,
-  path: string,
-): unknown {
-  const keys = path.split(".");
-  let current: unknown = obj;
-  for (const key of keys) {
-    if (current === null || current === undefined) {
-      return undefined;
-    }
-    if (typeof current !== "object") {
-      return undefined;
-    }
-    current = (current as Record<string, unknown>)[key];
-  }
-  return current;
 }

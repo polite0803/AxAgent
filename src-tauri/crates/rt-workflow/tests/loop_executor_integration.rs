@@ -129,6 +129,7 @@ async fn loop_foreach_aggregates_results() {
             NodeOutput {
                 output: serde_json::json!({"doubled": n * 2}),
                 output_var: Some("step_out".to_string()),
+                control: None,
             }
         });
     state.callbacks.as_mut().unwrap().loop_body_dispatch = Some(make_body_dispatch(body_fn));
@@ -183,11 +184,13 @@ async fn loop_interrupt_pause_then_resume_continues() {
                 NodeOutput {
                     output: serde_json::json!({"status": "pending", "reviewer": "alice"}),
                     output_var: Some("approval_out".to_string()),
+                    control: None,
                 }
             } else {
                 NodeOutput {
                     output: serde_json::json!({"status": "approved"}),
                     output_var: Some("approval_out".to_string()),
+                    control: None,
                 }
             }
         })
@@ -301,6 +304,7 @@ async fn loop_partial_results_arrive_in_order() {
             NodeOutput {
                 output: serde_json::json!({"echo": item}),
                 output_var: Some("echo_out".to_string()),
+                control: None,
             }
         });
     state.callbacks.as_mut().unwrap().loop_body_dispatch = Some(make_body_dispatch(body_fn));

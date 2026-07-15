@@ -3,7 +3,7 @@
 
 use aes_gcm::{
     Aes256Gcm, Nonce,
-    aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
+    aead::{Aead, KeyInit},
 };
 use argon2::{Algorithm, Argon2, Params, Version};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
@@ -16,7 +16,7 @@ const NONCE_SIZE: usize = 12;
 
 pub fn generate_master_key() -> [u8; 32] {
     let mut key = [0u8; 32];
-    OsRng.fill_bytes(&mut key);
+    getrandom::getrandom(&mut key[..]).expect("生成随机数失败");
     key
 }
 
@@ -25,11 +25,11 @@ pub fn encrypt_key(plaintext: &str, master_key: &[u8; 32]) -> Result<String> {
         .map_err(|e| AxAgentError::Crypto(format!("Failed to create cipher: {}", e)))?;
 
     let mut nonce_bytes = [0u8; NONCE_SIZE];
-    OsRng.fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    getrandom::getrandom(&mut nonce_bytes[..]).expect("生成 nonce 失败");
+    let nonce = Nonce::try_from(&nonce_bytes[..]).expect("nonce 必须为 12 字节");
 
     let ciphertext = cipher
-        .encrypt(nonce, plaintext.as_bytes())
+        .encrypt(&nonce, plaintext.as_bytes())
         .map_err(|e| AxAgentError::Crypto(format!("Encryption failed: {}", e)))?;
 
     let mut combined = Vec::with_capacity(NONCE_SIZE + ciphertext.len());
@@ -51,13 +51,13 @@ pub fn decrypt_key(encrypted: &str, master_key: &[u8; 32]) -> Result<String> {
     }
 
     let (nonce_bytes, ciphertext) = combined.split_at(NONCE_SIZE);
-    let nonce = Nonce::from_slice(nonce_bytes);
+    let nonce = Nonce::try_from(nonce_bytes).expect("nonce 必须为 12 字节");
 
     let cipher = Aes256Gcm::new_from_slice(master_key)
         .map_err(|e| AxAgentError::Crypto(format!("Failed to create cipher: {}", e)))?;
 
     let mut plaintext = cipher
-        .decrypt(nonce, ciphertext)
+        .decrypt(&nonce, ciphertext)
         .map_err(|e| AxAgentError::Crypto(format!("Decryption failed: {}", e)))?;
 
     // Convert to String and zeroize the intermediate buffer
@@ -70,8 +70,10 @@ pub fn decrypt_key(encrypted: &str, master_key: &[u8; 32]) -> Result<String> {
 pub fn sha256_hash(input: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(input.as_bytes());
-    // m1: 使用 {:064x} 确保固定 64 字符 hex 输出，不省略前导零
-    format!("{:064x}", hasher.finalize())
+    // m1: 使用固定 64 字符 hex 输出，不省略前导零。
+    // digest 0.11 的 finalize() 返回 generic-array 的 Array，未实现 LowerHex，
+    // 故转字节切片后用 hex 编码。
+    hex::encode(hasher.finalize().as_slice())
 }
 
 /// 解密 secure storage 中的值，自动兼容 v1（SHA256）和 v2（Argon2id）密钥派生。
@@ -104,14 +106,14 @@ pub fn key_prefix(key: &str) -> String {
 /// SECURITY (C10): HMAC-SHA256 使用标准 `hmac` + `sha2` crate，替代自实现。
 /// 标准实现经过广泛审计，无时序攻击风险。
 pub fn hmac_sha256(key: &[u8], msg: &str) -> String {
-    use hmac::{Hmac, Mac};
+    use hmac::{Hmac, KeyInit, Mac};
     use sha2::Sha256;
 
     let mut mac =
-        <Hmac<Sha256> as Mac>::new_from_slice(key).expect("HMAC-SHA256 accepts any key length");
+        <Hmac<Sha256> as KeyInit>::new_from_slice(key).expect("HMAC-SHA256 accepts any key length");
     mac.update(msg.as_bytes());
     let result = mac.finalize();
-    format!("{:x}", result.into_bytes())
+    hex::encode(result.into_bytes().as_slice())
 }
 
 const BACKUP_VERSION_BYTE: u8 = 0x02;
@@ -175,7 +177,7 @@ fn read_or_create_machine_id() -> Option<String> {
 
     std::fs::create_dir_all(&dir).ok()?;
     let mut id = [0u8; 32];
-    OsRng.fill_bytes(&mut id);
+    getrandom::getrandom(&mut id[..]).expect("生成随机数失败");
     let hex_id = hex::encode(id);
     std::fs::write(&file_path, &hex_id).ok()?;
     Some(hex_id)
@@ -183,18 +185,18 @@ fn read_or_create_machine_id() -> Option<String> {
 
 pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
     let mut salt = [0u8; BACKUP_SALT_SIZE];
-    OsRng.fill_bytes(&mut salt);
+    getrandom::getrandom(&mut salt[..]).expect("生成随机数失败");
     let mut derived_key = derive_backup_key_v2(&salt)?;
 
     let cipher = Aes256Gcm::new_from_slice(&derived_key)
         .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
 
     let mut nonce_bytes = [0u8; NONCE_SIZE];
-    OsRng.fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    getrandom::getrandom(&mut nonce_bytes[..]).expect("生成 nonce 失败");
+    let nonce = Nonce::try_from(&nonce_bytes[..]).expect("nonce 必须为 12 字节");
 
     let ciphertext = cipher
-        .encrypt(nonce, key_data)
+        .encrypt(&nonce, key_data)
         .map_err(|e| AxAgentError::Crypto(format!("Backup key encryption failed: {}", e)))?;
 
     // Zeroize derived key after use
@@ -229,10 +231,10 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
         let mut derived_key = derive_backup_key_v2(salt)?;
         let cipher = Aes256Gcm::new_from_slice(&derived_key)
             .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
-        let nonce = Nonce::from_slice(nonce_bytes);
+        let nonce = Nonce::try_from(nonce_bytes).expect("nonce 必须为 12 字节");
 
         let result = cipher
-            .decrypt(nonce, ciphertext)
+            .decrypt(&nonce, ciphertext)
             .map_err(|e| AxAgentError::Crypto(format!("Backup key decryption failed: {}", e)));
         derived_key.zeroize();
         return result;
@@ -240,8 +242,10 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 
     // Legacy v1 format: nonce(12) + ciphertext (SHA256-based KDF)
     // Only available with "backup_v1_compat" feature gate.
+    // 此处调用 deprecated 的 v1 解密函数是「向后兼容读取」的预期行为，
+    // 辅助函数显式 allow(deprecated) 以避免 -D warnings 在 CI 中阻断构建。
     #[cfg(feature = "backup_v1_compat")]
-    return decrypt_backup_key_v1(enc_data);
+    return legacy_decrypt_backup_v1(enc_data);
 
     #[cfg(not(feature = "backup_v1_compat"))]
     Err(AxAgentError::Crypto(
@@ -249,6 +253,18 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
          Use auto_upgrade_backup_to_v2() to migrate this backup to v2 (Argon2id) format."
             .to_string(),
     ))
+}
+
+/// v1 备份密钥解密的 thin wrapper。
+///
+/// `decrypt_backup_key_v1` 已被 `#[deprecated]` 标记（v1 KDF 不安全），
+/// 但 `backup_v1_compat` feature 的存在目的就是允许读取遗留 v1 数据。
+/// 直接调用会触发 `-D deprecated`，因此用此 wrapper 显式 `allow(deprecated)`，
+/// 把弃用警告隔离在单一调用点上，便于将来移除 v1 支持时一并清理。
+#[cfg(feature = "backup_v1_compat")]
+#[allow(deprecated)]
+fn legacy_decrypt_backup_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
+    decrypt_backup_key_v1(enc_data)
 }
 
 /// Legacy decrypt for v1 backups (SHA256 KDF, fixed salt).
@@ -277,19 +293,19 @@ fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
          v1 格式将在 2026-Q3 移除。"
     );
     let (nonce_bytes, ciphertext) = enc_data.split_at(NONCE_SIZE);
-    let nonce = Nonce::from_slice(nonce_bytes);
+    let nonce = Nonce::try_from(nonce_bytes).expect("nonce 必须为 12 字节");
 
     let mut derived_key = [0u8; 32];
     let mut hasher = Sha256::new();
     hasher.update(b"axagent-backup-key-derivation-v1");
     hasher.update(b"axagent-backup-encryption");
-    derived_key.copy_from_slice(&hasher.finalize());
+    derived_key.copy_from_slice(hasher.finalize().as_slice());
 
     let cipher = Aes256Gcm::new_from_slice(&derived_key)
         .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
 
     cipher
-        .decrypt(nonce, ciphertext)
+        .decrypt(&nonce, ciphertext)
         .map_err(|e| AxAgentError::Crypto(format!("Backup key decryption failed: {}", e)))
 }
 
@@ -317,19 +333,19 @@ pub fn auto_upgrade_backup_to_v2(enc_data: &[u8]) -> Result<Vec<u8>> {
     tracing::info!("检测到 v1 格式备份密钥，正在自动升级到 v2 (Argon2id)...");
 
     let (nonce_bytes, ciphertext) = enc_data.split_at(NONCE_SIZE);
-    let nonce = Nonce::from_slice(nonce_bytes);
+    let nonce = Nonce::try_from(nonce_bytes).expect("nonce 必须为 12 字节");
 
     let mut derived_key = [0u8; 32];
     let mut hasher = Sha256::new();
     hasher.update(b"axagent-backup-key-derivation-v1");
     hasher.update(b"axagent-backup-encryption");
-    derived_key.copy_from_slice(&hasher.finalize());
+    derived_key.copy_from_slice(hasher.finalize().as_slice());
 
     let cipher = Aes256Gcm::new_from_slice(&derived_key)
         .map_err(|e| AxAgentError::Crypto(format!("v1 decrypt cipher init failed: {e}")))?;
 
     let key_data = cipher
-        .decrypt(nonce, ciphertext)
+        .decrypt(&nonce, ciphertext)
         .map_err(|e| AxAgentError::Crypto(format!("v1 backup key decryption failed: {e}")))?;
 
     // Re-encrypt with v2 (Argon2id)
@@ -344,7 +360,7 @@ pub fn auto_upgrade_backup_to_v2(enc_data: &[u8]) -> Result<Vec<u8>> {
 
 pub fn generate_gateway_key() -> String {
     let mut bytes = [0u8; 32];
-    OsRng.fill_bytes(&mut bytes);
+    getrandom::getrandom(&mut bytes[..]).expect("生成随机数失败");
     format!("aq-{}", hex::encode(bytes))
 }
 
@@ -365,7 +381,8 @@ fn derive_storage_master_key_v2() -> Result<[u8; 32]> {
     let mut salt = [0u8; 16];
     let salt_seed = format!("axagent-storage-salt:{fingerprint}");
     let salt_hash = sha2::Sha256::digest(salt_seed.as_bytes());
-    salt.copy_from_slice(&salt_hash[..16]);
+    let salt_slice: &[u8] = salt_hash.as_ref();
+    salt.copy_from_slice(&salt_slice[..16]);
 
     let mut key = [0u8; 32];
     let params = Params::new(ARGON2_MEMORY_COST, ARGON2_TIME_COST, ARGON2_PARALLELISM, Some(32))

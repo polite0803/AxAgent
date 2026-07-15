@@ -121,7 +121,7 @@ export function TraceDetail() {
           <Col span={6}>
             <Card size="small">
               <Descriptions column={1} size="small">
-                <Descriptions.Item label="User ID">
+                <Descriptions.Item label={t("traceDetail.userId")}>
                   {trace.metadata.user_id}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.agentVersion")}>

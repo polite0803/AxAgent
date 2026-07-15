@@ -25,7 +25,7 @@ pub struct ImportResult {
     pub count: u32,
     pub workflows_created: u32,
     pub tools_matched: u32,
-    pub errors: Vec<ErrorResponse>,
+    pub errors: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -40,6 +40,7 @@ pub struct AgencyExpertRow {
     pub is_enabled: bool,
     pub recommended_workflows: Option<Vec<String>>,
     pub recommended_tools: Option<Vec<String>>,
+    pub active_domains: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -301,7 +302,7 @@ pub async fn import_agency_experts(
     let mut count: u32 = 0;
     let mut workflows_created: u32 = 0;
     let mut tools_matched: u32 = 0;
-    let mut errors: Vec<ErrorResponse> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
 
     let entries = fs::read_dir(path).map_err(|e| {
         ErrorResponse::new(expert_err::READ_DIR_FAILED).with_detail(format!("读取目录失败: {}", e))
@@ -346,13 +347,12 @@ pub async fn import_agency_experts(
             let content = match fs::read_to_string(&md_path) {
                 Ok(c) => c,
                 Err(e) => {
-                    errors.push(
-                        ErrorResponse::new(expert_err::READ_FILE_FAILED).with_detail(format!(
-                            "读取文件失败 {}: {}",
-                            md_path.display(),
-                            e
-                        )),
-                    );
+                    errors.push(format!(
+                        "{}: 读取文件失败 {}: {}",
+                        expert_err::READ_FILE_FAILED,
+                        md_path.display(),
+                        e
+                    ));
                     continue;
                 },
             };
@@ -410,6 +410,7 @@ pub async fn import_agency_experts(
                 imported_at: Set(now),
                 recommended_workflows: Set(recommended_workflows_json),
                 recommended_tools: Set(recommended_tools_json),
+                active_domains: Set(None),
             };
 
             // 使用 UPSERT 支持重复导入：已存在的记录会被更新
@@ -434,10 +435,7 @@ pub async fn import_agency_experts(
             {
                 Ok(_) => count += 1,
                 Err(e) => {
-                    errors.push(
-                        ErrorResponse::new(expert_err::SAVE_FAILED)
-                            .with_detail(format!("保存失败 {}: {}", id, e)),
-                    );
+                    errors.push(format!("{}: 保存失败 {}: {}", expert_err::SAVE_FAILED, id, e));
                 },
             }
         }
@@ -470,6 +468,7 @@ pub async fn list_agency_experts(
             color: m.color,
             source_dir: m.source_dir,
             is_enabled: m.is_enabled != 0,
+            active_domains: m.active_domains.and_then(|s| serde_json::from_str(&s).ok()),
             recommended_workflows: m
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),
@@ -672,7 +671,7 @@ pub async fn extract_expert_structure(
     };
 
     let response = adapter
-        .chat(&ctx, chat_request)
+        .chat(&ctx, chat_request.into())
         .await
         .map_err(|e| ErrorResponse::new(expert_err::LLM_CALL_FAILED).with_detail(e.to_string()))?;
 
@@ -716,6 +715,7 @@ pub struct UpdateExpertRequest {
     pub category: Option<String>,
     pub system_prompt: Option<String>,
     pub is_enabled: Option<bool>,
+    pub active_domains: Option<Vec<String>>,
 }
 
 #[tauri::command]
@@ -749,6 +749,10 @@ pub async fn update_agency_expert(
     }
     if let Some(enabled) = request.is_enabled {
         am.is_enabled = Set(if enabled { 1 } else { 0 });
+    }
+    if let Some(domains) = request.active_domains {
+        let json = serde_json::to_string(&domains).unwrap_or_default();
+        am.active_domains = Set(if domains.is_empty() { None } else { Some(json) });
     }
 
     am.update(db).await.map_err(|e| {
@@ -796,6 +800,7 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
             color: m.color,
             source_dir: m.source_dir,
             is_enabled: m.is_enabled != 0,
+            active_domains: m.active_domains.and_then(|s| serde_json::from_str(&s).ok()),
             recommended_workflows: m
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),

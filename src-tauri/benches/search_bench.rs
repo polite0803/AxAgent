@@ -10,7 +10,7 @@
 //!   - Code-specific chunking
 
 use axagent_search::text_chunker;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 /// Generate a realistic Markdown document of approximately `n_lines`.
 fn generate_markdown(n_lines: usize) -> String {
@@ -46,7 +46,11 @@ fn bench_chunk_text_short(c: &mut Criterion) {
     let short = "This is a short piece of text that fits within a single chunk.";
     c.bench_function("search_chunk_text_short", |b| {
         b.iter(|| {
-            black_box(text_chunker::chunk_text(black_box(short), black_box(2000), black_box(200)));
+            std::hint::black_box(text_chunker::chunk_text(
+                std::hint::black_box(short),
+                std::hint::black_box(2000),
+                std::hint::black_box(200),
+            ));
         })
     });
 }
@@ -62,10 +66,10 @@ fn bench_chunk_text_medium(c: &mut Criterion) {
 
     c.bench_function("search_chunk_text_medium", |b| {
         b.iter(|| {
-            black_box(text_chunker::chunk_text(
-                black_box(&medium),
-                black_box(2000),
-                black_box(200),
+            std::hint::black_box(text_chunker::chunk_text(
+                std::hint::black_box(&medium),
+                std::hint::black_box(2000),
+                std::hint::black_box(200),
             ));
         })
     });
@@ -77,12 +81,12 @@ fn bench_chunk_markdown_large(c: &mut Criterion) {
 
     c.bench_function("search_chunk_markdown_large", |b| {
         b.iter(|| {
-            black_box(text_chunker::chunk_text_with_separator_and_markdown(
-                black_box(&md),
-                black_box(2000),
-                black_box(200),
-                black_box(None),
-                black_box(true),
+            std::hint::black_box(text_chunker::chunk_text_with_separator_and_markdown(
+                std::hint::black_box(&md),
+                std::hint::black_box(2000),
+                std::hint::black_box(200),
+                std::hint::black_box(None),
+                std::hint::black_box(true),
             ));
         })
     });
@@ -93,10 +97,10 @@ fn bench_chunk_code_style(c: &mut Criterion) {
 
     c.bench_function("search_chunk_code", |b| {
         b.iter(|| {
-            black_box(text_chunker::chunk_text(
-                black_box(&code),
-                black_box(text_chunker::CODE_CHUNK_SIZE),
-                black_box(text_chunker::CODE_OVERLAP),
+            std::hint::black_box(text_chunker::chunk_text(
+                std::hint::black_box(&code),
+                std::hint::black_box(text_chunker::CODE_CHUNK_SIZE),
+                std::hint::black_box(text_chunker::CODE_OVERLAP),
             ));
         })
     });
@@ -106,12 +110,12 @@ fn bench_chunk_custom_separator(c: &mut Criterion) {
     let sections = "---SECTION---\n".repeat(100) + &"Content for section.\n".repeat(2000);
     c.bench_function("search_chunk_custom_separator", |b| {
         b.iter(|| {
-            black_box(text_chunker::chunk_text_with_separator_and_markdown(
-                black_box(&sections),
-                black_box(2000),
-                black_box(200),
-                black_box(Some("---SECTION---")),
-                black_box(false),
+            std::hint::black_box(text_chunker::chunk_text_with_separator_and_markdown(
+                std::hint::black_box(&sections),
+                std::hint::black_box(2000),
+                std::hint::black_box(200),
+                std::hint::black_box(Some("---SECTION---")),
+                std::hint::black_box(false),
             ));
         })
     });

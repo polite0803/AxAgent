@@ -20,7 +20,7 @@ fn get_api_token() -> &'static str {
         std::env::var("AXAGENT_API_TOKEN").unwrap_or_else(|_| {
             let token = uuid::Uuid::new_v4().to_string();
             let hash = Sha256::digest(&token);
-            let hash_hex = format!("{:x}", hash);
+            let hash_hex = hex::encode(hash);
             tracing::debug!(
                 token_hash = %&hash_hex[..8],
                 "Generated random API token (set AXAGENT_API_TOKEN env var to customize)"

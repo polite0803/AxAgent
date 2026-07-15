@@ -225,7 +225,7 @@ componentType 可选: "Sandbox" (沙箱页面) 或 "Markdown" (纯文档)。
             store: None,
         };
 
-        let response = match adapter.chat(&ctx, llm_request).await {
+        let response = match adapter.chat(&ctx, llm_request.into()).await {
             Ok(r) => r,
             Err(e) => {
                 last_error = format!("LLM 调用失败: {}", e);

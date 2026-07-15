@@ -218,7 +218,7 @@ pub(crate) async fn do_compress(
         .get(registry_key)
         .ok_or_else(|| "Provider adapter not found".to_string())?;
 
-    let response = adapter.chat(&ctx, request).await.map_err(|e| {
+    let response = adapter.chat(&ctx, request.into()).await.map_err(|e| {
         ErrorResponse::new(conv_err::INTERNAL)
             .with_detail(format!("Summary generation failed: {}", e))
     })?;
@@ -677,6 +677,9 @@ mod tests_conversation {
             similarity_threshold: 0.85,
         }));
         let state = crate::AppState {
+            credential_manager: Arc::new(axagent_credential::CredentialManager::new(
+                axagent_credential::CredentialStore::new(temp_dir.join("credentials"), [0; 32]),
+            )),
             gateway: Arc::new(Mutex::new(None)),
             close_to_tray: Arc::new(AtomicBool::new(false)),
             app_data_dir: temp_dir.clone(),
@@ -706,7 +709,7 @@ mod tests_conversation {
                 axagent_runtime::shared_memory::SharedMemory::new(),
             )),
             sub_agent_registry: Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+                axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default(),
             )),
             trajectory_storage: trajectory_storage.clone(),
             memory_service: memory_service.clone(),
@@ -761,6 +764,7 @@ mod tests_conversation {
                 axagent_trajectory::ParallelExecutionService::new(10),
             )),
             cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new_ephemeral()),
+            cron_scheduler: Arc::new(tokio::sync::RwLock::new(None)),
             platform_manager: Arc::new(
                 axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
             ),
@@ -790,6 +794,8 @@ mod tests_conversation {
             proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
             dashboard_registry: None,
             webhook_subscription_manager: None,
+            #[cfg(not(mobile))]
+            pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(
@@ -812,6 +818,8 @@ mod tests_conversation {
             #[cfg(target_os = "android")]
             browser_client: Arc::new(tokio::sync::Mutex::new(None)),
             dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
+            cost_aware_router: Arc::new(crate::smart_router::CostAwareRouter::new()),
+            stream_reporter: Arc::new(tokio::sync::RwLock::new(None)),
             text_grad_engine: Arc::new(tokio::sync::Mutex::new(
                 axagent_trajectory::TextGradEngine::new(
                     axagent_trajectory::ComputationGraph::new(),
@@ -943,7 +951,7 @@ mod tests_conversation {
                     axagent_runtime::shared_memory::SharedMemory::new(),
                 )),
                 Arc::new(tokio::sync::RwLock::new(
-                    axagent_trajectory::SubAgentRegistry::new().unwrap_or_default(),
+                    axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default(),
                 )),
                 memory_service.clone(),
                 Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),

@@ -13,16 +13,17 @@ async-trait = "0.1"
 axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 chrono = { workspace = true }
-dirs = "5"
+dirs = "6"
+hex = { workspace = true }
 reqwest = { workspace = true }
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
-sha2 = "0.10"
+sha2 = "0.11"
 subtle = "2"
 tokio = { workspace = true }
-toml_edit = "0.22"
+toml_edit = "0.25"
 tracing = { workspace = true }
 uuid = { workspace = true }
 walkdir = "2"

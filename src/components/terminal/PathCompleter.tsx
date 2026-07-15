@@ -3,6 +3,7 @@
 import { invoke } from "@/lib/invoke";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface PathCompleterOptions {
   triggerKey?: string;
@@ -29,6 +30,7 @@ export function usePathCompleter(
   const [currentInput, setCurrentInput] = useState("");
   const inputBufferRef = useRef("");
   const completionTriggeredRef = useRef(false);
+  const suggestionsLengthRef = useRef(0);
 
   const defaultGetSuggestions = useCallback(
     async (input: string): Promise<string[]> => {
@@ -64,6 +66,7 @@ export function usePathCompleter(
       const fetcher = getSuggestions || defaultGetSuggestions;
       const results = await fetcher(input);
       setSuggestions(results.slice(0, maxSuggestions));
+      suggestionsLengthRef.current = results.slice(0, maxSuggestions).length;
       setSelectedIndex(0);
     },
     [getSuggestions, defaultGetSuggestions, maxSuggestions],
@@ -102,14 +105,15 @@ export function usePathCompleter(
 
   const cycleSuggestion = useCallback(
     (direction: 1 | -1) => {
-      if (suggestions.length === 0) {
+      const len = suggestionsLengthRef.current;
+      if (len === 0) {
         return;
       }
       setSelectedIndex(
-        (prev) => (prev + direction + suggestions.length) % suggestions.length,
+        (prev) => (prev + direction + len) % len,
       );
     },
-    [suggestions.length],
+    [],
   );
 
   const acceptSuggestion = useCallback(() => {
@@ -254,6 +258,7 @@ export function PathCompleterWidget({
   terminal,
   style,
 }: PathCompleterWidgetProps) {
+  const { t } = useTranslation();
   const { isActive, suggestions, selectedIndex } = usePathCompleter(
     terminal,
     {},
@@ -308,7 +313,7 @@ export function PathCompleterWidget({
             borderTop: "1px solid #45475a",
           }}
         >
-          ...and {suggestions.length - 10} more (scroll for more)
+          ...{t("terminal.more", { count: suggestions.length - 10 })}
         </div>
       )}
     </div>

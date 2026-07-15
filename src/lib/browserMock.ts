@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // i18n-exempt: Mock data for browser preview mode. Not user-facing UI.
+import i18n from "@/i18n";
 /**
  * Browser-mode mock backend using localStorage.
  * Activated when the app runs outside Tauri (e.g. `pnpm dev` in browser).
@@ -125,11 +126,10 @@ function setStore<T>(key: string, value: T): void {
 function generateBrowserResponse(userContent: string): string {
   const greeting = /^(你好|hi|hello|hey|嗨)/i.test(userContent.trim());
   if (greeting) {
-    return "你好！我是 AxAgent 的浏览器预览模式。在此模式下，我无法连接真实的 AI 服务，但你可以体验完整的聊天界面交互。\n\n如需真实 AI 对话，请通过 `cargo tauri dev` 启动 Tauri 后端。";
+    return i18n.t("browserMock.greeting");
   }
-  return `收到你的消息：「${
-    userContent.length > 50 ? userContent.slice(0, 50) + "..." : userContent
-  }」\n\n当前为浏览器预览模式，无法调用真实 AI 接口。此模式用于 UI 开发和体验测试。\n\n如需 AI 回复，请使用 \`cargo tauri dev\` 启动完整应用。`;
+  const truncatedContent = userContent.length > 50 ? userContent.slice(0, 50) + "..." : userContent;
+  return i18n.t("browserMock.receivedMessage", { userContent: truncatedContent });
 }
 
 // ── Built-in Providers ──────────────────────────────────────────────────
@@ -356,7 +356,7 @@ const BUILT_IN_PROVIDERS = [
   },
   {
     id: "builtin-qwen",
-    name: "通义千问",
+    name: i18n.t("browserMock.tongyi"),
     provider_type: "openai",
     api_host: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     api_path: null,
@@ -431,7 +431,7 @@ const BUILT_IN_PROVIDERS = [
   },
   {
     id: "builtin-doubao",
-    name: "豆包",
+    name: i18n.t("browserMock.doubao"),
     provider_type: "openai",
     api_host: "https://ark.cn-beijing.volces.com/api/v3",
     api_path: null,
@@ -464,7 +464,7 @@ const BUILT_IN_PROVIDERS = [
   },
   {
     id: "builtin-siliconflow",
-    name: "硅基流动",
+    name: i18n.t("browserMock.siliconFlow"),
     provider_type: "openai",
     api_host: "https://api.siliconflow.cn/v1",
     api_path: null,
@@ -1189,24 +1189,24 @@ export async function handleCommand<T>(
         steps: [
           {
             id: genId(),
-            title: "分析需求",
-            description: "理解用户目标",
+            title: i18n.t("browserMock.analyzeRequirements"),
+            description: i18n.t("browserMock.understandGoal"),
             status: "pending",
             estimated_tools: ["Read"],
             result: null,
           },
           {
             id: genId(),
-            title: "设计方案",
-            description: "制定实施步骤",
+            title: i18n.t("browserMock.designPlan"),
+            description: i18n.t("browserMock.implementSteps"),
             status: "pending",
             estimated_tools: ["Write"],
             result: null,
           },
           {
             id: genId(),
-            title: "验证结果",
-            description: "确认完成情况",
+            title: i18n.t("browserMock.verifyResult"),
+            description: i18n.t("browserMock.confirmCompletion"),
             status: "pending",
             estimated_tools: ["Bash"],
             result: null,
@@ -1576,8 +1576,8 @@ export async function handleCommand<T>(
       return [
         {
           groupId: "builtin-file-read",
-          groupName: "文件读取",
-          description: "只读文件操作：读取、搜索、列出目录和文件信息",
+          groupName: i18n.t("browserMock.fileRead"),
+          description: i18n.t("browserMock.fileReadDesc"),
           enabled: true,
           tools: [
             {
@@ -1611,8 +1611,8 @@ export async function handleCommand<T>(
         },
         {
           groupId: "builtin-file-write",
-          groupName: "文件写入",
-          description: "写入文件操作：创建、编辑、删除、移动文件",
+          groupName: i18n.t("browserMock.fileWrite"),
+          description: i18n.t("browserMock.fileWriteDesc"),
           enabled: true,
           tools: [
             {
@@ -1646,8 +1646,8 @@ export async function handleCommand<T>(
         },
         {
           groupId: "builtin-shell",
-          groupName: "Shell 命令",
-          description: "Shell 命令执行和代码 REPL",
+          groupName: i18n.t("browserMock.shellCommand"),
+          description: i18n.t("browserMock.shellCommandDesc"),
           enabled: false,
           tools: [
             {
@@ -2328,7 +2328,7 @@ export async function handleCommand<T>(
           target: "cursor",
           format: "json",
           content: '{\n  "openai.apiKey": "{{key}}",\n  "openai.apiBaseUrl": "http://localhost:{{port}}/v1"\n}',
-          copyHint: "添加到 Cursor User settings.json",
+          copyHint: i18n.t("browserMock.copyHintCursor"),
           created_at: nowTs(),
           updated_at: nowTs(),
         },
@@ -2339,7 +2339,7 @@ export async function handleCommand<T>(
           format: "json",
           content:
             '{\n  "models": [{\n    "provider": "openai",\n    "apiBase": "http://localhost:{{port}}/v1",\n    "apiKey": "{{key}}"\n  }]\n}',
-          copyHint: "添加到 .continue/config.json 的 models 数组",
+          copyHint: i18n.t("browserMock.copyHintContinue"),
           created_at: nowTs(),
           updated_at: nowTs(),
         },
@@ -2349,7 +2349,7 @@ export async function handleCommand<T>(
           target: "claude_code",
           format: "text",
           content: "ANTHROPIC_BASE_URL=http://localhost:{{port}}/v1\nANTHROPIC_AUTH_TOKEN={{key}}",
-          copyHint: "添加到环境变量或 .env 文件",
+          copyHint: i18n.t("browserMock.copyHintEnv"),
           created_at: nowTs(),
           updated_at: nowTs(),
         },
@@ -2359,7 +2359,7 @@ export async function handleCommand<T>(
           target: "openai_compatible",
           format: "text",
           content: "API Base: http://localhost:{{port}}/v1\nAPI Key: {{key}}",
-          copyHint: "适用于任何支持 OpenAI API 的客户端",
+          copyHint: i18n.t("browserMock.copyHintOpenAI"),
           created_at: nowTs(),
           updated_at: nowTs(),
         },
@@ -2847,7 +2847,7 @@ export async function handleCommand<T>(
             {
               id: genId(),
               type: "trigger",
-              label: "触发器",
+              label: i18n.t("browserMock.triggerLabel"),
               config: { trigger_type: "manual" },
               position: { x: 100, y: 100 },
             },
@@ -3134,14 +3134,14 @@ export async function handleCommand<T>(
           {
             id: "trigger-1",
             type: "trigger",
-            label: "触发器",
+            label: i18n.t("browserMock.triggerLabel"),
             config: { trigger_type: "manual" },
             position: { x: 100, y: 100 },
           },
           {
             id: "action-1",
             type: "tool",
-            label: "执行动作",
+            label: i18n.t("browserMock.executeLabel"),
             config: { tool_name: "mock_tool" },
             position: { x: 300, y: 100 },
           },
@@ -3149,7 +3149,9 @@ export async function handleCommand<T>(
         edges: [
           { id: "e1", source: "trigger-1", target: "action-1" },
         ],
-        explanation: `由 NL prompt "${(args as { prompt?: string })?.prompt ?? ""}" 解析生成`,
+        explanation: i18n.t("browserMock.nlWorkflowExplanation", {
+          prompt: (args as { prompt?: string })?.prompt ?? "",
+        }),
       } as T;
     }
 

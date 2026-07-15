@@ -6,9 +6,9 @@
 //! `axagent-agent::hierarchical_planner` 和 `axagent-rt-workflow`
 //! 均可使用，无需依赖彼此。
 
-use axagent_harness::plan_types::PhaseStatus;
-use axagent_harness::plan_types::{Phase, Plan, PlanStatus, PlannedTask};
-use axagent_harness::workflow_types::*;
+use crate::plan_types::PhaseStatus;
+use crate::plan_types::{Phase, Plan, PlanStatus, PlannedTask};
+use crate::workflow_types::*;
 
 // ── Plan → DAG 编译 ─────────────────────────────────────
 
@@ -325,7 +325,7 @@ pub fn dag_to_plan(goal: &str, nodes: &[WorkflowNode], edges: &[WorkflowEdge]) -
             error: None,
             result: None,
             retry_count: 0,
-            status: axagent_harness::plan_types::TaskStatus::Pending,
+            status: crate::plan_types::TaskStatus::Pending,
         });
         all_ids.push(nid);
     }

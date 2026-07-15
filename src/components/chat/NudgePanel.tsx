@@ -34,9 +34,17 @@ const NudgeCard: React.FC<{
 }> = ({ nudge, onDismiss, onExecute, onSnooze }) => {
   const { t } = useTranslation();
   const urgency = nudge.urgency;
+  const [showSnoozeMenu, setShowSnoozeMenu] = useState(false);
 
-  const handleSnooze = useCallback(() => {
-    onSnooze(nudge.id, Date.now() + 30 * 60 * 1000);
+  const snoozeOptions: { label: string; ms: number }[] = [
+    { label: t("nudge.snooze15"), ms: 15 * 60 * 1000 },
+    { label: t("nudge.snooze30"), ms: 30 * 60 * 1000 },
+    { label: t("nudge.snooze1h"), ms: 60 * 60 * 1000 },
+  ];
+
+  const handleSnooze = useCallback((minutes: number) => {
+    onSnooze(nudge.id, Date.now() + minutes);
+    setShowSnoozeMenu(false);
   }, [nudge.id, onSnooze]);
 
   return (
@@ -71,13 +79,28 @@ const NudgeCard: React.FC<{
               <Check size={14} />
             </button>
           )}
-          <button
-            onClick={handleSnooze}
-            className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 dark:text-blue-400"
-            title={t("nudge.snooze30")}
-          >
-            <Clock size={14} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowSnoozeMenu((v) => !v)}
+              className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 dark:text-blue-400"
+              title={t("nudge.snooze")}
+            >
+              <Clock size={14} />
+            </button>
+            {showSnoozeMenu && (
+              <div className="absolute right-0 top-full mt-1 z-10 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 min-w-24">
+                {snoozeOptions.map((opt) => (
+                  <button
+                    key={opt.ms}
+                    onClick={() => handleSnooze(opt.ms)}
+                    className="block w-full text-left px-3 py-1.5 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => onDismiss(nudge.id)}
             className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400"

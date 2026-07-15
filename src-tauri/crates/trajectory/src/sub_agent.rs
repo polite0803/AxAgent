@@ -5,7 +5,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
@@ -201,8 +202,8 @@ impl AgentMessage {
 // AgentMailbox — per-agent message queue with bounded capacity
 // ---------------------------------------------------------------------------
 
-/// A per-agent mailbox that holds incoming messages.
-/// Thread-safe via `Arc<RwLock<>>`.
+/// 每个 agent 的 mailbox，持有收到的消息。
+/// 通过 `Arc<RwLock<>>` 实现线程安全（使用 tokio 异步锁，遵守 AGENTS.md 铁律 8）。
 pub struct AgentMailbox {
     agent_id: String,
     messages: Arc<RwLock<std::collections::VecDeque<AgentMessage>>>,
@@ -218,12 +219,9 @@ impl AgentMailbox {
         }
     }
 
-    /// Deliver a message to this mailbox. Returns false if the mailbox is full.
-    pub fn deliver(&self, message: AgentMessage) -> bool {
-        let mut msgs = self.messages.write().unwrap_or_else(|e| {
-            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
-            e.into_inner()
-        });
+    /// 投递消息到 mailbox。mailbox 满则返回 false。
+    pub async fn deliver(&self, message: AgentMessage) -> bool {
+        let mut msgs = self.messages.write().await;
         if msgs.len() >= self.capacity {
             return false;
         }
@@ -231,48 +229,29 @@ impl AgentMailbox {
         true
     }
 
-    /// Receive (pop) the next message from this mailbox. O(1) with VecDeque.
-    pub fn receive(&self) -> Option<AgentMessage> {
-        let mut msgs = self.messages.write().unwrap_or_else(|e| {
-            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
-            e.into_inner()
-        });
+    /// 接收（弹出）下一条消息。VecDeque O(1)。
+    pub async fn receive(&self) -> Option<AgentMessage> {
+        let mut msgs = self.messages.write().await;
         msgs.pop_front()
     }
 
-    /// Peek at all messages without consuming them.
-    pub fn peek_all(&self) -> Vec<AgentMessage> {
-        let msgs = self.messages.read().unwrap_or_else(|e| {
-            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
-            e.into_inner()
-        });
+    /// 窥视所有消息但不消费。
+    pub async fn peek_all(&self) -> Vec<AgentMessage> {
+        let msgs = self.messages.read().await;
         msgs.iter().cloned().collect()
     }
 
-    /// Receive all messages of a specific kind.
-    pub fn receive_by_kind(&self, kind: AgentMessageKind) -> Vec<AgentMessage> {
-        let mut msgs = self.messages.write().unwrap_or_else(|e| {
-            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
-            e.into_inner()
-        });
+    /// 接收指定类型的所有消息。
+    pub async fn receive_by_kind(&self, kind: AgentMessageKind) -> Vec<AgentMessage> {
+        let mut msgs = self.messages.write().await;
         let (matching, remaining): (Vec<_>, Vec<_>) = msgs.drain(..).partition(|m| m.kind == kind);
         *msgs = remaining.into_iter().collect();
         matching
     }
 
-    /// Number of pending messages.
-    pub fn len(&self) -> usize {
-        self.messages
-            .read()
-            .unwrap_or_else(|e| {
-                tracing::warn!(
-                    "Mailbox lock poisoned for agent {}, recovering: {}",
-                    self.agent_id,
-                    e
-                );
-                e.into_inner()
-            })
-            .len()
+    /// 待处理消息数。
+    pub async fn len(&self) -> usize {
+        self.messages.read().await.len()
     }
 }
 
@@ -280,9 +259,8 @@ impl AgentMailbox {
 // MessageBus — global message bus connecting all agent mailboxes
 // ---------------------------------------------------------------------------
 
-/// A global message bus that routes messages between agent mailboxes.
-/// Each agent has its own `AgentMailbox`. Sending a message looks up
-/// the target agent's mailbox and delivers the message there.
+/// 全局消息总线，连接所有 agent mailbox。
+/// 每个 agent 有自己的 `AgentMailbox`。发送消息时查找目标 agent 的 mailbox 并投递。
 pub struct MessageBus {
     mailboxes: Arc<RwLock<HashMap<String, AgentMailbox>>>,
     default_capacity: usize,
@@ -299,12 +277,9 @@ impl MessageBus {
         Self { mailboxes: Arc::new(RwLock::new(HashMap::new())), default_capacity }
     }
 
-    /// Register a new agent mailbox. Returns false if already registered.
-    pub fn register(&self, agent_id: &str) -> bool {
-        let mut mbs = self.mailboxes.write().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    /// 注册新 agent mailbox。已注册返回 false。
+    pub async fn register(&self, agent_id: &str) -> bool {
+        let mut mbs = self.mailboxes.write().await;
         if mbs.contains_key(agent_id) {
             return false;
         }
@@ -315,12 +290,9 @@ impl MessageBus {
         true
     }
 
-    /// Register with a custom capacity.
-    pub fn register_with_capacity(&self, agent_id: &str, capacity: usize) -> bool {
-        let mut mbs = self.mailboxes.write().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    /// 使用自定义容量注册。
+    pub async fn register_with_capacity(&self, agent_id: &str, capacity: usize) -> bool {
+        let mut mbs = self.mailboxes.write().await;
         if mbs.contains_key(agent_id) {
             return false;
         }
@@ -328,75 +300,69 @@ impl MessageBus {
         true
     }
 
-    /// Unregister an agent's mailbox.
-    pub fn unregister(&self, agent_id: &str) {
-        let mut mbs = self.mailboxes.write().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    /// 注销 agent mailbox。
+    pub async fn unregister(&self, agent_id: &str) {
+        let mut mbs = self.mailboxes.write().await;
         mbs.remove(agent_id);
     }
 
-    /// Send a message from one agent to another.
-    /// Returns `Ok(())` if delivered, `Err` if the target mailbox is
-    /// full or not registered.
-    pub fn send(&self, message: AgentMessage) -> Result<(), AgentMessageError> {
-        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    /// 从一个 agent 向另一个 agent 发送消息。
+    /// 投递成功返回 `Ok(())`，目标 mailbox 不存在或已满返回 `Err`。
+    pub async fn send(&self, message: AgentMessage) -> Result<(), AgentMessageError> {
+        let mbs = self.mailboxes.read().await;
         let mailbox = mbs
             .get(&message.to_agent)
             .ok_or_else(|| AgentMessageError::MailboxNotFound(message.to_agent.clone()))?;
-        if !mailbox.deliver(message.clone()) {
+        if !mailbox.deliver(message.clone()).await {
             Err(AgentMessageError::MailboxFull(message.to_agent.clone()))
         } else {
             Ok(())
         }
     }
 
-    /// Receive the next message for an agent.
-    pub fn receive(&self, agent_id: &str) -> Option<AgentMessage> {
-        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
-        mbs.get(agent_id).and_then(|mb| mb.receive())
+    /// 接收 agent 的下一条消息。
+    pub async fn receive(&self, agent_id: &str) -> Option<AgentMessage> {
+        let mbs = self.mailboxes.read().await;
+        match mbs.get(agent_id) {
+            Some(mb) => mb.receive().await,
+            None => None,
+        }
     }
 
-    /// Receive all messages of a specific kind for an agent.
-    pub fn receive_by_kind(&self, agent_id: &str, kind: AgentMessageKind) -> Vec<AgentMessage> {
-        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
-        mbs.get(agent_id).map(|mb| mb.receive_by_kind(kind)).unwrap_or_default()
+    /// 接收 agent 指定类型的所有消息。
+    pub async fn receive_by_kind(
+        &self,
+        agent_id: &str,
+        kind: AgentMessageKind,
+    ) -> Vec<AgentMessage> {
+        let mbs = self.mailboxes.read().await;
+        match mbs.get(agent_id) {
+            Some(mb) => mb.receive_by_kind(kind).await,
+            None => Vec::new(),
+        }
     }
 
-    /// Peek at all pending messages for an agent (non-consuming).
-    pub fn peek_all(&self, agent_id: &str) -> Vec<AgentMessage> {
-        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
-        mbs.get(agent_id).map(|mb| mb.peek_all()).unwrap_or_default()
+    /// 窥视 agent 所有待处理消息（不消费）。
+    pub async fn peek_all(&self, agent_id: &str) -> Vec<AgentMessage> {
+        let mbs = self.mailboxes.read().await;
+        match mbs.get(agent_id) {
+            Some(mb) => mb.peek_all().await,
+            None => Vec::new(),
+        }
     }
 
-    /// Number of pending messages for an agent.
-    pub fn pending_count(&self, agent_id: &str) -> usize {
-        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
-        mbs.get(agent_id).map(|mb| mb.len()).unwrap_or(0)
+    /// agent 待处理消息数。
+    pub async fn pending_count(&self, agent_id: &str) -> usize {
+        let mbs = self.mailboxes.read().await;
+        match mbs.get(agent_id) {
+            Some(mb) => mb.len().await,
+            None => 0,
+        }
     }
 
-    /// List all registered agent IDs.
-    pub fn registered_agents(&self) -> Vec<String> {
-        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
-            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+    /// 列出所有已注册 agent ID。
+    pub async fn registered_agents(&self) -> Vec<String> {
+        let mbs = self.mailboxes.read().await;
         mbs.keys().cloned().collect()
     }
 }
@@ -434,17 +400,27 @@ pub struct SubAgentRegistry {
 
 impl Default for SubAgentRegistry {
     fn default() -> Self {
-        Self::new().expect("Failed to create default SubAgentRegistry")
+        // Default 实现不读文件、不注册 mailbox，直接构造空 registry。
+        // 原因：new() 是 async，Default trait 不能 await。
+        let storage_path =
+            Self::get_storage_path().unwrap_or_else(|_| PathBuf::from("sub_agents.json"));
+        Self {
+            agents: Vec::new(),
+            storage_path,
+            dirty: false,
+            message_bus: MessageBus::new(256),
+            task_deduplicator: TaskDeduplicator::default(),
+        }
     }
 }
 
 impl SubAgentRegistry {
-    pub fn new() -> Result<Self> {
+    pub async fn new() -> Result<Self> {
         let storage_path = Self::get_storage_path()?;
-        Self::new_with_path(&storage_path)
+        Self::new_with_path(&storage_path).await
     }
 
-    pub fn new_with_path(storage_path: &PathBuf) -> Result<Self> {
+    pub async fn new_with_path(storage_path: &PathBuf) -> Result<Self> {
         if let Some(parent) = storage_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -464,9 +440,9 @@ impl SubAgentRegistry {
             task_deduplicator: TaskDeduplicator::default(),
         };
 
-        // Register mailboxes for all loaded agents
+        // 为所有已加载 agent 注册 mailbox
         for agent in &registry.agents {
-            registry.message_bus.register(&agent.id);
+            registry.message_bus.register(&agent.id).await;
         }
 
         Ok(registry)
@@ -497,27 +473,27 @@ impl SubAgentRegistry {
         Ok(())
     }
 
-    pub fn create_agent(&mut self, agent: SubAgent) {
-        self.message_bus.register(&agent.id);
+    pub async fn create_agent(&mut self, agent: SubAgent) {
+        self.message_bus.register(&agent.id).await;
         self.agents.push(agent);
         self.dirty = true;
     }
 
-    pub fn push(&mut self, agent: SubAgent) {
-        self.message_bus.register(&agent.id);
+    pub async fn push(&mut self, agent: SubAgent) {
+        self.message_bus.register(&agent.id).await;
         self.agents.push(agent);
         self.dirty = true;
     }
 
-    pub fn create(
+    pub async fn create(
         &mut self,
         name: String,
         description: String,
         parent_id: Option<String>,
     ) -> SubAgent {
         let agent = SubAgent::new(name, description, parent_id.clone());
-        self.message_bus.register(&agent.id);
-        // If there's a parent, add this agent as a child
+        self.message_bus.register(&agent.id).await;
+        // 若有 parent，把当前 agent 加入 parent 的 children
         if let Some(ref pid) = parent_id
             && let Some(parent) = self.agents.iter_mut().find(|a| a.id == *pid)
         {
@@ -577,9 +553,9 @@ impl SubAgentRegistry {
         self.agents.iter().collect()
     }
 
-    pub fn delete(&mut self, id: &str) -> bool {
+    pub async fn delete(&mut self, id: &str) -> bool {
         if let Some(pos) = self.agents.iter().position(|a| a.id == id) {
-            self.message_bus.unregister(id);
+            self.message_bus.unregister(id).await;
             self.agents.remove(pos);
             self.dirty = true;
             true
@@ -607,25 +583,25 @@ impl SubAgentRegistry {
         self.agents.is_empty()
     }
 
-    pub fn clear(&mut self) {
+    pub async fn clear(&mut self) {
         for agent in &self.agents {
-            self.message_bus.unregister(&agent.id);
+            self.message_bus.unregister(&agent.id).await;
         }
         self.agents.clear();
         self.dirty = true;
     }
 
-    pub fn reload(&mut self) -> Result<()> {
+    pub async fn reload(&mut self) -> Result<()> {
         if self.storage_path.exists() {
             let content = std::fs::read_to_string(&self.storage_path)?;
-            // Unregister old agents
+            // 先注销旧 agent
             for agent in &self.agents {
-                self.message_bus.unregister(&agent.id);
+                self.message_bus.unregister(&agent.id).await;
             }
             self.agents = serde_json::from_str(&content)?;
-            // Register new agents
+            // 注册新 agent
             for agent in &self.agents {
-                self.message_bus.register(&agent.id);
+                self.message_bus.register(&agent.id).await;
             }
             self.dirty = false;
         }
@@ -649,15 +625,15 @@ impl SubAgentRegistry {
     /// Sets the child's task field, status to Pending, and sends a
     /// TaskAssign message through the message bus.
     /// P4-2: Checks for duplicate tasks before dispatching.
-    pub fn dispatch_task(
+    pub async fn dispatch_task(
         &mut self,
         parent_id: &str,
         child_id: &str,
         task: String,
     ) -> Result<(), AgentMessageError> {
-        // P4-2: Check for duplicate task
+        // P4-2: 检查重复任务
         if let Some(similarity) = self.task_deduplicator.check_duplicate(&task) {
-            // Task is too similar to an existing one — skip dispatch
+            // 任务与已有任务过于相似 — 跳过派发
             let msg = AgentMessage::new(
                 parent_id,
                 child_id,
@@ -667,19 +643,19 @@ impl SubAgentRegistry {
                     similarity
                 ),
             );
-            let _ = self.message_bus.send(msg);
+            let _ = self.message_bus.send(msg).await;
             return Err(AgentMessageError::MailboxFull(child_id.to_string()));
         }
 
-        // Register the task for future dedup checks
+        // 注册任务以便后续去重
         self.task_deduplicator.register_task(&task);
 
-        // Send TaskAssign message FIRST — if mailbox is full, don't update child state
+        // 先发送 TaskAssign 消息 — mailbox 满则不更新 child 状态
         let msg =
             AgentMessage::new(parent_id, child_id, AgentMessageKind::TaskAssign, task.clone());
-        self.message_bus.send(msg)?;
+        self.message_bus.send(msg).await?;
 
-        // Only update child agent state after successful message delivery
+        // 仅在消息投递成功后才更新 child agent 状态
         if let Some(child) = self.agents.iter_mut().find(|a| a.id == child_id) {
             child.task = Some(task);
             child.status = SubAgentStatus::Pending;
@@ -692,14 +668,14 @@ impl SubAgentRegistry {
 
     /// Dispatch tasks to multiple children in parallel.
     /// Returns the number of successfully dispatched tasks.
-    pub fn dispatch_tasks_parallel(
+    pub async fn dispatch_tasks_parallel(
         &mut self,
         parent_id: &str,
         tasks: Vec<(&str, String)>, // (child_id, task_description)
     ) -> usize {
         let mut dispatched = 0;
         for (child_id, task) in tasks {
-            if self.dispatch_task(parent_id, child_id, task).is_ok() {
+            if self.dispatch_task(parent_id, child_id, task).await.is_ok() {
                 dispatched += 1;
             }
         }
@@ -748,7 +724,7 @@ impl SubAgentRegistry {
     /// Report progress from a child agent to its parent.
     /// Updates the child's progress field and sends a ProgressReport
     /// message through the message bus.
-    pub fn report_progress(
+    pub async fn report_progress(
         &mut self,
         child_id: &str,
         progress: f32,
@@ -766,9 +742,9 @@ impl SubAgentRegistry {
                 AgentMessageKind::ProgressReport,
                 serde_json::to_string(&progress).unwrap_or_default(),
             );
-            self.message_bus.send(msg)
+            self.message_bus.send(msg).await
         } else {
-            // No parent to notify — just update local progress
+            // 无父节点 — 仅更新本地进度
             Ok(())
         }
     }
@@ -777,7 +753,7 @@ impl SubAgentRegistry {
     /// Updates the child's status and result, sends a TaskResult message.
     /// If the message delivery fails (mailbox full), the child state is still updated
     /// but a warning is logged — the parent can poll the registry for completed children.
-    pub fn report_completion(
+    pub async fn report_completion(
         &mut self,
         child_id: &str,
         result: String,
@@ -790,7 +766,7 @@ impl SubAgentRegistry {
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(child_id, &pid, AgentMessageKind::TaskResult, result);
-            if let Err(e) = self.message_bus.send(msg) {
+            if let Err(e) = self.message_bus.send(msg).await {
                 tracing::warn!(
                     "Failed to deliver completion notification for child {}: {:?}. Parent can poll registry.",
                     child_id,
@@ -802,7 +778,11 @@ impl SubAgentRegistry {
     }
 
     /// Report task error from a child agent to its parent.
-    pub fn report_error(&mut self, child_id: &str, error: String) -> Result<(), AgentMessageError> {
+    pub async fn report_error(
+        &mut self,
+        child_id: &str,
+        error: String,
+    ) -> Result<(), AgentMessageError> {
         let parent_id = self.agents.iter_mut().find(|a| a.id == child_id).and_then(|child| {
             child.fail(error.clone());
             self.dirty = true;
@@ -811,14 +791,14 @@ impl SubAgentRegistry {
 
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(child_id, &pid, AgentMessageKind::TaskError, error);
-            self.message_bus.send(msg)
+            self.message_bus.send(msg).await
         } else {
             Ok(())
         }
     }
 
     /// Cancel a child's task from the parent.
-    pub fn cancel_child(
+    pub async fn cancel_child(
         &mut self,
         parent_id: &str,
         child_id: &str,
@@ -830,7 +810,7 @@ impl SubAgentRegistry {
 
         let msg =
             AgentMessage::new(parent_id, child_id, AgentMessageKind::TaskCancel, String::new());
-        self.message_bus.send(msg)
+        self.message_bus.send(msg).await
     }
 }
 
@@ -940,53 +920,59 @@ mod tests {
         assert!(agent.parent_id.is_none());
     }
 
-    #[test]
-    fn test_message_bus_basic() {
+    #[tokio::test]
+    async fn test_message_bus_basic() {
         let bus = MessageBus::new(64);
-        bus.register("parent");
-        bus.register("child");
+        bus.register("parent").await;
+        bus.register("child").await;
 
         let msg =
             AgentMessage::new("parent", "child", AgentMessageKind::TaskAssign, "Do X".to_string());
-        assert!(bus.send(msg).is_ok());
+        assert!(bus.send(msg).await.is_ok());
 
-        let received = bus.receive("child");
+        let received = bus.receive("child").await;
         assert!(received.is_some());
         let received = received.unwrap();
         assert_eq!(received.kind, AgentMessageKind::TaskAssign);
         assert_eq!(received.payload, "Do X");
     }
 
-    #[test]
-    fn test_message_bus_mailbox_not_found() {
+    #[tokio::test]
+    async fn test_message_bus_mailbox_not_found() {
         let bus = MessageBus::new(64);
         let msg = AgentMessage::new("a", "b", AgentMessageKind::Data, "hello".to_string());
-        let result = bus.send(msg);
+        let result = bus.send(msg).await;
         assert!(matches!(result, Err(AgentMessageError::MailboxNotFound(_))));
     }
 
-    #[test]
-    fn test_dispatch_and_collect() {
+    #[tokio::test]
+    async fn test_dispatch_and_collect() {
         let mut registry =
             SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_dispatch_agents.json"))
+                .await
                 .unwrap();
 
-        // Create parent and children
-        let parent = registry.create("coordinator".to_string(), "Parent agent".to_string(), None);
-        let child1 =
-            registry.create("worker1".to_string(), "Worker 1".to_string(), Some(parent.id.clone()));
-        let child2 =
-            registry.create("worker2".to_string(), "Worker 2".to_string(), Some(parent.id.clone()));
+        // 创建 parent 和 children
+        let parent =
+            registry.create("coordinator".to_string(), "Parent agent".to_string(), None).await;
+        let child1 = registry
+            .create("worker1".to_string(), "Worker 1".to_string(), Some(parent.id.clone()))
+            .await;
+        let child2 = registry
+            .create("worker2".to_string(), "Worker 2".to_string(), Some(parent.id.clone()))
+            .await;
 
-        // Dispatch tasks (use distinct descriptions to avoid dedup)
+        // 派发任务（使用不同描述避免去重）
         registry
             .dispatch_task(&parent.id, &child1.id, "Analyze the codebase structure".to_string())
+            .await
             .unwrap();
         registry
             .dispatch_task(&parent.id, &child2.id, "Write unit tests for module".to_string())
+            .await
             .unwrap();
 
-        // Verify tasks assigned
+        // 验证任务已分配
         assert_eq!(
             registry.get(&child1.id).unwrap().task.as_deref(),
             Some("Analyze the codebase structure")
@@ -996,72 +982,79 @@ mod tests {
             Some("Write unit tests for module")
         );
 
-        // Simulate child1 completing
-        registry.report_completion(&child1.id, "Result A".to_string()).unwrap();
+        // 模拟 child1 完成
+        registry.report_completion(&child1.id, "Result A".to_string()).await.unwrap();
         assert_eq!(registry.get(&child1.id).unwrap().status, SubAgentStatus::Completed);
 
-        // Collect results — child1 done, child2 pending
+        // 收集结果 — child1 完成，child2 待处理
         let (results, pending) = registry.collect_results(&parent.id);
         assert_eq!(results.len(), 1);
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0], child2.id);
 
-        // Simulate child2 completing
-        registry.report_completion(&child2.id, "Result B".to_string()).unwrap();
+        // 模拟 child2 完成
+        registry.report_completion(&child2.id, "Result B".to_string()).await.unwrap();
 
-        // Now all children finished
+        // 现在所有 child 都完成
         assert!(registry.all_children_finished(&parent.id));
         let (results, pending) = registry.collect_results(&parent.id);
         assert_eq!(results.len(), 2);
         assert!(pending.is_empty());
 
-        // Cleanup
+        // 清理
         let _ = std::fs::remove_file("test_dispatch_agents.json");
     }
 
-    #[test]
-    fn test_progress_reporting() {
+    #[tokio::test]
+    async fn test_progress_reporting() {
         let mut registry =
             SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_progress_agents.json"))
+                .await
                 .unwrap();
 
-        let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None);
-        let child =
-            registry.create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()));
+        let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None).await;
+        let child = registry
+            .create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()))
+            .await;
 
-        // Report progress
-        registry.report_progress(&child.id, 0.5).unwrap();
+        // 上报进度
+        registry.report_progress(&child.id, 0.5).await.unwrap();
         assert!((registry.get(&child.id).unwrap().progress - 0.5).abs() < 1.0);
 
-        // Parent should have received a ProgressReport message
-        let msgs =
-            registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::ProgressReport);
+        // parent 应收到 ProgressReport 消息
+        let msgs = registry
+            .message_bus()
+            .receive_by_kind(&parent.id, AgentMessageKind::ProgressReport)
+            .await;
         assert_eq!(msgs.len(), 1);
         let progress: f32 = serde_json::from_str(&msgs[0].payload).unwrap();
         assert!((progress - 0.5).abs() < 1.0);
 
-        // Cleanup
+        // 清理
         let _ = std::fs::remove_file("test_progress_agents.json");
     }
 
-    #[test]
-    fn test_error_reporting() {
+    #[tokio::test]
+    async fn test_error_reporting() {
         let mut registry =
             SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_error_agents.json"))
+                .await
                 .unwrap();
 
-        let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None);
-        let child =
-            registry.create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()));
+        let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None).await;
+        let child = registry
+            .create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()))
+            .await;
 
-        registry.report_error(&child.id, "Something went wrong".to_string()).unwrap();
+        registry.report_error(&child.id, "Something went wrong".to_string()).await.unwrap();
         assert_eq!(registry.get(&child.id).unwrap().status, SubAgentStatus::Failed);
 
-        let msgs = registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::TaskError);
+        let msgs =
+            registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::TaskError).await;
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0].payload, "Something went wrong");
 
-        // Cleanup
+        // 清理
         let _ = std::fs::remove_file("test_error_agents.json");
     }
 
@@ -1069,19 +1062,19 @@ mod tests {
     fn test_task_deduplication() {
         let mut dedup = TaskDeduplicator::new(0.6);
 
-        // Register first task
+        // 注册首个任务
         dedup.register_task("Analyze the codebase structure and find bugs");
 
-        // Same task should be detected as duplicate
+        // 相同任务应被识别为重复
         let dup = dedup.check_duplicate("Analyze the codebase structure and find bugs");
         assert!(dup.is_some());
         assert!(dup.unwrap() >= 0.6);
 
-        // Similar task should also be detected
+        // 相似任务也应被识别
         let similar = dedup.check_duplicate("Analyze the codebase structure and find issues");
         assert!(similar.is_some());
 
-        // Very different task should not be detected
+        // 完全不同的任务不应被识别
         let different = dedup.check_duplicate("Write documentation for the API endpoints");
         assert!(different.is_none());
     }

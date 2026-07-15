@@ -4,7 +4,7 @@
 //!
 //! PdfInfo, DetectEncoding
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
@@ -35,6 +35,11 @@ impl Tool for PdfInfoTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileRead
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -84,6 +89,11 @@ impl Tool for DetectEncodingTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileRead
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

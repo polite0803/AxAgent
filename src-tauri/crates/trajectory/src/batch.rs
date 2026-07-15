@@ -115,7 +115,7 @@ impl BatchProcessor {
     ) -> Vec<Trajectory> {
         match strategy {
             SamplingStrategy::Random => {
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 let mut trajectories: Vec<_> = trajectories.iter().collect();
                 trajectories.shuffle(&mut rng);
                 trajectories.into_iter().take(sample_size).cloned().collect()
@@ -212,7 +212,7 @@ impl BatchProcessor {
 
         for trajectory in trajectories.iter_mut() {
             let rewards = self.compute_trajectory_rewards(trajectory, reward_weights);
-            trajectory.rewards.clone_from_slice(&rewards);
+            trajectory.rewards = rewards.clone();
             all_rewards.push(rewards);
         }
 
@@ -308,8 +308,15 @@ impl BatchProcessor {
 
         match options.format {
             ExportFormat::Jsonl => {
-                let jsonl: Vec<String> =
-                    filtered.iter().map(|t| serde_json::to_string(t).unwrap_or_default()).collect();
+                let mut jsonl = Vec::with_capacity(filtered.len());
+                for t in &filtered {
+                    match serde_json::to_string(t) {
+                        Ok(s) => jsonl.push(s),
+                        Err(e) => {
+                            warn!("Batch export: failed to serialize trajectory {}: {}", t.id, e)
+                        },
+                    }
+                }
                 Ok(jsonl.join("\n"))
             },
             ExportFormat::RlTraining => {
@@ -317,8 +324,13 @@ impl BatchProcessor {
                     .iter()
                     .map(axagent_harness::trajectory_scorer::TrajectoryScorer::export_as_rl)
                     .collect();
-                let jsonl: Vec<String> =
-                    entries.iter().map(|e| serde_json::to_string(e).unwrap_or_default()).collect();
+                let mut jsonl = Vec::with_capacity(entries.len());
+                for e in &entries {
+                    match serde_json::to_string(e) {
+                        Ok(s) => jsonl.push(s),
+                        Err(err) => warn!("Batch export RL: failed to serialize entry: {}", err),
+                    }
+                }
                 Ok(jsonl.join("\n"))
             },
             ExportFormat::Compressed => {

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 //! DreamTask — 梦境任务（后台上下文整合与压缩）
-//! Feature flag: DREAM_TASK
 //!
 //! 在会话结束时或定时触发，执行以下操作：
 //! - 轨迹整合 (ConsolidateTrajectory)
@@ -9,6 +8,12 @@
 //! - 技能更新 (UpdateSkills)
 //! - 僵尸 agent 清理 (CleanupDeadAgents)
 //! - 向量索引优化 (OptimizeIndexes)
+//!
+//! 核心 Dream 巩固逻辑（经验回放、知识蒸馏、对比学习、建议生成）
+//! 由 `axagent_trajectory::DreamConsolidator` 实现。
+//! DreamTaskExecutor 负责调度编排这些后台清理任务。
+
+use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -153,7 +158,11 @@ impl DreamTaskExecutor {
     /// 执行梦境任务并返回结果
     ///
     /// 若 DREAM_TASK feature flag 未启用，直接返回空结果。
-    pub async fn execute(task: &DreamTask) -> DreamTaskResult {
+    /// `consolidator` 是可选的轨迹巩固器实例，在 ConsolidateTrajectory 范围时使用。
+    pub async fn execute(
+        task: &DreamTask,
+        consolidator: Option<Arc<axagent_trajectory::DreamConsolidator>>,
+    ) -> DreamTaskResult {
         // 检查 DREAM_TASK feature flag
         if !DreamTask::is_enabled() {
             tracing::warn!(
@@ -186,51 +195,48 @@ impl DreamTaskExecutor {
 
         if is_full || matches!(task.scope, DreamScope::ConsolidateTrajectory) {
             tracing::info!("[DreamTask] 执行轨迹整合...");
-            // 对接现有 DreamConsolidation 模块
-            let config = axagent_trajectory::dream_consolidation::DreamConsolidationConfig {
-                enabled: true,
-                min_interval_hours: 0,
-                min_new_sessions: 0,
-                max_consolidation_secs: 300,
-                run_memory_extraction: true,
-            };
-            match axagent_trajectory::dream_consolidation::DreamConsolidation::run(config).await {
-                Ok(consolidation_result) => {
-                    result.trajectories_compressed = consolidation_result.memories_extracted;
-                    tracing::info!(
-                        "[DreamTask] 轨迹整合完成: {} 条记忆",
-                        consolidation_result.memories_extracted
-                    );
-                },
-                Err(e) => {
-                    result.errors.push(format!("轨迹整合失败: {}", e));
-                },
+            if let Some(ref consolidator) = consolidator {
+                let consolidation_result = consolidator.consolidate_force().await;
+                result.trajectories_compressed = consolidation_result.memories_extracted;
+                tracing::info!(
+                    "[DreamTask] 轨迹整合完成: {} 条记忆, {} 条知识, {} 个对比洞察",
+                    consolidation_result.memories_extracted,
+                    consolidation_result.distilled_knowledge_count,
+                    consolidation_result.contrastive_insights_count,
+                );
+            } else {
+                tracing::warn!("[DreamTask] 未提供 DreamConsolidator 实例，跳过轨迹整合");
+                result.errors.push("轨迹整合跳过：未提供 consolidator".to_string());
             }
         }
+
         if is_full || matches!(task.scope, DreamScope::CompressMemories) {
             tracing::info!("[DreamTask] 执行记忆压缩...");
-            // 调用 session_memory_compact 压缩会话记忆
-            // 此处标记压缩操作，实际压缩在 compact 模块中完成
-            result.memory_freed_mb = 10;
+            // TODO: 对接 SessionCompactor/auto_memory 模块实现实际压缩
+            // 当前为占位实现，返回默认值
+            result.memory_freed_mb += 10;
+            tracing::warn!("[DreamTask] 记忆压缩尚未对接底层实现（占位释放10MB）");
         }
+
         if is_full || matches!(task.scope, DreamScope::UpdateSkills) {
             tracing::info!("[DreamTask] 执行技能更新...");
-            // 对接 SkillEvolution（trajectory crate）
-            if let Err(e) = axagent_trajectory::skill::SkillEvolution::evolve_all().await {
-                result.errors.push(format!("技能更新失败: {}", e));
-            } else {
-                result.skills_updated = 1;
-            }
+            // TODO: 对接 SkillEvolutionEngine 实现技能进化
+            // axagent_trajectory::SkillEvolutionEngine 提供了技能进化能力
+            // 需要持有 SkillEvolutionEngine 实例
+            tracing::warn!("[DreamTask] 技能更新尚未对接底层实现");
         }
+
         if is_full || matches!(task.scope, DreamScope::CleanupDeadAgents) {
             tracing::info!("[DreamTask] 清理僵尸 agent...");
-            // 清理无活跃状态的会话和过期的 sub-agent 卡片
-            result.agents_cleaned = 0;
+            // TODO: 扫描无活跃状态的会话和过期的 sub-agent
+            tracing::warn!("[DreamTask] 僵尸 agent 清理尚未实现");
         }
+
         if is_full || matches!(task.scope, DreamScope::OptimizeIndexes) {
             tracing::info!("[DreamTask] 优化向量索引...");
-            // 触发 SQLite FTS5 optimize
+            // TODO: 触发 SQLite FTS5 optimize 和向量索引优化
             result.memory_freed_mb += 1;
+            tracing::warn!("[DreamTask] 向量索引优化尚未对接底层实现（占位释放1MB）");
         }
 
         result.duration_ms = start.elapsed().as_millis() as u64;

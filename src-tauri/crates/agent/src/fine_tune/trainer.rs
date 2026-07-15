@@ -148,8 +148,6 @@ impl FineTuneTrainer {
         let job = self.check_job_ready(job_id)?;
 
         let job_clone = job.clone();
-        let _dataset_id = job_clone.dataset_id.clone();
-        let _base_model = job_clone.base_model.clone();
         let config = job_clone.config.clone();
 
         // Phase 1: Preparing
@@ -268,10 +266,10 @@ impl FineTuneTrainer {
             TrainingPhase::Completed,
         );
 
-        let output_path = output_dir.join("adapter_model.safetensors");
+        let output_path = output_dir.join("adapter_model.json");
         let output_path_str = output_path.to_string_lossy().to_string();
 
-        // Write adapter weights placeholder (real impl writes actual LoRA tensor)
+        // Write adapter metadata (real impl writes actual LoRA safetensors)
         self.export_adapter_placeholder(&output_path, &job_clone)?;
 
         // Record final metrics
@@ -454,17 +452,16 @@ impl FineTuneTrainer {
         Self::download_adapter(adapter_url, api_key, &output_path).await?;
 
         // Finalize
+        let final_loss = final_response
+            .get("final_loss")
+            .and_then(|v| v.as_f64())
+            .map(|v| v as f32)
+            .unwrap_or(0.0);
         {
             let job = self
                 .get_job_mut(job_id)
                 .ok_or_else(|| FineTuneError::NotFound(job_id.to_string()))?;
-            job.metrics.final_loss = Some(
-                final_response
-                    .get("final_loss")
-                    .and_then(|v| v.as_f64())
-                    .map(|v| v as f32)
-                    .unwrap_or(0.0),
-            );
+            job.metrics.final_loss = Some(final_loss);
         }
 
         self.complete_job(job_id, output_path_str.clone())?;
@@ -474,12 +471,14 @@ impl FineTuneTrainer {
             output_path_str.clone(),
         );
 
+        let best_loss = final_loss; // external API only reports a single final loss
+
         Ok(TrainingResult {
             job_id: job_id.to_string(),
             output_lora_path: output_path_str,
-            final_loss: 0.0,
-            best_loss: 0.0,
-            train_loss_curve: vec![],
+            final_loss,
+            best_loss,
+            train_loss_curve: vec![final_loss], // external API gives single value
             val_loss_curve: vec![],
             adapter_info,
         })
@@ -589,7 +588,7 @@ impl FineTuneTrainer {
         }
     }
 
-    /// Write a placeholder adapter file with metadata (real impl writes LoRA tensor bytes).
+    /// Write adapter metadata as JSON (real impl writes actual LoRA safetensors).
     fn export_adapter_placeholder(
         &self,
         path: &Path,
@@ -603,8 +602,8 @@ impl FineTuneTrainer {
             "target_modules": job.config.target_modules,
             "dataset_id": job.dataset_id,
             "training_job_id": job.id,
-            "format": "safetensors",
-            "note": "Placeholder — real training backend not configured. Replace with actual LoRA weights from candle/llama.cpp training pipeline."
+            "format": "json",
+            "note": "Placeholder — real training backend not configured. Replace with actual LoRA weights (.safetensors) from candle/llama.cpp training pipeline."
         });
 
         let json_str = serde_json::to_string_pretty(&metadata)
@@ -899,16 +898,23 @@ impl DatasetConverter {
                     {"role": "user", "content": &s.input},
                     {"role": "assistant", "content": &s.output}
                 ]);
-                serde_json::to_string(&messages).unwrap_or_default()
+                serde_json::to_string(&messages)
+                    .map_err(|e| FineTuneError::SerializationError(e.to_string()))
             })
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(samples.join("\n"))
     }
 
     pub fn convert_to_jsonl(dataset: &FineTuneDataset) -> Result<String, FineTuneError> {
-        let lines: Vec<String> =
-            dataset.samples.iter().map(|s| serde_json::to_string(s).unwrap_or_default()).collect();
+        let lines: Vec<String> = dataset
+            .samples
+            .iter()
+            .map(|s| {
+                serde_json::to_string(s)
+                    .map_err(|e| FineTuneError::SerializationError(e.to_string()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(lines.join("\n"))
     }
@@ -977,7 +983,7 @@ mod tests {
         assert!(result.is_ok());
         let training_result = result.unwrap();
         assert_eq!(training_result.job_id, job.id);
-        assert!(training_result.output_lora_path.contains("adapter_model.safetensors"));
+        assert!(training_result.output_lora_path.contains("adapter_model.json"));
         assert!(!training_result.train_loss_curve.is_empty());
         let found = trainer.get_job(&job.id).unwrap();
         assert_eq!(found.status, JobStatus::Completed);

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { resolveDynamicArray } from "@/lib/dynamicUI/utils";
 import type { DynamicUIProps } from "@/types";
 import { Alert, Spin, Table } from "antd";
 import type { TableColumnsType } from "antd";
@@ -41,18 +42,7 @@ export const DataTable: React.FC<DynamicUIProps> = ({
     );
   }
 
-  const data = staticData
-      || (dataContext
-        && Array.isArray(
-          (dataContext as Record<string, unknown>)[schema.id],
-        ))
-    ? (
-      (dataContext as Record<string, unknown>)[schema.id] as Record<
-        string,
-        unknown
-      >[]
-    )
-    : [];
+  const data = resolveDynamicArray(staticData, dataContext, schema.id);
 
   return (
     <Spin spinning={!!dataLoading}>

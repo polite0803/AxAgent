@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { resolveDynamicArray } from "@/lib/dynamicUI/utils";
 import type { DynamicUIProps } from "@/types";
 import { Empty, List } from "antd";
 import { lazy, Suspense } from "react";
@@ -26,18 +27,11 @@ export const ListView: React.FC<DynamicUIProps> = ({
     split?: boolean;
   };
 
-  const data = (schema.props.dataSource as Record<string, unknown>[])
-      || (dataContext
-        && Array.isArray(
-          (dataContext as Record<string, unknown>)[schema.id],
-        ))
-    ? (
-      (dataContext as Record<string, unknown>)[schema.id] as Record<
-        string,
-        unknown
-      >[]
-    )
-    : [];
+  const data = resolveDynamicArray(
+    schema.props.dataSource as Record<string, unknown>[] | undefined,
+    dataContext,
+    schema.id,
+  );
 
   if (data.length === 0) {
     return <Empty description={t("dynamicUI.noData")} />;

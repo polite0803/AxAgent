@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { resolveDynamicArray } from "@/lib/dynamicUI/utils";
 import type { DynamicUIProps } from "@/types";
 import { ArrowDownOutlined, ArrowUpOutlined } from "@ant-design/icons";
 import { Card, Statistic } from "antd";
@@ -19,15 +20,11 @@ interface DashboardItem {
 export const Dashboard: React.FC<DynamicUIProps> = ({ schema, dataContext }) => {
   const rawItems = schema.props.items as DashboardItem[] | undefined;
 
-  const items: DashboardItem[] = rawItems
-      || (dataContext
-        && Array.isArray(
-          (dataContext as Record<string, unknown>)[schema.id],
-        ))
-    ? (
-      (dataContext as Record<string, unknown>)[schema.id] as DashboardItem[]
-    )
-    : [];
+  const items: DashboardItem[] = resolveDynamicArray<DashboardItem>(
+    rawItems,
+    dataContext,
+    schema.id,
+  );
 
   const { columns = 3, gap = 16 } = schema.props as {
     columns?: number;

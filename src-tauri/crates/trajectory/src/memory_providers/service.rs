@@ -148,13 +148,14 @@ pub struct MemoryEntry {
 }
 
 impl MemoryEntry {
+    /// 有效分数 = importance × 访问加成 + 层级奖励
+    ///
+    /// 注意：不再在此处追加时间衰减——衰减已由 `apply_decay_tick` 永久性地修改 importance，
+    /// 两处同时衰减会导致双重衰减（importance 被快速压低到不可用）。
     pub fn effective_score(&self) -> f64 {
-        let now = chrono::Utc::now().timestamp();
-        let hours_elapsed = ((now - self.last_accessed).max(0) as f64) / 3600.0;
-        let time_decay = (-self.decay_rate * hours_elapsed).exp();
         let access_boost = 1.0 + (1.0 + self.access_count as f64).ln();
         let tier_bonus = self.tier.prompt_priority() as f64 * 0.1;
-        self.importance * time_decay * access_boost + tier_bonus
+        self.importance * access_boost + tier_bonus
     }
 
     pub fn is_expired(&self) -> bool {
@@ -398,53 +399,58 @@ impl MemoryService {
             };
         }
 
-        let mut mem = self.working_memory.write().await;
+        // P0: 缩小锁范围——查找在锁内完成，持锁期间不 .await
+        let (id, updated) = {
+            let mem = self.working_memory.write().await;
 
-        let found =
-            mem.entries.values().find(|e| e.memory_type == target && e.content.contains(old_text));
+            let found = mem
+                .entries
+                .values()
+                .find(|e| e.memory_type == target && e.content.contains(old_text));
 
-        if let Some(found) = found {
-            let id = found.id.clone();
-            let now = chrono::Utc::now().timestamp();
-            let mut updated = found.clone();
-            updated.content = new_text.to_string();
-            updated.updated_at = now;
-            updated.last_accessed = now;
-
-            if let Err(e) = self.storage.save_memory(&updated).await {
-                return MemoryActionResult {
-                    success: false,
-                    message: format!("替换失败: {}", e),
-                    new_usage: None,
-                };
+            match found {
+                Some(found) => {
+                    let id = found.id.clone();
+                    let now = chrono::Utc::now().timestamp();
+                    let mut updated = found.clone();
+                    updated.content = new_text.to_string();
+                    updated.updated_at = now;
+                    updated.last_accessed = now;
+                    (id, updated)
+                },
+                None => {
+                    return MemoryActionResult {
+                        success: false,
+                        message: "未找到要替换的记忆".to_string(),
+                        new_usage: None,
+                    };
+                },
             }
+        }; // lock released here
 
-            if let Err(e) = self
-                .storage
-                .index_memory_fts(
-                    &updated.id,
-                    &updated.memory_type,
-                    &updated.content,
-                    &updated.tags,
-                )
-                .await
-            {
-                tracing::warn!("Failed to sync FTS5 index for replaced memory: {}", e);
-            }
-
-            mem.entries.insert(id, updated);
-
-            MemoryActionResult {
-                success: true,
-                message: "已替换记忆".to_string(),
-                new_usage: Some(self.get_memory_usage().await),
-            }
-        } else {
-            MemoryActionResult {
+        if let Err(e) = self.storage.save_memory(&updated).await {
+            return MemoryActionResult {
                 success: false,
-                message: "未找到要替换的记忆".to_string(),
+                message: format!("替换失败: {}", e),
                 new_usage: None,
-            }
+            };
+        }
+
+        if let Err(e) = self
+            .storage
+            .index_memory_fts(&updated.id, &updated.memory_type, &updated.content, &updated.tags)
+            .await
+        {
+            tracing::warn!("Failed to sync FTS5 index for replaced memory: {}", e);
+        }
+
+        let mut mem = self.working_memory.write().await;
+        mem.entries.insert(id, updated);
+
+        MemoryActionResult {
+            success: true,
+            message: "已替换记忆".to_string(),
+            new_usage: Some(self.get_memory_usage().await),
         }
     }
 
@@ -457,85 +463,113 @@ impl MemoryService {
             };
         }
 
-        let mut mem = self.working_memory.write().await;
-
-        let found =
-            mem.entries.values().find(|e| e.memory_type == target && e.content.contains(text));
-
-        if let Some(found) = found {
-            let id = found.id.clone();
-            if let Err(e) = self.storage.delete_memory(&id).await {
-                return MemoryActionResult {
-                    success: false,
-                    message: format!("删除失败: {}", e),
-                    new_usage: None,
-                };
+        // P0: 缩小锁范围——查找在锁内完成，持锁期间不 .await
+        let id = {
+            let mem = self.working_memory.read().await;
+            let found =
+                mem.entries.values().find(|e| e.memory_type == target && e.content.contains(text));
+            match found {
+                Some(f) => f.id.clone(),
+                None => {
+                    return MemoryActionResult {
+                        success: false,
+                        message: "未找到要删除的记忆".to_string(),
+                        new_usage: None,
+                    };
+                },
             }
+        };
 
-            if let Err(e) = self.storage.delete_memory_fts(&id).await {
-                tracing::warn!("Failed to remove memory from FTS5 index: {}", e);
-            }
-
-            mem.entries.remove(&id);
-
-            MemoryActionResult {
-                success: true,
-                message: "已删除记忆".to_string(),
-                new_usage: Some(self.get_memory_usage().await),
-            }
-        } else {
-            MemoryActionResult {
+        if let Err(e) = self.storage.delete_memory(&id).await {
+            return MemoryActionResult {
                 success: false,
-                message: "未找到要删除的记忆".to_string(),
+                message: format!("删除失败: {}", e),
                 new_usage: None,
-            }
+            };
+        }
+
+        if let Err(e) = self.storage.delete_memory_fts(&id).await {
+            tracing::warn!("Failed to remove memory from FTS5 index: {}", e);
+        }
+
+        {
+            let mut mem = self.working_memory.write().await;
+            mem.entries.remove(&id);
+        }
+
+        MemoryActionResult {
+            success: true,
+            message: "已删除记忆".to_string(),
+            new_usage: Some(self.get_memory_usage().await),
         }
     }
 
     // ── Tier Management ──────────────────────────────────────────────────────
 
     pub async fn promote_memory(&self, id: &str) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().await;
+        // P0: 缩小锁范围——持锁期间不 .await
+        let promote_clone = {
+            let mut mem = self.working_memory.write().await;
 
-        if let Some(entry) = mem.entries.get_mut(id) {
-            if let Some(next_tier) = entry.tier.next_tier() {
-                entry.tier = next_tier;
-                entry.decay_rate = next_tier.default_decay_rate();
-                entry.updated_at = chrono::Utc::now().timestamp();
-
-                if let Err(e) = self.storage.save_memory(entry).await {
+            let entry = match mem.entries.get_mut(id) {
+                Some(e) => e,
+                None => {
                     return MemoryActionResult {
                         success: false,
-                        message: format!("晋升保存失败: {}", e),
+                        message: "未找到指定记忆".to_string(),
                         new_usage: None,
                     };
-                }
+                },
+            };
 
-                return MemoryActionResult {
-                    success: true,
-                    message: format!("记忆已晋升到 {} 层", next_tier.as_str()),
-                    new_usage: Some(self.get_memory_usage().await),
-                };
-            } else {
-                return MemoryActionResult {
-                    success: false,
-                    message: "记忆已在最高层，无法继续晋升".to_string(),
-                    new_usage: None,
-                };
-            }
+            let next_tier = match entry.tier.next_tier() {
+                Some(t) => t,
+                None => {
+                    return MemoryActionResult {
+                        success: false,
+                        message: "记忆已在最高层，无法继续晋升".to_string(),
+                        new_usage: None,
+                    };
+                },
+            };
+
+            entry.tier = next_tier;
+            entry.decay_rate = next_tier.default_decay_rate();
+            entry.updated_at = chrono::Utc::now().timestamp();
+            entry.clone()
+        }; // lock released here
+
+        if let Err(e) = self.storage.save_memory(&promote_clone).await {
+            return MemoryActionResult {
+                success: false,
+                message: format!("晋升保存失败: {}", e),
+                new_usage: None,
+            };
         }
 
         MemoryActionResult {
-            success: false,
-            message: "未找到指定记忆".to_string(),
-            new_usage: None,
+            success: true,
+            message: format!("记忆已晋升到 {} 层", promote_clone.tier.as_str()),
+            new_usage: Some(self.get_memory_usage().await),
         }
     }
 
     pub async fn demote_memory(&self, id: &str) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().await;
+        // P0: 缩小锁范围——持锁期间不 .await
+        let demote_clone = {
+            let mut mem = self.working_memory.write().await;
 
-        if let Some(entry) = mem.entries.get_mut(id) {
+            let entry = match mem.entries.get_mut(id) {
+                Some(e) => e,
+                None => {
+                    return MemoryActionResult {
+                        success: false,
+                        message: "未找到指定记忆".to_string(),
+                        new_usage: None,
+                    };
+                },
+            };
+
             let lower_tier = match entry.tier {
                 MemoryTier::Core => MemoryTier::LongTerm,
                 MemoryTier::LongTerm => MemoryTier::Working,
@@ -552,58 +586,67 @@ impl MemoryService {
             entry.tier = lower_tier;
             entry.decay_rate = lower_tier.default_decay_rate();
             entry.updated_at = chrono::Utc::now().timestamp();
+            entry.clone()
+        }; // lock released here
 
-            if let Err(e) = self.storage.save_memory(entry).await {
-                return MemoryActionResult {
-                    success: false,
-                    message: format!("降级保存失败: {}", e),
-                    new_usage: None,
-                };
-            }
-
+        if let Err(e) = self.storage.save_memory(&demote_clone).await {
             return MemoryActionResult {
-                success: true,
-                message: format!("记忆已降级到 {} 层", lower_tier.as_str()),
-                new_usage: Some(self.get_memory_usage().await),
+                success: false,
+                message: format!("降级保存失败: {}", e),
+                new_usage: None,
             };
         }
 
         MemoryActionResult {
-            success: false,
-            message: "未找到指定记忆".to_string(),
-            new_usage: None,
+            success: true,
+            message: format!("记忆已降级到 {} 层", demote_clone.tier.as_str()),
+            new_usage: Some(self.get_memory_usage().await),
         }
     }
 
     async fn enforce_tier_capacity(&self, tier: MemoryTier) {
         let capacity = tier.default_capacity();
-        let mut mem = self.working_memory.write().await;
+        // P0: 缩小锁范围——持锁期间不 .await
+        let evict_targets: Vec<String> = {
+            let mem = self.working_memory.read().await;
 
-        let tier_entries: Vec<(String, f64)> = mem
-            .entries
-            .iter()
-            .filter(|(_, e)| e.tier == tier)
-            .map(|(id, e)| (id.clone(), e.effective_score()))
-            .collect();
+            let tier_entries: Vec<(String, f64)> = mem
+                .entries
+                .iter()
+                .filter(|(_, e)| e.tier == tier)
+                .map(|(id, e)| (id.clone(), e.effective_score()))
+                .collect();
 
-        if tier_entries.len() > capacity {
+            if tier_entries.len() <= capacity {
+                return;
+            }
+
             let mut sorted = tier_entries;
             sorted.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
             let to_evict = sorted.len() - capacity;
             let eviction_threshold = self.config.eviction_score_threshold;
-            let storage = self.storage.clone();
-            for (id, score) in sorted.iter().take(to_evict) {
-                if *score < eviction_threshold {
-                    tracing::info!("Evicting low-score memory {} (score={:.4})", id, score);
-                    if let Err(e) = storage.delete_memory(id).await {
-                        tracing::warn!("Failed to evict memory {}: {}", id, e);
-                    }
-                    if let Err(e) = storage.delete_memory_fts(id).await {
-                        tracing::warn!("Failed to remove evicted memory from FTS5: {}", e);
-                    }
-                    mem.entries.remove(id);
-                }
+            sorted
+                .into_iter()
+                .take(to_evict)
+                .filter(|(_, score)| *score < eviction_threshold)
+                .map(|(id, _)| id)
+                .collect()
+        };
+
+        for id in &evict_targets {
+            if let Err(e) = self.storage.delete_memory(id).await {
+                tracing::warn!("Failed to evict memory {}: {}", id, e);
+            }
+            if let Err(e) = self.storage.delete_memory_fts(id).await {
+                tracing::warn!("Failed to remove evicted memory from FTS5: {}", e);
+            }
+        }
+
+        if !evict_targets.is_empty() {
+            let mut mem = self.working_memory.write().await;
+            for id in &evict_targets {
+                mem.entries.remove(id);
             }
         }
     }
@@ -1036,7 +1079,22 @@ impl MemoryService {
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
 
-        results.into_iter().take(limit).collect()
+        let results: Vec<MemoryEntry> = results.into_iter().take(limit).collect();
+
+        let touched_ids: Vec<String> = results.iter().map(|e| e.id.clone()).collect();
+        drop(mem);
+
+        // SECURITY: 缩小锁范围，确保持锁期间不 .await
+        if !touched_ids.is_empty() {
+            let mut mem = self.working_memory.write().await;
+            for id in &touched_ids {
+                if let Some(entry) = mem.entries.get_mut(id) {
+                    entry.touch();
+                }
+            }
+        }
+
+        results
     }
 
     pub async fn get_memories_grouped_by_time(&self) -> TimeGroupedMemories {
@@ -1081,31 +1139,38 @@ impl MemoryService {
     }
 
     pub async fn update_importance(&self, id: &str, delta: f64) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().await;
+        // P0: 缩小锁范围——持锁期间不 .await
+        let updated = {
+            let mut mem = self.working_memory.write().await;
 
-        if let Some(entry) = mem.entries.get_mut(id) {
+            let entry = match mem.entries.get_mut(id) {
+                Some(e) => e,
+                None => {
+                    return MemoryActionResult {
+                        success: false,
+                        message: "未找到指定记忆".to_string(),
+                        new_usage: None,
+                    };
+                },
+            };
+
             entry.importance = (entry.importance + delta).clamp(0.0, 1.0);
             entry.updated_at = chrono::Utc::now().timestamp();
+            entry.clone()
+        }; // lock released here
 
-            if let Err(e) = self.storage.save_memory(entry).await {
-                return MemoryActionResult {
-                    success: false,
-                    message: format!("更新重要性失败: {}", e),
-                    new_usage: None,
-                };
-            }
-
-            MemoryActionResult {
-                success: true,
-                message: format!("重要性已更新为 {:.2}", entry.importance),
-                new_usage: Some(self.get_memory_usage().await),
-            }
-        } else {
-            MemoryActionResult {
+        if let Err(e) = self.storage.save_memory(&updated).await {
+            return MemoryActionResult {
                 success: false,
-                message: "未找到指定记忆".to_string(),
+                message: format!("更新重要性失败: {}", e),
                 new_usage: None,
-            }
+            };
+        }
+
+        MemoryActionResult {
+            success: true,
+            message: format!("重要性已更新为 {:.2}", updated.importance),
+            new_usage: Some(self.get_memory_usage().await),
         }
     }
 
@@ -1316,9 +1381,21 @@ impl MemoryService {
     }
 
     pub async fn apply_user_feedback(&self, memory_id: &str, feedback: &str) -> MemoryActionResult {
-        let mut mem = self.working_memory.write().await;
+        // P0: 缩小锁范围——持锁期间不 .await
+        let updated = {
+            let mut mem = self.working_memory.write().await;
 
-        if let Some(entry) = mem.entries.get_mut(memory_id) {
+            let entry = match mem.entries.get_mut(memory_id) {
+                Some(e) => e,
+                None => {
+                    return MemoryActionResult {
+                        success: false,
+                        message: "未找到指定记忆".to_string(),
+                        new_usage: None,
+                    };
+                },
+            };
+
             match feedback {
                 "useful" | "positive" => {
                     entry.importance = (entry.importance + 0.15).min(1.0);
@@ -1341,33 +1418,28 @@ impl MemoryService {
             }
 
             entry.updated_at = chrono::Utc::now().timestamp();
+            entry.clone()
+        }; // lock released here
 
-            if let Err(e) = self.storage.save_memory(entry).await {
-                return MemoryActionResult {
-                    success: false,
-                    message: format!("反馈保存失败: {}", e),
-                    new_usage: None,
-                };
-            }
-
-            let action_desc = match feedback {
-                "useful" | "positive" => "重要性提升",
-                "not_useful" | "negative" => "重要性降低",
-                "outdated" => "标记过期",
-                _ => "已处理",
-            };
-
-            MemoryActionResult {
-                success: true,
-                message: format!("反馈已应用: {} (重要性={:.2})", action_desc, entry.importance),
-                new_usage: Some(self.get_memory_usage().await),
-            }
-        } else {
-            MemoryActionResult {
+        if let Err(e) = self.storage.save_memory(&updated).await {
+            return MemoryActionResult {
                 success: false,
-                message: "未找到指定记忆".to_string(),
+                message: format!("反馈保存失败: {}", e),
                 new_usage: None,
-            }
+            };
+        }
+
+        let action_desc = match feedback {
+            "useful" | "positive" => "重要性提升",
+            "not_useful" | "negative" => "重要性降低",
+            "outdated" => "标记过期",
+            _ => "已处理",
+        };
+
+        MemoryActionResult {
+            success: true,
+            message: format!("反馈已应用: {} (重要性={:.2})", action_desc, updated.importance),
+            new_usage: Some(self.get_memory_usage().await),
         }
     }
 }

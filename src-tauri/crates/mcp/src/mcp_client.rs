@@ -8,7 +8,6 @@ use rmcp::{
     model::{CallToolRequestParams, CallToolResult, Tool},
     transport::streamable_http_client::StreamableHttpClientWorker,
 };
-
 /// Type alias for a connected MCP client peer.
 /// Using Peer<RoleClient> (which is Clone + Send + Sync) instead of the
 /// ClientHandler trait allows storing connections in the pool and cloning
@@ -29,7 +28,26 @@ use tokio::sync::Mutex;
 #[cfg(not(target_os = "android"))]
 use tracing::info;
 
+use crate::mcp_oauth::McpOAuthStore;
+
+/// 解析 MCP 服务器的 OAuth Authorization 头。
+///
+/// 优先级：持久化的服务器凭据（`McpOAuthStore`）→ 环境变量 `MCP_OAUTH_TOKEN`
+/// （兼容手动注入场景）。无凭据时返回 `None`，调用方按未认证方式发起请求。
+pub async fn resolve_oauth_header(server_id: Option<&str>) -> Option<String> {
+    if let Some(sid) = server_id
+        && let Some(store) = McpOAuthStore::try_global()
+        && let Some(h) = store.get_auth_header(sid).await
+    {
+        return Some(h);
+    }
+    std::env::var("MCP_OAUTH_TOKEN").ok().map(|token| format!("Bearer {token}"))
+}
+
 static SSE_JSON_RPC_ID: AtomicU64 = AtomicU64::new(1);
+
+/// 客户端声明支持的 MCP 协议版本（随 SDK 升级调整）。
+const MCP_SSE_PROTOCOL_VERSION: &str = "2024-11-05";
 
 fn next_rpc_id() -> u64 {
     SSE_JSON_RPC_ID.fetch_add(1, Ordering::Relaxed)
@@ -257,14 +275,14 @@ fn build_stdio_command(
     command: &str,
     args: &[String],
     env: &HashMap<String, String>,
-) -> tokio::process::Command {
+) -> Result<tokio::process::Command> {
     // SECURITY (M7): command 与 args 必须经过白名单校验。
     // 阻断路径遍历与形如 `--script /etc/passwd` 的危险 flag。
-    validate_mcp_command(command, args).expect("MCP command validation failed");
+    validate_mcp_command(command, args)?;
     let mut cmd = tokio::process::Command::new(command);
     cmd.args(args);
     configure_stdio_env(&mut cmd, env);
-    cmd
+    Ok(cmd)
 }
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "android")))]
@@ -272,17 +290,18 @@ fn build_stdio_command(
     command: &str,
     args: &[String],
     env: &HashMap<String, String>,
-) -> tokio::process::Command {
-    validate_mcp_command(command, args).expect("MCP command validation failed");
+) -> Result<tokio::process::Command> {
+    validate_mcp_command(command, args)?;
     let mut cmd = tokio::process::Command::new(command);
     cmd.args(args);
     configure_stdio_env(&mut cmd, env);
-    cmd
+    Ok(cmd)
 }
 
 /// SECURITY (M7): 校验 MCP server 启动命令。
 /// - 阻断可执行路径中的 `..` / NUL
-/// - 阻断已知的危险 flag（`--script`、`--eval`、`-e`、`-c`）
+/// - 阻断已知的危险长 flag（`--script`、`--eval`、`--allow-run`、`--danger`、`-rf`）
+/// - 不阻断 `-c` / `-e`：避免误伤 `bash -c`、`node -e` 等合法调用（M1）
 /// - args 中路径不能含 NUL
 #[cfg(not(target_os = "android"))]
 fn validate_mcp_command(command: &str, args: &[String]) -> Result<()> {
@@ -290,12 +309,12 @@ fn validate_mcp_command(command: &str, args: &[String]) -> Result<()> {
         return Err(AxAgentError::Gateway(format!("MCP command path invalid: '{}'", command)));
     }
 
-    // 阻断会让任意代码被加载的 flag
+    // 阻断会让任意代码被加载的 flag。
+    // 仅阻断显式的「执行/脚本」类长 flag，不阻断 `-c` / `-e` 等单字符短 flag，
+    // 否则会误伤 `bash -c "..."`、`node -e "..."` 等常见合法调用（M1）。
     const DANGEROUS_FLAGS: &[&str] = &[
         "--script",
         "--eval",
-        "-e",
-        "-c",
         "-rf", // rm -rf 类组合通过 args 也无法触达
         "--allow-run",
         "--danger",
@@ -334,14 +353,22 @@ fn value_to_map(v: Value) -> serde_json::Map<String, Value> {
     }
 }
 
-/// Extract text content from an rmcp CallToolResult.
+/// Extract content from an rmcp `CallToolResult`.
+///
+/// 纯文本结果按原样拼接（保持对 Agent 友好的纯文本形态）；
+/// 若结果包含图片/资源等非文本块，则保留完整 JSON 表示，避免信息丢失（H2）。
 fn extract_call_result(result: &CallToolResult) -> (String, bool) {
-    let texts: Vec<String> =
-        result.content.iter().filter_map(|c| c.as_text().map(|t| t.text.clone())).collect();
-    let content = if texts.is_empty() {
-        serde_json::to_string_pretty(&result.content).unwrap_or_else(|_| "null".into())
+    let all_text = result.content.iter().all(|c| c.as_text().is_some());
+    let content = if all_text {
+        result
+            .content
+            .iter()
+            .filter_map(|c| c.as_text().map(|t| t.text.clone()))
+            .collect::<Vec<_>>()
+            .join("\n")
     } else {
-        texts.join("\n")
+        serde_json::to_string_pretty(&result.content)
+            .unwrap_or_else(|_| format!("{:?}", result.content))
     };
     (content, result.is_error.unwrap_or(false))
 }
@@ -412,28 +439,49 @@ pub struct McpConnectionPool {
 impl McpConnectionPool {
     /// Create a new connection pool with the given idle timeout.
     pub fn new(idle_timeout: std::time::Duration) -> Self {
-        Self { connections: Mutex::new(HashMap::new()), idle_timeout, max_connections: 32 }
+        Self::with_config(32, idle_timeout)
+    }
+
+    /// Create a pool with explicit max_connections and idle_timeout.
+    pub fn with_config(max_connections: usize, idle_timeout: std::time::Duration) -> Self {
+        Self { connections: Mutex::new(HashMap::new()), idle_timeout, max_connections }
     }
 
     /// Get an existing connection or create a new one for the given server config.
     /// Stale connections (idle > idle_timeout) are evicted before returning.
     pub async fn get_or_connect(&self, key: &StdioServerKey) -> Result<McpPeer> {
-        let mut conns = self.connections.lock().await;
-
-        // Evict stale entries
-        let timeout = self.idle_timeout;
-        conns.retain(|_, v| v.last_used.elapsed() < timeout);
-
-        if let Some(pooled) = conns.get(key) {
-            // Check if the underlying process is still alive by trying a ping.
-            // If the client has been cancelled or the process died, we need to reconnect.
-            // Since rmcp doesn't expose a simple ping, we check by attempting
-            // list_tools (lightweight). If it fails, evict and reconnect.
-            info!("[McpPool] Reusing cached connection for '{}'", key.command);
-            return Ok(pooled.peer.clone());
+        // 1. 驱逐过期连接（短锁）
+        {
+            let mut conns = self.connections.lock().await;
+            let timeout = self.idle_timeout;
+            conns.retain(|_, v| v.last_used.elapsed() < timeout);
         }
 
-        // No cached connection — spawn a new one
+        // 2. 命中缓存？克隆 peer 后在锁外做存活探测（H4）
+        let cached = {
+            let conns = self.connections.lock().await;
+            conns.get(key).map(|p| p.peer.clone())
+        };
+        if let Some(peer) = cached {
+            // rmcp Peer 无简单 ping，以 list_all_tools 作为存活探针（带超时）。
+            let alive =
+                tokio::time::timeout(std::time::Duration::from_secs(5), peer.list_all_tools())
+                    .await
+                    .map(|r| r.is_ok())
+                    .unwrap_or(false);
+            if alive {
+                info!("[McpPool] Reusing cached connection for '{}'", key.command);
+                self.touch(key).await;
+                return Ok(peer);
+            }
+            info!(
+                "[McpPool] Cached connection for '{}' failed liveness probe, reconnecting",
+                key.command
+            );
+            self.evict(key).await;
+        }
+
+        // 3. 无可用连接 — 新建
         info!("[McpPool] No cached connection for '{}', spawning new process", key.command);
         let args: Vec<String> = serde_json::from_str(&key.args_json).unwrap_or_default();
         let env: HashMap<String, String> = serde_json::from_str(&key.env_json).unwrap_or_default();
@@ -441,26 +489,28 @@ impl McpConnectionPool {
         let (peer, cancel_token) = spawn_stdio_client(&key.command, &args, &env).await?;
 
         // 容量保护：若池已满，淘汰最久未使用的连接
-        if conns.len() >= self.max_connections
-            && let Some(oldest_key) =
-                conns.iter().min_by_key(|(_, v)| v.last_used).map(|(k, _)| k.clone())
-            && let Some(pooled) = conns.remove(&oldest_key)
         {
-            pooled.cancel_token.cancel();
-            info!(
-                "[McpPool] Evicted oldest connection '{}' to make room (max={})",
-                oldest_key.command, self.max_connections
+            let mut conns = self.connections.lock().await;
+            if conns.len() >= self.max_connections
+                && let Some(oldest_key) =
+                    conns.iter().min_by_key(|(_, v)| v.last_used).map(|(k, _)| k.clone())
+                && let Some(pooled) = conns.remove(&oldest_key)
+            {
+                pooled.cancel_token.cancel();
+                info!(
+                    "[McpPool] Evicted oldest connection '{}' to make room (max={})",
+                    oldest_key.command, self.max_connections
+                );
+            }
+            conns.insert(
+                key.clone(),
+                PooledConnection {
+                    peer: peer.clone(),
+                    cancel_token,
+                    last_used: std::time::Instant::now(),
+                },
             );
         }
-
-        conns.insert(
-            key.clone(),
-            PooledConnection {
-                peer: peer.clone(),
-                cancel_token,
-                last_used: std::time::Instant::now(),
-            },
-        );
 
         Ok(peer)
     }
@@ -511,6 +561,39 @@ impl McpConnectionPool {
         }
     }
 
+    /// 探测所有缓存连接的存活状态，驱逐已死亡的连接。
+    ///
+    /// 对每个连接执行一次轻量级 `list_all_tools` 往返（带超时），失败即视为死亡并取消。
+    /// 返回每个 server 键的存活结果，供健康检查上报。短锁设计：仅在取 peer 时短暂持锁，
+    /// 网络往返在锁外进行，避免异步锁跨 await 长时间占用。
+    pub async fn probe_and_evict(&self) -> Vec<(StdioServerKey, bool)> {
+        let keys: Vec<StdioServerKey> = {
+            let conns = self.connections.lock().await;
+            conns.keys().cloned().collect()
+        };
+        let mut results = Vec::with_capacity(keys.len());
+        for key in &keys {
+            let peer = {
+                let conns = self.connections.lock().await;
+                conns.get(key).map(|p| p.peer.clone())
+            };
+            let alive = match peer {
+                Some(p) => {
+                    tokio::time::timeout(std::time::Duration::from_secs(5), p.list_all_tools())
+                        .await
+                        .map(|r| r.is_ok())
+                        .unwrap_or(false)
+                },
+                None => false,
+            };
+            results.push((key.clone(), alive));
+            if !alive {
+                self.evict(key).await;
+            }
+        }
+        results
+    }
+
     /// Return the number of currently cached connections.
     pub async fn len(&self) -> usize {
         self.connections.lock().await.len()
@@ -530,7 +613,7 @@ async fn spawn_stdio_client(
     args: &[String],
     env: &HashMap<String, String>,
 ) -> Result<(McpPeer, rmcp::service::RunningServiceCancellationToken)> {
-    let cmd = build_stdio_command(command, args, env);
+    let cmd = build_stdio_command(command, args, env)?;
     let transport = TokioChildProcess::new(cmd).map_err(|e| {
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
@@ -571,7 +654,20 @@ static MCP_POOL: OnceLock<Arc<McpConnectionPool>> = OnceLock::new();
 #[cfg(not(target_os = "android"))]
 pub fn global_mcp_pool() -> Arc<McpConnectionPool> {
     MCP_POOL
-        .get_or_init(|| Arc::new(McpConnectionPool::new(std::time::Duration::from_secs(300))))
+        .get_or_init(|| {
+            let max_connections = std::env::var("MCP_POOL_MAX_CONNECTIONS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(32);
+            let idle_secs = std::env::var("MCP_POOL_IDLE_TIMEOUT_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(300u64);
+            Arc::new(McpConnectionPool::with_config(
+                max_connections,
+                std::time::Duration::from_secs(idle_secs),
+            ))
+        })
         .clone()
 }
 
@@ -590,8 +686,11 @@ pub async fn call_tool_stdio_pooled(
 
     let client = pool.get_or_connect(&key).await?;
 
-    let params = CallToolRequestParams::new(tool_name.to_string())
+    let mut progress_meta = serde_json::Map::new();
+    progress_meta.insert("progressToken".to_string(), serde_json::json!(next_rpc_id()));
+    let mut params = CallToolRequestParams::new(tool_name.to_string())
         .with_arguments(value_to_map(tool_arguments));
+    params.meta = Some(rmcp::model::Meta(progress_meta));
 
     match client.call_tool(params).await {
         Ok(result) => {
@@ -628,7 +727,7 @@ pub async fn call_tool_stdio(
     tool_name: &str,
     tool_arguments: Value,
 ) -> Result<McpToolResult> {
-    let cmd = build_stdio_command(command, args, env);
+    let cmd = build_stdio_command(command, args, env)?;
     let transport = TokioChildProcess::new(cmd).map_err(|e| {
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
@@ -650,8 +749,12 @@ pub async fn call_tool_stdio(
         AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
     })?;
 
-    let params = CallToolRequestParams::new(tool_name.to_string())
+    // Generate a unique progress token so the server can send progress notifications
+    let mut progress_meta = serde_json::Map::new();
+    progress_meta.insert("progressToken".to_string(), serde_json::json!(next_rpc_id()));
+    let mut params = CallToolRequestParams::new(tool_name.to_string())
         .with_arguments(value_to_map(tool_arguments));
+    params.meta = Some(rmcp::model::Meta(progress_meta));
     let result = client
         .call_tool(params)
         .await
@@ -670,7 +773,7 @@ pub async fn discover_tools_stdio(
     args: &[String],
     env: &HashMap<String, String>,
 ) -> Result<Vec<DiscoveredTool>> {
-    let cmd = build_stdio_command(command, args, env);
+    let cmd = build_stdio_command(command, args, env)?;
     let transport = TokioChildProcess::new(cmd).map_err(|e| {
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
@@ -827,8 +930,25 @@ pub async fn call_tool_sse(
 }
 
 /// Discover tools from an MCP server via HTTP transport.
-pub async fn discover_tools_http(endpoint: &str) -> Result<Vec<DiscoveredTool>> {
-    let transport = StreamableHttpClientWorker::<reqwest::Client>::new_simple(endpoint);
+pub async fn discover_tools_http(
+    endpoint: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<DiscoveredTool>> {
+    let transport = {
+        use rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig;
+        let mut config = StreamableHttpClientTransportConfig::with_uri(endpoint);
+        if let Some(auth) = auth_header {
+            config = config.auth_header(auth.to_string());
+        }
+        StreamableHttpClientWorker::<reqwest::Client>::new(
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(60))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+            config,
+        )
+    };
 
     let client = ()
         .serve(transport)
@@ -846,37 +966,58 @@ pub async fn discover_tools_http(endpoint: &str) -> Result<Vec<DiscoveredTool>> 
 }
 
 /// Discover tools from an MCP server via legacy SSE protocol.
-pub async fn discover_tools_sse(endpoint: &str) -> Result<Vec<DiscoveredTool>> {
-    let request = serde_json::json!({
-        "jsonrpc": "2.0",
-        "id": next_rpc_id(),
-        "method": "tools/list",
-        "params": {}
-    });
-    let response = sse_send_request(endpoint, request, None).await?;
-    tracing::info!(
-        "SSE tools/list response: {}",
-        serde_json::to_string_pretty(&response).unwrap_or_default()
-    );
-    let result = response.get("result").ok_or_else(|| {
-        let err_msg = response
-            .get("error")
-            .map(|e| format!("tools/list error: {}", e))
-            .unwrap_or_else(|| format!("tools/list unexpected response: {}", response));
-        AxAgentError::Gateway(err_msg)
-    })?;
-    let empty_tools = Vec::new();
-    let tools = result.get("tools").and_then(|t| t.as_array()).unwrap_or(&empty_tools);
-    Ok(tools
-        .iter()
-        .filter_map(|t| {
-            Some(DiscoveredTool {
-                name: t.get("name")?.as_str()?.to_string(),
-                description: t.get("description").and_then(|d| d.as_str()).map(String::from),
-                input_schema: t.get("inputSchema").cloned(),
-            })
-        })
-        .collect())
+///
+/// 支持 `tools/list` 的分页（`nextCursor`）：循环拉取直到没有下一页。
+pub async fn discover_tools_sse(
+    endpoint: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<DiscoveredTool>> {
+    let mut all_tools = Vec::new();
+    let mut cursor: Option<String> = None;
+
+    loop {
+        let mut params = serde_json::Map::new();
+        if let Some(c) = &cursor {
+            params.insert("cursor".to_string(), serde_json::Value::String(c.clone()));
+        }
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": next_rpc_id(),
+            "method": "tools/list",
+            "params": params
+        });
+        let response = sse_send_request(endpoint, request, auth_header).await?;
+        tracing::info!(
+            "SSE tools/list response: {}",
+            serde_json::to_string_pretty(&response).unwrap_or_default()
+        );
+        let result = response.get("result").ok_or_else(|| {
+            let err_msg = response
+                .get("error")
+                .map(|e| format!("tools/list error: {}", e))
+                .unwrap_or_else(|| format!("tools/list unexpected response: {}", response));
+            AxAgentError::Gateway(err_msg)
+        })?;
+
+        let empty_tools = Vec::new();
+        let tools = result.get("tools").and_then(|t| t.as_array()).unwrap_or(&empty_tools);
+        for t in tools {
+            if let Some(name) = t.get("name").and_then(|n| n.as_str()) {
+                all_tools.push(DiscoveredTool {
+                    name: name.to_string(),
+                    description: t.get("description").and_then(|d| d.as_str()).map(String::from),
+                    input_schema: t.get("inputSchema").cloned(),
+                });
+            }
+        }
+
+        cursor = result.get("nextCursor").and_then(|c| c.as_str()).map(String::from);
+        if cursor.is_none() {
+            break;
+        }
+    }
+
+    Ok(all_tools)
 }
 
 // ---------------------------------------------------------------------------
@@ -899,6 +1040,7 @@ pub async fn call_tool_unified(
     endpoint: Option<&str>,
     tool_name: &str,
     tool_arguments: Value,
+    server_id: Option<&str>,
 ) -> Result<McpToolResult> {
     call_tool_unified_with_opts(
         transport,
@@ -908,7 +1050,7 @@ pub async fn call_tool_unified(
         endpoint,
         tool_name,
         tool_arguments,
-        None,
+        server_id,
         None,
     )
     .await
@@ -937,10 +1079,8 @@ pub async fn call_tool_unified_with_opts(
         progress.push(p);
     };
 
-    // OAuth: resolve credentials for HTTP/SSE servers
-    let auth_header = server_id.and_then(|_sid| {
-        std::env::var("MCP_OAUTH_TOKEN").ok().map(|token| format!("Bearer {token}"))
-    });
+    // OAuth: resolve credentials for HTTP/SSE servers (persisted store → env fallback)
+    let auth_header = resolve_oauth_header(server_id).await;
 
     match transport {
         "stdio" => {
@@ -1005,7 +1145,9 @@ pub async fn discover_tools_unified(
     args: Option<&[String]>,
     env: Option<&HashMap<String, String>>,
     endpoint: Option<&str>,
+    server_id: Option<&str>,
 ) -> Result<Vec<DiscoveredTool>> {
+    let auth_header = resolve_oauth_header(server_id).await;
     match transport {
         "stdio" => {
             #[cfg(target_os = "android")]
@@ -1028,12 +1170,12 @@ pub async fn discover_tools_unified(
         "http" => {
             let endpoint = endpoint
                 .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
-            discover_tools_http(endpoint).await
+            discover_tools_http(endpoint, auth_header.as_deref()).await
         },
         "sse" => {
             let endpoint = endpoint
                 .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
-            discover_tools_sse(endpoint).await
+            discover_tools_sse(endpoint, auth_header.as_deref()).await
         },
         other => Err(AxAgentError::Gateway(format!("不支持的 MCP 传输类型: {other}"))),
     }
@@ -1048,6 +1190,18 @@ async fn sse_send_request(
     sse_url: &str,
     request: Value,
     auth_header: Option<&str>,
+) -> Result<Value> {
+    sse_send_request_with_progress(sse_url, request, auth_header, None).await
+}
+
+/// Full version of sse_send_request with optional progress callback.
+/// Progress notifications (`event: progress` with `data: {progress_token, progress, total, message}`)
+/// are forwarded to the callback when provided.
+async fn sse_send_request_with_progress(
+    sse_url: &str,
+    request: Value,
+    auth_header: Option<&str>,
+    on_progress: Option<&ToolProgressCallback>,
 ) -> Result<Value> {
     use futures::StreamExt;
 
@@ -1073,11 +1227,7 @@ async fn sse_send_request(
     }
     tracing::info!("SSE: connected, status={}", sse_resp.status());
 
-    let base_url = {
-        let parsed = reqwest::Url::parse(sse_url)
-            .map_err(|e| AxAgentError::Gateway(format!("Invalid SSE URL: {}", e)))?;
-        format!("{}://{}", parsed.scheme(), parsed.authority())
-    };
+    let base_url = sse_url.to_string();
 
     let mut byte_stream = sse_resp.bytes_stream();
     let mut buffer = String::new();
@@ -1104,9 +1254,9 @@ async fn sse_send_request(
         "id": next_rpc_id(),
         "method": "initialize",
         "params": {
-            "protocolVersion": "2024-11-05",
+            "protocolVersion": MCP_SSE_PROTOCOL_VERSION,
             "capabilities": {},
-            "clientInfo": { "name": "AxAgent", "version": "1.0.0" }
+            "clientInfo": { "name": "AxAgent", "version": env!("CARGO_PKG_VERSION") }
         }
     });
     let init_resp = client
@@ -1124,8 +1274,15 @@ async fn sse_send_request(
     tracing::info!("SSE: initialize POST accepted, status={}", init_resp.status());
 
     // Read init response from SSE stream
-    let _init_result = sse_read_response(&mut byte_stream, &mut buffer).await?;
-    tracing::info!("SSE: initialize handshake complete");
+    let init_result = sse_read_response(&mut byte_stream, &mut buffer).await?;
+    // 读取服务端协商的协议版本（M4）：仅用于观测/兼容，不参与后续请求
+    if let Some(sv) =
+        init_result.get("result").and_then(|r| r.get("protocolVersion")).and_then(|v| v.as_str())
+    {
+        tracing::info!("SSE: initialize 完成，服务端协议版本 = {}", sv);
+    } else {
+        tracing::info!("SSE: initialize handshake complete");
+    }
 
     // 4. POST initialized notification (no id — it's a notification)
     let _ = client
@@ -1137,6 +1294,39 @@ async fn sse_send_request(
         }))
         .send()
         .await;
+
+    // 4b. H3: Drain any progress notifications sent before/during the request.
+    //      The SSE stream may have buffered progress events (e.g. server sends
+    //      progress before completing). Read non-blockingly: if data is available
+    //      between reading chunks, collect progress events without blocking.
+    if let Some(cb) = on_progress {
+        // Non-blocking peek for progress events in the stream before posting the request
+        let mut drained = 0u32;
+        loop {
+            // Try to peek at the stream — if nothing available in 200ms, move on
+            let chunk_fut = byte_stream.next();
+            match tokio::time::timeout(std::time::Duration::from_millis(200), chunk_fut).await {
+                Ok(Some(Ok(chunk))) => {
+                    let text = String::from_utf8_lossy(chunk.as_ref())
+                        .replace("\r\n", "\n")
+                        .replace("\r", "\n");
+                    buffer.push_str(&text);
+                    while let Some(prog) = extract_sse_progress(&mut buffer) {
+                        cb(&McpToolProgress {
+                            phase: "progress".to_string(),
+                            message: prog.message.unwrap_or_default(),
+                            percent: prog.total.map(|t| ((prog.progress / t) * 100.0) as u8),
+                        });
+                        drained += 1;
+                    }
+                },
+                _ => break, // timeout or stream end — stop peeking
+            }
+        }
+        if drained > 0 {
+            tracing::info!("[SSE Progress] Drained {drained} pre-response progress events");
+        }
+    }
 
     // 5. POST the actual request
     let resp = client
@@ -1178,7 +1368,12 @@ fn extract_sse_endpoint(buffer: &mut String, base_url: &str) -> Option<String> {
             let url = if path.starts_with("http://") || path.starts_with("https://") {
                 path.to_string()
             } else {
-                format!("{}{}", base_url, path)
+                // 以完整 SSE URL 为基址做标准 URL 合并，正确处理绝对路径（/foo）
+                // 与相对路径（foo）两种情形，避免丢失 SSE URL 的 path 前缀。
+                match reqwest::Url::parse(base_url).and_then(|b| b.join(path)) {
+                    Ok(u) => u.to_string(),
+                    Err(_) => format!("{}{}", base_url, path),
+                }
             };
             buffer.drain(..abs_block_end);
             return Some(url);
@@ -1262,6 +1457,953 @@ fn extract_sse_json_response(buffer: &mut String) -> Option<Value> {
                 // Remove everything up to and including this event
                 buffer.drain(..abs_block_end);
                 return Some(value);
+            }
+        }
+
+        search_start = abs_block_end;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// H1: Resources support (resources/list, resources/read)
+// ---------------------------------------------------------------------------
+
+/// Map an rmcp Resource to our harness McpResource.
+fn resource_to_mcp(r: &rmcp::model::Resource) -> axagent_harness::mcp_types::McpResource {
+    axagent_harness::mcp_types::McpResource {
+        uri: r.uri.clone(),
+        name: r.name.clone(),
+        description: r.description.clone(),
+        mime_type: r.mime_type.clone(),
+    }
+}
+
+/// Map rmcp ResourceContents to our harness McpResourceContent.
+fn resource_contents_to_mcp(
+    contents: &[rmcp::model::ResourceContents],
+) -> Vec<axagent_harness::mcp_types::McpResourceContent> {
+    let mut out = Vec::with_capacity(contents.len());
+    for c in contents {
+        match c {
+            rmcp::model::ResourceContents::TextResourceContents {
+                uri,
+                mime_type,
+                text,
+                meta: _,
+            } => {
+                out.push(axagent_harness::mcp_types::McpResourceContent {
+                    uri: uri.clone(),
+                    mime_type: mime_type.clone(),
+                    text: Some(text.clone()),
+                    blob: None,
+                });
+            },
+            rmcp::model::ResourceContents::BlobResourceContents {
+                uri,
+                mime_type,
+                blob,
+                meta: _,
+            } => {
+                use base64::Engine;
+                let encoded = base64::engine::general_purpose::STANDARD.encode(blob);
+                out.push(axagent_harness::mcp_types::McpResourceContent {
+                    uri: uri.clone(),
+                    mime_type: mime_type.clone(),
+                    text: None,
+                    blob: Some(encoded),
+                });
+            },
+            // 兜底：rmcp 2.x 将 ResourceContents 标记为 non_exhaustive，未来新增变体时不破坏调用方
+            _ => {},
+        }
+    }
+    out
+}
+
+/// Map an rmcp Prompt to our harness McpPrompt.
+fn prompt_to_mcp(p: &rmcp::model::Prompt) -> axagent_harness::mcp_types::McpPrompt {
+    let arguments = p
+        .arguments
+        .as_ref()
+        .map(|args| {
+            args.iter()
+                .map(|a| axagent_harness::mcp_types::McpPromptArgument {
+                    name: a.name.clone(),
+                    description: a.description.clone(),
+                    required: a.required.unwrap_or(false),
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    axagent_harness::mcp_types::McpPrompt {
+        name: p.name.clone(),
+        description: p.description.clone(),
+        arguments,
+    }
+}
+
+/// List resources from an MCP server via HTTP (rmcp).
+pub async fn list_resources_http(
+    endpoint: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpResource>> {
+    let transport = {
+        let mut config =
+            rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig::with_uri(
+                endpoint,
+            );
+        if let Some(auth) = auth_header {
+            config = config.auth_header(auth.to_string());
+        }
+        rmcp::transport::streamable_http_client::StreamableHttpClientWorker::<reqwest::Client>::new(
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(60))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+            config,
+        )
+    };
+
+    let client = ().serve(transport).await.map_err(|e| {
+        AxAgentError::Gateway(format!("MCP HTTP list_resources connect failed: {}", e))
+    })?;
+
+    let resources = client
+        .list_all_resources()
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP resources/list failed: {}", e)))?;
+
+    let _ = client.cancel().await;
+
+    Ok(resources.iter().map(resource_to_mcp).collect())
+}
+
+/// List resources from an MCP server via legacy SSE protocol.
+pub async fn list_resources_sse(
+    endpoint: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpResource>> {
+    let mut all_resources = Vec::new();
+    let mut cursor: Option<String> = None;
+
+    loop {
+        let mut params = serde_json::Map::new();
+        if let Some(c) = &cursor {
+            params.insert("cursor".to_string(), serde_json::Value::String(c.clone()));
+        }
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": next_rpc_id(),
+            "method": "resources/list",
+            "params": params
+        });
+        let response = sse_send_request(endpoint, request, auth_header).await?;
+        let result = response.get("result").ok_or_else(|| {
+            let err_msg = response
+                .get("error")
+                .map(|e| format!("resources/list error: {}", e))
+                .unwrap_or_else(|| format!("resources/list unexpected response: {}", response));
+            AxAgentError::Gateway(err_msg)
+        })?;
+
+        let empty_arr = Vec::new();
+        let arr = result.get("resources").and_then(|t| t.as_array()).unwrap_or(&empty_arr);
+        for item in arr {
+            if let Some(uri) = item.get("uri").and_then(|u| u.as_str()) {
+                all_resources.push(axagent_harness::mcp_types::McpResource {
+                    uri: uri.to_string(),
+                    name: item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string(),
+                    description: item.get("description").and_then(|d| d.as_str()).map(String::from),
+                    mime_type: item.get("mimeType").and_then(|m| m.as_str()).map(String::from),
+                });
+            }
+        }
+
+        cursor = result.get("nextCursor").and_then(|c| c.as_str()).map(String::from);
+        if cursor.is_none() {
+            break;
+        }
+    }
+
+    Ok(all_resources)
+}
+
+/// Read a specific resource from an MCP server via HTTP (rmcp).
+pub async fn read_resource_http(
+    endpoint: &str,
+    uri: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpResourceContent>> {
+    let transport = {
+        let mut config =
+            rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig::with_uri(
+                endpoint,
+            );
+        if let Some(auth) = auth_header {
+            config = config.auth_header(auth.to_string());
+        }
+        rmcp::transport::streamable_http_client::StreamableHttpClientWorker::<reqwest::Client>::new(
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(60))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+            config,
+        )
+    };
+
+    let client = ().serve(transport).await.map_err(|e| {
+        AxAgentError::Gateway(format!("MCP HTTP read_resource connect failed: {}", e))
+    })?;
+
+    let params = rmcp::model::ReadResourceRequestParams::new(uri);
+    let result = client
+        .read_resource(params)
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP resources/read failed: {}", e)))?;
+
+    let _ = client.cancel().await;
+
+    Ok(resource_contents_to_mcp(&result.contents))
+}
+
+/// Read a resource via legacy SSE protocol.
+pub async fn read_resource_sse(
+    endpoint: &str,
+    uri: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpResourceContent>> {
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": next_rpc_id(),
+        "method": "resources/read",
+        "params": { "uri": uri }
+    });
+    let response = sse_send_request(endpoint, request, auth_header).await?;
+    let result_obj = response.get("result").ok_or_else(|| {
+        let err =
+            response.get("error").map(|e| e.to_string()).unwrap_or_else(|| "unknown error".into());
+        AxAgentError::Gateway(format!("MCP resources/read error: {}", err))
+    })?;
+
+    let empty_arr = Vec::new();
+    let arr = result_obj.get("contents").and_then(|c| c.as_array()).unwrap_or(&empty_arr);
+    let mut out = Vec::with_capacity(arr.len());
+    for item in arr {
+        let c_uri = item.get("uri").and_then(|u| u.as_str()).unwrap_or("").to_string();
+        let mime = item.get("mimeType").and_then(|m| m.as_str()).map(String::from);
+        let text = item.get("text").and_then(|t| t.as_str()).map(String::from);
+        let blob = item.get("blob").and_then(|b| b.as_str()).map(String::from);
+        out.push(axagent_harness::mcp_types::McpResourceContent {
+            uri: c_uri,
+            mime_type: mime,
+            text,
+            blob,
+        });
+    }
+    Ok(out)
+}
+
+// ---------------------------------------------------------------------------
+// H1: Prompts support (prompts/list, prompts/get)
+// ---------------------------------------------------------------------------
+
+/// List prompts from an MCP server via HTTP (rmcp).
+pub async fn list_prompts_http(
+    endpoint: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpPrompt>> {
+    let transport = {
+        let mut config =
+            rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig::with_uri(
+                endpoint,
+            );
+        if let Some(auth) = auth_header {
+            config = config.auth_header(auth.to_string());
+        }
+        rmcp::transport::streamable_http_client::StreamableHttpClientWorker::<reqwest::Client>::new(
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(60))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+            config,
+        )
+    };
+
+    let client = ().serve(transport).await.map_err(|e| {
+        AxAgentError::Gateway(format!("MCP HTTP list_prompts connect failed: {}", e))
+    })?;
+
+    let prompts = client
+        .list_all_prompts()
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP prompts/list failed: {}", e)))?;
+
+    let _ = client.cancel().await;
+
+    Ok(prompts.iter().map(prompt_to_mcp).collect())
+}
+
+/// List prompts via legacy SSE protocol.
+pub async fn list_prompts_sse(
+    endpoint: &str,
+    auth_header: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpPrompt>> {
+    let mut all_prompts = Vec::new();
+    let mut cursor: Option<String> = None;
+
+    loop {
+        let mut params = serde_json::Map::new();
+        if let Some(c) = &cursor {
+            params.insert("cursor".to_string(), serde_json::Value::String(c.clone()));
+        }
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": next_rpc_id(),
+            "method": "prompts/list",
+            "params": params
+        });
+        let response = sse_send_request(endpoint, request, auth_header).await?;
+        let result = response.get("result").ok_or_else(|| {
+            let err_msg = response
+                .get("error")
+                .map(|e| format!("prompts/list error: {}", e))
+                .unwrap_or_else(|| format!("prompts/list unexpected response: {}", response));
+            AxAgentError::Gateway(err_msg)
+        })?;
+
+        let empty_arr = Vec::new();
+        let arr = result.get("prompts").and_then(|t| t.as_array()).unwrap_or(&empty_arr);
+        for item in arr {
+            if let Some(name) = item.get("name").and_then(|n| n.as_str()) {
+                let args = item
+                    .get("arguments")
+                    .and_then(|a| a.as_array())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|arg| {
+                                arg.get("name").and_then(|n| n.as_str()).map(|aname| {
+                                    axagent_harness::mcp_types::McpPromptArgument {
+                                        name: aname.to_string(),
+                                        description: arg
+                                            .get("description")
+                                            .and_then(|d| d.as_str())
+                                            .map(String::from),
+                                        required: arg
+                                            .get("required")
+                                            .and_then(|r| r.as_bool())
+                                            .unwrap_or(false),
+                                    }
+                                })
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                all_prompts.push(axagent_harness::mcp_types::McpPrompt {
+                    name: name.to_string(),
+                    description: item.get("description").and_then(|d| d.as_str()).map(String::from),
+                    arguments: args,
+                });
+            }
+        }
+
+        cursor = result.get("nextCursor").and_then(|c| c.as_str()).map(String::from);
+        if cursor.is_none() {
+            break;
+        }
+    }
+
+    Ok(all_prompts)
+}
+
+/// Get a prompt from an MCP server via HTTP (rmcp).
+pub async fn get_prompt_http(
+    endpoint: &str,
+    name: &str,
+    args: serde_json::Value,
+    auth_header: Option<&str>,
+) -> Result<axagent_harness::mcp_types::McpPromptResult> {
+    let transport = {
+        let mut config =
+            rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig::with_uri(
+                endpoint,
+            );
+        if let Some(auth) = auth_header {
+            config = config.auth_header(auth.to_string());
+        }
+        rmcp::transport::streamable_http_client::StreamableHttpClientWorker::<reqwest::Client>::new(
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(60))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+            config,
+        )
+    };
+
+    let client = ()
+        .serve(transport)
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP HTTP get_prompt connect failed: {}", e)))?;
+
+    let args_map = if args.is_object() {
+        let map = args.as_object().unwrap();
+        Some(map.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<serde_json::Map<_, _>>())
+    } else {
+        None
+    };
+    let params = rmcp::model::GetPromptRequestParams::new(name);
+    let params = if let Some(m) = args_map {
+        params.with_arguments(m)
+    } else {
+        params
+    };
+    let result = client
+        .get_prompt(params)
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP prompts/get failed: {}", e)))?;
+
+    let _ = client.cancel().await;
+
+    // Serialize messages as JSON value for flexibility
+    let messages_val = serde_json::to_value(&result.messages).unwrap_or(serde_json::Value::Null);
+    Ok(axagent_harness::mcp_types::McpPromptResult {
+        description: result.description,
+        messages: messages_val,
+    })
+}
+
+/// Get a prompt via legacy SSE protocol.
+pub async fn get_prompt_sse(
+    endpoint: &str,
+    name: &str,
+    args: serde_json::Value,
+    auth_header: Option<&str>,
+) -> Result<axagent_harness::mcp_types::McpPromptResult> {
+    let params_obj = if args.is_object() {
+        args.as_object().cloned()
+    } else {
+        None
+    };
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": next_rpc_id(),
+        "method": "prompts/get",
+        "params": {
+            "name": name,
+            "arguments": params_obj,
+        }
+    });
+    let response = sse_send_request(endpoint, request, auth_header).await?;
+    let result_obj = response.get("result").ok_or_else(|| {
+        let err =
+            response.get("error").map(|e| e.to_string()).unwrap_or_else(|| "unknown error".into());
+        AxAgentError::Gateway(format!("MCP prompts/get error: {}", err))
+    })?;
+
+    let description = result_obj.get("description").and_then(|d| d.as_str()).map(String::from);
+    let messages = result_obj.get("messages").cloned().unwrap_or(serde_json::Value::Null);
+    Ok(axagent_harness::mcp_types::McpPromptResult { description, messages })
+}
+
+// ---------------------------------------------------------------------------
+// H1: Stdio transport helpers for resources/prompts (via connection pool)
+// ---------------------------------------------------------------------------
+
+#[cfg(not(target_os = "android"))]
+async fn stdio_list_resources_pooled(
+    command: &str,
+    args: &[String],
+    env: &HashMap<String, String>,
+) -> Result<Vec<axagent_harness::mcp_types::McpResource>> {
+    let pool = global_mcp_pool();
+    let key = StdioServerKey::new(command, args, env);
+    let client = pool.get_or_connect(&key).await?;
+    let resources = client
+        .list_all_resources()
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP stdio resources/list failed: {}", e)))?;
+    pool.touch(&key).await;
+    Ok(resources.iter().map(resource_to_mcp).collect())
+}
+
+#[cfg(not(target_os = "android"))]
+async fn stdio_read_resource_pooled(
+    command: &str,
+    args: &[String],
+    env: &HashMap<String, String>,
+    uri: &str,
+) -> Result<Vec<axagent_harness::mcp_types::McpResourceContent>> {
+    let pool = global_mcp_pool();
+    let key = StdioServerKey::new(command, args, env);
+    let client = pool.get_or_connect(&key).await?;
+    let params = rmcp::model::ReadResourceRequestParams::new(uri);
+    let result = client
+        .read_resource(params)
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP stdio resources/read failed: {}", e)))?;
+    pool.touch(&key).await;
+    Ok(resource_contents_to_mcp(&result.contents))
+}
+
+#[cfg(not(target_os = "android"))]
+async fn stdio_list_prompts_pooled(
+    command: &str,
+    args: &[String],
+    env: &HashMap<String, String>,
+) -> Result<Vec<axagent_harness::mcp_types::McpPrompt>> {
+    let pool = global_mcp_pool();
+    let key = StdioServerKey::new(command, args, env);
+    let client = pool.get_or_connect(&key).await?;
+    let prompts = client
+        .list_all_prompts()
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP stdio prompts/list failed: {}", e)))?;
+    pool.touch(&key).await;
+    Ok(prompts.iter().map(prompt_to_mcp).collect())
+}
+
+#[cfg(not(target_os = "android"))]
+async fn stdio_get_prompt_pooled(
+    command: &str,
+    args: &[String],
+    env: &HashMap<String, String>,
+    name: &str,
+    args_val: serde_json::Value,
+) -> Result<axagent_harness::mcp_types::McpPromptResult> {
+    let pool = global_mcp_pool();
+    let key = StdioServerKey::new(command, args, env);
+    let client = pool.get_or_connect(&key).await?;
+    let args_map = if args_val.is_object() {
+        args_val.as_object().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+    } else {
+        None
+    };
+    let params = rmcp::model::GetPromptRequestParams::new(name);
+    let params = if let Some(m) = args_map {
+        params.with_arguments(m)
+    } else {
+        params
+    };
+    let result = client
+        .get_prompt(params)
+        .await
+        .map_err(|e| AxAgentError::Gateway(format!("MCP stdio prompts/get failed: {}", e)))?;
+    pool.touch(&key).await;
+    let messages_val = serde_json::to_value(&result.messages).unwrap_or(serde_json::Value::Null);
+    Ok(axagent_harness::mcp_types::McpPromptResult {
+        description: result.description,
+        messages: messages_val,
+    })
+}
+
+// ---------------------------------------------------------------------------
+// H1: Unified entry points for resources/prompts
+// ---------------------------------------------------------------------------
+
+/// List resources via the appropriate transport.
+#[allow(clippy::too_many_arguments)]
+pub async fn list_resources_unified(
+    transport: &str,
+    command: Option<&str>,
+    args: Option<&[String]>,
+    env: Option<&HashMap<String, String>>,
+    endpoint: Option<&str>,
+    server_id: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpResource>> {
+    let auth_header = resolve_oauth_header(server_id).await;
+    match transport {
+        "stdio" => {
+            #[cfg(target_os = "android")]
+            {
+                let _ = (command, args, env);
+                return Err(AxAgentError::Gateway("MCP stdio not available on Android".into()));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                let cmd = command.ok_or_else(|| {
+                    AxAgentError::Gateway("stdio transport requires command".into())
+                })?;
+                let a = args.unwrap_or(&[]);
+                let e = env.cloned().unwrap_or_default();
+                stdio_list_resources_pooled(cmd, a, &e).await
+            }
+        },
+        "http" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
+            list_resources_http(ep, auth_header.as_deref()).await
+        },
+        "sse" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
+            list_resources_sse(ep, auth_header.as_deref()).await
+        },
+        other => Err(AxAgentError::Gateway(format!("unsupported transport: {other}"))),
+    }
+}
+
+/// Read a resource via the appropriate transport.
+#[allow(clippy::too_many_arguments)]
+pub async fn read_resource_unified(
+    transport: &str,
+    command: Option<&str>,
+    args: Option<&[String]>,
+    env: Option<&HashMap<String, String>>,
+    endpoint: Option<&str>,
+    resource_uri: &str,
+    server_id: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpResourceContent>> {
+    let auth_header = resolve_oauth_header(server_id).await;
+    match transport {
+        "stdio" => {
+            #[cfg(target_os = "android")]
+            {
+                let _ = (command, args, env, resource_uri);
+                return Err(AxAgentError::Gateway("MCP stdio not available on Android".into()));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                let cmd = command.ok_or_else(|| {
+                    AxAgentError::Gateway("stdio transport requires command".into())
+                })?;
+                let a = args.unwrap_or(&[]);
+                let e = env.cloned().unwrap_or_default();
+                stdio_read_resource_pooled(cmd, a, &e, resource_uri).await
+            }
+        },
+        "http" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
+            read_resource_http(ep, resource_uri, auth_header.as_deref()).await
+        },
+        "sse" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
+            read_resource_sse(ep, resource_uri, auth_header.as_deref()).await
+        },
+        other => Err(AxAgentError::Gateway(format!("unsupported transport: {other}"))),
+    }
+}
+
+/// List prompts via the appropriate transport.
+#[allow(clippy::too_many_arguments)]
+pub async fn list_prompts_unified(
+    transport: &str,
+    command: Option<&str>,
+    args: Option<&[String]>,
+    env: Option<&HashMap<String, String>>,
+    endpoint: Option<&str>,
+    server_id: Option<&str>,
+) -> Result<Vec<axagent_harness::mcp_types::McpPrompt>> {
+    let auth_header = resolve_oauth_header(server_id).await;
+    match transport {
+        "stdio" => {
+            #[cfg(target_os = "android")]
+            {
+                let _ = (command, args, env);
+                return Err(AxAgentError::Gateway("MCP stdio not available on Android".into()));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                let cmd = command.ok_or_else(|| {
+                    AxAgentError::Gateway("stdio transport requires command".into())
+                })?;
+                let a = args.unwrap_or(&[]);
+                let e = env.cloned().unwrap_or_default();
+                stdio_list_prompts_pooled(cmd, a, &e).await
+            }
+        },
+        "http" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
+            list_prompts_http(ep, auth_header.as_deref()).await
+        },
+        "sse" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
+            list_prompts_sse(ep, auth_header.as_deref()).await
+        },
+        other => Err(AxAgentError::Gateway(format!("unsupported transport: {other}"))),
+    }
+}
+
+/// Get a prompt via the appropriate transport.
+#[allow(clippy::too_many_arguments)]
+pub async fn get_prompt_unified(
+    transport: &str,
+    command: Option<&str>,
+    args: Option<&[String]>,
+    env: Option<&HashMap<String, String>>,
+    endpoint: Option<&str>,
+    prompt_name: &str,
+    prompt_args: serde_json::Value,
+    server_id: Option<&str>,
+) -> Result<axagent_harness::mcp_types::McpPromptResult> {
+    let auth_header = resolve_oauth_header(server_id).await;
+    match transport {
+        "stdio" => {
+            #[cfg(target_os = "android")]
+            {
+                let _ = (command, args, env, prompt_name, prompt_args);
+                return Err(AxAgentError::Gateway("MCP stdio not available on Android".into()));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                let cmd = command.ok_or_else(|| {
+                    AxAgentError::Gateway("stdio transport requires command".into())
+                })?;
+                let a = args.unwrap_or(&[]);
+                let e = env.cloned().unwrap_or_default();
+                stdio_get_prompt_pooled(cmd, a, &e, prompt_name, prompt_args).await
+            }
+        },
+        "http" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
+            get_prompt_http(ep, prompt_name, prompt_args, auth_header.as_deref()).await
+        },
+        "sse" => {
+            let ep = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
+            get_prompt_sse(ep, prompt_name, prompt_args, auth_header.as_deref()).await
+        },
+        other => Err(AxAgentError::Gateway(format!("unsupported transport: {other}"))),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// M2: HTTP / SSE session cache (connection pool for HTTP/SSE transports)
+// ---------------------------------------------------------------------------
+
+/// A cached MCP HTTP/SSE client connection with its last-use timestamp.
+#[cfg(not(target_os = "android"))]
+struct HttpPooledConnection {
+    peer: McpPeer,
+    cancel_token: rmcp::service::RunningServiceCancellationToken,
+    last_used: std::time::Instant,
+    endpoint: String,
+}
+
+/// Connection pool for MCP HTTP and SSE servers.
+///
+/// Unlike stdio (keyed by command+args), HTTP/SSE sessions are keyed
+/// by endpoint URL (+ auth header for caching purposes). This caches
+/// rmcp peers so that multiple tool/resource/prompt calls to the same
+/// server reuse the same initialized session (critical for servers
+/// that require session state).
+#[cfg(not(target_os = "android"))]
+pub struct HttpSessionPool {
+    connections: tokio::sync::Mutex<HashMap<String, HttpPooledConnection>>,
+    idle_timeout: std::time::Duration,
+    max_connections: usize,
+}
+
+#[cfg(not(target_os = "android"))]
+impl HttpSessionPool {
+    pub fn new() -> Self {
+        Self {
+            connections: tokio::sync::Mutex::new(HashMap::new()),
+            idle_timeout: std::time::Duration::from_secs(300),
+            max_connections: 32,
+        }
+    }
+
+    /// Get or create an HTTP session for the given endpoint + auth combo.
+    pub async fn get_or_connect(
+        &self,
+        endpoint: &str,
+        auth_header: Option<&str>,
+    ) -> Result<McpPeer> {
+        // Build cache key from endpoint + auth
+        let key = format!("{}::auth={}", endpoint, auth_header.unwrap_or(""));
+
+        // 1. Evict stale connections
+        {
+            let mut conns = self.connections.lock().await;
+            let timeout = self.idle_timeout;
+            conns.retain(|_, v| v.last_used.elapsed() < timeout);
+        }
+
+        // 2. Check cache with liveness probe
+        let cached = {
+            let conns = self.connections.lock().await;
+            conns.get(&key).map(|p| (p.peer.clone(), p.endpoint.clone()))
+        };
+        if let Some((peer, _)) = cached {
+            let alive =
+                tokio::time::timeout(std::time::Duration::from_secs(3), peer.list_all_tools())
+                    .await
+                    .map(|r| r.is_ok())
+                    .unwrap_or(false);
+            if alive {
+                // Mark as used and return
+                let mut conns = self.connections.lock().await;
+                if let Some(pooled) = conns.get_mut(&key) {
+                    pooled.last_used = std::time::Instant::now();
+                }
+                return Ok(peer);
+            }
+            // Dead — evict
+            let mut conns = self.connections.lock().await;
+            conns.remove(&key);
+        }
+
+        // 3. Create new connection
+        let transport = {
+            let mut config = rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig::with_uri(endpoint);
+            if let Some(auth) = auth_header {
+                config = config.auth_header(auth.to_string());
+            }
+            rmcp::transport::streamable_http_client::StreamableHttpClientWorker::<reqwest::Client>::new(
+                reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(60))
+                    .connect_timeout(std::time::Duration::from_secs(10))
+                    .build()
+                    .unwrap_or_else(|_| reqwest::Client::new()),
+                config,
+            )
+        };
+
+        let service = ().serve(transport).await.map_err(|e| {
+            AxAgentError::Gateway(format!("MCP HTTP session connect failed: {}", e))
+        })?;
+        let peer = service.peer().clone();
+        let cancel_token = service.cancellation_token();
+
+        // Capacity management
+        {
+            let mut conns = self.connections.lock().await;
+            if conns.len() >= self.max_connections
+                && let Some(oldest_key) =
+                    conns.iter().min_by_key(|(_, v)| v.last_used).map(|(k, _)| k.clone())
+                && let Some(pooled) = conns.remove(&oldest_key)
+            {
+                pooled.cancel_token.cancel();
+            }
+            conns.insert(
+                key,
+                HttpPooledConnection {
+                    peer: peer.clone(),
+                    cancel_token,
+                    last_used: std::time::Instant::now(),
+                    endpoint: endpoint.to_string(),
+                },
+            );
+        }
+
+        Ok(peer)
+    }
+
+    /// Evict a specific endpoint session.
+    pub async fn evict(&self, endpoint: &str) {
+        let mut conns = self.connections.lock().await;
+        let keys: Vec<String> =
+            conns.iter().filter(|(_, v)| v.endpoint == endpoint).map(|(k, _)| k.clone()).collect();
+        for key in keys {
+            if let Some(pooled) = conns.remove(&key) {
+                pooled.cancel_token.cancel();
+            }
+        }
+    }
+
+    /// Shut down all sessions.
+    pub async fn shutdown_all(&self) {
+        let mut conns = self.connections.lock().await;
+        for (_, pooled) in conns.drain() {
+            pooled.cancel_token.cancel();
+        }
+    }
+
+    pub async fn len(&self) -> usize {
+        self.connections.lock().await.len()
+    }
+
+    /// 池中是否没有任何缓存连接。
+    pub async fn is_empty(&self) -> bool {
+        self.connections.lock().await.is_empty()
+    }
+
+    /// Probe all cached connections and return liveness results.
+    pub async fn probe_and_evict(&self) -> Vec<(String, bool)> {
+        let keys: Vec<(String, String)> = {
+            let conns = self.connections.lock().await;
+            conns.iter().map(|(k, v)| (k.clone(), v.endpoint.clone())).collect()
+        };
+        let mut results = Vec::with_capacity(keys.len());
+        for (key, ep) in &keys {
+            let alive = {
+                let conns = self.connections.lock().await;
+                conns.get(key).map(|p| p.peer.clone())
+            };
+            let is_alive = if let Some(peer) = alive {
+                tokio::time::timeout(std::time::Duration::from_secs(5), peer.list_all_tools())
+                    .await
+                    .map(|r| r.is_ok())
+                    .unwrap_or(false)
+            } else {
+                false
+            };
+            if !is_alive {
+                let mut conns = self.connections.lock().await;
+                if let Some(pooled) = conns.remove(key) {
+                    pooled.cancel_token.cancel();
+                }
+            }
+            results.push((ep.clone(), is_alive));
+        }
+        results
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+impl Default for HttpSessionPool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Global HTTP session pool.
+#[cfg(not(target_os = "android"))]
+static HTTP_POOL: OnceLock<Arc<HttpSessionPool>> = OnceLock::new();
+
+#[cfg(not(target_os = "android"))]
+pub fn global_http_pool() -> Arc<HttpSessionPool> {
+    HTTP_POOL.get_or_init(|| Arc::new(HttpSessionPool::new())).clone()
+}
+
+/// Try to extract an MCP progress notification from SSE event data in the buffer.
+fn extract_sse_progress(buffer: &mut String) -> Option<rmcp::model::ProgressNotificationParam> {
+    let mut search_start = 0;
+    loop {
+        let remaining = &buffer[search_start..];
+        let block_end = remaining.find("\n\n")?;
+        let block = &remaining[..block_end];
+        let abs_block_end = search_start + block_end + 2;
+
+        let mut event_type = None;
+        let mut data_lines = Vec::new();
+        for line in block.lines() {
+            if let Some(val) = line.strip_prefix("event:") {
+                event_type = Some(val.trim().to_string());
+            } else if let Some(val) = line.strip_prefix("data:") {
+                data_lines.push(val.trim().to_string());
+            }
+        }
+
+        let is_progress = event_type.as_deref() == Some("progress")
+            || (event_type.as_deref() == Some("message")
+                && data_lines.iter().any(|d| d.contains("\"method\":\"notifications/progress\"")));
+
+        if is_progress {
+            let data = data_lines.join("");
+            if let Ok(notification) =
+                serde_json::from_str::<rmcp::model::ProgressNotificationParam>(&data)
+            {
+                buffer.drain(..abs_block_end);
+                return Some(notification);
             }
         }
 

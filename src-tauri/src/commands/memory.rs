@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::sync::Arc;
+
 use crate::AppState;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_harness::types::*;
-use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
+use axagent_harness::{
+    ProviderAdapter, ProviderRequestContext, url_utils::resolve_base_url_for_type,
+};
 use axagent_kit::prompts::PromptLang;
 use sea_orm::ActiveModelTrait;
 use tauri::{AppHandle, State};
@@ -18,6 +22,58 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
     }
+}
+
+/// 解析默认 provider 的完整上下文
+struct ResolvedProvider {
+    model_id: String,
+    ctx: ProviderRequestContext,
+    adapter: Arc<dyn ProviderAdapter>,
+}
+
+async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, String> {
+    let settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+    let provider_id =
+        settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
+    let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
+
+    let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+        .map_err(|e| e.to_string())?;
+
+    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        &settings,
+    );
+    let ctx = ProviderRequestContext {
+        api_key: api_key.clone(),
+        key_id: key_row.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        api_path: provider.api_path.clone(),
+        proxy_config: proxy,
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let registry_key = provider_type_to_registry_key(&provider.provider_type);
+    let adapter = state
+        .harness
+        .provider_registry()
+        .get(registry_key)
+        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
+
+    Ok(ResolvedProvider { model_id: model_id.to_string(), ctx, adapter })
 }
 
 #[tauri::command]
@@ -39,6 +95,12 @@ pub async fn create_memory_namespace(
 
 #[tauri::command]
 pub async fn delete_memory_namespace(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    // Delete the entire vector collection for this namespace
+    let collection_name = format!("mem_{}", id);
+    if let Err(e) = state.vector_store.delete_collection(&collection_name).await {
+        tracing::warn!("Failed to delete vector collection {}: {}", collection_name, e);
+    }
+
     axagent_dao::repo::memory::delete_namespace(state.harness.db(), &id)
         .await
         .map_err(|e| e.to_string())
@@ -139,6 +201,14 @@ pub async fn delete_memory_item(
     // Delete vector embedding for this item
     let collection_id = format!("mem_{}", namespace_id);
     let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
+
+    // Also delete from FTS5 full-text search index
+    let ms = state.memory_service.read().await;
+    let storage = ms.storage();
+    if let Err(e) = storage.delete_memory_fts(&id).await {
+        tracing::warn!("Failed to remove memory from FTS5 index: {}", e);
+    }
+    drop(ms);
 
     axagent_dao::repo::memory::delete_item(state.harness.db(), &id).await.map_err(|e| e.to_string())
 }
@@ -363,57 +433,14 @@ pub async fn auto_extract_incremental_memories(
         recent.into_iter().rev().collect()
     };
 
-    let (provider, key_row, model_id, settings) = {
-        let settings =
-            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
-        let provider_id =
-            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
-        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
-
-        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        (provider, key_row, model_id.to_string(), settings)
-    };
-
-    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
-
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
-        &provider.proxy_config,
-        &settings,
-    );
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: key_row.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: proxy,
-        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
+    let resolved = resolve_default_provider(&state).await?;
 
     let result = crate::memory_extract::extract_incremental_memories(
         &new_messages,
         &conversation_id,
-        adapter.as_ref(),
-        &ctx,
-        &model_id,
+        resolved.adapter.as_ref(),
+        &resolved.ctx,
+        &resolved.model_id,
         PromptLang::ZhCN,
     )
     .await?;
@@ -763,54 +790,13 @@ pub async fn extract_conversation_entities(
         return Ok(serde_json::json!({"entities": [], "relations": []}));
     }
 
-    let (provider, key_row, model_id, settings) = {
-        let settings =
-            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
-        let provider_id =
-            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
-        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
-        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-        (provider, key_row, model_id.to_string(), settings)
-    };
-
-    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
-
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
-        &provider.proxy_config,
-        &settings,
-    );
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: key_row.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: proxy,
-        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
+    let resolved = resolve_default_provider(&state).await?;
 
     let result = crate::memory_extract::extract_entities_from_messages(
         &messages,
-        adapter.as_ref(),
-        &ctx,
-        &model_id,
+        resolved.adapter.as_ref(),
+        &resolved.ctx,
+        &resolved.model_id,
         PromptLang::ZhCN,
     )
     .await?;
@@ -1043,54 +1029,13 @@ pub async fn consolidate_memory_cluster(
 
     drop(ms);
 
-    let (provider, key_row, model_id, settings) = {
-        let settings =
-            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
-        let provider_id =
-            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
-        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
-        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-        (provider, key_row, model_id.to_string(), settings)
-    };
-
-    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
-
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
-        &provider.proxy_config,
-        &settings,
-    );
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: key_row.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: proxy,
-        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
+    let resolved = resolve_default_provider(&state).await?;
 
     let consolidated = crate::memory_extract::consolidate_memories(
         &contents,
-        adapter.as_ref(),
-        &ctx,
-        &model_id,
+        resolved.adapter.as_ref(),
+        &resolved.ctx,
+        &resolved.model_id,
         PromptLang::ZhCN,
     )
     .await?;
@@ -1187,57 +1132,14 @@ pub async fn extract_conversation_memories(
         .await
         .map_err(|e| e.to_string())?;
 
-    let (provider, key_row, model_id, settings) = {
-        let settings =
-            axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
-        let provider_id =
-            settings.default_provider_id.as_deref().ok_or("No default provider configured")?;
-        let model_id = settings.default_model_id.as_deref().ok_or("No default model configured")?;
-
-        let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-        let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        (provider, key_row, model_id.to_string(), settings)
-    };
-
-    let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
-
-    let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
-        &provider.proxy_config,
-        &settings,
-    );
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: key_row.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: proxy,
-        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
+    let resolved = resolve_default_provider(&state).await?;
 
     let result = crate::memory_extract::extract_memories_from_messages(
         &messages,
         &conversation_id,
-        adapter.as_ref(),
-        &ctx,
-        &model_id,
+        resolved.adapter.as_ref(),
+        &resolved.ctx,
+        &resolved.model_id,
         PromptLang::ZhCN,
     )
     .await?;
@@ -1334,7 +1236,7 @@ pub async fn extract_conversation_memories(
                                     }),
                                     tags: item.tags.clone(),
                                     expires_at: None,
-                                    namespace_id: None,
+                                    namespace_id: Some(namespace_id.clone()),
                                 })
                                 .await;
                         }
@@ -1375,7 +1277,7 @@ pub async fn extract_conversation_memories(
                             }),
                             tags: item.tags.clone(),
                             expires_at: None,
-                            namespace_id: None,
+                            namespace_id: Some(namespace_id.clone()),
                         })
                         .await;
                 }
@@ -1430,4 +1332,58 @@ async fn update_conversation_memory_status(
     }
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// 共享记忆命令（从 agent 模块迁移）
+// ---------------------------------------------------------------------------
+
+/// 列出命名空间中的所有共享记忆条目
+#[tauri::command]
+pub async fn shared_memory_list(
+    app_state: State<'_, AppState>,
+    namespace: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    let mem = app_state.shared_memory.read().await;
+    let entries = mem.list(&namespace);
+    Ok(entries.iter().filter_map(|e| serde_json::to_value(e).ok()).collect())
+}
+
+/// 获取指定共享记忆条目
+#[tauri::command]
+pub async fn shared_memory_get(
+    app_state: State<'_, AppState>,
+    key: String,
+    namespace: String,
+) -> Result<serde_json::Value, String> {
+    let mem = app_state.shared_memory.read().await;
+    let entry = mem.get(&key, &namespace).map_err(|e| e.to_string())?;
+    serde_json::to_value(entry).map_err(|e| e.to_string())
+}
+
+/// 获取共享记忆统计信息
+#[tauri::command]
+pub async fn shared_memory_stats(
+    app_state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let mem = app_state.shared_memory.read().await;
+    let stats = mem.stats();
+    serde_json::to_value(stats).map_err(|e| e.to_string())
+}
+
+/// 手动刷新记忆（前端触发）
+#[tauri::command]
+pub async fn memory_flush(
+    app_state: State<'_, AppState>,
+    content: String,
+    target: Option<String>,
+    category: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let valid_target = target.as_deref().unwrap_or("memory");
+    let _valid_category = category.as_deref().unwrap_or("insight");
+
+    // 使用 MemoryService 持久化记忆
+    let ms = app_state.memory_service.read().await;
+    let result = ms.add_memory(valid_target, &content).await;
+    serde_json::to_value(result).map_err(|e| e.to_string())
 }

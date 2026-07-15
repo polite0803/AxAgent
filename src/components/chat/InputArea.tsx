@@ -8,6 +8,7 @@ import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { SkillToolbar } from "@/components/skill/SkillToolbar";
+import { useVoiceWakeup } from "@/hooks/useVoiceWakeup";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { findModelByIds, modelHasCapability, supportsReasoning } from "@/lib/modelCapabilities";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
@@ -28,12 +29,15 @@ import {
   useSettingsStore,
   useStreamStore,
   useUIStore,
+  useVoicePreferenceStore,
 } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
+import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
 import type { AttachmentInput, CreateMcpServerInput, McpServer, Model, ProviderConfig, RealtimeConfig } from "@/types";
+import { AudioOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Badge, Button, Checkbox, Form, Image, Input, Modal, Popover, Radio, Select, Tag, theme } from "antd";
@@ -217,6 +221,21 @@ export function InputArea() {
     };
   }, [attachmentObjectUrls]);
   const [voiceCallVisible, setVoiceCallVisible] = useState(false);
+  const [voiceApiKey, setVoiceApiKey] = useState("");
+
+  // 语音唤醒：轻量常驻监听，命中后打开语音通话浮层（通话已打开时不重复触发）
+  const voiceCallVisibleRef = useRef(false);
+  voiceCallVisibleRef.current = voiceCallVisible;
+  const voiceWakeup = useVoiceWakeup({
+    onWake: () => {
+      if (!voiceCallVisibleRef.current) {
+        setVoiceCallVisible(true);
+      }
+    },
+  });
+  const gatewayKeys = useGatewayStore((s) => s.keys);
+  const fetchGatewayKeys = useGatewayStore((s) => s.fetchKeys);
+  const decryptKey = useGatewayStore((s) => s.decryptKey);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -1564,19 +1583,17 @@ export function InputArea() {
     hasOlderMessages,
   ]);
 
-  const { hasRealtimeVoice, hasReasoning, hasVision } = React.useMemo(
+  // 语音通话入口是否可用：实时语音走 AxAgent 本地网关 + STT/TTS 编排，
+  // 与具体模型的 RealtimeVoice 能力无关（普通聊天模型不可编辑该能力，导致按钮永不出现），
+  // 也不依赖某个已选中的会话（realtime 通话使用独立 config，与 conversation 解耦）。
+  // 仅在「工作流会话」下隐藏；无活跃会话或普通会话均显示语音入口。
+  const { voiceAvailable, hasReasoning, hasVision } = React.useMemo(
     () => ({
-      hasRealtimeVoice: activeConversation
-        ? !!findModelByIds(
-          providers,
-          activeConversation.provider_id,
-          activeConversation.model_id,
-        )?.capabilities.includes("RealtimeVoice")
-        : false,
+      voiceAvailable: activeConversation?.session_type !== "workflow",
       hasReasoning: supportsReasoning(currentModel),
       hasVision: modelHasCapability(currentModel, "Vision"),
     }),
-    [activeConversation, currentModel, providers],
+    [activeConversation, currentModel],
   );
 
   // Current model key for excluding from multi-select (no longer used - users can select any model)
@@ -1639,13 +1656,19 @@ export function InputArea() {
     }
   }, [companionStorageKey]);
 
+  const ttsVoice = useVoicePreferenceStore((s) => s.ttsVoice);
+  const sttProviderId = useVoicePreferenceStore((s) => s.sttProviderId);
+  const ttsProviderId = useVoicePreferenceStore((s) => s.ttsProviderId);
+
   const voiceConfig: RealtimeConfig = React.useMemo(
     () => ({
       model_id: activeConversation?.model_id ?? "",
-      voice: null,
+      voice: ttsVoice,
       audio_format: { sample_rate: 24000, channels: 1, encoding: "Pcm16" },
+      stt_provider_id: sttProviderId || null,
+      tts_provider_id: ttsProviderId || null,
     }),
-    [activeConversation?.model_id],
+    [activeConversation?.model_id, ttsVoice, sttProviderId, ttsProviderId],
   );
 
   // Mutex to prevent concurrent mode switches (e.g. rapid double-clicks)
@@ -2253,6 +2276,20 @@ export function InputArea() {
   }, []);
 
   // Listen for Escape to close voice overlay
+  // 加载 gateway API key 用于语音通话鉴权
+  React.useEffect(() => {
+    if (gatewayKeys.length === 0) {
+      fetchGatewayKeys();
+    }
+  }, [fetchGatewayKeys, gatewayKeys.length]);
+
+  React.useEffect(() => {
+    if (gatewayKeys.length > 0 && !voiceApiKey) {
+      const enabledKey = gatewayKeys.find((k) => k.enabled) || gatewayKeys[0];
+      decryptKey(enabledKey.id).then(setVoiceApiKey).catch(() => {});
+    }
+  }, [gatewayKeys, decryptKey, voiceApiKey]);
+
   React.useEffect(() => {
     const onEscape = () => setVoiceCallVisible(false);
     window.addEventListener("axagent:escape", onEscape);
@@ -2491,7 +2528,7 @@ export function InputArea() {
         <div
           onMouseDown={handleResizeMouseDown}
           role="separator"
-          aria-label="resize handle"
+          aria-label={t("inputArea.resizeHandle")}
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -3062,17 +3099,32 @@ export function InputArea() {
                 />
               </Tooltip>
             )}
-            {hasRealtimeVoice && (
-              <Tooltip
-                title={t("voice.startCall") + " - " + t("common.comingSoon")}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<Mic size={14} />}
-                  disabled
-                />
-              </Tooltip>
+            {voiceAvailable && (
+              <>
+                <Tooltip title={voiceWakeup.active ? t("voice.wakeupActive") : t("voice.wakeup")}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={
+                      <span className={voiceWakeup.active ? "animate-pulse" : ""}>
+                        <AudioOutlined style={{ fontSize: 14 }} />
+                      </span>
+                    }
+                    onClick={() => (voiceWakeup.active ? voiceWakeup.stop() : voiceWakeup.start())}
+                    style={voiceWakeup.active
+                      ? { color: token.colorPrimary, background: token.colorPrimaryBg }
+                      : undefined}
+                  />
+                </Tooltip>
+                <Tooltip title={t("voice.startCall")}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Mic size={14} />}
+                    onClick={() => setVoiceCallVisible(true)}
+                  />
+                </Tooltip>
+              </>
             )}
           </div>
           <div className="flex items-center gap-2 ml-auto">
@@ -3277,11 +3329,12 @@ export function InputArea() {
 
       {/* ModelRoutingConfigPanel removed */}
 
-      {hasRealtimeVoice && (
+      {voiceAvailable && (
         <VoiceCall
           visible={voiceCallVisible}
           onClose={() => setVoiceCallVisible(false)}
           config={voiceConfig}
+          apiKey={voiceApiKey}
         />
       )}
 

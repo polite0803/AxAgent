@@ -373,7 +373,7 @@ pub fn global_sdk_plugins() -> &'static SdkPluginRegistry {
         // - The `unwrap()` inside is safe because the `match` arm already confirmed `Some`.
         unsafe {
             match &*ptr {
-                Some(_) => &*(*ptr).as_ref().unwrap(),
+                Some(_) => (*ptr).as_ref().unwrap(),
                 None => &*FALLBACK,
             }
         }

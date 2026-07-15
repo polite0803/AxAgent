@@ -2,7 +2,9 @@
   "app": {
     "name": "AxAgent",
     "title": "مساحة العمل الذكية",
-    "description": "مساعد عمل يعمل بالذكاء الاصطناعي"
+    "description": "مساعد عمل يعمل بالذكاء الاصطناعي",
+    "newSkillProposal": "New skill suggestion: {name}",
+    "quickBar": "QuickBar"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -37,7 +39,8 @@
     "workspace": "مساحة الأسهم",
     "recommend": "Recommend",
     "portfolio": "Portfolio",
-    "scheduledAnalysis": "Scheduled"
+    "scheduledAnalysis": "Scheduled",
+    "dynamicUI": "صفحات ديناميكية"
   },
   "sidebar": {
     "sectionWork": "العمل",
@@ -54,7 +57,8 @@
     "sectionInvestMonitor": "Monitor",
     "closeAgent": "Close Agent",
     "openAgent": "Open Agent",
-    "sectionOverview": "نظرة عامة"
+    "sectionOverview": "نظرة عامة",
+    "agentPanel": "Agent Panel"
   },
   "chat": {
     "newConversation": "محادثة جديدة",
@@ -233,7 +237,10 @@
       "success": "نجاح",
       "error": "خطأ",
       "input": "إدخال",
-      "output": "إخراج"
+      "output": "إخراج",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "mcp": {
       "title": "أدوات MCP",
@@ -345,7 +352,10 @@
         "running": "قيد التشغيل",
         "completed": "مكتمل",
         "failed": "فشل",
-        "skipped": "تم التخطي"
+        "skipped": "تم التخطي",
+        "strategyOverwrite": "Overwrite",
+        "strategyMerge": "Merge",
+        "strategyDryRun": "Dry run"
       },
       "workflowStatus": {
         "created": "تم الإنشاء",
@@ -353,7 +363,10 @@
         "completed": "مكتمل",
         "partiallyCompleted": "مكتمل جزئياً",
         "failed": "فشل",
-        "cancelled": "ملغى"
+        "cancelled": "ملغى",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "dagVisualization": "تصور DAG",
       "dagHint": "الصق كود Mermaid هذا في عارض Mermaid لتصور DAG.",
@@ -844,7 +857,10 @@
       "askUser": "أسئلة",
       "loading": "جارٍ التحميل...",
       "failed": "فشل",
-      "iteration": "تكرارات"
+      "iteration": "تكرارات",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "benchmarks": {
       "failed": "فشل",
@@ -1009,7 +1025,10 @@
       "running": "{{running}} قيد التشغيل",
       "cancelled": "ملغي",
       "pending": "قيد الانتظار",
-      "totalEvents": "{{total}} أحداث"
+      "totalEvents": "{{total}} أحداث",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "agent": {
       "acceptEdits": "قبول التعديلات",
@@ -1041,7 +1060,10 @@
       "goToEnd": "الانتقال إلى النهاية",
       "goToStart": "الانتقال إلى البداية",
       "nextStep": "الخطوة التالية",
-      "prevStep": "الخطوة السابقة"
+      "prevStep": "الخطوة السابقة",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "switchedTo": "تم التبديل إلى: {{name}}",
     "contextGraph": {
@@ -1177,7 +1199,12 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "تم مسح المحادثة",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run",
+    "createConversationFailed": ""
   },
   "gateway": {
     "title": "البوابة",
@@ -1314,7 +1341,10 @@
     "tab": {
       "monitor": "مراقب"
     },
-    "cacheHitTokens": "رموز إصابة ذاكرة التخزين المؤقت"
+    "cacheHitTokens": "رموز إصابة ذاكرة التخزين المؤقت",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "settings": {
     "title": "الإعدادات",
@@ -1854,7 +1884,14 @@
       "importErrors": "Error Details",
       "importedCount": "Imported",
       "errorCount": "Failed",
-      "importSelectFirst": "Please select a folder first"
+      "importSelectFirst": "Please select a folder first",
+      "autoIndex": "فهرسة تلقائية",
+      "autoIndexHint": "تحديث الفهرس تلقائيًا عند تغيير الملفات",
+      "maxResults": "الحد الأقصى للنتائج",
+      "scoreThreshold": "حد الدرجة",
+      "vectorStore": "مخزن المتجهات",
+      "webCrawlDepth": "عمق زحف الويب",
+      "webCrawlPages": "عدد صفحات الزحف"
     },
     "rag": {
       "advanced": "إعدادات الاسترجاع المتقدمة",
@@ -2054,7 +2091,8 @@
       "restartRequired": "ستسري التغييرات بالكامل بعد إعادة التشغيل",
       "restartNow": "إعادة التشغيل الآن",
       "restartLater": "إعادة التشغيل لاحقاً",
-      "desc": "تكوين موقع تخزين البيانات وحدوده"
+      "desc": "تكوين موقع تخزين البيانات وحدوده",
+      "openFolderError": "Open folder failed: {error}"
     },
     "filterProviders": "البحث عن مزوّدين...",
     "initProviders": "تهيئة المزوّدين",
@@ -2253,7 +2291,10 @@
       "executed": "تم التنفيذ",
       "quickCreated": "إنشاء سريع",
       "unknownTemplateType": "",
-      "refreshed": "تم التحديث"
+      "refreshed": "تم التحديث",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "titleSummaryPromptDefault": "بناءً على محتوى المحادثة التالي، قم بتوليد عنوان قصير وموجز (لا يزيد عن 20 حرفاً). أعد نص العنوان فقط، بدون علامات اقتباس أو أي شروحات إضافية.",
     "compressionPromptDefault": "أنت مساعد تلخيص المحادثات. يرجى ضغط سجل المحادثة التالي في ملخص موجز.\n\nالمتطلبات:\n1. الاحتفاظ بجميع احتياجات المستخدم وتفضيلاته وقراراته\n2. الاحتفاظ بجميع التفاصيل التقنية الرئيسية (مقاطع الكود، الإعدادات، رسائل الخطأ، إلخ)\n3. الاحتفاظ بالمهام المعلقة والمشكلات غير المحلولة\n4. التنظيم في نقاط موجزة\n5. الحفاظ على الملخص موجزاً، لا يزيد عن 500 كلمة",
@@ -2666,7 +2707,9 @@
       "statusConnecting": "جاري الاتصال",
       "lastActivity": "آخر نشاط",
       "activeSessions": "الجلسات النشطة",
-      "noStatuses": "لا توجد حالات متاحة"
+      "noStatuses": "لا توجد حالات متاحة",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "بادئة Marker (الافتراضية CHAT2API، عادةً لا تحتاج إلى تعديل)"
     },
     "advanced": "الإعدادات المتقدمة",
     "evolution": {
@@ -2689,7 +2732,10 @@
       "stopped": "Stopped",
       "start": "Start",
       "stop": "Stop",
-      "noLogs": "No logs yet"
+      "noLogs": "No logs yet",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "promptTemplates": "قوالب الأوامر",
     "appConfig": "لوحة تحكم الوكيل",
@@ -2714,7 +2760,68 @@
     },
     "stockAnalysis": "Stock Analysis",
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "بادئة العلامة (الافتراضي CHAT2API، عادةً لا تحتاج إلى تعديل)"
+    "markerPrefixDesc": "بادئة العلامة (الافتراضي CHAT2API، عادةً لا تحتاج إلى تعديل)",
+    "persona": {
+      "activated": "نشط",
+      "activate": "تفعيل",
+      "cancel": "إلغاء",
+      "create": "شخصية جديدة",
+      "createFailed": "فشل الإنشاء",
+      "createFirst": "اختر أو أنشئ شخصية",
+      "description": "إدارة شخصية الوكيل وتعريف الروح",
+      "editFailed": "فشل التحرير",
+      "emptyContent": "(فارغ)",
+      "nameLabel": "الاسم",
+      "namePlaceholder": "my-persona",
+      "noPersona": "لا توجد شخصية",
+      "personaList": "قائمة الشخصيات",
+      "save": "حفظ",
+      "saved": "تم الحفظ",
+      "saveFailed": "فشل الحفظ",
+      "switchFailed": "فشل التبديل",
+      "switchSuccess": "تم التبديل إلى {{name}}",
+      "title": "إدارة الشخصيات",
+      "soul": {
+        "label": "SOUL.md (تعريف الروح)",
+        "description": "تعريف الشخصية الأساسية للوكيل وأسلوب السلوك",
+        "placeholder": "أدخل تعريف الروح..."
+      },
+      "identity": {
+        "label": "IDENTITY.md (إعلان الهوية)",
+        "description": "إعلان هوية الوكيل ومعلومات الدور",
+        "placeholder": "إعلان هوية الوكيل..."
+      },
+      "user": {
+        "label": "USER.md (ملف المستخدم)",
+        "description": "وصف ملف المستخدم وتفضيلاته واحتياجاته",
+        "placeholder": "معلومات ملف المستخدم..."
+      },
+      "autoLearn": {
+        "button": "تعلّم تلقائي من المحادثة",
+        "title": "تعلّم تلقائي من المحادثة",
+        "description": "يستخرج نمط الشيفرة وتفضيلات التواصل من سجل المحادثة ويحدّث ملف USER.md للشخصية النشطة تلقائيًا",
+        "selectConversation": "اختر محادثة",
+        "selectPlaceholder": "اختر محادثة للتعلّم منها",
+        "noConversations": "لا توجد محادثات متاحة",
+        "start": "بدء التعلّم",
+        "close": "إغلاق",
+        "success": "تم التعلّم وتطبيقه على الشخصية «{{name}}»",
+        "successTitle": "اكتمل التعلّم، تم تطبيقه على الشخصية «{{name}}»",
+        "noSamples": "لم يتم العثور على عينات شيفرة أو رسائل قابلة للاستخدام",
+        "noSamplesTitle": "لم يتم العثور على عينات قابلة للاستخدام",
+        "failed": "فشل التعلّم التلقائي",
+        "updatedFields": "الحقول المحدّثة"
+      },
+      "name": "الاسم",
+      "systemPrompt": "مطالبة النظام",
+      "type": "النوع",
+      "visibility": "الرؤية"
+    },
+    "toolCallingMode": "Tool Calling Mode",
+    "toolCallingModeDesc": "Select the tool calling mode for this provider",
+    "toolCallingModeManaged": "Managed (AxAgent injects tools via system prompt, parses text for tool_calls — use for Chat2API-like gateways)",
+    "toolCallingModeNative": "Native (model built-in function calling)",
+    "groupVoice": "الصوت"
   },
   "backup": {
     "title": "مركز النسخ الاحتياطي",
@@ -2785,7 +2892,11 @@
       "lastSync": "آخر مزامنة"
     },
     "backupSuccess": "تمّت النسخ الاحتياطي بنجاح",
-    "error": "فشلت العملية"
+    "error": "فشلت العملية",
+    "openFolderError": "Open folder failed: {error}",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "common": {
     "confirm": "تأكيد",
@@ -2934,7 +3045,8 @@
     "required": "مطلوب",
     "details": "Details",
     "more": "More",
-    "action": "إجراء"
+    "action": "إجراء",
+    "dismiss": "تجاهل"
   },
   "image": {
     "loadError": "فشل تحميل الصورة",
@@ -2952,7 +3064,13 @@
     "disconnecting": "جارٍ قطع الاتصال...",
     "startCall": "بدء مكالمة صوتية",
     "endCall": "إنهاء المكالمة",
-    "toggleMute": "تبديل كتم الصوت"
+    "toggleMute": "تبديل كتم الصوت",
+    "wakeup": "التنبيه الصوتي",
+    "wakeupActive": "الاستماع للتنبيه",
+    "voiceType": "نوع الصوت",
+    "sttProvider": "موفر التعرف على الكلام",
+    "ttsProvider": "موفر تركيب الكلام",
+    "providerAuto": "تلقائي (استخدام نفس موفر LLM)"
   },
   "shortcuts": {
     "newConversation": "محادثة جديدة",
@@ -3316,7 +3434,10 @@
     },
     "status": {
       "running": "يعمل",
-      "completed": "مكتمل"
+      "completed": "مكتمل",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "count": "{{running}} يعمل / {{completed}} مكتمل",
     "noAgents": "لا يوجد وكلاء مسجلون",
@@ -3338,7 +3459,10 @@
     "loading": "جارٍ التحميل...",
     "failed": "فشل",
     "iteration": "تكرارات",
-    "askUser": "سؤال/أسئلة"
+    "askUser": "سؤال/أسئلة",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "profile": {
     "loading": "جارٍ تحميل الملف الشخصي...",
@@ -3465,7 +3589,8 @@
   "searchProvider": {
     "tavily": "Tavily",
     "zhipu": "Zhipu",
-    "bocha": "Bocha"
+    "bocha": "Bocha",
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "متصل",
@@ -3484,7 +3609,10 @@
     "analyzeOutput": "تحليل المخرجات",
     "clear": "مسح",
     "killProcess": "إنهاء العملية",
-    "closeSession": "إغلاق الجلسة"
+    "closeSession": "إغلاق الجلسة",
+    "maximize": "تكبير",
+    "restore": "استعادة",
+    "more": "{{count}} أخرى"
   },
   "search": {
     "resultPrefix": "فيما يلي نتائج البحث على الإنترنت المتعلقة بالسؤال، يرجى الرجوع إليها عند الإجابة:\n\n",
@@ -3687,7 +3815,10 @@
       "operationDetail": "تفاصيل العملية",
       "running": "قيد التشغيل",
       "title": "سجل العمليات",
-      "total": "الإجمالي"
+      "total": "الإجمالي",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "noSources": "لا توجد مصادر",
     "noteNotFound": "الملاحظة غير موجودة",
@@ -3885,7 +4016,9 @@
       "path": "المسار",
       "status": "الحالة",
       "title": "العنوان",
-      "type": "النوع"
+      "type": "النوع",
+      "mimeType": "نوع MIME",
+      "size": "الحجم"
     },
     "wikiForm": {
       "description": "الوصف",
@@ -3894,7 +4027,9 @@
     },
     "wikiMeta": {
       "rootPath": "المسار الجذر"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "quickbar": {
     "title": "الشريط السريع",
@@ -4094,7 +4229,11 @@
       "evolutionFallback": "التحسين",
       "verified": "تم التحقق",
       "hasEvolution": "توجد سجلات تطور",
-      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
+      "progressAnalyzing": "جارٍ تحليل النية",
+      "progressMatching": "جارٍ مطابقة العقد",
+      "progressBuilding": "جارٍ بناء سير العمل",
+      "progressOptimizing": "جارٍ التحسين"
     },
     "previewInDevelopment": "ميزة المعاينة قيد التطوير",
     "publishInDevelopment": "ميزة النشر قيد التطوير",
@@ -4212,7 +4351,12 @@
       "rollback": "Rollback to This Version",
       "rollbackConfirm": "Confirm rollback?",
       "rollbackTo": "Rollback to {{version}}",
-      "rolledBack": "Rolled back"
+      "rolledBack": "Rolled back",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "عرض الفروقات",
+      "viewSnapshot": "عرض اللقطة",
+      "restore": "استعادة"
     },
     "versionHistoryLoadFailed": "فشل تحميل سجل الإصدارات",
     "versionLoaded": "الإصدار{{version}} loaded",
@@ -4625,7 +4769,10 @@
       "noTraceData": "No trace data",
       "showSpanTree": "Show Span Tree",
       "hideSpanTree": "Hide Span Tree",
-      "noSpanData": "No span data resolved"
+      "noSpanData": "No span data resolved",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "validation": {
       "validation": {
@@ -4733,7 +4880,11 @@
       "workflowRef": "Workflow Ref",
       "phaseSeparator": "Phase Separator",
       "groupFrame": "Group",
-      "toolSetSelector": "Tool Set"
+      "toolSetSelector": "Tool Set",
+      "webhook": "Webhook",
+      "apiCall": "استدعاء API",
+      "script": "برنامج نصي",
+      "timer": "مؤقت"
     },
     "undo": "تراجع",
     "redo": "إعادة",
@@ -4851,7 +5002,8 @@
         "CACHE_DESERIALIZE_FAILED": "فشل إلغاء تسلسل بيانات التخزين المؤقت",
         "MODEL_NOT_CONFIGURED": "النموذج غير مكوّن",
         "NODE_NOT_FOUND": "لم يتم العثور على العقدة"
-      }
+      },
+      "saveFailed": "فشل الحفظ"
     },
     "agentNode": {
       "tools": "أدوات",
@@ -4947,7 +5099,9 @@
       "configureHint": "Configure trigger conditions and parameters",
       "statusActive": "Running",
       "statusDisabled": "Disabled",
-      "statusUnconfigured": "Unconfigured"
+      "statusUnconfigured": "Unconfigured",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "غير محدد",
@@ -4998,7 +5152,10 @@
       "clickToExpandPorts": "Click to expand ports",
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "type": "Type"
+      "type": "Type",
+      "description": "الوصف",
+      "name": "الاسم",
+      "version": "الإصدار"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (أداة ديناميكية)",
@@ -5050,7 +5207,9 @@
       },
       "trigger": {
         "cronHint": "تعبير cron قياسي، مثال: `0 9 * * *`."
-      }
+      },
+      "fix": "إصلاح",
+      "optimize": "تحسين"
     },
     "diagnostic": {
       "title": "تشخيص سير العمل",
@@ -5339,7 +5498,11 @@
       "condition": "Routing",
       "loop": "Loop",
       "container": "Container",
-      "storage": "Storage"
+      "storage": "Storage",
+      "data": "بيانات",
+      "logic": "منطق",
+      "trigger": "مُشغل",
+      "transform": "تحويل"
     },
     "layout": {
       "suggestTitle": {
@@ -5403,7 +5566,51 @@
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
-      }
+      },
+      "autoLayout": "ترتيب تلقائي",
+      "canvas": "اللوحة",
+      "collapseAll": "طي الكل",
+      "condensed": "مضغوط",
+      "connectionMode": "وضع الاتصال",
+      "defaultEdgeType": "نوع الاتصال الافتراضي",
+      "expandAll": "توسيع الكل",
+      "fitView": "ملاءمة العرض",
+      "floating": "عائم",
+      "gridSize": "حجم الشبكة",
+      "horizontal": "أفقي",
+      "layoutDirection": "اتجاه الترتيب",
+      "locked": "مقفل",
+      "minimap": "خريطة مصغرة",
+      "nodeSize": "حجم العقدة",
+      "orientation": "الاتجاه",
+      "portLayout": "تخطيط المنفذ",
+      "readonly": "للقراءة فقط",
+      "showGrid": "إظهار الشبكة",
+      "snapToGrid": "محاذاة للشبكة",
+      "straight": "خط مستقيم",
+      "strict": "صارم",
+      "vertical": "عمودي",
+      "zoomControl": "التحكم بالتكبير",
+      "bezier": "منحنى بيزييه",
+      "smoothStep": "خطوات سلسة",
+      "free": "حر",
+      "ortho": "متعامد",
+      "large": "كبير",
+      "medium": "متوسط",
+      "small": "صغير",
+      "compact": "مضغوط",
+      "standard": "قياسي",
+      "comfortable": "مريح",
+      "left": "يسار",
+      "right": "يمين",
+      "top": "أعلى",
+      "bottom": "أسفل",
+      "center": "توسيط",
+      "border": "حدود",
+      "gradient": "تدرج",
+      "solid": "خط متصل",
+      "dashed": "خط متقطع",
+      "dotted": "خط منقط"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -5432,24 +5639,50 @@
       "importPresetsTitle": "Import built-in experts",
       "importPresets": "Import",
       "noTemplates": "No templates",
-      "noMatchFound": "No matching templates"
+      "noMatchFound": "No matching templates",
+      "blank": "سير عمل فارغ",
+      "category": "الفئة",
+      "createConfirm": "إنشاء سير عمل جديد من هذا القالب؟",
+      "description": "الوصف",
+      "empty": "لا توجد قوالب",
+      "name": "اسم القالب",
+      "official": "قوالب رسمية",
+      "popular": "الأكثر شيوعًا",
+      "preview": "معاينة",
+      "recent": "الأحدث استخدامًا",
+      "title": "قوالب سير العمل",
+      "useTemplate": "استخدام القالب",
+      "version": "الإصدار",
+      "community": "المجتمع",
+      "recommended": "موصى به",
+      "all": "الكل"
     },
     "saveAsImage": "Save as Image",
     "exportEmpty": "No nodes to export",
     "containerNode": {
       "nodes": "nodes",
-      "branchTimeout": "Branch timeout configured"
+      "branchTimeout": "Branch timeout configured",
+      "collapse": "طي",
+      "expand": "توسيع"
     },
     "swarmNode": {
       "agents": "Agents",
       "rounds": "rounds",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "addAgent": "Add Agent"
+      "addAgent": "Add Agent",
+      "agent": "وكيل",
+      "handoff": "تسليم",
+      "mode": "الوضع",
+      "parallel": "متوازي",
+      "sequential": "تسلسلي",
+      "task": "مهمة"
     },
     "groupNode": {
       "untitled": "Group",
-      "folded": "folded"
+      "folded": "folded",
+      "add": "إضافة مجموعة",
+      "remove": "إزالة المجموعة"
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
@@ -5461,7 +5694,10 @@
       "title": "Workflow Legend",
       "toggleLabel": "{{action}} legend",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "end": "نهاية",
+      "start": "بداية",
+      "running": "قيد التنفيذ"
     },
     "back": "Back",
     "caseLabel": "Case {{n}}",
@@ -5485,7 +5721,11 @@
       "targetWorkflow": "Target Workflow",
       "contextMode": "Context Mode",
       "inherit": "Inherit",
-      "isolated": "Isolated"
+      "isolated": "Isolated",
+      "selectWorkflow": "",
+      "title": "",
+      "version": "",
+      "inputMapping": "تعيين الإدخال"
     },
     "aggregatorNode": {
       "inputs": "المدخلات"
@@ -5507,11 +5747,243 @@
       "current": "Current version",
       "optimizedConfig": "Optimized node configuration",
       "addedBranch": "Added conditional branch",
-      "initialCreation": "Initial creation"
+      "initialCreation": "Initial creation",
+      "action": "Action",
+      "changeSummary": "Change Summary",
+      "clearSelection": "Clear selection",
+      "compareHint": "Comparing version {{v1}} with version {{v2}}",
+      "compareSelected": "Compare selected ({{selected}}/2)",
+      "confirmRestore": "Restore to version {{version}}?",
+      "currentWorkflowWillBeOverwritten": "Current workflow will be overwritten by the new version",
+      "deletedNode": "- Removed node: {{id}} ({{desc}})",
+      "modifiedNode": "~ Modified node: {{id}} ({{desc}})",
+      "newNode": "+ Added node: {{id}} ({{desc}})",
+      "noVersionHistory": "No version history",
+      "restoreToVersion": "Restore to this version",
+      "status": "Status",
+      "timeline": "Timeline",
+      "updateTime": "Update Time",
+      "version": "Version",
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "مؤرشف",
+      "changelog": "سجل التغييرات",
+      "comparison": "مقارنة الإصدارات",
+      "diff": "الفروقات",
+      "draft": "مسودة",
+      "latest": "الأحدث",
+      "noHistory": "لا يوجد سجل إصدارات",
+      "renamed": "إعادة تسمية",
+      "restored": "تمت الاستعادة",
+      "updatedAt": "وقت التحديث"
     },
     "duplicateSuffix": "{{name}} (copy)",
     "fromTemplate": "{{name}} (from template)",
-    "defaultWorkflowName": "New Workflow"
+    "defaultWorkflowName": "New Workflow",
+    "approval": {
+      "panelTitle": "الموافقات",
+      "noPending": "لا توجد موافقات معلقة",
+      "message": "الرسالة",
+      "workflowId": "Workflow",
+      "status": "الحالة",
+      "expiresAt": "تنتهي",
+      "actions": "الإجراءات",
+      "decision": "القرار",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "cancel": "إلغاء",
+      "notePlaceholder": "إضافة ملاحظة (اختياري)"
+    },
+    "evolution": {
+      "abTestTitle": "A/B Test ({{count}})",
+      "abTestWon": "A/B Won",
+      "confidence": "Confidence: {{value}}%",
+      "latency": "Latency {{diff}}",
+      "noActiveABTest": "No active A/B test",
+      "noEvolutionRecord": "No evolution record — trigger first evolution",
+      "noHistory": "No evolution history",
+      "noNodes": "No nodes on current canvas",
+      "successRate": "Success Rate {{diff}}",
+      "title": "Evolution Status",
+      "triggerAll": "Trigger All Evolution",
+      "triggerEvolution": "Trigger Evolution",
+      "winner": "{{winner}} Won",
+      "apply": "تطبيق",
+      "current": "الإصدار الحالي",
+      "diff": "الفروقات",
+      "evolutionHistory": "سجل التطور",
+      "generation": "الجيل {{n}}",
+      "improved": "تم التحسين",
+      "performance": "الأداء",
+      "revert": "استعادة",
+      "score": "الدرجة",
+      "viewDiff": "عرض الفروقات"
+    },
+    "executor": {
+      "close": "Close",
+      "duration": "Duration",
+      "execute": "Execute Workflow",
+      "executing": "Executing...",
+      "executionFailed": "Execution Failed",
+      "executionLog": "Execution Log",
+      "executionSuccess": "Execution Successful",
+      "inputVariables": "Input Variables",
+      "nodeExecutionStatus": "Node Execution Status",
+      "outputResult": "Output Result",
+      "status": "Status",
+      "failed": "فشل",
+      "inputVars": "متغيرات الإدخال",
+      "nodeStatus": "حالة تنفيذ العقدة",
+      "runningNode": "جارٍ تنفيذ عقدة سير العمل",
+      "success": "نجاح",
+      "waiting": "بانتظار"
+    },
+    "list": {
+      "active": "Active",
+      "all": "All",
+      "archived": "Archived",
+      "createNew": "New Workflow",
+      "deleteConfirm": "Are you sure you want to delete this workflow?",
+      "draft": "Draft",
+      "duplicate": "Duplicate",
+      "edgeCount": "{{count}} edges",
+      "edit": "Edit",
+      "empty": "No workflows, click the button above to create",
+      "noDescription": "No description",
+      "nodeCount": "{{count}} nodes",
+      "searchPlaceholder": "Search workflows...",
+      "templates": "Templates",
+      "title": "Workflows",
+      "confirmDelete": "هل أنت متأكد من حذف سير العمل هذا؟",
+      "createWorkflow": "إنشاء سير عمل",
+      "noWorkflows": "لا توجد مسارات عمل، انقر فوق الزر أعلاه للإنشاء",
+      "search": "البحث في مسارات العمل"
+    },
+    "log": {
+      "clear": "Clear Logs",
+      "empty": "No logs",
+      "export": "Export Logs",
+      "noLogs": "لا توجد سجلات"
+    },
+    "nl2Skill": {
+      "applySkill": "Apply This Skill",
+      "optional": "Optional",
+      "parameters": "Parameters",
+      "parametersLabel": "Parameters: ",
+      "parsingPhases": "Parsing Phases",
+      "required": "Required",
+      "tools": "Tools",
+      "triggers": "Triggers",
+      "triggersLabel": "Triggers: ",
+      "unit": "",
+      "generate": "توليد مهارة",
+      "generating": "جارٍ التوليد...",
+      "instruction": "صف المهارة التي تريدها",
+      "preview": "معاينة",
+      "result": "نتيجة التوليد",
+      "title": "توليد مهارة من لغة طبيعية",
+      "validate": "تحقق",
+      "validating": "جارٍ التحقق..."
+    },
+    "nl2UI": {
+      "applyUI": "Apply This UI",
+      "componentCount": "Component Count",
+      "components": "{{count}} components",
+      "depthLevel": "Depth",
+      "rootType": "Root Type",
+      "generate": "توليد",
+      "generating": "جارٍ التوليد...",
+      "instruction": "صف واجهة المستخدم التي تريدها",
+      "result": "نتيجة التوليد",
+      "title": "توليد واجهة مستخدم من لغة طبيعية"
+    },
+    "nlParser": {
+      "aiSuggestion": "AI Suggestion",
+      "alternatives": "Alternatives",
+      "applySolution": "Apply This Plan",
+      "confidence": "Parse Confidence",
+      "constraintsOptional": "Constraints (Optional)",
+      "constraintsPlaceholder": "e.g.: execution time no more than 5 minutes, retry 3 times on error",
+      "edges": "Edges",
+      "examplePlaceholder": "e.g. {{example}}",
+      "naturalLanguageDesc": "Natural Language Description",
+      "nodes": "Nodes",
+      "parseGenerate": "Parse & Generate",
+      "parseResult": "Parse Result",
+      "parsing": "Parsing...",
+      "planLabel": "Plan {{index}}: {{desc}}",
+      "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
+      "variables": "Variables",
+      "constraints": "القيود (اختياري)",
+      "description": "وصف باللغة الطبيعية",
+      "generating": "جارٍ التحليل",
+      "suggestions": "اقتراحات AI",
+      "example1": "جلب أحدث المقالات من مواقع محددة كل صباح الساعة 8",
+      "example2": "عند استلام بريد جديد، استخدم AI لتحليل المحتوى وأبلغ إذا كان عاجلاً",
+      "example3": "بعد إرسال المستخدم للنموذج، تحقق من البيانات أولاً ثم اكتبها في قاعدة البيانات",
+      "exampleConstraint": "مثال: وقت التنفيذ لا يتجاوز 5 دقائق، إعادة المحاولة عند الخطأ"
+    },
+    "saveFailed": "فشل الحفظ",
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## صورة مولدة بواسطة AI",
+      "model": "**النموذج**",
+      "duration": "**المدة**",
+      "savedToArtifact": "تم الحفظ في Artifact"
+    },
+    "chatSidebar": {
+      "menu": "القائمة"
+    },
+    "inputArea": {
+      "resizeHandle": "تغيير الحجم",
+      "uploadFile": "رفع ملف"
+    },
+    "appHeader": {
+      "agentPanel": "لوحة Agent"
+    },
+    "sidebar": {
+      "agentPanel": "لوحة Agent"
+    },
+    "errorBoundary": {
+      "pageError": "خطأ في الصفحة"
+    },
+    "chatPage": {
+      "resizeHandle": "تغيير الحجم"
+    },
+    "spanDetail": {
+      "parentSpan": "Span الأصلي"
+    },
+    "traceDetail": {
+      "userId": "معرف المستخدم"
+    },
+    "settingsPanel": {
+      "featureFlags": "مفاتيح الميزات"
+    },
+    "skillTimeline": {
+      "promptDiff": "مقارنة المطالبات"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "لا يوجد سير عمل مرجعي"
+    },
+    "chartPreview": {
+      "title": "معاينة الرسم البياني"
+    },
+    "htmlPreview": {
+      "title": "معاينة HTML"
+    },
+    "reactPreview": {
+      "title": "معاينة React"
+    }
   },
   "atomicSkill": {
     "entryType": "نوع الإدخال",
@@ -5594,10 +6066,28 @@
       "save": "Save Checkpoint",
       "empty": "No checkpoints",
       "saveModal": "Save Checkpoint",
-      "namePlaceholder": "Enter checkpoint name..."
+      "namePlaceholder": "Enter checkpoint name...",
+      "action": "Action",
+      "delete": "Delete",
+      "load": "Load",
+      "loss": "Loss",
+      "name": "Name",
+      "reward": "Reward",
+      "step": "Step",
+      "time": "Time",
+      "noCheckpoints": "لا توجد نقاط فحص"
     },
     "monitor": {
-      "idle": "Training not started. Configure and start training."
+      "idle": "Training not started. Configure and start training.",
+      "currentStep": "Current Step",
+      "insufficientData": "Insufficient Data",
+      "loss": "Loss",
+      "lossCurve": "Loss Curve",
+      "reward": "Reward",
+      "rewardCurve": "Reward Curve",
+      "speed": "Speed",
+      "step": "الخطوة الحالية",
+      "title": "مراقبة التدريب"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -5606,6 +6096,24 @@
       "config": "Config",
       "monitor": "Monitor",
       "checkpoints": "Checkpoints"
+    },
+    "config": {
+      "algorithm": "Algorithm",
+      "batchSize": "Batch Size",
+      "epochs": "Epochs",
+      "learningRate": "Learning Rate",
+      "maxSteps": "Max Steps",
+      "title": "إعدادات التدريب"
+    },
+    "status": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "idle": "Idle",
+      "paused": "Paused",
+      "running": "Training",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     }
   },
   "devtools": {
@@ -5774,7 +6282,10 @@
     "none": "لا شيء",
     "response": "استجابة",
     "report": "التقرير",
-    "tasks": "المهام"
+    "tasks": "المهام",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "traceExplorer": {
     "selectTrace": "حدد تتبعًا لعرض التفاصيل",
@@ -5861,7 +6372,10 @@
         "name": "Sandbox Executor",
         "desc": "Securely executes untrusted code in an isolated environment to prevent system damage"
       }
-    }
+    },
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "promptTemplates": {
     "title": "قوالب المطالبات",
@@ -5990,7 +6504,9 @@
     "execute": "تنفيذ",
     "learningSuggestions": "اقتراحات التعلم",
     "snooze30": "تأجيل (30 دقيقة)",
-    "noSuggestions": "لا اقتراحات"
+    "noSuggestions": "لا اقتراحات",
+    "snooze15": "تأجيل (15 دقيقة)",
+    "snooze1h": "تأجيل (1 ساعة)"
   },
   "proactive": {
     "accept": "قبول",
@@ -6052,6 +6568,13 @@
         "improvement": "تحسين",
         "warning": "تحذير"
       }
+    },
+    "prefetchTypes": {
+      "codeCompletion": "إكمال الكود",
+      "searchResults": "نتائج البحث",
+      "documentation": "وثائق",
+      "contextAnalysis": "تحليل السياق",
+      "toolCache": "ذاكرة الأدوات المؤقتة"
     }
   },
   "review": {
@@ -6279,7 +6802,10 @@
       "cancelled": "ملغى",
       "draft": "مسودة",
       "approved_plan": "تمت الموافقة",
-      "executing_plan": "تنفيذ الخطوات المعتمدة"
+      "executing_plan": "تنفيذ الخطوات المعتمدة",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "approveAll": "موافقة وتنفيذ الكل",
     "approveStep": "موافقة على هذه الخطوة",
@@ -6345,7 +6871,9 @@
     "referenceFile": "الإشارة إلى ملف أو مسار",
     "commands": "أوامر",
     "mentions": "إشارات",
-    "filterHint": "اكتب للتصفية، ↑↓ للاختيار، Enter للتأكيد"
+    "filterHint": "اكتب للتصفية، ↑↓ للاختيار، Enter للتأكيد",
+    "newConversation": "محادثة جديدة",
+    "stopGeneration": "إيقاف التوليد"
   },
   "onboarding": {
     "welcome": "مرحبًا بك في AxAgent",
@@ -6392,7 +6920,9 @@
     "moreModels": "+{{count}} إضافي",
     "targetNotFound": "العنصر المستهدف غير موجود، يرجى الانتقال إلى صفحة المحادثة أولاً",
     "goToSettings": "الذهاب إلى الإعدادات لإضافة مفتاح API",
-    "presetApplyFailed": "فشل تطبيق الإعداد المسبق"
+    "presetApplyFailed": "فشل تطبيق الإعداد المسبق",
+    "downloadOllama": "تنزيل Ollama",
+    "applying": "جارٍ التطبيق…"
   },
   "help": {
     "title": "مركز المساعدة",
@@ -6609,7 +7139,10 @@
       "running": "قيد التشغيل",
       "completed": "مكتمل",
       "failed": "فشل",
-      "cancelled": "ملغى"
+      "cancelled": "ملغى",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "messageLog": "سجل الرسائل ({count})",
     "attempts": "محاولة {attempts}/{maxRetries}",
@@ -6622,14 +7155,20 @@
       "worker": "Worker",
       "step": "Step"
     },
-    "summary": "Agent Pool ({completed}/{total})"
+    "summary": "Agent Pool ({completed}/{total})",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "agentHierarchy": {
     "running": "قيد التشغيل",
     "completed": "مكتمل",
     "failed": "فشل",
     "title": "تسلسل الوكلاء",
-    "count": "({count})"
+    "count": "({count})",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "progressBar": {
     "tool": {
@@ -6963,7 +7502,10 @@
       "completed": "مكتمل",
       "failed": "فشل",
       "running": "قيد التشغيل",
-      "total": "الإجمالي"
+      "total": "الإجمالي",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "tab": {
       "dataset": "مجموعة بيانات",
@@ -7386,7 +7928,10 @@
     "openaiApiKeyDalle": "مفتاح API OpenAI (DALL-E)",
     "openaiApiKeyPlaceholder": "sk-...",
     "openaiBaseUrl": "عنوان URL الأساسي لـ OpenAI",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "جديد",
@@ -7450,7 +7995,10 @@
     "completed": "اكتمل الدمج",
     "completedTitle": "اكتمل الحلم ({{secs}}ث)",
     "totalConsolidations": "{{count}} توحيد إجمالي",
-    "statsSummary": "{{memories}} ذكريات · {{patterns}} أنماط"
+    "statsSummary": "{{memories}} ذكريات · {{patterns}} أنماط",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "expertBadge": {
     "generalAssistant": "مساعد عام",
@@ -7472,19 +8020,23 @@
     "teamCreated": "تم إنشاء الفريق \"{{name}}\" مع {{count}} أعضاء"
   },
   "chatPage": {
-    "loading": "جارٍ التحميل..."
+    "loading": "جارٍ التحميل...",
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "إعدادات SSH",
     "connect": "اتصال",
     "host": "المضيف",
     "port": "منفذ",
-    "username": "اسم المستخدم"
+    "username": "اسم المستخدم",
+    "hostPlaceholder": "192.168.1.100 أو server.example.com",
+    "keyPathOptional": "مسار مفتاح SSH (اختياري)"
   },
   "dockerConfig": {
     "title": "إعدادات Docker",
     "connect": "اتصال",
-    "socketPath": "مسار مقبس Docker"
+    "socketPath": "مسار مقبس Docker",
+    "defaultHint": "اتركه فارغًا لاستخدام مقبس Docker الافتراضي"
   },
   "datasetManager": {
     "title": "مدير مجموعة بيانات الضبط الدقيق",
@@ -7527,7 +8079,10 @@
     "loss": "الخسارة",
     "loraOutput": "مخرج LoRA",
     "action": "إجراء",
-    "ready": "جاهز"
+    "ready": "جاهز",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "errorRecovery": {
     "noError": "لا يوجد خطأ للاستعادة منه",
@@ -7684,7 +8239,14 @@
       "storeInsightsHint": "Insights will be saved locally and available across sessions",
       "subtitle": "Configure auto-reflection and insight management",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "الحد الأدنى للثقة",
+      "minConfidenceHint": "سيتم تجاهل الرؤى التي تقل ثقتها عن هذه القيمة",
+      "strategy": "استراتيجية التأمل",
+      "strategyHint": "اختر استراتيجية تشغيل التأمل",
+      "triggerOnComplete": "تشغيل عند الاكتمال",
+      "triggerOnError": "تشغيل عند الخطأ",
+      "triggerOnIdle": "تشغيل عند الخمول"
     },
     "useful": "Useful"
   },
@@ -7846,7 +8408,8 @@
     "terminalContext": "الطرفية",
     "closeAgentPanel": "Close Agent Panel",
     "openAgentPanel": "Open Agent Panel",
-    "dashboardContext": "نظرة عامة على النظام"
+    "dashboardContext": "نظرة عامة على النظام",
+    "agentPanel": "Agent Panel"
   },
   "input": {
     "recordAudio": "تسجيل الصوت",
@@ -7888,7 +8451,14 @@
       "planner": "Planner",
       "researcher": "Researcher",
       "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "synthesizer": "Synthesizer",
+      "analyst": "محلل",
+      "decisionMaker": "صانع القرار",
+      "riskManager": "مدير المخاطر",
+      "strategist": "استراتيجي",
+      "supervisor": "مشرف",
+      "trader": "متداول",
+      "validator": "مُتحقق"
     }
   },
   "watchlist": {
@@ -7971,7 +8541,10 @@
       "invalidTitle": "عينات غير صالحة",
       "noInvalid": "لا توجد عينات غير صالحة.",
       "exportCsv": "تصدير CSV",
-      "exportJson": "تصدير JSON"
+      "exportJson": "تصدير JSON",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "notice": "جميع البيانات والمطالبات والأحكام في هذه الطاولة مرساة في التاريخ المختار. تتطلب العودة إلى الوضع المباشر تأكيداً صريحاً.",
     "exitHint": "لا تزال في وضع الإعادة. أي تحليل جديد يتم بدؤه في مكان آخر سيكون أيضاً مرساة في الإعادة.",
@@ -7995,7 +8568,10 @@
       "title": "Strategy Backtest",
       "walkForward": "Walk-Forward",
       "walkForwardForceOff": "Disable Walk-Forward",
-      "walkForwardTitle": "Walk-Forward Backtest"
+      "walkForwardTitle": "Walk-Forward Backtest",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "common": {
       "empty": "No data"
@@ -8171,7 +8747,10 @@
       "exitSelect": "إنهاء التحديد",
       "empty": "لا يوجد تاريخ توصيات"
     },
-    "settings": "Valuation Filters"
+    "settings": "Valuation Filters",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "ipc": {
     "disconnected": "Backend connection lost",
@@ -8202,7 +8781,9 @@
     "textFile": "ملف نصي",
     "unknownFile": "ملف غير معروف",
     "previewNotSupported": "المعاينة غير مدعومة لهذا النوع من الملفات",
-    "downloadFile": "تحميل الملف"
+    "downloadFile": "تحميل الملف",
+    "schemaNotFound": "الصفحة الديناميكية غير موجودة",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "visualEditor": {
     "palette": {
@@ -8213,7 +8794,11 @@
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "أساسي",
+      "data": "بيانات",
+      "layout": "تخطيط",
+      "navigation": "تنقل"
     },
     "components": {
       "Container": "Container",
@@ -8246,7 +8831,13 @@
       "Text": "Text",
       "Divider": "Divider",
       "Progress": "Progress",
-      "Tag": "Tag"
+      "Tag": "Tag",
+      "Heading": "عنوان",
+      "Link": "رابط",
+      "Paragraph": "فقرة",
+      "Slider": "شريط التمرير",
+      "Space": "تباعد",
+      "Tooltip": "تلميح"
     },
     "canvas": {
       "leafNode": "leaf node",
@@ -8254,7 +8845,14 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "livePreview": "معاينة مباشرة",
+      "addNode": "إضافة عقدة",
+      "deleteNode": "حذف العقدة",
+      "duplicate": "تكرار",
+      "moveDown": "تحريك لأسفل",
+      "moveUp": "تحريك لأعلى",
+      "pasteNode": "لصق العقدة"
     },
     "property": {
       "title": "Property Panel",
@@ -8277,8 +8875,22 @@
       "placeholder": {
         "propKey": "Key",
         "propValue": "Value"
-      }
-    }
+      },
+      "children": "المكونات الفرعية",
+      "componentType": "نوع المكون",
+      "defaultValue": "القيمة الافتراضية",
+      "description": "الوصف",
+      "label": "تسمية",
+      "name": "الاسم",
+      "options": "خيارات",
+      "props": "خصائص",
+      "required": "مطلوب",
+      "rules": "قواعد التحقق",
+      "type": "النوع",
+      "value": "القيمة"
+    },
+    "fullscreen": "ملء الشاشة",
+    "exitFullscreen": "إنهاء ملء الشاشة"
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",
@@ -8370,7 +8982,12 @@
       "empty": "No bottleneck data",
       "timeDistribution": "Time Distribution",
       "tokenConsumption": "Token Consumption",
-      "failurePatterns": "Failure Patterns"
+      "failurePatterns": "Failure Patterns",
+      "count": "Count",
+      "failureReason": "Failure Reason",
+      "percentage": "Percentage",
+      "bottleneck": "عنق الزجاجة",
+      "reason": "سبب الفشل"
     },
     "feedback": {
       "thanks": "Thank you for your feedback",
@@ -8399,7 +9016,15 @@
     "totalSteps": "Total Steps",
     "totalDuration": "Total Duration",
     "totalTokens": "Total Tokens",
-    "errors": "Errors"
+    "errors": "Errors",
+    "duration": "Duration: {{duration}}s",
+    "type": {
+      "error": "Error",
+      "thinking": "Thinking",
+      "toolCall": "Tool Call",
+      "waitingPermission": "Waiting Permission",
+      "permission": "بانتظار الإذن"
+    }
   },
   "components_devtools_RLTrainingConfig": {
     "算法": "算法",
@@ -8564,7 +9189,66 @@
     "versionInvalid": "tnsiq iSdar ghayr salih (mutawaqae major.minor.patch)",
     "versionAutoHint": "atrkih farighaan liziyadat iSdar al-tashih tlyqayyan",
     "rollbackArchive": "arshafat ma qabl alaistiedad (aistiedad ila {version})",
-    "versionUpdatedAt": "tarikh al-insha"
+    "versionUpdatedAt": "tarikh al-insha",
+    "builtin": "Built-in",
+    "category": "Category",
+    "confirmDelete": "Are you sure you want to delete this UI?",
+    "createNew": "New UI",
+    "createSchema": "New UI",
+    "createSuccess": "Created successfully",
+    "defaults": {
+      "buttonText": "Button",
+      "cardTitle": "Card",
+      "checkboxLabel": "Checkbox",
+      "dateLabel": "Date",
+      "formSubmit": "Submit",
+      "inputLabel": "Input",
+      "inputPlaceholder": "Please enter",
+      "numberLabel": "Number",
+      "radioLabel": "Radio",
+      "selectLabel": "Select",
+      "switchLabel": "Switch",
+      "tagText": "Tag",
+      "textContent": "Text",
+      "textareaLabel": "Textarea"
+    },
+    "deleteSuccess": "Deleted successfully",
+    "descPlaceholder": "Enter UI description",
+    "description": "Description",
+    "editSchema": "Edit UI",
+    "generateSuccess": "Generated successfully. Please review and save",
+    "generateWithNL": "Generate with NL",
+    "generating": "Generating...",
+    "invalidJson": "Invalid JSON format",
+    "invalidSchema": "Schema parsing failed",
+    "jsonEditor": "JSON Schema",
+    "visualEditor": "محرر مرئي",
+    "jsonPlaceholder": "Enter JSON conforming to UISchema spec...",
+    "nlInputPlaceholder": "Describe the UI you want...",
+    "noDescription": "No description",
+    "noSchemas": "No UIs yet. Click the top-right button to create one",
+    "parseError": "Parse Error",
+    "preview": "Preview",
+    "schemaList": "UI List",
+    "schemaRequired": "Schema cannot be empty",
+    "schemaTitle": "Title",
+    "schemaValid": "Schema validated",
+    "selectToPreview": "Select a UI from the left to preview",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "tags": "Tags",
+    "tagsPlaceholder": "Enter tags and press Enter",
+    "title": "Dynamic UI Manager",
+    "titlePlaceholder": "Enter UI title",
+    "titleRequired": "Please enter a title",
+    "updateSuccess": "Updated successfully",
+    "import": "Import",
+    "importSuccess": "Imported {{count}} UI(s) successfully",
+    "importInvalid": "Invalid or empty schema file",
+    "export": "Export",
+    "exportAll": "Export All",
+    "exportSuccess": "Exported successfully",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value"
   },
   "dashboard": {
     "overview": "نظرة عامة",
@@ -8597,7 +9281,8 @@
     "dailyAvgCost": "متوسط التكلفة اليومية",
     "costByProvider": "التكلفة حسب الموفر",
     "inputTokens": "رموز الإدخال",
-    "outputTokens": "رموز الإخراج"
+    "outputTokens": "رموز الإخراج",
+    "dailyAvgTokens": "Daily Avg Tokens"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10209,7 +10894,8 @@
     "emptyDescription": "No data yet. Complete tasks to generate learning graph",
     "useCount": "Use count: {count}",
     "detail": "Details",
-    "lexicalOverlap": "Related"
+    "lexicalOverlap": "Related",
+    "entities": "الكيانات"
   },
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
@@ -10317,5 +11003,66 @@
       "asOf": "حتى",
       "live": "مباشر"
     }
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }

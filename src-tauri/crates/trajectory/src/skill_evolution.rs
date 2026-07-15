@@ -18,7 +18,7 @@ pub use axagent_harness::trajectory_types::{
 
 use crate::skill::{Skill, SkillModification, SkillValidationResult};
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
@@ -37,6 +37,12 @@ pub struct EvolutionConfig {
     pub use_llm_mutation: bool,
     pub use_execution_validation: bool,
     pub validation_rounds: usize,
+    /// 自动触发进化的连续失败次数阈值（达到即触发进化）
+    pub auto_trigger_consecutive_failures: u32,
+    /// 自动触发进化的最小使用次数（与 success_threshold 联动）
+    pub auto_trigger_min_usages: u32,
+    /// 自动触发进化的成功率阈值（低于此值且达到 min_usages 即触发）
+    pub auto_trigger_success_threshold: f64,
 }
 
 impl Default for EvolutionConfig {
@@ -52,6 +58,9 @@ impl Default for EvolutionConfig {
             use_llm_mutation: true,
             use_execution_validation: true,
             validation_rounds: 3,
+            auto_trigger_consecutive_failures: 3,
+            auto_trigger_min_usages: 3,
+            auto_trigger_success_threshold: 0.5,
         }
     }
 }
@@ -111,7 +120,7 @@ impl EvolutionPopulation {
             let parent1 = tournament_select(&self.individuals, 3);
             let parent2 = tournament_select(&self.individuals, 3);
 
-            let child = if rand::thread_rng().r#gen::<f64>() < config.crossover_rate {
+            let child = if rand::rng().random::<f64>() < config.crossover_rate {
                 crossover_genomes(&parent1, &parent2)
             } else {
                 parent1.clone()
@@ -149,7 +158,7 @@ impl EvolutionPopulation {
 }
 
 fn tournament_select(population: &[SkillGenome], tournament_size: usize) -> SkillGenome {
-    use rand::seq::SliceRandom;
+    use rand::seq::IndexedRandom;
 
     // P1-10: 空种群直接 panic 防护
     if population.is_empty() {
@@ -163,10 +172,10 @@ fn tournament_select(population: &[SkillGenome], tournament_size: usize) -> Skil
         };
     }
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let size = population.len().min(tournament_size);
     let indices: Vec<usize> = (0..population.len()).collect();
-    let selected: Vec<usize> = indices.choose_multiple(&mut rng, size).cloned().collect();
+    let selected: Vec<usize> = indices.sample(&mut rng, size).cloned().collect();
 
     if selected.is_empty() {
         return population[0].clone();
@@ -191,9 +200,9 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
         return parent1.clone();
     }
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
-    let cross_point = rng.gen_range(1..parent1.steps.len().max(2)).min(parent1.steps.len());
+    let cross_point = rng.random_range(1..parent1.steps.len().max(2)).min(parent1.steps.len());
 
     let mut child_steps = parent1.steps[..cross_point].to_vec();
     if cross_point < parent2.steps.len() {
@@ -205,7 +214,7 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
     SkillGenome {
         skill_id: parent1.skill_id.clone(),
         content: child_content,
-        description: if rng.r#gen::<bool>() {
+        description: if rng.random::<bool>() {
             parent1.description.clone()
         } else {
             parent2.description.clone()
@@ -216,17 +225,17 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
 }
 
 fn mutate_genome(genome: &SkillGenome, mutation_rate: f64) -> SkillGenome {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut new_steps: Vec<ProcedureStep> = genome.steps.clone();
 
     for i in 0..new_steps.len() {
         // P1-9: 修复判断逻辑——当随机数 < mutation_rate 时触发变异
-        if rng.r#gen::<f64>() >= mutation_rate {
+        if rng.random::<f64>() >= mutation_rate {
             continue;
         }
 
         // 随机选择有意义的变异类型
-        match rng.gen_range(0u8..4) {
+        match rng.random_range(0u8..4) {
             // 0: 交换相邻步骤顺序
             0 if i + 1 < new_steps.len() => {
                 let j = i + 1;
@@ -320,6 +329,79 @@ fn serialize_steps(steps: &[ProcedureStep]) -> String {
     content
 }
 
+/// 多维度启发式技能质量评估函数。
+/// 在没有 LLM 时作为后备方案，从结构完整性、代码质量、可读性等维度评分。
+fn evaluate_skill_quality_heuristic(content: &str) -> f64 {
+    let mut score: f64 = 0.0;
+    let content_lower = content.to_lowercase();
+
+    // 1. 结构完整性 (0-0.3): 是否包含关键章节
+    let mut structure_score: f64 = 0.0;
+    let sections = ["# ", "## ", "```", "description", "usage", "example"];
+    for section in &sections {
+        if content_lower.contains(section) {
+            structure_score += 0.05_f64;
+        }
+    }
+    score += structure_score.min(0.3_f64);
+
+    // 2. 代码质量指标 (0-0.25): 错误处理、验证、注释
+    let mut quality_score: f64 = 0.0;
+    let quality_indicators: [(&str, f64); 6] = [
+        ("error", 0.05),
+        ("verify", 0.05),
+        ("check", 0.03),
+        ("validate", 0.05),
+        ("retry", 0.04),
+        ("fallback", 0.03),
+    ];
+    for (indicator, weight) in &quality_indicators {
+        if content_lower.contains(indicator) {
+            quality_score += weight;
+        }
+    }
+    // 检查是否有合理数量的步骤
+    let step_count = content_lower.matches("step").count();
+    quality_score += (step_count.min(3) as f64) * 0.02_f64;
+    score += quality_score.min(0.25_f64);
+
+    // 3. 内容充实度 (0-0.2): 长度适中，不过短也不过长
+    let len = content.len() as f64;
+    let fullness: f64 = if len < 100.0 {
+        0.0
+    } else if len < 500.0 {
+        (len - 100.0) / 400.0 * 0.15
+    } else if len < 5000.0 {
+        0.15 + (len - 500.0) / 4500.0 * 0.05
+    } else {
+        0.2
+    };
+    score += fullness;
+
+    // 4. 可读性 (0-0.15): 段落结构、格式
+    let mut readability: f64 = 0.0;
+    if content.contains('\n') {
+        readability += 0.03_f64;
+    }
+    if content.contains("```") {
+        readability += 0.04_f64;
+    }
+    if content.contains("- ") || content.contains("* ") {
+        readability += 0.04_f64;
+    }
+    if content.contains("> ") {
+        readability += 0.04_f64;
+    }
+    score += readability.min(0.15_f64);
+
+    // 5. 基础分 (0-0.1): 确保任何非空内容都有基础分
+    if !content.is_empty() {
+        score += 0.1_f64;
+    }
+
+    score.clamp(0.0, 1.0)
+}
+
 pub(crate) struct DefaultLlmEvolutionProvider;
 
 impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
@@ -347,26 +429,14 @@ impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
     }
 
     /// ⚠️ 此实现仅为测试/演示用途的后备评估函数。
-    /// 基于内容长度和关键词的简单启发式评分，不反映实际技能质量。
+    /// 基于多维度结构分析进行启发式评分，作为无 LLM 时的替代方案。
     /// 生产环境应在 ExternalLlmEvolutionProvider 中替换为真实的 LLM 评估。
     fn evaluate_quality(
         &self,
         content: &str,
         _context: &str,
     ) -> Pin<Box<dyn Future<Output = Result<f64, String>> + Send + '_>> {
-        // 简单启发式评分：仅用于测试/演示，不反映实际质量
-        let score = (content.len() as f64 / 500.0).min(1.0) * 0.3
-            + if content.contains("error") || content.contains("Error") {
-                0.3
-            } else {
-                0.0
-            }
-            + if content.contains("verify") || content.contains("check") {
-                0.2
-            } else {
-                0.0
-            }
-            + 0.2;
+        let score = evaluate_skill_quality_heuristic(content);
         Box::pin(async move { Ok(score.clamp(0.0, 1.0)) })
     }
 }
@@ -733,6 +803,21 @@ impl SkillEvolutionEngine {
 
     pub fn is_running(&self) -> bool {
         self.population.is_some()
+    }
+
+    /// 判断 Skill 是否需要自动进化
+    /// 条件1：连续失败次数 >= auto_trigger_consecutive_failures
+    /// 条件2：总使用次数 >= auto_trigger_min_usages 且成功率 < auto_trigger_success_threshold
+    pub fn should_auto_evolve(&self, skill: &Skill) -> bool {
+        if skill.consecutive_failures >= self.config.auto_trigger_consecutive_failures {
+            return true;
+        }
+        if skill.total_usages >= self.config.auto_trigger_min_usages
+            && skill.success_rate < self.config.auto_trigger_success_threshold
+        {
+            return true;
+        }
+        false
     }
 }
 

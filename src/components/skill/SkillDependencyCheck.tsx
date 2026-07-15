@@ -9,7 +9,7 @@
  */
 
 import { useSkillStore } from "@/stores";
-import { Alert, Badge, Button, List, Space, Tag, Typography } from "antd";
+import { Alert, Badge, Button, Space, Tag, Typography } from "antd";
 import { AlertTriangle, CheckCircle, RefreshCw, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -145,11 +145,9 @@ export function SkillDependencyCheck() {
             </span>
           }
           description={
-            <List
-              size="small"
-              dataSource={report.dependencies}
-              renderItem={(dep) => (
-                <List.Item style={{ padding: "2px 0", border: "none" }}>
+            <div className="divide-y divide-gray-100" style={{ marginTop: 4 }}>
+              {report.dependencies.map((dep) => (
+                <div key={dep.skillName} style={{ padding: "2px 0", border: "none" }}>
                   <Space size={4}>
                     {dep.installed
                       ? (
@@ -183,10 +181,9 @@ export function SkillDependencyCheck() {
                         : t("skill.deps.missing")}
                     />
                   </Space>
-                </List.Item>
-              )}
-              style={{ marginTop: 4 }}
-            />
+                </div>
+              ))}
+            </div>
           }
           style={{ marginBottom: 8 }}
         />

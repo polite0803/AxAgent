@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { ImportDirectoryResult, KnowledgeDocument } from "@/types";
+import type { ImportDirectoryResult, KnowledgeBase, KnowledgeDocument } from "@/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { invokeMock, listenMock } = vi.hoisted(() => ({
@@ -134,5 +134,174 @@ describe("knowledgeStore - importDirectory", () => {
     expect(res.imported).toHaveLength(0);
     expect(res.skipped).toHaveLength(0);
     expect(res.errors).toHaveLength(0);
+  });
+
+  it("refreshes documents state after a successful import", async () => {
+    const refreshed: KnowledgeDocument[] = [
+      {
+        id: "doc-1",
+        knowledgeBaseId: BASE_ID,
+        title: "a.md",
+        sourcePath: "/tmp/test-docs/a.md",
+        mimeType: "text/markdown",
+        sizeBytes: 10,
+        indexingStatus: "pending",
+        docType: "markdown",
+      },
+    ];
+    invokeMock.mockResolvedValueOnce(makeResult()); // import_knowledge_directory
+    invokeMock.mockResolvedValueOnce(refreshed); // loadDocuments 刷新
+
+    await useKnowledgeStore.getState().importDirectory(BASE_ID, DIR_PATH);
+
+    // 断言 documents 被刷新（原审计 L17：成功用例未断言此点）
+    expect(useKnowledgeStore.getState().documents).toEqual(refreshed);
+    expect(useKnowledgeStore.getState().loading).toBe(false);
+  });
+});
+
+// ── 知识库 CRUD ────────────────────────────────────────────
+describe("knowledgeStore - base CRUD", () => {
+  function makeBase(overrides?: Partial<KnowledgeBase>): KnowledgeBase {
+    return {
+      id: "kb-1",
+      name: "Base",
+      enabled: true,
+      sortOrder: 0,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useKnowledgeStore.setState({ bases: [], documents: [], error: null, loading: false });
+  });
+
+  it("loadBases populates bases and clears error", async () => {
+    const bases = [makeBase(), makeBase({ id: "kb-2", name: "B2" })];
+    invokeMock.mockResolvedValueOnce(bases);
+
+    await useKnowledgeStore.getState().loadBases();
+
+    expect(invokeMock).toHaveBeenCalledWith("list_knowledge_bases");
+    expect(useKnowledgeStore.getState().bases).toEqual(bases);
+    expect(useKnowledgeStore.getState().error).toBeNull();
+    expect(useKnowledgeStore.getState().loading).toBe(false);
+  });
+
+  it("loadBases coerces non-array result to empty array", async () => {
+    invokeMock.mockResolvedValueOnce(null);
+
+    await useKnowledgeStore.getState().loadBases();
+
+    expect(useKnowledgeStore.getState().bases).toEqual([]);
+  });
+
+  it("createBase appends returned base to state", async () => {
+    const created = makeBase({ id: "kb-new", name: "New" });
+    invokeMock.mockResolvedValueOnce(created);
+
+    const res = await useKnowledgeStore.getState().createBase({ name: "New" });
+
+    expect(invokeMock).toHaveBeenCalledWith("create_knowledge_base", { input: { name: "New" } });
+    expect(res).toEqual(created);
+    expect(useKnowledgeStore.getState().bases).toContainEqual(created);
+  });
+
+  it("createBase returns null and sets error on failure", async () => {
+    invokeMock.mockRejectedValueOnce(new Error("boom"));
+
+    const res = await useKnowledgeStore.getState().createBase({ name: "X" });
+
+    expect(res).toBeNull();
+    expect(useKnowledgeStore.getState().error).toBe("Error: boom");
+  });
+
+  it("updateBase replaces the matching base", async () => {
+    const original = makeBase();
+    useKnowledgeStore.setState({ bases: [original] });
+    const updated = makeBase({ name: "Renamed" });
+    invokeMock.mockResolvedValueOnce(updated);
+
+    await useKnowledgeStore.getState().updateBase("kb-1", { name: "Renamed" });
+
+    expect(useKnowledgeStore.getState().bases[0]).toEqual(updated);
+  });
+
+  it("deleteBase removes the matching base", async () => {
+    useKnowledgeStore.setState({ bases: [makeBase(), makeBase({ id: "kb-2" })] });
+    invokeMock.mockResolvedValueOnce(undefined);
+
+    await useKnowledgeStore.getState().deleteBase("kb-1");
+
+    expect(useKnowledgeStore.getState().bases.map((b) => b.id)).toEqual(["kb-2"]);
+  });
+});
+
+// ── 文档操作 ───────────────────────────────────────────────
+describe("knowledgeStore - documents", () => {
+  const BASE_ID = "kb-1";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useKnowledgeStore.setState({ bases: [], documents: [], error: null, loading: false });
+  });
+
+  it("loadDocuments sets documents from backend", async () => {
+    const docs: KnowledgeDocument[] = [
+      {
+        id: "d1",
+        knowledgeBaseId: BASE_ID,
+        title: "t",
+        sourcePath: "/p",
+        mimeType: "text/plain",
+        sizeBytes: 1,
+        indexingStatus: "ready",
+        docType: "text",
+      },
+    ];
+    invokeMock.mockResolvedValueOnce(docs);
+
+    await useKnowledgeStore.getState().loadDocuments(BASE_ID);
+
+    expect(invokeMock).toHaveBeenCalledWith("list_knowledge_documents", { baseId: BASE_ID });
+    expect(useKnowledgeStore.getState().documents).toEqual(docs);
+  });
+
+  it("addDocument reloads documents after add", async () => {
+    invokeMock.mockResolvedValueOnce(undefined); // add_knowledge_document
+    invokeMock.mockResolvedValueOnce([]); // list_knowledge_documents
+
+    await useKnowledgeStore.getState().addDocument(BASE_ID, "t", "/p", "text/plain");
+
+    expect(invokeMock).toHaveBeenNthCalledWith(1, "add_knowledge_document", {
+      baseId: BASE_ID,
+      title: "t",
+      sourcePath: "/p",
+      mimeType: "text/plain",
+    });
+    expect(invokeMock).toHaveBeenNthCalledWith(2, "list_knowledge_documents", { baseId: BASE_ID });
+  });
+
+  it("deleteDocument passes baseId/id and reloads", async () => {
+    invokeMock.mockResolvedValueOnce(undefined); // delete_knowledge_document
+    invokeMock.mockResolvedValueOnce([]); // list_knowledge_documents
+
+    await useKnowledgeStore.getState().deleteDocument(BASE_ID, "doc-9");
+
+    expect(invokeMock).toHaveBeenNthCalledWith(1, "delete_knowledge_document", {
+      baseId: BASE_ID,
+      id: "doc-9",
+    });
+    expect(invokeMock).toHaveBeenNthCalledWith(2, "list_knowledge_documents", { baseId: BASE_ID });
+  });
+
+  it("deleteDocument sets error and re-throws on failure", async () => {
+    invokeMock.mockRejectedValueOnce(new Error("nope"));
+
+    await expect(
+      useKnowledgeStore.getState().deleteDocument(BASE_ID, "doc-9"),
+    ).rejects.toThrow("nope");
+    expect(useKnowledgeStore.getState().error).toBe("Error: nope");
   });
 });

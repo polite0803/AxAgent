@@ -2,7 +2,14 @@
 
 import { invoke, isTauri } from "@/lib/invoke";
 import type { GraphNode, LearningGraph } from "@/types";
-import { BookOutlined, BulbOutlined, DatabaseOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  ApartmentOutlined,
+  BookOutlined,
+  BulbOutlined,
+  DatabaseOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import {
   Background,
   Controls,
@@ -16,7 +23,7 @@ import {
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-import { Badge, Button, Card, Empty, Input, Select, Spin, Tag, theme, Typography } from "antd";
+import { Alert, Badge, Button, Card, Empty, Input, Select, Spin, Tag, theme, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "@xyflow/react/dist/style.css";
@@ -110,10 +117,39 @@ function InsightNode({ data }: NodeProps) {
   );
 }
 
+function EntityNode({ data }: NodeProps) {
+  const d = data as Record<string, unknown>;
+  const color = (d.color as string) || "#722ed1";
+  return (
+    <div
+      style={{
+        padding: "8px 14px",
+        borderRadius: 8,
+        border: `1px solid ${color}`,
+        background: `${color}22`,
+        fontSize: 13,
+        maxWidth: 200,
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <ApartmentOutlined style={{ color }} />
+        <Text ellipsis>{d.label as string}</Text>
+      </div>
+      {!!d.category && (
+        <Tag color="purple" style={{ fontSize: 10, marginTop: 4 }}>
+          {String(d.category)}
+        </Tag>
+      )}
+    </div>
+  );
+}
+
 const nodeTypes: NodeTypes = {
   skill: SkillNode,
   memory: MemoryNode,
   insight: InsightNode,
+  entity: EntityNode,
 };
 
 // ── Color map ─────────────────────────────────────────────────────────
@@ -122,7 +158,19 @@ const KIND_COLORS: Record<string, string> = {
   skill: "#4a9eff",
   memory: "#52c41a",
   insight: "#faad14",
+  entity: "#722ed1",
 };
+
+// ── Debounce hook ─────────────────────────────────────────────────────
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
 
 // ── Main page ─────────────────────────────────────────────────────────
 
@@ -131,50 +179,78 @@ export function LearningGraphPage() {
   const { token } = theme.useToken();
 
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [graph, setGraph] = useState<LearningGraph | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [filterKind, setFilterKind] = useState("all");
   const [searchText, setSearchText] = useState("");
+
+  // Debounce search input (300ms) to avoid rapid re-renders while typing
+  const debouncedSearch = useDebounce(searchText, 300);
 
   // ReactFlow state
   const [nodes, setNodes, onNodesChange] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
 
-  // Fetch graph data (initial load — loading already true from useState)
+  // Fetch graph data (initial load)
   useEffect(() => {
-    if (!isTauri()) { return; }
-    invoke<LearningGraph>("get_learning_graph")
-      .then((data) => setGraph(data))
-      .catch((err) => console.error("Failed to fetch learning graph:", err))
-      .finally(() => setLoading(false));
+    const load = async () => {
+      if (!isTauri()) {
+        setLoading(false);
+        return;
+      }
+      setErrorMsg(null);
+      try {
+        const data = await invoke<LearningGraph>("get_learning_graph");
+        setGraph(data);
+      } catch (err) {
+        console.error("Failed to fetch learning graph:", err);
+        setErrorMsg(typeof err === "string" ? err : "Failed to fetch learning graph");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
-  // Manual refresh — separate from initial load to avoid hook lint
+  // Manual refresh — uses its own refreshing flag so the loading overlay only
+  // covers the initial load, while a small spinner shows on the refresh button.
   const handleRefresh = useCallback(async () => {
     if (!isTauri()) { return; }
-    setLoading(true);
+    setIsRefreshing(true);
+    setErrorMsg(null);
     try {
       const data = await invoke<LearningGraph>("get_learning_graph");
       setGraph(data);
     } catch (err) {
       console.error("Failed to fetch learning graph:", err);
+      setErrorMsg(typeof err === "string" ? err : "Failed to fetch learning graph");
     } finally {
-      setLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
-  // Convert backend data to ReactFlow format
+  // Convert backend data to ReactFlow format (debounced search applied)
   const filteredNodes = useMemo(() => {
     if (!graph) { return [] as GraphNode[]; }
     return graph.nodes.filter((n) => {
       if (filterKind !== "all" && n.kind !== filterKind) { return false; }
-      if (searchText && !n.label.toLowerCase().includes(searchText.toLowerCase())) { return false; }
+      if (debouncedSearch && !n.label.toLowerCase().includes(debouncedSearch.toLowerCase())) {
+        return false;
+      }
       return true;
     });
-  }, [graph, filterKind, searchText]);
+  }, [graph, filterKind, debouncedSearch]);
 
   useEffect(() => {
-    if (!graph || filteredNodes.length === 0) { return; }
+    if (!graph || filteredNodes.length === 0) {
+      if (filteredNodes.length === 0 && graph) {
+        setNodes([]);
+        setEdges([]);
+      }
+      return;
+    }
     const nodeMap = new Map(filteredNodes.map((n) => [n.id, n]));
 
     const rfNodes = filteredNodes.map((n, i) => ({
@@ -191,14 +267,18 @@ export function LearningGraphPage() {
 
     const rfEdges = graph.edges
       .filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target))
-      .map((e, i) => ({
-        id: `e-${i}`,
+      .map((e) => ({
+        id: `${e.source}→${e.target}`,
         source: e.source,
         target: e.target,
         animated: true,
         style: { stroke: "#888", strokeWidth: 1 + e.weight * 2 },
         markerEnd: { type: MarkerType.ArrowClosed, color: "#888" } as const,
-        label: e.relation === "lexical_overlap" ? t("learningGraph.lexicalOverlap") : "",
+        label: e.relation === "lexical_overlap"
+          ? t("learningGraph.lexicalOverlap")
+          : e.relation === "category_match"
+          ? t("learningGraph.insights")
+          : e.relation,
       }));
 
     setNodes(rfNodes);
@@ -217,6 +297,11 @@ export function LearningGraphPage() {
 
   // Stats
   const stats = graph?.stats;
+
+  const showInitialLoading = loading && !graph && !errorMsg;
+  const showEmpty = !loading && !errorMsg && graph && nodes.length === 0;
+  const showError = !!errorMsg;
+  const showGraph = !showInitialLoading && !showEmpty && !showError;
 
   return (
     <div
@@ -250,6 +335,8 @@ export function LearningGraphPage() {
               <Text type="secondary">{t("learningGraph.memories")}</Text>
               <Badge count={stats.totalInsights} color="#faad14" showZero />
               <Text type="secondary">{t("learningGraph.insights")}</Text>
+              <Badge count={stats.totalEntities} color="#722ed1" showZero />
+              <Text type="secondary">{t("learningGraph.entities")}</Text>
               <Badge count={stats.totalEdges} color="#888" showZero />
               <Text type="secondary">{t("learningGraph.edges")}</Text>
             </div>
@@ -268,15 +355,16 @@ export function LearningGraphPage() {
           <Select
             value={filterKind}
             onChange={setFilterKind}
-            style={{ width: 100 }}
+            style={{ width: 120 }}
             options={[
               { value: "all", label: t("learningGraph.all") },
               { value: "skill", label: t("learningGraph.skills") },
               { value: "memory", label: t("learningGraph.memories") },
               { value: "insight", label: t("learningGraph.insights") },
+              { value: "entity", label: t("learningGraph.entities") },
             ]}
           />
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={isRefreshing}>
             {t("learningGraph.refresh")}
           </Button>
         </div>
@@ -286,51 +374,72 @@ export function LearningGraphPage() {
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {/* Graph area */}
         <div style={{ flex: 1, position: "relative" }}>
-          {loading && !graph
-            ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <Spin size="large" />
-              </div>
-            )
-            : nodes.length === 0
-            ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <Empty description={t("learningGraph.emptyDescription")} />
-              </div>
-            )
-            : (
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onNodeClick={onNodeClick}
-                nodeTypes={nodeTypes}
-                fitView
-              >
-                <Background />
-                <Controls />
-                <MiniMap
-                  nodeStrokeColor={token.colorBorder}
-                  nodeColor={(n: { type?: string }) => KIND_COLORS[n.type || "skill"] || "#888"}
-                  style={{ border: `1px solid ${token.colorBorderSecondary}` }}
-                />
-              </ReactFlow>
-            )}
+          {showInitialLoading && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
+              <Spin size="large" />
+            </div>
+          )}
+          {showError && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+                padding: 40,
+              }}
+            >
+              <Alert
+                type="error"
+                message={t("learningGraph.title")}
+                description={errorMsg}
+                showIcon
+                action={
+                  <Button size="small" onClick={handleRefresh} loading={isRefreshing}>
+                    {t("learningGraph.refresh")}
+                  </Button>
+                }
+              />
+            </div>
+          )}
+          {showEmpty && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
+              <Empty description={t("learningGraph.emptyDescription")} />
+            </div>
+          )}
+          {showGraph && (
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeClick={onNodeClick}
+              nodeTypes={nodeTypes}
+              fitView
+            >
+              <Background />
+              <Controls />
+              <MiniMap
+                nodeStrokeColor={token.colorBorder}
+                nodeColor={(n: { type?: string }) => KIND_COLORS[n.type || "skill"] || "#888"}
+                style={{ border: `1px solid ${token.colorBorderSecondary}` }}
+              />
+            </ReactFlow>
+          )}
         </div>
 
         {/* Detail panel */}
@@ -352,6 +461,8 @@ export function LearningGraphPage() {
                   ? t("learningGraph.skills")
                   : selectedNode.kind === "memory"
                   ? t("learningGraph.memories")
+                  : selectedNode.kind === "entity"
+                  ? t("learningGraph.entities")
                   : t("learningGraph.insights")}
               </Tag>
               <Tag>{selectedNode.category}</Tag>

@@ -52,6 +52,7 @@ export function ExpertSelector({
   const [editDesc, setEditDesc] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
   const [editCategory, setEditCategory] = useState<ExpertCategory>("general");
+  const [editDomains, setEditDomains] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRole, setNewRole] = useState<Partial<AgentProfile>>({
@@ -272,8 +273,9 @@ export function ExpertSelector({
     setEditingExpert(role);
     setEditName(role.name);
     setEditDesc(role.description ?? "");
-    setEditPrompt(""); // systemPrompt 已从 AgentProfile 移除，编辑时显示为空
+    setEditPrompt(role.systemPrompt ?? "");
     setEditCategory(role.category as ExpertCategory);
+    setEditDomains(role.activeDomains ?? []);
   };
 
   const handleEditSave = async () => {
@@ -287,6 +289,8 @@ export function ExpertSelector({
           name: editName,
           description: editDesc,
           category: editCategory,
+          system_prompt: editPrompt,
+          active_domains: editDomains,
         });
       } else if (editingExpert.source === "custom") {
         updateCustomRole({
@@ -294,6 +298,7 @@ export function ExpertSelector({
           name: editName,
           description: editDesc,
           category: editCategory,
+          systemPrompt: editPrompt,
         });
       }
       app.message.success(t("expertSelector.expertUpdated"));
@@ -750,45 +755,6 @@ export function ExpertSelector({
                                   {tag}
                                 </Tag>
                               ))}
-                              {
-                                /*
-                                <Popover
-                                  title={`${role.icon} ${role.name} - ${t("expertSelector.capabilityDetail")}`}
-                                  content={
-                                    <div
-                                      style={{
-                                        maxWidth: 360,
-                                        maxHeight: 200,
-                                        overflowY: "auto",
-                                        fontSize: 12,
-                                        lineHeight: 1.6,
-                                        whiteSpace: "pre-wrap",
-                                      }}
-                                    >
-                                      {role.systemPrompt.slice(0, 600)}
-                                      {role.systemPrompt.length > 600
-                                        ? "..."
-                                        : ""}
-                                    </div>
-                                  }
-                                  trigger="click"
-                                >
-                                  <Tag
-                                    color="blue"
-                                    style={{
-                                      fontSize: 10,
-                                      lineHeight: "16px",
-                                      padding: "0 4px",
-                                      margin: 0,
-                                      cursor: "pointer",
-                                    }}
-                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                  >
-                                    <Info size={10} style={{ marginRight: 2 }} /> {t("expertSelector.detail")}
-                                  </Tag>
-                                </Popover>
-                              )} */
-                              }
                             </div>
                           </div>
                         </div>
@@ -871,6 +837,34 @@ export function ExpertSelector({
                   value: k,
                   label: t("expertCategory." + k),
                 }))}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: token.colorTextTertiary,
+                  marginBottom: 4,
+                }}
+              >
+                {t("settings.toolAccess")}
+              </label>
+              <Select
+                mode="multiple"
+                value={editDomains}
+                onChange={(v) => setEditDomains(v)}
+                size="small"
+                style={{ width: "100%" }}
+                placeholder={t("settings.toolAccess")}
+                options={[
+                  { value: "core", label: "Core" },
+                  { value: "general", label: "General" },
+                  { value: "devops", label: "Devops" },
+                  { value: "ai_media", label: "AI Media" },
+                  { value: "invest", label: "Invest" },
+                  { value: "opc", label: "OPC" },
+                ]}
               />
             </div>
             <div>

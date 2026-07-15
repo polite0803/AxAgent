@@ -633,6 +633,8 @@ export interface RealtimeConfig {
   model_id: string;
   voice: string | null;
   audio_format: AudioFormat;
+  stt_provider_id?: string | null;
+  tts_provider_id?: string | null;
 }
 
 // === Gateway Link (Client-side Gateway Connection) ===
@@ -779,7 +781,7 @@ export interface GeneratedToolInfo {
 }
 
 // === Files Module ===
-export type FileCategory = "images" | "files";
+export type FileCategory = "images" | "files" | "backups";
 
 export type FileSortKey = "createdAt" | "size" | "name";
 
@@ -891,7 +893,7 @@ export interface SkillSimilarInfo {
 
 // ── Learning Graph Types ──
 
-export type NodeKind = "skill" | "memory" | "insight";
+export type NodeKind = "skill" | "memory" | "insight" | "entity";
 
 export interface GraphNode {
   id: string;
@@ -920,6 +922,7 @@ export interface GraphStats {
   totalSkills: number;
   totalMemories: number;
   totalInsights: number;
+  totalEntities: number;
   totalEdges: number;
   linkedNodes: number;
   categories: CategoryCount[];
@@ -1626,15 +1629,18 @@ export type {
   DynamicAction,
   DynamicComponentType,
   DynamicUIFormDataRecord,
+  DynamicUIPinRecord,
   DynamicUIProps,
   DynamicUISchemaRecord,
   DynamicUISchemaVersion,
   EventHandler,
   ListVersionsResponse,
+  PinDynamicUISchemaParams,
   SaveDynamicUIFormDataParams,
   SchemaValidationError,
   SchemaValidationResult,
   UISchema,
+  UpdateDynamicUIPinParams,
   UpdateDynamicUISchemaParams,
 } from "./dynamicUI";
 export { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "./dynamicUI";
@@ -1670,4 +1676,13 @@ export interface DashboardStats {
   failed_agent_sessions: number;
   total_agent_tokens: number;
   total_cost_usd: number;
+  total_tool_calls: number;
+  /** 今日（本地时区）消息数 */
+  today_messages: number;
+  /** 今日（本地时区）输入 token 数 */
+  today_prompt_tokens: number;
+  /** 今日（本地时区）输出 token 数 */
+  today_completion_tokens: number;
+  /** 今日（本地时区）总 token 数 */
+  today_tokens: number;
 }

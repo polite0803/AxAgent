@@ -487,6 +487,7 @@ impl NodeExecutorTrait for LoopExecutor {
                 "node_id": node_id,
             }),
             output_var: Some(output_var_key),
+            control: None,
         })
     }
 }

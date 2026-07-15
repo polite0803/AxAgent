@@ -114,6 +114,25 @@ pub async fn list_stored_files_by_category(
     Ok(models.into_iter().map(model_to_stored_file).collect())
 }
 
+/// 按 mime_type NOT LIKE 模式过滤并分页查询存储文件。
+/// `not_mime_pattern` 使用 SQL LIKE 语法，例如 `"image/%"` 排除所有图片类型。
+pub async fn list_stored_files_not_like_category(
+    db: &DatabaseConnection,
+    not_mime_pattern: &str,
+    limit: u64,
+    offset: u64,
+) -> Result<Vec<StoredFile>> {
+    use sea_orm::sea_query::Expr;
+    let models = stored_files::Entity::find()
+        .filter(Expr::col(stored_files::Column::MimeType).not_like(not_mime_pattern))
+        .order_by_desc(stored_files::Column::CreatedAt)
+        .offset(offset)
+        .limit(limit)
+        .all(db)
+        .await?;
+    Ok(models.into_iter().map(model_to_stored_file).collect())
+}
+
 pub async fn count_stored_files_with_storage_path(
     db: &DatabaseConnection,
     storage_path: &str,

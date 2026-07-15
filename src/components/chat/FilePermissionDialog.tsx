@@ -17,7 +17,7 @@ interface AuthorizationResponse {
 
 export interface FilePermissionRequest {
   path: string;
-  reason?: string;
+  reason: string;
 }
 
 interface FilePermissionDialogProps {

@@ -7,13 +7,14 @@ publish = false
 [dependencies]
 async-trait = "0.1"
 axagent-crypto = { path = "../crypto" }
+axagent-dao = { path = "../dao" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 axagent-providers = { path = "../providers" }
 chrono = { workspace = true }
-chrono-tz = "0.8"
+chrono-tz = "0.10"
 futures = "0.3"
-rand = "0.8"
+rand = "0.10"
 rhai = { version = "1", features = ["sync"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }
@@ -26,10 +27,10 @@ tracing = { workspace = true }
 url = "2"
 uuid = { workspace = true }
 
-cron = "0.12"
+cron = "0.17"
 hex = { workspace = true }
-hmac = "0.12"
-jsonschema = "0.46"
+hmac = "0.13"
+jsonschema = "0.47"
 lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
 regex = "1"
 reqwest = { workspace = true }

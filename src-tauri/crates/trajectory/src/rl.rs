@@ -573,9 +573,9 @@ impl RLEngine {
         variance.sqrt()
     }
 
-    /// P0-4: 修复时间衰减公式
-    /// 正确的 TD(λ) 形式 V(s_t) = Σ_{k≥0} γ^k r_{t+k}
-    /// 即对每个 step i，把从 step i 开始到末尾的所有奖励按 γ^k 加权累加
+    /// 蒙特卡洛回报：V(s_i) = Σ_{k=0..steps-i} γ^k * r_{i+k}
+    /// 注意：这是标准 MC 回报计算，未使用 TD(λ) 中的 λ 参数。
+    /// 如需 TD(λ) 请调用 compute_td_lambda 并结合 use_td_lambda 配置。
     pub fn estimate_value_function(&self, trajectory: &Trajectory) -> Vec<f64> {
         let steps = trajectory.steps.len();
         let mut values = vec![0.0; steps];
@@ -658,9 +658,16 @@ pub struct RewardNormalizer {
 
 impl RewardNormalizer {
     pub fn new() -> Self {
-        Self { running_mean: 0.0, running_var: 1.0, count: 0, epsilon: 1e-8 }
+        Self { running_mean: 0.0, running_var: 0.0, count: 0, epsilon: 1e-8 }
     }
 
+    /// 用标准 Welford 算法合并 batch 到运行统计
+    /// 参考：https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
+    ///
+    /// 合并两个集合的统计量：
+    ///   m = m₁ + δ * n₂ / n                       （新均值）
+    ///   M2 = M2₁ + M2₂ + δ² * n₁ * n₂ / n           （新平方和）
+    ///   其中 δ = m₂ - m₁, n = n₁ + n₂
     pub fn normalize(&mut self, rewards: &mut [RewardSignal]) {
         if rewards.is_empty() {
             return;
@@ -670,31 +677,27 @@ impl RewardNormalizer {
         let batch_size = values.len();
         let batch_mean = values.iter().sum::<f64>() / batch_size as f64;
 
-        // P1-11: 用标准 Welford 算法正确计算 running variance
-        // 关键修正：count += batch_size（不是 +1），M2 用 (v - new_mean) * (v - old_mean) 增量更新
         let prev_mean = self.running_mean;
-        let prev_m2 = self.running_var;
+        let prev_m2 = self.running_var; // running_var 实际存储 M2（平方和）
         let prev_count = self.count;
 
-        // 增量更新 mean
+        // Welford 并行合并：δ² * n₁ * n₂ / n
         let new_count = prev_count + batch_size as u64;
         let delta = batch_mean - prev_mean;
         let new_mean = prev_mean + delta * (batch_size as f64 / new_count as f64);
 
-        // Welford 合并 M2
-        let mut new_m2 = prev_m2;
-        // batch 内每项相对于 prev_mean 的偏差平方和
-        let batch_ss: f64 = values.iter().map(|v| (v - prev_mean).powi(2)).sum();
-        // 修正因子：delta^2 * prev_count * batch_size / new_count
+        // batch 内相对于 batch_mean 的平方和
+        let batch_ss: f64 = values.iter().map(|v| (v - batch_mean).powi(2)).sum();
         let correction =
             delta * delta * (prev_count as f64) * (batch_size as f64) / new_count as f64;
-        new_m2 += batch_ss + correction;
+        let new_m2 = prev_m2 + batch_ss + correction;
 
         self.running_mean = new_mean;
-        self.running_var = new_m2;
+        self.running_var = new_m2; // 存 M2
         self.count = new_count;
 
         let std = if self.count > 1 {
+            // std = sqrt(M2 / (n-1) + epsilon)
             (self.running_var / (self.count - 1) as f64 + self.epsilon).sqrt()
         } else {
             (1.0 + self.epsilon).sqrt()

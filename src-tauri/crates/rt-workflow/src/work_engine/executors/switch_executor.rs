@@ -190,6 +190,7 @@ impl SwitchExecutor {
             } else {
                 Some(c.output_var.clone())
             },
+            control: None,
         }
     }
 }

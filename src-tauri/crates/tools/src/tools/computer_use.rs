@@ -66,6 +66,10 @@ impl Tool for ComputerUseTool {
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let name = self.name();
+        // SECURITY (C4): AI 工具路径也必须经过计算机控制授权闸门，
+        // 否则默认关闭的 C4 主开关对 Agent 控制电脑这一主要入口形同虚设。
+        axagent_kit::permission::ensure_computer_control_granted()
+            .map_err(|e| ToolError::execution_failed_for(name, e))?;
         let action = input["action"].as_str().unwrap_or("screenshot");
 
         let output = match action {

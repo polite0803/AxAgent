@@ -2,7 +2,7 @@
 
 //! LSPTool - 语言服务器协议集成（9种操作）
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_kit::utils::hide_window;
 use serde_json::Value;
@@ -37,6 +37,11 @@ impl Tool for LSPTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::FileRead
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

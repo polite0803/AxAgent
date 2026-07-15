@@ -8,7 +8,7 @@ use axagent_crypto::{decrypt_key, encrypt_key};
 use axagent_dao::repo::{backup, settings as settings_repo};
 use axagent_storage::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};
 use futures::FutureExt;
-use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, PaginatorTrait, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::panic::AssertUnwindSafe;
@@ -40,6 +40,34 @@ impl Drop for RestoreCleanup {
         }
         for path in &self.dirs {
             let _ = std::fs::remove_dir_all(path);
+        }
+    }
+}
+
+/// RAII guard clearing temp files on drop — ensures cleanup even when
+/// the function returns early via `?` before reaching explicit cleanup.
+struct WebdavTempCleanup {
+    files: Vec<PathBuf>,
+}
+
+impl WebdavTempCleanup {
+    fn new() -> Self {
+        Self { files: Vec::new() }
+    }
+
+    fn track(&mut self, path: PathBuf) {
+        self.files.push(path);
+    }
+
+    fn clear(mut self) {
+        self.files.clear();
+    }
+}
+
+impl Drop for WebdavTempCleanup {
+    fn drop(&mut self) {
+        for path in &self.files {
+            let _ = std::fs::remove_file(path);
         }
     }
 }
@@ -163,13 +191,22 @@ pub async fn webdav_restore(
     }
 
     // 4. Create a safety backup of current database and master.key
+    //    失败时必须中止恢复，否则数据不可恢复。
     let db_path =
         state.harness.db_path().strip_prefix("sqlite:").unwrap_or(state.harness.db_path());
     let safety_backup = backup_dir.join("_pre_webdav_restore_safety.db");
-    let _ = std::fs::copy(db_path, &safety_backup);
+    std::fs::copy(db_path, &safety_backup).map_err(|e| {
+        format!("创建数据库安全备份失败 ({}): {} — 已中止恢复", safety_backup.display(), e)
+    })?;
     let master_key_dest = state.app_data_dir.join("master.key");
     let safety_key_backup = temp_dir.join("_pre_webdav_restore_safety.key");
-    let _ = std::fs::copy(&master_key_dest, &safety_key_backup);
+    std::fs::copy(&master_key_dest, &safety_key_backup).map_err(|e| {
+        format!(
+            "创建 master.key 安全备份失败 ({}): {} — 已中止恢复",
+            safety_key_backup.display(),
+            e
+        )
+    })?;
     cleanup.track_file(&safety_key_backup);
     #[cfg(unix)]
     {
@@ -379,6 +416,11 @@ async fn do_webdav_backup_once(
     let temp_db_path = backup_dir.join(format!("_webdav_temp_{}.db", temp_id));
     let _ = std::fs::remove_file(&temp_db_path);
 
+    // RAII cleanup guard: always removes temp_db_path and zip_path on drop,
+    // regardless of whether the function returns Ok or Err.
+    let mut temp_cleanup = WebdavTempCleanup::new();
+    temp_cleanup.track(temp_db_path.clone());
+
     let db_str = temp_db_path.to_string_lossy().to_string();
     db.execute_raw(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
@@ -388,7 +430,10 @@ async fn do_webdav_backup_once(
     .map_err(|e| format!("VACUUM INTO failed: {}", e))?;
 
     // 3. Object counts for metadata
-    let object_counts = count_objects_json(db).await;
+    let object_counts = backup::count_objects(db).await.unwrap_or_else(|e| {
+        tracing::warn!("Failed to count objects for WebDAV backup metadata: {}", e);
+        r#"{"conversations":0,"messages":0,"providers":0}"#.to_string()
+    });
 
     // 4. Documents directory (optional)
     let include_docs = settings.webdav_include_documents;
@@ -415,6 +460,7 @@ async fn do_webdav_backup_once(
     let master_key_path = app_data_dir.join("master.key");
     let zip_filename = webdav::generate_backup_filename();
     let zip_path = backup_dir.join(&zip_filename);
+    temp_cleanup.track(zip_path.clone());
     let crypto = axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(*master_key);
     webdav::create_backup_zip(
         &temp_db_path,
@@ -432,9 +478,8 @@ async fn do_webdav_backup_once(
     let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
     client.upload_file(&zip_filename, &zip_path).await.map_err(|e| e.to_string())?;
 
-    // 7. Cleanup temp files
-    let _ = std::fs::remove_file(&temp_db_path);
-    let _ = std::fs::remove_file(&zip_path);
+    // 7. Clear temp files (RAII guard still ensures cleanup on early return)
+    temp_cleanup.clear();
 
     // 8. Cleanup old remote backups
     let max_backups = settings.webdav_max_remote_backups;
@@ -443,21 +488,6 @@ async fn do_webdav_backup_once(
     }
 
     Ok(zip_filename)
-}
-
-async fn count_objects_json(db: &DatabaseConnection) -> String {
-    use axagent_entities::*;
-
-    let conv_count = conversations::Entity::find().count(db).await.unwrap_or(0);
-    let msg_count = messages::Entity::find().count(db).await.unwrap_or(0);
-    let provider_count = providers::Entity::find().count(db).await.unwrap_or(0);
-
-    serde_json::json!({
-        "conversations": conv_count,
-        "messages": msg_count,
-        "providers": provider_count,
-    })
-    .to_string()
 }
 
 async fn cleanup_remote_backups(client: &WebDavClient, max_per_host: u32) {
@@ -526,22 +556,32 @@ pub(crate) fn spawn_webdav_sync_task(
                     break;
                 }
                 _ = tokio::time::sleep(interval) => {
+                    // 读取 notify_backup 设置（gated emit）
+                    let notify = settings_repo::get_settings(&db)
+                        .await
+                        .map(|s| s.notify_backup)
+                        .unwrap_or(true);
+
                     // 用 catch_unwind 包裹单次同步执行体；panic 不会杀死整个周期任务
                     let result = AssertUnwindSafe(async {
                         match do_webdav_backup_impl(&db, &master_key, &app_data_dir).await {
                             Ok(name) => {
                                 tracing::info!("WebDAV auto-sync completed: {}", name);
-                                let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
-                                    "success": true,
-                                    "name": name,
-                                }));
+                                if notify {
+                                    let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
+                                        "success": true,
+                                        "name": name,
+                                    }));
+                                }
                             },
                             Err(e) => {
                                 tracing::warn!("WebDAV auto-sync failed: {}", e);
-                                let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
-                                    "success": false,
-                                    "error": e.to_string(),
-                                }));
+                                if notify {
+                                    let _ = app_for_emit.emit("webdav-sync-completed", serde_json::json!({
+                                        "success": false,
+                                        "error": e.to_string(),
+                                    }));
+                                }
                             },
                         }
                     })

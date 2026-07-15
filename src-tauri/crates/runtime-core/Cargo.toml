@@ -8,6 +8,7 @@ publish = false
 anyhow = { workspace = true }
 async-trait = "0.1"
 axagent-harness = { path = "../harness" }
+chrono = { workspace = true }
 futures = "0.3"
 hex = { workspace = true }
 reqwest = { workspace = true }

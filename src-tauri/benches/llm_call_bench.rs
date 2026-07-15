@@ -14,12 +14,12 @@ use axagent_providers::{
     ProviderRequestContext, apply_request_headers, default_user_agent, diagnose_http_status,
     parse_base64_data_url, redact_api_key_from_url,
 };
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 fn bench_default_user_agent(c: &mut Criterion) {
     c.bench_function("llm_default_user_agent", |b| {
         b.iter(|| {
-            black_box(default_user_agent());
+            std::hint::black_box(default_user_agent());
         })
     });
 }
@@ -30,12 +30,12 @@ fn bench_redact_api_key_url(c: &mut Criterion) {
 
     c.bench_function("llm_redact_key_url_with_key", |b| {
         b.iter(|| {
-            black_box(redact_api_key_from_url(black_box(url_with_key)));
+            std::hint::black_box(redact_api_key_from_url(std::hint::black_box(url_with_key)));
         })
     });
     c.bench_function("llm_redact_key_url_no_key", |b| {
         b.iter(|| {
-            black_box(redact_api_key_from_url(black_box(url_no_key)));
+            std::hint::black_box(redact_api_key_from_url(std::hint::black_box(url_no_key)));
         })
     });
 }
@@ -46,12 +46,12 @@ fn bench_parse_base64_data_url(c: &mut Criterion) {
 
     c.bench_function("llm_parse_base64_valid", |b| {
         b.iter(|| {
-            black_box(parse_base64_data_url(black_box(valid)));
+            std::hint::black_box(parse_base64_data_url(std::hint::black_box(valid)));
         })
     });
     c.bench_function("llm_parse_base64_invalid", |b| {
         b.iter(|| {
-            black_box(parse_base64_data_url(black_box(invalid)));
+            std::hint::black_box(parse_base64_data_url(std::hint::black_box(invalid)));
         })
     });
 }
@@ -66,7 +66,7 @@ fn bench_diagnose_reqwest_error_connect(c: &mut Criterion) {
                            client error (Connect)";
             // Measure the string-processing cost: the function inspects
             // the error message and appends advice.
-            black_box(diagnose_reqwest_error_string(black_box(err_msg)));
+            std::hint::black_box(diagnose_reqwest_error_string(std::hint::black_box(err_msg)));
         })
     });
 }
@@ -96,19 +96,19 @@ fn bench_diagnose_http_status(c: &mut Criterion) {
     use reqwest::StatusCode;
     c.bench_function("llm_diagnose_401", |b| {
         b.iter(|| {
-            black_box(diagnose_http_status(
-                black_box("OpenAI"),
-                black_box(StatusCode::UNAUTHORIZED),
-                black_box("{\"error\":\"invalid_api_key\"}"),
+            std::hint::black_box(diagnose_http_status(
+                std::hint::black_box("OpenAI"),
+                std::hint::black_box(StatusCode::UNAUTHORIZED),
+                std::hint::black_box("{\"error\":\"invalid_api_key\"}"),
             ));
         })
     });
     c.bench_function("llm_diagnose_429", |b| {
         b.iter(|| {
-            black_box(diagnose_http_status(
-                black_box("Anthropic"),
-                black_box(StatusCode::TOO_MANY_REQUESTS),
-                black_box("Rate limit exceeded"),
+            std::hint::black_box(diagnose_http_status(
+                std::hint::black_box("Anthropic"),
+                std::hint::black_box(StatusCode::TOO_MANY_REQUESTS),
+                std::hint::black_box("Rate limit exceeded"),
             ));
         })
     });
@@ -139,7 +139,10 @@ fn bench_apply_request_headers(c: &mut Criterion) {
         b.iter(|| {
             let client = reqwest::Client::new();
             let builder = client.get("https://api.example.com/v1/test");
-            let _ = black_box(apply_request_headers(black_box(builder), black_box(&ctx)));
+            let _ = std::hint::black_box(apply_request_headers(
+                std::hint::black_box(builder),
+                std::hint::black_box(&ctx),
+            ));
         })
     });
 }

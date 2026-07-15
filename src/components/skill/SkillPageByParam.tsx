@@ -13,7 +13,8 @@ export function SkillPageByParam() {
     skillName: string;
     pageId?: string;
   }>();
-  const pages = useSkillExtensionStore((s) => s.pages);
+  const panels = useSkillExtensionStore((s) => s.panels);
+  const skills = useSkillExtensionStore((s) => s.skills);
   const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
   const loading = useSkillExtensionStore((s) => s.loading);
   const [notFound, setNotFound] = useState(false);
@@ -22,19 +23,17 @@ export function SkillPageByParam() {
     if (!skillName) {
       return;
     }
-    // 如果 store 为空且不在加载中，触发 fetch
-    if (pages.length === 0 && !loading) {
+    if (skills.length === 0 && !loading) {
       fetchSkills();
     }
-  }, [skillName, pages.length, loading, fetchSkills]);
+  }, [skillName, skills.length, loading, fetchSkills]);
 
   useEffect(() => {
-    // 加载完成后检查页面是否存在，超时后显示 404
     if (loading) {
       return;
     }
     const timer = setTimeout(() => {
-      const found = pages.some((p) => {
+      const found = panels.some((p: { skillName: string; id: string }) => {
         if (pageId) {
           return p.skillName === skillName && p.id === pageId;
         }
@@ -45,7 +44,7 @@ export function SkillPageByParam() {
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [loading, pages, skillName, pageId]);
+  }, [loading, panels, skillName, pageId]);
 
   if (!skillName) {
     return (
@@ -55,7 +54,7 @@ export function SkillPageByParam() {
     );
   }
 
-  const page = pages.find((p) => {
+  const page = panels.find((p: { skillName: string; id: string }) => {
     if (pageId) {
       return p.skillName === skillName && p.id === pageId;
     }

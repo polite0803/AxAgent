@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { AgentEntryPoint } from "@/components/agent/AgentEntryPoint";
-import { AgentMiniPanel } from "@/components/agent/AgentMiniPanel";
-import { AgentPanel } from "@/components/agent/AgentPanel";
-import { BuddyWidget } from "@/components/chat/BuddyWidget";
 import { TabBar } from "@/components/chat/TabBar";
-import { HelpPanel } from "@/components/help/HelpPanel";
 import { AppInitializer } from "@/components/layout/AppInitializer";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
@@ -16,10 +11,27 @@ import { GlobalStatusBar } from "@/components/layout/GlobalStatusBar";
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
-import { InteractiveTutorial } from "@/components/onboarding/InteractiveTutorial";
-import { WelcomeWizard } from "@/components/onboarding/WelcomeWizard";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { SkillPanels } from "@/components/skill/SkillPanels";
+
+// 非首屏核心组件改为 lazy，避免 dev 模式下 Vite 逐个编译阻塞首帧。
+// 这些组件仅在特定条件下渲染（onboarding/帮助/agent面板/skill浮动面板），
+// 不在首屏关键路径上，用 Suspense fallback={null} 包裹即可。
+const LazyAgentPanel = lazy(() => import("@/components/agent/AgentPanel").then((m) => ({ default: m.AgentPanel })));
+const LazyAgentEntryPoint = lazy(() =>
+  import("@/components/agent/AgentEntryPoint").then((m) => ({ default: m.AgentEntryPoint }))
+);
+const LazyAgentMiniPanel = lazy(() =>
+  import("@/components/agent/AgentMiniPanel").then((m) => ({ default: m.AgentMiniPanel }))
+);
+const LazyBuddyWidget = lazy(() => import("@/components/chat/BuddyWidget").then((m) => ({ default: m.BuddyWidget })));
+const LazyHelpPanel = lazy(() => import("@/components/help/HelpPanel").then((m) => ({ default: m.HelpPanel })));
+const LazyInteractiveTutorial = lazy(() =>
+  import("@/components/onboarding/InteractiveTutorial").then((m) => ({ default: m.InteractiveTutorial }))
+);
+const LazyWelcomeWizard = lazy(() =>
+  import("@/components/onboarding/WelcomeWizard").then((m) => ({ default: m.WelcomeWizard }))
+);
+const LazySkillPanels = lazy(() => import("@/components/skill/SkillPanels").then((m) => ({ default: m.SkillPanels })));
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
@@ -28,12 +40,14 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
+import { setDefaultNavigate } from "@/lib/actionRouter";
 import { invoke, isTauri, listen } from "@/lib/invoke";
+import { message, setMessageInstance } from "@/lib/toast";
 import { useAgentPanelStore, useSettingsStore, useSkillStore, useStreamStore, useUIStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import type { SkillProposal } from "@/types";
-import { App as AntdApp, ConfigProvider, message, theme } from "antd";
+import { App as AntdApp, ConfigProvider, theme } from "antd";
 import type { Locale } from "antd/es/locale";
 import { setDefaultI18nMap } from "markstream-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -111,10 +125,17 @@ function GlobalTabBar() {
 function AppInner() {
   const { token } = useToken();
   const { t } = useTranslation();
-  const { modal } = AntdApp.useApp();
+  const { modal, message: antdMessage } = AntdApp.useApp();
+  // 将 App.useApp().message 注入全局 toast proxy，使非组件模块（store / 全局快捷键）也能使用上下文感知的 message
+  setMessageInstance(antdMessage);
   const location = useLocation();
   const navigate = useNavigate();
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
+
+  // 注册全局默认导航器：供非 React 调用方（如技能生命周期钩子）通过 ActionRouter 导航
+  useEffect(() => {
+    setDefaultNavigate(navigate);
+  }, [navigate]);
   const handleCloseCmdPalette = useCallback(() => setCmdOpen(false), [setCmdOpen]);
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
@@ -286,7 +307,7 @@ function AppInner() {
                     />
                   }
                 >
-                  <PageErrorBoundary title="QuickBar">
+                  <PageErrorBoundary title={t("app.quickBar")}>
                     <LazyQuickBarPage />
                   </PageErrorBoundary>
                 </Suspense>
@@ -295,7 +316,9 @@ function AppInner() {
           )
           : (
             <>
-              <SkillPanels />
+              <Suspense fallback={null}>
+                <LazySkillPanels />
+              </Suspense>
               <ModuleErrorBoundary moduleName="TitleBar">
                 <TitleBar />
               </ModuleErrorBoundary>
@@ -325,17 +348,37 @@ function AppInner() {
                   </div>
                   <GlobalStatusBarWrapper />
                 </div>
-                {agentInTheLoopEnabled && <AgentPanel />}
+                {agentInTheLoopEnabled && (
+                  <Suspense fallback={null}>
+                    <LazyAgentPanel />
+                  </Suspense>
+                )}
               </div>
             </>
           )}
       </div>
-      <WelcomeWizard />
-      <InteractiveTutorial />
-      <HelpPanel />
-      <BuddyWidget />
-      {agentInTheLoopEnabled && isAgentMiniMode && <AgentMiniPanel />}
-      {agentInTheLoopEnabled && !isAgentMiniMode && <AgentEntryPoint />}
+      <Suspense fallback={null}>
+        <LazyWelcomeWizard />
+      </Suspense>
+      <Suspense fallback={null}>
+        <LazyInteractiveTutorial />
+      </Suspense>
+      <Suspense fallback={null}>
+        <LazyHelpPanel />
+      </Suspense>
+      <Suspense fallback={null}>
+        <LazyBuddyWidget />
+      </Suspense>
+      {agentInTheLoopEnabled && isAgentMiniMode && (
+        <Suspense fallback={null}>
+          <LazyAgentMiniPanel />
+        </Suspense>
+      )}
+      {agentInTheLoopEnabled && !isAgentMiniMode && (
+        <Suspense fallback={null}>
+          <LazyAgentEntryPoint />
+        </Suspense>
+      )}
     </>
   );
 }

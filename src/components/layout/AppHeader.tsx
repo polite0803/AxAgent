@@ -17,6 +17,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/link": "nav.link",
   "/files": "nav.files",
   "/workflow": "nav.workflow",
+  "/dynamic-ui": "nav.dynamicUI",
   "/wiki": "nav.wiki",
   "/terminal": "nav.terminal",
 };
@@ -27,9 +28,6 @@ function resolvePageLabel(pathname: string): string | null {
   }
   if (pathname.startsWith("/settings")) {
     return "nav.settings";
-  }
-  if (pathname.startsWith("/skill/")) {
-    return "settings.skillsHub";
   }
   if (pathname.startsWith("/devtools/")) {
     return "nav.devTools";
@@ -146,7 +144,7 @@ export function AppHeader() {
               type="button"
               onClick={toggleAgentPanel}
               className={`titlebar-btn${isAgentPanelOpen ? " text-[var(--color-primary)]" : ""}`}
-              aria-label="Agent Panel"
+              aria-label={t("appHeader.agentPanel")}
               style={{ color: isAgentPanelOpen ? undefined : token.colorTextQuaternary, flexShrink: 0 }}
             >
               <Bot size={16} />

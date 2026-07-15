@@ -54,6 +54,7 @@ impl NodeExecutorTrait for DebateExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(dn.config.output_var.clone()),
+            control: None,
         })
     }
 }

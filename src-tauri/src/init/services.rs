@@ -14,6 +14,7 @@ pub fn start_background_services(
     app_dir: std::path::PathBuf,
     _tray_language: String,
 ) {
+    init_mcp_oauth(state);
     start_auto_backup(app, state, app_dir.clone());
     start_webdav_sync(app, state, app_dir);
     #[cfg(not(mobile))]
@@ -26,6 +27,7 @@ pub fn start_background_services(
     start_batch_processing(state);
     start_user_profile_persistence(state);
     start_skill_evolution(state);
+    start_dream_consolidation(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
     start_cron_scheduler(state);
@@ -43,6 +45,20 @@ pub fn start_background_services(
     start_dream_consolidation(state);
     // 股票全业务管道：每日 18:00 自动发现+分析+持仓再评估
     start_stock_pipeline(app, state);
+}
+
+/// 初始化 MCP OAuth 凭据存储的全局单例。
+///
+/// 必须在任何 MCP 工具调用前完成，否则 `McpOAuthStore::try_global()` 返回 `None`，
+/// 受保护服务器将按匿名方式连接（很可能 401）。
+fn init_mcp_oauth(state: &AppState) {
+    let master_key = state.harness.master_key_owned();
+    let crypto = std::sync::Arc::new(
+        axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(master_key),
+    );
+    let store = std::sync::Arc::new(axagent_mcp::mcp_oauth::McpOAuthStore::new(crypto));
+    axagent_mcp::mcp_oauth::McpOAuthStore::init_global(store);
+    tracing::info!("[McpOAuth] 全局 OAuth 凭据存储已初始化");
 }
 
 fn start_plugins(state: &AppState) {
@@ -294,73 +310,6 @@ fn start_lesson_validation(state: &AppState) {
                         Err(e) => {
                             tracing::error!("[lesson_validation] 失败: {e}");
                         }
-                    }
-                }
-            }
-        }
-    });
-}
-
-/// [方向6] DreamConsolidator 定时任务：每日 18:00 跨股票蒸馏反思轨迹。
-///
-/// 调用 `state.dream_consolidator.consolidate_force()` 强制执行蒸馏（绕过时间门控）。
-/// - 从 TrajectoryStorage 拉取最近 N 条反思轨迹（N=experience_replay_sample_size，默认 50）
-/// - 按 topic（股票代码）分组，蒸馏 ToolUsagePattern / ReasoningStrategy / ErrorRecovery
-/// - 蒸馏知识写入 `trajectory_skills` 表 + FTS 索引
-/// - 建议仅存内存（进程内 cache），重启丢失
-///
-/// 首次延迟：距离今日 18:00 的秒数（若已过 18:00 则推迟到次日 18:00）。
-/// 监听 `shutdown_token` 支持优雅关闭。
-fn start_dream_consolidation(state: &AppState) {
-    let consolidator = state.dream_consolidator.clone();
-    let token = state.shutdown_token.clone();
-    state.task_manager.spawn("dream_consolidation", async move {
-        // 计算距离今日 18:00 的初始延迟（Asia/Shanghai 时区）
-        let now = chrono::Local::now();
-        let today_18 = now
-            .date_naive()
-            .and_hms_opt(18, 0, 0)
-            .unwrap_or_else(|| now.naive_local());
-        let initial_delay_secs = if now.naive_local() < today_18 {
-            (today_18 - now.naive_local()).num_seconds().max(60) as u64
-        } else {
-            // 已过 18:00，推迟到次日 18:00
-            ((today_18 + chrono::Duration::days(1) - now.naive_local())
-                .num_seconds()
-                .max(60)) as u64
-        };
-
-        let initial_delay = std::time::Duration::from_secs(initial_delay_secs);
-        let interval = std::time::Duration::from_secs(24 * 3600); // 24 小时
-
-        tracing::info!(
-            "[dream_consolidation] 首次运行延迟 {} 秒（约 {} 小时），之后每 24 小时运行一次",
-            initial_delay_secs,
-            initial_delay_secs / 3600
-        );
-
-        tokio::time::sleep(initial_delay).await;
-        loop {
-            tokio::select! {
-                _ = token.cancelled() => {
-                    tracing::info!("[dream_consolidation] 收到关闭信号");
-                    break;
-                }
-                _ = tokio::time::sleep(interval) => {
-                    tracing::info!("[dream_consolidation] 开始跨股票蒸馏反思轨迹");
-                    let result = consolidator.consolidate_force().await;
-                    if result.executed {
-                        tracing::info!(
-                            "[dream_consolidation] 完成: memories={} patterns={} suggestions={} duration={}s",
-                            result.memories_extracted,
-                            result.patterns_discovered,
-                            result.suggestions_generated,
-                            result.duration_secs
-                        );
-                    } else if let Some(reason) = &result.skip_reason {
-                        tracing::info!("[dream_consolidation] 跳过: {}", reason);
-                    } else {
-                        tracing::info!("[dream_consolidation] 未执行（无明确原因）");
                     }
                 }
             }
@@ -680,7 +629,7 @@ fn start_rl_reward_computation(state: &AppState) {
             let mut total_advantages = 0;
             let mut total_prm_rewards = 0;
             for trajectory in &mut trajectories {
-                if trajectory.rewards.is_empty() {
+                {
                     let mut rewards = rl.compute_rewards(trajectory);
                     total_rewards += rewards.len();
                     rl.shape_rewards(&mut rewards);
@@ -875,6 +824,8 @@ fn start_skill_evolution(state: &AppState) {
         let interval = std::time::Duration::from_secs(45 * 60);
         let success_threshold = 0.5;
         let min_usages = 3;
+        // P1: 连续失败次数阈值，达到即触发自动进化
+        let auto_trigger_consecutive_failures: u32 = 3;
         loop {
             tokio::time::sleep(interval).await;
             let skills: Vec<axagent_trajectory::Skill> = match trajectory_storage.get_skills().await
@@ -887,14 +838,18 @@ fn start_skill_evolution(state: &AppState) {
             };
             let weak_skills: Vec<_> = skills
                 .into_iter()
-                .filter(|s| s.total_usages >= min_usages && s.success_rate < success_threshold)
+                .filter(|s| {
+                    s.consecutive_failures >= auto_trigger_consecutive_failures
+                        || (s.total_usages >= min_usages && s.success_rate < success_threshold)
+                })
                 .collect();
             if weak_skills.is_empty() {
                 continue;
             }
             tracing::info!(
-                "[evolution] Found {} skills below success threshold ({:.0}%)",
+                "[evolution] Found {} skills to evolve (consecutive_failures>={} or success<{:.0}%)",
                 weak_skills.len(),
+                auto_trigger_consecutive_failures,
                 success_threshold * 100.0
             );
             let test_trajectories: Vec<axagent_trajectory::Trajectory> =
@@ -1103,6 +1058,87 @@ fn start_skill_watcher(app: &tauri::AppHandle, state: &AppState) {
                     tracing::info!("Skill file watcher stopped");
                     return;
                 },
+            }
+        }
+    });
+}
+
+/// Dream 巩固定时任务
+///
+/// 每 30 分钟检查一次：
+/// 1. 通过 trajectory 数量增量检测新会话，调用 record_new_session 累加计数
+/// 2. 检查 should_consolidate 门控（启用/未运行/间隔/会话数/锁）
+/// 3. 满足门控则执行 consolidate（经验回放→知识蒸馏→对比学习→建议生成）
+fn start_dream_consolidation(state: &AppState) {
+    let consolidator = state.dream_consolidator.clone();
+    let trajectory_storage = state.trajectory_storage.clone();
+    let last_trajectory_count = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(u64::MAX));
+    let last_count = last_trajectory_count.clone();
+    tauri::async_runtime::spawn(async move {
+        // 初始化 trajectory 基线计数
+        if let Ok(trajs) = trajectory_storage.get_trajectories(Some(10000)).await {
+            last_count.store(trajs.len() as u64, std::sync::atomic::Ordering::Relaxed);
+        }
+
+        let interval = std::time::Duration::from_secs(30 * 60);
+        loop {
+            tokio::time::sleep(interval).await;
+
+            // 检测新会话：trajectory 数量增量即为新会话数
+            let current_count = match trajectory_storage.get_trajectories(Some(10000)).await {
+                Ok(trajs) => trajs.len() as u64,
+                Err(e) => {
+                    tracing::warn!("[dream] 获取 trajectory 失败: {}", e);
+                    continue;
+                },
+            };
+            let prev_count = last_count.swap(current_count, std::sync::atomic::Ordering::Relaxed);
+            // 首次循环 prev_count == u64::MAX（基线），跳过计数
+            if prev_count != u64::MAX && current_count > prev_count {
+                let new_sessions = (current_count - prev_count) as usize;
+                for _ in 0..new_sessions {
+                    consolidator.record_new_session().await;
+                }
+                tracing::info!("[dream] 记录 {} 个新会话", new_sessions);
+            }
+
+            // 检查门控条件
+            if !consolidator.should_consolidate().await {
+                continue;
+            }
+
+            tracing::info!("[dream] 开始执行巩固...");
+            let result = consolidator
+                .consolidate(
+                    Some(&|n| tracing::info!("[dream] 提取 {} 条记忆", n)),
+                    Some(&|n| tracing::info!("[dream] 发现 {} 个模式", n)),
+                    Some(&|n| tracing::info!("[dream] 生成 {} 个建议", n)),
+                )
+                .await;
+
+            if result.executed {
+                tracing::info!(
+                    "[dream] 巩固完成: {} 条记忆, {} 个模式, {} 个建议, 耗时 {} 秒",
+                    result.memories_extracted,
+                    result.patterns_discovered,
+                    result.suggestions_generated,
+                    result.duration_secs
+                );
+
+                // Dream↔Evolution 联动：发现新模式时提示可能需要触发技能进化
+                // 注意：不直接调用 SkillEvolutionEngine（避免循环依赖），
+                // 仅记录日志，由独立的 start_skill_evolution 定时任务在下一轮自动检测弱技能并进化
+                if result.patterns_discovered > 0 {
+                    tracing::info!(
+                        "[dream] 发现 {} 个新模式，下一轮 skill evolution 将评估是否需要进化相关技能",
+                        result.patterns_discovered
+                    );
+                }
+            } else {
+                tracing::warn!(
+                    "[dream] 巩固未执行: {}",
+                    result.error.as_deref().unwrap_or("未知原因")
+                );
             }
         }
     });
@@ -1459,6 +1495,12 @@ fn start_cron_scheduler(state: &AppState) {
     });
 
     let scheduler = Arc::new(CronScheduler::new(store, Arc::new(executor)));
+
+    // 保存到 AppState 以便外部控制（停止/重启）
+    {
+        let mut state_scheduler = tauri::async_runtime::block_on(state.cron_scheduler.write());
+        *state_scheduler = Some(scheduler.clone());
+    }
 
     tauri::async_runtime::spawn(async move {
         scheduler.start().await;

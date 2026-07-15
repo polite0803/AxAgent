@@ -85,7 +85,9 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
 
     // Track ALL models (first + companions) in a unified counter
     setIsMultiModelActive(true);
-    setMultiModelTotalRemaining(companionModels.length);
+    // 只计算伴随模型（companion）数量，不包含首个模型。
+    // 首个模型通过正常流式通道处理，其完成不依赖 multiModelTotalRemaining。
+    setMultiModelTotalRemaining(companionModels.length - 1);
     setMultiModelFirstModelId(companionModels[0].model_id);
     set({ pendingCompanionModels: [...companionModels] });
 
@@ -289,6 +291,8 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
     await allDone;
 
     // All done — cleanup
+    // 先保存 multiModelDoneMessageIds，在清理前捕获所有伴随模型的完成消息 ID
+    const completedMessageIds = [...get().multiModelDoneMessageIds];
     setIsMultiModelActive(false);
     setMultiModelFirstModelId(null);
     set({ pendingCompanionModels: [], multiModelDoneMessageIds: [] });
@@ -378,16 +382,26 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
 
         if (displayVersion) {
           useConversationStore.setState((s) => {
-            let kept = false;
             return {
               messages: s.messages.reduce<typeof s.messages>((acc, m) => {
                 if (
                   m.parent_message_id === parentId
                   && m.role === "assistant"
                 ) {
-                  if (!kept) {
-                    acc.push({ ...displayVersion, is_active: true });
-                    kept = true;
+                  // Multi-model mode: keep ALL companion model outputs
+                  // All of them are useful for side-by-side comparison
+                  if (m.id === displayVersion.id) {
+                    acc.push({ ...m, is_active: true });
+                  } else if (
+                    completedMessageIds.includes(m.id)
+                    && m.provider_id
+                    && m.model_id
+                  ) {
+                    // All successfully completed multi-model variants are kept active
+                    acc.push({ ...m, is_active: true });
+                  } else {
+                    // Only deactivate old versions that are not part of the current run
+                    acc.push({ ...m, is_active: false });
                   }
                 } else {
                   acc.push(m);

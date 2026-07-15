@@ -475,6 +475,7 @@ pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionIte
 
 #[command]
 pub fn tracer_submit_feedback(
+    app_state: tauri::State<'_, crate::AppState>,
     trace_id: String,
     rating: String,
     comment: Option<String>,
@@ -512,6 +513,10 @@ pub fn tracer_submit_feedback(
     if let Ok(rating_val) = rating.parse::<u8>() {
         let orchestrator = super::_shared_state::SHARED_ORCHESTRATOR.clone();
         let optimizer = super::_shared_state::SHARED_OPTIMIZER.clone();
+        // P1: 克隆 AppState 中 Evolution 闭环所需字段的 Arc 引用，
+        // 让 spawned task 可以独立访问 trajectory_storage 和 skill_evolution_engine
+        let trajectory_storage = app_state.trajectory_storage.clone();
+        let skill_evolution_engine = app_state.skill_evolution_engine.clone();
         tokio::task::spawn(async move {
             let action = orchestrator.record_feedback(rating_val);
             match action {
@@ -544,7 +549,59 @@ pub fn tracer_submit_feedback(
                         reason,
                         positive_count
                     );
-                    // TODO(Phase3): 触发技能进化评估
+                    // P1: 触发技能进化评估
+                    let skills = trajectory_storage.get_skills().await.unwrap_or_default();
+                    let trajectories =
+                        trajectory_storage.get_trajectories(Some(30)).await.unwrap_or_default();
+                    let test_refs: Vec<&axagent_trajectory::Trajectory> =
+                        trajectories.iter().collect();
+                    let mut engine = skill_evolution_engine.lock().await;
+                    // 筛选需要进化的 skill：连续失败 >=3 或 (使用次数 >=3 且成功率 <0.5)
+                    for skill in skills.iter().filter(|s| {
+                        s.consecutive_failures >= 3 || (s.total_usages >= 3 && s.success_rate < 0.5)
+                    }) {
+                        tracing::info!(
+                            skill_id = %skill.id,
+                            consecutive_failures = skill.consecutive_failures,
+                            "[FeedbackOrchestrator] 自动进化 skill"
+                        );
+                        match engine.run(skill, &test_refs).await {
+                            Some(modification)
+                                if modification
+                                    .validation_result
+                                    .as_ref()
+                                    .is_some_and(|v| v.success) =>
+                            {
+                                let mut updated = skill.clone();
+                                updated.content = modification.new_content.clone();
+                                updated.quality_score = modification.confidence;
+                                if let Err(e) = trajectory_storage.save_skill(&updated).await {
+                                    tracing::warn!(
+                                        skill_id = %skill.id,
+                                        error = %e,
+                                        "[FeedbackOrchestrator] 保存进化后的 skill 失败"
+                                    );
+                                } else {
+                                    tracing::info!(
+                                        skill_id = %skill.id,
+                                        "[FeedbackOrchestrator] skill 进化成功"
+                                    );
+                                }
+                            },
+                            Some(_) => {
+                                tracing::info!(
+                                    skill_id = %skill.id,
+                                    "[FeedbackOrchestrator] skill 进化未改善"
+                                );
+                            },
+                            None => {
+                                tracing::info!(
+                                    skill_id = %skill.id,
+                                    "[FeedbackOrchestrator] skill 进化未产生结果"
+                                );
+                            },
+                        }
+                    }
                 },
                 axagent_agent::OrchestratorAction::TriggerPoolSizeCheck { pool_size } => {
                     tracing::info!("[FeedbackOrchestrator] PoolSizeCheck: pool_size={}", pool_size);

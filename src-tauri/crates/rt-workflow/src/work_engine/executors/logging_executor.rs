@@ -42,6 +42,7 @@ impl NodeExecutorTrait for LoggingExecutor {
         }
         Ok(NodeOutput {
             output: serde_json::json!({"level": c.level, "logged": true, "node_id": node.base_id()}),
+            control: None,
             output_var: if c.output_var.is_empty() {
                 None
             } else {

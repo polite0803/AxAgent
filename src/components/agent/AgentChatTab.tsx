@@ -126,7 +126,7 @@ export function AgentChatTab() {
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
-              <span className="text-[var(--color-text-secondary)]">
+              <span className="text-(--color-text-secondary)">
                 {t("chat.noModelsAvailable")}
               </span>
             }
@@ -137,7 +137,7 @@ export function AgentChatTab() {
 
     return (
       <div className="flex flex-col items-center justify-center h-full p-6 gap-3">
-        <Bot size={40} className="text-[var(--color-text-quaternary)]" />
+        <Bot size={40} className="text-(--color-text-quaternary)" />
         <Text type="secondary" className="text-sm">{t("agentPanel.chatStartHint")}</Text>
         <Button
           type="primary"
@@ -176,8 +176,8 @@ export function AgentChatTab() {
             <div
               className={`max-w-[85%] rounded-lg px-3 py-1.5 text-sm ${
                 msg.role === "user"
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "bg-[var(--color-fill-alter)] text-[var(--color-text)]"
+                  ? "bg-(--color-primary) text-white"
+                  : "bg-(--color-fill-alter) text-(--color-text)"
               }`}
             >
               {msg.content}
@@ -186,7 +186,7 @@ export function AgentChatTab() {
         ))}
       </div>
 
-      <div className="shrink-0 border-t border-[var(--border-color)] p-2 flex gap-2">
+      <div className="shrink-0 border-t border-(--border-color) p-2 flex gap-2">
         <Input
           size="small"
           value={input}

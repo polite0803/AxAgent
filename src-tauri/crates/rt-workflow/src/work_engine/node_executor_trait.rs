@@ -9,8 +9,33 @@ use serde::{Deserialize, Serialize};
 /// Output from a node execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeOutput {
+    #[serde(default)]
     pub output: serde_json::Value,
     pub output_var: Option<String>,
+    /// 可选控制指令（如 Suspend 挂起）。默认 None = 正常完成。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub control: Option<NodeControl>,
+}
+
+/// 节点对引擎发出的控制指令（挂起/恢复等）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum NodeControl {
+    /// 挂起整个工作流，等待外部审批/信号后恢复
+    Suspend { resume_token: String, approval: ApprovalRequest },
+}
+
+/// 审批请求数据（由 ApprovalExecutor 产生，引擎通过 ApprovalOps 持久化）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApprovalRequest {
+    pub execution_id: String,
+    pub node_id: String,
+    pub title: String,
+    pub message: String,
+    pub approver: Option<String>,
+    pub channels: Vec<String>,
+    pub payload: serde_json::Value,
+    pub timeout_secs: u64,
+    pub timeout_action: String,
 }
 
 // ── Error codes ──

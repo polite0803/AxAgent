@@ -190,9 +190,6 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
     try {
       await invoke("proactive_convert_to_nudge", {
         suggestionId: suggestion.id,
-        title: suggestion.title,
-        description: suggestion.description,
-        priority: suggestion.priority,
       });
       // 转化成功后从 proactiveStore 中移除该建议
       useProactiveStore.getState().dismissSuggestion(suggestion.id);

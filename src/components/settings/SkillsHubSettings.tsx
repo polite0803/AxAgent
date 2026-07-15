@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
-import { Button, Card, message, Typography } from "antd";
+import { message } from "@/lib/toast";
+import { Button, Card, Typography } from "antd";
 import { Download, Upload } from "lucide-react";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";

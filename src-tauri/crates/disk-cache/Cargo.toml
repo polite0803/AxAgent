@@ -6,5 +6,5 @@ publish = false
 description = "L2 disk cache backed by SQLite"
 
 [dependencies]
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 serde = { workspace = true, features = ["derive"] }

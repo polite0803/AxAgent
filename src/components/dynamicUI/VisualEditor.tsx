@@ -11,11 +11,14 @@
  * 当 schema 为 null 时自动初始化一个空 root Container。
  */
 
+import { cloneSchema, genId, getDefaultProps } from "@/lib/dynamicUI/utils";
 import type { DynamicComponentType, UISchema } from "@/types";
 import { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "@/types";
 import {
   AppstoreAddOutlined,
   DeleteOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
   HolderOutlined,
   MinusCircleOutlined,
   PlusOutlined,
@@ -23,8 +26,9 @@ import {
 } from "@ant-design/icons";
 import { Button, Collapse, Divider, Empty, Input, Select, Tag, Tooltip } from "antd";
 import type { CollapseProps } from "antd/es/collapse";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { DynamicUIRenderer } from "./DynamicUIRenderer";
 
 import {
   closestCenter,
@@ -119,30 +123,7 @@ const CATEGORY_ICON_MAP: Record<ComponentCategory, string> = {
   misc: "✨",
 };
 
-// ── Schema 工具函数（与 SchemaTreeEditor 共享逻辑）──────────────────────────
-
-let _idCounter = 0;
-
-function genId(prefix: string): string {
-  _idCounter += 1;
-  return `${prefix}-${Date.now()}-${_idCounter}`;
-}
-
-function cloneSchema(node: UISchema): UISchema {
-  return {
-    ...node,
-    props: { ...node.props },
-    children: node.children ? node.children.map(cloneSchema) : undefined,
-    events: node.events ? node.events.map((e) => ({ ...e, actions: [...e.actions] })) : undefined,
-    dataSource: node.dataSource ? { ...node.dataSource, config: { ...node.dataSource.config } } : undefined,
-    conditionalDisplay: node.conditionalDisplay
-      ? Array.isArray(node.conditionalDisplay)
-        ? [...node.conditionalDisplay]
-        : { ...node.conditionalDisplay, rules: [...node.conditionalDisplay.rules] }
-      : undefined,
-    style: node.style ? { ...node.style } : undefined,
-  };
-}
+// ── Schema 工具函数（共享逻辑来自 @/lib/dynamicUI/utils）──────────────────────────
 
 function findNodeById(root: UISchema, id: string): UISchema | null {
   if (root.id === id) { return root; }
@@ -162,51 +143,6 @@ function createEmptyRoot(): UISchema {
     type: "Container",
     props: {},
     children: [],
-  };
-}
-
-/** 根据 i18n t 函数生成组件默认 props */
-function getDefaultProps(t: (key: string) => string): Partial<Record<DynamicComponentType, Record<string, unknown>>> {
-  return {
-    Input: {
-      name: "field",
-      label: t("dynamicUIManager.defaults.inputLabel"),
-      placeholder: t("dynamicUIManager.defaults.inputPlaceholder"),
-    },
-    Number: { name: "number", label: t("dynamicUIManager.defaults.numberLabel") },
-    Select: { name: "select", label: t("dynamicUIManager.defaults.selectLabel"), options: [] },
-    DatePicker: { name: "date", label: t("dynamicUIManager.defaults.dateLabel") },
-    Switch: { name: "enabled", label: t("dynamicUIManager.defaults.switchLabel") },
-    Checkbox: { name: "checked", label: t("dynamicUIManager.defaults.checkboxLabel") },
-    Radio: { name: "option", label: t("dynamicUIManager.defaults.radioLabel"), options: [] },
-    Textarea: {
-      name: "text",
-      label: t("dynamicUIManager.defaults.textareaLabel"),
-      placeholder: t("dynamicUIManager.defaults.inputPlaceholder"),
-    },
-    Button: { text: t("dynamicUIManager.defaults.buttonText") },
-    Text: { content: t("dynamicUIManager.defaults.textContent") },
-    Form: { layout: "vertical", submitText: t("dynamicUIManager.defaults.formSubmit") },
-    Card: { title: t("dynamicUIManager.defaults.cardTitle") },
-    Container: {},
-    Row: {},
-    Column: {},
-    Grid: { columns: 3 },
-    Tabs: {},
-    Accordion: {},
-    Table: { columns: [] },
-    Chart: { chartType: "line" },
-    List: {},
-    Dashboard: { items: [] },
-    CodeEditor: {},
-    FilePreview: {},
-    Markdown: { content: "" },
-    Image: { src: "" },
-    Divider: {},
-    Progress: { percent: 0 },
-    Tag: { text: t("dynamicUIManager.defaults.tagText") },
-    Tree: { treeData: [] },
-    Timeline: { items: [] },
   };
 }
 
@@ -351,7 +287,7 @@ function SortableCanvasItem({ node, isSelected, onSelect, t }: SortableCanvasIte
         <Tag color={isSelected ? "blue" : "geekblue"} className="text-[10px] leading-none px-1 py-0 m-0">
           {node.type}
         </Tag>
-        <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px] font-mono">
+        <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-30 font-mono">
           {node.id}
         </span>
 
@@ -419,7 +355,7 @@ function VisualCanvas({
       {children.length === 0 && (
         <div
           className={`
-          flex flex-col items-center justify-center h-[300px] rounded-lg border-2 border-dashed
+          flex flex-col items-center justify-center h-75 rounded-lg border-2 border-dashed
           ${isOver ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30" : "border-gray-300 dark:border-gray-600"}
           transition-colors
         `}
@@ -431,7 +367,7 @@ function VisualCanvas({
       )}
 
       {/* 子节点列表（可排序） */}
-      <div className="space-y-2">
+      <div className="space-y-2 mb-4">
         {children.map((child) => (
           <SortableCanvasItem
             key={child.id}
@@ -442,6 +378,21 @@ function VisualCanvas({
           />
         ))}
       </div>
+
+      {/* 实时可视化预览 — 渲染实际组件效果 */}
+      {children.length > 0 && (
+        <div
+          className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-[11px] text-gray-400 mb-2">
+            {t("visualEditor.canvas.livePreview")}
+          </div>
+          <div className="border rounded-lg p-3 bg-white dark:bg-gray-800 min-h-30 overflow-auto">
+            <DynamicUIRenderer schema={schema} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -508,7 +459,7 @@ function PropertyPanel({
   const handleTypeChange = (newType: DynamicComponentType) => {
     onUpdateNode((node) => {
       node.type = newType;
-      node.props = { ...(defaultPropsMap[newType] ?? {}), ...node.props };
+      node.props = { ...defaultPropsMap[newType], ...node.props };
     });
   };
 
@@ -597,7 +548,7 @@ function PropertyPanel({
               </div>
             )}
 
-            <div className="space-y-1 max-h-[200px] overflow-auto">
+            <div className="space-y-1 max-h-50 overflow-auto">
               {propEntries.length === 0 && (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -640,7 +591,7 @@ function PropertyPanel({
         <>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">{t("visualEditor.property.style.label")}</label>
-            <div className="space-y-1 max-h-[200px] overflow-auto">
+            <div className="space-y-1 max-h-50 overflow-auto">
               {styleEntries.length === 0 && (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -698,7 +649,7 @@ function PropertyPanel({
             <label className="block text-xs text-gray-500">{t("visualEditor.property.style.quickStyles")}</label>
             {(["padding", "margin", "backgroundColor", "color"] as const).map((prop) => (
               <div key={prop} className="flex gap-2 items-center">
-                <span className="text-[11px] text-gray-500 w-[90px] font-mono shrink-0">{prop}</span>
+                <span className="text-[11px] text-gray-500 w-22.5 font-mono shrink-0">{prop}</span>
                 <Input
                   size="small"
                   className="flex-1 font-mono text-[11px]"
@@ -726,6 +677,7 @@ function PropertyPanel({
 
 export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps) {
   const { t } = useTranslation();
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // 内部 schema（null 时自动创建 root）
   const [internalSchema, setInternalSchema] = useState<UISchema>(() =>
@@ -734,6 +686,22 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
 
   // 选中的节点 ID
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 全屏模式
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Escape 键退出全屏
+  useEffect(() => {
+    if (!isFullscreen) { return; }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsFullscreen(false);
+      }
+    };
+    // 使用 capture 确保在 Antd Modal 的 Escape 处理之前拦截
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
+  }, [isFullscreen]);
 
   // 默认 props 映射
   const defaultPropsMap = useMemo(() => getDefaultProps(t), [t]);
@@ -771,8 +739,10 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
 
       if (!activeData || !overData) { return; }
 
-      // 从组件面板拖入画布根容器
-      if (activeData.type === DRAG_TYPE_PALETTE && overData.type === "canvas-root") {
+      // 从组件面板拖入画布（根容器 或 任何子节点）
+      if (
+        activeData.type === DRAG_TYPE_PALETTE && (overData.type === "canvas-root" || overData.type === DRAG_TYPE_CANVAS)
+      ) {
         const itemType = activeData.itemType as DynamicComponentType;
         setInternalSchema((prev) => {
           const next = cloneSchema(prev);
@@ -780,7 +750,7 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
             version: "1.0",
             id: genId(itemType.toLowerCase()),
             type: itemType,
-            props: { ...(defaultPropsMap[itemType] ?? {}) },
+            props: { ...defaultPropsMap[itemType] },
           };
           next.children = [...(next.children ?? []), newChild];
           return next;
@@ -822,97 +792,124 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
           if (!target) { return prev; }
         }
         updater(target);
-        onChange(next);
         return next;
       });
     },
-    [onChange, selectedId],
+    [selectedId],
   );
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+    <div
+      ref={editorRef}
+      className={`relative flex border rounded-lg overflow-hidden transition-all duration-300 ${
+        isFullscreen ? "fixed inset-0 z-50 bg-white dark:bg-gray-900 h-auto w-auto rounded-none border-0 p-4" : "h-130"
+      }`}
     >
-      <div className="flex h-[520px] border rounded-lg overflow-hidden">
-        {/* 左侧：组件面板 */}
-        <div className="w-[200px] border-r border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-850">
-          <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-              <AppstoreAddOutlined size={12} />
-              {t("visualEditor.palette.title")}
-            </h4>
-          </div>
-          <ComponentPalette t={t} />
-        </div>
+      {/* 全屏切换按钮 */}
+      <button
+        type="button"
+        onClick={() => setIsFullscreen((v) => !v)}
+        className="absolute top-2 right-2 z-20 flex items-center gap-1 text-xs px-2.5 py-1.5 rounded
+                   bg-white/90 dark:bg-gray-700/90 hover:bg-gray-100 dark:hover:bg-gray-600
+                   border border-gray-300 dark:border-gray-500 shadow-md transition-colors"
+      >
+        {isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+        <span>
+          {isFullscreen ? t("visualEditor.exitFullscreen") : t("visualEditor.fullscreen")}
+        </span>
+      </button>
 
-        {/* 中间：画布 */}
-        <VisualCanvas
-          schema={internalSchema}
-          selectedId={isRootSelected ? null : selectedId}
-          onSelectNode={handleSelectNode}
-          t={t}
-        />
-
-        {/* 右侧：属性面板 */}
-        <div className="w-[260px] border-l border-gray-200 dark:border-gray-700 flex-shrink-0 overflow-hidden">
-          <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-              <SettingOutlined size={12} />
-              {t("visualEditor.property.title")}
-            </h4>
-            {selectedNode && !isRootSelected && (
-              <Button
-                size="small"
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => {
-                  setInternalSchema((prev) => {
-                    const next = cloneSchema(prev);
-                    if (next.children) {
-                      next.children = next.children.filter((c) => c.id !== selectedId);
-                      if (selectedId) { setSelectedId(null); }
-                    }
-                    onChange(next);
-                    return next;
-                  });
-                }}
-              >
-                {t("visualEditor.property.delete")}
-              </Button>
-            )}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div
+          ref={editorRef}
+          className={`flex border rounded-lg overflow-hidden transition-all duration-300 ${
+            isFullscreen
+              ? "fixed inset-0 z-50 bg-white dark:bg-gray-900 h-auto w-auto rounded-none border-0 p-4"
+              : "h-130"
+          }`}
+        >
+          {/* 左侧：组件面板 */}
+          <div className="w-50 border-r border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-800">
+            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                <AppstoreAddOutlined size={12} />
+                {t("visualEditor.palette.title")}
+              </h4>
+            </div>
+            <ComponentPalette t={t} />
           </div>
-          <PropertyPanel
-            selectedNode={selectedNode ?? null}
-            isRoot={isRootSelected}
-            onUpdateNode={handleUpdateSelectedNode}
-            defaultPropsMap={defaultPropsMap}
+
+          {/* 中间：画布 */}
+          <VisualCanvas
+            schema={internalSchema}
+            selectedId={isRootSelected ? null : selectedId}
+            onSelectNode={handleSelectNode}
             t={t}
           />
-        </div>
-      </div>
 
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {activeDragId?.startsWith("palette-")
-          ? (
-            <div className="bg-blue-500 text-white text-xs px-3 py-2 rounded shadow-lg flex items-center gap-2">
-              <AppstoreAddOutlined />
-              {activeDragId.replace("palette-", "")}
+          {/* 右侧：属性面板 */}
+          <div className="w-65 border-l border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden">
+            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                <SettingOutlined size={12} />
+                {t("visualEditor.property.title")}
+              </h4>
+              {selectedNode && !isRootSelected && (
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    setInternalSchema((prev) => {
+                      const next = cloneSchema(prev);
+                      if (next.children) {
+                        next.children = next.children.filter((c) => c.id !== selectedId);
+                        if (selectedId) { setSelectedId(null); }
+                      }
+                      onChange(next);
+                      return next;
+                    });
+                  }}
+                >
+                  {t("visualEditor.property.delete")}
+                </Button>
+              )}
             </div>
-          )
-          : activeDragId
-          ? (
-            <div className="bg-gray-700 dark:bg-gray-600 text-white text-xs px-3 py-2 rounded shadow-lg">
-              <HolderOutlined className="mr-1" />
-              {activeDragId}
-            </div>
-          )
-          : null}
-      </DragOverlay>
-    </DndContext>
+            <PropertyPanel
+              selectedNode={selectedNode ?? null}
+              isRoot={isRootSelected}
+              onUpdateNode={handleUpdateSelectedNode}
+              defaultPropsMap={defaultPropsMap}
+              t={t}
+            />
+          </div>
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeDragId?.startsWith("palette-")
+            ? (
+              <div className="bg-blue-500 text-white text-xs px-3 py-2 rounded shadow-lg flex items-center gap-2">
+                <AppstoreAddOutlined />
+                {activeDragId.replace("palette-", "")}
+              </div>
+            )
+            : activeDragId
+            ? (
+              <div className="bg-gray-700 dark:bg-gray-600 text-white text-xs px-3 py-2 rounded shadow-lg">
+                <HolderOutlined className="mr-1" />
+                {activeDragId}
+              </div>
+            )
+            : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 }

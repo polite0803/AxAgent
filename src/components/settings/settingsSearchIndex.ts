@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import i18n from "@/i18n";
 import type { SettingsSection } from "@/types";
 
 /**
@@ -49,14 +50,14 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     section: "conversationSettings",
     group: "model",
     keywords: [
-      "对话设置",
+      i18n.t("settingsSearch.chatSettings"),
       "conversation",
-      "上下文",
+      i18n.t("settingsSearch.context"),
       "context",
-      "历史",
-      "温度",
+      i18n.t("settingsSearch.history"),
+      i18n.t("settingsSearch.temperature"),
       "temperature",
-      "最大token",
+      i18n.t("settingsSearch.maxToken"),
       "max token",
     ],
     items: [
@@ -138,12 +139,12 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     section: "general",
     group: "appearance",
     keywords: [
-      "一般",
+      i18n.t("settingsSearch.general"),
       "general",
-      "语言",
+      i18n.t("settingsSearch.language"),
       "language",
-      "启动",
-      "开机",
+      i18n.t("settingsSearch.startup"),
+      i18n.t("settingsSearch.boot"),
       "自启动",
       "开机自启",
       "托盘",

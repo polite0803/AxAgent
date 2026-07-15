@@ -293,7 +293,7 @@ impl axagent_harness::WeChatWebhookHandler for WeChatAdapter {
         use sha1::Digest;
         let mut hasher = sha1::Sha1::new();
         hasher.update(combined.as_bytes());
-        let digest = format!("{:x}", hasher.finalize());
+        let digest = hex::encode(hasher.finalize());
 
         if digest != signature.to_lowercase() {
             return Err("签名验证失败".to_string());

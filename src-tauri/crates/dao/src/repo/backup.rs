@@ -3,6 +3,7 @@
 use sea_orm::*;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use axagent_entities::backup_manifests;
 use axagent_harness::core_error::{AxAgentError, Result};
@@ -10,6 +11,15 @@ use axagent_harness::path_vars::PathEncoder;
 use axagent_harness::types::BackupManifest;
 use axagent_harness::util_fns::current_rfc3339;
 use axagent_harness::util_fns::gen_id;
+
+/// Global cleanup lock — prevents concurrent `cleanup_old_backups` from
+/// racing on list + delete. Uses a semaphore to allow one at a time since
+/// the operation is lightweight.
+static CLEANUP_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+
+fn cleanup_lock() -> &'static tokio::sync::Mutex<()> {
+    CLEANUP_LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
+}
 
 fn model_to_manifest(m: backup_manifests::Model, encoder: &dyn PathEncoder) -> BackupManifest {
     BackupManifest {
@@ -77,13 +87,13 @@ pub async fn create_backup(
     let am = backup_manifests::ActiveModel {
         id: Set(id.clone()),
         version: Set(format.to_string()),
+        created_at: Set(current_rfc3339()),
         encrypted: Set(0),
         checksum: Set(checksum),
         object_counts_json: Set(object_counts),
         source_app_version: Set(env!("CARGO_PKG_VERSION").to_string()),
         file_path: Set(Some(encoder.encode_path(&file_path.to_string_lossy()))),
         file_size: Set(file_size),
-        ..Default::default()
     };
 
     am.insert(db).await?;
@@ -113,13 +123,24 @@ async fn create_sqlite_backup(db: &DatabaseConnection, dest: &Path) -> Result<()
 async fn create_json_backup(db: &DatabaseConnection, dest: &Path) -> Result<()> {
     use axagent_entities::*;
 
-    let conversations = conversations::Entity::find().all(db).await?;
-    let messages = messages::Entity::find().all(db).await?;
-    let providers = providers::Entity::find().all(db).await?;
-    let provider_keys = provider_keys::Entity::find().all(db).await?;
-    let models = models::Entity::find().all(db).await?;
-    let settings = settings::Entity::find().all(db).await?;
-    let gateway_keys = gateway_keys::Entity::find().all(db).await?;
+    // 在事务中读取以获得跨表一致性快照。SQLite serializable 隔离级别
+    // 保证读取期间的数据一致性，防止中间表写入造成的交叉引用不一致。
+    let txn = db.begin().await.map_err(|e| {
+        AxAgentError::Gateway(format!("Failed to start transaction for backup: {}", e))
+    })?;
+
+    let conversations = conversations::Entity::find().all(&txn).await?;
+    let messages = messages::Entity::find().all(&txn).await?;
+    let providers = providers::Entity::find().all(&txn).await?;
+    let provider_keys = provider_keys::Entity::find().all(&txn).await?;
+    let models = models::Entity::find().all(&txn).await?;
+    let settings = settings::Entity::find().all(&txn).await?;
+    let gateway_keys = gateway_keys::Entity::find().all(&txn).await?;
+
+    // 只读事务，释放锁即可
+    txn.rollback().await.map_err(|e| {
+        AxAgentError::Gateway(format!("Failed to rollback backup transaction: {}", e))
+    })?;
 
     let data = serde_json::json!({
         "version": env!("CARGO_PKG_VERSION"),
@@ -146,10 +167,10 @@ fn compute_file_checksum(path: &Path) -> Result<String> {
     let data = std::fs::read(path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to read file for checksum: {}", e)))?;
     let hash = Sha256::digest(&data);
-    Ok(format!("{:x}", hash))
+    Ok(hex::encode(hash))
 }
 
-async fn count_objects(db: &DatabaseConnection) -> Result<String> {
+pub async fn count_objects(db: &DatabaseConnection) -> Result<String> {
     use axagent_entities::*;
 
     let conv_count = conversations::Entity::find().count(db).await.unwrap_or(0);
@@ -439,6 +460,10 @@ pub async fn cleanup_old_backups(
     max_count: u32,
     encoder: &dyn PathEncoder,
 ) -> Result<u32> {
+    // Serialise concurrent cleanup calls — the Operation is
+    // lightweight and should not race on list + delete.
+    let _guard = cleanup_lock().lock().await;
+
     let all = list_backups(db, encoder).await?;
     if all.len() <= max_count as usize {
         return Ok(0);

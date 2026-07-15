@@ -2,7 +2,9 @@
   "app": {
     "name": "AxAgent",
     "title": "Умное рабочее пространство",
-    "description": "Рабочий ассистент на основе ИИ"
+    "description": "Рабочий ассистент на основе ИИ",
+    "newSkillProposal": "Новое предложение навыка: {name}",
+    "quickBar": "QuickBar"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -37,7 +39,8 @@
     "pipeline": "Конвейер акций",
     "workspace": "Рабочая область акций",
     "portfolio": "Portfolio",
-    "scheduledAnalysis": "Scheduled"
+    "scheduledAnalysis": "Scheduled",
+    "dynamicUI": "Динамические страницы"
   },
   "sidebar": {
     "sectionWork": "Работа",
@@ -54,7 +57,8 @@
     "sectionInvestReview": "Review",
     "closeAgent": "Close Agent",
     "openAgent": "Open Agent",
-    "sectionOverview": "Обзор"
+    "sectionOverview": "Обзор",
+    "agentPanel": "Agent Panel"
   },
   "chat": {
     "newConversation": "Новый чат",
@@ -233,7 +237,10 @@
       "success": "Успешно",
       "error": "Ошибка",
       "input": "Ввод",
-      "output": "Вывод"
+      "output": "Вывод",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "mcp": {
       "title": "Инструменты MCP",
@@ -345,7 +352,10 @@
         "running": "Выполняется",
         "completed": "Завершено",
         "failed": "Ошибка",
-        "skipped": "Пропущено"
+        "skipped": "Пропущено",
+        "strategyOverwrite": "Overwrite",
+        "strategyMerge": "Merge",
+        "strategyDryRun": "Dry run"
       },
       "workflowStatus": {
         "created": "Создано",
@@ -353,7 +363,10 @@
         "completed": "Завершено",
         "partiallyCompleted": "Частично завершено",
         "failed": "Не удалось",
-        "cancelled": "Отменено"
+        "cancelled": "Отменено",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "dagVisualization": "Визуализация DAG",
       "dagHint": "Вставьте этот код Mermaid в рендерер Mermaid для визуализации DAG.",
@@ -844,7 +857,10 @@
       "askUser": "вопросы",
       "loading": "Загрузка...",
       "failed": "Не удалось",
-      "iteration": "итераций"
+      "iteration": "итераций",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "benchmarks": {
       "failed": "Не удалось",
@@ -1009,7 +1025,10 @@
       "running": "{{running}} выполняется",
       "cancelled": "Отменено",
       "pending": "Ожидание",
-      "totalEvents": "{{total}} событий"
+      "totalEvents": "{{total}} событий",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "agent": {
       "acceptEdits": "Принять правки",
@@ -1041,7 +1060,10 @@
       "goToEnd": "К концу",
       "goToStart": "К началу",
       "nextStep": "Следующий шаг",
-      "prevStep": "Предыдущий шаг"
+      "prevStep": "Предыдущий шаг",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "switchedTo": "Переключено на: {{name}}",
     "contextGraph": {
@@ -1177,7 +1199,12 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "Разговор очищен",
+    "createConversationFailed": "Не удалось создать диалог",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "gateway": {
     "title": "Шлюз",
@@ -1314,7 +1341,10 @@
     "tab": {
       "monitor": "Монитор"
     },
-    "cacheHitTokens": "Токены попадания в кэш"
+    "cacheHitTokens": "Токены попадания в кэш",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "settings": {
     "title": "Настройки",
@@ -1831,7 +1861,14 @@
       "importErrors": "Error Details",
       "importedCount": "Imported",
       "errorCount": "Failed",
-      "importSelectFirst": "Please select a folder first"
+      "importSelectFirst": "Please select a folder first",
+      "autoIndex": "Автоматическая индексация",
+      "autoIndexHint": "Автоматически обновлять индекс при изменении файлов",
+      "maxResults": "Макс. количество результатов",
+      "scoreThreshold": "Порог оценки",
+      "vectorStore": "Векторное хранилище",
+      "webCrawlDepth": "Глубина обхода веб-страниц",
+      "webCrawlPages": "Количество страниц обхода"
     },
     "rag": {
       "advanced": "Расширенные настройки извлечения",
@@ -2031,7 +2068,8 @@
       "restartRequired": "Изменения вступят в силу полностью после перезапуска",
       "restartNow": "Перезапустить сейчас",
       "restartLater": "Перезапустить позже",
-      "desc": "Настроить расположение и лимиты хранилища данных"
+      "desc": "Настроить расположение и лимиты хранилища данных",
+      "openFolderError": "Open folder failed: {error}"
     },
     "filterProviders": "Поиск провайдеров...",
     "initProviders": "Инициализировать провайдеры",
@@ -2230,7 +2268,10 @@
       "executed": "Выполнено",
       "quickCreated": "Быстро создано",
       "unknownTemplateType": "",
-      "refreshed": "Обновлено"
+      "refreshed": "Обновлено",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "titleSummaryPromptDefault": "На основе следующего содержания разговора создайте короткий и лаконичный заголовок (не более 20 символов). Верните только текст заголовка, без кавычек и дополнительных пояснений.",
     "compressionPromptDefault": "Вы — помощник по суммаризации разговоров. Сожмите следующую историю разговора в краткое резюме.\n\nТребования:\n1. Сохраните все выраженные пользователем потребности, предпочтения и решения\n2. Сохраните все ключевые технические детали (фрагменты кода, конфигурации, сообщения об ошибках и т.д.)\n3. Сохраните незавершённые задачи и нерешённые вопросы\n4. Оформите в виде кратких пунктов\n5. Резюме должно быть кратким, не более 500 слов",
@@ -2643,7 +2684,9 @@
       "statusConnecting": "Подключение",
       "lastActivity": "Последняя активность",
       "activeSessions": "Активные сессии",
-      "noStatuses": "Нет статусов"
+      "noStatuses": "Нет статусов",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Префикс Marker (по умолчанию CHAT2API, обычно изменять не нужно)"
     },
     "advanced": "Расширенные настройки",
     "evolution": {
@@ -2666,7 +2709,10 @@
       "stopped": "Stopped",
       "start": "Start",
       "stop": "Stop",
-      "noLogs": "No logs yet"
+      "noLogs": "No logs yet",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "promptTemplates": "Шаблоны промптов",
     "appConfig": "Панель управления агентом",
@@ -2714,7 +2760,68 @@
       "jsonEdit": "JSON-редактор"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Префикс маркера (по умолчанию CHAT2API, обычно не нужно менять)"
+    "markerPrefixDesc": "Префикс маркера (по умолчанию CHAT2API, обычно не нужно менять)",
+    "persona": {
+      "activated": "Активировано",
+      "activate": "Активировать",
+      "cancel": "Отмена",
+      "create": "Новая личность",
+      "createFailed": "Ошибка создания",
+      "createFirst": "Выберите или создайте личность",
+      "description": "Управление личностью агента и определением души",
+      "editFailed": "Ошибка редактирования",
+      "emptyContent": "(пусто)",
+      "nameLabel": "Имя",
+      "namePlaceholder": "my-persona",
+      "noPersona": "Нет личности",
+      "personaList": "Список личностей",
+      "save": "Сохранить",
+      "saved": "Сохранено",
+      "saveFailed": "Ошибка сохранения",
+      "switchFailed": "Ошибка переключения",
+      "switchSuccess": "Переключено на {{name}}",
+      "title": "Управление личностями",
+      "soul": {
+        "label": "SOUL.md (Определение души)",
+        "description": "Базовое определение личности и стиля поведения агента",
+        "placeholder": "Введите определение души..."
+      },
+      "identity": {
+        "label": "IDENTITY.md (Декларация идентичности)",
+        "description": "Декларация идентичности агента и информация о роли",
+        "placeholder": "Декларация идентичности агента..."
+      },
+      "user": {
+        "label": "USER.md (Профиль пользователя)",
+        "description": "Описание профиля пользователя, предпочтений и потребностей",
+        "placeholder": "Информация профиля пользователя..."
+      },
+      "autoLearn": {
+        "button": "Автообучение из разговора",
+        "title": "Автообучение из разговора",
+        "description": "Извлекает стиль кода и предпочтения в общении из истории разговора и автоматически обновляет USER.md активного Persona",
+        "selectConversation": "Выберите разговор",
+        "selectPlaceholder": "Выберите разговор для обучения",
+        "noConversations": "Нет доступных разговоров",
+        "start": "Начать обучение",
+        "close": "Закрыть",
+        "success": "Обучено и применено к Persona «{{name}}»",
+        "successTitle": "Обучение завершено, применено к Persona «{{name}}»",
+        "noSamples": "Не найдено пригодных образцов кода или сообщений",
+        "noSamplesTitle": "Пригодные образцы не найдены",
+        "failed": "Ошибка автообучения",
+        "updatedFields": "Обновлённые поля"
+      },
+      "name": "Имя",
+      "systemPrompt": "Системный промпт",
+      "type": "Тип",
+      "visibility": "Видимость"
+    },
+    "toolCallingMode": "Tool Calling Mode",
+    "toolCallingModeDesc": "Select the tool calling mode for this provider",
+    "toolCallingModeManaged": "Managed (AxAgent injects tools via system prompt, parses text for tool_calls — use for Chat2API-like gateways)",
+    "toolCallingModeNative": "Native (model built-in function calling)",
+    "groupVoice": "Голос"
   },
   "backup": {
     "title": "Центр резервного копирования",
@@ -2785,7 +2892,11 @@
       "lastSync": "Последняя синхронизация"
     },
     "backupSuccess": "Резервная копия создана",
-    "error": "Операция не удалась"
+    "error": "Операция не удалась",
+    "openFolderError": "Open folder failed: {error}",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "common": {
     "confirm": "Подтвердить",
@@ -2934,7 +3045,8 @@
     "required": "Обязательно",
     "details": "Details",
     "more": "More",
-    "action": "Действие"
+    "action": "Действие",
+    "dismiss": "Закрыть"
   },
   "image": {
     "loadError": "Ошибка загрузки изображения",
@@ -2952,7 +3064,13 @@
     "disconnecting": "Отключение...",
     "startCall": "Начать звонок",
     "endCall": "Завершить звонок",
-    "toggleMute": "Переключить микрофон"
+    "toggleMute": "Переключить микрофон",
+    "wakeup": "Голосовое пробуждение",
+    "wakeupActive": "Ожидание активации",
+    "voiceType": "Тип голоса",
+    "sttProvider": "Провайдер STT",
+    "ttsProvider": "Провайдер TTS",
+    "providerAuto": "Авто (использовать того же провайдера LLM)"
   },
   "shortcuts": {
     "newConversation": "Новый чат",
@@ -3316,7 +3434,10 @@
     },
     "status": {
       "running": "Работает",
-      "completed": "Завершено"
+      "completed": "Завершено",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "count": "{{running}} работает / {{completed}} завершено",
     "noAgents": "Нет зарегистрированных агентов",
@@ -3338,7 +3459,10 @@
     "loading": "Загрузка...",
     "failed": "не удалось",
     "iteration": "итерации",
-    "askUser": "вопрос(ы)"
+    "askUser": "вопрос(ы)",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "profile": {
     "loading": "Загрузка профиля...",
@@ -3660,7 +3784,11 @@
       "evolutionFallback": "Оптимизация",
       "verified": "Проверено",
       "hasEvolution": "Есть записи эволюции",
-      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
+      "progressAnalyzing": "Анализ намерения",
+      "progressMatching": "Сопоставление узлов",
+      "progressBuilding": "Построение рабочего процесса",
+      "progressOptimizing": "Оптимизация"
     },
     "previewInDevelopment": "Функция предпросмотра в разработке",
     "publishInDevelopment": "Функция публикации в разработке",
@@ -3778,7 +3906,12 @@
       "rollback": "Rollback to This Version",
       "rollbackConfirm": "Confirm rollback?",
       "rollbackTo": "Rollback to {{version}}",
-      "rolledBack": "Rolled back"
+      "rolledBack": "Rolled back",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "Просмотр различий",
+      "viewSnapshot": "Просмотр снимка",
+      "restore": "Восстановить"
     },
     "versionHistoryLoadFailed": "Не удалось загрузить историю версий",
     "versionLoaded": "Версия{{version}} loaded",
@@ -4191,7 +4324,10 @@
       "noTraceData": "No trace data",
       "showSpanTree": "Show Span Tree",
       "hideSpanTree": "Hide Span Tree",
-      "noSpanData": "No span data resolved"
+      "noSpanData": "No span data resolved",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "validation": {
       "validation": {
@@ -4299,7 +4435,11 @@
       "workflowRef": "Workflow Ref",
       "phaseSeparator": "Phase Separator",
       "groupFrame": "Group",
-      "toolSetSelector": "Tool Set"
+      "toolSetSelector": "Tool Set",
+      "webhook": "Webhook",
+      "apiCall": "Вызов API",
+      "script": "Скрипт",
+      "timer": "Таймер"
     },
     "undo": "Отменить",
     "redo": "Повторить",
@@ -4417,7 +4557,8 @@
         "CACHE_DESERIALIZE_FAILED": "Ошибка десериализации кэшированных данных",
         "MODEL_NOT_CONFIGURED": "Модель не настроена",
         "NODE_NOT_FOUND": "Узел не найден"
-      }
+      },
+      "saveFailed": "Не удалось сохранить"
     },
     "agentNode": {
       "tools": "Инструменты",
@@ -4513,7 +4654,9 @@
       "configureHint": "Configure trigger conditions and parameters",
       "statusActive": "Running",
       "statusDisabled": "Disabled",
-      "statusUnconfigured": "Unconfigured"
+      "statusUnconfigured": "Unconfigured",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "Не задано",
@@ -4564,7 +4707,10 @@
       "clickToExpandPorts": "Click to expand ports",
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "type": "Type"
+      "type": "Type",
+      "description": "Описание",
+      "name": "Имя",
+      "version": "Версия"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (Динамический инструмент)",
@@ -4616,7 +4762,9 @@
       },
       "trigger": {
         "cronHint": "Стандартное cron-выражение, напр. `0 9 * * *`."
-      }
+      },
+      "fix": "Исправить",
+      "optimize": "Оптимизировать"
     },
     "diagnostic": {
       "title": "Диагностика воркфлоу",
@@ -4905,7 +5053,11 @@
       "condition": "Routing",
       "loop": "Loop",
       "container": "Container",
-      "storage": "Storage"
+      "storage": "Storage",
+      "data": "Данные",
+      "logic": "Логика",
+      "trigger": "Триггер",
+      "transform": "Преобразование"
     },
     "layout": {
       "suggestTitle": {
@@ -4969,7 +5121,51 @@
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
-      }
+      },
+      "autoLayout": "Авто-раскладка",
+      "canvas": "Холст",
+      "collapseAll": "Свернуть все",
+      "condensed": "Компактный",
+      "connectionMode": "Режим соединения",
+      "defaultEdgeType": "Тип соединения по умолчанию",
+      "expandAll": "Развернуть все",
+      "fitView": "По размеру окна",
+      "floating": "Плавающий",
+      "gridSize": "Размер сетки",
+      "horizontal": "Горизонтально",
+      "layoutDirection": "Направление раскладки",
+      "locked": "Заблокировано",
+      "minimap": "Мини-карта",
+      "nodeSize": "Размер узла",
+      "orientation": "Ориентация",
+      "portLayout": "Раскладка портов",
+      "readonly": "Только чтение",
+      "showGrid": "Показать сетку",
+      "snapToGrid": "Привязка к сетке",
+      "straight": "Прямая линия",
+      "strict": "Строгий",
+      "vertical": "Вертикально",
+      "zoomControl": "Управление масштабом",
+      "bezier": "Кривая Безье",
+      "smoothStep": "Сглаженная лестница",
+      "free": "Свободный",
+      "ortho": "Ортогональный",
+      "large": "Большой",
+      "medium": "Средний",
+      "small": "Малый",
+      "compact": "Компактный",
+      "standard": "Стандартный",
+      "comfortable": "Комфортный",
+      "left": "Слева",
+      "right": "Справа",
+      "top": "Сверху",
+      "bottom": "Снизу",
+      "center": "По центру",
+      "border": "Граница",
+      "gradient": "Градиент",
+      "solid": "Сплошная",
+      "dashed": "Пунктир",
+      "dotted": "Точечная"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -4998,24 +5194,50 @@
       "importPresetsTitle": "Import built-in experts",
       "importPresets": "Import",
       "noTemplates": "No templates",
-      "noMatchFound": "No matching templates"
+      "noMatchFound": "No matching templates",
+      "blank": "Пустой рабочий процесс",
+      "category": "Категория",
+      "createConfirm": "Создать новый рабочий процесс из этого шаблона?",
+      "description": "Описание",
+      "empty": "Нет шаблонов",
+      "name": "Имя шаблона",
+      "official": "Официальные шаблоны",
+      "popular": "Популярные",
+      "preview": "Предпросмотр",
+      "recent": "Недавние",
+      "title": "Шаблоны рабочих процессов",
+      "useTemplate": "Использовать шаблон",
+      "version": "Версия",
+      "community": "Сообщество",
+      "recommended": "Рекомендуемые",
+      "all": "Все"
     },
     "saveAsImage": "Save as Image",
     "exportEmpty": "No nodes to export",
     "containerNode": {
       "nodes": "nodes",
-      "branchTimeout": "Branch timeout configured"
+      "branchTimeout": "Branch timeout configured",
+      "collapse": "Свернуть",
+      "expand": "Развернуть"
     },
     "swarmNode": {
       "agents": "Agents",
       "rounds": "rounds",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "addAgent": "Add Agent"
+      "addAgent": "Add Agent",
+      "agent": "Агент",
+      "handoff": "Передача",
+      "mode": "Режим",
+      "parallel": "Параллельно",
+      "sequential": "Последовательно",
+      "task": "Задача"
     },
     "groupNode": {
       "untitled": "Group",
-      "folded": "folded"
+      "folded": "folded",
+      "add": "Добавить группу",
+      "remove": "Удалить группу"
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
@@ -5027,7 +5249,10 @@
       "title": "Workflow Legend",
       "toggleLabel": "{{action}} legend",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "end": "Конец",
+      "start": "Начало",
+      "running": "Выполняется"
     },
     "back": "Back",
     "caseLabel": "Case {{n}}",
@@ -5049,7 +5274,11 @@
       "targetWorkflow": "Target Workflow",
       "contextMode": "Context Mode",
       "inherit": "Inherit",
-      "isolated": "Isolated"
+      "isolated": "Isolated",
+      "version": "",
+      "inputMapping": "",
+      "selectWorkflow": "",
+      "title": ""
     },
     "durationMinutes": "{{minutes}} min",
     "durationSeconds": "{{seconds}} sec",
@@ -5073,11 +5302,243 @@
       "current": "Current version",
       "optimizedConfig": "Optimized node configuration",
       "addedBranch": "Added conditional branch",
-      "initialCreation": "Initial creation"
+      "initialCreation": "Initial creation",
+      "action": "Action",
+      "changeSummary": "Change Summary",
+      "clearSelection": "Clear selection",
+      "compareHint": "Comparing version {{v1}} with version {{v2}}",
+      "compareSelected": "Compare selected ({{selected}}/2)",
+      "confirmRestore": "Restore to version {{version}}?",
+      "currentWorkflowWillBeOverwritten": "Current workflow will be overwritten by the new version",
+      "deletedNode": "- Removed node: {{id}} ({{desc}})",
+      "modifiedNode": "~ Modified node: {{id}} ({{desc}})",
+      "newNode": "+ Added node: {{id}} ({{desc}})",
+      "noVersionHistory": "No version history",
+      "restoreToVersion": "Restore to this version",
+      "status": "Status",
+      "timeline": "Timeline",
+      "updateTime": "Update Time",
+      "version": "Version",
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "Архивировано",
+      "changelog": "Журнал изменений",
+      "comparison": "Сравнение версий",
+      "diff": "Различия",
+      "draft": "Черновик",
+      "latest": "Последняя",
+      "noHistory": "Нет истории версий",
+      "renamed": "Переименовано",
+      "restored": "Восстановлено",
+      "updatedAt": "Время обновления"
     },
     "duplicateSuffix": "{{name}} (copy)",
     "fromTemplate": "{{name}} (from template)",
-    "defaultWorkflowName": "New Workflow"
+    "defaultWorkflowName": "New Workflow",
+    "approval": {
+      "panelTitle": "Утверждения",
+      "noPending": "Нет ожидающих утверждений",
+      "message": "Сообщение",
+      "workflowId": "Workflow",
+      "status": "Статус",
+      "expiresAt": "Истекает",
+      "actions": "Действия",
+      "decision": "Решение",
+      "approve": "Утвердить",
+      "reject": "Отклонить",
+      "cancel": "Отмена",
+      "notePlaceholder": "Добавить заметку (необязательно)"
+    },
+    "evolution": {
+      "abTestTitle": "A/B Test ({{count}})",
+      "abTestWon": "A/B Won",
+      "confidence": "Confidence: {{value}}%",
+      "latency": "Latency {{diff}}",
+      "noActiveABTest": "No active A/B test",
+      "noEvolutionRecord": "No evolution record — trigger first evolution",
+      "noHistory": "No evolution history",
+      "noNodes": "No nodes on current canvas",
+      "successRate": "Success Rate {{diff}}",
+      "title": "Evolution Status",
+      "triggerAll": "Trigger All Evolution",
+      "triggerEvolution": "Trigger Evolution",
+      "winner": "{{winner}} Won",
+      "apply": "Применить",
+      "current": "Текущая версия",
+      "diff": "Различия",
+      "evolutionHistory": "История эволюции",
+      "generation": "Поколение {{n}}",
+      "improved": "Улучшено",
+      "performance": "Производительность",
+      "revert": "Восстановить",
+      "score": "Оценка",
+      "viewDiff": "Просмотр различий"
+    },
+    "executor": {
+      "close": "Close",
+      "duration": "Duration",
+      "execute": "Execute Workflow",
+      "executing": "Executing...",
+      "executionFailed": "Execution Failed",
+      "executionLog": "Execution Log",
+      "executionSuccess": "Execution Successful",
+      "inputVariables": "Input Variables",
+      "nodeExecutionStatus": "Node Execution Status",
+      "outputResult": "Output Result",
+      "status": "Status",
+      "failed": "Неудача",
+      "inputVars": "Входные переменные",
+      "nodeStatus": "Статус выполнения узла",
+      "runningNode": "Выполнение узла рабочего процесса",
+      "success": "Успех",
+      "waiting": "Ожидание"
+    },
+    "list": {
+      "active": "Active",
+      "all": "All",
+      "archived": "Archived",
+      "createNew": "New Workflow",
+      "deleteConfirm": "Are you sure you want to delete this workflow?",
+      "draft": "Draft",
+      "duplicate": "Duplicate",
+      "edgeCount": "{{count}} edges",
+      "edit": "Edit",
+      "empty": "No workflows, click the button above to create",
+      "noDescription": "No description",
+      "nodeCount": "{{count}} nodes",
+      "searchPlaceholder": "Search workflows...",
+      "templates": "Templates",
+      "title": "Workflows",
+      "confirmDelete": "Удалить этот рабочий процесс?",
+      "createWorkflow": "Создать рабочий процесс",
+      "noWorkflows": "Нет рабочих процессов. Нажмите кнопку выше, чтобы создать.",
+      "search": "Поиск рабочих процессов"
+    },
+    "log": {
+      "clear": "Clear Logs",
+      "empty": "No logs",
+      "export": "Export Logs",
+      "noLogs": "Нет журналов"
+    },
+    "nl2Skill": {
+      "applySkill": "Apply This Skill",
+      "optional": "Optional",
+      "parameters": "Parameters",
+      "parametersLabel": "Parameters: ",
+      "parsingPhases": "Parsing Phases",
+      "required": "Required",
+      "tools": "Tools",
+      "triggers": "Triggers",
+      "triggersLabel": "Triggers: ",
+      "unit": "",
+      "generate": "Сгенерировать навык",
+      "generating": "Генерация...",
+      "instruction": "Опишите нужный навык",
+      "preview": "Предпросмотр",
+      "result": "Результат генерации",
+      "title": "Навык из естественного языка",
+      "validate": "Проверка",
+      "validating": "Проверка..."
+    },
+    "nl2UI": {
+      "applyUI": "Apply This UI",
+      "componentCount": "Component Count",
+      "components": "{{count}} components",
+      "depthLevel": "Depth",
+      "rootType": "Root Type",
+      "generate": "Сгенерировать",
+      "generating": "Генерация...",
+      "instruction": "Опишите нужный UI",
+      "result": "Результат генерации",
+      "title": "UI из естественного языка"
+    },
+    "nlParser": {
+      "aiSuggestion": "AI Suggestion",
+      "alternatives": "Alternatives",
+      "applySolution": "Apply This Plan",
+      "confidence": "Parse Confidence",
+      "constraintsOptional": "Constraints (Optional)",
+      "constraintsPlaceholder": "e.g.: execution time no more than 5 minutes, retry 3 times on error",
+      "edges": "Edges",
+      "examplePlaceholder": "e.g. {{example}}",
+      "naturalLanguageDesc": "Natural Language Description",
+      "nodes": "Nodes",
+      "parseGenerate": "Parse & Generate",
+      "parseResult": "Parse Result",
+      "parsing": "Parsing...",
+      "planLabel": "Plan {{index}}: {{desc}}",
+      "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
+      "variables": "Variables",
+      "constraints": "Ограничения (необязательно)",
+      "description": "Описание на естественном языке",
+      "generating": "Разбор...",
+      "suggestions": "Предложения ИИ",
+      "example1": "Каждый день в 8 утра получать последние статьи с указанного сайта",
+      "example2": "При получении нового письма анализировать содержимое с помощью ИИ и уведомлять, если срочно",
+      "example3": "После отправки формы пользователем сначала проверять данные, затем записывать в базу",
+      "exampleConstraint": "Например: время выполнения не более 5 минут, повтор при ошибке"
+    },
+    "saveFailed": "Не удалось сохранить",
+    "workflowRefNode": {
+      "noWorkflow": ""
+    },
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## ИИ-сгенерированное изображение",
+      "model": "**Модель**",
+      "duration": "**Время**",
+      "savedToArtifact": "Сохранено в Artifact"
+    },
+    "chatSidebar": {
+      "menu": "Меню"
+    },
+    "inputArea": {
+      "resizeHandle": "Изменить размер",
+      "uploadFile": "Загрузить файл"
+    },
+    "appHeader": {
+      "agentPanel": "Панель агента"
+    },
+    "sidebar": {
+      "agentPanel": "Панель агента"
+    },
+    "errorBoundary": {
+      "pageError": "Ошибка страницы"
+    },
+    "chatPage": {
+      "resizeHandle": "Изменить размер"
+    },
+    "spanDetail": {
+      "parentSpan": "Родительский Span"
+    },
+    "traceDetail": {
+      "userId": "ID пользователя"
+    },
+    "settingsPanel": {
+      "featureFlags": "Флаги функций"
+    },
+    "skillTimeline": {
+      "promptDiff": "Сравнение промптов"
+    },
+    "chartPreview": {
+      "title": "Предпросмотр графика"
+    },
+    "htmlPreview": {
+      "title": "Предпросмотр HTML"
+    },
+    "reactPreview": {
+      "title": "Предпросмотр React"
+    }
   },
   "atomicSkill": {
     "entryType": "Тип записи",
@@ -5160,10 +5621,28 @@
       "save": "Save Checkpoint",
       "empty": "No checkpoints",
       "saveModal": "Save Checkpoint",
-      "namePlaceholder": "Enter checkpoint name..."
+      "namePlaceholder": "Enter checkpoint name...",
+      "action": "Action",
+      "delete": "Delete",
+      "load": "Load",
+      "loss": "Loss",
+      "name": "Name",
+      "reward": "Reward",
+      "step": "Step",
+      "time": "Time",
+      "noCheckpoints": "Нет контрольных точек"
     },
     "monitor": {
-      "idle": "Training not started. Configure and start training."
+      "idle": "Training not started. Configure and start training.",
+      "currentStep": "Current Step",
+      "insufficientData": "Insufficient Data",
+      "loss": "Loss",
+      "lossCurve": "Loss Curve",
+      "reward": "Reward",
+      "rewardCurve": "Reward Curve",
+      "speed": "Speed",
+      "step": "Текущий шаг",
+      "title": "Мониторинг обучения"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -5172,6 +5651,24 @@
       "config": "Config",
       "monitor": "Monitor",
       "checkpoints": "Checkpoints"
+    },
+    "config": {
+      "algorithm": "Algorithm",
+      "batchSize": "Batch Size",
+      "epochs": "Epochs",
+      "learningRate": "Learning Rate",
+      "maxSteps": "Max Steps",
+      "title": "Настройки обучения"
+    },
+    "status": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "idle": "Idle",
+      "paused": "Paused",
+      "running": "Training",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     }
   },
   "devtools": {
@@ -5340,7 +5837,10 @@
     "none": "Нет",
     "response": "Ответ",
     "report": "Отчёт",
-    "tasks": "Задачи"
+    "tasks": "Задачи",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "traceExplorer": {
     "selectTrace": "Выберите трассировку для просмотра деталей",
@@ -5427,7 +5927,10 @@
         "name": "Sandbox Executor",
         "desc": "Securely executes untrusted code in an isolated environment to prevent system damage"
       }
-    }
+    },
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "promptTemplates": {
     "title": "Шаблоны промптов",
@@ -5544,7 +6047,8 @@
   "searchProvider": {
     "tavily": "Tavily",
     "zhipu": "Zhipu",
-    "bocha": "Bocha"
+    "bocha": "Bocha",
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "В сети",
@@ -5563,7 +6067,10 @@
     "analyzeOutput": "Анализировать вывод",
     "clear": "Очистить",
     "killProcess": "Завершить процесс",
-    "closeSession": "Закрыть сессию"
+    "closeSession": "Закрыть сессию",
+    "maximize": "Развернуть",
+    "restore": "Восстановить",
+    "more": "ещё {{count}}"
   },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
@@ -5766,7 +6273,10 @@
       "operationDetail": "Детали операции",
       "running": "Выполняется",
       "title": "Журнал операций",
-      "total": "Всего"
+      "total": "Всего",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "noSources": "Нет источников",
     "noteNotFound": "Заметка не найдена",
@@ -5964,7 +6474,9 @@
       "path": "Путь",
       "status": "Статус",
       "title": "Заголовок",
-      "type": "Тип"
+      "type": "Тип",
+      "mimeType": "MIME-тип",
+      "size": "Размер"
     },
     "wikiForm": {
       "description": "Описание",
@@ -5973,7 +6485,9 @@
     },
     "wikiMeta": {
       "rootPath": "Корневой путь"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "notification": {
     "clear": "Очистить",
@@ -5990,7 +6504,9 @@
     "execute": "Выполнить",
     "learningSuggestions": "Предложения по обучению",
     "snooze30": "Отложить (30 мин)",
-    "noSuggestions": "Нет предложений"
+    "noSuggestions": "Нет предложений",
+    "snooze15": "Отложить (15 мин)",
+    "snooze1h": "Отложить (1 час)"
   },
   "proactive": {
     "accept": "Принять",
@@ -6052,6 +6568,13 @@
         "improvement": "Улучшение",
         "warning": "Предупреждение"
       }
+    },
+    "prefetchTypes": {
+      "codeCompletion": "Автодополнение кода",
+      "searchResults": "Результаты поиска",
+      "documentation": "Документация",
+      "contextAnalysis": "Анализ контекста",
+      "toolCache": "Кэш инструментов"
     }
   },
   "review": {
@@ -6279,7 +6802,10 @@
       "cancelled": "Отменено",
       "draft": "Черновик",
       "approved_plan": "Одобрено",
-      "executing_plan": "Выполнить одобренные шаги"
+      "executing_plan": "Выполнить одобренные шаги",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "approveAll": "Одобрить все и выполнить",
     "approveStep": "Одобрить этот шаг",
@@ -6345,7 +6871,9 @@
     "referenceFile": "Ссылка на файл или путь",
     "commands": "Команды",
     "mentions": "Упоминания",
-    "filterHint": "Введите для фильтра, ↑↓ для выбора, Enter для подтверждения"
+    "filterHint": "Введите для фильтра, ↑↓ для выбора, Enter для подтверждения",
+    "newConversation": "Новый разговор",
+    "stopGeneration": "Остановить генерацию"
   },
   "onboarding": {
     "welcome": "Добро пожаловать в AxAgent",
@@ -6392,7 +6920,9 @@
     "moreModels": "+{{count}} ещё",
     "targetNotFound": "Целевой элемент не найден, сначала перейдите на страницу чата",
     "goToSettings": "Перейти к настройкам, чтобы добавить API-ключ",
-    "presetApplyFailed": "Ошибка применения предустановки"
+    "presetApplyFailed": "Ошибка применения предустановки",
+    "downloadOllama": "Скачать Ollama",
+    "applying": "Применение…"
   },
   "help": {
     "title": "Центр помощи",
@@ -6609,7 +7139,10 @@
       "running": "Выполняется",
       "completed": "Завершено",
       "failed": "Не удалось",
-      "cancelled": "Отменено"
+      "cancelled": "Отменено",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "messageLog": "Журнал сообщений ({count})",
     "attempts": "Попытка {attempts}/{maxRetries}",
@@ -6622,14 +7155,20 @@
       "worker": "Worker",
       "step": "Step"
     },
-    "summary": "Agent Pool ({completed}/{total})"
+    "summary": "Agent Pool ({completed}/{total})",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "agentHierarchy": {
     "running": "Выполняется",
     "completed": "Завершено",
     "failed": "Не удалось",
     "title": "Иерархия агентов",
-    "count": "({count})"
+    "count": "({count})",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "progressBar": {
     "tool": {
@@ -6963,7 +7502,10 @@
       "completed": "Завершено",
       "failed": "Не удалось",
       "running": "Выполняется",
-      "total": "Всего"
+      "total": "Всего",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "tab": {
       "dataset": "Набор данных",
@@ -7386,7 +7928,10 @@
     "openaiApiKeyDalle": "Ключ API OpenAI (DALL-E)",
     "openaiApiKeyPlaceholder": "sk-...",
     "openaiBaseUrl": "Базовый URL OpenAI",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "Новый",
@@ -7450,7 +7995,10 @@
     "completed": "Консолидация завершена",
     "completedTitle": "Сон завершён ({{secs}}с)",
     "totalConsolidations": "Всего {{count}} консолидаций",
-    "statsSummary": "{{memories}} памятей · {{patterns}} паттернов"
+    "statsSummary": "{{memories}} памятей · {{patterns}} паттернов",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "expertBadge": {
     "generalAssistant": "Общий ассистент",
@@ -7472,19 +8020,23 @@
     "teamCreated": "Команда \"{{name}}\" создана с {{count}} участниками"
   },
   "chatPage": {
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "Конфигурация SSH",
     "connect": "Подключить",
     "host": "Хост",
     "port": "Порт",
-    "username": "Имя пользователя"
+    "username": "Имя пользователя",
+    "hostPlaceholder": "192.168.1.100 или server.example.com",
+    "keyPathOptional": "Путь к SSH-ключу (необязательно)"
   },
   "dockerConfig": {
     "title": "Конфигурация Docker",
     "connect": "Подключить",
-    "socketPath": "Путь к сокету Docker"
+    "socketPath": "Путь к сокету Docker",
+    "defaultHint": "Оставьте пустым для сокета Docker по умолчанию"
   },
   "datasetManager": {
     "title": "Менеджер датасетов для дообучения",
@@ -7527,7 +8079,10 @@
     "loss": "Потери",
     "loraOutput": "Вывод LoRA",
     "action": "Действие",
-    "ready": "Готово"
+    "ready": "Готово",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "errorRecovery": {
     "noError": "Нет ошибки для восстановления",
@@ -7684,7 +8239,14 @@
       "storeInsightsHint": "Insights will be saved locally and available across sessions",
       "subtitle": "Configure auto-reflection and insight management",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "Минимальная уверенность",
+      "minConfidenceHint": "Инсайты с уверенностью ниже этого значения будут проигнорированы",
+      "strategy": "Стратегия рефлексии",
+      "strategyHint": "Выберите стратегию запуска рефлексии",
+      "triggerOnComplete": "Запускать при завершении",
+      "triggerOnError": "Запускать при ошибке",
+      "triggerOnIdle": "Запускать при простое"
     },
     "useful": "Useful"
   },
@@ -7846,7 +8408,8 @@
     "terminalContext": "Терминал",
     "closeAgentPanel": "Close Agent Panel",
     "openAgentPanel": "Open Agent Panel",
-    "dashboardContext": "Обзор системы"
+    "dashboardContext": "Обзор системы",
+    "agentPanel": "Agent Panel"
   },
   "input": {
     "recordAudio": "Записать аудио",
@@ -7888,7 +8451,14 @@
       "planner": "Planner",
       "researcher": "Researcher",
       "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "synthesizer": "Synthesizer",
+      "analyst": "Аналитик",
+      "decisionMaker": "Лицо, принимающее решения",
+      "riskManager": "Менеджер по рискам",
+      "strategist": "Стратег",
+      "supervisor": "Супервайзер",
+      "trader": "Трейдер",
+      "validator": "Валидатор"
     }
   },
   "watchlist": {
@@ -7971,7 +8541,10 @@
       "invalidTitle": "Невалидные образцы",
       "noInvalid": "Нет невалидных образцов.",
       "exportCsv": "Экспорт CSV",
-      "exportJson": "Экспорт JSON"
+      "exportJson": "Экспорт JSON",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "notice": "Все данные, промпты и вердикты в этом стенде привязаны к выбранной дате. Возврат в режим эфира требует явного подтверждения.",
     "exitHint": "Вы всё ещё в режиме повтора. Любой новый анализ, запущенный в другом месте, также будет привязан к повтору.",
@@ -8074,7 +8647,10 @@
       "exitSelect": "Выйти из выбора",
       "empty": "Нет истории рекомендаций"
     },
-    "settings": "Valuation Filters"
+    "settings": "Valuation Filters",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "quant": {
     "backtest": {
@@ -8094,7 +8670,10 @@
       "title": "Strategy Backtest",
       "walkForward": "Walk-Forward",
       "walkForwardForceOff": "Disable Walk-Forward",
-      "walkForwardTitle": "Walk-Forward Backtest"
+      "walkForwardTitle": "Walk-Forward Backtest",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "common": {
       "empty": "No data"
@@ -8202,7 +8781,9 @@
     "textFile": "Текстовый файл",
     "unknownFile": "Неизвестный файл",
     "previewNotSupported": "Предпросмотр не поддерживается для этого типа файла",
-    "downloadFile": "Скачать файл"
+    "downloadFile": "Скачать файл",
+    "schemaNotFound": "Динамическая страница не найдена",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "visualEditor": {
     "palette": {
@@ -8213,7 +8794,11 @@
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "Основные",
+      "data": "Данные",
+      "layout": "Макет",
+      "navigation": "Навигация"
     },
     "components": {
       "Container": "Container",
@@ -8246,7 +8831,13 @@
       "Text": "Text",
       "Divider": "Divider",
       "Progress": "Progress",
-      "Tag": "Tag"
+      "Tag": "Tag",
+      "Heading": "Заголовок",
+      "Link": "Ссылка",
+      "Paragraph": "Абзац",
+      "Slider": "Слайдер",
+      "Space": "Отступ",
+      "Tooltip": "Подсказка"
     },
     "canvas": {
       "leafNode": "leaf node",
@@ -8254,7 +8845,14 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "livePreview": "Живой предпросмотр",
+      "addNode": "Добавить узел",
+      "deleteNode": "Удалить узел",
+      "duplicate": "Дублировать",
+      "moveDown": "Вниз",
+      "moveUp": "Вверх",
+      "pasteNode": "Вставить узел"
     },
     "property": {
       "title": "Property Panel",
@@ -8277,8 +8875,22 @@
       "placeholder": {
         "propKey": "Key",
         "propValue": "Value"
-      }
-    }
+      },
+      "children": "Дочерний компонент",
+      "componentType": "Тип компонента",
+      "defaultValue": "Значение по умолчанию",
+      "description": "Описание",
+      "label": "Метка",
+      "name": "Имя",
+      "options": "Опции",
+      "props": "Свойства",
+      "required": "Обязательно",
+      "rules": "Правила валидации",
+      "type": "Тип",
+      "value": "Значение"
+    },
+    "fullscreen": "Полный экран",
+    "exitFullscreen": "Выйти из полноэкранного режима"
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",
@@ -8370,7 +8982,12 @@
       "empty": "No bottleneck data",
       "timeDistribution": "Time Distribution",
       "tokenConsumption": "Token Consumption",
-      "failurePatterns": "Failure Patterns"
+      "failurePatterns": "Failure Patterns",
+      "count": "Count",
+      "failureReason": "Failure Reason",
+      "percentage": "Percentage",
+      "bottleneck": "Узкое место",
+      "reason": "Причина неудачи"
     },
     "feedback": {
       "thanks": "Thank you for your feedback",
@@ -8399,7 +9016,15 @@
     "totalSteps": "Total Steps",
     "totalDuration": "Total Duration",
     "totalTokens": "Total Tokens",
-    "errors": "Errors"
+    "errors": "Errors",
+    "duration": "Duration: {{duration}}s",
+    "type": {
+      "error": "Error",
+      "thinking": "Thinking",
+      "toolCall": "Tool Call",
+      "waitingPermission": "Waiting Permission",
+      "permission": "Ожидание разрешения"
+    }
   },
   "components_devtools_RLTrainingConfig": {
     "算法": "算法",
@@ -8564,7 +9189,66 @@
     "versionInvalid": "Nevernyj format versii (ozidaetsya major.minor.patch)",
     "versionAutoHint": "Ostavte pustym dlya avtomaticeskogo uveliceniya patc-versii",
     "rollbackArchive": "Arxiv pered vosstanovleniem (vosstanovlenie do {version})",
-    "versionUpdatedAt": "Data sozdaniya"
+    "versionUpdatedAt": "Data sozdaniya",
+    "builtin": "Built-in",
+    "category": "Category",
+    "confirmDelete": "Are you sure you want to delete this UI?",
+    "createNew": "New UI",
+    "createSchema": "New UI",
+    "createSuccess": "Created successfully",
+    "defaults": {
+      "buttonText": "Button",
+      "cardTitle": "Card",
+      "checkboxLabel": "Checkbox",
+      "dateLabel": "Date",
+      "formSubmit": "Submit",
+      "inputLabel": "Input",
+      "inputPlaceholder": "Please enter",
+      "numberLabel": "Number",
+      "radioLabel": "Radio",
+      "selectLabel": "Select",
+      "switchLabel": "Switch",
+      "tagText": "Tag",
+      "textContent": "Text",
+      "textareaLabel": "Textarea"
+    },
+    "deleteSuccess": "Deleted successfully",
+    "descPlaceholder": "Enter UI description",
+    "description": "Description",
+    "editSchema": "Edit UI",
+    "generateSuccess": "Generated successfully. Please review and save",
+    "generateWithNL": "Generate with NL",
+    "generating": "Generating...",
+    "invalidJson": "Invalid JSON format",
+    "invalidSchema": "Schema parsing failed",
+    "jsonEditor": "JSON Schema",
+    "visualEditor": "Визуальный редактор",
+    "jsonPlaceholder": "Enter JSON conforming to UISchema spec...",
+    "nlInputPlaceholder": "Describe the UI you want...",
+    "noDescription": "No description",
+    "noSchemas": "No UIs yet. Click the top-right button to create one",
+    "parseError": "Parse Error",
+    "preview": "Preview",
+    "schemaList": "UI List",
+    "schemaRequired": "Schema cannot be empty",
+    "schemaTitle": "Title",
+    "schemaValid": "Schema validated",
+    "selectToPreview": "Select a UI from the left to preview",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "tags": "Tags",
+    "tagsPlaceholder": "Enter tags and press Enter",
+    "title": "Dynamic UI Manager",
+    "titlePlaceholder": "Enter UI title",
+    "titleRequired": "Please enter a title",
+    "updateSuccess": "Updated successfully",
+    "import": "Import",
+    "importSuccess": "Imported {{count}} UI(s) successfully",
+    "importInvalid": "Invalid or empty schema file",
+    "export": "Export",
+    "exportAll": "Export All",
+    "exportSuccess": "Exported successfully",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value"
   },
   "dashboard": {
     "overview": "Обзор",
@@ -8597,7 +9281,8 @@
     "dailyAvgCost": "Среднедневная стоимость",
     "costByProvider": "Стоимость по провайдеру",
     "inputTokens": "Входные токены",
-    "outputTokens": "Выходные токены"
+    "outputTokens": "Выходные токены",
+    "dailyAvgTokens": "Среднедневные токены"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10209,7 +10894,8 @@
     "emptyDescription": "Пока нет данных. Выполняйте задачи для создания графа обучения",
     "useCount": "Количество использований: {count}",
     "detail": "Подробности",
-    "lexicalOverlap": "Связано"
+    "lexicalOverlap": "Связано",
+    "entities": "Сущности"
   },
   "skillStore": {
     "toggleSkillFailed": "Не удалось переключить состояние навыка"
@@ -10317,5 +11003,66 @@
       "asOf": "По состоянию на",
       "live": "В реальном времени"
     }
+  },
+  "workflowRefNode": {
+    "noWorkflow": ""
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }

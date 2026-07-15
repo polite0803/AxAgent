@@ -3,7 +3,7 @@
 //! CronCreateTool / CronDeleteTool / CronListTool
 //! 委托到 axagent_runtime_core::CronJobStore，由 runtime/cron 调度器统一执行。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_harness::tool_service::{CronJobData, CronJobStore, NoopCronJobStore};
 use serde_json::Value;
@@ -50,6 +50,11 @@ impl Tool for CronCreateTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Automation
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -107,6 +112,11 @@ impl Tool for CronDeleteTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Automation
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -139,6 +149,11 @@ impl Tool for CronListTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Automation
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

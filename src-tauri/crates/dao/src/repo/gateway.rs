@@ -6,7 +6,7 @@ use axagent_entities::{gateway_keys, gateway_usage};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::platform_adapter::CryptoService;
 use axagent_harness::types::*;
-use axagent_harness::util_fns::now_ts;
+use axagent_harness::util_fns::{now_ts, today_start_local_ts};
 
 fn key_from_entity(m: gateway_keys::Model) -> GatewayKey {
     GatewayKey {
@@ -143,17 +143,8 @@ pub async fn record_usage(
 }
 
 pub async fn get_gateway_metrics(db: &DatabaseConnection) -> Result<GatewayMetrics> {
-    let today_start = chrono::Utc::now()
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .unwrap_or_else(|| {
-            chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
-                .expect("1970-01-01 is a valid NaiveDate")
-                .and_hms_opt(0, 0, 0)
-                .expect("00:00:00 is a valid NaiveTime")
-        })
-        .and_utc()
-        .timestamp();
+    // 用本地时区今日 0 点，避免 UTC 日切换偏移（中国用户凌晨 0–8 点的"今日"统计）
+    let today_start = today_start_local_ts();
 
     let extract = |row: &QueryResult| -> std::result::Result<(i64, i64, i64, i64), DbErr> {
         Ok((
@@ -303,17 +294,8 @@ pub async fn get_usage_by_day(db: &DatabaseConnection, days: u32) -> Result<Vec<
 }
 
 pub async fn get_connected_programs(db: &DatabaseConnection) -> Result<Vec<ConnectedProgram>> {
-    let today_start = chrono::Utc::now()
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .unwrap_or_else(|| {
-            chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
-                .expect("1970-01-01 is a valid NaiveDate")
-                .and_hms_opt(0, 0, 0)
-                .expect("00:00:00 is a valid NaiveTime")
-        })
-        .and_utc()
-        .timestamp();
+    // 用本地时区今日 0 点，避免 UTC 日切换偏移
+    let today_start = today_start_local_ts();
     let active_threshold = now_ts() - 300;
 
     let rows = db

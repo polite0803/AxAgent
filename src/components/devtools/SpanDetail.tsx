@@ -61,7 +61,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
             </Text>
           </Descriptions.Item>
           {span.parent_span_id && (
-            <Descriptions.Item label="Parent Span">
+            <Descriptions.Item label={t("spanDetail.parentSpan")}>
               <Text code copyable className="text-xs">
                 {span.parent_span_id}
               </Text>

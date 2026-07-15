@@ -164,6 +164,7 @@ impl IngestQueue {
                             url: None,
                             title: None,
                             folder_context: None,
+                            content: None,
                         },
                     )
                 },
@@ -352,6 +353,7 @@ impl IngestQueue {
                         url: None,
                         title: None,
                         folder_context: Some(folder_context),
+                        content: None,
                     };
 
                     let task_id = self.enqueue(wiki_id, source).await;
@@ -445,12 +447,7 @@ mod tests {
     use crate::ingest_pipeline::IngestSourceType;
 
     async fn create_test_queue() -> IngestQueue {
-        let db = Arc::new(
-            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
-                .await
-                .unwrap(),
-        );
-        let pipeline = Arc::new(IngestPipeline::new_for_test(db));
+        let pipeline = Arc::new(IngestPipeline::new_for_test());
         let temp_dir =
             std::env::temp_dir().join(format!("ingest_queue_test_{}", uuid::Uuid::new_v4()));
         IngestQueue::new(pipeline, temp_dir.to_string_lossy().to_string())
@@ -463,6 +460,7 @@ mod tests {
             url: None,
             title: None,
             folder_context: None,
+            content: None,
         }
     }
 

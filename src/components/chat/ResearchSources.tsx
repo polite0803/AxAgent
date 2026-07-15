@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { PlusOutlined } from "@ant-design/icons";
-import { Button, Card, List, Space, Tag, Typography } from "antd";
+import { Button, Card, Space, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
 import { getSourceTypeColor, getSourceTypeName, type SearchResult } from "./researchUtils";
@@ -28,22 +28,21 @@ export function ResearchSources({
 
   return (
     <div className="research-sources">
-      <List
-        size="small"
-        dataSource={displaySources}
-        locale={{ emptyText: t("research.noSearchResults") }}
-        renderItem={(item) => (
-          <List.Item
+      <div className="divide-y divide-gray-100">
+        {displaySources.map((item) => (
+          <div
+            key={item.id}
             className={`cursor-pointer hover:bg-zinc-50 ${
               selectedSourceId === item.id
                 ? "bg-blue-50 border-l-4 border-blue-500"
                 : ""
             }`}
+            style={{ padding: "8px 0" }}
             onClick={() => onSourceSelect?.(item)}
             aria-label={`${item.title} - ${getSourceTypeName(item.sourceType, t)}`}
           >
-            <List.Item.Meta
-              title={
+            <div>
+              <div style={{ fontWeight: 500 }}>
                 <Space>
                   <a
                     href={item.url}
@@ -69,8 +68,14 @@ export function ResearchSources({
                       : t("research.notEvaluated")}
                   </Tag>
                 </Space>
-              }
-              description={
+              </div>
+              <div
+                style={{
+                  color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                  fontSize: 13,
+                  marginTop: 2,
+                }}
+              >
                 <div>
                   <Paragraph ellipsis={{ rows: 2 }} className="mb-1 text-sm">
                     {item.snippet}
@@ -92,11 +97,11 @@ export function ResearchSources({
                     )}
                   </Space>
                 </div>
-              }
-            />
-          </List.Item>
-        )}
-      />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
       {maxDisplay && sources.length > maxDisplay && (
         <Text type="secondary" className="text-sm">
           {t("research.moreSources", { count: sources.length - maxDisplay })}

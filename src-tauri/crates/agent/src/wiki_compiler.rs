@@ -1338,7 +1338,7 @@ mod tests {
         async fn chat(
             &self,
             _ctx: &ProviderRequestContext,
-            _request: ChatRequest,
+            _request: Arc<ChatRequest>,
         ) -> axagent_harness::core_error::Result<ChatResponse> {
             Ok(ChatResponse {
                 id: "test".to_string(),

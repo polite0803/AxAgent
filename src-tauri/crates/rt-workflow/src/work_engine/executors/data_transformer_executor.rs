@@ -151,6 +151,7 @@ impl NodeExecutorTrait for DataTransformerExecutor {
 
         Ok(NodeOutput {
             output: output_value,
+            control: None,
             output_var: if c.output_var.is_empty() {
                 None
             } else {

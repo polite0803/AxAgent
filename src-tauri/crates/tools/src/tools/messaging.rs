@@ -2,7 +2,7 @@
 
 //! SendMessageTool / ListPeersTool / TeamCreateTool / TeamDeleteTool
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -33,6 +33,11 @@ impl Tool for SendMessageTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Communication
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -60,6 +65,11 @@ impl Tool for ListPeersTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Communication
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -94,6 +104,11 @@ impl Tool for TeamCreateTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }
@@ -130,6 +145,11 @@ impl Tool for TeamDeleteTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Agent
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         false
     }

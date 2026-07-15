@@ -8,9 +8,12 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use base64::Engine;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
@@ -132,6 +135,12 @@ impl McpOAuthStore {
         let _ = GLOBAL_STORE.set(store);
     }
 
+    /// 非 panic 版本的全局单例访问。未初始化时返回 `None`。
+    #[must_use]
+    pub fn try_global() -> Option<Arc<McpOAuthStore>> {
+        GLOBAL_STORE.get().cloned()
+    }
+
     fn default_store_path() -> PathBuf {
         let home = dirs::home_dir().unwrap_or_default();
         home.join(".axagent").join("mcp_oauth_credentials.enc")
@@ -244,8 +253,13 @@ impl McpOAuthStore {
             // 如果有 refresh_token 和 token_endpoint，尝试刷新
             if let (Some(refresh_token), Some(token_endpoint)) =
                 (&creds.refresh_token, &creds.token_endpoint)
-                && let Ok(new_creds) =
-                    Self::refresh_token(token_endpoint, &creds.client_id, refresh_token).await
+                && let Ok(new_creds) = Self::refresh_token(
+                    token_endpoint,
+                    &creds.client_id,
+                    refresh_token,
+                    &creds.scopes,
+                )
+                .await
             {
                 self.store(server_id, new_creds.clone()).await;
                 return Some(new_creds.authorization_header());
@@ -261,6 +275,7 @@ impl McpOAuthStore {
         token_endpoint: &str,
         client_id: &Option<String>,
         refresh_token: &str,
+        scopes: &[String],
     ) -> std::result::Result<McpOAuthCredentials, String> {
         let client = reqwest::Client::new();
         let mut body = format!(
@@ -300,7 +315,7 @@ impl McpOAuthStore {
             access_token,
             refresh_token: refresh_token_new,
             expires_at,
-            scopes: Vec::new(),
+            scopes: scopes.to_vec(),
             token_endpoint: Some(token_endpoint.to_string()),
             client_id: client_id.clone(),
         })
@@ -314,6 +329,7 @@ pub async fn exchange_code_for_token(
     code_verifier: &str,
     code: &str,
     redirect_uri: &str,
+    scopes: &[String],
 ) -> std::result::Result<McpOAuthCredentials, String> {
     let client = reqwest::Client::new();
     let params = [
@@ -365,10 +381,113 @@ pub async fn exchange_code_for_token(
         access_token,
         refresh_token,
         expires_at,
-        scopes: Vec::new(),
+        scopes: scopes.to_vec(),
         token_endpoint: Some(token_endpoint.to_string()),
         client_id: Some(client_id.to_string()),
     })
+}
+
+/// 待完成的 OAuth 授权请求（保存 PKCE verifier 等中间态）。
+#[derive(Debug, Clone)]
+struct PendingOAuthState {
+    verifier: String,
+    redirect_uri: String,
+    token_endpoint: String,
+    client_id: Option<String>,
+    scopes: Vec<String>,
+}
+
+static PENDING_OAUTH: std::sync::OnceLock<Mutex<HashMap<String, PendingOAuthState>>> =
+    std::sync::OnceLock::new();
+
+/// 生成 PKCE code_verifier 与 code_challenge（S256）。
+fn generate_pkce_pair() -> (String, String) {
+    let mut buf = [0u8; 64];
+    rand::rng().fill(&mut buf);
+    let verifier = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(buf);
+    let mut hasher = Sha256::new();
+    hasher.update(verifier.as_bytes());
+    let challenge = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hasher.finalize());
+    (verifier, challenge)
+}
+
+/// 为受保护的 MCP 服务器发起 OAuth 2.1 (PKCE) 授权，
+/// 返回需要在浏览器中打开的授权 URL。授权码回调后调用
+/// [`complete_oauth_authorization`] 兑换并持久化 token。
+pub fn begin_oauth_authorization(
+    server_id: &str,
+    authorization_endpoint: &str,
+    token_endpoint: &str,
+    client_id: &str,
+    redirect_uri: &str,
+    scopes: &[String],
+) -> std::result::Result<String, String> {
+    let (verifier, challenge) = generate_pkce_pair();
+    let mut state_buf = [0u8; 16];
+    rand::rng().fill(&mut state_buf);
+    let state = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(state_buf);
+
+    let pending = PendingOAuthState {
+        verifier,
+        redirect_uri: redirect_uri.to_string(),
+        token_endpoint: token_endpoint.to_string(),
+        client_id: Some(client_id.to_string()),
+        scopes: scopes.to_vec(),
+    };
+    PENDING_OAUTH
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .map_err(|_| "OAuth pending 锁已损坏".to_string())?
+        .insert(server_id.to_string(), pending);
+
+    let scope_str = scopes.join(" ");
+    let url = format!(
+        "{}?response_type=code&client_id={}&redirect_uri={}&scope={}&state={}&code_challenge={}&code_challenge_method=S256",
+        authorization_endpoint,
+        urlencoding::encode(client_id),
+        urlencoding::encode(redirect_uri),
+        urlencoding::encode(&scope_str),
+        urlencoding::encode(&state),
+        urlencoding::encode(&challenge),
+    );
+    Ok(url)
+}
+
+/// 用授权码兑换 token 并持久化到 OAuth 存储，供后续请求自动注入。
+pub async fn complete_oauth_authorization(
+    server_id: &str,
+    code: &str,
+) -> std::result::Result<(), String> {
+    let pending = PENDING_OAUTH
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .map_err(|_| "OAuth pending 锁已损坏".to_string())?
+        .get(server_id)
+        .cloned()
+        .ok_or_else(|| {
+            "该服务器尚未发起 OAuth 授权（请先调用 begin_oauth_authorization）".to_string()
+        })?;
+
+    let creds = exchange_code_for_token(
+        &pending.token_endpoint,
+        pending.client_id.as_deref().unwrap_or(""),
+        &pending.verifier,
+        code,
+        &pending.redirect_uri,
+        &pending.scopes,
+    )
+    .await?;
+
+    let store =
+        McpOAuthStore::try_global().ok_or_else(|| "MCP OAuth 存储尚未初始化".to_string())?;
+    store.store(server_id, creds).await;
+
+    if let Some(mut map) = PENDING_OAUTH.get().and_then(|m| m.lock().ok()) {
+        map.remove(server_id);
+    }
+
+    info!("[McpOAuth] 服务器 '{server_id}' OAuth 授权完成，token 已持久化");
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useArtifactStore, useConversationStore } from "@/stores";
-import { Descriptions, Empty, List, Tabs, Tag, theme, Typography } from "antd";
+import { Descriptions, Empty, Tabs, Tag, theme, Typography } from "antd";
 import { FileText, Info, Paperclip, Search, Wrench } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -110,18 +110,26 @@ export function ChatInspector({
         icon: <Search size={14} />,
         children: contextSources.length > 0
           ? (
-            <List
-              size="small"
-              dataSource={contextSources}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={<Typography.Text>{item.title}</Typography.Text>}
-                    description={<Tag>{item.type}</Tag>}
-                  />
-                </List.Item>
-              )}
-            />
+            <div className="divide-y divide-gray-100">
+              {contextSources.map((item) => (
+                <div style={{ padding: "8px 0" }}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>
+                      <Typography.Text>{item.title}</Typography.Text>
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                        fontSize: 13,
+                        marginTop: 2,
+                      }}
+                    >
+                      <Tag>{item.type}</Tag>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )
           : (
             <Empty
@@ -136,15 +144,13 @@ export function ChatInspector({
         icon: <Wrench size={14} />,
         children: toolCalls.length > 0
           ? (
-            <List
-              size="small"
-              dataSource={toolCalls}
-              renderItem={(item) => (
-                <List.Item>
+            <div className="divide-y divide-gray-100">
+              {toolCalls.map((item) => (
+                <div style={{ padding: "8px 0" }}>
                   <Typography.Text code>{item.name}</Typography.Text>
-                </List.Item>
-              )}
-            />
+                </div>
+              ))}
+            </div>
           )
           : (
             <Empty
@@ -161,15 +167,13 @@ export function ChatInspector({
           const attachments = messages.flatMap((m) => m.attachments ?? []);
           return attachments.length > 0
             ? (
-              <List
-                size="small"
-                dataSource={attachments}
-                renderItem={(item) => (
-                  <List.Item>
+              <div className="divide-y divide-gray-100">
+                {attachments.map((item) => (
+                  <div style={{ padding: "8px 0" }}>
                     <Typography.Text ellipsis>{item.file_name}</Typography.Text>
-                  </List.Item>
-                )}
-              />
+                  </div>
+                ))}
+              </div>
             )
             : (
               <Empty
@@ -213,18 +217,26 @@ export function ChatInspector({
         icon: <FileText size={14} />,
         children: conversationArtifacts.length > 0
           ? (
-            <List
-              size="small"
-              dataSource={conversationArtifacts}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={<Typography.Text>{item.title}</Typography.Text>}
-                    description={<Tag>{item.kind}</Tag>}
-                  />
-                </List.Item>
-              )}
-            />
+            <div className="divide-y divide-gray-100">
+              {conversationArtifacts.map((item) => (
+                <div style={{ padding: "8px 0" }}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>
+                      <Typography.Text>{item.title}</Typography.Text>
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-secondary, rgba(0,0,0,0.45))",
+                        fontSize: 13,
+                        marginTop: 2,
+                      }}
+                    >
+                      <Tag>{item.kind}</Tag>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )
           : (
             <Empty

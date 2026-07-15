@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_kit::utils::hide_window;
 use serde_json::Value;
@@ -29,6 +29,11 @@ impl Tool for PingTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Network
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }
@@ -154,6 +159,11 @@ impl Tool for DnsLookupTool {
     fn category(&self) -> ToolCategory {
         ToolCategory::Network
     }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
     fn is_concurrency_safe(&self) -> bool {
         true
     }

@@ -38,7 +38,33 @@ pub async fn nudge_execute(
     nudge_id: String,
 ) -> Result<bool, String> {
     let mut ns = app_state.nudge_service.lock().await;
-    Ok(ns.take_nudge_action(&nudge_id, axagent_trajectory::NudgeAction::AddedToMemory))
+    let succeeded = ns.take_nudge_action(&nudge_id, axagent_trajectory::NudgeAction::AddedToMemory);
+
+    // 实际执行：将 nudge 写入 MemoryService
+    if succeeded {
+        // 获取 nudge 详情构造记忆内容
+        let recent = ns.get_recent_nudges(50);
+        let nudge_content: String = recent.iter().find(|n| n.id == nudge_id).map_or_else(
+            || format!("nudge {} executed", nudge_id),
+            |n| {
+                format!(
+                    "[Nudge] {}: {} (entity: {})",
+                    n.reason,
+                    n.suggested_action.as_deref().unwrap_or(""),
+                    n.entity_name
+                )
+            },
+        );
+        drop(ns); // 释放 nudge_service 锁，避免死锁
+
+        let ms = app_state.memory_service.write().await;
+        let result = ms.add_memory_with_dedup("nudge", &nudge_content).await;
+        if !result.success {
+            tracing::warn!("nudge_execute: failed to save to memory: {}", result.message);
+        }
+    }
+
+    Ok(succeeded)
 }
 
 #[tauri::command]

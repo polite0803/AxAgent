@@ -245,6 +245,11 @@ pub async fn update_message_usage(
     if let Some(crt) = cache_read_tokens {
         am.cache_read_tokens = Set(Some(crt));
     }
+    // 同步写入 token_count 字段，作为 prompt+completion 的便利合计，
+    // 避免 dashboard 的 fallback 分支永远拿到 NULL（虽然当前 fallback 几乎不触发）。
+    if let (Some(pt), Some(ct)) = (prompt_tokens, completion_tokens) {
+        am.token_count = Set(Some(pt + ct));
+    }
     am.update(db).await?;
     Ok(())
 }
@@ -390,6 +395,7 @@ pub async fn delete_message(db: &DatabaseConnection, id: &str) -> Result<()> {
         .await?
         .ok_or_else(|| AxAgentError::NotFound(format!("Message {}", id)))?;
 
+    let conversation_id = target.conversation_id.clone();
     let txn = db.begin().await?;
 
     if target.role == "assistant"
@@ -412,11 +418,15 @@ pub async fn delete_message(db: &DatabaseConnection, id: &str) -> Result<()> {
     }
 
     let result = messages::Entity::delete_by_id(id).exec(&txn).await?;
-    txn.commit().await?;
 
     if result.rows_affected == 0 {
+        txn.rollback().await?;
         return Err(AxAgentError::NotFound(format!("Message {}", id)));
     }
+
+    crate::repo::conversation::decrement_message_count_in_txn(&txn, &conversation_id).await?;
+
+    txn.commit().await?;
     Ok(())
 }
 
@@ -425,10 +435,15 @@ pub async fn clear_conversation_messages(
     db: &DatabaseConnection,
     conversation_id: &str,
 ) -> Result<u64> {
+    let txn = db.begin().await?;
+
     let result = messages::Entity::delete_many()
         .filter(messages::Column::ConversationId.eq(conversation_id))
-        .exec(db)
+        .exec(&txn)
         .await?;
+
+    crate::repo::conversation::set_message_count(&txn, conversation_id, 0).await?;
+    txn.commit().await?;
 
     Ok(result.rows_affected)
 }
@@ -674,9 +689,10 @@ pub async fn get_daily_message_usage(
 ) -> Result<Vec<DailyUsage>> {
     use sea_orm::Statement;
 
-    let since = chrono::Utc::now()
+    // 用本地时区作为"天"分界，避免凌晨 0–8 点把"今日"算到昨日
+    let since = chrono::Local::now()
         .checked_sub_signed(chrono::Duration::days(days as i64))
-        .unwrap_or(chrono::DateTime::UNIX_EPOCH)
+        .unwrap_or_else(chrono::Local::now)
         .timestamp_millis();
 
     let rows = db
@@ -684,7 +700,7 @@ pub async fn get_daily_message_usage(
             db.get_database_backend(),
             r#"
                 SELECT
-                    date(created_at / 1000, 'unixepoch') as date,
+                    date(created_at / 1000, 'unixepoch', 'localtime') as date,
                     COUNT(*) as message_count,
                     COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens,
                     COALESCE(SUM(completion_tokens), 0) as total_completion_tokens,
@@ -702,19 +718,13 @@ pub async fn get_daily_message_usage(
         .iter()
         .filter_map(|r| {
             let date: Option<String> = r.try_get("", "date").ok();
-            date.map(|d| {
-                let prompt: u64 = r.try_get("", "total_prompt_tokens").unwrap_or(0);
-                let completion: u64 = r.try_get("", "total_completion_tokens").unwrap_or(0);
-                // Sonnet-tier pricing: $3/M input, $15/M output
-                let cost_usd = (prompt as f64 * 3.0 + completion as f64 * 15.0) / 1_000_000.0;
-                DailyUsage {
-                    date: d,
-                    message_count: r.try_get("", "message_count").unwrap_or(0),
-                    total_prompt_tokens: prompt,
-                    total_completion_tokens: completion,
-                    total_tokens: r.try_get("", "total_tokens").unwrap_or(0),
-                    total_cost_usd: (cost_usd * 100.0).round() / 100.0, // round to cents
-                }
+            date.map(|d| DailyUsage {
+                date: d,
+                message_count: r.try_get("", "message_count").unwrap_or(0),
+                total_prompt_tokens: r.try_get("", "total_prompt_tokens").unwrap_or(0),
+                total_completion_tokens: r.try_get("", "total_completion_tokens").unwrap_or(0),
+                total_tokens: r.try_get("", "total_tokens").unwrap_or(0),
+                total_cost_usd: 0.0,
             })
         })
         .collect();

@@ -471,6 +471,7 @@ async fn seed_agency_experts(db: &sea_orm::DatabaseConnection) -> Result<(), Str
             imported_at: Set(now),
             recommended_workflows: Set(None),
             recommended_tools: Set(None),
+            active_domains: Set(None),
         };
         // v24: 改为 UPSERT — 已存在则 update，确保 .md 改动和新增的 R3 专家能同步到 DB
         // 历史版本: 已存在则 continue 跳过,导致 .md 改动 / 新增 .md 文件 (bull-r3/bear-r3) 不写库,
@@ -502,6 +503,7 @@ async fn seed_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String
             role.name,
             Some(role.description),
             role.system_prompt,
+            &[],
             &[],
             role.max_concurrent,
             role.timeout_seconds,

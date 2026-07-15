@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { Theme, ThemeColors, useThemeStore } from "@/stores/feature/themeStore";
-import { Button, Card, Form, Input, List, message, Modal, Popconfirm, Space, Typography } from "antd";
+import { Button, Card, Form, Input, Modal, Popconfirm, Space, Typography } from "antd";
 import { Check, Copy, Delete, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -368,13 +369,11 @@ colors:
       {customThemes.length > 0 && (
         <>
           <Title level={5}>{t("settings.theme.customThemes")}</Title>
-          <List
-            grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
-            dataSource={customThemes}
-            renderItem={(theme) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {customThemes.map((theme) => {
               const colors = theme.colors;
               return (
-                <List.Item>
+                <div key={theme.metadata.name}>
                   <Card
                     hoverable
                     onClick={() => handleThemeSelect(theme.metadata.name)}
@@ -427,10 +426,10 @@ colors:
                       </Space>
                     </div>
                   </Card>
-                </List.Item>
+                </div>
               );
-            }}
-          />
+            })}
+          </div>
         </>
       )}
 

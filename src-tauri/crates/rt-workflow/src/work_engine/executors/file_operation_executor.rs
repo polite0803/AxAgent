@@ -62,6 +62,7 @@ impl NodeExecutorTrait for FileOperationExecutor {
         }?;
         Ok(NodeOutput {
             output: serde_json::json!({"operation": c.operation, "path": c.file_path, "result": result, "node_id": node.base_id()}),
+            control: None,
             output_var: if c.output_var.is_empty() {
                 None
             } else {

@@ -4,6 +4,13 @@
 //!
 //! Replaces TypeScript `RealTimeLearning.ts` with Rust implementation.
 //! Provides feedback processing, adaptation signals, and learning insights.
+//!
+//! 注意：`Verbosity` / `TechnicalLevel` / `ContentFormat` 三个枚举的权威定义
+//! 在 `axagent-harness::adaptation`，本模块通过 `pub use` 引用，避免重复定义
+//! （符合 AGENTS.md 铁律 4）。
+
+// 三个共享枚举 re-export 自 harness（权威定义位置）
+pub use axagent_harness::adaptation::{ContentFormat, TechnicalLevel, Verbosity};
 
 use crate::insight::{InsightCategory, LearningInsight};
 use serde::{Deserialize, Serialize};
@@ -68,34 +75,6 @@ pub struct ResponseStyle {
     pub verbosity: Option<Verbosity>,
     pub technical_level: Option<TechnicalLevel>,
     pub format: Option<ContentFormat>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum Verbosity {
-    #[default]
-    Unchanged,
-    Shorter,
-    Longer,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum TechnicalLevel {
-    #[default]
-    Unchanged,
-    Simpler,
-    MoreDetailed,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum ContentFormat {
-    #[default]
-    Unchanged,
-    List,
-    Paragraph,
-    Code,
 }
 
 pub struct RealTimeLearning {

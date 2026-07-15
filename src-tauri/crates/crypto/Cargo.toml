@@ -22,12 +22,13 @@ default = []
 backup_v1_compat = []
 
 [dependencies]
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 argon2 = "0.5"
 axagent-harness = { path = "../harness" }
 base64 = "0.22"
+getrandom = "0.2"
 hex = "0.4"
-hmac = "0.12"
-sha2 = "0.10"
+hmac = "0.13"
+sha2 = "0.11"
 tracing = { workspace = true }
 zeroize = "1"

@@ -10,6 +10,10 @@ use async_trait::async_trait;
 use axagent_harness::mcp_service::{
     DiscoveredMcpTool, McpClientService, McpServerConfig, McpToolCallResult,
 };
+// McpResource / McpResourceContent / McpPrompt / McpPromptResult 定义在
+// `axagent_harness::mcp_types` 并在 lib.rs 顶层 pub use；从这里直接走顶层路径
+// 避免在 mcp_service 子模块内被识别为 private 导入。
+use axagent_harness::{McpPrompt, McpPromptResult, McpResource, McpResourceContent};
 
 use crate::mcp_client;
 
@@ -29,6 +33,7 @@ impl McpClientService for DefaultMcpClientService {
             server.args.as_deref(),
             server.env.as_ref(),
             server.endpoint.as_deref(),
+            Some(&server.id),
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -57,6 +62,7 @@ impl McpClientService for DefaultMcpClientService {
             server.endpoint.as_deref(),
             tool_name,
             args,
+            Some(&server.id),
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -67,6 +73,81 @@ impl McpClientService for DefaultMcpClientService {
             // 原 HTTP 响应形态（此前直接 `json!({ "content": result.content })`）。
             content: serde_json::Value::String(result.content),
         })
+    }
+
+    // H1: resources / prompts support
+    async fn list_resources(
+        &self,
+        server: &McpServerConfig,
+    ) -> std::result::Result<Vec<McpResource>, String> {
+        let resources = mcp_client::list_resources_unified(
+            &server.transport,
+            server.command.as_deref(),
+            server.args.as_deref(),
+            server.env.as_ref(),
+            server.endpoint.as_deref(),
+            Some(&server.id),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(resources)
+    }
+
+    async fn read_resource(
+        &self,
+        server: &McpServerConfig,
+        uri: &str,
+    ) -> std::result::Result<Vec<McpResourceContent>, String> {
+        let contents = mcp_client::read_resource_unified(
+            &server.transport,
+            server.command.as_deref(),
+            server.args.as_deref(),
+            server.env.as_ref(),
+            server.endpoint.as_deref(),
+            uri,
+            Some(&server.id),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(contents)
+    }
+
+    async fn list_prompts(
+        &self,
+        server: &McpServerConfig,
+    ) -> std::result::Result<Vec<McpPrompt>, String> {
+        let prompts = mcp_client::list_prompts_unified(
+            &server.transport,
+            server.command.as_deref(),
+            server.args.as_deref(),
+            server.env.as_ref(),
+            server.endpoint.as_deref(),
+            Some(&server.id),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(prompts)
+    }
+
+    async fn get_prompt(
+        &self,
+        server: &McpServerConfig,
+        name: &str,
+        args: serde_json::Value,
+    ) -> std::result::Result<McpPromptResult, String> {
+        let result = mcp_client::get_prompt_unified(
+            &server.transport,
+            server.command.as_deref(),
+            server.args.as_deref(),
+            server.env.as_ref(),
+            server.endpoint.as_deref(),
+            name,
+            args,
+            Some(&server.id),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(result)
     }
 }
 

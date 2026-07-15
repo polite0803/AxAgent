@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { ConditionalDisplay, ConditionalRule } from "@/types";
+import { getNestedValue } from "./utils";
 
 function evaluateRule(
   rule: ConditionalRule,
@@ -82,15 +83,4 @@ export function evaluateConditions(
     return true;
   }
   return evaluateCondition(conditions, data);
-}
-
-function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-  const keys = path.split(".");
-  let current: unknown = obj;
-  for (const key of keys) {
-    if (current === null || current === undefined) { return undefined; }
-    if (typeof current !== "object") { return undefined; }
-    current = (current as Record<string, unknown>)[key];
-  }
-  return current;
 }

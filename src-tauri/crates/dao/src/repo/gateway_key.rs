@@ -41,7 +41,14 @@ pub async fn create_gateway_key(
     // 没有 master_key 时回退到 SHA-256（兼容旧调用方，但生产环境应传 master_key）。
     let key_hash = match master_key {
         Some(mk) => crypto.hmac_sha256(mk, &plain_key),
-        None => crypto.sha256_hash(&plain_key),
+        None => {
+            tracing::warn!(
+                target: "axagent.gateway.keys",
+                "master_key is None, falling back to bare SHA-256 for key hash. \
+                 Production deployments must provide a master_key to use HMAC-SHA256."
+            );
+            crypto.sha256_hash(&plain_key)
+        },
     };
     let key_prefix = crypto.key_prefix(&plain_key);
 

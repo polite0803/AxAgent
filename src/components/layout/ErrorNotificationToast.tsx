@@ -2,6 +2,7 @@
 
 import { useErrorNotificationStore } from "@/stores/shared/errorNotificationStore";
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 const severityStyles: Record<string, string> = {
@@ -22,11 +23,44 @@ const categoryIcons: Record<string, string> = {
   unknown: "❓",
 };
 
+// 自动消失时间（毫秒）
+const AUTO_DISMISS_MS = 8000;
+
 export function ErrorNotificationToast() {
   const { t } = useTranslation();
   const { errors, dismissError, retryError } = useErrorNotificationStore();
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const visible = errors.filter((e) => !e.dismissed).slice(0, 5);
+
+  // 自动消失：非 critical 错误 8 秒后自动关闭
+  useEffect(() => {
+    const currentTimers = timersRef.current;
+    for (const error of visible) {
+      if (error.severity !== "critical" && !currentTimers.has(error.id)) {
+        currentTimers.set(
+          error.id,
+          setTimeout(() => {
+            dismissError(error.id);
+            currentTimers.delete(error.id);
+          }, AUTO_DISMISS_MS),
+        );
+      }
+    }
+    // 清理已消失 error 的 timer
+    const visibleIds = new Set(visible.map((e) => e.id));
+    for (const [id, timer] of currentTimers) {
+      if (!visibleIds.has(id)) {
+        clearTimeout(timer);
+        currentTimers.delete(id);
+      }
+    }
+    return () => {
+      for (const timer of currentTimers.values()) {
+        clearTimeout(timer);
+      }
+    };
+  }, [visible, dismissError]);
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">

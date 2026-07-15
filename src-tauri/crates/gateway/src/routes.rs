@@ -220,8 +220,17 @@ fn build_cors_layer() -> CorsLayer {
             http::Method::OPTIONS,
         ])
         .allow_headers([AUTHORIZATION, CONTENT_TYPE])
-        .allow_credentials(false)
+        .allow_credentials(allow_credentials())
         .max_age(std::time::Duration::from_secs(600))
+}
+
+/// 从环境变量读取 `AXAGENT_GATEWAY_ALLOW_CREDENTIALS` 决定是否允许 credentials。
+/// 默认 `false`（安全优先）—— 仅当存在严格的 origin 白名单时才启用。
+fn allow_credentials() -> bool {
+    std::env::var("AXAGENT_GATEWAY_ALLOW_CREDENTIALS")
+        .map(|v| v.to_lowercase())
+        .map(|v| v == "1" || v == "true" || v == "yes")
+        .unwrap_or(false)
 }
 
 /// 校验 origin 字符串：必须能解析为 `HeaderValue`，并满足以下条件之一：

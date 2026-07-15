@@ -5,12 +5,14 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
-use crate::commands::spawn_guard::{SpawnGuard, catch_unwind_logged};
-use axagent_agent::AxAgentApiClient;
+use crate::commands::spawn_guard::catch_unwind_logged;
+use axagent_agent::{AxAgentApiClient, FallbackProviderAdapter};
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
-use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{
+    ProviderAdapter, ProviderRequestContext, ToolDomain, resolve_base_url_for_type,
+};
 use axagent_runtime_core::create_conversation_runtime;
 use axagent_runtime_core::execution_progress::AgentExecutionProgressSnapshot;
 use axagent_storage::cloud_workspace::CloudWorkspace;
@@ -22,7 +24,7 @@ use dashmap::DashMap;
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::atomic::AtomicBool;
 use tracing::info;
 
@@ -38,12 +40,116 @@ pub use pricing::init_pricing_config;
 #[allow(unused_imports)]
 use pricing::{check_token_budget, estimate_cost_usd};
 
-mod skill_execution;
+pub mod skill_execution;
 use skill_execution::{
-    SKILL_MCP_REGISTRY, SkillExecutionContext, SkillStep, build_agent_system_prompt,
-    check_and_suggest_workflow_match, execute_skill_sync, infer_agent_role,
-    load_enabled_skill_contents, load_skill_tools,
+    SkillExecutionContext, build_agent_system_prompt, check_and_suggest_workflow_match,
+    execute_skill_sync, load_enabled_skill_contents, load_skill_tools,
 };
+
+/// AskUser 桥接器的具体实现，由 wiring 层注入到 UnifiedToolRegistry。
+/// 当 LLM 调用 AskUserQuestionTool 时，通过此桥接器：
+/// 1. emit `agent-ask-user` 事件到前端
+/// 2. 阻塞等待用户通过 `agent_respond_ask` 回复
+#[derive(Debug, Clone)]
+struct AppAskUserBridge {
+    app_handle: AppHandle,
+    ask_senders: Arc<
+        tokio::sync::Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<String>>>,
+    >,
+    conversation_id: String,
+    assistant_message_id: String,
+}
+
+impl axagent_harness::AskUserBridge for AppAskUserBridge {
+    fn ask_user_blocking(
+        &self,
+        ask_id: String,
+        questions_json: serde_json::Value,
+        _conversation_id: &str,
+    ) -> Result<String, String> {
+        let questions = questions_json["questions"]
+            .as_array()
+            .map(|arr| {
+                arr.iter()
+                    .map(|q| {
+                        let question = q["question"].as_str().unwrap_or("");
+                        let multi = q["multiSelect"].as_bool().unwrap_or(false);
+                        let options: Vec<String> = q["options"]
+                            .as_array()
+                            .map(|a| {
+                                a.iter()
+                                    .filter_map(|o| o["label"].as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        serde_json::json!({
+                            "question": question,
+                            "multiSelect": multi,
+                            "options": options,
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        // 提取第一个问题的文本作为主问题
+        let question_text =
+            questions.first().and_then(|q| q["question"].as_str()).unwrap_or("").to_string();
+        let options: Vec<String> = questions
+            .first()
+            .and_then(|q| q["options"].as_array())
+            .map(|a| a.iter().filter_map(|o| o.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_default();
+
+        let event_payload = serde_json::json!({
+            "conversationId": self.conversation_id,
+            "assistantMessageId": self.assistant_message_id,
+            "askId": ask_id,
+            "question": question_text,
+            "options": options,
+        });
+
+        let _ = self.app_handle.emit("agent-ask-user", &event_payload);
+
+        // 创建 oneshot channel 并阻塞等待用户回复
+        let (tx, rx) = tokio::sync::oneshot::channel();
+
+        // 需要同步插入 sender（在 async 上下文中使用 block_in_place + block_on）
+        let ask_senders = self.ask_senders.clone();
+        let ask_id_clone = ask_id.clone();
+        tokio::task::block_in_place(|| {
+            let handle = tokio::runtime::Handle::current();
+            handle.block_on(async {
+                let mut senders = ask_senders.lock().await;
+                senders.insert(ask_id_clone, tx);
+            });
+        });
+
+        // 阻塞等待用户回复，5 分钟超时
+        let ask_senders_cleanup = self.ask_senders.clone();
+        let ask_id_cleanup = ask_id.clone();
+        tokio::task::block_in_place(|| {
+            let handle = tokio::runtime::Handle::current();
+            handle.block_on(async {
+                match tokio::time::timeout(std::time::Duration::from_secs(300), rx).await {
+                    Ok(Ok(answer)) => Ok(answer),
+                    Ok(Err(_)) => {
+                        // sender 被丢弃，清理 ask_senders
+                        let mut senders = ask_senders_cleanup.lock().await;
+                        senders.remove(&ask_id_cleanup);
+                        Err("用户提问通道已关闭".to_string())
+                    },
+                    Err(_) => {
+                        // 超时，清理 ask_senders
+                        let mut senders = ask_senders_cleanup.lock().await;
+                        senders.remove(&ask_id_cleanup);
+                        Err("等待用户回复超时（5 分钟）".to_string())
+                    },
+                }
+            })
+        })
+    }
+}
 
 /// Async RAII guard that removes a conversation ID from AppState::running_agents on drop.
 /// Ensures cleanup even if the spawned task panics.
@@ -103,6 +209,101 @@ fn emit_status(
             code: code.map(String::from),
         },
     );
+}
+
+/// 将字符串形式的 domain 名解析为 ToolDomain 枚举值
+fn parse_domain_str(s: &str) -> Option<ToolDomain> {
+    match s.to_lowercase().as_str() {
+        "core" => Some(ToolDomain::Core),
+        "general" => Some(ToolDomain::General),
+        "devops" => Some(ToolDomain::Devops),
+        "ai_media" => Some(ToolDomain::AiMedia),
+        "invest" => Some(ToolDomain::Invest),
+        "opc" => Some(ToolDomain::Opc),
+        _ => None,
+    }
+}
+
+/// AgentProfile 解析后的工具上下文。
+///
+/// 由 `resolve_profile_tool_context` 统一产出，供 `agent_query` 和
+/// `get_tool_count` 共享，保证筛选语义一致（禁区 12：禁止重复定义）。
+#[derive(Default)]
+pub(crate) struct ProfileToolContext {
+    /// 角色 + 专家合并的工具域（不含默认兜底的 Core/General）
+    pub active_domains: HashSet<ToolDomain>,
+    /// 岗位（AgentRole）的 system_prompt
+    pub role_system_prompt: Option<String>,
+    /// 技能（Expert）的 system_prompt
+    pub expert_system_prompt: Option<String>,
+    /// 已解析的岗位名（用于状态展示）
+    pub effective_role_name: Option<String>,
+    /// Profile 自身的推荐工具（白名单字符串）
+    pub recommended_tools: Vec<String>,
+    /// Profile 自身的禁用工具（黑名单字符串）
+    pub disallowed_tools: Vec<String>,
+}
+
+/// 解析 AgentProfile 的工具上下文（角色 + 专家 + Profile 自身）。
+///
+/// 与 `agent_query` 中的三源合并逻辑保持一致：
+/// - Layer 1: `profile.agent_role` → AgentRole 的 `active_domains` + system_prompt
+/// - Layer 2: `profile.expert_id` → Expert 的 `active_domains` + system_prompt
+/// - Layer 3: Profile 自身的 `recommended_tools` / `disallowed_tools`
+///
+/// 返回 `None` 表示 profile 不存在或查询失败（调用方应回退到默认路径）。
+pub(crate) async fn resolve_profile_tool_context(
+    app_state: &AppState,
+    profile_id: &str,
+) -> Option<ProfileToolContext> {
+    let profile =
+        axagent_dao::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
+            .await
+            .ok()?;
+
+    let mut ctx = ProfileToolContext::default();
+
+    // Layer 1: AgentRole system_prompt（岗位）+ active_domains
+    if let Some(ref role_name) = profile.agent_role {
+        if let Some(resolved) = axagent_runtime::agent_roles::resolve(role_name).await {
+            ctx.effective_role_name = Some(resolved.name.clone());
+            if !resolved.system_prompt.is_empty() {
+                ctx.role_system_prompt = Some(resolved.system_prompt);
+            }
+            for d in &resolved.active_domains {
+                if let Some(td) = parse_domain_str(d) {
+                    ctx.active_domains.insert(td);
+                }
+            }
+        }
+    }
+
+    // Layer 2: Expert domain knowledge（技能）+ active_domains
+    if let Some(ref expert_id) = profile.expert_id {
+        if let Ok(Some(expert)) = axagent_entities::agency_experts::Entity::find_by_id(expert_id)
+            .one(app_state.harness.db())
+            .await
+        {
+            if !expert.system_prompt.is_empty() {
+                ctx.expert_system_prompt = Some(expert.system_prompt);
+            }
+            if let Some(ref domains_json) = expert.active_domains {
+                if let Ok(domains) = serde_json::from_str::<Vec<String>>(domains_json) {
+                    for d in &domains {
+                        if let Some(td) = parse_domain_str(d) {
+                            ctx.active_domains.insert(td);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Layer 3: Profile 自身推荐/禁用工具
+    ctx.recommended_tools = profile.recommended_tools;
+    ctx.disallowed_tools = profile.disallowed_tools;
+
+    Some(ctx)
 }
 
 /// 构建带 streaming 事件回调的 `AxAgentApiClient`。
@@ -222,56 +423,31 @@ pub async fn agent_query(
     let enabled_skill_ids = conversation.enabled_skill_ids.clone();
 
     // AgentProfile = AgentRole + Expert（两两组装，运行时拼接提示词）
-    // 不再持久化预合并的 system_prompt，修改 Expert/Role 后自动生效
-    let mut role_system_prompt: Option<String> = None;
-    let mut expert_system_prompt: Option<String> = None;
-    let mut effective_agent_role: Option<axagent_runtime::agent_roles::AgentRole> = None;
-    let mut profile_recommended_tools: Vec<String> = Vec::new();
-    let mut profile_disallowed_tools: Vec<String> = Vec::new();
-
-    if let Some(ref profile_id) = request.agent_profile_id {
-        if let Ok(profile) =
-            axagent_dao::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
-                .await
-        {
-            // Layer 1: AgentRole system_prompt（岗位）
-            if let Some(ref role_name) = profile.agent_role {
-                if let Some(resolved) =
-                    axagent_runtime::agent_roles::AgentRole::resolve(role_name).await
-                {
-                    effective_agent_role =
-                        axagent_runtime::agent_roles::AgentRole::from_str_opt(&resolved.name);
-                    if !resolved.system_prompt.is_empty() {
-                        role_system_prompt = Some(resolved.system_prompt);
-                    }
-                }
-            }
-
-            // Layer 2: Expert domain knowledge（技能）
-            if let Some(ref expert_id) = profile.expert_id {
-                if let Ok(Some(expert)) =
-                    axagent_entities::agency_experts::Entity::find_by_id(expert_id)
-                        .one(app_state.harness.db())
-                        .await
-                        .map_err(|e| e.to_string())
-                {
-                    if !expert.system_prompt.is_empty() {
-                        expert_system_prompt = Some(expert.system_prompt);
-                    }
-                    // 合并 Expert 的推荐工具
-                    if let Some(ref tools_json) = expert.recommended_tools {
-                        if let Ok(tools) = serde_json::from_str::<Vec<String>>(tools_json) {
-                            profile_recommended_tools.extend(tools);
-                        }
-                    }
-                }
-            }
-
-            // 合并 Profile 自身推荐/禁用工具
-            profile_recommended_tools.extend(profile.recommended_tools);
-            profile_disallowed_tools = profile.disallowed_tools;
+    // 不再持久化预合并的 system_prompt，修改 Expert/Role 后自动生效。
+    // 解析逻辑统一收敛到 `resolve_profile_tool_context`，供 `agent_query` 和
+    // `get_tool_count` 共享，避免筛选语义漂移（禁区 12）。
+    let (
+        role_system_prompt,
+        expert_system_prompt,
+        effective_role_name,
+        profile_recommended_tools,
+        profile_disallowed_tools,
+        profile_active_domains,
+    ) = if let Some(ref profile_id) = request.agent_profile_id {
+        match resolve_profile_tool_context(&app_state, profile_id).await {
+            Some(ctx) => (
+                ctx.role_system_prompt,
+                ctx.expert_system_prompt,
+                ctx.effective_role_name,
+                ctx.recommended_tools,
+                ctx.disallowed_tools,
+                ctx.active_domains,
+            ),
+            None => Default::default(),
         }
-    }
+    } else {
+        Default::default()
+    };
 
     // 提示词拼接：Role → Expert（两部分动态拼接，不在 DB 中预缓存）
     let mut prompt_parts: Vec<&str> = Vec::new();
@@ -294,6 +470,21 @@ pub async fn agent_query(
     // AgentProfile 未产生有效提示词时，降级到请求中携带的 system_prompt
     let effective_system_prompt = effective_system_prompt.or_else(|| request.system_prompt.clone());
 
+    // Load active persona and prepend its system prompt injection.
+    // The persona defines the agent's identity, tone, and behavioral guidelines.
+    // It is prepended before the role/expert prompts so it acts as the
+    // foundational layer of the system prompt.
+    let persona_prompt = axagent_agent::personality::PersonalityManager::get_active()
+        .ok()
+        .flatten()
+        .map(|p| p.system_prompt_injection());
+
+    let effective_system_prompt = match (persona_prompt, effective_system_prompt) {
+        (Some(p), Some(s)) => Some(format!("{}\n\n{}", p, s)),
+        (Some(p), None) => Some(p),
+        (None, s) => s,
+    };
+
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point
     // we emit an "agent-message-id" event so the frontend can remap the
@@ -311,6 +502,29 @@ pub async fn agent_query(
             return Err(ErrorResponse::new(agent_err::RUNNING).into());
         }
         running.insert(conversation_id.clone());
+
+        // 安全网：超时自动清理 running_agents，防止 panic 导致 guard 未正确 drop
+        {
+            let cid = conversation_id.clone();
+            let running = app_state.running_agents.clone();
+            let cancel = app_state.agent_cancel_tokens.clone();
+            let paused = app_state.agent_paused.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(600)).await;
+                // 10 分钟后如果还在 running_agents 中，说明 guard 未能正常 drop（panic 等）
+                let mut agents = running.write().await;
+                if agents.remove(&cid) {
+                    tracing::warn!(
+                        "agent_query: timeout cleanup removed stale running_agents entry for {}",
+                        cid
+                    );
+                    cancel.remove(&cid);
+                    let mut p = paused.lock().await;
+                    p.remove(&cid);
+                }
+            });
+        }
+
         AsyncRunningAgentGuard {
             conversation_id: conversation_id.clone(),
             running_agents: app_state.running_agents.clone(),
@@ -340,13 +554,11 @@ pub async fn agent_query(
         .map_err(|e| e.to_string())?;
     info!("[agent_query] Got provider keys count: {}", prov.keys.len());
 
-    // Get active key
-    let key = prov
-        .keys
-        .iter()
-        .find(|k| k.enabled)
-        .ok_or_else(|| "No active API key for provider".to_string())?;
-    info!("[agent_query] Found active key");
+    // Get active key (使用 DAO 层的 round-robin 轮询逻辑)
+    let key = provider::get_active_key(app_state.harness.db(), &request.provider_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    info!("[agent_query] Found active key (rotation_index={})", key.rotation_index);
 
     // Decrypt key
     let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
@@ -390,6 +602,33 @@ pub async fn agent_query(
         model_param_overrides.as_ref().and_then(|p| p.thinking_param_style.clone());
     let request_delay_ms = model_param_overrides.as_ref().and_then(|p| p.request_delay_ms);
 
+    // 当模型不在 DB 中时，从模型名推断关键参数，确保 o-series 等模型正确使用 max_completion_tokens
+    let use_max_completion_tokens = use_max_completion_tokens.or_else(|| {
+        let model_lower = request.model_id.to_lowercase();
+        if model_lower.contains("o1-") || model_lower.contains("o3-") || model_lower.contains("o4-")
+        {
+            tracing::info!(
+                "[agent_query] Model '{}' not in DB, inferring use_max_completion_tokens=true",
+                request.model_id
+            );
+            Some(true)
+        } else {
+            None
+        }
+    });
+
+    let thinking_param_style = thinking_param_style.or_else(|| {
+        let model_lower = request.model_id.to_lowercase();
+        // 检测可能的 thinking 模型（如 DeepSeek R1 系列）
+        if model_lower.contains("deepseek-r1") || model_lower.contains("deepseek-reasoner") {
+            Some("deepseek".to_string())
+        } else if model_lower.contains("claude") && model_lower.contains("3.5") {
+            Some("anthropic".to_string())
+        } else {
+            None
+        }
+    });
+
     // Resolve effective model parameters: request options → model overrides → defaults
     let effective_temperature =
         request.options.as_ref().and_then(|o| o.temperature).or_else(|| {
@@ -411,6 +650,68 @@ pub async fn agent_query(
         app_state.harness.get_adapter_for_provider(&prov).await.ok_or_else(|| {
             format!("No adapter available for provider type {:?}", prov.provider_type)
         })?;
+
+    // 构建 fallback 适配器：加载其他已启用的提供商作为备用
+    let adapter = {
+        let all_providers =
+            provider::list_providers(app_state.harness.db()).await.unwrap_or_default();
+        let mut fallback_adapters: Vec<Arc<dyn ProviderAdapter>> = Vec::new();
+        let mut fallback_contexts: Vec<ProviderRequestContext> = Vec::new();
+        for fb_prov in &all_providers {
+            if fb_prov.id == prov.id || !fb_prov.enabled {
+                continue;
+            }
+            if let Some(fb_key) = fb_prov.keys.iter().find(|k| k.enabled) {
+                if let Ok(fb_api_key) = axagent_crypto::decrypt_key(
+                    &fb_key.key_encrypted,
+                    app_state.harness.master_key(),
+                ) {
+                    let fb_base_url =
+                        resolve_base_url_for_type(&fb_prov.api_host, &fb_prov.provider_type);
+                    let fb_ctx = ProviderRequestContext {
+                        api_key: fb_api_key,
+                        key_id: fb_key.id.clone(),
+                        provider_id: fb_prov.id.clone(),
+                        base_url: Some(fb_base_url),
+                        api_path: fb_prov.api_path.clone(),
+                        proxy_config:
+                            axagent_harness::types::provider_model::resolve_provider_proxy(
+                                &fb_prov.proxy_config,
+                                &settings,
+                            ),
+                        custom_headers: fb_prov
+                            .custom_headers
+                            .as_ref()
+                            .and_then(|s| serde_json::from_str(s).ok()),
+                        api_mode: None,
+                        conversation: None,
+                        previous_response_id: None,
+                        store_response: None,
+                    };
+                    if let Some(fb_adapter) =
+                        app_state.harness.get_adapter_for_provider(fb_prov).await
+                    {
+                        fallback_adapters.push(fb_adapter);
+                        fallback_contexts.push(fb_ctx);
+                        tracing::info!(
+                            "[agent_query] Registered fallback provider: {} ({:?})",
+                            fb_prov.id,
+                            fb_prov.provider_type
+                        );
+                    }
+                }
+            }
+        }
+        if fallback_adapters.is_empty() {
+            adapter
+        } else {
+            tracing::info!(
+                "[agent_query] FallbackAdapter created with {} fallback(s)",
+                fallback_adapters.len()
+            );
+            Arc::new(FallbackProviderAdapter::new(adapter, fallback_adapters, fallback_contexts))
+        }
+    };
 
     // Load MCP tools for enabled servers (same logic as Q&A mode)
     let mcp_ids = request.enabled_mcp_server_ids.clone().unwrap_or_default();
@@ -516,15 +817,36 @@ pub async fn agent_query(
         }
     }
 
-    // ── 注入 axagent-tools 统一工具到 chat_tools ──
+    // ── 注入 axagent-tools 统一工具到 chat_tools（按功能域过滤）─
     let disabled_set: HashSet<String> = request
         .options
         .as_ref()
         .and_then(|o| o.disabled_tools.as_ref())
         .map(|v| v.iter().cloned().collect())
         .unwrap_or_default();
+
+    // 解析活跃功能域（三源合并：前端显式 > 角色/专家组合 > 默认）
+    let active_domains: std::collections::HashSet<ToolDomain> = if let Some(ref domains) =
+        request.options.as_ref().and_then(|o| o.active_domains.as_ref()).filter(|v| !v.is_empty())
+    {
+        // ① 前端显式传入
+        domains.iter().filter_map(|s| parse_domain_str(s)).collect()
+    } else if !profile_active_domains.is_empty() {
+        // ② 角色/专家组合（role.active_domains ∪ expert.active_domains）
+        // 确保 Core 始终存在
+        let mut d = profile_active_domains;
+        d.insert(ToolDomain::Core);
+        d
+    } else {
+        // ③ 默认（自由对话无任何关联）
+        let mut d = std::collections::HashSet::new();
+        d.insert(ToolDomain::Core);
+        d.insert(ToolDomain::General);
+        d
+    };
+
     let unified_chat_tools: Vec<ChatTool> = tool_registry
-        .get_chat_tools()
+        .get_chat_tools_for_domains(&active_domains, None)
         .into_iter()
         .filter(|t| !disabled_set.contains(&t.function.name))
         .collect();
@@ -532,9 +854,11 @@ pub async fn agent_query(
     if !disabled_set.is_empty() {
         tool_registry = tool_registry.with_blocked_tools(disabled_set.into_iter().collect());
     }
+    let domain_names: Vec<String> = active_domains.iter().map(|d| d.as_str().to_string()).collect();
     info!(
-        "[agent] UnifiedToolRegistry provides {} tools to LLM ({} disabled)",
+        "[agent] UnifiedToolRegistry provides {} tools to LLM (domains: [{}], {} disabled)",
         unified_chat_tools.len(),
+        domain_names.join(", "),
         request
             .options
             .as_ref()
@@ -644,7 +968,6 @@ pub async fn agent_query(
     // This is done AFTER tool_registry is fully configured to ensure MCP tools are available
     // The skill handlers will use a global registry for MCP tool execution
     if skill_tools_count > 0 {
-        let _ = SKILL_MCP_REGISTRY.set(std::sync::Arc::new(tool_registry.clone()));
         let skill_ctx = SkillExecutionContext::new(
             app.clone(),
             &app_state,
@@ -653,6 +976,7 @@ pub async fn agent_query(
             ctx.api_key.clone(),
             conversation_id.clone(),
             streaming_message_id.clone(),
+            std::sync::Arc::new(tool_registry.clone()),
         );
         for (tool_name, skill) in &skill_map {
             let skill_name = skill.name.clone();
@@ -767,70 +1091,28 @@ pub async fn agent_query(
         .await
         .map_err(|e| e.to_string())?;
 
-    // Apply agent role if specified — sets role on session and filters tools
-    // Apply agent role: prefer agent_profile.agent_role > request.role > auto-estimate
-    let mut resolved_role = if let Some(role) = effective_agent_role {
-        info!("[agent_query] Using role from agent_profile: {}", role);
-        Some(role)
-    } else if let Some(role) =
-        request.role.as_deref().and_then(axagent_runtime::agent_roles::AgentRole::from_str_opt)
-    {
-        info!("[agent_query] Using role from request: {}", role);
-        Some(role)
-    } else {
-        None
-    };
-
-    // Filter chat_tools by role's allowed tools, plus profile recommended/disallowed
-    if let Some(role) = resolved_role {
-        let allowed_tools: Vec<&str> = role.default_tools();
-        let mut allowed_set: HashSet<&str> = allowed_tools.iter().copied().collect();
-        for t in &profile_recommended_tools {
-            allowed_set.insert(t.as_str());
+    // ── 工具微调：extra_tools / blocked_tools ──
+    // 来源：AgentProfile.recommended_tools（额外追加） + disallowed_tools（排除）
+    if !profile_recommended_tools.is_empty() || !profile_disallowed_tools.is_empty() {
+        let extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
+        let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
+        // blocked: 从 domain 结果中移除
+        chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
+        // extra: 从注册表 ToolInfo 列表匹配并追加完整 schema
+        let all_info = tool_registry.tools.list_all();
+        for info in &all_info {
+            if extra_names.contains(&info.name) && !existing_names.contains(&info.name) {
+                chat_tools.push(ChatTool {
+                    r#type: "function".into(),
+                    function: ChatToolFunction {
+                        name: info.name.clone(),
+                        description: Some(info.description.clone()),
+                        parameters: Some(info.input_schema.clone()),
+                    },
+                });
+            }
         }
-        for t in &profile_disallowed_tools {
-            allowed_set.remove(t.as_str());
-        }
-        chat_tools.retain(|t| allowed_set.contains(t.function.name.as_str()));
-        info!(
-            "[agent_query] Role '{}' filtered tools: {} remaining (profile: +{}/-{})",
-            role,
-            chat_tools.len(),
-            profile_recommended_tools.len(),
-            profile_disallowed_tools.len(),
-        );
     }
-
-    // Smart decision: if no explicit role was set, estimate task complexity
-    // and auto-assign a role for high-complexity multi-step tasks.
-    resolved_role = if resolved_role.is_none() {
-        let complexity = axagent_trajectory::estimate_complexity_public(&request.input);
-        info!("[agent_query] Auto-estimated task complexity: {:?}", complexity);
-        match complexity {
-            axagent_trajectory::Complexity::High => {
-                // High complexity tasks benefit from the Coordinator role
-                // which is designed for task decomposition and orchestration
-                let auto_role = axagent_runtime::agent_roles::AgentRole::Coordinator;
-                info!("[agent_query] Auto-assigning role '{}' for high-complexity task", auto_role);
-                Some(auto_role)
-            },
-            axagent_trajectory::Complexity::Medium => {
-                // Medium complexity: use Developer role for implementation tasks
-                let auto_role = axagent_runtime::agent_roles::AgentRole::Developer;
-                info!(
-                    "[agent_query] Auto-assigning role '{}' for medium-complexity task",
-                    auto_role
-                );
-                Some(auto_role)
-            },
-            axagent_trajectory::Complexity::Low => {
-                // Low complexity: no role filtering needed, use all tools
-                None
-            },
-        }
-    } else {
-        resolved_role
-    };
 
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = request.enabled_knowledge_base_ids.clone().unwrap_or_default();
@@ -1081,7 +1363,7 @@ pub async fn agent_query(
         effective_system_prompt.as_deref(),
         rag_context_parts.as_deref(),
         &skill_contents,
-        resolved_role,
+        effective_role_name.as_deref(),
         working_memory_text.as_deref(),
         // nudge_messages 通过 runtime.set_nudge_lines 在每次 LLM 调用前动态注入，此处传 None 避免重复
         None,
@@ -1237,6 +1519,14 @@ pub async fn agent_query(
     // P4: Save input for trajectory recording (request.input is moved below)
     let trajectory_input = request.input.clone();
 
+    // 注入 AskUserBridge 到工具注册表，使 AskUserQuestionTool 能够阻塞等待用户回复
+    tool_registry.ask_user_bridge = Some(Arc::new(AppAskUserBridge {
+        app_handle: app.clone(),
+        ask_senders: app_state.agent_ask_senders.clone(),
+        conversation_id: conversation_id.clone(),
+        assistant_message_id: streaming_message_id.clone(),
+    }));
+
     // Build runtime via factory, then delegate to session_manager.
     // This keeps axagent-runtime-core out of the agent crate's dependencies.
     let mut runtime = create_conversation_runtime(
@@ -1288,8 +1578,11 @@ pub async fn agent_query(
         always_map.insert(conversation_id.clone(), updated_always);
     }
 
-    // Remove the prompter from AppState now that the turn is complete
+    // Remove the prompter from AppState now that the turn is complete.
+    // Clear any pending permission requests first to avoid leaking blocked
+    // threads that would otherwise wait for the 5-minute timeout.
     {
+        prompter.clear_pending();
         let mut prompters = app_state.agent_prompters.lock().await;
         prompters.remove(&conversation_id);
     }
@@ -1881,13 +2174,17 @@ pub async fn agent_respond_ask(
     }
 }
 
-/// Cancel an agent task
-#[tauri::command]
-pub async fn agent_cancel(
-    app: AppHandle,
-    app_state: State<'_, AppState>,
-    request: AgentCancelRequest,
-) -> Result<AgentCancelResponse, String> {
+/// Shared internal agent cancellation logic.
+/// Used by both `agent_cancel` command and `delete_conversation` cleanup.
+/// Performs the common cleanup steps: cancel token, prompter, paused, AskUser senders, event emit.
+/// Callers that need to additionally clean `always_allowed` or `running_agents`
+/// should do so after calling this function.
+pub(crate) async fn cancel_agent_internal(
+    app: &tauri::AppHandle,
+    app_state: &AppState,
+    conversation_id: &str,
+    reason: &str,
+) {
     // Trigger the cancel token to abort the run_turn loop.
     // Only set the flag — do NOT remove the token here.
     // The token will be cleaned up by agent_query after run_turn_with_tools
@@ -1895,17 +2192,57 @@ pub async fn agent_cancel(
     // the flag yet but the token (and its Arc) is already gone.
     {
         let tokens = &app_state.agent_cancel_tokens;
-        if let Some(token) = tokens.get(&request.conversation_id) {
+        if let Some(token) = tokens.get(conversation_id) {
             token.store(true, std::sync::atomic::Ordering::Release);
-            info!("[agent_cancel] Set cancel token for conversationId={}", request.conversation_id);
-        } else {
             info!(
-                "[agent_cancel] No cancel token found for conversationId={} (may have already completed)",
-                request.conversation_id
+                "[cancel_agent_internal] Set cancel token for conversationId={}",
+                conversation_id
             );
         }
     }
 
+    // Clean up the permission prompter for this conversation.
+    // Call clear_pending() first to unblock any waiting rx.recv() calls,
+    // then remove from the map.
+    {
+        let mut prompters = app_state.agent_prompters.lock().await;
+        if let Some(prompter) = prompters.get(conversation_id) {
+            prompter.clear_pending();
+        }
+        prompters.remove(conversation_id);
+    }
+
+    // Clean up paused state — if the agent was paused when cancelled,
+    // the paused entry would otherwise remain indefinitely.
+    {
+        let mut paused = app_state.agent_paused.lock().await;
+        paused.remove(conversation_id);
+    }
+
+    // Clean up AskUser senders — if the agent was waiting for an AskUser
+    // response when cancelled, the oneshot sender would leak.
+    {
+        let mut ask_senders = app_state.agent_ask_senders.lock().await;
+        ask_senders.retain(|k, _| !k.starts_with(conversation_id));
+    }
+
+    // Emit cancellation event so frontend can clean up
+    let _ = app.emit(
+        "agent-cancelled",
+        serde_json::json!({
+            "conversationId": conversation_id,
+            "reason": reason,
+        }),
+    );
+}
+
+/// Cancel an agent task
+#[tauri::command]
+pub async fn agent_cancel(
+    app: AppHandle,
+    app_state: State<'_, AppState>,
+    request: AgentCancelRequest,
+) -> Result<AgentCancelResponse, String> {
     // Note: We intentionally do NOT remove from running_agents here.
     // The AsyncRunningAgentGuard (RAII) in agent_query is the sole owner of
     // that entry and will remove it on Drop. Removing it here would
@@ -1913,32 +2250,8 @@ pub async fn agent_cancel(
     // The cancel token (set above) is what actually stops the agent loop;
     // running_agents is only a concurrency guard for agent_query entry.
 
-    // Clean up the permission prompter for this conversation.
-    // Call clear_pending() first to unblock any waiting rx.recv() calls,
-    // then remove from the map.
-    {
-        let mut prompters = app_state.agent_prompters.lock().await;
-        if let Some(prompter) = prompters.get(&request.conversation_id) {
-            prompter.clear_pending();
-        }
-        prompters.remove(&request.conversation_id);
-    }
-
-    // Clean up paused state — if the agent was paused when cancelled,
-    // the paused entry would otherwise remain indefinitely.
-    {
-        let mut paused = app_state.agent_paused.lock().await;
-        paused.remove(&request.conversation_id);
-    }
-
-    // Emit cancellation event so frontend can clean up
-    let _ = app.emit(
-        "agent-cancelled",
-        serde_json::json!({
-            "conversationId": request.conversation_id,
-            "reason": "User cancelled",
-        }),
-    );
+    cancel_agent_internal(&app, app_state.inner(), &request.conversation_id, "User cancelled")
+        .await;
 
     Ok(())
 }
@@ -1962,7 +2275,9 @@ pub async fn agent_pause(
     app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<(), String> {
-    // Verify the agent is actually running
+    // Verify the agent is actually running and insert into paused set atomically.
+    // Hold the running_agents read lock while inserting to close the TOCTOU window
+    // where the agent could complete between the check and the insert.
     {
         let running = app_state.running_agents.read().await;
         if !running.contains(&conversation_id) {
@@ -1970,9 +2285,6 @@ pub async fn agent_pause(
                 .with_detail(format!("No running agent for conversation {}", conversation_id))
                 .into());
         }
-    }
-
-    {
         let mut paused = app_state.agent_paused.lock().await;
         paused.insert(conversation_id.clone());
     }
@@ -2023,14 +2335,21 @@ pub async fn agent_resume(
     Ok(())
 }
 
-/// Check if an agent is paused.
+/// Check if an agent is paused. An agent is only considered paused if it is
+/// both in the paused set AND still running (to filter out stale entries).
 #[tauri::command]
 pub async fn agent_is_paused(
     app_state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<bool, String> {
     let paused = app_state.agent_paused.lock().await;
-    Ok(paused.contains(&conversation_id))
+    if !paused.contains(&conversation_id) {
+        return Ok(false);
+    }
+    drop(paused);
+    // 双重检查：agent 必须仍在运行中
+    let running = app_state.running_agents.read().await;
+    Ok(running.contains(&conversation_id))
 }
 
 /// Runtime statistics for a running agent.
@@ -2081,10 +2400,9 @@ pub async fn agent_runtime_stats(
         ask.keys().filter(|k| k.starts_with(&conversation_id)).count()
     };
     let active_tool_calls = {
-        // An agent is actively processing tool calls if it's running and has
-        // pending permission requests (tools waiting for approval) or if it's
-        // running but not paused (tools executing after approval).
-        if running && !paused { 1 } else { 0 }
+        // 使用实际挂起的权限请求数作为活跃工具调用计数。
+        // 当工具等待审批时，pending_permissions 反映实际并发数。
+        pending_permissions
     };
 
     // Read real-time execution progress from the SessionManager.
@@ -2217,21 +2535,12 @@ pub async fn agent_get_session(
     .map_err(|e| e.to_string())?;
 
     if let Some(session) = session {
-        // Parse timestamps
-        let created_at = chrono::DateTime::parse_from_str(&session.created_at, "%Y-%m-%d %H:%M:%S")
-            .unwrap_or_else(|_| chrono::Utc::now().into())
-            .timestamp();
-        let last_active_at =
-            chrono::DateTime::parse_from_str(&session.updated_at, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_else(|_| chrono::Utc::now().into())
-                .timestamp();
-
         Ok(AgentGetSessionResponse {
             conversation_id: request.conversation_id,
             name: None,
             metadata: None,
-            created_at,
-            last_active_at,
+            created_at: session.created_at,
+            last_active_at: session.updated_at,
         })
     } else {
         // Create a new session if none exists
@@ -2244,14 +2553,8 @@ pub async fn agent_get_session(
         .await
         .map_err(|e| e.to_string())?;
 
-        let created_at =
-            chrono::DateTime::parse_from_str(&new_session.created_at, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_else(|_| chrono::Utc::now().into())
-                .timestamp();
-        let last_active_at =
-            chrono::DateTime::parse_from_str(&new_session.updated_at, "%Y-%m-%d %H:%M:%S")
-                .unwrap_or_else(|_| chrono::Utc::now().into())
-                .timestamp();
+        let created_at = new_session.created_at;
+        let last_active_at = new_session.updated_at;
 
         Ok(AgentGetSessionResponse {
             conversation_id: request.conversation_id,
@@ -2394,739 +2697,6 @@ pub async fn agent_restore_sdk_context_from_backup(
     )
     .await
     .map_err(|e| e.to_string())
-}
-
-// ---------------------------------------------------------------------------
-// Workflow commands — multi-agent DAG orchestration
-// ---------------------------------------------------------------------------
-
-/// Request to create a workflow from nodes + edges JSON
-#[derive(Debug, Deserialize)]
-pub struct WorkflowCreateRequest {
-    pub name: String,
-    pub nodes: Vec<serde_json::Value>,
-    pub edges: Vec<serde_json::Value>,
-}
-
-/// Response from workflow creation
-#[derive(Debug, Serialize)]
-pub struct WorkflowCreateResponse {
-    #[serde(rename = "workflowId")]
-    pub workflow_id: String,
-    pub name: String,
-    #[serde(rename = "stepCount")]
-    pub step_count: usize,
-}
-
-/// Create a new workflow DAG from WorkflowNode + WorkflowEdge
-#[tauri::command]
-pub async fn workflow_create(
-    app_state: State<'_, AppState>,
-    request: WorkflowCreateRequest,
-) -> Result<WorkflowCreateResponse, String> {
-    let nodes: Vec<axagent_harness::workflow_types::WorkflowNode> =
-        request.nodes.into_iter().filter_map(|n| serde_json::from_value(n).ok()).collect();
-    let edges: Vec<axagent_harness::workflow_types::WorkflowEdge> =
-        request.edges.into_iter().filter_map(|e| serde_json::from_value(e).ok()).collect();
-
-    let workflow = app_state
-        .work_engine
-        .create_workflow(&request.name, nodes, edges)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(WorkflowCreateResponse {
-        workflow_id: workflow.id.clone(),
-        name: workflow.name,
-        step_count: workflow.nodes.len(),
-    })
-}
-
-/// Execute a workflow with LLM step execution
-#[tauri::command]
-pub async fn workflow_execute(
-    app: tauri::AppHandle,
-    app_state: State<'_, AppState>,
-    workflow_id: String,
-    model_id: Option<String>,
-    provider_id: Option<String>,
-    variables: Option<Vec<axagent_harness::workflow_types::Variable>>,
-) -> Result<String, String> {
-    // 验证工作流存在
-    let _ = app_state
-        .work_engine
-        .get_workflow(&workflow_id)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
-
-    // 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
-    // 此处不再 set_tool_resolver 覆盖——否则会静默丢弃 init 阶段注入的 workflow:: 解析。
-    let _ = app_state.local_tool_registry; // 保留依赖项以维持签名稳定
-
-    let engine = app_state.work_engine.clone();
-    let wid = workflow_id.clone();
-    let app_for_emit = app.clone();
-    let app_for_panic = app_for_emit.clone();
-    let wid_for_panic = wid.clone();
-    tokio::spawn(async move {
-        // 兜底：panic / 早退路径上 emit execution-completed failed 事件
-        let _guard = SpawnGuard::new("workflow_run", move || {
-            tracing::error!("[workflow_run] PANIC guard fired for workflow={}", wid_for_panic);
-            let _ = app_for_panic.emit(
-                "workflow:execution-completed",
-                serde_json::json!({
-                    "workflow_id": wid_for_panic,
-                    "success": false,
-                    "error": "Internal panic during workflow execution",
-                }),
-            );
-        });
-        let mut opts = axagent_runtime::work_engine::RunOptions::default();
-        if let Some(m) = model_id {
-            opts = opts.with_model(m);
-        }
-        if let Some(p) = provider_id {
-            opts = opts.with_provider(p);
-        }
-        if let Some(vars) = variables {
-            opts = opts.with_variables(vars);
-        }
-        match engine.run_workflow(&wid, opts).await {
-            Ok(result) => {
-                let _ = app_for_emit.emit(
-                    "workflow:execution-completed",
-                    serde_json::json!({
-                        "workflow_id": wid,
-                        "success": true,
-                        "result": result,
-                    }),
-                );
-            },
-            Err(e) => {
-                tracing::error!("[workflow] 执行失败: {}", e);
-                let _ = app_for_emit.emit(
-                    "workflow:execution-completed",
-                    serde_json::json!({
-                        "workflow_id": wid,
-                        "success": false,
-                        "error": e.to_string(),
-                    }),
-                );
-            },
-        }
-        _guard.finish();
-    });
-
-    Ok(workflow_id)
-}
-
-/// Get workflow status
-#[tauri::command]
-pub async fn workflow_get_status(
-    app_state: State<'_, AppState>,
-    workflow_id: String,
-) -> Result<Value, String> {
-    let workflow =
-        app_state.work_engine.get_workflow(&workflow_id).await.map_err(|e| e.to_string())?;
-
-    match workflow {
-        Some(w) => Ok(serde_json::to_value(w).map_err(|e| e.to_string())?),
-        None => Err(ErrorResponse::new(agent_err::WORKFLOW_NOT_FOUND).into()),
-    }
-}
-
-/// Cancel a running workflow
-#[tauri::command]
-pub async fn workflow_cancel(
-    app_state: State<'_, AppState>,
-    workflow_id: String,
-) -> Result<Value, String> {
-    let workflow =
-        app_state.work_engine.cancel_workflow(&workflow_id).await.map_err(|e| e.to_string())?;
-
-    serde_json::to_value(workflow).map_err(|e| e.to_string())
-}
-
-/// List all workflows
-#[tauri::command]
-pub async fn workflow_list(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
-    let workflows = app_state.work_engine.list_workflows().await.map_err(|e| e.to_string())?;
-
-    Ok(workflows.into_iter().filter_map(|w| serde_json::to_value(w).ok()).collect())
-}
-
-/// Estimate task complexity from user input
-#[tauri::command]
-pub async fn agent_estimate_complexity(input: String) -> Result<String, String> {
-    let complexity = axagent_trajectory::estimate_complexity_public(&input);
-    Ok(format!("{:?}", complexity).to_lowercase())
-}
-
-// ---------------------------------------------------------------------------
-// P3: Multi-agent visualization commands
-// ---------------------------------------------------------------------------
-
-/// List all sub-agents in the registry
-#[tauri::command]
-pub async fn sub_agent_list(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
-    let registry = app_state.sub_agent_registry.read().await;
-    let agents = registry.list_all();
-    Ok(agents.iter().filter_map(|a| serde_json::to_value(a).ok()).collect())
-}
-
-/// Get a specific sub-agent by ID
-#[tauri::command]
-pub async fn sub_agent_get(
-    app_state: State<'_, AppState>,
-    agent_id: String,
-) -> Result<Value, String> {
-    let registry = app_state.sub_agent_registry.read().await;
-    let agent = registry.get(&agent_id).ok_or_else(|| ErrorResponse::err(agent_err::NOT_FOUND))?;
-    serde_json::to_value(agent).map_err(|e| e.to_string())
-}
-
-/// Get children of a parent agent
-#[tauri::command]
-pub async fn sub_agent_get_children(
-    app_state: State<'_, AppState>,
-    parent_id: String,
-) -> Result<Vec<Value>, String> {
-    let registry = app_state.sub_agent_registry.read().await;
-    let children = registry.get_children(&parent_id);
-    Ok(children.iter().filter_map(|c| serde_json::to_value(c).ok()).collect())
-}
-
-/// Get pending messages for an agent
-#[tauri::command]
-pub async fn sub_agent_get_messages(
-    app_state: State<'_, AppState>,
-    agent_id: String,
-) -> Result<Vec<Value>, String> {
-    let registry = app_state.sub_agent_registry.read().await;
-    let messages = registry.message_bus().peek_all(&agent_id);
-    Ok(messages.iter().filter_map(|m| serde_json::to_value(m).ok()).collect())
-}
-
-/// List all shared memory entries in a namespace
-#[tauri::command]
-pub async fn shared_memory_list(
-    app_state: State<'_, AppState>,
-    namespace: String,
-) -> Result<Vec<Value>, String> {
-    let mem = app_state.shared_memory.read().await;
-    let entries = mem.list(&namespace);
-    Ok(entries.iter().filter_map(|e| serde_json::to_value(e).ok()).collect())
-}
-
-/// Get a specific shared memory entry
-#[tauri::command]
-pub async fn shared_memory_get(
-    app_state: State<'_, AppState>,
-    key: String,
-    namespace: String,
-) -> Result<Value, String> {
-    let mem = app_state.shared_memory.read().await;
-    let entry = mem.get(&key, &namespace).map_err(|e| e.to_string())?;
-    serde_json::to_value(entry).map_err(|e| e.to_string())
-}
-
-/// Get shared memory stats
-#[tauri::command]
-pub async fn shared_memory_stats(app_state: State<'_, AppState>) -> Result<Value, String> {
-    let mem = app_state.shared_memory.read().await;
-    let stats = mem.stats();
-    serde_json::to_value(stats).map_err(|e| e.to_string())
-}
-
-/// Get workflow preview from conversation tool executions
-#[tauri::command]
-pub async fn get_conversation_workflow_preview(
-    app_state: State<'_, AppState>,
-    conversation_id: String,
-) -> Result<ConversationWorkflowPreview, String> {
-    let db = app_state.harness.db();
-
-    let executions = axagent_dao::repo::tool_execution::list_tool_executions(db, &conversation_id)
-        .await
-        .map_err(|e| {
-            ErrorResponse::new(agent_err::INTERNAL)
-                .with_detail(format!("Failed to list tool executions: {}", e))
-        })?;
-
-    let mut all_nodes: Vec<serde_json::Value> = Vec::new();
-    let mut all_edges: Vec<serde_json::Value> = Vec::new();
-    let mut skill_execution_order: Vec<String> = Vec::new();
-    let mut skill_node_ids: HashMap<String, Vec<String>> = HashMap::new();
-
-    for execution in &executions {
-        if execution.tool_name.starts_with("skill_") || execution.tool_name == "skill_executor" {
-            if let Some(ref skill_steps_json) = execution.skill_steps_json {
-                if let Ok(skill_steps) = serde_json::from_str::<Vec<SkillStep>>(skill_steps_json) {
-                    let skill_id = execution.tool_name.clone();
-                    let base_y = all_nodes.len() as f64 * 200.0;
-
-                    let (nodes, edges) =
-                        skill_steps_to_nodes_edges_with_offset(&skill_steps, &skill_id, base_y);
-
-                    let node_ids: Vec<String> = nodes
-                        .iter()
-                        .filter_map(|n| n.get("id").and_then(|id| id.as_str()).map(String::from))
-                        .collect();
-
-                    skill_node_ids.insert(skill_id.clone(), node_ids);
-                    skill_execution_order.push(skill_id.clone());
-
-                    all_nodes.extend(nodes);
-                    all_edges.extend(edges);
-                }
-            }
-
-            if let Some(ref depends_on_json) = execution.depends_on {
-                if let Ok(depends_on) = serde_json::from_str::<Vec<String>>(depends_on_json) {
-                    for dep_skill in depends_on {
-                        if let Some(dep_nodes) = skill_node_ids.get(&dep_skill) {
-                            if let Some(current_nodes) = skill_node_ids.get(&execution.tool_name) {
-                                if let (Some(first_dep), Some(first_current)) =
-                                    (dep_nodes.first(), current_nodes.first())
-                                {
-                                    let edge = serde_json::json!({
-                                        "id": format!("inter_edge_{}_{}", dep_skill, execution.tool_name),
-                                        "source": first_dep,
-                                        "target": first_current,
-                                        "edge_type": "dependency",
-                                        "data": {
-                                            "dependency_type": "inter_skill",
-                                            "from_skill": dep_skill,
-                                            "to_skill": execution.tool_name,
-                                        }
-                                    });
-                                    all_edges.push(edge);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(ConversationWorkflowPreview {
-        nodes: all_nodes,
-        edges: all_edges,
-        skill_execution_order: skill_execution_order.clone(),
-        skill_count: skill_execution_order.len(),
-    })
-}
-
-#[derive(Debug, Serialize)]
-pub struct ConversationWorkflowPreview {
-    pub nodes: Vec<serde_json::Value>,
-    pub edges: Vec<serde_json::Value>,
-    pub skill_execution_order: Vec<String>,
-    pub skill_count: usize,
-}
-
-fn skill_steps_to_nodes_edges_with_offset(
-    skill_steps: &[SkillStep],
-    skill_id: &str,
-    base_y: f64,
-) -> (Vec<serde_json::Value>, Vec<serde_json::Value>) {
-    let mut nodes = Vec::new();
-    let mut edges = Vec::new();
-
-    let trigger_node_id = format!("trigger_{}", skill_id);
-    let trigger_node = serde_json::json!({
-        "id": trigger_node_id,
-        "type": "trigger",
-        "position": { "x": 250, "y": base_y },
-        "data": {
-            "id": trigger_node_id,
-            "title": format!("Trigger: {}", skill_id),
-            "description": format!("Skill trigger for {}", skill_id),
-            "node_type": "trigger",
-            "config": {
-                "type": "manual",
-                "skill_id": skill_id,
-            },
-            "enabled": true,
-        },
-    });
-    nodes.push(trigger_node);
-
-    let mut step_offset_map: HashMap<usize, String> = HashMap::new();
-
-    for s in skill_steps {
-        let step_id = format!("{}_step_{}", skill_id, s.step);
-        step_offset_map.insert(s.step, step_id.clone());
-
-        let role = infer_agent_role(&s.action, &s.description);
-        let role_str = match role {
-            axagent_runtime::agent_roles::AgentRole::Researcher => "researcher",
-            axagent_runtime::agent_roles::AgentRole::Developer => "developer",
-            axagent_runtime::agent_roles::AgentRole::Reviewer => "reviewer",
-            axagent_runtime::agent_roles::AgentRole::Planner => "planner",
-            axagent_runtime::agent_roles::AgentRole::Synthesizer => "synthesizer",
-            axagent_runtime::agent_roles::AgentRole::Executor => "executor",
-            axagent_runtime::agent_roles::AgentRole::Coordinator => "coordinator",
-            axagent_runtime::agent_roles::AgentRole::Browser => "browser",
-        };
-
-        let node = serde_json::json!({
-            "id": step_id,
-            "type": "agent",
-            "position": { "x": 250, "y": base_y + (s.step as f64 + 1.0) * 150.0 },
-            "data": {
-                "id": step_id,
-                "title": s.action,
-                "description": s.description,
-                "node_type": "agent",
-                "config": {
-                    "role": role_str,
-                    "system_prompt": format!("You are a {}. Task: {}", role_str, s.description),
-                    "output_var": "result",
-                    "context_sources": [],
-                },
-                "retry": {
-                    "max_attempts": 2,
-                    "delay_ms": 1000,
-                },
-                "enabled": true,
-                "skill_id": skill_id,
-            },
-        });
-        nodes.push(node);
-
-        let edge = serde_json::json!({
-            "id": format!("edge_{}_{}", trigger_node_id, step_id),
-            "source": trigger_node_id,
-            "target": step_id,
-            "edge_type": "default",
-        });
-        edges.push(edge);
-
-        for need in &s.needs {
-            if let Some(prev_step_id) = step_offset_map.get(need) {
-                let need_edge = serde_json::json!({
-                    "id": format!("need_edge_{}_{}", prev_step_id, step_id),
-                    "source": prev_step_id,
-                    "target": step_id,
-                    "edge_type": "dependency",
-                    "data": {
-                        "dependency_type": "intra_skill",
-                        "from_step": need,
-                        "to_step": s.step,
-                    }
-                });
-                edges.push(need_edge);
-            }
-        }
-    }
-
-    (nodes, edges)
-}
-
-/// Get workflow step details (for DAG visualization)
-#[tauri::command]
-pub async fn workflow_get_steps(
-    app_state: State<'_, AppState>,
-    workflow_id: String,
-) -> Result<Vec<Value>, String> {
-    let workflow = app_state
-        .work_engine
-        .get_workflow(&workflow_id)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
-    Ok(workflow.nodes.iter().filter_map(|s| serde_json::to_value(s).ok()).collect())
-}
-
-// ---------------------------------------------------------------------------
-// P0: Nudge commands — self-evolution learning suggestions
-// ---------------------------------------------------------------------------
-
-// Note: nudge commands are defined in agent_nudge.rs and registered directly from there
-
-// ---------------------------------------------------------------------------
-// P3: Memory Flush & Learning Insight commands
-// ---------------------------------------------------------------------------
-
-// Note: insight commands are defined in agent_insight.rs and registered directly from there
-
-/// Manually flush a memory item (frontend-triggered)
-#[tauri::command]
-pub async fn memory_flush(
-    app_state: State<'_, AppState>,
-    content: String,
-    target: Option<String>,
-    category: Option<String>,
-) -> Result<Value, String> {
-    let valid_target = target.as_deref().unwrap_or("memory");
-    let _valid_category = category.as_deref().unwrap_or("insight");
-
-    // Use MemoryService to persist the memory
-    let ms = app_state.memory_service.read().await;
-    let result = ms.add_memory(valid_target, &content).await;
-    serde_json::to_value(result).map_err(|e| e.to_string())
-}
-
-/// Record feedback signal for RealTimeLearning
-#[tauri::command]
-pub async fn record_feedback(
-    app_state: State<'_, AppState>,
-    feedback_type: String,
-    source: String,
-    content: String,
-) -> Result<(), String> {
-    let ft = match feedback_type.as_str() {
-        "success" => axagent_trajectory::FeedbackType::Success,
-        "failure" => axagent_trajectory::FeedbackType::Failure,
-        "partial" => axagent_trajectory::FeedbackType::Partial,
-        "correction" => axagent_trajectory::FeedbackType::Correction,
-        _ => {
-            return Err(ErrorResponse::new(agent_err::INTERNAL)
-                .with_detail(format!("Unknown feedback type: {}", feedback_type))
-                .to_string());
-        },
-    };
-    let fs = match source.as_str() {
-        "user" => axagent_trajectory::FeedbackSource::User,
-        "system" => axagent_trajectory::FeedbackSource::System,
-        "self" => axagent_trajectory::FeedbackSource::Self_,
-        _ => {
-            return Err(ErrorResponse::new(agent_err::INTERNAL)
-                .with_detail(format!("Unknown feedback source: {}", source))
-                .to_string());
-        },
-    };
-
-    let mut rl = app_state.realtime_learning.lock().await;
-    rl.record_feedback(axagent_trajectory::FeedbackSignal {
-        feedback_type: ft,
-        source: fs,
-        content,
-        timestamp: chrono::Utc::now().timestamp_millis(),
-        context: None,
-    });
-    Ok(())
-}
-
-// ---------------------------------------------------------------------------
-// P4: Trajectory & Closed-Loop Learning commands
-// ---------------------------------------------------------------------------
-// P4: Analytics & Learning commands (re-exported from agent_analytics)
-// ---------------------------------------------------------------------------
-
-// Note: trajectory_stats, trajectory_list, pattern_stats, closed_loop_status,
-// rl_config, rl_export_training_data, rl_compute_rewards are defined in agent_analytics.rs
-// and should be registered directly from there, not re-exported here to avoid duplicate macro definitions
-
-// ---------------------------------------------------------------------------
-// P5: Pattern Learning commands
-// ---------------------------------------------------------------------------
-
-/// Get learned patterns (high-value and failure)
-#[tauri::command]
-pub async fn pattern_list(
-    app_state: State<'_, AppState>,
-    pattern_type: Option<String>,
-    min_success_rate: Option<f64>,
-) -> Result<Vec<Value>, String> {
-    let pl = app_state.pattern_learner.read().await;
-    let patterns = if let Some(pt) = pattern_type {
-        let ptype = match pt.as_str() {
-            "tool_sequence" => axagent_trajectory::PatternType::ToolSequence,
-            "reasoning_chain" => axagent_trajectory::PatternType::ReasoningChain,
-            "error_recovery" => axagent_trajectory::PatternType::ErrorRecovery,
-            "user_interaction" => axagent_trajectory::PatternType::UserInteraction,
-            "context_switch" => axagent_trajectory::PatternType::ContextSwitch,
-            "multi_step" => axagent_trajectory::PatternType::MultiStep,
-            "goal_oriented" => axagent_trajectory::PatternType::GoalOriented,
-            "exploratory" => axagent_trajectory::PatternType::Exploratory,
-            _ => {
-                return Err(ErrorResponse::new(agent_err::INTERNAL)
-                    .with_detail(format!("Unknown pattern type: {}", pt))
-                    .to_string());
-            },
-        };
-        pl.get_patterns_by_type(ptype).iter().filter_map(|p| serde_json::to_value(p).ok()).collect()
-    } else if let Some(min_sr) = min_success_rate {
-        pl.get_high_value_patterns(min_sr)
-            .iter()
-            .filter_map(|p| serde_json::to_value(p).ok())
-            .collect()
-    } else {
-        // Return all patterns from storage
-        drop(pl);
-        let all = app_state.trajectory_storage.get_patterns().await.map_err(|e| e.to_string())?;
-        all.iter().filter_map(|p| serde_json::to_value(p).ok()).collect()
-    };
-    Ok(patterns)
-}
-
-/// Get cross-session insights
-#[tauri::command]
-pub async fn cross_session_insights(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
-    let csl = app_state.cross_session_learner.read().await;
-    let insights = csl.get_cross_session_insights();
-    Ok(insights.iter().filter_map(|i| serde_json::to_value(i).ok()).collect())
-}
-
-// ---------------------------------------------------------------------------
-// P6: RL Reward & Training Data commands
-// ---------------------------------------------------------------------------
-// P6: RL Reward & Training Data commands (re-exported from agent_analytics)
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// P7: Skill Evolution commands
-// ---------------------------------------------------------------------------
-
-/// Start skill evolution for a specific skill
-#[tauri::command]
-pub async fn skill_evolution_start(
-    app_state: State<'_, AppState>,
-    skill_id: String,
-) -> Result<Value, String> {
-    // Get the skill
-    let skill = app_state
-        .trajectory_storage
-        .get_skill(&skill_id)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("Skill '{}' not found", skill_id))?;
-
-    // Get test trajectories
-    let trajectories =
-        app_state.trajectory_storage.get_trajectories(Some(30)).await.map_err(|e| e.to_string())?;
-    let test_refs: Vec<_> = trajectories.iter().collect();
-
-    // Run evolution
-    let mut engine = app_state.skill_evolution_engine.lock().await;
-    let result = engine.run(&skill, &test_refs).await;
-
-    match result {
-        Some(modification) => {
-            let improved = modification.validation_result.as_ref().is_some_and(|v| v.success);
-
-            // If improved, patch the skill
-            if improved {
-                let mut updated = skill.clone();
-                updated.content = modification.new_content.clone();
-                updated.quality_score = modification.confidence;
-                if let Err(e) = app_state.trajectory_storage.save_skill(&updated).await {
-                    tracing::warn!("[evolution] Failed to save evolved skill: {}", e);
-                }
-            }
-
-            Ok(serde_json::json!({
-                "skill_id": skill_id,
-                "improved": improved,
-                "reason": modification.reason,
-                "confidence": modification.confidence,
-                "quality_delta": modification.validation_result.as_ref().map(|v| v.quality_delta),
-                "stats": engine.get_stats(),
-            }))
-        },
-        None => Ok(serde_json::json!({
-            "skill_id": skill_id,
-            "improved": false,
-            "reason": "Evolution did not produce a result",
-            "confidence": 0.0,
-        })),
-    }
-}
-
-/// Get current skill evolution status
-#[tauri::command]
-pub async fn skill_evolution_status(app_state: State<'_, AppState>) -> Result<Value, String> {
-    let engine = app_state.skill_evolution_engine.lock().await;
-    let stats = engine.get_stats();
-    Ok(serde_json::json!({
-        "is_running": engine.is_running(),
-        "stats": stats,
-    }))
-}
-
-// ---------------------------------------------------------------------------
-// P8: User Modeling commands
-// ---------------------------------------------------------------------------
-
-/// Get the current user profile
-#[tauri::command]
-pub async fn user_profile_get(app_state: State<'_, AppState>) -> Result<Value, String> {
-    let profile = app_state.user_profile.read().await;
-    Ok(serde_json::to_value(&*profile).unwrap_or_else(|_| serde_json::json!({})))
-}
-
-/// Update user profile preferences
-#[tauri::command]
-pub async fn user_profile_set_preference(
-    app_state: State<'_, AppState>,
-    key: String,
-    value: String,
-) -> Result<(), String> {
-    let mut profile = app_state.user_profile.write().await;
-    profile.set_preference(key, value);
-    Ok(())
-}
-
-/// Set expertise level for a domain
-#[tauri::command]
-pub async fn user_profile_set_expertise(
-    app_state: State<'_, AppState>,
-    domain: String,
-    level: String,
-) -> Result<(), String> {
-    let expertise = match level.to_lowercase().as_str() {
-        "beginner" => axagent_trajectory::ExpertiseLevel::Beginner,
-        "intermediate" => axagent_trajectory::ExpertiseLevel::Intermediate,
-        "advanced" => axagent_trajectory::ExpertiseLevel::Advanced,
-        "expert" => axagent_trajectory::ExpertiseLevel::Expert,
-        _ => {
-            return Err(ErrorResponse::new(agent_err::INTERNAL)
-                .with_detail(format!("Unknown expertise level: {}", level))
-                .to_string());
-        },
-    };
-    let mut profile = app_state.user_profile.write().await;
-    profile.set_expertise(domain, expertise);
-    Ok(())
-}
-
-/// Export user profile as USER.md
-#[tauri::command]
-pub async fn user_profile_export_md(app_state: State<'_, AppState>) -> Result<String, String> {
-    let profile = app_state.user_profile.read().await;
-    Ok(profile.to_user_md())
-}
-
-/// Get current adaptation status
-#[tauri::command]
-pub async fn adaptation_status(app_state: State<'_, AppState>) -> Result<Value, String> {
-    let mut rl = app_state.realtime_learning.lock().await;
-    let adaptation = rl.compute_adaptation();
-    Ok(serde_json::json!({
-        "response_style": adaptation.response_style,
-        "content_adjustments": adaptation.content_adjustments,
-        "skill_suggestions": adaptation.skill_suggestions,
-        "memory_priorities": adaptation.memory_priorities,
-    }))
-}
-
-// ─── Smart Model Routing ───
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ClassifyRouteRequest {
-    pub prompt: String,
-}
-
-/// Classify a user prompt and return a model routing recommendation.
-/// This is a fast, heuristic-based classifier — no LLM call required.
-/// Used by the frontend to decide which model tier to use before sending.
-#[tauri::command]
-pub fn classify_route(request: ClassifyRouteRequest) -> crate::smart_router::RouteDecision {
-    crate::smart_router::classify_and_route(&request.prompt)
 }
 
 /// 前端 SteerInput 推送方向指令。已迁移到 AppState.steer_queue，保留此模块级辅助函数

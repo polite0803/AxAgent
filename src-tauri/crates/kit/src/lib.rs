@@ -38,7 +38,10 @@ pub mod markdown_parser;
 pub mod marketplace;
 pub mod marketplace_service;
 pub mod memory_forgetting;
-pub mod plan_compiler;
+pub mod permission;
+// plan_compiler 已上移至 axagent-harness（避免 agent 测试依赖 kit 实现层 crate）；
+// 此处保留 re-export 以维持 kit 外部 API 不变。
+pub use axagent_harness::plan_compiler;
 pub mod preset_templates;
 pub mod prompts;
 pub mod screen_vision;

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { resolveDynamicArray } from "@/lib/dynamicUI/utils";
 import type { DynamicUIProps } from "@/types";
 import { Timeline } from "antd";
 
@@ -16,13 +17,11 @@ export const TimelineView: React.FC<DynamicUIProps> = ({
   schema,
   dataContext,
 }) => {
-  const items: TimelineItem[] = (schema.props.items as TimelineItem[])
-      || (dataContext
-        && Array.isArray((dataContext as Record<string, unknown>)[schema.id]))
-    ? (
-      (dataContext as Record<string, unknown>)[schema.id] as TimelineItem[]
-    )
-    : [];
+  const items: TimelineItem[] = resolveDynamicArray<TimelineItem>(
+    schema.props.items as TimelineItem[] | undefined,
+    dataContext,
+    schema.id,
+  );
 
   return (
     <Timeline

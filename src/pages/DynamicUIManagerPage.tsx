@@ -1,16 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DynamicUIRenderer } from "@/components/dynamicUI/DynamicUIRenderer";
-import { generateUIFromNL } from "@/lib/dynamicUI/nl2ui";
+import { SchemaIdContext } from "@/components/dynamicUI/SchemaIdContext";
+import { VisualEditor } from "@/components/dynamicUI/VisualEditor";
+import { generateUIFromNLBackend } from "@/lib/dynamicUI/nl2ui-edit";
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
 import { useDynamicUIStore } from "@/stores";
-import type { DynamicUISchemaRecord, DynamicUISchemaVersion, UISchema } from "@/types";
+import type {
+  CreateDynamicUISchemaParams,
+  DynamicUISchemaRecord,
+  DynamicUISchemaVersion,
+  UISchema,
+  UpdateDynamicUISchemaParams,
+} from "@/types";
 import {
-  AppstoreAddOutlined,
   DeleteOutlined,
   EditOutlined,
+  ExportOutlined,
   EyeOutlined,
   HistoryOutlined,
+  ImportOutlined,
   PlusOutlined,
   RobotOutlined,
   RollbackOutlined,
@@ -25,7 +34,6 @@ import {
   Empty,
   Form,
   Input,
-  List,
   message,
   Modal,
   Popconfirm,
@@ -38,7 +46,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -95,6 +103,10 @@ export function DynamicUIManagerPage() {
   }, [schemaParam, schemas, setSelectedSchema]);
 
   useEffect(() => {
+    // 仅在编辑器打开时操作 form，避免 Modal 未挂载时调用 form 方法触发警告
+    if (!editorOpen) {
+      return;
+    }
     if (editingRecord) {
       form.setFieldsValue({
         title: editingRecord.title,
@@ -110,7 +122,8 @@ export function DynamicUIManagerPage() {
       form.setFieldsValue({ category: "custom", version: "", change_log: "" });
       setTimeout(() => setJsonSchemaText(""), 0);
     }
-  }, [editingRecord, form, setJsonSchemaText]);
+  }, [editingRecord, editorOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps — form/setJsonSchemaText are stable references
 
   const derivedParseError = useMemo(() => {
     if (!jsonSchemaText) { return null; }
@@ -171,33 +184,30 @@ export function DynamicUIManagerPage() {
         return;
       }
 
-      const updateParams: Record<string, unknown> = {
+      const updateParams: UpdateDynamicUISchemaParams = {
         title: values.title,
         description: values.description,
         category: values.category,
         tags: values.tags,
         schema_json: jsonSchemaText,
+        version: values.version?.trim() || undefined,
+        change_log: values.change_log?.trim() || undefined,
       };
 
-      // 附加版本号和变更说明
-      if (values.version?.trim()) {
-        updateParams.version = values.version.trim();
-      }
-      if (values.change_log?.trim()) {
-        updateParams.change_log = values.change_log.trim();
-      }
-
       if (editingRecord) {
-        await updateSchema(editingRecord.id, updateParams as Parameters<typeof updateSchema>[1]);
+        await updateSchema(editingRecord.id, updateParams);
         message.success(t("dynamicUIManager.updateSuccess"));
       } else {
-        await createSchema({
+        // 注意：后端 CreateSchemaRequest 不支持 version/change_log，
+        // 创建时这两个字段会被静默忽略（如需在创建时指定版本号需后端扩展）
+        const createParams: CreateDynamicUISchemaParams = {
           title: values.title,
           description: values.description,
           category: values.category,
           tags: values.tags || [],
           schema_json: jsonSchemaText,
-        });
+        };
+        await createSchema(createParams);
         message.success(t("dynamicUIManager.createSuccess"));
       }
       setEditorOpen(false);
@@ -213,7 +223,7 @@ export function DynamicUIManagerPage() {
     }
     setGenerating(true);
     try {
-      const result = await generateUIFromNL(nlPrompt);
+      const result = await generateUIFromNLBackend(nlPrompt);
       setJsonSchemaText(JSON.stringify(result.schema, null, 2));
       form.setFieldsValue({
         title: form.getFieldValue("title") || result.title,
@@ -234,6 +244,100 @@ export function DynamicUIManagerPage() {
       setSelectedSchema(null);
     }
     message.success(t("dynamicUIManager.deleteSuccess"));
+  };
+
+  // ── 导入 / 导出（额外短板） ──
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerImport = () => fileInputRef.current?.click();
+
+  const downloadJson = (filename: string, data: unknown) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportSchema = (record: DynamicUISchemaRecord) => {
+    downloadJson(`${record.title || "schema"}.json`, {
+      title: record.title,
+      description: record.description,
+      category: record.category,
+      tags: record.tags,
+      schema_json: record.schema_json,
+    });
+    message.success(t("dynamicUIManager.exportSuccess"));
+  };
+
+  const handleExportAll = () => {
+    if (schemas.length === 0) {
+      message.warning(t("dynamicUIManager.noSchemas"));
+      return;
+    }
+    downloadJson(
+      "dynamic-ui-schemas.json",
+      schemas.map((s) => ({
+        title: s.title,
+        description: s.description,
+        category: s.category,
+        tags: s.tags,
+        schema_json: s.schema_json,
+      })),
+    );
+    message.success(t("dynamicUIManager.exportSuccess"));
+  };
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) {
+      return;
+    }
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      let count = 0;
+      for (const item of list) {
+        const schemaJson = typeof item === "string" ? item : item?.schema_json;
+        if (!schemaJson || typeof schemaJson !== "string") {
+          continue;
+        }
+        let schemaObj: UISchema;
+        try {
+          schemaObj = JSON.parse(schemaJson) as UISchema;
+        } catch {
+          continue;
+        }
+        const validation = validateSchema(schemaObj);
+        if (!validation.valid) {
+          continue;
+        }
+        const fallbackTitle = (schemaObj.props?.content as string) || "Imported UI";
+        await createSchema({
+          title: item?.title || fallbackTitle,
+          description: item?.description || "",
+          category: item?.category || "custom",
+          tags: item?.tags || [],
+          schema_json: schemaJson,
+        });
+        count += 1;
+      }
+      if (count > 0) {
+        message.success(t("dynamicUIManager.importSuccess", { count }));
+        await fetchSchemas();
+      } else {
+        message.warning(t("dynamicUIManager.importInvalid"));
+      }
+    } catch {
+      message.error(t("dynamicUIManager.importInvalid"));
+    }
   };
 
   // ── 版本管理 ──
@@ -257,6 +361,8 @@ export function DynamicUIManagerPage() {
       // 刷新版本列表
       await loadVersions(selectedSchema.id);
       setVersionPreview(null);
+      // 恢复后同步刷新预览（缺陷 5）
+      setSelectedSchema(result);
     } else {
       message.error(t("dynamicUIManager.restoreFailed"));
     }
@@ -314,12 +420,16 @@ export function DynamicUIManagerPage() {
               : null}
           </div>
           <div className="border rounded-lg p-4 bg-white dark:bg-gray-900">
-            <DynamicUIRenderer schema={schema} />
+            <SchemaIdContext.Provider
+              value={{ schemaId: isHistorical ? null : (selectedSchema?.id ?? null) }}
+            >
+              <DynamicUIRenderer schema={schema} />
+            </SchemaIdContext.Provider>
           </div>
         </div>
       );
     } catch {
-      return <Alert type="error" message={t("dynamicUIManager.invalidSchema")} />;
+      return <Alert type="error" title={t("dynamicUIManager.invalidSchema")} />;
     }
   };
 
@@ -350,7 +460,7 @@ export function DynamicUIManagerPage() {
       render: (ts: number) => new Date(ts * 1000).toLocaleString(),
     },
     {
-      title: t("common.action"),
+      title: t("common.actions"),
       key: "action",
       width: 160,
       render: (_: unknown, record: DynamicUISchemaVersion) => (
@@ -390,15 +500,7 @@ export function DynamicUIManagerPage() {
   return (
     <div className="h-full flex flex-col p-4">
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <Title level={3} style={{ margin: 0 }}>
-            <AppstoreAddOutlined className="mr-2" />
-            {t("dynamicUIManager.title")}
-          </Title>
-          <Paragraph type="secondary" style={{ margin: 0 }}>
-            {t("dynamicUIManager.subtitle")}
-          </Paragraph>
-        </div>
+        <div />
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           {t("dynamicUIManager.createNew")}
         </Button>
@@ -408,80 +510,102 @@ export function DynamicUIManagerPage() {
         <Card
           className="flex flex-col min-h-0"
           title={t("dynamicUIManager.schemaList")}
+          extra={
+            <Space size={4}>
+              <Button
+                size="small"
+                icon={<ImportOutlined />}
+                onClick={triggerImport}
+              >
+                {t("dynamicUIManager.import")}
+              </Button>
+              <Button
+                size="small"
+                icon={<ExportOutlined />}
+                onClick={handleExportAll}
+              >
+                {t("dynamicUIManager.exportAll")}
+              </Button>
+            </Space>
+          }
           styles={{ body: { flex: 1, overflow: "auto" } }}
         >
           <Spin spinning={loading}>
-            <List
-              dataSource={schemas}
-              locale={{ emptyText: <Empty description={t("dynamicUIManager.noSchemas")} /> }}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    <Tooltip key="version" title={t("dynamicUIManager.versionHistory")}>
-                      <Button
-                        type="text"
-                        icon={<HistoryOutlined />}
-                        onClick={() => handleOpenVersionPanel(item)}
-                      />
-                    </Tooltip>,
-                    <Button
-                      key="preview"
-                      type="text"
-                      icon={<EyeOutlined />}
-                      onClick={() => handlePreview(item)}
-                    />,
-                    <Button
-                      key="edit"
-                      type="text"
-                      icon={<EditOutlined />}
-                      onClick={() => handleEdit(item)}
-                      disabled={item.is_builtin}
-                    />,
-                    <Popconfirm
-                      key="delete"
-                      title={t("dynamicUIManager.confirmDelete")}
-                      onConfirm={() => handleDelete(item.id)}
-                      okText={t("common.confirm")}
-                      cancelText={t("common.cancel")}
+            {schemas.length === 0
+              ? <Empty description={t("dynamicUIManager.noSchemas")} />
+              : (
+                <div className="divide-y divide-gray-100">
+                  {schemas.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-start justify-between gap-3 py-3"
                     >
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        disabled={item.is_builtin}
-                      />
-                    </Popconfirm>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={
-                      <Space>
-                        <Text strong>{item.title}</Text>
-                        {item.is_builtin
-                          ? <Tag color="purple">{t("dynamicUIManager.builtin")}</Tag>
-                          : null}
-                        <Tag color="green" style={{ fontSize: 11 }}>
-                          v{item.version}
-                        </Tag>
-                      </Space>
-                    }
-                    description={
-                      <div>
-                        <Text type="secondary" className="block truncate">
-                          {item.description || t("dynamicUIManager.noDescription")}
-                        </Text>
-                        <Space size={4} className="mt-1">
-                          <Tag color="blue">{item.category}</Tag>
-                          <Text type="secondary" className="text-xs">
-                            {new Date(item.updated_at).toLocaleString()}
-                          </Text>
+                      <div className="min-w-0 flex-1">
+                        <Space>
+                          <Text strong>{item.title}</Text>
+                          {item.is_builtin
+                            ? <Tag color="purple">{t("dynamicUIManager.builtin")}</Tag>
+                            : null}
+                          <Tag color="green" style={{ fontSize: 11 }}>
+                            v{item.version}
+                          </Tag>
                         </Space>
+                        <div>
+                          <Text type="secondary" className="block truncate">
+                            {item.description || t("dynamicUIManager.noDescription")}
+                          </Text>
+                          <Space size={4} className="mt-1">
+                            <Tag color="blue">{item.category}</Tag>
+                            <Text type="secondary" className="text-xs">
+                              {new Date(item.updated_at).toLocaleString()}
+                            </Text>
+                          </Space>
+                        </div>
                       </div>
-                    }
-                  />
-                </List.Item>
+                      <Space size={2}>
+                        <Tooltip title={t("dynamicUIManager.versionHistory")}>
+                          <Button
+                            type="text"
+                            icon={<HistoryOutlined />}
+                            onClick={() => handleOpenVersionPanel(item)}
+                          />
+                        </Tooltip>
+                        <Button
+                          type="text"
+                          icon={<EyeOutlined />}
+                          onClick={() => handlePreview(item)}
+                        />
+                        <Tooltip title={t("dynamicUIManager.export")}>
+                          <Button
+                            type="text"
+                            icon={<ExportOutlined />}
+                            onClick={() => handleExportSchema(item)}
+                          />
+                        </Tooltip>
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => handleEdit(item)}
+                          disabled={item.is_builtin}
+                        />
+                        <Popconfirm
+                          title={t("dynamicUIManager.confirmDelete")}
+                          onConfirm={() => handleDelete(item.id)}
+                          okText={t("common.confirm")}
+                          cancelText={t("common.cancel")}
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            disabled={item.is_builtin}
+                          />
+                        </Popconfirm>
+                      </Space>
+                    </div>
+                  ))}
+                </div>
               )}
-            />
           </Spin>
         </Card>
 
@@ -627,10 +751,23 @@ export function DynamicUIManagerPage() {
               onChange={(k) => setEditorMode(k as "visual" | "json")}
               size="small"
               items={[
+                { key: "visual", label: t("dynamicUIManager.visualEditor") },
                 { key: "json", label: t("dynamicUIManager.jsonEditor") },
               ]}
             />
           </div>
+
+          {editorMode === "visual"
+            ? (
+              <div className="min-h-75">
+                <VisualEditor
+                  key={editingRecord?.id ?? "new"}
+                  schema={parsedPreview}
+                  onChange={(newSchema) => setJsonSchemaText(JSON.stringify(newSchema, null, 2))}
+                />
+              </div>
+            )
+            : null}
 
           {editorMode === "json"
             ? (
@@ -647,12 +784,12 @@ export function DynamicUIManagerPage() {
                     <Alert
                       type="error"
                       className="mt-2"
-                      message={t("dynamicUIManager.parseError")}
+                      title={t("dynamicUIManager.parseError")}
                       description={<pre className="whitespace-pre-wrap m-0">{parseError}</pre>}
                     />
                   )
                   : parsedPreview
-                  ? <Alert type="success" className="mt-2" message={t("dynamicUIManager.schemaValid")} />
+                  ? <Alert type="success" className="mt-2" title={t("dynamicUIManager.schemaValid")} />
                   : null}
               </>
             )
@@ -699,6 +836,15 @@ export function DynamicUIManagerPage() {
             )}
         </Spin>
       </Modal>
+
+      {/* 导入文件选择器（隐藏） */}
+      <input
+        type="file"
+        accept="application/json,.json"
+        style={{ display: "none" }}
+        ref={fileInputRef}
+        onChange={handleImportFile}
+      />
     </div>
   );
 }

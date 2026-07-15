@@ -1192,3 +1192,10 @@ pub async fn get_prompt_cache_state(app_state: State<'_, AppState>) -> Result<Va
     }))
     .map_err(|e| format!("Serialization error: {}", e))
 }
+
+/// 估算任务复杂度（从用户输入）
+#[tauri::command]
+pub async fn agent_estimate_complexity(input: String) -> Result<String, String> {
+    let complexity = axagent_trajectory::estimate_complexity_public(&input);
+    Ok(format!("{:?}", complexity).to_lowercase())
+}

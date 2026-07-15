@@ -1467,7 +1467,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               <div style={{ marginTop: 8 }}>
                 <Input
                   size="small"
-                  placeholder={t("settings.markerPrefixPlaceholder")}
+                  placeholder={t("settings.platform.markerPrefixPlaceholder")}
                   value={provider?.tool_adaptation_marker_prefix ?? ""}
                   onChange={(e) => {
                     const val = e.target.value || null;
@@ -1481,7 +1481,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     color: token.colorTextQuaternary,
                   }}
                 >
-                  {t("settings.markerPrefixDesc")}
+                  {t("settings.platform.markerPrefixDesc")}
                 </div>
               </div>
             )}

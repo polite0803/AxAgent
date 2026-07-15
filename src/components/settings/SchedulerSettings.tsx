@@ -125,8 +125,8 @@ export function SchedulerSettings() {
   interface ExecutionRecord {
     id: string;
     task_id: string;
-    started_at: string;
-    completed_at: string | null;
+    started_at: number;
+    completed_at: number | null;
     success: boolean;
     output: string | null;
     error: string | null;
@@ -371,6 +371,45 @@ export function SchedulerSettings() {
     };
   };
 
+  const scheduleConfigToCron = (config: ScheduleConfig): string => {
+    const tr = config.time_ranges?.[0];
+    const hour = tr?.start_hour ?? 9;
+    const min = tr?.start_minute ?? 0;
+    switch (config.schedule_type) {
+      case "interval":
+        if (config.interval_seconds) {
+          const hours = config.interval_seconds / 3600;
+          if (hours >= 1 && hours <= 24 && Number.isInteger(hours)) {
+            return `0 */${hours} * * *`;
+          }
+        }
+        return "0 */24 * * *";
+      case "daily":
+        return `${min} ${hour} * * *`;
+      case "weekly": {
+        const days = (config.weekdays || []).map((w) => {
+          const map: Record<string, string> = {
+            sunday: "0",
+            monday: "1",
+            tuesday: "2",
+            wednesday: "3",
+            thursday: "4",
+            friday: "5",
+            saturday: "6",
+          };
+          return map[w] || "*";
+        }).join(",") || "*";
+        return `${min} ${hour} * * ${days}`;
+      }
+      case "monthly":
+        return `${min} ${hour} ${config.month_day || 1} * *`;
+      case "advanced":
+        return "0 9 * * *";
+      default:
+        return "0 9 * * *";
+    }
+  };
+
   const formatScheduleDescription = (task: ScheduledTask): string => {
     const config = task.schedule_config;
     if (!config) {
@@ -471,12 +510,14 @@ export function SchedulerSettings() {
       setLoading(true);
 
       const scheduleConfig = serializeScheduleConfig(values);
+      const cronExpression = scheduleConfigToCron(scheduleConfig);
 
       if (editingTask) {
         const updatedTask: ScheduledTask = {
           ...editingTask,
           name: values.name,
           description: values.description,
+          cron_expression: cronExpression,
           interval_seconds: scheduleConfig.interval_seconds,
           schedule_config: scheduleConfig,
         };
@@ -486,13 +527,12 @@ export function SchedulerSettings() {
         });
         message.success(t("settings.scheduler.updateTask") + " - OK");
       } else {
-        const taskType = values.workflow_id ? "workflow" : "custom";
         await invoke("create_scheduled_task", {
           name: values.name,
           description: values.description,
-          task_type: taskType,
-          schedule_config: scheduleConfig,
-          workflow_id: values.workflow_id,
+          cronExpression: cronExpression,
+          taskType: values.workflow_id ? "workflow" : "custom",
+          workflowId: values.workflow_id || null,
         });
         message.success(t("settings.scheduler.createTask") + " - OK");
       }

@@ -2,16 +2,25 @@
 
 //! 研究报告生成命令模块
 //!
-//! 根据对话历史调用 LLM 生成结构化研究报告，供前端 ReportViewer 组件渲染。
+//! 提供两种研究能力：
+//! 1. `generate_research_report` — 根据对话历史调用 LLM 生成结构化研究报告
+//! 2. `deep_research_topic`  — 多轮 Web 搜索 + 差距分析 + 交叉验证的深度研究
 
 use crate::AppState;
+use axagent_agent::deep_research::{DeepResearchConfig, DeepResearcher};
+use axagent_agent::ingest_pipeline::IngestPipeline;
+use axagent_agent::noop_kit::NoopHtmlCleaner;
+use axagent_agent::web_search::WebSearchProvider;
 use axagent_crypto::decrypt_key;
 use axagent_dao::repo::conversation as conversation_repo;
 use axagent_dao::repo::message as message_repo;
 use axagent_dao::repo::provider::{self as provider_repo, get_active_key};
+use axagent_harness::provider::ProviderRequestContext;
+use axagent_harness::repositories;
 use axagent_harness::resolve_base_url_for_type;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, MessageRole};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tauri::State;
 
 /// 报告节结构
@@ -265,8 +274,10 @@ pub async fn generate_research_report(
     };
 
     // 5. 调用 LLM
-    let response =
-        adapter.chat(&ctx, chat_request).await.map_err(|e| format!("LLM 调用失败: {}", e))?;
+    let response = adapter
+        .chat(&ctx, chat_request.into())
+        .await
+        .map_err(|e| format!("LLM 调用失败: {}", e))?;
 
     let json_text = extract_json(&response.content).map_err(|e| format!("JSON 提取失败: {}", e))?;
 
@@ -327,4 +338,105 @@ pub async fn generate_research_report(
         serde_json::to_value(&report).map_err(|e| format!("序列化报告失败: {}", e))?;
 
     Ok(report_json)
+}
+
+/// 多轮深度研究：通过 Web 搜索 + 差距分析 + 交叉验证进行深度调研。
+///
+/// 对接 agent crate 的 DeepResearcher 引擎，实现：
+/// 1. LLM 生成多样化搜索查询
+/// 2. 并行 Web 搜索（DuckDuckGo / 自定义 API）
+/// 3. 覆盖率分析与知识差距识别
+/// 4. 多轮迭代填补差距
+/// 5. 来源交叉验证与矛盾检测
+#[tauri::command]
+pub async fn deep_research_topic(
+    state: State<'_, AppState>,
+    topic: String,
+    provider_id: Option<String>,
+    model_id: Option<String>,
+    max_rounds: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    if topic.trim().is_empty() {
+        return Err("研究主题不能为空".to_string());
+    }
+
+    // 1. 构建 DeepResearch 配置
+    let mut config = DeepResearchConfig::default();
+    if let Some(rounds) = max_rounds {
+        config.max_rounds = rounds.min(10);
+    }
+
+    // 2. 创建 WebSearchProvider（默认使用 DuckDuckGo，无需 API key）
+    let html_cleaner = Arc::new(NoopHtmlCleaner);
+    let search_provider = Arc::new(WebSearchProvider::new(html_cleaner));
+
+    // 3. 创建 IngestPipeline（从 harness 全局仓库获取 wiki 仓储）
+    let wiki_repo = repositories::wiki_repository();
+    let wiki_source_repo = repositories::wiki_source_repository();
+    let note_repo = repositories::note_repository();
+    let ingest_pipeline = Arc::new(IngestPipeline::new(wiki_repo, wiki_source_repo, note_repo));
+
+    // 4. 创建 DeepResearcher
+    let researcher = DeepResearcher::new(config, search_provider, ingest_pipeline);
+
+    // 5. 获取 LLM 提供商（如果指定了 provider_id）
+    let (llm_adapter, llm_ctx, llm_model) = if let (Some(pid), Some(mid)) =
+        (provider_id.as_deref(), model_id.as_deref())
+    {
+        let db = state.harness.db();
+
+        let provider_config = provider_repo::get_provider(db, pid)
+            .await
+            .map_err(|e| format!("获取提供商配置失败: {}", e))?;
+
+        let key_row = get_active_key(db, pid).await.map_err(|e| format!("无活跃密钥: {}", e))?;
+
+        let api_key = decrypt_key(&key_row.key_encrypted, state.harness.master_key())
+            .map_err(|e| format!("密钥解密失败: {}", e))?;
+
+        let registry_key = axagent_harness::types::provider_model::provider_registry_key(
+            &provider_config.provider_type,
+        );
+
+        let adapter = state
+            .harness
+            .provider_registry()
+            .get(&registry_key)
+            .ok_or_else(|| format!("未找到供应商适配器: {}", registry_key))?;
+
+        let ctx = ProviderRequestContext {
+            api_key,
+            key_id: key_row.id,
+            provider_id: pid.to_string(),
+            base_url: Some(resolve_base_url_for_type(
+                &provider_config.api_host,
+                &provider_config.provider_type,
+            )),
+            api_path: provider_config.api_path,
+            proxy_config: provider_config.proxy_config,
+            custom_headers: provider_config
+                .custom_headers
+                .as_ref()
+                .and_then(|s| serde_json::from_str(s).ok()),
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        };
+
+        (Some(adapter), Some(ctx), Some(mid.to_string()))
+    } else {
+        (None, None, None)
+    };
+
+    // 6. 执行深度研究
+    let result = researcher
+        .research("_deep_research", &topic, None, llm_adapter, llm_ctx, llm_model.as_deref())
+        .await
+        .map_err(|e| format!("深度研究失败: {}", e))?;
+
+    // 7. 序列化返回
+    let json = serde_json::to_value(&result).map_err(|e| format!("序列化结果失败: {}", e))?;
+
+    Ok(json)
 }

@@ -43,7 +43,7 @@ export type { ABTestResult, EngineLog, EngineStatus, EvolutionEvent, SkillVersio
 export { useExecutionStore } from "./feature/executionStore";
 export { useExpertStore } from "./feature/expertStore";
 export { useGatewayLinkStore } from "./feature/gatewayLinkStore";
-export { useGatewayStore } from "./feature/gatewayStore";
+export { initGatewayStatusListener, useGatewayStore } from "./feature/gatewayStore";
 export { useKnowledgeStore } from "./feature/knowledgeStore";
 export { useLocalToolStore } from "./feature/localToolStore";
 export { useMcpStore } from "./feature/mcpStore";
@@ -70,6 +70,7 @@ export { useTopicGroupStore } from "./feature/topicGroupStore";
 export { useTrajectoryStore } from "./feature/trajectoryStore";
 export { useUserProfileStore } from "./feature/userProfileStore";
 export type { AvatarType } from "./feature/userProfileStore";
+export { useVoicePreferenceStore } from "./feature/voicePreferenceStore";
 export { useWorkEngineStore } from "./feature/workEngineStore";
 export { useWorkflowEditorStore } from "./feature/workflowEditorStore";
 export type { SaveSkillWorkflowResponse, SimilarWorkflow } from "./feature/workflowEditorStore";

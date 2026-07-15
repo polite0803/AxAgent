@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { cloneSchema, genId, getDefaultProps } from "@/lib/dynamicUI/utils";
 import type { DynamicComponentType, UISchema } from "@/types";
 import { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "@/types";
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
@@ -17,23 +18,6 @@ const COMPONENT_TYPE_OPTIONS = [...VALID_DYNAMIC_COMPONENT_TYPES].sort().map(
   (t) => ({ label: t, value: t }),
 );
 
-/** 递归深拷贝 UISchema，避免直接修改原对象 */
-function cloneSchema(node: UISchema): UISchema {
-  return {
-    ...node,
-    props: { ...node.props },
-    children: node.children ? node.children.map(cloneSchema) : undefined,
-    events: node.events ? node.events.map((e) => ({ ...e, actions: [...e.actions] })) : undefined,
-    dataSource: node.dataSource ? { ...node.dataSource, config: { ...node.dataSource.config } } : undefined,
-    conditionalDisplay: node.conditionalDisplay
-      ? (Array.isArray(node.conditionalDisplay)
-        ? [...node.conditionalDisplay]
-        : { ...node.conditionalDisplay, rules: [...node.conditionalDisplay.rules] })
-      : undefined,
-    style: node.style ? { ...node.style } : undefined,
-  };
-}
-
 /** 通过路径查找节点（路径为 id 数组） */
 function findNodeByPath(root: UISchema, path: string[]): UISchema | null {
   if (path.length === 0) { return root; }
@@ -44,58 +28,6 @@ function findNodeByPath(root: UISchema, path: string[]): UISchema | null {
     }
   }
   return null;
-}
-
-/** 生成唯一 id */
-let _idCounter = 0;
-function genId(prefix: string): string {
-  _idCounter += 1;
-  return `${prefix}-${Date.now()}-${_idCounter}`;
-}
-
-/** 根据 i18n t 函数生成组件默认 props */
-function getDefaultProps(t: (key: string) => string): Partial<Record<DynamicComponentType, Record<string, unknown>>> {
-  return {
-    Input: {
-      name: "field",
-      label: t("dynamicUIManager.defaults.inputLabel"),
-      placeholder: t("dynamicUIManager.defaults.inputPlaceholder"),
-    },
-    Number: { name: "number", label: t("dynamicUIManager.defaults.numberLabel") },
-    Select: { name: "select", label: t("dynamicUIManager.defaults.selectLabel"), options: [] },
-    DatePicker: { name: "date", label: t("dynamicUIManager.defaults.dateLabel") },
-    Switch: { name: "enabled", label: t("dynamicUIManager.defaults.switchLabel") },
-    Checkbox: { name: "checked", label: t("dynamicUIManager.defaults.checkboxLabel") },
-    Radio: { name: "option", label: t("dynamicUIManager.defaults.radioLabel"), options: [] },
-    Textarea: {
-      name: "text",
-      label: t("dynamicUIManager.defaults.textareaLabel"),
-      placeholder: t("dynamicUIManager.defaults.inputPlaceholder"),
-    },
-    Button: { text: t("dynamicUIManager.defaults.buttonText") },
-    Text: { content: t("dynamicUIManager.defaults.textContent") },
-    Form: { layout: "vertical", submitText: t("dynamicUIManager.defaults.formSubmit") },
-    Card: { title: t("dynamicUIManager.defaults.cardTitle") },
-    Container: {},
-    Row: {},
-    Column: {},
-    Grid: { columns: 3 },
-    Tabs: {},
-    Accordion: {},
-    Table: { columns: [] },
-    Chart: { chartType: "line" },
-    List: {},
-    Dashboard: { items: [] },
-    CodeEditor: {},
-    FilePreview: {},
-    Markdown: { content: "" },
-    Image: { src: "" },
-    Divider: {},
-    Progress: { percent: 0 },
-    Tag: { text: t("dynamicUIManager.defaults.tagText") },
-    Tree: { treeData: [] },
-    Timeline: { items: [] },
-  };
 }
 
 export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
@@ -119,7 +51,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
           <Tag color="geekblue" className="text-[10px] leading-none px-1 py-0">
             {node.type}
           </Tag>
-          <span className="text-xs truncate max-w-[140px]">{node.id}</span>
+          <span className="text-xs truncate max-w-35">{node.id}</span>
         </span>
       ),
       children: node.children?.map((c) => buildTreeData(c, currentPath)),
@@ -218,7 +150,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
         node.type = newType;
         // 保留已有 props 中合法项，叠加新类型的默认 props
         node.props = {
-          ...(defaultPropsMap[newType] ?? {}),
+          ...defaultPropsMap[newType],
           ...node.props,
         };
       });
@@ -269,9 +201,9 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
     : [];
 
   return (
-    <div className="flex h-[500px] border rounded-lg overflow-hidden">
+    <div className="flex h-125 border rounded-lg overflow-hidden">
       {/* 左侧树面板 */}
-      <div className="w-[280px] border-r overflow-auto p-2 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+      <div className="w-70 border-r overflow-auto p-2 bg-gray-50 dark:bg-gray-800 shrink-0">
         <Tree
           treeData={treeData}
           selectedKeys={selectedKeys}
@@ -339,7 +271,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
                 </div>
               )}
 
-              <div className="space-y-1 max-h-[200px] overflow-auto">
+              <div className="space-y-1 max-h-50 overflow-auto">
                 {propEntries.length === 0 && (
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -352,7 +284,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
                     <Input
                       size="small"
                       className="w-[40%] font-mono text-xs"
-                      placeholder="key"
+                      placeholder={t("dynamicUIManager.keyPlaceholder")}
                       value={entry.key}
                       onChange={(e) => handlePropChange(idx, "key", e.target.value)}
                       status={requiredProps.includes(entry.key) && !entry.value ? "warning" : undefined}
@@ -360,7 +292,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
                     <Input
                       size="small"
                       className="flex-1 font-mono text-xs"
-                      placeholder="value"
+                      placeholder={t("dynamicUIManager.valuePlaceholder")}
                       value={entry.value}
                       onChange={(e) => handlePropChange(idx, "value", e.target.value)}
                     />
@@ -403,7 +335,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
                 </Space>
               </div>
 
-              <div className="space-y-1 max-h-[150px] overflow-auto">
+              <div className="space-y-1 max-h-37.5 overflow-auto">
                 {(!selectedNode.children || selectedNode.children.length === 0) && (
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}

@@ -16,21 +16,22 @@ axagent-harness = { path = "../harness" }
 backon = "1.6"
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
-dirs = "5"
+dirs = "6"
 docx-rs = "0.4"
 fastrand = "2.0"
 futures = "0.3"
-md5 = "0.7"
-pdf-extract = "0.8"
+hex = { workspace = true }
+md5 = "0.8"
+pdf-extract = "0.12"
 regex = "1"
 regex-lite = "0.1"
 reqwest = { workspace = true }
-scraper = "0.22"
+scraper = "0.27"
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
-sha2 = "0.10"
+sha2 = "0.11"
 tauri = "2"
 thiserror = { workspace = true }
 tokio = { workspace = true }
@@ -40,13 +41,12 @@ urlencoding = "2.1"
 uuid = { version = "1.6.1", features = ["v4"] }
 
 [dev-dependencies]
-axagent-dao = { path = "../dao" }
-# 技术债：以下三个实现层 crate 在 src/ 的 #[cfg(test)] 模块中使用，违反 AGENTS.md 铁律 5
-# （consumer crate 测试禁止引入实现层 crate，应通过 axagent_harness::test_support::* mock）
-# 后续需重构测试代码改用 harness mock，再移除这些依赖
-axagent-kit = { path = "../kit" }
-axagent-migration = { path = "../migration" }
-axagent-tools = { path = "../tools" }
+# 测试已全部迁移至 axagent_harness::test_support::* mock，不再依赖实现层 crate
+# （符合 AGENTS.md 铁律 5：consumer crate 测试禁止引入实现层 crate）
+# - axagent-dao 已移除（session_manager.rs 改用 empty_agent_session_repo()）
+# - axagent-kit 已移除（plan_compiler 已上移至 harness，hierarchical_planner.rs 直接走 harness）
+# - axagent-migration 已移除（不再需要 setup_test_db 初始化内存数据库）
+# - axagent-tools 早已移除（pre_validator.rs 改用 NoopToolRegistry）
 insta = { workspace = true }
 proptest = "1"
 tauri = { version = "2", features = ["test"] }

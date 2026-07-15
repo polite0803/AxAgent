@@ -13,7 +13,8 @@ use axagent_harness::util_fns::truncate_to_char_boundary;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -831,10 +832,7 @@ impl ParallelExecutionService {
 
         let exec_id = execution.id.clone();
 
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         if executions.len() >= self.max_executions
             && let Some(oldest) = executions.keys().next().cloned()
         {
@@ -846,26 +844,17 @@ impl ParallelExecutionService {
     }
 
     pub async fn get_execution(&self, id: &str) -> Option<ParallelExecution> {
-        let executions = self.executions.read().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let executions = self.executions.read().await;
         executions.get(id).cloned()
     }
 
     pub async fn list_executions(&self) -> Vec<ParallelExecution> {
-        let executions = self.executions.read().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let executions = self.executions.read().await;
         executions.values().cloned().collect()
     }
 
     pub async fn get_next_pending_task(&self, execution_id: &str) -> Option<ParallelTask> {
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         let execution = executions.get_mut(execution_id)?;
 
         let strategy = execution.strategy;
@@ -910,10 +899,7 @@ impl ParallelExecutionService {
         task_id: &str,
         result: String,
     ) -> Option<()> {
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         let execution = executions.get_mut(execution_id)?;
 
         let task = execution.tasks.iter_mut().find(|t| t.id == task_id)?;
@@ -938,10 +924,7 @@ impl ParallelExecutionService {
         task_id: &str,
         error: String,
     ) -> Option<()> {
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         let execution = executions.get_mut(execution_id)?;
 
         let task = execution.tasks.iter_mut().find(|t| t.id == task_id)?;
@@ -957,10 +940,7 @@ impl ParallelExecutionService {
     }
 
     pub async fn cancel_execution(&self, execution_id: &str) -> Option<()> {
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         let execution = executions.get_mut(execution_id)?;
 
         for task in &mut execution.tasks {
@@ -980,10 +960,7 @@ impl ParallelExecutionService {
     }
 
     pub async fn get_execution_result(&self, execution_id: &str) -> Option<ExecutionResult> {
-        let executions = self.executions.read().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let executions = self.executions.read().await;
         let execution = executions.get(execution_id)?;
 
         Some(ExecutionResult {
@@ -999,20 +976,14 @@ impl ParallelExecutionService {
     }
 
     pub async fn delete_execution(&self, execution_id: &str) -> bool {
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         executions.remove(execution_id).is_some()
     }
 
     /// 扫描指定执行中所有运行中的任务，将超时的标记为 Timeout
     /// 返回被标记为超时的任务 ID 列表
     pub async fn check_and_apply_timeouts(&self, execution_id: &str) -> Vec<String> {
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         let execution = match executions.get_mut(execution_id) {
             Some(e) => e,
             None => return Vec::new(),
@@ -1050,10 +1021,7 @@ impl ParallelExecutionService {
     }
 
     pub async fn start_execution(&self, execution_id: &str) -> Option<()> {
-        let mut executions = self.executions.write().unwrap_or_else(|e| {
-            tracing::warn!("Executions lock poisoned, recovering: {}", e);
-            e.into_inner()
-        });
+        let mut executions = self.executions.write().await;
         let execution = executions.get_mut(execution_id)?;
         execution.start();
         Some(())
@@ -1406,7 +1374,7 @@ mod tests {
             .unwrap();
 
         {
-            let mut executions = service.executions.write().unwrap();
+            let mut executions = service.executions.write().await;
             let exec = executions.get_mut(&exec_id).unwrap();
             let task = &mut exec.tasks[0];
             task.status = ParallelTaskStatus::Running;
@@ -1437,7 +1405,7 @@ mod tests {
             .unwrap();
 
         {
-            let mut executions = service.executions.write().unwrap();
+            let mut executions = service.executions.write().await;
             let exec = executions.get_mut(&exec_id).unwrap();
             let task = &mut exec.tasks[0];
             task.status = ParallelTaskStatus::Running;

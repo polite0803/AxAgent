@@ -128,6 +128,7 @@ impl NodeExecutorTrait for ToolExecutor {
                     "node_id": node.base_id(),
                 }),
                 output_var: Some(tool_node.config.output_var.clone()),
+                control: None,
             });
         }
 
@@ -165,6 +166,7 @@ impl NodeExecutorTrait for ToolExecutor {
                 "node_id": node.base_id(),
             }),
             output_var: Some(tool_node.config.output_var.clone()),
+            control: None,
         })
     }
 }

@@ -52,6 +52,8 @@ pub struct IngestSource {
     pub url: Option<String>,
     pub title: Option<String>,
     pub folder_context: Option<String>,
+    /// 如果提供，parse_source 将直接使用此内容而非从文件系统读取
+    pub content: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,16 +189,13 @@ impl IngestPipeline {
         self
     }
 
-    /// Test-only convenience constructor: creates daos from a DB connection.
+    /// Test-only constructor: 使用 harness mock 替代真实 DAO（合规铁律 5）
     #[cfg(test)]
-    pub fn new_for_test(db: Arc<sea_orm::DatabaseConnection>) -> Self {
-        use axagent_dao::repo::note_repository::DaoNoteRepository;
-        use axagent_dao::repo::wiki_repository::DaoWikiRepository;
-        use axagent_dao::repo::wiki_source_repository::DaoWikiSourceRepository;
+    pub fn new_for_test() -> Self {
         Self::new(
-            Arc::new(DaoWikiRepository::new(db.clone())),
-            Arc::new(DaoWikiSourceRepository::new(db.clone())),
-            Arc::new(DaoNoteRepository::new(db)),
+            axagent_harness::test_support::empty_wiki_repo(),
+            axagent_harness::test_support::empty_wiki_source_repo(),
+            axagent_harness::test_support::empty_note_repo(),
         )
     }
 
@@ -678,7 +677,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     fn compute_sha256(&self, content: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
-        format!("{:x}", hasher.finalize())
+        hex::encode(hasher.finalize())
     }
 
     fn cache_path(wiki_id: &str) -> String {
@@ -760,6 +759,10 @@ Each page must be valid JSON inside a ```json fenced code block with these field
     }
 
     async fn parse_source(&self, source: &IngestSource) -> Result<String, String> {
+        // 如果直接提供了内容，优先使用，避免从文件系统读取
+        if let Some(content) = &source.content {
+            return Ok(content.clone());
+        }
         match source.source_type {
             IngestSourceType::WebArticle => {
                 if let Some(url) = &source.url {
@@ -925,12 +928,7 @@ mod tests {
     use super::*;
 
     async fn create_test_pipeline() -> IngestPipeline {
-        let db = Arc::new(
-            sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
-                .await
-                .unwrap(),
-        );
-        IngestPipeline::new_for_test(db)
+        IngestPipeline::new_for_test()
     }
 
     #[test]

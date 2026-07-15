@@ -158,7 +158,7 @@ pub async fn execute_llm(
 
     // ── 实际调用（带可选的重试策略包装） ──
     let response = if let Some(ref policy) = config.retry_policy {
-        let cloned_request = request.clone();
+        let cloned_request = Arc::new(request.clone());
         policy
             .execute_with_retry(|| async {
                 adapter.chat(ctx, cloned_request.clone()).await.map_err(|e| e.to_string())
@@ -171,7 +171,7 @@ pub async fn execute_llm(
                 err
             })?
     } else {
-        adapter.chat(ctx, request.clone()).await.map_err(|e| {
+        adapter.chat(ctx, Arc::new(request.clone())).await.map_err(|e| {
             let err = format!("LLM 调用失败: {e}");
             tracing::error!("[execute_llm] {}", &err);
             record_failure_audit(config, &err, start);

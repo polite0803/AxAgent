@@ -2,7 +2,9 @@
   "app": {
     "name": "AxAgent",
     "title": "智聊助手",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "newSkillProposal": "发现新的技能建议: {name}",
+    "quickBar": "QuickBar"
   },
   "artifact": {
     "copiedToClipboard": "已复制到剪贴板",
@@ -55,7 +57,8 @@
     "sectionInvestReview": "复盘",
     "closeAgent": "关闭 Agent",
     "openAgent": "打开 Agent",
-    "sectionOverview": "概览"
+    "sectionOverview": "概览",
+    "agentPanel": "Agent Panel"
   },
   "chat": {
     "newConversation": "新建对话",
@@ -234,7 +237,10 @@
       "success": "成功",
       "error": "失败",
       "input": "输入参数",
-      "output": "执行结果"
+      "output": "执行结果",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "mcp": {
       "title": "MCP 工具",
@@ -363,7 +369,10 @@
         "running": "运行中",
         "completed": "已完成",
         "failed": "已失败",
-        "skipped": "已跳过"
+        "skipped": "已跳过",
+        "strategyOverwrite": "Overwrite（覆盖）",
+        "strategyMerge": "Merge（合并）",
+        "strategyDryRun": "DryRun（仅验证）"
       },
       "workflowStatus": {
         "created": "已创建",
@@ -371,7 +380,10 @@
         "completed": "已完成",
         "partiallyCompleted": "部分完成",
         "failed": "已失败",
-        "cancelled": "已取消"
+        "cancelled": "已取消",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "dagVisualization": "DAG 可视化",
       "dagHint": "以有向无环图方式查看工作流执行",
@@ -862,7 +874,10 @@
       "askUser": "个询问",
       "loading": "加载中...",
       "failed": "失败",
-      "iteration": "轮迭代"
+      "iteration": "轮迭代",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "benchmarks": {
       "failed": "失败",
@@ -1027,7 +1042,10 @@
       "running": "{{running}} 运行中",
       "cancelled": "已取消",
       "pending": "等待中",
-      "totalEvents": "{{total}} 个事件"
+      "totalEvents": "{{total}} 个事件",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "agent": {
       "acceptEdits": "接受编辑",
@@ -1059,7 +1077,10 @@
       "goToEnd": "跳到结尾",
       "goToStart": "回到开始",
       "nextStep": "下一步",
-      "prevStep": "上一步"
+      "prevStep": "上一步",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "switchedTo": "已切换至：{{name}}",
     "contextGraph": {
@@ -1178,7 +1199,12 @@
       "ask": "问答",
       "plan": "计划",
       "title": "切换模式"
-    }
+    },
+    "clearHistoryDone": "会话已清空",
+    "createConversationFailed": "创建对话失败",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "gateway": {
     "title": "网关",
@@ -1315,7 +1341,10 @@
     "tab": {
       "monitor": "监控"
     },
-    "cacheHitTokens": "缓存命中 Token"
+    "cacheHitTokens": "缓存命中 Token",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "settings": {
     "title": "设置",
@@ -1859,7 +1888,14 @@
       "importErrors": "错误明细",
       "importedCount": "已导入",
       "errorCount": "失败",
-      "importSelectFirst": "请先选择文件夹"
+      "importSelectFirst": "请先选择文件夹",
+      "autoIndex": "自动索引",
+      "autoIndexHint": "文件变更时自动更新索引",
+      "maxResults": "最大结果数",
+      "scoreThreshold": "分数阈值",
+      "vectorStore": "向量存储",
+      "webCrawlDepth": "网页爬取深度",
+      "webCrawlPages": "爬取页数"
     },
     "rag": {
       "advanced": "高级检索设置",
@@ -2059,7 +2095,8 @@
       "restartRequired": "更改将在重启后完全生效",
       "restartNow": "立即重启",
       "restartLater": "稍后重启",
-      "desc": "配置数据存储位置和限制"
+      "desc": "配置数据存储位置和限制",
+      "openFolderError": "打开目录失败: {error}"
     },
     "filterProviders": "搜索服务商...",
     "initProviders": "初始化服务商",
@@ -2258,7 +2295,10 @@
       "executed": "已执行",
       "quickCreated": "快速创建",
       "unknownTemplateType": "未知的模板类型",
-      "refreshed": "已刷新"
+      "refreshed": "已刷新",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "titleSummaryPromptDefault": "请根据以下对话内容，生成一个简短精炼的标题（不超过20个字），直接返回标题文本，不要包含引号或任何额外说明。",
     "compressionPromptDefault": "你是一个对话摘要助手。请将以下对话历史压缩为简洁摘要。\n\n要求：\n1. 保留所有用户明确表达的需求、偏好和决策\n2. 保留关键技术细节（代码片段、配置、错误信息等）\n3. 保留待办事项和未解决的问题\n4. 用简洁的要点形式组织\n5. 保持摘要简洁，不超过 500 字",
@@ -2671,7 +2711,9 @@
       "statusConnecting": "连接中",
       "lastActivity": "最后活跃",
       "activeSessions": "活跃会话数",
-      "noStatuses": "暂无连接状态"
+      "noStatuses": "暂无连接状态",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker 前缀(默认 CHAT2API，通常无需修改)"
     },
     "advanced": "高级设置",
     "evolution": {
@@ -2694,7 +2736,10 @@
       "stopped": "已停止",
       "start": "启动",
       "stop": "停止",
-      "noLogs": "暂无日志"
+      "noLogs": "暂无日志",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "promptTemplates": "提示词模板",
     "appConfig": "Agent 控制面板",
@@ -2727,10 +2772,56 @@
       "personaList": "人格列表",
       "cancel": "取消",
       "nameLabel": "名称",
-      "namePlaceholder": "my-persona"
+      "namePlaceholder": "my-persona",
+      "activated": "已激活",
+      "activate": "激活",
+      "create": "新建人格",
+      "createFirst": "请选择或创建一个人格",
+      "description": "管理 Agent 的人格和灵魂定义",
+      "noPersona": "暂无人格",
+      "save": "保存",
+      "saved": "已保存",
+      "switchSuccess": "已切换至 {{name}}",
+      "title": "人格管理",
+      "soul": {
+        "label": "SOUL.md（灵魂定义）",
+        "description": "定义 Agent 的核心人格和行为风格",
+        "placeholder": "输入灵魂定义..."
+      },
+      "identity": {
+        "label": "IDENTITY.md（身份声明）",
+        "description": "声明 Agent 的身份和角色信息",
+        "placeholder": "Agent 身份声明..."
+      },
+      "user": {
+        "label": "USER.md（用户画像）",
+        "description": "描述用户的画像、偏好和需求",
+        "placeholder": "用户画像信息..."
+      },
+      "autoLearn": {
+        "button": "从对话自动学习",
+        "title": "从对话自动学习",
+        "description": "从对话历史中提取用户的代码风格和沟通偏好，自动更新当前激活 Persona 的 USER.md",
+        "selectConversation": "选择对话",
+        "selectPlaceholder": "请选择一个对话",
+        "noConversations": "暂无对话",
+        "start": "开始学习",
+        "close": "关闭",
+        "success": "已成功学习并更新到 Persona「{{name}}」",
+        "successTitle": "学习完成，已更新到 Persona「{{name}}」",
+        "noSamples": "未找到可学习的代码或消息样本",
+        "noSamplesTitle": "未找到可用样本",
+        "failed": "自动学习失败",
+        "updatedFields": "已更新字段"
+      },
+      "name": "名称",
+      "systemPrompt": "系统提示词",
+      "type": "类型",
+      "visibility": "可见性"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）"
+    "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）",
+    "groupVoice": "语音"
   },
   "backup": {
     "title": "备份中心",
@@ -2801,7 +2892,11 @@
       "lastSync": "上次同步"
     },
     "backupSuccess": "备份成功",
-    "error": "操作失败"
+    "error": "操作失败",
+    "openFolderError": "打开目录失败: {error}",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "common": {
     "confirm": "确认",
@@ -2950,7 +3045,8 @@
     "required": "必填项",
     "details": "详情",
     "more": "More",
-    "action": "操作"
+    "action": "操作",
+    "dismiss": "忽略"
   },
   "image": {
     "loadError": "图片加载失败",
@@ -2968,7 +3064,13 @@
     "disconnecting": "断开中...",
     "startCall": "开始语音通话",
     "endCall": "结束通话",
-    "toggleMute": "切换静音"
+    "toggleMute": "切换静音",
+    "wakeup": "语音唤醒",
+    "wakeupActive": "语音唤醒监听中",
+    "voiceType": "语音类型",
+    "sttProvider": "语音识别提供商",
+    "ttsProvider": "语音合成提供商",
+    "providerAuto": "自动（使用 LLM 同一家）"
   },
   "shortcuts": {
     "newConversation": "新建对话",
@@ -3332,7 +3434,10 @@
     },
     "status": {
       "running": "运行中",
-      "completed": "已完成"
+      "completed": "已完成",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "count": "{{running}} 运行中 / {{completed}} 已完成",
     "noAgents": "暂无注册的智能体",
@@ -3354,7 +3459,10 @@
     "loading": "加载中...",
     "failed": "失败",
     "iteration": "轮迭代",
-    "askUser": "次提问"
+    "askUser": "次提问",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "profile": {
     "loading": "正在加载画像...",
@@ -3481,7 +3589,8 @@
   "searchProvider": {
     "tavily": "Tavily",
     "zhipu": "智谱",
-    "bocha": "博查"
+    "bocha": "博查",
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "在线",
@@ -3500,7 +3609,10 @@
     "analyzeOutput": "分析输出",
     "clear": "清空",
     "killProcess": "终止进程",
-    "closeSession": "关闭会话"
+    "closeSession": "关闭会话",
+    "maximize": "最大化",
+    "restore": "还原",
+    "more": "还有 {{count}} 项"
   },
   "search": {
     "resultPrefix": "以下是联网搜索结果，回答问题前请参考：\n\n",
@@ -3703,7 +3815,10 @@
       "operationDetail": "操作详情",
       "running": "运行中",
       "title": "操作日志",
-      "total": "总计"
+      "total": "总计",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "noSources": "暂无来源",
     "noteNotFound": "笔记未找到",
@@ -3901,7 +4016,9 @@
       "path": "路径",
       "status": "状态",
       "title": "标题",
-      "type": "类型"
+      "type": "类型",
+      "mimeType": "MIME 类型",
+      "size": "大小"
     },
     "wikiForm": {
       "description": "描述",
@@ -3910,7 +4027,9 @@
     },
     "wikiMeta": {
       "rootPath": "根路径"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "quickbar": {
     "title": "快速操作",
@@ -4103,7 +4222,11 @@
       "evolutionFallback": "优化",
       "verified": "已验证有效",
       "hasEvolution": "有进化记录",
-      "lockedByExpert": "系统提示词由所选专家提供，无法修改"
+      "lockedByExpert": "系统提示词由所选专家提供，无法修改",
+      "progressAnalyzing": "正在分析意图",
+      "progressMatching": "正在配对节点",
+      "progressBuilding": "正在构建工作流",
+      "progressOptimizing": "正在优化"
     },
     "previewInDevelopment": "预览功能开发中",
     "publishInDevelopment": "发布功能开发中",
@@ -4221,7 +4344,12 @@
       "rollback": "回滚到此版本",
       "rollbackConfirm": "确认回滚？",
       "rollbackTo": "回滚到 {{version}}",
-      "rolledBack": "已回滚"
+      "rolledBack": "已回滚",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "查看差异",
+      "viewSnapshot": "查看快照",
+      "restore": "还原"
     },
     "versionHistoryLoadFailed": "版本历史加载失败",
     "versionLoaded": "版本已加载",
@@ -4634,7 +4762,10 @@
       "noTraceData": "暂无 Trace 数据",
       "showSpanTree": "显示 Span 树",
       "hideSpanTree": "隐藏 Span 树",
-      "noSpanData": "暂未解析到 Span 数据"
+      "noSpanData": "暂未解析到 Span 数据",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "validation": {
       "validation": {
@@ -4742,7 +4873,11 @@
       "workflowRef": "工作流引用",
       "phaseSeparator": "阶段分隔线",
       "groupFrame": "分组框",
-      "toolSetSelector": "工具集"
+      "toolSetSelector": "工具集",
+      "webhook": "Webhook",
+      "apiCall": "API 调用",
+      "script": "脚本",
+      "timer": "计时器"
     },
     "undo": "撤销",
     "redo": "重做",
@@ -4860,7 +4995,8 @@
         "CACHE_DESERIALIZE_FAILED": "缓存数据解析失败",
         "MODEL_NOT_CONFIGURED": "未配置模型",
         "NODE_NOT_FOUND": "节点未找到"
-      }
+      },
+      "saveFailed": "保存失败"
     },
     "agentNode": {
       "tools": "工具",
@@ -4944,24 +5080,38 @@
     },
     "containerNode": {
       "nodes": "节点",
-      "branchTimeout": "已配置分支超时"
+      "branchTimeout": "已配置分支超时",
+      "collapse": "收起",
+      "expand": "展开"
     },
     "swarmNode": {
       "agents": "智能体",
       "rounds": "轮",
       "newAgent": "[TODO] Agent",
       "noAgentsHint": "[TODO] Add Agent nodes inside this container",
-      "addAgent": "[TODO] Add Agent"
+      "addAgent": "[TODO] Add Agent",
+      "agent": "代理",
+      "handoff": "交接",
+      "mode": "模式",
+      "parallel": "并行",
+      "sequential": "顺序",
+      "task": "任务"
     },
     "groupNode": {
       "untitled": "分组",
-      "folded": "已折叠"
+      "folded": "已折叠",
+      "add": "添加分组",
+      "remove": "移除分组"
     },
     "workflowRef": {
       "targetWorkflow": "目标工作流",
       "contextMode": "上下文模式",
       "inherit": "继承",
-      "isolated": "隔离"
+      "isolated": "隔离",
+      "version": "版本",
+      "inputMapping": "输入映射",
+      "selectWorkflow": "选择工作流",
+      "title": "标题"
     },
     "phaseSeparator": {
       "defaultLabel": "阶段"
@@ -4977,7 +5127,10 @@
       "clickToExpandPorts": "点击展开端口",
       "inputs": "输入",
       "outputs": "输出",
-      "type": "类型"
+      "type": "类型",
+      "description": "描述",
+      "name": "名称",
+      "version": "版本"
     },
     "debateNode": {
       "debaters": "辩手",
@@ -5006,7 +5159,9 @@
       "configureHint": "配置触发条件和参数",
       "statusActive": "运行中",
       "statusDisabled": "已停用",
-      "statusUnconfigured": "未配置"
+      "statusUnconfigured": "未配置",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "未设置",
@@ -5099,7 +5254,9 @@
       },
       "trigger": {
         "cronHint": "例如：'每个工作日上午 9 点'"
-      }
+      },
+      "fix": "修复",
+      "optimize": "优化"
     },
     "diagnostic": {
       "title": "工作流诊断",
@@ -5375,7 +5532,11 @@
       "condition": "条件路由",
       "loop": "循环",
       "container": "容器",
-      "storage": "存储"
+      "storage": "存储",
+      "data": "数据",
+      "logic": "逻辑",
+      "trigger": "触发器",
+      "transform": "转换"
     },
     "layout": {
       "suggestTitle": {
@@ -5439,7 +5600,51 @@
         "workflow_ref_empty": "WorkflowRef 节点 \"{{nodeId}}\" 未指定目标工作流",
         "workflow_ref_self": "WorkflowRef 节点 \"{{nodeId}}\" 引用了自身",
         "workflow_ref_depth": "WorkflowRef 引用链可能超过 {{maxDepth}} 层限制，多个 WorkflowRef 指向相同的 \"{{refId}}\"，可能存在循环引用"
-      }
+      },
+      "autoLayout": "自动排列",
+      "canvas": "画布",
+      "collapseAll": "全部收起",
+      "condensed": "紧凑",
+      "connectionMode": "连线模式",
+      "defaultEdgeType": "默认连线类型",
+      "expandAll": "全部展开",
+      "fitView": "适应窗口",
+      "floating": "浮动",
+      "gridSize": "网格大小",
+      "horizontal": "水平",
+      "layoutDirection": "排列方向",
+      "locked": "已锁定",
+      "minimap": "小地图",
+      "nodeSize": "节点大小",
+      "orientation": "方向",
+      "portLayout": "端口布局",
+      "readonly": "只读",
+      "showGrid": "显示网格",
+      "snapToGrid": "对齐网格",
+      "straight": "直线",
+      "strict": "严格",
+      "vertical": "垂直",
+      "zoomControl": "缩放控制",
+      "bezier": "贝塞尔曲线",
+      "smoothStep": "平滑阶梯",
+      "free": "自由",
+      "ortho": "正交",
+      "large": "大",
+      "medium": "中",
+      "small": "小",
+      "compact": "紧凑",
+      "standard": "标准",
+      "comfortable": "舒适",
+      "left": "左",
+      "right": "右",
+      "top": "上",
+      "bottom": "下",
+      "center": "居中",
+      "border": "边框",
+      "gradient": "渐变",
+      "solid": "实线",
+      "dashed": "虚线",
+      "dotted": "点线"
     },
     "templateList": {
       "moreActions": "「{{name}}」的更多操作",
@@ -5468,7 +5673,23 @@
       "importPresetsTitle": "导入内置专家",
       "importPresets": "导入",
       "noTemplates": "暂无模板",
-      "noMatchFound": "未找到匹配的模板"
+      "noMatchFound": "未找到匹配的模板",
+      "blank": "空白工作流",
+      "category": "分类",
+      "createConfirm": "以此模板创建新工作流？",
+      "description": "描述",
+      "empty": "暂无模板",
+      "name": "模板名称",
+      "official": "官方模板",
+      "popular": "热门",
+      "preview": "预览",
+      "recent": "最近使用",
+      "title": "工作流模板",
+      "useTemplate": "使用模板",
+      "version": "版本",
+      "community": "社区",
+      "recommended": "推荐",
+      "all": "全部"
     },
     "saveAsImage": "导出为图片",
     "exportEmpty": "暂无节点可导出",
@@ -5476,7 +5697,10 @@
       "title": "工作流图例",
       "toggleLabel": "{{action}}图例",
       "expand": "展开",
-      "collapse": "收起"
+      "collapse": "收起",
+      "end": "结束",
+      "start": "开始",
+      "running": "执行中"
     },
     "back": "返回",
     "caseLabel": "分支 {{n}}",
@@ -5530,7 +5754,20 @@
       "confirmRestore": "确定恢复到版本 {{version}}？",
       "compareSelected": "对比选中版本 ({{selected}}/2)",
       "clearSelection": "清除选择",
-      "versionManager": "版本管理: {{name}}"
+      "versionManager": "版本管理: {{name}}",
+      "addedBranch": "新增条件分支",
+      "initialCreation": "初始创建",
+      "optimizedConfig": "优化节点配置",
+      "archived": "已归档",
+      "changelog": "变更日志",
+      "comparison": "版本比较",
+      "diff": "差异",
+      "draft": "草稿",
+      "latest": "最新",
+      "noHistory": "暂无版本历史",
+      "renamed": "重命名",
+      "restored": "已还原",
+      "updatedAt": "更新时间"
     },
     "duplicateSuffix": "{{name}} (副本)",
     "fromTemplate": "{{name}} (来自模板)",
@@ -5550,7 +5787,11 @@
       "edgeCount": "{{count}} 连线",
       "edit": "编辑",
       "duplicate": "复制",
-      "deleteConfirm": "确定删除此工作流？"
+      "deleteConfirm": "确定删除此工作流？",
+      "confirmDelete": "确定删除此工作流？",
+      "createWorkflow": "创建工作流",
+      "noWorkflows": "暂无工作流，点击上方按钮创建",
+      "search": "搜索工作流"
     },
     "executor": {
       "inputVariables": "输入变量",
@@ -5563,12 +5804,19 @@
       "close": "关闭",
       "execute": "执行工作流",
       "executionSuccess": "执行成功",
-      "executionFailed": "执行失败"
+      "executionFailed": "执行失败",
+      "failed": "失败",
+      "inputVars": "输入变量",
+      "nodeStatus": "节点执行状态",
+      "runningNode": "正在执行工作流节点",
+      "success": "成功",
+      "waiting": "等待中"
     },
     "log": {
       "empty": "暂无日志",
       "clear": "清空日志",
-      "export": "导出日志"
+      "export": "导出日志",
+      "noLogs": "暂无日志"
     },
     "nlParser": {
       "naturalLanguageDesc": "自然语言描述",
@@ -5586,7 +5834,15 @@
       "edges": "边",
       "variables": "变量",
       "alternatives": "备选方案",
-      "planLabel": "方案 {{index}}：{{desc}}"
+      "planLabel": "方案 {{index}}：{{desc}}",
+      "constraints": "约束条件（可选）",
+      "description": "自然语言描述",
+      "generating": "解析中",
+      "suggestions": "AI 建议",
+      "example1": "每天早上 8 点抓取指定网站的最新文章",
+      "example2": "收到新邮件后用 AI 分析内容，如果是紧急则通知",
+      "example3": "用户提交表单后先验证数据再写入数据库",
+      "exampleConstraint": "例如：执行时间不超过 5 分钟，出错时重试"
     },
     "nl2Skill": {
       "triggers": "触发词",
@@ -5598,14 +5854,27 @@
       "required": "必填",
       "optional": "可选",
       "parsingPhases": "解析阶段",
-      "applySkill": "应用此技能"
+      "applySkill": "应用此技能",
+      "generate": "生成技能",
+      "generating": "生成中...",
+      "instruction": "描述你想要的技能",
+      "preview": "预览",
+      "result": "生成结果",
+      "title": "自然语言生成技能",
+      "validate": "验证",
+      "validating": "验证中..."
     },
     "nl2UI": {
       "rootType": "根类型",
       "componentCount": "组件数",
       "depthLevel": "层级深度",
       "components": "{{count}} 个组件",
-      "applyUI": "应用此 UI"
+      "applyUI": "应用此 UI",
+      "generate": "生成",
+      "generating": "生成中...",
+      "instruction": "描述你想要的 UI",
+      "result": "生成结果",
+      "title": "自然语言生成 UI"
     },
     "evolution": {
       "noNodes": "当前画布无节点",
@@ -5620,7 +5889,17 @@
       "latency": "延迟 {{diff}}",
       "noEvolutionRecord": "无进化记录 — 可触发首次进化",
       "abTestTitle": "A/B 测试 ({{count}})",
-      "winner": "{{winner}} 胜出"
+      "winner": "{{winner}} 胜出",
+      "apply": "应用",
+      "current": "当前版本",
+      "diff": "差异",
+      "evolutionHistory": "进化历史",
+      "generation": "第 {{n}} 代",
+      "improved": "已改善",
+      "performance": "性能",
+      "revert": "还原",
+      "score": "分数",
+      "viewDiff": "查看差异"
     },
     "loopBackCycleDetected": "[TODO] Loop-back edge would form a cycle, please adjust the target node",
     "cycleDetectedOnConnect": "[TODO] This edge creates a cycle without a loopBack marker — the workflow engine may reject it.",
@@ -5628,7 +5907,83 @@
     "unsavedTitle": "[TODO] Unsaved Workflow",
     "unsavedContent": "[TODO] You have unsaved changes.",
     "discard": "[TODO] Discard",
-    "keepEditing": "[TODO] Keep Editing"
+    "keepEditing": "[TODO] Keep Editing",
+    "approval": {
+      "panelTitle": "待审批列表",
+      "noPending": "暂无待审批项",
+      "message": "审批消息",
+      "workflowId": "工作流",
+      "status": "状态",
+      "expiresAt": "过期时间",
+      "actions": "操作",
+      "decision": "审批结果",
+      "approve": "通过",
+      "reject": "拒绝",
+      "cancel": "取消",
+      "notePlaceholder": "添加备注（可选）"
+    },
+    "saveFailed": "保存失败",
+    "imageGen": {
+      "generatedImageTitle": "## AI 生成图片",
+      "model": "**模型**",
+      "duration": "**耗时**",
+      "savedToArtifact": "已保存到 Artifact"
+    },
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "chatSidebar": {
+      "menu": "菜单"
+    },
+    "inputArea": {
+      "resizeHandle": "调整大小",
+      "uploadFile": "上传文件"
+    },
+    "appHeader": {
+      "agentPanel": "Agent 面板"
+    },
+    "sidebar": {
+      "agentPanel": "Agent 面板"
+    },
+    "errorBoundary": {
+      "pageError": "页面错误"
+    },
+    "chatPage": {
+      "resizeHandle": "调整大小"
+    },
+    "spanDetail": {
+      "parentSpan": "父 Span"
+    },
+    "traceDetail": {
+      "userId": "用户 ID"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "settingsPanel": {
+      "featureFlags": "功能开关"
+    },
+    "skillTimeline": {
+      "promptDiff": "提示词对比"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "未引用工作流"
+    },
+    "chartPreview": {
+      "title": "图表预览"
+    },
+    "htmlPreview": {
+      "title": "HTML 预览"
+    },
+    "reactPreview": {
+      "title": "React 预览"
+    }
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -5719,14 +6074,18 @@
       "time": "时间",
       "action": "操作",
       "load": "加载",
-      "delete": "删除"
+      "delete": "删除",
+      "noCheckpoints": "暂无检查点"
     },
     "status": {
       "idle": "空闲",
       "running": "训练中",
       "paused": "已暂停",
       "completed": "已完成",
-      "failed": "失败"
+      "failed": "失败",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "monitor": {
       "idle": "训练未开始，请先配置并启动训练。",
@@ -5736,14 +6095,17 @@
       "reward": "奖励",
       "speed": "速度",
       "lossCurve": "损失曲线",
-      "rewardCurve": "奖励曲线"
+      "rewardCurve": "奖励曲线",
+      "step": "当前步数",
+      "title": "训练监控"
     },
     "config": {
       "algorithm": "算法",
       "learningRate": "学习率",
       "batchSize": "批次大小",
       "epochs": "训练轮数",
-      "maxSteps": "最大步数"
+      "maxSteps": "最大步数",
+      "title": "训练设置"
     },
     "panel": {
       "title": "RL 训练面板",
@@ -5920,7 +6282,10 @@
     "none": "无",
     "response": "响应",
     "report": "报告",
-    "tasks": "任务"
+    "tasks": "任务",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情",
@@ -6007,7 +6372,10 @@
         "name": "沙箱执行器",
         "desc": "安全执行不受信代码，隔离运行环境防止系统损害"
       }
-    }
+    },
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "promptTemplates": {
     "title": "提示词模板",
@@ -6136,7 +6504,9 @@
     "execute": "执行",
     "learningSuggestions": "学习建议",
     "snooze30": "稍后提醒（30分钟）",
-    "noSuggestions": "无建议"
+    "noSuggestions": "无建议",
+    "snooze15": "稍后提醒（15分钟）",
+    "snooze1h": "稍后提醒（1小时）"
   },
   "proactive": {
     "accept": "接受",
@@ -6198,6 +6568,13 @@
         "improvement": "改进",
         "warning": "警告"
       }
+    },
+    "prefetchTypes": {
+      "codeCompletion": "代码补全",
+      "searchResults": "搜索结果",
+      "documentation": "文档",
+      "contextAnalysis": "上下文分析",
+      "toolCache": "工具缓存"
     }
   },
   "review": {
@@ -6425,7 +6802,10 @@
       "cancelled": "已取消",
       "draft": "草稿",
       "approved_plan": "已批准",
-      "executing_plan": "执行已批准步骤"
+      "executing_plan": "执行已批准步骤",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "approveAll": "批准并执行",
     "approveStep": "批准此步骤",
@@ -6491,7 +6871,9 @@
     "referenceFile": "引用文件或路径",
     "commands": "命令",
     "mentions": "提及",
-    "filterHint": "输入筛选，↑↓ 选择，Enter 确认"
+    "filterHint": "输入筛选，↑↓ 选择，Enter 确认",
+    "newConversation": "新建会话",
+    "stopGeneration": "停止生成"
   },
   "onboarding": {
     "welcome": "欢迎使用 AxAgent",
@@ -6538,7 +6920,9 @@
     "moreModels": "+{{count}} 个",
     "targetNotFound": "目标元素未找到，请先进入聊天页面",
     "goToSettings": "前往设置添加 API Key",
-    "presetApplyFailed": "预设应用失败"
+    "presetApplyFailed": "预设应用失败",
+    "downloadOllama": "下载 Ollama",
+    "applying": "应用中…"
   },
   "help": {
     "title": "帮助中心",
@@ -6755,7 +7139,10 @@
       "running": "运行",
       "completed": "完成",
       "failed": "失败",
-      "cancelled": "取消"
+      "cancelled": "取消",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "messageLog": "消息日志 ({count})",
     "attempts": "尝试 {attempts}/{maxRetries}",
@@ -6768,14 +7155,20 @@
       "worker": "工作器",
       "step": "步骤"
     },
-    "summary": "Agent 池 ({completed}/{total})"
+    "summary": "Agent 池 ({completed}/{total})",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "agentHierarchy": {
     "running": "运行中",
     "completed": "完成",
     "failed": "失败",
     "title": "Agent 层级",
-    "count": "({count} 个)"
+    "count": "({count} 个)",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "progressBar": {
     "tool": {
@@ -7109,7 +7502,10 @@
       "completed": "完成",
       "failed": "失败",
       "running": "运行中",
-      "total": "总任务"
+      "total": "总任务",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "tab": {
       "dataset": "数据集",
@@ -7305,7 +7701,10 @@
     "completed": "巩固完成",
     "completedTitle": "Dream 完成 ({{secs}}s)",
     "totalConsolidations": "累计 {{count}} 次巩固",
-    "statsSummary": "{{memories}} 记忆 · {{patterns}} 模式"
+    "statsSummary": "{{memories}} 记忆 · {{patterns}} 模式",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "expertBadge": {
     "generalAssistant": "通用助手",
@@ -7358,19 +7757,23 @@
     "teamCreated": "团队 \"{{name}}\" 已创建，共 {{count}} 名队友"
   },
   "chatPage": {
-    "loading": "加载中…"
+    "loading": "加载中…",
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "SSH 配置",
     "connect": "连接",
     "host": "主机",
     "port": "端口",
-    "username": "用户名"
+    "username": "用户名",
+    "hostPlaceholder": "例如 192.168.1.100 或 server.example.com",
+    "keyPathOptional": "SSH 密钥路径（可选）"
   },
   "dockerConfig": {
     "title": "Docker 配置",
     "connect": "连接",
-    "socketPath": "Docker Socket 路径"
+    "socketPath": "Docker Socket 路径",
+    "defaultHint": "留空使用默认 Docker socket"
   },
   "datasetManager": {
     "title": "微调数据集管理器",
@@ -7413,7 +7816,10 @@
     "loss": "损失",
     "loraOutput": "LoRA 输出",
     "action": "操作",
-    "ready": "就绪"
+    "ready": "就绪",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "errorRecovery": {
     "noError": "当前无错误需要恢复",
@@ -7570,7 +7976,14 @@
       "storeInsightsHint": "洞察将保存到本地并跨会话可用",
       "subtitle": "配置自动反思与洞察管理",
       "useErrorClassifier": "启用错误分类器",
-      "useErrorClassifierHint": "自动分类错误模式以便分析"
+      "useErrorClassifierHint": "自动分类错误模式以便分析",
+      "minConfidence": "最低信心度",
+      "minConfidenceHint": "信心度低于此值的洞察将被忽略",
+      "strategy": "反思策略",
+      "strategyHint": "选择反思触发策略",
+      "triggerOnComplete": "完成时触发",
+      "triggerOnError": "错误时触发",
+      "triggerOnIdle": "闲置时触发"
     },
     "useful": "有用"
   },
@@ -7821,7 +8234,10 @@
     "openaiApiKeyDalle": "OpenAI API 密钥（DALL-E）",
     "openaiApiKeyPlaceholder": "sk-...",
     "openaiBaseUrl": "OpenAI 基础 URL",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "新建",
@@ -7992,7 +8408,8 @@
     "terminalContext": "终端会话",
     "closeAgentPanel": "关闭 Agent 面板",
     "openAgentPanel": "打开 Agent 面板",
-    "dashboardContext": "系统运行状态总览"
+    "dashboardContext": "系统运行状态总览",
+    "agentPanel": "Agent Panel"
   },
   "input": {
     "recordAudio": "录制音频",
@@ -8034,7 +8451,14 @@
       "planner": "[TODO] Planner",
       "researcher": "[TODO] Researcher",
       "reviewer": "[TODO] Reviewer",
-      "synthesizer": "[TODO] Synthesizer"
+      "synthesizer": "[TODO] Synthesizer",
+      "analyst": "分析师",
+      "decisionMaker": "决策者",
+      "riskManager": "风控经理",
+      "strategist": "策略师",
+      "supervisor": "监督者",
+      "trader": "交易员",
+      "validator": "验证者"
     }
   },
   "watchlist": {
@@ -8166,7 +8590,10 @@
       "invalidTitle": "失敗样本",
       "noInvalid": "无失敗样本。",
       "exportCsv": "汇出 CSV",
-      "exportJson": "汇出 JSON"
+      "exportJson": "汇出 JSON",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "notice": "此工作台中的所有资料、提示词与结论都以选定日期为錨点。切回 Live 模式需要显式确认。",
     "exitHint": "你仍在回放模式。在别处发起的任何新分析都会帶 as-of 錨点。",
@@ -8193,7 +8620,10 @@
       "walkForwardTitle": "滚动窗回测",
       "yes": "是",
       "no": "否",
-      "foldSharpeChart": "Fold Sharpe 柱状图"
+      "foldSharpeChart": "Fold Sharpe 柱状图",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "common": {
       "empty": "暂无数据"
@@ -8387,7 +8817,10 @@
     "stepLogRunning": "(正在执行...)",
     "stepLogNoDetail": "(无详细输出)",
     "exitSignalAlert": "退出信号扫描完成:\n检查 {{checked}} 只\n- 立即退出: {{exitNow}} 只\n- 谨慎关注: {{caution}} 只",
-    "exitSignalAlertNone": "退出信号扫描完成: {{checked}} 只，暂无异常"
+    "exitSignalAlertNone": "退出信号扫描完成: {{checked}} 只，暂无异常",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "ipc": {
     "disconnected": "后端连接已断开",
@@ -8418,7 +8851,9 @@
     "textFile": "文本文件",
     "unknownFile": "未知文件",
     "previewNotSupported": "不支持预览此文件类型",
-    "downloadFile": "下载文件"
+    "downloadFile": "下载文件",
+    "schemaNotFound": "未找到指定的动态页面",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "dynamicUIManager": {
     "title": "动态UI管理",
@@ -8496,7 +8931,16 @@
     "versionInvalid": "版本号格式无效（应为 major.minor.patch）",
     "versionAutoHint": "不指定则自动递增 patch 版本",
     "rollbackArchive": "回滚前存档（回滚到 {version})",
-    "versionUpdatedAt": "创建时间"
+    "versionUpdatedAt": "创建时间",
+    "visualEditor": "可视化编辑",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value",
+    "import": "导入",
+    "importSuccess": "成功导入 {{count}} 个页面",
+    "importInvalid": "文件无效或为空",
+    "export": "导出",
+    "exportAll": "导出全部",
+    "exportSuccess": "导出成功"
   },
   "visualEditor": {
     "palette": {
@@ -8507,7 +8951,11 @@
       "data-display": "数据展示",
       "form": "表单",
       "media": "媒体",
-      "misc": "其他"
+      "misc": "其他",
+      "basic": "基础",
+      "data": "数据",
+      "layout": "布局",
+      "navigation": "导航"
     },
     "components": {
       "Container": "容器",
@@ -8540,7 +8988,13 @@
       "Text": "文本",
       "Divider": "分割线",
       "Progress": "进度条",
-      "Tag": "标签"
+      "Tag": "标签",
+      "Heading": "标题",
+      "Link": "链接",
+      "Paragraph": "段落",
+      "Slider": "滑块",
+      "Space": "间距",
+      "Tooltip": "提示"
     },
     "canvas": {
       "leafNode": "叶子节点",
@@ -8548,7 +9002,14 @@
       "emptyHint": "画布为空，从左侧拖入组件开始构建 UI",
       "dropPrompt": "将组件拖放到此处",
       "dropHint": "支持容器、表单、数据展示等多种组件类型",
-      "rootHint": "个根级子组件"
+      "rootHint": "个根级子组件",
+      "livePreview": "实时预览",
+      "addNode": "添加节点",
+      "deleteNode": "删除节点",
+      "duplicate": "复制",
+      "moveDown": "下移",
+      "moveUp": "上移",
+      "pasteNode": "粘贴节点"
     },
     "property": {
       "title": "属性面板",
@@ -8571,8 +9032,22 @@
       "placeholder": {
         "propKey": "属性名",
         "propValue": "属性值"
-      }
-    }
+      },
+      "children": "子组件",
+      "componentType": "组件类型",
+      "defaultValue": "默认值",
+      "description": "描述",
+      "label": "标签",
+      "name": "名称",
+      "options": "选项",
+      "props": "属性",
+      "required": "必填",
+      "rules": "验证规则",
+      "type": "类型",
+      "value": "值"
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",
@@ -8646,7 +9121,9 @@
       "failurePatterns": "失败模式",
       "failureReason": "失败原因",
       "count": "次数",
-      "percentage": "占比"
+      "percentage": "占比",
+      "bottleneck": "瓶颈",
+      "reason": "失败原因"
     },
     "feedback": {
       "thanks": "感谢反馈",
@@ -8680,7 +9157,8 @@
       "thinking": "思考",
       "toolCall": "工具调用",
       "waitingPermission": "等待权限",
-      "error": "错误"
+      "error": "错误",
+      "permission": "等待权限"
     },
     "duration": "耗时: {{duration}}s"
   },
@@ -8752,7 +9230,8 @@
     "dailyAvgCost": "日均费用",
     "costByProvider": "按 Provider 分摊费用",
     "inputTokens": "输入 Token",
-    "outputTokens": "输出 Token"
+    "outputTokens": "输出 Token",
+    "dailyAvgTokens": "日均Token"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" 未注册",
@@ -10566,7 +11045,8 @@
     "emptyDescription": "暂无数据，完成任务后会自动生成学习图",
     "useCount": "使用次数: {count}",
     "detail": "详情",
-    "lexicalOverlap": "关联"
+    "lexicalOverlap": "关联",
+    "entities": "实体"
   },
   "skillStore": {
     "toggleSkillFailed": "切换 skill 状态失败"
@@ -10674,5 +11154,66 @@
       "asOf": "截止",
       "live": "实时"
     }
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }

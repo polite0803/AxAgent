@@ -15,6 +15,7 @@ use tauri::State;
 // ── 检测结果类型 ──
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OllamaDetection {
     available: bool,
     models: Vec<OllamaModelInfo>,
@@ -22,6 +23,7 @@ pub struct OllamaDetection {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OllamaModelInfo {
     name: String,
     size_mb: Option<f64>,
@@ -29,6 +31,7 @@ pub struct OllamaModelInfo {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DetectedApiKey {
     provider_type: String,
     prefix: String,
@@ -36,6 +39,7 @@ pub struct DetectedApiKey {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PresetResult {
     success: bool,
     provider_enabled: Option<String>,
@@ -186,7 +190,7 @@ pub async fn apply_quick_start_preset(
                 success: true,
                 provider_enabled: Some("ollama".into()),
                 default_model_set: Some(provider_id),
-                message: ErrorResponse::new(onboarding_err::OLLAMA_NOT_CONFIGURED).to_string(),
+                message: "Ollama 本地提供者已启用，你可以到设置中拉取模型列表".into(),
             })
         },
 
@@ -234,7 +238,7 @@ pub async fn apply_quick_start_preset(
                 provider_enabled: Some("openai".into()),
                 default_model_set: Some("gpt-4o".into()),
                 message: if key_val.is_empty() {
-                    ErrorResponse::new(onboarding_err::OPENAI_NOT_CONFIGURED).to_string()
+                    "OpenAI 提供者已启用，请到设置中添加 API Key".into()
                 } else {
                     "OpenAI 提供者已启用，API Key 已配置".into()
                 },
@@ -256,7 +260,7 @@ pub async fn apply_quick_start_preset(
                 message: if has_enabled {
                     "已检测到启用的提供者，你可以直接开始".into()
                 } else {
-                    ErrorResponse::new(onboarding_err::NO_PROVIDER).to_string()
+                    "未检测到已启用的模型供应商，请稍后在设置中添加".into()
                 },
             })
         },

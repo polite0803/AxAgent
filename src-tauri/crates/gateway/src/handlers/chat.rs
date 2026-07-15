@@ -9,6 +9,7 @@ use futures::StreamExt;
 use serde_json::json;
 use std::collections::HashSet;
 use std::convert::Infallible;
+use std::sync::Arc;
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 
@@ -189,6 +190,7 @@ pub(crate) async fn handle_non_stream_with_failover(
 ) -> axum::response::Response {
     let mut current_ctx = initial_ctx.clone();
     let mut last_error: Option<axagent_harness::core_error::AxAgentError> = None;
+    let request = Arc::new(request);
 
     for attempt in 0..=KEY_FAILOVER_MAX_RETRIES {
         match adapter.chat(&current_ctx, request.clone()).await {
@@ -361,7 +363,9 @@ pub(crate) async fn handle_stream(
                             total_cached,
                             total_cache_creation,
                         );
-                        let _ = tx.send(Ok(Event::default().data(data.to_string()))).await;
+                        if tx.send(Ok(Event::default().data(data.to_string()))).await.is_err() {
+                            break;
+                        }
                         let _ = tx.send(Ok(Event::default().data("[DONE]"))).await;
                         break;
                     }
@@ -369,6 +373,8 @@ pub(crate) async fn handle_stream(
                     if let Some(data) = build_stream_chunk_response_body(&model_str, &chunk)
                         && tx.send(Ok(Event::default().data(data.to_string()))).await.is_err()
                     {
+                        // Client disconnected after checking is_closed() but before sending
+                        // Break immediately to avoid wasting more tokens
                         break;
                     }
                 },

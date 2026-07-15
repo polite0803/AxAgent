@@ -624,16 +624,37 @@ export interface PersonalityCreateBootstrapInput {
 
 export interface PersonalityInfo {
   name: string;
+  version: string;
   description?: string;
   is_active: boolean;
 }
 
 export interface Personality {
   name: string;
+  version: string;
   description?: string;
   content?: string;
   identity: string;
   user: string;
+  created_at: string;
+}
+
+/** Persona 自动学习结果摘要 */
+export interface AutoLearnResult {
+  /** 是否成功学习（样本数过少时为 false） */
+  learned: boolean;
+  /** 人类可读的风格摘要 */
+  style_summary: string;
+  /** 实际更新过的字段名列表 */
+  updated_fields: string[];
+  /** 收集到的代码样本数 */
+  code_sample_count: number;
+  /** 收集到的消息样本数 */
+  message_sample_count: number;
+  /** 风格置信度（0.0-1.0） */
+  confidence: number;
+  /** 回写到的 Persona 名称 */
+  persona_name: string;
 }
 
 export function personalityList(): Promise<PersonalityInfo[]> {
@@ -658,4 +679,16 @@ export function personalityUpdateIdentity(name: string, identity: string): Promi
 
 export function personalityUpdateUser(name: string, user: string): Promise<void> {
   return invoke("personality_update_user", { name, user });
+}
+
+/**
+ * 从指定对话中自动学习用户风格，更新当前激活 Persona 的 USER.md
+ *
+ * 内部会调用 trajectory 的 StyleExtractor + StyleVectorizer，
+ * 将提取的代码风格、命名约定、沟通偏好回写到 USER.md。
+ */
+export function personalityAutoLearnFromConversation(
+  conversationId: string,
+): Promise<AutoLearnResult> {
+  return invoke("personality_auto_learn_from_conversation", { conversationId });
 }

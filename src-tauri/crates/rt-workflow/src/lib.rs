@@ -10,7 +10,9 @@ pub mod work_engine;
 pub mod workflow_engine;
 pub mod yaml_io;
 
-pub use agent_roles::AgentRole;
+pub use agent_roles::{
+    FileRoleRegistry, ResolvedRole, RoleConfig, RoleRegistry, resolve, resolve_with_file_registry,
+};
 pub use workflow_engine::{NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus};
 pub use yaml_io::{
     WorkflowYamlFormat, WorkflowYamlMetadata, YamlIoError, export_workflow_yaml,

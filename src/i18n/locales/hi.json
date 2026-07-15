@@ -2,7 +2,9 @@
   "app": {
     "name": "AxAgent",
     "title": "स्मार्ट वर्कस्पेस",
-    "description": "AI-संचालित वर्क असिस्टेंट"
+    "description": "AI-संचालित वर्क असिस्टेंट",
+    "newSkillProposal": "New skill suggestion: {name}",
+    "quickBar": "QuickBar"
   },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
@@ -37,7 +39,8 @@
     "pipeline": "स्टॉक पाइपलाइन",
     "workspace": "स्टॉक वर्कस्पेस",
     "portfolio": "Portfolio",
-    "scheduledAnalysis": "Scheduled"
+    "scheduledAnalysis": "Scheduled",
+    "dynamicUI": "डायनामिक पृष्ठ"
   },
   "sidebar": {
     "sectionWork": "कार्य",
@@ -54,7 +57,8 @@
     "sectionInvestReview": "Review",
     "closeAgent": "Close Agent",
     "openAgent": "Open Agent",
-    "sectionOverview": "अवलोकन"
+    "sectionOverview": "अवलोकन",
+    "agentPanel": "Agent Panel"
   },
   "chat": {
     "newConversation": "नई बातचीत",
@@ -233,7 +237,10 @@
       "success": "सफल",
       "error": "विफल",
       "input": "इनपुट",
-      "output": "आउटपुट"
+      "output": "आउटपुट",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "mcp": {
       "title": "MCP टूल",
@@ -345,7 +352,10 @@
         "running": "चल रहा है",
         "completed": "पूर्ण",
         "failed": "विफल",
-        "skipped": "छोड़ा गया"
+        "skipped": "छोड़ा गया",
+        "strategyOverwrite": "Overwrite",
+        "strategyMerge": "Merge",
+        "strategyDryRun": "Dry run"
       },
       "workflowStatus": {
         "created": "बनाया गया",
@@ -353,7 +363,10 @@
         "completed": "पूर्ण",
         "partiallyCompleted": "आंशिक रूप से पूर्ण",
         "failed": "विफल",
-        "cancelled": "रद्द किया गया"
+        "cancelled": "रद्द किया गया",
+        "strategyOverwrite": "Overwrite (replace all)",
+        "strategyMerge": "Merge (keep existing)",
+        "strategyDryRun": "Dry run (validate only)"
       },
       "dagVisualization": "DAG विज़ुअलाइज़ेशन",
       "dagHint": "DAG को विज़ुअलाइज़ करने के लिए इस Mermaid कोड को Mermaid रेंडरर में पेस्ट करें।",
@@ -844,7 +857,10 @@
       "askUser": "प्रश्न",
       "loading": "लोड हो रहा है...",
       "failed": "विफल",
-      "iteration": "पुनरावृत्तियाँ"
+      "iteration": "पुनरावृत्तियाँ",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "benchmarks": {
       "failed": "विफल",
@@ -1009,7 +1025,10 @@
       "running": "{{running}} चल रहा है",
       "cancelled": "रद्द",
       "pending": "लंबित",
-      "totalEvents": "{{total}} घटनाएं"
+      "totalEvents": "{{total}} घटनाएं",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "agent": {
       "acceptEdits": "संपादन स्वीकार करें",
@@ -1041,7 +1060,10 @@
       "goToEnd": "अंत में जाएँ",
       "goToStart": "शुरुआत में जाएँ",
       "nextStep": "अगला चरण",
-      "prevStep": "पिछला चरण"
+      "prevStep": "पिछला चरण",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "switchedTo": "स्विच किया गया: {{name}}",
     "contextGraph": {
@@ -1177,7 +1199,12 @@
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
       "noDecision": "No decision to aggregate"
-    }
+    },
+    "clearHistoryDone": "वार्तालाप साफ़ हो गया",
+    "createConversationFailed": "बातचीत बनाने में विफल",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "gateway": {
     "title": "गेटवे",
@@ -1314,7 +1341,10 @@
     "tab": {
       "monitor": "मॉनिटर"
     },
-    "cacheHitTokens": "कैश हिट टोकन"
+    "cacheHitTokens": "कैश हिट टोकन",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -1776,7 +1806,14 @@
       "importErrors": "Error Details",
       "importedCount": "Imported",
       "errorCount": "Failed",
-      "importSelectFirst": "Please select a folder first"
+      "importSelectFirst": "Please select a folder first",
+      "autoIndex": "स्वतः अनुक्रमण",
+      "autoIndexHint": "फ़ाइल परिवर्तन पर स्वतः इंडेक्स अपडेट करें",
+      "maxResults": "अधिकतम परिणाम",
+      "scoreThreshold": "स्कोर सीमा",
+      "vectorStore": "वेक्टर स्टोर",
+      "webCrawlDepth": "वेब क्रॉल गहराई",
+      "webCrawlPages": "क्रॉल पृष्ठ"
     },
     "rag": {
       "advanced": "उन्नत पुनर्प्राप्ति सेटिंग्स",
@@ -1976,7 +2013,8 @@
       "restartRequired": "परिवर्तन पुनरारंभ के बाद पूर्ण प्रभावी होंगे",
       "restartNow": "अभी पुनरारंभ करें",
       "restartLater": "बाद में पुनरारंभ करें",
-      "desc": "डेटा स्टोरेज स्थान और सीमाएँ कॉन्फ़िगर करें"
+      "desc": "डेटा स्टोरेज स्थान और सीमाएँ कॉन्फ़िगर करें",
+      "openFolderError": "Open folder failed: {error}"
     },
     "filterProviders": "प्रदाता खोजें...",
     "initProviders": "प्रदाता आरंभ करें",
@@ -2175,7 +2213,10 @@
       "executed": "निष्पादित",
       "quickCreated": "त्वरित बनाया गया",
       "unknownTemplateType": "",
-      "refreshed": "ताज़ा किया गया"
+      "refreshed": "ताज़ा किया गया",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "titleSummaryPromptDefault": "Based on the following conversation content, generate a short and concise title (no more than 20 characters). Return only the title text, do not include quotes or any additional explanations.",
     "compressionPromptDefault": "You are a conversation summary assistant. Please compress the following conversation history into a concise summary.\n\nRequirements:\n1. Keep all user-expressed needs, preferences, and decisions\n2. Keep all key technical details (code snippets, configurations, error messages, etc.)\n3. Keep pending tasks and unresolved issues\n4. Organize in concise bullet points\n5. Keep the summary concise, no more than 500 words",
@@ -2643,7 +2684,9 @@
       "statusConnecting": "कनेक्ट हो रहा है",
       "lastActivity": "अंतिम गतिविधि",
       "activeSessions": "सक्रिय सत्र",
-      "noStatuses": "कोई स्थिति उपलब्ध नहीं"
+      "noStatuses": "कोई स्थिति उपलब्ध नहीं",
+      "markerPrefixPlaceholder": "CHAT2API",
+      "markerPrefixDesc": "Marker प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर बदलाव की आवश्यकता नहीं)"
     },
     "advanced": "उन्नत सेटिंग्स",
     "evolution": {
@@ -2666,7 +2709,10 @@
       "stopped": "Stopped",
       "start": "Start",
       "stop": "Stop",
-      "noLogs": "No logs yet"
+      "noLogs": "No logs yet",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "promptTemplates": "प्रॉम्प्ट टेम्पलेट",
     "appConfig": "एजेंट कंट्रोल पैनल",
@@ -2714,7 +2760,68 @@
       "jsonEdit": "JSON संपादन"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "मार्कर उपसर्ग (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधित करने की आवश्यकता नहीं)"
+    "markerPrefixDesc": "मार्कर उपसर्ग (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधित करने की आवश्यकता नहीं)",
+    "persona": {
+      "activated": "सक्रिय",
+      "activate": "सक्रिय करें",
+      "cancel": "रद्द करें",
+      "create": "नया व्यक्तित्व",
+      "createFailed": "निर्माण विफल",
+      "createFirst": "कोई व्यक्तित्व चुनें या बनाएँ",
+      "description": "एजेंट के व्यक्तित्व और आत्मा परिभाषा का प्रबंधन करें",
+      "editFailed": "संपादन विफल",
+      "emptyContent": "(खाली)",
+      "nameLabel": "नाम",
+      "namePlaceholder": "my-persona",
+      "noPersona": "कोई व्यक्तित्व नहीं",
+      "personaList": "व्यक्तित्व सूची",
+      "save": "सहेजें",
+      "saved": "सहेजा गया",
+      "saveFailed": "सहेजने में विफल",
+      "switchFailed": "स्विच करने में विफल",
+      "switchSuccess": "{{name}} पर स्विच किया गया",
+      "title": "व्यक्तित्व प्रबंधन",
+      "soul": {
+        "label": "SOUL.md (आत्मा परिभाषा)",
+        "description": "एजेंट के मूल व्यक्तित्व और व्यवहार शैली की परिभाषा",
+        "placeholder": "आत्मा परिभाषा दर्ज करें..."
+      },
+      "identity": {
+        "label": "IDENTITY.md (पहचान घोषणा)",
+        "description": "एजेंट की पहचान घोषणा और भूमिका की जानकारी",
+        "placeholder": "एजेंट की पहचान घोषणा..."
+      },
+      "user": {
+        "label": "USER.md (उपयोगकर्ता प्रोफ़ाइल)",
+        "description": "उपयोगकर्ता प्रोफ़ाइल, प्राथमिकताएँ और आवश्यकताओं का विवरण",
+        "placeholder": "उपयोगकर्ता प्रोफ़ाइल जानकारी..."
+      },
+      "autoLearn": {
+        "button": "वार्तालाप से स्वतः अधिगम",
+        "title": "वार्तालाप से स्वतः अधिगम",
+        "description": "वार्तालाप इतिहास से उपयोगकर्ता के कोड शैली और संचार प्राथमिकताएँ निकालता है और सक्रिय Persona के USER.md को स्वतः अपडेट करता है",
+        "selectConversation": "वार्तालाप चुनें",
+        "selectPlaceholder": "अधिगम के लिए एक वार्तालाप चुनें",
+        "noConversations": "कोई वार्तालाप उपलब्ध नहीं",
+        "start": "अधिगम प्रारंभ करें",
+        "close": "बंद करें",
+        "success": "Persona «{{name}}» पर अधिगम और लागू किया गया",
+        "successTitle": "अधिगम पूर्ण, Persona «{{name}}» पर लागू किया गया",
+        "noSamples": "उपयोग करने योग्य कोड या संदेश नमूने नहीं मिले",
+        "noSamplesTitle": "उपयोग करने योग्य नमूने नहीं मिले",
+        "failed": "स्वतः अधिगम विफल",
+        "updatedFields": "अद्यतन फ़ील्ड"
+      },
+      "name": "नाम",
+      "systemPrompt": "सिस्टम प्रॉम्प्ट",
+      "type": "प्रकार",
+      "visibility": "दृश्यता"
+    },
+    "toolCallingMode": "Tool Calling Mode",
+    "toolCallingModeDesc": "Select the tool calling mode for this provider",
+    "toolCallingModeManaged": "Managed (AxAgent injects tools via system prompt, parses text for tool_calls — use for Chat2API-like gateways)",
+    "toolCallingModeNative": "Native (model built-in function calling)",
+    "groupVoice": "आवाज़"
   },
   "backup": {
     "title": "बैकअप केंद्र",
@@ -2785,7 +2892,11 @@
       "lastSync": "अंतिम सिंक"
     },
     "backupSuccess": "बैकअप सफल",
-    "error": "ऑपरेशन विफल"
+    "error": "ऑपरेशन विफल",
+    "openFolderError": "Open folder failed: {error}",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "common": {
     "confirm": "पुष्टि करें",
@@ -2934,7 +3045,8 @@
     "required": "आवश्यक",
     "details": "Details",
     "more": "More",
-    "action": "कार्रवाई"
+    "action": "कार्रवाई",
+    "dismiss": "खारिज करें"
   },
   "image": {
     "loadError": "छवि लोड करने में विफल",
@@ -2952,7 +3064,13 @@
     "disconnecting": "डिस्कनेक्ट हो रहा है...",
     "startCall": "वॉयस कॉल शुरू करें",
     "endCall": "कॉल समाप्त करें",
-    "toggleMute": "म्यूट टॉगल करें"
+    "toggleMute": "म्यूट टॉगल करें",
+    "wakeup": "वॉयस वेक",
+    "wakeupActive": "वेकअप सुन रहा है",
+    "voiceType": "आवाज़ प्रकार",
+    "sttProvider": "STT प्रदाता",
+    "ttsProvider": "TTS प्रदाता",
+    "providerAuto": "स्वचालित (उसी LLM प्रदाता का उपयोग करें)"
   },
   "shortcuts": {
     "newConversation": "नई बातचीत",
@@ -3316,7 +3434,10 @@
     },
     "status": {
       "running": "चल रहा है",
-      "completed": "पूर्ण"
+      "completed": "पूर्ण",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "count": "{{running}} running / {{completed}} completed",
     "noAgents": "कोई एजेंट पंजीकृत नहीं",
@@ -3338,7 +3459,10 @@
     "loading": "लोड हो रहा है...",
     "failed": "विफल",
     "iteration": "पुनरावृत्तियाँ",
-    "askUser": "प्रश्न"
+    "askUser": "प्रश्न",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "profile": {
     "loading": "प्रोफ़ाइल लोड हो रहा है...",
@@ -3465,7 +3589,8 @@
   "searchProvider": {
     "tavily": "Tavily",
     "zhipu": "Zhipu",
-    "bocha": "Bocha"
+    "bocha": "Bocha",
+    "apiKey": "API Key"
   },
   "terminal": {
     "online": "ऑनलाइन",
@@ -3484,7 +3609,10 @@
     "analyzeOutput": "आउटपुट विश्लेषण",
     "clear": "साफ़ करें",
     "killProcess": "प्रक्रिया समाप्त करें",
-    "closeSession": "सत्र बंद करें"
+    "closeSession": "सत्र बंद करें",
+    "maximize": "अधिकतम करें",
+    "restore": "पुनर्स्थापित करें",
+    "more": "{{count}} और"
   },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
@@ -3687,7 +3815,10 @@
       "operationDetail": "ऑपरेशन विवरण",
       "running": "चल रहा है",
       "title": "ऑपरेशन लॉग",
-      "total": "कुल"
+      "total": "कुल",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "noSources": "कोई स्रोत नहीं",
     "noteNotFound": "नोट नहीं मिला",
@@ -3885,7 +4016,9 @@
       "path": "पथ",
       "status": "स्थिति",
       "title": "शीर्षक",
-      "type": "प्रकार"
+      "type": "प्रकार",
+      "mimeType": "MIME प्रकार",
+      "size": "आकार"
     },
     "wikiForm": {
       "description": "विवरण",
@@ -3894,7 +4027,9 @@
     },
     "wikiMeta": {
       "rootPath": "रूट पथ"
-    }
+    },
+    "timeline": "Timeline",
+    "operationTimeline": "Operation Timeline"
   },
   "quickbar": {
     "title": "क्विकबार",
@@ -4094,7 +4229,11 @@
       "evolutionFallback": "अनुकूलन",
       "verified": "सत्यापित",
       "hasEvolution": "विकास रिकॉर्ड मौजूद",
-      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified"
+      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
+      "progressAnalyzing": "इरादे का विश्लेषण कर रहा है",
+      "progressMatching": "नोड्स मिलान कर रहा है",
+      "progressBuilding": "वर्कफ़्लो बना रहा है",
+      "progressOptimizing": "अनुकूलन कर रहा है"
     },
     "previewInDevelopment": "पूर्वावलोकन सुविधा विकास में है",
     "publishInDevelopment": "प्रकाशन सुविधा विकास में है",
@@ -4212,7 +4351,12 @@
       "rollback": "Rollback to This Version",
       "rollbackConfirm": "Confirm rollback?",
       "rollbackTo": "Rollback to {{version}}",
-      "rolledBack": "Rolled back"
+      "rolledBack": "Rolled back",
+      "vA": "vA",
+      "vB": "vB",
+      "viewDiff": "अंतर देखें",
+      "viewSnapshot": "स्नैपशॉट देखें",
+      "restore": "पुनर्स्थापित करें"
     },
     "versionHistoryLoadFailed": "संस्करण इतिहास लोड करने में विफल",
     "versionLoaded": "संस्करण{{version}} loaded",
@@ -4625,7 +4769,10 @@
       "noTraceData": "No trace data",
       "showSpanTree": "Show Span Tree",
       "hideSpanTree": "Hide Span Tree",
-      "noSpanData": "No span data resolved"
+      "noSpanData": "No span data resolved",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "validation": {
       "validation": {
@@ -4733,7 +4880,11 @@
       "workflowRef": "Workflow Ref",
       "phaseSeparator": "Phase Separator",
       "groupFrame": "Group",
-      "toolSetSelector": "Tool Set"
+      "toolSetSelector": "Tool Set",
+      "webhook": "Webhook",
+      "apiCall": "API कॉल",
+      "script": "स्क्रिप्ट",
+      "timer": "टाइमर"
     },
     "undo": "पूर्ववत करें",
     "redo": "फिर से करें",
@@ -4851,7 +5002,8 @@
         "CACHE_DESERIALIZE_FAILED": "कैश डेटा डीसिरियलाइज़ेशन विफल",
         "MODEL_NOT_CONFIGURED": "मॉडल कॉन्फ़िगर नहीं किया गया",
         "NODE_NOT_FOUND": "नोड नहीं मिला"
-      }
+      },
+      "saveFailed": "सहेजना विफल"
     },
     "agentNode": {
       "tools": "उपकरण",
@@ -4947,7 +5099,9 @@
       "configureHint": "Configure trigger conditions and parameters",
       "statusActive": "Running",
       "statusDisabled": "Disabled",
-      "statusUnconfigured": "Unconfigured"
+      "statusUnconfigured": "Unconfigured",
+      "cron": "Cron",
+      "webhook": "Webhook"
     },
     "documentParserNode": {
       "notSet": "सेट नहीं",
@@ -4998,7 +5152,10 @@
       "clickToExpandPorts": "Click to expand ports",
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "type": "Type"
+      "type": "Type",
+      "description": "विवरण",
+      "name": "नाम",
+      "version": "संस्करण"
     },
     "code": {
       "rhaiDynamicTool": "🦀 Rhai (डायनामिक टूल)",
@@ -5050,7 +5207,9 @@
       },
       "trigger": {
         "cronHint": "मानक cron अभिव्यक्ति, जैसे `0 9 * * *`।"
-      }
+      },
+      "fix": "ठीक करें",
+      "optimize": "अनुकूलित करें"
     },
     "diagnostic": {
       "title": "वर्कफ़्लो निदान",
@@ -5339,7 +5498,11 @@
       "condition": "Routing",
       "loop": "Loop",
       "container": "Container",
-      "storage": "Storage"
+      "storage": "Storage",
+      "data": "डेटा",
+      "logic": "तर्क",
+      "trigger": "ट्रिगर",
+      "transform": "रूपांतरण"
     },
     "layout": {
       "suggestTitle": {
@@ -5403,7 +5566,51 @@
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
         "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference"
-      }
+      },
+      "autoLayout": "स्वतः लेआउट",
+      "canvas": "कैनवास",
+      "collapseAll": "सभी संक्षिप्त करें",
+      "condensed": "सघन",
+      "connectionMode": "कनेक्शन मोड",
+      "defaultEdgeType": "डिफ़ॉल्ट किनारा प्रकार",
+      "expandAll": "सभी विस्तृत करें",
+      "fitView": "दृश्य फ़िट करें",
+      "floating": "फ़्लोटिंग",
+      "gridSize": "ग्रिड आकार",
+      "horizontal": "क्षैतिज",
+      "layoutDirection": "लेआउट दिशा",
+      "locked": "लॉक्ड",
+      "minimap": "मिनीमैप",
+      "nodeSize": "नोड आकार",
+      "orientation": "अभिविन्यास",
+      "portLayout": "पोर्ट लेआउट",
+      "readonly": "केवल पठनीय",
+      "showGrid": "ग्रिड दिखाएँ",
+      "snapToGrid": "ग्रिड पर स्नैप करें",
+      "straight": "सीधा",
+      "strict": "सख्त",
+      "vertical": "लंबवत",
+      "zoomControl": "ज़ूम नियंत्रण",
+      "bezier": "बेज़ियर वक्र",
+      "smoothStep": "चिकना चरण",
+      "free": "स्वतंत्र",
+      "ortho": "ऑर्थोगोनल",
+      "large": "बड़ा",
+      "medium": "मध्यम",
+      "small": "छोटा",
+      "compact": "कॉम्पैक्ट",
+      "standard": "मानक",
+      "comfortable": "आरामदायक",
+      "left": "बाएँ",
+      "right": "दाएँ",
+      "top": "ऊपर",
+      "bottom": "नीचे",
+      "center": "केंद्र",
+      "border": "बॉर्डर",
+      "gradient": "ग्रेडिएंट",
+      "solid": "ठोस",
+      "dashed": "डैश्ड",
+      "dotted": "बिंदुयुक्त"
     },
     "templateList": {
       "moreActions": "More actions for {{name}}",
@@ -5432,24 +5639,50 @@
       "importPresetsTitle": "Import built-in experts",
       "importPresets": "Import",
       "noTemplates": "No templates",
-      "noMatchFound": "No matching templates"
+      "noMatchFound": "No matching templates",
+      "blank": "रिक्त वर्कफ़्लो",
+      "category": "श्रेणी",
+      "createConfirm": "इस टेम्पलेट से नया वर्कफ़्लो बनाएँ?",
+      "description": "विवरण",
+      "empty": "कोई टेम्पलेट नहीं",
+      "name": "टेम्पलेट नाम",
+      "official": "आधिकारिक टेम्पलेट",
+      "popular": "लोकप्रिय",
+      "preview": "पूर्वावलोकन",
+      "recent": "हाल में उपयोग",
+      "title": "वर्कफ़्लो टेम्पलेट",
+      "useTemplate": "टेम्पलेट उपयोग करें",
+      "version": "संस्करण",
+      "community": "समुदाय",
+      "recommended": "अनुशंसित",
+      "all": "सभी"
     },
     "saveAsImage": "Save as Image",
     "exportEmpty": "No nodes to export",
     "containerNode": {
       "nodes": "nodes",
-      "branchTimeout": "Branch timeout configured"
+      "branchTimeout": "Branch timeout configured",
+      "collapse": "संक्षिप्त करें",
+      "expand": "विस्तृत करें"
     },
     "swarmNode": {
       "agents": "Agents",
       "rounds": "rounds",
       "newAgent": "Agent",
       "noAgentsHint": "Add Agent nodes inside this container",
-      "addAgent": "Add Agent"
+      "addAgent": "Add Agent",
+      "agent": "एजेंट",
+      "handoff": "हैंडऑफ़",
+      "mode": "मोड",
+      "parallel": "समानांतर",
+      "sequential": "क्रमिक",
+      "task": "कार्य"
     },
     "groupNode": {
       "untitled": "Group",
-      "folded": "folded"
+      "folded": "folded",
+      "add": "समूह जोड़ें",
+      "remove": "समूह हटाएँ"
     },
     "phaseSeparator": {
       "defaultLabel": "Phase"
@@ -5461,7 +5694,10 @@
       "title": "Workflow Legend",
       "toggleLabel": "{{action}} legend",
       "expand": "Expand",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "end": "अंत",
+      "start": "प्रारंभ",
+      "running": "चल रहा है"
     },
     "back": "Back",
     "caseLabel": "Case {{n}}",
@@ -5483,7 +5719,11 @@
       "targetWorkflow": "Target Workflow",
       "contextMode": "Context Mode",
       "inherit": "Inherit",
-      "isolated": "Isolated"
+      "isolated": "Isolated",
+      "selectWorkflow": "",
+      "title": "",
+      "version": "",
+      "inputMapping": "इनपुट मैपिंग"
     },
     "durationMinutes": "{{minutes}} min",
     "durationSeconds": "{{seconds}} sec",
@@ -5507,11 +5747,243 @@
       "current": "Current version",
       "optimizedConfig": "Optimized node configuration",
       "addedBranch": "Added conditional branch",
-      "initialCreation": "Initial creation"
+      "initialCreation": "Initial creation",
+      "action": "Action",
+      "changeSummary": "Change Summary",
+      "clearSelection": "Clear selection",
+      "compareHint": "Comparing version {{v1}} with version {{v2}}",
+      "compareSelected": "Compare selected ({{selected}}/2)",
+      "confirmRestore": "Restore to version {{version}}?",
+      "currentWorkflowWillBeOverwritten": "Current workflow will be overwritten by the new version",
+      "deletedNode": "- Removed node: {{id}} ({{desc}})",
+      "modifiedNode": "~ Modified node: {{id}} ({{desc}})",
+      "newNode": "+ Added node: {{id}} ({{desc}})",
+      "noVersionHistory": "No version history",
+      "restoreToVersion": "Restore to this version",
+      "status": "Status",
+      "timeline": "Timeline",
+      "updateTime": "Update Time",
+      "version": "Version",
+      "versionManager": "Version Manager: {{name}}",
+      "archived": "संग्रहीत",
+      "changelog": "बदलाव लॉग",
+      "comparison": "संस्करण तुलना",
+      "diff": "अंतर",
+      "draft": "ड्राफ्ट",
+      "latest": "नवीनतम",
+      "noHistory": "कोई संस्करण इतिहास नहीं",
+      "renamed": "पुनः नामकरण",
+      "restored": "पुनर्स्थापित",
+      "updatedAt": "अपडेट समय"
     },
     "duplicateSuffix": "{{name}} (copy)",
     "fromTemplate": "{{name}} (from template)",
-    "defaultWorkflowName": "New Workflow"
+    "defaultWorkflowName": "New Workflow",
+    "approval": {
+      "panelTitle": "स्वीकृतियाँ",
+      "noPending": "कोई लंबित स्वीकृति नहीं",
+      "message": "संदेश",
+      "workflowId": "Workflow",
+      "status": "स्थिति",
+      "expiresAt": "समाप्ति",
+      "actions": "कार्रवाइयाँ",
+      "decision": "निर्णय",
+      "approve": "स्वीकृत करें",
+      "reject": "अस्वीकृत करें",
+      "cancel": "रद्द करें",
+      "notePlaceholder": "नोट जोड़ें (वैकल्पिक)"
+    },
+    "evolution": {
+      "abTestTitle": "A/B Test ({{count}})",
+      "abTestWon": "A/B Won",
+      "confidence": "Confidence: {{value}}%",
+      "latency": "Latency {{diff}}",
+      "noActiveABTest": "No active A/B test",
+      "noEvolutionRecord": "No evolution record — trigger first evolution",
+      "noHistory": "No evolution history",
+      "noNodes": "No nodes on current canvas",
+      "successRate": "Success Rate {{diff}}",
+      "title": "Evolution Status",
+      "triggerAll": "Trigger All Evolution",
+      "triggerEvolution": "Trigger Evolution",
+      "winner": "{{winner}} Won",
+      "apply": "लागू करें",
+      "current": "वर्तमान संस्करण",
+      "diff": "अंतर",
+      "evolutionHistory": "विकास इतिहास",
+      "generation": "पीढ़ी {{n}}",
+      "improved": "सुधारित",
+      "performance": "प्रदर्शन",
+      "revert": "वापस लाएँ",
+      "score": "स्कोर",
+      "viewDiff": "अंतर देखें"
+    },
+    "executor": {
+      "close": "Close",
+      "duration": "Duration",
+      "execute": "Execute Workflow",
+      "executing": "Executing...",
+      "executionFailed": "Execution Failed",
+      "executionLog": "Execution Log",
+      "executionSuccess": "Execution Successful",
+      "inputVariables": "Input Variables",
+      "nodeExecutionStatus": "Node Execution Status",
+      "outputResult": "Output Result",
+      "status": "Status",
+      "failed": "विफल",
+      "inputVars": "इनपुट चर",
+      "nodeStatus": "नोड निष्पादन स्थिति",
+      "runningNode": "वर्कफ़्लो नोड निष्पादित हो रहा है",
+      "success": "सफल",
+      "waiting": "प्रतीक्षारत"
+    },
+    "list": {
+      "active": "Active",
+      "all": "All",
+      "archived": "Archived",
+      "createNew": "New Workflow",
+      "deleteConfirm": "Are you sure you want to delete this workflow?",
+      "draft": "Draft",
+      "duplicate": "Duplicate",
+      "edgeCount": "{{count}} edges",
+      "edit": "Edit",
+      "empty": "No workflows, click the button above to create",
+      "noDescription": "No description",
+      "nodeCount": "{{count}} nodes",
+      "searchPlaceholder": "Search workflows...",
+      "templates": "Templates",
+      "title": "Workflows",
+      "confirmDelete": "क्या आप इस वर्कफ़्लो को हटाना चाहते हैं?",
+      "createWorkflow": "वर्कफ़्लो बनाएँ",
+      "noWorkflows": "कोई वर्कफ़्लो नहीं, बनाने के लिए ऊपर दिए बटन पर क्लिक करें",
+      "search": "वर्कफ़्लो खोजें"
+    },
+    "log": {
+      "clear": "Clear Logs",
+      "empty": "No logs",
+      "export": "Export Logs",
+      "noLogs": "कोई लॉग नहीं"
+    },
+    "nl2Skill": {
+      "applySkill": "Apply This Skill",
+      "optional": "Optional",
+      "parameters": "Parameters",
+      "parametersLabel": "Parameters: ",
+      "parsingPhases": "Parsing Phases",
+      "required": "Required",
+      "tools": "Tools",
+      "triggers": "Triggers",
+      "triggersLabel": "Triggers: ",
+      "unit": "",
+      "generate": "कौशल उत्पन्न करें",
+      "generating": "उत्पन्न हो रहा है...",
+      "instruction": "अपने वांछित कौशल का वर्णन करें",
+      "preview": "पूर्वावलोकन",
+      "result": "उत्पन्न परिणाम",
+      "title": "प्राकृतिक भाषा से कौशल उत्पन्न करें",
+      "validate": "सत्यापित करें",
+      "validating": "सत्यापन हो रहा है..."
+    },
+    "nl2UI": {
+      "applyUI": "Apply This UI",
+      "componentCount": "Component Count",
+      "components": "{{count}} components",
+      "depthLevel": "Depth",
+      "rootType": "Root Type",
+      "generate": "उत्पन्न करें",
+      "generating": "उत्पन्न हो रहा है...",
+      "instruction": "अपने वांछित UI का वर्णन करें",
+      "result": "उत्पन्न परिणाम",
+      "title": "प्राकृतिक भाषा से UI उत्पन्न करें"
+    },
+    "nlParser": {
+      "aiSuggestion": "AI Suggestion",
+      "alternatives": "Alternatives",
+      "applySolution": "Apply This Plan",
+      "confidence": "Parse Confidence",
+      "constraintsOptional": "Constraints (Optional)",
+      "constraintsPlaceholder": "e.g.: execution time no more than 5 minutes, retry 3 times on error",
+      "edges": "Edges",
+      "examplePlaceholder": "e.g. {{example}}",
+      "naturalLanguageDesc": "Natural Language Description",
+      "nodes": "Nodes",
+      "parseGenerate": "Parse & Generate",
+      "parseResult": "Parse Result",
+      "parsing": "Parsing...",
+      "planLabel": "Plan {{index}}: {{desc}}",
+      "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
+      "variables": "Variables",
+      "constraints": "विवशताएँ (वैकल्पिक)",
+      "description": "प्राकृतिक भाषा विवरण",
+      "generating": "विश्लेषण हो रहा है",
+      "suggestions": "AI सुझाव",
+      "example1": "हर सुबह 8 बजे निर्दिष्ट वेबसाइट से नवीनतम लेख प्राप्त करें",
+      "example2": "नया ईमेल प्राप्त होने पर AI से सामग्री का विश्लेषण करें, यदि तत्काल है तो सूचित करें",
+      "example3": "उपयोगकर्ता द्वारा फ़ॉर्म सबमिट करने के बाद पहले डेटा सत्यापित करें फिर डेटाबेस में लिखें",
+      "exampleConstraint": "उदाहरण: निष्पादन समय 5 मिनट से अधिक नहीं, त्रुटि होने पर पुनः प्रयास करें"
+    },
+    "saveFailed": "सहेजना विफल",
+    "voiceChat": {
+      "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "imageGen": {
+      "generatedImageTitle": "## AI जनित चित्र",
+      "model": "**मॉडल**",
+      "duration": "**अवधि**",
+      "savedToArtifact": "Artifact में सहेजा गया"
+    },
+    "chatSidebar": {
+      "menu": "मेनू"
+    },
+    "inputArea": {
+      "resizeHandle": "आकार बदलें",
+      "uploadFile": "फ़ाइल अपलोड करें"
+    },
+    "appHeader": {
+      "agentPanel": "Agent पैनल"
+    },
+    "sidebar": {
+      "agentPanel": "Agent पैनल"
+    },
+    "errorBoundary": {
+      "pageError": "पृष्ठ त्रुटि"
+    },
+    "chatPage": {
+      "resizeHandle": "आकार बदलें"
+    },
+    "spanDetail": {
+      "parentSpan": "मूल Span"
+    },
+    "traceDetail": {
+      "userId": "उपयोगकर्ता ID"
+    },
+    "settingsPanel": {
+      "featureFlags": "फ़ीचर फ़्लैग"
+    },
+    "skillTimeline": {
+      "promptDiff": "प्रॉम्प्ट तुलना"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "कोई वर्कफ़्लो संदर्भित नहीं"
+    },
+    "chartPreview": {
+      "title": "चार्ट पूर्वावलोकन"
+    },
+    "htmlPreview": {
+      "title": "HTML पूर्वावलोकन"
+    },
+    "reactPreview": {
+      "title": "React पूर्वावलोकन"
+    }
   },
   "atomicSkill": {
     "entryType": "प्रविष्टि प्रकार",
@@ -5594,10 +6066,28 @@
       "save": "Save Checkpoint",
       "empty": "No checkpoints",
       "saveModal": "Save Checkpoint",
-      "namePlaceholder": "Enter checkpoint name..."
+      "namePlaceholder": "Enter checkpoint name...",
+      "action": "Action",
+      "delete": "Delete",
+      "load": "Load",
+      "loss": "Loss",
+      "name": "Name",
+      "reward": "Reward",
+      "step": "Step",
+      "time": "Time",
+      "noCheckpoints": "कोई चेकपॉइंट नहीं"
     },
     "monitor": {
-      "idle": "Training not started. Configure and start training."
+      "idle": "Training not started. Configure and start training.",
+      "currentStep": "Current Step",
+      "insufficientData": "Insufficient Data",
+      "loss": "Loss",
+      "lossCurve": "Loss Curve",
+      "reward": "Reward",
+      "rewardCurve": "Reward Curve",
+      "speed": "Speed",
+      "step": "वर्तमान चरण",
+      "title": "प्रशिक्षण निगरानी"
     },
     "panel": {
       "title": "RL Training Panel",
@@ -5606,6 +6096,24 @@
       "config": "Config",
       "monitor": "Monitor",
       "checkpoints": "Checkpoints"
+    },
+    "config": {
+      "algorithm": "Algorithm",
+      "batchSize": "Batch Size",
+      "epochs": "Epochs",
+      "learningRate": "Learning Rate",
+      "maxSteps": "Max Steps",
+      "title": "प्रशिक्षण सेटिंग्स"
+    },
+    "status": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "idle": "Idle",
+      "paused": "Paused",
+      "running": "Training",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     }
   },
   "devtools": {
@@ -5774,7 +6282,10 @@
     "none": "कोई नहीं",
     "response": "प्रतिक्रिया",
     "report": "रिपोर्ट",
-    "tasks": "कार्य"
+    "tasks": "कार्य",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "traceExplorer": {
     "selectTrace": "विवरण देखने के लिए एक ट्रेस चुनें",
@@ -5861,7 +6372,10 @@
         "name": "Sandbox Executor",
         "desc": "Securely executes untrusted code in an isolated environment to prevent system damage"
       }
-    }
+    },
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "promptTemplates": {
     "title": "प्रॉम्प्ट टेम्पलेट",
@@ -5990,7 +6504,9 @@
     "execute": "निष्पादित करें",
     "learningSuggestions": "सीखने के सुझाव",
     "snooze30": "स्नूज़ (30 मिनट)",
-    "noSuggestions": "कोई सुझाव नहीं"
+    "noSuggestions": "कोई सुझाव नहीं",
+    "snooze15": "स्नूज़ (15 मिनट)",
+    "snooze1h": "स्नूज़ (1 घंटा)"
   },
   "proactive": {
     "accept": "स्वीकारें",
@@ -6052,6 +6568,13 @@
         "improvement": "सुधार",
         "warning": "चेतावनी"
       }
+    },
+    "prefetchTypes": {
+      "codeCompletion": "कोड पूर्णता",
+      "searchResults": "खोज परिणाम",
+      "documentation": "दस्तावेज़",
+      "contextAnalysis": "संदर्भ विश्लेषण",
+      "toolCache": "टूल कैश"
     }
   },
   "review": {
@@ -6279,7 +6802,10 @@
       "cancelled": "रद्द",
       "draft": "ड्राफ़्ट",
       "approved_plan": "स्वीकृत",
-      "executing_plan": "स्वीकृत चरण निष्पादित करें"
+      "executing_plan": "स्वीकृत चरण निष्पादित करें",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "approveAll": "सभी स्वीकृत करें और निष्पादित करें",
     "approveStep": "यह चरण स्वीकृत करें",
@@ -6345,7 +6871,9 @@
     "referenceFile": "फ़ाइल या पथ संदर्भित करें",
     "commands": "कमांड",
     "mentions": "मेंशन",
-    "filterHint": "फ़िल्टर करने के लिए टाइप करें, ↑↓ चुनने के लिए, Enter पुष्टि करने के लिए"
+    "filterHint": "फ़िल्टर करने के लिए टाइप करें, ↑↓ चुनने के लिए, Enter पुष्टि करने के लिए",
+    "newConversation": "नया वार्तालाप",
+    "stopGeneration": "जनन रोकें"
   },
   "onboarding": {
     "welcome": "AxAgent में आपका स्वागत है",
@@ -6392,7 +6920,9 @@
     "moreModels": "+{{count}} और",
     "targetNotFound": "लक्ष्य तत्व नहीं मिला, कृपया पहले चैट पृष्ठ पर जाएँ",
     "goToSettings": "API कुंजी जोड़ने के लिए सेटिंग्स पर जाएँ",
-    "presetApplyFailed": "प्रीसेट लागू करने में विफल"
+    "presetApplyFailed": "प्रीसेट लागू करने में विफल",
+    "downloadOllama": "Ollama डाउनलोड करें",
+    "applying": "लागू हो रहा है…"
   },
   "help": {
     "title": "सहायता केंद्र",
@@ -6609,7 +7139,10 @@
       "running": "चल रहा है",
       "completed": "पूर्ण",
       "failed": "विफल",
-      "cancelled": "रद्द किया गया"
+      "cancelled": "रद्द किया गया",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
     },
     "messageLog": "संदेश लॉग ({count})",
     "attempts": "प्रयास {attempts}/{maxRetries}",
@@ -6622,14 +7155,20 @@
       "worker": "Worker",
       "step": "Step"
     },
-    "summary": "Agent Pool ({completed}/{total})"
+    "summary": "Agent Pool ({completed}/{total})",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "agentHierarchy": {
     "running": "चल रहा है",
     "completed": "पूर्ण",
     "failed": "विफल",
     "title": "एजेंट पदानुक्रम",
-    "count": "({count})"
+    "count": "({count})",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "progressBar": {
     "tool": {
@@ -6963,7 +7502,10 @@
       "completed": "पूर्ण",
       "failed": "विफल",
       "running": "चल रहा है",
-      "total": "कुल"
+      "total": "कुल",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "tab": {
       "dataset": "डेटासेट",
@@ -7386,7 +7928,10 @@
     "openaiApiKeyDalle": "OpenAI API कुंजी (DALL-E)",
     "openaiApiKeyPlaceholder": "sk-...",
     "openaiBaseUrl": "OpenAI बेस URL",
-    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1",
+    "generatedImageTitle": "## AI Generated Image",
+    "duration": "**Duration**",
+    "savedToArtifact": "Saved to Artifact"
   },
   "diffViewer": {
     "newFile": "नया",
@@ -7450,7 +7995,10 @@
     "completed": "समेकन पूर्ण",
     "completedTitle": "ड्रीम पूर्ण ({{secs}}से)",
     "totalConsolidations": "कुल {{count}} समेकन",
-    "statsSummary": "{{memories}} स्मृतियाँ · {{patterns}} पैटर्न"
+    "statsSummary": "{{memories}} स्मृतियाँ · {{patterns}} पैटर्न",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "expertBadge": {
     "generalAssistant": "सामान्य सहायक",
@@ -7472,19 +8020,23 @@
     "teamCreated": "टीम \"{{name}}\" {{count}} टीम सदस्यों के साथ बनाई गई"
   },
   "chatPage": {
-    "loading": "लोड हो रहा है..."
+    "loading": "लोड हो रहा है...",
+    "resizeHandle": "resize handle"
   },
   "sshConfig": {
     "title": "SSH कॉन्फ़िगरेशन",
     "connect": "कनेक्ट",
     "host": "होस्ट",
     "port": "पोर्ट",
-    "username": "उपयोगकर्ता नाम"
+    "username": "उपयोगकर्ता नाम",
+    "hostPlaceholder": "192.168.1.100 या server.example.com",
+    "keyPathOptional": "SSH कुंजी पथ (वैकल्पिक)"
   },
   "dockerConfig": {
     "title": "Docker कॉन्फ़िगरेशन",
     "connect": "कनेक्ट",
-    "socketPath": "Docker सॉकेट पथ"
+    "socketPath": "Docker सॉकेट पथ",
+    "defaultHint": "डिफ़ॉल्ट Docker सॉकेट के लिए खाली छोड़ें"
   },
   "datasetManager": {
     "title": "फ़ाइन-ट्यून डेटासेट प्रबंधक",
@@ -7527,7 +8079,10 @@
     "loss": "हानि",
     "loraOutput": "LoRA आउटपुट",
     "action": "कार्रवाई",
-    "ready": "तैयार"
+    "ready": "तैयार",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run"
   },
   "errorRecovery": {
     "noError": "पुनर्प्राप्त करने के लिए कोई त्रुटि नहीं",
@@ -7677,7 +8232,14 @@
       "storeInsightsHint": "Insights will be saved locally and available across sessions",
       "subtitle": "Configure auto-reflection and insight management",
       "useErrorClassifier": "Enable Error Classifier",
-      "useErrorClassifierHint": "Auto-classify error patterns for analysis"
+      "useErrorClassifierHint": "Auto-classify error patterns for analysis",
+      "minConfidence": "न्यूनतम विश्वास स्तर",
+      "minConfidenceHint": "इस मान से कम विश्वास स्तर वाली अंतर्दृष्टियों को अनदेखा किया जाएगा",
+      "strategy": "प्रतिबिंब रणनीति",
+      "strategyHint": "प्रतिबिंब ट्रिगर रणनीति चुनें",
+      "triggerOnComplete": "पूर्ण होने पर ट्रिगर करें",
+      "triggerOnError": "त्रुटि होने पर ट्रिगर करें",
+      "triggerOnIdle": "निष्क्रिय होने पर ट्रिगर करें"
     },
     "useful": "Useful"
   },
@@ -7839,7 +8401,8 @@
     "terminalContext": "टर्मिनल",
     "closeAgentPanel": "Close Agent Panel",
     "openAgentPanel": "Open Agent Panel",
-    "dashboardContext": "सिस्टम अवलोकन"
+    "dashboardContext": "सिस्टम अवलोकन",
+    "agentPanel": "Agent Panel"
   },
   "errorNotification": {
     "retry": "पुनः प्रयास"
@@ -7888,7 +8451,14 @@
       "planner": "Planner",
       "researcher": "Researcher",
       "reviewer": "Reviewer",
-      "synthesizer": "Synthesizer"
+      "synthesizer": "Synthesizer",
+      "analyst": "विश्लेषक",
+      "decisionMaker": "निर्णयकर्ता",
+      "riskManager": "जोखिम प्रबंधक",
+      "strategist": "रणनीतिकार",
+      "supervisor": "पर्यवेक्षक",
+      "trader": "व्यापारी",
+      "validator": "सत्यापक"
     }
   },
   "watchlist": {
@@ -7971,7 +8541,10 @@
       "invalidTitle": "अवैध नमूने",
       "noInvalid": "कोई अवैध नमूना नहीं।",
       "exportCsv": "CSV निर्यात",
-      "exportJson": "JSON निर्यात"
+      "exportJson": "JSON निर्यात",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "notice": "इस वर्कबेंच का सारा डेटा, प्रॉम्प्ट और निर्णय चुनी गई तारीख पर एंकर किए गए हैं। लाइव मोड पर वापस जाने के लिए स्पष्ट पुष्टि आवश्यक है।",
     "exitHint": "आप अभी भी रीप्ले मोड में हैं। कहीं और शुरू किया गया कोई भी नया विश्लेषण भी रीप्ले-एंकर होगा।",
@@ -8089,7 +8662,11 @@
     "stepLogRunning": "(चल रहा है...)",
     "stepLogNoDetail": "(कोई विस्तृत आउटपुट नहीं)",
     "exitSignalAlert": "बाहर निकलने का संकेत स्कैन पूर्ण:\nजांच की गई {{checked}} आइटम\n- अभी बाहर निकलें: {{exitNow}} आइटम\n- सावधानी: {{caution}} आइटम",
-    "exitSignalAlertNone": "बाहर निकलने का संकेत स्कैन पूर्ण: {{checked}} आइटम, कोई असामान्यता नहीं।"
+    "exitSignalAlertNone": "बाहर निकलने का संकेत स्कैन पूर्ण: {{checked}} आइटम, कोई असामान्यता नहीं।",
+    "strategyOverwrite": "Overwrite",
+    "strategyMerge": "Merge",
+    "strategyDryRun": "Dry run",
+    "settings": "Valuation Filters"
   },
   "quant": {
     "backtest": {
@@ -8109,7 +8686,10 @@
       "title": "Strategy Backtest",
       "walkForward": "Walk-Forward",
       "walkForwardForceOff": "Disable Walk-Forward",
-      "walkForwardTitle": "Walk-Forward Backtest"
+      "walkForwardTitle": "Walk-Forward Backtest",
+      "strategyOverwrite": "Overwrite",
+      "strategyMerge": "Merge",
+      "strategyDryRun": "Dry run"
     },
     "common": {
       "empty": "No data"
@@ -8217,7 +8797,9 @@
     "textFile": "टेक्स्ट फ़ाइल",
     "unknownFile": "अज्ञात फ़ाइल",
     "previewNotSupported": "इस फ़ाइल प्रकार के लिए पूर्वावलोकन समर्थित नहीं है",
-    "downloadFile": "फ़ाइल डाउनलोड करें"
+    "downloadFile": "फ़ाइल डाउनलोड करें",
+    "schemaNotFound": "डायनामिक पेज नहीं मिला",
+    "uiSchemaJson": "UI Schema JSON"
   },
   "visualEditor": {
     "palette": {
@@ -8228,7 +8810,11 @@
       "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Miscellaneous"
+      "misc": "Miscellaneous",
+      "basic": "बुनियादी",
+      "data": "डेटा",
+      "layout": "लेआउट",
+      "navigation": "नेविगेशन"
     },
     "components": {
       "Container": "Container",
@@ -8261,7 +8847,13 @@
       "Text": "Text",
       "Divider": "Divider",
       "Progress": "Progress",
-      "Tag": "Tag"
+      "Tag": "Tag",
+      "Heading": "शीर्षक",
+      "Link": "लिंक",
+      "Paragraph": "पैराग्राफ",
+      "Slider": "स्लाइडर",
+      "Space": "रिक्ति",
+      "Tooltip": "टूलटिप"
     },
     "canvas": {
       "leafNode": "leaf node",
@@ -8269,7 +8861,14 @@
       "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
       "dropPrompt": "Drop components here",
       "dropHint": "Supports containers, forms, data display, and more",
-      "rootHint": "root-level child(ren)"
+      "rootHint": "root-level child(ren)",
+      "livePreview": "लाइव पूर्वावलोकन",
+      "addNode": "नोड जोड़ें",
+      "deleteNode": "नोड हटाएँ",
+      "duplicate": "डुप्लिकेट",
+      "moveDown": "नीचे ले जाएँ",
+      "moveUp": "ऊपर ले जाएँ",
+      "pasteNode": "नोड पेस्ट करें"
     },
     "property": {
       "title": "Property Panel",
@@ -8292,8 +8891,22 @@
       "placeholder": {
         "propKey": "Key",
         "propValue": "Value"
-      }
-    }
+      },
+      "children": "चाइल्ड घटक",
+      "componentType": "घटक प्रकार",
+      "defaultValue": "डिफ़ॉल्ट मान",
+      "description": "विवरण",
+      "label": "लेबल",
+      "name": "नाम",
+      "options": "विकल्प",
+      "props": "प्रोप्स",
+      "required": "अनिवार्य",
+      "rules": "सत्यापन नियम",
+      "type": "प्रकार",
+      "value": "मान"
+    },
+    "fullscreen": "पूर्ण स्क्रीन",
+    "exitFullscreen": "पूर्ण स्क्रीन से बाहर निकलें"
   },
   "dynamicUIPreview": {
     "title": "Dynamic UI Preview",
@@ -8385,7 +8998,12 @@
       "empty": "No bottleneck data",
       "timeDistribution": "Time Distribution",
       "tokenConsumption": "Token Consumption",
-      "failurePatterns": "Failure Patterns"
+      "failurePatterns": "Failure Patterns",
+      "count": "Count",
+      "failureReason": "Failure Reason",
+      "percentage": "Percentage",
+      "bottleneck": "बाधा",
+      "reason": "विफलता का कारण"
     },
     "feedback": {
       "thanks": "Thank you for your feedback",
@@ -8414,7 +9032,15 @@
     "totalSteps": "Total Steps",
     "totalDuration": "Total Duration",
     "totalTokens": "Total Tokens",
-    "errors": "Errors"
+    "errors": "Errors",
+    "duration": "Duration: {{duration}}s",
+    "type": {
+      "error": "Error",
+      "thinking": "Thinking",
+      "toolCall": "Tool Call",
+      "waitingPermission": "Waiting Permission",
+      "permission": "अनुमति की प्रतीक्षा"
+    }
   },
   "components_devtools_RLTrainingConfig": {
     "算法": "算法",
@@ -8579,7 +9205,66 @@
     "versionInvalid": "amany sanskaran praarup (major.minor.patch apekShit)",
     "versionAutoHint": "pach sanskaran ko svachalit roop se badhane ke liye khali chhoden",
     "rollbackArchive": "punasthapana-purv sangrah ({version} par punasthapit karen)",
-    "versionUpdatedAt": "nirman samay"
+    "versionUpdatedAt": "nirman samay",
+    "builtin": "Built-in",
+    "category": "Category",
+    "confirmDelete": "Are you sure you want to delete this UI?",
+    "createNew": "New UI",
+    "createSchema": "New UI",
+    "createSuccess": "Created successfully",
+    "defaults": {
+      "buttonText": "Button",
+      "cardTitle": "Card",
+      "checkboxLabel": "Checkbox",
+      "dateLabel": "Date",
+      "formSubmit": "Submit",
+      "inputLabel": "Input",
+      "inputPlaceholder": "Please enter",
+      "numberLabel": "Number",
+      "radioLabel": "Radio",
+      "selectLabel": "Select",
+      "switchLabel": "Switch",
+      "tagText": "Tag",
+      "textContent": "Text",
+      "textareaLabel": "Textarea"
+    },
+    "deleteSuccess": "Deleted successfully",
+    "descPlaceholder": "Enter UI description",
+    "description": "Description",
+    "editSchema": "Edit UI",
+    "generateSuccess": "Generated successfully. Please review and save",
+    "generateWithNL": "Generate with NL",
+    "generating": "Generating...",
+    "invalidJson": "Invalid JSON format",
+    "invalidSchema": "Schema parsing failed",
+    "jsonEditor": "JSON Schema",
+    "visualEditor": "विज़ुअल एडिटर",
+    "jsonPlaceholder": "Enter JSON conforming to UISchema spec...",
+    "nlInputPlaceholder": "Describe the UI you want...",
+    "noDescription": "No description",
+    "noSchemas": "No UIs yet. Click the top-right button to create one",
+    "parseError": "Parse Error",
+    "preview": "Preview",
+    "schemaList": "UI List",
+    "schemaRequired": "Schema cannot be empty",
+    "schemaTitle": "Title",
+    "schemaValid": "Schema validated",
+    "selectToPreview": "Select a UI from the left to preview",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "tags": "Tags",
+    "tagsPlaceholder": "Enter tags and press Enter",
+    "title": "Dynamic UI Manager",
+    "titlePlaceholder": "Enter UI title",
+    "titleRequired": "Please enter a title",
+    "updateSuccess": "Updated successfully",
+    "import": "Import",
+    "importSuccess": "Imported {{count}} UI(s) successfully",
+    "importInvalid": "Invalid or empty schema file",
+    "export": "Export",
+    "exportAll": "Export All",
+    "exportSuccess": "Exported successfully",
+    "keyPlaceholder": "key",
+    "valuePlaceholder": "value"
   },
   "dashboard": {
     "overview": "अवलोकन",
@@ -8612,7 +9297,8 @@
     "dailyAvgCost": "दैनिक औसत लागत",
     "costByProvider": "प्रदाता अनुसार लागत",
     "inputTokens": "इनपुट टोकन",
-    "outputTokens": "आउटपुट टोकन"
+    "outputTokens": "आउटपुट टोकन",
+    "dailyAvgTokens": "Daily Avg Tokens"
   },
   "dataBinding": {
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
@@ -10224,7 +10910,8 @@
     "emptyDescription": "No data yet. Complete tasks to generate learning graph",
     "useCount": "Use count: {count}",
     "detail": "Details",
-    "lexicalOverlap": "Related"
+    "lexicalOverlap": "Related",
+    "entities": "इकाइयाँ"
   },
   "skillStore": {
     "toggleSkillFailed": "Failed to toggle skill state"
@@ -10332,5 +11019,66 @@
       "asOf": "तिथि तक",
       "live": "लाइव"
     }
+  },
+  "voiceChat": {
+    "noTicket": "No ticket available. Please start again."
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }

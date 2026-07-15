@@ -57,42 +57,31 @@ pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
 }
 
 #[cfg(test)]
-thread_local! {
-    static TEST_PLUGIN_AGENTS: std::cell::RefCell<Option<PluginAgentRegistry>> = const { std::cell::RefCell::new(None) };
-}
+static TEST_PLUGIN_AGENTS: std::sync::Mutex<Option<&'static PluginAgentRegistry>> =
+    std::sync::Mutex::new(None);
 
 #[cfg(test)]
 pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
-    static FALLBACK: std::sync::LazyLock<PluginAgentRegistry> =
-        std::sync::LazyLock::new(PluginAgentRegistry::default);
-    TEST_PLUGIN_AGENTS.with(|cell| {
-        let ptr = cell.as_ptr();
-        // SAFETY:
-        // - The raw pointer originates from a C FFI callback. FFI contract guarantees
-        //   it is either a valid non-null pointer or null.
-        // - When null, the fallback static FALLBACK is used, which has 'static lifetime.
-        // - Single-threaded FFI context ensures no concurrent mutation.
-        unsafe {
-            match &*ptr {
-                Some(_) => &*(*ptr).as_ref().unwrap(),
-                None => &*FALLBACK,
-            }
-        }
-    })
+    let guard = TEST_PLUGIN_AGENTS.lock().unwrap();
+    match *guard {
+        // 测试显式注册时，把 registry leak 成 'static 后存入 Mutex，
+        // 引用生命周期独立于锁的临时 guard，可安全返回。
+        Some(r) => r,
+        // 未注册场景复用全局 LazyLock(static lifetime)。
+        None => &GLOBAL_PLUGIN_AGENTS,
+    }
 }
 
 #[cfg(test)]
 pub fn set_test_plugin_agents(registry: PluginAgentRegistry) {
-    TEST_PLUGIN_AGENTS.with(|cell| {
-        *cell.borrow_mut() = Some(registry);
-    });
+    // 把所有权转移给堆，再 leak 为 'static 引用，存入 Mutex。
+    // 该进程的所有测试结束后会随进程退出而释放。
+    *TEST_PLUGIN_AGENTS.lock().unwrap() = Some(Box::leak(Box::new(registry)));
 }
 
 #[cfg(test)]
 pub fn reset_test_plugin_agents() {
-    TEST_PLUGIN_AGENTS.with(|cell| {
-        *cell.borrow_mut() = None;
-    });
+    *TEST_PLUGIN_AGENTS.lock().unwrap() = None;
 }
 
 pub async fn register_plugin_agents(plugin_id: &str, agents: &[PluginAgentDefInternal]) {

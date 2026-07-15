@@ -235,6 +235,7 @@ impl NodeExecutorTrait for HttpRequestExecutor {
             } else {
                 Some(config.output_var.clone())
             },
+            control: None,
         })
     }
 }

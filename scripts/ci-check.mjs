@@ -90,9 +90,12 @@ if (canRunFrontend) {
 
   step("dprint 格式化检查", "npx dprint check");
 
-  if (!quick) {
-    step("ESLint 检查", "npx eslint src --max-warnings=0");
-  }
+  // ⚠️ TS7 临时禁用：typescript-eslint 全版本 peer 上限 typescript <6.1.0，
+  // 在 TS 7 下 typescript-estree 读已变更内部 API 会崩（TypeError ... 'Cjs'）。
+  // 待 typescript-eslint 发 TS7 支持版后，恢复下方 ESLint 检查。
+  // if (!quick) {
+  //   step("ESLint 检查", "npx eslint src --max-warnings=0");
+  // }
 
   step("TypeScript 类型检查", "npx tsc --noEmit");
 

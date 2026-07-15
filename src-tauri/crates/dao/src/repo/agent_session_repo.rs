@@ -7,6 +7,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use axagent_entities::agent_sessions;
+use axagent_entities::conversations;
 use axagent_harness::agent_session_repo::AgentSessionRepository;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AgentSession;
@@ -18,7 +19,7 @@ fn model_to_agent_session(model: agent_sessions::Model) -> AgentSession {
         id: model.id,
         conversation_id: model.conversation_id,
         cwd: model.cwd,
-        workspace_locked: model.workspace_locked != 0,
+        workspace_locked: model.workspace_locked,
         permission_mode: model.permission_mode,
         runtime_status: model.runtime_status,
         sdk_context_json: model.sdk_context_json,
@@ -53,7 +54,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             .one(self.db.as_ref())
             .await?;
 
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Utc::now().timestamp();
 
         if let Some(model) = existing {
             let mut am: agent_sessions::ActiveModel = model.into();
@@ -68,8 +69,23 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             let updated = am.update(self.db.as_ref()).await?;
             Ok(model_to_agent_session(updated))
         } else {
+            // 确保 conversations 行存在，否则 FOREIGN KEY 约束会失败
+            let conv_exists = conversations::Entity::find_by_id(conversation_id)
+                .one(self.db.as_ref())
+                .await?
+                .is_some();
+            if !conv_exists {
+                let now_ts = chrono::Utc::now().timestamp();
+                let stmt = sea_orm::Statement::from_sql_and_values(
+                    sea_orm::DatabaseBackend::Sqlite,
+                    "INSERT OR IGNORE INTO conversations (id, title, model_id, provider_id, created_at, updated_at) VALUES ($1, '[auto]', 'unknown', 'unknown', $2, $2)",
+                    [conversation_id.to_string().into(), now_ts.into()],
+                );
+                self.db.as_ref().execute_raw(stmt).await?;
+            }
+
             let id = gen_id();
-            let workspace_locked: i32 = if cwd.is_some() { 1 } else { 0 };
+            let workspace_locked = if cwd.is_some() { 1 } else { 0 };
             let model = agent_sessions::ActiveModel {
                 id: Set(id),
                 conversation_id: Set(conversation_id.to_string()),
@@ -81,7 +97,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
                 sdk_context_backup_json: Set(None),
                 total_tokens: Set(0),
                 total_cost_usd: Set(0.0),
-                created_at: Set(now.clone()),
+                created_at: Set(now),
                 updated_at: Set(now),
             };
             let inserted = model.insert(self.db.as_ref()).await?;
@@ -95,7 +111,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             .await?
             .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Utc::now().timestamp();
         let mut am: agent_sessions::ActiveModel = model.into();
         am.runtime_status = Set(runtime_status.to_string());
         am.updated_at = Set(now);
@@ -116,7 +132,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             .await?
             .ok_or_else(|| AxAgentError::NotFound(format!("AgentSession {}", id)))?;
 
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Utc::now().timestamp();
         let mut am: agent_sessions::ActiveModel = model.clone().into();
         am.runtime_status = Set(runtime_status.to_string());
         if let Some(ctx) = sdk_context_json {

@@ -46,3 +46,37 @@ export async function editUIFromNL(
     };
   }
 }
+
+/**
+ * AI 驱动的自然语言创建：基于自然语言描述生成完整 UI Schema。
+ *
+ * 优先调用后端 AI 进行生成；后端不可用时降级为本地规则生成。
+ *
+ * @param prompt - 自然语言描述
+ * @returns 生成的 schema、推断标题与描述
+ */
+export async function generateUIFromNLBackend(
+  prompt: string,
+): Promise<{ schema: UISchema; title: string; description: string }> {
+  try {
+    const result = await invoke<{ schema: string; title: string; description: string }>(
+      "generate_dynamic_ui_schema_nl",
+      { prompt },
+    );
+
+    const schema = JSON.parse(result.schema) as UISchema;
+    return {
+      schema,
+      title: result.title || "动态UI",
+      description: result.description
+        || `由自然语言生成：${prompt.slice(0, 50)}${prompt.length > 50 ? "..." : ""}`,
+    };
+  } catch {
+    // 降级：本地规则生成
+    const fallback = generateUIFromNaturalLanguage(prompt);
+    return {
+      ...fallback,
+      description: `（AI 后端不可用，由本地引擎生成）：${fallback.description}`,
+    };
+  }
+}

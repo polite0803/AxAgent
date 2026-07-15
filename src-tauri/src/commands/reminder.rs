@@ -4,17 +4,36 @@
 //!
 //! 提供提醒的增删改查、完成、贪睡、通知确认等操作。
 //! ReminderManager 实例以 once_cell::sync::OnceLock 方式持有，线程安全。
+//! 数据持久化到 JSON 文件，应用重启后自动恢复。
 
-use axagent_trajectory::{Reminder, ReminderManager, ReminderNotification};
+use axagent_trajectory::{Reminder, ReminderManager, ReminderNotification, ReminderRecurrence};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
 
 static REMINDER_MANAGER: OnceLock<Mutex<ReminderManager>> = OnceLock::new();
 
-fn manager() -> &'static Mutex<ReminderManager> {
-    REMINDER_MANAGER.get_or_init(|| Mutex::new(ReminderManager::new()))
+/// 获取提醒数据文件路径
+fn data_file_path() -> PathBuf {
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    home.join(".axagent").join("data").join("reminders.json")
+}
+
+async fn init_manager() -> &'static Mutex<ReminderManager> {
+    REMINDER_MANAGER.get_or_init(|| {
+        let path = data_file_path();
+        let mgr = ReminderManager::load_from_file(&path).unwrap_or_else(|e| {
+            tracing::warn!("加载提醒数据失败，使用空状态: {e}");
+            ReminderManager::new()
+        });
+        Mutex::new(mgr)
+    })
+}
+
+async fn manager() -> &'static Mutex<ReminderManager> {
+    init_manager().await
 }
 
 // ── DTO ────────────────────────────────────────────────────────────
@@ -33,7 +52,7 @@ pub struct ReminderItem {
     pub description: String,
     pub scheduled_at: String,
     pub completed: bool,
-    pub recurrence: Option<String>,
+    pub recurrence: Option<ReminderRecurrence>,
     pub created_at: String,
 }
 
@@ -45,10 +64,7 @@ impl From<&Reminder> for ReminderItem {
             description: r.description.clone(),
             scheduled_at: r.scheduled_at.to_rfc3339(),
             completed: r.completed,
-            recurrence: r
-                .recurrence
-                .as_ref()
-                .map(|rec| format!("{:?}/{}", rec.frequency, rec.interval)),
+            recurrence: r.recurrence.clone(),
             created_at: r.created_at.to_rfc3339(),
         }
     }
@@ -88,9 +104,27 @@ pub struct CreateReminderInput {
 
 #[tauri::command]
 pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem, String> {
+    // 输入验证
+    let title = input.title.trim().to_string();
+    if title.is_empty() {
+        return Err("提醒标题不能为空".into());
+    }
+    if title.len() > 200 {
+        return Err("提醒标题不能超过 200 个字符".into());
+    }
+
     let scheduled_at = DateTime::parse_from_rfc3339(&input.scheduled_at)
         .map_err(|e| format!("日期格式错误: {e}"))?
         .with_timezone(&Utc);
+
+    // 允许过去时间（作为立即提醒），但警告
+    if scheduled_at < Utc::now() {
+        tracing::warn!(
+            title = %title,
+            scheduled_at = %scheduled_at,
+            "提醒时间已过期，将立即触发"
+        );
+    }
 
     let recurrence = match (input.recurrence_frequency.as_deref(), input.recurrence_interval) {
         (Some(freq), Some(interval)) if interval > 0 => {
@@ -107,25 +141,27 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
 
     let reminder = Reminder {
         id: axagent_trajectory::ProactiveAssistant::generate_reminder_id(),
-        title: input.title,
-        description: input.description.unwrap_or_default(),
+        title,
+        description: input.description.unwrap_or_default().trim().to_string(),
         scheduled_at,
         completed: false,
         created_at: Utc::now(),
         recurrence,
     };
 
-    let mut mgr = manager().lock().await;
+    let mut mgr = manager().await.lock().await;
     mgr.add_reminder(reminder.clone()).map_err(|e| format!("添加提醒失败: {e}"))?;
 
-    Ok(ReminderItem::from(
+    let result = ReminderItem::from(
         mgr.get_reminder(&reminder.id).ok_or_else(|| String::from("添加后未找到提醒"))?,
-    ))
+    );
+    let _ = mgr.save_to_file(&data_file_path());
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn reminder_list() -> Result<ReminderListResult, String> {
-    let mgr = manager().lock().await;
+    let mgr = manager().await.lock().await;
 
     let active: Vec<ReminderItem> =
         mgr.get_active_reminders().into_iter().map(|r| r.into()).collect();
@@ -139,8 +175,9 @@ pub async fn reminder_list() -> Result<ReminderListResult, String> {
 
 #[tauri::command]
 pub async fn reminder_complete(id: String) -> Result<ReminderItem, String> {
-    let mut mgr = manager().lock().await;
+    let mut mgr = manager().await.lock().await;
     let r = mgr.complete_reminder(&id).map_err(|e| format!("完成提醒失败: {e}"))?;
+    let _ = mgr.save_to_file(&data_file_path());
     Ok(ReminderItem::from(&r))
 }
 
@@ -149,15 +186,17 @@ pub async fn reminder_snooze(
     id: String,
     duration_minutes: Option<i64>,
 ) -> Result<ReminderItem, String> {
-    let mut mgr = manager().lock().await;
+    let mut mgr = manager().await.lock().await;
     let r = mgr.snooze_reminder(&id, duration_minutes).map_err(|e| format!("贪睡失败: {e}"))?;
+    let _ = mgr.save_to_file(&data_file_path());
     Ok(ReminderItem::from(&r))
 }
 
 #[tauri::command]
 pub async fn reminder_delete(id: String) -> Result<(), String> {
-    let mut mgr = manager().lock().await;
+    let mut mgr = manager().await.lock().await;
     mgr.delete_reminder(&id).map_err(|e| format!("删除提醒失败: {e}"))?;
+    let _ = mgr.save_to_file(&data_file_path());
     Ok(())
 }
 
@@ -177,25 +216,34 @@ pub async fn reminder_update(
         None => None,
     };
 
-    let mut mgr = manager().lock().await;
+    let mut mgr = manager().await.lock().await;
     let r = mgr
         .update_reminder(&id, title, description, scheduled)
         .map_err(|e| format!("更新提醒失败: {e}"))?;
+    let _ = mgr.save_to_file(&data_file_path());
     Ok(ReminderItem::from(&r))
 }
 
+#[derive(Debug, Serialize)]
+pub struct AcknowledgeResult {
+    pub acknowledged: bool,
+    pub notification_id: String,
+}
+
 #[tauri::command]
-pub async fn reminder_acknowledge(notification_id: String) -> Result<(), String> {
-    let mut mgr = manager().lock().await;
+pub async fn reminder_acknowledge(notification_id: String) -> Result<AcknowledgeResult, String> {
+    let mut mgr = manager().await.lock().await;
     mgr.acknowledge_notification(&notification_id).map_err(|e| format!("确认通知失败: {e}"))?;
-    Ok(())
+    let _ = mgr.save_to_file(&data_file_path());
+    Ok(AcknowledgeResult { acknowledged: true, notification_id })
 }
 
 #[tauri::command]
 pub async fn reminder_cleanup() -> Result<u64, String> {
-    let mut mgr = manager().lock().await;
+    let mut mgr = manager().await.lock().await;
     let before = mgr.get_completed_history().len();
     mgr.cleanup_completed();
     let after = mgr.get_completed_history().len();
+    let _ = mgr.save_to_file(&data_file_path());
     Ok((before - after) as u64)
 }

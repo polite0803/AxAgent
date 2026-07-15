@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
@@ -42,7 +44,7 @@ impl ProviderAdapter for OpenClawAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         let remapped = self.remap_ctx(ctx);
         self.inner.chat(&remapped, request).await

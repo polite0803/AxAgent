@@ -22,6 +22,8 @@ pub struct Model {
     pub recommended_workflows: Option<String>,
     #[sea_orm(column_name = "recommended_tools")]
     pub recommended_tools: Option<String>,
+    #[sea_orm(column_name = "active_domains")]
+    pub active_domains: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -213,7 +213,7 @@ export function PrefetchIndicator() {
                         : TYPE_ICONS[result.prefetch_type]}
                     </span>
                     <span className="text-xs text-muted-foreground flex-1 truncate">
-                      {result.prefetch_type}
+                      {t(`proactive.prefetchTypes.${result.prefetch_type}`)}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {result.estimated_prepare_time_ms}ms

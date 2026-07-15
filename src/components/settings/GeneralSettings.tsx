@@ -3,6 +3,9 @@
 import { LANG_OPTIONS } from "@/lib/constants";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
+import { useProviderStore, useVoicePreferenceStore } from "@/stores";
+import type { TtsVoice } from "@/stores/feature/voicePreferenceStore";
+import { TTS_VOICES } from "@/stores/feature/voicePreferenceStore";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button, Divider, Switch, Typography } from "antd";
 import { FolderOpen, X } from "lucide-react";
@@ -17,6 +20,13 @@ export function GeneralSettings() {
   const inTauri = isTauri();
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
+  const providers = useProviderStore((s) => s.providers);
+  const ttsVoice = useVoicePreferenceStore((s) => s.ttsVoice);
+  const sttProviderId = useVoicePreferenceStore((s) => s.sttProviderId);
+  const ttsProviderId = useVoicePreferenceStore((s) => s.ttsProviderId);
+  const setTtsVoice = useVoicePreferenceStore((s) => s.setTtsVoice);
+  const setSttProviderId = useVoicePreferenceStore((s) => s.setSttProviderId);
+  const setTtsProviderId = useVoicePreferenceStore((s) => s.setTtsProviderId);
 
   const handleLanguageChange = (language: string) => {
     i18n.changeLanguage(language);
@@ -184,6 +194,46 @@ export function GeneralSettings() {
                 </Button>
               )}
           </div>
+        </div>
+      </SettingsGroup>
+
+      {/* Voice Settings */}
+      <SettingsGroup title={t("settings.groupVoice")}>
+        <div style={rowStyle} className="flex items-center justify-between">
+          <span>{t("voice.voiceType")}</span>
+          <SettingsSelect
+            value={ttsVoice}
+            onChange={(v) => setTtsVoice(v as TtsVoice)}
+            options={TTS_VOICES.map((v) => ({ label: v, value: v }))}
+          />
+        </div>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={rowStyle} className="flex items-center justify-between">
+          <span>{t("voice.sttProvider")}</span>
+          <SettingsSelect
+            value={sttProviderId}
+            onChange={(v) => setSttProviderId(v)}
+            options={[
+              { label: t("voice.providerAuto"), value: "" },
+              ...providers
+                .filter((p) => p.enabled)
+                .map((p) => ({ label: p.name, value: p.id })),
+            ]}
+          />
+        </div>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={rowStyle} className="flex items-center justify-between">
+          <span>{t("voice.ttsProvider")}</span>
+          <SettingsSelect
+            value={ttsProviderId}
+            onChange={(v) => setTtsProviderId(v)}
+            options={[
+              { label: t("voice.providerAuto"), value: "" },
+              ...providers
+                .filter((p) => p.enabled)
+                .map((p) => ({ label: p.name, value: p.id })),
+            ]}
+          />
         </div>
       </SettingsGroup>
     </div>

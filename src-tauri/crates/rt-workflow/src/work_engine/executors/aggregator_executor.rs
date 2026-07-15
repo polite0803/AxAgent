@@ -151,6 +151,7 @@ impl NodeExecutorTrait for AggregatorExecutor {
             } else {
                 Some(c.output_var.clone())
             },
+            control: None,
         })
     }
 }

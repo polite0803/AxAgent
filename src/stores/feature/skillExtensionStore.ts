@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import i18n from "@/i18n";
-import { componentRegistry } from "@/lib/dynamicUI/ComponentRegistry";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
 import type {
-  ComponentRegistryEntry,
   DeclarativeActionType,
   Skill,
   SkillCapability,
@@ -15,28 +13,6 @@ import type {
   UISchema,
 } from "@/types";
 import { create } from "zustand";
-
-export interface MergedNavItem {
-  id: string;
-  label: string;
-  icon: string;
-  pageId: string;
-  position: number;
-  skillName: string;
-}
-
-export interface MergedPage {
-  id: string;
-  title: string;
-  componentType: string;
-  componentConfig: Record<string, unknown>;
-  layout?: string;
-  icon?: string;
-  skillName: string;
-  sourcePath: string;
-  /** DynamicUI Schema（Phase 2），Agent 动态生成的 UI Schema */
-  uiSchema?: UISchema;
-}
 
 export interface MergedCommand {
   id: string;
@@ -115,8 +91,6 @@ interface SkillExtensionState {
   skills: Skill[];
   loading: boolean;
 
-  navItems: MergedNavItem[];
-  pages: MergedPage[];
   commands: MergedCommand[];
   panels: MergedPanel[];
   settingsSections: MergedSettingsSection[];
@@ -131,8 +105,6 @@ interface SkillExtensionState {
   syncFromSkills: (skills: Skill[]) => void;
   getHandler: (name: string) => SkillHandler | undefined;
   refreshSkill: (skillName: string) => Promise<void>;
-  registerCustomComponent: (skillName: string, entry: ComponentRegistryEntry) => void;
-  unregisterSkillComponents: (skillName: string) => void;
 }
 
 function namespaceId(skillName: string, id: string): string {
@@ -171,8 +143,6 @@ function rewriteHandlerActions(
 }
 
 function mergeExtensions(skills: Skill[]) {
-  const navItems: MergedNavItem[] = [];
-  const pages: MergedPage[] = [];
   const commands: MergedCommand[] = [];
   const panels: MergedPanel[] = [];
   const settingsSections: MergedSettingsSection[] = [];
@@ -182,7 +152,6 @@ function mergeExtensions(skills: Skill[]) {
   const handlers: Record<string, SkillHandler> = {};
   const seenIds = new Map<string, Set<string>>();
   const toolbarPositionMap = new Map<string, Set<string>>();
-  const pageRouteMap = new Map<string, Set<string>>();
 
   function checkDuplicate(
     type: string,
@@ -215,17 +184,6 @@ function mergeExtensions(skills: Skill[]) {
     skillsAtPosition.add(skillName);
   }
 
-  function checkPageRouteConflict(routeId: string, skillName: string): void {
-    if (!pageRouteMap.has(routeId)) {
-      pageRouteMap.set(routeId, new Set());
-    }
-    const skillsAtRoute = pageRouteMap.get(routeId)!;
-    if (skillsAtRoute.size > 0 && !skillsAtRoute.has(skillName)) {
-      // 路由冲突检测：记录已有技能
-    }
-    skillsAtRoute.add(skillName);
-  }
-
   for (const skill of skills) {
     const capabilities = skill.manifest?.capabilities;
     if (!capabilities || capabilities.length === 0) {
@@ -249,14 +207,9 @@ function mergeExtensions(skills: Skill[]) {
           skill.name,
         );
       }
-      if (capType === "page") {
-        checkPageRouteConflict(capId, skill.name);
-      }
 
       if (!checkDuplicate(capType, capId, skill.name)) {
         mergeCapability(cap, skill, {
-          navItems,
-          pages,
           commands,
           panels,
           settingsSections,
@@ -270,8 +223,6 @@ function mergeExtensions(skills: Skill[]) {
   }
 
   return {
-    navItems,
-    pages,
     commands,
     panels,
     settingsSections,
@@ -287,8 +238,6 @@ function mergeCapability(
   cap: SkillCapability,
   skill: Skill,
   target: {
-    navItems: MergedNavItem[];
-    pages: MergedPage[];
     commands: MergedCommand[];
     panels: MergedPanel[];
     settingsSections: MergedSettingsSection[];
@@ -299,18 +248,6 @@ function mergeCapability(
   },
 ): void {
   switch (cap.type) {
-    case "page":
-      target.pages.push({
-        id: namespaceId(skill.name, cap.id),
-        title: cap.title,
-        componentType: cap.componentType,
-        componentConfig: cap.componentConfig as Record<string, unknown>,
-        layout: cap.componentConfig.layout,
-        icon: cap.icon,
-        skillName: skill.name,
-        sourcePath: skill.sourcePath,
-      });
-      break;
     case "panel":
       target.panels.push({
         id: namespaceId(skill.name, cap.id),
@@ -323,16 +260,6 @@ function mergeCapability(
         defaultCollapsed: cap.defaultCollapsed ?? false,
         skillName: skill.name,
         sourcePath: skill.sourcePath,
-      });
-      break;
-    case "navigation":
-      target.navItems.push({
-        id: namespaceId(skill.name, cap.id),
-        label: cap.title,
-        icon: cap.icon,
-        pageId: namespaceId(skill.name, cap.pageId),
-        position: cap.position ?? 0,
-        skillName: skill.name,
       });
       break;
     case "toolbar":
@@ -406,8 +333,6 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
   (set, get) => ({
     skills: [],
     loading: false,
-    navItems: [],
-    pages: [],
     commands: [],
     panels: [],
     settingsSections: [],
@@ -427,8 +352,6 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
         set({
           loading: false,
           skills: [],
-          navItems: [],
-          pages: [],
           commands: [],
           panels: [],
           settingsSections: [],
@@ -452,14 +375,6 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
       // 直接使用后端最新 skills 列表，以 skill ID 为权威数据源
       const merged = mergeExtensions(skills);
       set({ skills, ...merged });
-    },
-
-    registerCustomComponent: (skillName: string, entry: ComponentRegistryEntry) => {
-      componentRegistry.register(entry, skillName);
-    },
-
-    unregisterSkillComponents: (skillName: string) => {
-      componentRegistry.unregisterNamespace(skillName);
     },
   }),
 );
@@ -516,4 +431,15 @@ function setupBrowserPolling(): void {
       // 浏览器模式下 list_skills 可能不存在，静默忽略
     }
   }, 5000);
+}
+
+// HMR 清理：开发热更新会重新求值本模块，旧模块的轮询定时器若不显式清除
+// 会累积多个 5s 轮询。生产环境走 Tauri 事件，不触发此分支。
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    if (_pollingTimer !== null) {
+      clearInterval(_pollingTimer);
+      _pollingTimer = null;
+    }
+  });
 }

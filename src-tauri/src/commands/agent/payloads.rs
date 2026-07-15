@@ -153,6 +153,7 @@ pub struct AgentQueryRequest {
     /// Agent role for role-based tool filtering and system prompt selection.
     /// When set, only tools matching the role's `default_tools()` are exposed
     /// to the LLM, and the role's system prompt is prepended.
+    #[allow(dead_code)]
     pub role: Option<String>,
     /// Agent profile ID from the agent_profiles table. AgentProfile 是 Expert（技能）
     /// 和 AgentRole（岗位）的统一组装体，是 Agent 的唯一入口。
@@ -169,6 +170,10 @@ pub struct AgentOptions {
     /// 这些工具不会传给 LLM 也不会被执行。
     #[serde(rename = "disabledTools")]
     pub disabled_tools: Option<Vec<String>>,
+    /// 活跃功能域列表（例如 ["Core", "General"]），
+    /// 仅该域内的工具会传给 LLM。默认 ["Core", "General"]。
+    #[serde(rename = "activeDomains")]
+    pub active_domains: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]

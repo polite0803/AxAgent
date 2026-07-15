@@ -7,6 +7,14 @@
 //! 字段是 `i64` → INT8，类型不匹配）。把 `pg_ddl` 提到这里共享避免重复。
 //!
 //! 仅做保守、确定性的字符串替换，不触碰语义。
+//!
+//! ## REAL 精度问题
+//!
+//! SQLite 的 `REAL` 是 8 字节双精度（对应 Rust `f64`），但 PostgreSQL 的
+//! `REAL` 是 4 字节单精度（对应 Rust `f32`，即 FLOAT4）。entity 中绝大多数
+//! 浮点字段是 `f64`，在 PG 上必须用 `DOUBLE PRECISION`（FLOAT8）才能匹配。
+//! 因此 `pg_ddl` 默认把所有 `REAL` 替换为 `DOUBLE PRECISION`，再把 entity
+//! 中确为 `f32` 的列（`retrieval_threshold`、`avg_reward`）替换回 `REAL`。
 
 /// 把 SQLite 风格 DDL 转成 PostgreSQL 兼容写法。
 ///
@@ -28,6 +36,9 @@
 ///   / `token_input` / `token_output` / `execution_time_ms` / `timestamp_ms` /
 ///   / `x` / `y` / `pending_count` / `processing_count` / `failed_count` /
 ///   / `last_sync_at`) 的 `INTEGER` → `BIGINT`。
+/// - `REAL` → `DOUBLE PRECISION`（PG 上 `REAL` 是 FLOAT4，entity 里 `f64` 需要
+///   FLOAT8）；但 `retrieval_threshold` 和 `avg_reward` 的 entity 字段是 `f32`，
+///   保持 `REAL`。
 pub fn pg_ddl(sql: &str) -> String {
     let s = sql
         .replace(" AUTOINCREMENT", "")
@@ -75,7 +86,8 @@ pub fn pg_ddl(sql: &str) -> String {
         .replace("failed_count INTEGER", "failed_count BIGINT");
 
     // 业务数字字段
-    s.replace("duration_ms INTEGER", "duration_ms BIGINT")
+    let s = s
+        .replace("duration_ms INTEGER", "duration_ms BIGINT")
         .replace("execution_time_ms INTEGER", "execution_time_ms BIGINT")
         .replace("timestamp_ms INTEGER", "timestamp_ms BIGINT")
         .replace("timeout_seconds INTEGER", "timeout_seconds BIGINT")
@@ -90,7 +102,15 @@ pub fn pg_ddl(sql: &str) -> String {
         .replace("token_limit_per_minute INTEGER", "token_limit_per_minute BIGINT")
         .replace("latency_ms INTEGER", "latency_ms BIGINT")
         .replace("x INTEGER", "x BIGINT")
-        .replace("y INTEGER", "y BIGINT")
+        .replace("y INTEGER", "y BIGINT");
+
+    // REAL 精度修正：PG 的 `REAL` 是 FLOAT4（f32），但 entity 中绝大多数浮点字段
+    // 是 `f64`，需要 `DOUBLE PRECISION`（FLOAT8）。先把所有 `REAL` 升级为
+    // `DOUBLE PRECISION`，再把 entity 确为 `f32` 的列（retrieval_threshold、
+    // avg_reward）替换回 `REAL`。
+    s.replace(" REAL", " DOUBLE PRECISION")
+        .replace("retrieval_threshold DOUBLE PRECISION", "retrieval_threshold REAL")
+        .replace("avg_reward DOUBLE PRECISION", "avg_reward REAL")
 }
 
 /// 按后端执行 DDL：PostgreSQL 下先经 [`pg_ddl`] 转换，SQLite 原样执行。

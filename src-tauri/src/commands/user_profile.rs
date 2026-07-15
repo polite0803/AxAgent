@@ -504,3 +504,54 @@ pub async fn style_get_stats(
 
     Ok(StyleMigratorStatsResponse { total_profiles: 1, total_samples: 0, average_confidence: 0.0 })
 }
+
+// ---------------------------------------------------------------------------
+// 用户配置命令（从 agent 模块迁移）
+// ---------------------------------------------------------------------------
+
+/// 获取当前用户配置
+#[tauri::command]
+pub async fn user_profile_get(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let profile = app_state.user_profile.read().await;
+    Ok(serde_json::to_value(&*profile).unwrap_or_else(|_| serde_json::json!({})))
+}
+
+/// 更新用户配置偏好
+#[tauri::command]
+pub async fn user_profile_set_preference(
+    app_state: State<'_, AppState>,
+    key: String,
+    value: String,
+) -> Result<(), String> {
+    let mut profile = app_state.user_profile.write().await;
+    profile.set_preference(key, value);
+    Ok(())
+}
+
+/// 设置领域专业水平
+#[tauri::command]
+pub async fn user_profile_set_expertise(
+    app_state: State<'_, AppState>,
+    domain: String,
+    level: String,
+) -> Result<(), String> {
+    let expertise = match level.to_lowercase().as_str() {
+        "beginner" => axagent_trajectory::ExpertiseLevel::Beginner,
+        "intermediate" => axagent_trajectory::ExpertiseLevel::Intermediate,
+        "advanced" => axagent_trajectory::ExpertiseLevel::Advanced,
+        "expert" => axagent_trajectory::ExpertiseLevel::Expert,
+        _ => {
+            return Err(format!("Unknown expertise level: {}", level));
+        },
+    };
+    let mut profile = app_state.user_profile.write().await;
+    profile.set_expertise(domain, expertise);
+    Ok(())
+}
+
+/// 导出用户配置为 USER.md
+#[tauri::command]
+pub async fn user_profile_export_md(app_state: State<'_, AppState>) -> Result<String, String> {
+    let profile = app_state.user_profile.read().await;
+    Ok(profile.to_user_md())
+}

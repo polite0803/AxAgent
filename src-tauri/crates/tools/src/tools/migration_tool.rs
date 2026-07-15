@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_harness::MigrationRunner;
 use serde_json::Value;
@@ -64,6 +64,10 @@ impl Tool for MigrationTool {
 
     fn category(&self) -> ToolCategory {
         ToolCategory::System
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Devops
     }
 
     fn is_concurrency_safe(&self) -> bool {

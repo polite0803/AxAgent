@@ -58,6 +58,7 @@ impl NodeExecutorTrait for TriggerExecutor {
                 Ok(NodeOutput {
                     output: build_output("manual", &trigger_node.config.config),
                     output_var: None,
+                    control: None,
                 })
             },
             TriggerType::Schedule => {
@@ -82,6 +83,7 @@ impl NodeExecutorTrait for TriggerExecutor {
                 Ok(NodeOutput {
                     output: build_output("schedule", &trigger_node.config.config),
                     output_var: None,
+                    control: None,
                 })
             },
             TriggerType::Webhook => {
@@ -101,6 +103,7 @@ impl NodeExecutorTrait for TriggerExecutor {
                 Ok(NodeOutput {
                     output: build_output("webhook", &trigger_node.config.config),
                     output_var: None,
+                    control: None,
                 })
             },
             TriggerType::Event => {
@@ -113,6 +116,7 @@ impl NodeExecutorTrait for TriggerExecutor {
                 Ok(NodeOutput {
                     output: build_output("event", &trigger_node.config.config),
                     output_var: None,
+                    control: None,
                 })
             },
         }

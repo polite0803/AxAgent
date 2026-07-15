@@ -13,6 +13,8 @@
 //! - **`validate_key`** — Ollama does not require an API key, so this
 //!   probes `/api/tags` to check if the server is reachable.
 
+use std::sync::Arc;
+
 use crate::openai::OpenAIAdapter;
 use crate::{ProviderAdapter, ProviderRequestContext};
 use async_trait::async_trait;
@@ -92,7 +94,7 @@ impl ProviderAdapter for OllamaAdapter {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,
-        request: ChatRequest,
+        request: Arc<ChatRequest>,
     ) -> Result<ChatResponse> {
         self.inner.chat(ctx, request).await
     }

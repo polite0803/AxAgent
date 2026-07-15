@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // i18n-exempt: LLM prompt templates used for search result formatting. Not user-facing UI.
+import i18n from "@/i18n";
 import type { SearchResultItem } from "@/types";
 
 const SEARCH_MARKER_START = "<!-- search:";
@@ -29,7 +30,11 @@ export function formatSearchContent(
 
   results.forEach((r, i) => {
     const cred = assessCredibility(r.url);
-    const credLabel = cred === "high" ? " [高可信度]" : cred === "medium" ? " [中可信度]" : "";
+    const credLabel = cred === "high"
+      ? ` ${i18n.t("searchUtils.highCredibility")}`
+      : cred === "medium"
+      ? ` ${i18n.t("searchUtils.mediumCredibility")}`
+      : "";
     block += `${i + 1}. **${r.title}**${credLabel} - ${r.url}\n   ${r.content}\n\n`;
   });
 

@@ -31,7 +31,8 @@ pub mod conversation_model;
 pub use conversation_model::{ContentBlock, ConversationMessage, SessionInfo, TokenUsage};
 pub mod core_error;
 pub mod error_codes;
-mod persistence_mod;
+pub mod persistence_mod;
+pub mod plan_compiler;
 pub mod plan_types;
 pub mod platform_config;
 pub mod rag_config;
@@ -60,6 +61,10 @@ pub use as_of::{
 // ── 高级股票数据服务契约（让 stock-analysis 不依赖 astock-data 实现）──
 pub mod stock_data_service;
 pub use stock_data_service::StockDataService;
+pub mod speech;
+pub use speech::{
+    AudioChunkStream, SpeakRequest, SpeechCapabilities, SpeechInput, unsupported_speech_stream,
+};
 
 // ── Persistence 契约 ──
 /// `Persistence` trait（实际定义在 `persistence_mod`）
@@ -95,7 +100,14 @@ pub mod page_type;
 pub mod repo_dtos;
 pub mod repositories;
 pub mod service_registry;
+pub mod streaming;
 pub mod wiki_dtos;
+
+// ── ServiceRegistryProvider 契约重导出 ──
+pub use service_registry::ServiceRegistryProvider;
+
+// ── Real-time 流式管道契约 ──
+pub use streaming::{AgentStreamChunk, AgentStreamReporter, NoopStreamReporter, StreamChunkKind};
 
 // ── Harness 约束修复模块 ──
 pub mod consistency_check;
@@ -185,7 +197,9 @@ pub use path_vars::PathEncoder;
 
 // ── MCP 共享类型（让 dao crate 不依赖 mcp） ──
 pub mod mcp_types;
-pub use mcp_types::DiscoveredTool;
+pub use mcp_types::{
+    DiscoveredTool, McpPrompt, McpPromptArgument, McpPromptResult, McpResource, McpResourceContent,
+};
 
 pub mod trajectory_scorer;
 pub mod trajectory_types;
@@ -193,7 +207,9 @@ pub mod trajectory_types;
 // ── Provider 契约重导出 ──
 pub use context_builder::build_provider_request_context;
 pub use has_provider_registry::HasProviderRegistry;
-pub use provider::{ProviderAdapter, ProviderProxyConfig, ProviderRequestContext};
+pub use provider::{
+    ProviderAdapter, ProviderProxyConfig, ProviderRequestContext, RealtimeProviderConfig,
+};
 pub use url_utils::{
     default_version_for_type, resolve_base_url, resolve_base_url_for_type, resolve_chat_url,
 };
@@ -218,9 +234,9 @@ pub use trajectory_service::{IntegrityCheck, IntegrityResult, TaskComplexity, Tr
 
 // ── Tool 契约重导出 ──
 pub use tool::{
-    DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, OutputSanitizer,
-    PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory, ToolContext, ToolInfo,
-    ToolPermissions, ToolResult, parse_tool_name,
+    AskUserBridge, DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, OutputSanitizer,
+    PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory, ToolContext, ToolDomain,
+    ToolInfo, ToolPermissions, ToolResult, parse_tool_name,
 };
 
 // ── Registry 契约重导出 ──
@@ -305,14 +321,22 @@ pub use rl::{
 };
 pub mod dream;
 pub use dream::{
-    ConsolidationDataProvider, DistilledKnowledge, DreamConsolidationConfig,
-    DreamConsolidationResult, DreamConsolidator, ExperienceRecord, ReplaySample,
+    ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,
+    DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamConsolidator,
+    DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
 };
+// ── 用户自适应共享枚举（Verbosity/TechnicalLevel/ContentFormat） ──
+// 同时被 profile::UserProfile::update_style 和 trajectory 的 RealTimeLearning 使用
+pub mod adaptation;
+pub use adaptation::{ContentFormat, TechnicalLevel, Verbosity};
 pub mod profile;
 pub use profile::{
-    CodingStyleProfile, CommentStyle, CommunicationProfile, DomainKnowledgeProfile, ExpertiseLevel,
-    IndentationStyle, LearningState, NamingConvention, ProfileTone, ProfileUpdate, UserProfile,
-    UserProfileService, WorkHabitProfile,
+    CodePattern, CodingStyleProfile, CommentStyle, CommunicationProfile, DetailLevel,
+    DomainKnowledgeProfile, ExpertiseArea, ExpertiseLevel, ExplanationDepth, FormatPreference,
+    IndentationStyle, LearningState, LearningTaskType, ModuleOrgStyle, NamingConvention,
+    ProfileUpdate, RecentTopic, ResponseLength, SkillLevel, TimeRange, Tone, ToolUsagePattern,
+    UpdateSource, UserProfile, UserProfileService, WorkHabitProfile, WorkflowPreference,
+    calculate_confidence,
 };
 pub mod style;
 pub use style::{

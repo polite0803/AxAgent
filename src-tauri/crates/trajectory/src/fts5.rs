@@ -282,6 +282,15 @@ impl FTS5Search {
         Ok(())
     }
 
+    /// 校验 FTS5 列名白名单，防止 `search_phrase` 将用户可控的字段名直接拼入 SQL 造成注入。
+    fn validate_field_name(name: &str) -> anyhow::Result<()> {
+        const ALLOWED: &[&str] = &["topic", "summary", "content"];
+        if !ALLOWED.contains(&name) {
+            anyhow::bail!("Invalid field name for phrase search: {}", name);
+        }
+        Ok(())
+    }
+
     pub async fn delete_from_fts(&self, table: &str, id: &str) -> Result<()> {
         Self::validate_table_name(table)?;
         let conn = self.conn.clone();
@@ -289,23 +298,24 @@ impl FTS5Search {
         let id = id.to_string();
         tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
-            // P2-4: FTS5 'delete' 命令需要传原始 content 才能正确删除索引项
-            // 删除前先 SELECT content（content 是 FTS5 索引的最后一列）
-            let mut stmt = conn.prepare(&format!("SELECT content FROM {} WHERE id = ?1", table))?;
-            let content_opt: Option<String> = stmt.query_row(params![id], |row| row.get(0)).ok();
-            let content = content_opt.unwrap_or_default();
-            // 若该行已不存在 FTS 索引（没有 content 列），退化为旧逻辑
-            let sql = if content.is_empty() {
-                // 再次尝试直接 delete-all（无 content 时 FTS5 仍可工作）
-                format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, NULL)", table, table)
-            } else {
-                format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)", table, table)
-            };
-            if content.is_empty() {
-                conn.execute(&sql, params![id])?;
-            } else {
-                conn.execute(&sql, params![id, content])?;
+            // FTS5 'delete' 命令要求 rowid 位置传入整数隐式 rowid，而非我们的业务字符串 id。
+            // `id` 列只是普通 UNINDEXED 文本列，因此必须先查出该行的 rowid 与 content，
+            // 再用 (rowid, content) 形式发出 delete 命令，否则会匹配不到任何 rowid 而删除失效。
+            let row: Option<(i64, String)> = conn
+                .query_row(
+                    &format!("SELECT rowid, content FROM {} WHERE id = ?1", table),
+                    params![id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .ok();
+            if let Some((rowid, content)) = row {
+                let sql = format!(
+                    "INSERT INTO {}({}, rowid, content) VALUES('delete', ?1, ?2)",
+                    table, table
+                );
+                conn.execute(&sql, params![rowid, content])?;
             }
+            // 若 rowid 不存在（该行已不在 FTS 索引中），无需任何操作。
             debug!("Deleted {} from FTS5 table {}", id, table);
             Ok(())
         })
@@ -449,6 +459,7 @@ impl FTS5Search {
     }
 
     pub async fn search_phrase(&self, phrase: &str, in_field: &str) -> Result<Vec<FTS5Result>> {
+        Self::validate_field_name(in_field)?;
         let conn = self.conn.clone();
         let config = self.config.clone();
         let phrase = phrase.to_string();

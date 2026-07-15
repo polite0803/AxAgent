@@ -55,6 +55,7 @@ impl From<&TrajProactiveSuggestion> for ProactiveSuggestion {
             ProactiveSuggestionType::Documentation => "Documentation",
             ProactiveSuggestionType::Test => "Test",
             ProactiveSuggestionType::Optimization => "Optimization",
+            ProactiveSuggestionType::Debug => "Debug",
             ProactiveSuggestionType::Learning => "Learning",
         };
 
@@ -238,6 +239,9 @@ impl ProactiveService {
         let prediction_result = self.predictor.predict(&features);
 
         for prediction in &prediction_result.predictions {
+            // 记录预测以支持模式分析和偏差修正
+            self.assistant.record_prediction(prediction.clone());
+
             let new_suggestions =
                 self.suggestion_engine.generate_suggestions(&features, prediction, None);
             for suggestion in new_suggestions {
