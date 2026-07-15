@@ -35,7 +35,6 @@ import {
   Empty,
   Form,
   Input,
-  List,
   message,
   Modal,
   Popconfirm,
@@ -105,6 +104,10 @@ export function DynamicUIManagerPage() {
   }, [schemaParam, schemas, setSelectedSchema]);
 
   useEffect(() => {
+    // 仅在编辑器打开时操作 form，避免 Modal 未挂载时调用 form 方法触发警告
+    if (!editorOpen) {
+      return;
+    }
     if (editingRecord) {
       form.setFieldsValue({
         title: editingRecord.title,
@@ -120,7 +123,7 @@ export function DynamicUIManagerPage() {
       form.setFieldsValue({ category: "custom", version: "", change_log: "" });
       setTimeout(() => setJsonSchemaText(""), 0);
     }
-  }, [editingRecord, form, setJsonSchemaText]);
+  }, [editingRecord, form, setJsonSchemaText, editorOpen]);
 
   const derivedParseError = useMemo(() => {
     if (!jsonSchemaText) { return null; }
@@ -536,84 +539,81 @@ export function DynamicUIManagerPage() {
           styles={{ body: { flex: 1, overflow: "auto" } }}
         >
           <Spin spinning={loading}>
-            <List
-              dataSource={schemas}
-              locale={{ emptyText: <Empty description={t("dynamicUIManager.noSchemas")} /> }}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    <Tooltip key="version" title={t("dynamicUIManager.versionHistory")}>
-                      <Button
-                        type="text"
-                        icon={<HistoryOutlined />}
-                        onClick={() => handleOpenVersionPanel(item)}
-                      />
-                    </Tooltip>,
-                    <Button
-                      key="preview"
-                      type="text"
-                      icon={<EyeOutlined />}
-                      onClick={() => handlePreview(item)}
-                    />,
-                    <Tooltip key="export" title={t("dynamicUIManager.export")}>
-                      <Button
-                        type="text"
-                        icon={<ExportOutlined />}
-                        onClick={() => handleExportSchema(item)}
-                      />
-                    </Tooltip>,
-                    <Button
-                      key="edit"
-                      type="text"
-                      icon={<EditOutlined />}
-                      onClick={() => handleEdit(item)}
-                      disabled={item.is_builtin}
-                    />,
-                    <Popconfirm
-                      key="delete"
-                      title={t("dynamicUIManager.confirmDelete")}
-                      onConfirm={() => handleDelete(item.id)}
-                      okText={t("common.confirm")}
-                      cancelText={t("common.cancel")}
+            {schemas.length === 0
+              ? <Empty description={t("dynamicUIManager.noSchemas")} />
+              : (
+                <div className="divide-y divide-gray-100">
+                  {schemas.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-start justify-between gap-3 py-3"
                     >
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        disabled={item.is_builtin}
-                      />
-                    </Popconfirm>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={
-                      <Space>
-                        <Text strong>{item.title}</Text>
-                        {item.is_builtin
-                          ? <Tag color="purple">{t("dynamicUIManager.builtin")}</Tag>
-                          : null}
-                        <Tag color="green" style={{ fontSize: 11 }}>
-                          v{item.version}
-                        </Tag>
-                      </Space>
-                    }
-                    description={
-                      <div>
-                        <Text type="secondary" className="block truncate">
-                          {item.description || t("dynamicUIManager.noDescription")}
-                        </Text>
-                        <Space size={4} className="mt-1">
-                          <Tag color="blue">{item.category}</Tag>
-                          <Text type="secondary" className="text-xs">
-                            {new Date(item.updated_at).toLocaleString()}
-                          </Text>
+                      <div className="min-w-0 flex-1">
+                        <Space>
+                          <Text strong>{item.title}</Text>
+                          {item.is_builtin
+                            ? <Tag color="purple">{t("dynamicUIManager.builtin")}</Tag>
+                            : null}
+                          <Tag color="green" style={{ fontSize: 11 }}>
+                            v{item.version}
+                          </Tag>
                         </Space>
+                        <div>
+                          <Text type="secondary" className="block truncate">
+                            {item.description || t("dynamicUIManager.noDescription")}
+                          </Text>
+                          <Space size={4} className="mt-1">
+                            <Tag color="blue">{item.category}</Tag>
+                            <Text type="secondary" className="text-xs">
+                              {new Date(item.updated_at).toLocaleString()}
+                            </Text>
+                          </Space>
+                        </div>
                       </div>
-                    }
-                  />
-                </List.Item>
+                      <Space size={2}>
+                        <Tooltip title={t("dynamicUIManager.versionHistory")}>
+                          <Button
+                            type="text"
+                            icon={<HistoryOutlined />}
+                            onClick={() => handleOpenVersionPanel(item)}
+                          />
+                        </Tooltip>
+                        <Button
+                          type="text"
+                          icon={<EyeOutlined />}
+                          onClick={() => handlePreview(item)}
+                        />
+                        <Tooltip title={t("dynamicUIManager.export")}>
+                          <Button
+                            type="text"
+                            icon={<ExportOutlined />}
+                            onClick={() => handleExportSchema(item)}
+                          />
+                        </Tooltip>
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => handleEdit(item)}
+                          disabled={item.is_builtin}
+                        />
+                        <Popconfirm
+                          title={t("dynamicUIManager.confirmDelete")}
+                          onConfirm={() => handleDelete(item.id)}
+                          okText={t("common.confirm")}
+                          cancelText={t("common.cancel")}
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            disabled={item.is_builtin}
+                          />
+                        </Popconfirm>
+                      </Space>
+                    </div>
+                  ))}
+                </div>
               )}
-            />
           </Spin>
         </Card>
 
