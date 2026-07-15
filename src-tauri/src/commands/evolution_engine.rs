@@ -193,30 +193,5 @@ pub async fn get_engine_logs(
     }
 }
 
-#[command]
-pub async fn trigger_skill_evolution(skill_id: String) -> Result<(), String> {
-    let mut store = engines().lock().await;
-    let now = timestamp_millis();
-    if let Some(engine) = store.get_mut("skill_evolution") {
-        engine.last_active = Some(now);
-        engine.logs.push(EngineLog {
-            timestamp: now,
-            level: "info".into(),
-            message: format!("[skill_evolution] Evolution triggered for skill '{}'", skill_id),
-        });
-        // Update stats
-        if let Some(stats_obj) = engine.stats.as_object_mut() {
-            stats_obj.insert(
-                "total_runs".into(),
-                serde_json::json!(
-                    stats_obj.get("total_runs").and_then(|v| v.as_u64()).unwrap_or(0) + 1
-                ),
-            );
-            stats_obj.insert("last_run".into(), serde_json::json!(now));
-        }
-        tracing::info!(target: "evolution_engine", skill_id = %skill_id, "Skill evolution triggered");
-        Ok(())
-    } else {
-        Err("Engine 'skill_evolution' not initialized".into())
-    }
-}
+// 注：trigger_skill_evolution 已删除（伪触发命令，只写日志不执行真进化）
+// 前端 evolutionStore.ts 已改调 commands::evolution::skill_evolution_start（真进化命令）

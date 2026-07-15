@@ -174,12 +174,12 @@ tauri-plugin-updater = "2"
 tempfile = "3"
 tokio = { workspace = true }
 tokio-util = { version = "0.7", features = ["rt"] }
-toml = "0.8"
+toml = "1"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "chrono"] }
 urlencoding = "2"
 uuid = { workspace = true }
-zip = "2"
+zip = "8"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 font-kit = "0.14"

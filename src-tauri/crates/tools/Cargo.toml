@@ -42,7 +42,7 @@ urlencoding = "2"
 uuid = { version = "1", features = ["v4"] }
 walkdir = "2"
 which = "8"
-zip = "2"
+zip = "8"
 
 [dev-dependencies]
 tempfile = "3"

@@ -166,10 +166,10 @@ fn create_redirect_router(https_port: u16) -> Router {
 // ─── GatewayServer ────────────────────────────────────────────────────────
 
 pub struct GatewayServer {
-    http_handle: Handle,
+    http_handle: Handle<SocketAddr>,
     http_task: Option<JoinHandle<()>>,
     http_addr: SocketAddr,
-    https_handle: Option<Handle>,
+    https_handle: Option<Handle<SocketAddr>>,
     https_task: Option<JoinHandle<()>>,
     https_addr: Option<SocketAddr>,
     force_ssl: bool,
@@ -283,7 +283,7 @@ impl GatewayServer {
         // the gateway never ends up half-dead.
         let running = Arc::new(AtomicBool::new(true));
         let http_handle = Handle::new();
-        let https_handle: Option<Handle> = if https_binding.is_some() && https_router.is_some() {
+        let https_handle: Option<Handle<SocketAddr>> = if https_binding.is_some() && https_router.is_some() {
             Some(Handle::new())
         } else {
             None
@@ -301,6 +301,7 @@ impl GatewayServer {
                 // 它做 per-IP 限流。无它则所有请求都被归到 "unknown"，
                 // 限流器退化为全局 —— 不可接受。
                 let result = axum_server::from_tcp(http_listener)
+                    .expect("axum-server: from_tcp 失败")
                     .handle(server_handle)
                     .serve(router.into_make_service_with_connect_info::<SocketAddr>())
                     .await;
@@ -332,6 +333,7 @@ impl GatewayServer {
                 let task = tokio::spawn(async move {
                     tracing::info!("Gateway HTTPS listener on https://{}", addr);
                     let result = axum_server::from_tcp_rustls(binding.listener, binding.rustls)
+                        .expect("axum-server: from_tcp_rustls 失败")
                         .handle(server_handle)
                         .serve(router.into_make_service_with_connect_info::<SocketAddr>())
                         .await;

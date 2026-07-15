@@ -700,7 +700,6 @@ macro_rules! register_all_commands {
             commands::evolution_engine::stop_engine,
             commands::evolution_engine::update_engine_config,
             commands::evolution_engine::get_engine_logs,
-            commands::evolution_engine::trigger_skill_evolution,
             commands::evaluator::evaluator_list_benchmarks,
             commands::evaluator::evaluator_get_benchmark,
             commands::evaluator::evaluator_run_benchmark,

@@ -27,6 +27,7 @@ pub fn start_background_services(
     start_batch_processing(state);
     start_user_profile_persistence(state);
     start_skill_evolution(state);
+    start_dream_consolidation(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
     start_cron_scheduler(state);
@@ -953,6 +954,77 @@ fn start_skill_watcher(app: &tauri::AppHandle, state: &AppState) {
                     tracing::info!("Skill file watcher stopped");
                     return;
                 },
+            }
+        }
+    });
+}
+
+/// Dream 巩固定时任务
+///
+/// 每 30 分钟检查一次：
+/// 1. 通过 trajectory 数量增量检测新会话，调用 record_new_session 累加计数
+/// 2. 检查 should_consolidate 门控（启用/未运行/间隔/会话数/锁）
+/// 3. 满足门控则执行 consolidate（经验回放→知识蒸馏→对比学习→建议生成）
+fn start_dream_consolidation(state: &AppState) {
+    let consolidator = state.dream_consolidator.clone();
+    let trajectory_storage = state.trajectory_storage.clone();
+    let last_trajectory_count = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(u64::MAX));
+    let last_count = last_trajectory_count.clone();
+    tauri::async_runtime::spawn(async move {
+        // 初始化 trajectory 基线计数
+        if let Ok(trajs) = trajectory_storage.get_trajectories(Some(10000)).await {
+            last_count.store(trajs.len() as u64, std::sync::atomic::Ordering::Relaxed);
+        }
+
+        let interval = std::time::Duration::from_secs(30 * 60);
+        loop {
+            tokio::time::sleep(interval).await;
+
+            // 检测新会话：trajectory 数量增量即为新会话数
+            let current_count = match trajectory_storage.get_trajectories(Some(10000)).await {
+                Ok(trajs) => trajs.len() as u64,
+                Err(e) => {
+                    tracing::warn!("[dream] 获取 trajectory 失败: {}", e);
+                    continue;
+                },
+            };
+            let prev_count = last_count.swap(current_count, std::sync::atomic::Ordering::Relaxed);
+            // 首次循环 prev_count == u64::MAX（基线），跳过计数
+            if prev_count != u64::MAX && current_count > prev_count {
+                let new_sessions = (current_count - prev_count) as usize;
+                for _ in 0..new_sessions {
+                    consolidator.record_new_session().await;
+                }
+                tracing::info!("[dream] 记录 {} 个新会话", new_sessions);
+            }
+
+            // 检查门控条件
+            if !consolidator.should_consolidate().await {
+                continue;
+            }
+
+            tracing::info!("[dream] 开始执行巩固...");
+            let result = consolidator
+                .consolidate(
+                    Some(&|n| tracing::info!("[dream] 提取 {} 条记忆", n)),
+                    Some(&|n| tracing::info!("[dream] 发现 {} 个模式", n)),
+                    Some(&|n| tracing::info!("[dream] 生成 {} 个建议", n)),
+                )
+                .await;
+
+            if result.executed {
+                tracing::info!(
+                    "[dream] 巩固完成: {} 条记忆, {} 个模式, {} 个建议, 耗时 {} 秒",
+                    result.memories_extracted,
+                    result.patterns_discovered,
+                    result.suggestions_generated,
+                    result.duration_secs
+                );
+            } else {
+                tracing::warn!(
+                    "[dream] 巩固未执行: {}",
+                    result.error.as_deref().unwrap_or("未知原因")
+                );
             }
         }
     });
