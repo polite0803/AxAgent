@@ -2,6 +2,7 @@
 
 import { theme } from "antd";
 import { memo, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ReactPreviewProps {
   code: string;
@@ -14,6 +15,7 @@ export const ReactPreview = memo(function ReactPreview({
   css,
   onError,
 }: ReactPreviewProps) {
+  const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { token } = theme.useToken();
 
@@ -95,7 +97,7 @@ try {
     <iframe
       ref={iframeRef}
       sandbox="allow-scripts"
-      title="React Preview"
+      title={t("reactPreview.title")}
       style={{
         width: "100%",
         height: "100%",

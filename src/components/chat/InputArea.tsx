@@ -2530,7 +2530,7 @@ export function InputArea() {
         <div
           onMouseDown={handleResizeMouseDown}
           role="separator"
-          aria-label="resize handle"
+          aria-label={t("inputArea.resizeHandle")}
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {

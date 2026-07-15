@@ -68,7 +68,7 @@ interface PageErrorBoundaryProps {
 
 export function PageErrorBoundary({
   children,
-  title = "Page Error",
+  title = i18next.t("errorBoundary.pageError"),
 }: PageErrorBoundaryProps) {
   return (
     <ErrorBoundary

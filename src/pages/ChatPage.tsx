@@ -275,7 +275,7 @@ export function ChatPage() {
         <div
           onMouseDown={handleLeftMouseDown}
           role="separator"
-          aria-label="resize handle"
+          aria-label={t("chatPage.resizeHandle")}
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -309,7 +309,7 @@ export function ChatPage() {
         <div
           onMouseDown={handleRightMouseDown}
           role="separator"
-          aria-label="resize handle"
+          aria-label={t("chatPage.resizeHandle")}
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {

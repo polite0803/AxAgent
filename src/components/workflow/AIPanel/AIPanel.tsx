@@ -40,13 +40,7 @@ interface AIPanelProps {
   onChatClear: () => void;
 }
 
-// Phase 4: progress map for NL parse stages (moved outside component for stable reference)
-const NL_PARSE_PROGRESS_MAP: Record<string, number> = {
-  "正在分析意图": 25,
-  "正在匹配节点": 50,
-  "正在构建工作流": 75,
-  "正在优化": 95,
-};
+// Phase 4: progress map for NL parse stages (rebuilt on each render from i18n keys)
 
 /** Render assistant message content with Markdown-like formatting — defined outside component to avoid re-creation */
 function renderAssistantContent(content: string) {
@@ -118,6 +112,12 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   onChatClear,
 }) => {
   const { t } = useTranslation();
+  const NL_PARSE_PROGRESS_MAP: Record<string, number> = {
+    [t("aiPanel.progressAnalyzing")]: 25,
+    [t("aiPanel.progressMatching")]: 50,
+    [t("aiPanel.progressBuilding")]: 75,
+    [t("aiPanel.progressOptimizing")]: 95,
+  };
   const { token } = theme.useToken();
   const { message } = App.useApp();
   // 用 store selector 订阅 nodes/edges 变化，确保 Diff 预览拿到最新数据

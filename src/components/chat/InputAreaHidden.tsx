@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface InputAreaHiddenHandle {
   selectFile: () => void;
@@ -13,6 +14,7 @@ export const InputAreaHidden = forwardRef<
   InputAreaHiddenHandle,
   { onFilesSelected: (files: File[]) => void }
 >(({ onFilesSelected }, ref) => {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -85,7 +87,7 @@ export const InputAreaHidden = forwardRef<
         multiple
         style={{ display: "none" }}
         onChange={handleFileChange}
-        aria-label="Upload file"
+        aria-label={t("inputArea.uploadFile")}
       />
       <input
         ref={photoInputRef}

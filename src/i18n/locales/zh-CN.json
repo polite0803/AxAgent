@@ -8861,6 +8861,85 @@
     },
     "voiceChat": {
       "noTicket": "No ticket available. Please start again."
+    },
+    "app": {
+      "quickBar": "QuickBar"
+    },
+    "chatSidebar": {
+      "menu": "菜单"
+    },
+    "inputArea": {
+      "resizeHandle": "调整大小",
+      "uploadFile": "上传文件"
+    },
+    "appHeader": {
+      "agentPanel": "Agent 面板"
+    },
+    "sidebar": {
+      "agentPanel": "Agent 面板"
+    },
+    "errorBoundary": {
+      "pageError": "页面错误"
+    },
+    "chatPage": {
+      "resizeHandle": "调整大小"
+    },
+    "debugPanel": {
+      "trace": "Trace",
+      "spans": "Spans",
+      "tokens": "Tokens",
+      "nodeId": "节点 ID",
+      "type": "类型",
+      "status": "状态",
+      "duration": "耗时",
+      "subWorkflow": "子工作流",
+      "executionId": "执行 ID",
+      "workflowId": "工作流 ID",
+      "parentExecution": "父执行"
+    },
+    "spanDetail": {
+      "parentSpan": "父 Span"
+    },
+    "traceDetail": {
+      "userId": "用户 ID"
+    },
+    "searchProvider": {
+      "apiKey": "API Key"
+    },
+    "settingsPanel": {
+      "featureFlags": "功能开关"
+    },
+    "skillTimeline": {
+      "promptDiff": "提示词对比"
+    },
+    "dynamicUI": {
+      "uiSchemaJson": "UI Schema JSON"
+    },
+    "subWorkflowNode": {
+      "collapse": "折叠",
+      "expand": "展开"
+    },
+    "workflowRefNode": {
+      "noWorkflow": "未引用工作流"
+    },
+    "versionHistory": {
+      "vA": "vA",
+      "vB": "vB"
+    },
+    "aiPanel": {
+      "progressAnalyzing": "正在分析意图",
+      "progressMatching": "正在匹配节点",
+      "progressBuilding": "正在构建工作流",
+      "progressOptimizing": "正在优化"
+    },
+    "chartPreview": {
+      "title": "图表预览"
+    },
+    "htmlPreview": {
+      "title": "HTML 预览"
+    },
+    "reactPreview": {
+      "title": "React 预览"
     }
   }
 }

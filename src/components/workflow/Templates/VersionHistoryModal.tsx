@@ -323,7 +323,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             <span>{t("workflow.versionHistory.compareVersions")}</span>
             <Select
               size="small"
-              placeholder="vA"
+              placeholder={t("versionHistory.vA")}
               style={{ width: 80 }}
               value={diffVerA}
               onChange={setDiffVerA}
@@ -332,7 +332,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             <span style={{ color: token.colorTextQuaternary }}>vs</span>
             <Select
               size="small"
-              placeholder="vB"
+              placeholder={t("versionHistory.vB")}
               style={{ width: 80 }}
               value={diffVerB}
               onChange={setDiffVerB}

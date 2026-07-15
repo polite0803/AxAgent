@@ -97,7 +97,7 @@ export const DynamicUIPreview: React.FC = () => {
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Left: Editor */}
         <Card
-          title="UI Schema JSON"
+          title={t("dynamicUI.uiSchemaJson")}
           size="small"
           className="flex-1 min-w-0"
           styles={{ body: { flex: 1, padding: 0 } }}

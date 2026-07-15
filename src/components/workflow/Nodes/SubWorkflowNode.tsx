@@ -5,6 +5,7 @@ import { useWorkflowEditorStore } from "@/stores";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme, Tooltip } from "antd";
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 const NODE_COLOR = "#eb2f96";
 
@@ -24,6 +25,7 @@ interface SubWorkflowNodeData {
 
 const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as SubWorkflowNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
+  const { t } = useTranslation();
   const { token } = theme.useToken();
 
   const workflowId = data.subWorkflowId || data.target_workflow_id;
@@ -112,7 +114,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
           </span>
         </div>
 
-        <Tooltip title="Collapse">
+        <Tooltip title={t("subWorkflowNode.collapse")}>
           <span
             className="react-flow__nodrag"
             onClick={(e) => {
@@ -243,7 +245,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
 
           {/* 展开按钮 */}
           {workflowId && (
-            <Tooltip title="Expand">
+            <Tooltip title={t("subWorkflowNode.expand")}>
               <span
                 className="react-flow__nodrag"
                 onClick={(e) => {

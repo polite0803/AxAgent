@@ -292,7 +292,7 @@ function AppInner() {
                     />
                   }
                 >
-                  <PageErrorBoundary title="QuickBar">
+                  <PageErrorBoundary title={t("app.quickBar")}>
                     <LazyQuickBarPage />
                   </PageErrorBoundary>
                 </Suspense>

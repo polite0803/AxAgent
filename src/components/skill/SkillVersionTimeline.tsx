@@ -95,7 +95,7 @@ export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
       <Timeline items={items} />
 
       <Modal
-        title="Prompt Diff"
+        title={t("skillTimeline.promptDiff")}
         open={diffModalOpen}
         onCancel={() => setDiffModalOpen(false)}
         footer={null}

@@ -133,7 +133,7 @@ export function AppHeader() {
               type="button"
               onClick={toggleAgentPanel}
               className={`titlebar-btn${isAgentPanelOpen ? " text-[var(--color-primary)]" : ""}`}
-              aria-label="Agent Panel"
+              aria-label={t("appHeader.agentPanel")}
               style={{ color: isAgentPanelOpen ? undefined : token.colorTextQuaternary, flexShrink: 0 }}
             >
               <Bot size={16} />

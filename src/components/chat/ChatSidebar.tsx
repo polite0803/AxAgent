@@ -2294,7 +2294,7 @@ export function ChatSidebar({
                                         className="conv-item-menu-btn"
                                         onClick={(e) =>
                                           e.stopPropagation()}
-                                        aria-label="Menu"
+                                        aria-label={t("chatSidebar.menu")}
                                       >
                                         <Pencil size={12} />
                                       </button>

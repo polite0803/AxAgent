@@ -109,12 +109,12 @@ function TraceSnapshot({ traceId, tree, totalTokens, spanCount, errorCount }: Tr
   return (
     <div>
       <Descriptions size="small" column={3} className="mb-2">
-        <Descriptions.Item label="Trace">{traceId.slice(0, 12)}...</Descriptions.Item>
-        <Descriptions.Item label="Spans">
+        <Descriptions.Item label={t("debugPanel.trace")}>{traceId.slice(0, 12)}...</Descriptions.Item>
+        <Descriptions.Item label={t("debugPanel.spans")}>
           <Tag>{spanCount}</Tag>
           {errorCount > 0 && <Tag color="error">{errorCount} errors</Tag>}
         </Descriptions.Item>
-        <Descriptions.Item label="Tokens">
+        <Descriptions.Item label={t("debugPanel.tokens")}>
           <Tag>{formatTraceTokens(totalTokens)}</Tag>
         </Descriptions.Item>
       </Descriptions>
@@ -1744,16 +1744,16 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         {detailRecord && (
           <div>
             <Descriptions size="small" column={2} bordered className="mb-3">
-              <Descriptions.Item label="Node ID">{detailRecord.node_id}</Descriptions.Item>
-              <Descriptions.Item label="Type">{detailRecord.node_type}</Descriptions.Item>
-              <Descriptions.Item label="Status">
+              <Descriptions.Item label={t("debugPanel.nodeId")}>{detailRecord.node_id}</Descriptions.Item>
+              <Descriptions.Item label={t("debugPanel.type")}>{detailRecord.node_type}</Descriptions.Item>
+              <Descriptions.Item label={t("debugPanel.status")}>
                 <Tag color={statusColor(detailRecord.status)}>{detailRecord.status}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Duration">
+              <Descriptions.Item label={t("debugPanel.duration")}>
                 {formatDuration(detailRecord.execution_time_ms)}
               </Descriptions.Item>
               {detailRecord.sub_workflow_id && (
-                <Descriptions.Item label="Sub-Workflow" span={2}>
+                <Descriptions.Item label={t("debugPanel.subWorkflow")} span={2}>
                   <Space>
                     <Tag color="blue">{String(detailRecord.sub_workflow_id ?? "")}</Tag>
                     {!!detailRecord.output && typeof detailRecord.output === "object"
@@ -1870,16 +1870,18 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         {subExecutionDetail && (
           <div>
             <Descriptions size="small" column={2} bordered className="mb-3">
-              <Descriptions.Item label="Execution ID">{subExecutionDetail.execution_id}</Descriptions.Item>
-              <Descriptions.Item label="Workflow ID">{subExecutionDetail.workflow_id}</Descriptions.Item>
-              <Descriptions.Item label="Status">
+              <Descriptions.Item label={t("debugPanel.executionId")}>
+                {subExecutionDetail.execution_id}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("debugPanel.workflowId")}>{subExecutionDetail.workflow_id}</Descriptions.Item>
+              <Descriptions.Item label={t("debugPanel.status")}>
                 <Tag color={statusColor(subExecutionDetail.status)}>{subExecutionDetail.status}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Duration">
+              <Descriptions.Item label={t("debugPanel.duration")}>
                 {formatDuration(subExecutionDetail.total_time_ms)}
               </Descriptions.Item>
               {subExecutionDetail.parent_execution_id && (
-                <Descriptions.Item label="Parent Execution" span={2}>
+                <Descriptions.Item label={t("debugPanel.parentExecution")} span={2}>
                   <Tag color="purple">{subExecutionDetail.parent_execution_id}</Tag>
                 </Descriptions.Item>
               )}

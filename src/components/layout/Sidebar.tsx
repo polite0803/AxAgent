@@ -483,7 +483,7 @@ export function Sidebar() {
             type="button"
             className={`nav-item${isAgentPanelOpen ? " active" : ""}`}
             onClick={toggleAgentPanel}
-            aria-label="Agent Panel"
+            aria-label={t("sidebar.agentPanel")}
             style={isAgentPanelOpen ? { color: "var(--color-primary)" } : undefined}
           >
             <Icon icon="fluent:bot-20-filled" size={17} />

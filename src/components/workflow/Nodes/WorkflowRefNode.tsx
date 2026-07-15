@@ -4,6 +4,7 @@ import { getHandlePosition, getNodeSize, PORT_SIZE } from "@/lib/workflowLayout"
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme, Tooltip } from "antd";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 const NODE_COLOR = "#722ed1";
 
@@ -19,6 +20,7 @@ interface WorkflowRefNodeData {
 
 const WorkflowRefNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
   const data = _data as unknown as WorkflowRefNodeData; // SAFE: ReactFlow NodeProps.data is untyped; runtime data matches expected component data
+  const { t } = useTranslation();
   const { token } = theme.useToken();
 
   const borderColor = selected ? token.colorPrimary : NODE_COLOR;
@@ -89,7 +91,7 @@ const WorkflowRefNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
           </span>
 
           {!data.target_workflow_id && (
-            <Tooltip title="No workflow referenced">
+            <Tooltip title={t("workflowRefNode.noWorkflow")}>
               <span style={{ fontSize: 10, color: token.colorError, lineHeight: 1 }}>⚠</span>
             </Tooltip>
           )}

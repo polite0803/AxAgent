@@ -375,7 +375,7 @@ function FeaturesTab() {
 
   return (
     <div className="p-6 pb-12">
-      <SettingsGroup title="Feature Flags">
+      <SettingsGroup title={t("settingsPanel.featureFlags")}>
         {FEATURE_FLAG_META.map((item, idx) => (
           <div key={item.key}>
             {idx > 0 && <Divider style={{ margin: "2px 0" }} />}

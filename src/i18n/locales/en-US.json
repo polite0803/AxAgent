@@ -8862,5 +8862,84 @@
   },
   "voiceChat": {
     "noTicket": "No ticket available. Please start again."
+  },
+  "app": {
+    "quickBar": "QuickBar"
+  },
+  "chatSidebar": {
+    "menu": "Menu"
+  },
+  "inputArea": {
+    "resizeHandle": "resize handle",
+    "uploadFile": "Upload file"
+  },
+  "appHeader": {
+    "agentPanel": "Agent Panel"
+  },
+  "sidebar": {
+    "agentPanel": "Agent Panel"
+  },
+  "errorBoundary": {
+    "pageError": "Page Error"
+  },
+  "chatPage": {
+    "resizeHandle": "resize handle"
+  },
+  "debugPanel": {
+    "trace": "Trace",
+    "spans": "Spans",
+    "tokens": "Tokens",
+    "nodeId": "Node ID",
+    "type": "Type",
+    "status": "Status",
+    "duration": "Duration",
+    "subWorkflow": "Sub-Workflow",
+    "executionId": "Execution ID",
+    "workflowId": "Workflow ID",
+    "parentExecution": "Parent Execution"
+  },
+  "spanDetail": {
+    "parentSpan": "Parent Span"
+  },
+  "traceDetail": {
+    "userId": "User ID"
+  },
+  "searchProvider": {
+    "apiKey": "API Key"
+  },
+  "settingsPanel": {
+    "featureFlags": "Feature Flags"
+  },
+  "skillTimeline": {
+    "promptDiff": "Prompt Diff"
+  },
+  "dynamicUI": {
+    "uiSchemaJson": "UI Schema JSON"
+  },
+  "subWorkflowNode": {
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "workflowRefNode": {
+    "noWorkflow": "No workflow referenced"
+  },
+  "versionHistory": {
+    "vA": "vA",
+    "vB": "vB"
+  },
+  "aiPanel": {
+    "progressAnalyzing": "Analyzing intent",
+    "progressMatching": "Matching nodes",
+    "progressBuilding": "Building workflow",
+    "progressOptimizing": "Optimizing"
+  },
+  "chartPreview": {
+    "title": "Chart Preview"
+  },
+  "htmlPreview": {
+    "title": "HTML Preview"
+  },
+  "reactPreview": {
+    "title": "React Preview"
   }
 }
