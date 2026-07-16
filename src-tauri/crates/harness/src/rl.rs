@@ -1,35 +1,185 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 //! RL 契约 — RLEngine + RLTrainer traits + DTOs
+//!
+//! 本模块是 RL 相关类型的**唯一权威定义**（AGENTS.md 第 12 条）。
+//! trajectory / agent 等 crate 通过 `pub use axagent_harness::rl::*` 引用，
+//! 不得重复定义 `RLConfig` / `RewardWeights` 等同义类型。
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
+// ── 默认值函数 ──────────────────────────────────────────────────────
+
+fn default_learning_rate() -> f64 {
+    0.001
+}
+fn default_batch_size() -> usize {
+    32
+}
+fn default_gamma() -> f64 {
+    0.99
+}
+fn default_exploration_rate() -> f64 {
+    0.1
+}
+fn default_epsilon_decay() -> f64 {
+    0.995
+}
+fn default_epsilon_min() -> f64 {
+    0.01
+}
+fn default_lambda() -> f64 {
+    0.95
+}
+fn default_use_td_lambda() -> bool {
+    true
+}
+fn default_reward_scale() -> f64 {
+    1.0
+}
+fn default_entropy_coefficient() -> f64 {
+    0.01
+}
+fn default_value_coefficient() -> f64 {
+    0.5
+}
+
+fn default_weight_task_completion() -> f64 {
+    0.4
+}
+fn default_weight_tool_efficiency() -> f64 {
+    0.2
+}
+fn default_weight_reasoning_quality() -> f64 {
+    0.15
+}
+fn default_weight_error_recovery() -> f64 {
+    0.15
+}
+fn default_weight_user_feedback() -> f64 {
+    0.05
+}
+fn default_weight_pattern_match() -> f64 {
+    0.05
+}
+
+// ── 统一 RLConfig（超集） ───────────────────────────────────────────
+//
+// 合并了原 harness / trajectory / agent 三套 RLConfig 的所有字段：
+// - harness: learning_rate, discount_factor, exploration_rate, batch_size
+// - trajectory: gamma, lambda, reward_scale, entropy_coefficient,
+//               value_coefficient, use_td_lambda
+// - agent: learning_rate, batch_size, gamma, epsilon, epsilon_decay,
+//          epsilon_min
+//
+// 统一命名规则：
+// - `gamma` 取代 `discount_factor`（通过 serde alias 向后兼容）
+// - `exploration_rate` 取代 `epsilon`（通过 serde alias 向后兼容）
+// - 所有数值统一用 f64（agent crate 使用时 `as f32` 转换）
+// - 所有字段都有 `#[serde(default)]`，反序列化时缺失字段自动填默认值
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RLConfig {
+    // ===== 基础训练参数 =====
+    #[serde(default = "default_learning_rate")]
     pub learning_rate: f64,
-    pub discount_factor: f64,
-    pub exploration_rate: f64,
+
+    #[serde(default = "default_batch_size")]
     pub batch_size: usize,
+
+    // ===== 折扣因子（统一命名 gamma，alias 兼容旧 discount_factor）=====
+    #[serde(default = "default_gamma", alias = "discount_factor")]
+    pub gamma: f64,
+
+    // ===== 探索参数 =====
+    /// 探索率（alias 兼容旧 epsilon 字段）
+    #[serde(default = "default_exploration_rate", alias = "epsilon")]
+    pub exploration_rate: f64,
+
+    #[serde(default = "default_epsilon_decay")]
+    pub epsilon_decay: f64,
+
+    #[serde(default = "default_epsilon_min")]
+    pub epsilon_min: f64,
+
+    // ===== TD(λ) 相关（trajectory crate 专用）=====
+    #[serde(default = "default_lambda")]
+    pub lambda: f64,
+
+    #[serde(default = "default_use_td_lambda")]
+    pub use_td_lambda: bool,
+
+    #[serde(default = "default_reward_scale")]
+    pub reward_scale: f64,
+
+    #[serde(default = "default_entropy_coefficient")]
+    pub entropy_coefficient: f64,
+
+    #[serde(default = "default_value_coefficient")]
+    pub value_coefficient: f64,
 }
+
 impl Default for RLConfig {
     fn default() -> Self {
-        Self { learning_rate: 0.001, discount_factor: 0.99, exploration_rate: 0.1, batch_size: 32 }
+        Self {
+            learning_rate: default_learning_rate(),
+            batch_size: default_batch_size(),
+            gamma: default_gamma(),
+            exploration_rate: default_exploration_rate(),
+            epsilon_decay: default_epsilon_decay(),
+            epsilon_min: default_epsilon_min(),
+            lambda: default_lambda(),
+            use_td_lambda: default_use_td_lambda(),
+            reward_scale: default_reward_scale(),
+            entropy_coefficient: default_entropy_coefficient(),
+            value_coefficient: default_value_coefficient(),
+        }
     }
 }
 
+// ── 统一 RewardWeights（超集） ──────────────────────────────────────
+//
+// 合并了原 harness（4 字段）和 trajectory（6 字段）两套 RewardWeights。
+// 采用 trajectory 的 6 字段版本（更完整），harness 原有的
+// efficiency/code_quality/user_satisfaction 由语义更精确的
+// tool_efficiency/error_recovery/user_feedback 替代。
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RewardWeights {
+    #[serde(default = "default_weight_task_completion")]
     pub task_completion: f64,
-    pub efficiency: f64,
-    pub code_quality: f64,
-    pub user_satisfaction: f64,
+
+    #[serde(default = "default_weight_tool_efficiency")]
+    pub tool_efficiency: f64,
+
+    #[serde(default = "default_weight_reasoning_quality")]
+    pub reasoning_quality: f64,
+
+    #[serde(default = "default_weight_error_recovery")]
+    pub error_recovery: f64,
+
+    #[serde(default = "default_weight_user_feedback")]
+    pub user_feedback: f64,
+
+    #[serde(default = "default_weight_pattern_match")]
+    pub pattern_match: f64,
 }
+
 impl Default for RewardWeights {
     fn default() -> Self {
-        Self { task_completion: 1.0, efficiency: 0.5, code_quality: 0.3, user_satisfaction: 0.8 }
+        Self {
+            task_completion: default_weight_task_completion(),
+            tool_efficiency: default_weight_tool_efficiency(),
+            reasoning_quality: default_weight_reasoning_quality(),
+            error_recovery: default_weight_error_recovery(),
+            user_feedback: default_weight_user_feedback(),
+            pattern_match: default_weight_pattern_match(),
+        }
     }
 }
+
+// ── Training DTOs（harness 契约层通用） ────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingEpisode {
@@ -55,6 +205,8 @@ pub struct TrainingReport {
     pub total_steps: usize,
     pub duration_secs: f64,
 }
+
+// ── RL trait 契约 ──────────────────────────────────────────────────
 
 #[async_trait]
 pub trait RLEngine: Send + Sync {

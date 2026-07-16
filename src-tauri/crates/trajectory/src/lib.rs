@@ -152,7 +152,7 @@ pub use proactive_assistant::{
 
 pub use rl::{RLConfig, RLEngine, RewardNormalizer, RewardWeights};
 
-pub use rl_trainer::{RLTrainer, TrainingEpisode, TrainingReport};
+pub use rl_trainer::{TrajectoryRLTrainer, TrajectoryTrainingEpisode, TrajectoryTrainingReport};
 
 pub use sandbox_executor::SkillSandboxExecutor;
 

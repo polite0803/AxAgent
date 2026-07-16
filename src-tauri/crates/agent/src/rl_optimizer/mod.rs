@@ -7,6 +7,10 @@ pub mod trainer;
 
 pub use rl_training_loop::ThresholdScheduler;
 
+// RLConfig 的权威定义在 axagent_harness::rl，本 crate 通过 pub use 引用，
+// 不再重复定义（AGENTS.md 第 12 条）。
+pub use axagent_harness::rl::RLConfig;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -17,29 +21,6 @@ pub struct RLOptimizer {
     pub policies: HashMap<String, Policy>,
     pub experience_pool: ExperiencePool,
     pub config: RLConfig,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RLConfig {
-    pub learning_rate: f32,
-    pub batch_size: u32,
-    pub gamma: f32,
-    pub epsilon: f32,
-    pub epsilon_decay: f32,
-    pub epsilon_min: f32,
-}
-
-impl Default for RLConfig {
-    fn default() -> Self {
-        Self {
-            learning_rate: 0.001,
-            batch_size: 32,
-            gamma: 0.99,
-            epsilon: 1.0,
-            epsilon_decay: 0.995,
-            epsilon_min: 0.01,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,7 +92,7 @@ pub struct Policy {
     pub name: String,
     pub policy_type: PolicyType,
     pub model_id: String,
-    pub reward_signals: Vec<RewardSignal>,
+    pub reward_signals: Vec<PolicyRewardWeight>,
     pub training_stats: TrainingStats,
 }
 
@@ -122,15 +103,17 @@ pub enum PolicyType {
     ErrorRecovery,
 }
 
+/// 策略奖励权重配置（注意：与 harness::RewardSignal 语义不同。
+/// harness::RewardSignal 是轨迹评估信号，本类型是策略训练中的权重配置）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RewardSignal {
+pub struct PolicyRewardWeight {
     pub name: String,
     pub weight: f32,
-    pub signal_type: RewardSignalType,
+    pub signal_type: PolicyRewardSignalType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum RewardSignalType {
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum PolicyRewardSignalType {
     TaskCompletion,
     TimeEfficiency,
     ErrorRate,
@@ -166,9 +149,9 @@ impl RLOptimizer {
     }
 
     pub fn select_tool(&self, state: &TaskState) -> Result<ToolSelection, RLError> {
-        // epsilon-greedy: 以 epsilon 概率随机探索，否则选择最佳工具
-        let epsilon = self.config.epsilon;
-        let explore = fastrand::f32() < epsilon;
+        // epsilon-greedy: 以 exploration_rate 概率随机探索，否则选择最佳工具
+        let epsilon = self.config.exploration_rate;
+        let explore = fastrand::f64() < epsilon;
 
         // 从策略中获取工具权重
         let policy = self.policies.get("tool_selection");

@@ -3,6 +3,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// RewardSignal / RewardSignalType 已统一为 super::PolicyRewardWeight / PolicyRewardSignalType，
+// 本文件不再重复定义（AGENTS.md 第 12 条）。
+use super::PolicyRewardWeight;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolSelectionPolicy {
     pub id: String,
@@ -12,25 +16,9 @@ pub struct ToolSelectionPolicy {
     pub temperature: f32,
     pub top_p: f32,
     pub max_tokens: u32,
-    pub reward_signals: Vec<RewardSignal>,
+    pub reward_signals: Vec<PolicyRewardWeight>,
     pub training_config: TrainingConfig,
     pub q_values: HashMap<String, f32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RewardSignal {
-    pub name: String,
-    pub weight: f32,
-    pub signal_type: RewardSignalType,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum RewardSignalType {
-    TaskCompletion,
-    TimeEfficiency,
-    ErrorRate,
-    ToolDiversity,
-    UserFeedback,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -158,6 +146,7 @@ impl ToolSelectionPolicy {
 
 #[cfg(test)]
 mod tests {
+    use super::super::PolicyRewardSignalType;
     use super::*;
 
     #[test]
@@ -231,15 +220,15 @@ mod tests {
     #[test]
     fn test_reward_signal_type_variants() {
         let types = vec![
-            RewardSignalType::TaskCompletion,
-            RewardSignalType::TimeEfficiency,
-            RewardSignalType::ErrorRate,
-            RewardSignalType::ToolDiversity,
-            RewardSignalType::UserFeedback,
+            PolicyRewardSignalType::TaskCompletion,
+            PolicyRewardSignalType::TimeEfficiency,
+            PolicyRewardSignalType::ErrorRate,
+            PolicyRewardSignalType::ToolDiversity,
+            PolicyRewardSignalType::UserFeedback,
         ];
         for t in types {
             let json = serde_json::to_string(&t).unwrap();
-            let de: RewardSignalType = serde_json::from_str(&json).unwrap();
+            let de: PolicyRewardSignalType = serde_json::from_str(&json).unwrap();
             assert_eq!(de, t);
         }
     }

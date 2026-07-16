@@ -24,7 +24,7 @@ pub fn train(optimizer: &mut RLOptimizer) -> Result<TrainingStats, RLError> {
         return Err(RLError::TrainingError("ExperiencePool is empty, nothing to train on".into()));
     }
 
-    let samples: Vec<_> = pool.sample(batch_size as usize).into_iter().collect();
+    let samples: Vec<_> = pool.sample(batch_size).into_iter().collect();
 
     if samples.is_empty() {
         return Err(RLError::TrainingError("No samples drawn from ExperiencePool".into()));
@@ -37,8 +37,9 @@ pub fn train(optimizer: &mut RLOptimizer) -> Result<TrainingStats, RLError> {
     // 统计成功经验数（reward > 0）
     let successful: usize = samples.iter().filter(|e| e.reward > 0.0).count();
 
-    // 更新 epsilon（衰减探索率）
-    optimizer.config.epsilon = (optimizer.config.epsilon * optimizer.config.epsilon_decay)
+    // 更新探索率（衰减 exploration_rate）
+    optimizer.config.exploration_rate = (optimizer.config.exploration_rate
+        * optimizer.config.epsilon_decay)
         .max(optimizer.config.epsilon_min);
 
     // 更新每个策略的训练统计
@@ -64,19 +65,19 @@ pub fn train(optimizer: &mut RLOptimizer) -> Result<TrainingStats, RLError> {
             // 更新策略内奖励信号的权重（简单指数平滑）
             for signal in policy.reward_signals.iter_mut() {
                 let adjustment = match signal.signal_type {
-                    super::RewardSignalType::TaskCompletion => {
+                    super::PolicyRewardSignalType::TaskCompletion => {
                         (successful as f32 / samples.len() as f32) * 0.01
                     },
-                    super::RewardSignalType::TimeEfficiency => avg_reward * 0.005,
-                    super::RewardSignalType::ErrorRate => {
+                    super::PolicyRewardSignalType::TimeEfficiency => avg_reward * 0.005,
+                    super::PolicyRewardSignalType::ErrorRate => {
                         if successful < samples.len() {
                             -0.01 * (1.0 - successful as f32 / samples.len() as f32)
                         } else {
                             0.0
                         }
                     },
-                    super::RewardSignalType::ToolDiversity => 0.001,
-                    super::RewardSignalType::UserFeedback => avg_reward * 0.01,
+                    super::PolicyRewardSignalType::ToolDiversity => 0.001,
+                    super::PolicyRewardSignalType::UserFeedback => avg_reward * 0.01,
                 };
                 signal.weight = (signal.weight + adjustment).clamp(-1.0, 1.0);
             }
@@ -98,10 +99,10 @@ pub fn train(optimizer: &mut RLOptimizer) -> Result<TrainingStats, RLError> {
     };
 
     tracing::info!(
-        "[RL Training] batch={}, avg_reward={:.3}, epsilon={:.4}, success_ratio={:.2}",
+        "[RL Training] batch={}, avg_reward={:.3}, exploration_rate={:.4}, success_ratio={:.2}",
         samples.len(),
         avg_reward,
-        optimizer.config.epsilon,
+        optimizer.config.exploration_rate,
         successful as f32 / samples.len() as f32
     );
 

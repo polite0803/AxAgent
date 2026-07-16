@@ -193,6 +193,7 @@ pub async fn start_rl_training(
             entropy_coefficient: 0.01,
             value_coefficient: 0.5,
             use_td_lambda: true,
+            ..Default::default()
         };
         // RLEngine 的配置在构造时设定，这里通过重新构造来更新
         // 实际使用现有的 weights 和新的 config

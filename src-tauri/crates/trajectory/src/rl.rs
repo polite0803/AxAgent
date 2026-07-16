@@ -12,59 +12,16 @@
 
 #![allow(clippy::unwrap_used)]
 
+// RLConfig 和 RewardWeights 的权威定义在 axagent_harness::rl，
+// 本 crate 通过 pub use 引用，不再重复定义（AGENTS.md 第 12 条）。
+pub use axagent_harness::rl::{RLConfig, RewardWeights};
+
 pub use axagent_harness::trajectory_types::{LlmJudge, LlmJudgeFuture};
 
 use crate::trajectory::{
     MessageRole, RewardSignal, RewardType, Trajectory, TrajectoryOutcome, TrajectoryStep,
 };
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RLConfig {
-    pub gamma: f64,
-    pub lambda: f64,
-    pub reward_scale: f64,
-    pub entropy_coefficient: f64,
-    pub value_coefficient: f64,
-    pub use_td_lambda: bool,
-}
-
-impl Default for RLConfig {
-    fn default() -> Self {
-        Self {
-            gamma: 0.99,
-            lambda: 0.95,
-            reward_scale: 1.0,
-            entropy_coefficient: 0.01,
-            value_coefficient: 0.5,
-            use_td_lambda: true,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RewardWeights {
-    pub task_completion: f64,
-    pub tool_efficiency: f64,
-    pub reasoning_quality: f64,
-    pub error_recovery: f64,
-    pub user_feedback: f64,
-    pub pattern_match: f64,
-}
-
-impl Default for RewardWeights {
-    fn default() -> Self {
-        Self {
-            task_completion: 0.4,
-            tool_efficiency: 0.2,
-            reasoning_quality: 0.15,
-            error_recovery: 0.15,
-            user_feedback: 0.05,
-            pattern_match: 0.05,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub(crate) struct RLState {
