@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { invoke } from "@/lib/invoke";
+import { invoke, logAndNotify } from "@/lib/invoke";
 import { create } from "zustand";
-
-// ── Types ──
 
 export interface RLTrainingConfig {
   algorithm: "ppo" | "grpo" | "dpo" | "rlhf";
@@ -52,29 +50,6 @@ interface RlTrainingState {
   deleteCheckpoint: (id: string) => Promise<void>;
 }
 
-function generateMockMetrics(step: number): TrainingMetrics {
-  const baseLoss = 2.5 * Math.exp(-step * 0.002);
-  const noise = (Math.random() - 0.5) * 0.1;
-  return {
-    step,
-    loss: Math.max(0.01, baseLoss + noise),
-    reward: Math.min(1.0, 0.2 + 0.8 * (1 - Math.exp(-step * 0.001)) + (Math.random() - 0.5) * 0.05),
-    policyLoss: Math.max(0.01, baseLoss * 0.6 + (Math.random() - 0.5) * 0.05),
-    valueLoss: Math.max(0.01, baseLoss * 0.4 + (Math.random() - 0.5) * 0.05),
-    timestamp: Date.now(),
-  };
-}
-
-function generateMockCheckpoints(): CheckpointInfo[] {
-  const now = Date.now();
-  return [
-    { id: "ckpt_001", name: "初始检查点", step: 0, loss: 2.51, reward: 0.20, timestamp: now - 3600000 },
-    { id: "ckpt_002", name: "500步", step: 500, loss: 1.82, reward: 0.45, timestamp: now - 2400000 },
-    { id: "ckpt_003", name: "1000步", step: 1000, loss: 1.21, reward: 0.62, timestamp: now - 1200000 },
-    { id: "ckpt_004", name: "2000步-最佳", step: 2000, loss: 0.58, reward: 0.81, timestamp: now - 600000 },
-  ];
-}
-
 export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
   trainingId: null,
   status: "idle",
@@ -87,14 +62,13 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
   },
   currentMetrics: null,
   metricsHistory: [],
-  checkpoints: generateMockCheckpoints(),
+  checkpoints: [],
   error: null,
   _intervalId: null,
 
   startTraining: async (config: RLTrainingConfig) => {
     set({ status: "running", config, metricsHistory: [], error: null, currentMetrics: null });
 
-    // Clear any existing interval
     const existing = get()._intervalId;
     if (existing !== null) { clearInterval(existing); }
 
@@ -111,43 +85,29 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
         return;
       }
 
-      try {
-        // Try real backend first
-        invoke<TrainingMetrics>("get_training_metrics", { step })
-          .then((metrics) => {
-            set((s) => ({
-              currentMetrics: metrics,
-              metricsHistory: [...s.metricsHistory.slice(-499), metrics],
-            }));
-          })
-          .catch(() => {
-            // Fallback to mock
-            const mockMetrics = generateMockMetrics(step);
-            set((s) => ({
-              currentMetrics: mockMetrics,
-              metricsHistory: [...s.metricsHistory.slice(-499), mockMetrics],
-            }));
-          });
-      } catch {
-        const mockMetrics = generateMockMetrics(step);
-        set((s) => ({
-          currentMetrics: mockMetrics,
-          metricsHistory: [...s.metricsHistory.slice(-499), mockMetrics],
-        }));
-      }
+      invoke<TrainingMetrics>("get_training_metrics", { step })
+        .then((metrics) => {
+          set((s) => ({
+            currentMetrics: metrics,
+            metricsHistory: [...s.metricsHistory.slice(-499), metrics],
+            error: null,
+          }));
+        })
+        .catch((err) => {
+          set({ error: String(err), status: "failed" });
+        });
 
       step += 10;
     };
 
-    // Try real backend first
     try {
       const trainingId = await invoke<string>("start_rl_training", { config });
       set({ trainingId });
     } catch (err) {
-      console.warn("[rlTrainingStore] startTraining invoke failed, using mock simulation", err);
+      set({ error: String(err), status: "failed" });
+      return;
     }
 
-    // Run first metrics fetch immediately
     fetchMetrics();
 
     const intervalId = setInterval(fetchMetrics, 2000);
@@ -166,7 +126,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
         await invoke("stop_rl_training", { trainingId: state.trainingId });
       }
     } catch (err) {
-      console.warn("[rlTrainingStore] stopTraining invoke failed", err);
+      set({ error: String(err) });
     }
 
     set({
@@ -176,7 +136,6 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
   },
 
   fetchMetrics: () => {
-    // Called externally; internal interval handles this
     const state = get();
     if (state.status !== "running") { return; }
 
@@ -184,28 +143,17 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
       ? state.metricsHistory[state.metricsHistory.length - 1].step + 10
       : 0;
 
-    try {
-      invoke<TrainingMetrics>("get_training_metrics", { step })
-        .then((metrics) => {
-          set((s) => ({
-            currentMetrics: metrics,
-            metricsHistory: [...s.metricsHistory.slice(-499), metrics],
-          }));
-        })
-        .catch(() => {
-          const mockMetrics = generateMockMetrics(step);
-          set((s) => ({
-            currentMetrics: mockMetrics,
-            metricsHistory: [...s.metricsHistory.slice(-499), mockMetrics],
-          }));
-        });
-    } catch {
-      const mockMetrics = generateMockMetrics(step);
-      set((s) => ({
-        currentMetrics: mockMetrics,
-        metricsHistory: [...s.metricsHistory.slice(-499), mockMetrics],
-      }));
-    }
+    invoke<TrainingMetrics>("get_training_metrics", { step })
+      .then((metrics) => {
+        set((s) => ({
+          currentMetrics: metrics,
+          metricsHistory: [...s.metricsHistory.slice(-499), metrics],
+          error: null,
+        }));
+      })
+      .catch((err) => {
+        set({ error: String(err), status: "failed" });
+      });
   },
 
   saveCheckpoint: async (name: string) => {
@@ -224,18 +172,17 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
 
     try {
       await invoke("save_checkpoint", { ...newCheckpoint });
+      set((s) => ({ checkpoints: [...s.checkpoints, newCheckpoint] }));
     } catch (err) {
-      console.warn("[rlTrainingStore] saveCheckpoint invoke failed, using mock", err);
+      logAndNotify("保存 RL 检查点")(err);
     }
-
-    set((s) => ({ checkpoints: [...s.checkpoints, newCheckpoint] }));
   },
 
   loadCheckpoint: async (id: string) => {
     try {
       await invoke("load_checkpoint", { checkpointId: id });
     } catch (err) {
-      console.warn("[rlTrainingStore] loadCheckpoint invoke failed", err);
+      logAndNotify("加载 RL 检查点")(err);
     }
   },
 
@@ -244,7 +191,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
       const checkpoints = await invoke<CheckpointInfo[]>("list_checkpoints");
       set({ checkpoints });
     } catch (err) {
-      console.warn("[rlTrainingStore] listCheckpoints failed, using mock", err);
+      logAndNotify("列出 RL 检查点")(err);
     }
   },
 
@@ -253,7 +200,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
     try {
       await invoke("delete_checkpoint", { checkpointId: id });
     } catch (err) {
-      console.warn("[rlTrainingStore] deleteCheckpoint invoke failed", err);
+      logAndNotify("删除 RL 检查点")(err);
     }
   },
 }));
