@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+﻿// SPDX-License-Identifier: AGPL-3.0-only
 
 use super::chat_message_from_message;
 use super::*;
@@ -189,6 +189,7 @@ pub(crate) async fn do_compress(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let ctx = ProviderRequestContext {

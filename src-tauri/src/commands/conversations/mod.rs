@@ -2037,6 +2037,7 @@ pub(crate) async fn generate_ai_title_with(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let registry_key =

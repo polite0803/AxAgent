@@ -271,6 +271,7 @@ impl ProviderLlmBridge {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         // 确定性缓存：仅对 temperature=0 做缓存（确定性输出）

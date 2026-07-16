@@ -85,6 +85,9 @@ struct OpenAIRequest {
     /// SiliconFlow-style thinking token budget
     #[serde(skip_serializing_if = "Option::is_none")]
     thinking_budget: Option<u32>,
+    /// Structured Output 强制契约（OpenAI response_format）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -524,6 +527,20 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
         .collect()
 }
 
+/// 将 provider-中性的 ResponseFormat 转换为 OpenAI API 的 response_format 格式。
+fn convert_response_format(fmt: &ResponseFormat) -> serde_json::Value {
+    match fmt {
+        ResponseFormat::JsonObject => serde_json::json!({ "type": "json_object" }),
+        ResponseFormat::JsonSchema { name, schema, strict } => {
+            let mut json_schema = serde_json::json!({ "name": name, "schema": schema });
+            if let Some(s) = strict {
+                json_schema["strict"] = serde_json::Value::Bool(*s);
+            }
+            serde_json::json!({ "type": "json_schema", "json_schema": json_schema })
+        },
+    }
+}
+
 fn build_request(
     ctx: &ProviderRequestContext,
     request: &ChatRequest,
@@ -612,6 +629,7 @@ fn build_request(
         reasoning_effort,
         enable_thinking,
         thinking_budget: sf_thinking_budget,
+        response_format: request.response_format.as_ref().map(convert_response_format),
     };
 
     tracing::debug!(

@@ -668,6 +668,7 @@ pub async fn extract_expert_structure(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter

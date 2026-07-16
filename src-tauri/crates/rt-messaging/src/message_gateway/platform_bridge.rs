@@ -98,6 +98,7 @@ impl PlatformBridge {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         let response = adapter.chat(&ctx, request.into()).await?;

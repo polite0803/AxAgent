@@ -190,6 +190,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let cancel_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));

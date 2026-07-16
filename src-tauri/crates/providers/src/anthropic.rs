@@ -297,6 +297,39 @@ fn convert_messages(
     (system, result)
 }
 
+/// Anthropic 不支持原生 response_format，通过在 system prompt 中注入 JSON Schema
+/// 约束来实现 Structured Output 强制契约。
+fn inject_structured_output_constraint(
+    system: Option<serde_json::Value>,
+    response_format: Option<&ResponseFormat>,
+) -> Option<serde_json::Value> {
+    let constraint = match response_format? {
+        ResponseFormat::JsonObject => {
+            "\n\nYou must respond with a valid JSON object. Do not include any text outside the JSON.".to_string()
+        }
+        ResponseFormat::JsonSchema { schema, .. } => {
+            format!(
+                "\n\nYou must respond with a valid JSON object that conforms to the following JSON Schema. Do not include any text outside the JSON.\n\n```json\n{}\n```",
+                serde_json::to_string_pretty(schema).unwrap_or_else(|_| schema.to_string())
+            )
+        }
+    };
+
+    match system {
+        None => Some(serde_json::Value::String(constraint)),
+        Some(serde_json::Value::String(s)) => {
+            Some(serde_json::Value::String(format!("{s}{constraint}")))
+        },
+        Some(serde_json::Value::Array(arr)) => {
+            // cache-aware format: 追加一个 text block
+            let mut arr = arr;
+            arr.push(serde_json::json!({ "type": "text", "text": constraint }));
+            Some(serde_json::Value::Array(arr))
+        },
+        Some(other) => Some(other), // 不预期的格式，保持原样
+    }
+}
+
 /// Convert OpenAI-format tools to Anthropic-format tools.
 fn convert_tools_to_anthropic(tools: &Option<Vec<ChatTool>>) -> Option<Vec<AnthropicTool>> {
     tools.as_ref().map(|ts| {
@@ -367,6 +400,7 @@ impl ProviderAdapter for AnthropicAdapter {
     ) -> Result<ChatResponse> {
         let url = Self::chat_url(ctx);
         let (system, messages) = convert_messages(&request.messages);
+        let system = inject_structured_output_constraint(system, request.response_format.as_ref());
 
         let thinking = request.thinking_budget.and_then(|b| {
             if b == 0 {
@@ -491,6 +525,7 @@ impl ProviderAdapter for AnthropicAdapter {
         let url = Self::chat_url(ctx);
 
         let (system, messages) = convert_messages(&request.messages);
+        let system = inject_structured_output_constraint(system, request.response_format.as_ref());
         let thinking = request.thinking_budget.and_then(|b| {
             if b == 0 {
                 None

@@ -126,6 +126,12 @@ struct GeminiGenerationConfig {
     max_output_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     thinking_config: Option<GeminiThinkingConfig>,
+    /// Structured Output: "application/json"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_mime_type: Option<String>,
+    /// Structured Output: JSON Schema 约束
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_schema: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -427,16 +433,29 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
 fn make_gen_config(request: &ChatRequest) -> Option<GeminiGenerationConfig> {
     let thinking_config =
         request.thinking_budget.map(|b| GeminiThinkingConfig { thinking_budget: b });
+
+    // Structured Output 转换（ResponseFormat → Gemini responseMimeType + responseSchema）
+    let (response_mime_type, response_schema) = match &request.response_format {
+        Some(ResponseFormat::JsonObject) => (Some("application/json".to_string()), None),
+        Some(ResponseFormat::JsonSchema { schema, .. }) => {
+            (Some("application/json".to_string()), Some(schema.clone()))
+        },
+        None => (None, None),
+    };
+
     if request.temperature.is_some()
         || request.top_p.is_some()
         || request.max_tokens.is_some()
         || thinking_config.is_some()
+        || response_mime_type.is_some()
     {
         Some(GeminiGenerationConfig {
             temperature: request.temperature,
             top_p: request.top_p,
             max_output_tokens: request.max_tokens,
             thinking_config,
+            response_mime_type,
+            response_schema,
         })
     } else {
         None

@@ -151,6 +151,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter
@@ -230,6 +231,7 @@ Output ONLY the optimized prompt text, without any explanation or meta-commentar
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter
@@ -337,6 +339,7 @@ Rules:
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter

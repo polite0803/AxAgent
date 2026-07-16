@@ -92,6 +92,7 @@ async fn send_to_vision_model(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter.chat(ctx, chat_request.into()).await?;

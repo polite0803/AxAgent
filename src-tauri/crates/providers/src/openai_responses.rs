@@ -76,6 +76,14 @@ struct ResponsesRequest {
     previous_response_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     store: Option<bool>,
+    /// Structured Output 强制契约（Responses API text.format）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    text: Option<ResponsesTextConfig>,
+}
+
+#[derive(Serialize)]
+struct ResponsesTextConfig {
+    format: serde_json::Value,
 }
 
 #[derive(Serialize)]
@@ -466,7 +474,24 @@ fn build_request(request: &ChatRequest, stream: bool) -> ResponsesRequest {
         reasoning,
         previous_response_id: request.previous_response_id.clone(),
         store: request.store,
+        text: request.response_format.as_ref().map(convert_responses_text_format),
     }
+}
+
+/// 将 provider-中性的 ResponseFormat 转换为 Responses API 的 text.format 格式。
+fn convert_responses_text_format(fmt: &ResponseFormat) -> ResponsesTextConfig {
+    let format = match fmt {
+        ResponseFormat::JsonObject => serde_json::json!({ "type": "json_object" }),
+        ResponseFormat::JsonSchema { name, schema, strict } => {
+            let mut v =
+                serde_json::json!({ "type": "json_schema", "name": name, "schema": schema });
+            if let Some(s) = strict {
+                v["strict"] = serde_json::Value::Bool(*s);
+            }
+            v
+        },
+    };
+    ResponsesTextConfig { format }
 }
 
 /// Extract text + tool_calls from a non-streaming Responses API response.
@@ -1220,6 +1245,7 @@ mod tests {
             instructions: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
         let built = build_request(&request, false);
         assert_eq!(built.max_output_tokens, Some(100));
@@ -1251,6 +1277,7 @@ mod tests {
             instructions: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
         let built = build_request(&request, false);
         assert_eq!(built.max_output_tokens, Some(16));

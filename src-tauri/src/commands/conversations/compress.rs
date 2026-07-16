@@ -189,6 +189,7 @@ pub(crate) async fn do_compress(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let ctx = ProviderRequestContext {

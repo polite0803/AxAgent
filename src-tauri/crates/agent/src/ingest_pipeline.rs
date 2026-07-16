@@ -442,6 +442,7 @@ Output ONLY valid JSON inside a ```json fenced code block."#
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         let llm_config = axagent_harness::LlmCallConfig::default();
@@ -555,6 +556,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         let llm_config = axagent_harness::LlmCallConfig::default();

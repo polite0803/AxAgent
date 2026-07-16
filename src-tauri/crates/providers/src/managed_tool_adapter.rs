@@ -784,6 +784,7 @@ mod tests {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
         let (transformed, tools) = adapter.transform_request(req);
         assert!(tools.is_none());
@@ -823,6 +824,7 @@ mod tests {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
         let (transformed, tools_out) = adapter.transform_request(req);
         assert!(tools_out.is_some());

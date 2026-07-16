@@ -63,6 +63,7 @@ fn test_chat_request_basic() {
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
     assert_eq!(request.model, "test-model");
     assert_eq!(request.temperature, Some(0.7));

@@ -316,6 +316,7 @@ Respond with ONLY a JSON object:
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         let request_json = match serde_json::to_value(&request) {

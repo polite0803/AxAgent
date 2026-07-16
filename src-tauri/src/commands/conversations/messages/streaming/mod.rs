@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+﻿// SPDX-License-Identifier: AGPL-3.0-only
 
 use super::*;
 use crate::AppState;
@@ -190,6 +190,7 @@ pub(super) fn spawn_stream_task(
                     conversation: None,
                     previous_response_id: None,
                     store: None,
+                    response_format: None,
                 };
 
                 let llm_config = axagent_runtime_core::LlmCallConfig {

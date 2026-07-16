@@ -379,6 +379,7 @@ impl WikiCompiler {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         }
     }
 
@@ -1184,6 +1185,7 @@ impl WikiCompiler {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         let content = if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service)

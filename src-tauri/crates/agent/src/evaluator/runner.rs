@@ -194,6 +194,7 @@ impl EvaluationRunner {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         });
 
         let ctx = self.provider_ctx.as_ref().cloned().unwrap_or_else(|| ProviderRequestContext {
