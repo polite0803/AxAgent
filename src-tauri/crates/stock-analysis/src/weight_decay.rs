@@ -196,12 +196,7 @@ mod tests {
     #[test]
     fn small_sample_size_dampens_weight() {
         // 同样 100% 胜率,5 行 vs 50 行,小样本应得明显更低的 confidence
-        let cfg = WeightDecayConfig {
-            lookback_days: 30,
-            ewma_alpha: 1.0,
-            sample_saturation: 20,
-            ..Default::default()
-        };
+        let cfg = WeightDecayConfig { lookback_days: 30, ewma_alpha: 1.0, sample_saturation: 20 };
         let small: Vec<_> = (0..5).map(|_| row("trend", "short", 1, 5)).collect();
         let big: Vec<_> = (0..50).map(|_| row("trend", "short", 1, 5)).collect();
         let w_small = compute_adjusted_weights(&small, &cfg, &HashMap::new());

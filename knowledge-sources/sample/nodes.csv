@@ -1,0 +1,16 @@
+id,title,type,tags
+000001,平安银行,company,银行;零售;股份制
+600036,招商银行,company,银行;零售;股份制
+002142,宁波银行,company,银行;城商行
+601398,工商银行,company,银行;国有大行
+601318,中国平安,company,保险;综合金融;金融科技
+601628,中国人寿,company,保险;国有
+688981,中芯国际,company,半导体;晶圆代工
+603501,韦尔股份,company,半导体;芯片设计
+002415,海康威视,company,安防;AI;物联网
+industry_bank,银行业,industry,金融
+industry_insurance,保险业,industry,金融
+industry_semiconductor,半导体行业,industry,科技
+concept_chip,芯片概念,concept,国产替代;算力
+concept_ai,人工智能概念,concept,大模型;算力
+person_ma,马明哲,person,董事长

@@ -196,19 +196,6 @@ impl RecommendStrategy for WatchlistStrategy {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn watchlist_strategy_ids() {
-        assert_eq!(WatchlistStrategy::short().id(), "watchlist_short");
-        assert_eq!(WatchlistStrategy::mid().id(), "watchlist_mid");
-        assert_eq!(WatchlistStrategy::long().id(), "watchlist_long");
-        assert_eq!(WatchlistStrategy::short().style(), Style::Watchlist);
-    }
-}
-
 /// 数据稀疏兜底：为指定 style 用 `get_quote` 拉取基础行情 emit 合成 picks
 ///
 /// 调用场景：vendor 的 K 线 / 财务 / 资金流数据全不可用时，4 个主策略
@@ -374,4 +361,17 @@ async fn scan_synthetic_one(
         secondary_styles: vec![],
         synthetic: true,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn watchlist_strategy_ids() {
+        assert_eq!(WatchlistStrategy::short().id(), "watchlist_short");
+        assert_eq!(WatchlistStrategy::mid().id(), "watchlist_mid");
+        assert_eq!(WatchlistStrategy::long().id(), "watchlist_long");
+        assert_eq!(WatchlistStrategy::short().style(), Style::Watchlist);
+    }
 }

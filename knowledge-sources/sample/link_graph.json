@@ -1,0 +1,271 @@
+{
+  "nodes": [
+    {
+      "id": "000001",
+      "title": "平安银行",
+      "type": "company",
+      "tags": [
+        "银行",
+        "零售",
+        "股份制"
+      ],
+      "link_count": 2,
+      "backlink_count": 1,
+      "path": "wiki_pages/000001.md"
+    },
+    {
+      "id": "600036",
+      "title": "招商银行",
+      "type": "company",
+      "tags": [
+        "银行",
+        "零售",
+        "股份制"
+      ],
+      "link_count": 2,
+      "backlink_count": 1,
+      "path": "wiki_pages/600036.md"
+    },
+    {
+      "id": "002142",
+      "title": "宁波银行",
+      "type": "company",
+      "tags": [
+        "银行",
+        "城商行"
+      ],
+      "link_count": 0,
+      "backlink_count": 0,
+      "path": "wiki_pages/002142.md"
+    },
+    {
+      "id": "601398",
+      "title": "工商银行",
+      "type": "company",
+      "tags": [
+        "银行",
+        "国有大行"
+      ],
+      "link_count": 2,
+      "backlink_count": 0,
+      "path": "wiki_pages/601398.md"
+    },
+    {
+      "id": "601318",
+      "title": "中国平安",
+      "type": "company",
+      "tags": [
+        "保险",
+        "综合金融",
+        "金融科技"
+      ],
+      "link_count": 3,
+      "backlink_count": 1,
+      "path": "wiki_pages/601318.md"
+    },
+    {
+      "id": "601628",
+      "title": "中国人寿",
+      "type": "company",
+      "tags": [
+        "保险",
+        "国有"
+      ],
+      "link_count": 1,
+      "backlink_count": 0,
+      "path": "wiki_pages/601628.md"
+    },
+    {
+      "id": "688981",
+      "title": "中芯国际",
+      "type": "company",
+      "tags": [
+        "半导体",
+        "晶圆代工"
+      ],
+      "link_count": 3,
+      "backlink_count": 0,
+      "path": "wiki_pages/688981.md"
+    },
+    {
+      "id": "603501",
+      "title": "韦尔股份",
+      "type": "company",
+      "tags": [
+        "半导体",
+        "芯片设计"
+      ],
+      "link_count": 2,
+      "backlink_count": 0,
+      "path": "wiki_pages/603501.md"
+    },
+    {
+      "id": "002415",
+      "title": "海康威视",
+      "type": "company",
+      "tags": [
+        "安防",
+        "AI",
+        "物联网"
+      ],
+      "link_count": 2,
+      "backlink_count": 0,
+      "path": "wiki_pages/002415.md"
+    },
+    {
+      "id": "industry_bank",
+      "title": "银行业",
+      "type": "industry",
+      "tags": [
+        "金融"
+      ],
+      "link_count": 0,
+      "backlink_count": 3,
+      "path": "wiki_pages/industry_bank.md"
+    },
+    {
+      "id": "industry_insurance",
+      "title": "保险业",
+      "type": "industry",
+      "tags": [
+        "金融"
+      ],
+      "link_count": 0,
+      "backlink_count": 2,
+      "path": "wiki_pages/industry_insurance.md"
+    },
+    {
+      "id": "industry_semiconductor",
+      "title": "半导体行业",
+      "type": "industry",
+      "tags": [
+        "科技"
+      ],
+      "link_count": 0,
+      "backlink_count": 3,
+      "path": "wiki_pages/industry_semiconductor.md"
+    },
+    {
+      "id": "concept_chip",
+      "title": "芯片概念",
+      "type": "concept",
+      "tags": [
+        "国产替代",
+        "算力"
+      ],
+      "link_count": 0,
+      "backlink_count": 2,
+      "path": "wiki_pages/concept_chip.md"
+    },
+    {
+      "id": "concept_ai",
+      "title": "人工智能概念",
+      "type": "concept",
+      "tags": [
+        "大模型",
+        "算力"
+      ],
+      "link_count": 0,
+      "backlink_count": 3,
+      "path": "wiki_pages/concept_ai.md"
+    },
+    {
+      "id": "person_ma",
+      "title": "马明哲",
+      "type": "person",
+      "tags": [
+        "董事长"
+      ],
+      "link_count": 0,
+      "backlink_count": 1,
+      "path": "wiki_pages/person_ma.md"
+    }
+  ],
+  "edges": [
+    {
+      "source": "000001",
+      "target": "industry_bank",
+      "type": "in_industry"
+    },
+    {
+      "source": "600036",
+      "target": "industry_bank",
+      "type": "in_industry"
+    },
+    {
+      "source": "601398",
+      "target": "industry_bank",
+      "type": "in_industry"
+    },
+    {
+      "source": "601318",
+      "target": "industry_insurance",
+      "type": "in_industry"
+    },
+    {
+      "source": "601628",
+      "target": "industry_insurance",
+      "type": "in_industry"
+    },
+    {
+      "source": "688981",
+      "target": "industry_semiconductor",
+      "type": "in_industry"
+    },
+    {
+      "source": "603501",
+      "target": "industry_semiconductor",
+      "type": "in_industry"
+    },
+    {
+      "source": "002415",
+      "target": "industry_semiconductor",
+      "type": "in_industry"
+    },
+    {
+      "source": "688981",
+      "target": "concept_chip",
+      "type": "has_concept"
+    },
+    {
+      "source": "603501",
+      "target": "concept_chip",
+      "type": "has_concept"
+    },
+    {
+      "source": "002415",
+      "target": "concept_ai",
+      "type": "has_concept"
+    },
+    {
+      "source": "688981",
+      "target": "concept_ai",
+      "type": "has_concept"
+    },
+    {
+      "source": "601318",
+      "target": "concept_ai",
+      "type": "has_concept"
+    },
+    {
+      "source": "000001",
+      "target": "601318",
+      "type": "subsidiary_of"
+    },
+    {
+      "source": "601318",
+      "target": "person_ma",
+      "type": "has_chairman"
+    },
+    {
+      "source": "601398",
+      "target": "600036",
+      "type": "peer_of"
+    },
+    {
+      "source": "600036",
+      "target": "000001",
+      "type": "peer_of"
+    }
+  ]
+}

@@ -126,5 +126,6 @@ axagent-layout-v4.html
 # Generated output files
 output/
 
-# AxInvest 专属知识源（lemonhu 数据集，体积大，保留在本地/外部存储）
-knowledge-sources/
+# AxInvest 专属知识源（lemonhu 数据集体积大，保留在本地/外部存储；sample 目录是测试必需的小样本需提交）
+knowledge-sources/lemonhu/
+!knowledge-sources/sample/

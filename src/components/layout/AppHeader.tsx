@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { PageTimeAnchor } from "@/components/time-travel/PageTimeAnchor";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useAgentPanelStore, useOnboardingStore } from "@/stores";
 import { theme } from "antd";
@@ -74,7 +75,7 @@ export function AppHeader() {
 
   // 对话页不显示 AppHeader（对话页有自己的 TabBar）
   if (isChatPage) { return null; }
-  // 股票业务页面不显示 AppHeader（股票页面有自己的 sa-header，其他非股票页也不需要时间旅行入口）
+  // 股票业务页面不显示 AppHeader（股票页面有自己的 sa-header）
   if (labelKey === null) { return null; }
 
   return (
@@ -138,6 +139,7 @@ export function AppHeader() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <PageTimeAnchor />
         {agentInTheLoopEnabled && (
           <Tooltip title={isAgentPanelOpen ? t("appHeader.closeAgentPanel") : t("appHeader.openAgentPanel")}>
             <button

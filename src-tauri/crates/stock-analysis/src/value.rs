@@ -767,6 +767,7 @@ mod tests {
     use axagent_astock_data::FinancialReport;
 
     /// 构造一份年报（仅填严格 F-Score 用到的字段）
+    #[allow(clippy::too_many_arguments)]
     fn report(
         net_profit: f64,
         total_assets: f64,

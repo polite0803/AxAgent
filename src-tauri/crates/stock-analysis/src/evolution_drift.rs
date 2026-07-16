@@ -426,7 +426,7 @@ mod tests {
     #[test]
     fn strategy_summary_trend_aggregation() {
         // 验证 trend 字段在 net_delta > 5 时为 "up",<-5 为 "down",其他 stable
-        let stats = vec![
+        let stats = [
             StrategyStatRow {
                 strategy_id: "trend".to_string(),
                 period: "short".to_string(),

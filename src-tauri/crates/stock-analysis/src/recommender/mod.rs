@@ -907,7 +907,7 @@ mod tests {
     /// - 38.00 / 38.00 = 1.000 → KEEP（target == price 在容差内）
     /// - 37.81 / 38.00 ≈ 0.995 → KEEP（恰好 >= 0.995 浮点边界）
     /// - 37.85 / 38.00 ≈ 0.996 → KEEP
-    /// 期望保留 4 个（pick 2/3/4/5）。
+    ///   期望保留 4 个（pick 2/3/4/5）。
     #[test]
     fn drops_picks_with_no_upside() {
         let mut picks = vec![
@@ -936,7 +936,7 @@ mod tests {
         assert_eq!(m.get(&(Style::Trend, Period::Short)).copied(), Some(1.2));
         assert_eq!(m.get(&(Style::Value, Period::Mid)).copied(), Some(0.5));
         assert_eq!(m.get(&(Style::Watchlist, Period::Long)).copied(), Some(0.0));
-        assert!(m.get(&(Style::Capital, Period::Short)).is_none(), "缺失 key 不应有值");
+        assert!(!m.contains_key(&(Style::Capital, Period::Short)), "缺失 key 不应有值");
     }
 
     #[test]
