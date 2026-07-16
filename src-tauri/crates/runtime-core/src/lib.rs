@@ -47,7 +47,7 @@ pub mod normalizer;
 pub mod permission_enforcer;
 pub use normalizer::DefaultResponseNormalizer;
 pub mod retry_policy;
-pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
+pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryError, RetryPolicy};
 pub mod llm_executor;
 pub use llm_executor::{LlmCallConfig, execute_llm, execute_llm_stream};
 pub mod permissions;

@@ -6,6 +6,7 @@ import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ContainerNodeData } from "./ContainerNode";
 import { ContainerNode } from "./ContainerNode";
+import { nodeIconFor } from "./nodeIcons";
 
 const PINK_BASE = "#eb2f96";
 
@@ -24,8 +25,8 @@ const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
     <ContainerNode
       data={data}
       selected={selected}
-      icon="🧠"
-      childLabel={t("workflow.swarmNode.agents")}
+      icon={nodeIconFor("swarm")}
+      childLabel={t("workflow.swarmNode.agents", { defaultValue: "Agents" })}
       extraTags={
         <>
           <Tag
@@ -38,7 +39,7 @@ const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
               color: PINK_BASE,
             }}
           >
-            {agentCount} {t("workflow.swarmNode.agents")}
+            {agentCount} {t("workflow.swarmNode.agents", { defaultValue: "agents" })}
           </Tag>
           <Tag
             style={{
@@ -50,7 +51,7 @@ const SwarmNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
               color: PINK_BASE,
             }}
           >
-            {maxRounds} {t("workflow.swarmNode.rounds")}
+            {maxRounds} {t("workflow.swarmNode.rounds", { defaultValue: "rounds" })}
           </Tag>
         </>
       }

@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::rl_optimizer::{
-    Experience, PolicyType, RLConfig, RLError, RLOptimizer, RewardSignal, RewardSignalType,
-    TaskState, ToolSelection, TrainingStats,
+    Experience, PolicyRewardSignalType, PolicyRewardWeight, PolicyType, RLConfig, RLError,
+    RLOptimizer, TaskState, ToolSelection, TrainingStats,
 };
 use std::collections::HashMap;
 
-pub struct RLtrainer {
+pub struct RLTrainer {
     optimizer: RLOptimizer,
     config: RLConfig,
 }
 
-impl RLtrainer {
+impl RLTrainer {
     pub fn new(optimizer: RLOptimizer) -> Self {
         Self { optimizer, config: RLConfig::default() }
     }
 
     /// 执行一轮训练：从经验池采样 → 计算工具级奖励 → 更新策略权重
     pub fn train(&mut self) -> Result<TrainingStats, RLError> {
-        let batch_size = self.config.batch_size as usize;
+        let batch_size = self.config.batch_size;
         let experiences = self.optimizer.experience_pool.sample(batch_size);
 
         if experiences.is_empty() {
@@ -64,10 +64,10 @@ impl RLtrainer {
                     // 移动平均更新权重
                     existing.weight = existing.weight * 0.7 + avg_tool_reward * 0.3;
                 } else if policy.reward_signals.len() < 20 {
-                    policy.reward_signals.push(RewardSignal {
+                    policy.reward_signals.push(PolicyRewardWeight {
                         name: tool_name.to_string(),
                         weight: avg_tool_reward,
-                        signal_type: RewardSignalType::TaskCompletion,
+                        signal_type: PolicyRewardSignalType::TaskCompletion,
                     });
                 }
             }
@@ -95,10 +95,10 @@ impl RLtrainer {
                     last_update: chrono::Utc::now(),
                 },
             };
-            policy.reward_signals.push(RewardSignal {
+            policy.reward_signals.push(PolicyRewardWeight {
                 name: tool_name,
                 weight: avg_reward,
-                signal_type: RewardSignalType::TaskCompletion,
+                signal_type: PolicyRewardSignalType::TaskCompletion,
             });
             self.optimizer.add_policy(policy);
         }
@@ -137,23 +137,23 @@ impl RLtrainer {
 
         // 清除旧的工具信号，用新的替换
         policy.reward_signals.retain(|s| {
-            !matches!(s.signal_type, RewardSignalType::TaskCompletion)
-                && !matches!(s.signal_type, RewardSignalType::ToolDiversity)
+            !matches!(s.signal_type, PolicyRewardSignalType::TaskCompletion)
+                && !matches!(s.signal_type, PolicyRewardSignalType::ToolDiversity)
         });
 
         for (tool, (reward_sum, total, successes)) in &tool_stats {
             let avg = *reward_sum / *total as f32;
             let success_rate = *successes as f32 / *total as f32;
-            policy.reward_signals.push(RewardSignal {
+            policy.reward_signals.push(PolicyRewardWeight {
                 name: tool.clone(),
                 weight: avg.clamp(0.0, 1.0),
-                signal_type: RewardSignalType::TaskCompletion,
+                signal_type: PolicyRewardSignalType::TaskCompletion,
             });
             // 也添加成功率信号
-            policy.reward_signals.push(RewardSignal {
+            policy.reward_signals.push(PolicyRewardWeight {
                 name: format!("{}_success", tool),
                 weight: success_rate,
-                signal_type: RewardSignalType::ToolDiversity,
+                signal_type: PolicyRewardSignalType::ToolDiversity,
             });
         }
 
@@ -313,14 +313,14 @@ mod tests {
     #[test]
     fn test_rl_trainer_new() {
         let optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
-        let trainer = RLtrainer::new(optimizer);
+        let trainer = RLTrainer::new(optimizer);
         assert_eq!(trainer.get_optimizer().id, "opt1");
     }
 
     #[test]
     fn test_rl_trainer_train_no_experiences() {
         let optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         let result = trainer.train();
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -343,7 +343,7 @@ mod tests {
                 timestamp: chrono::Utc::now(),
             });
         }
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         let result = trainer.train();
         assert!(result.is_ok());
         let stats = result.unwrap();
@@ -353,7 +353,7 @@ mod tests {
     #[test]
     fn test_rl_trainer_get_mut_optimizer() {
         let optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         trainer.get_mut_optimizer().record_experience(Experience {
             id: "exp_1".to_string(),
             state: make_task_state(),
@@ -382,7 +382,7 @@ mod tests {
                 last_update: chrono::Utc::now(),
             },
         });
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         let exp = Experience {
             id: "exp_1".to_string(),
             state: make_task_state(),
@@ -404,10 +404,10 @@ mod tests {
             name: "Test Policy".to_string(),
             policy_type: PolicyType::ToolSelection,
             model_id: "rl-v1".to_string(),
-            reward_signals: vec![RewardSignal {
+            reward_signals: vec![PolicyRewardWeight {
                 name: "tool_a".to_string(),
                 weight: 0.8,
-                signal_type: RewardSignalType::TaskCompletion,
+                signal_type: PolicyRewardSignalType::TaskCompletion,
             }],
             training_stats: TrainingStats {
                 total_experiences: 0,
@@ -417,7 +417,7 @@ mod tests {
             },
         };
         optimizer.add_policy(policy);
-        let trainer = RLtrainer::new(optimizer);
+        let trainer = RLTrainer::new(optimizer);
         let states = vec![make_task_state()];
         let rewards = trainer.evaluate_policy("p1", &states);
         // tool_a has weight 0.8, but the state has tool_a and tool_b

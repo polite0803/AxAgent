@@ -176,6 +176,7 @@ impl SemanticValidator for LlmSemanticValidator {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         let llm_config = axagent_harness::LlmCallConfig::default();

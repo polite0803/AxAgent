@@ -765,7 +765,7 @@ impl ParallelExecutionVerifier {
         }
     }
 
-    // ── 加权评分（遵循 training_env.rs 的 RewardComputation 多维评分模式）──
+    // ── 加权评分（多维评分模式：task_completion/tool_efficiency/reasoning_quality/error_recovery）──
     fn compute_weighted_score(checks: &[VerificationCheck]) -> f64 {
         if checks.is_empty() {
             return 1.0;

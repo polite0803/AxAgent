@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { AppstoreOutlined } from "@ant-design/icons";
 import type { NodeProps } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo, useCallback, useState } from "react";
@@ -59,7 +60,7 @@ const GroupFrameNodeComponent: React.FC<NodeProps> = ({ data: _data, selected })
           userSelect: "none",
         }}
       >
-        <span style={{ fontSize: 14, opacity: 0.6 }}>⊞</span>
+        <AppstoreOutlined style={{ fontSize: 14, opacity: 0.6 }} />
         <span
           style={{
             fontSize: 12,

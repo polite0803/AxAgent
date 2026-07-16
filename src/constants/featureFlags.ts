@@ -9,7 +9,7 @@ export const FEATURE_FLAGS = {
   AGENT_IN_THE_LOOP: true,
 
   /** Phase 2: 动态 UI 构建引擎 */
-  DYNAMIC_UI: false,
+  DYNAMIC_UI: true,
 
   /** Phase 3: 自我进化前端控制面 */
   SELF_EVOLUTION_UI: false,

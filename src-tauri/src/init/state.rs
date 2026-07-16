@@ -27,6 +27,9 @@ use tokio_util::sync::CancellationToken;
 pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, String> {
     let DatabaseInitResult { db_handle, master_key, db_path, app_dir, .. } = db_result;
 
+    // 初始化 RLOptimizer 共享状态（优先从文件加载，自动持久化）
+    crate::commands::_shared_state::init_shared_state(&app_dir);
+
     // db_handle 进入 harness（Step 4）；同时克隆 conn 给其它需要 DatabaseConnection 的
     // 旧式组件（vector_store / trajectory_storage / cron / semantic_cache 等）。
     // 这些组件后续在 Step 5/6 也会迁到 harness 内部。
@@ -329,6 +332,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>> = {
         let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
         registry.load_enabled_state(&sea_db).await;
+        // 挂载 RL 策略工具排名器，每次 get_chat_tools() 实时读取最新权重
+        registry.tool_ranker = Some(crate::commands::_shared_state::SHARED_TOOL_RANKER.clone());
         Arc::new(tokio::sync::Mutex::new(registry))
     };
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =

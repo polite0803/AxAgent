@@ -12,59 +12,16 @@
 
 #![allow(clippy::unwrap_used)]
 
+// RLConfig 和 RewardWeights 的权威定义在 axagent_harness::rl，
+// 本 crate 通过 pub use 引用，不再重复定义（AGENTS.md 第 12 条）。
+pub use axagent_harness::rl::{RLConfig, RewardWeights};
+
 pub use axagent_harness::trajectory_types::{LlmJudge, LlmJudgeFuture};
 
 use crate::trajectory::{
     MessageRole, RewardSignal, RewardType, Trajectory, TrajectoryOutcome, TrajectoryStep,
 };
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RLConfig {
-    pub gamma: f64,
-    pub lambda: f64,
-    pub reward_scale: f64,
-    pub entropy_coefficient: f64,
-    pub value_coefficient: f64,
-    pub use_td_lambda: bool,
-}
-
-impl Default for RLConfig {
-    fn default() -> Self {
-        Self {
-            gamma: 0.99,
-            lambda: 0.95,
-            reward_scale: 1.0,
-            entropy_coefficient: 0.01,
-            value_coefficient: 0.5,
-            use_td_lambda: true,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RewardWeights {
-    pub task_completion: f64,
-    pub tool_efficiency: f64,
-    pub reasoning_quality: f64,
-    pub error_recovery: f64,
-    pub user_feedback: f64,
-    pub pattern_match: f64,
-}
-
-impl Default for RewardWeights {
-    fn default() -> Self {
-        Self {
-            task_completion: 0.4,
-            tool_efficiency: 0.2,
-            reasoning_quality: 0.15,
-            error_recovery: 0.15,
-            user_feedback: 0.05,
-            pattern_match: 0.05,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub(crate) struct RLState {
@@ -164,86 +121,7 @@ impl RLEngine {
         self.llm_judge.as_ref().map(|j| j.as_ref())
     }
 
-    pub fn compute_rewards(&self, trajectory: &mut Trajectory) -> Vec<RewardSignal> {
-        let mut rewards = Vec::new();
-        let steps = &trajectory.steps;
-
-        for (i, step) in steps.iter().enumerate() {
-            let mut step_rewards = Vec::new();
-
-            if let Some(ref tool_calls) = step.tool_calls {
-                let efficiency = self.compute_tool_efficiency(step, tool_calls.len());
-                step_rewards.push(RewardSignal {
-                    reward_type: RewardType::ToolEfficiency,
-                    value: efficiency * self.weights.tool_efficiency * self.config.reward_scale,
-                    step_index: i,
-                    timestamp_ms: step.timestamp_ms,
-                    metadata: serde_json::json!({
-                        "tool_count": tool_calls.len(),
-                        "raw_efficiency": efficiency
-                    }),
-                });
-            }
-
-            if let Some(ref reasoning) = step.reasoning {
-                let quality = self.compute_reasoning_quality(reasoning);
-                step_rewards.push(RewardSignal {
-                    reward_type: RewardType::ReasoningQuality,
-                    value: quality * self.weights.reasoning_quality * self.config.reward_scale,
-                    step_index: i,
-                    timestamp_ms: step.timestamp_ms,
-                    metadata: serde_json::json!({
-                        "reasoning_length": reasoning.len(),
-                        "quality_score": quality
-                    }),
-                });
-            }
-
-            if let Some(ref results) = step.tool_results {
-                let error_recovery = self.compute_error_recovery(steps, i, results);
-                if error_recovery > 0.0 {
-                    step_rewards.push(RewardSignal {
-                        reward_type: RewardType::ErrorRecovery,
-                        value: error_recovery
-                            * self.weights.error_recovery
-                            * self.config.reward_scale,
-                        step_index: i,
-                        timestamp_ms: step.timestamp_ms,
-                        metadata: serde_json::json!({"recovered": true}),
-                    });
-                }
-            }
-
-            for pattern in &trajectory.patterns {
-                step_rewards.push(RewardSignal {
-                    reward_type: RewardType::PatternMatch,
-                    value: 0.05 * self.weights.pattern_match * self.config.reward_scale,
-                    step_index: i,
-                    timestamp_ms: step.timestamp_ms,
-                    metadata: serde_json::json!({"pattern": pattern}),
-                });
-            }
-
-            rewards.extend(step_rewards);
-        }
-
-        let final_reward = self.compute_final_reward(trajectory);
-        rewards.push(RewardSignal {
-            reward_type: RewardType::TaskCompletion,
-            value: final_reward * self.weights.task_completion * self.config.reward_scale,
-            step_index: steps.len().saturating_sub(1),
-            timestamp_ms: steps.last().map(|s| s.timestamp_ms).unwrap_or(0),
-            metadata: serde_json::json!({
-                "outcome": format!("{:?}", trajectory.outcome),
-                "final": true
-            }),
-        });
-
-        trajectory.rewards = rewards.clone();
-        rewards
-    }
-
-    pub async fn compute_rewards_v2(&self, trajectory: &mut Trajectory) -> Vec<RewardSignal> {
+    pub async fn compute_rewards(&self, trajectory: &mut Trajectory) -> Vec<RewardSignal> {
         let mut rewards = Vec::new();
         let steps = &trajectory.steps;
 
@@ -649,6 +527,42 @@ impl RLEngine {
     }
 }
 
+// ── harness TrajectoryRewardEngine trait 实现 ──────────────────────
+//
+// 为 trajectory::RLEngine struct 实现 harness::TrajectoryRewardEngine trait，
+// 建立正式的 trait 契约关系（AGENTS.md 铁律 2：consumer 仅依赖 harness trait）。
+// 方法体直接委托给 struct 的固有方法，零运行时开销。
+
+#[async_trait::async_trait]
+impl axagent_harness::rl::TrajectoryRewardEngine for RLEngine {
+    async fn compute_rewards(
+        &self,
+        trajectory: &mut axagent_harness::trajectory_types::Trajectory,
+    ) -> Vec<axagent_harness::trajectory_types::RewardSignal> {
+        // 委托给 struct 固有方法（已统一为 async，支持 LLM judge）
+        self.compute_rewards(trajectory).await
+    }
+
+    fn estimate_value_function(
+        &self,
+        trajectory: &axagent_harness::trajectory_types::Trajectory,
+    ) -> Vec<f64> {
+        self.estimate_value_function(trajectory)
+    }
+
+    fn compute_advantages(
+        &self,
+        rewards: &[axagent_harness::trajectory_types::RewardSignal],
+        values: &[f64],
+    ) -> Vec<f64> {
+        self.compute_advantages(rewards, values)
+    }
+
+    fn shape_rewards(&self, rewards: &mut [axagent_harness::trajectory_types::RewardSignal]) {
+        self.shape_rewards(rewards);
+    }
+}
+
 pub struct RewardNormalizer {
     running_mean: f64,
     running_var: f64,
@@ -760,14 +674,14 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_compute_rewards_success() {
+    #[tokio::test]
+    async fn test_compute_rewards_success() {
         let config = RLConfig::default();
         let weights = RewardWeights::default();
         let engine = RLEngine::new(config, weights);
 
         let mut trajectory = create_test_trajectory(TrajectoryOutcome::Success);
-        let rewards = engine.compute_rewards(&mut trajectory);
+        let rewards = engine.compute_rewards(&mut trajectory).await;
 
         assert!(!rewards.is_empty());
         let final_reward =
@@ -775,14 +689,14 @@ mod tests {
         assert!(final_reward.value > 0.0);
     }
 
-    #[test]
-    fn test_compute_rewards_failure() {
+    #[tokio::test]
+    async fn test_compute_rewards_failure() {
         let config = RLConfig::default();
         let weights = RewardWeights::default();
         let engine = RLEngine::new(config, weights);
 
         let mut trajectory = create_test_trajectory(TrajectoryOutcome::Failure);
-        let rewards = engine.compute_rewards(&mut trajectory);
+        let rewards = engine.compute_rewards(&mut trajectory).await;
 
         let final_reward =
             rewards.iter().find(|r| r.reward_type == RewardType::TaskCompletion).unwrap();

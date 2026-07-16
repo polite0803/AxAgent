@@ -57,6 +57,21 @@ impl AgentTaskStatus {
     }
 }
 
+/// 将 agent 本地 `AgentTaskStatus` 转为 harness 层权威 `TaskStatus`。
+///
+/// `AgentTaskStatus` 缺少 `Ready` 变体，转换后 `Pending` 映射为 `Pending`。
+impl From<AgentTaskStatus> for axagent_harness::types::TaskStatus {
+    fn from(status: AgentTaskStatus) -> Self {
+        match status {
+            AgentTaskStatus::Pending => Self::Pending,
+            AgentTaskStatus::Running => Self::Running,
+            AgentTaskStatus::Completed => Self::Completed,
+            AgentTaskStatus::Failed => Self::Failed,
+            AgentTaskStatus::Skipped => Self::Skipped,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskNode {
     pub id: String,

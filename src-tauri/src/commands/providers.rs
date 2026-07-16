@@ -441,6 +441,7 @@ pub async fn test_model(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
     let start = Instant::now();
     adapter.chat(&ctx, request.into()).await.map_err(|e| e.to_string())?;

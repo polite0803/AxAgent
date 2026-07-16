@@ -271,6 +271,7 @@ pub async fn generate_research_report(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     // 5. 调用 LLM

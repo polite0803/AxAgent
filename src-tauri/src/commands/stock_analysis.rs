@@ -654,10 +654,10 @@ pub async fn search_stock(
     let filtered = match market.as_deref() {
         Some("A") => results
             .into_iter()
-            .filter(|r| !r.stock_code.ends_with(".HK") && !r.stock_code.ends_with(".US"))
+            .filter(|r| !r.code.ends_with(".HK") && !r.code.ends_with(".US"))
             .collect(),
-        Some("HK") => results.into_iter().filter(|r| r.stock_code.ends_with(".HK")).collect(),
-        Some("US") => results.into_iter().filter(|r| r.stock_code.ends_with(".US")).collect(),
+        Some("HK") => results.into_iter().filter(|r| r.code.ends_with(".HK")).collect(),
+        Some("US") => results.into_iter().filter(|r| r.code.ends_with(".US")).collect(),
         _ => results,
     };
     Ok(filtered)

@@ -286,6 +286,7 @@ async fn run_voice_turn(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let mut stream = deps.llm.chat_stream(&deps.llm_ctx, req, Some(cancel.clone()));

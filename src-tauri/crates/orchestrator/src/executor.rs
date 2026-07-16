@@ -21,6 +21,7 @@ use crate::types::{
     DecompositionPlan, OrchestrationError, OrchestrationEvent, OrchestrationStrategy,
     StructuredHandover, SubTaskStatus,
 };
+use axagent_harness::orchestration_dispatch::{DispatchRequest, SubTaskDispatcher};
 use axagent_harness::streaming::{AgentStreamChunk, AgentStreamReporter, StreamChunkKind};
 use axagent_harness::workflow_types::SubGraph;
 
@@ -85,6 +86,8 @@ pub struct OrchestratorExecutor {
     event_listeners: RwLock<Vec<OrchestrationEventHandler>>,
     /// 可选的流式报告器 —— 用于多 Agent 实时协作场景推送流式 chunk
     stream_reporter: Option<Arc<dyn AgentStreamReporter>>,
+    /// 可选的 SubTask 派发器 —— 注入后 execute_subgraph() 可实际派发执行
+    dispatcher: Option<Arc<dyn SubTaskDispatcher>>,
 }
 
 impl OrchestratorExecutor {
@@ -97,6 +100,7 @@ impl OrchestratorExecutor {
             decomposer,
             event_listeners: RwLock::new(Vec::new()),
             stream_reporter: None,
+            dispatcher: None,
         }
     }
 
@@ -111,6 +115,14 @@ impl OrchestratorExecutor {
     /// reporter 发送对应类型的 chunk；上层可通过 `subscribe_to_subtask` 订阅。
     pub fn with_stream_reporter(mut self, reporter: Arc<dyn AgentStreamReporter>) -> Self {
         self.stream_reporter = Some(reporter);
+        self
+    }
+
+    /// 注入 SubTask 派发器，启用 execute_subgraph() 的实际派发能力。
+    ///
+    /// 由 runtime/wiring 层在初始化时注入实现方（agent 或 work_engine）。
+    pub fn with_dispatcher(mut self, dispatcher: Arc<dyn SubTaskDispatcher>) -> Self {
+        self.dispatcher = Some(dispatcher);
         self
     }
 
@@ -211,6 +223,202 @@ impl OrchestratorExecutor {
 
         self.transition(OrchestratorState::Executing).await;
         Ok(workflow)
+    }
+
+    /// 执行阶段：把 ready 的 SubTask 派发给执行方，等待结果并自动更新状态。
+    ///
+    /// 需要先调用 `receive_mission` 和 `generate_subgraph`。
+    /// 若未注入 `SubTaskDispatcher`，返回 `OrchestrationError::InvalidConfig`。
+    ///
+    /// ## 执行流程
+    ///
+    /// 1. 遍历 plan，找出所有 `Ready` 状态的 SubTask（依赖已满足）
+    /// 2. 对每个 Ready SubTask 发出 `SubTaskDispatched` 事件（修复 G9）
+    /// 3. 调用 `dispatcher.dispatch()` 派发执行
+    /// 4. 根据 `DispatchResult.success` 调用 `report_sub_task_completed/failed`
+    /// 5. 返回最终的 plan 快照（可能已触发 replan）
+    pub async fn execute_subgraph(&self) -> Result<Option<DecompositionPlan>, OrchestrationError> {
+        let dispatcher = self.dispatcher.as_ref().ok_or_else(|| {
+            OrchestrationError::InvalidConfig(
+                "No SubTaskDispatcher injected — call with_dispatcher() first".to_string(),
+            )
+        })?;
+
+        self.transition(OrchestratorState::Executing).await;
+
+        // 循环派发：每轮收集 ready SubTask → dispatch → 处理结果
+        // 直至 plan 终态或无 ready 任务（依赖链解锁后下一轮可继续）
+        loop {
+            // 检查 plan 是否已终态
+            let is_terminal = {
+                let plan_guard = self.plan.read().await;
+                plan_guard.as_ref().map(|p| p.is_terminal()).unwrap_or(true)
+            };
+            if is_terminal {
+                break;
+            }
+
+            // 收集 ready sub_tasks（快照后释放锁，避免 dispatch 中长时间持锁）
+            let ready_tasks: Vec<DispatchRequest> = {
+                let plan_guard = self.plan.read().await;
+                let plan = plan_guard.as_ref().ok_or_else(|| {
+                    OrchestrationError::InvalidConfig(
+                        "No plan — call receive_mission first".to_string(),
+                    )
+                })?;
+
+                plan.sub_tasks
+                    .iter()
+                    .filter(|st| st.status == SubTaskStatus::Pending)
+                    .filter(|st| {
+                        // 依赖全部 Completed
+                        st.dependencies.iter().all(|dep_id| {
+                            plan.sub_tasks
+                                .iter()
+                                .find(|o| o.id == *dep_id)
+                                .map(|dep| dep.status == SubTaskStatus::Completed)
+                                .unwrap_or(false)
+                        })
+                    })
+                    .map(|st| DispatchRequest {
+                        sub_task_id: st.id.clone(),
+                        mission: st.description.clone(),
+                        role: st.role.clone(),
+                        system_prompt: st.system_prompt.clone(),
+                        tools: st.tools.clone(),
+                        output_var: st.output_var.clone(),
+                    })
+                    .collect()
+            };
+
+            if ready_tasks.is_empty() {
+                // 无 ready 任务但 plan 未终态：可能存在依赖循环或全部在 Running
+                tracing::info!("execute_subgraph: no ready sub-tasks but plan not terminal");
+                break;
+            }
+
+            // 标记为 Running 并发出 SubTaskDispatched 事件（修复 G9）
+            for req in &ready_tasks {
+                self.update_sub_task_status(&req.sub_task_id, SubTaskStatus::Running).await?;
+                self.emit(OrchestrationEvent::SubTaskDispatched {
+                    sub_task_id: req.sub_task_id.clone(),
+                    worker_node_id: req.sub_task_id.clone(),
+                })
+                .await;
+            }
+
+            // 批量派发（dispatcher 内部可并行）
+            let results = dispatcher.dispatch_batch(ready_tasks).await.map_err(|e| {
+                OrchestrationError::DispatchFailed(format!("batch dispatch failed: {e}"))
+            })?;
+
+            // 处理结果：直接更新状态，避免循环内反复触发 monitor_and_maybe_replan
+            // （monitor 会在循环结束后统一调用，完成 terminal/replan/Completed 转换）
+            for result in results {
+                if result.success {
+                    let handover = result.handover_json.as_deref().and_then(|s| {
+                        serde_json::from_str::<StructuredHandover>(s).ok().or_else(|| {
+                            // 非 StructuredHandover 格式时，包装为通用 handover
+                            Some(StructuredHandover {
+                                completed_work: s.to_string(),
+                                changes: vec![],
+                                next_steps: String::new(),
+                                remaining_issues: String::new(),
+                                dependencies: String::new(),
+                                validation_evidence: String::new(),
+                            })
+                        })
+                    });
+                    self.finalize_sub_task_completed(&result.sub_task_id, handover).await?;
+                } else {
+                    let err = result.error.unwrap_or_else(|| "unknown error".to_string());
+                    self.finalize_sub_task_failed(&result.sub_task_id, &err).await?;
+                }
+            }
+            // 下一轮：已完成的依赖会解锁后续 Pending task
+        }
+
+        // 循环结束：统一调用 monitor 完成 terminal 检查 + replan/Completed 转换
+        // 忽略 monitor 返回值（其 Ok(None) 表示无 replan；调用方仍需 plan 快照）
+        let _ = self.monitor_and_maybe_replan().await?;
+
+        // 返回最终 plan 快照（可能已被 replan 更新）
+        let plan_guard = self.plan.read().await;
+        Ok(plan_guard.clone())
+    }
+
+    /// 内部方法：完成 SubTask 的成功收尾（状态更新 + 流式推送 + 事件发射）。
+    ///
+    /// 与 `report_sub_task_completed` 的区别：不触发 `monitor_and_maybe_replan`，
+    /// 供 `execute_subgraph` 循环内调用以避免重复的状态转换。
+    async fn finalize_sub_task_completed(
+        &self,
+        sub_task_id: &str,
+        handover: Option<StructuredHandover>,
+    ) -> Result<(), OrchestrationError> {
+        self.update_sub_task_status(sub_task_id, SubTaskStatus::Completed).await?;
+
+        // 如有流式报告器，推送 Completed chunk
+        if let Some(ref reporter) = self.stream_reporter {
+            let chunk = AgentStreamChunk {
+                agent_id: sub_task_id.to_string(),
+                sub_task_id: sub_task_id.to_string(),
+                kind: StreamChunkKind::Completed,
+                payload: serde_json::json!({
+                    "handover": handover.as_ref().map(|h| format!("{:?}", h)).unwrap_or_default(),
+                }),
+                timestamp: chrono::Utc::now().timestamp_millis(),
+            };
+            reporter.report_chunk(chunk);
+        }
+
+        self.emit(OrchestrationEvent::SubTaskCompleted {
+            sub_task_id: sub_task_id.to_string(),
+            handover,
+        })
+        .await;
+        Ok(())
+    }
+
+    /// 内部方法：完成 SubTask 的失败收尾（状态更新 + error 字段 + 流式推送 + 事件发射）。
+    ///
+    /// 与 `report_sub_task_failed` 的区别：不触发 `monitor_and_maybe_replan`，
+    /// 供 `execute_subgraph` 循环内调用以避免重复的状态转换。
+    async fn finalize_sub_task_failed(
+        &self,
+        sub_task_id: &str,
+        error: &str,
+    ) -> Result<(), OrchestrationError> {
+        self.update_sub_task_status(sub_task_id, SubTaskStatus::Failed).await?;
+
+        // Update error field in plan
+        {
+            let mut plan_guard = self.plan.write().await;
+            if let Some(ref mut plan) = *plan_guard
+                && let Some(st) = plan.sub_tasks.iter_mut().find(|s| s.id == sub_task_id)
+            {
+                st.error = Some(error.to_string());
+            }
+        }
+
+        // 如有流式报告器，推送 Failed chunk
+        if let Some(ref reporter) = self.stream_reporter {
+            let chunk = AgentStreamChunk {
+                agent_id: sub_task_id.to_string(),
+                sub_task_id: sub_task_id.to_string(),
+                kind: StreamChunkKind::Failed,
+                payload: serde_json::json!({ "error": error }),
+                timestamp: chrono::Utc::now().timestamp_millis(),
+            };
+            reporter.report_chunk(chunk);
+        }
+
+        self.emit(OrchestrationEvent::SubTaskFailed {
+            sub_task_id: sub_task_id.to_string(),
+            error: error.to_string(),
+        })
+        .await;
+        Ok(())
     }
 
     /// The caller reports that a sub-task has completed.
@@ -509,7 +717,60 @@ impl Default for OrchestratorExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_harness::orchestration_dispatch::SubTaskDispatchResult;
     use axagent_harness::workflow_types::AgentRole;
+
+    /// 测试用 Mock 派发器 — 所有任务都成功返回空 handover
+    struct MockDispatcher;
+
+    #[async_trait::async_trait]
+    impl SubTaskDispatcher for MockDispatcher {
+        async fn dispatch(
+            &self,
+            request: DispatchRequest,
+        ) -> axagent_harness::core_error::Result<SubTaskDispatchResult> {
+            Ok(SubTaskDispatchResult {
+                sub_task_id: request.sub_task_id,
+                success: true,
+                handover_json: Some(
+                    serde_json::json!({
+                        "completed_work": "mock completed",
+                        "changes": [],
+                        "next_steps": "",
+                        "remaining_issues": "",
+                        "dependencies": "",
+                        "validation_evidence": ""
+                    })
+                    .to_string(),
+                ),
+                error: None,
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_subgraph_with_mock_dispatcher() {
+        let executor = OrchestratorExecutor::new().with_dispatcher(Arc::new(MockDispatcher));
+        executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
+        executor.generate_subgraph().await.unwrap();
+
+        // 执行后所有 SubTask 应该都成功完成
+        let final_plan = executor.execute_subgraph().await.unwrap();
+        assert!(final_plan.is_some(), "execute_subgraph should return final plan");
+
+        let state = executor.current_state().await;
+        assert!(matches!(state, OrchestratorState::Completed), "Expected Completed, got {state}");
+    }
+
+    #[tokio::test]
+    async fn test_execute_subgraph_without_dispatcher_errors() {
+        let executor = OrchestratorExecutor::new();
+        executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
+
+        let result = executor.execute_subgraph().await;
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), OrchestrationError::InvalidConfig(_)));
+    }
 
     #[tokio::test]
     async fn test_decompose_code_mission() {

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { MergeStrategy } from "../types/workflow.types";
 import type { ContainerNodeData } from "./ContainerNode";
 import { ContainerNode } from "./ContainerNode";
+import { nodeIconFor } from "./nodeIcons";
 
 const ORANGE_BASE = "#fa8c16";
 
@@ -87,8 +88,8 @@ const ParallelNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) =
     <ContainerNode
       data={data}
       selected={selected}
-      icon={isDecorative ? "📦" : "⚡"}
-      childLabel={t("workflow.parallelNode.branches")}
+      icon={isDecorative ? nodeIconFor("subWorkflow") : nodeIconFor("parallel")}
+      childLabel={t("workflow.parallelNode.branches", { defaultValue: "Branches" })}
       extraTags={extraTags}
       disableHandles={isDecorative}
     />

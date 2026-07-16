@@ -1319,7 +1319,9 @@ pub(crate) async fn generate_ai_title_with(
         conversation: None,
         previous_response_id: None,
         store: None,
-    };
+    
+        response_format: None,
+};
 
     let registry_key = axagent_harness::types::provider_model::provider_registry_key(&provider.provider_type);
     let adapter = harness

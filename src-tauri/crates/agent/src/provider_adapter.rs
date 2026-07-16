@@ -425,6 +425,7 @@ impl ApiClient for AxAgentApiClient {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         // Call AxAgent's provider stream

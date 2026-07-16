@@ -386,6 +386,10 @@ pub struct UnifiedToolRegistry {
     pub skill_handlers: HashMap<String, SkillToolHandler>,
     /// 用户提问桥接器（AskUserQuestion 工具阻塞等待用户输入）
     pub ask_user_bridge: Option<Arc<dyn axagent_harness::AskUserBridge>>,
+
+    /// RL 策略工具排名器（可选），在 `get_chat_tools()` 返回前重排工具列表。
+    /// 高权重工具排前面，间接影响 LLM 的工具选择偏好。
+    pub tool_ranker: Option<Arc<dyn axagent_harness::ToolRanker>>,
 }
 
 impl Clone for UnifiedToolRegistry {
@@ -409,6 +413,7 @@ impl Clone for UnifiedToolRegistry {
             tool_extra: self.tool_extra.clone(),
             skill_handlers: HashMap::new(), // handlers 不可 Clone，clone 时重置为空
             ask_user_bridge: self.ask_user_bridge.clone(),
+            tool_ranker: self.tool_ranker.clone(),
         }
     }
 }
@@ -490,6 +495,7 @@ impl UnifiedToolRegistry {
             tool_extra: HashMap::new(),
             skill_handlers: HashMap::new(),
             ask_user_bridge: None,
+            tool_ranker: None,
         };
         reg.init_all();
         reg
@@ -585,6 +591,9 @@ impl UnifiedToolRegistry {
                     parameters: config.input_schema.clone(),
                 },
             });
+        }
+        if let Some(ref ranker) = self.tool_ranker {
+            out = ranker.rank_tools(out);
         }
         out
     }

@@ -447,6 +447,16 @@ impl ToolInfo {
     }
 }
 
+// ── 工具排名契约 ──────────────────────────────────────
+
+/// 工具排名器 — 用 RL 策略学习的权重对工具列表重排。
+///
+/// 在 `get_chat_tools()` 发送给 LLM 之前调用，高权重工具排在前面，
+/// 间接影响 LLM 的工具选择偏好。
+pub trait ToolRanker: Send + Sync {
+    fn rank_tools(&self, tools: Vec<crate::types::ChatTool>) -> Vec<crate::types::ChatTool>;
+}
+
 // ── 输入脱敏 ──────────────────────────────────────────
 
 /// 输入脱敏器 — 对 LLM 输入（用户消息）中的敏感信息做屏蔽

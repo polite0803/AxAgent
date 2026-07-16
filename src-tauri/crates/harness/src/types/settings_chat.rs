@@ -305,7 +305,28 @@ impl Default for AppSettings {
 
 // === Chat Streaming Types ===
 
+/// Structured Output 强制契约。
+///
+/// 各 provider adapter 根据 variant 转换为 provider 特定格式：
+/// - OpenAI: `response_format: { type: "json_object" | "json_schema", ... }`
+/// - Gemini: `generationConfig.responseMimeType` + `responseSchema`
+/// - Anthropic: 通过 system prompt 注入 schema 约束（不支持原生 response_format）
+/// - Ollama: `format: "json"` 或 `format: { schema }`
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type")]
+pub enum ResponseFormat {
+    /// 约束输出为合法 JSON（无特定 schema）
+    JsonObject,
+    /// 约束输出为符合指定 JSON Schema 的 JSON
+    JsonSchema {
+        name: String,
+        schema: serde_json::Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        strict: Option<bool>,
+    },
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatRequest {
     pub model: String,
@@ -332,6 +353,9 @@ pub struct ChatRequest {
     pub previous_response_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub store: Option<bool>,
+    /// Structured Output 强制契约（AGENTS.md 改进6）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_format: Option<ResponseFormat>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

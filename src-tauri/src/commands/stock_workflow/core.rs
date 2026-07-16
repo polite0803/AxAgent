@@ -212,7 +212,7 @@ async fn run_stock_workflow_inner(
         },
     }
 
-    let loaded =
+    let mut loaded =
         load_and_inject_template(state.harness.db(), &stock_code, &quote.name, "stock-analysis")
             .await?;
 
@@ -220,7 +220,7 @@ async fn run_stock_workflow_inner(
     if let Some(ref lang) = language {
         if let Some(instruction) = axagent_stock_analysis::prompts::language_instruction(lang) {
             for node in &mut loaded.nodes {
-                if let axagent_harness::workflow_types::WorkflowNode::Agent(ref mut a) = node {
+                if let axagent_harness::workflow_types::WorkflowNode::Agent(a) = node {
                     a.config.system_prompt = format!("{}\n{}", a.config.system_prompt, instruction);
                 }
             }

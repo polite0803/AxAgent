@@ -7,6 +7,7 @@ import { theme } from "antd";
 import React from "react";
 
 const MIN_CTRL = 40;
+
 const MAX_CTRL = 120;
 const BEND_AMOUNT = 60;
 
@@ -161,17 +162,23 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
     return edgeColor;
   };
 
+  const stroke = getEdgeStroke();
+  const selectedGlow = selected
+    ? `drop-shadow(0 0 4px ${stroke})`
+    : undefined;
+
   return (
     <>
       <path
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        stroke={getEdgeStroke()}
-        strokeWidth={selected ? 2 : (isGrouping ? 1 : 1.5)}
+        stroke={stroke}
+        strokeWidth={selected ? 2.5 : (isGrouping ? 1 : 1.5)}
         fill="none"
         strokeDasharray={isGrouping ? "4,4" : data?.edgeType === "error" ? "5,5" : undefined}
         markerEnd={isGrouping ? undefined : `url(#arrow-${data?.edgeType || "default"})`}
+        style={{ filter: selectedGlow, transition: "stroke-width 0.15s, filter 0.15s" }}
       />
       {!isGrouping && isAnimated && (
         <path

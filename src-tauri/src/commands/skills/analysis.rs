@@ -223,6 +223,7 @@ componentType 可选: "Sandbox" (沙箱页面) 或 "Markdown" (纯文档)。
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         let response = match adapter.chat(&ctx, llm_request.into()).await {

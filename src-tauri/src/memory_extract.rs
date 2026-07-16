@@ -142,6 +142,7 @@ pub async fn extract_memories_from_messages(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response =
@@ -233,6 +234,7 @@ pub async fn consolidate_memories(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter
@@ -361,6 +363,7 @@ pub async fn extract_entities_from_messages(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter
@@ -460,6 +463,7 @@ pub async fn extract_incremental_memories(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     let response = adapter

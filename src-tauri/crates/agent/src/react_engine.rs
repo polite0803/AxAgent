@@ -323,6 +323,7 @@ impl LlmDrivenReasoningProvider {
             conversation: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
 
         // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──

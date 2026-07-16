@@ -17,9 +17,9 @@ export type Model = {
   /**
    * Input price per million tokens (USD). When set, used for accurate cost calculation.
    */
-  input_price_per_mtok: number | null;
+  input_price_per_mtok?: number | null;
   /**
    * Output price per million tokens (USD). When set, used for accurate cost calculation.
    */
-  output_price_per_mtok: number | null;
+  output_price_per_mtok?: number | null;
 };

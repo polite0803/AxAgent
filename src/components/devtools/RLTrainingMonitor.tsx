@@ -51,6 +51,7 @@ export function RLTrainingMonitor() {
   const currentMetrics = useRlTrainingStore((s) => s.currentMetrics);
   const metricsHistory = useRlTrainingStore((s) => s.metricsHistory);
   const config = useRlTrainingStore((s) => s.config);
+  const storeError = useRlTrainingStore((s) => s.error);
 
   const chartData = useMemo(() => {
     const last50 = metricsHistory.slice(-50);
@@ -77,6 +78,21 @@ export function RLTrainingMonitor() {
 
   if (status === "idle") {
     return <Text type="secondary">{t("rl.monitor.idle")}</Text>;
+  }
+
+  if (storeError) {
+    return (
+      <div>
+        <Progress
+          percent={0}
+          status="exception"
+          style={{ marginBottom: 16 }}
+        />
+        <Text type="danger" style={{ display: "block", marginBottom: 8 }}>
+          {t("rl.monitor.error")}: {storeError}
+        </Text>
+      </div>
+    );
   }
 
   return (

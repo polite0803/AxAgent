@@ -24,6 +24,12 @@ pub use cache_interceptor::{HarnessCache, LlmCacheKey};
 pub mod confidence;
 pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
 pub mod channel_adapter;
+pub mod notification_channel;
+pub use notification_channel::{
+    AlertPayload, AlertSeverity, NotificationChannel, NotificationDispatchResult,
+    NotificationDispatchSummary, NotificationPolicy, NotificationRoute, ReportPayload,
+    ReportStockSummary, RouteConfig,
+};
 pub mod constants;
 pub mod contracts;
 pub use contracts::HarnessToolExecutor;
@@ -31,6 +37,8 @@ pub mod conversation_model;
 pub use conversation_model::{ContentBlock, ConversationMessage, SessionInfo, TokenUsage};
 pub mod core_error;
 pub mod error_codes;
+pub mod orchestration_dispatch;
+pub use orchestration_dispatch::{DispatchRequest, SubTaskDispatchResult, SubTaskDispatcher};
 pub mod persistence_mod;
 pub mod plan_compiler;
 pub mod plan_types;
@@ -174,7 +182,7 @@ pub use llm_execution::{LlmExecutionService, SharedLlmExecutionService};
 
 // ── LLM 执行边界（原 runtime-core，上移至 harness 以满足铁律 4 共享类型权威） ──
 pub mod retry_policy;
-pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
+pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryError, RetryPolicy};
 pub mod llm_executor;
 pub use llm_executor::{LlmCallConfig, LlmUsage, execute_llm, execute_llm_stream};
 pub mod marketplace;
@@ -212,6 +220,29 @@ pub use dashboard_report::{
 pub mod trajectory_scorer;
 pub mod trajectory_types;
 
+// ── ReplayExecutor 契约（轨迹回放与回归测试） ──
+pub mod replay_executor;
+pub use replay_executor::{
+    DeviationKind, GoldenTrajectory, RegressionSuite, RegressionSuiteResult, ReplayExecutor,
+    ReplayOptions, ReplayReport, StepDeviation, build_replay_report, compare_trajectories,
+};
+
+// ── 多模型协同路由契约（Cascade / Chain 模式） ──
+pub mod model_cascade;
+pub use model_cascade::{
+    CascadeModel, CascadeOutcome, EscalationDecision, EscalationReason, EscalationRecord,
+    EscalationRule, EscalationRuleBuilder, ModelCallSummary, ModelCascadeExecutor,
+    ModelCascadeStrategy, should_escalate,
+};
+
+// ── 路由决策桥接（RouteDecision ↔ ProviderRequestContext） ──
+// ModelTier / RouteDecision 等应用层类型留在 src/smart_router/，
+// harness 只定义 tier → 具体 model/provider 的映射契约。
+pub mod route_bridge;
+pub use route_bridge::{
+    ModelTierResolver, TierModelMapping, apply_mapping_to_context, apply_tier_to_request,
+};
+
 // ── Provider 契约重导出 ──
 pub use context_builder::build_provider_request_context;
 pub use has_provider_registry::HasProviderRegistry;
@@ -244,7 +275,7 @@ pub use trajectory_service::{IntegrityCheck, IntegrityResult, TaskComplexity, Tr
 pub use tool::{
     AskUserBridge, DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, OutputSanitizer,
     PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory, ToolContext, ToolDomain,
-    ToolInfo, ToolPermissions, ToolResult, parse_tool_name,
+    ToolInfo, ToolPermissions, ToolRanker, ToolResult, parse_tool_name,
 };
 
 // ── Registry 契约重导出 ──
@@ -326,6 +357,7 @@ pub use agent::{
 pub mod rl;
 pub use rl::{
     RLConfig, RLEngine, RLTrainer, RewardWeights, TrainingEpisode, TrainingReport, TrainingStep,
+    TrajectoryRewardEngine,
 };
 pub mod dream;
 pub use dream::{

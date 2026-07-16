@@ -726,6 +726,7 @@ impl NodeExecutorTrait for AgentExecutor {
                 conversation: None,
                 previous_response_id: None,
                 store: None,
+                response_format: None,
             };
 
             // 流式调用 LLM（经统一入口 execute_llm_stream，获得 PromptGuard/截断/缓存/审计）
@@ -1062,6 +1063,7 @@ impl NodeExecutorTrait for AgentExecutor {
                                             conversation: None,
                                             previous_response_id: None,
                                             store: None,
+                                            response_format: None,
                                         };
                                         let llm_config = axagent_harness::LlmCallConfig::default();
                                         match axagent_harness::execute_llm_stream(
@@ -1298,6 +1300,7 @@ impl AgentExecutor {
                 conversation: None,
                 previous_response_id: None,
                 store: None,
+                response_format: None,
             },
             &llm_config,
         )

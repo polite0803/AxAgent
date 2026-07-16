@@ -43,8 +43,8 @@ mod preference_learner;
 mod proactive_assistant;
 mod process_reward;
 mod reminder_manager;
+mod replay;
 mod rl;
-mod rl_trainer;
 mod sandbox_executor;
 mod skill;
 mod skill_decomposition;
@@ -61,7 +61,6 @@ mod sub_agent;
 mod suggestion_engine;
 mod task_prefetcher;
 mod text_grad;
-mod training_env;
 mod trajectory;
 mod trajectory_compressor;
 mod trajectory_impl;
@@ -152,8 +151,6 @@ pub use proactive_assistant::{
 
 pub use rl::{RLConfig, RLEngine, RewardNormalizer, RewardWeights};
 
-pub use rl_trainer::{RLTrainer, TrainingEpisode, TrainingReport};
-
 pub use sandbox_executor::SkillSandboxExecutor;
 
 pub use skill::{HermesMetadata, Skill, SkillMetadata, SkillProposal};
@@ -174,6 +171,9 @@ pub use storage::{
     TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectorySession, TrajectoryStatistics,
     TrajectoryStorage,
 };
+
+// ── ReplayExecutor 实现 ──
+pub use replay::TrajectoryReplayer;
 
 pub use style_applier::StyleApplier;
 

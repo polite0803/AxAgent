@@ -4271,13 +4271,13 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* Minimap 自定义圆角 */
 .react-flow__minimap {
   border-radius: 8px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* 背景线风格 */
-.react-flow__background.lines pattern {
-  opacity: 0.3;
+/* 背景点风格（Dots）：pattern 透明度跟随画布，避免被全局规则二次变暗 */
+.react-flow__background.dots pattern {
+  opacity: 0.6;
 }
 
 /* DnD drop zone indicator — 拖拽节点入容器时的高亮 */

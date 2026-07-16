@@ -16,8 +16,10 @@ import {
   ListChecks,
   PanelLeft,
   PanelRight,
+  Play,
   Redo2,
   Save,
+  Settings,
   Share2,
   Shuffle,
   Sparkles,
@@ -45,6 +47,8 @@ interface EditorHeaderProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onRun?: () => void;
+  onSettings?: () => void;
   aiPanelVisible?: boolean;
   debugPanelVisible?: boolean;
   onToggleLeftPanel?: () => void;
@@ -73,6 +77,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onRedo,
   canUndo = false,
   canRedo = false,
+  onRun,
+  onSettings,
   aiPanelVisible = false,
   debugPanelVisible = false,
   onToggleLeftPanel,
@@ -147,6 +153,21 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       )}
 
       <Bot size={20} style={{ color: token.colorPrimary }} />
+
+      {/* 面包屑：Workspace > Workflow > (名称) */}
+      <span
+        style={{
+          fontSize: 11,
+          color: token.colorTextTertiary,
+          whiteSpace: "nowrap",
+          userSelect: "none",
+        }}
+      >
+        <span style={{ color: token.colorTextQuaternary }}>Workspace</span>
+        <span style={{ margin: "0 4px", color: token.colorTextQuaternary }}>›</span>
+        <span style={{ color: token.colorTextQuaternary }}>Workflow</span>
+        <span style={{ margin: "0 4px", color: token.colorTextQuaternary }}>›</span>
+      </span>
 
       {isEditing
         ? (
@@ -274,6 +295,22 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                       icon: <History size={16} />,
                       label: t("workflow.versionHistory.title"),
                       onClick: onOpenVersionHistory,
+                    }]
+                    : []),
+                  ...(onRun
+                    ? [{
+                      key: "run",
+                      icon: <Play size={16} />,
+                      label: t("workflow.run"),
+                      onClick: onRun,
+                    }]
+                    : []),
+                  ...(onSettings
+                    ? [{
+                      key: "settings",
+                      icon: <Settings size={16} />,
+                      label: t("workflow.settings"),
+                      onClick: onSettings,
                     }]
                     : []),
                   ...(onSaveAsImage
@@ -496,6 +533,30 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                 style={{ color: token.colorTextSecondary }}
               />
             </Tooltip>
+            {onRun && (
+              <Tooltip title={t("workflow.run")}>
+                <Button
+                  type="primary"
+                  icon={<Play size={16} />}
+                  onClick={onRun}
+                  aria-label={t("workflow.run")}
+                  style={{ display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  {t("workflow.run")}
+                </Button>
+              </Tooltip>
+            )}
+            {onSettings && (
+              <Tooltip title={t("workflow.settings")}>
+                <Button
+                  type="text"
+                  icon={<Settings size={18} />}
+                  onClick={onSettings}
+                  aria-label={t("workflow.settings")}
+                  style={{ color: token.colorTextSecondary }}
+                />
+              </Tooltip>
+            )}
             <Button
               type="primary"
               icon={<Save size={16} />}

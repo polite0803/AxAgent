@@ -1953,7 +1953,7 @@ pub async fn agent_query(
                     {
                         let rl = app_state.rl_engine.read().await;
                         let mut traj_for_rl = trajectory.clone();
-                        let rewards = rl.compute_rewards(&mut traj_for_rl);
+                        let rewards = rl.compute_rewards(&mut traj_for_rl).await;
                         if !rewards.is_empty() {
                             let total_reward: f64 = rewards.iter().map(|r| r.value).sum();
                             tracing::debug!(

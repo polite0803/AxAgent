@@ -17,14 +17,14 @@ pub fn start_background_services(
 ) {
     init_mcp_oauth(state);
     start_auto_backup(app, state, app_dir.clone());
-    start_webdav_sync(app, state, app_dir);
+    start_webdav_sync(app, state, app_dir.clone());
     #[cfg(not(mobile))]
     start_tray(app, &_tray_language);
     start_closed_loop_service(app, state);
     start_insight_generation(state);
     start_pattern_learning(state);
     start_cross_session_learning(state);
-    start_rl_reward_computation(state);
+    start_rl_reward_computation(state, app_dir);
     start_batch_processing(state);
     start_user_profile_persistence(state);
     start_skill_evolution(state);
@@ -586,7 +586,7 @@ fn start_cross_session_learning(state: &AppState) {
     });
 }
 
-fn start_rl_reward_computation(state: &AppState) {
+fn start_rl_reward_computation(state: &AppState, app_dir: std::path::PathBuf) {
     let trajectory_storage = state.trajectory_storage.clone();
     let rl_engine = state.rl_engine.clone();
     let insight_system = state.insight_system.clone();
@@ -631,7 +631,7 @@ fn start_rl_reward_computation(state: &AppState) {
             let mut total_prm_rewards = 0;
             for trajectory in &mut trajectories {
                 {
-                    let mut rewards = rl.compute_rewards(trajectory);
+                    let mut rewards = rl.compute_rewards(trajectory).await;
                     total_rewards += rewards.len();
                     rl.shape_rewards(&mut rewards);
                     reward_normalizer.normalize(&mut rewards);
@@ -672,6 +672,12 @@ fn start_rl_reward_computation(state: &AppState) {
                                 avg_advantage,
                                 gradients
                             );
+                            // M7-C: 桥接 compute_policy_gradient → RLOptimizer 权重更新
+                            if !gradients.is_empty() {
+                                let mut opt =
+                                    crate::commands::_shared_state::SHARED_OPTIMIZER.write().await;
+                                opt.apply_gradients(&gradients);
+                            }
                         }
                     }
                     let total_reward: f64 = trajectory.rewards.iter().map(|r| r.value).sum();
@@ -718,6 +724,12 @@ fn start_rl_reward_computation(state: &AppState) {
                     });
                 }
             }
+            // M7-E: 每轮遍历结束保存 RLOptimizer 状态
+            let save_dir = app_dir.clone();
+            let _ = tokio::task::spawn_blocking(move || {
+                crate::commands::_shared_state::save_rl_optimizer(&save_dir);
+            })
+            .await;
         }
     });
 }

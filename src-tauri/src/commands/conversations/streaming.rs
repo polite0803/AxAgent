@@ -176,6 +176,7 @@ fn spawn_stream_task(
                     conversation: None,
                     previous_response_id: None,
                     store: None,
+                    response_format: None,
                 };
 
                 let llm_config = axagent_runtime_core::LlmCallConfig {

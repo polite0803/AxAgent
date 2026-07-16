@@ -324,6 +324,7 @@ async fn generate_plan_via_llm(
         conversation: None,
         previous_response_id: None,
         store: None,
+        response_format: None,
     };
 
     // Call LLM

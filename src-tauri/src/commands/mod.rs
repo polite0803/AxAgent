@@ -83,7 +83,6 @@ pub mod recommendation_cron;
 pub mod reflection;
 pub mod reminder;
 pub mod research;
-pub mod rl;
 pub mod rl_training;
 pub mod sandbox;
 pub mod scheduled_task;

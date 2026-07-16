@@ -16,6 +16,7 @@ pub mod realtime_client;
 pub mod registry;
 #[cfg(feature = "computer-use")]
 pub mod screen_vision;
+pub mod structured_output;
 pub mod transport;
 pub mod url_utils;
 
