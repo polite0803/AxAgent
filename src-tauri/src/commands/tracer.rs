@@ -506,6 +506,11 @@ pub fn tracer_submit_feedback(
         tokio::task::spawn(async move {
             let mut pipeline = pipeline.write().await;
             pipeline.process_feedback(&trace, rating_val, comment_clone.as_deref()).await;
+            // 桥接：反馈同时驱动 Reflection→Experience 链路，
+            // 为后续接入完整 Reflector 保留数据格式兼容性
+            pipeline
+                .bridge_feedback_to_reflection(&trace, rating_val, comment_clone.as_deref())
+                .await;
         });
     }
 

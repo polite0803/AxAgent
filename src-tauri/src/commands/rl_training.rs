@@ -166,7 +166,7 @@ async fn compute_real_metrics(state: &AppState, step: u64) -> Result<TrainingMet
 /// 启动 RL 训练会话。
 #[command]
 pub async fn start_rl_training(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     config: RLTrainingConfig,
 ) -> Result<String, String> {
     let training_id = generate_training_id();
@@ -183,10 +183,10 @@ pub async fn start_rl_training(
     let mut store = training_runtime().lock().await;
     store.insert(training_id.clone(), runtime);
 
-    // 更新 RLEngine 配置以匹配训练参数
+    // 更新 RLOptimizer 配置以匹配训练参数
     {
-        let _rl_engine = state.rl_engine.write().await;
-        let rl_config = RLConfig {
+        let mut opt = super::_shared_state::SHARED_OPTIMIZER.write().await;
+        opt.config = RLConfig {
             gamma: 0.99,
             lambda: 0.95,
             reward_scale: 1.0,
@@ -195,9 +195,11 @@ pub async fn start_rl_training(
             use_td_lambda: true,
             ..Default::default()
         };
-        // RLEngine 的配置在构造时设定，这里通过重新构造来更新
-        // 实际使用现有的 weights 和新的 config
-        let _ = rl_config; // 当前 RLEngine 不支持运行时更新配置
+        tracing::info!(
+            target: "rl_training",
+            training_id = %training_id,
+            "RLOptimizer config updated for training"
+        );
     }
 
     tracing::info!(target: "rl_training", training_id = %training_id, "RL training started");
@@ -397,6 +399,50 @@ pub async fn run_rl_training_step(state: State<'_, AppState>) -> Result<serde_js
                 _ => {},
             }
         }
+
+        // M7-D: 将轨迹奖励作为 Experience 写入 RLOptimizer
+        {
+            let mut opt = super::_shared_state::SHARED_OPTIMIZER.write().await;
+            let total: f32 = rewards.iter().map(|r| r.value as f32).sum();
+            let experience = axagent_agent::rl_optimizer::Experience {
+                id: uuid::Uuid::new_v4().to_string(),
+                state: axagent_agent::rl_optimizer::TaskState {
+                    task_id: traj.id.clone(),
+                    task_type: "trajectory".to_string(),
+                    context: std::collections::HashMap::new(),
+                    available_tools: Vec::new(),
+                    completed_tools: Vec::new(),
+                    error_count: if traj.outcome
+                        != axagent_harness::trajectory_types::TrajectoryOutcome::Success
+                    {
+                        1
+                    } else {
+                        0
+                    },
+                    elapsed_ms: 0,
+                },
+                action: axagent_agent::rl_optimizer::ToolSelection {
+                    tool_id: "trajectory_eval".to_string(),
+                    tool_name: "Trajectory Evaluation".to_string(),
+                    parameters: std::collections::HashMap::new(),
+                    reasoning: format!("trajectory {} reward", traj.id),
+                },
+                reward: total,
+                next_state: axagent_agent::rl_optimizer::TaskState {
+                    task_id: traj.id.clone(),
+                    task_type: "trajectory".to_string(),
+                    context: std::collections::HashMap::new(),
+                    available_tools: Vec::new(),
+                    completed_tools: Vec::new(),
+                    error_count: 0,
+                    elapsed_ms: 0,
+                },
+                done: true,
+                timestamp: chrono::Utc::now(),
+            };
+            opt.record_experience(experience);
+        }
+
         if !rewards.is_empty() {
             processed += 1;
         }

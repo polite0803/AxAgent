@@ -243,7 +243,7 @@ pub use trajectory_service::{IntegrityCheck, IntegrityResult, TaskComplexity, Tr
 pub use tool::{
     AskUserBridge, DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, OutputSanitizer,
     PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory, ToolContext, ToolDomain,
-    ToolInfo, ToolPermissions, ToolResult, parse_tool_name,
+    ToolInfo, ToolPermissions, ToolRanker, ToolResult, parse_tool_name,
 };
 
 // ── Registry 契约重导出 ──

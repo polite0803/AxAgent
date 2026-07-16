@@ -238,6 +238,51 @@ impl ExperiencePipeline {
         }
     }
 
+    /// 基于反馈评分构造简化 Reflection 并调用 process_reflection。
+    ///
+    /// 作为 `Reflector::reflect()`（目前零调用）的轻量替代：
+    /// 用反馈评分反向构造 Reflection 字段，让 Reflection→Experience
+    /// 数据链路至少在后端跑通，为后续接入完整 Reflector 保留数据格式兼容。
+    pub async fn bridge_feedback_to_reflection(
+        &mut self,
+        trace_id: &str,
+        rating: u8,
+        comment: Option<&str>,
+    ) {
+        let quality_score = match rating {
+            1 | 2 => 3u8,
+            3 => 5u8,
+            4 => 7u8,
+            5 => 9u8,
+            _ => 5u8,
+        };
+        let error_patterns = if rating <= 2 {
+            vec![format!("low_rating_from_feedback:{}", trace_id)]
+        } else {
+            Vec::new()
+        };
+        let improvement_suggestions =
+            comment.map(|c| vec![format!("feedback_suggestion: {}", c)]).unwrap_or_default();
+        let overall_summary =
+            format!("Feedback-based reflection for trace {} (rating={}/5)", trace_id, rating);
+
+        let reflection = crate::reflector::Reflection {
+            task_id: format!("feedback:{}", trace_id),
+            timestamp: chrono::Utc::now(),
+            quality_score,
+            quality_analysis: overall_summary.clone(),
+            efficiency_analysis: String::new(),
+            error_patterns,
+            reusable_patterns: Vec::new(),
+            knowledge_suggestions: Vec::new(),
+            improvement_suggestions,
+            overall_summary,
+            quality_metrics: None,
+        };
+
+        self.process_reflection(&reflection).await;
+    }
+
     pub fn stats(&self) -> PipelineStats {
         let pool_size = self
             .rl_optimizer

@@ -12,6 +12,7 @@ pub use axagent_harness::rl::RLConfig;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RLOptimizer {
@@ -200,6 +201,100 @@ impl RLOptimizer {
 
     pub fn get_policy_stats(&self, policy_id: &str) -> Option<TrainingStats> {
         self.policies.get(policy_id).map(|p| p.training_stats.clone())
+    }
+
+    /// 返回每个可用工具的 RL 学习权重（0.0 ~ 1.0）。
+    /// 排序从高到低，供 `get_chat_tools()` 重排工具列表时使用。
+    /// 未在策略中注册的工具默认权重 0.5。
+    pub fn tool_ranking(&self, tool_names: &[String]) -> Vec<(String, f32)> {
+        let policy = self.policies.get("tool_selection");
+        let mut ranked: Vec<(String, f32)> = tool_names
+            .iter()
+            .map(|name| {
+                let weight = policy
+                    .and_then(|p| p.reward_signals.iter().find(|s| s.name == *name))
+                    .map(|s| s.weight)
+                    .unwrap_or(0.5);
+                (name.clone(), weight)
+            })
+            .collect();
+        ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        ranked
+    }
+
+    /// 用梯度更新策略权重，学习率由 `self.config.learning_rate` 控制。
+    pub fn apply_gradients(&mut self, gradients: &HashMap<String, f64>) {
+        let policy = self.policies.entry("tool_selection".to_string()).or_insert_with(|| Policy {
+            id: "tool_selection".to_string(),
+            name: "Tool Selection Policy".to_string(),
+            policy_type: PolicyType::ToolSelection,
+            model_id: "default".to_string(),
+            reward_signals: Vec::new(),
+            training_stats: TrainingStats {
+                total_experiences: 0,
+                episodes_completed: 0,
+                avg_reward: 0.0,
+                last_update: chrono::Utc::now(),
+            },
+        });
+
+        for (tool_name, gradient) in gradients {
+            let lr = self.config.learning_rate as f32;
+            let found = policy.reward_signals.iter_mut().find(|s| s.name == *tool_name);
+            if let Some(signal) = found {
+                signal.weight = (signal.weight + lr * *gradient as f32).clamp(0.0, 1.0);
+            } else {
+                let initial = (0.5 + lr * *gradient as f32 * 0.1).clamp(0.0, 1.0);
+                policy.reward_signals.push(PolicyRewardWeight {
+                    name: tool_name.clone(),
+                    weight: initial,
+                    signal_type: PolicyRewardSignalType::ToolDiversity,
+                });
+            }
+        }
+
+        policy.training_stats.total_experiences += gradients.len() as u64;
+        policy.training_stats.episodes_completed += 1;
+        policy.training_stats.last_update = chrono::Utc::now();
+    }
+
+    /// 将 RLOptimizer 状态保存到 JSON 文件
+    pub fn save_to_file(&self, path: &Path) -> Result<(), String> {
+        let json = serde_json::to_string_pretty(self)
+            .map_err(|e| format!("序列化 RLOptimizer 失败: {}", e))?;
+        std::fs::write(path, &json).map_err(|e| format!("写入 RLOptimizer 文件失败: {}", e))
+    }
+
+    /// 从 JSON 文件加载 RLOptimizer 状态
+    pub fn load_from_file(path: &Path) -> Result<Self, String> {
+        let json = std::fs::read_to_string(path)
+            .map_err(|e| format!("读取 RLOptimizer 文件失败: {}", e))?;
+        let opt: Self =
+            serde_json::from_str(&json).map_err(|e| format!("反序列化 RLOptimizer 失败: {}", e))?;
+        Ok(opt)
+    }
+}
+
+// ── harness ToolRanker trait 实现 ──────────────────────
+//
+// 用 RL 策略学习到的工具权重对工具列表重排。
+// 高权重工具排前面，间接影响 LLM 的工具选择偏好。
+impl axagent_harness::tool::ToolRanker for RLOptimizer {
+    fn rank_tools(
+        &self,
+        mut tools: Vec<axagent_harness::types::ChatTool>,
+    ) -> Vec<axagent_harness::types::ChatTool> {
+        let tool_names: Vec<String> = tools.iter().map(|t| t.function.name.clone()).collect();
+        let ranked = self.tool_ranking(&tool_names);
+        // 按权重从高到低稳定排序
+        let weight_map: std::collections::HashMap<&str, f32> =
+            ranked.iter().map(|(name, w)| (name.as_str(), *w)).collect();
+        tools.sort_by(|a, b| {
+            let wa = weight_map.get(a.function.name.as_str()).copied().unwrap_or(0.5);
+            let wb = weight_map.get(b.function.name.as_str()).copied().unwrap_or(0.5);
+            wb.partial_cmp(&wa).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        tools
     }
 }
 
