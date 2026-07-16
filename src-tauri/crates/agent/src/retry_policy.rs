@@ -1,10 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//! Agent 通用重试原语
+//!
+//! 本模块提供基于 `backon` crate 的通用异步重试函数 `with_retry`，
+//! 以及配套的 `AgentRetryPolicy`（agent 层重试配置）和 `RetryState`（重试状态机）。
+//!
+//! ## 与 harness `RetryError` 的关系（AGENTS.md 规则 12）
+//!
+//! `RetryError` 的权威定义在 `axagent_harness::retry_policy`，本模块通过
+//! `pub use` 引用，不重复定义。harness 的 `RetryError` 覆盖了 agent 所需的
+//! 全部场景：`Exhausted`（含 attempts/errors/elapsed）、`Cancelled`、`Timeout`、
+//! 以及 LLM 降级策略相关的 `SwitchModelRequested` / `EscalateToHuman` 等。
+
 use crate::recovery_strategies::{ErrorClassifier, ErrorType};
 use backon::BackoffBuilder;
 use backon::ExponentialBuilder;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+// ── RetryError 权威来源：harness（AGENTS.md 规则 12） ──
+pub use axagent_harness::retry_policy::RetryError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentRetryPolicy {
@@ -134,7 +149,7 @@ where
 {
     let classifier = ErrorClassifier::new();
     let mut state = RetryState::new();
-    let start = std::time::Instant::now();
+    let start = Instant::now();
     let mut backoff = policy.build_backoff();
 
     // 统一为 `while attempts < max_attempts` 模式:
@@ -155,9 +170,10 @@ where
                     || state.current_attempt >= policy.max_attempts
                 {
                     return Err(RetryError::Exhausted {
-                        errors: std::mem::take(&mut state.errors),
-                        attempts: state.current_attempt,
+                        max_retries: policy.max_attempts as u32,
+                        attempts: state.current_attempt as u32,
                         last_error: error_str,
+                        errors: std::mem::take(&mut state.errors),
                         elapsed: start.elapsed(),
                     });
                 }
@@ -168,23 +184,12 @@ where
     }
 
     Err(RetryError::Exhausted {
-        errors: std::mem::take(&mut state.errors),
-        attempts: state.current_attempt,
+        max_retries: policy.max_attempts as u32,
+        attempts: state.current_attempt as u32,
         last_error: String::new(),
+        errors: std::mem::take(&mut state.errors),
         elapsed: start.elapsed(),
     })
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RetryError {
-    #[error("Retry exhausted after {attempts} attempts")]
-    Exhausted { errors: Vec<String>, attempts: usize, last_error: String, elapsed: Duration },
-
-    #[error("Retry cancelled")]
-    Cancelled,
-
-    #[error("Retry timeout after {0:?}")]
-    Timeout(Duration),
 }
 
 #[cfg(test)]
@@ -467,9 +472,10 @@ mod tests {
     #[test]
     fn test_retry_error_exhausted_display() {
         let err = RetryError::Exhausted {
-            errors: vec!["e1".to_string()],
+            max_retries: 3,
             attempts: 3,
             last_error: "fail".to_string(),
+            errors: vec!["e1".to_string()],
             elapsed: Duration::from_secs(5),
         };
         assert!(err.to_string().contains("3"));
@@ -478,12 +484,15 @@ mod tests {
     #[test]
     fn test_retry_error_cancelled_display() {
         let err = RetryError::Cancelled;
-        assert!(err.to_string().contains("cancelled"));
+        // harness 版本 Display 为中文"重试被取消"
+        assert!(err.to_string().contains("取消"));
     }
 
     #[test]
     fn test_retry_error_timeout_display() {
         let err = RetryError::Timeout(Duration::from_secs(10));
+        // harness 版本 Display 为"重试超时（{0:?}）"
+        assert!(err.to_string().contains("超时"));
         assert!(err.to_string().contains("10"));
     }
 

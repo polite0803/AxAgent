@@ -203,6 +203,14 @@ pub use model_cascade::{
     ModelCascadeStrategy, should_escalate,
 };
 
+// ── 路由决策桥接（RouteDecision ↔ ProviderRequestContext） ──
+// ModelTier / RouteDecision 等应用层类型留在 src/smart_router/，
+// harness 只定义 tier → 具体 model/provider 的映射契约。
+pub mod route_bridge;
+pub use route_bridge::{
+    ModelTierResolver, TierModelMapping, apply_mapping_to_context, apply_tier_to_request,
+};
+
 // ── Provider 契约重导出 ──
 pub use context_builder::build_provider_request_context;
 pub use has_provider_registry::HasProviderRegistry;
