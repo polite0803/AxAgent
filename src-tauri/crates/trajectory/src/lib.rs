@@ -43,6 +43,7 @@ mod preference_learner;
 mod proactive_assistant;
 mod process_reward;
 mod reminder_manager;
+mod replay;
 mod rl;
 mod rl_trainer;
 mod sandbox_executor;
@@ -174,6 +175,9 @@ pub use storage::{
     TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectorySession, TrajectoryStatistics,
     TrajectoryStorage,
 };
+
+// ── ReplayExecutor 实现 ──
+pub use replay::TrajectoryReplayer;
 
 pub use style_applier::StyleApplier;
 

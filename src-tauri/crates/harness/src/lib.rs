@@ -188,6 +188,13 @@ pub use mcp_types::{
 pub mod trajectory_scorer;
 pub mod trajectory_types;
 
+// ── ReplayExecutor 契约（轨迹回放与回归测试） ──
+pub mod replay_executor;
+pub use replay_executor::{
+    DeviationKind, GoldenTrajectory, RegressionSuite, RegressionSuiteResult, ReplayExecutor,
+    ReplayOptions, ReplayReport, StepDeviation, build_replay_report, compare_trajectories,
+};
+
 // ── Provider 契约重导出 ──
 pub use context_builder::build_provider_request_context;
 pub use has_provider_registry::HasProviderRegistry;
