@@ -5,10 +5,12 @@ pub mod conversation;
 pub mod gateway;
 pub mod provider_model;
 pub mod rag_voice_etc;
+pub mod session_state;
 pub mod settings_chat;
 
 pub use conversation::*;
 pub use gateway::*;
 pub use provider_model::*;
 pub use rag_voice_etc::*;
+pub use session_state::*;
 pub use settings_chat::*;

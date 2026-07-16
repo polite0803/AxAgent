@@ -90,6 +90,22 @@ impl std::fmt::Display for SubTaskStatus {
     }
 }
 
+/// 将 orchestrator 本地 `SubTaskStatus` 转为 harness 层权威 `TaskStatus`。
+///
+/// 变体一一对应，转换无信息损失。
+impl From<SubTaskStatus> for axagent_harness::types::TaskStatus {
+    fn from(status: SubTaskStatus) -> Self {
+        match status {
+            SubTaskStatus::Pending => Self::Pending,
+            SubTaskStatus::Ready => Self::Ready,
+            SubTaskStatus::Running => Self::Running,
+            SubTaskStatus::Completed => Self::Completed,
+            SubTaskStatus::Failed => Self::Failed,
+            SubTaskStatus::Skipped => Self::Skipped,
+        }
+    }
+}
+
 /// A single sub-task decomposed from the high-level mission.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubTask {

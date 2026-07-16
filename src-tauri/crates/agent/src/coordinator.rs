@@ -326,6 +326,24 @@ impl std::fmt::Display for AgentStatus {
     }
 }
 
+/// 将 coordinator 本地 `AgentStatus` 转为 harness 层权威 `SessionStatus`。
+///
+/// 注意：`Failed(String)` 的错误详情会被丢弃（harness 枚举不携带载荷），
+/// 调用方如需保留错误信息应单独传递。
+impl From<AgentStatus> for axagent_harness::types::SessionStatus {
+    fn from(status: AgentStatus) -> Self {
+        match status {
+            AgentStatus::Idle => Self::Idle,
+            AgentStatus::Initializing => Self::Initializing,
+            AgentStatus::Running => Self::Running,
+            AgentStatus::WaitingForConfirmation => Self::WaitingApproval,
+            AgentStatus::Paused => Self::Paused,
+            AgentStatus::Completed => Self::Completed,
+            AgentStatus::Failed(_) => Self::Failed,
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 状态机判别值（用于 lock-free 原子状态机）
 // ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@ use async_trait::async_trait;
 
 use crate::core_error::Result;
 use crate::types::AgentSession;
+use crate::types::session_state::SessionStatus;
 
 /// Agent 会话持久化操作。
 #[async_trait]
@@ -21,10 +22,15 @@ pub trait AgentSessionRepository: Send + Sync {
         permission_mode: Option<&str>,
     ) -> Result<AgentSession>;
 
-    /// 更新运行时状态。
+    /// 更新运行时状态（字符串形式，向后兼容）。
     async fn update_agent_session_status(&self, id: &str, runtime_status: &str) -> Result<()>;
 
-    /// 查询完成后更新 sdk_context / tokens / cost。
+    /// 更新运行时状态（类型安全枚举形式，新代码优先使用）。
+    async fn update_session_status_enum(&self, id: &str, status: SessionStatus) -> Result<()> {
+        self.update_agent_session_status(id, status.as_str()).await
+    }
+
+    /// 查询完成后更新 sdk_context / tokens / cost（字符串形式，向后兼容）。
     async fn update_agent_session_after_query(
         &self,
         id: &str,
@@ -33,6 +39,25 @@ pub trait AgentSessionRepository: Send + Sync {
         tokens_delta: i32,
         cost_delta: f64,
     ) -> Result<()>;
+
+    /// 查询完成后更新 sdk_context / tokens / cost（枚举形式，新代码优先使用）。
+    async fn update_session_after_query_enum(
+        &self,
+        id: &str,
+        status: SessionStatus,
+        sdk_context_json: Option<&str>,
+        tokens_delta: i32,
+        cost_delta: f64,
+    ) -> Result<()> {
+        self.update_agent_session_after_query(
+            id,
+            status.as_str(),
+            sdk_context_json,
+            tokens_delta,
+            cost_delta,
+        )
+        .await
+    }
 
     /// 按 conversation_id 清空 sdk_context_json。
     async fn clear_sdk_context_by_conversation_id(&self, conversation_id: &str) -> Result<()>;
