@@ -45,7 +45,6 @@ mod process_reward;
 mod reminder_manager;
 mod replay;
 mod rl;
-mod rl_trainer;
 mod sandbox_executor;
 mod skill;
 mod skill_decomposition;
@@ -62,7 +61,6 @@ mod sub_agent;
 mod suggestion_engine;
 mod task_prefetcher;
 mod text_grad;
-mod training_env;
 mod trajectory;
 mod trajectory_compressor;
 mod trajectory_impl;
@@ -152,8 +150,6 @@ pub use proactive_assistant::{
 };
 
 pub use rl::{RLConfig, RLEngine, RewardNormalizer, RewardWeights};
-
-pub use rl_trainer::{TrajectoryRLTrainer, TrajectoryTrainingEpisode, TrajectoryTrainingReport};
 
 pub use sandbox_executor::SkillSandboxExecutor;
 

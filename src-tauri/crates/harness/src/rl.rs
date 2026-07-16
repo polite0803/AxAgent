@@ -208,11 +208,48 @@ pub struct TrainingReport {
 
 // ── RL trait 契约 ──────────────────────────────────────────────────
 
+/// 通用 RL 引擎契约（基于 `TrainingEpisode` 抽象）
+///
+/// 注意：此 trait 是早期设计的通用抽象，目前仅 `NoopRLEngine`（test_support）实现。
+/// 实际生产代码使用的是 `TrajectoryRewardEngine` trait（基于 `Trajectory` 数据模型）。
+/// 两者并存是为了保留通用抽象的同时不破坏现有基于 Trajectory 的实现。
 #[async_trait]
 pub trait RLEngine: Send + Sync {
     async fn compute_rewards(&self, episodes: &[TrainingEpisode]) -> Result<Vec<f64>, String>;
     async fn compute_advantages(&self, rewards: &[f64]) -> Vec<f64>;
     async fn reset(&self);
+}
+
+/// 基于 `Trajectory` 数据模型的 RL 奖励引擎契约
+///
+/// 此 trait 是 trajectory crate `RLEngine` struct 的正式契约。
+/// 与通用 `RLEngine` trait 的区别：
+/// - 输入：`&mut Trajectory`（直接操作轨迹数据）vs `&[TrainingEpisode]`（抽象 episode）
+/// - 输出：`Vec<RewardSignal>`（多维奖励信号）vs `Vec<f64>`（标量奖励）
+///
+/// consumer crate（agent/gateway）应优先使用此 trait 而非通用 `RLEngine`，
+/// 以获得更精确的奖励信号。
+#[async_trait]
+pub trait TrajectoryRewardEngine: Send + Sync {
+    /// 计算轨迹的多维奖励信号（支持 LLM judge，无 judge 时退化为启发式）
+    async fn compute_rewards(
+        &self,
+        trajectory: &mut crate::trajectory_types::Trajectory,
+    ) -> Vec<crate::trajectory_types::RewardSignal>;
+
+    /// 估计轨迹的状态价值函数
+    fn estimate_value_function(&self, trajectory: &crate::trajectory_types::Trajectory)
+    -> Vec<f64>;
+
+    /// 计算优势函数（Advantage = Q - V）
+    fn compute_advantages(
+        &self,
+        rewards: &[crate::trajectory_types::RewardSignal],
+        values: &[f64],
+    ) -> Vec<f64>;
+
+    /// 奖励塑形（reward shaping）
+    fn shape_rewards(&self, rewards: &mut [crate::trajectory_types::RewardSignal]);
 }
 
 #[async_trait]

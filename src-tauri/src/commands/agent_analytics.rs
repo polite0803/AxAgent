@@ -121,7 +121,7 @@ pub async fn rl_compute_rewards(
         })?;
 
     let rl = app_state.rl_engine.read().await;
-    let rewards = rl.compute_rewards(&mut trajectory);
+    let rewards = rl.compute_rewards(&mut trajectory).await;
     let values = rl.estimate_value_function(&trajectory);
     let advantages = if !values.is_empty() {
         rl.compute_advantages(&rewards, &values)

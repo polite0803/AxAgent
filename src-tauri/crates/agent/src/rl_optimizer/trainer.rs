@@ -6,12 +6,12 @@ use crate::rl_optimizer::{
 };
 use std::collections::HashMap;
 
-pub struct RLtrainer {
+pub struct RLTrainer {
     optimizer: RLOptimizer,
     config: RLConfig,
 }
 
-impl RLtrainer {
+impl RLTrainer {
     pub fn new(optimizer: RLOptimizer) -> Self {
         Self { optimizer, config: RLConfig::default() }
     }
@@ -313,14 +313,14 @@ mod tests {
     #[test]
     fn test_rl_trainer_new() {
         let optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
-        let trainer = RLtrainer::new(optimizer);
+        let trainer = RLTrainer::new(optimizer);
         assert_eq!(trainer.get_optimizer().id, "opt1");
     }
 
     #[test]
     fn test_rl_trainer_train_no_experiences() {
         let optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         let result = trainer.train();
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -343,7 +343,7 @@ mod tests {
                 timestamp: chrono::Utc::now(),
             });
         }
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         let result = trainer.train();
         assert!(result.is_ok());
         let stats = result.unwrap();
@@ -353,7 +353,7 @@ mod tests {
     #[test]
     fn test_rl_trainer_get_mut_optimizer() {
         let optimizer = RLOptimizer::new("opt1".to_string(), "Optimizer".to_string());
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         trainer.get_mut_optimizer().record_experience(Experience {
             id: "exp_1".to_string(),
             state: make_task_state(),
@@ -382,7 +382,7 @@ mod tests {
                 last_update: chrono::Utc::now(),
             },
         });
-        let mut trainer = RLtrainer::new(optimizer);
+        let mut trainer = RLTrainer::new(optimizer);
         let exp = Experience {
             id: "exp_1".to_string(),
             state: make_task_state(),
@@ -417,7 +417,7 @@ mod tests {
             },
         };
         optimizer.add_policy(policy);
-        let trainer = RLtrainer::new(optimizer);
+        let trainer = RLTrainer::new(optimizer);
         let states = vec![make_task_state()];
         let rewards = trainer.evaluate_policy("p1", &states);
         // tool_a has weight 0.8, but the state has tool_a and tool_b

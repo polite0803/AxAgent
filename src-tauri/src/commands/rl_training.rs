@@ -110,7 +110,7 @@ async fn compute_real_metrics(state: &AppState, step: u64) -> Result<TrainingMet
 
     for t in &trajectories {
         let mut traj = t.clone();
-        let rewards = rl_engine.compute_rewards(&mut traj);
+        let rewards = rl_engine.compute_rewards(&mut traj).await;
 
         for r in &rewards {
             total_reward += r.value;
@@ -353,7 +353,7 @@ pub async fn list_checkpoints(state: State<'_, AppState>) -> Result<Vec<Checkpoi
     Ok(all)
 }
 
-/// 运行一轮真实 RL 训练（对接 RLEngine 的 compute_rewards_v2）。
+/// 运行一轮真实 RL 训练（对接 RLEngine 的 compute_rewards）。
 ///
 /// 从 TrajectoryStorage 采集最近的轨迹数据，计算奖励信号，
 /// 并更新奖励权重向量。返回训练后的指标摘要。
@@ -382,8 +382,8 @@ pub async fn run_rl_training_step(state: State<'_, AppState>) -> Result<serde_js
     let mut processed = 0u64;
 
     for traj in trajectories.iter_mut() {
-        // 使用 v2 版本（支持异步 LLM 计算）
-        let rewards = rl_engine.compute_rewards_v2(traj).await;
+        // compute_rewards 支持 LLM judge（若配置），无 judge 时退化为启发式
+        let rewards = rl_engine.compute_rewards(traj).await;
 
         for r in &rewards {
             total_reward += r.value;

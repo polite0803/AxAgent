@@ -532,7 +532,7 @@ fn start_rl_reward_computation(state: &AppState) {
             let mut total_prm_rewards = 0;
             for trajectory in &mut trajectories {
                 {
-                    let mut rewards = rl.compute_rewards(trajectory);
+                    let mut rewards = rl.compute_rewards(trajectory).await;
                     total_rewards += rewards.len();
                     rl.shape_rewards(&mut rewards);
                     reward_normalizer.normalize(&mut rewards);

@@ -325,6 +325,7 @@ pub use agent::{
 pub mod rl;
 pub use rl::{
     RLConfig, RLEngine, RLTrainer, RewardWeights, TrainingEpisode, TrainingReport, TrainingStep,
+    TrajectoryRewardEngine,
 };
 pub mod dream;
 pub use dream::{
