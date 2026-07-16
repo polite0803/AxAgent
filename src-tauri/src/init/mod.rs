@@ -2,6 +2,7 @@
 
 pub mod database;
 pub mod news_archive_sink;
+pub mod notification_adapters;
 pub mod plugins;
 pub mod services;
 pub mod state;

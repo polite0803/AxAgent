@@ -1357,6 +1357,92 @@
     "general": {
       "title": "一般"
     },
+    "scheduled-recommendation": {
+      "description": "定時掃描薦股結果並推送到已配置的通知渠道。",
+      "tooltip-cron-dependency": "定時任務僅在應用運行期間執行，關閉應用後不會觸發",
+      "tag-app-online": "需應用在線",
+      "new-task": "新建薦股任務",
+      "expand": "展開",
+      "cancel": "取消",
+      "create-task": "建立任務",
+      "task-created": "薦股任務已建立",
+      "create-failed": "建立失敗：{{error}}",
+      "default-name": "每日薦股推送",
+      "label-task-name": "任務名稱",
+      "placeholder-task-name": "如：每日收盤薦股",
+      "label-trigger-time": "觸發時間",
+      "placeholder-cron-preset": "選擇或搜尋 Cron 運算式",
+      "group-presets": "常用預設",
+      "group-custom-interval": "自訂間隔",
+      "label-periods": "推薦週期",
+      "placeholder-periods": "選擇一個或多個週期",
+      "label-min-confidence": "最低信心度",
+      "label-top-n": "推薦數量上限",
+      "column-name": "任務名",
+      "column-period": "週期 / 閾值",
+      "column-executed": "執行",
+      "column-status": "狀態",
+      "min-confidence-and-top-n": "信心度 ≥ {{confidence}}%，前 {{topN}} 隻",
+      "last-push-count": "上次推送 {{count}} 隻",
+      "confirm-delete": "確認刪除該薦股任務？",
+      "empty-description": "暫無薦股定時任務"
+    },
+    "strategyPack": {
+      "title": "策略包管理",
+      "searchPlaceholder": "搜尋策略包名稱、描述或 ID",
+      "empty": "暫無策略包",
+      "detailTitle": "策略包詳情",
+      "editorTitle": "策略包編輯器",
+      "editorIdLabel": "策略包 ID（用於儲存到使用者目錄）",
+      "editorYamlLabel": "YAML 內容",
+      "editorYamlTip": "使用 YAML 格式定義策略包，欄位參考內建策略包",
+      "editorYamlPlaceholder": "在此輸入 YAML 內容...",
+      "confirmDelete": "確認刪除該使用者策略包？",
+      "yes": "是",
+      "no": "否",
+      "stat": {
+        "total": "策略包總數",
+        "builtin": "內建策略包",
+        "user": "使用者策略包"
+      },
+      "source": {
+        "builtin": "內建",
+        "user": "使用者"
+      },
+      "column": {
+        "name": "名稱",
+        "description": "描述",
+        "source": "來源",
+        "strategies": "策略數",
+        "minConfidence": "最低置信度",
+        "maxPicks": "最大推薦數",
+        "actions": "操作",
+        "style": "風格",
+        "period": "週期",
+        "enabled": "啟用",
+        "weight": "權重"
+      },
+      "action": {
+        "detail": "詳情",
+        "copy": "複製",
+        "refresh": "重新整理",
+        "new": "新建",
+        "validate": "校驗",
+        "save": "儲存",
+        "cancel": "取消",
+        "close": "關閉"
+      },
+      "period": {
+        "ultra_short": "超短",
+        "short": "短線",
+        "mid": "中線",
+        "long": "長線"
+      },
+      "editorTemplate": {
+        "name": "我的策略包",
+        "description": "自訂策略包"
+      }
+    },
     "display": "顯示設定",
     "proxy": "代理設定",
     "messageChannels": "訊息渠道",
@@ -8459,6 +8545,36 @@
       "supervisor": "監督者",
       "trader": "交易員",
       "validator": "驗證者"
+    },
+    "import": {
+      "title": "批量匯入交易記錄",
+      "selectFile": "選擇 CSV 檔案",
+      "confirm": "確認匯入",
+      "imported": "成功匯入 {{valid}} 條，跳過 {{skipped}} 條重複，失敗 {{failed}} 條",
+      "parseFailed": "解析失敗",
+      "importFailed": "匯入失敗",
+      "noFile": "請先選擇檔案",
+      "emptyFile": "檔案為空或無可識別的行",
+      "devModeHint": "批量匯入僅支援桌面應用模式",
+      "selectedFile": "已選檔案",
+      "formatHint": "支援通達信/東方財富/通用 CSV 格式（自動識別列名）",
+      "summaryTotal": "總計",
+      "summaryValid": "有效",
+      "summarySkipped": "重複跳過",
+      "summaryFailed": "失敗",
+      "columns": {
+        "row": "行",
+        "stockCode": "代碼",
+        "stockName": "名稱",
+        "direction": "方向",
+        "price": "價格",
+        "quantity": "數量",
+        "tradeDate": "日期",
+        "tradeTime": "時間",
+        "fee": "手續費",
+        "notes": "備註",
+        "errors": "錯誤"
+      }
     }
   },
   "watchlist": {
@@ -9329,6 +9445,7 @@
     "charCount": "{{count}} 字",
     "title": "股票分析",
     "searchPlaceholder": "输入股票代碼或名稱",
+    "reportLanguageHint": "報告輸出語言：中文或英文",
     "startAnalysis": "開始分析",
     "analyzing": "分析中...",
     "starting": "正在启动分析引擎...",
@@ -9500,7 +9617,9 @@
         "roles": "角色",
         "profiles": "档案",
         "data": "数据",
-        "params": "参数"
+        "params": "参数",
+        "recommendation": "薦股推送",
+        "strategyPack": "策略包"
       },
       "check": "检测",
       "loadFailed": "配置加载失败",
@@ -10041,7 +10160,27 @@
       "risk": "risk",
       "value": "value",
       "reflection": "Reflection",
-      "evolution": "evolution"
+      "evolution": "evolution",
+      "dashboard": "儀表盤"
+    },
+    "dashboard": {
+      "title": "決策儀表盤",
+      "coreConclusion": "核心結論",
+      "buySellPoints": "買賣點位",
+      "buyRange": "買入區間",
+      "targetPrice": "目標價",
+      "stopLoss": "止損價",
+      "positionPct": "建議倉位",
+      "score": "評分",
+      "confidence": "置信度",
+      "riskAlerts": "風險警報",
+      "catalysts": "催化因素",
+      "checklist": "操作檢查清單",
+      "latestNews": "最新動態",
+      "earningsExpectation": "業績預期",
+      "integrityWarning": "報告未通過完整性校驗",
+      "empty": "暫無儀表盤報告，請先運行決策分析或重跑決策",
+      "viewMarkdown": "查看 Markdown 源碼"
     },
     "evolutionDrift": {
       "title": "演化漂移",

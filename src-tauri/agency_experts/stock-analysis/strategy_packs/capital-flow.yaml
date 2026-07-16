@@ -1,0 +1,56 @@
+# 资金流专精策略包 — 主力资金跟踪
+name: "资金流专精策略包"
+description: "聚焦主力资金净流入、换手率、北向资金，适合跟踪主力的投资者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 70
+maxPicks: 8
+strategies:
+  - id: "capital_ultra_short"
+    strategyId: "capital"
+    style: "capital"
+    period: "ultra_short"
+    enabled: true
+    weight: 1.2
+    params:
+      cap_ultra_short_dt_net_min: 100.0
+      cap_ultra_short_turnover_min: 5.0
+      cap_kline_vol_ratio_min: 1.5
+      cap_kline_mom_5_min: -0.02
+      cap_kline_mom_5_max: 0.10
+  - id: "capital_short"
+    strategyId: "capital"
+    style: "capital"
+    period: "short"
+    enabled: true
+    weight: 1.1
+    params:
+      cap_short_main_inflow_min: 200.0
+      cap_short_turnover_min: 2.0
+      cap_kline_vol_ratio_min: 1.5
+      cap_kline_mom_5_min: -0.02
+      cap_kline_mom_5_max: 0.10
+  - id: "capital_mid"
+    strategyId: "capital"
+    style: "capital"
+    period: "mid"
+    enabled: true
+    weight: 1.0
+    params:
+      cap_mid_nb_ratio_min: 0.3
+      cap_mid_main_inflow_min: 500.0
+      cap_kline_vol_ratio_min: 1.2
+      cap_kline_mom_5_min: -0.03
+      cap_kline_mom_5_max: 0.08
+  - id: "capital_long"
+    strategyId: "capital"
+    style: "capital"
+    period: "long"
+    enabled: true
+    weight: 0.9
+    params:
+      cap_long_nb_ratio_min: 0.1
+      cap_long_main_inflow_min: 1000.0
+      cap_kline_vol_ratio_min: 1.0
+      cap_kline_mom_5_min: -0.05
+      cap_kline_mom_5_max: 0.05

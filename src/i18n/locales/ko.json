@@ -1357,6 +1357,92 @@
     "general": {
       "title": "일반"
     },
+    "scheduled-recommendation": {
+      "description": "정기적으로 추천을 스캔하여 구성된 알림 채널로 푸시합니다.",
+      "tooltip-cron-dependency": "예약된 작업은 앱이 열려 있는 동안에만 실행됩니다. 앱을 닫으면 일시정지됩니다.",
+      "tag-app-online": "앱 온라인 필요",
+      "new-task": "새 추천 작업",
+      "expand": "펼치기",
+      "cancel": "취소",
+      "create-task": "작업 생성",
+      "task-created": "추천 작업이 생성되었습니다",
+      "create-failed": "생성 실패: {{error}}",
+      "default-name": "일일 추천 푸시",
+      "label-task-name": "작업 이름",
+      "placeholder-task-name": "예: 일일 종가 추천",
+      "label-trigger-time": "트리거 시간",
+      "placeholder-cron-preset": "cron 표현식 선택 또는 검색",
+      "group-presets": "일반 프리셋",
+      "group-custom-interval": "사용자 지정 간격",
+      "label-periods": "추천 기간",
+      "placeholder-periods": "하나 이상의 기간 선택",
+      "label-min-confidence": "최소 신뢰도",
+      "label-top-n": "Top N 제한",
+      "column-name": "이름",
+      "column-period": "기간 / 임계값",
+      "column-executed": "실행",
+      "column-status": "상태",
+      "min-confidence-and-top-n": "신뢰도 ≥ {{confidence}}%, 상위 {{topN}}개",
+      "last-push-count": "마지막 푸시: {{count}}개 픽",
+      "confirm-delete": "이 추천 작업을 삭제하시겠습니까?",
+      "empty-description": "예약된 추천 작업이 없습니다"
+    },
+    "strategyPack": {
+      "title": "전략 팩 관리",
+      "searchPlaceholder": "전략 팩 이름, 설명 또는 ID로 검색",
+      "empty": "전략 팩이 없습니다",
+      "detailTitle": "전략 팩 상세",
+      "editorTitle": "전략 팩 편집기",
+      "editorIdLabel": "전략 팩 ID (사용자 디렉토리에 저장하는 데 사용)",
+      "editorYamlLabel": "YAML 내용",
+      "editorYamlTip": "YAML 형식으로 전략 팩을 정의하세요. 필드는 내장 전략 팩을 참조하세요.",
+      "editorYamlPlaceholder": "여기에 YAML 내용을 입력하세요...",
+      "confirmDelete": "이 사용자 전략 팩을 삭제하시겠습니까?",
+      "yes": "예",
+      "no": "아니오",
+      "stat": {
+        "total": "전략 팩 총 수",
+        "builtin": "내장 전략 팩",
+        "user": "사용자 전략 팩"
+      },
+      "source": {
+        "builtin": "내장",
+        "user": "사용자"
+      },
+      "column": {
+        "name": "이름",
+        "description": "설명",
+        "source": "출처",
+        "strategies": "전략 수",
+        "minConfidence": "최소 신뢰도",
+        "maxPicks": "최대 추천 수",
+        "actions": "작업",
+        "style": "스타일",
+        "period": "기간",
+        "enabled": "활성화",
+        "weight": "가중치"
+      },
+      "action": {
+        "detail": "상세",
+        "copy": "복사",
+        "refresh": "새로고침",
+        "new": "신규",
+        "validate": "검증",
+        "save": "저장",
+        "cancel": "취소",
+        "close": "닫기"
+      },
+      "period": {
+        "ultra_short": "초단기",
+        "short": "단기",
+        "mid": "중기",
+        "long": "장기"
+      },
+      "editorTemplate": {
+        "name": "나의 전략 팩",
+        "description": "사용자 정의 전략 팩"
+      }
+    },
     "display": "디스플레이",
     "proxy": "프록시",
     "messageChannels": "메시지 채널",
@@ -8459,6 +8545,36 @@
       "supervisor": "감독자",
       "trader": "트레이더",
       "validator": "검증자"
+    },
+    "import": {
+      "title": "거래 기록 일괄 가져오기",
+      "selectFile": "CSV 파일 선택",
+      "confirm": "가져오기 확인",
+      "imported": "{{valid}}건 가져오기 성공, {{skipped}}건 중복 건너뜀, {{failed}}건 실패",
+      "parseFailed": "파싱 실패",
+      "importFailed": "가져오기 실패",
+      "noFile": "먼저 파일을 선택하세요",
+      "emptyFile": "파일이 비어 있거나 인식 가능한 행이 없습니다",
+      "devModeHint": "일괄 가져오기는 데스크톱 앱 모드만 지원합니다",
+      "selectedFile": "선택된 파일",
+      "formatHint": "통달신/동방부/일반 CSV 형식 지원 (열 이름 자동 인식)",
+      "summaryTotal": "합계",
+      "summaryValid": "유효",
+      "summarySkipped": "중복 건너뜀",
+      "summaryFailed": "실패",
+      "columns": {
+        "row": "행",
+        "stockCode": "코드",
+        "stockName": "이름",
+        "direction": "방향",
+        "price": "가격",
+        "quantity": "수량",
+        "tradeDate": "날짜",
+        "tradeTime": "시간",
+        "fee": "수수료",
+        "notes": "메모",
+        "errors": "오류"
+      }
     }
   },
   "watchlist": {
@@ -9328,6 +9444,7 @@
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
     "searchPlaceholder": "Enter stock code or name",
+    "reportLanguageHint": "보고서 출력 언어: 중국어 또는 영어",
     "startAnalysis": "Start Analysis",
     "analyzing": "Analyzing...",
     "starting": "Starting analysis engine...",
@@ -9499,7 +9616,9 @@
         "roles": "Roles",
         "profiles": "Profiles",
         "data": "Data",
-        "params": "Params"
+        "params": "Params",
+        "recommendation": "Recommendations",
+        "strategyPack": "전략 팩"
       },
       "check": "Check",
       "loadFailed": "Failed to load config",
@@ -10041,7 +10160,27 @@
       "risk": "risk",
       "value": "value",
       "reflection": "Reflection",
-      "evolution": "evolution"
+      "evolution": "evolution",
+      "dashboard": "대시보드"
+    },
+    "dashboard": {
+      "title": "의사결정 대시보드",
+      "coreConclusion": "핵심 결론",
+      "buySellPoints": "매매 포인트",
+      "buyRange": "매수 범위",
+      "targetPrice": "목표가",
+      "stopLoss": "스탑로스",
+      "positionPct": "포지션 %",
+      "score": "점수",
+      "confidence": "신뢰도",
+      "riskAlerts": "리스크 경보",
+      "catalysts": "촉매",
+      "checklist": "체크리스트",
+      "latestNews": "최신 뉴스",
+      "earningsExpectation": "실적 전망",
+      "integrityWarning": "보고서가 무결성 검사를 통과하지 못했습니다",
+      "empty": "대시보드 보고서가 없습니다. 결정 분석을 먼저 실행하세요.",
+      "viewMarkdown": "Markdown 소스 보기"
     },
     "evolutionDrift": {
       "title": "Evolution Drift",

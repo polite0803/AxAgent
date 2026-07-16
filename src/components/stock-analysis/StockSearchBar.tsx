@@ -1,7 +1,7 @@
 import { List } from "@/components/common/AntdList";
 import { invoke } from "@/lib/invoke";
 import { useStockAnalysisStore } from "@/stores";
-import { Button, Input, Tag } from "antd";
+import { Button, Input, Segmented, Tag, Tooltip } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -32,6 +32,8 @@ export function StockSearchBar() {
   const getStockKline = useStockAnalysisStore((s) => s.getStockKline);
   const status = useStockAnalysisStore((s) => s.status);
   const stockCode = useStockAnalysisStore((s) => s.stockCode);
+  const reportLanguage = useStockAnalysisStore((s) => s.reportLanguage);
+  const setReportLanguage = useStockAnalysisStore((s) => s.setReportLanguage);
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
 
   const isRunning = status === "loading" || status === "running";
@@ -111,6 +113,17 @@ export function StockSearchBar() {
         >
           {isRunning ? t("stockAnalysis.analyzing") : t("stockAnalysis.startAnalysis")}
         </Button>
+        <Tooltip title={t("stockAnalysis.reportLanguageHint")}>
+          <Segmented
+            size="small"
+            value={reportLanguage}
+            onChange={(val) => setReportLanguage(val as "zh" | "en")}
+            options={[
+              { label: "中", value: "zh" },
+              { label: "EN", value: "en" },
+            ]}
+          />
+        </Tooltip>
       </div>
 
       {/* P1: 意图解析结果展示 */}

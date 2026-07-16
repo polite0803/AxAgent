@@ -1,0 +1,38 @@
+# 超短线打板策略包 — 极短周期，高换手
+name: "超短线打板策略包"
+description: "纯超短线策略，聚焦开盘冲量和尾盘异动，适合打板客"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 75
+maxPicks: 5
+strategies:
+  - id: "trend_ultra_short"
+    strategyId: "trend"
+    style: "trend"
+    period: "ultra_short"
+    enabled: true
+    weight: 1.5
+    params:
+      trend_ma_ultra_short_1: 3
+      trend_ma_ultra_short_2: 5
+      trend_high_ultra_short_period: 3
+      trend_high_ultra_short_threshold: 0.998
+      trend_ultra_short_kline_limit: 15
+      trend_ultra_short_min_kline_len: 10
+      trend_ultra_short_entry_low: 0.998
+      trend_ultra_short_entry_high: 1.005
+      trend_ultra_short_stop: 0.985
+      trend_ultra_short_target: 1.03
+      trend_ultra_short_base_pos: 2.0
+  - id: "capital_ultra_short"
+    strategyId: "capital"
+    style: "capital"
+    period: "ultra_short"
+    enabled: true
+    weight: 1.3
+    params:
+      cap_ultra_short_dt_net_min: 200.0
+      cap_ultra_short_turnover_min: 8.0
+      cap_kline_vol_ratio_min: 2.5
+      cap_kline_mom_5_min: 0.02
+      cap_kline_mom_5_max: 0.20

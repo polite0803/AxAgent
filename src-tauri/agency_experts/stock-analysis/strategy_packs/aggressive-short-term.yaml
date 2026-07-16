@@ -1,0 +1,57 @@
+# 激进短线策略包 — 超短+短线趋势为主，高换手
+name: "激进短线策略包"
+description: "聚焦超短线和短线趋势跟踪，高换手，适合追涨杀跌的活跃交易者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 70
+maxPicks: 6
+strategies:
+  - id: "trend_ultra_short"
+    strategyId: "trend"
+    style: "trend"
+    period: "ultra_short"
+    enabled: true
+    weight: 1.5
+    params:
+      trend_ma_ultra_short_1: 5
+      trend_ma_ultra_short_2: 10
+      trend_high_ultra_short_period: 5
+      trend_high_ultra_short_threshold: 0.995
+      trend_ultra_short_kline_limit: 20
+      trend_ultra_short_min_kline_len: 15
+      trend_ultra_short_entry_low: 0.995
+      trend_ultra_short_entry_high: 1.005
+      trend_ultra_short_stop: 0.98
+      trend_ultra_short_target: 1.05
+      trend_ultra_short_base_pos: 3.0
+  - id: "trend_short"
+    strategyId: "trend"
+    style: "trend"
+    period: "short"
+    enabled: true
+    weight: 1.2
+    params:
+      trend_ma_short_1: 5
+      trend_ma_short_2: 10
+      trend_ma_short_3: 20
+      trend_short_ma20_tolerance: 0.985
+      trend_high_20_period: 20
+      trend_high_20_threshold: 0.97
+      trend_amount_ratio_min: 1.0
+      trend_short_entry_low: 0.99
+      trend_short_entry_high: 1.015
+      trend_short_stop: 0.95
+      trend_short_target: 1.10
+      trend_short_base_pos: 5.0
+  - id: "capital_ultra_short"
+    strategyId: "capital"
+    style: "capital"
+    period: "ultra_short"
+    enabled: true
+    weight: 1.3
+    params:
+      cap_ultra_short_dt_net_min: 100.0
+      cap_ultra_short_turnover_min: 5.0
+      cap_kline_vol_ratio_min: 2.0
+      cap_kline_mom_5_min: 0.0
+      cap_kline_mom_5_max: 0.15

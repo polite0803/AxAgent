@@ -1428,8 +1428,90 @@ pub async fn rerun_decision(
         "[rerun_decision] 决策重跑完成: analysis_id={analysis_id}, confidence={confidence:?}"
     );
 
+    // 7. 构建 DashboardReport（借鉴 daily_stock_analysis 决策仪表盘格式）
+    // 从 snapshot 提取评分节点输出和专家报告
+    let score_json = snapshot
+        .get("t-scoring")
+        .or_else(|| snapshot.get("t-scoring.result"))
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+
+    let analyst_reports = extract_analyst_reports_from_snapshot(&snapshot);
+    let stock_code = analysis.stock_code.clone();
+    let stock_name = analysis.stock_name.clone();
+    let analysis_date = analysis.analysis_date.clone();
+
+    let dashboard_report =
+        axagent_stock_analysis::dashboard_report::build_dashboard_report_from_workflow(
+            &decision_value,
+            &score_json,
+            &stock_code,
+            &stock_name,
+            &analysis_date,
+            &analyst_reports,
+        );
+    let dashboard_md =
+        axagent_stock_analysis::dashboard_report::render_dashboard_md(&dashboard_report);
+
+    tracing::info!(
+        "[rerun_decision] DashboardReport 生成完成: integrity_passed={}, risk_alerts={}, catalysts={}",
+        dashboard_report.integrity_passed,
+        dashboard_report.risk_alerts.len(),
+        dashboard_report.catalysts.len()
+    );
+
     Ok(json!({
         "analysis_id": analysis_id,
         "decision": decision_value,
+        "dashboardReport": dashboard_report,
+        "dashboardMd": dashboard_md,
     }))
+}
+
+/// 从 blackboard snapshot 提取分析师报告文本
+///
+/// snapshot 中的 key 格式为 `report.{expert_id}`（如 `report.a-fundamentals`），
+/// 值为 JSON 字符串或对象。本函数把 `a-` 前缀去掉，映射到不带前缀的 expert_id
+/// （如 `fundamentals-analyst`），供 `build_dashboard_report_from_workflow` 使用。
+fn extract_analyst_reports_from_snapshot(
+    snapshot: &std::collections::HashMap<String, serde_json::Value>,
+) -> std::collections::HashMap<String, String> {
+    let mut reports = std::collections::HashMap::new();
+
+    // 专家 ID 映射：snapshot key 前缀 → build_dashboard_report_from_workflow 期望的 key
+    let expert_mapping: &[(&str, &str)] = &[
+        ("a-market-analyst", "market-analyst"),
+        ("a-sentiment", "sentiment-analyst"),
+        ("a-news", "news-analyst"),
+        ("a-fundamentals", "fundamentals-analyst"),
+        ("a-policy", "policy-analyst"),
+        ("a-hot-money", "hot-money-tracker"),
+        ("a-lockup", "lockup-watcher"),
+    ];
+
+    for (node_id, target_id) in expert_mapping {
+        // 尝试两种 key 格式：report.{node_id} 和 {node_id}
+        let report_key = format!("report.{node_id}");
+        let value = snapshot.get(&report_key).or_else(|| snapshot.get(*node_id));
+        if let Some(val) = value {
+            let text = if let Some(s) = val.as_str() {
+                s.to_string()
+            } else if let Some(obj) = val.as_object() {
+                // 对象类型：尝试取 content / report / text 字段
+                obj.get("content")
+                    .or_else(|| obj.get("report"))
+                    .or_else(|| obj.get("text"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| val.to_string())
+            } else {
+                val.to_string()
+            };
+            if !text.is_empty() {
+                reports.insert((*target_id).to_string(), text);
+            }
+        }
+    }
+
+    reports
 }

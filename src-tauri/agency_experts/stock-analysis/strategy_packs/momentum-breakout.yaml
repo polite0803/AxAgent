@@ -1,0 +1,46 @@
+# 动量突破策略包 — 趋势+资金双确认
+name: "动量突破策略包"
+description: "趋势突破 + 资金流入双确认，捕捉动量启动点，适合动量交易者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 72
+maxPicks: 6
+strategies:
+  - id: "trend_short_breakout"
+    strategyId: "trend"
+    style: "trend"
+    period: "short"
+    enabled: true
+    weight: 1.3
+    params:
+      trend_ma_short_1: 5
+      trend_ma_short_2: 10
+      trend_ma_short_3: 20
+      trend_short_ma20_tolerance: 0.99
+      trend_high_20_period: 20
+      trend_high_20_threshold: 0.98
+      trend_amount_ratio_min: 1.5
+  - id: "capital_short_breakout"
+    strategyId: "capital"
+    style: "capital"
+    period: "short"
+    enabled: true
+    weight: 1.2
+    params:
+      cap_short_main_inflow_min: 500.0
+      cap_short_turnover_min: 3.0
+      cap_kline_vol_ratio_min: 2.0
+      cap_kline_mom_5_min: 0.0
+      cap_kline_mom_5_max: 0.15
+  - id: "trend_mid_breakout"
+    strategyId: "trend"
+    style: "trend"
+    period: "mid"
+    enabled: true
+    weight: 1.0
+    params:
+      trend_ma_mid_s: 20
+      trend_ma_mid_l: 60
+      trend_ma60_threshold: 0.99
+      trend_high_60_period: 60
+      trend_high_60_threshold: 0.96

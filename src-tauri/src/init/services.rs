@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::recommendation_cron::run_recommendation_cron;
 use crate::index_queue::IndexJobService;
 use chrono;
 use notify::{Event, RecursiveMode, Watcher};
@@ -1433,8 +1434,51 @@ fn start_cron_scheduler(state: &AppState) {
 
     let work_engine = state.work_engine.clone();
     let cron_store = state.cron_job_store.clone();
+    let astock_client = state.astock_client.clone();
+    let notification_dispatcher = state.notification_dispatcher.clone();
     let mut executor = CronExecutor::new();
     executor.set_handler(move |job| {
+        // 荐股定时任务（task_type = stock-recommendation，无 workflow_id）
+        if job.workflow_id.is_none() && job.task_type.as_deref() == Some("stock-recommendation") {
+            let store = cron_store.clone();
+            let client = astock_client.clone();
+            let dispatcher = notification_dispatcher.clone();
+            let job_id = job.id.clone();
+            let job_name = job.name.clone();
+            let prompt = job.prompt.clone();
+            let recurring = job.recurring;
+            tokio::task::spawn(async move {
+                let started = axagent_runtime_core::cron_job::now_millis();
+                let result = run_recommendation_cron(&client, &dispatcher, &prompt, &job_name)
+                    .await
+                    .map(|summary| axagent_runtime_core::TaskRunResult {
+                        success: true,
+                        output: Some(serde_json::to_string(&summary).unwrap_or_default()),
+                        error: None,
+                        duration_ms: (axagent_runtime_core::cron_job::now_millis() - started)
+                            as u64,
+                        executed_at: started,
+                    })
+                    .unwrap_or_else(|e| {
+                        tracing::error!("[CronScheduler] 荐股任务 '{}' 失败: {e}", job_name);
+                        axagent_runtime_core::TaskRunResult {
+                            success: false,
+                            output: None,
+                            error: Some(e),
+                            duration_ms: (axagent_runtime_core::cron_job::now_millis() - started)
+                                as u64,
+                            executed_at: started,
+                        }
+                    });
+                store.record_run(&job_id, result).await;
+                if !recurring {
+                    let _ = store
+                        .set_status(&job_id, axagent_runtime_core::CronJobStatus::Disabled)
+                        .await;
+                }
+            });
+            return;
+        }
         if let Some(ref wf_id) = job.workflow_id {
             let engine = work_engine.clone();
             let store = cron_store.clone();

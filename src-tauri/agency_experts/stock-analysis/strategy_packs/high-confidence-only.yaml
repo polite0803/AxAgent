@@ -1,0 +1,36 @@
+# 高置信度精选策略包 — 严格阈值
+name: "高置信度精选策略包"
+description: "所有策略均使用高置信度阈值，只输出强信号，适合谨慎交易者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 85
+maxPicks: 3
+strategies:
+  - id: "trend_short_strict"
+    strategyId: "trend"
+    style: "trend"
+    period: "short"
+    enabled: true
+    weight: 1.5
+    minConfidence: 85
+    params:
+      trend_ma_short_1: 5
+      trend_ma_short_2: 10
+      trend_ma_short_3: 20
+      trend_short_ma20_tolerance: 0.99
+      trend_high_20_period: 20
+      trend_high_20_threshold: 0.98
+      trend_amount_ratio_min: 1.5
+  - id: "value_long_strict"
+    strategyId: "value"
+    style: "value"
+    period: "long"
+    enabled: true
+    weight: 1.5
+    minConfidence: 85
+    params:
+      val_long_pe_max: 25
+      val_long_pb_max: 1.5
+      val_long_roe_min: 20.0
+      val_long_kline_limit: 120
+      val_long_min_kline_len: 100

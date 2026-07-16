@@ -58,9 +58,7 @@ pub use as_of::{
     AsOfContext, AsOfDataKind, AsOfDataScope, AsOfError, AsOfSource, DegradationEntry,
 };
 
-// ── 高级股票数据服务契约（让 stock-analysis 不依赖 astock-data 实现）──
-pub mod stock_data_service;
-pub use stock_data_service::StockDataService;
+// ── 高级股票数据服务契约已迁出至 axagent-stock-analysis（stock_data_service）──
 pub mod speech;
 pub use speech::{
     AudioChunkStream, SpeakRequest, SpeechCapabilities, SpeechInput, unsupported_speech_stream,
@@ -200,6 +198,16 @@ pub mod mcp_types;
 pub use mcp_types::{
     DiscoveredTool, McpPrompt, McpPromptArgument, McpPromptResult, McpResource, McpResourceContent,
 };
+
+// ── 决策仪表盘报告 DTO（借鉴 daily_stock_analysis 推送格式）──
+pub mod dashboard_report;
+pub use dashboard_report::{
+    Catalyst, ChecklistItem, DashboardDigest, DashboardReport, IndexQuote, MarketReviewReport,
+    MissingField, RiskAlert, StockSummary, fill_missing_with_placeholders,
+    validate_dashboard_report,
+};
+
+// ── 出站推送通知渠道契约已迁出至 axagent-stock-analysis（notification_channel）──
 
 pub mod trajectory_scorer;
 pub mod trajectory_types;
@@ -416,4 +424,10 @@ pub mod strategy_contract;
 pub use strategy_contract::{
     Bar, CloseReason, EquityPoint, Fill, Order, OrderType, Position, Side, Signal, SignalAction,
     Strategy, StrategyCtx, Trade,
+};
+
+// ── 荐股策略包契约（YAML 自然语言策略包格式，让用户可配置策略参数） ──
+pub mod strategy_pack;
+pub use strategy_pack::{
+    StrategyPack, StrategyPackManifest, StrategyPackSpec, StrategyPackStrategyEntry,
 };

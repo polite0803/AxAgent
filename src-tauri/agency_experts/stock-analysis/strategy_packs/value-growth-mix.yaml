@@ -1,0 +1,42 @@
+# 价值成长混合策略包 — 价值+趋势
+name: "价值成长混合策略包"
+description: "价值投资 + 趋势跟踪混合，价值发现 + 趋势确认，GARP 风格"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 70
+maxPicks: 8
+strategies:
+  - id: "value_mid"
+    strategyId: "value"
+    style: "value"
+    period: "mid"
+    enabled: true
+    weight: 1.2
+    params:
+      val_mid_pe_max: 35
+      val_mid_pb_max: 2.0
+      val_mid_roe_min: 12.0
+      val_mid_kline_limit: 60
+      val_mid_min_kline_len: 50
+  - id: "trend_mid"
+    strategyId: "trend"
+    style: "trend"
+    period: "mid"
+    enabled: true
+    weight: 1.0
+    params:
+      trend_ma_mid_s: 20
+      trend_ma_mid_l: 60
+      trend_ma60_threshold: 0.985
+      trend_high_60_period: 60
+      trend_high_60_threshold: 0.94
+  - id: "trend_short"
+    strategyId: "trend"
+    style: "trend"
+    period: "short"
+    enabled: true
+    weight: 0.8
+    params:
+      trend_ma_short_1: 5
+      trend_ma_short_2: 10
+      trend_ma_short_3: 20

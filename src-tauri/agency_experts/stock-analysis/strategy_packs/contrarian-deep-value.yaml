@@ -1,0 +1,43 @@
+# 逆向深度价值策略包 — 价值+反弹
+name: "逆向深度价值策略包"
+description: "深度价值 + 超跌反弹组合，逆向投资，适合熊市或调整行情"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 68
+maxPicks: 6
+strategies:
+  - id: "value_long_deep"
+    strategyId: "value"
+    style: "value"
+    period: "long"
+    enabled: true
+    weight: 1.3
+    params:
+      val_long_pe_max: 20
+      val_long_pb_max: 1.2
+      val_long_roe_min: 8.0
+      val_long_kline_limit: 120
+      val_long_min_kline_len: 100
+  - id: "reversion_mid_deep"
+    strategyId: "reversion"
+    style: "reversion"
+    period: "mid"
+    enabled: true
+    weight: 1.1
+    params:
+      rev_mid_drop_pct_min: -0.20
+      rev_mid_drop_pct_max: -0.35
+      rev_mid_rsi_max: 30
+      rev_mid_kline_limit: 60
+  - id: "reversion_long_deep"
+    strategyId: "reversion"
+    style: "reversion"
+    period: "long"
+    enabled: true
+    weight: 1.0
+    params:
+      rev_long_drop_pct_min: -0.25
+      rev_long_drop_pct_max: -0.45
+      rev_long_rsi_max: 35
+      rev_long_kline_limit: 120
+      rev_long_min_kline_len: 100

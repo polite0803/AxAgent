@@ -79,6 +79,7 @@ pub mod pty;
 pub mod quant_backtest;
 #[cfg(not(mobile))]
 pub mod quickbar;
+pub mod recommendation_cron;
 pub mod reflection;
 pub mod reminder;
 pub mod research;
@@ -102,6 +103,7 @@ pub mod stock_analysis_setup;
 pub mod stock_pipeline;
 pub mod stock_workflow;
 pub mod storage;
+pub mod strategy_pack;
 pub mod sub_agent;
 #[cfg(not(mobile))]
 pub mod terminal;

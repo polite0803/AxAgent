@@ -66,6 +66,29 @@ pub fn is_stock_role(role: &str) -> bool {
     matches!(role, "stock-analyst" | "debater" | "risk-evaluator" | "trader" | "decision-maker")
 }
 
+/// 报告语言指示文本。
+///
+/// 当 `language` 为 `"en"` 或 `"english"` 时返回英文输出指示，
+/// 其他值（包括 `None` / `"zh"` / `"zh-CN"`）返回 `None`（默认中文，无需额外指示）。
+///
+/// 拼到 AgentNode 的 system_prompt 末尾，让 LLM 用对应语言输出分析内容。
+pub fn language_instruction(language: &str) -> Option<String> {
+    let lang = language.to_lowercase();
+    if lang == "en" || lang == "english" {
+        Some(
+            "\n## Output Language Requirement (highest priority)\n\
+             - You MUST write ALL analysis output in **English**, including titles, summaries, reasoning, and conclusions.\n\
+             - Stock names, company names, and proper nouns may retain their original language.\n\
+             - All section headers, labels, and narrative text must be in English.\n\
+             - Numbers, dates, and tickers follow their standard format.\n\
+             - Do NOT mix Chinese into the output except for proper nouns that have no English equivalent."
+                .to_string(),
+        )
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod asof_prompt_tests {
     use super::*;

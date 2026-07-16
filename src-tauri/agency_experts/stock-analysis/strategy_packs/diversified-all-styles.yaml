@@ -1,0 +1,65 @@
+# 多风格分散策略包 — 全风格混合
+name: "多风格分散策略包"
+description: "六大风格全覆盖，最大化分散风险，适合不想偏科的全能投资者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 65
+maxPicks: 12
+strategies:
+  - id: "trend_short"
+    strategyId: "trend"
+    style: "trend"
+    period: "short"
+    enabled: true
+    weight: 1.0
+    params:
+      trend_ma_short_1: 5
+      trend_ma_short_2: 10
+      trend_ma_short_3: 20
+  - id: "value_mid"
+    strategyId: "value"
+    style: "value"
+    period: "mid"
+    enabled: true
+    weight: 1.0
+    params:
+      val_mid_pe_max: 40
+      val_mid_pb_max: 2.5
+      val_mid_roe_min: 10.0
+  - id: "capital_short"
+    strategyId: "capital"
+    style: "capital"
+    period: "short"
+    enabled: true
+    weight: 0.9
+    params:
+      cap_short_main_inflow_min: 200.0
+      cap_short_turnover_min: 2.0
+  - id: "reversion_mid"
+    strategyId: "reversion"
+    style: "reversion"
+    period: "mid"
+    enabled: true
+    weight: 0.8
+    params:
+      rev_mid_drop_pct_min: -0.15
+      rev_mid_drop_pct_max: -0.25
+      rev_mid_rsi_max: 35
+  - id: "watchlist_short"
+    strategyId: "watchlist"
+    style: "watchlist"
+    period: "short"
+    enabled: true
+    weight: 0.5
+    params:
+      watch_short_kline_limit: 30
+      watch_short_min_kline_len: 20
+  - id: "serenity_mid"
+    strategyId: "serenity"
+    style: "serenity"
+    period: "mid"
+    enabled: true
+    weight: 0.7
+    params:
+      ser_mid_kline_limit: 60
+      ser_mid_min_kline_len: 50

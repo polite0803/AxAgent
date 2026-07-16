@@ -284,6 +284,26 @@ pub struct ClsFlashItem {
     pub source: Option<String>,
 }
 
+/// 社交舆情数据（股吧/雪球热度）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SocialSentiment {
+    pub stock_code: String,
+    pub stock_name: String,
+    /// 平台标识（"guba" / "xueqiu" / "weibo"）
+    pub platform: String,
+    /// 帖子/讨论数
+    pub post_count: u32,
+    /// 热度排名（平台内）
+    pub hot_rank: Option<u32>,
+    /// 情感倾向（-1.0 极度看空 ~ 1.0 极度看多）
+    pub sentiment_score: Option<f64>,
+    /// 看多占比（0.0 ~ 1.0）
+    pub bull_ratio: Option<f64>,
+    /// 数据采集时间戳
+    pub fetched_at: i64,
+}
+
 /// 全市场龙虎榜
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

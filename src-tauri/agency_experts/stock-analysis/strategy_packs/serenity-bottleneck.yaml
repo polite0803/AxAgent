@@ -1,0 +1,30 @@
+# Serenity 瓶颈分析策略包 — 量价背离检测
+name: "Serenity 瓶颈分析策略包"
+description: "基于 Serenity 瓶颈分析策略，检测量价背离和突破信号"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 70
+maxPicks: 6
+strategies:
+  - id: "serenity_short"
+    strategyId: "serenity"
+    style: "serenity"
+    period: "short"
+    enabled: true
+    weight: 1.0
+    params:
+      ser_short_kline_limit: 30
+      ser_short_min_kline_len: 20
+      ser_short_vol_ratio_min: 1.2
+      ser_short_price_divergence: 0.02
+  - id: "serenity_mid"
+    strategyId: "serenity"
+    style: "serenity"
+    period: "mid"
+    enabled: true
+    weight: 1.1
+    params:
+      ser_mid_kline_limit: 60
+      ser_mid_min_kline_len: 50
+      ser_mid_vol_ratio_min: 1.3
+      ser_mid_price_divergence: 0.03

@@ -48,6 +48,7 @@ use vendors::baidu_stock::BaiduStockVendor;
 use vendors::browser_eastmoney::{BrowserEastMoneyVendor, BrowserHttpFetch};
 use vendors::cninfo::CninfoVendor;
 use vendors::eastmoney::EastMoneyVendor;
+use vendors::guba::GubaVendor;
 use vendors::iwencai::IwencaiVendor;
 use vendors::mootdx::MootdxVendor;
 use vendors::neodata::NeoDataVendor;
@@ -146,6 +147,8 @@ struct VendorRouting {
     announcements: Vec<String>,
     market_dragon_tiger: Vec<String>,
     hot_stocks: Vec<String>,
+    earnings_calendar: Vec<String>,
+    social_sentiment: Vec<String>,
     industry_ranking: Vec<String>,
     cls_flash: Vec<String>,
     north_bound_flow: Vec<String>,
@@ -254,6 +257,8 @@ impl VendorRouting {
                 "iwencai".into(),
                 "neodata".into(),
             ],
+            earnings_calendar: vec!["eastmoney".into(), "neodata".into()],
+            social_sentiment: vec!["guba".into()],
             industry_ranking: vec![
                 "eastmoney".into(),
                 "ths".into(),
@@ -400,6 +405,8 @@ impl AStockClient {
             "xueqiu",
             Box::new(XueqiuVendor { http: http.clone(), token: xq_token }),
         );
+        // 东方财富股吧（社交舆情数据源，无需认证）
+        self.register_vendor("guba", Box::new(GubaVendor::new(http.clone())));
     }
 
     /// 修复 P0-A4: 返回 Result 的构造函数，调用方可自行处理 TLS 失败
@@ -1512,8 +1519,35 @@ impl AStockClient {
         &self,
         stock_code: &str,
     ) -> Result<Vec<crate::types::EarningsEvent>, DataError> {
-        let _ = stock_code; // stub: vendor 端暂不提供分类接口
-        Ok(vec![])
+        let vendor_names: Vec<String> =
+            self.routing.earnings_calendar.iter().map(|n| n.to_string()).collect();
+        let sc = stock_code.to_string();
+        self.try_vendors_retry(
+            stock_code,
+            "earnings_calendar",
+            &vendor_names,
+            2,
+            |_name, vendor| {
+                let sc = sc.clone();
+                Box::pin(async move { vendor.get_earnings_calendar(&sc).await })
+            },
+        )
+        .await
+    }
+
+    /// 获取社交舆情数据（股吧/雪球热度）
+    pub async fn get_social_sentiment(
+        &self,
+        stock_code: &str,
+    ) -> Result<Vec<crate::types::SocialSentiment>, DataError> {
+        let vendor_names: Vec<String> =
+            self.routing.social_sentiment.iter().map(|n| n.to_string()).collect();
+        let sc = stock_code.to_string();
+        self.try_vendors_retry(stock_code, "social_sentiment", &vendor_names, 1, |_name, vendor| {
+            let sc = sc.clone();
+            Box::pin(async move { vendor.get_social_sentiment(&sc).await })
+        })
+        .await
     }
 
     pub async fn get_financials(

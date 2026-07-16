@@ -777,6 +777,7 @@ mod tests_conversation {
                     ),
                 ),
             ),
+            notification_dispatcher: Arc::new(axagent_notification::NotificationDispatcher::new()),
             user_profile: Arc::new(
                 tokio::sync::RwLock::new(axagent_trajectory::UserProfile::new()),
             ),

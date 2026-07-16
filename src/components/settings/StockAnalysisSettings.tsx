@@ -6,7 +6,9 @@ import { DataVendorsTab } from "./DataVendorsTab";
 import { ExpertPromptList } from "./ExpertPromptList";
 import { RolePromptList } from "./RolePromptList";
 import { ScheduledAnalysisTab } from "./ScheduledAnalysisTab";
+import { ScheduledRecommendationTab } from "./ScheduledRecommendationTab";
 import { StockAnalysisConfigPanel } from "./StockAnalysisConfigPanel";
+import { StrategyPackSettings } from "./StrategyPackSettings";
 
 export function StockAnalysisSettings({ defaultTab }: { defaultTab?: string } = {}) {
   const { t } = useTranslation();
@@ -48,6 +50,16 @@ export function StockAnalysisSettings({ defaultTab }: { defaultTab?: string } = 
             key: "schedule",
             label: t("stockAnalysis.settings_StockAnalysisSettings.001"),
             children: <ScheduledAnalysisTab />,
+          },
+          {
+            key: "recommendation",
+            label: t("stockAnalysis.settings.tab.recommendation"),
+            children: <ScheduledRecommendationTab />,
+          },
+          {
+            key: "strategyPack",
+            label: t("stockAnalysis.settings.tab.strategyPack"),
+            children: <StrategyPackSettings />,
           },
         ]}
       />

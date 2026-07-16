@@ -77,6 +77,28 @@ pub trait StockVendor: Send + Sync {
         Ok(vec![])
     }
 
+    /// 获取财报日历事件（业绩预告/快报/正式报告/股东大会）
+    ///
+    /// 默认返回空数组，由具体 vendor（如 eastmoney）覆盖实现。
+    async fn get_earnings_calendar(
+        &self,
+        stock_code: &str,
+    ) -> Result<Vec<EarningsEvent>, DataError> {
+        let _ = stock_code;
+        Ok(vec![])
+    }
+
+    /// 获取社交舆情数据（股吧/雪球热度）
+    ///
+    /// 默认返回空数组，由具体 vendor（如 guba）覆盖实现。
+    async fn get_social_sentiment(
+        &self,
+        stock_code: &str,
+    ) -> Result<Vec<SocialSentiment>, DataError> {
+        let _ = stock_code;
+        Ok(vec![])
+    }
+
     async fn get_research_reports(
         &self,
         stock_code: &str,
@@ -355,6 +377,7 @@ pub mod baidu_stock;
 pub mod browser_eastmoney;
 pub mod cninfo;
 pub mod eastmoney;
+pub mod guba;
 pub mod iwencai;
 pub mod mootdx;
 pub mod neodata;

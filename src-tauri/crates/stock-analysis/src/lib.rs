@@ -2,6 +2,7 @@ pub mod backtest;
 pub mod backtest_feedback;
 pub mod backtest_strategy;
 pub mod blackboard;
+pub mod dashboard_report;
 pub mod data_clean;
 pub mod decision;
 pub mod decision_tracker;
@@ -36,6 +37,7 @@ pub mod schema_serde_regression;
 pub mod scoring;
 pub mod screener;
 pub mod signals;
+pub mod strategy_pack;
 pub mod trade_import;
 pub mod trade_review;
 pub mod trade_stats;
@@ -44,3 +46,13 @@ pub mod value;
 pub mod value_investing;
 pub mod vlm_import;
 pub mod weight_decay;
+
+// 以下两个模块原在 axagent-harness，属股票域契约，已迁出至本 crate（2026-07-16）：
+pub mod stock_data_service;
+pub use stock_data_service::StockDataService;
+pub mod notification_channel;
+pub use notification_channel::{
+    AlertPayload, AlertSeverity, NotificationChannel, NotificationDispatchResult,
+    NotificationDispatchSummary, NotificationPolicy, NotificationRoute, ReportPayload,
+    ReportStockSummary, RouteConfig,
+};

@@ -9,8 +9,8 @@
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::core_error::Result;
-use crate::market_data::{FinancialReport, KLine, MarketDataProvider};
+use axagent_harness::core_error::Result;
+use axagent_harness::market_data::{FinancialReport, KLine, MarketDataProvider};
 
 /// 高级股票数据服务 trait
 ///

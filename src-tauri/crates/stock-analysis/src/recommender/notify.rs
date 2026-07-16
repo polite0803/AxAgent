@@ -10,7 +10,7 @@
 
 use std::sync::Arc;
 
-use axagent_harness::market_data::MarketDataProvider;
+use axagent_astock_data::AStockClient;
 
 use super::types::{Period, RecoPick};
 use super::{recommend_stocks, RecoResponse};
@@ -25,7 +25,7 @@ use super::{recommend_stocks, RecoResponse};
 /// 5. 按 confidence 降序
 /// 6. 截取前 `top_n` 条
 pub async fn run_recommendation_scan(
-    client: Arc<dyn MarketDataProvider>,
+    client: Arc<AStockClient>,
     periods: &[Period],
     template_vars: &[(String, serde_json::Value)],
     min_confidence: u8,
@@ -74,13 +74,11 @@ pub async fn run_recommendation_scan(
     }
 
     // 3. 过滤 synthetic + min_confidence
-    let mut filtered: Vec<RecoPick> = by_code
-        .into_values()
-        .filter(|p| !p.synthetic && p.confidence >= min_confidence)
-        .collect();
+    let mut filtered: Vec<RecoPick> =
+        by_code.into_values().filter(|p| !p.synthetic && p.confidence >= min_confidence).collect();
 
     // 4. 按 confidence 降序
-    filtered.sort_by(|a, b| b.confidence.cmp(&a.confidence));
+    filtered.sort_by_key(|p| std::cmp::Reverse(p.confidence));
 
     // 5. top N
     filtered.truncate(top_n);
@@ -167,7 +165,6 @@ mod tests {
             risk_notes: vec![],
             secondary_styles: vec![],
             synthetic,
-            kline_as_of: None,
         }
     }
 
@@ -180,9 +177,8 @@ mod tests {
 
     #[test]
     fn build_notification_truncates_to_8_lines() {
-        let picks: Vec<RecoPick> = (0..15)
-            .map(|i| pick(&format!("6{i:05}"), "X", 80, 10.0, 11.0, false))
-            .collect();
+        let picks: Vec<RecoPick> =
+            (0..15).map(|i| pick(&format!("6{i:05}"), "X", 80, 10.0, 11.0, false)).collect();
         let (title, body) = build_notification(&picks);
         assert!(title.contains("15"));
         // 最多 8 行：前 7 只 + 1 行 "等共 N"

@@ -1,0 +1,42 @@
+# 成长动量长线策略包 — 长周期成长股
+name: "成长动量长线策略包"
+description: "长线趋势 + 长线价值 + 长线资金三重确认，聚焦成长股长线持有"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 78
+maxPicks: 4
+strategies:
+  - id: "trend_long_growth"
+    strategyId: "trend"
+    style: "trend"
+    period: "long"
+    enabled: true
+    weight: 1.2
+    params:
+      trend_ma_long_s: 60
+      trend_ma_long_l: 250
+      trend_ma60_ma250_mult: 0.97
+      trend_ma60_break_mult: 0.97
+      trend_long_kline_limit: 300
+      trend_long_min_kline_len: 120
+  - id: "value_long_growth"
+    strategyId: "value"
+    style: "value"
+    period: "long"
+    enabled: true
+    weight: 1.0
+    params:
+      val_long_pe_max: 35
+      val_long_pb_max: 3.0
+      val_long_roe_min: 18.0
+      val_long_kline_limit: 120
+      val_long_min_kline_len: 100
+  - id: "capital_long_growth"
+    strategyId: "capital"
+    style: "capital"
+    period: "long"
+    enabled: true
+    weight: 0.8
+    params:
+      cap_long_nb_ratio_min: 0.15
+      cap_long_main_inflow_min: 800.0

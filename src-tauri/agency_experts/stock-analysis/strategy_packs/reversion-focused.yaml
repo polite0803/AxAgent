@@ -1,0 +1,44 @@
+# 超跌反弹专精策略包 — 逆向投资
+name: "超跌反弹专精策略包"
+description: "聚焦超跌反弹策略，捕捉 RSI 超卖后的反弹机会，适合逆向投资者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 65
+maxPicks: 6
+strategies:
+  - id: "reversion_short"
+    strategyId: "reversion"
+    style: "reversion"
+    period: "short"
+    enabled: true
+    weight: 1.2
+    params:
+      rev_short_drop_pct_min: -0.10
+      rev_short_drop_pct_max: -0.20
+      rev_short_rsi_max: 30
+      rev_short_kline_limit: 30
+      rev_short_min_kline_len: 20
+  - id: "reversion_mid"
+    strategyId: "reversion"
+    style: "reversion"
+    period: "mid"
+    enabled: true
+    weight: 1.0
+    params:
+      rev_mid_drop_pct_min: -0.15
+      rev_mid_drop_pct_max: -0.25
+      rev_mid_rsi_max: 35
+      rev_mid_kline_limit: 60
+      rev_mid_min_kline_len: 50
+  - id: "reversion_long"
+    strategyId: "reversion"
+    style: "reversion"
+    period: "long"
+    enabled: true
+    weight: 0.8
+    params:
+      rev_long_drop_pct_min: -0.20
+      rev_long_drop_pct_max: -0.40
+      rev_long_rsi_max: 40
+      rev_long_kline_limit: 120
+      rev_long_min_kline_len: 100

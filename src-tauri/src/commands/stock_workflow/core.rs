@@ -37,6 +37,8 @@ pub async fn run_stock_workflow(
     analysis_id: Option<String>,
     // V53: 筛选来源标记 — "serenity" 表示来自瓶颈掘金候选
     screening_source: Option<String>,
+    // P2-3.3: 报告输出语言 — "en" / "english" 英文报告，其他值或 None 默认中文
+    language: Option<String>,
 ) -> Result<serde_json::Value, String> {
     // 解析 as_of_date；非法或未来日期直接 4xx-style 错误
     let as_of_ctx = parse_asof_param(as_of_date.clone())?;
@@ -52,6 +54,7 @@ pub async fn run_stock_workflow(
                     as_of_date,
                     analysis_id,
                     screening_source,
+                    language,
                 )
                 .await
             })
@@ -65,6 +68,7 @@ pub async fn run_stock_workflow(
             None,
             analysis_id,
             screening_source,
+            language,
         )
         .await
     }
@@ -80,6 +84,9 @@ async fn run_stock_workflow_inner(
     // V53: 筛选来源标记 — 告诉 stock-analysis 工作流当前股票来自哪里。
     // "serenity" 表示来自瓶颈掘金候选，允许风险分类器做评分修正。
     screening_source: Option<String>,
+    // P2-3.3: 报告输出语言 — 传入 prompts::language_instruction 生成指示文本，
+    // 追加到每个 AgentNode 的 system_prompt 末尾，让 LLM 用对应语言输出。
+    language: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("行情获取失败: {e}"))
@@ -208,6 +215,18 @@ async fn run_stock_workflow_inner(
     let loaded =
         load_and_inject_template(state.harness.db(), &stock_code, &quote.name, "stock-analysis")
             .await?;
+
+    // P2-3.3: 报告语言切换 — 追加语言指示到 Agent 节点的 system_prompt 末尾
+    if let Some(ref lang) = language {
+        if let Some(instruction) = axagent_stock_analysis::prompts::language_instruction(lang) {
+            for node in &mut loaded.nodes {
+                if let axagent_harness::workflow_types::WorkflowNode::Agent(ref mut a) = node {
+                    a.config.system_prompt = format!("{}\n{}", a.config.system_prompt, instruction);
+                }
+            }
+            tracing::info!("[stock_workflow] 报告语言已切换为: {lang}");
+        }
+    }
 
     if let Some(ref vars) = loaded.variables {
         for v in vars {

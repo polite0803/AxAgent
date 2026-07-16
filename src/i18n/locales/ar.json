@@ -1357,6 +1357,92 @@
     "general": {
       "title": "عام"
     },
+    "scheduled-recommendation": {
+      "description": "فحص التوصيات دوريًا ودفعها إلى قنوات الإشعارات المُعدة.",
+      "tooltip-cron-dependency": "تعمل المهام المجدولة فقط أثناء فتح التطبيق؛ إغلاق التطبيق يوقفها مؤقتًا.",
+      "tag-app-online": "مطلوب تطبيق متصل",
+      "new-task": "مهمة توصية جديدة",
+      "expand": "توسيع",
+      "cancel": "إلغاء",
+      "create-task": "إنشاء مهمة",
+      "task-created": "تم إنشاء مهمة التوصية",
+      "create-failed": "فشل الإنشاء: {{error}}",
+      "default-name": "دفع التوصيات اليومي",
+      "label-task-name": "اسم المهمة",
+      "placeholder-task-name": "مثل: توصيات الإغلاق اليومية",
+      "label-trigger-time": "وقت التشغيل",
+      "placeholder-cron-preset": "اختر أو ابحث عن تعبير cron",
+      "group-presets": "الإعدادات المسبقة الشائعة",
+      "group-custom-interval": "فاصل زمني مخصص",
+      "label-periods": "فترات التوصية",
+      "placeholder-periods": "اختر فترة واحدة أو أكثر",
+      "label-min-confidence": "الحد الأدنى للثقة",
+      "label-top-n": "حد Top N",
+      "column-name": "الاسم",
+      "column-period": "الفترة / الحد",
+      "column-executed": "مرات التشغيل",
+      "column-status": "الحالة",
+      "min-confidence-and-top-n": "الثقة ≥ {{confidence}}%، أفضل {{topN}}",
+      "last-push-count": "آخر دفع: {{count}} اختيار",
+      "confirm-delete": "حذف مهمة التوصية هذه؟",
+      "empty-description": "لا توجد مهام توصية مجدولة"
+    },
+    "strategyPack": {
+      "title": "إدارة حزم الاستراتيجية",
+      "searchPlaceholder": "البحث بالاسم أو الوصف أو المعرّف",
+      "empty": "لا توجد حزم استراتيجية",
+      "detailTitle": "تفاصيل حزمة الاستراتيجية",
+      "editorTitle": "محرر حزمة الاستراتيجية",
+      "editorIdLabel": "معرّف حزمة الاستراتيجية (يُستخدم للحفظ في دليل المستخدم)",
+      "editorYamlLabel": "محتوى YAML",
+      "editorYamlTip": "حدّد حزمة الاستراتيجية بتنسيق YAML. راجع الحزم المدمجة لمعرفة الحقول.",
+      "editorYamlPlaceholder": "أدخل محتوى YAML هنا...",
+      "confirmDelete": "حذف حزمة الاستراتيجية هذه الخاصة بالمستخدم؟",
+      "yes": "نعم",
+      "no": "لا",
+      "stat": {
+        "total": "إجمالي الحزم",
+        "builtin": "الحزم المدمجة",
+        "user": "حزم المستخدم"
+      },
+      "source": {
+        "builtin": "مدمج",
+        "user": "مستخدم"
+      },
+      "column": {
+        "name": "الاسم",
+        "description": "الوصف",
+        "source": "المصدر",
+        "strategies": "عدد الاستراتيجيات",
+        "minConfidence": "الثقة الدنيا",
+        "maxPicks": "أقصى عدد توصيات",
+        "actions": "إجراءات",
+        "style": "النمط",
+        "period": "الفترة",
+        "enabled": "مُفعّل",
+        "weight": "الوزن"
+      },
+      "action": {
+        "detail": "التفاصيل",
+        "copy": "نسخ",
+        "refresh": "تحديث",
+        "new": "جديد",
+        "validate": "تحقق",
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "close": "إغلاق"
+      },
+      "period": {
+        "ultra_short": "فائق القصر",
+        "short": "قصير",
+        "mid": "متوسط",
+        "long": "طويل"
+      },
+      "editorTemplate": {
+        "name": "حزمتي الاستراتيجية",
+        "description": "حزمة استراتيجية مخصصة"
+      }
+    },
     "display": "العرض",
     "proxy": "الوكيل",
     "shortcuts": {
@@ -8459,6 +8545,36 @@
       "supervisor": "مشرف",
       "trader": "متداول",
       "validator": "مُتحقق"
+    },
+    "import": {
+      "title": "استيراد دفعة من سجلات التداول",
+      "selectFile": "اختر ملف CSV",
+      "confirm": "تأكيد الاستيراد",
+      "imported": "تم استيراد {{valid}} سجل بنجاح، تخطى {{skipped}} سجل مكرر، فشل {{failed}} سجل",
+      "parseFailed": "فشل التحليل",
+      "importFailed": "فشل الاستيراد",
+      "noFile": "يرجى اختيار ملف أولاً",
+      "emptyFile": "الملف فارغ أو لا توجد صفوف يمكن التعرف عليها",
+      "devModeHint": "الاستيراد الدفعي مدعوم فقط في وضع تطبيق سطح المكتب",
+      "selectedFile": "الملف المحدد",
+      "formatHint": "يدعم تنسيقات TongDaXin/EastMoney/CSV العامة (اكتشاف تلقائي لأسماء الأعمدة)",
+      "summaryTotal": "المجموع",
+      "summaryValid": "صالح",
+      "summarySkipped": "تخطي المكرر",
+      "summaryFailed": "فشل",
+      "columns": {
+        "row": "صف",
+        "stockCode": "الرمز",
+        "stockName": "الاسم",
+        "direction": "الاتجاه",
+        "price": "السعر",
+        "quantity": "الكمية",
+        "tradeDate": "التاريخ",
+        "tradeTime": "الوقت",
+        "fee": "الرسوم",
+        "notes": "ملاحظات",
+        "errors": "أخطاء"
+      }
     }
   },
   "watchlist": {
@@ -9312,6 +9428,7 @@
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
     "searchPlaceholder": "Enter stock code or name",
+    "reportLanguageHint": "لغة إخراج التقرير: الصينية أو الإنجليزية",
     "startAnalysis": "Start Analysis",
     "analyzing": "Analyzing...",
     "starting": "Starting analysis engine...",
@@ -9483,7 +9600,9 @@
         "roles": "Roles",
         "profiles": "Profiles",
         "data": "Data",
-        "params": "Params"
+        "params": "Params",
+        "recommendation": "Recommendations",
+        "strategyPack": "حزم الاستراتيجية"
       },
       "check": "Check",
       "loadFailed": "Failed to load config",
@@ -10025,7 +10144,27 @@
       "risk": "risk",
       "value": "value",
       "reflection": "Reflection",
-      "evolution": "evolution"
+      "evolution": "evolution",
+      "dashboard": "لوحة التحكم"
+    },
+    "dashboard": {
+      "title": "لوحة قرار",
+      "coreConclusion": "الاستنتاج الأساسي",
+      "buySellPoints": "نقاط الشراء/البيع",
+      "buyRange": "نطاق الشراء",
+      "targetPrice": "السعر المستهدف",
+      "stopLoss": "وقف الخسارة",
+      "positionPct": "النسبة %",
+      "score": "النتيجة",
+      "confidence": "الثقة",
+      "riskAlerts": "تنبيهات المخاطر",
+      "catalysts": "المحفزات",
+      "checklist": "قائمة التحقق",
+      "latestNews": "آخر الأخبار",
+      "earningsExpectation": "توقعات الأرباح",
+      "integrityWarning": "فشل التقرير في فحص السلامة",
+      "empty": "لا يوجد تقرير لوحة تحكم. قم بتشغيل تحليل القرار أولاً.",
+      "viewMarkdown": "عرض مصدر Markdown"
     },
     "evolutionDrift": {
       "title": "Evolution Drift",

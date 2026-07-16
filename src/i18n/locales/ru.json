@@ -1357,6 +1357,92 @@
     "general": {
       "title": "Общие"
     },
+    "scheduled-recommendation": {
+      "description": "Периодически сканировать рекомендации и отправлять в настроенные каналы уведомлений.",
+      "tooltip-cron-dependency": "Запланированные задачи выполняются только при открытом приложении; закрытие приложения приостанавливает их.",
+      "tag-app-online": "Требуется открытое приложение",
+      "new-task": "Новая задача рекомендаций",
+      "expand": "Развернуть",
+      "cancel": "Отмена",
+      "create-task": "Создать задачу",
+      "task-created": "Задача рекомендаций создана",
+      "create-failed": "Ошибка создания: {{error}}",
+      "default-name": "Ежедневная отправка рекомендаций",
+      "label-task-name": "Имя задачи",
+      "placeholder-task-name": "напр. Ежедневные рекомендации по закрытию",
+      "label-trigger-time": "Время срабатывания",
+      "placeholder-cron-preset": "Выберите или найдите выражение cron",
+      "group-presets": "Частые пресеты",
+      "group-custom-interval": "Пользовательский интервал",
+      "label-periods": "Периоды рекомендаций",
+      "placeholder-periods": "Выберите один или несколько периодов",
+      "label-min-confidence": "Минимальная достоверность",
+      "label-top-n": "Лимит Top N",
+      "column-name": "Имя",
+      "column-period": "Период / порог",
+      "column-executed": "Запуски",
+      "column-status": "Статус",
+      "min-confidence-and-top-n": "Достоверность ≥ {{confidence}}%, топ {{topN}}",
+      "last-push-count": "Последняя отправка: {{count}} вариантов",
+      "confirm-delete": "Удалить эту задачу рекомендаций?",
+      "empty-description": "Нет запланированных задач рекомендаций"
+    },
+    "strategyPack": {
+      "title": "Управление стратегиями",
+      "searchPlaceholder": "Поиск по названию, описанию или ID",
+      "empty": "Нет стратегий",
+      "detailTitle": "Подробности стратегии",
+      "editorTitle": "Редактор стратегий",
+      "editorIdLabel": "ID стратегии (используется для сохранения в каталог пользователя)",
+      "editorYamlLabel": "Содержимое YAML",
+      "editorYamlTip": "Определите стратегию в формате YAML. Поля см. во встроенных стратегиях.",
+      "editorYamlPlaceholder": "Введите содержимое YAML здесь...",
+      "confirmDelete": "Удалить эту пользовательскую стратегию?",
+      "yes": "Да",
+      "no": "Нет",
+      "stat": {
+        "total": "Всего стратегий",
+        "builtin": "Встроенные стратегии",
+        "user": "Пользовательские стратегии"
+      },
+      "source": {
+        "builtin": "Встроенная",
+        "user": "Пользовательская"
+      },
+      "column": {
+        "name": "Название",
+        "description": "Описание",
+        "source": "Источник",
+        "strategies": "Кол-во стратегий",
+        "minConfidence": "Мин. уверенность",
+        "maxPicks": "Макс. рекомендаций",
+        "actions": "Действия",
+        "style": "Стиль",
+        "period": "Период",
+        "enabled": "Включено",
+        "weight": "Вес"
+      },
+      "action": {
+        "detail": "Подробности",
+        "copy": "Копировать",
+        "refresh": "Обновить",
+        "new": "Создать",
+        "validate": "Проверить",
+        "save": "Сохранить",
+        "cancel": "Отмена",
+        "close": "Закрыть"
+      },
+      "period": {
+        "ultra_short": "Ультракороткий",
+        "short": "Короткий",
+        "mid": "Средний",
+        "long": "Длинный"
+      },
+      "editorTemplate": {
+        "name": "Моя стратегия",
+        "description": "Пользовательская стратегия"
+      }
+    },
     "display": "Отображение",
     "proxy": "Прокси",
     "shortcuts": {
@@ -8459,6 +8545,36 @@
       "supervisor": "Супервайзер",
       "trader": "Трейдер",
       "validator": "Валидатор"
+    },
+    "import": {
+      "title": "Пакетный импорт записей сделок",
+      "selectFile": "Выбрать CSV-файл",
+      "confirm": "Подтвердить импорт",
+      "imported": "Успешно импортировано {{valid}} записей, пропущено {{skipped}} дубликатов, не удалось {{failed}}",
+      "parseFailed": "Ошибка разбора",
+      "importFailed": "Ошибка импорта",
+      "noFile": "Сначала выберите файл",
+      "emptyFile": "Файл пуст или не содержит распознаваемых строк",
+      "devModeHint": "Пакетный импорт поддерживается только в режиме настольного приложения",
+      "selectedFile": "Выбранный файл",
+      "formatHint": "Поддерживаются форматы TongDaXin/EastMoney/универсальный CSV (автоопределение названий столбцов)",
+      "summaryTotal": "Всего",
+      "summaryValid": "Действительно",
+      "summarySkipped": "Пропущено дубликатов",
+      "summaryFailed": "Не удалось",
+      "columns": {
+        "row": "Строка",
+        "stockCode": "Код",
+        "stockName": "Название",
+        "direction": "Направление",
+        "price": "Цена",
+        "quantity": "Количество",
+        "tradeDate": "Дата",
+        "tradeTime": "Время",
+        "fee": "Комиссия",
+        "notes": "Заметки",
+        "errors": "Ошибки"
+      }
     }
   },
   "watchlist": {
@@ -9312,6 +9428,7 @@
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
     "searchPlaceholder": "Enter stock code or name",
+    "reportLanguageHint": "Язык вывода отчёта: китайский или английский",
     "startAnalysis": "Start Analysis",
     "analyzing": "Analyzing...",
     "starting": "Starting analysis engine...",
@@ -9483,7 +9600,9 @@
         "roles": "Roles",
         "profiles": "Profiles",
         "data": "Data",
-        "params": "Params"
+        "params": "Params",
+        "recommendation": "Recommendations",
+        "strategyPack": "Стратегии"
       },
       "check": "Check",
       "loadFailed": "Failed to load config",
@@ -10025,7 +10144,27 @@
       "risk": "risk",
       "value": "value",
       "reflection": "Reflection",
-      "evolution": "evolution"
+      "evolution": "evolution",
+      "dashboard": "Панель"
+    },
+    "dashboard": {
+      "title": "Панель Решений",
+      "coreConclusion": "Основной Вывод",
+      "buySellPoints": "Точки Покупки/Продажи",
+      "buyRange": "Диапазон Покупки",
+      "targetPrice": "Целевая Цена",
+      "stopLoss": "Стоп-лосс",
+      "positionPct": "Позиция %",
+      "score": "Оценка",
+      "confidence": "Уверенность",
+      "riskAlerts": "Оповещения о Рисках",
+      "catalysts": "Катализаторы",
+      "checklist": "Контрольный Список",
+      "latestNews": "Последние Новости",
+      "earningsExpectation": "Ожидания по Прибыли",
+      "integrityWarning": "Отчет не прошел проверку целостности",
+      "empty": "Нет отчета панели. Сначала запустите анализ решения.",
+      "viewMarkdown": "Просмотреть исходный Markdown"
     },
     "evolutionDrift": {
       "title": "Evolution Drift",

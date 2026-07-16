@@ -23,9 +23,9 @@ fn model_to_active_model(
         icon: Set(template.icon.clone()),
         tags: Set(Some(serde_json::to_string(&template.tags).unwrap_or_default())),
         version: Set(template.version),
-        is_preset: Set(if template.is_preset { 1 } else { 0 }),
-        is_editable: Set(if template.is_editable { 1 } else { 0 }),
-        is_public: Set(if template.is_public { 1 } else { 0 }),
+        is_preset: Set(template.is_preset),
+        is_editable: Set(template.is_editable),
+        is_public: Set(template.is_public),
         trigger_config: Set(template
             .trigger_config
             .as_ref()

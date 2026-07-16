@@ -2925,9 +2925,9 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
         icon: Set("chart-bar".into()),
         tags: Set(Some(tags)),
         version: Set(TEMPLATE_VERSION),
-        is_preset: Set(1),
-        is_editable: Set(1),
-        is_public: Set(1),
+        is_preset: Set(true),
+        is_editable: Set(true),
+        is_public: Set(true),
         trigger_config: Set(Some(
             serde_json::to_string(&TriggerConfig {
                 trigger_type: TriggerType::Schedule,

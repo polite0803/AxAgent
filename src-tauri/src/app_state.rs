@@ -256,6 +256,8 @@ pub struct AppState {
     pub cron_scheduler: Arc<tokio::sync::RwLock<Option<Arc<axagent_runtime::cron::CronScheduler>>>>,
     pub platform_manager: Arc<axagent_runtime::message_gateway::platform_manager::PlatformManager>,
     pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
+    /// 出站推送通知分发器（报告/告警/系统错误 → 多渠道推送）
+    pub notification_dispatcher: Arc<axagent_notification::NotificationDispatcher>,
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
     pub work_engine: Arc<axagent_runtime::work_engine::WorkEngine>,

@@ -1357,6 +1357,92 @@
     "general": {
       "title": "一般"
     },
+    "scheduled-recommendation": {
+      "description": "定期的に推薦をスキャンし、設定された通知チャネルにプッシュします。",
+      "tooltip-cron-dependency": "スケジュールされたタスクはアプリ起動中のみ実行されます。アプリを閉じると一時停止します。",
+      "tag-app-online": "アプリオンライン必要",
+      "new-task": "新しい推薦タスク",
+      "expand": "展開",
+      "cancel": "キャンセル",
+      "create-task": "タスク作成",
+      "task-created": "推薦タスクが作成されました",
+      "create-failed": "作成失敗: {{error}}",
+      "default-name": "毎日推薦プッシュ",
+      "label-task-name": "タスク名",
+      "placeholder-task-name": "例: 毎日終値推薦",
+      "label-trigger-time": "トリガー時間",
+      "placeholder-cron-preset": "cron式を選択または検索",
+      "group-presets": "一般プリセット",
+      "group-custom-interval": "カスタム間隔",
+      "label-periods": "推薦期間",
+      "placeholder-periods": "1つ以上の期間を選択",
+      "label-min-confidence": "最小信頼度",
+      "label-top-n": "Top N 上限",
+      "column-name": "名前",
+      "column-period": "期間 / しきい値",
+      "column-executed": "実行",
+      "column-status": "ステータス",
+      "min-confidence-and-top-n": "信頼度 ≥ {{confidence}}%、上位 {{topN}} 件",
+      "last-push-count": "最終プッシュ: {{count}} 件",
+      "confirm-delete": "この推薦タスクを削除しますか？",
+      "empty-description": "推薦スケジュールタスクがありません"
+    },
+    "strategyPack": {
+      "title": "戦略パック管理",
+      "searchPlaceholder": "戦略パック名、説明または ID で検索",
+      "empty": "戦略パックがありません",
+      "detailTitle": "戦略パック詳細",
+      "editorTitle": "戦略パックエディタ",
+      "editorIdLabel": "戦略パック ID（ユーザーディレクトリに保存用）",
+      "editorYamlLabel": "YAML 内容",
+      "editorYamlTip": "YAML 形式で戦略パックを定義してください。フィールドは組み込み戦略パックを参照してください。",
+      "editorYamlPlaceholder": "ここに YAML 内容を入力...",
+      "confirmDelete": "このユーザー戦略パックを削除しますか？",
+      "yes": "はい",
+      "no": "いいえ",
+      "stat": {
+        "total": "戦略パック総数",
+        "builtin": "組み込み戦略パック",
+        "user": "ユーザー戦略パック"
+      },
+      "source": {
+        "builtin": "組み込み",
+        "user": "ユーザー"
+      },
+      "column": {
+        "name": "名称",
+        "description": "説明",
+        "source": "出典",
+        "strategies": "戦略数",
+        "minConfidence": "最低信頼度",
+        "maxPicks": "最大推奨数",
+        "actions": "操作",
+        "style": "スタイル",
+        "period": "期間",
+        "enabled": "有効",
+        "weight": "重み"
+      },
+      "action": {
+        "detail": "詳細",
+        "copy": "コピー",
+        "refresh": "更新",
+        "new": "新規",
+        "validate": "検証",
+        "save": "保存",
+        "cancel": "キャンセル",
+        "close": "閉じる"
+      },
+      "period": {
+        "ultra_short": "超短期",
+        "short": "短期",
+        "mid": "中期",
+        "long": "長期"
+      },
+      "editorTemplate": {
+        "name": "マイ戦略パック",
+        "description": "カスタム戦略パック"
+      }
+    },
     "display": "表示",
     "proxy": "プロキシ",
     "messageChannels": "メッセージチャネル",
@@ -8577,6 +8663,36 @@
       "supervisor": "スーパーバイザー",
       "trader": "トレーダー",
       "validator": "バリデーター"
+    },
+    "import": {
+      "title": "取引記録の一括インポート",
+      "selectFile": "CSVファイルを選択",
+      "confirm": "インポートを確認",
+      "imported": "{{valid}}件をインポート成功、{{skipped}}件の重複をスキップ、{{failed}}件失敗",
+      "parseFailed": "解析失敗",
+      "importFailed": "インポート失敗",
+      "noFile": "ファイルを先に選択してください",
+      "emptyFile": "ファイルが空か、認識可能な行がありません",
+      "devModeHint": "一括インポートはデスクトップアプリモードのみ対応",
+      "selectedFile": "選択済みファイル",
+      "formatHint": "通達信/東方財富/汎用CSV形式に対応（列名を自動認識）",
+      "summaryTotal": "合計",
+      "summaryValid": "有効",
+      "summarySkipped": "重複スキップ",
+      "summaryFailed": "失敗",
+      "columns": {
+        "row": "行",
+        "stockCode": "コード",
+        "stockName": "名称",
+        "direction": "方向",
+        "price": "価格",
+        "quantity": "数量",
+        "tradeDate": "日付",
+        "tradeTime": "時間",
+        "fee": "手数料",
+        "notes": "備考",
+        "errors": "エラー"
+      }
     }
   },
   "backtest": {
@@ -9328,6 +9444,7 @@
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
     "searchPlaceholder": "Enter stock code or name",
+    "reportLanguageHint": "レポート出力言語：中国語または英語",
     "startAnalysis": "Start Analysis",
     "analyzing": "Analyzing...",
     "starting": "Starting analysis engine...",
@@ -9499,7 +9616,9 @@
         "roles": "Roles",
         "profiles": "Profiles",
         "data": "Data",
-        "params": "Params"
+        "params": "Params",
+        "recommendation": "Recommendations",
+        "strategyPack": "戦略パック"
       },
       "check": "Check",
       "loadFailed": "Failed to load config",
@@ -10048,7 +10167,27 @@
       "risk": "リスク",
       "value": "估值",
       "reflection": "反思",
-      "evolution": "演化"
+      "evolution": "演化",
+      "dashboard": "ダッシュボード"
+    },
+    "dashboard": {
+      "title": "意思決定ダッシュボード",
+      "coreConclusion": "核心結論",
+      "buySellPoints": "売買ポイント",
+      "buyRange": "買入範囲",
+      "targetPrice": "目標価格",
+      "stopLoss": "ストップロス",
+      "positionPct": "建玉 %",
+      "score": "スコア",
+      "confidence": "信頼度",
+      "riskAlerts": "リスク警告",
+      "catalysts": "触媒",
+      "checklist": "チェックリスト",
+      "latestNews": "最新ニュース",
+      "earningsExpectation": "業績予想",
+      "integrityWarning": "レポートが整合性チェックを通過しませんでした",
+      "empty": "ダッシュボードレポートがありません。決策分析を先に実行してください。",
+      "viewMarkdown": "Markdownソースを表示"
     },
     "evolutionDrift": {
       "title": "Evolution Drift",

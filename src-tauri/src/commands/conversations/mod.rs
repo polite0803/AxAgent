@@ -2762,6 +2762,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
                 Arc::new(axagent_runtime::message_gateway::platform_manager::PlatformManager::new()),
             ),
         ),
+        notification_dispatcher: Arc::new(axagent_notification::NotificationDispatcher::new()),
         user_profile: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::UserProfile::new())),
         local_tool_registry: Arc::new(tokio::sync::Mutex::new(
             axagent_tools::registry::UnifiedToolRegistry::new(),

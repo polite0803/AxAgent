@@ -634,16 +634,64 @@ pub fn clear_asof_degradation_log() {
 }
 
 /// 搜索股票
+///
+/// `market` 可选参数用于过滤市场：
+/// - `"A"` → 仅 A 股（上交所/深交所/北交所/创业板/科创板）
+/// - `"HK"` → 仅港股
+/// - `"US"` → 仅美股
+/// - `None` → 全市场
 #[tauri::command]
 pub async fn search_stock(
     state: State<'_, AppState>,
     keyword: String,
+    market: Option<String>,
 ) -> Result<Vec<axagent_astock_data::StockSearchResult>, String> {
-    // 修复 L-12: 参数非空校验，避免空字符串触发无意义的 vendor 请求
     if keyword.trim().is_empty() {
         return Err("keyword 不能为空".to_string());
     }
-    state.astock_client.search_stock(&keyword).await.map_err(|e| e.to_string())
+    let results = state.astock_client.search_stock(&keyword).await.map_err(|e| e.to_string())?;
+    // 按市场过滤（基于 market 描述字段或代码后缀）
+    let filtered = match market.as_deref() {
+        Some("A") => results
+            .into_iter()
+            .filter(|r| !r.stock_code.ends_with(".HK") && !r.stock_code.ends_with(".US"))
+            .collect(),
+        Some("HK") => results.into_iter().filter(|r| r.stock_code.ends_with(".HK")).collect(),
+        Some("US") => results.into_iter().filter(|r| r.stock_code.ends_with(".US")).collect(),
+        _ => results,
+    };
+    Ok(filtered)
+}
+
+/// 搜索财经新闻
+///
+/// 复用 AStockClient::search_news 已有链路：多 vendor 路由（eastmoney/akshare/neodata）
+/// + 自动去重入库（news_archive 表）+ as-of 模式查本地语料库。
+#[tauri::command]
+pub async fn search_news(
+    state: State<'_, AppState>,
+    keyword: String,
+    limit: Option<u32>,
+) -> Result<Vec<axagent_astock_data::NewsItem>, String> {
+    if keyword.trim().is_empty() {
+        return Err("keyword 不能为空".to_string());
+    }
+    let limit = limit.unwrap_or(20).min(100);
+    state.astock_client.search_news(&keyword, limit).await.map_err(|e| e.to_string())
+}
+
+/// 获取社交舆情数据（股吧/雪球热度）
+///
+/// 返回指定股票在社交平台上的讨论热度、情感倾向等数据。
+#[tauri::command]
+pub async fn get_social_sentiment(
+    state: State<'_, AppState>,
+    stock_code: String,
+) -> Result<Vec<axagent_astock_data::SocialSentiment>, String> {
+    if stock_code.trim().is_empty() {
+        return Err("stock_code 不能为空".to_string());
+    }
+    state.astock_client.get_social_sentiment(&stock_code).await.map_err(|e| e.to_string())
 }
 
 /// 获取实时行情
@@ -3952,6 +4000,32 @@ pub fn parse_vlm_portfolio_screenshot(
     raw_vlm_output: String,
 ) -> Result<axagent_stock_analysis::vlm_import::VlmParseResult, String> {
     Ok(axagent_stock_analysis::vlm_import::parse_vlm_output(&raw_vlm_output))
+}
+
+/// 解析 CSV 交易记录文件（不写入数据库，仅预览）
+///
+/// 支持 通达信/东方财富/通用 CSV 格式，自动识别中文列名。
+#[tauri::command]
+pub fn parse_trades_csv(
+    file_path: String,
+) -> Result<Vec<axagent_stock_analysis::trade_import::ImportRow>, String> {
+    axagent_stock_analysis::trade_import::parse_csv(&file_path)
+}
+
+/// 批量导入交易记录到数据库
+///
+/// 内部调用 `batch_import_trades`：写入 trades 表 + 同步更新 portfolio_holdings。
+/// 支持查重（同股票+同方向+同日期+同价格+同数量跳过）。
+#[tauri::command]
+pub async fn import_trades(
+    state: State<'_, AppState>,
+    file_path: String,
+) -> Result<axagent_stock_analysis::trade_import::ImportSummary, String> {
+    let rows = axagent_stock_analysis::trade_import::parse_csv(&file_path)?;
+    let db = state.harness.db();
+    axagent_stock_analysis::trade_import::batch_import_trades(db, &rows)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// 批量导入 VLM 识别的持仓

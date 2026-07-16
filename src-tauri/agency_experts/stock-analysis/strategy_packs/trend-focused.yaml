@@ -1,0 +1,66 @@
+# 趋势专精策略包 — 全周期趋势跟踪
+name: "趋势专精策略包"
+description: "覆盖超短/短/中/长四个周期的趋势跟踪策略，适合纯趋势交易者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 68
+maxPicks: 10
+strategies:
+  - id: "trend_ultra_short"
+    strategyId: "trend"
+    style: "trend"
+    period: "ultra_short"
+    enabled: true
+    weight: 1.0
+    params:
+      trend_ma_ultra_short_1: 5
+      trend_ma_ultra_short_2: 10
+      trend_high_ultra_short_period: 5
+      trend_high_ultra_short_threshold: 0.995
+      trend_ultra_short_kline_limit: 20
+      trend_ultra_short_min_kline_len: 15
+  - id: "trend_short"
+    strategyId: "trend"
+    style: "trend"
+    period: "short"
+    enabled: true
+    weight: 1.1
+    params:
+      trend_ma_short_1: 5
+      trend_ma_short_2: 10
+      trend_ma_short_3: 20
+      trend_short_ma20_tolerance: 0.985
+      trend_high_20_period: 20
+      trend_high_20_threshold: 0.97
+  - id: "trend_mid"
+    strategyId: "trend"
+    style: "trend"
+    period: "mid"
+    enabled: true
+    weight: 1.2
+    params:
+      trend_ma_mid_s: 20
+      trend_ma_mid_l: 60
+      trend_ma60_threshold: 0.985
+      trend_high_60_period: 60
+      trend_high_60_threshold: 0.94
+      trend_mid_kline_limit: 150
+      trend_mid_min_kline_len: 60
+      trend_mid_entry_low: 0.97
+      trend_mid_entry_high: 1.05
+      trend_mid_stop: 0.92
+      trend_mid_target: 1.05
+      trend_mid_base_pos: 8.0
+  - id: "trend_long"
+    strategyId: "trend"
+    style: "trend"
+    period: "long"
+    enabled: true
+    weight: 1.0
+    params:
+      trend_ma_long_s: 60
+      trend_ma_long_l: 250
+      trend_ma60_ma250_mult: 0.95
+      trend_ma60_break_mult: 0.95
+      trend_long_kline_limit: 300
+      trend_long_min_kline_len: 120

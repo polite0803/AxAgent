@@ -1357,6 +1357,92 @@
     "general": {
       "title": "Allgemein"
     },
+    "scheduled-recommendation": {
+      "description": "Empfehlungen regelmäßig scannen und an konfigurierte Benachrichtigungskanäle senden.",
+      "tooltip-cron-dependency": "Geplante Aufgaben werden nur ausgeführt, während die App geöffnet ist; beim Schließen werden sie pausiert.",
+      "tag-app-online": "App online erforderlich",
+      "new-task": "Neue Empfehlungsaufgabe",
+      "expand": "Ausklappen",
+      "cancel": "Abbrechen",
+      "create-task": "Aufgabe erstellen",
+      "task-created": "Empfehlungsaufgabe erstellt",
+      "create-failed": "Erstellen fehlgeschlagen: {{error}}",
+      "default-name": "Tägliche Empfehlungs-Push",
+      "label-task-name": "Aufgabenname",
+      "placeholder-task-name": "z. B. Tägliche Schluss-Empfehlung",
+      "label-trigger-time": "Auslösezeit",
+      "placeholder-cron-preset": "Cron-Ausdruck wählen oder suchen",
+      "group-presets": "Häufige Voreinstellungen",
+      "group-custom-interval": "Benutzerdefiniertes Intervall",
+      "label-periods": "Empfehlungszeiträume",
+      "placeholder-periods": "Einen oder mehrere Zeiträume wählen",
+      "label-min-confidence": "Mindestkonfidenz",
+      "label-top-n": "Top-N-Limit",
+      "column-name": "Name",
+      "column-period": "Zeitraum / Schwellenwert",
+      "column-executed": "Ausführungen",
+      "column-status": "Status",
+      "min-confidence-and-top-n": "Konfidenz ≥ {{confidence}}%, Top {{topN}}",
+      "last-push-count": "Letzter Push: {{count}} Picks",
+      "confirm-delete": "Diese Empfehlungsaufgabe löschen?",
+      "empty-description": "Keine geplanten Empfehlungsaufgaben"
+    },
+    "strategyPack": {
+      "title": "Strategiepaket-Verwaltung",
+      "searchPlaceholder": "Nach Name, Beschreibung oder ID suchen",
+      "empty": "Keine Strategiepakete",
+      "detailTitle": "Strategiepaket-Details",
+      "editorTitle": "Strategiepaket-Editor",
+      "editorIdLabel": "Strategiepaket-ID (zum Speichern im Benutzerverzeichnis)",
+      "editorYamlLabel": "YAML-Inhalt",
+      "editorYamlTip": "Definieren Sie das Strategiepaket im YAML-Format. Felder siehe integrierte Pakete.",
+      "editorYamlPlaceholder": "YAML-Inhalt hier eingeben...",
+      "confirmDelete": "Dieses Benutzer-Strategiepaket löschen?",
+      "yes": "Ja",
+      "no": "Nein",
+      "stat": {
+        "total": "Gesamte Pakete",
+        "builtin": "Eingebaute Pakete",
+        "user": "Benutzerpakete"
+      },
+      "source": {
+        "builtin": "Eingebaut",
+        "user": "Benutzer"
+      },
+      "column": {
+        "name": "Name",
+        "description": "Beschreibung",
+        "source": "Quelle",
+        "strategies": "Strategien",
+        "minConfidence": "Min. Konfidenz",
+        "maxPicks": "Max. Auswahl",
+        "actions": "Aktionen",
+        "style": "Stil",
+        "period": "Periode",
+        "enabled": "Aktiviert",
+        "weight": "Gewichtung"
+      },
+      "action": {
+        "detail": "Details",
+        "copy": "Kopieren",
+        "refresh": "Aktualisieren",
+        "new": "Neu",
+        "validate": "Validieren",
+        "save": "Speichern",
+        "cancel": "Abbrechen",
+        "close": "Schließen"
+      },
+      "period": {
+        "ultra_short": "Ultra kurz",
+        "short": "Kurz",
+        "mid": "Mittel",
+        "long": "Lang"
+      },
+      "editorTemplate": {
+        "name": "Mein Strategiepaket",
+        "description": "Benutzerdefiniertes Strategiepaket"
+      }
+    },
     "display": "Anzeige",
     "proxy": "Proxy",
     "shortcuts": {
@@ -8459,6 +8545,36 @@
       "supervisor": "Supervisor",
       "trader": "Händler",
       "validator": "Validator"
+    },
+    "import": {
+      "title": "Handelsdatensätze als Batch importieren",
+      "selectFile": "CSV-Datei auswählen",
+      "confirm": "Import bestätigen",
+      "imported": "Erfolgreich {{valid}} Datensätze importiert, {{skipped}} Duplikate übersprungen, {{failed}} fehlgeschlagen",
+      "parseFailed": "Parsing fehlgeschlagen",
+      "importFailed": "Import fehlgeschlagen",
+      "noFile": "Bitte zuerst eine Datei auswählen",
+      "emptyFile": "Datei ist leer oder hat keine erkennbaren Zeilen",
+      "devModeHint": "Batch-Import wird nur im Desktop-App-Modus unterstützt",
+      "selectedFile": "Ausgewählte Datei",
+      "formatHint": "Unterstützt TongDaXin/EastMoney/generische CSV-Formate (automatische Spaltenerkennung)",
+      "summaryTotal": "Gesamt",
+      "summaryValid": "Gültig",
+      "summarySkipped": "Duplikate übersprungen",
+      "summaryFailed": "Fehlgeschlagen",
+      "columns": {
+        "row": "Zeile",
+        "stockCode": "Code",
+        "stockName": "Name",
+        "direction": "Richtung",
+        "price": "Preis",
+        "quantity": "Menge",
+        "tradeDate": "Datum",
+        "tradeTime": "Zeit",
+        "fee": "Gebühr",
+        "notes": "Notizen",
+        "errors": "Fehler"
+      }
     }
   },
   "watchlist": {
@@ -9325,6 +9441,7 @@
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
     "searchPlaceholder": "Enter stock code or name",
+    "reportLanguageHint": "Berichtssprache: Chinesisch oder Englisch",
     "startAnalysis": "Start Analysis",
     "analyzing": "Analyzing...",
     "starting": "Starting analysis engine...",
@@ -9496,7 +9613,9 @@
         "roles": "Roles",
         "profiles": "Profiles",
         "data": "Data",
-        "params": "Params"
+        "params": "Params",
+        "recommendation": "Recommendations",
+        "strategyPack": "Strategiepakete"
       },
       "check": "Check",
       "loadFailed": "Failed to load config",
@@ -10038,7 +10157,27 @@
       "risk": "risk",
       "value": "value",
       "reflection": "Reflection",
-      "evolution": "evolution"
+      "evolution": "evolution",
+      "dashboard": "Dashboard"
+    },
+    "dashboard": {
+      "title": "Entscheidungs-Dashboard",
+      "coreConclusion": "Kernschluss",
+      "buySellPoints": "Kauf/Verkauf-Punkte",
+      "buyRange": "Kaufbereich",
+      "targetPrice": "Zielpreis",
+      "stopLoss": "Stop-Loss",
+      "positionPct": "Position %",
+      "score": "Bewertung",
+      "confidence": "Konfidenz",
+      "riskAlerts": "Risikowarnungen",
+      "catalysts": "Katalysatoren",
+      "checklist": "Checkliste",
+      "latestNews": "Aktuelle Nachrichten",
+      "earningsExpectation": "Gewinnerwartung",
+      "integrityWarning": "Bericht hat Integritätsprüfung nicht bestanden",
+      "empty": "Noch kein Dashboard-Bericht. Führen Sie die Entscheidungsanalyse aus.",
+      "viewMarkdown": "Markdown-Quelle anzeigen"
     },
     "evolutionDrift": {
       "title": "Evolution Drift",

@@ -963,6 +963,8 @@ macro_rules! register_all_commands {
             commands::stock_analysis::get_asof_degradation_log,
             commands::stock_analysis::clear_asof_degradation_log,
             commands::stock_analysis::search_stock,
+            commands::stock_analysis::search_news,
+            commands::stock_analysis::get_social_sentiment,
             commands::stock_analysis::get_stock_quote,
             commands::stock_analysis::get_stock_kline,
             commands::stock_analysis::batch_get_quotes,
@@ -1063,6 +1065,11 @@ macro_rules! register_all_commands {
             commands::stock_analysis::list_batch_reflection_crons,
             commands::stock_analysis::toggle_batch_reflection_cron,
             commands::stock_analysis::delete_batch_reflection_cron,
+            // 荐股定时推送任务
+            commands::recommendation_cron::create_recommendation_cron,
+            commands::recommendation_cron::list_recommendation_crons,
+            commands::recommendation_cron::toggle_recommendation_cron,
+            commands::recommendation_cron::delete_recommendation_cron,
             commands::stock_analysis::list_reflections,
             commands::stock_analysis::delete_reflection,
             commands::stock_analysis::run_reflection_now,
@@ -1080,6 +1087,8 @@ macro_rules! register_all_commands {
             commands::stock_analysis::parse_analysis_intent,
             commands::stock_analysis::parse_vlm_portfolio_screenshot,
             commands::stock_analysis::import_portfolio_from_vlm,
+            commands::stock_analysis::parse_trades_csv,
+            commands::stock_analysis::import_trades,
             commands::stock_analysis::quick_backtest,
             commands::stock_analysis::list_stock_tools,
             commands::stock_analysis::get_lockup_schedule,
@@ -1111,6 +1120,14 @@ macro_rules! register_all_commands {
             commands::backtest_validation::run_decision_backtest,
             commands::backtest_validation::list_decision_validations,
             commands::backtest_validation::compute_validation_report,
+            // ── 策略包管理（YAML 自然语言策略包）──
+            commands::strategy_pack::list_strategy_packs,
+            commands::strategy_pack::get_strategy_pack_detail,
+            commands::strategy_pack::validate_strategy_pack_yaml,
+            commands::strategy_pack::save_user_strategy_pack,
+            commands::strategy_pack::delete_user_strategy_pack,
+            commands::strategy_pack::get_user_strategy_packs_dir,
+            commands::strategy_pack::count_builtin_strategy_packs,
         ]
     };
 }

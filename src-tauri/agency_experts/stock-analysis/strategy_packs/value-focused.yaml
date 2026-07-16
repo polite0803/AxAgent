@@ -1,0 +1,49 @@
+# 价值专精策略包 — 全周期价值投资
+name: "价值专精策略包"
+description: "覆盖短/中/长三个周期的价值投资策略，聚焦 PE/PB/ROE 基本面"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 72
+maxPicks: 8
+strategies:
+  - id: "value_short"
+    strategyId: "value"
+    style: "value"
+    period: "short"
+    enabled: true
+    weight: 1.0
+    params:
+      val_short_pe_max: 50
+      val_short_pb_max: 3.0
+      val_short_kline_limit: 30
+      val_short_min_kline_len: 20
+      val_short_ma_period: 20
+      val_short_ma_mult: 1.005
+  - id: "value_mid"
+    strategyId: "value"
+    style: "value"
+    period: "mid"
+    enabled: true
+    weight: 1.1
+    params:
+      val_mid_pe_max: 40
+      val_mid_pb_max: 2.5
+      val_mid_roe_min: 10.0
+      val_mid_kline_limit: 60
+      val_mid_min_kline_len: 50
+      val_mid_ma_period: 60
+      val_mid_ma_mult: 1.01
+  - id: "value_long"
+    strategyId: "value"
+    style: "value"
+    period: "long"
+    enabled: true
+    weight: 1.3
+    params:
+      val_long_pe_max: 30
+      val_long_pb_max: 2.0
+      val_long_roe_min: 15.0
+      val_long_kline_limit: 120
+      val_long_min_kline_len: 100
+      val_long_ma_period: 120
+      val_long_ma_mult: 1.02

@@ -10,6 +10,7 @@ import { Button, Collapse, Dropdown } from "antd";
 import {
   ArrowLeftRight,
   Coins,
+  LayoutDashboard,
   LineChart,
   RotateCcw,
   Settings,
@@ -28,6 +29,7 @@ import { AnalystReportGrid } from "./AnalystReportGrid";
 import { AnnouncementsPanel } from "./AnnouncementsPanel";
 import { ClsFlashPanel } from "./ClsFlashPanel";
 import { ConceptBlocksPanel } from "./ConceptBlocksPanel";
+import { DashboardReportPreview } from "./DashboardReportPreview";
 import { DebatePanel } from "./DebatePanel";
 import { DecisionBanner } from "./DecisionBanner";
 import { ExperimentSidebar } from "./ExperimentSidebar";
@@ -59,6 +61,36 @@ function DecisionComparisonTabContent() {
     agreementBreakdown: store.decision?.agreementBreakdown ?? null,
   };
   return <DualViewRenderer id="decision-comparison" data={dualViewData} defaultMode="panel" />;
+}
+
+/** 决策仪表盘标签页内容 */
+function DashboardTabContent() {
+  const dashboardReport = useStockAnalysisStore((s) => s.dashboardReport);
+  const dashboardMd = useStockAnalysisStore((s) => s.dashboardMd);
+  const { t } = useTranslation();
+
+  if (!dashboardReport) {
+    return (
+      <div style={{ padding: 24, textAlign: "center", color: "#8c8c8c" }}>
+        {t("stockAnalysis.dashboard.empty", "暂无仪表盘报告，请先运行决策分析或重跑决策")}
+      </div>
+    );
+  }
+  return (
+    <div>
+      <DashboardReportPreview report={dashboardReport} />
+      {dashboardMd && (
+        <details style={{ marginTop: 16, padding: "0 16px" }}>
+          <summary style={{ cursor: "pointer", color: "#8c8c8c" }}>
+            {t("stockAnalysis.dashboard.viewMarkdown", "查看 Markdown 源码")}
+          </summary>
+          <pre style={{ background: "#f5f5f5", padding: 12, borderRadius: 8, overflow: "auto", fontSize: 12 }}>
+            {dashboardMd}
+          </pre>
+        </details>
+      )}
+    </div>
+  );
 }
 import { EvolutionDriftPanel } from "./EvolutionDriftPanel";
 import { IndexQuotesPanel } from "./IndexQuotesPanel";
@@ -287,6 +319,12 @@ export function StockAnalysisPage() {
       label: t("stockAnalysis.tab.decision"),
       icon: <SplitSquareHorizontal size={14} />,
       children: <DecisionComparisonTabContent />,
+    },
+    {
+      key: "dashboard",
+      label: t("stockAnalysis.tab.dashboard", "仪表盘"),
+      icon: <LayoutDashboard size={14} />,
+      children: <DashboardTabContent />,
     },
     // Decision tab removed — now rendered as full-width hero at top
     {

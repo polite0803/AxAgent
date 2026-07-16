@@ -157,10 +157,23 @@ pub trait MarketDataProvider: Send + Sync {
     async fn search_stock(&self, keyword: &str) -> Result<Vec<StockSearchResult>>;
 }
 
-// ── A 股市场工具函数 ────────────────────────────────────────────
+// ── 市场工具函数（A股 / 港股 / 美股）────────────────────────────
 
-/// 根据股票代码前缀识别市场板块
+/// 根据股票代码识别市场板块
+///
+/// 支持的后缀格式：
+/// - `.HK` → 港股（如 `00700.HK`）
+/// - `.US` → 美股（如 `AAPL.US`）
+/// - 无后缀 → 按首字符识别 A 股板块
 pub fn detect_market_type(code: &str) -> &str {
+    // 港股/美股后缀识别（不区分大小写）
+    if code.ends_with(".HK") || code.ends_with(".hk") {
+        return "hk";
+    }
+    if code.ends_with(".US") || code.ends_with(".us") {
+        return "us";
+    }
+    // A 股板块识别
     match code.chars().next() {
         Some('6') if code.starts_with("688") => "star",
         Some('6') => "main_sh",
@@ -173,18 +186,23 @@ pub fn detect_market_type(code: &str) -> &str {
     }
 }
 
-/// 获取A股各板块涨跌停幅度（百分比）
+/// 获取各市场涨跌停幅度（百分比）
+///
+/// 港股和美股不设涨跌停限制，返回 `f64::MAX` 表示无限制。
 pub fn get_price_limit_pct(market_type: &str) -> f64 {
     match market_type {
         "star" | "chinext" => 20.0,
         "bj" => 30.0,
+        "hk" | "us" => f64::MAX,
         _ => 10.0,
     }
 }
 
 /// 获取ST股票的涨跌停幅度
+///
+/// 港股美股无 ST 概念，直接返回无限制。
 pub fn get_st_price_limit_pct(is_st: bool, market_type: &str) -> f64 {
-    if is_st {
+    if is_st && !matches!(market_type, "hk" | "us") {
         5.0
     } else {
         get_price_limit_pct(market_type)

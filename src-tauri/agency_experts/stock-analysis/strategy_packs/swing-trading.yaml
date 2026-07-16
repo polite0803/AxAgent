@@ -1,0 +1,48 @@
+# 波段交易策略包 — 中短线结合
+name: "波段交易策略包"
+description: "短线趋势 + 中线趋势 + 短线反弹结合，捕捉中短期波段，适合波段交易者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 68
+maxPicks: 8
+strategies:
+  - id: "trend_short_swing"
+    strategyId: "trend"
+    style: "trend"
+    period: "short"
+    enabled: true
+    weight: 1.2
+    params:
+      trend_ma_short_1: 5
+      trend_ma_short_2: 10
+      trend_ma_short_3: 20
+      trend_short_ma20_tolerance: 0.985
+      trend_high_20_period: 20
+      trend_high_20_threshold: 0.97
+      trend_short_entry_low: 0.99
+      trend_short_entry_high: 1.015
+      trend_short_stop: 0.95
+      trend_short_target: 1.10
+  - id: "trend_mid_swing"
+    strategyId: "trend"
+    style: "trend"
+    period: "mid"
+    enabled: true
+    weight: 1.0
+    params:
+      trend_ma_mid_s: 20
+      trend_ma_mid_l: 60
+      trend_ma60_threshold: 0.985
+      trend_high_60_period: 60
+      trend_high_60_threshold: 0.94
+  - id: "reversion_short_swing"
+    strategyId: "reversion"
+    style: "reversion"
+    period: "short"
+    enabled: true
+    weight: 0.9
+    params:
+      rev_short_drop_pct_min: -0.10
+      rev_short_drop_pct_max: -0.20
+      rev_short_rsi_max: 30
+      rev_short_kline_limit: 30

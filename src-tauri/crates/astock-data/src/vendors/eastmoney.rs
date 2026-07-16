@@ -140,8 +140,79 @@ impl EastMoneyVendor {
     }
 }
 
-/// 构建东方财富 secid (1.600519, 0.000001)
+/// 根据公告标题分类财报事件类型
+///
+/// 返回 (event_type, period)
+/// - "业绩预告" → ("preliminary", 期间)
+/// - "业绩快报" → ("express", 期间)
+/// - "年报"/"季报"/"半年报" → ("formal", 期间)
+/// - "股东大会" → ("shareholders_meeting", None)
+/// - 其他 → ("other", None)
+fn classify_earnings_title(title: &str) -> (&'static str, Option<String>) {
+    // 提取期间（如 "2024年年度报告" → "2024年报"，"2025年第三季度报告" → "2025Q3"）
+    let period = extract_report_period(title);
+
+    if title.contains("业绩预告") || title.contains("预增") || title.contains("预减") {
+        return ("preliminary", period);
+    }
+    if title.contains("业绩快报") {
+        return ("express", period);
+    }
+    if title.contains("股东大会") {
+        return ("shareholders_meeting", None);
+    }
+    if title.contains("年度报告")
+        || title.contains("季度报告")
+        || title.contains("半年报")
+        || title.contains("年报")
+    {
+        return ("formal", period);
+    }
+    ("other", None)
+}
+
+/// 从标题中提取报告期间
+fn extract_report_period(title: &str) -> Option<String> {
+    // 匹配 "2024年年度报告" / "2025年第三季度报告" / "2024年半年度报告"
+    if let Some(year_start) = title.find(|c: char| c.is_ascii_digit() && c != '0') {
+        let rest = &title[year_start..];
+        // 提取年份
+        let year: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+        if year.len() == 4 {
+            if title.contains("年度报告") || title.contains("年报") {
+                return Some(format!("{year}年报"));
+            }
+            if title.contains("第一季度") {
+                return Some(format!("{year}Q1"));
+            }
+            if title.contains("半年度") || title.contains("半年报") || title.contains("中报")
+            {
+                return Some(format!("{year}Q2"));
+            }
+            if title.contains("第三季度") {
+                return Some(format!("{year}Q3"));
+            }
+            return Some(year);
+        }
+    }
+    None
+}
+
+/// 构建东方财富 secid
+///
+/// A 股：`1.600519`（上海）、`0.000001`（深圳）
+/// 港股：`116.00700`（去掉 .HK 后缀，加 116 前缀）
+/// 美股：`105.AAPL`（去掉 .US 后缀，加 105 前缀）
 fn to_em_secid(stock_code: &str) -> String {
+    // 港股：00700.HK → 116.00700
+    if let Some(code) = stock_code.strip_suffix(".HK").or_else(|| stock_code.strip_suffix(".hk")) {
+        return format!("116.{code}");
+    }
+    // 美股：AAPL.US → 105.AAPL
+    if let Some(code) = stock_code.strip_suffix(".US").or_else(|| stock_code.strip_suffix(".us")) {
+        return format!("105.{code}");
+    }
+    // A 股
     let market = if stock_code.starts_with('6') || stock_code.starts_with('9') {
         "1"
     } else if stock_code.starts_with('8') || stock_code.starts_with('4') {
@@ -895,6 +966,60 @@ impl StockVendor for EastMoneyVendor {
                 })
             })
             .collect()
+    }
+
+    /// 获取财报日历事件
+    ///
+    /// 使用东方财富公告 API（RPTA_WEB_NOTICE），按标题关键词分类：
+    /// - "业绩预告" → preliminary
+    /// - "业绩快报" → express
+    /// - "定期报告"/"年报"/"季报" → formal
+    /// - "股东大会" → shareholders_meeting
+    /// - 其他 → other
+    async fn get_earnings_calendar(
+        &self,
+        stock_code: &str,
+    ) -> Result<Vec<EarningsEvent>, DataError> {
+        let url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_NOTICE&columns=SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,TITLE,EQUITY_NOTICE_TYPE&filter=(SECURITY_CODE=\"{stock_code}\")&pageSize=30&sortColumns=NOTICE_DATE&sortTypes=-1&pageNumber=1"
+        );
+        let resp = self.em_get(&url).await?;
+        let json: Value = resp.json().await?;
+
+        let rows = match json["result"]["data"].as_array() {
+            Some(arr) => arr,
+            None => return Ok(vec![]),
+        };
+
+        Ok(rows
+            .iter()
+            .filter_map(|r| {
+                let title = r["TITLE"].as_str().unwrap_or("");
+                let notice_date = r["NOTICE_DATE"].as_str().unwrap_or("");
+                if title.is_empty() || notice_date.is_empty() {
+                    return None;
+                }
+
+                // 按标题关键词分类
+                let (event_type, period) = classify_earnings_title(title);
+
+                // 只保留财报相关事件
+                if event_type == "other" && !title.contains("报告") && !title.contains("业绩") {
+                    return None;
+                }
+
+                Some(EarningsEvent {
+                    stock_code: stock_code.to_string(),
+                    stock_name: r["SECURITY_NAME_ABBR"].as_str().unwrap_or("").to_string(),
+                    event_date: notice_date.to_string(),
+                    event_type: event_type.to_string(),
+                    period,
+                    detail: Some(title.to_string()),
+                    source: Some("eastmoney".to_string()),
+                    created_at: chrono::Utc::now().timestamp(),
+                })
+            })
+            .collect())
     }
 
     async fn search_stock(&self, keyword: &str) -> Result<Vec<StockSearchResult>, DataError> {

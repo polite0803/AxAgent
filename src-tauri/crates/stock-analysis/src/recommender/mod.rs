@@ -9,12 +9,14 @@
 //! - [`recommend_stocks`] — Tauri command 调用
 
 pub mod indicators;
+pub mod notify;
 pub mod pool;
 pub mod scoring;
 pub mod strategies;
 pub mod strategy;
 pub mod types;
 
+pub use notify::{build_notification, run_recommendation_scan};
 pub use strategy::{RecoContext, RecommendStrategy};
 pub use types::{Period, RecoPick, RecoResponse, Style};
 

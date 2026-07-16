@@ -146,6 +146,98 @@ export interface StockDecision {
   agreementBreakdown?: AgreementBreakdown;
 }
 
+// ── 决策仪表盘报告（借鉴 daily_stock_analysis 推送格式）──
+
+/** 风险警报条目 */
+export interface RiskAlert {
+  description: string;
+  severity: "低" | "中" | "高" | string;
+  source?: string | null;
+}
+
+/** 催化因素条目 */
+export interface Catalyst {
+  description: string;
+  direction: "利好" | "利空" | string;
+  timeline?: string | null;
+  confidenceScore?: number | null;
+}
+
+/** 操作检查清单条目 */
+export interface ChecklistItem {
+  description: string;
+  checked: boolean;
+  category: "入场" | "加仓" | "减仓" | "止损" | "止盈" | string;
+}
+
+/** 决策仪表盘报告（单只股票，7 段式结构） */
+export interface DashboardReport {
+  stockCode: string;
+  stockName: string;
+  analysisDate: string;
+  generatedAt: string;
+  coreConclusion: string;
+  action: string;
+  score: number;
+  trend: string;
+  confidence: number;
+  buyPointLow?: number | null;
+  buyPointHigh?: number | null;
+  targetPrice?: number | null;
+  stopLoss?: number | null;
+  positionPct: number;
+  riskAlerts: RiskAlert[];
+  catalysts: Catalyst[];
+  checklist: ChecklistItem[];
+  latestNews?: string | null;
+  earningsExpectation?: string | null;
+  llmModel?: string | null;
+  integrityPassed: boolean;
+}
+
+/** 指数行情 */
+export interface IndexQuote {
+  name: string;
+  price: number;
+  changePct: number;
+}
+
+/** 大盘复盘报告 */
+export interface MarketReviewReport {
+  reviewDate: string;
+  generatedAt: string;
+  indices: IndexQuote[];
+  advancers?: number | null;
+  decliners?: number | null;
+  limitUp?: number | null;
+  limitDown?: number | null;
+  sectorLeaders: string[];
+  sectorLaggards: string[];
+  llmModel?: string | null;
+}
+
+/** 股票摘要（仪表盘汇总） */
+export interface StockSummary {
+  stockCode: string;
+  stockName: string;
+  action: string;
+  score: number;
+  trend: string;
+  confidence: number;
+}
+
+/** 聚合仪表盘（多只股票汇总） */
+export interface DashboardDigest {
+  digestDate: string;
+  generatedAt: string;
+  totalCount: number;
+  buyCount: number;
+  watchCount: number;
+  sellCount: number;
+  summaries: StockSummary[];
+  marketReview?: MarketReviewReport | null;
+}
+
 /** V50: 双视角一致性分维度诊断结果 */
 export interface AgreementBreakdown {
   total: number;

@@ -1,0 +1,52 @@
+# 稳健长线策略包 — 长线趋势+价值，低换手
+name: "稳健长线策略包"
+description: "长线趋势跟踪 + 价值投资，低换手，适合长期持有的价值投资者"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 75
+maxPicks: 5
+strategies:
+  - id: "trend_long"
+    strategyId: "trend"
+    style: "trend"
+    period: "long"
+    enabled: true
+    weight: 1.0
+    params:
+      trend_ma_long_s: 60
+      trend_ma_long_l: 250
+      trend_ma60_ma250_mult: 0.95
+      trend_ma60_break_mult: 0.95
+      trend_long_kline_limit: 300
+      trend_long_min_kline_len: 120
+      trend_long_entry_low: 0.95
+      trend_long_entry_high: 1.03
+      trend_long_stop: 0.85
+      trend_long_target: 1.30
+      trend_long_base_pos: 10.0
+  - id: "value_long"
+    strategyId: "value"
+    style: "value"
+    period: "long"
+    enabled: true
+    weight: 1.2
+    params:
+      val_long_pe_max: 30
+      val_long_pb_max: 2.0
+      val_long_roe_min: 15.0
+      val_long_kline_limit: 120
+      val_long_min_kline_len: 100
+      val_long_ma_period: 120
+      val_long_ma_mult: 1.02
+  - id: "capital_long"
+    strategyId: "capital"
+    style: "capital"
+    period: "long"
+    enabled: true
+    weight: 0.8
+    params:
+      cap_long_nb_ratio_min: 0.1
+      cap_long_main_inflow_min: 1000.0
+      cap_kline_vol_ratio_min: 1.0
+      cap_kline_mom_5_min: -0.05
+      cap_kline_mom_5_max: 0.05

@@ -789,6 +789,7 @@ name = "axagent"
 version = "2.8.5"
 dependencies = [
  "android_logger",
+ "anyhow",
  "async-trait",
  "axagent-agent",
  "axagent-astock-data",
@@ -804,6 +805,7 @@ dependencies = [
  "axagent-market-sim",
  "axagent-mcp",
  "axagent-migration",
+ "axagent-notification",
  "axagent-npm",
  "axagent-orchestrator",
  "axagent-plugins",
@@ -1080,6 +1082,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sha2 0.11.0",
  "thiserror 2.0.18",
  "tokio",
@@ -1167,6 +1170,23 @@ dependencies = [
  "serde_yaml",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "axagent-notification"
+version = "2.8.5"
+dependencies = [
+ "async-trait",
+ "axagent-harness",
+ "chrono",
+ "dashmap",
+ "futures",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

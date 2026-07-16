@@ -14,6 +14,7 @@ import { useTimeAnchorStore } from "@/stores/feature/timeAnchorStore";
 import type {
   AnalysisStatus,
   AnalysisSummary,
+  DashboardReport,
   EarningsEvent,
   KLine,
   StockConsensus,
@@ -277,6 +278,8 @@ interface StockAnalysisState {
   stockName: string;
   analysisDate: string;
   status: AnalysisStatus;
+  // P2-3.3: 报告输出语言 — "zh"（默认中文）或 "en"（英文）
+  reportLanguage: "zh" | "en";
 
   quote: StockQuote | null;
   quoteError: string | null;
@@ -297,6 +300,10 @@ interface StockAnalysisState {
   llmDecisionJson: string | null;
   /** 方案 D 双向并存: 公式 vs LLM 一致性分数 0-100 */
   decisionAgreementScore: number | null;
+  /** 决策仪表盘报告（借鉴 daily_stock_analysis 推送格式，7 段式结构） */
+  dashboardReport: DashboardReport | null;
+  /** 决策仪表盘 Markdown 文本（用于复制/推送） */
+  dashboardMd: string | null;
   /** V55: 跟踪哪些 AgentNode 触发了 strict_mode 兜底（LLM 输出无法解析为合法 JSON） */
   untrustedNodes: Record<string, true>;
   error: string | null;
@@ -387,7 +394,7 @@ interface StockAnalysisState {
   ) => Promise<void>;
   startAnalysis: (
     stockCode: string,
-    options?: { replaceAnalysisId?: string },
+    options?: { replaceAnalysisId?: string; language?: string },
   ) => Promise<void>;
   rerunDecision: (analysisId: string) => Promise<void>;
   cancelAnalysis: () => Promise<void>;
@@ -396,6 +403,7 @@ interface StockAnalysisState {
   loadAnalysis: (analysisId: string) => Promise<void>;
   reset: () => void;
   dismissChatIndicator: () => void;
+  setReportLanguage: (lang: "zh" | "en") => void;
 
   // R1 复盘→进化
   evolutionDashboard: EvolutionDriftDashboard | null;
@@ -492,6 +500,7 @@ const initialState = {
   stockName: "",
   analysisDate: "",
   status: "idle" as AnalysisStatus,
+  reportLanguage: "zh" as "zh" | "en",
   quote: null,
   quoteError: null,
   quoteLoading: false,
@@ -508,6 +517,8 @@ const initialState = {
   decision: null,
   llmDecisionJson: null,
   decisionAgreementScore: null,
+  dashboardReport: null,
+  dashboardMd: null,
   // V55: 跟踪哪些 AgentNode 触发了 strict_mode 兜底（LLM 输出无法解析为合法 JSON）
   // 后端会在 NodeOutput.output.__untrusted=true 标记，前端提取后存到 untrustedNodes
   // 用于显示红色"数据异常"警告横幅，避免 50/50 兜底被当成有效信号。
@@ -695,7 +706,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     }
   },
 
-  startAnalysis: async (stockCode: string, options?: { replaceAnalysisId?: string }) => {
+  startAnalysis: async (stockCode: string, options?: { replaceAnalysisId?: string; language?: string }) => {
     const { status } = get();
     if (status === "loading" || status === "running") {
       console.warn("[StockAnalysis] Analysis already in progress, ignoring duplicate start");
@@ -727,6 +738,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       decision: null,
       llmDecisionJson: null,
       decisionAgreementScore: null,
+      dashboardReport: null,
+      dashboardMd: null,
       untrustedNodes: {},
       _unlisten: null,
       timeline: [],
@@ -770,6 +783,12 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       };
       if (options?.replaceAnalysisId) {
         runArgs.analysisId = options.replaceAnalysisId;
+      }
+      // P2-3.3: 报告语言切换 — 传入 language 让后端追加语言指示到 Agent prompt
+      // 优先使用 options.language（显式传入），否则使用 store 中的 reportLanguage
+      const effectiveLanguage = options?.language ?? (get().reportLanguage === "en" ? "en" : undefined);
+      if (effectiveLanguage) {
+        runArgs.language = effectiveLanguage;
       }
       const result = await invoke<Record<string, unknown>>(
         "run_stock_workflow",
@@ -871,6 +890,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       dataWarnings: undefined,
       llmDecisionJson: null,
       decisionAgreementScore: null,
+      dashboardReport: null,
+      dashboardMd: null,
     });
 
     const record = await invoke<
@@ -1172,7 +1193,12 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
   rerunDecision: async (analysisId: string) => {
     try {
       set({ status: "loading", progressMessage: i18n.t("stockAnalysis.rerunDecision"), dataWarnings: [] });
-      const result = await invoke<{ analysis_id: string; decision: Record<string, unknown> }>(
+      const result = await invoke<{
+        analysis_id: string;
+        decision: Record<string, unknown>;
+        dashboardReport?: DashboardReport | null;
+        dashboardMd?: string | null;
+      }>(
         "rerun_decision",
         { analysisId },
       );
@@ -1194,7 +1220,14 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         expectedHoldingDays: Number(d.expectedHoldingDays ?? 0),
         targetTimeframe: String(d.targetTimeframe ?? "1m"),
       };
-      set({ decision, status: "completed", error: null, dataWarnings: [] });
+      set({
+        decision,
+        status: "completed",
+        error: null,
+        dataWarnings: [],
+        dashboardReport: result.dashboardReport ?? null,
+        dashboardMd: result.dashboardMd ?? null,
+      });
     } catch (e) {
       console.error("[StockAnalysis] rerunDecision failed:", e);
       set({ status: "error", error: String(e) });
@@ -1203,6 +1236,10 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
 
   dismissChatIndicator: () => {
     set({ chatIndicatorDismissed: true });
+  },
+
+  setReportLanguage: (lang: "zh" | "en") => {
+    set({ reportLanguage: lang });
   },
 
   // R1 复盘→进化

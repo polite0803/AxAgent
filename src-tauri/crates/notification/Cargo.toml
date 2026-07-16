@@ -1,0 +1,21 @@
+[package]
+name = "axagent-notification"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+async-trait = "0.1"
+axagent-harness = { path = "../harness" }
+chrono = { workspace = true }
+dashmap = { workspace = true }
+futures = "0.3"
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+tracing = { workspace = true }
+
+[lints]
+# workspace = true

@@ -1357,6 +1357,92 @@
     "general": {
       "title": "सामान्य"
     },
+    "scheduled-recommendation": {
+      "description": "सिफारिशों को समय-समय पर स्कैन करें और कॉन्फ़िगर किए गए सूचना चैनलों पर भेजें।",
+      "tooltip-cron-dependency": "शेड्यूल किए गए कार्य केवल ऐप खुला होने पर चलते हैं; ऐप बंद करने पर रुक जाते हैं।",
+      "tag-app-online": "ऐप ऑनलाइन आवश्यक",
+      "new-task": "नया सिफारिश कार्य",
+      "expand": "विस्तार करें",
+      "cancel": "रद्द करें",
+      "create-task": "कार्य बनाएं",
+      "task-created": "सिफारिश कार्य बनाया गया",
+      "create-failed": "बनाना विफल: {{error}}",
+      "default-name": "दैनिक सिफारिश पुश",
+      "label-task-name": "कार्य का नाम",
+      "placeholder-task-name": "जैसे: दैनिक समापन सिफारिश",
+      "label-trigger-time": "ट्रिगर समय",
+      "placeholder-cron-preset": "cron अभिव्यक्ति चुनें या खोजें",
+      "group-presets": "सामान्य प्रीसेट",
+      "group-custom-interval": "कस्टम अंतराल",
+      "label-periods": "सिफारिश अवधि",
+      "placeholder-periods": "एक या अधिक अवधि चुनें",
+      "label-min-confidence": "न्यूनतम विश्वास",
+      "label-top-n": "Top N सीमा",
+      "column-name": "नाम",
+      "column-period": "अवधि / सीमा",
+      "column-executed": "रन",
+      "column-status": "स्थिति",
+      "min-confidence-and-top-n": "विश्वास ≥ {{confidence}}%, शीर्ष {{topN}}",
+      "last-push-count": "अंतिम पुश: {{count}} पिक्स",
+      "confirm-delete": "इस सिफारिश कार्य को हटाएं?",
+      "empty-description": "कोई शेड्यूल किए गए सिफारिश कार्य नहीं"
+    },
+    "strategyPack": {
+      "title": "रणनीति पैक प्रबंधन",
+      "searchPlaceholder": "नाम, विवरण या ID द्वारा खोजें",
+      "empty": "कोई रणनीति पैक नहीं",
+      "detailTitle": "रणनीति पैक विवरण",
+      "editorTitle": "रणनीति पैक संपादक",
+      "editorIdLabel": "रणनीति पैक ID (उपयोगकर्ता निर्देशिका में सहेजने के लिए उपयोग)",
+      "editorYamlLabel": "YAML सामग्री",
+      "editorYamlTip": "YAML प्रारूप में रणनीति पैक परिभाषित करें। फ़ील्ड के लिए अंतर्निहित पैक देखें।",
+      "editorYamlPlaceholder": "यहां YAML सामग्री दर्ज करें...",
+      "confirmDelete": "इस उपयोगकर्ता रणनीति पैक को हटाएं?",
+      "yes": "हां",
+      "no": "नहीं",
+      "stat": {
+        "total": "कुल पैक",
+        "builtin": "अंतर्निहित पैक",
+        "user": "उपयोगकर्ता पैक"
+      },
+      "source": {
+        "builtin": "अंतर्निहित",
+        "user": "उपयोगकर्ता"
+      },
+      "column": {
+        "name": "नाम",
+        "description": "विवरण",
+        "source": "स्रोत",
+        "strategies": "रणनीतियों की संख्या",
+        "minConfidence": "न्यूनतम विश्वास",
+        "maxPicks": "अधिकतम चयन",
+        "actions": "कार्रवाइयां",
+        "style": "शैली",
+        "period": "अवधि",
+        "enabled": "सक्षम",
+        "weight": "भार"
+      },
+      "action": {
+        "detail": "विवरण",
+        "copy": "कॉपी",
+        "refresh": "रिफ्रेश",
+        "new": "नया",
+        "validate": "मान्य करें",
+        "save": "सहेजें",
+        "cancel": "रद्द करें",
+        "close": "बंद करें"
+      },
+      "period": {
+        "ultra_short": "अति अल्प",
+        "short": "अल्प",
+        "mid": "मध्यम",
+        "long": "दीर्घ"
+      },
+      "editorTemplate": {
+        "name": "मेरा रणनीति पैक",
+        "description": "कस्टम रणनीति पैक"
+      }
+    },
     "display": "डिस्प्ले",
     "proxy": "प्रॉक्सी",
     "shortcuts": {
@@ -8459,6 +8545,36 @@
       "supervisor": "पर्यवेक्षक",
       "trader": "व्यापारी",
       "validator": "सत्यापक"
+    },
+    "import": {
+      "title": "व्यापार रिकॉर्ड बैच आयात करें",
+      "selectFile": "CSV फ़ाइल चुनें",
+      "confirm": "आयात की पुष्टि करें",
+      "imported": "{{valid}} रिकॉर्ड सफलतापूर्वक आयात किए गए, {{skipped}} डुप्लिकेट छोड़े गए, {{failed}} विफल",
+      "parseFailed": "पार्सिंग विफल",
+      "importFailed": "आयात विफल",
+      "noFile": "कृपया पहले एक फ़ाइल चुनें",
+      "emptyFile": "फ़ाइल खाली है या पहचानने योग्य पंक्तियाँ नहीं हैं",
+      "devModeHint": "बैच आयात केवल डेस्कटॉप ऐप मोड में समर्थित है",
+      "selectedFile": "चयनित फ़ाइल",
+      "formatHint": "TongDaXin/EastMoney/सामान्य CSV प्रारूप का समर्थन करता है (स्तंभ नाम स्वतः-पहचान)",
+      "summaryTotal": "कुल",
+      "summaryValid": "मान्य",
+      "summarySkipped": "डुप्लिकेट छोड़े गए",
+      "summaryFailed": "विफल",
+      "columns": {
+        "row": "पंक्ति",
+        "stockCode": "कोड",
+        "stockName": "नाम",
+        "direction": "दिशा",
+        "price": "मूल्य",
+        "quantity": "मात्रा",
+        "tradeDate": "तारीख",
+        "tradeTime": "समय",
+        "fee": "शुल्क",
+        "notes": "टिप्पणियाँ",
+        "errors": "त्रुटियाँ"
+      }
     }
   },
   "watchlist": {
@@ -9328,6 +9444,7 @@
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
     "searchPlaceholder": "Enter stock code or name",
+    "reportLanguageHint": "रिपोर्ट आउटपुट भाषा: चीनी या अंग्रेज़ी",
     "startAnalysis": "Start Analysis",
     "analyzing": "Analyzing...",
     "starting": "Starting analysis engine...",
@@ -9499,7 +9616,9 @@
         "roles": "Roles",
         "profiles": "Profiles",
         "data": "Data",
-        "params": "Params"
+        "params": "Params",
+        "recommendation": "Recommendations",
+        "strategyPack": "रणनीति पैक"
       },
       "check": "Check",
       "loadFailed": "Failed to load config",
@@ -10041,7 +10160,27 @@
       "risk": "risk",
       "value": "value",
       "reflection": "Reflection",
-      "evolution": "evolution"
+      "evolution": "evolution",
+      "dashboard": "डैशबोर्ड"
+    },
+    "dashboard": {
+      "title": "निर्णय डैशबोर्ड",
+      "coreConclusion": "मुख्य निष्कर्ष",
+      "buySellPoints": "खरीद/बिक्री बिंदु",
+      "buyRange": "खरीद सीमा",
+      "targetPrice": "लक्ष्य मूल्य",
+      "stopLoss": "स्टॉप लॉस",
+      "positionPct": "स्थिति %",
+      "score": "स्कोर",
+      "confidence": "विश्वास",
+      "riskAlerts": "जोखिम अलर्ट",
+      "catalysts": "उत्प्रेरक",
+      "checklist": "चेकलिस्ट",
+      "latestNews": "ताज़ा समाचार",
+      "earningsExpectation": "आय अपेक्षा",
+      "integrityWarning": "रिपोर्ट अखंडता जांच में विफल",
+      "empty": "कोई डैशबोर्ड रिपोर्ट नहीं। पहले निर्णय विश्लेषण चलाएं।",
+      "viewMarkdown": "Markdown स्रोत देखें"
     },
     "evolutionDrift": {
       "title": "Evolution Drift",

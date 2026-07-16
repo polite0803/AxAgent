@@ -1,0 +1,28 @@
+# 自选股监控策略包 — 候选池兜底
+name: "自选股监控策略包"
+description: "基于自选股列表的监控策略，对候选池进行兜底扫描"
+version: "1.0.0"
+author: "AxInvest"
+minConfidence: 60
+maxPicks: 12
+strategies:
+  - id: "watchlist_short"
+    strategyId: "watchlist"
+    style: "watchlist"
+    period: "short"
+    enabled: true
+    weight: 1.0
+    params:
+      watch_short_kline_limit: 30
+      watch_short_min_kline_len: 20
+      watch_short_vol_ratio_min: 1.0
+  - id: "watchlist_mid"
+    strategyId: "watchlist"
+    style: "watchlist"
+    period: "mid"
+    enabled: true
+    weight: 1.0
+    params:
+      watch_mid_kline_limit: 60
+      watch_mid_min_kline_len: 50
+      watch_mid_vol_ratio_min: 1.0
