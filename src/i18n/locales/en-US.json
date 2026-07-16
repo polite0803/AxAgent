@@ -9075,7 +9075,35 @@
       "moveUp": "Move Up",
       "pasteNode": "Paste Node",
       "dropHere": "Release to drop into this container",
-      "childArea": "Child area"
+      "childArea": "Child area",
+      "previewEmpty": "Preview is empty. Switch to edit mode to start building"
+    },
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "import": "Import JSON",
+      "export": "Export JSON",
+      "previewMode": "Preview",
+      "editMode": "Edit",
+      "copied": "Copied to clipboard",
+      "cutDone": "Cut",
+      "pasted": "Pasted",
+      "exported": "Exported JSON file",
+      "imported": "Imported JSON",
+      "invalidJson": "Invalid JSON or missing required fields",
+      "viewport": {
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "mobile": "Mobile"
+      }
+    },
+    "outline": {
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
     },
     "property": {
       "title": "Property Panel",
@@ -9085,7 +9113,8 @@
         "basic": "Basic",
         "style": "Style",
         "data": "Data",
-        "events": "Events"
+        "events": "Events",
+        "conditional": "Conditional"
       },
       "style": {
         "label": "Style Properties",
@@ -9099,7 +9128,16 @@
       },
       "placeholder": {
         "propKey": "Key",
-        "propValue": "Value"
+        "propValue": "Value",
+        "storeName": "conversationStore",
+        "storeSelector": "messages.0.content",
+        "apiEndpoint": "get_conversations",
+        "generationId": "gen-xxx",
+        "agentSelector": "data.result",
+        "emitEvent": "namespace:event-name",
+        "actionStoreName": "storeName",
+        "schemaId": "schemaId",
+        "navigatePath": "/dynamic-page/:id"
       },
       "children": "Children",
       "componentType": "Component Type",
@@ -9255,10 +9293,26 @@
       "noEvents": "No events",
       "addEvent": "Add Event",
       "addAction": "Add Action",
-      "command": "Command"
+      "command": "Command",
+      "conditional": {
+        "description": "Set conditional display rules. The component renders only when conditions are met.",
+        "notHint": "Invert all rule results (NOT)",
+        "clear": "Clear",
+        "empty": "No conditional rules",
+        "fieldPlaceholder": "Field name, e.g. data.status",
+        "valuePlaceholder": "Compare value (auto-parses number/boolean)",
+        "addRule": "Add Rule"
+      }
     },
     "fullscreen": "Fullscreen",
-    "exitFullscreen": "Exit Fullscreen"
+    "exitFullscreen": "Exit Fullscreen",
+    "preview": {
+      "actionTriggered": "Action Triggered"
+    },
+    "error": {
+      "title": "Error rendering property panel",
+      "reset": "Reset"
+    }
   },
   "dashboard": {
     "overview": "Overview",

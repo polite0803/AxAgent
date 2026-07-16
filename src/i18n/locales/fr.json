@@ -6784,7 +6784,8 @@
       "moveUp": "Monter",
       "pasteNode": "Coller le nœud",
       "dropHere": "Release to drop into this container",
-      "childArea": "Child area"
+      "childArea": "Child area",
+      "previewEmpty": "Preview is empty. Switch to edit mode to start building"
     },
     "categories": {
       "container": "Layout & Containers",
@@ -6843,7 +6844,16 @@
       "delete": "Delete",
       "placeholder": {
         "propKey": "Key",
-        "propValue": "Value"
+        "propValue": "Value",
+        "storeName": "conversationStore",
+        "storeSelector": "messages.0.content",
+        "apiEndpoint": "get_conversations",
+        "generationId": "gen-xxx",
+        "agentSelector": "data.result",
+        "emitEvent": "namespace:event-name",
+        "actionStoreName": "storeName",
+        "schemaId": "schemaId",
+        "navigatePath": "/dynamic-page/:id"
       },
       "selectHint": "Click a component on the canvas\nto edit its properties",
       "style": {
@@ -6860,7 +6870,8 @@
         "basic": "Basic",
         "style": "Style",
         "data": "Data",
-        "events": "Events"
+        "events": "Events",
+        "conditional": "Conditionnel"
       },
       "title": "Property Panel",
       "children": "Composants enfants",
@@ -7017,10 +7028,53 @@
       "noEvents": "No events",
       "addEvent": "Add Event",
       "addAction": "Add Action",
-      "command": "Command"
+      "command": "Command",
+      "conditional": {
+        "description": "Définir des règles d'affichage conditionnel. Le composant ne s'affiche que lorsque les conditions sont remplies.",
+        "notHint": "Inverser tous les résultats de règles (NOT)",
+        "clear": "Effacer",
+        "empty": "Aucune règle conditionnelle",
+        "fieldPlaceholder": "Nom du champ, ex. data.status",
+        "valuePlaceholder": "Valeur de comparaison (parse auto nombre/booléen)",
+        "addRule": "Ajouter une règle"
+      }
     },
     "fullscreen": "Plein écran",
-    "exitFullscreen": "Quitter le plein écran"
+    "exitFullscreen": "Quitter le plein écran",
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "import": "Import JSON",
+      "export": "Export JSON",
+      "previewMode": "Preview",
+      "editMode": "Edit",
+      "copied": "Copied to clipboard",
+      "cutDone": "Cut",
+      "pasted": "Pasted",
+      "exported": "Exported JSON file",
+      "imported": "Imported JSON",
+      "invalidJson": "Invalid JSON or missing required fields",
+      "viewport": {
+        "desktop": "Bureau",
+        "tablet": "Tablette",
+        "mobile": "Mobile"
+      }
+    },
+    "outline": {
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
+    },
+    "preview": {
+      "actionTriggered": "Action déclenchée"
+    },
+    "error": {
+      "title": "Erreur de rendu du panneau de propriétés",
+      "reset": "Réinitialiser"
+    }
   },
   "voice": {
     "connected": "Connecté",

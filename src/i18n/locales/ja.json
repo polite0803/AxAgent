@@ -6784,7 +6784,8 @@
       "moveUp": "上に移動",
       "pasteNode": "ノードを貼り付け",
       "dropHere": "Release to drop into this container",
-      "childArea": "Child area"
+      "childArea": "Child area",
+      "previewEmpty": "Preview is empty. Switch to edit mode to start building"
     },
     "categories": {
       "container": "レイアウトとコンテナ",
@@ -6843,7 +6844,16 @@
       "delete": "削除",
       "placeholder": {
         "propKey": "Key",
-        "propValue": "値"
+        "propValue": "値",
+        "storeName": "conversationStore",
+        "storeSelector": "messages.0.content",
+        "apiEndpoint": "get_conversations",
+        "generationId": "gen-xxx",
+        "agentSelector": "data.result",
+        "emitEvent": "namespace:event-name",
+        "actionStoreName": "storeName",
+        "schemaId": "schemaId",
+        "navigatePath": "/dynamic-page/:id"
       },
       "selectHint": "Click a component on the canvas\nto edit its properties",
       "style": {
@@ -6860,7 +6870,8 @@
         "basic": "基本",
         "style": "スタイル",
         "data": "Data",
-        "events": "Events"
+        "events": "Events",
+        "conditional": "条件"
       },
       "title": "プロパティパネル",
       "children": "子要素",
@@ -7017,10 +7028,53 @@
       "noEvents": "No events",
       "addEvent": "Add Event",
       "addAction": "Add Action",
-      "command": "Command"
+      "command": "Command",
+      "conditional": {
+        "description": "条件表示ルールを設定します。条件を満たした場合のみコンポーネントがレンダリングされます。",
+        "notHint": "すべてのルール結果を反転 (NOT)",
+        "clear": "クリア",
+        "empty": "条件ルールなし",
+        "fieldPlaceholder": "フィールド名 (例: data.status)",
+        "valuePlaceholder": "比較値 (数値/真偽値を自動解析)",
+        "addRule": "ルール追加"
+      }
     },
     "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏"
+    "exitFullscreen": "退出全屏",
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "import": "Import JSON",
+      "export": "Export JSON",
+      "previewMode": "Preview",
+      "editMode": "Edit",
+      "copied": "Copied to clipboard",
+      "cutDone": "Cut",
+      "pasted": "Pasted",
+      "exported": "Exported JSON file",
+      "imported": "Imported JSON",
+      "invalidJson": "Invalid JSON or missing required fields",
+      "viewport": {
+        "desktop": "デスクトップ",
+        "tablet": "タブレット",
+        "mobile": "モバイル"
+      }
+    },
+    "outline": {
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
+    },
+    "preview": {
+      "actionTriggered": "アクション実行"
+    },
+    "error": {
+      "title": "プロパティパネルのレンダリングエラー",
+      "reset": "リセット"
+    }
   },
   "voice": {
     "connected": "接続済み",

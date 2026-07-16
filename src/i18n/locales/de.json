@@ -6759,7 +6759,8 @@
       "moveUp": "Nach oben",
       "pasteNode": "Knoten einfügen",
       "dropHere": "Release to drop into this container",
-      "childArea": "Child area"
+      "childArea": "Child area",
+      "previewEmpty": "Preview is empty. Switch to edit mode to start building"
     },
     "categories": {
       "container": "Layout & Containers",
@@ -6818,7 +6819,16 @@
       "delete": "Delete",
       "placeholder": {
         "propKey": "Key",
-        "propValue": "Value"
+        "propValue": "Value",
+        "storeName": "conversationStore",
+        "storeSelector": "messages.0.content",
+        "apiEndpoint": "get_conversations",
+        "generationId": "gen-xxx",
+        "agentSelector": "data.result",
+        "emitEvent": "namespace:event-name",
+        "actionStoreName": "storeName",
+        "schemaId": "schemaId",
+        "navigatePath": "/dynamic-page/:id"
       },
       "selectHint": "Click a component on the canvas\nto edit its properties",
       "style": {
@@ -6835,7 +6845,8 @@
         "basic": "Basic",
         "style": "Style",
         "data": "Data",
-        "events": "Events"
+        "events": "Events",
+        "conditional": "Bedingt"
       },
       "title": "Property Panel",
       "children": "Untergeordnete Elemente",
@@ -6992,10 +7003,53 @@
       "noEvents": "No events",
       "addEvent": "Add Event",
       "addAction": "Add Action",
-      "command": "Command"
+      "command": "Command",
+      "conditional": {
+        "description": "Bedingte Anzeigeregeln festlegen. Die Komponente wird nur gerendert, wenn die Bedingungen erfüllt sind.",
+        "notHint": "Alle Regelergebnisse umkehren (NOT)",
+        "clear": "Leeren",
+        "empty": "Keine Bedingungsregeln",
+        "fieldPlaceholder": "Feldname, z.B. data.status",
+        "valuePlaceholder": "Vergleichswert (parst automatisch Zahl/Boolean)",
+        "addRule": "Regel hinzufügen"
+      }
     },
     "fullscreen": "Vollbild",
-    "exitFullscreen": "Vollbild beenden"
+    "exitFullscreen": "Vollbild beenden",
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "import": "Import JSON",
+      "export": "Export JSON",
+      "previewMode": "Preview",
+      "editMode": "Edit",
+      "copied": "Copied to clipboard",
+      "cutDone": "Cut",
+      "pasted": "Pasted",
+      "exported": "Exported JSON file",
+      "imported": "Imported JSON",
+      "invalidJson": "Invalid JSON or missing required fields",
+      "viewport": {
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "mobile": "Mobil"
+      }
+    },
+    "outline": {
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
+    },
+    "preview": {
+      "actionTriggered": "Aktion ausgelöst"
+    },
+    "error": {
+      "title": "Fehler beim Rendern des Eigenschaftspanels",
+      "reset": "Zurücksetzen"
+    }
   },
   "voice": {
     "connected": "Verbunden",

@@ -6784,7 +6784,35 @@
       "moveUp": "上移",
       "pasteNode": "粘贴节点",
       "dropHere": "松开以放入此容器",
-      "childArea": "子节点区域"
+      "childArea": "子节点区域",
+      "previewEmpty": "预览为空，切换到编辑模式开始构建"
+    },
+    "toolbar": {
+      "undo": "撤销",
+      "redo": "重做",
+      "copy": "复制",
+      "cut": "剪切",
+      "paste": "粘贴",
+      "import": "导入 JSON",
+      "export": "导出 JSON",
+      "previewMode": "预览模式",
+      "editMode": "编辑模式",
+      "copied": "已复制到剪贴板",
+      "cutDone": "已剪切",
+      "pasted": "已粘贴",
+      "exported": "已导出 JSON 文件",
+      "imported": "已导入 JSON",
+      "invalidJson": "JSON 格式无效或缺少必要字段",
+      "viewport": {
+        "desktop": "桌面",
+        "tablet": "平板",
+        "mobile": "手机"
+      }
+    },
+    "outline": {
+      "title": "组件树大纲",
+      "duplicate": "复制节点",
+      "delete": "删除节点"
     },
     "categories": {
       "container": "布局容器",
@@ -6843,7 +6871,16 @@
       "delete": "删除",
       "placeholder": {
         "propKey": "属性名",
-        "propValue": "属性值"
+        "propValue": "属性值",
+        "storeName": "conversationStore",
+        "storeSelector": "messages.0.content",
+        "apiEndpoint": "get_conversations",
+        "generationId": "gen-xxx",
+        "agentSelector": "data.result",
+        "emitEvent": "namespace:event-name",
+        "actionStoreName": "storeName",
+        "schemaId": "schemaId",
+        "navigatePath": "/dynamic-page/:id"
       },
       "selectHint": "点击画布中的组件\n以编辑其属性",
       "style": {
@@ -6860,7 +6897,17 @@
         "basic": "基本",
         "style": "样式",
         "data": "数据",
-        "events": "事件"
+        "events": "事件",
+        "conditional": "条件"
+      },
+      "conditional": {
+        "description": "设置条件显示规则。满足条件时该组件才会渲染。",
+        "notHint": "反转所有规则的结果（NOT）",
+        "clear": "清空",
+        "empty": "暂无条件规则",
+        "fieldPlaceholder": "字段名，如 data.status",
+        "valuePlaceholder": "比较值（自动解析数字/布尔）",
+        "addRule": "添加规则"
       },
       "title": "属性面板",
       "children": "子组件",
@@ -7020,7 +7067,14 @@
       "command": "命令名"
     },
     "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏"
+    "exitFullscreen": "退出全屏",
+    "preview": {
+      "actionTriggered": "事件触发"
+    },
+    "error": {
+      "title": "属性面板渲染出错",
+      "reset": "重置"
+    }
   },
   "voice": {
     "connected": "已连接",

@@ -6784,7 +6784,8 @@
       "pasteNode": "貼上節點",
       "livePreview": "实时预览",
       "dropHere": "Release to drop into this container",
-      "childArea": "Child area"
+      "childArea": "Child area",
+      "previewEmpty": "Preview is empty. Switch to edit mode to start building"
     },
     "categories": {
       "container": "版面與容器",
@@ -6843,7 +6844,16 @@
       "delete": "刪除",
       "placeholder": {
         "propKey": "屬性名",
-        "propValue": "屬性值"
+        "propValue": "屬性值",
+        "storeName": "conversationStore",
+        "storeSelector": "messages.0.content",
+        "apiEndpoint": "get_conversations",
+        "generationId": "gen-xxx",
+        "agentSelector": "data.result",
+        "emitEvent": "namespace:event-name",
+        "actionStoreName": "storeName",
+        "schemaId": "schemaId",
+        "navigatePath": "/dynamic-page/:id"
       },
       "selectHint": "點擊畫布上的元件\\n以編輯其屬性",
       "style": {
@@ -6860,7 +6870,8 @@
         "basic": "基本",
         "style": "樣式",
         "data": "Data",
-        "events": "Events"
+        "events": "Events",
+        "conditional": "條件"
       },
       "title": "屬性面板",
       "children": "子元件",
@@ -7017,10 +7028,53 @@
       "noEvents": "No events",
       "addEvent": "Add Event",
       "addAction": "Add Action",
-      "command": "Command"
+      "command": "Command",
+      "conditional": {
+        "description": "設定條件顯示規則。滿足條件時該元件才會渲染。",
+        "notHint": "反轉所有規則的結果 (NOT)",
+        "clear": "清空",
+        "empty": "暫無條件規則",
+        "fieldPlaceholder": "欄位名，如 data.status",
+        "valuePlaceholder": "比較值 (自動解析數字/布林)",
+        "addRule": "新增規則"
+      }
     },
     "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏"
+    "exitFullscreen": "退出全屏",
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "import": "Import JSON",
+      "export": "Export JSON",
+      "previewMode": "Preview",
+      "editMode": "Edit",
+      "copied": "Copied to clipboard",
+      "cutDone": "Cut",
+      "pasted": "Pasted",
+      "exported": "Exported JSON file",
+      "imported": "Imported JSON",
+      "invalidJson": "Invalid JSON or missing required fields",
+      "viewport": {
+        "desktop": "桌面",
+        "tablet": "平板",
+        "mobile": "手機"
+      }
+    },
+    "outline": {
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
+    },
+    "preview": {
+      "actionTriggered": "事件觸發"
+    },
+    "error": {
+      "title": "屬性面板渲染出錯",
+      "reset": "重置"
+    }
   },
   "voice": {
     "connected": "已連線",

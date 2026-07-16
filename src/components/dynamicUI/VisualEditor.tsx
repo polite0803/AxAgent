@@ -11,21 +11,54 @@
  * 当 schema 为 null 时自动初始化一个空 root Container。
  */
 
-import { cloneSchema, genId, getDefaultProps } from "@/lib/dynamicUI/utils";
-import type { DataSourceConfig, DynamicAction, DynamicComponentType, EventHandler, UISchema } from "@/types";
+import {
+  appendChildToNode,
+  cloneSchema,
+  cloneSchemaWithNewIds,
+  detachNodeById,
+  findNodeById,
+  findParent,
+  flattenNodes,
+  genId,
+  getDefaultProps,
+  insertBeforeSibling,
+  isDescendant,
+  removeNodeById,
+  updateNodeById,
+} from "@/lib/dynamicUI/utils";
+import type {
+  ConditionalDisplay,
+  ConditionalRule,
+  DataSourceConfig,
+  DynamicAction,
+  DynamicComponentType,
+  EventHandler,
+  UISchema,
+} from "@/types";
 import { VALID_DYNAMIC_COMPONENT_TYPES } from "@/types";
 import {
   AppstoreAddOutlined,
+  CopyOutlined,
   DeleteOutlined,
+  EditOutlined,
+  ExportOutlined,
+  EyeOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   HolderOutlined,
+  ImportOutlined,
   MinusCircleOutlined,
   PlusOutlined,
+  RedoOutlined,
+  ScissorOutlined,
   SettingOutlined,
+  SnippetsOutlined,
+  UndoOutlined,
 } from "@ant-design/icons";
-import { Button, Collapse, Divider, Empty, Input, Select, Switch, Tag, Tooltip } from "antd";
+import { Button, Collapse, Divider, Empty, Input, message, Select, Switch, Tag, Tooltip, Upload } from "antd";
+import type { UploadProps } from "antd";
 import type { CollapseProps } from "antd/es/collapse";
+import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DynamicUIRenderer } from "./DynamicUIRenderer";
@@ -53,6 +86,13 @@ interface VisualEditorProps {
   schema: UISchema | null;
   /** schema 变更回调 */
   onChange: (schema: UISchema) => void;
+  /**
+   * 持久化 key。传入时启用 localStorage 自动保存 + 启动恢复：
+   *   - 启动时优先从 localStorage 读取，读不到则用 propSchema
+   *   - schema 变更后 debounce 800ms 写入 localStorage
+   * 省略时仅内存态（与原行为一致）
+   */
+  persistenceKey?: string;
 }
 
 interface PaletteItemData {
@@ -64,9 +104,19 @@ interface PaletteItemData {
 
 type ComponentCategory = "container" | "data-display" | "form" | "media" | "misc";
 
-/** 拖拂数据类型 */
+/** 拖拽数据类型 */
 const DRAG_TYPE_PALETTE = "palette-item";
 const DRAG_TYPE_CANVAS = "canvas-item";
+
+/** 响应式视口类型 */
+type Viewport = "desktop" | "tablet" | "mobile";
+
+/** 视口宽度映射（px） */
+const VIEWPORT_WIDTH: Record<Viewport, number> = {
+  desktop: 1280,
+  tablet: 768,
+  mobile: 375,
+};
 
 /** 容器类型集合 — 这些组件可接收拖入的子节点 */
 const CONTAINER_TYPES = new Set<DynamicComponentType>([
@@ -135,28 +185,7 @@ const CATEGORY_ICON_MAP: Record<ComponentCategory, string> = {
   misc: "✨",
 };
 
-// ── Schema 工具函数（共享逻辑来自 @/lib/dynamicUI/utils）──────────────────────────
-
-function findNodeById(root: UISchema, id: string): UISchema | null {
-  if (root.id === id) { return root; }
-  if (!root.children) { return null; }
-  for (const child of root.children) {
-    const found = findNodeById(child, id);
-    if (found) { return found; }
-  }
-  return null;
-}
-
-/** 递归删除指定 id 的节点（返回新树，找不到时返回原树） */
-function removeNodeById(root: UISchema, id: string): UISchema {
-  if (!root.children) { return root; }
-  const filtered = root.children.filter((c) => c.id !== id);
-  const nextChildren = filtered.map((c) => removeNodeById(c, id));
-  if (nextChildren.length !== root.children.length || nextChildren.some((c, i) => c !== filtered[i])) {
-    return { ...root, children: nextChildren };
-  }
-  return root;
-}
+// ── Schema 工具函数（来自 @/lib/dynamicUI/utils，此处仅留本地辅助）──────────────────────────
 
 /** 创建空的 root schema */
 function createEmptyRoot(): UISchema {
@@ -422,19 +451,60 @@ function VisualCanvas({
   schema,
   selectedId,
   onSelectNode,
+  isPreviewMode,
+  viewport,
+  onAction,
   t,
 }: {
   schema: UISchema;
   selectedId: string | null;
   onSelectNode: (id: string) => void;
+  isPreviewMode: boolean;
+  viewport: Viewport;
+  onAction?: (action: DynamicAction) => void;
   t: (key: string) => string;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: "canvas-root-drop",
     data: { type: "canvas-root" },
+    disabled: isPreviewMode,
   });
 
   const children = schema.children ?? [];
+
+  // 预览模式：只渲染真实效果，不显示结构/选中/拖拽
+  // 根据视口宽度限制画布宽，模拟不同设备尺寸
+  if (isPreviewMode) {
+    const previewWidth = VIEWPORT_WIDTH[viewport];
+    return (
+      <div className="flex-1 h-full overflow-y-auto p-4 bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col items-center">
+        {/* 视口宽度标识 */}
+        <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 font-mono">
+          {viewport.toUpperCase()} · {previewWidth}px
+        </div>
+
+        {children.length === 0
+          ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
+              <EyeOutlined className="text-4xl mb-3 opacity-40" />
+              <p className="text-sm">{t("visualEditor.canvas.previewEmpty")}</p>
+            </div>
+          )
+          : (
+            <div
+              className="border rounded-lg p-3 bg-white dark:bg-gray-800 min-h-50 shadow-md transition-all"
+              style={{ width: `${previewWidth}px`, maxWidth: "100%" }}
+            >
+              <DynamicUIRenderer
+                schema={schema}
+                dataContext={buildPreviewDataContext(schema)}
+                onAction={onAction}
+              />
+            </div>
+          )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -1283,7 +1353,7 @@ function DataTab({
                     size="small"
                     className="w-full"
                     value={typeof cfg.storeName === "string" ? cfg.storeName : ""}
-                    placeholder="conversationStore"
+                    placeholder={t("visualEditor.property.placeholder.storeName")}
                     onChange={(e) => updateConfigField("storeName", e.target.value)}
                   />
                 </div>
@@ -1293,7 +1363,7 @@ function DataTab({
                     size="small"
                     className="w-full font-mono text-[11px]"
                     value={typeof cfg.selector === "string" ? cfg.selector : ""}
-                    placeholder="messages.0.content"
+                    placeholder={t("visualEditor.property.placeholder.storeSelector")}
                     onChange={(e) => updateConfigField("selector", e.target.value)}
                   />
                 </div>
@@ -1308,7 +1378,7 @@ function DataTab({
                     size="small"
                     className="w-full"
                     value={typeof cfg.endpoint === "string" ? cfg.endpoint : ""}
-                    placeholder="get_conversations"
+                    placeholder={t("visualEditor.property.placeholder.apiEndpoint")}
                     onChange={(e) => updateConfigField("endpoint", e.target.value)}
                   />
                 </div>
@@ -1366,7 +1436,7 @@ function DataTab({
                     size="small"
                     className="w-full font-mono text-[11px]"
                     value={typeof cfg.generationId === "string" ? cfg.generationId : ""}
-                    placeholder="gen-xxx"
+                    placeholder={t("visualEditor.property.placeholder.generationId")}
                     onChange={(e) => updateConfigField("generationId", e.target.value)}
                   />
                 </div>
@@ -1376,7 +1446,7 @@ function DataTab({
                     size="small"
                     className="w-full font-mono text-[11px]"
                     value={typeof cfg.selector === "string" ? cfg.selector : ""}
-                    placeholder="data.result"
+                    placeholder={t("visualEditor.property.placeholder.agentSelector")}
                     onChange={(e) => updateConfigField("selector", e.target.value)}
                   />
                 </div>
@@ -1575,7 +1645,7 @@ function EventsTab({
                     <Input
                       size="small"
                       className="w-full"
-                      placeholder="/dynamic-page/:id"
+                      placeholder={t("visualEditor.property.placeholder.navigatePath")}
                       value={typeof (act.config as Record<string, unknown>).path === "string"
                         ? (act.config as Record<string, unknown>).path as string
                         : ""}
@@ -1592,7 +1662,7 @@ function EventsTab({
                       <Input
                         size="small"
                         className="w-full"
-                        placeholder="namespace:event-name"
+                        placeholder={t("visualEditor.property.placeholder.emitEvent")}
                         value={typeof (act.config as Record<string, unknown>).event === "string"
                           ? (act.config as Record<string, unknown>).event as string
                           : ""}
@@ -1627,7 +1697,7 @@ function EventsTab({
                       <Input
                         size="small"
                         className="w-full"
-                        placeholder="storeName"
+                        placeholder={t("visualEditor.property.placeholder.actionStoreName")}
                         value={typeof (act.config as Record<string, unknown>).storeName === "string"
                           ? (act.config as Record<string, unknown>).storeName as string
                           : ""}
@@ -1678,7 +1748,7 @@ function EventsTab({
                       <Input
                         size="small"
                         className="w-full"
-                        placeholder="schemaId"
+                        placeholder={t("visualEditor.property.placeholder.schemaId")}
                         value={typeof (act.config as Record<string, unknown>).schemaId === "string"
                           ? (act.config as Record<string, unknown>).schemaId as string
                           : ""}
@@ -1734,6 +1804,247 @@ function EventsTab({
   );
 }
 
+// ── ConditionalTab：条件渲染可视化编辑 ──────────────────────────────────────
+
+/**
+ * 可视化编辑 conditionalDisplay 规则。
+ *
+ * 支持两种形式：
+ *   1. 规则数组（隐式 AND）：[rule1, rule2, ...]
+ *   2. 逻辑组合：{ logic: "and"|"or", rules: [...], not?: boolean }
+ *
+ * UI 上用嵌套结构展示，每条规则可编辑 field / operator / value。
+ * 顶部按钮切换 AND / OR 逻辑组合（会把规则数组转成 logic 形式）。
+ */
+function ConditionalTab({
+  selectedNode,
+  onUpdateNode,
+  t,
+}: {
+  selectedNode: UISchema;
+  onUpdateNode: (updater: (node: UISchema) => void) => void;
+  t: (key: string) => string;
+}) {
+  const OPERATORS = [
+    { value: "eq", label: "==" },
+    { value: "neq", label: "!=" },
+    { value: "gt", label: ">" },
+    { value: "gte", label: ">=" },
+    { value: "lt", label: "<" },
+    { value: "lte", label: "<=" },
+    { value: "in", label: "in" },
+    { value: "contains", label: "contains" },
+    { value: "exists", label: "exists" },
+    { value: "empty", label: "empty" },
+  ] as const;
+
+  // 标准化为逻辑组合形式以便 UI 编辑
+  const cd = selectedNode.conditionalDisplay;
+  const isLogicForm = cd !== undefined && !Array.isArray(cd);
+  const rules = isLogicForm
+    ? (cd as { rules: ConditionalDisplay[] }).rules
+    : (cd as ConditionalRule[] | undefined) ?? [];
+  const logic = isLogicForm ? (cd as { logic: "and" | "or" }).logic : "and";
+  const notFlag = isLogicForm ? (cd as { not?: boolean }).not ?? false : false;
+
+  // 拍平 rules 数组为 ConditionalRule（嵌套 logic 形式暂不深编辑，只支持一层）
+  const flatRules: ConditionalRule[] = rules.map((r) => {
+    if (Array.isArray(r)) { return r[0] ?? { field: "", operator: "eq", value: "" }; }
+    if ((r as { rules?: unknown }).rules) {
+      // 嵌套逻辑组合 — 简化展示为占位
+      return { field: "(nested)", operator: "exists", value: "" };
+    }
+    return r as ConditionalRule;
+  });
+
+  const updateConditional = (next: ConditionalDisplay | undefined) => {
+    onUpdateNode((node) => {
+      if (next === undefined) {
+        node.conditionalDisplay = undefined;
+      } else {
+        node.conditionalDisplay = next;
+      }
+    });
+  };
+
+  const setLogic = (newLogic: "and" | "or") => {
+    updateConditional({
+      logic: newLogic,
+      rules: flatRules.map((r) => ({ ...r })) as unknown as ConditionalDisplay[],
+      not: notFlag,
+    } as ConditionalDisplay);
+  };
+
+  const toggleNot = () => {
+    updateConditional({
+      logic,
+      rules: flatRules.map((r) => ({ ...r })) as unknown as ConditionalDisplay[],
+      not: !notFlag,
+    } as ConditionalDisplay);
+  };
+
+  const addRule = () => {
+    const newRule: ConditionalRule = { field: "field", operator: "eq", value: "" };
+    updateConditional({
+      logic,
+      rules: [...flatRules, newRule] as unknown as ConditionalDisplay[],
+      not: notFlag,
+    } as ConditionalDisplay);
+  };
+
+  const updateRule = (idx: number, patch: Partial<ConditionalRule>) => {
+    const nextRules = flatRules.map((r, i) => i === idx ? { ...r, ...patch } : r);
+    updateConditional({
+      logic,
+      rules: nextRules as unknown as ConditionalDisplay[],
+      not: notFlag,
+    } as ConditionalDisplay);
+  };
+
+  const removeRule = (idx: number) => {
+    const nextRules = flatRules.filter((_, i) => i !== idx);
+    if (nextRules.length === 0) {
+      updateConditional(undefined);
+    } else {
+      updateConditional({
+        logic,
+        rules: nextRules as unknown as ConditionalDisplay[],
+        not: notFlag,
+      } as ConditionalDisplay);
+    }
+  };
+
+  const clearAll = () => {
+    updateConditional(undefined);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* 顶部说明 */}
+      <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+        {t("visualEditor.property.conditional.description")}
+      </div>
+
+      {/* 逻辑组合切换 + NOT + 清空 */}
+      {flatRules.length > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 bg-gray-200 dark:bg-gray-700 rounded p-0.5">
+            <button
+              type="button"
+              onClick={() => setLogic("and")}
+              className={`text-[10px] px-2 py-0.5 rounded ${
+                logic === "and" ? "bg-white dark:bg-gray-900 shadow text-blue-600 dark:text-blue-400" : "text-gray-500"
+              }`}
+            >
+              AND
+            </button>
+            <button
+              type="button"
+              onClick={() => setLogic("or")}
+              className={`text-[10px] px-2 py-0.5 rounded ${
+                logic === "or" ? "bg-white dark:bg-gray-900 shadow text-blue-600 dark:text-blue-400" : "text-gray-500"
+              }`}
+            >
+              OR
+            </button>
+          </div>
+
+          <Tooltip title={t("visualEditor.property.conditional.notHint")}>
+            <button
+              type="button"
+              onClick={toggleNot}
+              className={`text-[10px] px-2 py-0.5 rounded border ${
+                notFlag
+                  ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-300 dark:border-red-700"
+                  : "border-gray-300 dark:border-gray-600 text-gray-500"
+              }`}
+            >
+              NOT
+            </button>
+          </Tooltip>
+
+          <Button size="small" type="text" danger onClick={clearAll} className="ml-auto text-[10px]">
+            {t("visualEditor.property.conditional.clear")}
+          </Button>
+        </div>
+      )}
+
+      {/* 规则列表 */}
+      {flatRules.length === 0
+        ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("visualEditor.property.conditional.empty")}
+            className="my-4"
+          />
+        )
+        : (
+          <div className="space-y-2">
+            {flatRules.map((rule, idx) => (
+              <div
+                key={idx}
+                className="border border-gray-200 dark:border-gray-700 rounded p-2 bg-white dark:bg-gray-800 space-y-1.5"
+              >
+                <div className="flex items-center gap-1">
+                  <Input
+                    size="small"
+                    value={rule.field}
+                    placeholder={t("visualEditor.property.conditional.fieldPlaceholder")}
+                    onChange={(e) => updateRule(idx, { field: e.target.value })}
+                    className="flex-1 text-xs font-mono"
+                  />
+                  <Button
+                    size="small"
+                    type="text"
+                    danger
+                    icon={<MinusCircleOutlined />}
+                    onClick={() => removeRule(idx)}
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <Select
+                    size="small"
+                    value={rule.operator}
+                    onChange={(v) => updateRule(idx, { operator: v as ConditionalRule["operator"] })}
+                    options={OPERATORS.map((op) => ({ value: op.value, label: op.label }))}
+                    className="w-24 text-xs"
+                  />
+                  {(rule.operator !== "exists" && rule.operator !== "empty") && (
+                    <Input
+                      size="small"
+                      value={typeof rule.value === "string" ? rule.value : JSON.stringify(rule.value)}
+                      placeholder={t("visualEditor.property.conditional.valuePlaceholder")}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        // 尝试解析数字/布尔
+                        let parsed: unknown = v;
+                        if (v === "true") { parsed = true; }
+                        else if (v === "false") { parsed = false; }
+                        else if (/^-?\d+(\.\d+)?$/.test(v)) { parsed = Number(v); }
+                        updateRule(idx, { value: parsed });
+                      }}
+                      className="flex-1 text-xs"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+      <Button
+        size="small"
+        type="dashed"
+        icon={<PlusOutlined />}
+        onClick={addRule}
+        className="w-full"
+      >
+        {t("visualEditor.property.conditional.addRule")}
+      </Button>
+    </div>
+  );
+}
+
 function PropertyPanel({
   selectedNode,
   isRoot,
@@ -1747,7 +2058,7 @@ function PropertyPanel({
   defaultPropsMap: Partial<Record<DynamicComponentType, Record<string, unknown>>>;
   t: (key: string) => string;
 }) {
-  const [activeTab, setActiveTab] = useState<"basic" | "data" | "events" | "style">("basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "data" | "events" | "conditional" | "style">("basic");
 
   if (!selectedNode) {
     return (
@@ -1776,13 +2087,14 @@ function PropertyPanel({
     { key: "basic" as const, label: t("visualEditor.property.tabs.basic"), icon: "⚙️" },
     { key: "data" as const, label: t("visualEditor.property.tabs.data"), icon: "📊" },
     { key: "events" as const, label: t("visualEditor.property.tabs.events"), icon: "⚡" },
+    { key: "conditional" as const, label: t("visualEditor.property.tabs.conditional"), icon: "🔀" },
     { key: "style" as const, label: t("visualEditor.property.tabs.style"), icon: "🎨" },
   ];
 
   return (
     <div className="h-full overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800 space-y-4">
       {/* Tab 切换 */}
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-5 gap-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -1821,6 +2133,14 @@ function PropertyPanel({
 
       {activeTab === "events" && (
         <EventsTab
+          selectedNode={selectedNode}
+          onUpdateNode={onUpdateNode}
+          t={t}
+        />
+      )}
+
+      {activeTab === "conditional" && (
+        <ConditionalTab
           selectedNode={selectedNode}
           onUpdateNode={onUpdateNode}
           t={t}
@@ -1913,21 +2233,522 @@ function PropertyPanel({
   );
 }
 
+// ── 错误边界：属性面板输入错误时不影响整个编辑器 ────────────────────────────
+
+interface EditorErrorBoundaryState {
+  error: Error | null;
+}
+
+class EditorErrorBoundary extends React.Component<
+  { children: React.ReactNode; t: (key: string) => string },
+  EditorErrorBoundaryState
+> {
+  state: EditorErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): EditorErrorBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    // eslint-disable-next-line no-console
+    console.error("[VisualEditor] ErrorBoundary caught:", error, info);
+  }
+
+  handleReset = (): void => {
+    this.setState({ error: null });
+  };
+
+  render(): React.ReactNode {
+    if (this.state.error) {
+      return (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded m-2">
+          <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">
+            {this.props.t("visualEditor.error.title")}
+          </div>
+          <div className="text-[10px] text-red-500 dark:text-red-500 font-mono break-all mb-2">
+            {this.state.error.message}
+          </div>
+          <button
+            type="button"
+            onClick={this.handleReset}
+            className="text-[10px] px-2 py-0.5 bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-800 text-red-600 dark:text-red-400 rounded border border-red-300 dark:border-red-700"
+          >
+            {this.props.t("visualEditor.error.reset")}
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ── localStorage 持久化辅助 ────────────────────────────────────────────────
+
+const STORAGE_PREFIX = "axagent:dynamic-ui:";
+
+/** 从 localStorage 读取 schema，解析失败或不存在时返回 null */
+function loadSchemaFromStorage(key: string): UISchema | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as UISchema;
+    // 基础校验
+    if (!parsed.type || !parsed.id || !parsed.version) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    // localStorage 不可用或 JSON 解析失败，降级为内存态
+    return null;
+  }
+}
+
+/** 把 schema 写入 localStorage，失败时静默降级（如配额超限） */
+function saveSchemaToStorage(key: string, schema: UISchema): void {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(schema));
+  } catch {
+    // 静默失败：配额超限、隐私模式、localStorage 被禁用等
+  }
+}
+
+// ── 子组件：工具栏 ──────────────────────────────────────────────────────────
+
+interface EditorToolbarProps {
+  canUndo: boolean;
+  canRedo: boolean;
+  canCopy: boolean;
+  canPaste: boolean;
+  isPreviewMode: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  onCopy: () => void;
+  onCut: () => void;
+  onPaste: () => void;
+  onExport: () => void;
+  onImport: (file: File) => void;
+  onTogglePreview: () => void;
+  viewport: Viewport;
+  onViewportChange: (v: Viewport) => void;
+  t: (key: string) => string;
+}
+
+function EditorToolbar({
+  canUndo,
+  canRedo,
+  canCopy,
+  canPaste,
+  isPreviewMode,
+  onUndo,
+  onRedo,
+  onCopy,
+  onCut,
+  onPaste,
+  onExport,
+  onImport,
+  onTogglePreview,
+  viewport,
+  onViewportChange,
+  t,
+}: EditorToolbarProps) {
+  // Upload 组件配置：单文件、不上传到服务器，直接拿到 File 对象
+  const uploadProps: UploadProps = {
+    accept: ".json,application/json",
+    showUploadList: false,
+    beforeUpload: (file) => {
+      onImport(file);
+      return false; // 阻止 antd 自动上传
+    },
+  };
+
+  const btnClass = "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors";
+  const enabledClass = "hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300";
+  const disabledClass = "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600";
+
+  return (
+    <div
+      className="flex items-center gap-1 px-3 py-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-wrap"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* 撤销 / 重做 */}
+      <Tooltip title={`${t("visualEditor.toolbar.undo")} (Ctrl+Z)`}>
+        <button
+          type="button"
+          disabled={!canUndo}
+          onClick={onUndo}
+          className={`${btnClass} ${canUndo ? enabledClass : disabledClass}`}
+        >
+          <UndoOutlined />
+        </button>
+      </Tooltip>
+      <Tooltip title={`${t("visualEditor.toolbar.redo")} (Ctrl+Y)`}>
+        <button
+          type="button"
+          disabled={!canRedo}
+          onClick={onRedo}
+          className={`${btnClass} ${canRedo ? enabledClass : disabledClass}`}
+        >
+          <RedoOutlined />
+        </button>
+      </Tooltip>
+
+      <Divider type="vertical" className="mx-1 !h-4" />
+
+      {/* 复制 / 剪切 / 粘贴 */}
+      <Tooltip title={`${t("visualEditor.toolbar.copy")} (Ctrl+C)`}>
+        <button
+          type="button"
+          disabled={!canCopy}
+          onClick={onCopy}
+          className={`${btnClass} ${canCopy ? enabledClass : disabledClass}`}
+        >
+          <CopyOutlined />
+        </button>
+      </Tooltip>
+      <Tooltip title={`${t("visualEditor.toolbar.cut")} (Ctrl+X)`}>
+        <button
+          type="button"
+          disabled={!canCopy}
+          onClick={onCut}
+          className={`${btnClass} ${canCopy ? enabledClass : disabledClass}`}
+        >
+          <ScissorOutlined />
+        </button>
+      </Tooltip>
+      <Tooltip title={`${t("visualEditor.toolbar.paste")} (Ctrl+V)`}>
+        <button
+          type="button"
+          disabled={!canPaste}
+          onClick={onPaste}
+          className={`${btnClass} ${canPaste ? enabledClass : disabledClass}`}
+        >
+          <SnippetsOutlined />
+        </button>
+      </Tooltip>
+
+      <Divider type="vertical" className="mx-1 !h-4" />
+
+      {/* 导入 / 导出 */}
+      <Tooltip title={t("visualEditor.toolbar.import")}>
+        <Upload {...uploadProps}>
+          <button type="button" className={`${btnClass} ${enabledClass}`}>
+            <ImportOutlined />
+          </button>
+        </Upload>
+      </Tooltip>
+      <Tooltip title={t("visualEditor.toolbar.export")}>
+        <button type="button" onClick={onExport} className={`${btnClass} ${enabledClass}`}>
+          <ExportOutlined />
+        </button>
+      </Tooltip>
+
+      <Divider type="vertical" className="mx-1 !h-4" />
+
+      {/* 预览 / 编辑 模式切换 */}
+      <Tooltip title={isPreviewMode ? t("visualEditor.toolbar.editMode") : t("visualEditor.toolbar.previewMode")}>
+        <button
+          type="button"
+          onClick={onTogglePreview}
+          className={`
+            ${btnClass}
+            ${
+            isPreviewMode
+              ? "bg-blue-500 text-white hover:bg-blue-600"
+              : enabledClass
+          }
+          `}
+        >
+          {isPreviewMode ? <EditOutlined /> : <EyeOutlined />}
+          <span>{isPreviewMode ? t("visualEditor.toolbar.editMode") : t("visualEditor.toolbar.previewMode")}</span>
+        </button>
+      </Tooltip>
+
+      {/* 视口切换 — 仅在预览模式显示，让用户能真实看到不同尺寸下的渲染效果 */}
+      {isPreviewMode && (
+        <>
+          <Divider type="vertical" className="mx-1 !h-4" />
+          <div className="flex items-center gap-0.5 bg-gray-200 dark:bg-gray-700 rounded p-0.5">
+            {(["desktop", "tablet", "mobile"] as const).map((vp) => (
+              <Tooltip
+                key={vp}
+                title={`${t(`visualEditor.toolbar.viewport.${vp}`)} (${VIEWPORT_WIDTH[vp]}px)`}
+              >
+                <button
+                  type="button"
+                  onClick={() => onViewportChange(vp)}
+                  className={`
+                    flex items-center justify-center w-7 h-6 rounded text-[10px] transition-colors
+                    ${
+                    viewport === vp
+                      ? "bg-white dark:bg-gray-900 shadow text-blue-600 dark:text-blue-400"
+                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  }
+                  `}
+                >
+                  {/* 简单的 SVG 图标：桌面/平板/手机 */}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    {vp === "desktop" && (
+                      <>
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <line x1="8" y1="21" x2="16" y2="21" />
+                        <line x1="12" y1="17" x2="12" y2="21" />
+                      </>
+                    )}
+                    {vp === "tablet" && (
+                      <>
+                        <rect x="5" y="2" width="14" height="20" rx="2" />
+                        <line x1="12" y1="18" x2="12" y2="18" />
+                      </>
+                    )}
+                    {vp === "mobile" && (
+                      <>
+                        <rect x="7" y="2" width="10" height="20" rx="2" />
+                        <line x1="12" y1="18" x2="12" y2="18" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+              </Tooltip>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── 子组件：组件树大纲视图（Outline）─────────────────────────────────────────
+
+interface OutlinePanelProps {
+  root: UISchema;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  t: (key: string) => string;
+}
+
+function OutlinePanel({ root, selectedId, onSelect, onDelete, onDuplicate, t }: OutlinePanelProps) {
+  // 递归渲染树节点
+  const renderNode = (node: UISchema, depth: number): React.ReactNode => {
+    const isSelected = node.id === selectedId;
+    const children = node.children ?? [];
+    const isContainer = CONTAINER_TYPES.has(node.type);
+
+    return (
+      <div key={node.id}>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(node.id);
+          }}
+          className={`
+            flex items-center gap-1 px-1.5 py-1 rounded cursor-pointer transition-colors text-xs
+            ${
+            isSelected
+              ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
+              : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+          }
+          `}
+          style={{ paddingLeft: `${depth * 12 + 6}px` }}
+        >
+          {/* 展开/折叠指示（容器节点有子节点时显示箭头） */}
+          <span className="w-3 text-gray-400">
+            {isContainer && children.length > 0 ? "▾" : ""}
+          </span>
+
+          {/* 类型图标 */}
+          <span className="text-[10px]">
+            {isContainer ? "📦" : CATEGORY_ICON_MAP_BY_TYPE[node.type] ?? "▫"}
+          </span>
+
+          {/* 类型标签 */}
+          <span className="font-mono truncate flex-1">{node.type}</span>
+
+          {/* 子节点计数 */}
+          {children.length > 0 && (
+            <span className="text-[9px] text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-1 rounded-full">
+              {children.length}
+            </span>
+          )}
+
+          {/* 操作按钮（hover 显示） */}
+          <div className="hidden group-hover:flex items-center gap-0.5">
+            <Tooltip title={t("visualEditor.outline.duplicate")}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate(node.id);
+                }}
+                className="p-0.5 hover:text-blue-500"
+              >
+                <CopyOutlined className="text-[10px]" />
+              </button>
+            </Tooltip>
+            <Tooltip title={t("visualEditor.outline.delete")}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(node.id);
+                }}
+                className="p-0.5 hover:text-red-500"
+                disabled={node.id === root.id}
+              >
+                <DeleteOutlined className="text-[10px]" />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+
+        {/* 递归渲染子节点 */}
+        {children.length > 0 && (
+          <div className="border-l border-gray-200 dark:border-gray-700 ml-2">
+            {children.map((child) => renderNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="h-full overflow-y-auto p-2">
+      <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-1">
+        {t("visualEditor.outline.title")}
+      </div>
+      {renderNode(root, 0)}
+    </div>
+  );
+}
+
+// 类型 → emoji 图标映射（Outline 用）
+const CATEGORY_ICON_MAP_BY_TYPE: Partial<Record<DynamicComponentType, string>> = {
+  Table: "📊",
+  Chart: "📈",
+  List: "📋",
+  Tree: "🌲",
+  Timeline: "⏰",
+  Input: "📝",
+  Textarea: "📝",
+  Number: "🔢",
+  Select: "📋",
+  DatePicker: "📅",
+  Switch: "🔘",
+  Checkbox: "☑",
+  Radio: "📻",
+  Button: "🔺",
+  Text: "🔤",
+  Divider: "─",
+  Progress: "📊",
+  Tag: "🏷",
+  Image: "🖼",
+  Markdown: "📄",
+  CodeEditor: "💻",
+  FilePreview: "📁",
+};
+
 // ── 主组件 ──────────────────────────────────────────────────────────────────
 
-export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps) {
+export function VisualEditor({ schema: propSchema, onChange, persistenceKey }: VisualEditorProps) {
   const { t } = useTranslation();
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // 内部 schema（null 时自动创建 root）
-  const [internalSchema, setInternalSchema] = useState<UISchema>(() =>
-    propSchema ? cloneSchema(propSchema) : createEmptyRoot()
-  );
+  // 内部 schema（启用持久化时优先从 localStorage 读取，否则用 propSchema）
+  const [internalSchema, setInternalSchema] = useState<UISchema>(() => {
+    if (persistenceKey) {
+      const saved = loadSchemaFromStorage(persistenceKey);
+      if (saved) {
+        return saved;
+      }
+    }
+    return propSchema ? cloneSchema(propSchema) : createEmptyRoot();
+  });
 
   // 选中的节点 ID
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // 全屏模式
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // 预览模式（隐藏编辑器壳，仅渲染真实效果）
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  // 响应式视口：仅预览模式生效
+  const [viewport, setViewport] = useState<Viewport>("desktop");
+  // 剪贴板（复制/剪切时缓存节点子树）
+  const [clipboard, setClipboard] = useState<UISchema | null>(null);
+
+  // ── 撤销/重做历史栈 ──
+  // 使用 ref 保存避免每次渲染重建；用 forceHistoryTick 触发按钮 disabled 状态更新
+  const pastRef = useRef<UISchema[]>([]);
+  const futureRef = useRef<UISchema[]>([]);
+  const [historyTick, setHistoryTick] = useState(0);
+  const HISTORY_LIMIT = 50;
+
+  // onChange 也用 ref，避免 commit / undo / redo 闭包里捕获旧 onChange
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  /**
+   * 统一的 schema 变更入口：
+   *   1. 调用 updater 计算新 schema
+   *   2. 把旧 schema push 到 past 栈，清空 future
+   *   3. 通知外部 onChange
+   *
+   * 所有结构性变更（拖拽、属性修改、删除、粘贴、导入）都应走此函数，
+   * 才能被撤销栈正确捕获。
+   */
+  const commit = useCallback((updater: (prev: UISchema) => UISchema) => {
+    setInternalSchema((prev) => {
+      const next = updater(prev);
+      if (next === prev) { return prev; }
+      pastRef.current.push(prev);
+      if (pastRef.current.length > HISTORY_LIMIT) {
+        pastRef.current.shift();
+      }
+      futureRef.current = [];
+      onChangeRef.current(next);
+      setHistoryTick((v) => v + 1);
+      return next;
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    if (pastRef.current.length === 0) { return; }
+    setInternalSchema((prev) => {
+      const last = pastRef.current.pop()!;
+      futureRef.current.push(prev);
+      onChangeRef.current(last);
+      setHistoryTick((v) => v + 1);
+      return last;
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    if (futureRef.current.length === 0) { return; }
+    setInternalSchema((prev) => {
+      const next = futureRef.current.pop()!;
+      pastRef.current.push(prev);
+      onChangeRef.current(next);
+      setHistoryTick((v) => v + 1);
+      return next;
+    });
+  }, []);
+
+  // ── localStorage 自动保存（debounce 800ms） ──
+  // 仅当传入 persistenceKey 时启用；避免每次属性微调都触发写入
+  useEffect(() => {
+    if (!persistenceKey) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      saveSchemaToStorage(persistenceKey, internalSchema);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [internalSchema, persistenceKey]);
+
   // Escape 键退出全屏
   useEffect(() => {
     if (!isFullscreen) { return; }
@@ -1953,6 +2774,12 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
   );
 
   const isRootSelected = selectedId === null || selectedId === internalSchema.id;
+  const canCopy = !isRootSelected && !!selectedNode && !isPreviewMode;
+  const canPaste = clipboard !== null && !isPreviewMode;
+  const canUndo = pastRef.current.length > 0;
+  const canRedo = futureRef.current.length > 0;
+  // historyTick 仅用于触发重渲染，让 canUndo/canRedo 重新计算
+  void historyTick;
 
   // ── dnd-kit sensors ──
   const sensors = useSensors(
@@ -1983,7 +2810,7 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
       if (activeData.type === DRAG_TYPE_PALETTE && overData.type === "container-drop") {
         const itemType = activeData.itemType as DynamicComponentType;
         const targetNodeId = overData.nodeId as string;
-        setInternalSchema((prev) => {
+        commit((prev) => {
           const next = cloneSchema(prev);
           const target = findNodeById(next, targetNodeId);
           if (!target) { return prev; }
@@ -2004,7 +2831,7 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
         activeData.type === DRAG_TYPE_PALETTE && (overData.type === "canvas-root" || overData.type === DRAG_TYPE_CANVAS)
       ) {
         const itemType = activeData.itemType as DynamicComponentType;
-        setInternalSchema((prev) => {
+        commit((prev) => {
           const next = cloneSchema(prev);
           const newChild: UISchema = {
             version: "1.0",
@@ -2018,9 +2845,9 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
         return;
       }
 
-      // 画布内同级重排序（仅 root 一级，跨容器移动暂不支持）
+      // 画布内同级重排序（仅 root 一级）
       if (activeData.type === DRAG_TYPE_CANVAS && overData.type === "canvas-root") {
-        setInternalSchema((prev) => {
+        commit((prev) => {
           const oldIndex = prev.children?.findIndex((c) => c.id === active.id) ?? -1;
           const newIndex = prev.children?.findIndex((c) => c.id === over.id) ?? -1;
           if (oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) {
@@ -2032,8 +2859,53 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
         });
         return;
       }
+
+      // 跨容器移动：把画布节点拖到另一个容器节点的 drop 区
+      // 从原位置摘除 → append 到目标容器
+      if (activeData.type === DRAG_TYPE_CANVAS && overData.type === "container-drop") {
+        const sourceNode = activeData.node as UISchema;
+        const targetNodeId = overData.nodeId as string;
+        // 不允许拖入自己或自己的子孙（会形成环）
+        if (sourceNode.id === targetNodeId || isDescendant(sourceNode, targetNodeId)) {
+          return;
+        }
+        commit((prev) => {
+          // 1. 从原位置摘除
+          const { tree: detached, detached: node } = detachNodeById(prev, sourceNode.id);
+          if (!node) {
+            return prev;
+          }
+          // 2. append 到目标容器
+          return appendChildToNode(detached, targetNodeId, node);
+        });
+        return;
+      }
+
+      // 跨容器移动到画布根（从容器里拖出到 root）
+      if (activeData.type === DRAG_TYPE_CANVAS && overData.type === DRAG_TYPE_CANVAS) {
+        const sourceNode = activeData.node as UISchema;
+        const overNodeId = overData.node as UISchema;
+        if (sourceNode.id === overNodeId.id) {
+          return; // 拖到自己身上
+        }
+        commit((prev) => {
+          // 1. 从原位置摘除
+          const { tree: detached, detached: node } = detachNodeById(prev, sourceNode.id);
+          if (!node) {
+            return prev;
+          }
+          // 2. 在 root 下定位 over 节点并插到它前面；找不到则 append
+          const rootChildren = detached.children ?? [];
+          const insertIdx = rootChildren.findIndex((c) => c.id === overNodeId.id);
+          if (insertIdx >= 0) {
+            return insertBeforeSibling(detached, detached.id, node, overNodeId.id);
+          }
+          return appendChildToNode(detached, detached.id, node);
+        });
+        return;
+      }
     },
-    [defaultPropsMap],
+    [commit, defaultPropsMap],
   );
 
   // ── 操作方法 ──
@@ -2043,7 +2915,7 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
 
   const handleUpdateSelectedNode = useCallback(
     (updater: (node: UISchema) => void) => {
-      setInternalSchema((prev) => {
+      commit((prev) => {
         const next = cloneSchema(prev);
         let target: UISchema;
         if (!selectedId || selectedId === prev.id) {
@@ -2056,21 +2928,308 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
         return next;
       });
     },
-    [selectedId],
+    [commit, selectedId],
   );
+
+  // ── 复制 / 剪切 / 粘贴 ──
+  const handleCopy = useCallback(() => {
+    if (!selectedNode || isRootSelected) { return; }
+    setClipboard(cloneSchema(selectedNode));
+    message.success(t("visualEditor.toolbar.copied"));
+  }, [selectedNode, isRootSelected, t]);
+
+  const handleCut = useCallback(() => {
+    if (!selectedNode || isRootSelected || !selectedId) { return; }
+    setClipboard(cloneSchema(selectedNode));
+    commit((prev) => removeNodeById(prev, selectedId));
+    setSelectedId(null);
+    message.success(t("visualEditor.toolbar.cutDone"));
+  }, [selectedNode, isRootSelected, selectedId, commit, t]);
+
+  const handlePaste = useCallback(() => {
+    if (!clipboard) { return; }
+    const newSubtree = cloneSchemaWithNewIds(clipboard);
+    commit((prev) => {
+      const next = cloneSchema(prev);
+      // 优先粘贴到当前选中的容器节点；否则粘贴到 root
+      let target: UISchema = next;
+      if (selectedId && selectedId !== next.id) {
+        const found = findNodeById(next, selectedId);
+        if (found && CONTAINER_TYPES.has(found.type)) {
+          target = found;
+        }
+      }
+      target.children = [...(target.children ?? []), newSubtree];
+      return next;
+    });
+    // 选中新粘贴的根节点，便于继续操作
+    setSelectedId(newSubtree.id);
+    message.success(t("visualEditor.toolbar.pasted"));
+  }, [clipboard, selectedId, commit, t]);
+
+  // ── 导入 / 导出 JSON ──
+  const handleExport = useCallback(() => {
+    const json = JSON.stringify(internalSchema, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dynamic-ui-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    message.success(t("visualEditor.toolbar.exported"));
+  }, [internalSchema, t]);
+
+  const handleImport = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const parsed = JSON.parse(text) as UISchema;
+        // 基础校验
+        if (!parsed.type || !parsed.id || !parsed.version) {
+          message.error(t("visualEditor.toolbar.invalidJson"));
+          return;
+        }
+        commit(() => parsed);
+        setSelectedId(null);
+        message.success(t("visualEditor.toolbar.imported"));
+      } catch {
+        message.error(t("visualEditor.toolbar.invalidJson"));
+      }
+    };
+    reader.onerror = () => {
+      message.error(t("visualEditor.toolbar.invalidJson"));
+    };
+    reader.readAsText(file);
+  }, [commit, t]);
+
+  // ── 事件预览测试 ──
+  // 在预览模式下点击组件触发 action 时，通过 message.info 展示触发的 action 详情
+  // 让用户验证事件绑定是否正确，无需发布即可调试
+  const handlePreviewAction = useCallback((action: DynamicAction) => {
+    const detail = JSON.stringify(action.config, null, 2);
+    message.info({
+      content: `${t("visualEditor.preview.actionTriggered")}: ${action.type}\n${detail}`,
+      duration: 3,
+    });
+  }, [t]);
+
+  // ── 键盘快捷键 ──
+  // 仅在编辑器内响应；input/textarea 中输入时不拦截复制/粘贴（让浏览器原生行为生效）
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) { return; }
+
+      // 编辑器外不响应
+      const editorEl = editorRef.current;
+      if (!editorEl) { return; }
+      const active = document.activeElement;
+      if (!active || !editorEl.contains(active)) {
+        // 也允许在 body 焦点时响应（无 input 聚焦）
+        if (active !== null && active !== document.body) { return; }
+      }
+
+      const key = e.key.toLowerCase();
+      const target = e.target as HTMLElement;
+      const inFormField = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+
+      switch (key) {
+        case "z": {
+          e.preventDefault();
+          if (e.shiftKey) { redo(); }
+          else { undo(); }
+          break;
+        }
+        case "y": {
+          e.preventDefault();
+          redo();
+          break;
+        }
+        case "c": {
+          // 复制节点：仅在选中非根节点、且焦点不在输入框时拦截
+          if (!inFormField && canCopy) {
+            e.preventDefault();
+            handleCopy();
+          }
+          break;
+        }
+        case "x": {
+          if (!inFormField && canCopy) {
+            e.preventDefault();
+            handleCut();
+          }
+          break;
+        }
+        case "v": {
+          if (!inFormField && canPaste) {
+            e.preventDefault();
+            handlePaste();
+          }
+          break;
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo, handleCopy, handleCut, handlePaste, canCopy, canPaste]);
+
+  // ── 键盘导航（Delete/方向键/Tab） ──
+  // 非组合键，仅在编辑器内、非输入框焦点时生效
+  useEffect(() => {
+    if (isPreviewMode) { return; }
+    const handler = (e: KeyboardEvent) => {
+      // 编辑器外不响应
+      const editorEl = editorRef.current;
+      if (!editorEl) { return; }
+      const active = document.activeElement;
+      if (active && active !== document.body && !editorEl.contains(active)) {
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+      const inFormField = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      if (inFormField) { return; }
+
+      // 拍平树用于方向键导航
+      const flat = flattenNodes(internalSchema);
+
+      switch (e.key) {
+        case "Delete":
+        case "Backspace": {
+          if (!selectedId || selectedId === internalSchema.id) { return; }
+          e.preventDefault();
+          commit((prev) => removeNodeById(prev, selectedId));
+          // 选中前一个节点
+          const idx = flat.findIndex((n) => n.id === selectedId);
+          const next = idx > 0 ? flat[idx - 1] : internalSchema;
+          setSelectedId(next.id);
+          break;
+        }
+        case "ArrowUp": {
+          e.preventDefault();
+          const idx = flat.findIndex((n) => n.id === (selectedId ?? internalSchema.id));
+          if (idx > 0) {
+            setSelectedId(flat[idx - 1].id);
+          }
+          break;
+        }
+        case "ArrowDown": {
+          e.preventDefault();
+          const idx = flat.findIndex((n) => n.id === (selectedId ?? internalSchema.id));
+          if (idx >= 0 && idx < flat.length - 1) {
+            setSelectedId(flat[idx + 1].id);
+          }
+          break;
+        }
+        case "Tab": {
+          // Tab: 选中第一个子节点（进入子层）
+          // Shift+Tab: 选中父节点（回到父层）
+          e.preventDefault();
+          if (e.shiftKey) {
+            const currentId = selectedId ?? internalSchema.id;
+            const parent = findParent(internalSchema, currentId);
+            if (parent) {
+              setSelectedId(parent.id);
+            }
+          } else {
+            const current = selectedId
+              ? findNodeById(internalSchema, selectedId)
+              : internalSchema;
+            if (current?.children && current.children.length > 0) {
+              setSelectedId(current.children[0].id);
+            }
+          }
+          break;
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [internalSchema, selectedId, isPreviewMode, commit]);
+
+  // 预览模式切换
+  const handleTogglePreview = useCallback(() => {
+    setIsPreviewMode((v) => !v);
+    // 进入预览时清空选中，避免隐藏的属性面板仍写入不可见节点
+    setSelectedId(null);
+  }, []);
+
+  // 删除当前选中节点（属性面板顶部的删除按钮）
+  const handleDeleteSelected = useCallback(() => {
+    if (!selectedId || isRootSelected) { return; }
+    commit((prev) => removeNodeById(prev, selectedId));
+    setSelectedId(null);
+  }, [commit, selectedId, isRootSelected]);
+
+  // Outline 面板的删除：直接按 id 删除（可删除非选中节点）
+  const handleOutlineDelete = useCallback((id: string) => {
+    if (id === internalSchema.id) { return; } // 根节点不可删
+    commit((prev) => removeNodeById(prev, id));
+    if (selectedId === id) {
+      setSelectedId(null);
+    }
+  }, [commit, internalSchema.id, selectedId]);
+
+  // Outline 面板的复制：克隆节点 + 重生成 id，插入到原节点之后
+  const handleOutlineDuplicate = useCallback((id: string) => {
+    if (id === internalSchema.id) { return; } // 根节点不可复制
+    commit((prev) => {
+      const source = findNodeById(prev, id);
+      if (!source) { return prev; }
+      const cloned = cloneSchemaWithNewIds(source);
+      const parent = findParent(prev, id);
+      if (!parent) { return prev; }
+      const idx = parent.children?.findIndex((c) => c.id === id) ?? -1;
+      if (idx >= 0 && parent.children) {
+        const nextChildren = [...parent.children];
+        nextChildren.splice(idx + 1, 0, cloned);
+        // 更新父节点
+        return updateNodeById(prev, parent.id, (n) => {
+          n.children = nextChildren;
+        });
+      }
+      return prev;
+    });
+  }, [commit, internalSchema.id]);
+
+  // 预览模式切换
 
   return (
     <div
       ref={editorRef}
-      className={`relative flex border rounded-lg overflow-hidden transition-all duration-300 ${
+      className={`relative flex flex-col border rounded-lg overflow-hidden transition-all duration-300 ${
         isFullscreen ? "fixed inset-0 z-50 bg-white dark:bg-gray-900 h-auto w-auto rounded-none border-0 p-4" : "h-130"
       }`}
     >
+      {/* 工具栏 */}
+      <EditorToolbar
+        canUndo={canUndo}
+        canRedo={canRedo}
+        canCopy={canCopy}
+        canPaste={canPaste}
+        isPreviewMode={isPreviewMode}
+        onUndo={undo}
+        onRedo={redo}
+        onCopy={handleCopy}
+        onCut={handleCut}
+        onPaste={handlePaste}
+        onExport={handleExport}
+        onImport={handleImport}
+        onTogglePreview={handleTogglePreview}
+        viewport={viewport}
+        onViewportChange={setViewport}
+        t={t}
+      />
+
       {/* 全屏切换按钮 */}
       <button
         type="button"
         onClick={() => setIsFullscreen((v) => !v)}
-        className="absolute top-2 right-2 z-20 flex items-center gap-1 text-xs px-2.5 py-1.5 rounded
+        className="absolute top-12 right-2 z-20 flex items-center gap-1 text-xs px-2.5 py-1.5 rounded
                    bg-white/90 dark:bg-gray-700/90 hover:bg-gray-100 dark:hover:bg-gray-600
                    border border-gray-300 dark:border-gray-500 shadow-md transition-colors"
       >
@@ -2086,70 +3245,85 @@ export function VisualEditor({ schema: propSchema, onChange }: VisualEditorProps
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div
-          ref={editorRef}
-          className={`flex border rounded-lg overflow-hidden transition-all duration-300 ${
-            isFullscreen
-              ? "fixed inset-0 z-50 bg-white dark:bg-gray-900 h-auto w-auto rounded-none border-0 p-4"
-              : "h-130"
-          }`}
-        >
-          {/* 左侧：组件面板 */}
-          <div className="w-50 border-r border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-800">
-            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-                <AppstoreAddOutlined size={12} />
-                {t("visualEditor.palette.title")}
-              </h4>
+        <div className="flex flex-1 overflow-hidden">
+          {/* 左侧：组件面板 + 大纲视图（预览模式隐藏） */}
+          {!isPreviewMode && (
+            <div className="w-50 border-r border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-800 overflow-y-auto flex flex-col">
+              <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                  <AppstoreAddOutlined size={12} />
+                  {t("visualEditor.palette.title")}
+                </h4>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <ComponentPalette t={t} />
+              </div>
+              {/* Outline 视图：固定在底部，展示完整 schema 树 */}
+              <div className="border-t border-gray-200 dark:border-gray-700 max-h-60 shrink-0 flex flex-col">
+                <div className="px-3 py-1.5 border-b border-gray-200 dark:border-gray-700 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  {t("visualEditor.outline.title")}
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <OutlinePanel
+                    root={internalSchema}
+                    selectedId={selectedId}
+                    onSelect={handleSelectNode}
+                    onDelete={handleOutlineDelete}
+                    onDuplicate={handleOutlineDuplicate}
+                    t={t}
+                  />
+                </div>
+              </div>
             </div>
-            <ComponentPalette t={t} />
-          </div>
+          )}
 
           {/* 中间：画布 */}
           <VisualCanvas
             schema={internalSchema}
             selectedId={isRootSelected ? null : selectedId}
             onSelectNode={handleSelectNode}
+            isPreviewMode={isPreviewMode}
+            viewport={viewport}
+            onAction={isPreviewMode ? handlePreviewAction : undefined}
             t={t}
           />
 
-          {/* 右侧：属性面板 */}
-          <div className="w-65 border-l border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden">
-            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-                <SettingOutlined size={12} />
-                {t("visualEditor.property.title")}
-              </h4>
-              {selectedNode && !isRootSelected && (
-                <Button
-                  size="small"
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => {
-                    setInternalSchema((prev) => {
-                      const next = removeNodeById(prev, selectedId!);
-                      setSelectedId(null);
-                      onChange(next);
-                      return next;
-                    });
-                  }}
-                >
-                  {t("visualEditor.property.delete")}
-                </Button>
-              )}
+          {/* 右侧：属性面板（预览模式隐藏） */}
+          {!isPreviewMode && (
+            <div className="w-65 border-l border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden flex flex-col">
+              <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                  <SettingOutlined size={12} />
+                  {t("visualEditor.property.title")}
+                </h4>
+                {selectedNode && !isRootSelected && (
+                  <Button
+                    size="small"
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={handleDeleteSelected}
+                  >
+                    {t("visualEditor.property.delete")}
+                  </Button>
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <EditorErrorBoundary t={t}>
+                  <PropertyPanel
+                    selectedNode={selectedNode ?? null}
+                    isRoot={isRootSelected}
+                    onUpdateNode={handleUpdateSelectedNode}
+                    defaultPropsMap={defaultPropsMap}
+                    t={t}
+                  />
+                </EditorErrorBoundary>
+              </div>
             </div>
-            <PropertyPanel
-              selectedNode={selectedNode ?? null}
-              isRoot={isRootSelected}
-              onUpdateNode={handleUpdateSelectedNode}
-              defaultPropsMap={defaultPropsMap}
-              t={t}
-            />
-          </div>
+          )}
         </div>
 
-        {/* Drag Overlay */}
+        {/* Drag Overlay（预览模式禁用拖拽时不会触发） */}
         <DragOverlay>
           {activeDragId?.startsWith("palette-")
             ? (
