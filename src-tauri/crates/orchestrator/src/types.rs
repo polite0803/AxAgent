@@ -384,4 +384,7 @@ pub enum OrchestrationError {
 
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),
+
+    #[error("Dispatch failed: {0}")]
+    DispatchFailed(String),
 }

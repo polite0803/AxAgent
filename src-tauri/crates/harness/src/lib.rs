@@ -31,6 +31,8 @@ pub mod conversation_model;
 pub use conversation_model::{ContentBlock, ConversationMessage, SessionInfo, TokenUsage};
 pub mod core_error;
 pub mod error_codes;
+pub mod orchestration_dispatch;
+pub use orchestration_dispatch::{DispatchRequest, SubTaskDispatchResult, SubTaskDispatcher};
 pub mod persistence_mod;
 pub mod plan_compiler;
 pub mod plan_types;
