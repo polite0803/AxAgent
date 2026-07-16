@@ -280,6 +280,27 @@ const BOOL_ALTER_TARGETS: &[(&str, &str)] = &[
     ("workflow_template_versions", "is_public"),
 ];
 
+// ============================================================================
+// 缺失字段目标列表：v100 之前的旧库（v001–v011）已存在 agent_roles /
+// agency_experts 表，而 `CREATE TABLE IF NOT EXISTS` 对已有表是 no-op，
+// **不会补后加字段**。entity 中这些字段为 `Option<String>`（TEXT，可空），
+// 旧库缺失会导致 SeaORM 报「字段不存在」。
+//
+// 两种后端都需 ALTER ADD COLUMN：
+//   - PostgreSQL：使用 `ADD COLUMN IF NOT EXISTS`，幂等且不会在已存在的列上报错。
+//   - SQLite：普通 `ADD COLUMN`，忽略「重复列」错误（let _ = ...）。
+//
+// 注意：PHASE 2 已用 CREATE TABLE IF NOT EXISTS 确保表存在，故此处 ALTER 时
+// 表一定存在；新库在 PHASE 2 已带上这些列，本阶段对它们为 no-op。
+// ============================================================================
+
+const MISSING_COLUMN_TARGETS: &[(&str, &str, &str)] = &[
+    ("agent_roles", "active_domains", "TEXT"),
+    ("agency_experts", "recommended_workflows", "TEXT"),
+    ("agency_experts", "recommended_tools", "TEXT"),
+    ("agency_experts", "active_domains", "TEXT"),
+];
+
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let is_pg = db.get_database_backend() == DbBackend::Postgres;
 
@@ -1253,6 +1274,60 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         );
     } else {
         tracing::info!("[v100] SQLite: INTEGER→BOOLEAN pass no-op");
+    }
+
+    // ========================================================================
+    // PHASE 3.7: 补充旧库缺失字段
+    //   v100 之前的库（v001–v011）已存在 agent_roles / agency_experts 表，
+    //   PHASE 2 的 `CREATE TABLE IF NOT EXISTS` 对已有表是 no-op，不会补上
+    //   后续新增的 active_domains / recommended_workflows / recommended_tools
+    //   字段，导致 entity 访问时报「字段不存在」。
+    //
+    //   幂等策略：
+    //     - PG: 先查 information_schema 确认缺失再用 ADD COLUMN（也可直接
+    //       ADD COLUMN IF NOT EXISTS，这里保留计数日志以便观测）。
+    //     - SQLite: 普通 ADD COLUMN，忽略重复列错误（let _ = ...）。
+    // ========================================================================
+
+    if is_pg {
+        let mut added = 0usize;
+        let mut already = 0usize;
+
+        for (table, column, col_type) in MISSING_COLUMN_TARGETS {
+            let row = db
+                .query_one_raw(sea_orm::Statement::from_string(
+                    DbBackend::Postgres,
+                    format!(
+                        "SELECT 1 AS exists_flag FROM information_schema.columns \
+                         WHERE table_schema = current_schema() \
+                           AND table_name = '{table}' AND column_name = '{column}'"
+                    ),
+                ))
+                .await?;
+
+            if row.is_some() {
+                already += 1;
+                continue;
+            }
+
+            let sql = format!("ALTER TABLE {table} ADD COLUMN {column} {col_type}");
+            db.execute_unprepared(&sql).await?;
+            added += 1;
+        }
+
+        tracing::info!(
+            "[v100] PHASE 3.7 missing columns: {} added, {} already present",
+            added,
+            already
+        );
+    } else {
+        // SQLite: ADD COLUMN 已存在的列会报错，忽略之（PHASE 2 已建表的新库
+        // 此处列已存在，报错被忽略；旧库缺失列则被补上）。
+        for (table, column, col_type) in MISSING_COLUMN_TARGETS {
+            let sql = format!("ALTER TABLE {table} ADD COLUMN {column} {col_type}");
+            let _ = db.execute_unprepared(&sql).await;
+        }
+        tracing::info!("[v100] SQLite: PHASE 3.7 missing columns ADD COLUMN (errors ignored)");
     }
 
     // ========================================================================
