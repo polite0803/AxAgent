@@ -6782,7 +6782,9 @@
       "duplicate": "复制",
       "moveDown": "下移",
       "moveUp": "上移",
-      "pasteNode": "粘贴节点"
+      "pasteNode": "粘贴节点",
+      "dropHere": "松开以放入此容器",
+      "childArea": "子节点区域"
     },
     "categories": {
       "container": "布局容器",
@@ -6856,7 +6858,9 @@
       },
       "tabs": {
         "basic": "基本",
-        "style": "样式"
+        "style": "样式",
+        "data": "数据",
+        "events": "事件"
       },
       "title": "属性面板",
       "children": "子组件",
@@ -6870,7 +6874,150 @@
       "required": "必填",
       "rules": "验证规则",
       "type": "类型",
-      "value": "值"
+      "value": "值",
+      "nodeId": "节点 ID",
+      "version": "版本",
+      "placeholderLabel": "占位提示",
+      "specificFields": "专属字段",
+      "advancedProps": "高级属性",
+      "maxLength": "最大长度",
+      "disabled": "禁用",
+      "rows": "行数",
+      "min": "最小值",
+      "max": "最大值",
+      "step": "步长",
+      "selectModeLabel": "选择模式",
+      "selectMode": {
+        "default": "默认",
+        "multiple": "多选",
+        "tags": "标签"
+      },
+      "addOption": "添加选项",
+      "noOptions": "暂无选项",
+      "defaultChecked": "默认选中",
+      "format": "格式",
+      "showTime": "显示时间",
+      "text": "文本",
+      "icon": "图标",
+      "content": "内容",
+      "strong": "加粗",
+      "colorLabel": "颜色",
+      "color": {
+        "blue": "蓝色",
+        "green": "绿色",
+        "orange": "橙色",
+        "red": "红色",
+        "purple": "紫色"
+      },
+      "percent": "百分比",
+      "progressType": {
+        "line": "线性",
+        "circle": "圆形",
+        "dashboard": "仪表盘"
+      },
+      "src": "图片地址",
+      "alt": "替代文本",
+      "preview": "可预览",
+      "width": "宽度",
+      "height": "高度",
+      "language": "语言",
+      "lang": {
+        "plaintext": "纯文本",
+        "javascript": "JavaScript",
+        "typescript": "TypeScript",
+        "json": "JSON",
+        "rust": "Rust",
+        "python": "Python",
+        "markdown": "Markdown"
+      },
+      "readOnly": "只读",
+      "columns": "列数",
+      "showHeader": "显示表头",
+      "sizeLabel": "尺寸",
+      "size": {
+        "small": "小",
+        "middle": "中",
+        "large": "大",
+        "default": "默认"
+      },
+      "data": "数据",
+      "chartTypeLabel": "图表类型",
+      "chartType": {
+        "line": "折线图",
+        "bar": "柱状图",
+        "pie": "饼图",
+        "scatter": "散点图",
+        "area": "面积图"
+      },
+      "xKey": "X 轴字段",
+      "yKey": "Y 轴字段",
+      "seriesKey": "系列字段",
+      "gap": "间距",
+      "items": "数据项",
+      "itemLayoutLabel": "布局方向",
+      "itemLayout": {
+        "vertical": "垂直",
+        "horizontal": "水平"
+      },
+      "checkable": "可勾选",
+      "showLine": "显示连接线",
+      "treeData": "树数据",
+      "alignLabel": "对齐",
+      "align": {
+        "start": "顶部",
+        "center": "居中",
+        "end": "底部"
+      },
+      "bordered": "边框",
+      "tabPositionLabel": "标签位置",
+      "tabPosition": {
+        "top": "上",
+        "bottom": "下",
+        "left": "左",
+        "right": "右"
+      },
+      "accordion": "手风琴模式",
+      "layoutLabel": "布局",
+      "layout": {
+        "vertical": "垂直",
+        "horizontal": "水平",
+        "inline": "行内"
+      },
+      "submitText": "提交按钮文本",
+      "inputType": {
+        "text": "文本",
+        "password": "密码",
+        "textarea": "文本域"
+      },
+      "btnType": {
+        "default": "默认",
+        "primary": "主要",
+        "dashed": "虚线",
+        "link": "链接"
+      },
+      "jsonPlaceholder": "输入 JSON...",
+      "addDataSource": "添加数据源",
+      "dataSourceType": "数据源类型",
+      "dsType": {
+        "static": "静态数据",
+        "store": "状态仓库",
+        "api": "API 调用",
+        "agent": "Agent 生成"
+      },
+      "staticValue": "静态值",
+      "storeName": "仓库名称",
+      "selector": "选择器路径",
+      "apiEndpoint": "接口端点",
+      "apiMethod": "调用方式",
+      "apiParams": "请求参数",
+      "generationId": "生成 ID",
+      "polling": "轮询间隔(ms)",
+      "pollingHint": "0 表示不轮询",
+      "removeDataSource": "移除数据源",
+      "noEvents": "暂无事件",
+      "addEvent": "添加事件",
+      "addAction": "添加动作",
+      "command": "命令名"
     },
     "fullscreen": "全屏",
     "exitFullscreen": "退出全屏"

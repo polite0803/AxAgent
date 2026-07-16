@@ -6782,7 +6782,9 @@
       "duplicate": "複製",
       "moveDown": "下に移動",
       "moveUp": "上に移動",
-      "pasteNode": "ノードを貼り付け"
+      "pasteNode": "ノードを貼り付け",
+      "dropHere": "Release to drop into this container",
+      "childArea": "Child area"
     },
     "categories": {
       "container": "レイアウトとコンテナ",
@@ -6856,7 +6858,9 @@
       },
       "tabs": {
         "basic": "基本",
-        "style": "スタイル"
+        "style": "スタイル",
+        "data": "Data",
+        "events": "Events"
       },
       "title": "プロパティパネル",
       "children": "子要素",
@@ -6870,7 +6874,150 @@
       "required": "必須",
       "rules": "バリデーションルール",
       "type": "タイプ",
-      "value": "値"
+      "value": "値",
+      "nodeId": "Node ID",
+      "version": "Version",
+      "placeholderLabel": "Placeholder",
+      "specificFields": "Specific Fields",
+      "advancedProps": "Advanced Props",
+      "maxLength": "Max Length",
+      "disabled": "Disabled",
+      "rows": "Rows",
+      "min": "Min",
+      "max": "Max",
+      "step": "Step",
+      "selectModeLabel": "Select Mode",
+      "selectMode": {
+        "default": "Default",
+        "multiple": "Multiple",
+        "tags": "Tags"
+      },
+      "addOption": "Add Option",
+      "noOptions": "No options",
+      "defaultChecked": "Default Checked",
+      "format": "Format",
+      "showTime": "Show Time",
+      "text": "Text",
+      "icon": "Icon",
+      "content": "Content",
+      "strong": "Strong",
+      "colorLabel": "Color",
+      "color": {
+        "blue": "Blue",
+        "green": "Green",
+        "orange": "Orange",
+        "red": "Red",
+        "purple": "Purple"
+      },
+      "percent": "Percent",
+      "progressType": {
+        "line": "Line",
+        "circle": "Circle",
+        "dashboard": "Dashboard"
+      },
+      "src": "Source",
+      "alt": "Alt Text",
+      "preview": "Previewable",
+      "width": "Width",
+      "height": "Height",
+      "language": "Language",
+      "lang": {
+        "plaintext": "Plain Text",
+        "javascript": "JavaScript",
+        "typescript": "TypeScript",
+        "json": "JSON",
+        "rust": "Rust",
+        "python": "Python",
+        "markdown": "Markdown"
+      },
+      "readOnly": "Read Only",
+      "columns": "Columns",
+      "showHeader": "Show Header",
+      "sizeLabel": "Size",
+      "size": {
+        "small": "Small",
+        "middle": "Middle",
+        "large": "Large",
+        "default": "Default"
+      },
+      "data": "Data",
+      "chartTypeLabel": "Chart Type",
+      "chartType": {
+        "line": "Line",
+        "bar": "Bar",
+        "pie": "Pie",
+        "scatter": "Scatter",
+        "area": "Area"
+      },
+      "xKey": "X Key",
+      "yKey": "Y Key",
+      "seriesKey": "Series Key",
+      "gap": "Gap",
+      "items": "Items",
+      "itemLayoutLabel": "Item Layout",
+      "itemLayout": {
+        "vertical": "Vertical",
+        "horizontal": "Horizontal"
+      },
+      "checkable": "Checkable",
+      "showLine": "Show Line",
+      "treeData": "Tree Data",
+      "alignLabel": "Align",
+      "align": {
+        "start": "Start",
+        "center": "Center",
+        "end": "End"
+      },
+      "bordered": "Bordered",
+      "tabPositionLabel": "Tab Position",
+      "tabPosition": {
+        "top": "Top",
+        "bottom": "Bottom",
+        "left": "Left",
+        "right": "Right"
+      },
+      "accordion": "Accordion",
+      "layoutLabel": "Layout",
+      "layout": {
+        "vertical": "Vertical",
+        "horizontal": "Horizontal",
+        "inline": "Inline"
+      },
+      "submitText": "Submit Text",
+      "inputType": {
+        "text": "Text",
+        "password": "Password",
+        "textarea": "Textarea"
+      },
+      "btnType": {
+        "default": "Default",
+        "primary": "Primary",
+        "dashed": "Dashed",
+        "link": "Link"
+      },
+      "jsonPlaceholder": "Enter JSON...",
+      "addDataSource": "Add Data Source",
+      "dataSourceType": "Data Source Type",
+      "dsType": {
+        "static": "Static",
+        "store": "Store",
+        "api": "API",
+        "agent": "Agent-generated"
+      },
+      "staticValue": "Static Value",
+      "storeName": "Store Name",
+      "selector": "Selector Path",
+      "apiEndpoint": "API Endpoint",
+      "apiMethod": "Method",
+      "apiParams": "Params",
+      "generationId": "Generation ID",
+      "polling": "Polling (ms)",
+      "pollingHint": "0 means no polling",
+      "removeDataSource": "Remove Data Source",
+      "noEvents": "No events",
+      "addEvent": "Add Event",
+      "addAction": "Add Action",
+      "command": "Command"
     },
     "fullscreen": "全屏",
     "exitFullscreen": "退出全屏"
