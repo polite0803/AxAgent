@@ -6,10 +6,8 @@ import { EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { theme } from "antd";
 import React from "react";
 
-const ORANGE_BASE = "#fa8c16";
-const PURPLE_BASE = "#722ed1";
-
 const MIN_CTRL = 40;
+
 const MAX_CTRL = 120;
 const BEND_AMOUNT = 60;
 
@@ -154,26 +152,6 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
   const isAnimated = data?.edgeType === "loopBack";
   const isGrouping = data?.edgeType === "grouping";
 
-  const getMarkerColor = (edgeType?: string): string => {
-    switch (edgeType) {
-      case "conditionTrue":
-        return token.colorSuccess;
-      case "conditionFalse":
-      case "error":
-        return token.colorError;
-      case "loopBack":
-        return `var(--orange, ${ORANGE_BASE})`;
-      case "parallelBranch":
-        return `var(--purple, ${PURPLE_BASE})`;
-      case "merge":
-        return token.colorPrimary;
-      case "grouping":
-        return "none";
-      default:
-        return edgeColor;
-    }
-  };
-
   const getEdgeStroke = () => {
     if (isGrouping) { return token.colorTextQuaternary; }
     if (showFlowAnimation) {
@@ -184,17 +162,23 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
     return edgeColor;
   };
 
+  const stroke = getEdgeStroke();
+  const selectedGlow = selected
+    ? `drop-shadow(0 0 4px ${stroke})`
+    : undefined;
+
   return (
     <>
       <path
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        stroke={getEdgeStroke()}
-        strokeWidth={selected ? 2 : (isGrouping ? 1 : 1.5)}
+        stroke={stroke}
+        strokeWidth={selected ? 2.5 : (isGrouping ? 1 : 1.5)}
         fill="none"
         strokeDasharray={isGrouping ? "4,4" : data?.edgeType === "error" ? "5,5" : undefined}
         markerEnd={isGrouping ? undefined : `url(#arrow-${data?.edgeType || "default"})`}
+        style={{ filter: selectedGlow, transition: "stroke-width 0.15s, filter 0.15s" }}
       />
       {!isGrouping && isAnimated && (
         <path
@@ -240,96 +224,6 @@ const BaseEdgeComponent: React.FC<EdgeProps> = ({
           </div>
         </EdgeLabelRenderer>
       )}
-      <defs>
-        <marker
-          id="arrow-default"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("default")} />
-        </marker>
-        <marker
-          id="arrow-direct"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("direct")} />
-        </marker>
-        <marker
-          id="arrow-conditionTrue"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("conditionTrue")} />
-        </marker>
-        <marker
-          id="arrow-conditionFalse"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("conditionFalse")} />
-        </marker>
-        <marker
-          id="arrow-loopBack"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("loopBack")} />
-        </marker>
-        <marker
-          id="arrow-error"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("error")} />
-        </marker>
-        <marker
-          id="arrow-parallelBranch"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("parallelBranch")} />
-        </marker>
-        <marker
-          id="arrow-merge"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("merge")} />
-        </marker>
-      </defs>
     </>
   );
 };

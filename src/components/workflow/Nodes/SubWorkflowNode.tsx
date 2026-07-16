@@ -2,10 +2,13 @@
 
 import { getHandlePosition, getNodeSize, PORT_SIZE } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
+import { LoadingOutlined, UnlockOutlined } from "@ant-design/icons";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme, Tooltip } from "antd";
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { NodeCard } from "./NodeCard";
+import { nodeIconFor } from "./nodeIcons";
 
 const NODE_COLOR = "#eb2f96";
 
@@ -88,12 +91,11 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 10,
               flexShrink: 0,
               lineHeight: 1,
             }}
           >
-            🔄
+            {nodeIconFor("subWorkflow")}
           </div>
           <span style={{ fontSize: 11, color: NODE_COLOR, fontWeight: 600, lineHeight: "18px" }}>
             {data.title}
@@ -108,9 +110,13 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
               borderRadius: 2,
               lineHeight: "16px",
               fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
             }}
           >
-            🔓 {childCount} nodes · {childEdgeCount} edges
+            <UnlockOutlined style={{ fontSize: 9 }} />
+            {childCount} nodes · {childEdgeCount} edges
           </span>
         </div>
 
@@ -177,105 +183,46 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
   // Collapsed: n8n compact style
   const collapsedSize = getNodeSize("workflowRef");
   return (
-    <div
-      style={{
-        width: collapsedSize.width,
-        height: collapsedSize.height,
-        opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? "none" : "grayscale(100%)",
-      }}
+    <NodeCard
+      nodeType="subWorkflow"
+      title={data.title}
+      accent={NODE_COLOR}
+      selected={selected}
+      enabled={data.enabled}
+      icon={nodeIconFor("subWorkflow")}
+      wrapperStyle={{ width: collapsedSize.width, height: collapsedSize.height }}
+      rightSlot={workflowId
+        ? (
+          <Tooltip title={t("subWorkflowNode.expand")}>
+            <span
+              className="react-flow__nodrag"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpand();
+              }}
+              style={{
+                cursor: "pointer",
+                fontSize: 10,
+                lineHeight: 1,
+                padding: "2px 4px",
+                borderRadius: 3,
+                opacity: isLoading ? 0.5 : 0.6,
+                transition: "opacity 0.15s",
+                userSelect: "none",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.opacity = "1";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.opacity = "0.6";
+              }}
+            >
+              {isLoading ? <LoadingOutlined /> : "▶"}
+            </span>
+          </Tooltip>
+        )
+        : undefined}
     >
-      <div
-        className="workflow-node-card"
-        title={data.title}
-        style={{
-          background: token.colorBgContainer,
-          border: `1.5px solid ${borderColor}`,
-          borderRadius: 8,
-          padding: 0,
-          boxShadow: selected
-            ? `0 0 0 1.5px ${borderColor}40`
-            : "0 1px 3px rgba(0,0,0,0.08)",
-          transition: "box-shadow 0.15s",
-        }}
-      >
-        {/* n8n 风格：单行 — 图标色块 + 标题 + 展开按钮 */}
-        <div
-          style={{
-            padding: "6px 10px",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          {/* 图标色块 */}
-          <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 4,
-              background: `${NODE_COLOR}18`,
-              border: `1px solid ${NODE_COLOR}30`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              flexShrink: 0,
-              lineHeight: 1,
-            }}
-          >
-            🔄
-          </div>
-
-          {/* 标题 */}
-          <span
-            style={{
-              fontSize: 11,
-              color: token.colorText,
-              fontWeight: 500,
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              lineHeight: "22px",
-            }}
-          >
-            {data.title}
-          </span>
-
-          {/* 展开按钮 */}
-          {workflowId && (
-            <Tooltip title={t("subWorkflowNode.expand")}>
-              <span
-                className="react-flow__nodrag"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpand();
-                }}
-                style={{
-                  cursor: "pointer",
-                  fontSize: 10,
-                  lineHeight: 1,
-                  padding: "2px 4px",
-                  borderRadius: 3,
-                  opacity: isLoading ? 0.5 : 0.6,
-                  transition: "opacity 0.15s",
-                  userSelect: "none",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.opacity = "1";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.opacity = "0.6";
-                }}
-              >
-                {isLoading ? "⏳" : "▶"}
-              </span>
-            </Tooltip>
-          )}
-        </div>
-      </div>
-
       <Handle
         type="target"
         position={Position.Top}
@@ -298,7 +245,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }
           ...getHandlePosition(collapsedSize.width, collapsedSize.height, "bottom"),
         }}
       />
-    </div>
+    </NodeCard>
   );
 };
 

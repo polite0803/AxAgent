@@ -3,6 +3,8 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo } from "react";
+import { NodeCard } from "./NodeCard";
+import { nodeIconFor } from "./nodeIcons";
 
 const ORANGE_BASE = "#fa8c16";
 
@@ -29,87 +31,34 @@ const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) 
   const conditions = data.conditions || [];
 
   return (
-    <div
-      style={{
-        minWidth: 120,
-        maxWidth: 180,
-        opacity: data.enabled ? 1 : 0.5,
-        filter: data.enabled ? "none" : "grayscale(100%)",
-      }}
-    >
-      <div
-        title={data.description || data.title}
-        style={{
-          background: token.colorBgContainer,
-          border: `1.5px solid ${selected ? token.colorPrimary : color}`,
-          borderRadius: 8,
-          overflow: "hidden",
-          boxShadow: selected
-            ? `0 0 0 1.5px ${color}40`
-            : "0 1px 3px rgba(0,0,0,0.08)",
-          transition: "box-shadow 0.15s",
-        }}
-      >
-        {/* n8n 风格：单行 — 图标色块 + 标题 + 条件数 */}
-        <div
-          style={{
-            padding: "6px 10px",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 4,
-              background: `${color}18`,
-              border: `1px solid ${color}30`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              flexShrink: 0,
-              lineHeight: 1,
-            }}
-          >
-            🔀
-          </div>
+    <NodeCard
+      nodeType="condition"
+      title={data.title}
+      accent={color}
+      selected={selected}
+      enabled={data.enabled}
+      description={data.description}
+      icon={nodeIconFor("condition")}
+      rightSlot={conditions.length > 0
+        ? (
           <span
             style={{
-              fontSize: 11,
-              color: token.colorText,
-              fontWeight: 500,
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              lineHeight: "22px",
+              fontSize: 9,
+              lineHeight: "14px",
+              padding: "0 4px",
+              borderRadius: 3,
+              background: `${color}15`,
+              border: `1px solid ${color}30`,
+              color,
+              fontWeight: 600,
+              flexShrink: 0,
             }}
           >
-            {data.title}
+            {conditions.length}
           </span>
-          {conditions.length > 0 && (
-            <span
-              style={{
-                fontSize: 9,
-                lineHeight: "14px",
-                padding: "0 4px",
-                borderRadius: 3,
-                background: `${color}15`,
-                border: `1px solid ${color}30`,
-                color: color,
-                fontWeight: 600,
-                flexShrink: 0,
-              }}
-            >
-              {conditions.length}
-            </span>
-          )}
-        </div>
-      </div>
-
+        )
+        : undefined}
+    >
       <Handle
         type="target"
         position={Position.Top}
@@ -174,7 +123,7 @@ const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) 
       >
         F
       </div>
-    </div>
+    </NodeCard>
   );
 };
 

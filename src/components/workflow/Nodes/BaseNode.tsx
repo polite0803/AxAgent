@@ -3,10 +3,12 @@
 import { getHandlePosition, getNodeSize, PORT_SIZE } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
+import { ReloadOutlined } from "@ant-design/icons";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { theme } from "antd";
 import React, { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { nodeIconFor } from "./nodeIcons";
 
 export interface BaseNodeData {
   id: string;
@@ -120,16 +122,19 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
         title={bd.description || bd.title}
         style={{
           background: token.colorBgContainer,
-          border: `1.5px solid ${borderColor}`,
+          border: `1px solid ${token.colorBorderSecondary}`,
+          borderLeft: `4px solid ${borderColor}`,
           borderRadius: 8,
           padding: 0,
           boxShadow: selected
-            ? `0 0 0 1.5px ${borderColor}40`
-            : "0 1px 3px rgba(0,0,0,0.08)",
+            ? `0 0 0 2px ${borderColor}55`
+            : "0 1px 3px rgba(0,0,0,0.12)",
           transition: "box-shadow 0.15s",
           animation: isRunning ? "nodePulse 1.5s ease-in-out infinite" : "none",
           position: "relative",
-          ...(data.parentId ? { borderLeftWidth: 3, borderLeftColor: token.colorTextQuaternary } : {}),
+          ...(data.parentId
+            ? { borderLeftWidth: 3, borderLeftColor: token.colorTextQuaternary }
+            : {}),
         }}
       >
         {hasBreakpoint && (
@@ -189,17 +194,17 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
               width: 22,
               height: 22,
               borderRadius: 4,
-              background: `${bd.color}18`,
-              border: `1px solid ${bd.color}30`,
+              background: `${bd.color}14`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              color: bd.color,
               fontSize: 12,
               flexShrink: 0,
               lineHeight: 1,
             }}
           >
-            {getNodeIcon(bd.nodeType)}
+            {nodeIconFor(bd.nodeType)}
           </div>
 
           {/* 标题 */}
@@ -232,10 +237,16 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
             />
           )}
           {bd.config?.tick_mode && (
-            <span title={t("workflow.node.tickMode")} style={{ fontSize: 8, flexShrink: 0 }}>🔄</span>
+            <ReloadOutlined
+              title={t("workflow.node.tickMode")}
+              style={{ fontSize: 10, flexShrink: 0, color: token.colorTextTertiary }}
+            />
           )}
           {bd.retry?.enabled && (
-            <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 8, flexShrink: 0 }}>🔄</span>
+            <ReloadOutlined
+              title={t("workflow.node.retryEnabled")}
+              style={{ fontSize: 10, flexShrink: 0, color: token.colorTextTertiary }}
+            />
           )}
         </div>
 
@@ -393,44 +404,5 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
     </div>
   );
 };
-
-function getNodeIcon(type: string): string {
-  const icons: Record<string, string> = {
-    trigger: "⚡",
-    agent: "🤖",
-    llm: "🧠",
-    llmClassifier: "🏷️",
-    condition: "🔀",
-    switch: "🔀",
-    parallel: "⚡",
-    loop: "🔄",
-    debate: "💬",
-    swarm: "🐝",
-    merge: "🔗",
-    aggregator: "∑",
-    delay: "⏱",
-    tool: "🔧",
-    code: "💻",
-    subWorkflow: "📦",
-    workflowRef: "🔗",
-    documentParser: "📄",
-    vectorRetrieve: "🔍",
-    storage: "💾",
-    databaseQuery: "🗄️",
-    httpRequest: "🌐",
-    validation: "✅",
-    notification: "🔔",
-    approval: "✔️",
-    fileOperation: "📁",
-    dataTransformer: "🔄",
-    webhookSend: "📨",
-    logging: "📝",
-    email: "📧",
-    end: "🏁",
-    _phaseSeparator: "➖",
-    groupFrame: "▭",
-  };
-  return icons[type] || "📦";
-}
 
 export const BaseNode = memo(BaseNodeComponent);

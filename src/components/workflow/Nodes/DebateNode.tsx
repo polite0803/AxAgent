@@ -6,6 +6,7 @@ import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ContainerNodeData } from "./ContainerNode";
 import { ContainerNode } from "./ContainerNode";
+import { nodeIconFor } from "./nodeIcons";
 
 const BLUE_BASE = "#1890ff";
 
@@ -25,7 +26,7 @@ const DebateNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => 
     <ContainerNode
       data={data}
       selected={selected}
-      icon="⚖️"
+      icon={nodeIconFor("debate")}
       childLabel={t("workflow.debateNode.debaters", { defaultValue: "Debaters" })}
       extraTags={
         <>

@@ -6,6 +6,7 @@ import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ContainerNodeData } from "./ContainerNode";
 import { ContainerNode } from "./ContainerNode";
+import { nodeIconFor } from "./nodeIcons";
 
 const ORANGE_BASE = "#fa8c16";
 
@@ -21,7 +22,7 @@ const MergeNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
     <ContainerNode
       data={data}
       selected={selected}
-      icon="🔗"
+      icon={nodeIconFor("merge")}
       childLabel={t("workflow.mergeNode.branches", { defaultValue: "Branches" })}
       extraTags={
         <>

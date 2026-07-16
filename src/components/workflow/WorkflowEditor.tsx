@@ -41,11 +41,11 @@ import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
-import { CanvasTitleBar } from "./CanvasTitleBar";
 import { DebugPanel } from "./DebugPanel";
 import { DiagnosticDrawer } from "./Diagnostic";
 import { clearDragPayload, getDragPayload } from "./dndState";
 import { BaseEdge } from "./Edges/BaseEdge";
+import { EdgeMarkers } from "./Edges/EdgeMarkers";
 import { EditorHeader } from "./Header/EditorHeader";
 import { useFlowNodes } from "./Hooks/useFlowNodes";
 import { useKeyboardShortcuts } from "./Hooks/useKeyboardShortcuts";
@@ -1868,15 +1868,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         aiPanelVisible={aiPanelVisible}
         debugPanelVisible={debugPanelVisible}
         onSaveAsImage={handleSaveAsImage}
-      />
-
-      {/* 画布顶部名称条：面包屑 + 工作流名称 + 快捷工具栏 */}
-      <CanvasTitleBar
-        workflowName={currentTemplate?.name || t("workflow.newWorkflow")}
-        isDirty={isDirty}
-        isSaving={isSaving}
-        onNameChange={handleNameChange}
-        onSave={handleSave}
         onRun={() => setDebugPanelVisible(true)}
         onSettings={() => setRightPanelCollapsed(false)}
       />
@@ -2001,12 +1992,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 connectionLineType={ConnectionLineType.SmoothStep}
                 multiSelectionKeyCode="Shift"
               >
+                <EdgeMarkers />
                 <Background
-                  variant={BackgroundVariant.Lines}
+                  variant={BackgroundVariant.Dots}
                   color={token.colorBorderSecondary}
                   gap={20}
                   size={1}
-                  style={{ opacity: 0.4 }}
+                  style={{ opacity: 0.5 }}
                 />
                 <Controls style={{ borderRadius: 8 }} />
                 <MiniMap
@@ -2016,8 +2008,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   zoomable
                   nodeBorderRadius={4}
                   style={{
-                    width: 180,
-                    height: 120,
+                    width: 140,
+                    height: 90,
                     borderRadius: 8,
                     border: `1px solid ${token.colorBorderSecondary}`,
                     boxShadow: "0 2px 8px rgba(0,0,0,0.12)",

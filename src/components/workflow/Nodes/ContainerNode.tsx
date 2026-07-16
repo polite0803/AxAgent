@@ -2,10 +2,12 @@
 
 import { getHandlePosition, PORT_SIZE } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
+import { ClockCircleOutlined } from "@ant-design/icons";
 import { Handle, Position } from "@xyflow/react";
 import { Tag, theme, Tooltip } from "antd";
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { nodeIconFor } from "./nodeIcons";
 
 /**
  * 容器节点的共享 data 接口。
@@ -35,8 +37,8 @@ interface ContainerNodeProps {
   /** ReactFlow NodeProps 的 data */
   data: ContainerNodeData;
   selected: boolean;
-  /** 容器类型对应的 emoji/icon */
-  icon?: string;
+  /** 容器类型对应的图标（antd 图标 ReactNode；缺省按 nodeType 解析） */
+  icon?: React.ReactNode;
   /** 额外子元素（渲染在标题栏右侧的标签区域） */
   extraTags?: React.ReactNode;
   /** 折叠态下额外显示的内容（在计数下方） */
@@ -59,7 +61,7 @@ interface ContainerNodeProps {
 const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
   data,
   selected,
-  icon = "📦",
+  icon,
   extraTags,
   collapsedExtra,
   disableHandles,
@@ -67,6 +69,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const resolvedIcon = icon ?? nodeIconFor(data.nodeType);
 
   const isCollapsed = useWorkflowEditorStore((s) => s.collapsedContainers[data.id] === true);
   const toggleCollapse = useCallback(
@@ -140,7 +143,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             lineHeight: 1,
           }}
         >
-          {icon}
+          {resolvedIcon}
         </div>
 
         <span style={{ fontSize: 11, color: data.color, fontWeight: 600, lineHeight: "18px" }}>
@@ -196,7 +199,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
               userSelect: "none",
             }}
           >
-            ⏱
+            <ClockCircleOutlined style={{ fontSize: 9 }} />
           </span>
         </Tooltip>
       )}
