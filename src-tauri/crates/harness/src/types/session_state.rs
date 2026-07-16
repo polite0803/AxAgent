@@ -267,6 +267,38 @@ impl FromStr for StepStatus {
 }
 
 // ============================================================================
+// AgentSession DTO 扩展方法
+// ============================================================================
+
+use crate::types::AgentSession;
+
+impl AgentSession {
+    /// 将 `runtime_status` 字符串解析为类型安全的 `SessionStatus` 枚举。
+    ///
+    /// 解析失败时返回 `None` 并记录警告日志（不中断业务流程）。
+    /// 新代码应优先使用此方法而非直接比较 `runtime_status` 字符串。
+    pub fn runtime_status_enum(&self) -> Option<SessionStatus> {
+        match SessionStatus::from_str(&self.runtime_status) {
+            Ok(status) => Some(status),
+            Err(e) => {
+                tracing::warn!(
+                    "AgentSession {} runtime_status 无法解析: {} (原始值: {})",
+                    self.id,
+                    e,
+                    self.runtime_status
+                );
+                None
+            },
+        }
+    }
+
+    /// 设置 `runtime_status` 为指定枚举值。
+    pub fn set_runtime_status(&mut self, status: SessionStatus) {
+        self.runtime_status = status.as_str().to_string();
+    }
+}
+
+// ============================================================================
 // 测试
 // ============================================================================
 
@@ -373,37 +405,5 @@ mod tests {
         assert_eq!(SessionStatus::Idle.to_string(), "idle");
         assert_eq!(TaskStatus::Ready.to_string(), "ready");
         assert_eq!(StepStatus::Success.to_string(), "success");
-    }
-}
-
-// ============================================================================
-// AgentSession DTO 扩展方法
-// ============================================================================
-
-use crate::types::AgentSession;
-
-impl AgentSession {
-    /// 将 `runtime_status` 字符串解析为类型安全的 `SessionStatus` 枚举。
-    ///
-    /// 解析失败时返回 `None` 并记录警告日志（不中断业务流程）。
-    /// 新代码应优先使用此方法而非直接比较 `runtime_status` 字符串。
-    pub fn runtime_status_enum(&self) -> Option<SessionStatus> {
-        match SessionStatus::from_str(&self.runtime_status) {
-            Ok(status) => Some(status),
-            Err(e) => {
-                tracing::warn!(
-                    "AgentSession {} runtime_status 无法解析: {} (原始值: {})",
-                    self.id,
-                    e,
-                    self.runtime_status
-                );
-                None
-            },
-        }
-    }
-
-    /// 设置 `runtime_status` 为指定枚举值。
-    pub fn set_runtime_status(&mut self, status: SessionStatus) {
-        self.runtime_status = status.as_str().to_string();
     }
 }

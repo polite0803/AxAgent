@@ -160,7 +160,7 @@ pub use llm_execution::{LlmExecutionService, SharedLlmExecutionService};
 
 // ── LLM 执行边界（原 runtime-core，上移至 harness 以满足铁律 4 共享类型权威） ──
 pub mod retry_policy;
-pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
+pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryError, RetryPolicy};
 pub mod llm_executor;
 pub use llm_executor::{LlmCallConfig, LlmUsage, execute_llm, execute_llm_stream};
 pub mod marketplace;
@@ -193,6 +193,14 @@ pub mod replay_executor;
 pub use replay_executor::{
     DeviationKind, GoldenTrajectory, RegressionSuite, RegressionSuiteResult, ReplayExecutor,
     ReplayOptions, ReplayReport, StepDeviation, build_replay_report, compare_trajectories,
+};
+
+// ── 多模型协同路由契约（Cascade / Chain 模式） ──
+pub mod model_cascade;
+pub use model_cascade::{
+    CascadeModel, CascadeOutcome, EscalationDecision, EscalationReason, EscalationRecord,
+    EscalationRule, EscalationRuleBuilder, ModelCallSummary, ModelCascadeExecutor,
+    ModelCascadeStrategy, should_escalate,
 };
 
 // ── Provider 契约重导出 ──

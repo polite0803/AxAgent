@@ -32,6 +32,40 @@ pub enum FallbackStrategy {
     SwitchModel { secondary_model: String },
 }
 
+/// 重试错误 — `execute_with_retry` 的错误类型
+///
+/// 调用方可以通过 match 区分不同降级场景：
+/// - `Exhausted`：重试耗尽（`FallbackStrategy::Fail`）
+/// - `SwitchModelRequested`：请求切换模型（`FallbackStrategy::SwitchModel`）
+/// - `EscalateToHuman`：需人工处理（`FallbackStrategy::EscalateToHuman`）
+/// - `DefaultFallback`：降级为默认值（`FallbackStrategy::ReturnDefault`）
+/// - `NonRetryable`：不可重试错误
+///
+/// 实现了 `Display`，调用方可用 `.map_err(|e| e.to_string())` 保持向后兼容。
+#[derive(Debug, thiserror::Error)]
+pub enum RetryError {
+    /// 重试耗尽：`FallbackStrategy::Fail` 触发
+    #[error("[RetryPolicy] 重试 {max_retries}/{max_retries} 次后失败: {last_error}")]
+    Exhausted { max_retries: u32, last_error: String },
+
+    /// 不可重试错误：错误不匹配 `retryable_status_codes` 和关键词
+    #[error("[RetryPolicy] 不可重试错误: {0}")]
+    NonRetryable(String),
+
+    /// 请求切换模型：`FallbackStrategy::SwitchModel` 触发
+    /// 调用方应感知此错误并执行模型切换（如通过 `ModelCascadeExecutor`）
+    #[error("[RetryPolicy] 需切换至模型 '{secondary_model}': {original_error}")]
+    SwitchModelRequested { secondary_model: String, original_error: String },
+
+    /// 需人工处理：`FallbackStrategy::EscalateToHuman` 触发
+    #[error("[RetryPolicy] 需人工处理: {0}")]
+    EscalateToHuman(String),
+
+    /// 降级为默认值：`FallbackStrategy::ReturnDefault` 触发
+    #[error("[RetryPolicy] 降级为默认值（原始错误: {0}）")]
+    DefaultFallback(String),
+}
+
 /// 重试策略
 #[derive(Debug, Clone)]
 pub struct RetryPolicy {
@@ -69,8 +103,13 @@ impl RetryPolicy {
     ///
     /// # 返回
     /// - `Ok(T)`：调用成功
-    /// - `Err(String)`：重试耗尽或不可重试错误
-    pub async fn execute_with_retry<F, Fut, T, E>(&self, f: F) -> Result<T, String>
+    /// - `Err(RetryError)`：重试耗尽或不可重试错误
+    ///
+    /// 调用方可以通过 match `RetryError` 区分降级场景：
+    /// - `RetryError::SwitchModelRequested` → 执行模型切换
+    /// - `RetryError::Exhausted` → 彻底失败
+    /// - 其他 → 对应降级策略
+    pub async fn execute_with_retry<F, Fut, T, E>(&self, f: F) -> Result<T, RetryError>
     where
         F: Fn() -> Fut,
         Fut: std::future::Future<Output = Result<T, E>>,
@@ -98,7 +137,7 @@ impl RetryPolicy {
                     let err_str = e.to_string();
                     // 检查是否可重试
                     if !self.is_retryable(&err_str) {
-                        return Err(format!("[RetryPolicy] 不可重试错误: {err_str}"));
+                        return Err(RetryError::NonRetryable(err_str));
                     }
                     last_error = err_str;
                     tracing::warn!("[RetryPolicy] 第 {} 次失败: {}", attempt + 1, last_error);
@@ -114,8 +153,14 @@ impl RetryPolicy {
         self.handle_fallback(&last_error)
     }
 
-    /// 处理降级
-    fn handle_fallback<T>(&self, last_error: &str) -> Result<T, String> {
+    /// 处理降级 — 根据 `FallbackStrategy` 返回对应的 `RetryError`
+    ///
+    /// 调用方可以 match `RetryError` 来感知降级意图：
+    /// - `SwitchModelRequested` → 调用 `ModelCascadeExecutor` 执行模型切换
+    /// - `EscalateToHuman` → 通知前端转人工
+    /// - `DefaultFallback` → 返回预配置的默认值
+    /// - `Exhausted` → 彻底失败
+    fn handle_fallback<T>(&self, last_error: &str) -> Result<T, RetryError> {
         match &self.fallback {
             FallbackStrategy::Fail => {
                 let err = format!(
@@ -123,21 +168,25 @@ impl RetryPolicy {
                     self.max_retries, self.max_retries, last_error
                 );
                 tracing::error!("{err}");
-                Err(err)
+                Err(RetryError::Exhausted {
+                    max_retries: self.max_retries,
+                    last_error: last_error.to_string(),
+                })
             },
             FallbackStrategy::ReturnDefault(_val) => {
                 tracing::warn!("[RetryPolicy] 降级为默认值（原始错误: {last_error}）");
-                Err(format!("[RetryPolicy] 降级为默认值（原始错误: {last_error}）"))
+                Err(RetryError::DefaultFallback(last_error.to_string()))
             },
             FallbackStrategy::EscalateToHuman => {
                 tracing::warn!("[RetryPolicy] 升级到人工处理: {last_error}");
-                Err(format!("[RetryPolicy] 需人工处理: {last_error}"))
+                Err(RetryError::EscalateToHuman(last_error.to_string()))
             },
             FallbackStrategy::SwitchModel { secondary_model } => {
-                tracing::warn!(
-                    "[RetryPolicy] 尝试切换模型至 '{secondary_model}'（未实现自动切换）: {last_error}"
-                );
-                Err(format!("[RetryPolicy] 需切换至模型 '{secondary_model}': {last_error}"))
+                tracing::warn!("[RetryPolicy] 请求切换模型至 '{secondary_model}': {last_error}");
+                Err(RetryError::SwitchModelRequested {
+                    secondary_model: secondary_model.clone(),
+                    original_error: last_error.to_string(),
+                })
             },
         }
     }
@@ -253,18 +302,29 @@ mod tests {
     #[test]
     fn test_handle_fallback_fail() {
         let policy = RetryPolicy { fallback: FallbackStrategy::Fail, ..Default::default() };
-        let result: Result<String, String> = policy.handle_fallback("server error");
+        let result: Result<String, RetryError> = policy.handle_fallback("server error");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("重试 3/3 次后失败"));
+        match result.unwrap_err() {
+            RetryError::Exhausted { max_retries, last_error } => {
+                assert_eq!(max_retries, 3);
+                assert!(last_error.contains("server error"));
+            },
+            other => panic!("预期 Exhausted，实际: {other:?}"),
+        }
     }
 
     #[test]
     fn test_handle_fallback_escalate() {
         let policy =
             RetryPolicy { fallback: FallbackStrategy::EscalateToHuman, ..Default::default() };
-        let result: Result<String, String> = policy.handle_fallback("complex case");
+        let result: Result<String, RetryError> = policy.handle_fallback("complex case");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("需人工处理"));
+        match result.unwrap_err() {
+            RetryError::EscalateToHuman(msg) => {
+                assert!(msg.contains("complex case"));
+            },
+            other => panic!("预期 EscalateToHuman，实际: {other:?}"),
+        }
     }
 
     #[test]
@@ -273,8 +333,96 @@ mod tests {
             fallback: FallbackStrategy::SwitchModel { secondary_model: "gpt-4".into() },
             ..Default::default()
         };
-        let result: Result<String, String> = policy.handle_fallback("model overloaded");
+        let result: Result<String, RetryError> = policy.handle_fallback("model overloaded");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("gpt-4"));
+        match result.unwrap_err() {
+            RetryError::SwitchModelRequested { secondary_model, original_error } => {
+                assert_eq!(secondary_model, "gpt-4");
+                assert!(original_error.contains("model overloaded"));
+            },
+            other => panic!("预期 SwitchModelRequested，实际: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_handle_fallback_default_value() {
+        let policy = RetryPolicy {
+            fallback: FallbackStrategy::ReturnDefault(serde_json::Value::Null),
+            ..Default::default()
+        };
+        let result: Result<String, RetryError> = policy.handle_fallback("fallback triggered");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            RetryError::DefaultFallback(msg) => {
+                assert!(msg.contains("fallback triggered"));
+            },
+            other => panic!("预期 DefaultFallback，实际: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_retry_error_display() {
+        let err = RetryError::Exhausted { max_retries: 3, last_error: "timeout".to_string() };
+        let s = err.to_string();
+        assert!(s.contains("重试 3/3 次后失败"));
+        assert!(s.contains("timeout"));
+
+        let err = RetryError::SwitchModelRequested {
+            secondary_model: "gpt-4o".to_string(),
+            original_error: "overloaded".to_string(),
+        };
+        let s = err.to_string();
+        assert!(s.contains("gpt-4o"));
+        assert!(s.contains("overloaded"));
+
+        let err = RetryError::NonRetryable("bad request".to_string());
+        assert!(err.to_string().contains("不可重试"));
+
+        let err = RetryError::EscalateToHuman("complex".to_string());
+        assert!(err.to_string().contains("人工处理"));
+
+        let err = RetryError::DefaultFallback("orig".to_string());
+        assert!(err.to_string().contains("默认值"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_retry_success_first_try() {
+        let policy = RetryPolicy::default_llm();
+        let result: Result<i32, RetryError> =
+            policy.execute_with_retry(|| async { Ok::<i32, String>(42) }).await;
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_retry_non_retryable() {
+        let policy = RetryPolicy::default_llm();
+        let result: Result<i32, RetryError> = policy
+            .execute_with_retry(|| async { Err::<i32, String>("HTTP 400 bad request".to_string()) })
+            .await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            RetryError::NonRetryable(msg) => assert!(msg.contains("400")),
+            other => panic!("预期 NonRetryable，实际: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_retry_switch_model_fallback() {
+        let policy = RetryPolicy {
+            max_retries: 0, // 不重试，直接降级
+            base_delay_ms: 1,
+            timeout_ms: 1000,
+            fallback: FallbackStrategy::SwitchModel { secondary_model: "gpt-4o".into() },
+            ..Default::default()
+        };
+        let result: Result<i32, RetryError> =
+            policy.execute_with_retry(|| async { Err::<i32, String>("timeout".to_string()) }).await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            RetryError::SwitchModelRequested { secondary_model, .. } => {
+                assert_eq!(secondary_model, "gpt-4o");
+            },
+            other => panic!("预期 SwitchModelRequested，实际: {other:?}"),
+        }
     }
 }

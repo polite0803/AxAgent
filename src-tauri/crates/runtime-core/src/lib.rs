@@ -45,7 +45,7 @@ pub mod json;
 pub mod message_importance;
 pub mod permission_enforcer;
 pub mod retry_policy;
-pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryPolicy};
+pub use retry_policy::{BackoffStrategy, FallbackStrategy, RetryError, RetryPolicy};
 pub mod llm_executor;
 pub use llm_executor::{LlmCallConfig, execute_llm, execute_llm_stream};
 pub mod permissions;
