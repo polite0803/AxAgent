@@ -562,6 +562,32 @@ fn build_request(
         thinking_style = "reasoning_effort";
     }
 
+    // Structured Output 兼容性降级：
+    // DeepSeek / Kimi / MiniMax 等不支持 json_schema 严格模式，
+    // 降级为 json_object + system prompt 注入 schema 约束。
+    let (response_format, final_messages) = if let Some(fmt) = request.response_format.as_ref() {
+        if matches!(fmt, ResponseFormat::JsonSchema { .. })
+            && !crate::structured_output::supports_json_schema_strict(base_url)
+        {
+            tracing::warn!(
+                target: "axagent.providers",
+                provider_id = %ctx.provider_id,
+                base_url = %base_url,
+                "response_format=JsonSchema 降级为 JsonObject + prompt 注入（provider 不支持严格模式）"
+            );
+            let constraint = crate::structured_output::build_schema_constraint(fmt);
+            let new_messages = crate::structured_output::inject_constraint_into_messages(
+                messages.to_vec(),
+                &constraint,
+            );
+            (Some(serde_json::json!({ "type": "json_object" })), new_messages)
+        } else {
+            (Some(crate::openai::convert_response_format(fmt)), messages.to_vec())
+        }
+    } else {
+        (None, messages.to_vec())
+    };
+
     // "none" style: never send any thinking-related params
     // "enable_thinking" style (SiliconFlow): enable_thinking + thinking_budget fields
     let (enable_thinking, sf_thinking_budget) = if thinking_style == "enable_thinking" {
@@ -614,7 +640,7 @@ fn build_request(
 
     let body = OpenAIRequest {
         model: request.model.clone(),
-        messages: convert_messages(messages),
+        messages: convert_messages(&final_messages),
         temperature: if has_thinking {
             None
         } else {
@@ -629,7 +655,7 @@ fn build_request(
         reasoning_effort,
         enable_thinking,
         thinking_budget: sf_thinking_budget,
-        response_format: request.response_format.as_ref().map(convert_response_format),
+        response_format,
     };
 
     tracing::debug!(

@@ -21,6 +21,15 @@ pub struct ToolSelectionPolicy {
     pub q_values: HashMap<String, f32>,
 }
 
+/// 策略训练的 SGD 超参数（agent 内部专用）
+///
+/// 注意：这与 `axagent_harness::rl::RLConfig` 语义不同：
+/// - `RLConfig` 是 RL 训练循环的超参（gamma / epsilon / lambda 等）
+/// - `TrainingConfig` 是策略网络 SGD 优化的超参（epochs / gradient_clip 等）
+///
+/// 两者在 `ToolSelectionPolicy` 中各司其职：
+/// - `ToolSelectionPolicy.training_config` 控制单次 SGD 训练
+/// - 上层 `RLOptimizer.config: RLConfig` 控制 RL 训练循环
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingConfig {
     pub learning_rate: f32,
