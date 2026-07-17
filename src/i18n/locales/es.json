@@ -1876,27 +1876,27 @@
     "title": "Comparación"
   },
   "components_skill_SkillABTestResults": {
-    "components_skill_Ski": "components_skill_SkillABTestResults.暂无_A_B_测试数据",
-    "两个版本无明显差异": " 两个版本无明显差异。",
+    "components_skill_Ski": "components_skill_SkillABTestResults.sin_datos_prueba_AB",
+    "两个版本无明显差异": " No hay diferencias significativas entre las dos versiones.",
     "优胜": "Ganador",
     "变化": "Cambio",
     "平局": "Empate",
     "指标": "Métrica",
-    "推荐采用版本_A": " 推荐采用版本 A。",
-    "推荐采用版本_B": " 推荐采用版本 B。",
-    "暂无_A_B_测试数据": "暂无 A/B 测试数据",
-    "版本_A": "版本 A",
-    "版本_B": "版本 B"
+    "推荐采用版本_A": " Se recomienda la versión A.",
+    "推荐采用版本_B": " Se recomienda la versión B.",
+    "暂无_A_B_测试数据": "Sin datos de prueba A/B",
+    "版本_A": "Versión A",
+    "版本_B": "Versión B"
   },
   "components_skill_SkillEvolutionViewer": {
-    "A_B_测试结果": "A/B 测试结果",
-    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A_B_测试结果",
+    "A_B_测试结果": "Resultados de prueba A/B",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.resultados_prueba_AB",
     "当前版本": "Versión actual",
     "总进化次数": "Evoluciones totales",
     "最近进化": "Evolución reciente"
   },
   "components_skill_SkillVersionTimeline": {
-    "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.sin_historial_evolucion",
     "暂无进化历史": "Sin historial de evolución",
     "确认回滚": "Confirmar reversión"
   },
@@ -5605,7 +5605,7 @@
       "timeRanges": "Rangos de Tiempo",
       "title": "Tareas Programadas",
       "tuesday": "Mar",
-      "unknownTemplateType": "",
+      "unknownTemplateType": "Tipo de plantilla desconocido",
       "updateTask": "Actualizar Tarea",
       "webdavSync": "Sincronización WebDAV Auto",
       "wednesday": "Mié",
@@ -8409,7 +8409,7 @@
       "tools": "Tools",
       "triggers": "Triggers",
       "triggersLabel": "Triggers: ",
-      "unit": "",
+      "unit": "uds.",
       "generate": "Generar habilidad",
       "generating": "Generando...",
       "instruction": "Describe la habilidad que deseas",
@@ -9222,9 +9222,9 @@
       "inherit": "Inherit",
       "isolated": "Isolated",
       "targetWorkflow": "Target Workflow",
-      "selectWorkflow": "",
-      "title": "",
-      "version": "",
+      "selectWorkflow": "Seleccionar flujo de trabajo",
+      "title": "Título",
+      "version": "Versión",
       "inputMapping": "Mapeo de entrada"
     },
     "workflowSavedAsNew": "Flujo de trabajo guardado como nuevo",

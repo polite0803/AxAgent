@@ -5605,7 +5605,7 @@
       "timeRanges": "Временные интервалы",
       "title": "Запланированные Задачи",
       "tuesday": "Вт",
-      "unknownTemplateType": "",
+      "unknownTemplateType": "Неизвестный тип шаблона",
       "updateTask": "Обновить задачу",
       "webdavSync": "WebDAV Авто Синхронизация",
       "wednesday": "Ср",
@@ -8409,7 +8409,7 @@
       "tools": "Tools",
       "triggers": "Triggers",
       "triggersLabel": "Triggers: ",
-      "unit": "",
+      "unit": "шт.",
       "generate": "Сгенерировать навык",
       "generating": "Генерация...",
       "instruction": "Опишите нужный навык",
@@ -9218,19 +9218,19 @@
     "versionNumber": "Версия {{version}}",
     "view": "Просмотр",
     "workflowRef": {
-      "contextMode": "Context Mode",
-      "inherit": "Inherit",
-      "isolated": "Isolated",
-      "targetWorkflow": "Target Workflow",
-      "version": "",
-      "inputMapping": "",
-      "selectWorkflow": "",
-      "title": ""
+      "contextMode": "Режим контекста",
+      "inherit": "Наследовать",
+      "isolated": "Изолированный",
+      "targetWorkflow": "Целевой рабочий процесс",
+      "version": "Версия",
+      "inputMapping": "Сопоставление входных данных",
+      "selectWorkflow": "Выбрать рабочий процесс",
+      "title": "Название"
     },
     "workflowSavedAsNew": "Рабочий процесс сохранён как новый",
     "workflowUpdated": "Рабочий процесс обновлён",
     "workflowRefNode": {
-      "noWorkflow": ""
+      "noWorkflow": "Рабочий процесс не указан"
     },
     "voiceChat": {
       "noTicket": "No ticket available. Please start again."
@@ -9292,7 +9292,7 @@
     }
   },
   "workflowRefNode": {
-    "noWorkflow": ""
+    "noWorkflow": "Рабочий процесс не указан"
   },
   "voiceChat": {
     "noTicket": "No ticket available. Please start again."

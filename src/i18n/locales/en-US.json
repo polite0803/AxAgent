@@ -4917,9 +4917,9 @@
       "contextMode": "Context Mode",
       "inherit": "Inherit",
       "isolated": "Isolated",
-      "selectWorkflow": "",
-      "title": "",
-      "version": "",
+      "selectWorkflow": "Select Workflow",
+      "title": "Title",
+      "version": "Version",
       "inputMapping": "Input Mapping"
     },
     "phaseSeparator": {
@@ -5443,7 +5443,7 @@
       "triggers": "Triggers",
       "parameters": "Parameters",
       "tools": "Tools",
-      "unit": "",
+      "unit": "x",
       "triggersLabel": "Triggers: ",
       "parametersLabel": "Parameters: ",
       "required": "Required",
@@ -5497,7 +5497,7 @@
       "viewDiff": "View Diff"
     },
     "workflowRefNode": {
-      "noWorkflow": ""
+      "noWorkflow": "No workflow referenced"
     },
     "voiceChat": {
       "noTicket": "No ticket available. Please start again."
@@ -8522,7 +8522,7 @@
     "bottleneckProduct": "Bottleneck product: ",
     "riskPrefix": "Risk: ",
     "confidencePrefix": "Confidence ",
-    "scoreSuffix": "",
+    "scoreSuffix": "pts",
     "emptyHint": "Click the button above to run a Serenity bottleneck screening",
     "noCandidateTitle": "No candidates produced",
     "errorUnknown": "Unknown error",

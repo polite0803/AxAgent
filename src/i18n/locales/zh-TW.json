@@ -215,7 +215,7 @@
       "skillTypeWorkflow": "工作流程",
       "uiPlaceholder": "描述您需要的 UI 界面",
       "uiTypeCustom": "自訂",
-      "uiTypeDashboard": "儀表板",
+      "uiTypeDashboard": "儀錶板",
       "uiTypeForm": "表單",
       "uiTypeReport": "報告",
       "uiTypeSettings": "設定"
@@ -1876,29 +1876,29 @@
     "title": "對標研究"
   },
   "components_skill_SkillABTestResults": {
-    "components_skill_Ski": "[TODO] components_skill_SkillABTestResults.暂无_A_B_测试数据",
-    "两个版本无明显差异": "[TODO]  两个版本无明显差异。",
-    "优胜": "[TODO] 优胜",
-    "变化": "[TODO] 变化",
+    "components_skill_Ski": "[TODO] components_skill_SkillABTestResults.暫無_A_B_測試數據",
+    "兩個版本無明顯差異": "[TODO]  兩個版本無明顯差異。",
+    "優勝": "[TODO] 優勝",
+    "變化": "[TODO] 變化",
     "平局": "[TODO] 平局",
-    "指标": "[TODO] 指标",
-    "推荐采用版本_A": "[TODO]  推荐采用版本 A。",
-    "推荐采用版本_B": "[TODO]  推荐采用版本 B。",
-    "暂无_A_B_测试数据": "[TODO] 暂无 A/B 测试数据",
+    "指標": "[TODO] 指標",
+    "推薦採用版本_A": "[TODO]  推薦採用版本 A。",
+    "推薦採用版本_B": "[TODO]  推薦採用版本 B。",
+    "暫無_A_B_測試數據": "[TODO] 暫無 A/B 測試數據",
     "版本_A": "[TODO] 版本 A",
     "版本_B": "[TODO] 版本 B"
   },
   "components_skill_SkillEvolutionViewer": {
-    "A_B_测试结果": "[TODO] A/B 测试结果",
-    "components_skill_Ski": "[TODO] components_skill_SkillEvolutionViewer.A_B_测试结果",
-    "当前版本": "[TODO] 当前版本",
-    "总进化次数": "[TODO] 总进化次数",
-    "最近进化": "[TODO] 最近进化"
+    "A_B_測試結果": "[TODO] A/B 測試結果",
+    "components_skill_Ski": "[TODO] components_skill_SkillEvolutionViewer.A_B_測試結果",
+    "當前版本": "[TODO] 當前版本",
+    "總進化次數": "[TODO] 總進化次數",
+    "最近進化": "[TODO] 最近進化"
   },
   "components_skill_SkillVersionTimeline": {
-    "components_skill_Ski": "[TODO] components_skill_SkillVersionTimeline.暂无进化历史",
-    "暂无进化历史": "[TODO] 暂无进化历史",
-    "确认回滚": "[TODO] 确认回滚"
+    "components_skill_Ski": "[TODO] components_skill_SkillVersionTimeline.暫無進化歷史",
+    "暫無進化歷史": "[TODO] 暫無進化歷史",
+    "確認回滾": "[TODO] 確認回滾"
   },
   "computerControl": {
     "auto": "自動",
@@ -2292,7 +2292,7 @@
     "addProp": "新增屬性",
     "builtin": "內置",
     "catCustom": "自定義",
-    "catDashboard": "儀表板",
+    "catDashboard": "儀錶板",
     "catForm": "表單",
     "catReport": "報表",
     "category": "分類",
@@ -3440,7 +3440,7 @@
     "backtest": "回測",
     "chat": "對話",
     "compare": "對比",
-    "dashboard": "儀表板",
+    "dashboard": "儀錶板",
     "devTools": "開發工具",
     "files": "檔案",
     "gateway": "閘道",
@@ -3452,7 +3452,7 @@
     "prompts": "提示詞",
     "quant": "量化",
     "recommend": "推薦",
-    "replayWorkbench": "回放工作台",
+    "replayWorkbench": "回放工作檯",
     "scheduledAnalysis": "[TODO] Scheduled",
     "screener": "選股",
     "settings": "設定",
@@ -4125,7 +4125,7 @@
     "description": "把所有資料錨定到過去的某一天。系統會拒絕未來日期。可安全回測策略，避免前視偏差。",
     "exitBtn": "切回 Live",
     "exitHint": "你仍在回放模式。在別處發起的任何新分析都會帶 as-of 錨點。",
-    "notice": "此工作台中的所有資料、提示詞與結論都以選定日期為錨點。切回 Live 模式需要顯式確認。",
+    "notice": "此工作檯中的所有資料、提示詞與結論都以選定日期為錨點。切回 Live 模式需要顯式確認。",
     "step1": {
       "currentlyPicked": "當前正以 {{date}} 為錨點回放",
       "reselect": "重選",
@@ -4159,7 +4159,7 @@
       "title": "回放矩陣",
       "violationNotice": "已記錄 {{count}} 處 as-of 違規 — 詳見 Invalid 折疊面板。"
     },
-    "title": "回放工作台"
+    "title": "回放工作檯"
   },
   "report": {
     "citations": "參考文獻",
@@ -5415,7 +5415,7 @@
       "statusConnected": "已連線",
       "statusConnecting": "連線中",
       "statusDisabled": "已停用",
-      "tabConfig": "平台設定",
+      "tabConfig": "平臺設定",
       "tabStatus": "連線狀態",
       "wechatMode": "執行模式",
       "wechatModeCustomer": "客服模式 (輪詢接收，實驗性)",
@@ -5605,7 +5605,7 @@
       "timeRanges": "時間段",
       "title": "定時任務",
       "tuesday": "週二",
-      "unknownTemplateType": "",
+      "unknownTemplateType": "未知的範本類型",
       "updateTask": "更新任務",
       "webdavSync": "WebDAV 自動同步",
       "wednesday": "週三",
@@ -6654,22 +6654,22 @@
       "trader": "交易員",
       "validator": "驗證者"
     },
-    "buy": "买",
+    "buy": "買",
     "cost": "成本",
-    "disabledHint": "开启后可手动记录买卖交易，自动跟踪持仓成本与盈亏",
-    "fillRequired": "请填写必要信息",
+    "disabledHint": "開啟後可手動記錄買賣交易，自動跟蹤持倉成本與盈虧",
+    "fillRequired": "請填寫必要信息",
     "limitsBlocked": "Position limits blocked this order",
     "placeholder": "執行與回放交易",
-    "pnl": "盈亏",
-    "price": "价格",
-    "quantity": "数量",
-    "recorded": "已记录",
-    "sell": "卖",
-    "shares": "持仓",
-    "stockCode": "代码",
-    "stockName": "名称",
-    "title": "交易日志",
-    "toggleFailed": "切换失败"
+    "pnl": "盈虧",
+    "price": "價格",
+    "quantity": "數量",
+    "recorded": "已記錄",
+    "sell": "賣",
+    "shares": "持倉",
+    "stockCode": "代碼",
+    "stockName": "名稱",
+    "title": "交易日誌",
+    "toggleFailed": "切換失敗"
   },
   "trainingJob": {
     "action": "操作",
@@ -6722,7 +6722,7 @@
       "moveDown": "下移",
       "moveUp": "上移",
       "pasteNode": "貼上節點",
-      "livePreview": "实时预览",
+      "livePreview": "實時預覽",
       "dropHere": "Release to drop into this container",
       "childArea": "Child area",
       "previewEmpty": "Preview is empty. Switch to edit mode to start building"
@@ -6747,7 +6747,7 @@
       "CodeEditor": "程式碼編輯器",
       "Column": "欄",
       "Container": "容器",
-      "Dashboard": "儀表板",
+      "Dashboard": "儀錶板",
       "DatePicker": "日期選擇器",
       "Divider": "分隔線",
       "FilePreview": "檔案預覽",
@@ -7125,9 +7125,9 @@
     "hidePanel": "隱藏面板",
     "history": "歷史記錄",
     "import": "導入",
-    "importKnowledgeMd": "导入知识源",
-    "importKnowledgeMdDesc": "将 KNOWLEDGE.md（精炼知识源）导入为 Wiki 笔记",
-    "importKnowledgeMdResult": "知识源导入完成：导入 {{imported}} 条，跳过 {{skipped}} 条，失败 {{failed}} 条",
+    "importKnowledgeMd": "導入知識源",
+    "importKnowledgeMdDesc": "將 KNOWLEDGE.md（精煉知識源）導入為 Wiki 筆記",
+    "importKnowledgeMdResult": "知識源導入完成：導入 {{imported}} 條，跳過 {{skipped}} 條，失敗 {{failed}} 條",
     "importObsidian": "導入 Obsidian 庫",
     "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
     "importResult": "已導入：{{imported}}，已跳過：{{skipped}}，失敗：{{failed}}",
@@ -7727,7 +7727,7 @@
       "executionLabel": "執行: {{id}} | 工作流: {{name}} | 觸發: {{trigger}}",
       "failed": "失敗",
       "fastestNode": "最快節點",
-      "hideSpanTree": "隐藏 Span 树",
+      "hideSpanTree": "隱藏 Span 樹",
       "input": "輸入",
       "issuesFound": "發現問題",
       "labelError": "錯誤",
@@ -7735,14 +7735,14 @@
       "labelNode": "節點",
       "labelOutput": "輸出",
       "labelType": "類型",
-      "loadTraces": "加载 Trace",
+      "loadTraces": "加載 Trace",
       "noBreakpoints": "無中斷點",
       "noExecutionData": "暫無執行數據，請先運行工作流",
       "noHistory": "無歷史",
       "noPrompt": "無提示詞",
       "noRuntimeData": "無執行階段資料",
-      "noSpanData": "暂未解析到 Span 数据",
-      "noTraceData": "暂无 Trace 数据",
+      "noSpanData": "暫未解析到 Span 數據",
+      "noTraceData": "暫無 Trace 數據",
       "noVariables": "無變數",
       "nodeDiagnostics": "節點診斷",
       "nodeExecutions": "節點執行",
@@ -7763,7 +7763,7 @@
       "strategyDryRun": "Dry run（僅驗證）",
       "runtimeTrace": "執行階段追蹤",
       "selectedNodeDetails": "選中節點詳情",
-      "showSpanTree": "显示 Span 树",
+      "showSpanTree": "顯示 Span 樹",
       "slowestNode": "最慢節點",
       "startDebug": "開始偵錯",
       "staticCheck": "靜態檢查",
@@ -8409,7 +8409,7 @@
       "tools": "工具",
       "triggers": "觸發器",
       "triggersLabel": "觸發器：",
-      "unit": "",
+      "unit": "個",
       "generate": "產生技能",
       "generating": "產生中...",
       "instruction": "描述你想要的技能",
@@ -9108,7 +9108,7 @@
         "continue": "繼續執行",
         "description": "描述",
         "descriptionPlaceholder": "這條規則是做什麼的",
-        "expectedPath": "期望路径",
+        "expectedPath": "期望路徑",
         "expectedPathPlaceholder": "例如 output.status",
         "expectedValue": "期望值",
         "expectedValuePlaceholder": "輸入期望值",
@@ -9208,8 +9208,8 @@
       "restore": "還原",
       "viewDiff": "檢視差異",
       "viewSnapshot": "檢視快照",
-      "vA": "",
-      "vB": ""
+      "vA": "vA",
+      "vB": "vB"
     },
     "versionHistoryLoadFailed": "版本歷史載入失敗",
     "versionHistoryTitle": "版本歷史",
@@ -9230,13 +9230,13 @@
     "workflowSavedAsNew": "工作流已另存為新技能",
     "workflowUpdated": "工作流已更新",
     "spanDetail": {
-      "parentSpan": ""
+      "parentSpan": "父 Span"
     },
     "traceDetail": {
-      "userId": ""
+      "userId": "用戶 ID"
     },
     "voiceChat": {
-      "noTicket": ""
+      "noTicket": "無可用票證，請重新開始。"
     },
     "app": {
       "quickBar": "QuickBar"
@@ -9353,18 +9353,18 @@
     "title": "React Preview"
   },
   "planApprovalModal": {
-    "title": "计划确认",
-    "approve": "批准执行",
-    "reject": "拒绝",
-    "taskPreview": "任务预览",
+    "title": "計劃確認",
+    "approve": "批准執行",
+    "reject": "拒絕",
+    "taskPreview": "任務預覽",
     "engine": "推理引擎",
-    "features": "任务特征",
-    "expandPlan": "展开计划详情",
-    "collapsePlan": "收起计划详情",
+    "features": "任務特徵",
+    "expandPlan": "展開計劃詳情",
+    "collapsePlan": "收起計劃詳情",
     "empty": "（空）"
   },
   "planApproval": {
-    "rejectedToast": "计划已被拒绝，本轮未执行",
-    "toggleLabel": "计划确认闸门"
+    "rejectedToast": "計劃已被拒絕，本輪未執行",
+    "toggleLabel": "計劃確認閘門"
   }
 }

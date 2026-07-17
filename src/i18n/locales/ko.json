@@ -5580,7 +5580,7 @@
       "timeRanges": "시간 범위",
       "title": "예약 작업",
       "tuesday": "화",
-      "unknownTemplateType": "",
+      "unknownTemplateType": "알 수 없는 템플릿 유형",
       "updateTask": "작업 업데이트",
       "webdavSync": "WebDAV 자동 동기화",
       "wednesday": "수",
@@ -8384,7 +8384,7 @@
       "tools": "Tools",
       "triggers": "Triggers",
       "triggersLabel": "Triggers: ",
-      "unit": "",
+      "unit": "개",
       "generate": "스킬 생성",
       "generating": "생성 중...",
       "instruction": "원하는 스킬을 설명하세요",
@@ -9197,7 +9197,7 @@
       "inherit": "Inherit",
       "isolated": "Isolated",
       "targetWorkflow": "Target Workflow",
-      "version": "",
+      "version": "버전",
       "inputMapping": "입력 매핑",
       "selectWorkflow": "워크플로우 선택",
       "title": "제목"
@@ -9267,7 +9267,7 @@
     }
   },
   "workflowRefNode": {
-    "noWorkflow": ""
+    "noWorkflow": "참조된 워크플로우 없음"
   },
   "voiceChat": {
     "noTicket": "No ticket available. Please start again."

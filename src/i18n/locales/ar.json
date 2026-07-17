@@ -1512,7 +1512,7 @@
     "workspaceLocked": "لا يمكن تغيير دليل مساحة العمل بعد بدء المحادثة",
     "yesterday": "أمس",
     "you": "أنت",
-    "createConversationFailed": ""
+    "createConversationFailed": "فشل إنشاء المحادثة"
   },
   "chat:workflow": {
     "templateList": {
@@ -3147,7 +3147,7 @@
     "replicateApiToken": "رمز API Replicate",
     "replicateApiTokenPlaceholder": "r8_...",
     "title": "إنشاء صورة",
-    "generatedImageTitle": "",
+    "generatedImageTitle": "## صورة تم إنشاؤها بواسطة الذكاء الاصطناعي",
     "duration": "**Duration**",
     "savedToArtifact": "Saved to Artifact"
   },
@@ -5569,7 +5569,7 @@
       "timeRanges": "نطاقات زمنية",
       "title": "المهام المجدولة",
       "tuesday": "الثلاثاء",
-      "unknownTemplateType": "",
+      "unknownTemplateType": "نوع قالب غير معروف",
       "updateTask": "تحديث مهمة",
       "webdavSync": "مزامنة WebDAV التلقائية",
       "wednesday": "الأربعاء",
@@ -8294,7 +8294,7 @@
       "tools": "Tools",
       "triggers": "Triggers",
       "triggersLabel": "Triggers: ",
-      "unit": "",
+      "unit": "وحدة",
       "generate": "توليد مهارة",
       "generating": "جارٍ التوليد...",
       "instruction": "صف المهارة التي تريدها",
@@ -9104,9 +9104,9 @@
       "inherit": "Inherit",
       "isolated": "Isolated",
       "targetWorkflow": "Target Workflow",
-      "selectWorkflow": "",
-      "title": "",
-      "version": "",
+      "selectWorkflow": "اختيار سير العمل",
+      "title": "العنوان",
+      "version": "الإصدار",
       "inputMapping": "تعيين الإدخال"
     },
     "workflowSavedAsNew": "تم حفظ سير العمل كجديد",
