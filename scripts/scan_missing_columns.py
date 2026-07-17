@@ -4,10 +4,12 @@
 import os, re, sys
 from pathlib import Path
 
-ENTITY_DIR = Path("d:/OneManager/AxAgent/src-tauri/crates/entities/src")
-V100_FILE  = Path("d:/OneManager/AxAgent/src-tauri/crates/dao/src/migrations/v100_consolidated.rs")
-V101_FILE  = Path("d:/OneManager/AxAgent/src-tauri/crates/dao/src/migrations/v101_route_history.rs")
-V102_FILE  = Path("d:/OneManager/AxAgent/src-tauri/crates/dao/src/migrations/v102_skill_failure_fields.rs")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+ENTITY_DIR = _PROJECT_ROOT / "src-tauri/crates/entities/src"
+V100_FILE  = _PROJECT_ROOT / "src-tauri/crates/dao/src/migrations/v100_consolidated.rs"
+V101_FILE  = _PROJECT_ROOT / "src-tauri/crates/dao/src/migrations/v101_route_history.rs"
+V102_FILE  = _PROJECT_ROOT / "src-tauri/crates/dao/src/migrations/v102_skill_failure_fields.rs"
 
 TYPE_MAP = {
     "String": "TEXT",

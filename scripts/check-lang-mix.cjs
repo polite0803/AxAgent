@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const localeDir = "d:/OneManager/AxAgent/src/i18n/locales";
+const localeDir = path.resolve(__dirname, "..", "src", "i18n", "locales");
 
 const enUS = JSON.parse(fs.readFileSync(path.join(localeDir, "en-US.json"), "utf8"));
 const ja = JSON.parse(fs.readFileSync(path.join(localeDir, "ja.json"), "utf8"));
