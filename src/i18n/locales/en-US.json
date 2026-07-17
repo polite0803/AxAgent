@@ -3377,7 +3377,9 @@
     "WORKFLOW_NODE_NOT_FOUND": "Node not found",
     "WORKFLOW_NOT_FOUND": "Workflow not found",
     "WORKFLOW_PLAN_NOT_FOUND": "Plan not found",
-    "WORKFLOW_VERSION_NOT_FOUND": "Version not found"
+    "WORKFLOW_VERSION_NOT_FOUND": "Version not found",
+    "STOCK_SETUP_INTERNAL": "Stock setup internal error",
+    "STOCK_WORKFLOW_INTERNAL": "Stock workflow internal error"
   },
   "desktop": {
     "title": "Desktop Integration",
@@ -4893,8 +4895,7 @@
         "MODEL_NOT_CONFIGURED": "Model not configured",
         "NODE_NOT_FOUND": "Node not found"
       },
-      "saveFailed": "Save failed",
-      "resetZoom": "Reset Zoom"
+      "saveFailed": "Save failed"
     },
     "agentNode": {
       "tools": "🔧 Tools",
@@ -8975,29 +8976,29 @@
     "schemaAllValid": "Schema validation passed, all fields valid"
   },
   "components_skill_SkillABTestResults": {
-    "暂无_A_B_测试数据": "暂无 A/B 测试数据",
-    "components_skill_Ski": "components_skill_SkillABTestResults.暂无_A_B_测试数据",
-    "指标": "指标",
-    "版本_A": "版本 A",
-    "版本_B": "版本 B",
-    "变化": "变化",
-    "优胜": "优胜",
-    "平局": "平局",
-    "推荐采用版本_A": " 推荐采用版本 A。",
-    "推荐采用版本_B": " 推荐采用版本 B。",
-    "两个版本无明显差异": " 两个版本无明显差异。"
+    "components_skill_Ski": "components_skill_SkillABTestResults.No AB Test Data",
+    "两个版本无明显差异": " No significant difference between the two versions.",
+    "优胜": "Winner",
+    "变化": "Change",
+    "平局": "Tie",
+    "指标": "Metric",
+    "推荐采用版本_A": " Recommending Version A.",
+    "推荐采用版本_B": " Recommending Version B.",
+    "暂无_A_B_测试数据": "No A/B Test Data",
+    "版本_A": "Version A",
+    "版本_B": "Version B"
   },
   "components_skill_SkillEvolutionViewer": {
-    "当前版本": "当前版本",
-    "总进化次数": "总进化次数",
-    "最近进化": "最近进化",
-    "A_B_测试结果": "A/B 测试结果",
-    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A_B_测试结果"
+    "A_B_测试结果": "A/B Test Results",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A/B Test Results",
+    "当前版本": "Current Version",
+    "总进化次数": "Total Evolutions",
+    "最近进化": "Latest Evolution"
   },
   "components_skill_SkillVersionTimeline": {
-    "暂无进化历史": "暂无进化历史",
-    "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
-    "确认回滚": "确认回滚"
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.No Evolution History",
+    "暂无进化历史": "No Evolution History",
+    "确认回滚": "Confirm Rollback"
   },
   "promptTemplate": {
     "unnamed": "Unnamed"
@@ -9680,19 +9681,23 @@
       "watchlist": "Watchlist Review"
     },
     "dashboard": {
-      "analyzeStock": "Analyze Stock",
-      "bear": "Bear Market",
-      "bull": "Bull Market",
+      "title": "Decision Dashboard",
+      "coreConclusion": "Core Conclusion",
+      "buySellPoints": "Buy/Sell Points",
+      "buyRange": "Buy Range",
+      "targetPrice": "Target Price",
+      "stopLoss": "Stop Loss",
+      "positionPct": "Position %",
+      "score": "Score",
       "confidence": "Confidence",
-      "dailyReview": "Daily Review",
-      "highVol": "High Volatility",
-      "marketState": "Market State",
-      "recentAnalyses": "Recent Analyses",
-      "recommendations": "Recommendations",
-      "recordTrade": "Record Trade",
-      "sideways": "Sideways",
-      "title": "Investment Dashboard",
-      "viewAll": "View All"
+      "riskAlerts": "Risk Alerts",
+      "catalysts": "Catalysts",
+      "checklist": "Checklist",
+      "latestNews": "Latest News",
+      "earningsExpectation": "Earnings Expectation",
+      "integrityWarning": "Report failed integrity check",
+      "empty": "No dashboard report yet. Run decision analysis or rerun decision first.",
+      "viewMarkdown": "View Markdown source"
     },
     "dataFetched": "Fetched",
     "dataFetching": "Fetching",
@@ -10561,25 +10566,6 @@
       "reflection": "Reflection",
       "risk": "Risk",
       "value": "Value"
-    },
-    "dashboard": {
-      "title": "Decision Dashboard",
-      "coreConclusion": "Core Conclusion",
-      "buySellPoints": "Buy/Sell Points",
-      "buyRange": "Buy Range",
-      "targetPrice": "Target Price",
-      "stopLoss": "Stop Loss",
-      "positionPct": "Position %",
-      "score": "Score",
-      "confidence": "Confidence",
-      "riskAlerts": "Risk Alerts",
-      "catalysts": "Catalysts",
-      "checklist": "Checklist",
-      "latestNews": "Latest News",
-      "earningsExpectation": "Earnings Expectation",
-      "integrityWarning": "Report failed integrity check",
-      "empty": "No dashboard report yet. Run decision analysis or rerun decision first.",
-      "viewMarkdown": "View Markdown source"
     },
     "targetPrice": "Target Price",
     "targetPriceNote": "Target ¥{{price}}",
@@ -11673,31 +11659,6 @@
   },
   "reactPreview": {
     "title": "React Preview"
-  },
-  "components_skill_SkillABTestResults": {
-    "components_skill_Ski": "components_skill_SkillABTestResults.No AB Test Data",
-    "两个版本无明显差异": " No significant difference between the two versions.",
-    "优胜": "Winner",
-    "变化": "Change",
-    "平局": "Tie",
-    "指标": "Metric",
-    "推荐采用版本_A": " Recommending Version A.",
-    "推荐采用版本_B": " Recommending Version B.",
-    "暂无_A_B_测试数据": "No A/B Test Data",
-    "版本_A": "Version A",
-    "版本_B": "Version B"
-  },
-  "components_skill_SkillEvolutionViewer": {
-    "A_B_测试结果": "A/B Test Results",
-    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A/B Test Results",
-    "当前版本": "Current Version",
-    "总进化次数": "Total Evolutions",
-    "最近进化": "Latest Evolution"
-  },
-  "components_skill_SkillVersionTimeline": {
-    "components_skill_Ski": "components_skill_SkillVersionTimeline.No Evolution History",
-    "暂无进化历史": "No Evolution History",
-    "确认回滚": "Confirm Rollback"
   },
   "planApprovalModal": {
     "title": "Plan Approval",
