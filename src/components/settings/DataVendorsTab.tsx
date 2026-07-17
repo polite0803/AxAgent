@@ -535,7 +535,7 @@ export function DataVendorsTab() {
                       type="primary"
                       ghost
                       onClick={() => {
-                        message.info("请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接");
+                        message.info(t("stockAnalysis.settings.neodataRefreshHint"));
                       }}
                     >
                       🔗 通过 WorkBuddy 连接

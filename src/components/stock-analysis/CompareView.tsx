@@ -102,7 +102,13 @@ export function CompareView() {
       return;
     }
 
-    const labels = [t("stockAnalysis.price"), "PE", "PB", t("stockAnalysis.volume"), t("stockAnalysis.turnoverRate")];
+    const labels = [
+      t("stockAnalysis.price"),
+      t("stockAnalysis.compare.pe"),
+      t("stockAnalysis.compare.pb"),
+      t("stockAnalysis.volume"),
+      t("stockAnalysis.turnoverRate"),
+    ];
     const raw1 = [quote1.price, quote1.pe ?? 0, quote1.pb ?? 0, quote1.volume / 10000, quote1.turnoverRate ?? 0];
     const raw2 = [quote2.price, quote2.pe ?? 0, quote2.pb ?? 0, quote2.volume / 10000, quote2.turnoverRate ?? 0];
     const maxes = raw1.map((v, i) => Math.max(v, raw2[i], 1));
@@ -158,7 +164,7 @@ export function CompareView() {
       size="small"
       title={
         <span>
-          <SwapOutlined /> {t("stockAnalysis.compare")}
+          <SwapOutlined /> {t("stockAnalysis.compare.title")}
         </span>
       }
       styles={{ body: { padding: "8px 10px" } }}
@@ -219,12 +225,12 @@ export function CompareView() {
             better={quote1.changePct > quote2.changePct ? "left" : "right"}
           />
           <CompareRow
-            label="PE"
+            label={t("stockAnalysis.compare.pe")}
             v1={quote1.pe ?? "—"}
             v2={quote2.pe ?? "—"}
             better={quote1.pe && quote2.pe ? (quote1.pe < quote2.pe ? "left" : "right") : undefined}
           />
-          <CompareRow label="PB" v1={quote1.pb ?? "—"} v2={quote2.pb ?? "—"} />
+          <CompareRow label={t("stockAnalysis.compare.pb")} v1={quote1.pb ?? "—"} v2={quote2.pb ?? "—"} />
           <CompareRow label={t("stockAnalysis.marketCap")} v1={fmtMv(quote1.totalMv)} v2={fmtMv(quote2.totalMv)} />
           <CompareRow
             label={t("stockAnalysis.turnoverRate")}
@@ -239,7 +245,7 @@ export function CompareView() {
                 {t("stockAnalysis.compare.financialMetrics")}
               </div>
               <CompareRow
-                label="ROE"
+                label={t("stockAnalysis.compare.roe")}
                 v1={fmtPct(fin1.roe)}
                 v2={fmtPct(fin2.roe)}
                 better={compareFin(fin1.roe, fin2.roe, true)}

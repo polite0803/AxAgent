@@ -1,4 +1,5 @@
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { useTranslation } from "react-i18next";
 import { PageHeader } from "./_shared/PageHeader";
 import { CompareView } from "./CompareView";
 import { PeersPanel } from "./PeersPanel";
@@ -8,8 +9,9 @@ import { PeersPanel } from "./PeersPanel";
  * 覆盖:CompareView(多股对比)+ PeersPanel(同行业 peers)
  */
 export function ComparePage() {
+  const { t } = useTranslation();
   return (
-    <PageErrorBoundary title="Compare">
+    <PageErrorBoundary title={t("stockAnalysis.page.compare")}>
       <div className="flex h-full flex-col">
         <PageHeader titleKey="compare.title" backTo="/stock-analysis" />
         <div className="flex-1 overflow-auto p-4 space-y-4">

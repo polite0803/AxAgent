@@ -90,7 +90,7 @@ export function StrategyPackSettings() {
       const list = await invoke<StrategyPackInfo[]>("list_strategy_packs");
       if (Array.isArray(list)) { setPacks(list); }
     } catch (e) {
-      message.error(`加载策略包失败: ${String(e)}`);
+      message.error(t("stockAnalysis.settings.loadPackFailed", { error: String(e) }));
     } finally {
       setLoading(false);
     }
@@ -123,7 +123,7 @@ export function StrategyPackSettings() {
       });
       setDetail(d);
     } catch (e) {
-      message.error(`加载详情失败: ${String(e)}`);
+      message.error(t("stockAnalysis.settings.loadDetailFailed", { error: String(e) }));
     } finally {
       setDetailLoading(false);
     }
@@ -171,34 +171,34 @@ strategies:
   const validateYaml = async () => {
     try {
       await invoke("validate_strategy_pack_yaml", { yaml: yamlInput });
-      message.success("校验通过");
+      message.success(t("stockAnalysis.settings.validatePassed"));
     } catch (e) {
-      message.error(`校验失败: ${String(e)}`);
+      message.error(t("stockAnalysis.settings.validateFailed", { error: String(e) }));
     }
   };
 
   const saveYaml = async () => {
     if (!yamlId.trim()) {
-      message.warning("请填写策略包 ID");
+      message.warning(t("stockAnalysis.settings.packIdRequired"));
       return;
     }
     try {
       await invoke("save_user_strategy_pack", { id: yamlId, yaml: yamlInput });
-      message.success("保存成功");
+      message.success(t("stockAnalysis.settings.saveSuccess"));
       setEditorOpen(false);
       loadPacks();
     } catch (e) {
-      message.error(`保存失败: ${String(e)}`);
+      message.error(t("stockAnalysis.settings.saveFailed", { error: String(e) }));
     }
   };
 
   const deleteUserPack = async (id: string) => {
     try {
       await invoke("delete_user_strategy_pack", { id });
-      message.success("已删除");
+      message.success(t("stockAnalysis.settings.deleteSuccess"));
       loadPacks();
     } catch (e) {
-      message.error(`删除失败: ${String(e)}`);
+      message.error(t("stockAnalysis.settings.deleteFailed", { error: String(e) }));
     }
   };
 
@@ -361,16 +361,16 @@ strategies:
             <Paragraph type="secondary">{detail.description}</Paragraph>
             <Row gutter={16}>
               <Col span={6}>
-                <Statistic title="ID" value={detail.id} valueStyle={{ fontSize: 14 }} />
+                <Statistic title={t("stockAnalysis.settings.statId")} value={detail.id} valueStyle={{ fontSize: 14 }} />
               </Col>
               <Col span={6}>
-                <Statistic title="Version" value={detail.version} />
+                <Statistic title={t("stockAnalysis.settings.statVersion")} value={detail.version} />
               </Col>
               <Col span={6}>
-                <Statistic title="Author" value={detail.author} />
+                <Statistic title={t("stockAnalysis.settings.statAuthor")} value={detail.author} />
               </Col>
               <Col span={6}>
-                <Statistic title="Source" value={detail.source} />
+                <Statistic title={t("stockAnalysis.settings.statSource")} value={detail.source} />
               </Col>
             </Row>
             <Table
@@ -443,7 +443,7 @@ strategies:
             <Input
               value={yamlId}
               onChange={(e) => setYamlId(e.target.value)}
-              placeholder="my-strategy-pack"
+              placeholder={t("stockAnalysis.settings.packPlaceholder")}
               style={{ marginTop: 4 }}
             />
           </div>

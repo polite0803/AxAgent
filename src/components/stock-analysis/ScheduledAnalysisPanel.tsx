@@ -33,13 +33,6 @@ interface CronJobRow {
 
 const FAILURE_THRESHOLD = 3;
 
-const CRON_PRESETS = [
-  { label: "每个交易日 21:00 (收盘分析)", value: "0 21 * * 1-5" },
-  { label: "每个交易日 08:00 (盘前分析)", value: "0 8 * * 1-5" },
-  { label: "每周一 21:00", value: "0 21 * * 1" },
-  { label: "每两小时", value: "0 */2 * * *" },
-];
-
 /** 定时分析管理面板 — 借鉴 TradingAgents scheduled analysis 设计 */
 export function ScheduledAnalysisPanel() {
   const { t } = useTranslation();
@@ -48,7 +41,13 @@ export function ScheduledAnalysisPanel() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newStockCode, setNewStockCode] = useState("");
   const [newStockName, setNewStockName] = useState("");
-  const [newCron, setNewCron] = useState(CRON_PRESETS[0].value);
+  const cronPresets = useMemo(() => [
+    { label: t("stockAnalysis.schedule.dailyClose"), value: "0 21 * * 1-5" },
+    { label: t("stockAnalysis.schedule.dailyPreMarket"), value: "0 8 * * 1-5" },
+    { label: t("stockAnalysis.schedule.weeklyMonday"), value: "0 21 * * 1" },
+    { label: t("stockAnalysis.schedule.every2Hours"), value: "0 */2 * * *" },
+  ], [t]);
+  const [newCron, setNewCron] = useState(cronPresets[0].value);
   const [submitting, setSubmitting] = useState(false);
 
   // 失败计数（模拟：从 description 字段解析）
@@ -369,7 +368,7 @@ export function ScheduledAnalysisPanel() {
               size="small"
               value={newCron}
               onChange={setNewCron}
-              options={CRON_PRESETS}
+              options={cronPresets}
             />
           </div>
         </div>

@@ -258,19 +258,34 @@ export function ExperimentSidebar() {
           <ParamSelect
             label={t("stockAnalysis.whatIfBacktest.overallRiskLabel")}
             value={params.overallRisk}
-            options={["低", "中", "高", "极高"]}
+            options={[
+              { value: "低", label: t("stockAnalysis.whatIfBacktest.riskLevels.low") },
+              { value: "中", label: t("stockAnalysis.whatIfBacktest.riskLevels.medium") },
+              { value: "高", label: t("stockAnalysis.whatIfBacktest.riskLevels.high") },
+              { value: "极高", label: t("stockAnalysis.whatIfBacktest.riskLevels.veryHigh") },
+            ]}
             onChange={(v) => setParams((p) => ({ ...p, overallRisk: v }))}
           />
           <ParamSelect
             label={t("stockAnalysis.whatIfBacktest.catalystLevelLabel")}
             value={params.catalystLevel}
-            options={["无催化剂", "L1普通消息", "L2业绩拐点级", "L3估值体系级"]}
+            options={[
+              { value: "无催化剂", label: t("stockAnalysis.whatIfBacktest.catalystLevels.none") },
+              { value: "L1普通消息", label: t("stockAnalysis.whatIfBacktest.catalystLevels.l1") },
+              { value: "L2业绩拐点级", label: t("stockAnalysis.whatIfBacktest.catalystLevels.l2") },
+              { value: "L3估值体系级", label: t("stockAnalysis.whatIfBacktest.catalystLevels.l3") },
+            ]}
             onChange={(v) => setParams((p) => ({ ...p, catalystLevel: v }))}
           />
           <ParamSelect
             label={t("stockAnalysis.whatIfBacktest.institutionalTraceLabel")}
             value={params.institutionalTrace}
-            options={["无异常", "疑似建仓", "有建仓痕迹", "资金出逃"]}
+            options={[
+              { value: "无异常", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.none") },
+              { value: "疑似建仓", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.suspectedBuilding") },
+              { value: "有建仓痕迹", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.building") },
+              { value: "资金出逃", label: t("stockAnalysis.whatIfBacktest.institutionalTraces.escaping") },
+            ]}
             onChange={(v) => setParams((p) => ({ ...p, institutionalTrace: v }))}
           />
         </div>
@@ -426,7 +441,7 @@ function ParamSlider({ label, value, min, max, step, onChange }: {
 function ParamSelect({ label, value, options, onChange }: {
   label: string;
   value: string;
-  options: string[];
+  options: { value: string; label: string }[];
   onChange: (v: string) => void;
 }) {
   return (
@@ -437,7 +452,7 @@ function ParamSelect({ label, value, options, onChange }: {
         size="small"
         value={value}
         onChange={onChange}
-        options={options.map((o) => ({ value: o, label: o }))}
+        options={options}
       />
     </div>
   );

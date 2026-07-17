@@ -227,7 +227,7 @@ export function PortfolioDashboard() {
   ];
 
   return (
-    <PageErrorBoundary title="Portfolio Dashboard">
+    <PageErrorBoundary title={t("stockAnalysis.page.portfolioDashboard")}>
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--color-border)" }}>

@@ -1,4 +1,5 @@
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { useTranslation } from "react-i18next";
 import { PageHeader } from "./_shared/PageHeader";
 import { DailyReviewPanel } from "./DailyReviewPanel";
 import { PriceAlertPanel } from "./PriceAlertPanel";
@@ -12,8 +13,9 @@ import { WatchlistPanel } from "./WatchlistPanel";
  *   下方：DailyReviewPanel + PriceAlertPanel（桌面端 2 列，移动端 1 列）
  */
 export function WatchlistPage() {
+  const { t } = useTranslation();
   return (
-    <PageErrorBoundary title="Watchlist">
+    <PageErrorBoundary title={t("stockAnalysis.page.watchlist")}>
       <div className="flex h-full flex-col">
         <PageHeader titleKey="watchlist.title" backTo="/stock-analysis" />
         <div className="flex-1 overflow-auto p-4 space-y-4">

@@ -136,7 +136,7 @@ export function MonteCarloPanel() {
           {scenarios.map((sc) => (
             <div key={sc.key} className="flex items-center gap-2 rounded-lg border px-3 py-1.5">
               <Checkbox checked={sc.enabled} onChange={() => toggleScenario(sc.key)} />
-              <span className="text-sm">{sc.label}</span>
+              <span className="text-sm">{t(sc.label)}</span>
               <InputNumber
                 size="small"
                 style={{ width: 65 }}

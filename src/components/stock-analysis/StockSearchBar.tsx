@@ -16,10 +16,10 @@ interface ParsedIntent {
 }
 
 const HORIZON_LABELS: Record<string, string> = {
-  ultra_short: "超短线",
-  short: "短线",
-  mid: "中线",
-  long: "长线",
+  ultra_short: "ultraShort",
+  short: "short",
+  mid: "mid",
+  long: "long",
 };
 
 export function StockSearchBar() {
@@ -119,7 +119,7 @@ export function StockSearchBar() {
             value={reportLanguage}
             onChange={(val) => setReportLanguage(val as "zh" | "en")}
             options={[
-              { label: "中", value: "zh" },
+              { label: t("stockAnalysis.lang.zh"), value: "zh" },
               { label: "EN", value: "en" },
             ]}
           />
@@ -133,7 +133,7 @@ export function StockSearchBar() {
           <Tag color="blue" className="text-xs">{intent.stockQuery || intent.stockCode}</Tag>
           {intent.timeHorizon && (
             <Tag color="green" className="text-xs">
-              {HORIZON_LABELS[intent.timeHorizon] || intent.timeHorizon}
+              {t(`stockAnalysis.period.${HORIZON_LABELS[intent.timeHorizon]}`) || intent.timeHorizon}
             </Tag>
           )}
           <span className="text-xs">{intent.description}</span>

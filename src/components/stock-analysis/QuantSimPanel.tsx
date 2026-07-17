@@ -4,16 +4,16 @@ import { Button, Card, Descriptions, InputNumber, Select, Spin, Statistic, Tag }
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const STRATEGIES = [
-  { value: "ma_cross", label: "双均线交叉 (MA 5/20)" },
-  { value: "macd", label: "MACD 金叉/死叉" },
-  { value: "rsi", label: "RSI 超买超卖 (14/70/30)" },
-  { value: "boll", label: "布林带上下轨" },
-  { value: "turtle", label: "海龟通道突破" },
-];
-
 export function QuantSimPanel() {
   const { t } = useTranslation();
+
+  const STRATEGIES = [
+    { value: "ma_cross", label: t("quant.strategySelect.maCross") },
+    { value: "macd", label: t("quant.strategySelect.macd") },
+    { value: "rsi", label: t("quant.strategySelect.rsi") },
+    { value: "boll", label: t("quant.strategySelect.boll") },
+    { value: "turtle", label: t("quant.strategySelect.turtle") },
+  ];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<QuantSimResult | null>(null);

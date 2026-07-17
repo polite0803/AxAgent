@@ -38,8 +38,13 @@ export function CompareTab() {
   };
 
   const columns = [
-    { title: "Run", dataIndex: "runId", key: "runId", render: (v: string) => <Tag>{v.slice(0, 8)}</Tag> },
-    { title: "策略", dataIndex: "strategyName", key: "strategyName" },
+    {
+      title: t("quant.compare.runId"),
+      dataIndex: "runId",
+      key: "runId",
+      render: (v: string) => <Tag>{v.slice(0, 8)}</Tag>,
+    },
+    { title: t("quant.compare.strategyName"), dataIndex: "strategyName", key: "strategyName" },
     {
       title: t("quant.metrics.totalReturn"),
       key: "totalReturn",

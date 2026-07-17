@@ -32,7 +32,7 @@ export function ScreenerPage() {
   const [activeKeys, setActiveKeys] = useState<string[]>([]);
 
   return (
-    <PageErrorBoundary title="Screener">
+    <PageErrorBoundary title={t("stockAnalysis.page.screener")}>
       <div className="flex h-full flex-col">
         <PageHeader titleKey="screener.title" backTo="/stock-analysis" />
         <div className={["flex-1 overflow-auto space-y-4", isMobile ? "p-2" : "p-4"].join(" ")}>
