@@ -762,6 +762,7 @@
         "CLOUD_SYNC_FAILED": "Sincronización en la nube fallida",
         "DESKTOP_CONNECTION_TIMEOUT": "Tiempo de conexión agotado",
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Notificación nativa fallida"
+      },
       "viewOutput": "Salida final",
       "workflowStatus": {
         "cancelled": "Cancelado",

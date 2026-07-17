@@ -761,6 +761,7 @@
         "CLOUD_SYNC_FAILED": "Ошибка облачной синхронизации",
         "DESKTOP_CONNECTION_TIMEOUT": "Время ожидания подключения истекло",
         "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Ошибка системного уведомления"
+      },
       "viewOutput": "Итоговый вывод",
       "workflowStatus": {
         "cancelled": "Отменено",
@@ -7186,7 +7187,7 @@
         "CACHE_DESERIALIZE_FAILED": "Ошибка десериализации кэшированных данных",
         "MODEL_NOT_CONFIGURED": "Модель не настроена",
         "NODE_NOT_FOUND": "Узел не найден"
-      }
+      },
       "id": "ID",
       "ingest": "Приём",
       "lint": "Линт",

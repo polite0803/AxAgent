@@ -4893,7 +4893,7 @@
         "MODEL_NOT_CONFIGURED": "Model not configured",
         "NODE_NOT_FOUND": "Node not found"
       },
-      "saveFailed": "Save failed"
+      "saveFailed": "Save failed",
       "resetZoom": "Reset Zoom"
     },
     "agentNode": {

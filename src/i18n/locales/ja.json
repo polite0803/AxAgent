@@ -6876,7 +6876,7 @@
         "CACHE_DESERIALIZE_FAILED": "キャッシュデータの逆シリアル化に失敗しました",
         "MODEL_NOT_CONFIGURED": "モデルが設定されていません",
         "NODE_NOT_FOUND": "ノードが見つかりません"
-      }
+      },
       "id": "ID",
       "ingest": "インポート",
       "lint": "チェック",
