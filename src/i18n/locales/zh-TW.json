@@ -1877,28 +1877,28 @@
   },
   "components_skill_SkillABTestResults": {
     "components_skill_Ski": "[TODO] components_skill_SkillABTestResults.暫無_A_B_測試數據",
-    "兩個版本無明顯差異": "[TODO]  兩個版本無明顯差異。",
-    "優勝": "[TODO] 優勝",
-    "變化": "[TODO] 變化",
     "平局": "[TODO] 平局",
-    "指標": "[TODO] 指標",
-    "推薦採用版本_A": "[TODO]  推薦採用版本 A。",
-    "推薦採用版本_B": "[TODO]  推薦採用版本 B。",
-    "暫無_A_B_測試數據": "[TODO] 暫無 A/B 測試數據",
     "版本_A": "[TODO] 版本 A",
-    "版本_B": "[TODO] 版本 B"
+    "版本_B": "[TODO] 版本 B",
+    "两个版本无明显差异": "[TODO]  兩個版本無明顯差異。",
+    "优胜": "[TODO] 優勝",
+    "变化": "[TODO] 變化",
+    "指标": "[TODO] 指標",
+    "推荐采用版本_A": "[TODO]  推薦採用版本 A。",
+    "推荐采用版本_B": "[TODO]  推薦採用版本 B。",
+    "暂无_A_B_测试数据": "[TODO] 暫無 A/B 測試數據"
   },
   "components_skill_SkillEvolutionViewer": {
-    "A_B_測試結果": "[TODO] A/B 測試結果",
     "components_skill_Ski": "[TODO] components_skill_SkillEvolutionViewer.A_B_測試結果",
-    "當前版本": "[TODO] 當前版本",
-    "總進化次數": "[TODO] 總進化次數",
-    "最近進化": "[TODO] 最近進化"
+    "A_B_测试结果": "[TODO] A/B 測試結果",
+    "当前版本": "[TODO] 當前版本",
+    "总进化次数": "[TODO] 總進化次數",
+    "最近进化": "[TODO] 最近進化"
   },
   "components_skill_SkillVersionTimeline": {
     "components_skill_Ski": "[TODO] components_skill_SkillVersionTimeline.暫無進化歷史",
-    "暫無進化歷史": "[TODO] 暫無進化歷史",
-    "確認回滾": "[TODO] 確認回滾"
+    "暂无进化历史": "[TODO] 暫無進化歷史",
+    "确认回滚": "[TODO] 確認回滾"
   },
   "computerControl": {
     "auto": "自動",
