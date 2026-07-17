@@ -71,7 +71,7 @@ function RiskAlertsSection({ alerts }: { alerts: RiskAlert[] }) {
       title={
         <Space>
           <AlertOutlined />
-          {t("stockAnalysis.dashboard.riskAlerts", "风险警报")}
+          {t("stockAnalysis.dashboard.riskAlerts")}
         </Space>
       }
       style={{ marginTop: 12 }}
@@ -101,7 +101,7 @@ function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
       title={
         <Space>
           <BulbOutlined />
-          {t("stockAnalysis.dashboard.catalysts", "催化因素")}
+          {t("stockAnalysis.dashboard.catalysts")}
         </Space>
       }
       style={{ marginTop: 12 }}
@@ -114,7 +114,7 @@ function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
             <Text>{cat.description}</Text>
             {cat.confidenceScore !== null && cat.confidenceScore !== undefined && (
               <Text type="secondary" style={{ marginLeft: 8 }}>
-                {t("stockAnalysis.dashboard.confidence", "置信度")}: {cat.confidenceScore.toFixed(0)}%
+                {t("stockAnalysis.dashboard.confidence")}: {cat.confidenceScore.toFixed(0)}%
               </Text>
             )}
           </div>
@@ -136,7 +136,7 @@ function ChecklistSection({ items }: { items: ChecklistItem[] }) {
       title={
         <Space>
           <CheckCircleOutlined />
-          {t("stockAnalysis.dashboard.checklist", "操作检查清单")}
+          {t("stockAnalysis.dashboard.checklist")}
         </Space>
       }
       style={{ marginTop: 12 }}
@@ -163,7 +163,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
     <div style={{ padding: 16 }}>
       {/* 标题 */}
       <Title level={4}>
-        {report.stockName}({report.stockCode}) {t("stockAnalysis.dashboard.title", "决策仪表盘")}
+        {report.stockName}({report.stockCode}) {t("stockAnalysis.dashboard.title")}
       </Title>
       <Space size="middle" style={{ marginBottom: 12 }}>
         <Text type="secondary">📅 {report.analysisDate}</Text>
@@ -174,7 +174,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
           <Alert
             type="warning"
             showIcon
-            message={t("stockAnalysis.dashboard.integrityWarning", "报告未通过完整性校验")}
+            message={t("stockAnalysis.dashboard.integrityWarning")}
             style={{ padding: "2px 8px" }}
           />
         )}
@@ -186,7 +186,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
         title={
           <Space>
             <SafetyCertificateOutlined />
-            {t("stockAnalysis.dashboard.coreConclusion", "核心结论")}
+            {t("stockAnalysis.dashboard.coreConclusion")}
           </Space>
         }
       >
@@ -196,11 +196,11 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
           </Tag>
           <Tag color={trendColor(report.trend)}>{report.trend}</Tag>
           <Text>
-            📊 {t("stockAnalysis.dashboard.score", "评分")}:{" "}
+            📊 {t("stockAnalysis.dashboard.score")}:{" "}
             <Text strong style={{ color: scoreColor }}>{report.score}/100</Text>
           </Text>
           <Text>
-            🎯 {t("stockAnalysis.dashboard.confidence", "置信度")}: <Text strong>{report.confidence.toFixed(0)}%</Text>
+            🎯 {t("stockAnalysis.dashboard.confidence")}: <Text strong>{report.confidence.toFixed(0)}%</Text>
           </Text>
         </Space>
         <Progress
@@ -213,28 +213,28 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
       </Card>
 
       {/* 2. 买卖点位 */}
-      <Card size="small" title={t("stockAnalysis.dashboard.buySellPoints", "买卖点位")} style={{ marginTop: 12 }}>
+      <Card size="small" title={t("stockAnalysis.dashboard.buySellPoints")} style={{ marginTop: 12 }}>
         <Space direction="vertical" style={{ width: "100%" }}>
           {report.buyPointLow !== null && report.buyPointLow !== undefined
             && report.buyPointHigh !== null
             && report.buyPointHigh !== undefined && (
             <Text>
-              {t("stockAnalysis.dashboard.buyRange", "买入区间")}:{" "}
+              {t("stockAnalysis.dashboard.buyRange")}:{" "}
               <Text strong>
                 {fmtNum(report.buyPointLow)} - {fmtNum(report.buyPointHigh)}
               </Text>
             </Text>
           )}
           <Text>
-            {t("stockAnalysis.dashboard.targetPrice", "目标价")}:{" "}
+            {t("stockAnalysis.dashboard.targetPrice")}:{" "}
             <Text strong style={{ color: "#f5222d" }}>{fmtNum(report.targetPrice)}</Text>
           </Text>
           <Text>
-            {t("stockAnalysis.dashboard.stopLoss", "止损价")}:{" "}
+            {t("stockAnalysis.dashboard.stopLoss")}:{" "}
             <Text strong style={{ color: "#52c41a" }}>{fmtNum(report.stopLoss)}</Text>
           </Text>
           <Text>
-            {t("stockAnalysis.dashboard.positionPct", "建议仓位")}: <Text strong>{report.positionPct.toFixed(0)}%</Text>
+            {t("stockAnalysis.dashboard.positionPct")}: <Text strong>{report.positionPct.toFixed(0)}%</Text>
           </Text>
         </Space>
       </Card>
@@ -250,7 +250,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
 
       {/* 6. 最新动态 */}
       {report.latestNews && (
-        <Card size="small" title={t("stockAnalysis.dashboard.latestNews", "最新动态")} style={{ marginTop: 12 }}>
+        <Card size="small" title={t("stockAnalysis.dashboard.latestNews")} style={{ marginTop: 12 }}>
           <Paragraph>{report.latestNews}</Paragraph>
         </Card>
       )}
@@ -259,7 +259,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
       {report.earningsExpectation && (
         <Card
           size="small"
-          title={t("stockAnalysis.dashboard.earningsExpectation", "业绩预期")}
+          title={t("stockAnalysis.dashboard.earningsExpectation")}
           style={{ marginTop: 12 }}
         >
           <Paragraph>{report.earningsExpectation}</Paragraph>

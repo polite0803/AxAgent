@@ -40,22 +40,36 @@ interface ValueReportData {
  * 1. 尝试解析 JSON，成功则按字段提取文本
  * 2. 解析失败则去掉 ```json 代码块标记，直接渲染剩余文本
  */
-function extractReadableText(report: string): string {
+function extractReadableText(report: string, t: (key: string) => string): string {
   // 先尝试解析 JSON
   const parsed = tryParseValueReport(report);
   if (parsed) {
     const parts: string[] = [];
-    if (parsed.buffett_verdict) { parts.push(`## 展望说明 / 巴菲特裁决\n\n${parsed.buffett_verdict}`); }
-    if (parsed.ideal_buy_price) { parts.push(`理想买入价: ${parsed.ideal_buy_price}`); }
-    if (parsed.business_model) { parts.push(`## 商业模式\n\n${parsed.business_model}`); }
-    if (parsed.moat_rating) {
-      parts.push(`## 护城河评估\n\n护城河: ${parsed.moat_rating}\n\n${parsed.moat_reasoning || ""}`);
+    if (parsed.buffett_verdict) {
+      parts.push(`## ${t("stockAnalysis.valueAssessment.outlookVerdict")}\n\n${parsed.buffett_verdict}`);
     }
-    if (parsed.financial_health) { parts.push(`## 财务健康\n\n${parsed.financial_health}`); }
-    if (parsed.intrinsic_value_range) { parts.push(`## 估值结论\n\n${parsed.intrinsic_value_range}`); }
+    if (parsed.ideal_buy_price) {
+      parts.push(`${t("stockAnalysis.valueAssessment.idealBuyPriceLabel")}: ${parsed.ideal_buy_price}`);
+    }
+    if (parsed.business_model) {
+      parts.push(`## ${t("stockAnalysis.valueAssessment.businessModel")}\n\n${parsed.business_model}`);
+    }
+    if (parsed.moat_rating) {
+      parts.push(
+        `## ${t("stockAnalysis.valueAssessment.moatAssessment")}\n\n${
+          t("stockAnalysis.valueAssessment.moatLabel")
+        }: ${parsed.moat_rating}\n\n${parsed.moat_reasoning || ""}`,
+      );
+    }
+    if (parsed.financial_health) {
+      parts.push(`## ${t("stockAnalysis.valueAssessment.financialHealth")}\n\n${parsed.financial_health}`);
+    }
+    if (parsed.intrinsic_value_range) {
+      parts.push(`## ${t("stockAnalysis.valueAssessment.valuationConclusion")}\n\n${parsed.intrinsic_value_range}`);
+    }
     if (parsed.margin_of_safety) { parts.push(parsed.margin_of_safety); }
     if (Array.isArray(parsed.risk_flags) && parsed.risk_flags.length > 0) {
-      parts.push(`## 风险标志\n\n${parsed.risk_flags.join("、")}`);
+      parts.push(`## ${t("stockAnalysis.valueAssessment.riskFlags")}\n\n${parsed.risk_flags.join("、")}`);
     }
     const knownFieldsText = parts.filter(Boolean).join("\n\n");
     // 已知字段有内容:直接返回
@@ -415,7 +429,7 @@ export function ValueAssessmentPanel() {
   const hasAny = hasValue || hasRuleCheck || hasDataQuality || hasRawData;
 
   const parsed = hasValue ? tryParseValueReport(valueReport) : null;
-  const readableText = hasValue ? extractReadableText(valueReport) : "";
+  const readableText = hasValue ? extractReadableText(valueReport, t) : "";
 
   // 暴露调试数据到 window，方便 Console 检查
   useEffect(() => {

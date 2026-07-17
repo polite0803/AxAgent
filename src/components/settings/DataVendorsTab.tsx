@@ -21,16 +21,16 @@ const VENDORS: VendorDef[] = [
   {
     key: "vendor_tencent",
     enName: "tencent",
-    name: "腾讯财经",
-    desc: "报价/K线",
+    name: "tencentFinance",
+    desc: "tencentDesc",
     capabilities: ["quote", "klines"],
     requiresKey: false,
   },
   {
     key: "vendor_eastmoney",
     enName: "eastmoney",
-    name: "东方财富",
-    desc: "综合数据",
+    name: "eastmoney",
+    desc: "eastmoneyDesc",
     capabilities: [
       "quote",
       "klines",
@@ -59,32 +59,32 @@ const VENDORS: VendorDef[] = [
   {
     key: "vendor_sina",
     enName: "sina",
-    name: "新浪财经",
-    desc: "报价/新闻",
+    name: "sina",
+    desc: "sinaDesc",
     capabilities: ["quote", "news"],
     requiresKey: false,
   },
   {
     key: "vendor_ths",
     enName: "ths",
-    name: "同花顺",
-    desc: "综合数据",
+    name: "ths",
+    desc: "thsDesc",
     capabilities: ["consensus_eps", "concept_blocks", "hot_stocks", "industry_ranking", "north_bound_flow"],
     requiresKey: false,
   },
   {
     key: "vendor_cninfo",
     enName: "cninfo",
-    name: "巨潮资讯",
-    desc: "信息披露",
+    name: "cninfo",
+    desc: "cninfoDesc",
     capabilities: ["announcements"],
     requiresKey: false,
   },
   {
     key: "vendor_baidu_stock",
     enName: "baidu_stock",
-    name: "百度股市通",
-    desc: "全维度",
+    name: "baiduStock",
+    desc: "baiduDesc",
     capabilities: [
       "quote",
       "klines",
@@ -110,45 +110,45 @@ const VENDORS: VendorDef[] = [
   {
     key: "vendor_iwencai",
     enName: "iwencai",
-    name: "问财",
-    desc: "选股/研报",
+    name: "iwencai",
+    desc: "iwencaiDesc",
     capabilities: ["search", "sector", "consensus_eps", "concept_blocks", "hot_stocks"],
     requiresKey: true,
     helpUrl: "https://www.iwencai.com/",
-    helpText: "注册登录后获取 API token",
+    helpText: "iwencai",
   },
   {
     key: "vendor_akshare",
     enName: "akshare",
-    name: "AKShare",
-    desc: "开源数据",
+    name: "akshareName",
+    desc: "akshareDesc",
     capabilities: ["financials", "news", "consensus_eps", "cls_flash"],
     requiresKey: false,
   },
   {
     key: "vendor_mootdx",
     enName: "mootdx",
-    name: "Mootdx",
-    desc: "通达信本地",
+    name: "mootdxName",
+    desc: "mootdxDesc",
     capabilities: ["quote", "klines"],
     requiresKey: false,
-    helpText: "需本地安装通达信客户端，启动后 Mootdx 自动通过 127.0.0.1:7709 连接行情服务",
+    helpText: "mootdx",
   },
   {
     key: "vendor_xueqiu",
     enName: "xueqiu",
-    name: "雪球",
-    desc: "新闻/财务",
+    name: "xueqiu",
+    desc: "xueqiuDesc",
     capabilities: ["news", "financials", "quote", "klines"],
     requiresKey: true,
     helpUrl: "https://xueqiu.com/",
-    helpText: "登录雪球后 F12 → Cookie 中取 xq_a_token",
+    helpText: "xueqiu",
   },
   {
     key: "vendor_neodata",
     enName: "neodata",
-    name: "NeoData",
-    desc: "美股/宏观/外汇",
+    name: "neodata",
+    desc: "neodataDesc",
     capabilities: [
       "quote",
       "financials",
@@ -161,7 +161,7 @@ const VENDORS: VendorDef[] = [
       "hot_stocks",
     ],
     requiresKey: true,
-    helpText: "点击「通过 WorkBuddy 连接」按钮，然后在 WorkBuddy 中输入「刷新 NeoData token」即可自动获取",
+    helpText: "neodata",
   },
 ];
 
@@ -175,43 +175,48 @@ interface ToolRoute {
 
 /** 固定 ToolNode（DAG 确定性执行）*/
 const FIXED_TOOLS: ToolRoute[] = [
-  { tool: "get_stock_kline", label: "K线", kind: "fixed", vendors: ["eastmoney", "tencent", "sina", "mootdx"] },
-  { tool: "get_hot_stocks", label: "热门股", kind: "fixed", vendors: ["ths", "baidu_stock", "iwencai"] },
-  { tool: "get_announcements", label: "公告", kind: "fixed", vendors: ["cninfo", "eastmoney"] },
-  { tool: "get_consensus_eps", label: "一致预期", kind: "fixed", vendors: ["ths", "akshare", "iwencai"] },
-  { tool: "get_stock_money_flow", label: "资金流向", kind: "fixed", vendors: ["eastmoney", "baidu_stock"] },
-  { tool: "get_industry_ranking", label: "行业排名", kind: "fixed", vendors: ["ths", "baidu_stock"] },
+  { tool: "get_stock_kline", label: "kline", kind: "fixed", vendors: ["eastmoney", "tencent", "sina", "mootdx"] },
+  { tool: "get_hot_stocks", label: "hotStocks", kind: "fixed", vendors: ["ths", "baidu_stock", "iwencai"] },
+  { tool: "get_announcements", label: "announcements", kind: "fixed", vendors: ["cninfo", "eastmoney"] },
+  { tool: "get_consensus_eps", label: "consensusEps", kind: "fixed", vendors: ["ths", "akshare", "iwencai"] },
+  { tool: "get_stock_money_flow", label: "moneyFlow", kind: "fixed", vendors: ["eastmoney", "baidu_stock"] },
+  { tool: "get_industry_ranking", label: "industryRanking", kind: "fixed", vendors: ["ths", "baidu_stock"] },
 ];
 
 /** LLM 暴露工具（Agent 自主调用，均走 VendorRouting 降级链）*/
 const EXPOSED_TOOLS: ToolRoute[] = [
-  { tool: "get_stock_quote", label: "实时行情", kind: "exposed", vendors: ["tencent", "mootdx", "eastmoney"] },
+  { tool: "get_stock_quote", label: "quote", kind: "exposed", vendors: ["tencent", "mootdx", "eastmoney"] },
   {
     tool: "get_stock_news",
-    label: "新闻",
+    label: "news",
     kind: "exposed",
     vendors: ["xueqiu", "sina", "eastmoney", "baidu_stock", "akshare"],
   },
   {
     tool: "get_stock_financials",
-    label: "财务",
+    label: "financials",
     kind: "exposed",
     vendors: ["eastmoney", "xueqiu", "baidu_stock", "akshare", "sina"],
   },
-  { tool: "search_stock", label: "搜索", kind: "exposed", vendors: ["eastmoney", "iwencai", "baidu_stock"] },
-  { tool: "get_research_reports", label: "研报", kind: "exposed", vendors: ["eastmoney", "baidu_stock"] },
-  { tool: "get_concept_blocks", label: "概念板块", kind: "exposed", vendors: ["ths", "baidu_stock", "iwencai"] },
-  { tool: "get_market_dragon_tiger", label: "龙虎榜", kind: "exposed", vendors: ["eastmoney", "baidu_stock"] },
-  { tool: "get_cls_flash", label: "快讯", kind: "exposed", vendors: ["eastmoney", "akshare"] },
-  { tool: "get_north_bound_flow", label: "北向资金", kind: "exposed", vendors: ["ths", "baidu_stock"] },
-  { tool: "get_block_trades", label: "大宗交易", kind: "exposed", vendors: ["eastmoney", "baidu_stock"] },
-  { tool: "get_institutional_visits", label: "机构调研", kind: "exposed", vendors: ["eastmoney"] },
-  { tool: "get_index_quotes", label: "大盘指数", kind: "exposed", vendors: ["eastmoney"] },
-  { tool: "get_stock_peers", label: "同行对比", kind: "exposed", vendors: ["eastmoney"] },
-  { tool: "get_stock_option_pcr", label: "期权PCR", kind: "exposed", vendors: ["eastmoney"] },
+  { tool: "search_stock", label: "search", kind: "exposed", vendors: ["eastmoney", "iwencai", "baidu_stock"] },
+  { tool: "get_research_reports", label: "researchReports", kind: "exposed", vendors: ["eastmoney", "baidu_stock"] },
+  { tool: "get_concept_blocks", label: "conceptBlocks", kind: "exposed", vendors: ["ths", "baidu_stock", "iwencai"] },
+  {
+    tool: "get_market_dragon_tiger",
+    label: "marketDragonTiger",
+    kind: "exposed",
+    vendors: ["eastmoney", "baidu_stock"],
+  },
+  { tool: "get_cls_flash", label: "clsFlash", kind: "exposed", vendors: ["eastmoney", "akshare"] },
+  { tool: "get_north_bound_flow", label: "northBoundFlow", kind: "exposed", vendors: ["ths", "baidu_stock"] },
+  { tool: "get_block_trades", label: "blockTrades", kind: "exposed", vendors: ["eastmoney", "baidu_stock"] },
+  { tool: "get_institutional_visits", label: "institutionalVisits", kind: "exposed", vendors: ["eastmoney"] },
+  { tool: "get_index_quotes", label: "indexQuotes", kind: "exposed", vendors: ["eastmoney"] },
+  { tool: "get_stock_peers", label: "peers", kind: "exposed", vendors: ["eastmoney"] },
+  { tool: "get_stock_option_pcr", label: "optionPcr", kind: "exposed", vendors: ["eastmoney"] },
   {
     tool: "get_stock_quote",
-    label: "实时行情",
+    label: "quote",
     kind: "exposed",
     vendors: ["tencent", "mootdx", "sina", "xueqiu", "eastmoney"],
   },
@@ -221,39 +226,39 @@ const ALL_TOOLS = [...FIXED_TOOLS, ...EXPOSED_TOOLS];
 
 /** 本地计算工具 */
 const LOCAL_TOOLS = [
-  { tool: "compute_scoring", label: "技术评分" },
-  { tool: "compute_valuation", label: "估值计算" },
-  { tool: "compute_portfolio_risk", label: "组合风险" },
+  { tool: "compute_scoring", label: "scoring" },
+  { tool: "compute_valuation", label: "valuation" },
+  { tool: "compute_portfolio_risk", label: "portfolioRisk" },
 ];
 
 const CAP_LABELS: Record<string, string> = {
-  quote: "行情",
-  klines: "K线",
-  financials: "财务",
-  news: "新闻",
-  money_flow: "资金流向",
-  dragon_tiger: "龙虎榜",
-  lockup: "解禁",
-  search: "搜索",
-  margin: "融资融券",
-  north_bound: "北向持仓",
-  sector: "行业板块",
-  shareholder_trades: "增减持",
-  dividend: "分红",
-  research_reports: "研报",
-  consensus_eps: "一致预期",
-  concept_blocks: "概念板块",
-  announcements: "公告",
-  market_dragon_tiger: "大盘龙虎",
-  hot_stocks: "热门股",
-  industry_ranking: "行业排名",
-  cls_flash: "快讯",
-  north_bound_flow: "北向资金",
-  block_trades: "大宗交易",
-  institutional_visits: "机构调研",
-  index_quotes: "大盘指数",
-  peers: "同行对比",
-  option_pcr: "期权PCR",
+  quote: "quote",
+  klines: "klines",
+  financials: "financials",
+  news: "news",
+  money_flow: "moneyFlow",
+  dragon_tiger: "dragonTiger",
+  lockup: "lockup",
+  search: "search",
+  margin: "margin",
+  north_bound: "northBound",
+  sector: "sector",
+  shareholder_trades: "shareholderTrades",
+  dividend: "dividend",
+  research_reports: "researchReports",
+  consensus_eps: "consensusEps",
+  concept_blocks: "conceptBlocks",
+  announcements: "announcements",
+  market_dragon_tiger: "marketDragonTiger",
+  hot_stocks: "hotStocks",
+  industry_ranking: "industryRanking",
+  cls_flash: "clsFlash",
+  north_bound_flow: "northBoundFlow",
+  block_trades: "blockTrades",
+  institutional_visits: "institutionalVisits",
+  index_quotes: "indexQuotes",
+  peers: "peers",
+  option_pcr: "optionPcr",
 };
 
 type HealthStatus = "ok" | "fail" | "pending" | "idle";
@@ -477,8 +482,8 @@ export function DataVendorsTab() {
                   checked={enabled}
                   onChange={(checked) => setVendorValues((prev) => ({ ...prev, [v.key]: checked }))}
                 />
-                <span className="font-medium text-sm">{v.name}</span>
-                <span className="text-xs text-gray-400">{v.desc}</span>
+                <span className="font-medium text-sm">{t("stockAnalysis.dataVendors." + v.name)}</span>
+                <span className="text-xs text-gray-400">{t("stockAnalysis.dataVendors." + v.desc)}</span>
                 <Tag
                   className="text-xs m-0"
                   color={status === "ok"
@@ -538,7 +543,7 @@ export function DataVendorsTab() {
                         message.info(t("stockAnalysis.settings.neodataRefreshHint"));
                       }}
                     >
-                      🔗 通过 WorkBuddy 连接
+                      {t("stockAnalysis.settings.neodataRefreshBtn")}
                     </Button>
                   </>
                 )}
@@ -552,7 +557,9 @@ export function DataVendorsTab() {
             <div className="mb-2">
               <Space wrap size={[2, 4]}>
                 {v.capabilities.map((cap) => (
-                  <Tag key={cap} color="blue" className="text-xs m-0">{CAP_LABELS[cap] ?? cap}</Tag>
+                  <Tag key={cap} color="blue" className="text-xs m-0">
+                    {t("stockAnalysis.capabilityLabels." + CAP_LABELS[cap]) ?? cap}
+                  </Tag>
                 ))}
               </Space>
             </div>
@@ -563,10 +570,14 @@ export function DataVendorsTab() {
                 <a href={v.helpUrl} target="_blank" rel="noopener noreferrer" className="underline">
                   {v.helpUrl}
                 </a>
-                {v.helpText && <span className="text-gray-400 ml-1">{v.helpText}</span>}
+                {v.helpText && (
+                  <span className="text-gray-400 ml-1">{t("stockAnalysis.dataVendorHelp." + v.helpText)}</span>
+                )}
               </div>
             )}
-            {v.helpText && !v.helpUrl && <div className="text-xs text-gray-400 mb-2">💡 {v.helpText}</div>}
+            {v.helpText && !v.helpUrl && (
+              <div className="text-xs text-gray-400 mb-2">💡 {t("stockAnalysis.dataVendorHelp." + v.helpText)}</div>
+            )}
             {/* 固定工具 (🔧) + LLM 暴露工具 (🤖) */}
             {deps.length > 0 && (
               <div className="border-t border-gray-100 pt-2 mt-1">
@@ -578,7 +589,7 @@ export function DataVendorsTab() {
                     {fixedDeps.map((tr) => (
                       <div key={tr.tool} className="flex items-center gap-1 text-xs py-0.5">
                         <Tag color="default" className="text-xs m-0">{tr.tool}</Tag>
-                        <span className="text-gray-400">{tr.label}</span>
+                        <span className="text-gray-400">{t("stockAnalysis.toolLabels." + tr.label)}</span>
                         <span className="text-gray-300">
                           {tr.vendors.map((vn, i) => (
                             <span key={vn}>
@@ -607,7 +618,7 @@ export function DataVendorsTab() {
                     {exposedDeps.map((tr) => (
                       <div key={tr.tool} className="flex items-center gap-1 text-xs py-0.5">
                         <Tag color="green" className="text-xs m-0">{tr.tool}</Tag>
-                        <span className="text-gray-400">{tr.label}</span>
+                        <span className="text-gray-400">{t("stockAnalysis.toolLabels." + tr.label)}</span>
                         <span className="text-gray-300">
                           {tr.vendors.map((vn, i) => (
                             <span key={vn}>

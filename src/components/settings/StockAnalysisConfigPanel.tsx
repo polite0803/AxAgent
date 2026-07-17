@@ -15,220 +15,220 @@ function getDefaultVariables(): Variable[] {
   const b = (name: string, val: unknown, desc: string, type: string) =>
     vars.push({ name, var_type: type, value: val, description: desc, is_secret: false });
   // 分析流程
-  b("analysis_depth", "standard", "分析深度: quick / standard / deep", "enum");
-  b("debate_rounds", 3, "多空辩论轮数 (1-10)", "number");
-  b("max_concurrent", 12, "并行分析的 Agent 数量上限 (1-32)", "number");
+  b("analysis_depth", "standard", "stockAnalysis.configDescriptions.analysisDepth", "enum");
+  b("debate_rounds", 3, "stockAnalysis.configDescriptions.debateRounds", "number");
+  b("max_concurrent", 12, "stockAnalysis.configDescriptions.maxConcurrent", "number");
   // 数据源参数
-  b("kline_period", "daily", "K线周期: daily / weekly / monthly", "enum");
-  b("kline_limit", 120, "K线数量 (60-500)", "number");
-  b("news_limit", 30, "新闻数量 (10-100)", "number");
+  b("kline_period", "daily", "stockAnalysis.configDescriptions.klinePeriod", "enum");
+  b("kline_limit", 120, "stockAnalysis.configDescriptions.klineLimit", "number");
+  b("news_limit", 30, "stockAnalysis.configDescriptions.newsLimit", "number");
   // Agent 节点 LLM 参数
-  b("agent_temperature", 0.3, "LLM 温度 (0-2)", "number");
-  b("agent_max_tokens", 4096, "LLM 最大输出 token 数", "number");
-  b("agent_timeout_secs", 300, "每个 Agent 节点执行超时秒数", "number");
-  b("agent_retry_max", 2, "每个 Agent 节点最大重试次数", "number");
+  b("agent_temperature", 0.3, "stockAnalysis.configDescriptions.agentTemperature", "number");
+  b("agent_max_tokens", 4096, "stockAnalysis.configDescriptions.agentMaxTokens", "number");
+  b("agent_timeout_secs", 300, "stockAnalysis.configDescriptions.agentTimeoutSecs", "number");
+  b("agent_retry_max", 2, "stockAnalysis.configDescriptions.agentRetryMax", "number");
   // Tool 节点参数
-  b("tool_timeout_secs", 30, "每个 Tool 节点执行超时秒数", "number");
-  b("tool_retry_max", 2, "每个 Tool 节点最大重试次数", "number");
+  b("tool_timeout_secs", 30, "stockAnalysis.configDescriptions.toolTimeoutSecs", "number");
+  b("tool_retry_max", 2, "stockAnalysis.configDescriptions.toolRetryMax", "number");
   // 评分权重
-  b("scoring_trend", 30, "趋势评分权重 (0-100)", "number");
-  b("scoring_deviation", 20, "偏离度评分权重 (0-100)", "number");
-  b("scoring_macd", 15, "MACD 评分权重 (0-100)", "number");
-  b("scoring_volume", 15, "量能评分权重 (0-100)", "number");
-  b("scoring_rsi", 10, "RSI 评分权重 (0-100)", "number");
-  b("scoring_support", 10, "支撑阻力评分权重 (0-100)", "number");
-  b("scoring_boll", 5, "布林带评分权重 (0-100)", "number");
+  b("scoring_trend", 30, "stockAnalysis.configDescriptions.scoringTrend", "number");
+  b("scoring_deviation", 20, "stockAnalysis.configDescriptions.scoringDeviation", "number");
+  b("scoring_macd", 15, "stockAnalysis.configDescriptions.scoringMacd", "number");
+  b("scoring_volume", 15, "stockAnalysis.configDescriptions.scoringVolume", "number");
+  b("scoring_rsi", 10, "stockAnalysis.configDescriptions.scoringRsi", "number");
+  b("scoring_support", 10, "stockAnalysis.configDescriptions.scoringSupport", "number");
+  b("scoring_boll", 5, "stockAnalysis.configDescriptions.scoringBoll", "number");
   // 规则阈值
-  b("rule_rsi_overbought", 80, "RSI 超买阈值 (50-100)", "number");
-  b("rule_rsi_oversold", 20, "RSI 超卖提醒阈值", "number");
-  b("rule_bias_limit_pct", 5, "乖离率追高阈值 (%)", "number");
-  b("rule_volume_signal_block", true, "放量下跌时禁止买入", "boolean");
-  b("rule_bear_low_score", 30, "空头+低分禁买阈值", "number");
-  b("rule_auto_stop_loss_pct", 5, "自动止损百分比 (%)", "number");
+  b("rule_rsi_overbought", 80, "stockAnalysis.configDescriptions.ruleRsiOverbought", "number");
+  b("rule_rsi_oversold", 20, "stockAnalysis.configDescriptions.ruleRsiOversold", "number");
+  b("rule_bias_limit_pct", 5, "stockAnalysis.configDescriptions.ruleBiasLimitPct", "number");
+  b("rule_volume_signal_block", true, "stockAnalysis.configDescriptions.ruleVolumeSignalBlock", "boolean");
+  b("rule_bear_low_score", 30, "stockAnalysis.configDescriptions.ruleBearLowScore", "number");
+  b("rule_auto_stop_loss_pct", 5, "stockAnalysis.configDescriptions.ruleAutoStopLossPct", "number");
   // 仓位限制
-  b("pos_max_single_pct", 20, "单股最大仓位 (%)", "number");
-  b("pos_max_total", 10, "最大持仓数量", "number");
-  b("pos_max_sector_pct", 40, "单一行业最大暴露 (%)", "number");
-  b("pos_min_cash_pct", 5, "最低现金比例 (%)，低于则禁新开仓", "number");
-  b("pos_max_turnover_pct", 100, "单期最大换手率 (%)，超过则分批调仓", "number");
+  b("pos_max_single_pct", 20, "stockAnalysis.configDescriptions.posMaxSinglePct", "number");
+  b("pos_max_total", 10, "stockAnalysis.configDescriptions.posMaxTotal", "number");
+  b("pos_max_sector_pct", 40, "stockAnalysis.configDescriptions.posMaxSectorPct", "number");
+  b("pos_min_cash_pct", 5, "stockAnalysis.configDescriptions.posMinCashPct", "number");
+  b("pos_max_turnover_pct", 100, "stockAnalysis.configDescriptions.posMaxTurnoverPct", "number");
   // 估值参数
-  b("value_dcf_growth_rate", 8, "DCF 增长率 (%)", "number");
-  b("value_dcf_perpetual_rate", 3, "DCF 永续增长率 (%)", "number");
-  b("value_dcf_discount_rate", 10, "DCF 折现率 (%)", "number");
-  b("value_moat_threshold", 60, "宽护城河阈值 (30-90)", "number");
-  b("value_fscore_buy", 7, "F-Score 买入阈值 (3-9)", "number");
-  b("value_safety_margin", 20, "最低安全边际 (%)", "number");
+  b("value_dcf_growth_rate", 8, "stockAnalysis.configDescriptions.valueDcfGrowthRate", "number");
+  b("value_dcf_perpetual_rate", 3, "stockAnalysis.configDescriptions.valueDcfPerpetualRate", "number");
+  b("value_dcf_discount_rate", 10, "stockAnalysis.configDescriptions.valueDcfDiscountRate", "number");
+  b("value_moat_threshold", 60, "stockAnalysis.configDescriptions.valueMoatThreshold", "number");
+  b("value_fscore_buy", 7, "stockAnalysis.configDescriptions.valueFscoreBuy", "number");
+  b("value_safety_margin", 20, "stockAnalysis.configDescriptions.valueSafetyMargin", "number");
   // 护城河量化（value.rs:320）
-  b("moat_roe_years_min", 3, "ROE>15% 最少连续年数 (0-10)", "number");
-  b("moat_avg_gross_margin_min", 20, "平均毛利率下限 (%)", "number");
-  b("moat_margin_stable_std_max", 5, "毛利率稳定性标准差上限 (σ，%)", "number");
-  b("moat_fcf_ratio_min", 0.5, "FCF/净利润 比率下限 (0-1)", "number");
+  b("moat_roe_years_min", 3, "stockAnalysis.configDescriptions.moatRoeYearsMin", "number");
+  b("moat_avg_gross_margin_min", 20, "stockAnalysis.configDescriptions.moatAvgGrossMarginMin", "number");
+  b("moat_margin_stable_std_max", 5, "stockAnalysis.configDescriptions.moatMarginStableStdMax", "number");
+  b("moat_fcf_ratio_min", 0.5, "stockAnalysis.configDescriptions.moatFcfRatioMin", "number");
   // 监控
-  b("monitor_poll_interval_secs", 30, "监控轮询间隔 (秒)", "number");
-  b("monitor_change_pct", 5, "涨跌幅异常阈值 (%)", "number");
-  b("monitor_turnover", 10, "换手率异常阈值 (%)", "number");
-  b("monitor_alert_cooldown_secs", 300, "同一标的告警冷却时间 (秒，10-3600)", "number");
-  b("monitor_min_severity", "info", "最低推送告警等级: info / warn / critical", "enum");
-  b("monitor_channels", "in_app", "推送渠道，逗号分隔: in_app / lark / email / webhook", "string");
-  b("dual_view_disagreement_threshold", 40, "双视角分歧阈值 (0-100)，低于此值标记为需人工复核", "number");
+  b("monitor_poll_interval_secs", 30, "stockAnalysis.configDescriptions.monitorPollIntervalSecs", "number");
+  b("monitor_change_pct", 5, "stockAnalysis.configDescriptions.monitorChangePct", "number");
+  b("monitor_turnover", 10, "stockAnalysis.configDescriptions.monitorTurnover", "number");
+  b("monitor_alert_cooldown_secs", 300, "stockAnalysis.configDescriptions.monitorAlertCooldownSecs", "number");
+  b("monitor_min_severity", "info", "stockAnalysis.configDescriptions.monitorMinSeverity", "enum");
+  b("monitor_channels", "in_app", "stockAnalysis.configDescriptions.monitorChannels", "string");
+  b("dual_view_disagreement_threshold", 40, "stockAnalysis.configDescriptions.dualViewDisagreementThreshold", "number");
   // 风险/置信度
-  b("min_confidence", 60, "最低置信度 (0-100)", "number");
-  b("var_confidence", 0.95, "VaR 置信度 (0-1)", "number");
-  b("kelly_fraction", 0.5, "凯利公式下注比例", "number");
-  b("kelly_min_win_rate", 0.4, "凯利最低胜率要求 (0-1)，低于此值返回不适用", "number");
-  b("kelly_min_odds", 1.0, "凯利最低赔率要求 (avg_win/avg_loss)", "number");
-  b("risk_free_rate", 0.03, "无风险利率 (小数)", "number");
+  b("min_confidence", 60, "stockAnalysis.configDescriptions.minConfidence", "number");
+  b("var_confidence", 0.95, "stockAnalysis.configDescriptions.varConfidence", "number");
+  b("kelly_fraction", 0.5, "stockAnalysis.configDescriptions.kellyFraction", "number");
+  b("kelly_min_win_rate", 0.4, "stockAnalysis.configDescriptions.kellyMinWinRate", "number");
+  b("kelly_min_odds", 1.0, "stockAnalysis.configDescriptions.kellyMinOdds", "number");
+  b("risk_free_rate", 0.03, "stockAnalysis.configDescriptions.riskFreeRate", "number");
   // portfolio-mgr 决策阈值（修复 D7/D8: 与 portfolio-mgr.rhai 顶部可配置参数一一对应）
-  b("action_buy_threshold", 0.63, "买入决策阈值 (0-1)，effective_posterior 高于此值且仓位达标则买入", "number");
-  b("action_increase_threshold", 0.53, "增持决策阈值 (0-1)，effective_posterior 高于此值且仓位达标则增持", "number");
-  b("action_hold_threshold", 0.48, "持有决策阈值 (0-1)，effective_posterior 高于此值则持有", "number");
-  b("action_watch_threshold", 0.38, "观望决策阈值 (0-1)，effective_posterior 高于此值则观望", "number");
-  b("action_reduce_threshold", 0.30, "减持决策阈值 (0-1)，effective_posterior 高于此值则减持", "number");
-  b("pos_buy_min", 15.0, "买入最低仓位 (%)，低于此仓位即使 posterior 达标也不触发买入", "number");
-  b("pos_increase_min", 10.0, "增持最低仓位 (%)", "number");
-  b("pos_cap_extreme", 10.0, "极高风险仓位上限 (%)", "number");
-  b("pos_cap_high", 35.0, "高风险仓位上限 (%)", "number");
-  b("pos_cap_mid", 50.0, "中风险仓位上限 (%)", "number");
-  b("risk_debt_extreme", 85.0, "极高风险负债率阈值 (%)，负债率超过此值且营收负增长则标记极高风险", "number");
-  b("risk_vol_extreme", 60.0, "极高风险波动率阈值 (%)，波动率超过此值且夏普极差则标记极高风险", "number");
-  b("risk_sharpe_extreme", -1.5, "极高风险夏普比率阈值，低于此值且波动率极端则标记极高风险", "number");
-  b("risk_vol_high", 40.0, "高风险波动率阈值 (%)", "number");
-  b("risk_dd_high", 45.0, "高风险回撤阈值 (%)", "number");
-  b("risk_roe_high", 5.0, "高风险 ROE 阈值 (%)，低于此值且波动率高则标记高风险", "number");
-  b("risk_debt_high", 65.0, "高风险负债率阈值 (%)", "number");
-  b("risk_vol_low", 25.0, "低风险波动率阈值 (%)，低于此值且基本面健康则标记低风险", "number");
-  b("risk_sharpe_low", 0.5, "低风险夏普阈值，高于此值且基本面健康则标记低风险", "number");
-  b("risk_dd_low", 30.0, "低风险回撤阈值 (%)", "number");
-  b("risk_roe_low", 8.0, "低风险 ROE 阈值 (%)", "number");
-  b("risk_debt_low", 55.0, "低风险负债率阈值 (%)", "number");
-  b("risk_growth_low", 3.0, "低风险营收增长阈值 (%)", "number");
-  b("outlier_method", "zscore", "异常值处理方法: zscore / iqr", "enum");
-  b("outlier_threshold", 2.0, "异常值 Z-Score 阈值", "number");
-  b("risk_max_drawdown_limit", 15, "组合最大回撤熔断线 (%)，超过则暂停新开仓", "number");
-  b("risk_max_daily_loss_pct", 3, "单日最大亏损 (%)，超过则停手", "number");
-  b("risk_correlation_lookback_days", 60, "风险平价/相关性矩阵的回看窗口 (交易日)", "number");
+  b("action_buy_threshold", 0.63, "stockAnalysis.configDescriptions.actionBuyThreshold", "number");
+  b("action_increase_threshold", 0.53, "stockAnalysis.configDescriptions.actionIncreaseThreshold", "number");
+  b("action_hold_threshold", 0.48, "stockAnalysis.configDescriptions.actionHoldThreshold", "number");
+  b("action_watch_threshold", 0.38, "stockAnalysis.configDescriptions.actionWatchThreshold", "number");
+  b("action_reduce_threshold", 0.30, "stockAnalysis.configDescriptions.actionReduceThreshold", "number");
+  b("pos_buy_min", 15.0, "stockAnalysis.configDescriptions.posBuyMin", "number");
+  b("pos_increase_min", 10.0, "stockAnalysis.configDescriptions.posIncreaseMin", "number");
+  b("pos_cap_extreme", 10.0, "stockAnalysis.configDescriptions.posCapExtreme", "number");
+  b("pos_cap_high", 35.0, "stockAnalysis.configDescriptions.posCapHigh", "number");
+  b("pos_cap_mid", 50.0, "stockAnalysis.configDescriptions.posCapMid", "number");
+  b("risk_debt_extreme", 85.0, "stockAnalysis.configDescriptions.riskDebtExtreme", "number");
+  b("risk_vol_extreme", 60.0, "stockAnalysis.configDescriptions.riskVolExtreme", "number");
+  b("risk_sharpe_extreme", -1.5, "stockAnalysis.configDescriptions.riskSharpeExtreme", "number");
+  b("risk_vol_high", 40.0, "stockAnalysis.configDescriptions.riskVolHigh", "number");
+  b("risk_dd_high", 45.0, "stockAnalysis.configDescriptions.riskDdHigh", "number");
+  b("risk_roe_high", 5.0, "stockAnalysis.configDescriptions.riskRoeHigh", "number");
+  b("risk_debt_high", 65.0, "stockAnalysis.configDescriptions.riskDebtHigh", "number");
+  b("risk_vol_low", 25.0, "stockAnalysis.configDescriptions.riskVolLow", "number");
+  b("risk_sharpe_low", 0.5, "stockAnalysis.configDescriptions.riskSharpeLow", "number");
+  b("risk_dd_low", 30.0, "stockAnalysis.configDescriptions.riskDdLow", "number");
+  b("risk_roe_low", 8.0, "stockAnalysis.configDescriptions.riskRoeLow", "number");
+  b("risk_debt_low", 55.0, "stockAnalysis.configDescriptions.riskDebtLow", "number");
+  b("risk_growth_low", 3.0, "stockAnalysis.configDescriptions.riskGrowthLow", "number");
+  b("outlier_method", "zscore", "stockAnalysis.configDescriptions.outlierMethod", "enum");
+  b("outlier_threshold", 2.0, "stockAnalysis.configDescriptions.outlierThreshold", "number");
+  b("risk_max_drawdown_limit", 15, "stockAnalysis.configDescriptions.riskMaxDrawdownLimit", "number");
+  b("risk_max_daily_loss_pct", 3, "stockAnalysis.configDescriptions.riskMaxDailyLossPct", "number");
+  b("risk_correlation_lookback_days", 60, "stockAnalysis.configDescriptions.riskCorrelationLookbackDays", "number");
   // 选股筛选（screener.rs:8 ScreenCriteria）
-  b("screener_min_change_pct", -30, "选股最小涨跌幅下限 (%)", "number");
-  b("screener_max_change_pct", 30, "选股最大涨跌幅上限 (%)", "number");
-  b("screener_main_inflow_min", 0, "主力净流入下限 (万元)，0=不限", "number");
-  b("screener_northbound_ratio_min", 0, "北向持仓占比下限 (%)，0=不限", "number");
-  b("screener_turnover_rate_min", 0, "换手率下限 (%)，0=不限", "number");
-  b("screener_rsi_oversold", false, "选股时要求 RSI 超卖 (<30)", "boolean");
-  b("screener_rsi_overbought", false, "选股时要求 RSI 超买 (>70)", "boolean");
+  b("screener_min_change_pct", -30, "stockAnalysis.configDescriptions.screenerMinChangePct", "number");
+  b("screener_max_change_pct", 30, "stockAnalysis.configDescriptions.screenerMaxChangePct", "number");
+  b("screener_main_inflow_min", 0, "stockAnalysis.configDescriptions.screenerMainInflowMin", "number");
+  b("screener_northbound_ratio_min", 0, "stockAnalysis.configDescriptions.screenerNorthboundRatioMin", "number");
+  b("screener_turnover_rate_min", 0, "stockAnalysis.configDescriptions.screenerTurnoverRateMin", "number");
+  b("screener_rsi_oversold", false, "stockAnalysis.configDescriptions.screenerRsiOversold", "boolean");
+  b("screener_rsi_overbought", false, "stockAnalysis.configDescriptions.screenerRsiOverbought", "boolean");
   // 行业财务基线参考股票代码（stock_analysis_setup 中 t-baseline-* 节点使用）
-  b("ref_semi_code", "002371", "半导体基线参考代码（北方华创）", "string");
-  b("ref_battery_code", "300750", "电池基线参考代码（宁德时代）", "string");
-  b("ref_chem_code", "600309", "化工基线参考代码（万华化学）", "string");
-  b("ref_med_code", "688981", "医药基线参考代码（中芯国际）", "string");
-  b("ref_aero_code", "600760", "军工基线参考代码（中航沈飞）", "string");
-  b("ref_consumer_elec_code", "002475", "消费电子基线参考代码（立讯精密）", "string");
-  b("ref_auto_code", "600104", "汽车基线参考代码（上汽集团）", "string");
+  b("ref_semi_code", "002371", "stockAnalysis.configDescriptions.refSemiCode", "string");
+  b("ref_battery_code", "300750", "stockAnalysis.configDescriptions.refBatteryCode", "string");
+  b("ref_chem_code", "600309", "stockAnalysis.configDescriptions.refChemCode", "string");
+  b("ref_med_code", "688981", "stockAnalysis.configDescriptions.refMedCode", "string");
+  b("ref_aero_code", "600760", "stockAnalysis.configDescriptions.refAeroCode", "string");
+  b("ref_consumer_elec_code", "002475", "stockAnalysis.configDescriptions.refConsumerElecCode", "string");
+  b("ref_auto_code", "600104", "stockAnalysis.configDescriptions.refAutoCode", "string");
   // 信号检测（signals.rs detect_ma_cross / detect_breakout）
-  b("signal_ma_fast", 5, "MA 金叉检测快线周期 (3-30)", "number");
-  b("signal_ma_slow", 20, "MA 金叉检测慢线周期 (10-120)", "number");
-  b("signal_breakout_volume_mult", 1.5, "突破/破位放量倍数阈值 (1.0-3.0)", "number");
+  b("signal_ma_fast", 5, "stockAnalysis.configDescriptions.signalMaFast", "number");
+  b("signal_ma_slow", 20, "stockAnalysis.configDescriptions.signalMaSlow", "number");
+  b("signal_breakout_volume_mult", 1.5, "stockAnalysis.configDescriptions.signalBreakoutVolumeMult", "number");
   // 关键价位（key_levels.rs KeyLevelTracker）
-  b("keylevel_lookback_days", 60, "关键价位回看窗口 (交易日，10-250)", "number");
-  b("keylevel_touch_tolerance_pct", 1.0, "关键价位触碰容差 (%，0.1-5.0)", "number");
-  b("keylevel_min_touches", 2, "确认支撑/阻力最少触碰次数 (1-10)", "number");
+  b("keylevel_lookback_days", 60, "stockAnalysis.configDescriptions.keylevelLookbackDays", "number");
+  b("keylevel_touch_tolerance_pct", 1.0, "stockAnalysis.configDescriptions.keylevelTouchTolerancePct", "number");
+  b("keylevel_min_touches", 2, "stockAnalysis.configDescriptions.keylevelMinTouches", "number");
   // 推荐器策略开关（recommender/strategies）
-  b("reco_trend_enabled", true, "启用趋势跟踪子策略", "boolean");
-  b("reco_reversion_enabled", true, "启用超跌反弹子策略", "boolean");
-  b("reco_value_enabled", true, "启用价值选股子策略", "boolean");
-  b("reco_capital_enabled", true, "启用资金流向子策略", "boolean");
-  b("reco_watchlist_enabled", true, "启用自选股策略", "boolean");
-  b("reco_min_confidence", 60, "推荐器最低置信度 (0-100)，低于此值不入选", "number");
+  b("reco_trend_enabled", true, "stockAnalysis.configDescriptions.recoTrendEnabled", "boolean");
+  b("reco_reversion_enabled", true, "stockAnalysis.configDescriptions.recoReversionEnabled", "boolean");
+  b("reco_value_enabled", true, "stockAnalysis.configDescriptions.recoValueEnabled", "boolean");
+  b("reco_capital_enabled", true, "stockAnalysis.configDescriptions.recoCapitalEnabled", "boolean");
+  b("reco_watchlist_enabled", true, "stockAnalysis.configDescriptions.recoWatchlistEnabled", "boolean");
+  b("reco_min_confidence", 60, "stockAnalysis.configDescriptions.recoMinConfidence", "number");
   // 决策回溯（decision_tracker.rs）
-  b("decision_max_history_per_stock", 50, "每只股票保留的历史决策条数 (10-200)", "number");
+  b("decision_max_history_per_stock", 50, "stockAnalysis.configDescriptions.decisionMaxHistoryPerStock", "number");
   // 技术指标周期（indicators.rs IndicatorConfig）
-  b("macd_fast", 12, "MACD 快线周期 (5-30)", "number");
-  b("macd_slow", 26, "MACD 慢线周期 (10-60)", "number");
-  b("macd_signal", 9, "MACD 信号线周期 (3-20)", "number");
-  b("boll_period", 20, "布林带周期 (10-50)", "number");
-  b("boll_stddev", 2.0, "布林带标准差倍数 (1.0-3.0)", "number");
-  b("volume_lookback", 5, "均量计算回看周期 (3-30，交易日)", "number");
-  b("volume_surge_ratio", 1.5, "放量阈值（量比 > 此值）", "number");
-  b("volume_shrink_ratio", 0.7, "缩量阈值（量比 < 此值）", "number");
+  b("macd_fast", 12, "stockAnalysis.configDescriptions.macdFast", "number");
+  b("macd_slow", 26, "stockAnalysis.configDescriptions.macdSlow", "number");
+  b("macd_signal", 9, "stockAnalysis.configDescriptions.macdSignal", "number");
+  b("boll_period", 20, "stockAnalysis.configDescriptions.bollPeriod", "number");
+  b("boll_stddev", 2.0, "stockAnalysis.configDescriptions.bollStddev", "number");
+  b("volume_lookback", 5, "stockAnalysis.configDescriptions.volumeLookback", "number");
+  b("volume_surge_ratio", 1.5, "stockAnalysis.configDescriptions.volumeSurgeRatio", "number");
+  b("volume_shrink_ratio", 0.7, "stockAnalysis.configDescriptions.volumeShrinkRatio", "number");
   // 推荐器参数（recommender/strategies）
-  b("trend_kline_limit", 250, "趋势策略 K 线上限", "number");
-  b("trend_amount_ratio_min", 0.8, "趋势策略最低量比", "number");
-  b("rev_rsi_short_max", 35, "超跌反弹短线 RSI 上限", "number");
-  b("rev_drawdown_min_pct", 20, "超跌反弹中线最低回撤 (%)", "number");
-  b("rev_rsi_monthly_max", 50, "超跌反弹月线 RSI 上限", "number");
-  b("val_pe_short_max", 50, "价值策略短线 PE 上限", "number");
-  b("val_pe_mid_max", 40, "价值策略中线 PE 上限", "number");
-  b("val_pb_mid_max", 8, "价值策略中线 PB 上限", "number");
-  b("cap_inflow_short_min", 200, "资金策略短线主力净流入下限 (万元)", "number");
-  b("cap_inflow_mid_min", 500, "资金策略中线主力净流入下限 (万元)", "number");
-  b("cap_turnover_min", 2, "资金策略最低换手率 (%)", "number");
-  b("cap_nb_ratio_min", 0.3, "资金策略北向持仓占比下限 (%)", "number");
+  b("trend_kline_limit", 250, "stockAnalysis.configDescriptions.trendKlineLimit", "number");
+  b("trend_amount_ratio_min", 0.8, "stockAnalysis.configDescriptions.trendAmountRatioMin", "number");
+  b("rev_rsi_short_max", 35, "stockAnalysis.configDescriptions.revRsiShortMax", "number");
+  b("rev_drawdown_min_pct", 20, "stockAnalysis.configDescriptions.revDrawdownMinPct", "number");
+  b("rev_rsi_monthly_max", 50, "stockAnalysis.configDescriptions.revRsiMonthlyMax", "number");
+  b("val_pe_short_max", 50, "stockAnalysis.configDescriptions.valPeShortMax", "number");
+  b("val_pe_mid_max", 40, "stockAnalysis.configDescriptions.valPeMidMax", "number");
+  b("val_pb_mid_max", 8, "stockAnalysis.configDescriptions.valPbMidMax", "number");
+  b("cap_inflow_short_min", 200, "stockAnalysis.configDescriptions.capInflowShortMin", "number");
+  b("cap_inflow_mid_min", 500, "stockAnalysis.configDescriptions.capInflowMidMin", "number");
+  b("cap_turnover_min", 2, "stockAnalysis.configDescriptions.capTurnoverMin", "number");
+  b("cap_nb_ratio_min", 0.3, "stockAnalysis.configDescriptions.capNbRatioMin", "number");
   // 交易决策（trading.rs）
-  b("trading_price_deviation_limit", 5, "交易价偏离目标价容忍度 (%)", "number");
+  b("trading_price_deviation_limit", 5, "stockAnalysis.configDescriptions.tradingPriceDeviationLimit", "number");
   // 风险模型扩展（risk.rs）
-  b("risk_sharpe_annualization", 252, "夏普年化因子（252=日频，12=月频）", "number");
-  b("risk_kelly_heavy_threshold", 0.25, "凯利重仓阈值", "number");
-  b("risk_kelly_medium_threshold", 0.1, "凯利中仓阈值", "number");
+  b("risk_sharpe_annualization", 252, "stockAnalysis.configDescriptions.riskSharpeAnnualization", "number");
+  b("risk_kelly_heavy_threshold", 0.25, "stockAnalysis.configDescriptions.riskKellyHeavyThreshold", "number");
+  b("risk_kelly_medium_threshold", 0.1, "stockAnalysis.configDescriptions.riskKellyMediumThreshold", "number");
   // 风险组合（compute_portfolio_risk / compute_scoring / compute_valuation）
-  b("fscore_roe_min", 0.10, "F-Score ROE 最低要求 (小数)", "number");
-  b("fscore_gross_margin_min", 0.30, "F-Score 毛利率最低要求 (小数)", "number");
-  b("fscore_net_margin_min", 0.10, "F-Score 净利率最低要求 (小数)", "number");
-  b("fscore_debt_max", 0.60, "F-Score 负债率上限 (小数)", "number");
-  b("fscore_pe_max", 20, "F-Score PE 上限", "number");
-  b("val_pe_low", 15, "基本面修正 PE 低估阈值", "number");
-  b("val_pe_high", 50, "基本面修正 PE 高估阈值", "number");
-  b("val_pb_low", 1.0, "基本面修正 PB 低估阈值", "number");
-  b("val_pb_high", 6.0, "基本面修正 PB 高估阈值", "number");
-  b("risk_hhi_concentrated", 0.25, "组合 HHI 高度集中阈值 (0-1)", "number");
-  b("risk_hhi_medium", 0.15, "组合 HHI 中度集中阈值 (0-1)", "number");
-  b("risk_divers_high", 8, "组合有效股票数充分分散阈值", "number");
-  b("risk_divers_medium", 4, "组合有效股票数适度分散阈值", "number");
+  b("fscore_roe_min", 0.10, "stockAnalysis.configDescriptions.fscoreRoeMin", "number");
+  b("fscore_gross_margin_min", 0.30, "stockAnalysis.configDescriptions.fscoreGrossMarginMin", "number");
+  b("fscore_net_margin_min", 0.10, "stockAnalysis.configDescriptions.fscoreNetMarginMin", "number");
+  b("fscore_debt_max", 0.60, "stockAnalysis.configDescriptions.fscoreDebtMax", "number");
+  b("fscore_pe_max", 20, "stockAnalysis.configDescriptions.fscorePeMax", "number");
+  b("val_pe_low", 15, "stockAnalysis.configDescriptions.valPeLow", "number");
+  b("val_pe_high", 50, "stockAnalysis.configDescriptions.valPeHigh", "number");
+  b("val_pb_low", 1.0, "stockAnalysis.configDescriptions.valPbLow", "number");
+  b("val_pb_high", 6.0, "stockAnalysis.configDescriptions.valPbHigh", "number");
+  b("risk_hhi_concentrated", 0.25, "stockAnalysis.configDescriptions.riskHhiConcentrated", "number");
+  b("risk_hhi_medium", 0.15, "stockAnalysis.configDescriptions.riskHhiMedium", "number");
+  b("risk_divers_high", 8, "stockAnalysis.configDescriptions.riskDiversHigh", "number");
+  b("risk_divers_medium", 4, "stockAnalysis.configDescriptions.riskDiversMedium", "number");
   // 凯利公式默认值
-  b("kelly_default_win_rate", 0.5, "凯利公式默认胜率", "number");
-  b("kelly_default_avg_win", 0.05, "凯利公式默认平均盈利", "number");
-  b("kelly_default_avg_loss", 0.05, "凯利公式默认平均亏损", "number");
+  b("kelly_default_win_rate", 0.5, "stockAnalysis.configDescriptions.kellyDefaultWinRate", "number");
+  b("kelly_default_avg_win", 0.05, "stockAnalysis.configDescriptions.kellyDefaultAvgWin", "number");
+  b("kelly_default_avg_loss", 0.05, "stockAnalysis.configDescriptions.kellyDefaultAvgLoss", "number");
   // 技术指标周期
-  b("atr_period", 14, "ATR 平均真实波幅周期", "number");
-  b("kdj_n", 9, "KDJ 随机指标 N 周期", "number");
+  b("atr_period", 14, "stockAnalysis.configDescriptions.atrPeriod", "number");
+  b("kdj_n", 9, "stockAnalysis.configDescriptions.kdjN", "number");
   // 数据清洗
-  b("fill_missing_method", "forward", "缺失值填充方法: forward / linear", "enum");
+  b("fill_missing_method", "forward", "stockAnalysis.configDescriptions.fillMissingMethod", "enum");
   // 突破检测
-  b("breakout_volume_threshold", 1.5, "支撑阻力突破的成交量确认阈值", "number");
+  b("breakout_volume_threshold", 1.5, "stockAnalysis.configDescriptions.breakoutVolumeThreshold", "number");
   // 业绩超预期分级阈值
-  b("earnings_th_huge_pos", 50, "业绩超预期: 大幅超预期下界 (%)", "number");
-  b("earnings_th_strong_pos", 20, "业绩超预期: 强超预期下界 (%)", "number");
-  b("earnings_th_mild_pos", 5, "业绩超预期: 略超预期下界 (%)", "number");
-  b("earnings_th_mild_neg", -5, "业绩超预期: 略低于预期下界 (%)", "number");
-  b("earnings_th_strong_neg", -20, "业绩超预期: 强低于预期下界 (%)", "number");
-  b("earnings_th_huge_neg", -50, "业绩超预期: 大幅低于预期下界 (%)", "number");
+  b("earnings_th_huge_pos", 50, "stockAnalysis.configDescriptions.earningsThHugePos", "number");
+  b("earnings_th_strong_pos", 20, "stockAnalysis.configDescriptions.earningsThStrongPos", "number");
+  b("earnings_th_mild_pos", 5, "stockAnalysis.configDescriptions.earningsThMildPos", "number");
+  b("earnings_th_mild_neg", -5, "stockAnalysis.configDescriptions.earningsThMildNeg", "number");
+  b("earnings_th_strong_neg", -20, "stockAnalysis.configDescriptions.earningsThStrongNeg", "number");
+  b("earnings_th_huge_neg", -50, "stockAnalysis.configDescriptions.earningsThHugeNeg", "number");
   // 质押风险分级阈值
-  b("pledge_warning_line", 50, "大股东质押比例预警线 (%)", "number");
-  b("pledge_liquidation_line", 70, "大股东质押比例平仓线 (%)", "number");
-  b("pledge_medium_line", 30, "大股东质押中风险阈值 (%)", "number");
-  b("pledge_low_line", 10, "大股东质押低风险阈值 (%)", "number");
+  b("pledge_warning_line", 50, "stockAnalysis.configDescriptions.pledgeWarningLine", "number");
+  b("pledge_liquidation_line", 70, "stockAnalysis.configDescriptions.pledgeLiquidationLine", "number");
+  b("pledge_medium_line", 30, "stockAnalysis.configDescriptions.pledgeMediumLine", "number");
+  b("pledge_low_line", 10, "stockAnalysis.configDescriptions.pledgeLowLine", "number");
   // 蒙特卡洛模拟默认参数
-  b("mc_default_price", 10, "蒙特卡洛模拟默认价格", "number");
-  b("mc_default_return", 0.08, "蒙特卡洛模拟默认年化收益 (小数)", "number");
-  b("mc_default_volatility", 0.3, "蒙特卡洛模拟默认年化波动率 (小数)", "number");
-  b("mc_default_days", 30, "蒙特卡洛模拟默认天数", "number");
-  b("mc_default_simulations", 1000, "蒙特卡洛模拟默认路径数", "number");
+  b("mc_default_price", 10, "stockAnalysis.configDescriptions.mcDefaultPrice", "number");
+  b("mc_default_return", 0.08, "stockAnalysis.configDescriptions.mcDefaultReturn", "number");
+  b("mc_default_volatility", 0.3, "stockAnalysis.configDescriptions.mcDefaultVolatility", "number");
+  b("mc_default_days", 30, "stockAnalysis.configDescriptions.mcDefaultDays", "number");
+  b("mc_default_simulations", 1000, "stockAnalysis.configDescriptions.mcDefaultSimulations", "number");
   // 行业内估值/增长对比阈值
-  b("industry_pe_cheap", 1.0, "行业内 PE 相对低估阈值", "number");
-  b("industry_pe_expensive", 1.5, "行业内 PE 相对高估阈值", "number");
-  b("industry_growth_high", 1.2, "行业内高增长阈值", "number");
+  b("industry_pe_cheap", 1.0, "stockAnalysis.configDescriptions.industryPeCheap", "number");
+  b("industry_pe_expensive", 1.5, "stockAnalysis.configDescriptions.industryPeExpensive", "number");
+  b("industry_growth_high", 1.2, "stockAnalysis.configDescriptions.industryGrowthHigh", "number");
   // 涨停潜力评分
-  b("limit_pct_main", 10, "主板涨停幅度 (%)", "number");
-  b("limit_pct_star", 20, "创业板/科创板涨停幅度 (%)", "number");
-  b("limit_pct_bj", 30, "北交所涨停幅度 (%)", "number");
-  b("limit_up_w_trend", 40, "涨停潜力评分 - 趋势权重", "number");
-  b("limit_up_w_volume", 20, "涨停潜力评分 - 量能权重", "number");
-  b("limit_up_w_hits", 15, "涨停潜力评分 - 历史涨停权重", "number");
-  b("limit_up_th_high", 60, "涨停潜力 - 高潜力阈值", "number");
-  b("limit_up_th_med", 30, "涨停潜力 - 中潜力阈值", "number");
-  b("limit_up_th_low", 10, "涨停潜力 - 低潜力阈值", "number");
+  b("limit_pct_main", 10, "stockAnalysis.configDescriptions.limitPctMain", "number");
+  b("limit_pct_star", 20, "stockAnalysis.configDescriptions.limitPctStar", "number");
+  b("limit_pct_bj", 30, "stockAnalysis.configDescriptions.limitPctBj", "number");
+  b("limit_up_w_trend", 40, "stockAnalysis.configDescriptions.limitUpWTrend", "number");
+  b("limit_up_w_volume", 20, "stockAnalysis.configDescriptions.limitUpWVolume", "number");
+  b("limit_up_w_hits", 15, "stockAnalysis.configDescriptions.limitUpWHits", "number");
+  b("limit_up_th_high", 60, "stockAnalysis.configDescriptions.limitUpThHigh", "number");
+  b("limit_up_th_med", 30, "stockAnalysis.configDescriptions.limitUpThMed", "number");
+  b("limit_up_th_low", 10, "stockAnalysis.configDescriptions.limitUpThLow", "number");
   // 注意：vendor_* 9 个开关 + iwencai_key 不在这里暴露，
   // 由「数据源」tab（DataVendorsTab）全权管理，避免两边同时写造成竞态。
   // 全局开关
-  b("analysis_dry_run", false, "干跑模式：不调用 LLM，用 mock 输出验证流程", "boolean");
+  b("analysis_dry_run", false, "stockAnalysis.configDescriptions.analysisDryRun", "boolean");
   return vars;
 }
 
@@ -239,8 +239,8 @@ function parseEnumOptions(desc?: string): string[] {
   return [];
 }
 
-function inferStep(v: Variable): number {
-  if (v.description?.includes("温度")) { return 0.1; }
+function inferStep(v: Variable, tFn: (k: string) => string): number {
+  if (tFn(v.description ?? "").includes("温度")) { return 0.1; }
   return 1;
 }
 
@@ -253,14 +253,16 @@ function NumberControl({ v, value, onChange }: {
   value: unknown;
   onChange: (name: string, val: unknown) => void;
 }) {
-  const hasPct = v.description?.includes("%") ?? false;
+  const { t } = useTranslation();
+  const desc = t(v.description ?? "");
+  const hasPct = desc.includes("%") ?? false;
   const val = Number(value ?? 0);
   return (
     <span className="sacp-number">
       <Slider
         min={0}
-        max={v.description?.includes("温度") ? 2 : 100}
-        step={inferStep(v)}
+        max={desc.includes("温度") ? 2 : 100}
+        step={inferStep(v, t)}
         className="sacp-number-slider"
         value={val}
         onChange={(v2) => onChange(v.name, v2)}
@@ -281,11 +283,13 @@ function VariableControl({ v, value, onChange }: {
   value: unknown;
   onChange: (name: string, val: unknown) => void;
 }) {
+  const { t } = useTranslation();
+  const desc = t(v.description ?? "");
   switch (v.var_type) {
     case "boolean":
       return <Switch checked={!!value} onChange={(c) => onChange(v.name, c)} />;
     case "enum": {
-      const options = parseEnumOptions(v.description);
+      const options = parseEnumOptions(desc);
       return (
         <Select
           size="small"
@@ -714,7 +718,7 @@ export function StockAnalysisConfigPanel(_props: Props) {
             {g.vars.map((v) => (
               <div key={v.name} style={rowStyle} className="flex items-center justify-between sacp-row">
                 <span className="sacp-var-label" style={{ fontSize: 13, color: token.colorText }}>
-                  {v.description ?? v.name}
+                  {v.description ? t(v.description) : v.name}
                 </span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 16 }}>
                   <VariableControl v={v} value={values[v.name]} onChange={handleChange} />

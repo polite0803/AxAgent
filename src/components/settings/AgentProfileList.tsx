@@ -103,6 +103,46 @@ const PROFILE_ROLE_IDS: Record<string, string> = {
   "stock-portfolio-manager": "decision-maker",
 };
 
+const PROFILE_NAME_KEYS: Record<string, string> = {
+  "stock-market-analyst": "stockAnalysis.analystRoles.marketAnalyst",
+  "stock-sentiment-analyst": "stockAnalysis.analystRoles.sentimentAnalyst",
+  "stock-news-analyst": "stockAnalysis.analystRoles.newsAnalyst",
+  "stock-fundamentals-analyst": "stockAnalysis.analystRoles.fundamentalsAnalyst",
+  "stock-policy-analyst": "stockAnalysis.analystRoles.policyAnalyst",
+  "stock-hot-money-tracker": "stockAnalysis.analystRoles.hotMoneyTracker",
+  "stock-lockup-watcher": "stockAnalysis.analystRoles.lockupWatcher",
+  "stock-research-analyst": "stockAnalysis.analystRoles.researchAnalyst",
+  "stock-sector-analyst": "stockAnalysis.analystRoles.sectorAnalyst",
+  "stock-bull-researcher": "stockAnalysis.analystRoles.bullResearcher",
+  "stock-bear-researcher": "stockAnalysis.analystRoles.bearResearcher",
+  "stock-aggressive-debator": "stockAnalysis.analystRoles.aggressiveDebator",
+  "stock-conservative-debator": "stockAnalysis.analystRoles.conservativeDebator",
+  "stock-neutral-debator": "stockAnalysis.analystRoles.neutralDebator",
+  "stock-research-manager": "stockAnalysis.analystRoles.researchManager",
+  "stock-trader": "stockAnalysis.analystRoles.trader",
+  "stock-portfolio-manager": "stockAnalysis.analystRoles.portfolioManager",
+};
+
+const PROFILE_ROLE_KEYS: Record<string, string> = {
+  "stock-market-analyst": "stockAnalysis.analystRoles.analyst",
+  "stock-sentiment-analyst": "stockAnalysis.analystRoles.analyst",
+  "stock-news-analyst": "stockAnalysis.analystRoles.analyst",
+  "stock-fundamentals-analyst": "stockAnalysis.analystRoles.analyst",
+  "stock-policy-analyst": "stockAnalysis.analystRoles.analyst",
+  "stock-hot-money-tracker": "stockAnalysis.analystRoles.analyst",
+  "stock-lockup-watcher": "stockAnalysis.analystRoles.analyst",
+  "stock-research-analyst": "stockAnalysis.analystRoles.analyst",
+  "stock-sector-analyst": "stockAnalysis.analystRoles.analyst",
+  "stock-bull-researcher": "stockAnalysis.analystRoles.debateResearcher",
+  "stock-bear-researcher": "stockAnalysis.analystRoles.debateResearcher",
+  "stock-aggressive-debator": "stockAnalysis.analystRoles.riskAssessor",
+  "stock-conservative-debator": "stockAnalysis.analystRoles.riskAssessor",
+  "stock-neutral-debator": "stockAnalysis.analystRoles.riskAssessor",
+  "stock-research-manager": "stockAnalysis.analystRoles.decisionMaker",
+  "stock-trader": "stockAnalysis.analystRoles.trader",
+  "stock-portfolio-manager": "stockAnalysis.analystRoles.decisionMaker",
+};
+
 export function AgentProfileList() {
   const { message } = App.useApp();
   const { t } = useTranslation();
@@ -413,7 +453,9 @@ export function AgentProfileList() {
                     trigger="click"
                     title={
                       <Space>
-                        <span>{expertMap[row.expertId]?.name ?? row.expertName}</span>
+                        <span>
+                          {expertMap[row.expertId]?.name ?? t(PROFILE_NAME_KEYS[row.profileId] ?? row.expertName)}
+                        </span>
                         <Button
                           size="small"
                           type="link"
@@ -456,14 +498,14 @@ export function AgentProfileList() {
                       )}
                   >
                     <span className="font-medium text-sm truncate cursor-pointer hover:text-blue-500 transition-colors">
-                      {row.expertName}
+                      {t(PROFILE_NAME_KEYS[row.profileId] ?? row.expertName)}
                     </span>
                   </Popover>
                   <Popover
                     trigger="click"
                     title={
                       <Space>
-                        <span>{roleMap[row.roleId]?.name ?? row.roleName}</span>
+                        <span>{roleMap[row.roleId]?.name ?? t(PROFILE_ROLE_KEYS[row.profileId] ?? row.roleName)}</span>
                         <Button
                           size="small"
                           type="link"
@@ -505,7 +547,9 @@ export function AgentProfileList() {
                         </div>
                       )}
                   >
-                    <Tag color="blue" className="text-xs m-0 shrink-0 cursor-pointer">{row.roleName}</Tag>
+                    <Tag color="blue" className="text-xs m-0 shrink-0 cursor-pointer">
+                      {t(PROFILE_ROLE_KEYS[row.profileId] ?? row.roleName)}
+                    </Tag>
                   </Popover>
                 </div>
                 <Space size={4} className="shrink-0">

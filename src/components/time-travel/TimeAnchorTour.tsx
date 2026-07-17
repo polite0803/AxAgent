@@ -79,7 +79,7 @@ export function TimeAnchorTour() {
         <button
           type="button"
           onClick={onDismiss}
-          aria-label="Close"
+          aria-label={t("stockAnalysis.timeTravel.close")}
           style={{
             background: "transparent",
             border: 0,

@@ -139,17 +139,17 @@ function buildRiskMarkdown(
 ): string {
   const now = new Date().toISOString().replace("T", " ").substring(0, 19);
   const title = stockName && stockCode
-    ? `${stockName} (${stockCode}) — 风险评估报告`
-    : "风险评估报告";
+    ? `${stockName} (${stockCode}) — ${t("stockAnalysis.riskMatrix.exportTitle")}`
+    : t("stockAnalysis.riskMatrix.exportTitle");
   const lines: string[] = [
     `# ${title}`,
     "",
-    `> 导出时间：${now}  `,
-    `> 评估维度：${entries.length}`,
+    `> ${t("stockAnalysis.riskMatrix.exportTime")}：${now}  `,
+    `> ${t("stockAnalysis.riskMatrix.exportDimension")}：${entries.length}`,
     "",
-    "## 风险评分总览",
+    `## ${t("stockAnalysis.riskMatrix.overview")}`,
     "",
-    "| 维度 | 风险评分 |",
+    `| ${t("stockAnalysis.riskMatrix.dimensionLabel")} | ${t("stockAnalysis.riskMatrix.scoreLabel")} |`,
     "| --- | --- |",
     ...entries.map(([type, report]) => {
       const label = RISK_LABEL_KEYS[type] ? t(RISK_LABEL_KEYS[type]) : type;
@@ -157,7 +157,7 @@ function buildRiskMarkdown(
       return `| ${label} | ${score} / 100 |`;
     }),
     "",
-    "## 详细评估",
+    `## ${t("stockAnalysis.riskMatrix.detailAssessment")}`,
     "",
   ];
   for (const [type, report] of entries) {
@@ -165,7 +165,7 @@ function buildRiskMarkdown(
     const score = computeRiskScore(report);
     const readable = extractReadableFromRiskReport(report) || t("stockAnalysis.noRiskData");
     lines.push(
-      `### ${label}（${score} / 100）`,
+      `### ${t("stockAnalysis.riskMatrix.itemScore", { label, score })}`,
       "",
       readable,
       "",
@@ -174,7 +174,7 @@ function buildRiskMarkdown(
     );
   }
   lines.push(
-    `*本文档由 ${t("app.name")} 风险评估模块自动生成，仅供研究参考，不构成投资建议。*`,
+    `${t("stockAnalysis.riskMatrix.exportDisclaimer", { appName: t("app.name") })}`,
   );
   return lines.join("\n");
 }
@@ -206,8 +206,8 @@ export function RiskMatrix() {
       const md = buildRiskMarkdown(entries, t, stockCode, stockName);
       const { exportAsMarkdown } = await import("@/lib/exportChat");
       const safeName = (stockName && stockCode)
-        ? `${stockName}-${stockCode}-风险评估`
-        : "风险评估";
+        ? `${stockName}-${stockCode}-${t("stockAnalysis.riskMatrix.exportFilename")}`
+        : t("stockAnalysis.riskMatrix.exportFilename");
       await exportAsMarkdown(md as unknown as import("@/types").Message[], safeName);
     } finally {
       setExporting(false);
@@ -396,7 +396,7 @@ export function RiskMatrix() {
                       icon={<ExpandOutlined />}
                       style={{ padding: 0, width: 20, height: 20, fontSize: 10 }}
                       onClick={() => setSelectedCard(type)}
-                      title="展开详情"
+                      title={t("stockAnalysis.riskMatrix.expandDetail")}
                     />
                   </div>
                   <span

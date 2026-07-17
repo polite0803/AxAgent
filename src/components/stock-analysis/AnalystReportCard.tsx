@@ -205,7 +205,7 @@ function extractSummary(parsed: ParsedReport): string {
 }
 
 /** 从 ParsedReport 中提取标签列表 */
-function extractTags(parsed: ParsedReport, t?: (key: string) => string): string[] {
+function extractTags(parsed: ParsedReport, t: (key: string) => string): string[] {
   if (Array.isArray(parsed.signals) && parsed.signals.length > 0) {
     return parsed.signals;
   }
@@ -213,31 +213,31 @@ function extractTags(parsed: ParsedReport, t?: (key: string) => string): string[
   if (parsed.stance) { tags.push(parsed.stance); }
   if (parsed.action) { tags.push(parsed.action); }
   if (parsed.main_flow_state) {
-    tags.push(`${t ? t("stockAnalysis.analystReport.moneyFlow") : "资金流"}:${parsed.main_flow_state}`);
+    tags.push(`${t("stockAnalysis.analystReport.moneyFlow")}:${parsed.main_flow_state}`);
   }
   if (parsed.dragon_tiger_signal) { tags.push(parsed.dragon_tiger_signal); }
   if (parsed.moat_rating) {
     tags.push(
-      `${t ? t("stockAnalysis.analystReport.moat") : "护城河"}:${parsed.moat_rating}`,
+      `${t("stockAnalysis.analystReport.moat")}:${parsed.moat_rating}`,
     );
   }
   if (parsed.catalyst_level) { tags.push(parsed.catalyst_level); }
   if (parsed.narrative_completeness) {
-    tags.push(`${t ? t("stockAnalysis.analystReport.narrative") : "叙事"}:${parsed.narrative_completeness}`);
+    tags.push(`${t("stockAnalysis.analystReport.narrative")}:${parsed.narrative_completeness}`);
   }
   if (parsed.institutional_trace) {
-    tags.push(`${t ? t("stockAnalysis.analystReport.capital") : "资金"}:${parsed.institutional_trace}`);
+    tags.push(`${t("stockAnalysis.analystReport.capital")}:${parsed.institutional_trace}`);
   }
   if (parsed.concept_risk) {
-    tags.push(`${t ? t("stockAnalysis.analystReport.conceptRisk") : "概念风险"}:${parsed.concept_risk}`);
+    tags.push(`${t("stockAnalysis.analystReport.conceptRisk")}:${parsed.concept_risk}`);
   }
   if (typeof parsed.bull_score === "number" && parsed.bull_score > 0) {
     const normalized = parsed.bull_score <= 10 ? parsed.bull_score * 10 : parsed.bull_score;
-    tags.push(`${t ? t("stockAnalysis.sentimentBullish") : "看多"}:${Math.round(normalized)}`);
+    tags.push(`${t("stockAnalysis.sentimentBullish")}:${Math.round(normalized)}`);
   }
   if (typeof parsed.bear_score === "number" && parsed.bear_score > 0) {
     const normalized = parsed.bear_score <= 10 ? parsed.bear_score * 10 : parsed.bear_score;
-    tags.push(`${t ? t("stockAnalysis.sentimentBearish") : "看空"}:${Math.round(normalized)}`);
+    tags.push(`${t("stockAnalysis.sentimentBearish")}:${Math.round(normalized)}`);
   }
   return tags;
 }
@@ -394,7 +394,15 @@ export function AnalystReportCard({ expertId, report }: Props) {
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               {typeof parsed.verdict === "string" && (
                 <Tag color={verdictColor} style={{ fontSize: 13, padding: "2px 10px", fontWeight: 600 }}>
-                  {parsed.verdict}
+                  {t(
+                    `stockAnalysis.analystVerdict.${
+                      parsed.verdict.includes("看多") || parsed.verdict.toLowerCase().includes("bull")
+                        ? "bullish"
+                        : parsed.verdict.includes("看空") || parsed.verdict.toLowerCase().includes("bear")
+                        ? "bearish"
+                        : "neutral"
+                    }`,
+                  )}
                 </Tag>
               )}
               {bullScore != null && (
@@ -687,7 +695,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
             defaultActiveKey={[]}
             items={[{
               key: "raw",
-              label: "查看原始数据",
+              label: t("stockAnalysis.analystReport.viewRawData"),
               children: (
                 <pre
                   style={{
