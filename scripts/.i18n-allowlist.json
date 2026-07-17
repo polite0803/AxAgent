@@ -1,333 +1,9 @@
 {
   "version": "2",
-  "generated": "2026-07-15",
-  "total_entries": 109,
-  "total_files": 109,
+  "generated": "2026-07-17",
+  "total_entries": 121,
+  "total_files": 121,
   "entries": [
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\McpContainerNode.tsx",
-      "lines": "198",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\StructuredThinking.tsx",
-      "lines": "37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,102,103,104,105,106,107,108,109,110,111,112,113,114,132,133,134,135,136,137,138,139,140,141,142,143",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\dynamicUI\\DynamicUIPreview.tsx",
-      "lines": "24,30",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\dynamicUI\\DynamicUIRenderer.tsx",
-      "lines": "203,211",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\dynamicUI\\DynamicUIStandalone.tsx",
-      "lines": "113",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\layout\\AppInitializer.tsx",
-      "lines": "36,59,63,98",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\AgentGeneratorModal.tsx",
-      "lines": "12,14,15,16,17,18,19,20,22,24,71",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\DataManager.tsx",
-      "lines": "52,104,117",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\GeneralSettings.tsx",
-      "lines": "84",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\SettingsPanel.tsx",
-      "lines": "446",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\settingsSearchIndex.ts",
-      "lines": "42,47,67,72,77,82,87,94,99,104,109,114,119,124,129,134,148,149,150,152,153,162,167,172,177,182,187,192,199,204,209,214,219,224,229,234,239,244,249,256,261,266,271,276,283,288,293,298,303,309,311,312,314,316,324,329,334,339,344,349,354,359,364,371,376,381,386,391,398,403,408,413,418,423,430,435,440,445,452,457,462,467,472,477,482,487,492,497,502,507,512,519,524,529,534,539,544,549,554,559,564,569,574,579,584,589,594,599,604,609,614,619,624,629,634,639,644,649,654,659,664,669,676,681,686,691,696,701,706,711,716,723,728,733,738,743,748,753,758,763,768,773,778",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\terminal\\IntegratedTerminal.tsx",
-      "lines": "142,211,236",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\terminal\\StatusBarWidget.tsx",
-      "lines": "104",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\AIPanel\\AIPanel.tsx",
-      "lines": "240,259,281,304,311,322",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\NLParserPanel.tsx",
-      "lines": "18,19,20",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\AgentPropertyPanel.tsx",
-      "lines": "289,290,291,315,317,318,320,321,324,325,326,328,329",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\CodePropertyPanel.tsx",
-      "lines": "129,130,131,171,172",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\DatabaseQueryPropertyPanel.tsx",
-      "lines": "30,31",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\DebatePropertyPanel.tsx",
-      "lines": "51,52,53,69,70,71",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\DocumentParserPropertyPanel.tsx",
-      "lines": "50,51",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\EmailPropertyPanel.tsx",
-      "lines": "38,39,59,60",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\HttpRequestPropertyPanel.tsx",
-      "lines": "57,58,59,60,61",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\LLMPropertyPanel.tsx",
-      "lines": "109,110,111,130,132,133,135,136,139,140,141,143,144",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\LoopPropertyPanel.tsx",
-      "lines": "43,44",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\SubWorkflowPropertyPanel.tsx",
-      "lines": "65,66",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\TriggerPropertyPanel.tsx",
-      "lines": "49,50",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\ValidationPropertyPanel.tsx",
-      "lines": "64,65,66,69",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\VectorRetrievePropertyPanel.tsx",
-      "lines": "55,56",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\WorkflowVersionManager.tsx",
-      "lines": "68,71,75",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\data\\expertPresets.ts",
-      "lines": "27,29,32,35,44,46,50,53,62,64,68,71,80,82,85,88,97,99,103,106,115,117,120,123,132,134,138,141,150,152,156,159,168,170,174,177,186,188,192,195,204,206,209,212,221,223,227,230",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\hooks\\useGlobalShortcutManager.ts",
-      "lines": "216,236",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\hooks\\useUpdateChecker.tsx",
-      "lines": "132,142",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\browserMock.ts",
-      "lines": "127,1585,1586,1594,1595,1603,1604,1620,1621,1629,1630,1638,1639,1655,1656,128,1212,1225,1337,1675,1684,1693,1710,1719,1728,1745",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\chartGenerator.ts",
-      "lines": "44,45,46,63,66,69,72,75",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\constants.ts",
-      "lines": "6,12,22",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\nl2ui-edit.ts",
-      "lines": "38,45,70,72,79",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\nl2ui.ts",
-      "lines": "17,19,21,24,26,28,31,33,35,38,40,42,45,47,49,51,53,55,57,60,62,64,66,68,70,72,74,76,78,80,83,85,87,91,93,95,140,141,142,150,161,162,172,173,184,185,194,195,197,198,200,201,203,238,256",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\registerBuiltins.ts",
-      "lines": "55,62,69,76,83,90,97,106,113,120,127,134,141,150,157,164,171,178,185,192,199,206,215,222,236,245,246,252,259,266,273",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\SchemaValidator.ts",
-      "lines": "41,48,57,60,63,79,88,103,125,153,161,170,181,195,201,215,223,233,242,249,260,271,276,293,310,318,322,325,328,331",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\invoke.ts",
-      "lines": "111,112",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\searchUtils.ts",
-      "lines": "29",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\skillEventBus.ts",
-      "lines": "53,56",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\skillIcons.ts",
-      "lines": "103",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\storage.ts",
-      "lines": "37,39,45",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\devtools\\evaluatorStore.ts",
-      "lines": "260,261,262,263,265",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\devtools\\tracerStore.ts",
-      "lines": "317,318,319,320,321,324,325,326,327,328,331,332,333,334,335,351,352,353,357,358,359,363,364,365",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\domain\\streamStore.ts",
-      "lines": "1152,1153,1170,1171",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\__mocks__\\workflowStoreMocks.ts",
-      "lines": "35,38,42,51,59,68,90,91,92,101,102,103,104,114,116,117,118,119,120,121,122,123,124,127,129,131,132,133,144,145,146,147,148,149,150,154,156,157,169,170,171,198,203,210,222,236,244,259,265,272,274,277,278,279,289,301,308,310,325,327,346,348,359,360,361,362,363,378,379,380",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\appConfigStore.ts",
-      "lines": "95,112",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\decompositionStore.ts",
-      "lines": "82",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\evolutionStore.ts",
-      "lines": "235,249,259,270,282,283,284,285,286",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\proactiveStore.ts",
-      "lines": "59,60,61,72,73,76,77,87,88,89,97,98,110,111",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\rlTrainingStore.ts",
-      "lines": "71,72,73,74",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\workflowEditorStore.ts",
-      "lines": "2802,2809,2818",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
     {
       "file": "src/components/chat/McpContainerNode.tsx",
       "lines": "198",
@@ -343,6 +19,12 @@
     {
       "file": "src/components/chat/StructuredThinking.tsx",
       "lines": "37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,102,103,104,105,106,107,108,109,110,111,112,113,114,132,133,134,135,136,137,138,139,140,141,142,143",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/chat/WorkflowAgentCard.tsx",
+      "lines": "132,133,134,135,136,137,138,139",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -371,8 +53,26 @@
       "phase": 3
     },
     {
+      "file": "src/components/quant/tabs/CompareTab.tsx",
+      "lines": "42",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/quant/tabs/StrategyForm.tsx",
+      "lines": "27,28,31,32,33,36,37,38,41,42,45,46,47,48",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
       "file": "src/components/settings/AgentGeneratorModal.tsx",
       "lines": "12,14,15,16,17,18,19,20,22,24,71",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/AgentProfileList.tsx",
+      "lines": "47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,210,309",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -383,8 +83,20 @@
       "phase": 3
     },
     {
+      "file": "src/components/settings/DataVendorsTab.tsx",
+      "lines": "24,25,32,33,62,63,70,71,78,79,86,87,113,114,118,124,132,135,140,141,145,151,164,178,179,180,181,182,183,188,191,197,201,202,203,204,205,206,207,208,209,210,211,214,224,225,226,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,538,541",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
       "file": "src/components/settings/GeneralSettings.tsx",
       "lines": "84",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/ScheduledRecommendationTab.tsx",
+      "lines": "46,47,48,49,50,54,55,56,57,61,62,63",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -395,8 +107,266 @@
       "phase": 3
     },
     {
+      "file": "src/components/settings/StockAnalysisConfigPanel.tsx",
+      "lines": "18,19,20,22,23,24,26,27,28,29,31,32,34,35,36,37,38,39,40,42,43,44,45,46,47,49,50,51,52,53,55,56,57,58,59,60,62,63,64,65,67,68,69,70,71,72,73,75,76,77,78,79,80,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,111,112,113,114,115,116,117,119,120,121,122,123,124,125,127,128,129,131,132,133,135,136,137,138,139,140,142,144,145,146,147,148,149,150,151,153,154,155,156,157,158,159,160,161,162,163,164,166,168,169,170,172,173,174,175,176,177,178,179,180,181,182,183,184,186,187,188,190,191,193,195,197,198,199,200,201,202,204,205,206,207,209,210,211,212,213,215,216,217,219,220,221,222,223,224,225,226,227,231,243,262",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/StrategyPackSettings.tsx",
+      "lines": "93,126,174,176,182,187,191,198,201,364,367,370,373,446",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
       "file": "src/components/settings/settingsSearchIndex.ts",
       "lines": "42,47,67,72,77,82,87,94,99,104,109,114,119,124,129,134,148,149,150,152,153,162,167,172,177,182,187,192,199,204,209,214,219,224,229,234,239,244,249,256,261,266,271,276,283,288,293,298,303,309,311,312,314,316,324,329,334,339,344,349,354,359,364,371,376,381,386,391,398,403,408,413,418,423,430,435,440,445,452,457,462,467,472,477,482,487,492,497,502,507,512,519,524,529,534,539,544,549,554,559,564,569,574,579,584,589,594,599,604,609,614,619,624,629,634,639,644,649,654,659,664,669,676,681,686,691,696,701,706,711,716,723,728,733,738,743,748,753,758,763,768,773,778",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/AnalystReportCard.tsx",
+      "lines": "126,127,128,216,221,226,229,232,236,240,294,371,373,594,595,596,597,598,599,600,601,602,603,604,605,606,690",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/AnalystReportGrid.tsx",
+      "lines": "35,36",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/BacktestPage.tsx",
+      "lines": "28,63,68,73",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ComparePage.tsx",
+      "lines": "12",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/CompareView.tsx",
+      "lines": "222,227,242,283,284",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ConceptBlocksPanel.tsx",
+      "lines": "38,69",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/DashboardReportPreview.tsx",
+      "lines": "11,13,15,17,19,21,31,33,43,45,47,74,104,112,117,139,166,177,189,199,203,216,222,229,233,237,253,262",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/DebatePanel.tsx",
+      "lines": "232,981,1076",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/DragonTigerPanel.tsx",
+      "lines": "22,23",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ExperimentSidebar.tsx",
+      "lines": "31,32,33,46,48,50,53,55,57,60,109,182,261,267,273,289,296,303",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/IndustryRankingPanel.tsx",
+      "lines": "23,24",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/InvestDashboard.tsx",
+      "lines": "271,279,282",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/MonteCarloPanel.tsx",
+      "lines": "28,29,30,31,32",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/PortfolioDashboard.tsx",
+      "lines": "108,230",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/PortfolioMonitorPanel.tsx",
+      "lines": "35,36,37",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/QuantSimPanel.tsx",
+      "lines": "8,9,10,11,12",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/RecoHistoryModal.tsx",
+      "lines": "76",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ReflectionPanel.tsx",
+      "lines": "1325,1327,1348,1349,1351,1352,1354,1355,1357,1358,1360,1362,1364,1366,1369,1370,1372,1375,1376,1377,1378,1380,1382,1385,1387,1390,1392,1395,1400,1405",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/RiskMatrix.tsx",
+      "lines": "53,54,55,56,57,58,59,60,61,62,63,66,69,72,73,74,75,76,77,78,79,80,81,142,143,147,148,150,152,160,177,209,210,399",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ScheduledAnalysisPanel.tsx",
+      "lines": "37,38,39,40",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ScreenerPage.tsx",
+      "lines": "35",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/SerenityScreeningPanel.tsx",
+      "lines": "490,577,702,1022,1291",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockAnalysisPage.tsx",
+      "lines": "75,85,325,451",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockScreenerPanel.tsx",
+      "lines": "48,58,162",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/StockSearchBar.tsx",
+      "lines": "19,20,21,22,122",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/TradePage.tsx",
+      "lines": "14",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/TradeReviewPanel.tsx",
+      "lines": "35,37,39,162",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ValueAssessmentPanel.tsx",
+      "lines": "48,49,50,52,54,55,58,201,211,236,247,432,441",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/WatchlistPage.tsx",
+      "lines": "16",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/WhatIfBacktest.tsx",
+      "lines": "89,90,155,157,159,169,171,173,175,177,179,196,197,198,199,200,213,360,552,553,554,555,563,564,565,566,604,609,614,619,624,629,637,642,647,655,663",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactDecisionComparison.tsx",
+      "lines": "65,66",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRecommendation.tsx",
+      "lines": "25,26,27,28,29,65,76",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/CompactRiskSummary.tsx",
+      "lines": "21,22,23,24,25,26,27,28,29,30,31,33",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/DecisionComparisonPanel.tsx",
+      "lines": "34,35",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/analystDualView.tsx",
+      "lines": "10",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/debateDualView.tsx",
+      "lines": "10",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/decisionDualView.tsx",
+      "lines": "13",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/recommendationDualView.tsx",
+      "lines": "10",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/riskDualView.tsx",
+      "lines": "10",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/dual-view/valueAssessmentDualView.tsx",
+      "lines": "10",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/utils.ts",
+      "lines": "44,50,55,61,76,77,78,79,81,87,94,98,105,110,115,123,131,139,145,153,156",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -409,6 +379,18 @@
     {
       "file": "src/components/terminal/StatusBarWidget.tsx",
       "lines": "104",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/ReplaySweep.tsx",
+      "lines": "71,251,354,356,360,364",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/time-travel/TimeAnchorTour.tsx",
+      "lines": "82",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -528,7 +510,7 @@
     },
     {
       "file": "src/lib/browserMock.ts",
-      "lines": "127,1585,1594,1603,1620,1629,1638,1655,128,1212,1225,1337,1675,1684,1693,1710,1719,1728,1745",
+      "lines": "127,128,1212,1225,1337,1585,1594,1603,1620,1629,1638,1655,1675,1684,1693,1710,1719,1728,1745",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -541,6 +523,12 @@
     {
       "file": "src/lib/constants.ts",
       "lines": "6,12,22",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/dynamicUI/SchemaValidator.ts",
+      "lines": "41,48,57,60,63,79,88,103,125,153,161,170,181,195,201,215,223,233,242,249,260,271,276,293,310,318,322,325,328,331",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -563,12 +551,6 @@
       "phase": 3
     },
     {
-      "file": "src/lib/dynamicUI/SchemaValidator.ts",
-      "lines": "41,48,57,60,63,79,88,103,125,153,161,170,181,195,201,215,223,233,242,249,260,271,276,293,310,318,322,325,328,331",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "src/lib/invoke.ts",
       "lines": "111,112",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -577,6 +559,12 @@
     {
       "file": "src/lib/searchUtils.ts",
       "lines": "29",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/seed-stock-schemas.ts",
+      "lines": "17,18,24,25,31,32",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -593,8 +581,62 @@
       "phase": 3
     },
     {
+      "file": "src/lib/stock-analysis-export.ts",
+      "lines": "37,38,39,40,41,42,43,44,45,46,61,79,80,81,82,83,84,85,101,102,103,105,111,113,115,116,117,118,119,120,121,126,129,131,132,133,134,135,136,137,138,139,142,149,162,164,165,166,167,169,178,180,183,189,198,214,216,218,221,230,232,233,234,235,236,237,238,253,266,273,275,278,285,286,287,288,289,290,291,347,362",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/stock-analysis-utils.ts",
+      "lines": "110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,141,142,143,144,145,146,147,167,172,173,174,175,179,252,253,303,306,309,335,336,337,338,339,346,347,348,349,350,357,358,359,372,373,374,401,404,407,419,420,421,422,423,424,425,426,427,428,429,430,431,432,433,437,438,439,440,441,442,443,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,464,465,466,467,468,472,475,674,720",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/stock-schemas/evolution-drift-schema.ts",
+      "lines": "43,44,45,48,52,53,73,89,115,116,117,118",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/stock-schemas/stock-analysis-page-schema.ts",
+      "lines": "36,48,65,99,189,197,205,213,221,229,239,249,272,282,292,302,312,322,332,363",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/stock-schemas/stock-quote-schema.ts",
+      "lines": "52,119,125,131,137,160,168,184",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
       "file": "src/lib/storage.ts",
       "lines": "37,39,45",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/timeTravel/futureReferenceDetector.ts",
+      "lines": "45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/PipelinePage/PipelinePage.tsx",
+      "lines": "51",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/ScheduledAnalysisPage.tsx",
+      "lines": "7",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/SkillsPage.tsx",
+      "lines": "68,130",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -641,6 +683,12 @@
       "phase": 3
     },
     {
+      "file": "src/stores/feature/pipelineStore.ts",
+      "lines": "29",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
       "file": "src/stores/feature/proactiveStore.ts",
       "lines": "59,60,61,72,73,76,77,87,88,89,97,98,110,111",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -653,8 +701,32 @@
       "phase": 3
     },
     {
+      "file": "src/stores/feature/stockAnalysisStore.ts",
+      "lines": "804,807,919,926,956,1005,1006,1007,1008,1009,1305,1712,1714,1789,1793,1858,1859,1860,1861,1862,2030,2034",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/stockWorkflowChatBridge.ts",
+      "lines": "304",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
       "file": "src/stores/feature/workflowEditorStore.ts",
       "lines": "2802,2809,2818",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/types/quant.ts",
+      "lines": "341,351",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/types/stock-analysis.ts",
+      "lines": "154,161,170",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     }
