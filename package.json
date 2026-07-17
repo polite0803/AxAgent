@@ -136,7 +136,7 @@
     "oxlint": "^1.65.0",
     "playwright": "^1.59.1",
     "simple-git-hooks": "^2.13.1",
-    "tailwindcss": "^4.2.4",
+    "tailwindcss": "^4.3.3",
     "typedoc": "^0.28.19",
     "typescript": "^7.0.2",
     "typescript-eslint": "^8.60.0",
