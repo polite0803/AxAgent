@@ -13,12 +13,12 @@ pub async fn regenerate_conversation_title(
     // Load conversation
     let conversation = axagent_dao::repo::conversation::get_conversation(&db, &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Load all messages to build full conversation context for title generation
     let messages = axagent_dao::repo::message::list_messages(&db, &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let conversation_messages: Vec<(MessageRole, String)> = messages
         .iter()
@@ -33,16 +33,16 @@ pub async fn regenerate_conversation_title(
     // Load provider for fallback
     let provider = axagent_dao::repo::provider::get_provider(&db, &conversation.provider_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let key_row = axagent_dao::repo::provider::get_active_key(&db, &provider.id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, &master_key)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let global_settings = axagent_dao::repo::settings::get_settings(&db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&provider.proxy_config, &global_settings);
     let ctx = ProviderRequestContext {
@@ -224,7 +224,7 @@ pub(crate) async fn sync_context_sources(
 ) -> Result<(), String> {
     axagent_dao::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     for kb_id in &conversation.enabled_knowledge_base_ids {
         let title = axagent_dao::repo::knowledge::get_knowledge_base(db, kb_id)
@@ -241,7 +241,7 @@ pub(crate) async fn sync_context_sources(
         };
         axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     }
 
     for mem_id in &conversation.enabled_memory_namespace_ids {
@@ -259,7 +259,7 @@ pub(crate) async fn sync_context_sources(
         };
         axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     }
 
     for wiki_id in &conversation.enabled_wiki_ids {
@@ -277,7 +277,7 @@ pub(crate) async fn sync_context_sources(
         };
         axagent_dao::repo::context_source::add_context_source(db, &input)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     }
 
     Ok(())

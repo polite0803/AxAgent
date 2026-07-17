@@ -150,7 +150,7 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
 
 // ── Main Component ──
 
-function DailyUsageChart({ data, loading }: { data: DailyUsage[]; loading: boolean }) {
+function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: boolean }) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
 
@@ -645,7 +645,7 @@ export function DashboardPage() {
             <StatCard
               icon={<Zap size={18} />}
               title={t("dashboard.totalCost")}
-              value={`$${backendStats?.total_cost_usd.toFixed(2) ?? "0.00"}`}
+              value={`$${(backendStats?.total_cost_usd ?? 0).toFixed(2)}`}
               color="#ff4d4f"
               loading={isLoading}
             />
@@ -688,7 +688,7 @@ export function DashboardPage() {
       </div>
 
       {/* ── Cost by Provider ── */}
-      {costByProvider.length > 0
+      {costByProvider?.length > 0
         ? (
           <div>
             <SectionHeader
@@ -706,7 +706,7 @@ export function DashboardPage() {
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
-                    data={costByProvider}
+                    data={costByProvider ?? []}
                     dataKey="token_count"
                     nameKey="provider_id"
                     cx="50%"

@@ -485,7 +485,12 @@ async fn build_agent_context(
         .ok_or_else(|| "No active API key for provider".to_string())?;
 
     let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
 
@@ -963,6 +968,7 @@ pub async fn plan_execute(
                     retry_count: 0,
                     max_retries: 3,
                     assigned_role: None,
+                    compensation: None,
                 }],
                 dependencies: phase_deps,
                 status: PhaseStatus::Pending,
@@ -985,7 +991,7 @@ pub async fn plan_execute(
             .collect::<std::collections::HashSet<_>>()
             .into_iter()
             .collect();
-        let (wf_nodes, wf_edges) = compile_plan_to_dag(&plan, &tool_names);
+        let (wf_nodes, wf_edges) = compile_plan_to_dag(&plan, &tool_names, None);
         let wf_name = format!("plan_dag_{}", request.plan_id);
 
         // 建立 DAG 结果键 → PlanStep UUID 的反向映射

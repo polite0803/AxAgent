@@ -57,7 +57,12 @@ pub async fn webhook_create_subscription(
     {
         // P0-5: 用 DNS 解析 + IpAddr 黑名单做严格 SSRF 校验，覆盖 link-local/云元数据/私网
         // subscription 路径在 manager.subscribe 内部会再次校验（双保险）。
-        assert_url_safe(&url, false).await.map_err(|e| e.to_string())?;
+        assert_url_safe(&url, false).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
     let manager = state.webhook_subscription_manager.as_ref().ok_or_else(|| {
         ErrorResponse::err_with_detail(

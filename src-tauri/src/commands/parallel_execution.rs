@@ -17,10 +17,12 @@ pub async fn create_parallel_execution(
     max_parallel: usize,
 ) -> Result<String, String> {
     let service = state.parallel_execution_service.read().await;
-    service
-        .create_execution(name, description, tasks, strategy, max_parallel)
-        .await
-        .map_err(|e| e.to_string())
+    service.create_execution(name, description, tasks, strategy, max_parallel).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]

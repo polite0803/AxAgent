@@ -95,9 +95,12 @@ fn collect_importable_files(
 pub async fn list_knowledge_bases(
     state: State<'_, AppState>,
 ) -> Result<Vec<KnowledgeBase>, String> {
-    axagent_dao::repo::knowledge::list_knowledge_bases(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::knowledge::list_knowledge_bases(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -105,9 +108,14 @@ pub async fn create_knowledge_base(
     state: State<'_, AppState>,
     input: CreateKnowledgeBaseInput,
 ) -> Result<KnowledgeBase, String> {
-    axagent_dao::repo::knowledge::create_knowledge_base(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::knowledge::create_knowledge_base(state.harness.db(), input).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -118,7 +126,12 @@ pub async fn update_knowledge_base(
 ) -> Result<KnowledgeBase, String> {
     axagent_dao::repo::knowledge::update_knowledge_base(state.harness.db(), &id, input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -127,9 +140,14 @@ pub async fn delete_knowledge_base(state: State<'_, AppState>, id: String) -> Re
     let collection_id = format!("kb_{}", id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    axagent_dao::repo::knowledge::delete_knowledge_base(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::knowledge::delete_knowledge_base(state.harness.db(), &id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -139,7 +157,12 @@ pub async fn reorder_knowledge_bases(
 ) -> Result<(), String> {
     axagent_dao::repo::knowledge::reorder_knowledge_bases(state.harness.db(), &base_ids)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -147,9 +170,12 @@ pub async fn list_knowledge_documents(
     state: State<'_, AppState>,
     base_id: String,
 ) -> Result<Vec<KnowledgeDocument>, String> {
-    axagent_dao::repo::knowledge::list_documents(state.harness.db(), &base_id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::knowledge::list_documents(state.harness.db(), &base_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -170,12 +196,22 @@ pub async fn add_knowledge_document(
         None, // doc_type defaults to "file"
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 将文档状态标记为pending（等待队列处理）
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if kb.embedding_provider.is_some() {
         let _ = axagent_dao::repo::knowledge::update_document_status(
@@ -194,7 +230,12 @@ pub async fn add_knowledge_document(
             None,
             None,
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     Ok(doc)
@@ -231,7 +272,12 @@ pub async fn import_knowledge_directory(
 
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let has_embedding = kb.embedding_provider.is_some();
 
     let mut result = ImportDirectoryResult {
@@ -313,9 +359,12 @@ pub async fn delete_knowledge_document(
     let collection_id = format!("kb_{}", base_id);
     let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
 
-    axagent_dao::repo::knowledge::delete_document(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::knowledge::delete_document(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -334,12 +383,22 @@ pub async fn search_knowledge_base(
         top_k.unwrap_or(5),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Apply distance threshold filter consistent with collect_rag_context
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let default_max_distance = 2.0_f32;
     let threshold = kb.retrieval_threshold.unwrap_or(0.0);
     let effective_threshold = if threshold > 0.0 {
@@ -360,7 +419,12 @@ pub async fn rebuild_knowledge_index(
 ) -> Result<(), String> {
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let embedding_provider = kb.embedding_provider.ok_or("No embedding provider configured")?;
 
@@ -369,7 +433,12 @@ pub async fn rebuild_knowledge_index(
     // Get all documents
     let docs = axagent_dao::repo::knowledge::list_documents(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if docs.is_empty() {
         let _ = app.emit("knowledge-rebuild-complete", serde_json::json!({ "baseId": base_id }));
@@ -524,20 +593,33 @@ pub async fn list_knowledge_containers(
 
     let kbs = axagent_dao::repo::knowledge::list_knowledge_bases(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     for kb in kbs {
         containers.push(KnowledgeContainer::from_knowledge_base(&kb));
     }
 
-    let namespaces = axagent_dao::repo::memory::list_namespaces(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let namespaces =
+        axagent_dao::repo::memory::list_namespaces(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     for ns in namespaces {
         containers.push(KnowledgeContainer::from_memory_ns(&ns));
     }
 
-    let wikis =
-        axagent_dao::repo::wiki::list_wikis(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let wikis = axagent_dao::repo::wiki::list_wikis(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     for wiki in wikis {
         containers.push(KnowledgeContainer::from_wiki(&wiki));
     }
@@ -554,7 +636,12 @@ pub async fn list_knowledge_entities(
 ) -> Result<Vec<axagent_harness::types::KnowledgeEntity>, String> {
     axagent_dao::repo::knowledge_graph::list_knowledge_entities(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -564,7 +651,12 @@ pub async fn create_knowledge_entity(
 ) -> Result<axagent_harness::types::KnowledgeEntity, String> {
     axagent_dao::repo::knowledge_graph::create_knowledge_entity(state.harness.db(), input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -574,7 +666,12 @@ pub async fn list_knowledge_attributes(
 ) -> Result<Vec<axagent_harness::types::KnowledgeAttribute>, String> {
     axagent_dao::repo::knowledge_graph::list_knowledge_attributes(state.harness.db(), &entity_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -584,7 +681,12 @@ pub async fn create_knowledge_attribute(
 ) -> Result<axagent_harness::types::KnowledgeAttribute, String> {
     axagent_dao::repo::knowledge_graph::create_knowledge_attribute(state.harness.db(), input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -594,7 +696,12 @@ pub async fn list_knowledge_relations(
 ) -> Result<Vec<axagent_harness::types::KnowledgeRelation>, String> {
     axagent_dao::repo::knowledge_graph::list_knowledge_relations(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -604,7 +711,12 @@ pub async fn create_knowledge_relation(
 ) -> Result<axagent_harness::types::KnowledgeRelation, String> {
     axagent_dao::repo::knowledge_graph::create_knowledge_relation(state.harness.db(), input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -614,7 +726,12 @@ pub async fn list_knowledge_flows(
 ) -> Result<Vec<axagent_harness::types::KnowledgeFlow>, String> {
     axagent_dao::repo::knowledge_graph::list_knowledge_flows(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -624,7 +741,12 @@ pub async fn create_knowledge_flow(
 ) -> Result<axagent_harness::types::KnowledgeFlow, String> {
     axagent_dao::repo::knowledge_graph::create_knowledge_flow(state.harness.db(), input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -634,7 +756,12 @@ pub async fn list_knowledge_interfaces(
 ) -> Result<Vec<axagent_harness::types::KnowledgeInterface>, String> {
     axagent_dao::repo::knowledge_graph::list_knowledge_interfaces(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -644,7 +771,12 @@ pub async fn create_knowledge_interface(
 ) -> Result<axagent_harness::types::KnowledgeInterface, String> {
     axagent_dao::repo::knowledge_graph::create_knowledge_interface(state.harness.db(), input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -654,12 +786,22 @@ pub async fn clear_knowledge_index(
 ) -> Result<(), String> {
     let collection_id = format!("kb_{}", base_id);
     // Only clear embeddings (vec0), keep chunk metadata (_meta) intact
-    state.vector_store.clear_embeddings(&collection_id).await.map_err(|e| e.to_string())?;
+    state.vector_store.clear_embeddings(&collection_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Reset all documents to "pending"
     let docs = axagent_dao::repo::knowledge::list_documents(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     for doc in docs {
         let _ = axagent_dao::repo::knowledge::update_document_status(
@@ -680,11 +822,12 @@ pub async fn list_knowledge_document_chunks(
     document_id: String,
 ) -> Result<Vec<axagent_search::vector_store::VectorSearchResult>, String> {
     let collection_id = format!("kb_{}", base_id);
-    state
-        .vector_store
-        .list_document_chunks(&collection_id, &document_id)
-        .await
-        .map_err(|e| e.to_string())
+    state.vector_store.list_document_chunks(&collection_id, &document_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -694,7 +837,12 @@ pub async fn delete_knowledge_chunk(
     chunk_id: String,
 ) -> Result<(), String> {
     let collection_id = format!("kb_{}", base_id);
-    state.vector_store.delete_chunk(&collection_id, &chunk_id).await.map_err(|e| e.to_string())
+    state.vector_store.delete_chunk(&collection_id, &chunk_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -706,16 +854,24 @@ pub async fn update_knowledge_chunk(
     content: String,
 ) -> Result<(), String> {
     let collection_id = format!("kb_{}", base_id);
-    state
-        .vector_store
-        .update_chunk_content(&collection_id, &chunk_id, &content)
-        .await
-        .map_err(|e| e.to_string())?;
+    state.vector_store.update_chunk_content(&collection_id, &chunk_id, &content).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
 
     // Auto-reindex: re-embed the chunk with the updated content
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if let Some(embedding_provider) = kb.embedding_provider {
         let db = state.harness.db().clone();
@@ -772,7 +928,12 @@ pub async fn add_knowledge_chunk(
 ) -> Result<String, String> {
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let embedding_provider =
         kb.embedding_provider.ok_or_else(|| "No embedding provider configured".to_string())?;
@@ -816,8 +977,18 @@ pub async fn add_knowledge_chunk(
         Ok::<String, axagent_harness::core_error::AxAgentError>(chunk_id)
     })
     .await
-    .map_err(|e| e.to_string())?
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(chunk_id_result)
 }
@@ -831,7 +1002,12 @@ pub async fn reindex_knowledge_chunk(
 ) -> Result<(), String> {
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let embedding_provider =
         kb.embedding_provider.ok_or_else(|| "No embedding provider configured".to_string())?;
@@ -857,9 +1033,19 @@ pub async fn reindex_knowledge_chunk(
                 vec![chunk_id.clone().into()],
             ))
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?
             .ok_or_else(|| format!("Chunk {} not found", chunk_id))?;
-        row.try_get::<String>("", "content").map_err(|e| e.to_string())?
+        row.try_get::<String>("", "content").map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
     };
 
     // Embed the single chunk
@@ -915,17 +1101,26 @@ pub async fn rebuild_knowledge_document(
 ) -> Result<(), String> {
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let embedding_provider = kb.embedding_provider.ok_or("No embedding provider configured")?;
 
     let collection_id = format!("kb_{}", base_id);
 
-    let chunks = state
-        .vector_store
-        .list_document_chunks_raw(&collection_id, &document_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let chunks =
+        state.vector_store.list_document_chunks_raw(&collection_id, &document_id).await.map_err(
+            |e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            },
+        )?;
 
     if chunks.is_empty() {
         let _ = app.emit(

@@ -93,7 +93,12 @@ pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>
         .order_by(axagent_entities::wikis::Column::CreatedAt, sea_orm::Order::Desc)
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(wikis.into_iter().map(WikiOutput::from).collect())
 }
@@ -119,8 +124,12 @@ pub async fn llm_wiki_create(
         embedding_provider: input.embedding_provider,
     };
 
-    let model =
-        wiki::create_wiki(state.harness.db(), wiki_input).await.map_err(|e| e.to_string())?;
+    let model = wiki::create_wiki(state.harness.db(), wiki_input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(WikiOutput {
         id: model.id,
@@ -140,7 +149,12 @@ pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Res
     let collection_id = format!("wiki_{}", wiki_id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
-    wiki::delete_wiki(state.harness.db(), &wiki_id).await.map_err(|e| e.to_string())
+    wiki::delete_wiki(state.harness.db(), &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -154,7 +168,12 @@ pub async fn llm_wiki_operations_list(
         .limit(100)
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(operations.into_iter().map(WikiOperationOutput::from).collect())
 }
@@ -217,7 +236,12 @@ pub async fn llm_wiki_ingest(
     if !result.generated_note_ids.is_empty() {
         let wiki = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
         if wiki.embedding_provider.is_some() {
             let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
@@ -340,16 +364,27 @@ async fn build_llm_adapter(
 ) -> Result<(Arc<dyn ProviderAdapter>, ProviderRequestContext, String), String> {
     let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
 
-    let provider = axagent_dao::repo::provider::get_provider(db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let provider =
+        axagent_dao::repo::provider::get_provider(db, &provider_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
-    let key = axagent_dao::repo::provider::get_active_key(db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let key = axagent_dao::repo::provider::get_active_key(db, &provider_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
-    let api_key =
-        axagent_crypto::decrypt_key(&key.key_encrypted, master_key).map_err(|e| e.to_string())?;
+    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, master_key).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
 
@@ -383,7 +418,12 @@ pub async fn llm_wiki_compile(
 ) -> Result<CompileResultOutput, String> {
     let wiki_model = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let embedding_provider = wiki_model.embedding_provider.clone().ok_or_else(|| {
         "Wiki has no embedding_provider configured. Set one in wiki settings.".to_string()
@@ -416,7 +456,12 @@ pub async fn llm_wiki_compile(
     if !pages_to_index.is_empty() {
         let wiki = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
         if wiki.embedding_provider.is_some() {
             let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
@@ -540,7 +585,12 @@ pub async fn llm_wiki_query(
 ) -> Result<QueryResultOutput, String> {
     let wiki = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let ctx = query_engine::QueryContext {
         query: input.query.clone(),
@@ -618,7 +668,12 @@ async fn generate_query_embedding(
         dims,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     embed_response
         .embeddings
@@ -644,7 +699,12 @@ impl query_engine::VectorSearch for WikiVectorSearchAdapter {
             .vector_store
             .search(&collection_id, query_embedding.to_vec(), top_k)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
         Ok(results.into_iter().map(|r| (r.document_id, r.score as f64)).collect())
     }
@@ -693,7 +753,12 @@ pub async fn llm_wiki_get_schema(
     let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
     let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db)));
     let manager = schema_manager::SchemaManager::new(note_repo, wiki_repo);
-    manager.get_current_schema(&wiki_id).await.map_err(|e| e.to_string())
+    manager.get_current_schema(&wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -712,10 +777,12 @@ pub async fn llm_wiki_validate_frontmatter(
     let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
     let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db)));
     let manager = schema_manager::SchemaManager::new(note_repo, wiki_repo);
-    manager
-        .validate_frontmatter(&input.wiki_id, &input.frontmatter)
-        .await
-        .map_err(|e| e.to_string())
+    manager.validate_frontmatter(&input.wiki_id, &input.frontmatter).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -729,7 +796,12 @@ pub async fn llm_wiki_create_schema_version(
     let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(Arc::new(db.clone())));
     let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(Arc::new(db)));
     let manager = schema_manager::SchemaManager::new(note_repo, wiki_repo);
-    manager.create_schema_version(&wiki_id, &version, description).await.map_err(|e| e.to_string())
+    manager.create_schema_version(&wiki_id, &version, description).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -746,17 +818,37 @@ pub async fn llm_wiki_update_schema(
 ) -> Result<(), String> {
     let wiki = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
     if let Some(parent) = schema_path.parent() {
-        tokio::fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
+        tokio::fs::create_dir_all(parent).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
-    tokio::fs::write(&schema_path, &input.content).await.map_err(|e| e.to_string())?;
+    tokio::fs::write(&schema_path, &input.content).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut am = wiki.into_active_model();
     am.updated_at = Set(chrono::Utc::now().timestamp());
-    am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+    am.update(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(())
 }
@@ -768,11 +860,21 @@ pub async fn llm_wiki_delete_schema(
 ) -> Result<(), String> {
     let wiki = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let schema_path = std::path::PathBuf::from(&wiki.root_path).join("SCHEMA.md");
     if schema_path.exists() {
-        tokio::fs::remove_file(&schema_path).await.map_err(|e| e.to_string())?;
+        tokio::fs::remove_file(&schema_path).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     Ok(())
@@ -821,7 +923,12 @@ pub async fn llm_wiki_ask(
 ) -> Result<String, String> {
     let wiki_model = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &wiki_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let embedding_provider = wiki_model
         .embedding_provider
@@ -859,12 +966,22 @@ pub async fn write_base64_to_file(
 ) -> Result<String, String> {
     let wiki = axagent_dao::repo::wiki::get_wiki_model(state.harness.db(), &input.wiki_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let bytes = base64_decode(&input.base64_content)?;
 
     let raw_dir = std::path::PathBuf::from(&wiki.root_path).join("raw");
-    tokio::fs::create_dir_all(&raw_dir).await.map_err(|e| e.to_string())?;
+    tokio::fs::create_dir_all(&raw_dir).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if input.file_name.contains("..")
         || input.file_name.contains('/')
@@ -874,7 +991,12 @@ pub async fn write_base64_to_file(
     }
 
     let file_path = raw_dir.join(&input.file_name);
-    tokio::fs::write(&file_path, &bytes).await.map_err(|e| e.to_string())?;
+    tokio::fs::write(&file_path, &bytes).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let _source_content =
         String::from_utf8(bytes).unwrap_or_else(|_| "[Binary content]".to_string());
@@ -922,7 +1044,12 @@ pub async fn wiki_sync_process_pending(
         .filter(wiki_sync_queue::Column::Status.eq("pending"))
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let mut processed = 0;
     for item in pending {
@@ -933,7 +1060,12 @@ pub async fn wiki_sync_process_pending(
         let item_clone = item.clone();
         let mut am = item.into_active_model();
         am.status = Set("processing".to_string());
-        am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+        am.update(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
         match process_sync_event(
             state.harness.db(),
@@ -947,7 +1079,12 @@ pub async fn wiki_sync_process_pending(
                 let mut am = item_clone.clone().into_active_model();
                 am.status = Set("completed".to_string());
                 am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-                am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+                am.update(state.harness.db()).await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
                 processed += 1;
             },
             Err(e) => {
@@ -955,7 +1092,12 @@ pub async fn wiki_sync_process_pending(
                 am.status = Set("failed".to_string());
                 am.error_message = Set(Some(e.to_string()));
                 am.retry_count = Set(item_clone.retry_count + 1);
-                am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+                am.update(state.harness.db()).await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
             },
         }
     }
@@ -988,10 +1130,13 @@ pub async fn wiki_sync_enqueue(
         ..Default::default()
     };
 
-    let result = wiki_sync_queue::Entity::insert(model)
-        .exec(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let result =
+        wiki_sync_queue::Entity::insert(model).exec(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(result.last_insert_id)
 }
@@ -1014,7 +1159,12 @@ pub async fn wiki_sync_get_queue(
         .limit(100)
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -1022,13 +1172,23 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
     let model = wiki_sync_queue::Entity::find_by_id(queue_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Queue item not found".to_string())?;
 
     let model_clone = model.clone();
     let mut am = model.into_active_model();
     am.status = Set("processing".to_string());
-    am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+    am.update(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let result = process_sync_event(
         state.harness.db(),
@@ -1043,7 +1203,12 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             let mut am = model_clone.clone().into_active_model();
             am.status = Set("completed".to_string());
             am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+            am.update(state.harness.db()).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             Ok(())
         },
         Err(e) => {
@@ -1051,7 +1216,12 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             am.status = Set("failed".to_string());
             am.error_message = Set(Some(e.to_string()));
             am.retry_count = Set(model_clone.retry_count + 1);
-            am.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+            am.update(state.harness.db()).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             Err(e.to_string())
         },
     }
@@ -1136,9 +1306,12 @@ pub async fn wiki_check_capacity(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<axagent_search::rag::CapacityCheckResult, String> {
-    axagent_search::rag::check_vault_rag_capacity(state.harness.db(), &wiki_id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_search::rag::check_vault_rag_capacity(state.harness.db(), &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -1146,9 +1319,12 @@ pub async fn wiki_get_capacity_info(
     state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<axagent_search::rag::VaultCapacityInfo, String> {
-    axagent_search::rag::get_vault_capacity_info(state.harness.db(), &wiki_id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_search::rag::get_vault_capacity_info(state.harness.db(), &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]

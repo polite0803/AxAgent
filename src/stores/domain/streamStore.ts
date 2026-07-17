@@ -224,6 +224,7 @@ export function removeSession(conversationId: string): void {
   if (session) {
     if (session.streamUiFlushTimer !== null) {
       clearTimeout(session.streamUiFlushTimer);
+      session.streamUiFlushTimer = null;
     }
     _streamSessions.delete(conversationId);
   }

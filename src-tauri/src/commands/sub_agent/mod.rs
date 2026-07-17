@@ -22,7 +22,12 @@ pub async fn sub_agent_get(
 ) -> Result<Value, String> {
     let registry = app_state.sub_agent_registry.read().await;
     let agent = registry.get(&agent_id).ok_or_else(|| ErrorResponse::err(agent_err::NOT_FOUND))?;
-    serde_json::to_value(agent).map_err(|e| e.to_string())
+    serde_json::to_value(agent).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取父代理的子代理

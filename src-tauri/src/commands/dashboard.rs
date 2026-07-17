@@ -28,8 +28,12 @@ pub async fn dashboard_register_plugin(
     manifest_json: String,
 ) -> Result<(), String> {
     let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
-    let manifest: DashboardPluginManifest =
-        serde_json::from_str(&manifest_json).map_err(|e| e.to_string())?;
+    let manifest: DashboardPluginManifest = serde_json::from_str(&manifest_json).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let frontend_entry = manifest.frontend_entry.clone();
     let plugin = DashboardPluginAdapter::new(manifest, move |panel_id, props| {
@@ -99,7 +103,12 @@ pub async fn dashboard_open_plugins_folder(app: tauri::AppHandle) -> Result<(), 
     let dir = default_plugins_dir();
     std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugins dir: {}", e))?;
     use tauri_plugin_opener::OpenerExt;
-    app.opener().reveal_item_in_dir(&dir).map_err(|e| e.to_string())
+    app.opener().reveal_item_in_dir(&dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -191,10 +200,13 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
     let db = state.harness.db();
 
     // 会话总数
-    let total_conversations = axagent_entities::conversations::Entity::find()
-        .count(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let total_conversations =
+        axagent_entities::conversations::Entity::find().count(db).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 消息聚合查询：COUNT + SUM tokens，避免全表加载到内存
     let msg_stats = db
@@ -209,7 +221,12 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
             vec![],
         ))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let first_row = msg_stats.first();
     let total_messages: i64 =
@@ -240,7 +257,12 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
             vec![today_start_millis.into()],
         ))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let today_row = today_msg_stats.first();
     let today_messages: i64 =
         today_row.and_then(|r| r.try_get("", "today_messages").ok()).unwrap_or(0);
@@ -264,7 +286,7 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
             vec![],
         ))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let session_row = session_stats.first();
     let total_agent_sessions: i64 =
@@ -279,10 +301,13 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
         session_row.and_then(|r| r.try_get("", "failed").ok()).unwrap_or(0);
 
     // 工具调用统计
-    let total_tool_calls = axagent_entities::tool_executions::Entity::find()
-        .count(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let total_tool_calls =
+        axagent_entities::tool_executions::Entity::find().count(db).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(DashboardStats {
         total_conversations: total_conversations as i64,
@@ -322,7 +347,12 @@ pub async fn get_cost_by_provider(
             vec![],
         ))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let results: Vec<axagent_harness::types::CostByProvider> = rows
         .iter()
@@ -344,5 +374,10 @@ pub async fn get_usage_trend(
 ) -> Result<Vec<axagent_harness::types::DailyUsage>, String> {
     let db = state.harness.db();
     let days = days.unwrap_or(30);
-    axagent_dao::repo::message::get_daily_message_usage(db, days).await.map_err(|e| e.to_string())
+    axagent_dao::repo::message::get_daily_message_usage(db, days).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

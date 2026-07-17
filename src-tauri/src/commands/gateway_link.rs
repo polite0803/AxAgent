@@ -19,7 +19,12 @@ async fn resolve_link_api_key(
             key_id,
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         Ok(Some(plain_key))
     } else {
         Ok(None)
@@ -28,9 +33,12 @@ async fn resolve_link_api_key(
 
 #[tauri::command]
 pub async fn list_gateway_links(state: State<'_, AppState>) -> Result<Vec<GatewayLink>, String> {
-    axagent_dao::repo::gateway_link::list_gateway_links(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway_link::list_gateway_links(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -48,7 +56,12 @@ pub async fn create_gateway_link(
             Some(state.harness.master_key()),
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
         CreateGatewayLinkInput {
             name: input.name,
@@ -65,14 +78,24 @@ pub async fn create_gateway_link(
 
     axagent_dao::repo::gateway_link::create_gateway_link(state.harness.db(), &resolved_input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
 pub async fn delete_gateway_link(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_dao::repo::gateway_link::delete_gateway_link(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway_link::delete_gateway_link(state.harness.db(), &id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -83,7 +106,12 @@ pub async fn toggle_gateway_link(
 ) -> Result<(), String> {
     axagent_dao::repo::gateway_link::toggle_gateway_link(state.harness.db(), &id, enabled)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -93,7 +121,12 @@ pub async fn connect_gateway_link(
 ) -> Result<GatewayLink, String> {
     let link = axagent_dao::repo::gateway_link::get_gateway_link(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     let api_key = resolve_link_api_key(&state, &link).await?;
@@ -104,7 +137,12 @@ pub async fn connect_gateway_link(
         api_key.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -112,9 +150,14 @@ pub async fn disconnect_gateway_link(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<GatewayLink, String> {
-    axagent_dao::repo::gateway_link::disconnect_gateway_link(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway_link::disconnect_gateway_link(state.harness.db(), &id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -135,7 +178,12 @@ pub async fn update_gateway_link_status(
         version.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -152,7 +200,12 @@ pub async fn update_gateway_link_sync_settings(
         auto_sync_skills,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -162,7 +215,12 @@ pub async fn get_gateway_link_model_syncs(
 ) -> Result<Vec<GatewayLinkModelSync>, String> {
     axagent_dao::repo::gateway_link::get_gateway_link_model_syncs(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -173,7 +231,12 @@ pub async fn push_gateway_link_models(
 ) -> Result<(), String> {
     let link = axagent_dao::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     let api_key = resolve_link_api_key(&state, &link).await?;
@@ -185,7 +248,12 @@ pub async fn push_gateway_link_models(
         api_key.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -195,7 +263,12 @@ pub async fn sync_all_gateway_link_models(
 ) -> Result<(), String> {
     let link = axagent_dao::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     let api_key = resolve_link_api_key(&state, &link).await?;
@@ -206,7 +279,12 @@ pub async fn sync_all_gateway_link_models(
         api_key.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -216,7 +294,12 @@ pub async fn get_gateway_link_skill_syncs(
 ) -> Result<Vec<GatewayLinkSkillSync>, String> {
     let link = axagent_dao::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     let api_key = resolve_link_api_key(&state, &link).await?;
@@ -227,7 +310,12 @@ pub async fn get_gateway_link_skill_syncs(
         api_key.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -238,7 +326,12 @@ pub async fn push_gateway_link_skills(
 ) -> Result<(), String> {
     let link = axagent_dao::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     let api_key = resolve_link_api_key(&state, &link).await?;
@@ -250,7 +343,12 @@ pub async fn push_gateway_link_skills(
         api_key.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -260,7 +358,12 @@ pub async fn sync_all_gateway_link_skills(
 ) -> Result<(), String> {
     let link = axagent_dao::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     let api_key = resolve_link_api_key(&state, &link).await?;
@@ -271,7 +374,12 @@ pub async fn sync_all_gateway_link_skills(
         api_key.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -281,7 +389,12 @@ pub async fn get_gateway_link_policy(
 ) -> Result<Option<GatewayLinkPolicy>, String> {
     axagent_dao::repo::gateway_link::get_gateway_link_policy(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -292,7 +405,12 @@ pub async fn save_gateway_link_policy(
 ) -> Result<GatewayLinkPolicy, String> {
     axagent_dao::repo::gateway_link::save_gateway_link_policy(state.harness.db(), &link_id, &input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -302,7 +420,12 @@ pub async fn get_gateway_link_activities(
 ) -> Result<Vec<GatewayLinkActivity>, String> {
     axagent_dao::repo::gateway_link::get_gateway_link_activities(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -312,7 +435,12 @@ pub async fn create_gateway_conversation(
 ) -> Result<String, String> {
     let link = axagent_dao::repo::gateway_link::get_gateway_link(state.harness.db(), &link_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "Gateway link not found".to_string())?;
 
     if link.status != "connected" {
@@ -327,7 +455,12 @@ pub async fn create_gateway_conversation(
         None,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(conversation.id)
 }

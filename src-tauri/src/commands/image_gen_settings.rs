@@ -71,9 +71,19 @@ async fn load_api_key(
 pub async fn get_image_gen_config(state: State<'_, AppState>) -> Result<ImageGenConfig, String> {
     let path = get_image_gen_config_path();
     let mut config = if path.exists() {
-        let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(&path).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         serde_json::from_str::<ImageGenConfig>(&content)
-            .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
             .unwrap_or_default()
     } else {
         ImageGenConfig::default()
@@ -109,7 +119,12 @@ pub async fn save_image_gen_config(
             CRED_NAME_FLUX.to_string(),
             CredentialType::BearerToken { token: flux_token },
         );
-        state.credential_manager.save_credential(&cred).await.map_err(|e| e.to_string())?;
+        state.credential_manager.save_credential(&cred).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     if !openai_key.is_empty() {
@@ -118,7 +133,12 @@ pub async fn save_image_gen_config(
             CRED_NAME_OPENAI.to_string(),
             CredentialType::BearerToken { token: openai_key },
         );
-        state.credential_manager.save_credential(&cred).await.map_err(|e| e.to_string())?;
+        state.credential_manager.save_credential(&cred).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     // 2. 保存非敏感字段到 JSON 配置（清空 key 字段，已转存到 credential 系统）
@@ -126,6 +146,16 @@ pub async fn save_image_gen_config(
         ImageGenConfig { flux_api_token: String::new(), openai_api_key: String::new(), ..config };
 
     let path = get_image_gen_config_path();
-    let content = serde_json::to_string_pretty(&json_config).map_err(|e| e.to_string())?;
-    fs::write(&path, content).map_err(|e| e.to_string())
+    let content = serde_json::to_string_pretty(&json_config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    fs::write(&path, content).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

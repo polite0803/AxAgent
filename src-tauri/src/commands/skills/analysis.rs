@@ -17,7 +17,12 @@ pub async fn skill_analyze_frontend(
     // 读取技能内容
     // P2 #7: 使用 SkillState 中缓存的 PluginManager
     let plugin_manager = state.skill.plugin_manager.read().await;
-    let report = plugin_manager.plugin_registry_report().map_err(|e| e.to_string())?;
+    let report = plugin_manager.plugin_registry_report().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let plugins = report.into_registry_allowing_failures();
     let plugin = plugins
         .summaries()
@@ -47,9 +52,13 @@ pub async fn skill_analyze_frontend(
     }
 
     // 获取默认 Provider 配置
-    let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let provider_id = settings.default_provider_id.as_ref().ok_or_else(|| {
         ErrorResponse::new(skill_err::MODEL_PROVIDER_NOT_CONFIGURED)
             .with_detail("未配置默认模型提供商".to_string())
@@ -61,12 +70,27 @@ pub async fn skill_analyze_frontend(
 
     let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &provider.id)
         .await
-        .map_err(|e| e.to_string())?;
-    let decrypted_key = decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let decrypted_key =
+        decrypt_key(&key_row.key_encrypted, state.harness.master_key()).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let registry_key = match provider.provider_type {
         ProviderType::OpenAI => "openai",
@@ -300,16 +324,25 @@ fn extract_json(content: &str) -> &str {
 pub fn skill_read_asset(name: String, file_name: String) -> Result<String, ErrorResponse> {
     // P1 #3: 对 name 参数增加路径遍历校验（防止 ../../ 跳出 skills 目录）
     if name.contains("..") || name.contains('\\') || name.contains('/') || name.is_empty() {
-        return Err("Invalid name: path traversal or empty".into());
+        return Err(crate::commands::error::ErrorResponse::from_error(
+            "Invalid name: path traversal or empty".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        ));
     }
     if name.len() >= 2 {
         let b = name.as_bytes();
         if b[0].is_ascii_alphabetic() && b[1] == b':' {
-            return Err("Invalid name: absolute path not allowed".into());
+            return Err(crate::commands::error::ErrorResponse::from_error(
+                "Invalid name: absolute path not allowed".to_string(),
+                crate::commands::error::ErrorCategory::Validation,
+            ));
         }
     }
     if name.starts_with('/') {
-        return Err("Invalid name: absolute path not allowed".into());
+        return Err(crate::commands::error::ErrorResponse::from_error(
+            "Invalid name: absolute path not allowed".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        ));
     }
 
     // P1 #3: 对 file_name 参数增加独立的路径遍历校验
@@ -318,17 +351,26 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Error
         || file_name.contains('/')
         || file_name.is_empty()
     {
-        return Err("Invalid file_name: path traversal or empty".into());
+        return Err(crate::commands::error::ErrorResponse::from_error(
+            "Invalid file_name: path traversal or empty".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        ));
     }
     // 拒绝绝对路径（Windows 盘符或 Unix 根路径）
     if file_name.len() >= 2 {
         let b = file_name.as_bytes();
         if b[0].is_ascii_alphabetic() && b[1] == b':' {
-            return Err("Invalid file_name: absolute path not allowed".into());
+            return Err(crate::commands::error::ErrorResponse::from_error(
+                "Invalid file_name: absolute path not allowed".to_string(),
+                crate::commands::error::ErrorCategory::Validation,
+            ));
         }
     }
     if file_name.starts_with('/') {
-        return Err("Invalid file_name: absolute path not allowed".into());
+        return Err(crate::commands::error::ErrorResponse::from_error(
+            "Invalid file_name: absolute path not allowed".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        ));
     }
 
     let skill_dir = skills_dir().join(&name);
@@ -338,11 +380,24 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Error
 
     // 安全检查：防止路径遍历攻击
     let requested = skill_dir.join(&file_name);
-    let canonical_dir = skill_dir.canonicalize().map_err(|e| e.to_string())?;
-    let canonical_requested = requested.canonicalize().map_err(|e| e.to_string())?;
+    let canonical_dir = skill_dir.canonicalize().map_err(|e| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+    })?;
+    let canonical_requested = requested.canonicalize().map_err(|e| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+    })?;
 
     if !canonical_requested.starts_with(&canonical_dir) {
-        return Err("Access denied: file is outside skill directory".into());
+        return Err(crate::commands::error::ErrorResponse::from_error(
+            "Access denied: file is outside skill directory".to_string(),
+            crate::commands::error::ErrorCategory::PermissionDenied,
+        ));
     }
 
     if !canonical_requested.is_file() {
@@ -359,5 +414,10 @@ pub fn skill_read_asset(name: String, file_name: String) -> Result<String, Error
         return Err(format!("File type '{}' is not allowed for direct reading", ext).into());
     }
 
-    Ok(std::fs::read_to_string(&canonical_requested).map_err(|e| e.to_string())?)
+    std::fs::read_to_string(&canonical_requested).map_err(|e| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+    })
 }

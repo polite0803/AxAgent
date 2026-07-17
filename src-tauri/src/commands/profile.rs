@@ -10,7 +10,12 @@ pub async fn profile_list(
     manager: State<'_, Arc<Mutex<ProfileManager>>>,
 ) -> Result<Vec<axagent_runtime::profile::ProfileInfo>, String> {
     let mgr = manager.lock().await;
-    mgr.list().await.map_err(|e| e.to_string())
+    mgr.list().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -20,7 +25,12 @@ pub async fn profile_create(
     display_name: String,
 ) -> Result<axagent_runtime::profile::ProfileInfo, String> {
     let mgr = manager.lock().await;
-    mgr.create(&name, &display_name).await.map_err(|e| e.to_string())
+    mgr.create(&name, &display_name).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -29,7 +39,12 @@ pub async fn profile_delete(
     name: String,
 ) -> Result<(), String> {
     let mgr = manager.lock().await;
-    mgr.delete(&name).await.map_err(|e| e.to_string())
+    mgr.delete(&name).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -38,7 +53,12 @@ pub async fn profile_switch(
     name: String,
 ) -> Result<(), String> {
     let mgr = manager.lock().await;
-    mgr.set_active(&name).await.map_err(|e| e.to_string())
+    mgr.set_active(&name).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -46,5 +66,10 @@ pub async fn profile_active(
     manager: State<'_, Arc<Mutex<ProfileManager>>>,
 ) -> Result<axagent_runtime::profile::ProfileInfo, String> {
     let mgr = manager.lock().await;
-    mgr.active_info().await.map_err(|e| e.to_string())
+    mgr.active_info().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

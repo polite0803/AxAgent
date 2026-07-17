@@ -17,11 +17,11 @@
 //!
 //! // 带分类 + 详情的错误
 //! return Err(CommandError::new(error_code::tool::EXECUTION_TIMEOUT)
-//!     .with_category(ErrorCategory::Retryable)
+//!     .with_category(crate::commands::error::ErrorCategory::Retryable)
 //!     .with_detail("Tool execution timed out after 30s".to_string()));
 //!
-//! // 从已有错误转换（替代 .map_err(|e| e.to_string())）
-//! some_op().map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?;
+//! // 从已有错误转换（替代 .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))）
+//! some_op().map_err(|e| CommandError::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable))?;
 //! ```
 
 use serde::{Deserialize, Serialize};
@@ -73,7 +73,12 @@ pub type CommandError = ErrorResponse;
 impl ErrorResponse {
     /// 创建新的错误响应（默认分类为 General）
     pub fn new(code: impl Into<String>) -> Self {
-        Self { code: code.into(), category: ErrorCategory::General, detail: None, params: None }
+        Self {
+            code: code.into(),
+            category: crate::commands::error::ErrorCategory::General,
+            detail: None,
+            params: None,
+        }
     }
 
     /// 创建带分类的错误响应
@@ -121,9 +126,9 @@ impl ErrorResponse {
 
     /// 从任意可 Display 的错误创建 CommandError。
     ///
-    /// 用于替换 `.map_err(|e| e.to_string())` 模式：
+    /// 用于替换 `.map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))` 模式：
     /// ```rust
-    /// some_op().map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?;
+    /// some_op().map_err(|e| CommandError::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable))?;
     /// ```
     pub fn from_error(e: impl std::fmt::Display, category: ErrorCategory) -> Self {
         Self {
@@ -203,7 +208,7 @@ impl std::fmt::Display for ErrorResponse {
 impl std::error::Error for ErrorResponse {}
 
 /// 脱敏错误信息：阻止常见的内部路径泄露到前端。
-/// 使用 `map_err(sanitize_error)` 包装 `.map_err(|e| e.to_string())` 调用。
+/// 使用 `map_err(sanitize_error)` 包装 `.map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))` 调用。
 ///
 /// 注：当前调用点尚未完成迁移，暂用 `#[allow(dead_code)]` 保留；待后续
 /// 统一切换到脱敏管线时移除该属性。

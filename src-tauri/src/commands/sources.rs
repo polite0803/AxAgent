@@ -129,7 +129,12 @@ pub async fn create_source(
                 },
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             Ok(UnifiedSource::from(KnowledgeContainer::from_knowledge_base(&kb)))
         },
         "memory" => {
@@ -147,7 +152,12 @@ pub async fn create_source(
                 },
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             Ok(UnifiedSource::from(KnowledgeContainer::from_memory_ns(&ns)))
         },
         "wiki" => {
@@ -164,7 +174,12 @@ pub async fn create_source(
                 },
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             Ok(UnifiedSource::from(KnowledgeContainer::from_wiki(&wiki)))
         },
         _ => Err(format!("unknown source_type: {}", input.source_type)),
@@ -183,15 +198,28 @@ pub async fn get_source_config(
         "knowledge" => axagent_dao::repo::knowledge::get_knowledge_base(db, &container_id)
             .await
             .map(|kb| kb.source_config())
-            .map_err(|e| e.to_string())?,
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?,
         "memory" => axagent_dao::repo::memory::get_namespace(db, &container_id)
             .await
             .map(|ns| ns.source_config())
-            .map_err(|e| e.to_string())?,
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?,
         "wiki" => {
-            let w = axagent_dao::repo::wiki::get_wiki(db, &container_id)
-                .await
-                .map_err(|e| e.to_string())?;
+            let w = axagent_dao::repo::wiki::get_wiki(db, &container_id).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             w.source_config()
         },
         _ => return Err(format!("Unknown container type: {}", container_type)),

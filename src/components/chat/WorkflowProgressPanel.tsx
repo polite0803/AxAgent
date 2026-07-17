@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import {
@@ -156,19 +157,10 @@ const DAG_HEIGHT = 220;
 // Utilities
 // ---------------------------------------------------------------------------
 
-/// 解析错误消息中的 error code，返回 i18n 翻译文本
-function translateError(errorStr: string | null, t: (key: string) => string): string {
+/// 解析步骤错误：复用统一后端错误翻译层（error.${code} → i18n），并截断超长文本。
+function translateStepError(errorStr: string | null): string {
   if (!errorStr) { return ""; }
-  try {
-    const parsed = JSON.parse(errorStr);
-    if (parsed.code) {
-      const i18nKey = `chat.workflow.errorDetail.${parsed.code}`;
-      return t(i18nKey);
-    }
-  } catch {
-    // Not JSON, return as-is
-  }
-  return errorStr;
+  return truncate(translateBackendError(errorStr), 500);
 }
 
 function truncate(str: string | null, maxLen: number): string {
@@ -557,7 +549,7 @@ const StepRow = memo(function StepRow({
             <div>
               <span className="text-red-500">{t("chat.workflow.error")}</span>
               <pre className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs max-h-32 overflow-auto whitespace-pre-wrap text-red-600 dark:text-red-400">
-                {translateError(step.error, t) || truncate(step.error, 500)}
+                {translateStepError(step.error)}
               </pre>
             </div>
           )}

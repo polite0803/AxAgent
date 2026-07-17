@@ -20,7 +20,12 @@ pub async fn get_storage_inventory() -> Result<StorageInventory, String> {
 pub async fn open_storage_directory(app: tauri::AppHandle) -> Result<(), String> {
     let root = storage_paths::documents_root();
     use tauri_plugin_opener::OpenerExt;
-    app.opener().reveal_item_in_dir(&root).map_err(|e| e.to_string())
+    app.opener().reveal_item_in_dir(&root).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // -- Change documents root --
@@ -177,10 +182,19 @@ pub async fn change_documents_root(
 
     // Persist the setting
     let db = state.harness.db();
-    let mut settings =
-        axagent_dao::repo::settings::get_settings(db).await.map_err(|e| e.to_string())?;
+    let mut settings = axagent_dao::repo::settings::get_settings(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     settings.documents_root_override = Some(new_path);
-    axagent_dao::repo::settings::save_settings(db, &settings).await.map_err(|e| e.to_string())?;
+    axagent_dao::repo::settings::save_settings(db, &settings).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Update the in-process global so subsequent calls see the new root
     storage_paths::set_documents_root(new_root);
@@ -192,10 +206,19 @@ pub async fn change_documents_root(
 #[tauri::command]
 pub async fn reset_documents_root(state: State<'_, AppState>) -> Result<(), String> {
     let db = state.harness.db();
-    let mut settings =
-        axagent_dao::repo::settings::get_settings(db).await.map_err(|e| e.to_string())?;
+    let mut settings = axagent_dao::repo::settings::get_settings(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     settings.documents_root_override = None;
-    axagent_dao::repo::settings::save_settings(db, &settings).await.map_err(|e| e.to_string())?;
+    axagent_dao::repo::settings::save_settings(db, &settings).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     storage_paths::clear_documents_root_override();
     Ok(())
@@ -224,7 +247,12 @@ pub async fn secure_store(
 ) -> Result<(), String> {
     validate_secure_key(&key)?;
     let master_key = axagent_crypto::derive_storage_master_key();
-    let encrypted = axagent_crypto::encrypt_key(&value, &master_key).map_err(|e| e.to_string())?;
+    let encrypted = axagent_crypto::encrypt_key(&value, &master_key).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     // Store encrypted value in a simple file-based DB via std::fs
     let dir = dirs::data_local_dir()
         .ok_or_else(|| "Cannot determine data directory".to_string())?
@@ -232,11 +260,26 @@ pub async fn secure_store(
         .join("secure_storage");
     let path = dir.join(format!("{key}.enc"));
     tokio::task::spawn_blocking(move || {
-        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        std::fs::write(&path, encrypted).map_err(|e| e.to_string())
+        std::fs::create_dir_all(&dir).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        std::fs::write(&path, encrypted).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?
 }
 
 /// 解密之前通过 secure_store 存储的值。
@@ -256,10 +299,25 @@ pub async fn secure_get(
     }
     let encrypted = tokio::task::spawn_blocking(move || std::fs::read_to_string(&path))
         .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     // 自动兼容 v1（SHA256）/v2（Argon2id）密钥派生
-    let decrypted = axagent_crypto::decrypt_storage_key(&encrypted).map_err(|e| e.to_string())?;
+    let decrypted = axagent_crypto::decrypt_storage_key(&encrypted).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(Some(decrypted))
 }
 
@@ -273,11 +331,21 @@ pub async fn secure_remove(_state: State<'_, AppState>, key: String) -> Result<(
     let path = dir.join(format!("{key}.enc"));
     tokio::task::spawn_blocking(move || {
         if path.exists() {
-            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+            std::fs::remove_file(&path).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         }
         Ok::<(), String>(())
     })
     .await
-    .map_err(|e| e.to_string())??;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })??;
     Ok(())
 }

@@ -6,6 +6,7 @@ import i18n from "@/i18n";
 import { invoke, isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag } from "@/lib/memoryUtils";
 import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
+import { message } from "@/lib/toast";
 import { useProviderStore } from "@/stores/feature/providerStore";
 import { useSearchStore } from "@/stores/feature/searchStore";
 import { useSettingsStore } from "@/stores/feature/settingsStore";
@@ -307,9 +308,17 @@ export function createSendMethods(
               enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
               enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
               enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
-            },
+              requirePlanApproval: useAgentStore.getState().planApprovalEnabled,
+            } as any,
           },
         });
+
+        // P0-2 plan rejected: backend returned rejected status, clean optimistic msg + toast
+        if ((userMessage as { rejected?: boolean })?.rejected) {
+          set((s) => ({ messages: s.messages.filter((m) => m.id !== optimisticUserMsg.id) }));
+          message.info(i18n.t("planApproval.rejectedToast"));
+          return;
+        }
 
         // Stale guard: if user switched conversations while send was in-flight,
         // discard the response to prevent cross-conversation message pollution.
@@ -1160,7 +1169,11 @@ export function createSendMethods(
         // We must NOT use the default 5-minute invoke timeout — the backend continues
         // running and we rely on agent-done/agent-error events for completion.
         // Setting timeoutMs=0 disables the invoke-level timeout entirely.
-        await invoke(
+        const queryResponse = await invoke<{
+          status?: string;
+          conversationId: string;
+          assistantMessageId: string;
+        }>(
           "agent_query",
           {
             request: {
@@ -1175,6 +1188,15 @@ export function createSendMethods(
           },
           0,
         );
+        // 计划确认被用户拒绝（P0-2）：后端直接返回 rejected，不会发 agent-done/agent-error
+        if (queryResponse?.status === "rejected") {
+          set((s) => ({
+            messages: s.messages.filter((m) => m.id !== currentMsgId),
+          }));
+          cleanup();
+          message.info(i18n.t("planApproval.rejectedToast"));
+          return;
+        }
         // Wait for agent-done or agent-error event
         await eventPromise;
       } catch (e) {

@@ -1,3 +1,4 @@
+use crate::commands::error::ErrorCategory;
 ﻿// SPDX-License-Identifier: AGPL-3.0-only
 
 use super::chat_message_from_message;
@@ -36,7 +37,7 @@ pub async fn list_message_versions(
         &parent_message_id,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 pub async fn switch_message_version(
@@ -52,7 +53,7 @@ pub async fn switch_message_version(
         &message_id,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 pub async fn delete_message_group(
@@ -63,7 +64,7 @@ pub async fn delete_message_group(
     let deleted =
         axagent_dao::repo::message::delete_message_group(state.harness.db(), &user_message_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     // Decrement message count by deleted count
     for _ in 0..deleted {
         axagent_dao::repo::conversation::decrement_message_count(
@@ -71,7 +72,7 @@ pub async fn delete_message_group(
             &conversation_id,
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     }
     Ok(())
 }
@@ -109,7 +110,7 @@ pub(crate) async fn do_compress(
             Ok(p) => match p.keys.first() {
                 Some(k) => {
                     let dk = axagent_crypto::decrypt_key(&k.key_encrypted, master_key)
-                        .map_err(|e| e.to_string())?;
+                        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
                     let kid = k.id.clone();
                     let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(&p.proxy_config, settings);
                     let override_umc = axagent_dao::repo::provider::get_model(db, pid, mid)
@@ -189,7 +190,8 @@ pub(crate) async fn do_compress(
         conversation: None,
         previous_response_id: None,
         store: None,
-        response_format: None,
+        
+response_format: None,
     };
 
     let ctx = ProviderRequestContext {
@@ -252,20 +254,20 @@ pub async fn compress_context(
     let conversation =
         axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Get provider + key
     let provider =
         axagent_dao::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let key_row = provider
         .keys
         .first()
         .ok_or_else(|| "No API key configured".to_string())?;
     let decrypted_key =
         axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let global_settings = axagent_dao::repo::settings::get_settings(state.harness.db())
         .await
@@ -276,7 +278,7 @@ pub async fn compress_context(
     let db_messages =
         axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let file_store = axagent_storage::file_store::FileStore::new();
 
@@ -303,7 +305,7 @@ pub async fn compress_context(
             if m.role == MessageRole::Assistant && m.tool_calls_json.is_some() {
                 continue;
             }
-            out.push(chat_message_from_message(&file_store, m).map_err(|e| e.to_string())?);
+            out.push(chat_message_from_message(&file_store, m).map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?);
         }
         Ok(out)
     };
@@ -372,7 +374,7 @@ pub async fn compress_context(
         0,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Emit events to frontend
     let _ = app.emit(&format!("conversation:compressed:{}", conversation_id), &marker_msg);
@@ -381,7 +383,7 @@ pub async fn compress_context(
     let summary =
         axagent_dao::repo::conversation::get_summary(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?
             .ok_or_else(|| "Summary not found after compression".to_string())?;
 
     Ok(summary)
@@ -394,7 +396,7 @@ pub async fn get_compression_summary(
 ) -> Result<Option<ConversationSummary>, String> {
     axagent_dao::repo::conversation::get_summary(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 /// Tauri command: delete the compression summary and all marker messages.
@@ -405,7 +407,7 @@ pub async fn delete_compression(
     // Delete the summary
     axagent_dao::repo::conversation::delete_summary(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Delete all compression marker messages
     axagent_entities::messages::Entity::delete_many()
@@ -416,7 +418,7 @@ pub async fn delete_compression(
         )
         .exec(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     Ok(())
 }
@@ -436,7 +438,7 @@ pub async fn send_system_message(
         0,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     Ok(msg)
 }

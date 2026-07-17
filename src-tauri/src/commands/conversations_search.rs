@@ -367,17 +367,45 @@ async fn execute_raw_query(
     let rows = db
         .query_all_raw(Statement::from_sql_and_values(backend, sql, values))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let mut results = Vec::with_capacity(rows.len());
     for row in rows {
-        let conversation_id: String =
-            row.try_get("", "conversation_id").map_err(|e| e.to_string())?;
-        let conversation_title: String =
-            row.try_get("", "conversation_title").map_err(|e| e.to_string())?;
-        let role: String = row.try_get("", "role").map_err(|e| e.to_string())?;
-        let snippet: String = row.try_get("", "snippet").map_err(|e| e.to_string())?;
-        let rank: f64 = row.try_get("", "rank").map_err(|e| e.to_string())?;
+        let conversation_id: String = row.try_get("", "conversation_id").map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        let conversation_title: String = row.try_get("", "conversation_title").map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        let role: String = row.try_get("", "role").map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        let snippet: String = row.try_get("", "snippet").map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        let rank: f64 = row.try_get("", "rank").map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
         results.push(SessionSearchResult {
             conversation_id,

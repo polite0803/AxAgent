@@ -144,7 +144,7 @@ pub struct McpServer {
     pub icon_value: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolDescriptor {
     pub id: String,
@@ -152,6 +152,12 @@ pub struct ToolDescriptor {
     pub name: String,
     pub description: Option<String>,
     pub input_schema_json: Option<String>,
+    /// 是否幂等（多次调用结果一致，可安全重试）
+    #[serde(default)]
+    pub idempotent: bool,
+    /// 单次调用的预估成本
+    #[serde(default)]
+    pub estimated_cost: Option<crate::tool::EstimatedCost>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

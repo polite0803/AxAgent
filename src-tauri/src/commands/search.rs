@@ -12,9 +12,14 @@ use tauri::command;
 pub async fn list_search_providers(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SearchProvider>, String> {
-    axagent_dao::repo::search_provider::list_search_providers(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::search_provider::list_search_providers(state.harness.db()).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 /// 获取单个搜索提供商
@@ -23,9 +28,14 @@ pub async fn get_search_provider(
     state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<SearchProvider, String> {
-    axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 /// 创建搜索提供商
@@ -39,14 +49,23 @@ pub async fn create_search_provider(
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
             input.api_key = Some(
-                axagent_crypto::encrypt_key(key, state.harness.master_key())
-                    .map_err(|e| e.to_string())?,
+                axagent_crypto::encrypt_key(key, state.harness.master_key()).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?,
             );
         }
     }
     axagent_dao::repo::search_provider::create_search_provider(state.harness.db(), input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 /// 更新搜索提供商
@@ -59,14 +78,23 @@ pub async fn update_search_provider(
     if let Some(ref key) = input.api_key {
         if !key.is_empty() {
             input.api_key = Some(
-                axagent_crypto::encrypt_key(key, state.harness.master_key())
-                    .map_err(|e| e.to_string())?,
+                axagent_crypto::encrypt_key(key, state.harness.master_key()).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?,
             );
         }
     }
     axagent_dao::repo::search_provider::update_search_provider(state.harness.db(), &id, input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 /// 删除搜索提供商
@@ -77,7 +105,12 @@ pub async fn delete_search_provider(
 ) -> Result<(), String> {
     axagent_dao::repo::search_provider::delete_search_provider(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 /// 获取搜索提供商的 API key
@@ -92,12 +125,22 @@ async fn get_search_api_key(
     let model = search_providers::Entity::find_by_id(id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("SearchProvider {} not found", id))?;
 
     match model.api_key_ref {
         Some(ref encrypted) if !encrypted.is_empty() => {
-            axagent_crypto::decrypt_key(encrypted, master_key).map(Some).map_err(|e| e.to_string())
+            axagent_crypto::decrypt_key(encrypted, master_key).map(Some).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         _ => Ok(None),
     }
@@ -113,7 +156,12 @@ pub async fn test_search_provider(
 
     let provider = axagent_dao::repo::search_provider::get_search_provider(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let Some(endpoint) = &provider.endpoint else {
         return Ok(
@@ -125,7 +173,12 @@ pub async fn test_search_provider(
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // Simple GET to check host reachability — doesn't validate API credentials
     match client.get(endpoint).send().await {
@@ -169,8 +222,18 @@ pub async fn execute_search(
             // 无匹配提供商 — 走 search crate 的 DDG 免费搜索
             let resp = axagent_search::search::execute_search("ddg", None, "", &query, 5, 15000)
                 .await
-                .map_err(|e| e.to_string())?;
-            return serde_json::to_value(&resp).map_err(|e| e.to_string());
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+            return serde_json::to_value(&resp).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            });
         },
     };
 
@@ -198,8 +261,18 @@ pub async fn execute_search(
             region: provider.region.clone(),
             safe_search: provider.safe_search.map(|b| if b { 1i32 } else { 0 }),
         };
-        let resp = execute_search_with_config(&config, &query).await.map_err(|e| e.to_string())?;
-        Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?)
+        let resp = execute_search_with_config(&config, &query).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        Ok(serde_json::to_value(&resp).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?)
     } else if !api_key.is_empty() && !has_endpoint {
         // 有 API Key 但没 endpoint — 走 search crate 的 provider 特定搜索
         let config = SearchServiceConfig {
@@ -211,13 +284,33 @@ pub async fn execute_search(
             region: provider.region.clone(),
             safe_search: provider.safe_search.map(|b| if b { 1i32 } else { 0 }),
         };
-        let resp = execute_search_with_config(&config, &query).await.map_err(|e| e.to_string())?;
-        Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?)
+        let resp = execute_search_with_config(&config, &query).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        Ok(serde_json::to_value(&resp).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?)
     } else {
         // 无 API Key 或无 endpoint — DDG 免费搜索降级
         let resp = axagent_search::search::execute_search("ddg", None, "", &query, 5, 15000)
             .await
-            .map_err(|e| e.to_string())?;
-        Ok(serde_json::to_value(&resp).map_err(|e| e.to_string())?)
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+        Ok(serde_json::to_value(&resp).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?)
     }
 }

@@ -11,7 +11,12 @@ pub async fn list_branches(
 ) -> Result<Vec<ConversationBranch>, String> {
     axagent_dao::repo::conversation_branch::list_branches(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -27,7 +32,12 @@ pub async fn fork_conversation(
         "Branch",
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]

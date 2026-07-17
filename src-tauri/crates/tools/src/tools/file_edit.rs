@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{
+    PermissionResult, RollbackContext, RollbackRecord, Tool, ToolCategory, ToolContext, ToolError,
+    ToolResult,
+};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024;
 
@@ -53,6 +57,41 @@ impl Tool for FileEditTool {
     }
     fn is_destructive(&self) -> bool {
         true
+    }
+
+    fn can_rollback(&self) -> bool {
+        true
+    }
+
+    fn create_rollback_before(&self, input: &Value) -> Option<RollbackRecord> {
+        let file_path = input["file_path"].as_str()?;
+        let old_content = std::fs::read_to_string(file_path).ok()?;
+        Some(RollbackRecord {
+            tool_name: self.name().to_string(),
+            input: input.clone(),
+            payload: serde_json::json!({
+                "file_path": file_path,
+                "old_content": old_content,
+            }),
+            created_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis()
+                as i64,
+        })
+    }
+
+    fn execute_rollback(
+        &self,
+        record: RollbackRecord,
+        _ctx: &RollbackContext,
+    ) -> Result<ToolResult, ToolError> {
+        let file_path = record.payload["file_path"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input("execute_rollback: 缺少 file_path"))?;
+        let old_content = record.payload["old_content"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input("execute_rollback: 缺少 old_content"))?;
+        std::fs::write(file_path, old_content)
+            .map_err(|e| ToolError::execution_failed(format!("回滚写入失败: {}", e)))?;
+        Ok(ToolResult::success(format!("✅ 已回滚文件编辑: {}", file_path)))
     }
 
     async fn validate(&self, input: &Value, ctx: &ToolContext) -> Result<(), ToolError> {

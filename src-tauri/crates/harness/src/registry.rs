@@ -69,8 +69,31 @@ pub trait ToolRegistry: Send + Sync {
         // 输入验证
         tool.validate(&input, ctx).await?;
 
+        // 创建回滚快照（call 之前快照原始状态）
+        let rollback_record = if let Some(ref _stack) = ctx.rollback_stack {
+            if tool.can_rollback() {
+                tool.create_rollback_before(&input)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         // 核心调用
         let mut result = tool.call(input, ctx).await?;
+
+        // 将回滚记录推入栈
+        if let Some(record) = rollback_record
+            && let Some(ref stack) = ctx.rollback_stack
+            && let Ok(mut guard) = stack.lock()
+        {
+            tracing::debug!(
+                tool_name = %tool.name(),
+                "Rollback: record pushed to stack"
+            );
+            guard.push(record);
+        }
 
         // 输出脱敏
         if let Some(ref sanitizer) = ctx.output_sanitizer {

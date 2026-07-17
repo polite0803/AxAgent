@@ -16,6 +16,11 @@ export default defineConfig({
     baseURL: "http://localhost:1420",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    ...(process.env.PW_EXECUTABLE_PATH
+      ? { executablePath: process.env.PW_EXECUTABLE_PATH }
+      : {
+        channel: process.env.PW_CHANNEL || (process.env.CI ? "chrome" : undefined),
+      }),
   },
 
   projects: [
@@ -23,7 +28,9 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        channel: process.env.PW_CHANNEL || (process.env.CI ? "chrome" : undefined),
+        ...(process.env.PW_EXECUTABLE_PATH
+          ? { executablePath: process.env.PW_EXECUTABLE_PATH }
+          : { channel: process.env.PW_CHANNEL || (process.env.CI ? "chrome" : undefined) }),
       },
     },
   ],

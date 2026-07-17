@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { useKnowledgeStore } from "@/stores";
 import { Alert, App, Button, Input, Popconfirm, Space } from "antd";
 import { Search, Trash2 } from "lucide-react";
@@ -62,7 +63,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
       );
       void loadCategory(activeCategory);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   }, [
     selectedRowKeys,
@@ -82,7 +83,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
         message.success(t("files.deleteSuccess"));
         void loadCategory(activeCategory);
       } catch (e) {
-        message.error(String(e));
+        showBackendError(message, e);
       }
     },
     [activeCategory, loadCategory, deleteEntry, message, t],

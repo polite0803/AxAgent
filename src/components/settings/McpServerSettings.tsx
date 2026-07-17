@@ -2,6 +2,7 @@
 
 import { IconEditor } from "@/components/shared/IconEditor";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
+import { showBackendError } from "@/lib/errorI18n";
 import { DiscoveredMcpServer, useMcpStore } from "@/stores";
 import type { CreateMcpServerInput, McpServer, ToolDescriptor } from "@/types";
 import {
@@ -777,7 +778,7 @@ export function McpServerSettings() {
       const servers = await discoverAvailableServers();
       setDiscoveredServers(servers);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setDiscovering(false);
     }

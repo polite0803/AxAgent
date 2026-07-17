@@ -7,6 +7,7 @@ import { GraphData, GraphView } from "@/components/wiki/GraphView";
 import { WikiDetailPanel } from "@/components/wiki/WikiDetailPanel";
 import { WikiFilePanel } from "@/components/wiki/WikiFilePanel";
 import { WikiNodeContextMenu } from "@/components/wiki/WikiNodeContextMenu";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
@@ -236,7 +237,7 @@ export function WikiGraphPage() {
         loadGraphData();
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
     setImportingMd(false);
   }, [wikiIdFromUrl, importKnowledgeMd, loadNotes, loadGraphData, t]);
@@ -279,7 +280,7 @@ export function WikiGraphPage() {
         loadNotes(wikiIdFromUrl);
         loadGraphData();
       } catch (e) {
-        message.error(String(e));
+        showBackendError(message, e);
       }
     },
     [deleteNote, selectedNodeId, wikiIdFromUrl, loadNotes, loadGraphData, t],

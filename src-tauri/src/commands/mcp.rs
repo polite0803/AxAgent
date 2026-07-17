@@ -9,9 +9,12 @@ use tauri::{Emitter, State};
 
 #[tauri::command]
 pub async fn list_mcp_servers(state: State<'_, AppState>) -> Result<Vec<McpServer>, String> {
-    axagent_dao::repo::mcp_server::list_mcp_servers(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::mcp_server::list_mcp_servers(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -19,9 +22,12 @@ pub async fn create_mcp_server(
     state: State<'_, AppState>,
     input: CreateMcpServerInput,
 ) -> Result<McpServer, String> {
-    axagent_dao::repo::mcp_server::create_mcp_server(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::mcp_server::create_mcp_server(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -30,16 +36,24 @@ pub async fn update_mcp_server(
     id: String,
     input: CreateMcpServerInput,
 ) -> Result<McpServer, String> {
-    axagent_dao::repo::mcp_server::update_mcp_server(state.harness.db(), &id, input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::mcp_server::update_mcp_server(state.harness.db(), &id, input).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
 pub async fn delete_mcp_server(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_dao::repo::mcp_server::delete_mcp_server(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::mcp_server::delete_mcp_server(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -64,7 +78,12 @@ pub async fn test_mcp_server(
     if server.transport == "builtin" {
         let tools = axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), &id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         return Ok(serde_json::json!({
             "ok": true,
             "capabilities": {"tools": true},
@@ -174,7 +193,12 @@ pub async fn list_mcp_tools(
 ) -> Result<Vec<ToolDescriptor>, String> {
     axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), &server_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -192,7 +216,12 @@ pub async fn discover_mcp_tools(
         discovered.clone(),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 转换为 ToolDescriptor 返回前端
     let tools: Vec<ToolDescriptor> = discovered
@@ -203,6 +232,7 @@ pub async fn discover_mcp_tools(
             name: t.name,
             description: t.description,
             input_schema_json: t.input_schema.map(|s| s.to_string()),
+            ..Default::default()
         })
         .collect();
 
@@ -216,7 +246,12 @@ pub async fn list_tool_executions(
 ) -> Result<Vec<ToolExecution>, String> {
     axagent_dao::repo::tool_execution::list_tool_executions(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 /// Hot-reload an MCP server's tools into the active agent session.
@@ -234,7 +269,12 @@ pub async fn hot_reload_mcp_server(
     // 2. Save discovered tools to DB
     axagent_dao::repo::mcp_server::save_tool_descriptors(state.harness.db(), &id, tools.clone())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 3. Evict any cached connections for this server in the MCP pool
     //    so the next tool call will establish a fresh connection
@@ -274,7 +314,12 @@ async fn discover_mcp_tools_inner(
         let descriptors =
             axagent_dao::repo::mcp_server::list_tools_for_server(state.harness.db(), id)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
         let tools: Vec<axagent_mcp::mcp_client::DiscoveredTool> = descriptors
             .into_iter()
             .map(|d| axagent_mcp::mcp_client::DiscoveredTool {
@@ -288,7 +333,12 @@ async fn discover_mcp_tools_inner(
 
     let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
     let timeout_duration = std::time::Duration::from_secs(timeout_secs);
@@ -320,7 +370,12 @@ async fn discover_mcp_tools_inner(
         )
         .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
     })?
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(tools)
 }
@@ -496,7 +551,12 @@ pub async fn list_mcp_resources(
 ) -> Result<Vec<axagent_harness::mcp_types::McpResource>, String> {
     let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
     let timeout_duration = std::time::Duration::from_secs(timeout_secs);
@@ -527,7 +587,12 @@ pub async fn list_mcp_resources(
         )
         .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
     })?
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// Read a specific resource from an MCP server.
@@ -539,7 +604,12 @@ pub async fn read_mcp_resource(
 ) -> Result<Vec<axagent_harness::mcp_types::McpResourceContent>, String> {
     let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let timeout_duration = std::time::Duration::from_secs(30);
 
@@ -564,7 +634,12 @@ pub async fn read_mcp_resource(
     )
     .await
     .map_err(|_| "MCP 资源读取超时（30 秒）".to_string())?
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── H1: MCP Prompts support ──
@@ -577,7 +652,12 @@ pub async fn list_mcp_prompts(
 ) -> Result<Vec<axagent_harness::mcp_types::McpPrompt>, String> {
     let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
     let timeout_duration = std::time::Duration::from_secs(timeout_secs);
@@ -608,7 +688,12 @@ pub async fn list_mcp_prompts(
         )
         .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
     })?
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// Render a prompt from an MCP server with the given arguments.
@@ -621,7 +706,12 @@ pub async fn get_mcp_prompt(
 ) -> Result<axagent_harness::mcp_types::McpPromptResult, String> {
     let server = axagent_dao::repo::mcp_server::get_mcp_server(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let timeout_duration = std::time::Duration::from_secs(30);
 
@@ -647,5 +737,10 @@ pub async fn get_mcp_prompt(
     )
     .await
     .map_err(|_| "MCP 提示词渲染超时（30 秒）".to_string())?
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

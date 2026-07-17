@@ -32,8 +32,18 @@ fn quickbar_url(app: &AppHandle) -> WebviewUrl {
 #[tauri::command]
 pub async fn show_quickbar(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(QUICKBAR_LABEL) {
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
+        window.show().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        window.set_focus().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         let _ = window.center();
         return Ok(());
     }
@@ -52,7 +62,12 @@ pub async fn show_quickbar(app: AppHandle) -> Result<(), String> {
         .build()
         .map_err(|e| format!("Failed to create quickbar window: {}", e))?;
 
-    window.set_focus().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(())
 }
@@ -60,7 +75,12 @@ pub async fn show_quickbar(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn hide_quickbar(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(QUICKBAR_LABEL) {
-        window.hide().map_err(|e| e.to_string())?;
+        window.hide().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
     Ok(())
 }

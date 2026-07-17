@@ -58,7 +58,12 @@ async fn count_messages_by_role(
         .filter(axagent_entities::messages::Column::IsActive.eq(1))
         .all(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let user_count = rows.iter().filter(|m| m.role == "user").count() as u64;
     let tool_count = rows.iter().filter(|m| m.role == "tool").count() as u64;
@@ -82,7 +87,12 @@ pub async fn get_context_breakdown(
     // ── 1) 获取对话配置 ──
     let conv = axagent_dao::repo::conversation::get_conversation(db, &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // ── 2) 统计消息与 token ──
     let (msg_total, _user_count, tool_count, recorded_tokens) =

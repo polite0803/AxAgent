@@ -5,10 +5,13 @@
 //! 将 builtin_handlers 中的 list_directory、delete_file、create_directory、
 //! file_exists、get_file_info、move_file 迁移为 Tool trait 实现。
 
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{
+    RollbackContext, RollbackRecord, Tool, ToolCategory, ToolContext, ToolError, ToolResult,
+};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 将字节数转为人类可读格式
 fn human_size(bytes: u64) -> String {
@@ -149,6 +152,49 @@ impl Tool for DeleteFileTool {
 
     fn is_destructive(&self) -> bool {
         true
+    }
+
+    fn can_rollback(&self) -> bool {
+        true
+    }
+
+    fn create_rollback_before(&self, input: &Value) -> Option<RollbackRecord> {
+        let path = input["path"].as_str()?;
+        let path_obj = std::path::Path::new(path);
+        if !path_obj.exists() {
+            return None;
+        }
+        let content = std::fs::read_to_string(path_obj).ok()?;
+        Some(RollbackRecord {
+            tool_name: self.name().to_string(),
+            input: input.clone(),
+            payload: serde_json::json!({
+                "path": path,
+                "content": content,
+            }),
+            created_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis()
+                as i64,
+        })
+    }
+
+    fn execute_rollback(
+        &self,
+        record: RollbackRecord,
+        _ctx: &RollbackContext,
+    ) -> Result<ToolResult, ToolError> {
+        let path = record.payload["path"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input("execute_rollback: 缺少 path"))?;
+        let content = record.payload["content"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input("execute_rollback: 缺少 content"))?;
+        let path_obj = std::path::Path::new(path);
+        if let Some(parent) = path_obj.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(path_obj, content)
+            .map_err(|e| ToolError::execution_failed(format!("回滚写入失败: {}", e)))?;
+        Ok(ToolResult::success(format!("✅ 已恢复已删除文件: {}", path)))
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {

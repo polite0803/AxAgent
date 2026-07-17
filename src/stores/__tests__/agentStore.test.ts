@@ -244,7 +244,7 @@ describe("agentStore event handling", () => {
 
     const cleanup = setupAgentEventListeners();
 
-    expect(vi.mocked(listen)).toHaveBeenCalledTimes(25);
+    expect(vi.mocked(listen)).toHaveBeenCalledTimes(26);
 
     cleanup();
   });

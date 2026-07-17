@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useBackupStore, useSettingsStore } from "@/stores";
 import {
@@ -541,7 +542,7 @@ export function SchedulerSettings() {
       await loadCustomTasks();
     } catch (e) {
       logIpcError("Failed to save task")(e);
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
@@ -554,7 +555,7 @@ export function SchedulerSettings() {
       message.success(t("settings.scheduler.pauseTask") + " - OK");
     } catch (e) {
       logIpcError("Failed to pause task")(e);
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -565,7 +566,7 @@ export function SchedulerSettings() {
       message.success(t("settings.scheduler.resumeTask") + " - OK");
     } catch (e) {
       logIpcError("Failed to resume task")(e);
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -576,7 +577,7 @@ export function SchedulerSettings() {
       message.success(t("settings.scheduler.deleteTask") + " - OK");
     } catch (e) {
       logIpcError("Failed to delete task")(e);
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -588,7 +589,7 @@ export function SchedulerSettings() {
       message.success(t("settings.scheduler.executed") + " - OK");
       await loadCustomTasks();
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setExecuting((prev) => ({ ...prev, [taskId]: false }));
     }
@@ -631,7 +632,7 @@ export function SchedulerSettings() {
       message.success(t("settings.scheduler.quickCreated") + " - OK");
       await loadCustomTasks();
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
@@ -644,7 +645,7 @@ export function SchedulerSettings() {
       await loadCustomTasks();
       message.success(t("settings.scheduler.refreshed"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 

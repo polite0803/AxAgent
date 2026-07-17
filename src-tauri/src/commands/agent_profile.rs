@@ -198,7 +198,12 @@ pub async fn ensure_agent_profile(
         &[],
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 如果有 expert_id，设置绑定
     if let Some(ref eid) = expert_id {
@@ -206,12 +211,21 @@ pub async fn ensure_agent_profile(
         if let Some(row) = axagent_entities::agent_profiles::Entity::find_by_id(&id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?
-        {
+            .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })? {
             let mut am: axagent_entities::agent_profiles::ActiveModel = row.into();
             am.expert_id = Set(Some(eid.clone()));
             am.updated_at = Set(axagent_kit::utils::now_ts());
-            am.update(db).await.map_err(|e| e.to_string())?;
+            am.update(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         }
     }
 

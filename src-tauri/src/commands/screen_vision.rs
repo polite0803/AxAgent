@@ -63,16 +63,29 @@ async fn build_vision_context(
     master_key: &[u8; 32],
     provider_id: &str,
 ) -> Result<VisionContext, String> {
-    let provider = axagent_dao::repo::provider::get_provider(db, provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let provider =
+        axagent_dao::repo::provider::get_provider(db, provider_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
-    let key_row = axagent_dao::repo::provider::get_active_key(db, provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let key_row =
+        axagent_dao::repo::provider::get_active_key(db, provider_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
-    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)
-        .map_err(|e| e.to_string())?;
+    let decrypted_key =
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let global_settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
     let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(

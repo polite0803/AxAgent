@@ -75,7 +75,12 @@ async fn append_output(db: &DatabaseConnection, task_id: &str, text: &str) -> Re
     let task = background_tasks::Entity::find_by_id(task_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| {
             serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
                 .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
@@ -88,7 +93,12 @@ async fn append_output(db: &DatabaseConnection, task_id: &str, text: &str) -> Re
     let mut am: background_tasks::ActiveModel = task.into();
     am.output = Set(new_output);
     am.updated_at = Set(now);
-    am.update(db).await.map_err(|e| e.to_string())?;
+    am.update(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(())
 }
 
@@ -102,7 +112,12 @@ async fn update_status(
     let task = background_tasks::Entity::find_by_id(task_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| {
             serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
                 .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
@@ -116,7 +131,12 @@ async fn update_status(
     if status == "completed" || status == "failed" || status == "stopped" {
         am.finished_at = Set(Some(now));
     }
-    am.update(db).await.map_err(|e| e.to_string())?;
+    am.update(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(())
 }
 
@@ -151,7 +171,12 @@ pub async fn spawn_background_task(
         updated_at: Set(now),
         finished_at: Set(None),
     };
-    background_tasks::Entity::insert(model).exec(&db).await.map_err(|e| e.to_string())?;
+    background_tasks::Entity::insert(model).exec(&db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if task_type == "bash" {
         if let Some(cmd) = command {
@@ -348,7 +373,12 @@ pub async fn list_background_tasks(
         .order_by_desc(background_tasks::Column::CreatedAt)
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     Ok(tasks.into_iter().map(Into::into).collect())
 }
 
@@ -360,7 +390,12 @@ pub async fn get_background_task_output(
     let task = background_tasks::Entity::find_by_id(&task_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| {
             serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
                 .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
@@ -376,7 +411,12 @@ pub async fn stop_background_task(
     let task = background_tasks::Entity::find_by_id(&task_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| {
             serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
                 .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))

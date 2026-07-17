@@ -22,7 +22,7 @@ pub async fn regenerate_message(
     // 1. Get all active messages for the conversation
     let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     tracing::info!("[regenerate_message] Step 2: messages loaded, count={}", messages.len());
 
     // Find target user message: use provided ID or fall back to last user message
@@ -49,7 +49,7 @@ pub async fn regenerate_message(
         &last_user_msg.id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let new_version_index = existing_versions.len() as i32;
     tracing::info!("[regenerate_message] Step 4: existing versions={}", existing_versions.len());
 
@@ -71,7 +71,7 @@ pub async fn regenerate_message(
         .col_expr(msg_entity::Column::IsActive, Expr::value(0))
         .exec(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     tracing::info!("[regenerate_message] Step 6: old versions deactivated");
 
     // 4. Get conversation details
@@ -79,7 +79,7 @@ pub async fn regenerate_message(
     let mut conversation =
         axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     tracing::info!("[regenerate_message] Step 8: conversation loaded, provider={} model={}", conversation.provider_id, conversation.model_id);
 
     // Override conversation model_id/provider_id so spawn_stream_task uses the correct model
@@ -94,20 +94,20 @@ pub async fn regenerate_message(
     let provider =
         axagent_dao::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let key_row =
         axagent_dao::repo::provider::get_active_key(state.harness.db(), &conversation.provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let decrypted_key =
         axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // 6. Rebuild chat messages (active messages only — old inactive versions excluded)
     let remaining_messages =
         axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let file_store = axagent_storage::file_store::FileStore::new();
 
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
@@ -208,7 +208,7 @@ pub async fn regenerate_message(
             continue;
         }
         // Include messages up to and including the last user message
-        chat_messages.push(chat_message_from_message(&file_store, m).map_err(|e| e.to_string())?);
+        chat_messages.push(chat_message_from_message(&file_store, m).map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?);
         // Stop after the user message we're regenerating from
         if m.id == last_user_msg.id {
             break;
@@ -470,7 +470,7 @@ pub async fn regenerate_with_model(
     } = options;
     let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let user_msg = messages
         .iter()
@@ -485,7 +485,7 @@ pub async fn regenerate_with_model(
         &user_msg.id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let new_version_index = existing_versions.len() as i32;
     let original_created_at = existing_versions.first().map(|v| v.created_at);
 
@@ -501,14 +501,14 @@ pub async fn regenerate_with_model(
             .col_expr(msg_entity::Column::IsActive, Expr::value(0))
             .exec(state.harness.db())
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     }
 
     // Get conversation, but override model_id and provider_id to target values
     let mut conversation =
         axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     conversation.model_id = target_model_id;
     conversation.provider_id = target_provider_id.clone();
 
@@ -516,20 +516,20 @@ pub async fn regenerate_with_model(
     let provider =
         axagent_dao::repo::provider::get_provider(state.harness.db(), &target_provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let key_row =
         axagent_dao::repo::provider::get_active_key(state.harness.db(), &target_provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let decrypted_key =
         axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Build context messages (same logic as regenerate_message)
     let remaining_messages =
         axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let file_store = axagent_storage::file_store::FileStore::new();
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
 
@@ -637,7 +637,7 @@ pub async fn regenerate_with_model(
         if m.status == "error" {
             continue;
         }
-        chat_messages.push(chat_message_from_message(&file_store, m).map_err(|e| e.to_string())?);
+        chat_messages.push(chat_message_from_message(&file_store, m).map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?);
         if m.id == user_msg.id {
             break;
         }

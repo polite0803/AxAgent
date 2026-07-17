@@ -29,7 +29,12 @@ pub async fn list_continuable_messages(
         .filter(messages::Column::Status.eq("partial"))
         .all(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(msgs
         .iter()
@@ -60,16 +65,27 @@ pub async fn continue_message(
     let msg = messages::Entity::find_by_id(&message_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("消息 {} 未找到", message_id))?;
 
     // 校验消息归属
     if msg.conversation_id != conversation_id {
-        return Err("消息不属于指定对话".into());
+        return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+            "消息不属于指定对话".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        )));
     }
 
     if msg.role != "assistant" {
-        return Err("只能续写 assistant 消息".into());
+        return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+            "只能续写 assistant 消息".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        )));
     }
 
     let preview: String = msg.content.chars().take(200).collect();

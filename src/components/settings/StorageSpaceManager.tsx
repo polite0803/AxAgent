@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Button, Space, Spin, Typography } from "antd";
@@ -79,7 +80,7 @@ export function StorageSpaceManager() {
     try {
       await invoke("open_storage_directory");
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -186,7 +187,7 @@ export function StorageSpaceManager() {
           await loadInventory();
           promptRestart();
         } catch (e) {
-          message.error(String(e));
+          showBackendError(message, e);
         }
       },
     });

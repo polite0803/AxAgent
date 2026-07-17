@@ -67,6 +67,12 @@ export interface PermissionRequestEvent {
   requestId: string;
 }
 
+export interface PlanApprovalEvent {
+  conversationId: string;
+  /** JSON 字符串，由后端 build_plan_draft_content 生成的计划草稿 */
+  plan: string;
+}
+
 export interface AskUserEvent {
   conversationId: string;
   assistantMessageId: string;

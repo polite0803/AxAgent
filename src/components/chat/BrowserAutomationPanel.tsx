@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { Button, Card, Input, Space, Table, Typography } from "antd";
@@ -57,7 +58,7 @@ export function BrowserAutomationPanel() {
       setTitle(result.title);
       message.success(t("browser.navigateSuccess"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,7 @@ export function BrowserAutomationPanel() {
       setScreenshot(`data:image/png;base64,${result.image_base64}`);
       message.success(t("browser.screenshotSuccess"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export function BrowserAutomationPanel() {
       setElements(result);
       message.success(t("browser.elementsFound", { count: result.length }));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
@@ -107,7 +108,7 @@ export function BrowserAutomationPanel() {
         }
       }, 500);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -116,7 +117,7 @@ export function BrowserAutomationPanel() {
       await invoke("browser_fill", { selector: sel, value });
       message.success(t("browser.fillSuccess"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -129,7 +130,7 @@ export function BrowserAutomationPanel() {
       setElements([]);
       message.success(t("browser.closed"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 

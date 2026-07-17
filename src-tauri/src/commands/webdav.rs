@@ -84,8 +84,12 @@ pub async fn save_webdav_config(
     state: State<'_, AppState>,
     config: WebDavConfig,
 ) -> Result<(), String> {
-    let mut settings =
-        settings_repo::get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let mut settings = settings_repo::get_settings(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // SECURITY (S8): 用户启用 accept_invalid_certs 时记录安全警告
     if config.accept_invalid_certs && !settings.webdav_accept_invalid_certs {
@@ -99,19 +103,38 @@ pub async fn save_webdav_config(
     settings.webdav_path = Some(config.path);
     settings.webdav_accept_invalid_certs = config.accept_invalid_certs;
 
-    settings_repo::save_settings(state.harness.db(), &settings).await.map_err(|e| e.to_string())?;
+    settings_repo::save_settings(state.harness.db(), &settings).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Encrypt and store password separately
     if !config.password.is_empty() {
-        let encrypted =
-            encrypt_key(&config.password, state.harness.master_key()).map_err(|e| e.to_string())?;
+        let encrypted = encrypt_key(&config.password, state.harness.master_key()).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         settings_repo::set_setting(state.harness.db(), "webdav_password_encrypted", &encrypted)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     } else {
         settings_repo::set_setting(state.harness.db(), "webdav_password_encrypted", "")
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     }
 
     Ok(())
@@ -120,8 +143,18 @@ pub async fn save_webdav_config(
 /// Test WebDAV connection without requiring saved config.
 #[tauri::command]
 pub async fn webdav_check_connection(config: WebDavConfig) -> Result<bool, String> {
-    let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client.check_connection().await.map_err(|e| e.to_string())
+    let client = WebDavClient::new(config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    client.check_connection().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// Create a backup and upload it to WebDAV.
@@ -139,8 +172,18 @@ pub async fn webdav_list_backups(
     if config.host.is_empty() {
         return Ok(vec![]);
     }
-    let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client.list_files().await.map_err(|e| e.to_string())
+    let client = WebDavClient::new(config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    client.list_files().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// Restore from a remote WebDAV backup.
@@ -154,20 +197,39 @@ pub async fn webdav_restore(
         return Err("Backup file name must not contain path separators or traversal".to_string());
     }
     let config = get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await?;
-    let settings =
-        settings_repo::get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let settings = settings_repo::get_settings(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
-    backup::ensure_backup_dir(&backup_dir).map_err(|e| e.to_string())?;
+    backup::ensure_backup_dir(&backup_dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut cleanup = RestoreCleanup::default();
 
     // 1. Download ZIP
     let zip_path = backup_dir.join(&file_name);
     cleanup.track_file(&zip_path);
-    let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client.download_file(&file_name, &zip_path).await.map_err(|e| e.to_string())?;
+    let client = WebDavClient::new(config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    client.download_file(&file_name, &zip_path).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 2. Extract to temp directory
     let temp_dir = backup_dir.join("_webdav_restore_temp");
@@ -176,13 +238,21 @@ pub async fn webdav_restore(
     let crypto = axagent_crypto::platform_adapter_impl::DefaultCryptoService::new(
         state.harness.master_key_owned(),
     );
-    let contents =
-        webdav::extract_backup_zip(&zip_path, &temp_dir, &crypto).map_err(|e| e.to_string())?;
+    let contents = webdav::extract_backup_zip(&zip_path, &temp_dir, &crypto).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 3. Verify checksum
     if let Some(expected) = contents.metadata.get("db_checksum").and_then(|v| v.as_str()) {
-        let ok =
-            webdav::verify_db_checksum(&contents.db_path, expected).map_err(|e| e.to_string())?;
+        let ok = webdav::verify_db_checksum(&contents.db_path, expected).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         if !ok {
             return Err(ErrorResponse::new(backup_err::RESTORE_FAILED)
                 .with_detail("Backup checksum verification failed — file may be corrupted")
@@ -247,9 +317,14 @@ pub async fn webdav_restore(
     // 6. Restore database — also remove stale WAL/SHM files so SQLite
     //    doesn't try to replay a journal that belongs to the old database.
     //    NotFound 属正常路径，其他 I/O 错误必须打 warn 而非静默吞错。
-    backup::restore_sqlite_backup(contents.db_path.to_str().unwrap_or(""), db_path)
-        .await
-        .map_err(|e| e.to_string())?;
+    backup::restore_sqlite_backup(contents.db_path.to_str().unwrap_or(""), db_path).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
     for suffix in ["-wal", "-shm"] {
         let aux_path = format!("{db_path}{suffix}");
         match std::fs::remove_file(&aux_path) {
@@ -292,8 +367,18 @@ pub async fn webdav_delete_backup(
     file_name: String,
 ) -> Result<(), String> {
     let config = get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await?;
-    let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client.delete_file(&file_name).await.map_err(|e| e.to_string())
+    let client = WebDavClient::new(config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    client.delete_file(&file_name).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// Get WebDAV sync status (last sync time and result).
@@ -303,10 +388,20 @@ pub async fn get_webdav_sync_status(
 ) -> Result<serde_json::Value, String> {
     let last_time = settings_repo::get_setting(state.harness.db(), "webdav_last_sync_time")
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let last_status = settings_repo::get_setting(state.harness.db(), "webdav_last_sync_status")
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(serde_json::json!({
         "lastSyncTime": last_time,
@@ -320,8 +415,12 @@ pub async fn restart_webdav_sync(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let settings =
-        settings_repo::get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let settings = settings_repo::get_settings(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut guard: tokio::sync::MutexGuard<'_, Option<tokio::task::JoinHandle<()>>> =
         state.webdav_sync_handle.lock().await;
@@ -360,10 +459,19 @@ pub(crate) async fn get_webdav_config_from_db(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
 ) -> Result<WebDavConfig, String> {
-    let settings = settings_repo::get_settings(db).await.map_err(|e| e.to_string())?;
-    let encrypted_pw = settings_repo::get_setting(db, "webdav_password_encrypted")
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings = settings_repo::get_settings(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let encrypted_pw =
+        settings_repo::get_setting(db, "webdav_password_encrypted").await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let password = match encrypted_pw {
         Some(enc) if !enc.is_empty() => decrypt_key(&enc, master_key).unwrap_or_default(),
         _ => String::new(),
@@ -402,12 +510,22 @@ async fn do_webdav_backup_once(
             .into());
     }
 
-    let settings = settings_repo::get_settings(db).await.map_err(|e| e.to_string())?;
+    let settings = settings_repo::get_settings(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 2. Create local SQLite snapshot via VACUUM INTO
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), app_data_dir);
-    backup::ensure_backup_dir(&backup_dir).map_err(|e| e.to_string())?;
+    backup::ensure_backup_dir(&backup_dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let temp_id = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -472,11 +590,26 @@ async fn do_webdav_backup_once(
         &object_counts,
         &crypto,
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 6. Upload
-    let client = WebDavClient::new(config).map_err(|e| e.to_string())?;
-    client.upload_file(&zip_filename, &zip_path).await.map_err(|e| e.to_string())?;
+    let client = WebDavClient::new(config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    client.upload_file(&zip_filename, &zip_path).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 7. Clear temp files (RAII guard still ensures cleanup on early return)
     temp_cleanup.clear();

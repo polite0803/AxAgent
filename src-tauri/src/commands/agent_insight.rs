@@ -37,5 +37,10 @@ pub async fn insight_report(
 ) -> Result<serde_json::Value, String> {
     let mut is = app_state.insight_system.write().await;
     let report = is.generate_session_report(&session_id, message_count.unwrap_or(0), vec![]);
-    serde_json::to_value(report).map_err(|e| e.to_string())
+    serde_json::to_value(report).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

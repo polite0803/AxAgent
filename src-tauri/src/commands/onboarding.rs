@@ -83,13 +83,23 @@ pub async fn detect_ollama_availability(
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(3))
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let base = ollama_host.unwrap_or_else(|| "http://localhost:11434".to_string());
     let url = format!("{}/api/tags", base.trim_end_matches('/'));
     match client.get(&url).send().await {
         Ok(resp) if resp.status().is_success() => {
-            let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            let body: serde_json::Value = resp.json().await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             let models: Vec<OllamaModelInfo> = body["models"]
                 .as_array()
                 .map(|arr| {
@@ -155,7 +165,12 @@ pub async fn apply_quick_start_preset(
         "ollama" => {
             let existing = list_providers(db)
                 .await
-                .map_err(|e| e.to_string())?
+                .map_err(|e| {
+                    crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    )
+                })?
                 .into_iter()
                 .find(|p| p.provider_type == ProviderType::Ollama);
 
@@ -166,7 +181,12 @@ pub async fn apply_quick_start_preset(
 
             let provider_id = if let Some(ref p) = existing {
                 if !p.enabled {
-                    toggle_provider(db, &p.id, true).await.map_err(|e| e.to_string())?;
+                    toggle_provider(db, &p.id, true).await.map_err(|e| {
+                        crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        )
+                    })?;
                 }
                 p.id.clone()
             } else {
@@ -182,7 +202,12 @@ pub async fn apply_quick_start_preset(
                     },
                 )
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    )
+                })?;
                 created.id
             };
 
@@ -200,13 +225,23 @@ pub async fn apply_quick_start_preset(
 
             let existing = list_providers(db)
                 .await
-                .map_err(|e| e.to_string())?
+                .map_err(|e| {
+                    crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    )
+                })?
                 .into_iter()
                 .find(|p| p.provider_type == ProviderType::OpenAI);
 
             let pid = if let Some(ref p) = existing {
                 if !p.enabled {
-                    toggle_provider(db, &p.id, true).await.map_err(|e| e.to_string())?;
+                    toggle_provider(db, &p.id, true).await.map_err(|e| {
+                        crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        )
+                    })?;
                 }
                 p.id.clone()
             } else {
@@ -222,7 +257,12 @@ pub async fn apply_quick_start_preset(
                     },
                 )
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    )
+                })?;
                 created.id
             };
 
@@ -246,7 +286,12 @@ pub async fn apply_quick_start_preset(
         },
 
         "minimal" => {
-            let providers = list_providers(db).await.map_err(|e| e.to_string())?;
+            let providers = list_providers(db).await.map_err(|e| {
+                crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                )
+            })?;
             let has_enabled = providers.iter().any(|p| p.enabled);
 
             Ok(PresetResult {

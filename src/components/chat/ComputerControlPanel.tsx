@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { Button, Card, Input, Space, Switch, Typography } from "antd";
@@ -61,7 +62,7 @@ export function ComputerControlPanel() {
         setDpiScale(result.scale_factor);
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
@@ -74,7 +75,7 @@ export function ComputerControlPanel() {
       });
       setElements(result);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -100,7 +101,7 @@ export function ComputerControlPanel() {
         }
       }, 500);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -109,7 +110,7 @@ export function ComputerControlPanel() {
       await invoke("type_text", { text, x, y });
       message.success(t("computerControl.typeComplete"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -118,7 +119,7 @@ export function ComputerControlPanel() {
       await invoke("press_key", { key, modifiers: modifiers || [] });
       message.success(t("computerControl.keyPressed", { key }));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -131,7 +132,7 @@ export function ComputerControlPanel() {
         }),
       );
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 

@@ -1063,6 +1063,7 @@ impl UnifiedToolRegistry {
                 permissions: None,
                 output_sanitizer: None,
                 ask_user_bridge: self.ask_user_bridge.clone(),
+                rollback_stack: None,
             };
 
             // ── 运行时 Schema 校验（M-05） ──
@@ -1338,6 +1339,8 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
                 is_concurrency_safe: true,
                 is_read_only: false,
                 is_destructive: false,
+                idempotent: false,
+                estimated_cost: None,
                 enabled: true,
             });
         }
@@ -1361,6 +1364,8 @@ impl axagent_harness::ToolRegistry for UnifiedToolRegistry {
                     is_concurrency_safe: true,
                     is_read_only: false,
                     is_destructive: false,
+                    idempotent: false,
+                    estimated_cost: None,
                     enabled: true,
                 })
                 .collect();

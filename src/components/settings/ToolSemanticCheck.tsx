@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { ToolUpgradeSuggestion } from "@/components/workflow/types/workflow.types";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useUIStore } from "@/stores";
@@ -82,7 +83,7 @@ export function ToolSemanticCheck() {
         const tools = Array.isArray(groups) ? groups.flatMap((g) => g.tools) : [];
         setAllTools(tools);
       } catch (e) {
-        message.error(String(e));
+        showBackendError(message, e);
       } finally {
         setToolsLoading(false);
       }
@@ -121,7 +122,7 @@ export function ToolSemanticCheck() {
           message.info(t("settings.toolSemanticCheck.noMatches"));
         }
       } catch (error) {
-        message.error(String(error));
+        showBackendError(message, error);
       } finally {
         setSearchLoading(false);
       }
@@ -175,7 +176,7 @@ export function ToolSemanticCheck() {
       setUpgradeSuggestion(response.suggestion);
       message.success(t("settings.toolSemanticCheck.upgradeSuccess"));
     } catch (error) {
-      message.error(String(error));
+      showBackendError(message, error);
     } finally {
       setUpgradeLoading(false);
     }

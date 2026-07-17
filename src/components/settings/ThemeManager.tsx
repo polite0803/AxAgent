@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { message } from "@/lib/toast";
 import { Theme, ThemeColors, useThemeStore } from "@/stores/feature/themeStore";
 import { Button, Card, Form, Input, Modal, Popconfirm, Space, Typography } from "antd";
@@ -186,7 +187,7 @@ colors:
       await deleteCustomTheme(themeName);
       message.success(t("settings.theme.deleted"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 

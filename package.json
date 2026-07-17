@@ -43,6 +43,7 @@
     "docs:watch": "typedoc --out docs --watch src",
     "ci:check": "node scripts/ci-check.mjs",
     "ci:check:quick": "node scripts/ci-check.mjs --quick",
+    "contracts": "node scripts/check-contracts.mjs",
     "prepare": "simple-git-hooks",
     "skill:create": "node scripts/create-axagent-skill.mjs",
     "skill:validate": "node scripts/validate-skill.mjs"

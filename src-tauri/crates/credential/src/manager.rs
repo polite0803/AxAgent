@@ -175,3 +175,130 @@ impl CredentialService for CredentialManager {
         CredentialManager::get_auth_headers(self, &cred).map_err(|e| e.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::CredentialStore;
+    use crate::types::{Credential, CredentialType};
+    use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
+    use rand::RngExt;
+
+    struct TempManager {
+        _dir: std::path::PathBuf,
+        mgr: CredentialManager,
+    }
+
+    impl Drop for TempManager {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self._dir);
+        }
+    }
+
+    fn temp_manager() -> TempManager {
+        let mut suffix = [0u8; 8];
+        rand::rng().fill(&mut suffix);
+        let dir = std::env::temp_dir().join(format!("axagent_cred_mgr_{}", hex::encode(suffix)));
+        std::fs::create_dir_all(&dir).ok();
+        let store = CredentialStore::new(dir.clone(), [0x99u8; 32]);
+        TempManager { _dir: dir, mgr: CredentialManager::new(store) }
+    }
+
+    #[tokio::test]
+    async fn save_get_and_cache() {
+        let tm = temp_manager();
+        let cred = Credential::new(
+            "c1".into(),
+            "n".into(),
+            CredentialType::ApiKey { key: "k".into(), header_name: "h".into() },
+        );
+        tm.mgr.save_credential(&cred).await.unwrap();
+        let got = tm.mgr.get_credential("c1").await.unwrap();
+        assert_eq!(serde_json::to_string(&got).unwrap(), serde_json::to_string(&cred).unwrap());
+        // 第二次命中内存缓存，仍成功。
+        let got2 = tm.mgr.get_credential("c1").await.unwrap();
+        assert_eq!(got2.id, "c1");
+        // 失效后仍能从磁盘重载。
+        tm.mgr.invalidate("c1").await;
+        let got3 = tm.mgr.get_credential("c1").await.unwrap();
+        assert_eq!(got3.id, "c1");
+    }
+
+    #[tokio::test]
+    async fn get_auth_headers_variants() {
+        let tm = temp_manager();
+        let api = Credential::new(
+            "a".into(),
+            "a".into(),
+            CredentialType::ApiKey { key: "k1".into(), header_name: "X-Key".into() },
+        );
+        let hdrs = tm.mgr.get_auth_headers(&api).unwrap();
+        assert_eq!(hdrs, vec![("X-Key".to_string(), "k1".to_string())]);
+
+        let bearer = Credential::new(
+            "b".into(),
+            "b".into(),
+            CredentialType::BearerToken { token: "tok".into() },
+        );
+        let hdrs = tm.mgr.get_auth_headers(&bearer).unwrap();
+        assert_eq!(hdrs, vec![("Authorization".to_string(), "Bearer tok".to_string())]);
+
+        let basic = Credential::new(
+            "c".into(),
+            "c".into(),
+            CredentialType::BasicAuth { username: "u".into(), password: "p".into() },
+        );
+        let hdrs = tm.mgr.get_auth_headers(&basic).unwrap();
+        let expected = format!("Basic {}", BASE64.encode("u:p"));
+        assert_eq!(hdrs, vec![("Authorization".to_string(), expected)]);
+    }
+
+    #[tokio::test]
+    async fn database_connection_string_ok_and_wrong_type() {
+        let tm = temp_manager();
+        let db = Credential::new(
+            "d".into(),
+            "d".into(),
+            CredentialType::DatabaseConnection { connection_string: "postgres://x".into() },
+        );
+        tm.mgr.save_credential(&db).await.unwrap();
+        assert_eq!(tm.mgr.get_database_connection_string("d").await.unwrap(), "postgres://x");
+        // 错误类型应返回 Validation 错误。
+        let api = Credential::new(
+            "e".into(),
+            "e".into(),
+            CredentialType::ApiKey { key: "k".into(), header_name: "h".into() },
+        );
+        tm.mgr.save_credential(&api).await.unwrap();
+        assert!(tm.mgr.get_database_connection_string("e").await.is_err());
+    }
+
+    #[tokio::test]
+    async fn smtp_config_ok_and_wrong_type() {
+        let tm = temp_manager();
+        let smtp = Credential::new(
+            "s".into(),
+            "s".into(),
+            CredentialType::Smtp {
+                host: "mx".into(),
+                port: 587,
+                user: "u".into(),
+                pass: "p".into(),
+                tls: true,
+            },
+        );
+        tm.mgr.save_credential(&smtp).await.unwrap();
+        let cfg = tm.mgr.get_smtp_config("s").await.unwrap();
+        assert_eq!(cfg.host, "mx");
+        assert_eq!(cfg.port, 587);
+        assert!(cfg.tls);
+        // 错误类型应返回 Validation 错误。
+        let api = Credential::new(
+            "e".into(),
+            "e".into(),
+            CredentialType::ApiKey { key: "k".into(), header_name: "h".into() },
+        );
+        tm.mgr.save_credential(&api).await.unwrap();
+        assert!(tm.mgr.get_smtp_config("e").await.is_err());
+    }
+}

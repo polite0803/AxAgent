@@ -71,6 +71,12 @@ jobs:
       - name: Check i18n hardcoded strings
         run: bash scripts/check-hardcoded-i18n.sh --strict
 
+      - name: Check backend error code i18n alignment
+        run: node scripts/check-errorcode-alignment.mjs
+
+      - name: Contract consistency check (command registration / i18n keys / harness deps)
+        run: npm run contracts -- --only=a,c,d
+
   rust-check:
     name: Rust Check (fmt + clippy + build)
     needs: [should-run-heavy]
@@ -125,6 +131,14 @@ jobs:
 
       - name: Check build
         run: cargo check --workspace --manifest-path src-tauri/Cargo.toml
+
+      - name: Setup Node.js (for Rust lint scripts)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Lint backend error codes (forbid raw map_err)
+        run: node scripts/check-rust-raw-map-err.mjs
 
   test-unit:
     name: Unit Tests

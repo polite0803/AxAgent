@@ -43,7 +43,12 @@ pub async fn skills_hub_review(
 
             let manifest_path = q_dir.join("skill-manifest.json");
             let manifest: serde_json::Value = if manifest_path.exists() {
-                let content = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+                let content = std::fs::read_to_string(&manifest_path).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
                 serde_json::from_str(&content).unwrap_or_default()
             } else {
                 serde_json::json!({})

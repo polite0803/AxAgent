@@ -571,6 +571,7 @@ pub async fn list_tools_for_server(
             name: m.name,
             description: m.description,
             input_schema_json: m.input_schema_json,
+            ..Default::default()
         })
         .collect())
 }
@@ -610,6 +611,7 @@ pub async fn save_tool_descriptors(
             name: tool.name,
             description: tool.description,
             input_schema_json,
+            ..Default::default()
         });
     }
     Ok(result)
@@ -627,6 +629,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "brave_web_search".into(),
                 description: Some("Search the web using Brave Search API. Returns web search results with titles, URLs, and descriptions.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"query":{"type":"string","description":"Search query string"},"count":{"type":"integer","description":"Number of results (default: 10, max: 20)"}},"required":["query"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-brave-local-search"),
@@ -634,6 +637,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "brave_local_search".into(),
                 description: Some("Search for local businesses and places using Brave Search API.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"query":{"type":"string","description":"Search query for local places"},"count":{"type":"integer","description":"Number of results (default: 5)"}},"required":["query"]}"#.into()),
+            ..Default::default()
             },
         ],
         "@axagent/sequential-thinking" => vec![
@@ -643,6 +647,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "sequentialthinking".into(),
                 description: Some("A detailed tool for dynamic and reflective problem-solving through thoughts. This tool helps analyze problems through a flexible thinking process that can adapt and evolve. Each thought can build on, question, or revise previous insights as understanding deepens. Use this tool for complex problems requiring step-by-step reasoning.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"thought":{"type":"string","description":"Your current thinking step"},"nextThoughtNeeded":{"type":"boolean","description":"Whether another thought step is needed"},"thoughtNumber":{"type":"integer","description":"Current thought number"},"totalThoughts":{"type":"integer","description":"Estimated total thoughts needed"},"isRevision":{"type":"boolean","description":"Whether this revises a previous thought"},"revisesThought":{"type":"integer","description":"Which thought number is being revised"},"branchFromThought":{"type":"integer","description":"Branching point thought number"},"branchId":{"type":"string","description":"Branch identifier"},"needsMoreThoughts":{"type":"boolean","description":"Whether more thoughts are needed"}},"required":["thought","nextThoughtNeeded","thoughtNumber","totalThoughts"]}"#.into()),
+            ..Default::default()
             },
         ],
         "@axagent/python" => vec![
@@ -652,6 +657,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "python_execute".into(),
                 description: Some("Execute a Python script in a sandboxed environment. Returns stdout and stderr output.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"script":{"type":"string","description":"Python script to execute"},"timeout":{"type":"integer","description":"Timeout in seconds (default: 30, max: 120)"}},"required":["script"]}"#.into()),
+            ..Default::default()
             },
         ],
         "@axagent/dify-knowledge" => vec![
@@ -661,6 +667,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "dify_list_bases".into(),
                 description: Some("List all available knowledge bases from a Dify instance.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"api_base":{"type":"string","description":"Dify API base URL (e.g. https://api.dify.ai/v1)"},"api_key":{"type":"string","description":"Dify API key"}},"required":["api_base","api_key"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-dify-search"),
@@ -668,6 +675,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "dify_search".into(),
                 description: Some("Search a Dify knowledge base for relevant documents.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"api_base":{"type":"string","description":"Dify API base URL"},"api_key":{"type":"string","description":"Dify API key"},"dataset_id":{"type":"string","description":"Knowledge base (dataset) ID to search"},"query":{"type":"string","description":"Search query"},"top_k":{"type":"integer","description":"Number of results (default: 5)"}},"required":["api_base","api_key","dataset_id","query"]}"#.into()),
+            ..Default::default()
             },
         ],
         "@axagent/workspace-memory" => vec![
@@ -677,6 +685,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "workspace_read".into(),
                 description: Some("Read a memory file from the agent workspace (e.g. SUMMARY.md, FACT.md, journal entries).".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"filename":{"type":"string","description":"Memory filename to read (default: FACT.md)"},"workspace_path":{"type":"string","description":"Workspace directory path"}},"required":["workspace_path"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-workspace-write"),
@@ -684,6 +693,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "workspace_write".into(),
                 description: Some("Write or append to a memory file in the agent workspace. Use to persist important facts, decisions, or context.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"filename":{"type":"string","description":"Memory filename (default: FACT.md)"},"workspace_path":{"type":"string","description":"Workspace directory path"},"content":{"type":"string","description":"Content to write or append"},"mode":{"type":"string","enum":["overwrite","append"],"description":"Write mode (default: append)"}},"required":["workspace_path","content"]}"#.into()),
+            ..Default::default()
             },
         ],
 
@@ -694,6 +704,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "pdf_info".into(),
                 description: Some("Extract text and metadata from a PDF file. Returns page count and text preview.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"file_path":{"type":"string","description":"Absolute path to the PDF file"}},"required":["file_path"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-detect-encoding"),
@@ -701,6 +712,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "detect_encoding".into(),
                 description: Some("Detect the text encoding of a file.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"file_path":{"type":"string","description":"Absolute path to the file"}},"required":["file_path"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-base64-image"),
@@ -708,6 +720,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "base64_image".into(),
                 description: Some("Read an image file and return base64-encoded content with MIME type.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"file_path":{"type":"string","description":"Absolute path to the image file"}},"required":["file_path"]}"#.into()),
+            ..Default::default()
             },
         ],
         "@axagent/cache" => vec![
@@ -717,6 +730,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "cache_info".into(),
                 description: Some("Get application cache size and information.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-cache-clear"),
@@ -724,6 +738,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "cache_clear".into(),
                 description: Some("Clear application caches to free disk space.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"cache_type":{"type":"string","enum":["all","temp"],"description":"Cache type (default: all)"}}}"#.into()),
+            ..Default::default()
             },
         ],
 
@@ -734,6 +749,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "ocr_image".into(),
                 description: Some("Extract text from an image file using OCR (Optical Character Recognition). Supports PNG, JPEG, TIFF, BMP. Requires tesseract to be installed.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"file_path":{"type":"string","description":"Absolute path to the image file"},"lang":{"type":"string","description":"Language code (default: eng). Use ocr_detect_langs to list available languages."}},"required":["file_path"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-ocr-detect-langs"),
@@ -741,6 +757,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "ocr_detect_langs".into(),
                 description: Some("List available OCR language packs installed in tesseract.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),
+            ..Default::default()
             },
         ],
 
@@ -751,6 +768,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "obsidian_get_vaults".into(),
                 description: Some("Find all Obsidian vaults on this system. Searches common locations including Documents, home directory, and configured paths.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"search_path":{"type":"string","description":"Optional override search path"}}}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-obsidian-list-files"),
@@ -758,6 +776,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "obsidian_list_files".into(),
                 description: Some("List all markdown files in an Obsidian vault.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"vault_path":{"type":"string","description":"Absolute path to the Obsidian vault root"}},"required":["vault_path"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-obsidian-read-file"),
@@ -765,6 +784,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "obsidian_read_file".into(),
                 description: Some("Read a markdown file from an Obsidian vault.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"vault_path":{"type":"string","description":"Vault root path"},"file_path":{"type":"string","description":"Relative path to the file within the vault"}},"required":["vault_path","file_path"]}"#.into()),
+            ..Default::default()
             },
         ],
         "@axagent/export" => vec![
@@ -774,6 +794,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "export_word".into(),
                 description: Some("Export markdown content as a Word (.docx) document.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"markdown":{"type":"string","description":"Markdown content to export"},"output_path":{"type":"string","description":"Output file path (e.g. /path/to/document.docx)"},"title":{"type":"string","description":"Document title"}},"required":["markdown","output_path"]}"#.into()),
+            ..Default::default()
             },
         ],
         "@axagent/remotefile" => vec![
@@ -783,6 +804,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "remotefile_upload".into(),
                 description: Some("Upload a file to a remote AI file service (Gemini, OpenAI, or Mistral).".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"provider":{"type":"string","enum":["gemini","openai","mistral"],"description":"AI provider"},"api_key":{"type":"string","description":"API key for the provider"},"file_path":{"type":"string","description":"Local file path to upload"},"purpose":{"type":"string","description":"File purpose (optional, for OpenAI)"}},"required":["provider","api_key","file_path"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-remotefile-list"),
@@ -790,6 +812,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "remotefile_list".into(),
                 description: Some("List files stored on a remote AI file service.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"provider":{"type":"string","enum":["gemini","openai","mistral"],"description":"AI provider"},"api_key":{"type":"string","description":"API key"}},"required":["provider","api_key"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-remotefile-delete"),
@@ -797,6 +820,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "remotefile_delete".into(),
                 description: Some("Delete a file from a remote AI file service.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"provider":{"type":"string","enum":["gemini","openai","mistral"],"description":"AI provider"},"api_key":{"type":"string","description":"API key"},"file_id":{"type":"string","description":"File ID to delete"}},"required":["provider","api_key","file_id"]}"#.into()),
+            ..Default::default()
             },
         ],
 
@@ -807,6 +831,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "agent_checkpoint".into(),
                 description: Some("Save a checkpoint of the current agent task state. Use during complex multi-step tasks to allow resuming if interrupted.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"action":{"type":"string","enum":["save","list","restore"],"description":"Action: save a new checkpoint, list existing checkpoints, or restore from a checkpoint"},"checkpoint_id":{"type":"string","description":"Checkpoint ID (required for restore)"},"label":{"type":"string","description":"Human-readable label for the checkpoint"}},"required":["action"]}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-agent-status"),
@@ -814,6 +839,7 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "agent_status".into(),
                 description: Some("Report the current agent status including running tasks, tool execution history, error count, and session duration.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),
+            ..Default::default()
             },
             ToolDescriptor {
                 id: format!("{server_id}-agent-remember"),
@@ -821,50 +847,51 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
                 name: "agent_remember".into(),
                 description: Some("Persist an important piece of information to the agent's session memory. Use for key findings, user preferences, decisions, or work-in-progress state that should survive across tool calls.".into()),
                 input_schema_json: Some(r#"{"type":"object","properties":{"key":{"type":"string","description":"Memory key (e.g. 'user_preference', 'task_context', 'findings')"},"value":{"type":"string","description":"Value to remember"}},"required":["key","value"]}"#.into()),
+            ..Default::default()
             },
         ],
 
         "@axagent/computer-control" => vec![
-            ToolDescriptor { id: format!("{server_id}-screen-capture"), server_id: server_id.to_string(), name: "screen_capture".into(), description: Some("Capture a screenshot of the screen, region, or window".into()), input_schema_json: Some(r#"{"type":"object","properties":{"monitor":{"type":"integer"},"region":{"type":"object"},"window_title":{"type":"string"}}}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-find-ui-elements"), server_id: server_id.to_string(), name: "find_ui_elements".into(), description: Some("Find accessible UI elements on screen".into()), input_schema_json: Some(r#"{"type":"object","properties":{"role":{"type":"string"},"name_contains":{"type":"string"},"application":{"type":"string"},"window_title":{"type":"string"}}}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-mouse-click"), server_id: server_id.to_string(), name: "mouse_click".into(), description: Some("Click at specified screen coordinates".into()), input_schema_json: Some(r#"{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"},"button":{"type":"string","enum":["left","right","middle"]}},"required":["x","y"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-type-text"), server_id: server_id.to_string(), name: "type_text".into(), description: Some("Type text at the current position".into()), input_schema_json: Some(r#"{"type":"object","properties":{"text":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"}},"required":["text"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-press-key"), server_id: server_id.to_string(), name: "press_key".into(), description: Some("Press a keyboard key with optional modifiers".into()), input_schema_json: Some(r#"{"type":"object","properties":{"key":{"type":"string"},"modifiers":{"type":"array","items":{"type":"string"}}},"required":["key"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-mouse-scroll"), server_id: server_id.to_string(), name: "mouse_scroll".into(), description: Some("Scroll at specified coordinates".into()), input_schema_json: Some(r#"{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"},"delta":{"type":"integer"}},"required":["x","y","delta"]}"#.into()), },
+            ToolDescriptor { id: format!("{server_id}-screen-capture"), server_id: server_id.to_string(), name: "screen_capture".into(), description: Some("Capture a screenshot of the screen, region, or window".into()), input_schema_json: Some(r#"{"type":"object","properties":{"monitor":{"type":"integer"},"region":{"type":"object"},"window_title":{"type":"string"}}}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-find-ui-elements"), server_id: server_id.to_string(), name: "find_ui_elements".into(), description: Some("Find accessible UI elements on screen".into()), input_schema_json: Some(r#"{"type":"object","properties":{"role":{"type":"string"},"name_contains":{"type":"string"},"application":{"type":"string"},"window_title":{"type":"string"}}}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-mouse-click"), server_id: server_id.to_string(), name: "mouse_click".into(), description: Some("Click at specified screen coordinates".into()), input_schema_json: Some(r#"{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"},"button":{"type":"string","enum":["left","right","middle"]}},"required":["x","y"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-type-text"), server_id: server_id.to_string(), name: "type_text".into(), description: Some("Type text at the current position".into()), input_schema_json: Some(r#"{"type":"object","properties":{"text":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"}},"required":["text"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-press-key"), server_id: server_id.to_string(), name: "press_key".into(), description: Some("Press a keyboard key with optional modifiers".into()), input_schema_json: Some(r#"{"type":"object","properties":{"key":{"type":"string"},"modifiers":{"type":"array","items":{"type":"string"}}},"required":["key"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-mouse-scroll"), server_id: server_id.to_string(), name: "mouse_scroll".into(), description: Some("Scroll at specified coordinates".into()), input_schema_json: Some(r#"{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"},"delta":{"type":"integer"}},"required":["x","y","delta"]}"#.into()),  ..Default::default() },
         ],
         "@axagent/browser" => vec![
-            ToolDescriptor { id: format!("{server_id}-browser-navigate"), server_id: server_id.to_string(), name: "browser_navigate".into(), description: Some("Navigate to a URL in the browser".into()), input_schema_json: Some(r#"{"type":"object","properties":{"url":{"type":"string"}},"required":["url"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-screenshot"), server_id: server_id.to_string(), name: "browser_screenshot".into(), description: Some("Take a screenshot of the browser page".into()), input_schema_json: Some(r#"{"type":"object","properties":{"full_page":{"type":"boolean"}}}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-click"), server_id: server_id.to_string(), name: "browser_click".into(), description: Some("Click an element by CSS selector".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-fill"), server_id: server_id.to_string(), name: "browser_fill".into(), description: Some("Fill an input field".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"value":{"type":"string"}},"required":["selector","value"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-type"), server_id: server_id.to_string(), name: "browser_type".into(), description: Some("Type text into an element".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"text":{"type":"string"}},"required":["selector","text"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-extract-text"), server_id: server_id.to_string(), name: "browser_extract_text".into(), description: Some("Extract text from an element".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-extract-all"), server_id: server_id.to_string(), name: "browser_extract_all".into(), description: Some("Extract all matching elements".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-get-content"), server_id: server_id.to_string(), name: "browser_get_content".into(), description: Some("Get full HTML content of the page".into()), input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-select"), server_id: server_id.to_string(), name: "browser_select".into(), description: Some("Select a dropdown option".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"value":{"type":"string"}},"required":["selector","value"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-browser-wait-for"), server_id: server_id.to_string(), name: "browser_wait_for".into(), description: Some("Wait for an element to appear".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"timeout":{"type":"integer"}},"required":["selector"]}"#.into()), },
+            ToolDescriptor { id: format!("{server_id}-browser-navigate"), server_id: server_id.to_string(), name: "browser_navigate".into(), description: Some("Navigate to a URL in the browser".into()), input_schema_json: Some(r#"{"type":"object","properties":{"url":{"type":"string"}},"required":["url"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-screenshot"), server_id: server_id.to_string(), name: "browser_screenshot".into(), description: Some("Take a screenshot of the browser page".into()), input_schema_json: Some(r#"{"type":"object","properties":{"full_page":{"type":"boolean"}}}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-click"), server_id: server_id.to_string(), name: "browser_click".into(), description: Some("Click an element by CSS selector".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-fill"), server_id: server_id.to_string(), name: "browser_fill".into(), description: Some("Fill an input field".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"value":{"type":"string"}},"required":["selector","value"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-type"), server_id: server_id.to_string(), name: "browser_type".into(), description: Some("Type text into an element".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"text":{"type":"string"}},"required":["selector","text"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-extract-text"), server_id: server_id.to_string(), name: "browser_extract_text".into(), description: Some("Extract text from an element".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-extract-all"), server_id: server_id.to_string(), name: "browser_extract_all".into(), description: Some("Extract all matching elements".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-get-content"), server_id: server_id.to_string(), name: "browser_get_content".into(), description: Some("Get full HTML content of the page".into()), input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-select"), server_id: server_id.to_string(), name: "browser_select".into(), description: Some("Select a dropdown option".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"value":{"type":"string"}},"required":["selector","value"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-browser-wait-for"), server_id: server_id.to_string(), name: "browser_wait_for".into(), description: Some("Wait for an element to appear".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"timeout":{"type":"integer"}},"required":["selector"]}"#.into()),  ..Default::default() },
         ],
         "@axagent/image-gen" => vec![
-            ToolDescriptor { id: format!("{server_id}-generate-image"), server_id: server_id.to_string(), name: "generate_image".into(), description: Some("Generate an image from a text prompt".into()), input_schema_json: Some(r#"{"type":"object","properties":{"prompt":{"type":"string"},"provider":{"type":"string","enum":["flux","dall-e"]},"width":{"type":"integer"},"height":{"type":"integer"},"steps":{"type":"integer"},"seed":{"type":"integer"},"api_key":{"type":"string"}},"required":["prompt"]}"#.into()), },
+            ToolDescriptor { id: format!("{server_id}-generate-image"), server_id: server_id.to_string(), name: "generate_image".into(), description: Some("Generate an image from a text prompt".into()), input_schema_json: Some(r#"{"type":"object","properties":{"prompt":{"type":"string"},"provider":{"type":"string","enum":["flux","dall-e"]},"width":{"type":"integer"},"height":{"type":"integer"},"steps":{"type":"integer"},"seed":{"type":"integer"},"api_key":{"type":"string"}},"required":["prompt"]}"#.into()),  ..Default::default() },
         ],
         "@axagent/chart-gen" => vec![
-            ToolDescriptor { id: format!("{server_id}-generate-chart-config"), server_id: server_id.to_string(), name: "generate_chart_config".into(), description: Some("Generate an ECharts config from description".into()), input_schema_json: Some(r#"{"type":"object","properties":{"description":{"type":"string"},"data":{"type":"object"},"chart_type":{"type":"string"},"title":{"type":"string"},"api_key":{"type":"string"},"base_url":{"type":"string"},"model":{"type":"string"}},"required":["description"]}"#.into()), },
+            ToolDescriptor { id: format!("{server_id}-generate-chart-config"), server_id: server_id.to_string(), name: "generate_chart_config".into(), description: Some("Generate an ECharts config from description".into()), input_schema_json: Some(r#"{"type":"object","properties":{"description":{"type":"string"},"data":{"type":"object"},"chart_type":{"type":"string"},"title":{"type":"string"},"api_key":{"type":"string"},"base_url":{"type":"string"},"model":{"type":"string"}},"required":["description"]}"#.into()),  ..Default::default() },
         ],
         "@axagent/code-edit" => vec![
-            ToolDescriptor { id: format!("{server_id}-search-replace"), server_id: server_id.to_string(), name: "search_replace".into(), description: Some("Search and replace text in a file".into()), input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string"},"old_str":{"type":"string"},"new_str":{"type":"string"},"start_line":{"type":"integer"},"end_line":{"type":"integer"},"replace_all":{"type":"boolean"}},"required":["path","old_str","new_str"]}"#.into()), },
+            ToolDescriptor { id: format!("{server_id}-search-replace"), server_id: server_id.to_string(), name: "search_replace".into(), description: Some("Search and replace text in a file".into()), input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string"},"old_str":{"type":"string"},"new_str":{"type":"string"},"start_line":{"type":"integer"},"end_line":{"type":"integer"},"replace_all":{"type":"boolean"}},"required":["path","old_str","new_str"]}"#.into()),  ..Default::default() },
         ],
         "@axagent/git" => vec![
-            ToolDescriptor { id: format!("{server_id}-git-status"), server_id: server_id.to_string(), name: "git_status".into(), description: Some("Get the current git status".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"}},"required":["repo_path"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-git-diff"), server_id: server_id.to_string(), name: "git_diff".into(), description: Some("Get staged or branch changes summary".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"base_branch":{"type":"string"}},"required":["repo_path"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-git-commit"), server_id: server_id.to_string(), name: "git_commit".into(), description: Some("Stage all changes and commit".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"message":{"type":"string"},"stage_all":{"type":"boolean"}},"required":["repo_path","message"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-git-log"), server_id: server_id.to_string(), name: "git_log".into(), description: Some("Get recent commit history".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"max_count":{"type":"integer"}},"required":["repo_path"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-git-branch"), server_id: server_id.to_string(), name: "git_branch".into(), description: Some("List or create git branches".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"action":{"type":"string","enum":["list","create","switch"]},"name":{"type":"string"}},"required":["repo_path"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-git-review"), server_id: server_id.to_string(), name: "git_review".into(), description: Some("Generate a code review context summary".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"base_branch":{"type":"string"}},"required":["repo_path"]}"#.into()), },
+            ToolDescriptor { id: format!("{server_id}-git-status"), server_id: server_id.to_string(), name: "git_status".into(), description: Some("Get the current git status".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"}},"required":["repo_path"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-git-diff"), server_id: server_id.to_string(), name: "git_diff".into(), description: Some("Get staged or branch changes summary".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"base_branch":{"type":"string"}},"required":["repo_path"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-git-commit"), server_id: server_id.to_string(), name: "git_commit".into(), description: Some("Stage all changes and commit".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"message":{"type":"string"},"stage_all":{"type":"boolean"}},"required":["repo_path","message"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-git-log"), server_id: server_id.to_string(), name: "git_log".into(), description: Some("Get recent commit history".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"max_count":{"type":"integer"}},"required":["repo_path"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-git-branch"), server_id: server_id.to_string(), name: "git_branch".into(), description: Some("List or create git branches".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"action":{"type":"string","enum":["list","create","switch"]},"name":{"type":"string"}},"required":["repo_path"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-git-review"), server_id: server_id.to_string(), name: "git_review".into(), description: Some("Generate a code review context summary".into()), input_schema_json: Some(r#"{"type":"object","properties":{"repo_path":{"type":"string"},"base_branch":{"type":"string"}},"required":["repo_path"]}"#.into()),  ..Default::default() },
         ],
         "@axagent/cron" => vec![
-            ToolDescriptor { id: format!("{server_id}-cron-add"), server_id: server_id.to_string(), name: "cron_add".into(), description: Some("Schedule a new recurring cron job".into()), input_schema_json: Some(r#"{"type":"object","properties":{"name":{"type":"string"},"schedule":{"type":"string"},"prompt":{"type":"string"}},"required":["name","schedule","prompt"]}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-cron-list"), server_id: server_id.to_string(), name: "cron_list".into(), description: Some("List all scheduled cron jobs".into()), input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()), },
-            ToolDescriptor { id: format!("{server_id}-cron-delete"), server_id: server_id.to_string(), name: "cron_delete".into(), description: Some("Delete a scheduled cron job".into()), input_schema_json: Some(r#"{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}"#.into()), },
+            ToolDescriptor { id: format!("{server_id}-cron-add"), server_id: server_id.to_string(), name: "cron_add".into(), description: Some("Schedule a new recurring cron job".into()), input_schema_json: Some(r#"{"type":"object","properties":{"name":{"type":"string"},"schedule":{"type":"string"},"prompt":{"type":"string"}},"required":["name","schedule","prompt"]}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-cron-list"), server_id: server_id.to_string(), name: "cron_list".into(), description: Some("List all scheduled cron jobs".into()), input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),  ..Default::default() },
+            ToolDescriptor { id: format!("{server_id}-cron-delete"), server_id: server_id.to_string(), name: "cron_delete".into(), description: Some("Delete a scheduled cron job".into()), input_schema_json: Some(r#"{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}"#.into()),  ..Default::default() },
         ],
 
         _ => vec![],

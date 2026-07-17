@@ -13,3 +13,6 @@ dirs = "6"
 serde_yaml = "0.9"
 tracing = { workspace = true }
 uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }

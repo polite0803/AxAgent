@@ -118,6 +118,7 @@ pub enum FrontendEventType {
     AgentPermissionRequest,
     AgentPermissionGranted,
     AgentPermissionDenied,
+    AgentPlanReadyForApproval,
 }
 
 impl From<AgentEventType> for FrontendEventType {
@@ -145,6 +146,7 @@ impl From<AgentEventType> for FrontendEventType {
             AgentEventType::PermissionRequest => FrontendEventType::AgentPermissionRequest,
             AgentEventType::PermissionGranted => FrontendEventType::AgentPermissionGranted,
             AgentEventType::PermissionDenied => FrontendEventType::AgentPermissionDenied,
+            AgentEventType::PlanReadyForApproval => FrontendEventType::AgentPlanReadyForApproval,
         }
     }
 }

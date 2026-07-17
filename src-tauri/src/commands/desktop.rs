@@ -9,21 +9,46 @@ use tauri::Manager;
 
 #[tauri::command]
 pub async fn minimize_window(window: tauri::Window) -> Result<(), String> {
-    window.minimize().map_err(|e| e.to_string())
+    window.minimize().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn toggle_maximize_window(window: tauri::Window) -> Result<(), String> {
-    if window.is_maximized().map_err(|e| e.to_string())? {
-        window.unmaximize().map_err(|e| e.to_string())
+    if window.is_maximized().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })? {
+        window.unmaximize().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     } else {
-        window.maximize().map_err(|e| e.to_string())
+        window.maximize().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     }
 }
 
 #[tauri::command]
 pub async fn set_always_on_top(window: tauri::Window, enabled: bool) -> Result<(), String> {
-    window.set_always_on_top(enabled).map_err(|e| e.to_string())
+    window.set_always_on_top(enabled).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -40,7 +65,12 @@ pub async fn apply_startup_settings(
     always_on_top: bool,
     close_to_tray: bool,
 ) -> Result<(), String> {
-    window.set_always_on_top(always_on_top).map_err(|e| e.to_string())?;
+    window.set_always_on_top(always_on_top).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let state = app.state::<AppState>();
     state.close_to_tray.store(close_to_tray, Ordering::Relaxed);
     Ok(())
@@ -176,10 +206,20 @@ pub async fn test_proxy(
 pub async fn list_system_fonts() -> Result<Vec<String>, String> {
     tokio::task::spawn_blocking(|| {
         let source = font_kit::source::SystemSource::new();
-        let mut families = source.all_families().map_err(|e| e.to_string())?;
+        let mut families = source.all_families().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         families.sort_by_key(|a| a.to_lowercase());
         Ok(families)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?
 }

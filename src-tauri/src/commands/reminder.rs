@@ -107,10 +107,16 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
     // 输入验证
     let title = input.title.trim().to_string();
     if title.is_empty() {
-        return Err("提醒标题不能为空".into());
+        return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+            "提醒标题不能为空".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        )));
     }
     if title.len() > 200 {
-        return Err("提醒标题不能超过 200 个字符".into());
+        return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+            "提醒标题不能超过 200 个字符".to_string(),
+            crate::commands::error::ErrorCategory::Validation,
+        )));
     }
 
     let scheduled_at = DateTime::parse_from_rfc3339(&input.scheduled_at)
@@ -132,7 +138,12 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
                 "daily" => axagent_trajectory::RecurrenceFrequency::Daily,
                 "weekly" => axagent_trajectory::RecurrenceFrequency::Weekly,
                 "monthly" => axagent_trajectory::RecurrenceFrequency::Monthly,
-                _ => return Err("recurrence_frequency 须为 daily/weekly/monthly".into()),
+                _ => {
+                    return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+                        "recurrence_frequency 须为 daily/weekly/monthly".to_string(),
+                        crate::commands::error::ErrorCategory::Validation,
+                    )));
+                },
             };
             Some(axagent_trajectory::ReminderRecurrence { frequency, interval })
         },

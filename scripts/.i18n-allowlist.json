@@ -1,1123 +1,337 @@
 {
   "version": "2",
-  "generated": "2026-07-16",
-  "total_entries": 714,
-  "total_files": 714,
+  "generated": "2026-07-15",
+  "total_entries": 109,
+  "total_files": 109,
   "entries": [
     {
-      "file": "components/chat/AgentExecutionPanel.tsx",
-      "lines": "208,239,288",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/AgentPoolPanel.tsx",
-      "lines": "233,248,255,262,275,293,296",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/AgentProgressBar.tsx",
-      "lines": "149,152,171,185",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/BuddyWidget.tsx",
-      "lines": "344,396,438,452,471,531",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/ContextBar.tsx",
-      "lines": "156",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/ExpertSelector.tsx",
-      "lines": "275",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/InputArea.tsx",
-      "lines": "1074",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/McpContainerNode.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\McpContainerNode.tsx",
       "lines": "198",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/chat/PermissionModal.tsx",
-      "lines": "287,317,331",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/PromptTemplateSelector.tsx",
-      "lines": "185,217",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/RightPanelContainer.tsx",
-      "lines": "400",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/chat/StructuredThinking.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\StructuredThinking.tsx",
       "lines": "37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,102,103,104,105,106,107,108,109,110,111,112,113,114,132,133,134,135,136,137,138,139,140,141,142,143",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/chat/TeammatePanel.tsx",
-      "lines": "174,182,191,209",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\dynamicUI\\DynamicUIPreview.tsx",
+      "lines": "24,30",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/chat/TrajectoryReplay.tsx",
-      "lines": "155,198,229,253,306,343,387,490,522",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\dynamicUI\\DynamicUIRenderer.tsx",
+      "lines": "203,211",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/chat/WorkflowProgressPanel.tsx",
-      "lines": "840",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\dynamicUI\\DynamicUIStandalone.tsx",
+      "lines": "113",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/chat/WorkflowTemplateSelector.tsx",
-      "lines": "261",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/devtools/RLCheckpointManager.tsx",
-      "lines": "34,35,37,45,53,60,71,74,84,86,95,99,103,106",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/devtools/RLTrainingConfig.tsx",
-      "lines": "12,21,22,23,24",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/devtools/RLTrainingMonitor.tsx",
-      "lines": "12,73,87,88,89,90,94,98",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/devtools/RLTrainingPanel.tsx",
-      "lines": "21,22,23,24,25,52,62,67,78,83,88",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/dynamicUI/DynamicUIPreview.tsx",
-      "lines": "23,29,70,90,118,123,126,134,141,149,160,166",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/gateway/GatewayMonitor.tsx",
-      "lines": "149,229",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/help/HelpPanel.tsx",
-      "lines": "226,233,246,259",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/layout/AppHeader.tsx",
-      "lines": "90,103,116,135",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/layout/AppInitializer.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\layout\\AppInitializer.tsx",
       "lines": "36,59,63,98",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/layout/CommandPalette.tsx",
-      "lines": "85",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/layout/ContentArea.tsx",
-      "lines": "329,332",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/layout/Sidebar.tsx",
-      "lines": "444",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/layout/TitleBar.tsx",
-      "lines": "565,625,772",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/onboarding/InteractiveTutorial.tsx",
-      "lines": "248,255,272",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/onboarding/WelcomeWizard.tsx",
-      "lines": "137,159,235,310,363,405",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/settings/AcpSettings.tsx",
-      "lines": "189,221",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/settings/AgentGeneratorModal.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\AgentGeneratorModal.tsx",
       "lines": "12,14,15,16,17,18,19,20,22,24,71",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/settings/DataManager.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\DataManager.tsx",
       "lines": "52,104,117",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/settings/EngineConfigForm.tsx",
-      "lines": "78",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\GeneralSettings.tsx",
+      "lines": "84",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/settings/EngineDetailPanel.tsx",
-      "lines": "21,22,23,24,103,104,122,135,197",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\SettingsPanel.tsx",
+      "lines": "446",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/settings/GeneralSettings.tsx",
-      "lines": "74",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\settingsSearchIndex.ts",
+      "lines": "42,47,67,72,77,82,87,94,99,104,109,114,119,124,129,134,148,149,150,152,153,162,167,172,177,182,187,192,199,204,209,214,219,224,229,234,239,244,249,256,261,266,271,276,283,288,293,298,303,309,311,312,314,316,324,329,334,339,344,349,354,359,364,371,376,381,386,391,398,403,408,413,418,423,430,435,440,445,452,457,462,467,472,477,482,487,492,497,502,507,512,519,524,529,534,539,544,549,554,559,564,569,574,579,584,589,594,599,604,609,614,619,624,629,634,639,644,649,654,659,664,669,676,681,686,691,696,701,706,711,716,723,728,733,738,743,748,753,758,763,768,773,778",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/settings/HookExecutionLog.tsx",
-      "lines": "198,235",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\terminal\\IntegratedTerminal.tsx",
+      "lines": "142,211,236",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/settings/KnowledgeSettings.tsx",
-      "lines": "1230,1313",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/settings/McpServerSettings.tsx",
-      "lines": "139,167",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/settings/PromptImportModal.tsx",
-      "lines": "68,131",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/settings/PromptTemplatesSettings.tsx",
-      "lines": "241,274,296,378,384,467,531",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/settings/SchedulerSettings.tsx",
-      "lines": "928",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/settings/SettingsPanel.tsx",
-      "lines": "445",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/skill/SkillABTestResults.tsx",
-      "lines": "18,23,29,36,43,55,61,80,82,84,85",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/skill/SkillEvolutionViewer.tsx",
-      "lines": "48,49,51,52,61,68",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/skill/SkillSandboxContainer.tsx",
-      "lines": "250,259,266",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/skill/SkillVersionTimeline.tsx",
-      "lines": "47,73,83,113,125,134,140,144",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/terminal/IntegratedTerminal.tsx",
-      "lines": "139,205,230",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/terminal/StatusBarWidget.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\terminal\\StatusBarWidget.tsx",
       "lines": "104",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/trace/BottleneckAnalyzer.tsx",
-      "lines": "164,173,186,192,193,195,211,216,221",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\AIPanel\\AIPanel.tsx",
+      "lines": "240,259,281,304,311,322",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/trace/FeedbackCollector.tsx",
-      "lines": "38,39,44,45,56,64,73,81,89,99",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\NLParserPanel.tsx",
+      "lines": "18,19,20",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/trace/ImprovementSuggestion.tsx",
-      "lines": "67,76,83,92,102,108,117",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\AgentPropertyPanel.tsx",
+      "lines": "289,290,291,315,317,318,320,321,324,325,326,328,329",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/trace/TraceTimeline.tsx",
-      "lines": "38,39,40,41,117,126,134,162,168,174,181,236",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\CodePropertyPanel.tsx",
+      "lines": "129,130,131,171,172",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/wiki/WikiDetailPanel.tsx",
-      "lines": "251,308,317,374,392",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/wiki/WikiFilePanel.tsx",
-      "lines": "263,284,313",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/wiki/WikiNodeContextMenu.tsx",
-      "lines": "61,76",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/AIPanel/AIPanel.tsx",
-      "lines": "45,46,47,48,231,250,272,295,302,313,677,692,793,801,921",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/AIPanel/EvolutionTab.tsx",
-      "lines": "119,129,139,144,146,148,226,240,248,254,264,273,286,292,322,327",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/AIPanel/NL2SkillResultView.tsx",
-      "lines": "25,39,41,42,43,46,48,54,56,64,75,81,103,106,119,127",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/AIPanel/NL2UIResultView.tsx",
-      "lines": "34,46,51,53,54,55,58,66,88,94,116,119,132,140",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/AIPanel/NLParseResultView.tsx",
-      "lines": "49,70,73,79,84,89,101,109,119,126,134,152,162",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/CanvasTitleBar.tsx",
-      "lines": "76,85,105,166,169",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/DebugPanel.tsx",
-      "lines": "230,251,274,1538,1542",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/NLParserPanel.tsx",
-      "lines": "17,18,19,59,64,71,76,89,110,121,125,126,133,141",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/AgentNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/ApprovalNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/BaseNode.tsx",
-      "lines": "177,186,205,221,242,262,341",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/CodeNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/ConditionNode.tsx",
-      "lines": "53,150",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/ContainerNode.tsx",
-      "lines": "103,127,150,153,171,175,204,240,267",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/DatabaseQueryNode.tsx",
-      "lines": "48,57,76",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/DataTransformerNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/DelayNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/DocumentParserNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/EmailNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/EndNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/FileOperationNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/GroupFrameNode.tsx",
-      "lines": "52",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/HttpRequestNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/LlmClassifierNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/LLMNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/LoggingNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/NotificationNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/PhaseSeparatorNode.tsx",
-      "lines": "42,59,91,115",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/StorageNode.tsx",
-      "lines": "52,61,80",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/SubWorkflowNode.tsx",
-      "lines": "60,78,200,209,228,244",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/SwitchNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/ToolNode.tsx",
-      "lines": "49,58,77",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/TriggerNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/ValidationNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/VectorRetrieveNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Nodes/WebhookSendNode.tsx",
-      "lines": "47,56,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/LeftPanel.tsx",
-      "lines": "226",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/AgentPropertyPanel.tsx",
-      "lines": "291,292,293,317,319,320,322,323,326,327,328,330,331,417,446,808,909,1058,1079",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/AggregatorPropertyPanel.tsx",
-      "lines": "36,90,117,147",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/BasePropertyPanel.tsx",
-      "lines": "180",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
-      "lines": "53,59,65,71,129,130,131,171,172,204,225,273,312,342",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/ConditionPropertyPanel.tsx",
-      "lines": "257",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/DatabaseQueryPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\DatabaseQueryPropertyPanel.tsx",
       "lines": "30,31",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/DebatePropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\DebatePropertyPanel.tsx",
       "lines": "51,52,53,69,70,71",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/DocumentParserPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\DocumentParserPropertyPanel.tsx",
       "lines": "50,51",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/EmailPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\EmailPropertyPanel.tsx",
       "lines": "38,39,59,60",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/HttpRequestPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\HttpRequestPropertyPanel.tsx",
       "lines": "57,58,59,60,61",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/LLMPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\LLMPropertyPanel.tsx",
       "lines": "109,110,111,130,132,133,135,136,139,140,141,143,144",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/LoopPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\LoopPropertyPanel.tsx",
       "lines": "43,44",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/ParallelPropertyPanel.tsx",
-      "lines": "358",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\SubWorkflowPropertyPanel.tsx",
+      "lines": "65,66",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/SubWorkflowPropertyPanel.tsx",
-      "lines": "65,66,171",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/SwitchPropertyPanel.tsx",
-      "lines": "80,111,172,265",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/Panels/PropertyPanels/TriggerPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\TriggerPropertyPanel.tsx",
       "lines": "49,50",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/ValidationPropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\ValidationPropertyPanel.tsx",
       "lines": "64,65,66,69",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/PropertyPanels/VectorRetrievePropertyPanel.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\Panels\\PropertyPanels\\VectorRetrievePropertyPanel.tsx",
       "lines": "55,56",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Panels/ValidationRulesPanel.tsx",
-      "lines": "149,167,181,228,241,255,268,284,337,383",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\WorkflowVersionManager.tsx",
+      "lines": "68,71,75",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/Templates/VersionHistoryModal.tsx",
-      "lines": "256,317,357,408",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\data\\expertPresets.ts",
+      "lines": "27,29,32,35,44,46,50,53,62,64,68,71,80,82,85,88,97,99,103,106,115,117,120,123,132,134,138,141,150,152,156,159,168,170,174,177,186,188,192,195,204,206,209,212,221,223,227,230",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "components/workflow/WorkflowEditor.tsx",
-      "lines": "767,881,1865",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/WorkflowExecutor.tsx",
-      "lines": "26,27,28,29,54,62,65,76,79,83,86,97,101,103,106,113,115,125,128,144,147,157",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/WorkflowLegend.tsx",
-      "lines": "79,136",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/WorkflowLogPanel.tsx",
-      "lines": "41,48,51",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "components/workflow/WorkflowVersionManager.tsx",
-      "lines": "50,55,60,63,66,78,85,91,96,101,106,111,112,116,125,131,139,146,166",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "hooks/useGlobalShortcutManager.ts",
+      "file": "D:\\OneManager\\AxAgent\\src\\hooks\\useGlobalShortcutManager.ts",
       "lines": "216,236",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "hooks/useUpdateChecker.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\hooks\\useUpdateChecker.tsx",
       "lines": "132,142",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/browserMock.ts",
-      "lines": "122,124,126,128,355,430,463,1183,1184,1191,1192,1199,1200,1560,1561,1566,1575,1584,1595,1596,1601,1610,1619,1630,1631,1636,2312,2323,2333,2343",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\browserMock.ts",
+      "lines": "127,1585,1586,1594,1595,1603,1604,1620,1621,1629,1630,1638,1639,1655,1656,128,1212,1225,1337,1675,1684,1693,1710,1719,1728,1745",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/chartGenerator.ts",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\chartGenerator.ts",
       "lines": "44,45,46,63,66,69,72,75",
-      "reason": "非UI字符串-关键词匹配",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/constants.ts",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\constants.ts",
       "lines": "6,12,22",
-      "reason": "非UI字符串-默认fallback",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/dynamicUI/nl2ui.ts",
-      "lines": "17,19,21,24,26,28,31,33,35,38,40,42,45,47,49,51,53,55,57,60,62,64,66,68,70,72,74,76,78,80,83,85,87,91,93,95,144,145,155,156,166,167,176,177,179,180,182,183,185,220,238",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\nl2ui-edit.ts",
+      "lines": "38,45,70,72,79",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/dynamicUI/registerBuiltins.ts",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\nl2ui.ts",
+      "lines": "17,19,21,24,26,28,31,33,35,38,40,42,45,47,49,51,53,55,57,60,62,64,66,68,70,72,74,76,78,80,83,85,87,91,93,95,140,141,142,150,161,162,172,173,184,185,194,195,197,198,200,201,203,238,256",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\registerBuiltins.ts",
       "lines": "55,62,69,76,83,90,97,106,113,120,127,134,141,150,157,164,171,178,185,192,199,206,215,222,236,245,246,252,259,266,273",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/dynamicUI/SchemaValidator.ts",
-      "lines": "37,46,49,52,53,62,71,86,105,121,139,147,156,167,181,187,198,203,218",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\dynamicUI\\SchemaValidator.ts",
+      "lines": "41,48,57,60,63,79,88,103,125,153,161,170,181,195,201,215,223,233,242,249,260,271,276,293,310,318,322,325,328,331",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/invoke.ts",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\invoke.ts",
+      "lines": "111,112",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\searchUtils.ts",
+      "lines": "29",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\skillEventBus.ts",
+      "lines": "53,56",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\skillIcons.ts",
       "lines": "103",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/searchUtils.ts",
-      "lines": "28,32",
-      "reason": "非UI字符串-LLM Prompt",
+      "file": "D:\\OneManager\\AxAgent\\src\\lib\\storage.ts",
+      "lines": "37,39,45",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "lib/shortcuts.ts",
-      "lines": "411,415,419",
-      "reason": "非UI字符串-关键词匹配",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\devtools\\evaluatorStore.ts",
+      "lines": "260,261,262,263,265",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "pages/ChatPage.tsx",
-      "lines": "225,240,267,297,301,333,346,374,400,429",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\devtools\\tracerStore.ts",
+      "lines": "317,318,319,320,321,324,325,326,327,328,331,332,333,334,335,351,352,353,357,358,359,363,364,365",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "pages/DevTools/TraceExplorer.tsx",
-      "lines": "49,54,63,72,81",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\domain\\streamStore.ts",
+      "lines": "1152,1153,1170,1171",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "pages/WikiGraphPage.tsx",
-      "lines": "311,401,403,423,452,490,493,538,564",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\__mocks__\\workflowStoreMocks.ts",
+      "lines": "35,38,42,51,59,68,90,91,92,101,102,103,104,114,116,117,118,119,120,121,122,123,124,127,129,131,132,133,144,145,146,147,148,149,150,154,156,157,169,170,171,198,203,210,222,236,244,259,265,272,274,277,278,279,289,301,308,310,325,327,346,348,359,360,361,362,363,378,379,380",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "pages/Workflow/WorkflowListPage.tsx",
-      "lines": "20,21,22,46,77,88,91,103,104,105,106,110,113,118,124,131,132,158,161,162,170,173,176",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\appConfigStore.ts",
+      "lines": "95,112",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "src/__tests__/App.d2.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/__tests__/e2e/clawcode-agent.e2e.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/__tests__/pr-ci.workflow.test.ts",
-      "lines": "22,23,32",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/__tests__/stockReflectionSeed.test.ts",
-      "lines": "2,9,12,13,29,37,62,71,74,77,80,83,86,89",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/App.tsx",
-      "lines": "362,366,382,386",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentChatTab.tsx",
-      "lines": "7,9,10,14,16,17,18",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentContextBar.tsx",
-      "lines": "8,10,11,12",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentEntryPoint.tsx",
-      "lines": "9,11,12",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentExecutionTab.tsx",
-      "lines": "7,9,11,13,14",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentMiniPanel.tsx",
-      "lines": "44,46,47,48,49,50",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentPanel.tsx",
-      "lines": "14,16,17,18,19",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentSkillTab.tsx",
-      "lines": "7,9,11,13,14",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/agent/AgentWfTab.tsx",
-      "lines": "18,20,21,22,23,24",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/approval/ApprovalPanel.tsx",
-      "lines": "3",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/ChatBubbleExpandButton.test.tsx",
-      "lines": "39,48",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/chatScroll.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/chatStreaming.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/feedback.phase-a.stability.test.tsx",
-      "lines": "33",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/feedback.phase-b.templates.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/feedback.phase-c.output-controls.test.tsx",
-      "lines": "15,22,29",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/InputArea.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/toolCallDisplay.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/__tests__/WebSearchNode.test.tsx",
-      "lines": "9,10,11,12,13,31,33",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/AgentExecutionPanel.tsx",
-      "lines": "208,239,288",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/AgentHierarchyTree.tsx",
-      "lines": "3,21",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/AgentPoolPanel.tsx",
-      "lines": "17,95,140,187,202,207,233,248,255,262,275,293,296,307,351,354,356,376",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/AgentProgressBar.tsx",
-      "lines": "36,46,48,49,50,60,61,65,86,93,97,119,121,149,152,171,185",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/AgentStatsPanel.tsx",
-      "lines": "99",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ArtifactPanel.tsx",
-      "lines": "62,65",
-      "reason": "硬编码英文 UI 消息",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ArtifactPreview/ReactPreview.tsx",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\decompositionStore.ts",
       "lines": "82",
-      "reason": "硬编码中文字符串",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "src/components/chat/BuddyMessage.tsx",
-      "lines": "11,24",
-      "reason": "硬编码中文字符串",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\evolutionStore.ts",
+      "lines": "235,249,259,270,282,283,284,285,286",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "src/components/chat/BuddyWidget.tsx",
-      "lines": "71,81,103,105,122,168,237,242,271,276,344,396,438,452,471,531",
-      "reason": "硬编码中文字符串",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\proactiveStore.ts",
+      "lines": "59,60,61,72,73,76,77,87,88,89,97,98,110,111",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "src/components/chat/CategoryManagerModal.tsx",
-      "lines": "64,94,107",
-      "reason": "硬编码中文字符串",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\rlTrainingStore.ts",
+      "lines": "71,72,73,74",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "src/components/chat/ChatBubbleExpandButton.tsx",
-      "lines": "8,10,15,16,17",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ChatInspector.tsx",
-      "lines": "25",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ChatMarkdownNodes.tsx",
-      "lines": "402,455",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ChatMinimap.tsx",
-      "lines": "216",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ChatSidebar.tsx",
-      "lines": "178",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ChatView.tsx",
-      "lines": "116,124,301,604,610",
-      "reason": "硬编码中文字符串（关键字匹配规则）",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ChatViewMessages.tsx",
-      "lines": "798,810",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/CommandSuggest.tsx",
-      "lines": "119",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ContextBar.tsx",
-      "lines": "23",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ContextGraphPanel.tsx",
-      "lines": "240,253,380,494,699",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ConversationSettingsModal.tsx",
-      "lines": "235",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/CreateTeamModal.tsx",
-      "lines": "42",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/DiffViewer.tsx",
-      "lines": "118",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/DreamStatusIndicator.tsx",
-      "lines": "11,13,14,15,16,28,100",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ExecutionTimeline.tsx",
-      "lines": "174",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ExpertSelector.tsx",
-      "lines": "275",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/InputArea.tsx",
-      "lines": "2659",
-      "reason": "硬编码中文字符串",
+      "file": "D:\\OneManager\\AxAgent\\src\\stores\\feature\\workflowEditorStore.ts",
+      "lines": "2802,2809,2818",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/chat/McpContainerNode.tsx",
-      "lines": "58,98,116,198",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/MultiLlmVotePanel.tsx",
-      "lines": "5,7,8,9,11,12,14,15,44,46,194",
-      "reason": "非UI文本-自动分类",
+      "lines": "198",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
@@ -1127,165 +341,21 @@
       "phase": 3
     },
     {
-      "file": "src/components/chat/PermissionModal.tsx",
-      "lines": "40,114,116,117,125,135,197,287,317,331",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/PromptTemplateSelector.tsx",
-      "lines": "61,71,76,77,91,97,185,217",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ResearchProgress.tsx",
-      "lines": "33,34,35,36,37,38,87",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/RightPanelContainer.tsx",
-      "lines": "34,53,55,87,89,95,103,118,144,147,214,240,373,377,388,397,400,419,430",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
       "file": "src/components/chat/StructuredThinking.tsx",
-      "lines": "37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,102,103,104,105,106,107,108,109,110,111,112,113,114,132,133,134,135,136,137,138,139,140,141,142,143,161",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/TeammatePanel.tsx",
-      "lines": "16,64,80,83,85,125,147,174,182,191,209",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/TopicGroupDivider.tsx",
-      "lines": "3",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/TrajectoryReplay.tsx",
-      "lines": "30,35,44,68,81,139,142,155,198,229,253,306,343,387,490,522",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/useChatViewScroll.ts",
-      "lines": "334",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/UserProfilePanel.tsx",
-      "lines": "232,239",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/WorkflowAgentCard.tsx",
-      "lines": "10,69,81,109,132,133,134,135,136,137,138,139",
-      "reason": "逻辑代码-LLM输出解析/非UI",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/WorkflowBadge.tsx",
-      "lines": "98",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/WorkflowEndMarker.tsx",
-      "lines": "29",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/WorkflowProgressPanel.tsx",
-      "lines": "37,77,83,93,158,751,840",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/WorkflowTemplateSelector.tsx",
-      "lines": "12,21,27,29,31,33,38,39,40,56,82,83,97,109,132,161,176,261,578,650,656,663,667,669,675,682,685,687,692,697,702,707,773,798,1053,1055,1057,1058,1059,1060,1062,1064,1065,1066,1067,1069,1071,1072,1074,1075,1077,1078,1080,1082,1083,1271",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/common/Icon.tsx",
-      "lines": "13,18,19,35",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/common/PasteButton.tsx",
-      "lines": "9,15,20,21,46,51",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/RLCheckpointManager.tsx",
-      "lines": "34,35,37,45,53,60,71,74",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/RLTrainingConfig.tsx",
-      "lines": "12,21,22,23,24",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/RLTrainingMonitor.tsx",
-      "lines": "12,87,88,89,90,94,98",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/RLTrainingPanel.tsx",
-      "lines": "21,22,23,24,25",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/dynamicUI/data/Dashboard.tsx",
-      "lines": "16,17",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/dynamicUI/data/ListView.tsx",
-      "lines": "9,10,95",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/dynamicUI/data/TimelineView.tsx",
-      "lines": "13",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/dynamicUI/data/TreeView.tsx",
-      "lines": "8",
-      "reason": "非UI文本-自动分类",
+      "lines": "37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,102,103,104,105,106,107,108,109,110,111,112,113,114,132,133,134,135,136,137,138,139,140,141,142,143",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/dynamicUI/DynamicUIPreview.tsx",
-      "lines": "24,30,38,39,40,41",
-      "reason": "硬编码中文字符串-待迁移",
+      "lines": "24,30",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/dynamicUI/DynamicUIRenderer.tsx",
-      "lines": "19,203,211",
-      "reason": "非UI文本-自动分类",
+      "lines": "203,211",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
@@ -1295,2997 +365,297 @@
       "phase": 3
     },
     {
-      "file": "src/components/dynamicUI/media/CodeEditorView.tsx",
-      "lines": "8,9,47,78",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/dynamicUI/media/MarkdownView.tsx",
-      "lines": "8,9,10,42",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/dynamicUI/SchemaTreeEditor.tsx",
-      "lines": "20,37,49,56,112,455",
-      "reason": "非UI字符串-原生HTML属性",
-      "phase": 3
-    },
-    {
-      "file": "src/components/dynamicUI/VisualEditor.tsx",
-      "lines": "4,6,7,8,9,11,48,50,63,157,168",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/fine-tune/DatasetManager.tsx",
-      "lines": "38,46,61",
-      "reason": "硬编码英文 UI 消息",
-      "phase": 3
-    },
-    {
-      "file": "src/components/fine-tune/LoRAConfig.tsx",
-      "lines": "47,51",
-      "reason": "硬编码英文 UI 消息",
-      "phase": 3
-    },
-    {
-      "file": "src/components/gateway/__tests__/GatewayDiagnostics.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/gateway/__tests__/GatewayMetrics.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/gateway/__tests__/GatewayOverview.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/gateway/__tests__/GatewayTemplates.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/gateway/GatewayMonitor.tsx",
-      "lines": "149,229",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/help/ContextHelp.tsx",
-      "lines": "3,10,12",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/help/HelpPanel.tsx",
-      "lines": "3,32,174,185,226,233,246,259",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/AppHeader.tsx",
-      "lines": "48",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/components/layout/AppInitializer.tsx",
-      "lines": "34,36,57,59,61,63,96,97,98",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/CommandPalette.tsx",
-      "lines": "27,45,66,80,81,85,103,217,225,255,282",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/ContentArea.tsx",
-      "lines": "94",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/DropdownMenu.tsx",
-      "lines": "117,121,124",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/GlobalStatusBar.tsx",
-      "lines": "8,9,10,11",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/NotificationBell.tsx",
-      "lines": "3,20,36,49",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/TitleBar.tsx",
-      "lines": "565,625,772",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/layout/Tooltip.tsx",
-      "lines": "17,68,70,158",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/link/AddGatewayLinkModal.tsx",
-      "lines": "112",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/onboarding/InteractiveTutorial.tsx",
-      "lines": "3,61,66,94,201,210,248,255,272",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/onboarding/WelcomeWizard.tsx",
-      "lines": "3,50,137,159,235,310,363,405",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/charts/drawdown.test.ts",
-      "lines": "12,16,21,26",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/charts/drawdown.ts",
-      "lines": "9,11,12,13,15,16",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/charts/DrawdownChart.tsx",
-      "lines": "NaN",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/charts/EquityCurveChart.tsx",
-      "lines": "NaN",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/charts/QuantMetricsCard.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/charts/WalkForwardFoldBarChart.tsx",
-      "lines": "3,6,7",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/charts/WalkForwardOOSChart.tsx",
-      "lines": "20,22,24",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/QuantLab.tsx",
-      "lines": "2",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/tables/TradesTable.tsx",
-      "lines": "4,5,6",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/tabs/BacktestTab.tsx",
-      "lines": "NaN,497",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/tabs/CompareTab.tsx",
-      "lines": "42",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/tabs/RhaiEditorTab.tsx",
-      "lines": "NaN,64",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/tabs/StrategyForm.tsx",
-      "lines": "27,28,31,32,33,36,37,38,41,42,45,46,47,48",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/quant/tabs/StrategyListTab.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/__tests__/BackupCenter.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/__tests__/feedback.phase-d.reasoning-control.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/__tests__/McpServerSettings.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/__tests__/ProviderDetail.test.tsx",
-      "lines": "49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,189,191,192,198,200,201,222,224,225",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/__tests__/WebDavSync.test.tsx",
-      "lines": "96",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/AboutPage.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/AcpSettings.tsx",
-      "lines": "NaN",
-      "reason": "JSX注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/AdvancedSettings.tsx",
-      "lines": "605",
-      "reason": "硬编码中文字符串",
+      "lines": "36,59,63,97,98",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/settings/AgentGeneratorModal.tsx",
       "lines": "12,14,15,16,17,18,19,20,22,24,71",
-      "reason": "LLM提示词模板-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/AgentProfileList.tsx",
-      "lines": "2,3,5,6,7,29,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,178,210,276,309,400",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/AgentProfileManager.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/BackupCenter.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/BalanceBadge.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/CacheConfigPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/CloudWorkspaceSelector.tsx",
-      "lines": "770,807,851",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ConversationSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/CronManager.tsx",
-      "lines": "49,63,201",
-      "reason": "硬编码英文 UI 消息",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/DashboardPluginsSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/settings/DataManager.tsx",
       "lines": "52,104,117",
-      "reason": "logIpcError调试日志-非UI",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/DataVendorsTab.tsx",
-      "lines": "24,25,32,33,62,63,70,71,78,79,86,87,113,114,118,124,132,135,140,141,145,151,164,178,179,180,181,182,183,188,191,197,201,202,203,204,205,206,207,208,209,210,211,214,224,225,226,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,538,541",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/DefaultModelSettings.tsx",
-      "lines": "14,16,17",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/DisplaySettings.tsx",
-      "lines": "24,49",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/DynamicPagesSettings.tsx",
-      "lines": "47",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/EngineConfigForm.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/EngineDetailPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/EvolutionSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ExpertPromptList.tsx",
-      "lines": "2,3",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/GatewayConfigPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/settings/GeneralSettings.tsx",
-      "lines": "74,84",
-      "reason": "logIpcError调试日志-非UI",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/HookExecutionLog.tsx",
-      "lines": "17,19,21,23,25,27,64",
-      "reason": "JSX注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/IconPickerModal.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ImageGenSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/index.ts",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/KnowledgeSettings.tsx",
-      "lines": "NaN",
-      "reason": "JSX注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/LocalToolSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/McpServerSettings.tsx",
-      "lines": "NaN",
-      "reason": "JSX注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/MemorySettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/MessageChannelSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/PlatformStatusCard.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ProfileManager.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ProfileSelector.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/PromptImportModal.tsx",
-      "lines": "NaN",
-      "reason": "代码注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/PromptTemplatesSettings.tsx",
-      "lines": "NaN",
-      "reason": "JSX注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ProviderDetail.tsx",
-      "lines": "489,2084,2178,2214",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ProviderList.tsx",
-      "lines": "330",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ProviderSettings.tsx",
-      "lines": "25",
-      "reason": "代码注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ProxySettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/RolePromptList.tsx",
-      "lines": "2,3",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ScheduledAnalysisTab.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ScheduledRecommendationTab.tsx",
-      "lines": "45,46,47,48,49,50,53,54,55,56,57,60,61,62,63,98,123,130,258,259",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SchedulerSettings.tsx",
-      "lines": "NaN",
-      "reason": "JSX注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SearchProviderSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SettingsGroup.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SettingsMenu.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
+      "lines": "84",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/settings/SettingsPanel.tsx",
       "lines": "445",
-      "reason": "logIpcError调试日志-非UI",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/settings/settingsSearchIndex.ts",
-      "lines": "41,42,46,47,52,54,56,57,59,66,67,71,72,76,77,81,82,86,87,93,94,98,99,103,104,108,109,113,114,118,119,123,124,128,129,133,134,141,143,145,146,147,148,149,150,151,152,153,161,162,166,167,171,172,176,177,181,182,186,187,191,192,198,199,203,204,208,209,213,214,218,219,223,224,228,229,233,234,238,239,243,244,248,249,255,256,260,261,265,266,270,271,275,276,282,283,287,288,292,293,297,298,302,303,308,309,310,311,312,313,314,315,316,323,324,328,329,333,334,338,339,343,344,348,349,353,354,358,359,363,364,370,371,375,376,380,381,385,386,390,391,397,398,402,403,407,408,412,413,417,418,422,423,429,430,434,435,439,440,444,445,451,452,456,457,461,462,466,467,471,472,476,477,481,482,486,487,491,492,496,497,501,502,506,507,511,512,518,519,523,524,528,529,533,534,538,539,543,544,548,549,553,554,558,559,563,564,568,569,573,574,578,579,583,584,588,589,593,594,598,599,603,604,608,609,613,614,618,619,623,624,628,629,633,634,638,639,643,644,648,649,653,654,658,659,663,664,668,669,675,676,680,681,685,686,690,691,695,696,700,701,705,706,710,711,715,716,722,723,727,728,732,733,737,738,742,743,747,748,752,753,757,758,762,763,767,768,772,773,777,778",
-      "reason": "非UI字符串-搜索关键词",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SettingsSelect.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SettingsSidebar.tsx",
-      "lines": "39,112",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ShortcutSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SkillsHubSettings.tsx",
-      "lines": "12,13",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/SourceManager.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/StockAnalysisConfigPanel.test.tsx",
-      "lines": "50,51,85,89,104,108,184,188,203,207,211,217",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/StockAnalysisConfigPanel.tsx",
-      "lines": "18,19,20,22,23,24,26,27,28,29,31,32,34,35,36,37,38,39,40,42,43,44,45,46,47,49,50,51,52,53,55,56,57,58,59,60,62,63,64,65,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,111,112,113,114,115,116,117,119,120,121,122,123,124,125,126,127,128,129,131,132,133,134,135,136,137,138,139,140,142,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,166,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,186,187,188,190,191,193,195,197,198,199,200,201,202,204,205,206,207,209,210,211,212,213,214,215,216,217,219,220,221,222,223,224,225,226,227,231,243,262",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/StockAnalysisSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/StorageSpaceManager.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/StrategyPackSettings.tsx",
-      "lines": "93,126,174,176,182,187,191,198,201,364,367,370,373,446",
+      "lines": "42,47,67,72,77,82,87,94,99,104,109,114,119,124,129,134,148,149,150,152,153,162,167,172,177,182,187,192,199,204,209,214,219,224,229,234,239,244,249,256,261,266,271,276,283,288,293,298,303,309,311,312,314,316,324,329,334,339,344,349,354,359,364,371,376,381,386,391,398,403,408,413,418,423,430,435,440,445,452,457,462,467,472,477,482,487,492,497,502,507,512,519,524,529,534,539,544,549,554,559,564,569,574,579,584,589,594,599,604,609,614,619,624,629,634,639,644,649,654,659,664,669,676,681,686,691,696,701,706,711,716,723,728,733,738,743,748,753,758,763,768,773,778",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ThemeManager.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ToolManager.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ToolSemanticCheck.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/UserProfileSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/WebDavSync.tsx",
-      "lines": "421",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/WebhookSettings.tsx",
-      "lines": "358",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/WorkflowSettings.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/shared/BaseModal.tsx",
-      "lines": "8,10,12,14,20,22,23,24,45",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/shared/MonacoEditor.tsx",
-      "lines": "80",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/shared/PageContextProvider.tsx",
-      "lines": "15,17,19,21,23,28,34,49,57,59,61,66,68,69,70,72",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillChatCommands.tsx",
-      "lines": "15,17",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillDependencyCheck.tsx",
-      "lines": "4,6",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillErrorFallback.tsx",
-      "lines": "48,50,73,75,100,102",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillPageByParam.tsx",
-      "lines": "25,32",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillPageRenderer.tsx",
-      "lines": "17,18,19",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillPanels.tsx",
-      "lines": "10",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillSandboxContainer.tsx",
-      "lines": "4,6,8,9,10,11,24,168,213,219,223,246,248,250,257,259,260,264,266,269,276",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillStatsPanel.tsx",
-      "lines": "4,6",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillStatusBar.tsx",
-      "lines": "19,43,65",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillToolbar.tsx",
-      "lines": "23",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/AutoCalibrateButton.concurrent.test.tsx",
-      "lines": "3,4,10,11",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/BacktestPage.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/BacktestPanel.strategyToken.test.tsx",
-      "lines": "37,38,75,92,93,97,102,103,110,111",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/ComparePage.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/DecisionBanner.test.tsx",
-      "lines": "24,35,49,61,79,80",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/DecisionTimelinePanel.test.tsx",
-      "lines": "22,28,34,93",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/PanelEmpty.test.tsx",
-      "lines": "25,26,36,46,53,55,57,60",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/RecommendationPanel.asOfDate.test.tsx",
-      "lines": "65,75,85,91,120,129,140,157,170,193,209",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/resolveTimelineJump.test.ts",
-      "lines": "4,5,12,19,25,30,35,40,45,50,55,56,61,67,72,77",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/ScreenerPage.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/StockScreenerPanel.screenToken.test.tsx",
-      "lines": "16,17,30",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/TradePage.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/TradePanel.test.tsx",
-      "lines": "40,49,51",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/trading.strategy.test.tsx",
-      "lines": "9,10",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/WatchlistPage.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/__tests__/WatchlistPanel.notes.test.tsx",
-      "lines": "51,85,86,101",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/_shared/PageHeader.tsx",
-      "lines": "6,8,10,12,14,19,20",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/AnalysisDebugPanel.tsx",
-      "lines": "2,4,5,7,8,23",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/AnalysisHistoryButton.tsx",
-      "lines": "19",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/AnalysisProgress.tsx",
-      "lines": "27",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/AnalystReportCard.tsx",
-      "lines": "126,127,128,216,221,226,229,232,236,240,294,371,373,594,595,596,597,598,599,600,601,602,603,604,605,606,690",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/AnalystReportGrid.tsx",
-      "lines": "12,13,14,33,35,36,41,57,58,59,60,81,95",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/AnnouncementsPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/BacktestPage.tsx",
-      "lines": "18,19,20,21,28,63,68,73",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/BacktestPanel.tsx",
-      "lines": "34,35,36,58,247",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ClsFlashPanel.tsx",
-      "lines": "29,60",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ComparePage.tsx",
-      "lines": "7,8,12",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/CompareView.tsx",
-      "lines": "67,222,227,242,283,284",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ConceptBlocksPanel.tsx",
-      "lines": "37,38,68,69",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/DailyReviewPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/DashboardReportPreview.tsx",
-      "lines": "11,13,15,17,19,21,31,33,43,45,47,74,104,112,117,139,166,177,189,199,203,216,222,229,233,237,253,262",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/DebatePanel.tsx",
-      "lines": "10,83,232,294,752,981,1076",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/decision-timeline/__tests__/TimelineNodeCard.violations.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/decision-timeline/DecisionPhaseOverview.tsx",
-      "lines": "4,6,7,8,10,11,12,13,14",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/decision-timeline/TimelineBody.tsx",
-      "lines": "22,99",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/decision-timeline/TimelineNodeCard.tsx",
-      "lines": "14,33,55,56,94",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/DecisionBanner.tsx",
-      "lines": "394,417",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/DecisionTimelinePanel.tsx",
-      "lines": "8,10",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/DragonTigerPanel.tsx",
-      "lines": "22,23,28",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/__tests__/dualViewRegistration.test.tsx",
-      "lines": "5,6,18,27,36,41,46,51,56",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/analystDualView.tsx",
-      "lines": "NaN,10",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/CompactAnalystSummary.tsx",
-      "lines": "2,3,4,18",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/CompactDebateNode.tsx",
-      "lines": "2,3,4,83",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/CompactDecisionComparison.tsx",
-      "lines": "2,4,5,7,9,10,11,17,22,24,29,32,56,61,64,65,66",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/CompactRecommendation.tsx",
-      "lines": "25,26,27,28,29,65,76",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/CompactRiskSummary.tsx",
-      "lines": "21,22,23,24,25,26,27,28,29,30,31,33",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/CompactValueAssessment.tsx",
-      "lines": "2,3,4",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/debateDualView.tsx",
-      "lines": "NaN,10",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/DecisionComparisonPanel.tsx",
-      "lines": "2,4,5,6,7,8,9,34,35,45,51",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/decisionDualView.tsx",
-      "lines": "4,13",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/DualViewRenderer.tsx",
-      "lines": "10,12,17,18,19",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/index.ts",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/PanelCollapseButton.tsx",
-      "lines": "5,7,12,13,14",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/recommendationDualView.tsx",
-      "lines": "NaN,10",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/riskDualView.tsx",
-      "lines": "NaN,10",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/dual-view/valueAssessmentDualView.tsx",
-      "lines": "NaN,10",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/EventCalendarPanel.tsx",
-      "lines": "62,146,200,269,315",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/EvolutionDriftPanel.tsx",
-      "lines": "2,4,5,6,7,9,10,336,369",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ExecutionReplayPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ExitRecommendationPanel.tsx",
-      "lines": "NaN",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ExperimentSidebar.tsx",
-      "lines": "2,4,5,6,31,32,33,46,48,50,53,55,57,60,109,182,261,267,273,289,296,303",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ExperimentTrail.tsx",
-      "lines": "2,4,5",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/FundPanel.tsx",
-      "lines": "NaN,87,88,89,90,91,138,151,158",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/HistoricalAnalysisPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/HistoryAnalysisPanel.tsx",
-      "lines": "NaN",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/HotStocksPanel.tsx",
-      "lines": "21",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/IndexQuotesPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/IndustryRankingPanel.tsx",
-      "lines": "23,24",
-      "reason": "中文单位格式化-非UI",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/InvestDashboard.tsx",
-      "lines": "271,278,279,282",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/KLineChart.tsx",
-      "lines": "22,256,427",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/LimitUpPanel.tsx",
-      "lines": "22,59,80",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/MarketSimPanel.tsx",
-      "lines": "7,9,10",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/MonteCarloPanel.tsx",
-      "lines": "27,28,29,30,31,32",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/NorthBoundPanel.tsx",
-      "lines": "55",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/OptionPcrPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/PanelEmpty.tsx",
-      "lines": "13,28,33,34",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/PeersPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/PortfolioDashboard.tsx",
-      "lines": "23,85,108,230",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/PortfolioMonitorPanel.tsx",
-      "lines": "35,36,37",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/PositionsMiniPanel.tsx",
-      "lines": "NaN",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/PriceAlertPanel.tsx",
-      "lines": "35,90,97",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/QuantSimPanel.tsx",
-      "lines": "7,8,9,10,11,12",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/QuickBacktestPanel.tsx",
-      "lines": "28",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/RecoHistoryModal.tsx",
-      "lines": "30,76,82",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/RecommendationPanel.tsx",
-      "lines": "27,28,29,36,37,38,39,126,127,129,130,197,198,200,201,202,204,205,566,567,568,569,582,798,845",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/RecoSignalTimeline.tsx",
-      "lines": "NaN,225",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/RecoStrategyMatrix.tsx",
-      "lines": "10,24,26",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ReflectionPanel.tsx",
-      "lines": "1220,1222,1325,1327,1348,1349,1351,1352,1354,1355,1357,1358,1360,1362,1364,1366,1369,1370,1372,1375,1376,1377,1378,1380,1382,1385,1387,1390,1392,1395,1400,1405",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/RiskMatrix.tsx",
-      "lines": "53,54,55,56,57,58,59,60,61,62,63,66,69,72,73,74,75,76,77,78,79,80,81,142,143,147,148,150,152,160,177,209,210,399",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ScheduledAnalysisPanel.tsx",
-      "lines": "37,38,39,40,43,116",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ScreenerPage.tsx",
-      "lines": "16,18,19,20,22,24,25,35,42,44,46",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/SectorHeatmapPanel.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/SerenityScreeningPanel.tsx",
-      "lines": "53,54,55,64,68,229,300,490,523,563,577,578,702,703,746,758,1020,1022,1289,1291",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/StockAnalysisChatIndicator.tsx",
-      "lines": "7,10,12,13,14",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/StockAnalysisPage.tsx",
-      "lines": "41,75,85,180,214,224,229,230,325,336,413,451,706,714",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/StockAnalysisPageContext.ts",
-      "lines": "4,5,8",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/StockAnalysisSettingsModal.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/StockQuoteCard.tsx",
-      "lines": "NaN",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/StockScreenerPanel.tsx",
-      "lines": "48,58,93,95,96,98,99,100,162,187",
-      "reason": "数据值+注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/StockSearchBar.tsx",
-      "lines": "19,20,21,22,39,72,122",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/timelineJump.ts",
-      "lines": "2,4,5,38,40,41,42,43,44,49,60",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/TradePage.tsx",
-      "lines": "8,9,13,14",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/TradePanel.tsx",
-      "lines": "68,119",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/TradeReviewPanel.tsx",
-      "lines": "34,35,36,37,38,39,162",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/TradeStatsPanel.tsx",
-      "lines": "NaN,121,143,166",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/utils.ts",
-      "lines": "44,50,55,61,76,77,78,79,81,87,94,98,105,110,115,123,131,139,145,153,156,202,213",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ValuationBandChart.tsx",
-      "lines": "55,56,57,58",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/ValueAssessmentPanel.tsx",
-      "lines": "12,48,49,50,52,54,55,58,201,211,236,247,339,432,441",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/vendorCheck.ts",
-      "lines": "5,20,33,52,58,60,61,62",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/WatchlistPage.tsx",
-      "lines": "8,10,11,12,16",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/WatchlistPanel.tsx",
-      "lines": "102,207,214,222,238",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/stock-analysis/WhatIfBacktest.tsx",
-      "lines": "89,90,155,157,159,169,171,173,175,177,179,196,197,198,199,200,213,360,552,553,554,555,563,564,565,566,604,609,614,619,624,629,637,642,647,655,663",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/terminal/DockerConfigModal.tsx",
-      "lines": "41",
-      "reason": "硬编码英文占位符",
       "phase": 3
     },
     {
       "file": "src/components/terminal/IntegratedTerminal.tsx",
-      "lines": "56,118,137,139,142,203,205,211,228,230,236",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/components/terminal/SshConfigModal.tsx",
-      "lines": "78",
-      "reason": "硬编码英文占位符",
+      "lines": "142,211,236",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/terminal/StatusBarWidget.tsx",
-      "lines": "102,104",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/__tests__/ReplayWorkbench.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/__tests__/TimeAnchorTour.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/AsOfDatePicker.tsx",
-      "lines": "7,9,10,11,12,14",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/ModeSwitch.tsx",
-      "lines": "3",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/PageTimeAnchor.tsx",
-      "lines": "9,11,12,13,15,16,132",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/ReplayBadge.tsx",
-      "lines": "7,9,10,11,12,14,15,52,54,55",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/ReplaySweep.tsx",
-      "lines": "71,251,354,356,360,364",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/ReplayWorkbench.tsx",
-      "lines": "14,16,17,18,19,21,22,23,24,25,26",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/time-travel/TimeAnchorTour.tsx",
-      "lines": "7,9,10,11,12,13,15,16,17,18,82",
-      "reason": "中文注释-非UI文本",
-      "phase": 3
-    },
-    {
-      "file": "src/components/trace/BottleneckAnalyzer.tsx",
-      "lines": "192,193,195",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/trace/FeedbackCollector.tsx",
-      "lines": "12",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/trace/ImprovementSuggestion.tsx",
-      "lines": "20",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/trace/TraceTimeline.tsx",
-      "lines": "38,39,40,41,236",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/wiki/BacklinkPanel.tsx",
-      "lines": "27",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/wiki/GraphView.tsx",
-      "lines": "603",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/wiki/IngestPanel.tsx",
-      "lines": "183",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/wiki/WikiDetailPanel.tsx",
-      "lines": "136,148,198,251,308,317,374,392,533",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/wiki/WikiFilePanel.tsx",
-      "lines": "47,129,202,263,284,313",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/wiki/WikiNodeContextMenu.tsx",
-      "lines": "61,76",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/__tests__/dndState.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/__tests__/semanticActions.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/__tests__/workflowComponents.test.tsx",
-      "lines": "28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,234,236,237,255,272,273,274,275,293,295,357,470,471,472,473,489,506,510,511",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/AIPanel/ActionDiffPreview.tsx",
-      "lines": "168,427,449",
-      "reason": "非UI字符串-内部日志",
+      "lines": "104",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/AIPanel/AIPanel.tsx",
-      "lines": "123,240,259,281,304,311,322",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/AIPanel/EvolutionTab.tsx",
-      "lines": "129,139,146,148,226,240,248,254,264,286,292,322,327",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/AIPanel/NL2SkillResultView.tsx",
-      "lines": "41,42,43,48,56,64,81,106,127",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/AIPanel/NL2UIResultView.tsx",
-      "lines": "46,53,54,55,66,94,119,140",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/AIPanel/NLParseResultView.tsx",
-      "lines": "70,73,79,84,109,119,134,162",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/CanvasTitleBar.tsx",
-      "lines": "19,21,22,23,76,85,105,166,169",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/DebugPanel.tsx",
-      "lines": "362",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/DebugPanel/__tests__/deadEnd.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/DebugPanel/deadEnd.ts",
-      "lines": "11,13,14,15,16,17,28",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Diagnostic/DiagnosticDrawer.tsx",
-      "lines": "4,6,7,8,9,10",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/dndState.ts",
-      "lines": "13,15,16,17,18,19,21,23,24,32,35,38,42,44,45,46,47,72,90,110",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Edges/BaseEdge.tsx",
-      "lines": "15,16,17,31,32,104,137",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Hooks/__tests__/useNodeAIAssist.test.ts",
-      "lines": "12,30,33,41,56,61",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Hooks/AIAssistButton.tsx",
-      "lines": "9,11,13,15,17,19,21,23,25,30,31",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Hooks/useFlowNodes.ts",
-      "lines": "450,451,484,485,487,488,513",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Hooks/useNodeAIAssist.ts",
-      "lines": "36,38,48,66,126,199,200,232,233",
-      "reason": "硬编码中文字符串",
+      "lines": "240,259,281,304,311,322",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/NLParserPanel.tsx",
       "lines": "18,19,20",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Nodes/AgentNode.tsx",
-      "lines": "15,17,19,21",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Nodes/BaseNode.tsx",
-      "lines": "27,49,60,66,86,87,88,93,233,260,263,265,291,320,343,417",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Nodes/ContainerNode.tsx",
-      "lines": "12,22,24,26,28,38,40,42,44,54,55,56,57,86,87",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Nodes/GroupFrameNode.tsx",
-      "lines": "19,21,22,52",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Nodes/MergeNode.tsx",
-      "lines": "49,64,117",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Nodes/PhaseSeparatorNode.tsx",
-      "lines": "16,18,19,42,59,91,115",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Nodes/TriggerNode.tsx",
-      "lines": "20,25,68,146,171,216,241,269,281",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/__tests__/batchEditUtils.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/batchEditUtils.ts",
-      "lines": "12,13",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/LeftPanel.tsx",
-      "lines": "37,38,226",
-      "reason": "硬编码中文字符串",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/AgentPropertyPanel.tsx",
-      "lines": "57,67,70,189,202,213,287,288,289,290,291,292,293,310,313,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,341,361,370,381,417,433,446,513,514,515,516,548,808,888,909,937,947,1058,1079",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/PropertyPanels/AggregatorPropertyPanel.tsx",
-      "lines": "36,90,117,147",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/PropertyPanels/BasePropertyPanel.tsx",
-      "lines": "13,191",
-      "reason": "硬编码中文字符串",
+      "lines": "289,290,291,292,315,316,317,318,319,320,321,322,324,325,326,327,328,329,330",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
-      "lines": "22,38,44,47,50,52,53,56,59,65,71,91,95,98,108,116,117,118,129,130,131,158,159,171,172,188,191,204,225,273,281,312,342,352",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/PropertyPanels/ConditionPropertyPanel.tsx",
-      "lines": "29,35,37,39,66,142,150,151,152,153,154,157,193,194,197,257",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "129,130,131,171,172",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/DatabaseQueryPropertyPanel.tsx",
-      "lines": "28,29,30,31,32,72",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "30,31,32",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/DebatePropertyPanel.tsx",
-      "lines": "17,48,49,50,51,52,53,61,63,64,66,67,68,69,70,71,78",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "51,52,53,69,70,71",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/DocumentParserPropertyPanel.tsx",
-      "lines": "48,49,50,51,52",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "50,51,52",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/EmailPropertyPanel.tsx",
-      "lines": "36,37,38,39,40,57,58,59,60,61,80",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "38,39,40,59,60,61",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/HttpRequestPropertyPanel.tsx",
-      "lines": "55,56,57,58,59,60,61,62,83",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/PropertyPanels/LlmClassifierPropertyPanel.tsx",
-      "lines": "32",
-      "reason": "非UI文本-自动分类",
+      "lines": "57,58,59,60,61,62",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/LLMPropertyPanel.tsx",
-      "lines": "76,107,108,109,110,111,112,128,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "109,110,111,112,130,131,132,133,134,135,136,137,139,140,141,142,143,144,145",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/LoopPropertyPanel.tsx",
-      "lines": "41,42,43,44,45",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/PropertyPanels/ParallelPropertyPanel.tsx",
-      "lines": "39,40,358",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "43,44,45",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/SubWorkflowPropertyPanel.tsx",
-      "lines": "63,64,65,66,67,87,171",
-      "reason": "硬编码英文占位符",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/PropertyPanels/SwitchPropertyPanel.tsx",
-      "lines": "28,29,60,80,111,117,128,172,265",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/PropertyPanels/ToolPropertyPanel.tsx",
-      "lines": "195",
-      "reason": "硬编码英文占位符",
+      "lines": "65,66,67",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/TriggerPropertyPanel.tsx",
-      "lines": "35,36,49,50,51",
-      "reason": "硬编码英文占位符",
+      "lines": "49,50,51",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/ValidationPropertyPanel.tsx",
-      "lines": "62,63,64,65,66,67,69,70",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "64,65,66,67,69,70",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/Panels/PropertyPanels/VectorRetrievePropertyPanel.tsx",
-      "lines": "53,54,55,56,57",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/RightPanel.tsx",
-      "lines": "323,326,348,362",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Panels/ValidationRulesPanel.tsx",
-      "lines": "4,6,7,8,9,10",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/semanticActions.ts",
-      "lines": "6,7,46",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Templates/ImportExportModal.tsx",
-      "lines": "414,510",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/Templates/VersionHistoryModal.tsx",
-      "lines": "25,38,49,60,79,103,177,178,188,193,203,219,223,256,317,357,408",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/types/workflow.types.ts",
-      "lines": "50,55,87,95,109,111,113,165,167,169,178,181,192,194,200,213,215,216,217,218,221,240,286,300,309,311,313,315,317,319,397,410,412,414,506,508,510,512,514,516,541,545,547,550,581,590,592,594,596,598,600,602,604,775,776,777,778,779,780,781,782,783,784,788,794,796,798,800,802,806,808,810,812,814,816,818,822,824,826,828,830,832,834,866,897,899,921,923,924,926,928,929,930,931,932,933,934,935,940,941,954,958,959,960,961,964,966,972,991,999,1003,1214,1310,1311,1312,1342,1356",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/WorkflowEditor.tsx",
-      "lines": "416,430,509,510,511,512,514,515,549,1401,1736",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/WorkflowExecutor.tsx",
-      "lines": "26,27,28,29,54,65,79,86,101,103,106,115,128,147,157",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/WorkflowLegend.tsx",
-      "lines": "9,11,12,13,44,45,79,136",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/WorkflowLogPanel.tsx",
-      "lines": "41,48,51",
-      "reason": "硬编码中文字符串-待迁移",
+      "lines": "55,56,57",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/components/workflow/WorkflowVersionManager.tsx",
       "lines": "68,71,75",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/constants/featureFlags.ts",
-      "lines": "4,5,8,11,14,17,23",
-      "reason": "非UI文本-自动分类",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/data/expertPresets.ts",
-      "lines": "5,7,9,13,15,22,24,27,28,29,31,32,35,41,43,44,46,47,50,53,60,62,64,66,68,69,71,79,80,81,82,85,88,97,98,99,100,103,104,106,107,115,117,119,120,123,126,132,134,136,138,141,142,145,150,152,155,156,157,159,161,164,168,170,173,174,175,177,179,182,186,188,192,194,195,198,201,204,206,209,211,212,213,217,220,221,223,227,230",
-      "reason": "硬编码中文字符串",
+      "lines": "27,29,32,35,44,46,50,53,62,64,68,71,80,82,85,88,97,99,103,106,115,117,120,123,132,134,138,141,150,152,156,159,168,170,174,177,186,188,192,195,204,206,209,212,221,223,227,230",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/hooks/useGlobalShortcutManager.ts",
-      "lines": "199,203,214,216,234,236",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/hooks/useIpcHealth.ts",
-      "lines": "3",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/hooks/useKeyboardShortcuts.ts",
-      "lines": "18",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/hooks/useResolvedAvatarSrc.ts",
-      "lines": "18",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/hooks/useResponsive.ts",
-      "lines": "6,13,14,20",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/hooks/useRightPanel.ts",
-      "lines": "3,7,9,11,16,17,18",
-      "reason": "非UI文本-自动分类",
+      "lines": "216,236",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/hooks/useUpdateChecker.tsx",
-      "lines": "130,132,140,142",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/hooks/useVoiceChat.ts",
-      "lines": "11,12,13,14,15,16,18,159,207,260",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/agentOutput.test.ts",
-      "lines": "51,52,56,60,64,70,71,73,76,80,84,100,102,107,109,124,125,129,134,135,142,147,150,151,158,168,173,193,204",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/artifactRenderer.test.ts",
-      "lines": "11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,58,59,61,69,71,82,83,85,98,99,101,114,115,117,125,131,133,141,143,156,157,159",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/browserMock.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/chartGenerator.test.ts",
-      "lines": "6,7,8,9,11,12,13,14,15,29,30,31,32,35,36,37,38,41,42,43,44,47,48,49,50,53,54,55,56,60,62,69,70,71,72",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/chatMarkdown.test.ts",
-      "lines": "15,16,17,18,19,20,21,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/chatMultiModel.test.ts",
-      "lines": "8,30,32,34,36,38,40,48,50,57,59,60,68,70,77,79,89,91,97,99,105,107,113,115,121,123",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/codeExecutor.test.ts",
-      "lines": "5,16,28,30,32,38,39,40,41,59,61,78,80,81,85,109,111,125,126,128,146,148,159,161,175,176,178,179,198,200,222,224,225,250,255,261,267,268,269,270",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/constants.test.ts",
-      "lines": "7,9,11,13,14,16,17,19,23,25,34,36,40,42,43",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/convIcon.test.ts",
-      "lines": "18,20,23,25,34,36,39,41,50,52,59,61,71,73,80,82,88,90,98",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/dualView.test.ts",
-      "lines": "13,25,48,61,65,71",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/exportChat.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/htmlParser.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/iconColors.test.ts",
-      "lines": "16,18,26,28,37,39,46,48,57,59,65,67,76,78,87,89,92,94,98,100,101,110,112,115,117,120,122,125,127,130,132,135,137,138,141,143",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/invoke.test.ts",
-      "lines": "5,6,30,32,35,37,42,56,58,60,62,69,70,72,78,79,80,81,92,94,100,102,110,111,112,113,121,123,133,135,144,145,146,147,154,156,160,162,173,175,186,188,195,196,197,198,203,205,212,214,221,223,232,233,235,243,245,258,260,276,278,300,302,307,309,311,313,327,328,329,330,337,339,341,353",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/memoryUtils.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/modelCapabilities.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/preloadChatRenderers.test.ts",
-      "lines": "5,13,18,19,29,31,37,39,50,52,54,55,66,70,72",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/reviewApi.test.ts",
-      "lines": "13,22,47,49,60,62,72,74,87,89,99,101,109,111,125,127,146,148,170,172,188,190,203,205,221,223,234,236,244,246,258,259,260,261,269,271",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/searchUtils.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/shortcutActions.test.ts",
-      "lines": "5,63,65,73,75,81,88,98,99,100,101,107,109,112,113,120,121,122,123,129,131,134,135,139,141,143,150,152,153,164,173,175,187,196,198,204,205,207,210,213,215,219,225,226,227,228,238,239,240,249,251,252,260,262,263,271,273,274,282,284,285,296,297,298,300,306,308,312,314,316,320,328,329,330,332,340,342,344,354,355,357,365,367,369,379,382,384,389,396",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/shortcuts.test.ts",
-      "lines": "11,12,13,273,275,290",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/tokenEstimator.test.ts",
-      "lines": "17,19,23,25,27,37,39,41",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/workflowLayout.test.ts",
-      "lines": "31,83,86,97,114,117,118,123,124,133,136,164,173,176,179,194,328,343,379,439",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/workflowValidate.test.ts",
-      "lines": "9,42,46,47,49,54,56,60,62,64,71,73,79,81,90,91,93,106,108,124,126,135,136,138,146,148,156,158,163,165,174,175,177,187,189,191,201,203,211,213,226,227,229,236,238,240,248,250,259,260,262,271,273,282,283,285,289,291,292,300,302,304,305,309,311,313,318,320,321,333,334,336,337,338,339,340,344,348,350,351,352,353,357,359,370,371,372,373,374,375,376,377,378,379,380,381,382,384,388,390,396,398,407,409,422,424,437,440,442",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/actionRouter.ts",
-      "lines": "173,174",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/agentOutput.ts",
-      "lines": "1,15,19,22,32,41,45,47,56,64,65,66,67,68,90,129,131,132,133,134,135,161,169,171,172,173,174,183,215,225,226,231,232,233,234,235,304,305,383,416,417,418,420,421",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/asyncState.ts",
-      "lines": "4,6",
-      "reason": "硬编码中文字符串",
+      "lines": "132,142",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/browserMock.ts",
-      "lines": "122,124,126,127,128,353,355,428,430,461,463,1181,1182,1183,1184,1188,1189,1190,1191,1192,1196,1197,1198,1199,1200,1204,1205,1558,1559,1560,1561,1564,1565,1566,1571,1573,1575,1576,1580,1581,1582,1584,1585,1589,1590,1593,1594,1595,1596,1599,1600,1601,1603,1606,1608,1610,1611,1615,1616,1617,1619,1620,1624,1625,1628,1629,1630,1631,1634,1635,1636,1638,1641,1645,1646,1651,1655,2310,2312,2317,2321,2323,2327,2328,2331,2333,2338,2341,2343,2348,2358,3113,3120,3128,3130,3133,3138,3140,3148",
-      "reason": "非UI字符串-Mock数据",
+      "lines": "127,1585,1594,1603,1620,1629,1638,1655,128,1212,1225,1337,1675,1684,1693,1710,1719,1728,1745",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/chartGenerator.ts",
-      "lines": "42,43,44,45,46,61,63,64,66,67,69,70,72,73,75",
-      "reason": "非UI字符串-关键词匹配",
+      "lines": "44,45,46,63,66,69,72,75",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/constants.ts",
-      "lines": "4,6,10,12,20,22",
-      "reason": "非UI字符串-默认fallback",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/debounce.ts",
-      "lines": "4,5,6",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/dualView.ts",
-      "lines": "4,5,7,10,24,50",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/dynamicUI/dashboardSchema.ts",
-      "lines": "4,6,7",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/dynamicUI/DataBindingEngine.ts",
-      "lines": "8,10,11,12,13,14,22,87,88,89,90,160,161",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/dynamicUI/EventHandlerEngine.ts",
-      "lines": "8,10,11,12,13,17,19,21,26,27,65,66,67,69,71,101,102,104,105,106,132",
-      "reason": "非UI文本-自动分类",
+      "lines": "6,12,22",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/dynamicUI/nl2ui-edit.ts",
-      "lines": "8,10,12,13,14,38,45,70,72,79",
-      "reason": "非UI字符串-Mock数据",
+      "lines": "38,45,70,72,79",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/dynamicUI/nl2ui.ts",
-      "lines": "17,19,21,24,26,28,31,33,35,38,40,42,45,47,49,51,53,55,57,60,62,64,66,68,70,72,74,76,78,80,83,85,87,91,93,95,140,141,142,144,145,150,155,156,161,162,166,167,172,173,176,177,179,180,182,183,184,185,194,195,197,198,200,201,203,220,238,256",
-      "reason": "硬编码中文字符串-待迁移",
+      "lines": "17,19,21,24,26,28,31,33,35,38,40,42,45,47,49,51,53,55,57,60,62,64,66,68,70,72,74,76,78,80,83,85,87,91,93,95,140,141,142,150,161,162,172,173,184,185,194,195,197,198,200,201,203,238,256",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/dynamicUI/registerBuiltins.ts",
-      "lines": "46,47,55,62,69,76,83,90,97,106,113,120,127,134,141,150,157,164,171,178,185,192,199,206,215,222,236,245,246,252,259,266,273,279,280",
-      "reason": "硬编码中文字符串-待迁移",
+      "lines": "55,62,69,76,83,90,97,106,113,120,127,134,141,150,157,164,171,178,185,192,199,206,215,222,236,245,246,252,259,266,273",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/dynamicUI/SchemaValidator.ts",
-      "lines": "16,17,18,19,20,21,41,48,57,60,63,79,88,103,125,153,161,170,181,195,201,215,223,233,242,249,260,271,276,293,310,318,322,325,328,331",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/dynamicUI/useDynamicData.ts",
-      "lines": "4,6,7,8,9,11",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/exportChat.ts",
-      "lines": "169,172,200,208,216",
-      "reason": "硬编码中文字符串",
+      "lines": "41,48,57,60,63,79,88,103,125,153,161,170,181,195,201,215,223,233,242,249,260,271,276,293,310,318,322,325,328,331",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/invoke.ts",
-      "lines": "40,42,44,46,48,50,63,65,66,111,409,410,536,537,539",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/memoryUtils.ts",
-      "lines": "54,55,72,73,81,82,93,94,101,102",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/pinned-schemas.ts",
-      "lines": "4,6,7,9,14,17,20,28,38,47,61,70,78,83,88,100,109,114,123,133,135,136,137,138,179,181,182",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/providerIcons.tsx",
-      "lines": "22,36,37",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/replay/workdays.ts",
-      "lines": "4,12,14,15,16",
-      "reason": "非UI文本-自动分类",
+      "lines": "111,112",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/lib/searchUtils.ts",
-      "lines": "26,28,29,30,32,179",
-      "reason": "非UI字符串-LLM Prompt",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/seed-stock-schemas.ts",
-      "lines": "4,6,7,9,17,18,24,25,31,32,42,43",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/shortcuts.ts",
-      "lines": "409,411,413,415,417,419,429",
-      "reason": "非UI字符串-关键词匹配",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/skillActionExecutor.ts",
-      "lines": "6,18,29,31,44",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/skillEventBus.ts",
-      "lines": "16,17,18,19,20,53,56",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/skillIcons.ts",
-      "lines": "94,96,103",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/skillLifecycle.ts",
-      "lines": "15,18,23,74,95,143",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/skillPermissions.ts",
-      "lines": "13,17,18,36,37,56,63,65,67,71,74,145,146,147,148,150,151,152,156,157,159,224,239,240,241,253,254",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/stock-analysis-export.ts",
-      "lines": "37,38,39,40,41,42,43,44,45,46,61,79,80,81,82,83,84,85,101,102,103,105,111,113,115,116,117,118,119,120,121,126,129,131,132,133,134,135,136,137,138,139,142,149,162,164,165,166,167,169,178,180,183,189,198,214,216,218,221,230,232,233,234,235,236,237,238,253,266,273,275,278,285,286,287,288,289,290,291,347,362",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/stock-analysis-utils.ts",
-      "lines": "110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,141,142,143,144,145,146,147,167,172,173,174,175,179,252,253,303,306,309,335,336,337,338,339,346,347,348,349,350,357,358,359,372,373,374,401,404,407,419,420,421,422,423,424,425,426,427,428,429,430,431,432,433,437,438,439,440,441,442,443,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,464,465,466,467,468,472,475,674,720",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/stock-schemas/evolution-drift-schema.ts",
-      "lines": "6,8,9,10,11,13,23,43,44,45,48,52,53,73,89,115,116,117,118",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/stock-schemas/index.ts",
-      "lines": "4,6,7,9,22,24,26,27,28,29,30,31,32",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/stock-schemas/stock-analysis-page-schema.ts",
-      "lines": "6,8,9,10,11,13,14,16,36,48,65,99,125,189,197,205,213,221,229,239,249,257,272,282,292,302,312,322,332,363",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/stock-schemas/stock-quote-schema.ts",
-      "lines": "7,9,10,12,24,26,27,28,29,52,119,125,131,137,160,168,184",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/storage.ts",
-      "lines": "4,6,7,8,9,10,11,12,37,39,45,60,78,79,106,118,120,121,122",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/storeRegistry.ts",
-      "lines": "18,64",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/timeTravel/__tests__/futureReferenceDetector.test.ts",
-      "lines": "65,67,71,76,78,82,87,89,93,111,113,117,122,124,128",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/timeTravel/futureReferenceDetector.ts",
-      "lines": "2,4,5,7,8,9,10,12,13,14,15,27,28,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,71,72,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,106,117,119,120,121,122,150,180",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/toast.ts",
-      "lines": "6,7,8,10,11,20",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/workflowLayout.ts",
-      "lines": "8,12,13,14,16,85,86,99,112,114,116,127,143,155,160,166,173,181,182,234,244,246,247,248,250,251,252,253,282,284,285,286,287,289,290,291,292,293,294,295,582,596,597,632,650,651,652,668,669,670,688,690,691,692,693,714,716,717,718,719,720,721,723,724,725,726,727,840,847,849,850,851,852,853,855,913,923,924,1003,1005,1006,1124,1131,1133,1134,1135,1136,1137,1138,1139,1140,1141,1143,1144,1145,1146,1157,1159,1160,1161,1162,1163,1165,1166,1167,1168,1169,1171,1172,1173,1174,1201,1218,1219,1221,1308,1310,1311,1313,1314,1315,1316,1317,1318,1320,1321,1322,1323",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/main.tsx",
-      "lines": "14,17",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/__tests__/ChatPage.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/__tests__/GatewayPage.test.tsx",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/ChatPage.tsx",
-      "lines": "172",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/GatewayLinkPage.tsx",
-      "lines": "16",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/PipelinePage/PipelinePage.tsx",
-      "lines": "51",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/QuantLabPage.tsx",
-      "lines": "1",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/QuickBarPage.tsx",
-      "lines": "709,710,1489",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/ScheduledAnalysisPage.tsx",
-      "lines": "7",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/SettingsPage.tsx",
-      "lines": "278,395",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/SkillsPage.tsx",
-      "lines": "68,130,597,817,822,875",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/WikiGraphPage.tsx",
-      "lines": "43,50,57,64,76,79,118,172,292,311,401,403,423,452,490,493,538,564",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/Workflow/WorkflowListPage.tsx",
-      "lines": "20,21,22,46,88,91,103,104,105,106,110,113,124,132,158,161,162,170,173,176",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/sdk/index.ts",
-      "lines": "6,8,16,24,27,35,41,49,60,69,77,84,135,140,145,150,167,172,177,182,193,194,253",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/sdk/rpcBridge.ts",
-      "lines": "231",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/sdk/sandboxTemplate.ts",
-      "lines": "119,125,152",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/sdk/types.ts",
-      "lines": "4,6,7,8,13,15,17,19,21,23,25,27,29,31,33,35,39,55,66,68,70,72,74,78,80,82,84,86,88,90,92,94,98,100,102,104,106,108,112,114,116,118,120,122,124,126,128,133,135,137,139,141,143,145,147,154,156,158,160,162,164,166,168,172,174,183,185,187,189,191,193,195,197,199,201,203,204,206,210,212,214,216,218,220,221,223,225,227,231,233,235,237,239,241,245,247,249,251,253,257,269,270,272,274,276,278,282,284,292,294,305,307,309,312,314,316,318,320,322,325,327,329,331,333,337,339,341,343,345,347,349,351",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/__tests__/agentStore.test.ts",
-      "lines": "14,15,20",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/__tests__/batchEditUndo.test.ts",
-      "lines": "64",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/__tests__/conversationStore.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/__tests__/stockAnalysisStore.test.ts",
-      "lines": "46,85,104,106,154,155,156,157,158,169,171,184,188",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/__tests__/workflowEditorStore.test.ts",
-      "lines": "544,546,550,552,703,705,706,906",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/devtools/evaluatorStore.ts",
-      "lines": "248,249,250,251,253,260,261,262,263,265",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/devtools/tracerStore.ts",
-      "lines": "317,318,319,320,321,324,325,326,327,328,331,332,333,334,335,351,352,353,357,358,359,363,364,365",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/domain/activeConversationService.ts",
-      "lines": "4,6,7,8,10,26,27",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/domain/conversationStore.ts",
-      "lines": "48,131,133,1485,1486",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/domain/conversationStoreEvents.ts",
-      "lines": "146,210",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/domain/conversationStoreSend.ts",
-      "lines": "373,446",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/domain/multiModelStore.ts",
-      "lines": "4,6,7,8,409,410,411",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/domain/streamStore.ts",
-      "lines": "14,39,1152,1170,1329",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/__mocks__/workflowStoreMocks.ts",
-      "lines": "4,5,7,8,9,10,35,38,42,51,59,68,90,91,92,101,102,103,104,114,116,117,118,119,120,121,122,123,124,127,129,131,132,133,144,145,146,147,148,149,150,154,156,157,169,170,171,198,203,210,222,236,244,259,265,272,274,277,278,279,289,301,308,310,325,327,334,346,348,359,360,361,362,363,378,379,380",
-      "reason": "非UI字符串-测试描述",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/__tests__/stockAnalysisStore.test.ts",
-      "lines": "56,57,69,76,82,88,91,94,97,102,105,114,117,121,125,131,134,137,142,205,210,216,222,228,234,240,246,252,258,264,271,277,283,293,294,298,301,302,307,308,311,315,318,319,325,328,332,335,336,341,342,347,351,354,360,363,367,379,383,387,393,395,399,402,406,413,427,431,436,440,453,470,491,508,525,548,562,569,575,578,585,586,593,594,598,605,606,612,613,621,629,640,650,681,689,694,697,701,707",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/__tests__/stockWorkflowChatBridge.test.ts",
-      "lines": "72,82,92,99,136,146",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/__tests__/timeAnchorStore.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/agentStore.ts",
-      "lines": "47,369,841,842,843",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/appConfigStore.ts",
-      "lines": "93,95,110,112",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/buddyStore.ts",
-      "lines": "6,17,18,19,20,21,22,23,41,43,45,47,49,62,118,120,130,132,135,137",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/continuationStore.ts",
-      "lines": "3,49,51,56,65,67",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/decompositionStore.ts",
-      "lines": "82",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/dreamStore.ts",
-      "lines": "7,27,35,40,67,107",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/dynamicUIStore.ts",
-      "lines": "20",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/evolutionStore.ts",
-      "lines": "235,249,259,270,282,283,284,285,286",
-      "reason": "非UI字符串-Mock数据",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/executionPhaseMachine.ts",
-      "lines": "3",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/executionStore.ts",
-      "lines": "4,5,28,67,76,79,82,86,90,93,99,105,110,115,130,136,142,147,151,167,168,169,170,179,183,193,202,227,255,319,364,521,613,643,708,753,794,831",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/executionToolCallUtils.ts",
-      "lines": "6,15,16,17,18",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/expertStore.ts",
-      "lines": "11,12,16,29,30,45,181,189,190,191,193,229",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/helpStore.ts",
-      "lines": "3",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/llmWikiStore.ts",
-      "lines": "17",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/nudgeStore.ts",
-      "lines": "188,197",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/onboardingStore.ts",
-      "lines": "3,89,91",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/pipelineStore.ts",
       "lines": "29",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
-      "file": "src/stores/feature/planStore.ts",
-      "lines": "131",
-      "reason": "硬编码中文字符串",
+      "file": "src/lib/skillEventBus.ts",
+      "lines": "53,56",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/skillIcons.ts",
+      "lines": "103",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/storage.ts",
+      "lines": "37,39,45",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/devtools/evaluatorStore.ts",
+      "lines": "260,261,262,263,265",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/devtools/tracerStore.ts",
+      "lines": "317,318,319,320,321,324,325,326,327,328,331,332,333,334,335,351,352,353,357,358,359,363,364,365",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/domain/streamStore.ts",
+      "lines": "1152,1153,1170,1171",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/__mocks__/workflowStoreMocks.ts",
+      "lines": "35,38,42,51,59,68,90,91,92,101,102,103,104,114,116,117,118,119,120,121,122,123,124,127,129,131,132,133,144,145,146,147,148,149,150,154,156,157,169,170,171,198,203,210,222,236,244,259,265,272,274,277,278,279,289,301,308,310,325,327,346,348,359,360,361,362,363,378,379,380",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/appConfigStore.ts",
+      "lines": "95,112",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/decompositionStore.ts",
+      "lines": "82",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/evolutionStore.ts",
+      "lines": "235,249,259,270,282,283,284,285,286",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/stores/feature/proactiveStore.ts",
-      "lines": "58,59,60,61,70,71,72,73,74,75,76,77,86,87,88,89,95,96,97,98,108,109,110,111",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/promptTemplateStore.ts",
-      "lines": "226,244",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/quant/backtestStore.ts",
-      "lines": "11",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/quant/strategyStore.ts",
-      "lines": "8,10,69",
-      "reason": "非UI文本-自动分类",
+      "lines": "59,60,61,72,73,76,77,87,88,89,97,98,110,111",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/stores/feature/rlTrainingStore.ts",
-      "lines": "70,71,72,73,74",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/serenityStore.ts",
-      "lines": "91,92,93,94,138",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/skillExtensionStore.ts",
-      "lines": "37,63,129,130,285,488,489,490",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/skillStore.ts",
-      "lines": "66,72",
-      "reason": "非UI字符串-内部日志",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/stockAnalysisStore.ts",
-      "lines": "34,59,60,61,62,68,102,120,122,159,171,184,193,204,296,298,300,306,361,404,471,513,581,608,620,659,679,754,781,782,785,788,794,797,804,807,855,886,898,905,909,912,916,919,926,927,935,946,956,984,985,986,987,988,995,996,997,998,999,1005,1006,1007,1008,1009,1055,1058,1078,1087,1097,1099,1135,1146,1181,1268,1291,1305,1450,1451,1471,1495,1533,1538,1544,1564,1587,1596,1675,1677,1698,1700,1712,1714,1752,1756,1775,1779,1789,1793,1821,1822,1823,1824,1825,1844,1845,1846,1847,1848,1858,1859,1860,1861,1862,1899,1958,1993,1997,1999,2011,2014,2016,2018,2020,2022,2030,2034,2098,2106,2111,2122",
-      "reason": "硬编码中文字符串-待迁移",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/stockWorkflowChatBridge.ts",
-      "lines": "256,304,384,420",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/timeAnchorStore.ts",
-      "lines": "6,8,9,11,12,13,14,16,17,23,27,29,31,33,38,41,46,48,195",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/topicGroupStore.ts",
-      "lines": "3,34,36,74,87,95,113,173,205",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/feature/trajectoryStore.ts",
-      "lines": "27,45",
-      "reason": "硬编码中文字符串",
+      "lines": "71,72,73,74",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
       "file": "src/stores/feature/workflowEditorStore.ts",
-      "lines": "29,31,33,96,255,256,257,258,272,273,274,275,276,294,295,296,297,298,314,315,316,344,346,349,351,353,355,358,396,397,401,449,450,451,546,547,566,568,569,573,575,595,597,598,599,1073,1074,1089,1137,1165,1191,1343,1990,1991,1992,1993,2347,2394,2726,2727,2728,2802,2809,2818",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/shared/agentPanelStore.ts",
-      "lines": "5,8,16,23,25,27,29,31,35,40,45,106,109,112,115,118,121",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/shared/rightPanelStore.ts",
-      "lines": "6,14,25",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/shared/uiStore.ts",
-      "lines": "7,15,36,38,48,58,85",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/test/setup.ts",
-      "lines": "5,6,65,66,67,77",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/theme/shadcnTheme.ts",
-      "lines": "388,395,401",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/types/__tests__/phase2-types.test.ts",
-      "lines": "NaN",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/types/__tests__/stock-analysis.test.ts",
-      "lines": "6,7,8,9,13,14,15,16,20,22,25,26,27,28,31,32,33,34,53,56,63,64,70,71,72,73,74,75,87,88,89,93,94,95,99",
-      "reason": "test-测试代码无需国际化",
-      "phase": 3
-    },
-    {
-      "file": "src/types/agent.ts",
-      "lines": "234,254,257,265,271,288,290,292,294,296,298,305,307,311,313,329",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/agentProfile.ts",
-      "lines": "3,4,10,12,13,15,18,19,39,72,73,87,88,95,96,105",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/approval.ts",
-      "lines": "3",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/types/backup.ts",
-      "lines": "25,27,28,30,36,38",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/dom-to-image-more.d.ts",
-      "lines": "9,11,13,16,18",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/dynamicUI.ts",
-      "lines": "41,43,45,51,53,97,99,101,103,105,107,109,111,113,119,121,123,125,127,135,137,139,145,147,152,154,267,269",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/types/expert.ts",
-      "lines": "24,26,28,30,32,34,36,38,40,42,44,45,46,48,50,52,54,56,57,58,59,61,63,65",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/index.ts",
-      "lines": "581,923,931,933,935,939,944,945,946,950,951,960",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/localTool.ts",
-      "lines": "1,3,22,24,26,28,30,32,34,36,38,40,42,44,46,50,52,54,56,58,60,62",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/mcp.ts",
-      "lines": "15,17,19",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/permission.ts",
-      "lines": "1,3",
-      "reason": "非UI字符串-类型文档",
-      "phase": 3
-    },
-    {
-      "file": "src/types/persona.ts",
-      "lines": "3,10,14,16,18",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/types/quant.ts",
-      "lines": "8,100,157,159,161,163,331,341,351",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/types/stock-analysis.ts",
-      "lines": "1,2,35,42,44,45,46,51,64,74,93,114,116,118,120,122,124,126,130,133,135,137,139,141,143,145,149,152,154,161,170,171,245,259,264,265,269,271,273,275,277,279,281,283,284,285,287,288,289,290,291,292,293,294,295,296,297,298,300,301,302,304,306,308,310,312,314,316,318,320,323,325,326,327,329,331,332,333,335,337,339,340,345,348,351,359",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/types/workflow.ts",
-      "lines": "4,7,19,28,42,49,57,71,74,84,97,106,115,125,136,143,166,173,186,193,200,209",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "src/utils/workflowNodeLabel.ts",
-      "lines": "4,5,6,7",
-      "reason": "非UI文本-自动分类",
-      "phase": 3
-    },
-    {
-      "file": "stores/devtools/evaluatorStore.ts",
-      "lines": "248,249,250,251,253",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/devtools/tracerStore.ts",
-      "lines": "317,318,319,320,321,324,325,326,327,328,331,332,333,334,335,351,352,353,357,358,359,363,364,365",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/domain/streamStore.ts",
-      "lines": "38,46,933,951,1149,1167",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/agentStore.ts",
-      "lines": "73,74,75",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/appConfigStore.ts",
-      "lines": "95,112",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/buddyStore.ts",
-      "lines": "19,20,21,22,23",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/evolutionStore.ts",
-      "lines": "234,248,258,269,281,282,283,284,285",
-      "reason": "非UI字符串-Mock数据",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/expertStore.ts",
-      "lines": "185",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/proactiveStore.ts",
-      "lines": "58,59,60,71,72,75,76,86,87,88,96,97,109,110",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/rlTrainingStore.ts",
-      "lines": "70,71,72,73",
-      "reason": "非UI字符串-Mock数据",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/skillStore.ts",
-      "lines": "115",
-      "reason": "硬编码中文字符串（待后续逐步迁移）",
-      "phase": 3
-    },
-    {
-      "file": "stores/feature/workflowEditorStore.ts",
-      "lines": "2769,2776,2785",
-      "reason": "非UI字符串-LLM Prompt",
+      "lines": "2802,2809,2818",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     }
   ]

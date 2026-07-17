@@ -21,9 +21,12 @@ pub async fn list_agent_roles(
     app_state: State<'_, AppState>,
     source: Option<String>,
 ) -> Result<Vec<AgentRoleDef>, String> {
-    agent_role::list_agent_roles(app_state.harness.db(), source.as_deref())
-        .await
-        .map_err(|e| e.to_string())
+    agent_role::list_agent_roles(app_state.harness.db(), source.as_deref()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 从 Open Agent Spec 目录导入 AgentRole
@@ -42,15 +45,30 @@ pub async fn import_agent_roles(
     let mut skipped = 0u32;
     let mut errors = Vec::new();
 
-    for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
+    for entry in fs::read_dir(dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })? {
+        let entry = entry.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         let file_path = entry.path();
 
         if file_path.extension().is_none_or(|e| e != "yaml" && e != "yml") {
             continue;
         }
 
-        let content = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(&file_path).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
         match parse_open_agent_spec(&content) {
             Ok(role) => {
@@ -97,12 +115,22 @@ pub async fn update_agent_role(
     let row = axagent_entities::agent_roles::Entity::find_by_id(&id)
         .one(app_state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("Role {} not found", id))?;
     let mut am: axagent_entities::agent_roles::ActiveModel = row.into();
     am.system_prompt = Set(system_prompt);
     am.updated_at = Set(axagent_kit::utils::now_ts());
-    am.update(app_state.harness.db()).await.map_err(|e| e.to_string())?;
+    am.update(app_state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(())
 }
 
@@ -111,14 +139,24 @@ pub async fn update_agent_role(
 pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Result<(), String> {
     let role = agent_role::get_agent_role(app_state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("Role {} not found", id))?;
 
     if role.source == "builtin" {
         return Err("内置角色不可删除".to_string());
     }
 
-    agent_role::delete_agent_role(app_state.harness.db(), &id).await.map_err(|e| e.to_string())
+    agent_role::delete_agent_role(app_state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 保存（创建/更新）AgentRole — 前端角色编辑器的后端入口。
@@ -146,7 +184,12 @@ pub async fn save_agent_role(
         &source,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(())
 }
 

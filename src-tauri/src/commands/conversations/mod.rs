@@ -610,9 +610,12 @@ pub(crate) fn chat_message_from_message(
 
 #[tauri::command]
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
-    axagent_dao::repo::conversation::list_conversations(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::conversation::list_conversations(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -631,7 +634,12 @@ pub async fn create_conversation(
         system_prompt.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -647,7 +655,12 @@ pub async fn update_conversation(
     let updated =
         axagent_dao::repo::conversation::update_conversation(state.harness.db(), &id, input)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
     if needs_sync {
         if let Err(e) = sync_context_sources(state.harness.db(), &id, &updated).await {
@@ -694,51 +707,91 @@ pub async fn delete_conversation(
     // 收集文件（事务外查询，避免事务持有过长时间）
     let files = axagent_dao::repo::stored_file::list_stored_files_by_conversation(db, &id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 数据库事务：原子性删除所有关联记录
-    let txn = db.begin().await.map_err(|e| e.to_string())?;
+    let txn = db.begin().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 1. 删除 stored_file 记录
     axagent_entities::stored_files::Entity::delete_many()
         .filter(axagent_entities::stored_files::Column::ConversationId.eq(&id))
         .exec(&txn)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 2. 删除消息
     axagent_entities::messages::Entity::delete_many()
         .filter(axagent_entities::messages::Column::ConversationId.eq(&id))
         .exec(&txn)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 3. 删除摘要
     axagent_entities::conversation_summaries::Entity::delete_many()
         .filter(axagent_entities::conversation_summaries::Column::ConversationId.eq(&id))
         .exec(&txn)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 4. 删除 agent_sessions
     axagent_entities::agent_sessions::Entity::delete_many()
         .filter(axagent_entities::agent_sessions::Column::ConversationId.eq(&id))
         .exec(&txn)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 5. 删除主对话
     let result = axagent_entities::conversations::Entity::delete_by_id(&id)
         .exec(&txn)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if result.rows_affected == 0 {
         let _ = txn.rollback().await;
         return Err(format!("Conversation {} not found", id));
     }
 
-    txn.commit().await.map_err(|e| e.to_string())?;
+    txn.commit().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 事务成功后删除磁盘文件
     for file in files {
@@ -778,44 +831,84 @@ pub async fn batch_delete_conversations(
                 let files =
                     axagent_dao::repo::stored_file::list_stored_files_by_conversation(&db, &id)
                         .await
-                        .map_err(|e| e.to_string())?;
+                        .map_err(|e| {
+                            String::from(crate::commands::error::ErrorResponse::from_error(
+                                e,
+                                crate::commands::error::ErrorCategory::Unrecoverable,
+                            ))
+                        })?;
 
-                let txn = db.begin().await.map_err(|e| e.to_string())?;
+                let txn = db.begin().await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
 
                 axagent_entities::stored_files::Entity::delete_many()
                     .filter(axagent_entities::stored_files::Column::ConversationId.eq(&id))
                     .exec(&txn)
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?;
                 axagent_entities::messages::Entity::delete_many()
                     .filter(axagent_entities::messages::Column::ConversationId.eq(&id))
                     .exec(&txn)
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?;
                 axagent_entities::conversation_summaries::Entity::delete_many()
                     .filter(
                         axagent_entities::conversation_summaries::Column::ConversationId.eq(&id),
                     )
                     .exec(&txn)
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?;
                 axagent_entities::agent_sessions::Entity::delete_many()
                     .filter(axagent_entities::agent_sessions::Column::ConversationId.eq(&id))
                     .exec(&txn)
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?;
 
                 let result = axagent_entities::conversations::Entity::delete_by_id(&id)
                     .exec(&txn)
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?;
 
                 if result.rows_affected == 0 {
                     let _ = txn.rollback().await;
                     return Err(format!("Conversation {} not found", id));
                 }
 
-                txn.commit().await.map_err(|e| e.to_string())?;
+                txn.commit().await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
 
                 for file in files {
                     let remaining =
@@ -862,7 +955,12 @@ pub async fn branch_conversation(
         title.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg_attr(not(test), allow(dead_code))]
@@ -874,14 +972,24 @@ async fn delete_conversation_with_attachments_using(
     let files =
         axagent_dao::repo::stored_file::list_stored_files_by_conversation(db, conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     for file in files {
         super::file_cleanup::delete_attachment_reference(db, file_store, &file.id).await?;
     }
 
-    axagent_dao::repo::message::clear_conversation_messages(db, conversation_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    axagent_dao::repo::message::clear_conversation_messages(db, conversation_id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
 
     // 清理关联数据（无 FK 约束，需手动删除避免孤行）
     if let Err(e) = axagent_dao::repo::conversation::delete_summary(db, conversation_id).await {
@@ -895,9 +1003,14 @@ async fn delete_conversation_with_attachments_using(
         tracing::warn!("Failed to delete agent sessions: {}", e);
     }
 
-    axagent_dao::repo::conversation::delete_conversation(db, conversation_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    axagent_dao::repo::conversation::delete_conversation(db, conversation_id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
 
     Ok(())
 }
@@ -907,9 +1020,14 @@ pub async fn search_conversations(
     state: State<'_, AppState>,
     query: String,
 ) -> Result<Vec<ConversationSearchResult>, String> {
-    axagent_dao::repo::conversation::search_conversations(state.harness.db(), &query)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::conversation::search_conversations(state.harness.db(), &query).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -917,9 +1035,12 @@ pub async fn toggle_pin_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_dao::repo::conversation::toggle_pin(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::conversation::toggle_pin(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -927,9 +1048,12 @@ pub async fn toggle_archive_conversation(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Conversation, String> {
-    axagent_dao::repo::conversation::toggle_archive(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::conversation::toggle_archive(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -945,13 +1069,23 @@ pub async fn archive_conversation_to_knowledge_base(
         &knowledge_base_id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Trigger async indexing for the newly created document
     let kb =
         axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
     if kb.embedding_provider.is_some() {
         let container = axagent_search::rag::KnowledgeContainer::from_knowledge_base(&kb);
@@ -1011,9 +1145,14 @@ pub async fn archive_conversation_to_knowledge_base(
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
 ) -> Result<Vec<Conversation>, String> {
-    axagent_dao::repo::conversation::list_archived_conversations(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::conversation::list_archived_conversations(state.harness.db()).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 /// 工作流型会话归档：将执行结果写回原始工作流模板
@@ -1031,7 +1170,12 @@ pub async fn archive_workflow_session(
     let conv = conversations::Entity::find_by_id(&conversation_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("Conversation {} not found", conversation_id))?;
 
     use crate::commands::error::ErrorResponse;
@@ -1055,12 +1199,22 @@ pub async fn archive_workflow_session(
         if workflow_template::Entity::find_by_id(template_id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?
             .is_some()
         {
             let messages = axagent_dao::repo::message::list_messages(db, &conversation_id)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
 
             let execution = axagent_entities::workflow_executions::ActiveModel {
                 id: Set(uuid::Uuid::new_v4().to_string()),
@@ -1082,7 +1236,12 @@ pub async fn archive_workflow_session(
                 created_at: Set(axagent_kit::utils::now_ts()),
                 updated_at: Set(axagent_kit::utils::now_ts()),
             };
-            execution.insert(db).await.map_err(|e| e.to_string())?;
+            execution.insert(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         }
     }
 
@@ -1091,7 +1250,12 @@ pub async fn archive_workflow_session(
     let mut am: conversations::ActiveModel = conv.into();
     am.is_archived = Set(1);
     am.updated_at = Set(now);
-    let updated = am.update(db).await.map_err(|e| e.to_string())?;
+    let updated = am.update(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let conv = axagent_dao::repo::conversation::conversation_from_entity(updated);
     Ok(conv)
@@ -2106,12 +2270,21 @@ pub async fn regenerate_conversation_title(
     // Load conversation
     let conversation = axagent_dao::repo::conversation::get_conversation(&db, &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // Load all messages to build full conversation context for title generation
-    let messages = axagent_dao::repo::message::list_messages(&db, &conversation_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let messages =
+        axagent_dao::repo::message::list_messages(&db, &conversation_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let conversation_messages: Vec<(MessageRole, String)> = messages
         .iter()
@@ -2126,15 +2299,33 @@ pub async fn regenerate_conversation_title(
     // Load provider for fallback
     let provider = axagent_dao::repo::provider::get_provider(&db, &conversation.provider_id)
         .await
-        .map_err(|e| e.to_string())?;
-    let key_row = axagent_dao::repo::provider::get_active_key(&db, &provider.id)
-        .await
-        .map_err(|e| e.to_string())?;
-    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, &master_key)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let key_row =
+        axagent_dao::repo::provider::get_active_key(&db, &provider.id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let decrypted_key =
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, &master_key).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
-    let global_settings =
-        axagent_dao::repo::settings::get_settings(&db).await.map_err(|e| e.to_string())?;
+    let global_settings = axagent_dao::repo::settings::get_settings(&db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
         &provider.proxy_config,
@@ -2289,7 +2480,12 @@ pub(crate) async fn sync_context_sources(
 ) -> Result<(), String> {
     axagent_dao::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     for kb_id in &conversation.enabled_knowledge_base_ids {
         let title = axagent_dao::repo::knowledge::get_knowledge_base(db, kb_id)
@@ -2304,9 +2500,12 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_dao::repo::context_source::add_context_source(db, &input)
-            .await
-            .map_err(|e| e.to_string())?;
+        axagent_dao::repo::context_source::add_context_source(db, &input).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     for mem_id in &conversation.enabled_memory_namespace_ids {
@@ -2322,9 +2521,12 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_dao::repo::context_source::add_context_source(db, &input)
-            .await
-            .map_err(|e| e.to_string())?;
+        axagent_dao::repo::context_source::add_context_source(db, &input).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     for wiki_id in &conversation.enabled_wiki_ids {
@@ -2340,9 +2542,12 @@ pub(crate) async fn sync_context_sources(
             title,
             summary: None,
         };
-        axagent_dao::repo::context_source::add_context_source(db, &input)
-            .await
-            .map_err(|e| e.to_string())?;
+        axagent_dao::repo::context_source::add_context_source(db, &input).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     Ok(())
@@ -2685,6 +2890,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         agent_ask_senders: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_always_allowed: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_prompters: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+        agent_plan_approvals: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_session_manager: {
             let repo: Arc<dyn AgentSessionRepository> =
                 Arc::new(DaoAgentSessionRepository::new(Arc::new(db.clone())));

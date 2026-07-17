@@ -189,22 +189,41 @@ Respond ONLY with valid JSON.",
 
     // 查找默认 provider 调用 LLM
     let db = state.harness.db();
-    let providers = provider::list_providers(db).await.map_err(|e| e.to_string())?;
+    let providers = provider::list_providers(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let default_prov = providers.iter().find(|p| p.enabled).ok_or("No enabled provider found")?;
     let key = provider_keys::Entity::find()
         .filter(provider_keys::Column::ProviderId.eq(&default_prov.id))
         .filter(provider_keys::Column::Enabled.eq(1))
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or("No enabled API key found")?;
-    let api_key =
-        decrypt_key(&key.key_encrypted, state.harness.master_key()).map_err(|e| e.to_string())?;
+    let api_key = decrypt_key(&key.key_encrypted, state.harness.master_key()).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(60))
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let body = serde_json::json!({
         "model": "deepseek-chat",

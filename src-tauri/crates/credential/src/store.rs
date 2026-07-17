@@ -180,3 +180,169 @@ impl CredentialStore {
         Ok(metas)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{Credential, CredentialType};
+
+    /// 测试用临时存储：退出时清理磁盘目录，避免遗留加密文件。
+    struct TempStore {
+        dir: std::path::PathBuf,
+        store: CredentialStore,
+    }
+
+    impl Drop for TempStore {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.dir);
+        }
+    }
+
+    fn temp_store() -> TempStore {
+        let mut suffix = [0u8; 8];
+        rand::rng().fill(&mut suffix);
+        let dir = std::env::temp_dir().join(format!("axagent_cred_test_{}", hex::encode(suffix)));
+        std::fs::create_dir_all(&dir).ok();
+        // 固定主密钥，便于"错误密钥解密失败"断言。
+        TempStore { dir: dir.clone(), store: CredentialStore::new(dir, [0x42u8; 32]) }
+    }
+
+    fn api_key_credential() -> Credential {
+        Credential::new(
+            "cred-1".to_string(),
+            "OpenAI Key".to_string(),
+            CredentialType::ApiKey {
+                key: "sk-xxxx".to_string(),
+                header_name: "X-Api-Key".to_string(),
+            },
+        )
+    }
+
+    #[test]
+    fn save_and_load_roundtrip() {
+        let ts = temp_store();
+        let cred = api_key_credential();
+        ts.store.save_credential(&cred).unwrap();
+        let loaded = ts.store.load_credential("cred-1").unwrap();
+        // Credential 未派生 PartialEq，改用 JSON 序列化比较（含时间戳）确保完全一致。
+        assert_eq!(serde_json::to_string(&loaded).unwrap(), serde_json::to_string(&cred).unwrap());
+    }
+
+    #[test]
+    fn roundtrip_all_credential_types() {
+        let ts = temp_store();
+        let cases = vec![
+            Credential::new(
+                "a".into(),
+                "bearer".into(),
+                CredentialType::BearerToken { token: "t".into() },
+            ),
+            Credential::new(
+                "b".into(),
+                "basic".into(),
+                CredentialType::BasicAuth { username: "u".into(), password: "p".into() },
+            ),
+            Credential::new(
+                "c".into(),
+                "smtp".into(),
+                CredentialType::Smtp {
+                    host: "h".into(),
+                    port: 25,
+                    user: "u".into(),
+                    pass: "p".into(),
+                    tls: true,
+                },
+            ),
+            Credential::new(
+                "d".into(),
+                "db".into(),
+                CredentialType::DatabaseConnection { connection_string: "postgres://x".into() },
+            ),
+            Credential::new(
+                "e".into(),
+                "oauth".into(),
+                CredentialType::OAuth2 {
+                    client_id: "ci".into(),
+                    client_secret: "cs".into(),
+                    token_url: "tu".into(),
+                    scopes: vec!["s1".into()],
+                },
+            ),
+        ];
+        for c in &cases {
+            ts.store.save_credential(c).unwrap();
+            let loaded = ts.store.load_credential(&c.id).unwrap();
+            assert_eq!(
+                serde_json::to_string(&loaded.credential_type).unwrap(),
+                serde_json::to_string(&c.credential_type).unwrap(),
+                "类型 {} 往返不一致",
+                c.id
+            );
+        }
+    }
+
+    #[test]
+    fn wrong_master_key_fails() {
+        let mut suffix = [0u8; 8];
+        rand::rng().fill(&mut suffix);
+        let dir = std::env::temp_dir().join(format!("axagent_cred_wk_{}", hex::encode(suffix)));
+        std::fs::create_dir_all(&dir).ok();
+        let store_a = CredentialStore::new(dir.clone(), [0x11u8; 32]);
+        store_a.save_credential(&api_key_credential()).unwrap();
+        // 用不同主密钥读取应解密失败（密钥绑定是安全边界）。
+        let store_b = CredentialStore::new(dir.clone(), [0x22u8; 32]);
+        assert!(store_b.load_credential("cred-1").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn delete_then_load_fails() {
+        let ts = temp_store();
+        let cred = api_key_credential();
+        ts.store.save_credential(&cred).unwrap();
+        ts.store.delete_credential("cred-1").unwrap();
+        assert!(ts.store.load_credential("cred-1").is_err());
+    }
+
+    #[test]
+    fn list_credentials_metadata_only() {
+        let ts = temp_store();
+        let c1 = Credential::new(
+            "x".into(),
+            "Alpha".into(),
+            CredentialType::ApiKey { key: "k".into(), header_name: "h".into() },
+        );
+        let c2 = Credential::new(
+            "y".into(),
+            "Beta".into(),
+            CredentialType::BearerToken { token: "t".into() },
+        );
+        ts.store.save_credential(&c1).unwrap();
+        ts.store.save_credential(&c2).unwrap();
+        let metas = ts.store.list_credentials().unwrap();
+        assert_eq!(metas.len(), 2);
+        let names: Vec<&str> = metas.iter().map(|m| m.name.as_str()).collect();
+        assert!(names.contains(&"Alpha"));
+        assert!(names.contains(&"Beta"));
+        // 元数据不应包含 secret 字段（CredentialMeta 本身不含密钥）。
+        for m in &metas {
+            assert!(m.credential_type == "ApiKey" || m.credential_type == "BearerToken");
+        }
+    }
+
+    #[test]
+    fn corrupt_file_fails_to_load() {
+        let ts = temp_store();
+        ts.store.save_credential(&api_key_credential()).unwrap();
+        // 直接覆写密文为垃圾，模拟磁盘损坏。
+        let path = ts.dir.join("cred-1.enc");
+        std::fs::write(&path, "not-valid-base64-@@@@").unwrap();
+        assert!(ts.store.load_credential("cred-1").is_err());
+    }
+
+    #[test]
+    fn derive_master_key_length() {
+        let key = CredentialStore::derive_master_key();
+        assert_eq!(key.len(), 32);
+    }
+}

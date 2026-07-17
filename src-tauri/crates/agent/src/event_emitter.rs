@@ -100,8 +100,9 @@ mod tests {
             AgentEventType::PermissionRequest,
             AgentEventType::PermissionGranted,
             AgentEventType::PermissionDenied,
+            AgentEventType::PlanReadyForApproval,
         ];
-        assert_eq!(variants.len(), 20);
+        assert_eq!(variants.len(), 21);
     }
 
     #[test]

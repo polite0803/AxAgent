@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { CapacityInfo, SyncQueueItem } from "@/types";
 import {
@@ -90,7 +91,7 @@ export function SyncStatus({
       message.success(t("wiki.sync.processStarted"));
       await loadSyncStatus();
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
     setProcessing(false);
   };

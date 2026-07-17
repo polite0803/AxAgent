@@ -53,11 +53,13 @@ pub async fn workflow_create(
     let edges: Vec<axagent_harness::workflow_types::WorkflowEdge> =
         request.edges.into_iter().filter_map(|e| serde_json::from_value(e).ok()).collect();
 
-    let workflow = app_state
-        .work_engine
-        .create_workflow(&request.name, nodes, edges)
-        .await
-        .map_err(|e| e.to_string())?;
+    let workflow =
+        app_state.work_engine.create_workflow(&request.name, nodes, edges).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(WorkflowCreateResponse {
         workflow_id: workflow.id.clone(),
@@ -81,7 +83,12 @@ pub async fn workflow_execute(
         .work_engine
         .get_workflow(&workflow_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
 
     // 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
@@ -151,11 +158,20 @@ pub async fn workflow_get_status(
     app_state: State<'_, AppState>,
     workflow_id: String,
 ) -> Result<Value, String> {
-    let workflow =
-        app_state.work_engine.get_workflow(&workflow_id).await.map_err(|e| e.to_string())?;
+    let workflow = app_state.work_engine.get_workflow(&workflow_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     match workflow {
-        Some(w) => Ok(serde_json::to_value(w).map_err(|e| e.to_string())?),
+        Some(w) => Ok(serde_json::to_value(w).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?),
         None => Err(ErrorResponse::new(agent_err::WORKFLOW_NOT_FOUND).into()),
     }
 }
@@ -166,16 +182,30 @@ pub async fn workflow_cancel(
     app_state: State<'_, AppState>,
     workflow_id: String,
 ) -> Result<Value, String> {
-    let workflow =
-        app_state.work_engine.cancel_workflow(&workflow_id).await.map_err(|e| e.to_string())?;
+    let workflow = app_state.work_engine.cancel_workflow(&workflow_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
-    serde_json::to_value(workflow).map_err(|e| e.to_string())
+    serde_json::to_value(workflow).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 列出所有工作流
 #[tauri::command]
 pub async fn workflow_list(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
-    let workflows = app_state.work_engine.list_workflows().await.map_err(|e| e.to_string())?;
+    let workflows = app_state.work_engine.list_workflows().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(workflows.into_iter().filter_map(|w| serde_json::to_value(w).ok()).collect())
 }
@@ -190,7 +220,12 @@ pub async fn workflow_get_steps(
         .work_engine
         .get_workflow(&workflow_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
     Ok(workflow.nodes.iter().filter_map(|s| serde_json::to_value(s).ok()).collect())
 }

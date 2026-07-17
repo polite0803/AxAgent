@@ -52,8 +52,18 @@ pub async fn update_platform_config(
 ) -> Result<PlatformReconcileReport, String> {
     axagent_dao::repo::platform_config::save_platform_config(state.harness.db(), &config)
         .await
-        .map_err(|e| e.to_string())?;
-    state.platform_manager.reconcile(&config).await.map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    state.platform_manager.reconcile(&config).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── 消息处理命令 ──
@@ -153,10 +163,12 @@ pub async fn send_platform_message(
         .await
         .ok_or_else(|| format!("Platform adapter not found: {}", platform))?;
 
-    adapter
-        .send_message(&config, &chat_id, &text, parse_mode.as_deref())
-        .await
-        .map_err(|e| e.to_string())
+    adapter.send_message(&config, &chat_id, &text, parse_mode.as_deref()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -177,10 +189,14 @@ pub async fn send_telegram_message(
         .await
         .ok_or_else(|| "Telegram adapter not available".to_string())?;
 
-    adapter
-        .send_message(&config, &chat_id.to_string(), &text, Some("Markdown"))
-        .await
-        .map_err(|e| e.to_string())
+    adapter.send_message(&config, &chat_id.to_string(), &text, Some("Markdown")).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -205,9 +221,19 @@ pub async fn send_discord_message(
         .json(&body)
         .send()
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .error_for_status()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(())
 }
@@ -231,7 +257,12 @@ pub async fn create_platform_session(
     routes.insert(key.clone(), session_id.clone());
     axagent_dao::repo::platform_config::save_session_routes(state.harness.db(), &routes)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(PlatformSession {
         session_id,
@@ -281,7 +312,12 @@ pub async fn deactivate_platform_session(
     routes.retain(|_, v| v != &session_id);
     axagent_dao::repo::platform_config::save_session_routes(state.harness.db(), &routes)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     Ok(())
 }
 
@@ -300,7 +336,12 @@ pub async fn reconcile_platforms(
     state: State<'_, AppState>,
 ) -> Result<PlatformReconcileReport, String> {
     let config = axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await;
-    state.platform_manager.reconcile(&config).await.map_err(|e| e.to_string())
+    state.platform_manager.reconcile(&config).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── API Server 命令 ──

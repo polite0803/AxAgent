@@ -4,14 +4,23 @@
 //!
 //! 前端根据 error code 查询 i18n 翻译
 //!
-//! 本文件中的常量和别名供其他命令模块引用，编译器误报 unused 属正常现象。
-
-#![allow(unused_imports)]
-#![allow(dead_code)]
+//! 本文件中的常量和别名供其他命令模块引用。
 //!
 //! 命名规范: {CATEGORY}_{SHORT_NAME}
 //! - CATEGORY: 会话(CONVERSATION), 工具(TOOL), MCP, 浏览器(BROWSER)等
 //! - SHORT_NAME: 简短描述性名称,如 NOT_FOUND, TIMEOUT, FAILED等
+//!
+//! 以下常量为外部（前端 i18n）契约消费：每个常量对应前端 11 种语言
+//! i18n 的 `error` 段 key，由 `scripts/check-errorcode-alignment.mjs` 校验对齐。
+//! 即便某些常量当前未被 Rust 命令直接引用（如 `conversation::NOT_FOUND`），
+//! 也不得删除——删除会破坏契约对齐并使前端翻译成为孤儿码。
+//! 因此 `dead_code` 在此属外部契约导致的误报，按 P0 规范
+//! 「lint 反映合理设计时为例外，需说明」条款保留该 allow。
+//! 理由:这些常量是后端↔前端的错误码 API 契约。即便当前无后端命令直接引用，
+//! 前端 11 语言均有 `error.CONSTANT` 翻译键,且 crates/插件可动态构建这些错误码。
+//! 删除会破坏契约对齐、使前端翻译成为孤儿码(被 check-errorcode-alignment.mjs 捕获)。
+//! 详见 src-tauri/src/commands/error_code.rs / crates/harness/src/error_codes.rs 的模块设计。
+#![allow(dead_code)]
 
 /// 会话/对话相关错误码
 pub mod conversation {
@@ -362,25 +371,11 @@ pub mod common {
 }
 
 // ── 别名模块：统一子命令内部使用的简写名称 ──
-pub use agent as agent_err;
-pub use backup as backup_err;
-pub use browser as browser_err;
+// 以下 re-export 被具体命令文件通过 `use error_code::<alias>` 直接引用，
+// 属活跃契约别名，删除会导致编译失败（非死代码）：
+//   - conv_err   ← conversations/compress.rs、conversations/messages/compress.rs
+//   - skill_err  ← skills/analysis.rs
+// 其余命令文件改用 `use error_code::<module> as <module>_err` 本地别名，
+// 故对应的 re-export 已删除（P0：删除死代码而非 allow）。
 pub use conversation as conv_err;
-pub use dashboard as dashboard_err;
-pub use expert as expert_err;
-pub use file as file_err;
-pub use gateway as gateway_err;
-pub use platform as platform_err;
-pub use provider as provider_err;
-pub use proxy as proxy_err;
-pub use search as search_err;
-pub use session as session_err;
 pub use skill as skill_err;
-pub use steer as steer_err;
-pub use storage as storage_err;
-pub use storage_path as storage_path_err;
-pub use terminal as terminal_err;
-pub use thinking as thinking_err;
-pub use title as title_err;
-pub use tool as tool_err;
-pub use workflow as workflow_err;
