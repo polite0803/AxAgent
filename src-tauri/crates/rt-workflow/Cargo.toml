@@ -30,7 +30,7 @@ uuid = { workspace = true }
 cron = "0.17"
 hex = { workspace = true }
 hmac = "0.13"
-jsonschema = "0.47"
+jsonschema = "0.48"
 lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
 regex = "1"
 reqwest = { workspace = true }
