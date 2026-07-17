@@ -206,7 +206,7 @@ mod tests {
         );
         assert!(matches!(
             blocks[1],
-            ContentBlock::ToolUse { id: ref id, name: ref n, input: ref inp }
+            ContentBlock::ToolUse { ref id, name: ref n, input: ref inp }
                 if id == "auto" && n == "get_weather" && inp == "{\"city\":\"北京\"}"
         ));
         assert!(matches!(blocks[2], ContentBlock::Text { text: ref t } if t == "这是结果。"));
@@ -228,7 +228,7 @@ mod tests {
         assert_eq!(blocks.len(), 2);
         assert!(matches!(
             blocks[1],
-            ContentBlock::ToolUse { id: ref id, name: ref n, input: ref inp }
+            ContentBlock::ToolUse { ref id, name: ref n, input: ref inp }
                 if id == "call_123" && n == "search" && inp == "{\"q\": \"Rust\"}"
         ));
     }
