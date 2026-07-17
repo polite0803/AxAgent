@@ -1075,10 +1075,7 @@ pub async fn error_get_report(error_json: Value) -> Result<Value, String> {
         .and_then(|m| m.as_str())
         .unwrap_or("No message provided");
 
-    let is_retryable = matches!(
-        category,
-        ErrorCategory::Retryable | ErrorCategory::Unrecoverable
-    );
+    let is_retryable = matches!(category, ErrorCategory::Retryable | ErrorCategory::Unrecoverable);
 
     let retry_after = match &category {
         ErrorCategory::Retryable => {
