@@ -7882,7 +7882,8 @@
     "restore": "恢复备份",
     "delete": "删除备份",
     "format": "格式",
-    "status": "状态",
+    "status": "状态"
+  },
   "settingsPage": {
     "refreshPage": "刷新页面"
   },
@@ -9580,7 +9581,6 @@
       "urlRequired": "请输入 URL",
       "web": "网页",
       "desc": "导入文档到知识库"
-      "web": "网页"
     },
     "ingestSource": {
       "deleteNotImplemented": "删除功能尚未实现",
@@ -10065,7 +10065,7 @@
       "progressAnalyzing": "正在分析意图",
       "progressMatching": "正在配对节点",
       "progressBuilding": "正在构建工作流",
-      "progressOptimizing": "正在优化"
+      "progressOptimizing": "正在优化",
       "verified": "已验证",
       "hasEvolution": "有进化记录",
       "progressAnalyzing": "正在分析意图",
@@ -12234,6 +12234,7 @@
       "runningNode": "正在执行工作流节点",
       "success": "成功",
       "waiting": "等待中"
+    },
     "versionHistory": {
       "vA": "版本 A",
       "vB": "版本 B",
