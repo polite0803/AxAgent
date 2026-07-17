@@ -886,34 +886,15 @@ fn hash_embedding(embedding: &[f32]) -> String {
 // Error Context commands
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq)]
-enum ErrorCategory {
-    Network,
-    Auth,
-    Timeout,
-    RateLimit,
-    Validation,
-    NotFound,
-    Permission,
-    Configuration,
-    Internal,
-    Unknown,
-}
+use crate::commands::error::ErrorCategory;
 
-impl std::fmt::Display for ErrorCategory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorCategory::Network => write!(f, "network"),
-            ErrorCategory::Auth => write!(f, "auth"),
-            ErrorCategory::Timeout => write!(f, "timeout"),
-            ErrorCategory::RateLimit => write!(f, "rate_limit"),
-            ErrorCategory::Validation => write!(f, "validation"),
-            ErrorCategory::NotFound => write!(f, "not_found"),
-            ErrorCategory::Permission => write!(f, "permission"),
-            ErrorCategory::Configuration => write!(f, "configuration"),
-            ErrorCategory::Internal => write!(f, "internal"),
-            ErrorCategory::Unknown => write!(f, "unknown"),
-        }
+fn error_category_name(c: &ErrorCategory) -> &'static str {
+    match c {
+        ErrorCategory::Retryable => "retryable",
+        ErrorCategory::PermissionDenied => "permission_denied",
+        ErrorCategory::Unrecoverable => "unrecoverable",
+        ErrorCategory::Validation => "validation",
+        ErrorCategory::General => "general",
     }
 }
 
@@ -941,8 +922,18 @@ fn categorize_error(error_json: &Value) -> ErrorCategory {
         || error_message.contains("econnrefused")
         || error_message.contains("econnreset")
         || error_message.contains("enetunreach")
+        // timeout & rate_limit are also retryable
+        || error_type.contains("timeout")
+        || error_type.contains("timed out")
+        || error_message.contains("timeout")
+        || error_message.contains("deadline exceeded")
+        || error_type.contains("rate_limit")
+        || error_type.contains("throttl")
+        || error_code == 429
+        || error_message.contains("rate limit")
+        || error_message.contains("too many requests")
     {
-        return ErrorCategory::Network;
+        return ErrorCategory::Retryable;
     }
 
     if error_type.contains("auth")
@@ -954,28 +945,13 @@ fn categorize_error(error_json: &Value) -> ErrorCategory {
         || error_message.contains("authentication failed")
         || error_message.contains("unauthorized")
         || error_message.contains("invalid token")
+        || error_type.contains("permission")
+        || error_type.contains("access denied")
+        || error_message.contains("permission denied")
+        || error_message.contains("access denied")
+        || error_message.contains("insufficient permissions")
     {
-        return ErrorCategory::Auth;
-    }
-
-    if error_type.contains("timeout")
-        || error_type.contains("timed out")
-        || error_message.contains("timeout")
-        || error_message.contains("timed out")
-        || error_message.contains("deadline exceeded")
-    {
-        return ErrorCategory::Timeout;
-    }
-
-    if error_type.contains("rate_limit")
-        || error_type.contains("rate limit")
-        || error_type.contains("throttl")
-        || error_code == 429
-        || error_message.contains("rate limit")
-        || error_message.contains("too many requests")
-        || error_message.contains("throttl")
-    {
-        return ErrorCategory::RateLimit;
+        return ErrorCategory::PermissionDenied;
     }
 
     if error_type.contains("validat")
@@ -988,29 +964,20 @@ fn categorize_error(error_json: &Value) -> ErrorCategory {
         return ErrorCategory::Validation;
     }
 
-    if error_type.contains("not_found")
-        || error_code == 404
-        || error_message.contains("not found")
-        || error_message.contains("does not exist")
-    {
-        return ErrorCategory::NotFound;
-    }
-
-    if error_type.contains("permission")
-        || error_type.contains("access denied")
-        || error_message.contains("permission denied")
-        || error_message.contains("access denied")
-        || error_message.contains("insufficient permissions")
-    {
-        return ErrorCategory::Permission;
-    }
-
     if error_type.contains("config")
         || error_message.contains("configuration")
         || error_message.contains("misconfigured")
         || error_message.contains("missing config")
     {
-        return ErrorCategory::Configuration;
+        return ErrorCategory::General;
+    }
+
+    if error_type.contains("not_found")
+        || error_code == 404
+        || error_message.contains("not found")
+        || error_message.contains("does not exist")
+    {
+        return ErrorCategory::General;
     }
 
     if error_type.contains("internal")
@@ -1018,10 +985,10 @@ fn categorize_error(error_json: &Value) -> ErrorCategory {
         || error_message.contains("internal server error")
         || error_message.contains("unexpected error")
     {
-        return ErrorCategory::Internal;
+        return ErrorCategory::Unrecoverable;
     }
 
-    ErrorCategory::Unknown
+    ErrorCategory::General
 }
 
 fn get_severity(category: &ErrorCategory, error_json: &Value) -> &'static str {
@@ -1032,16 +999,11 @@ fn get_severity(category: &ErrorCategory, error_json: &Value) -> &'static str {
         .unwrap_or(0);
 
     match category {
-        ErrorCategory::Auth => "high",
-        ErrorCategory::Network => "high",
-        ErrorCategory::RateLimit => "low",
-        ErrorCategory::Timeout => "medium",
+        ErrorCategory::PermissionDenied => "high",
+        ErrorCategory::Retryable => "medium",
         ErrorCategory::Validation => "low",
-        ErrorCategory::NotFound => "low",
-        ErrorCategory::Permission => "high",
-        ErrorCategory::Configuration => "high",
-        ErrorCategory::Internal => "critical",
-        ErrorCategory::Unknown => {
+        ErrorCategory::General => "medium",
+        ErrorCategory::Unrecoverable => {
             if error_code >= 500 {
                 "critical"
             } else {
@@ -1053,33 +1015,22 @@ fn get_severity(category: &ErrorCategory, error_json: &Value) -> &'static str {
 
 fn get_remediation(category: &ErrorCategory) -> Vec<&'static str> {
     match category {
-        ErrorCategory::Network => vec![
+        ErrorCategory::Retryable => vec![
             "Check your internet connection and DNS settings",
             "Verify the target server is reachable (try ping or curl)",
             "Check firewall rules and proxy configuration",
+            "Implement exponential backoff with jitter in your retry logic",
+            "Reduce the request frequency to stay within rate limits",
+            "Increase the request timeout setting",
             "Retry with exponential backoff after a brief wait",
-            "If using a VPN, verify it is connected properly",
         ],
-        ErrorCategory::Auth => vec![
+        ErrorCategory::PermissionDenied => vec![
             "Verify your API key or credentials are correct",
             "Check if the API key has expired or been revoked",
             "Ensure the credentials have the required permissions/scopes",
             "Re-authenticate and obtain a fresh token",
             "Check if the account is locked or suspended",
-        ],
-        ErrorCategory::Timeout => vec![
-            "Increase the request timeout setting",
-            "Reduce the payload size or simplify the request",
-            "Check server load — it may be under heavy load",
-            "Retry the request after a brief delay",
-            "Consider splitting the operation into smaller chunks",
-        ],
-        ErrorCategory::RateLimit => vec![
-            "Implement exponential backoff with jitter in your retry logic",
-            "Reduce the request frequency to stay within rate limits",
-            "Check the Retry-After header for the recommended wait time",
-            "Consider upgrading your API plan for higher rate limits",
-            "Batch multiple operations into fewer requests",
+            "Contact an administrator to request access",
         ],
         ErrorCategory::Validation => vec![
             "Review the request payload against the API schema",
@@ -1088,37 +1039,19 @@ fn get_remediation(category: &ErrorCategory) -> Vec<&'static str> {
             "Validate enum values are within the allowed set",
             "Trim whitespace and normalize input strings",
         ],
-        ErrorCategory::NotFound => vec![
+        ErrorCategory::General => vec![
             "Verify the resource ID or path is correct",
             "Check if the resource has been deleted or moved",
             "Ensure you are targeting the correct environment/region",
             "List available resources to confirm the target exists",
+            "Check configuration settings for any errors",
         ],
-        ErrorCategory::Permission => vec![
-            "Verify your account has the required role or permissions",
-            "Contact an administrator to request access",
-            "Check if the resource has access control restrictions",
-            "Ensure you are operating within the correct scope/organization",
-        ],
-        ErrorCategory::Configuration => vec![
-            "Review the configuration file for missing or incorrect values",
-            "Check environment variables are set correctly",
-            "Verify all required configuration keys are present",
-            "Compare with a known-working configuration template",
-            "Check for typos in configuration key names",
-        ],
-        ErrorCategory::Internal => vec![
-            "This is a server-side error — retry after a brief wait",
-            "Check the server logs for more details",
-            "Report this issue to the service provider if it persists",
-            "Verify you are using a compatible API version",
-            "Check the service status page for ongoing incidents",
-        ],
-        ErrorCategory::Unknown => vec![
-            "Check logs for more detailed error information",
-            "Verify your request matches the API documentation",
-            "Try reproducing the error with minimal parameters",
-            "Contact support if the error persists",
+        ErrorCategory::Unrecoverable => vec![
+            "This error indicates an unexpected internal state",
+            "Restart the application and try again",
+            "If the problem persists, contact support with the full error details",
+            "Check system logs for more information",
+            "Consider reinstalling or updating to the latest version",
         ],
     }
 }
@@ -1144,27 +1077,24 @@ pub async fn error_get_report(error_json: Value) -> Result<Value, String> {
 
     let is_retryable = matches!(
         category,
-        ErrorCategory::Network
-            | ErrorCategory::Timeout
-            | ErrorCategory::RateLimit
-            | ErrorCategory::Internal
+        ErrorCategory::Retryable | ErrorCategory::Unrecoverable
     );
 
     let retry_after = match &category {
-        ErrorCategory::RateLimit => error_json
-            .get("retry_after")
-            .or_else(|| error_json.get("retryAfter"))
-            .and_then(|v| v.as_i64())
-            .or(if error_code == 429 { Some(60) } else { None }),
-        ErrorCategory::Timeout => Some(5),
-        ErrorCategory::Network => Some(10),
+        ErrorCategory::Retryable => {
+            if error_code == 429 {
+                Some(60)
+            } else {
+                Some(5)
+            }
+        },
         _ => None,
     };
 
     Ok(serde_json::json!({
         "original_error": error_json,
         "analysis": {
-            "error_type": category.to_string(),
+            "error_type": error_category_name(&category),
             "severity": severity,
             "error_code": error_code,
             "error_message": error_message,

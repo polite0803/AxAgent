@@ -16,6 +16,10 @@
 //! 也不得删除——删除会破坏契约对齐并使前端翻译成为孤儿码。
 //! 因此 `dead_code` 在此属外部契约导致的误报，按 P0 规范
 //! 「lint 反映合理设计时为例外，需说明」条款保留该 allow。
+//! 理由:这些常量是后端↔前端的错误码 API 契约。即便当前无后端命令直接引用，
+//! 前端 11 语言均有 `error.CONSTANT` 翻译键,且 crates/插件可动态构建这些错误码。
+//! 删除会破坏契约对齐、使前端翻译成为孤儿码(被 check-errorcode-alignment.mjs 捕获)。
+//! 详见 src-tauri/src/commands/error_code.rs / crates/harness/src/error_codes.rs 的模块设计。
 #![allow(dead_code)]
 
 /// 会话/对话相关错误码
