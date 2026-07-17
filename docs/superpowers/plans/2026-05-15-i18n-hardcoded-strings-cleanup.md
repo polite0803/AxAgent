@@ -24,7 +24,7 @@
 - [ ] **Step 1: 扫描代码中所有 `t()` 调用的 key，对比 en-US.json 找出缺失项**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 # 提取所有 t("key") 和 t("key", "fallback") 中的 key
 grep -roPh "t\(\s*['\"]([^'\"]+)['\"]" src/ --include='*.ts' --include='*.tsx' \
   | sed "s/.*t(['\"]//" | sed "s/['\"].*//" | sort -u > /tmp/all-t-keys.txt
@@ -50,7 +50,7 @@ console.log(missing.join('\n'));
 - [ ] **Step 2: 补充扫描无 fallback 的 `t()` 调用中不存在的 key**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 # 提取所有 t("key") 调用（无第二个参数）
 grep -roPh "t\(\s*['\"]([^'\"]+)['\"]\s*\)" src/ --include='*.ts' --include='*.tsx' \
   | sed "s/.*t(['\"]//" | sed "s/['\"].*//" | sort -u > /tmp/all-t-no-fallback.txt
@@ -92,7 +92,7 @@ console.log('Total:', Object.values(byNs).reduce((s,a) => s + a.length, 0));
 - [ ] **Step 1: 从代码 fallback 值提取中文翻译，写入 zh-CN.json**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 # 对每个缺失 key，在代码中搜索 t("key", "fallback") 模式提取 fallback 值
 node -e "
 const fs = require('fs');
@@ -151,7 +151,7 @@ console.log('Manual keys:', missingKeys.filter(k => !fallbacks[k]));
 - [ ] **Step 3: 合并到 zh-CN.json**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 node -e "
 const fs = require('fs');
 const zhCN = JSON.parse(fs.readFileSync('src/i18n/locales/zh-CN.json','utf8'));
@@ -192,7 +192,7 @@ console.log('zh-CN.json total keys:', JSON.stringify(zhCN).length, 'bytes');
 手动编辑 `scripts/.i18n-enus-additions.json`（从 zh-CN additions 派生结构，编写英文值），然后合并：
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 node -e "
 const fs = require('fs');
 const enUS = JSON.parse(fs.readFileSync('src/i18n/locales/en-US.json','utf8'));
@@ -231,7 +231,7 @@ git commit -m "fix: add 68 missing i18n keys to zh-CN and en-US locale files"
 - [ ] **Step 1: 用 en-US 值填充其余 9 种语言的缺失 key**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 node -e "
 const fs = require('fs');
 const enUS = JSON.parse(fs.readFileSync('src/i18n/locales/en-US.json','utf8'));
@@ -673,7 +673,7 @@ git commit -m "ci: add i18n hardcoded strings check to PR CI pipeline"
 - [ ] **Step 1: 运行 typecheck**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 npm run typecheck
 ```
 
@@ -701,7 +701,7 @@ bash scripts/check-hardcoded-i18n.sh --report
 - [ ] **Step 1: 提取 ExpertSelector.tsx 中所有 t() fallback 调用的 key**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 grep -n "t(" src/components/chat/ExpertSelector.tsx | grep -oP "t\(\s*'([^']+)'\s*,\s*'" | sort -u
 ```
 
@@ -886,7 +886,7 @@ import i18n from "@/i18n";
 - [ ] **Step 1: 确认 ToolCategoryLabels 和 PermissionModeLabels 零引用**
 
 ```bash
-cd D:/OneManager/AxAgent
+cd .
 grep -r "ToolCategoryLabels\|PERMISSION_MODE_LABELS\|PermissionModeLabels" src/ --include='*.ts' --include='*.tsx'
 ```
 
