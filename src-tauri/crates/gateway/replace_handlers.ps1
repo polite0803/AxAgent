@@ -1,4 +1,4 @@
-$file = 'd:\OneManager\AxAgent\src-tauri\crates\gateway\src\handlers.rs'
+$file = Join-Path $PSScriptRoot 'src\handlers.rs'
 $content = [System.IO.File]::ReadAllText($file)
 
 $search = @"

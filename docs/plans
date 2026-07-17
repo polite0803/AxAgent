@@ -233,7 +233,7 @@ cargo test -p axagent-tools bash_kill_on_timeout_reaps_child -- --nocapture
 
 **Step 3：实现修复**
 
-替换 [bash.rs:184-278](file:///d:/OneManager/AxAgent/src-tauri/crates/tools/src/tools/bash.rs#L184-L278) 的实现：
+替换 [bash.rs:184-278](../src-tauri/crates/tools/src/tools/bash.rs#L184-L278) 的实现：
 
 ```rust
 use tokio::process::Command as TokioCommand;
@@ -570,7 +570,7 @@ cargo test -p axagent-tools bash_blocks_unicode_obfuscation
 
 **Step 3：实现 union 模式集**
 
-替换 [bash.rs:131-146](file:///d:/OneManager/AxAgent/src-tauri/crates/tools/src/tools/bash.rs#L131-L146)：
+替换 [bash.rs:131-146](../src-tauri/crates/tools/src/tools/bash.rs#L131-L146)：
 
 ```rust
 // ── 安全分析（call() 中也做，防御 validate() 被绕过） ──
@@ -741,7 +741,7 @@ fs.writeFileSync("src/i18n/locales/ja.json", JSON.stringify(pruned, null, 2) + "
 
 **Step 7：禁用 compare_locales.js 的假翻译写入**
 
-修改 [compare_locales.js:142-158](file:///d:/OneManager/AxAgent/src/i18n/compare_locales.js#L142-L158) 为：
+修改 [compare_locales.js:142-158](../src/i18n/compare_locales.js#L142-L158) 为：
 
 ```js
 if (missingKeys.length > 0) {
@@ -786,7 +786,7 @@ i18n: integrity"
 
 **Step 1：判断 native.rs 是测试还是生产**
 
-读 [native.rs:1-50](file:///d:/OneManager/AxAgent/src-tauri/crates/gateway/src/native.rs) 确认。如果是测试辅助则降级到 Task 5；如果是生产路径继续 Step 2。
+读 [native.rs:1-50](../src-tauri/crates/gateway/src/native.rs) 确认。如果是测试辅助则降级到 Task 5；如果是生产路径继续 Step 2。
 
 **Step 2：写失败测试**
 
@@ -1258,7 +1258,7 @@ reliability: process cleanup"
 - PR-3: 抽出 memory + skill domain
 - PR-4: 移除 AppState 类型，所有地方用具体 domain state
 
-每个 PR 都需要更新 [app_state.rs](file:///d:/OneManager/AxAgent/src-tauri/src/app_state.rs)、`main.rs`、`commands/*.rs` 等约 200+ 处。
+每个 PR 都需要更新 [app_state.rs](../src-tauri/src/app_state.rs)、`main.rs`、`commands/*.rs` 等约 200+ 处。
 
 **Step 1：写 domain 抽象**
 

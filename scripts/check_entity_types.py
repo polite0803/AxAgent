@@ -10,8 +10,10 @@ Assumes the entity is the source of truth.
 import os, re, sys
 from pathlib import Path
 
-ENTITY_DIR = Path("d:/OneManager/AxAgent/src-tauri/crates/entities/src")
-V100_FILE  = Path("d:/OneManager/AxAgent/src-tauri/crates/dao/src/migrations/v100_consolidated.rs")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+ENTITY_DIR = _PROJECT_ROOT / "src-tauri/crates/entities/src"
+V100_FILE  = _PROJECT_ROOT / "src-tauri/crates/dao/src/migrations/v100_consolidated.rs"
 
 # SeaORM Rust type → expected PostgreSQL native type after pg_ddl
 RUST_TO_PG = {
