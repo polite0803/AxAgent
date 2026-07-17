@@ -25,6 +25,7 @@ pub enum ToolErrorKind {
     ExecutionFailed,
     Timeout,
     Cancelled,
+    RollbackNotSupported,
 }
 
 impl ToolError {
@@ -36,6 +37,7 @@ impl ToolError {
             ToolErrorKind::ExecutionFailed => "executionFailed",
             ToolErrorKind::Timeout => "timeout",
             ToolErrorKind::Cancelled => "cancelled",
+            ToolErrorKind::RollbackNotSupported => "rollbackNotSupported",
         }
     }
 
@@ -108,6 +110,15 @@ impl ToolError {
             message: message.into(),
             kind: ToolErrorKind::Timeout,
             error_code: format!("tool.{tool_name}.timeout"),
+        }
+    }
+
+    #[must_use]
+    pub fn rollback_not_supported(tool_name: &str) -> Self {
+        Self {
+            message: format!("工具 '{tool_name}' 不支持回滚"),
+            kind: ToolErrorKind::RollbackNotSupported,
+            error_code: format!("tool.{tool_name}.rollbackNotSupported"),
         }
     }
 }

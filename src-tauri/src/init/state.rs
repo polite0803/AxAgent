@@ -216,6 +216,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let agent_prompters: Arc<
         Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let agent_plan_approvals: Arc<
+        Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>,
+    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
     let agent_session_repo: Arc<dyn AgentSessionRepository> =
         Arc::new(DaoAgentSessionRepository::new(Arc::new(sea_db.clone())));
     let agent_session_manager = Arc::new(axagent_agent::SessionManager::new(agent_session_repo));
@@ -649,6 +652,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         agent_ask_senders,
         agent_always_allowed,
         agent_prompters,
+        agent_plan_approvals,
         agent_session_manager,
         agent_cancel_tokens,
         agent_paused,

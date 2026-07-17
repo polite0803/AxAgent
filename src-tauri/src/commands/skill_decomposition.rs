@@ -307,8 +307,12 @@ fn create_plugin_manager() -> Result<PluginManager, String> {
 }
 
 async fn get_mcp_tool_names(db: &sea_orm::DatabaseConnection) -> Result<Vec<String>, String> {
-    let servers =
-        axagent_dao::repo::mcp_server::list_mcp_servers(db).await.map_err(|e| e.to_string())?;
+    let servers = axagent_dao::repo::mcp_server::list_mcp_servers(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let mut tool_names = Vec::new();
     for server in servers {
         if let Ok(tools) =
@@ -329,7 +333,12 @@ async fn get_local_tool_names(state: &AppState) -> Vec<String> {
 
 fn get_plugin_tool_names() -> Result<Vec<String>, String> {
     let manager = create_plugin_manager()?;
-    let tools = manager.aggregated_tools().map_err(|e| e.to_string())?;
+    let tools = manager.aggregated_tools().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(tools.into_iter().map(|t| t.definition().name.clone()).collect())
 }
 
@@ -485,7 +494,12 @@ pub async fn confirm_decomposition(
 
     axagent_dao::repo::workflow_template::insert_workflow_template(state.harness.db(), template)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(serde_json::json!({
         "workflow_id": workflow_id,
@@ -512,10 +526,20 @@ pub async fn generate_missing_tool(
 
     let tool =
         axagent_runtime::tool_generator::ToolGenerator::parse_agent_response(&prompt, &input, None)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
     // Persist to database
-    axagent_runtime::tool_generator::persist_to_db(&tool).await.map_err(|e| e.to_string())?;
+    axagent_runtime::tool_generator::persist_to_db(&tool).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(serde_json::json!({
         "tool_name": tool.tool_name,
@@ -562,9 +586,13 @@ pub async fn upgrade_tool_with_llm(
     state: State<'_, AppState>,
     request: ToolUpgradeRequest,
 ) -> Result<ToolUpgradeResponse, String> {
-    let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let provider_id = settings
         .default_provider_id
@@ -577,15 +605,31 @@ pub async fn upgrade_tool_with_llm(
 
     let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &provider.id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let decrypted_key =
-        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+        axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key()).map_err(
+            |e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            },
+        )?;
 
     let registry_key = match provider.provider_type {
         axagent_harness::types::ProviderType::OpenAI => "openai",

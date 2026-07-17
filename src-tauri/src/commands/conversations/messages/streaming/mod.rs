@@ -190,7 +190,8 @@ pub(super) fn spawn_stream_task(
                     conversation: None,
                     previous_response_id: None,
                     store: None,
-                    response_format: None,
+                    
+response_format: None,
                 };
 
                 let llm_config = axagent_runtime_core::LlmCallConfig {
@@ -697,7 +698,7 @@ pub async fn send_message(
     } = options;
     let persisted_attachments = persist_attachments(&state, &conversation_id, &attachments)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // 1. Save user message to DB
     let user_message = axagent_dao::repo::message::create_message(
@@ -710,18 +711,18 @@ pub async fn send_message(
         0,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Increment the persisted message count
     axagent_dao::repo::conversation::increment_message_count(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // 2. Get conversation details (provider_id, model_id)
     let conversation =
         axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Check if this is the first message (message_count was 0 before we incremented)
     let is_first_message = conversation.message_count <= 1;
@@ -730,14 +731,14 @@ pub async fn send_message(
     let provider =
         axagent_dao::repo::provider::get_provider(state.harness.db(), &conversation.provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let key_row =
         axagent_dao::repo::provider::get_active_key(state.harness.db(), &conversation.provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let decrypted_key =
         axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Get model info for param overrides and token budget
     let resolved_model = axagent_dao::repo::provider::get_model(
@@ -771,7 +772,7 @@ pub async fn send_message(
     let db_messages =
         axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     let file_store = axagent_storage::file_store::FileStore::new();
 
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
@@ -1022,7 +1023,7 @@ pub async fn send_message(
             continue;
         }
         history_messages
-            .push(chat_message_from_message(&file_store, m).map_err(|e| e.to_string())?);
+            .push(chat_message_from_message(&file_store, m).map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?);
     }
 
     // Resolve proxy config early (needed for both summary generation and main request)

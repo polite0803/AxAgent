@@ -62,8 +62,12 @@ pub async fn list_workflow_templates(
     is_preset: Option<bool>,
 ) -> Result<Vec<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
-    let templates =
-        db_repo::list_workflow_templates(db, is_preset).await.map_err(|e| e.to_string())?;
+    let templates = db_repo::list_workflow_templates(db, is_preset).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(templates.into_iter().map(workflow_template_response_from_model).collect())
 }
@@ -74,7 +78,12 @@ pub async fn get_workflow_template(
     id: String,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
-    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
+    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(template.map(workflow_template_response_from_model))
 }
@@ -123,7 +132,12 @@ pub async fn create_workflow_template(
     };
 
     let active_model = model_to_active_model(&template);
-    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     state.work_engine.precompile_tool_defs(&template.id, &template.tool_defs).await;
 
@@ -158,7 +172,12 @@ pub async fn update_workflow_template(
         tool_defs.clone(),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 保存后立即预编译 Rhai 工具，Agent 节点可即时引用
     if let Some(ref tds) = tool_defs {
@@ -174,7 +193,12 @@ pub async fn delete_workflow_template(
     id: String,
 ) -> Result<bool, String> {
     let db = state.harness.db();
-    let deleted = db_repo::delete_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
+    let deleted = db_repo::delete_workflow_template(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(deleted)
 }
 
@@ -185,7 +209,12 @@ pub async fn duplicate_workflow_template(
 ) -> Result<String, String> {
     let db = state.harness.db();
 
-    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
+    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
@@ -217,7 +246,12 @@ pub async fn duplicate_workflow_template(
     };
 
     let active_model = model_to_active_model(&new_template);
-    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(new_template.id)
 }
@@ -240,7 +274,12 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
         items.push(template);
     }
 
-    db_repo::seed_preset_templates(db, items).await.map_err(|e| e.to_string())?;
+    db_repo::seed_preset_templates(db, items).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(presets.len())
 }
@@ -251,7 +290,12 @@ pub async fn get_template_versions(
     id: String,
 ) -> Result<Vec<i32>, String> {
     let db = state.harness.db();
-    let versions = db_repo::get_template_versions(db, &id).await.map_err(|e| e.to_string())?;
+    let versions = db_repo::get_template_versions(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(versions)
 }
 
@@ -262,8 +306,12 @@ pub async fn get_template_by_version(
     version: i32,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
-    let template =
-        db_repo::get_template_by_version(db, &id, version).await.map_err(|e| e.to_string())?;
+    let template = db_repo::get_template_by_version(db, &id, version).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(template.map(workflow_template_response_from_model))
 }
 
@@ -651,14 +699,24 @@ pub async fn export_workflow_template(
     id: String,
 ) -> Result<String, String> {
     let db = state.harness.db();
-    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| e.to_string())?;
+    let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
     })?;
     let response = workflow_template_response_from_model(template);
 
-    serde_json::to_string_pretty(&response).map_err(|e| e.to_string())
+    serde_json::to_string_pretty(&response).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 检测是否为 n8n 格式（存在 n8n-nodes-base 类型节点）
@@ -902,7 +960,12 @@ async fn ensure_agent_profile(
     let expert_exists = agency_experts::Entity::find_by_id(expert_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .is_some();
     if !expert_exists {
         let expert_am = agency_experts::ActiveModel {
@@ -932,7 +995,12 @@ async fn ensure_agent_profile(
     let profile_exists = agent_profiles::Entity::find_by_id(profile_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .is_some();
     if !profile_exists {
         let profile_am = agent_profiles::ActiveModel {
@@ -981,10 +1049,12 @@ pub async fn find_similar_workflows(
         return Ok(Vec::new());
     }
 
-    let all = axagent_entities::workflow_template::Entity::find()
-        .all(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let all = axagent_entities::workflow_template::Entity::find().all(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut results = Vec::new();
     for tmpl in &all {
@@ -1036,7 +1106,12 @@ async fn check_workflow_duplicate(
         return Ok(None);
     }
 
-    let all = workflow_template::Entity::find().all(db).await.map_err(|e| e.to_string())?;
+    let all = workflow_template::Entity::find().all(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     for tmpl in &all {
         let existing_tokens: std::collections::HashSet<String> = tmpl
@@ -1684,7 +1759,12 @@ async fn do_import_workflow(
     }
 
     let active_model = model_to_active_model(&new_template);
-    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut errors: Vec<String> = Vec::new();
 

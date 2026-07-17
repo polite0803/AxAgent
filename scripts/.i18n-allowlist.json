@@ -1,15 +1,9 @@
 {
   "version": "2",
   "generated": "2026-07-15",
-  "total_entries": 147,
-  "total_files": 147,
+  "total_entries": 109,
+  "total_files": 109,
   "entries": [
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\__tests__\\WebSearchNode.test.tsx",
-      "lines": "11,12,13,33",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\chat\\McpContainerNode.tsx",
       "lines": "198",
@@ -43,12 +37,6 @@
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\layout\\AppInitializer.tsx",
       "lines": "36,59,63,98",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\settings\\__tests__\\ProviderDetail.test.tsx",
-      "lines": "49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,191,192,200,201,224,225",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -91,12 +79,6 @@
     {
       "file": "D:\\OneManager\\AxAgent\\src\\components\\terminal\\StatusBarWidget.tsx",
       "lines": "104",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\components\\workflow\\__tests__\\workflowComponents.test.tsx",
-      "lines": "28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,234,236,237,255,272,273,274,275,293,295,357,470,471,472,473,489,506,510,511",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -215,96 +197,6 @@
       "phase": 3
     },
     {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\artifactRenderer.test.ts",
-      "lines": "13,17,21,25,29,33,37,41,45,49,61,71,85,101,117,133,143,159",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\chartGenerator.test.ts",
-      "lines": "8,9,11,14,15,31,32,37,38,43,44,49,50,55,56,62,71,72",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\chatMarkdown.test.ts",
-      "lines": "17,18,19,20,21,23,25,26,27,28,30,31,32,33,34,36,37,38,39",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\chatMultiModel.test.ts",
-      "lines": "32,36,40,50,59,70,79,91,99,107,115,123",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\codeExecutor.test.ts",
-      "lines": "40,41,61,80,111,128,148,161,178,200,224,269,270",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\constants.test.ts",
-      "lines": "9,13,16,19,25,36,42",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\convIcon.test.ts",
-      "lines": "20,25,36,41,52,61,73,82,90",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\iconColors.test.ts",
-      "lines": "18,28,39,48,59,67,78,89,94,100,112,117,122,127,132,137,143",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\invoke.test.ts",
-      "lines": "58,62,72,80,81,94,102,112,113,123,135,146,147,156,175,197,198,205,214,223,235,245,260,278,302,313,329,330,339",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\preloadChatRenderers.test.ts",
-      "lines": "31,39,54,72",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\reviewApi.test.ts",
-      "lines": "49,62,74,89,101,111,127,148,172,190,205,223,236,246,260,261,271",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\shortcutActions.test.ts",
-      "lines": "100,101,109,122,123,131,141,152,175,198,207,215,227,228,240,251,262,273,284,300,308,316,332,342,357,367,384",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\shortcuts.test.ts",
-      "lines": "11,12,13,275,290",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\tokenEstimator.test.ts",
-      "lines": "19,25,39",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "D:\\OneManager\\AxAgent\\src\\lib\\__tests__\\workflowValidate.test.ts",
-      "lines": "49,56,64,73,81,93,108,126,138,148,158,165,177,191,203,213,229,240,250,262,273,285,291,304,313,320,336,338,339,340,350,352,353,359,372,373,376,377,380,381,384,390,398,409,424,442",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "D:\\OneManager\\AxAgent\\src\\lib\\browserMock.ts",
       "lines": "127,1585,1586,1594,1595,1603,1604,1620,1621,1629,1630,1638,1639,1655,1656",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -377,12 +269,6 @@
       "phase": 3
     },
     {
-      "file": "D:\\OneManager\\AxAgent\\src\\stores\\__tests__\\workflowEditorStore.test.ts",
-      "lines": "546,552",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "D:\\OneManager\\AxAgent\\src\\stores\\devtools\\evaluatorStore.ts",
       "lines": "260,261,262,263,265",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -443,12 +329,6 @@
       "phase": 3
     },
     {
-      "file": "src/components/chat/__tests__/WebSearchNode.test.tsx",
-      "lines": "11,12,13,33",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "src/components/chat/McpContainerNode.tsx",
       "lines": "198",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -491,12 +371,6 @@
       "phase": 3
     },
     {
-      "file": "src/components/settings/__tests__/ProviderDetail.test.tsx",
-      "lines": "49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,192,201,225",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "src/components/settings/AgentGeneratorModal.tsx",
       "lines": "12,14,15,16,17,18,19,20,22,24,71",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -535,12 +409,6 @@
     {
       "file": "src/components/terminal/StatusBarWidget.tsx",
       "lines": "104",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/components/workflow/__tests__/workflowComponents.test.tsx",
-      "lines": "28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,234,236,237,255,272,273,274,275,293,295,357,470,471,472,473,489,506,510,511",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -659,96 +527,6 @@
       "phase": 3
     },
     {
-      "file": "src/lib/__tests__/artifactRenderer.test.ts",
-      "lines": "13,17,21,25,29,33,37,41,45,49,61,71,85,101,117,133,143,159",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/chartGenerator.test.ts",
-      "lines": "8,9,11,14,15,31,32,37,38,43,44,49,50,55,56,62,71,72",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/chatMarkdown.test.ts",
-      "lines": "17,18,19,20,21,23,25,26,27,28,30,31,32,33,34,36,37,38,39",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/chatMultiModel.test.ts",
-      "lines": "32,36,40,50,59,70,79,91,99,107,115,123",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/codeExecutor.test.ts",
-      "lines": "40,41,61,80,111,128,148,161,178,200,224,269,270",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/constants.test.ts",
-      "lines": "9,13,16,19,25,36,42",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/convIcon.test.ts",
-      "lines": "20,25,36,41,52,61,73,82,90",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/iconColors.test.ts",
-      "lines": "18,28,39,48,59,67,78,89,94,100,112,117,122,127,132,137,143",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/invoke.test.ts",
-      "lines": "58,62,72,80,81,94,102,112,113,123,135,146,147,156,175,197,198,205,214,223,235,245,260,278,302,313,329,330,339",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/preloadChatRenderers.test.ts",
-      "lines": "31,39,54,72",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/reviewApi.test.ts",
-      "lines": "49,62,74,89,101,111,127,148,172,190,205,223,236,246,260,261,271",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/shortcutActions.test.ts",
-      "lines": "100,101,109,122,123,131,141,152,175,198,207,215,227,228,240,251,262,273,284,300,308,316,332,342,357,367,384",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/shortcuts.test.ts",
-      "lines": "11,12,13,290",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/tokenEstimator.test.ts",
-      "lines": "19,25,39",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/__tests__/workflowValidate.test.ts",
-      "lines": "49,56,64,73,81,93,108,126,138,148,158,165,177,191,203,213,229,240,250,262,273,285,291,304,313,320,336,338,339,340,350,352,353,359,372,373,376,377,380,381,384,390,398,409,424,442",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
       "file": "src/lib/browserMock.ts",
       "lines": "127,1585,1594,1603,1620,1629,1638,1655",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -817,12 +595,6 @@
     {
       "file": "src/lib/storage.ts",
       "lines": "37,39,45",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
-    {
-      "file": "src/stores/__tests__/workflowEditorStore.test.ts",
-      "lines": "546,552",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },

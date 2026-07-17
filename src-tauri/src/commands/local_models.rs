@@ -20,13 +20,23 @@ pub async fn download_model(filename: String) -> Result<(), String> {
             format!("Unknown model: {}", filename),
         )
     })?;
-    dl.ensure_model(preset).await.map(|_| ()).map_err(|e| e.to_string())
+    dl.ensure_model(preset).await.map(|_| ()).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn delete_model(filename: String) -> Result<(), String> {
     let dl = ModelDownloader::new();
-    dl.remove_model(&filename).map_err(|e| e.to_string())
+    dl.remove_model(&filename).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]

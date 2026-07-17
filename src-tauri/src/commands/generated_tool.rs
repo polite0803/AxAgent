@@ -25,9 +25,12 @@ pub async fn list_generated_tools(
     state: State<'_, AppState>,
 ) -> Result<Vec<GeneratedToolInfo>, String> {
     let db: &DatabaseConnection = state.harness.db();
-    let tools = axagent_dao::repo::generated_tool::list_generated_tools(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let tools = axagent_dao::repo::generated_tool::list_generated_tools(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(tools
         .into_iter()
@@ -44,7 +47,10 @@ pub async fn list_generated_tools(
 #[tauri::command]
 pub async fn delete_generated_tool(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let db: &DatabaseConnection = state.harness.db();
-    axagent_dao::repo::generated_tool::delete_generated_tool(db, &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::generated_tool::delete_generated_tool(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

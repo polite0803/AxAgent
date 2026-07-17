@@ -44,6 +44,8 @@ pub enum AgentEventType {
     PermissionRequest,
     PermissionGranted,
     PermissionDenied,
+    /// P0-2：对话级计划确认闸门——计划草稿已就绪，等待用户批准
+    PlanReadyForApproval,
 }
 
 impl std::fmt::Display for AgentEventType {
@@ -69,6 +71,7 @@ impl std::fmt::Display for AgentEventType {
             AgentEventType::PermissionRequest => write!(f, "PermissionRequest"),
             AgentEventType::PermissionGranted => write!(f, "PermissionGranted"),
             AgentEventType::PermissionDenied => write!(f, "PermissionDenied"),
+            AgentEventType::PlanReadyForApproval => write!(f, "PlanReadyForApproval"),
         }
     }
 }

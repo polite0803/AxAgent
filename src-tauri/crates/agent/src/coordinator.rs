@@ -404,6 +404,7 @@ pub struct AgentConfig {
     pub timeout_secs: Option<u64>,
     pub enable_self_verification: bool,
     pub enable_error_recovery: bool,
+    pub require_plan_approval: bool,
 }
 
 impl Default for AgentConfig {
@@ -411,8 +412,9 @@ impl Default for AgentConfig {
         Self {
             max_iterations: axagent_harness::constants::DEFAULT_MAX_ITERATIONS,
             timeout_secs: Some(300),
-            enable_self_verification: false,
+            enable_self_verification: true,
             enable_error_recovery: true,
+            require_plan_approval: false,
         }
     }
 }
@@ -497,6 +499,45 @@ pub struct AgentCoordinator<T: AgentImpl> {
     current_task_features: Arc<RwLock<Option<TaskFeatures>>>,
     /// 推理引擎选择来源：auto（自动选择）或 manual（手动指定）
     engine_selection_source: Arc<AtomicU32>,
+    /// P0-2：计划确认闸门挂起的原始输入。
+    /// 仅当 `require_plan_approval` 开启且任务被判定为复杂、进入
+    /// `WaitingForConfirmation` 时暂存，供 `approve_plan()` 取回后执行。
+    pending_input: Arc<RwLock<Option<AgentInput>>>,
+}
+
+/// P0-2 复用入口：模块级纯函数，供生产命令层（`agent_query`）直接调用，
+/// 无需持有 `AgentCoordinator` 实例。判定任务是否复杂到需要计划确认闸门。
+///
+/// 与 `reasoning_router` 共享同一套特征提取逻辑；只要任务被路由到
+/// 非 ReAct 引擎（分支/验证类），或多步（节点数 > 1）、多工具调用
+/// （轮数 > 1），即视为复杂，需要用户确认后再执行。
+pub fn plan_requires_approval(content: &str) -> bool {
+    let (engine, features) = reasoning_router::auto_select_engine(content);
+    engine != ReasoningEngine::ReactEngine
+        || features.node_count > 1
+        || features.estimated_tool_rounds > 1
+}
+
+/// P0-2 复用入口：基于任务特征生成一份人类可读的计划草稿（供用户确认）。
+///
+/// 草稿含：任务预览、自动选择的推理引擎、以及从 `reasoning_router`
+/// 提取的结构化特征。前端可据此渲染确认 UI。
+pub fn build_plan_draft_content(content: &str) -> String {
+    let (engine, features) = reasoning_router::auto_select_engine(content);
+    let preview: String = content.chars().take(200).collect();
+    let plan = serde_json::json!({
+        "task_preview": preview,
+        "selected_engine": engine.to_string(),
+        "features": {
+            "node_count": features.node_count,
+            "estimated_tool_rounds": features.estimated_tool_rounds,
+            "requires_verification": features.requires_verification,
+            "has_branches": features.has_branches,
+            "has_conditions": features.has_conditions,
+        },
+        "note": "任务已被判定为复杂任务，请确认后执行。",
+    });
+    serde_json::to_string_pretty(&plan).unwrap_or(preview)
 }
 
 impl<T: AgentImpl> AgentCoordinator<T> {
@@ -523,6 +564,7 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             reasoning_engine: Arc::new(RwLock::new(ReasoningEngine::ReactEngine)),
             current_task_features: Arc::new(RwLock::new(None)),
             engine_selection_source: Arc::new(AtomicU32::new(ENGINE_SOURCE_DEFAULT)),
+            pending_input: Arc::new(RwLock::new(None)),
         }
     }
 
@@ -600,31 +642,29 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         Some(best_path)
     }
 
-    /// Phase 4: 推理状态机模式——适用于需要验证/复核的任务。
+    /// P0-1：可验证性硬约束（证据锚定）。
     ///
-    /// 当前为占位实现：如果当前引擎为 ReasoningStateMachine 且 config 中
-    /// enable_self_verification 为 true，则在 execute 完成后触发一次额外的
-    /// 验证循环（通过将输出重新注入为带验证提示的输入）。
-    pub async fn reason_with_state_machine(&self, output: &str) -> Option<String> {
-        let current_engine = *self.reasoning_engine.read().await;
-        if current_engine != ReasoningEngine::ReasoningStateMachine {
+    /// `enable_self_verification` 开启时，对已完成的一轮做证据链校验：
+    /// 最终输出为空即视为「无法提供证据链」，判定任务失败、拒绝交付。
+    ///
+    /// 说明：步骤级的事实/一致性校验由 ReAct 引擎的 `SelfVerifier` 在循环内
+    /// 实时执行（其 `verification_enabled` 默认开启）；此处作为协调器层的
+    /// 交付前最后一道闸门，强制「无证据即拒交付」。
+    /// 更细粒度的「轨迹已验证步骤数」证据门禁需要在 ReAct 引擎向
+    /// `CoordinatorOutput.metadata` 暴露 `verified_steps`，列为后续增强。
+    async fn enforce_evidence_anchor(&self, output: &CoordinatorOutput) -> Option<AgentError> {
+        if !self.config.read().await.enable_self_verification {
             return None;
         }
-        let config = self.config.read().await;
-        if !config.enable_self_verification {
-            tracing::debug!("ReasoningStateMachine selected but self_verification disabled");
-            return None;
+        if output.content.trim().is_empty() {
+            tracing::warn!(
+                "self_verification: empty final output, refusing delivery (no evidence chain)"
+            );
+            return Some(AgentError::ExecutionFailed(
+                "验证失败：最终输出为空，无法提供证据链，拒绝交付".into(),
+            ));
         }
-        // 验证提示：将输出回传为带验证指令的新输入
-        let verification_prompt = format!(
-            "Please verify the following output for factual accuracy, logical consistency, and completeness. \
-             If you find any issues, correct them and produce a revised version. \
-             If the output is already correct, respond with 'VERIFIED' followed by the original output.\n\n\
-             --- OUTPUT TO VERIFY ---\n{}",
-            output
-        );
-        tracing::info!("ReasoningStateMachine: triggering verification cycle");
-        Some(verification_prompt)
+        None
     }
 
     /// # 锁顺序约定
@@ -690,20 +730,27 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         }
     }
 
+    /// 对话级执行入口。
+    ///
+    /// # P0-2 计划确认闸门
+    /// 当 `require_plan_approval` 开启且任务被判定为复杂时，不立即执行，
+    /// 而是将状态机切到 `WaitingForConfirmation`，暂存原始输入，并发出
+    /// `PlanReadyForApproval` 事件（含计划草稿）。调用方（命令层 / 前端）
+    /// 需调 [`Self::approve_plan`] 确认后才真正执行。
+    ///
+    /// 该特性默认关闭（`require_plan_approval = false`），关闭时行为与
+    /// 改造前完全一致——零行为变化。
+    ///
     /// # 锁顺序约定
     ///
     /// 本方法获取 `self.implementation.lock()`。全局锁顺序约定：**始终先锁 tot_engine 再锁 implementation**。
     pub async fn execute(&self, input: AgentInput) -> Result<CoordinatorOutput, AgentError> {
-        // 0. 从外部 steer_queue 同步指令到内部 SteerManager
-        // 此方法接收额外指令源（如 AppState.steer_queue），不直接引用 Tauri 状态
-        // 调用方（commands/agent/mod.rs）负责在 execute 前调用 self.sync_steer_queue()
+        // 0. 从外部 steer_queue 同步指令由调用方（commands/agent/mod.rs）
+        //    在 execute 前通过 self.sync_steer_queue() 完成。
 
         // 1. 原子守卫：仅允许从 Idle|Paused 进入 Running；并发进入时
         //    - 当前已是 Running → AlreadyRunning
         //    - 其余状态 → InvalidState
-        // 通过 `compare_exchange` 实现 lock-free 状态获取，状态在
-        // 整个 impl.execute() 期间持久可见，避免 `RwLock` 写锁释放
-        // 后并发 cancel/get_status 读到错乱中间态。
         if !self.try_transition(&[STATE_IDLE, STATE_PAUSED], STATE_RUNNING) {
             let current = self.current_state();
             if current == STATE_RUNNING {
@@ -719,6 +766,51 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             *status = AgentStatus::Running;
         }
 
+        // 2. P0-2：计划确认闸门——开启且任务复杂时，进入等待确认而非直接执行
+        let require_approval = self.config.read().await.require_plan_approval;
+        if require_approval
+            && self.is_complex_task(&input).await
+            && self.try_transition(&[STATE_RUNNING], STATE_WAITING_FOR_CONFIRMATION)
+        {
+            let draft = self.build_plan_draft(&input).await;
+            {
+                let mut status = self.status.write().await;
+                *status = AgentStatus::WaitingForConfirmation;
+            }
+            // 暂存原始输入，供 approve_plan() 取回后执行
+            {
+                let mut pending = self.pending_input.write().await;
+                *pending = Some(input);
+            }
+            self.emit_event(
+                AgentEventType::PlanReadyForApproval,
+                serde_json::json!({
+                    "plan": draft,
+                }),
+            )
+            .await;
+            return Ok(CoordinatorOutput {
+                content: draft,
+                status: AgentStatus::WaitingForConfirmation,
+                iterations: 0,
+                metadata: serde_json::json!({ "awaiting_approval": true }),
+            });
+        }
+
+        // 3. 常规路径：直接执行
+        self.run_impl(input).await
+    }
+
+    /// 真正的执行核心，被 [`Self::execute`] 与 [`Self::approve_plan`] 共用。
+    ///
+    /// 假定调用方已完成状态机进入 `Running` 的守卫。本方法负责：
+    /// steer 注入 → 推理引擎选择 → TurnStarted 事件 → `impl.execute` →
+    /// 证据锚定闸门（P0-1）→ 终态写回。
+    ///
+    /// # 锁顺序约定
+    ///
+    /// 本方法获取 `self.implementation.lock()`。全局锁顺序约定：**始终先锁 tot_engine 再锁 implementation**。
+    async fn run_impl(&self, input: AgentInput) -> Result<CoordinatorOutput, AgentError> {
         let mut input = input;
         if self.steer_manager.has_pending().await
             && let Some(steer_block) = self.steer_manager.format_steer_block().await
@@ -781,6 +873,27 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             impl_guard.execute(input).await
         };
 
+        // P0-1：可验证性硬约束——启用时，最终输出为空即拒绝交付（无证据链）
+        let result = match result {
+            Ok(output) => {
+                if let Some(err) = self.enforce_evidence_anchor(&output).await {
+                    self.emit_event(
+                        AgentEventType::Error,
+                        serde_json::json!({
+                            "correlation_id": correlation_id,
+                            "verification": "failed",
+                            "reason": "empty_output_no_evidence",
+                        }),
+                    )
+                    .await;
+                    Err(err)
+                } else {
+                    Ok(output)
+                }
+            },
+            err => err,
+        };
+
         // 4. 写回终态：以 atomic 为准，detail 走 RwLock
         match &result {
             Ok(output) => {
@@ -819,6 +932,68 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         }
 
         result
+    }
+
+    /// P0-2：在计划确认闸门后批准执行。
+    ///
+    /// 仅当状态机处于 `WaitingForConfirmation` 时有效；通过后切到 `Running`
+    /// 并取回挂起的输入，调用 [`Self::run_impl`] 真正执行。
+    pub async fn approve_plan(&self) -> Result<CoordinatorOutput, AgentError> {
+        if !self.try_transition(&[STATE_WAITING_FOR_CONFIRMATION], STATE_RUNNING) {
+            let current = self.current_state();
+            return Err(AgentError::InvalidState(format!(
+                "Cannot approve plan from state {}",
+                state_from_discriminant(current)
+            )));
+        }
+        {
+            let mut status = self.status.write().await;
+            *status = AgentStatus::Running;
+        }
+
+        let input = {
+            let mut pending = self.pending_input.write().await;
+            pending.take()
+        };
+        let input = match input {
+            Some(input) => input,
+            None => {
+                // 无挂起输入（异常路径），复位状态避免卡死
+                self.set_state(STATE_IDLE);
+                {
+                    let mut status = self.status.write().await;
+                    *status = AgentStatus::Idle;
+                }
+                return Err(AgentError::InvalidState(
+                    "无待批准的计划输入（pending_input 为空）".into(),
+                ));
+            },
+        };
+
+        self.emit_event(
+            AgentEventType::StateChanged,
+            serde_json::json!({ "from": "WaitingForConfirmation", "to": "Running" }),
+        )
+        .await;
+
+        self.run_impl(input).await
+    }
+
+    /// P0-2：判定任务是否复杂到需要计划确认闸门。
+    ///
+    /// 与 `reasoning_router` 共享同一套特征提取逻辑；只要任务被路由到
+    /// 非 ReAct 引擎（分支/验证类），或多步（节点数 > 1）、多工具调用
+    /// （轮数 > 1），即视为复杂，需要用户确认后再执行。
+    async fn is_complex_task(&self, input: &AgentInput) -> bool {
+        plan_requires_approval(&input.content)
+    }
+
+    /// P0-2：基于任务特征生成一份人类可读的计划草稿（供用户确认）。
+    ///
+    /// 草稿含：任务预览、自动选择的推理引擎、以及从 `reasoning_router`
+    /// 提取的结构化特征。前端可据此渲染确认 UI。
+    async fn build_plan_draft(&self, input: &AgentInput) -> String {
+        build_plan_draft_content(&input.content)
     }
 
     pub async fn force_now(&self) {
@@ -931,6 +1106,11 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         {
             let mut status = self.status.write().await;
             *status = AgentStatus::Idle;
+        }
+        // P0-2：若从确认闸门取消，清理挂起的输入，避免残留
+        {
+            let mut pending = self.pending_input.write().await;
+            *pending = None;
         }
 
         self.emit_event(

@@ -9,9 +9,12 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn list_providers(state: State<'_, AppState>) -> Result<Vec<ProviderConfig>, String> {
-    axagent_dao::repo::provider::list_providers_merged(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::provider::list_providers_merged(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -19,9 +22,12 @@ pub async fn create_provider(
     state: State<'_, AppState>,
     input: CreateProviderInput,
 ) -> Result<ProviderConfig, String> {
-    axagent_dao::repo::provider::create_provider(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::provider::create_provider(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -32,10 +38,20 @@ pub async fn update_provider(
 ) -> Result<ProviderConfig, String> {
     let real_id = axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?;
-    axagent_dao::repo::provider::update_provider(state.harness.db(), &real_id, input)
-        .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    axagent_dao::repo::provider::update_provider(state.harness.db(), &real_id, input).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -44,9 +60,12 @@ pub async fn delete_provider(state: State<'_, AppState>, id: String) -> Result<(
     if id.starts_with("builtin_") {
         return Ok(());
     }
-    axagent_dao::repo::provider::delete_provider(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::provider::delete_provider(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -57,10 +76,20 @@ pub async fn toggle_provider(
 ) -> Result<(), String> {
     let real_id = axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     axagent_dao::repo::provider::toggle_provider(state.harness.db(), &real_id, enabled)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -72,9 +101,19 @@ pub async fn add_provider_key(
     let real_id =
         axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
             .await
-            .map_err(|e| e.to_string())?;
-    let encrypted = axagent_crypto::encrypt_key(&raw_key, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+    let encrypted =
+        axagent_crypto::encrypt_key(&raw_key, state.harness.master_key()).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let prefix = if raw_key.len() >= 8 {
         format!("{}...", &raw_key[..8])
     } else {
@@ -82,7 +121,12 @@ pub async fn add_provider_key(
     };
     axagent_dao::repo::provider::add_provider_key(state.harness.db(), &real_id, &encrypted, &prefix)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -91,8 +135,13 @@ pub async fn update_provider_key(
     key_id: String,
     raw_key: String,
 ) -> Result<ProviderKey, String> {
-    let encrypted = axagent_crypto::encrypt_key(&raw_key, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+    let encrypted =
+        axagent_crypto::encrypt_key(&raw_key, state.harness.master_key()).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     // SECURITY: 使用 SHA-256 哈希前 8 字符作为不可逆标识，避免明文 key 前 8 字符泄露
     let prefix = format!("{}...", &axagent_crypto::sha256_hash(&raw_key)[..8]);
     axagent_dao::repo::provider::update_provider_key(
@@ -102,14 +151,24 @@ pub async fn update_provider_key(
         &prefix,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn delete_provider_key(state: State<'_, AppState>, key_id: String) -> Result<(), String> {
-    axagent_dao::repo::provider::delete_provider_key(state.harness.db(), &key_id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::provider::delete_provider_key(state.harness.db(), &key_id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -120,7 +179,12 @@ pub async fn toggle_provider_key(
 ) -> Result<(), String> {
     axagent_dao::repo::provider::toggle_provider_key(state.harness.db(), &key_id, enabled)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 /// SECURITY (C1): 仅返回密钥前缀用于 UI 展示，禁止返回完整明文密钥。
@@ -132,9 +196,19 @@ pub async fn get_decrypted_provider_key(
 ) -> Result<String, String> {
     let key_row = axagent_dao::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     Ok(axagent_crypto::key_prefix(&decrypted))
 }
 
@@ -145,13 +219,28 @@ pub async fn validate_provider_key(
 ) -> Result<bool, String> {
     let key_row = axagent_dao::repo::provider::get_provider_key(state.harness.db(), &key_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let provider =
         axagent_dao::repo::provider::get_provider(state.harness.db(), &key_row.provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     // Use the registry to validate by listing models
 
     let provider_type_str = match provider.provider_type {
@@ -211,7 +300,12 @@ pub async fn validate_provider_key(
     // Update validation timestamp
     axagent_dao::repo::provider::update_key_validation(state.harness.db(), &key_id, valid)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     Ok(valid)
 }
 
@@ -224,10 +318,20 @@ pub async fn save_models(
     let real_id =
         axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
             .await
-            .map_err(|e| e.to_string())?;
-    axagent_dao::repo::provider::save_models(state.harness.db(), &real_id, &models)
-        .await
-        .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+    axagent_dao::repo::provider::save_models(state.harness.db(), &real_id, &models).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -240,10 +344,20 @@ pub async fn toggle_model(
     let real_id =
         axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     axagent_dao::repo::provider::toggle_model(state.harness.db(), &real_id, &model_id, enabled)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -256,7 +370,12 @@ pub async fn update_model_params(
     let real_id =
         axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     axagent_dao::repo::provider::update_model_params(
         state.harness.db(),
         &real_id,
@@ -264,7 +383,12 @@ pub async fn update_model_params(
         overrides,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -275,16 +399,36 @@ pub async fn fetch_remote_models(
     let real_id =
         axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), &real_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     // Get an enabled key for the provider
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &real_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",
@@ -339,7 +483,12 @@ pub async fn fetch_remote_models(
             model_timeout_secs
         ))
     })?
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     for model in &mut models {
         if model.max_tokens.is_none() {
             model.max_tokens =
@@ -369,15 +518,35 @@ pub async fn test_model(
     let real_id =
         axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), &provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), &real_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &real_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let decrypted = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let provider_type_str = match provider.provider_type {
         ProviderType::OpenAI => "openai",
@@ -444,7 +613,12 @@ pub async fn test_model(
         response_format: None,
     };
     let start = Instant::now();
-    adapter.chat(&ctx, request.into()).await.map_err(|e| e.to_string())?;
+    adapter.chat(&ctx, request.into()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(start.elapsed().as_millis() as u64)
 }
 
@@ -458,10 +632,20 @@ pub async fn reorder_providers(
     for id in &provider_ids {
         let real_id = axagent_dao::repo::provider::resolve_provider_id(state.harness.db(), id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         real_ids.push(real_id);
     }
-    axagent_dao::repo::provider::reorder_providers(state.harness.db(), &real_ids)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::provider::reorder_providers(state.harness.db(), &real_ids).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }

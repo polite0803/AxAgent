@@ -310,7 +310,12 @@ fn open_attachment_file_validate(file_path: &str) -> Result<String, ErrorRespons
 pub async fn open_attachment_file(app: tauri::AppHandle, file_path: String) -> Result<(), String> {
     let abs = open_attachment_file_validate(&file_path)?;
     use tauri_plugin_opener::OpenerExt;
-    app.opener().open_path(&abs, None::<&str>).map_err(|e| e.to_string())
+    app.opener().open_path(&abs, None::<&str>).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -331,7 +336,12 @@ pub async fn list_files_page_entries(
                     0,
                 )
                 .await
-                .map_err(|e| e.to_string())?
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?
             } else {
                 axagent_dao::repo::stored_file::list_stored_files_not_like_category(
                     state.harness.db(),
@@ -340,7 +350,12 @@ pub async fn list_files_page_entries(
                     0,
                 )
                 .await
-                .map_err(|e| e.to_string())?
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?
             };
             if category == "images" {
                 build_image_entries(&files)
@@ -354,7 +369,12 @@ pub async fn list_files_page_entries(
                 &axagent_storage::DefaultPathEncoder,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             build_backup_entries(&manifests)
         },
         _ => return Err(format!("Unknown category: {}", category)),
@@ -382,7 +402,12 @@ pub async fn open_files_page_entry(app: tauri::AppHandle, path: String) -> Resul
         ));
     }
     use tauri_plugin_opener::OpenerExt;
-    app.opener().open_path(&path, None::<&str>).map_err(|e| e.to_string())
+    app.opener().open_path(&path, None::<&str>).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -402,7 +427,12 @@ pub async fn reveal_files_page_entry(app: tauri::AppHandle, path: String) -> Res
         ));
     }
     use tauri_plugin_opener::OpenerExt;
-    app.opener().reveal_item_in_dir(&path).map_err(|e| e.to_string())
+    app.opener().reveal_item_in_dir(&path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -427,7 +457,12 @@ pub async fn cleanup_missing_files_page_entry(
             &axagent_storage::DefaultPathEncoder,
         )
         .await
-        .map_err(|e| e.to_string()),
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        }),
         _ => Err(format!("Unknown source_kind: {}", source_kind)),
     }
 }

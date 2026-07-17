@@ -2,6 +2,7 @@
 
 import { CopyButton } from "@/components/common/CopyButton";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { showBackendError } from "@/lib/errorI18n";
 import { message } from "@/lib/toast";
 import { useGatewayStore } from "@/stores";
 import type { GatewayKey } from "@/types";
@@ -58,7 +59,7 @@ export function GatewayKeys() {
       setCreatedKey(result.plain_key);
       setKeyName("");
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setCreating(false);
     }
@@ -117,7 +118,7 @@ export function GatewayKeys() {
               text={async () => decryptKey(record.id)}
               size={14}
               successMessage={t("common.copySuccess")}
-              onError={(e) => message.error(String(e))}
+              onError={(e) => showBackendError(message, e)}
             />
           )}
           <Popconfirm

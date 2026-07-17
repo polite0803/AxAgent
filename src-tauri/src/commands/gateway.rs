@@ -54,9 +54,13 @@ struct CliToolConnectionState {
 }
 
 async fn load_gateway_runtime_settings(state: &AppState) -> Result<GatewayRuntimeSettings, String> {
-    let settings = axagent_dao::repo::settings::get_settings(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     Ok(GatewayRuntimeSettings {
         listen_address: settings.gateway_listen_address,
@@ -371,7 +375,12 @@ pub async fn connect_cli_tool(
     key_id: String,
     protocol: String,
 ) -> Result<(), String> {
-    let cli_tool = CliTool::try_from_str(&tool).map_err(|e| e.to_string())?;
+    let cli_tool = CliTool::try_from_str(&tool).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let protocol = QuickConnectProtocol::parse(&protocol)?;
 
     // Get plain key via decryption
@@ -382,12 +391,21 @@ pub async fn connect_cli_tool(
         &key_id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let gateway_url = resolve_gateway_url_for_selected_protocol(&state, cli_tool, protocol).await?;
 
-    axagent_dao::repo::cli_config::connect(cli_tool, &gateway_url, &plain_key)
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::cli_config::connect(cli_tool, &gateway_url, &plain_key).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -396,21 +414,33 @@ pub async fn disconnect_cli_tool(
     tool: String,
     restore_backup: bool,
 ) -> Result<(), String> {
-    let cli_tool = CliTool::try_from_str(&tool).map_err(|e| e.to_string())?;
+    let cli_tool = CliTool::try_from_str(&tool).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let gateway_urls = resolve_gateway_urls(&state, cli_tool).await?;
     let connection_state = detect_cli_tool_connection_state(cli_tool, &gateway_urls);
     let gateway_url = disconnect_gateway_url_for_cli_tool(&gateway_urls, &connection_state)?;
-    axagent_dao::repo::cli_config::disconnect(cli_tool, restore_backup, &gateway_url)
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::cli_config::disconnect(cli_tool, restore_backup, &gateway_url).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ─── Existing Commands ──────────────────────────────────
 
 #[tauri::command]
 pub async fn list_gateway_keys(state: State<'_, AppState>) -> Result<Vec<GatewayKey>, String> {
-    axagent_dao::repo::gateway::list_gateway_keys(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway::list_gateway_keys(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -425,14 +455,22 @@ pub async fn create_gateway_key(
         Some(state.harness.master_key()),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn delete_gateway_key(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_dao::repo::gateway::delete_gateway_key(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway::delete_gateway_key(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -441,9 +479,14 @@ pub async fn toggle_gateway_key(
     id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    axagent_dao::repo::gateway::toggle_gateway_key(state.harness.db(), &id, enabled)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway::toggle_gateway_key(state.harness.db(), &id, enabled).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 /// SECURITY (S3): 仅返回密钥前缀用于 UI 展示，禁止返回完整明文密钥。
@@ -457,7 +500,12 @@ pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Resu
         &id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(axagent_crypto::key_prefix(&plain))
 }
 
@@ -465,9 +513,12 @@ pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Resu
 pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMetrics, String> {
     // NOTE: active_connections 暂硬编码为 0（DAO 层）。
     // 真正实现需要 GatewayServer 内置连接计数中间件，留待后续。
-    axagent_dao::repo::gateway::get_gateway_metrics(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway::get_gateway_metrics(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -528,7 +579,12 @@ pub async fn start_gateway(state: State<'_, AppState>, app: AppHandle) -> Result
         axagent_mcp::client_service_impl::build_mcp_client_service(),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     *gw = Some(server);
     // 通知前端：网关状态已变更（启动）
@@ -540,7 +596,12 @@ pub async fn start_gateway(state: State<'_, AppState>, app: AppHandle) -> Result
 pub async fn stop_gateway(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     let mut gw = state.gateway.lock().await;
     if let Some(mut server) = gw.take() {
-        server.stop().await.map_err(|e| e.to_string())?;
+        server.stop().await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
     // 通知前端：网关状态已变更（停止）
     let _ = app.emit("gateway-status-changed", ());
@@ -603,18 +664,24 @@ pub async fn get_gateway_status(state: State<'_, AppState>) -> Result<GatewaySta
 pub async fn get_gateway_usage_by_key(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByKey>, String> {
-    axagent_dao::repo::gateway::get_usage_by_key(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway::get_usage_by_key(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn get_gateway_usage_by_provider(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByProvider>, String> {
-    axagent_dao::repo::gateway::get_usage_by_provider(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway::get_usage_by_provider(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -624,34 +691,50 @@ pub async fn get_gateway_usage_by_day(
 ) -> Result<Vec<UsageByDay>, String> {
     axagent_dao::repo::gateway::get_usage_by_day(state.harness.db(), days.unwrap_or(30))
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
 pub async fn get_connected_programs(
     state: State<'_, AppState>,
 ) -> Result<Vec<ConnectedProgram>, String> {
-    axagent_dao::repo::gateway::get_connected_programs(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway::get_connected_programs(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn get_gateway_diagnostics(
     state: State<'_, AppState>,
 ) -> Result<Vec<GatewayDiagnostic>, String> {
-    axagent_dao::repo::gateway_diagnostic::get_diagnostics(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway_diagnostic::get_diagnostics(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn get_program_policies(
     state: State<'_, AppState>,
 ) -> Result<Vec<ProgramPolicy>, String> {
-    axagent_dao::repo::program_policy::list_program_policies(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::program_policy::list_program_policies(state.harness.db()).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -661,14 +744,24 @@ pub async fn save_program_policy(
 ) -> Result<ProgramPolicy, String> {
     axagent_dao::repo::program_policy::save_program_policy(state.harness.db(), &input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
 pub async fn delete_program_policy(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_dao::repo::program_policy::delete_program_policy(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::program_policy::delete_program_policy(state.harness.db(), &id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -750,14 +843,24 @@ pub async fn list_gateway_request_logs(
         offset.unwrap_or(0),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn clear_gateway_request_logs(state: State<'_, AppState>) -> Result<u64, String> {
-    axagent_dao::repo::gateway_request_log::clear_request_logs(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::gateway_request_log::clear_request_logs(state.harness.db()).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -767,10 +870,20 @@ pub async fn generate_self_signed_cert(
     use rcgen::{CertificateParams, KeyPair};
 
     let cert_dir = state.app_data_dir.join("ssl");
-    std::fs::create_dir_all(&cert_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&cert_dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let settings = load_gateway_runtime_settings(&state).await?;
-    let key_pair = KeyPair::generate().map_err(|e| e.to_string())?;
+    let key_pair = KeyPair::generate().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let mut subject_alt_names = vec!["localhost".to_string(), "127.1.0.0".to_string()];
     let listen_address = settings.listen_address.trim();
     if !listen_address.is_empty()
@@ -780,7 +893,12 @@ pub async fn generate_self_signed_cert(
         subject_alt_names.push(listen_address.to_string());
     }
 
-    let mut params = CertificateParams::new(subject_alt_names).map_err(|e| e.to_string())?;
+    let mut params = CertificateParams::new(subject_alt_names).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     params
         .distinguished_name
         .push(rcgen::DnType::CommonName, rcgen::DnValue::Utf8String("AxAgent Gateway".to_string()));
@@ -788,12 +906,22 @@ pub async fn generate_self_signed_cert(
         .distinguished_name
         .push(rcgen::DnType::OrganizationName, rcgen::DnValue::Utf8String("AxAgent".to_string()));
 
-    let cert = params.self_signed(&key_pair).map_err(|e| e.to_string())?;
+    let cert = params.self_signed(&key_pair).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let cert_path = cert_dir.join("cert.pem");
     let key_path = cert_dir.join("key.pem");
 
-    std::fs::write(&cert_path, cert.pem()).map_err(|e| e.to_string())?;
+    std::fs::write(&cert_path, cert.pem()).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Write the private key atomically with restricted permissions.
     // Using a temp-file + rename guarantees 0o600 even when key.pem already
@@ -828,7 +956,12 @@ pub async fn generate_self_signed_cert(
     }
     #[cfg(not(unix))]
     {
-        std::fs::write(&key_path, key_pair.serialize_pem()).map_err(|e| e.to_string())?;
+        std::fs::write(&key_path, key_pair.serialize_pem()).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     Ok(GatewayCertResult {
@@ -850,7 +983,12 @@ pub async fn get_active_gateway_platform(state: State<'_, AppState>) -> Result<S
     // 回退：检查 gateway_link 表中是否有激活的平台链接
     let links = axagent_dao::repo::gateway_link::list_gateway_links(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 常见的平台 link_type 映射
     let platform_link_types =

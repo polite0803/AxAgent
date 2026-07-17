@@ -31,7 +31,12 @@ pub async fn upload_file(
         .map_err(|e| format!("Failed to ensure documents dirs: {}", e))?;
     let file_store = axagent_storage::file_store::FileStore::new();
 
-    let saved = file_store.save_file(&bytes, &file_name, &mime_type).map_err(|e| e.to_string())?;
+    let saved = file_store.save_file(&bytes, &file_name, &mime_type).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let id = axagent_kit::utils::gen_id();
     let stored = axagent_dao::repo::stored_file::create_stored_file(
@@ -45,7 +50,12 @@ pub async fn upload_file(
         conversation_id.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(stored)
 }
@@ -55,11 +65,21 @@ pub async fn download_file(state: State<'_, AppState>, file_id: String) -> Resul
     use base64::Engine;
     let file = axagent_dao::repo::stored_file::get_stored_file(state.harness.db(), &file_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let file_store = axagent_storage::file_store::FileStore::new();
 
-    let data = file_store.read_file(&file.storage_path).map_err(|e| e.to_string())?;
+    let data = file_store.read_file(&file.storage_path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(base64::engine::general_purpose::STANDARD.encode(&data))
 }
@@ -74,7 +94,12 @@ pub async fn list_files(
         &conversation_id,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]

@@ -29,6 +29,9 @@ function collect(dir, out) {
       if (p.endsWith(join("i18n", "locales"))) continue;
       collect(p, out);
     } else if (/\.(ts|tsx)$/.test(name)) {
+      const rel = normalizePath(p);
+      // 排除测试文件：__tests__ 目录、*.test.*、*.spec.*
+      if (/\/__tests__\/|\.test\.|\.spec\./.test(rel)) continue;
       out.push(p);
     }
   }
@@ -43,7 +46,7 @@ if (MODE === "diff-only") {
   if (!safeRev(base)) base = safeRev("master") ? "master" : "HEAD~1";
   const changed = execSync(`git diff --name-only ${base} HEAD`, { cwd: root, encoding: "utf8" })
     .split("\n").map((s) => s.trim()).filter(Boolean)
-    .filter((f) => /\.(ts|tsx)$/.test(f) && f.startsWith("src/") && !f.includes("src/i18n/locales/"));
+    .filter((f) => /\.(ts|tsx)$/.test(f) && f.startsWith("src/") && !f.includes("src/i18n/locales/") && !/\/__tests__\/|\.test\.|\.spec\./.test(f));
   files = changed.map((f) => join(root, f)).filter((f) => existsSync(f));
   if (files.length === 0) {
     console.log("No changed TypeScript files to check.");
@@ -97,16 +100,16 @@ function stripComments(lines) {
 function scanFile(f, rel) {
   let content;
   try { content = readFileSync(f, "utf8"); } catch { return []; }
-  // 测试文件（__tests__ / *.test.* / *.spec.*）中的汉字属于测试名 / i18n 夹具 / 断言文本，
-  // 均非用户可见 UI，不应触发 Rule 1（CJK 硬编码）检查。
-  const inTestFile = /\/__tests__\/|\.test\.|\.spec\./.test(rel);
+  // 测试文件已在收集阶段排除（collect / diff-only 过滤），此处双保险直接跳过。
+  if (/\/__tests__\/|\.test\.|\.spec\./.test(rel)) return [];
+  // 仅检测纯代码：注释已在下方 stripComments 中剥离，不参与任何规则匹配。
   const cleaned = stripComments(content.split("\n"));
   const out = [];
   cleaned.forEach((line, idx) => {
     const lnum = idx + 1;
     const text = line.trim();
     if (!text) return;
-    if (isCJK(text) && !inTestFile) out.push({ rule: 1, file: rel, line: lnum, content: text });
+    if (isCJK(text)) out.push({ rule: 1, file: rel, line: lnum, content: text });
     if (/message\.(success|error|warning|info)\(\s*['"]/.test(text))
       out.push({ rule: 2, file: rel, line: lnum, content: text });
     if (/placeholder\s*=\s*"([A-Za-z][^"]{2,})"/.test(text))

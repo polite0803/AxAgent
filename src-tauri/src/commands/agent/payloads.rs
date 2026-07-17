@@ -150,11 +150,6 @@ pub struct AgentQueryRequest {
     /// only supports text input.
     pub attachments: Option<Vec<AttachmentInput>>,
     pub options: Option<AgentOptions>,
-    /// Agent role for role-based tool filtering and system prompt selection.
-    /// When set, only tools matching the role's `default_tools()` are exposed
-    /// to the LLM, and the role's system prompt is prepended.
-    #[allow(dead_code)]
-    pub role: Option<String>,
     /// Agent profile ID from the agent_profiles table. AgentProfile 是 Expert（技能）
     /// 和 AgentRole（岗位）的统一组装体，是 Agent 的唯一入口。
     #[serde(rename = "agentProfileId")]
@@ -182,6 +177,8 @@ pub struct AgentQueryResponse {
     pub conversation_id: String,
     #[serde(rename = "assistantMessageId")]
     pub assistant_message_id: String,
+    /// P0-2：计划确认被拒绝时返回 "rejected"，正常执行时 None。
+    pub status: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -193,6 +190,14 @@ pub struct AgentApproveRequest {
     pub decision: String,
     #[serde(rename = "toolName")]
     pub tool_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AgentApprovePlanRequest {
+    #[serde(rename = "conversationId")]
+    pub conversation_id: String,
+    /// 用户决策："approve" 批准执行，"reject" 拒绝执行。
+    pub decision: String,
 }
 
 #[derive(Debug, Deserialize)]

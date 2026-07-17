@@ -182,7 +182,12 @@ pub async fn pattern_list(
     } else {
         // 从存储返回所有模式
         drop(pl);
-        let all = app_state.trajectory_storage.get_patterns().await.map_err(|e| e.to_string())?;
+        let all = app_state.trajectory_storage.get_patterns().await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         all.iter().filter_map(|p| serde_json::to_value(p).ok()).collect()
     };
     Ok(patterns)
@@ -213,12 +218,22 @@ pub async fn skill_evolution_start(
         .trajectory_storage
         .get_skill(&skill_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("Skill '{}' not found", skill_id))?;
 
     // 获取测试轨迹
     let trajectories =
-        app_state.trajectory_storage.get_trajectories(Some(30)).await.map_err(|e| e.to_string())?;
+        app_state.trajectory_storage.get_trajectories(Some(30)).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let test_refs: Vec<_> = trajectories.iter().collect();
 
     // 运行进化

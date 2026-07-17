@@ -66,7 +66,12 @@ pub async fn fetch_provider_balance(
 
     let balance = fetch_deepseek_balance(&api_key)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| "No balance data returned (empty API key?).".to_string())?;
 
     Ok(ProviderBalanceResponse {

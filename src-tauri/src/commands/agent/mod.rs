@@ -418,7 +418,12 @@ pub async fn agent_query(
 
     let conversation = conversation::get_conversation(app_state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let conversation_scenario = conversation.scenario.clone();
     let enabled_skill_ids = conversation.enabled_skill_ids.clone();
 
@@ -549,20 +554,35 @@ pub async fn agent_query(
     info!("[agent_query] Got provider: {}", request.provider_id);
 
     // Get provider
-    let prov = provider::get_provider(app_state.harness.db(), &request.provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let prov = provider::get_provider(app_state.harness.db(), &request.provider_id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
     info!("[agent_query] Got provider keys count: {}", prov.keys.len());
 
     // Get active key (使用 DAO 层的 round-robin 轮询逻辑)
     let key = provider::get_active_key(app_state.harness.db(), &request.provider_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     info!("[agent_query] Found active key (rotation_index={})", key.rotation_index);
 
     // Decrypt key
     let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     info!("[agent_query] Decrypted API key");
 
     // Get settings from database
@@ -1026,7 +1046,12 @@ pub async fn agent_query(
                 attachments,
             )
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?
         }
     } else {
         Vec::new()
@@ -1065,7 +1090,12 @@ pub async fn agent_query(
         0,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Increment the persisted message count
     axagent_dao::repo::conversation::increment_message_count(
@@ -1073,7 +1103,12 @@ pub async fn agent_query(
         &conversation_id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Use the long-lived SessionManager from AppState (persists sessions across queries)
     let session_manager = &app_state.agent_session_manager;
@@ -1089,7 +1124,12 @@ pub async fn agent_query(
     let session = session_manager
         .get_or_create_session(prov.id.clone(), conversation_id.clone())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // ── 工具微调：extra_tools / blocked_tools ──
     // 来源：AgentProfile.recommended_tools（额外追加） + disallowed_tools（排除）
@@ -1646,7 +1686,12 @@ pub async fn agent_query(
                 parts_json.as_deref(),
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
             // Update token usage stats on the assistant message
             if let Err(e) = message::update_message_usage(
@@ -2053,7 +2098,11 @@ pub async fn agent_query(
                 }
             }
 
-            Ok(AgentQueryResponse { conversation_id, assistant_message_id: assistant_message.id })
+            Ok(AgentQueryResponse {
+                conversation_id,
+                assistant_message_id: assistant_message.id,
+                status: None,
+            })
         },
         Err(e) => {
             let error_msg = e.to_string();
@@ -2084,6 +2133,29 @@ pub async fn agent_query(
             Err(error_msg)
         },
     }
+}
+
+/// Approve or reject a pending plan (P0-2 plan confirmation gate)
+#[tauri::command]
+pub async fn agent_approve_plan(
+    app_state: State<'_, AppState>,
+    request: AgentApprovePlanRequest,
+) -> Result<(), String> {
+    info!(
+        "[agent_approve_plan] conversationId={}, decision={}",
+        request.conversation_id, request.decision
+    );
+    let approved = request.decision == "approve";
+    let mut approvals = app_state.agent_plan_approvals.lock().await;
+    if let Some(sender) = approvals.remove(&request.conversation_id) {
+        let _ = sender.send(approved);
+    } else {
+        info!(
+            "[agent_approve_plan] No pending plan approval for conversationId={}",
+            request.conversation_id
+        );
+    }
+    Ok(())
 }
 
 /// Approve a permission request
@@ -2509,7 +2581,12 @@ pub async fn agent_update_session(
         request.permission_mode.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(AgentUpdateSessionResponse {
         conversation_id: request.conversation_id,
@@ -2532,7 +2609,12 @@ pub async fn agent_get_session(
         &request.conversation_id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if let Some(session) = session {
         Ok(AgentGetSessionResponse {
@@ -2551,7 +2633,12 @@ pub async fn agent_get_session(
             Some("default"),
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
         let created_at = new_session.created_at;
         let last_active_at = new_session.updated_at;
@@ -2639,7 +2726,12 @@ pub async fn agent_ensure_workspace(
             .ok_or_else(|| "Local workspace URI has invalid path".to_string())?;
 
         if !local_path.exists() {
-            std::fs::create_dir_all(&local_path).map_err(|e| e.to_string())?;
+            std::fs::create_dir_all(&local_path).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         }
 
         let workspace_path = local_path
@@ -2658,7 +2750,12 @@ pub async fn agent_ensure_workspace(
     let workspace_dir = desktop_dir.join("AxAgent_Workspace");
 
     if !workspace_dir.exists() {
-        std::fs::create_dir_all(&workspace_dir).map_err(|e| e.to_string())?;
+        std::fs::create_dir_all(&workspace_dir).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     let workspace_path = workspace_dir
@@ -2682,7 +2779,12 @@ pub async fn agent_backup_and_clear_sdk_context(
         &conversation_id,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// Restore SDK context from backup
@@ -2696,7 +2798,12 @@ pub async fn agent_restore_sdk_context_from_backup(
         &conversation_id,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 前端 SteerInput 推送方向指令。已迁移到 AppState.steer_queue，保留此模块级辅助函数

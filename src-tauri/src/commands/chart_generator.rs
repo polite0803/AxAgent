@@ -46,7 +46,12 @@ Rules:
         format!(
             "Description: {}\n\nData:\n{}",
             description,
-            serde_json::to_string_pretty(d).map_err(|e| e.to_string())?
+            serde_json::to_string_pretty(d).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?
         )
     } else {
         format!("Description: {}", description)
@@ -101,8 +106,12 @@ Rules:
     };
 
     let adapter: Arc<dyn ProviderAdapter> = Arc::new(OpenAIAdapter::new());
-    let response: ChatResponse =
-        adapter.chat(&ctx, chat_request.into()).await.map_err(|e| e.to_string())?;
+    let response: ChatResponse = adapter.chat(&ctx, chat_request.into()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let text = response.content;
 

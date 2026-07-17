@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
+use std::sync::Mutex;
 use tracing::warn;
 
 /// 工具所处功能域 — 用于按需加载工具 schema 给 LLM
@@ -171,6 +172,8 @@ pub struct ToolContext {
     pub output_sanitizer: Option<Arc<dyn OutputSanitizer>>,
     /// 用户提问桥接器（可选，None 表示 AskUserQuestion 工具降级为纯文本输出）
     pub ask_user_bridge: Option<Arc<dyn AskUserBridge>>,
+    /// 回滚栈（可选）。设置后 `ToolRegistry::execute_tool` 会在 call 成功后自动创建回滚记录。
+    pub rollback_stack: Option<Arc<Mutex<Vec<RollbackRecord>>>>,
 }
 
 impl ToolContext {
@@ -187,6 +190,7 @@ impl ToolContext {
             permissions: None,
             output_sanitizer: None,
             ask_user_bridge: None,
+            rollback_stack: None,
         }
     }
 
@@ -299,6 +303,38 @@ pub struct ProgressEntry {
     pub timestamp_ms: u64,
 }
 
+/// 工具回滚记录 — 由 `create_rollback` 生成，供 `execute_rollback` 消费。
+///
+/// 每个 destructive 工具可在执行成功后创建一个记录，包含恢复原状所需的负载数据。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RollbackRecord {
+    /// 工具名
+    pub tool_name: String,
+    /// 调用时的输入参数
+    pub input: Value,
+    /// 回滚所需的负载数据（工具特定，如原文件内容、备份路径等）
+    pub payload: Value,
+    /// 创建时间（unix ms）
+    pub created_at: i64,
+}
+
+/// 执行回滚时的上下文
+#[derive(Debug, Copy, Clone)]
+pub struct RollbackContext<'a> {
+    pub tool_ctx: &'a ToolContext,
+}
+
+/// 工具单次调用的预估成本
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EstimatedCost {
+    /// 预估消耗的 token 数（输入 + 输出）
+    pub tokens: Option<u64>,
+    /// 预估消耗的信用额度
+    pub credits: Option<u64>,
+    /// 预估执行时间（毫秒）
+    pub time_ms: Option<u64>,
+}
+
 /// 工具元信息（用于注册表和前端展示）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolInfo {
@@ -311,6 +347,12 @@ pub struct ToolInfo {
     pub is_concurrency_safe: bool,
     pub is_read_only: bool,
     pub is_destructive: bool,
+    /// 是否幂等（多次调用结果一致，可安全重试）
+    #[serde(default)]
+    pub idempotent: bool,
+    /// 单次调用的预估成本
+    #[serde(default)]
+    pub estimated_cost: Option<EstimatedCost>,
     pub enabled: bool,
 }
 
@@ -362,6 +404,16 @@ pub trait Tool: Send + Sync {
         false
     }
 
+    /// 是否幂等（多次调用结果一致，可安全重试）
+    fn is_idempotent(&self) -> bool {
+        false
+    }
+
+    /// 单次调用的预估成本（None = 未知）
+    fn estimated_cost(&self) -> Option<EstimatedCost> {
+        None
+    }
+
     /// 输出结果最大字符数（超过则截断）
     fn max_result_chars(&self) -> usize {
         100_000
@@ -391,6 +443,28 @@ pub trait Tool: Send + Sync {
     /// 权限检查（在执行前调用）
     fn check_permissions(&self, _input: &Value, _ctx: &ToolContext) -> PermissionResult {
         PermissionResult::Allow
+    }
+
+    /// 是否支持回滚
+    fn can_rollback(&self) -> bool {
+        false
+    }
+
+    /// 在 `call` **之前**生成回滚快照。
+    ///
+    /// 根据输入参数（如文件路径）读取原始状态并打包成 `RollbackRecord`。
+    /// 返回 `None` 表示此调用不可回滚。
+    fn create_rollback_before(&self, _input: &Value) -> Option<RollbackRecord> {
+        None
+    }
+
+    /// 执行回滚操作。
+    fn execute_rollback(
+        &self,
+        _record: RollbackRecord,
+        _ctx: &RollbackContext,
+    ) -> Result<ToolResult, ToolError> {
+        Err(ToolError::rollback_not_supported(self.name()))
     }
 }
 
@@ -438,6 +512,8 @@ impl ToolInfo {
             is_concurrency_safe: tool.is_concurrency_safe(),
             is_read_only: tool.is_read_only(),
             is_destructive: tool.is_destructive(),
+            idempotent: tool.is_idempotent(),
+            estimated_cost: tool.estimated_cost(),
             enabled: true,
         }
     }

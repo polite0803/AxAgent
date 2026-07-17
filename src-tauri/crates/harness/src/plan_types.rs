@@ -5,6 +5,7 @@
 //! 纯数据 DTO 层，无业务逻辑。供 `axagent-agent::hierarchical_planner`
 //! 和 `axagent-rt-workflow::agent_executor` 共享。
 
+use crate::workflow_types::CompensationConfig;
 use serde::{Deserialize, Serialize};
 
 // ── 核心数据类型 ────────────────────────────────────────────
@@ -42,6 +43,9 @@ pub struct PlannedTask {
     pub retry_count: u32,
     pub max_retries: u32,
     pub assigned_role: Option<String>,
+    /// 失败补偿策略（None = WorkflowNode.base().compensation）
+    #[serde(default)]
+    pub compensation: Option<CompensationConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

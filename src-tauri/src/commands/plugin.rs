@@ -28,7 +28,12 @@ pub async fn plugin_list(state: State<'_, AppState>) -> Result<Vec<PluginSummary
                     })
                     .collect()
             })
-            .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
     })
     .await
     .map_err(|e| format!("plugin list task panicked: {e}"))?
@@ -42,7 +47,12 @@ pub async fn plugin_validate_source(
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let manager = plugin_manager.blocking_read();
-        let manifest = manager.validate_plugin_source(&source).map_err(|e| e.to_string())?;
+        let manifest = manager.validate_plugin_source(&source).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         Ok(PluginManifestDto {
             name: manifest.name,
             version: manifest.version,
@@ -118,7 +128,12 @@ pub async fn plugin_install(
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut manager = plugin_manager.blocking_write();
-        let outcome = manager.install(&source).map_err(|e| e.to_string())?;
+        let outcome = manager.install(&source).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         Ok(InstallOutcomeDto {
             plugin_id: outcome.plugin_id,
             version: outcome.version,
@@ -134,7 +149,12 @@ pub async fn plugin_enable(state: State<'_, AppState>, plugin_id: String) -> Res
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut manager = plugin_manager.blocking_write();
-        manager.enable(&plugin_id).map_err(|e| e.to_string())
+        manager.enable(&plugin_id).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     })
     .await
     .map_err(|e| format!("plugin enable task panicked: {e}"))?
@@ -145,7 +165,12 @@ pub async fn plugin_disable(state: State<'_, AppState>, plugin_id: String) -> Re
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut manager = plugin_manager.blocking_write();
-        manager.disable(&plugin_id).map_err(|e| e.to_string())
+        manager.disable(&plugin_id).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     })
     .await
     .map_err(|e| format!("plugin disable task panicked: {e}"))?
@@ -156,7 +181,12 @@ pub async fn plugin_uninstall(state: State<'_, AppState>, plugin_id: String) -> 
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut manager = plugin_manager.blocking_write();
-        manager.uninstall(&plugin_id).map_err(|e| e.to_string())
+        manager.uninstall(&plugin_id).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     })
     .await
     .map_err(|e| format!("plugin uninstall task panicked: {e}"))?
@@ -170,7 +200,12 @@ pub async fn plugin_update(
     let plugin_manager = state.plugin_manager.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut manager = plugin_manager.blocking_write();
-        let outcome = manager.update(&plugin_id).map_err(|e| e.to_string())?;
+        let outcome = manager.update(&plugin_id).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         Ok(UpdateOutcomeDto {
             plugin_id: outcome.plugin_id,
             old_version: outcome.old_version,

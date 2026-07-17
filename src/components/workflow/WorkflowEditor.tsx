@@ -36,6 +36,7 @@ import {
 } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 
+import { showBackendError } from "@/lib/errorI18n";
 import { message } from "@/lib/toast";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import { Button, Modal, Spin, theme } from "antd";
@@ -948,7 +949,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         message.success(t("workflow.decompositionSaved"));
         onClose?.();
       } catch (e) {
-        message.error(String(e));
+        showBackendError(message, e);
       }
       return;
     }
@@ -1014,7 +1015,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           message.error(t("workflow.saveFailed"));
         }
       } catch (e) {
-        message.error(String(e));
+        showBackendError(message, e);
       }
     } else {
       try {
@@ -1026,7 +1027,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           message.error(t("workflow.saveFailed"));
         }
       } catch (e) {
-        message.error(String(e));
+        showBackendError(message, e);
       }
     }
   }, [

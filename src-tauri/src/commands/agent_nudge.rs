@@ -71,7 +71,12 @@ pub async fn nudge_execute(
 pub async fn nudge_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let ns = app_state.nudge_service.lock().await;
     let stats = ns.get_nudge_stats();
-    serde_json::to_value(stats).map_err(|e| e.to_string())
+    serde_json::to_value(stats).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -97,7 +102,12 @@ pub async fn skill_find_similar(
     topic: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let closed_loop = app_state.closed_loop_service.clone();
-    let similar = closed_loop.find_similar_skills(&topic).await.map_err(|e| e.to_string())?;
+    let similar = closed_loop.find_similar_skills(&topic).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(similar.iter().filter_map(|s| serde_json::to_value(s).ok()).collect())
 }
 
@@ -124,7 +134,12 @@ pub async fn skill_upgrade_propose(
             trigger_event: "manual_proposal".to_string(),
         };
 
-        return Ok(Some(serde_json::to_value(upgrade_proposal).map_err(|e| e.to_string())?));
+        return Ok(Some(serde_json::to_value(upgrade_proposal).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?));
     }
     Ok(None)
 }
@@ -147,7 +162,12 @@ pub async fn skill_upgrade_execute(
 
     let auto_action = axagent_trajectory::AutoAction {
         action_type: "upgrade_skill".to_string(),
-        target: serde_json::to_string(&upgrade_proposal).map_err(|e| e.to_string())?,
+        target: serde_json::to_string(&upgrade_proposal).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?,
     };
 
     closed_loop.execute_upgrade_action(&auto_action).await;

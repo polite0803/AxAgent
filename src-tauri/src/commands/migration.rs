@@ -67,5 +67,10 @@ pub async fn migration_rollback(
     _state: State<'_, AppState>,
 ) -> Result<MigrationReport, String> {
     let backup_path = Path::new(&payload.backup_id);
-    axagent_migration::rollback(backup_path).map_err(|e| e.to_string())
+    axagent_migration::rollback(backup_path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

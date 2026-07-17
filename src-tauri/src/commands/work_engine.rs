@@ -89,7 +89,12 @@ pub async fn start_workflow_execution(
     input: serde_json::Value,
 ) -> Result<String, String> {
     let engine = &*state.work_engine;
-    engine.start_workflow(&workflow_id, input, None).await.map_err(|e| e.to_string())
+    engine.start_workflow(&workflow_id, input, None).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -98,7 +103,12 @@ pub async fn pause_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = &*state.work_engine;
-    engine.pause(&execution_id).await.map_err(|e| e.to_string())?;
+    engine.pause(&execution_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(true)
 }
 
@@ -108,7 +118,12 @@ pub async fn resume_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = &*state.work_engine;
-    engine.resume(&execution_id).await.map_err(|e| e.to_string())?;
+    engine.resume(&execution_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(true)
 }
 
@@ -118,7 +133,12 @@ pub async fn cancel_workflow_execution(
     execution_id: String,
 ) -> Result<bool, String> {
     let engine = &*state.work_engine;
-    engine.cancel(&execution_id).await.map_err(|e| e.to_string())?;
+    engine.cancel(&execution_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(true)
 }
 
@@ -128,7 +148,12 @@ pub async fn get_workflow_execution_status(
     execution_id: String,
 ) -> Result<ExecutionStatusResponse, String> {
     let engine = &*state.work_engine;
-    let status = engine.get_status(&execution_id).await.map_err(|e| e.to_string())?;
+    let status = engine.get_status(&execution_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(ExecutionStatusResponse {
         execution_id: status.execution_id,
@@ -149,7 +174,12 @@ pub async fn list_workflow_executions(
     workflow_id: String,
 ) -> Result<Vec<ExecutionSummaryResponse>, String> {
     let engine = &*state.work_engine;
-    let executions = engine.list_executions(&workflow_id).await.map_err(|e| e.to_string())?;
+    let executions = engine.list_executions(&workflow_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(executions.into_iter().map(ExecutionSummaryResponse::from).collect())
 }
@@ -209,13 +239,23 @@ pub async fn execute_workflow_node(
 
     let engine = &*state.work_engine;
     // P1-14: 校验 execution_id 归属 —— 防止任意调用方探测他人工作流
-    let status = engine.get_status(&execution_id).await.map_err(|e| e.to_string())?;
+    let status = engine.get_status(&execution_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     if status.workflow_id.is_empty() {
         return Err("execution_id 无效或工作流未注册".to_string());
     }
 
     match engine.execute_node(&node, &status).await {
-        Ok(output) => serde_json::to_value(output).map_err(|e| e.to_string()),
+        Ok(output) => serde_json::to_value(output).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        }),
         Err(e) => Err(e.to_string()),
     }
 }
@@ -244,7 +284,12 @@ pub async fn debug_run_workflow(
     let db = state.harness.db();
     let template = workflow_template::get_workflow_template(db, &template_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("Template {} not found", template_id))?;
 
     let nodes: Vec<axagent_harness::workflow_types::WorkflowNode> =
@@ -278,8 +323,12 @@ pub async fn debug_run_workflow(
         .map_err(|e| format!("output_schema 解析失败: {}", e))?;
 
     let engine = state.work_engine.clone();
-    let workflow =
-        engine.create_workflow(&template.name, nodes, edges).await.map_err(|e| e.to_string())?;
+    let workflow = engine.create_workflow(&template.name, nodes, edges).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let workflow_id = workflow.id.clone();
     let execution_id = uuid::Uuid::new_v4().to_string();
 
@@ -492,11 +541,14 @@ pub async fn resume_loop_iteration(
     use axagent_runtime::work_engine::LoopResumeDecision;
     let decision: LoopResumeDecision =
         serde_json::from_value(decision).map_err(|e| format!("decision 解析失败: {e}"))?;
-    state
-        .work_engine
-        .resume_loop_iteration(&execution_id, &node_id, decision)
-        .await
-        .map_err(|e| e.to_string())?;
+    state.work_engine.resume_loop_iteration(&execution_id, &node_id, decision).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
     Ok(true)
 }
 
@@ -509,12 +561,19 @@ pub async fn load_loop_checkpoint(
     execution_id: String,
     node_id: String,
 ) -> Result<Option<serde_json::Value>, String> {
-    let cp = state
-        .work_engine
-        .load_loop_checkpoint(&execution_id, &node_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    cp.map(serde_json::to_value).transpose().map_err(|e| e.to_string())
+    let cp =
+        state.work_engine.load_loop_checkpoint(&execution_id, &node_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    cp.map(serde_json::to_value).transpose().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Approval (HITL) Commands ──────────────────────────────────────────
@@ -536,7 +595,12 @@ pub async fn list_pending_approvals(
     let records =
         axagent_dao::repo::workflow_approval::list_pending_approvals(db, execution_id.as_deref())
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
     records
         .into_iter()
@@ -554,7 +618,12 @@ pub async fn list_pending_approvals(
                 "expires_at": r.expires_at,
                 "created_at": r.created_at,
             }))
-            .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         })
         .collect::<Result<Vec<_>, _>>()
 }
@@ -575,7 +644,12 @@ pub async fn resume_approval(
     // 1. 读取审批记录
     let record = axagent_dao::repo::workflow_approval::get_approval_by_id(db, &approval_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("审批记录 {} 不存在", approval_id))?;
 
     if record.status != "pending" {
@@ -596,7 +670,12 @@ pub async fn resume_approval(
         note.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 3. 恢复工作流执行
     let execution_id = &record.execution_id;
@@ -621,7 +700,12 @@ pub async fn cancel_approval(
 
     let record = axagent_dao::repo::workflow_approval::get_approval_by_id(db, &approval_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("审批记录 {} 不存在", approval_id))?;
 
     if record.status != "pending" {
@@ -636,7 +720,12 @@ pub async fn cancel_approval(
         None,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 取消对应的工作流
     let _ = engine.cancel(&record.execution_id).await;

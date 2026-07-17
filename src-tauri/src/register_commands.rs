@@ -373,6 +373,7 @@ macro_rules! register_all_commands {
             commands::smart_router::smart_router_set_cost_budget,
             commands::agent::agent_steer,
             commands::agent::agent_approve,
+            commands::agent::agent_approve_plan,
             commands::agent::agent_respond_ask,
             commands::agent::agent_backup_and_clear_sdk_context,
             commands::agent::agent_restore_sdk_context_from_backup,

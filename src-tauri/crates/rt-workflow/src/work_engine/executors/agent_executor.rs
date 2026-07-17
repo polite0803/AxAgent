@@ -1285,7 +1285,8 @@ impl AgentExecutor {
                             .to_string(),
                     )
                 })?;
-            let (wf_nodes, wf_edges) = compile_plan_to_dag(&current_plan, &tool_names);
+            let (wf_nodes, wf_edges) =
+                compile_plan_to_dag(&current_plan, &tool_names, an.config.agent_profile_id.clone());
             let wf_name = format!("plan_{}_{}", uuid::Uuid::new_v4(), attempt);
 
             let exec_result = match engine.create_workflow(&wf_name, wf_nodes, wf_edges).await {

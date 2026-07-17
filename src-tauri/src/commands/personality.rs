@@ -24,8 +24,12 @@ pub struct PersonalityInfo {
 pub async fn personality_list(_state: State<'_, AppState>) -> Result<Vec<PersonalityInfo>, String> {
     let active =
         axagent_agent::personality::PersonalityManager::get_active().ok().flatten().map(|p| p.name);
-    let personalities =
-        axagent_agent::personality::PersonalityManager::list().map_err(|e| e.to_string())?;
+    let personalities = axagent_agent::personality::PersonalityManager::list().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(personalities
         .into_iter()
         .map(|name| {
@@ -53,19 +57,34 @@ pub async fn personality_get(
     name: String,
     _state: State<'_, AppState>,
 ) -> Result<axagent_agent::personality::Personality, String> {
-    axagent_agent::personality::PersonalityManager::load(&name).map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::load(&name).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn personality_switch(name: String, _state: State<'_, AppState>) -> Result<(), String> {
-    axagent_agent::personality::PersonalityManager::set_active(&name).map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::set_active(&name).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn personality_current(
     _state: State<'_, AppState>,
 ) -> Result<Option<axagent_agent::personality::Personality>, String> {
-    axagent_agent::personality::PersonalityManager::get_active().map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::get_active().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -90,7 +109,12 @@ pub async fn personality_create(
         user: String::new(),
         created_at: chrono::Utc::now(),
     };
-    axagent_agent::personality::PersonalityManager::save(&personality).map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::save(&personality).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -115,7 +139,12 @@ pub async fn personality_create_bootstrap(
         user: payload.user.unwrap_or_default(),
         created_at: chrono::Utc::now(),
     };
-    axagent_agent::personality::PersonalityManager::save(&personality).map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::save(&personality).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -124,8 +153,12 @@ pub async fn personality_update_identity(
     identity: String,
     _state: State<'_, AppState>,
 ) -> Result<(), String> {
-    axagent_agent::personality::PersonalityManager::save_identity(&name, &identity)
-        .map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::save_identity(&name, &identity).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -134,13 +167,22 @@ pub async fn personality_update_user(
     user: String,
     _state: State<'_, AppState>,
 ) -> Result<(), String> {
-    axagent_agent::personality::PersonalityManager::save_user(&name, &user)
-        .map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::save_user(&name, &user).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn personality_delete(name: String, _state: State<'_, AppState>) -> Result<(), String> {
-    axagent_agent::personality::PersonalityManager::delete(&name).map_err(|e| e.to_string())
+    axagent_agent::personality::PersonalityManager::delete(&name).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -182,7 +224,12 @@ pub async fn personality_auto_learn_from_conversation(
     // 1. 拉取对话消息
     let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if messages.is_empty() {
         return Err("Conversation has no messages to learn from".to_string());
@@ -241,14 +288,25 @@ pub async fn personality_auto_learn_from_conversation(
 
     // 获取当前激活的 Persona 名称
     let active_name = axagent_agent::personality::PersonalityManager::get_active()
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .map(|p| p.name)
         .ok_or_else(|| {
             "No active persona set; activate a persona before auto-learning".to_string()
         })?;
 
-    axagent_agent::personality::PersonalityManager::save_user(&active_name, &user_md)
-        .map_err(|e| e.to_string())?;
+    axagent_agent::personality::PersonalityManager::save_user(&active_name, &user_md).map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
 
     let style_summary = build_style_summary(
         &code_patterns,

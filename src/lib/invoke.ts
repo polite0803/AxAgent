@@ -2,6 +2,7 @@
 
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen } from "@tauri-apps/api/event";
+import { onBrowserEvent } from "./browserEvents";
 import { handleCommand } from "./browserMock";
 
 declare global {
@@ -606,11 +607,9 @@ export async function listen<T>(
   if (isTauri()) {
     return tauriListen<T>(event, handler);
   }
-  // Browser mode: no-op listener
-  console.warn(
-    "[invoke] listen() called in browser mode - events will not fire",
-  );
-  return () => {};
+  // Browser mode: 经由内存事件总线订阅，使 browserMock 能派发事件（如计划确认闸门），
+  // 从而支持事件驱动的 UI 流程在 e2e 中被真实触发。
+  return onBrowserEvent(event, (payload) => handler({ payload: payload as T }));
 }
 
 // ── Personality / Persona ───────────────────────────────────────────────

@@ -35,7 +35,7 @@ impl Default for AgentSettings {
             max_iterations: 100,
             max_concurrent_agents: 5,
             default_timeout_secs: 300,
-            enable_self_verification: false,
+            enable_self_verification: true,
             enable_error_recovery: true,
         }
     }

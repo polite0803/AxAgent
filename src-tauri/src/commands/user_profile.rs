@@ -478,7 +478,12 @@ pub async fn style_export_profile(
 ) -> Result<String, String> {
     let _ = user_id;
     let profile = app_state.user_profile.read().await;
-    serde_json::to_string_pretty(&*profile).map_err(|e| e.to_string())
+    serde_json::to_string_pretty(&*profile).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// Import style profile (compatible with frontend store)
@@ -489,7 +494,12 @@ pub async fn style_import_profile(
     json: String,
 ) -> Result<(), String> {
     let _ = user_id;
-    let imported: UserProfile = serde_json::from_str(&json).map_err(|e| e.to_string())?;
+    let imported: UserProfile = serde_json::from_str(&json).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let mut profile = app_state.user_profile.write().await;
     *profile = imported;
     Ok(())

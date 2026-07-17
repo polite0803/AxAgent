@@ -36,15 +36,8 @@ pub fn map_core_error_simple(e: &AxAgentError) -> ErrorResponse {
 fn error_code_for(e: &AxAgentError) -> &'static str {
     match e {
         AxAgentError::Database(_) => error_code::agent_err::NOT_FOUND, // DB 错误通常表现为查找失败
-        AxAgentError::Provider(msg) => {
-            if msg.contains("timeout") || msg.contains("Timeout") {
-                error_code::provider_err::MODEL_LIST_TIMEOUT
-            } else if msg.contains("key") || msg.contains("decrypt") {
-                error_code::expert_err::KEY_DECRYPT_FAILED
-            } else {
-                error_code::expert_err::LLM_CALL_FAILED
-            }
-        },
+        // Provider 仅携带消息字符串、无子变体，确定性映射到单一码（移除基于消息文本的启发式）
+        AxAgentError::Provider(_) => error_code::expert_err::LLM_CALL_FAILED,
         AxAgentError::Gateway(_) => error_code::gateway_err::HTTP_UNAVAILABLE,
         AxAgentError::Crypto(_) => error_code::expert_err::KEY_DECRYPT_FAILED,
         AxAgentError::NotFound(_) => error_code::conv_err::NOT_FOUND,
@@ -56,14 +49,16 @@ fn error_code_for(e: &AxAgentError) -> &'static str {
         AxAgentError::Agent { .. } => error_code::agent_err::NOT_FOUND,
         AxAgentError::Execution { .. } => error_code::tool_err::EXECUTION_ERROR,
         AxAgentError::Internal(_) => "INTERNAL_ERROR",
-        AxAgentError::StructuredError { message, .. } => {
-            // 尝试从 message 中提取已知错误码
-            if message.contains("NOT_FOUND") {
-                error_code::conv_err::NOT_FOUND
-            } else if message.contains("TIMEOUT") {
-                error_code::mcp_err::TIMEOUT
-            } else {
-                "INTERNAL_ERROR"
+        AxAgentError::StructuredError { context, .. } => {
+            // 基于结构化 component 字段做确定性映射，不再对 message 文本做子串匹配
+            match context.component.to_lowercase().as_str() {
+                "agent" => error_code::agent_err::NOT_FOUND,
+                "tool" | "runtime" => error_code::tool_err::EXECUTION_ERROR,
+                "llm" | "provider" => error_code::expert_err::LLM_CALL_FAILED,
+                "network" | "gateway" => error_code::gateway_err::HTTP_UNAVAILABLE,
+                "validation" => error_code::tool_err::PARAM_REQUIRED,
+                "config" => error_code::skill_err::LOAD_FAILED,
+                _ => "INTERNAL_ERROR",
             }
         },
         AxAgentError::ModelDownload(_) => error_code::provider_err::FETCH_MODELS_FAILED,
@@ -89,7 +84,7 @@ mod tests {
     fn test_map_provider_error() {
         let err = AxAgentError::Provider("LLM call timeout".to_string());
         let resp = map_core_error_simple(&err);
-        assert!(resp.code.contains("TIMEOUT"));
+        assert!(resp.code.contains("LLM_CALL_FAILED"));
     }
 
     #[test]

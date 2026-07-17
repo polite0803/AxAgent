@@ -241,9 +241,10 @@ pub use trajectory_service::{IntegrityCheck, IntegrityResult, TaskComplexity, Tr
 
 // ── Tool 契约重导出 ──
 pub use tool::{
-    AskUserBridge, DefaultInputSanitizer, DefaultOutputSanitizer, InputSanitizer, OutputSanitizer,
-    PermissionResult, ProgressEntry, SanitizeContext, Tool, ToolCategory, ToolContext, ToolDomain,
-    ToolInfo, ToolPermissions, ToolRanker, ToolResult, parse_tool_name,
+    AskUserBridge, DefaultInputSanitizer, DefaultOutputSanitizer, EstimatedCost, InputSanitizer,
+    OutputSanitizer, PermissionResult, ProgressEntry, RollbackContext, RollbackRecord,
+    SanitizeContext, Tool, ToolCategory, ToolContext, ToolDomain, ToolInfo, ToolPermissions,
+    ToolRanker, ToolResult, parse_tool_name,
 };
 
 // ── Registry 契约重导出 ──

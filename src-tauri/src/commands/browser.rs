@@ -25,7 +25,12 @@ async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
         None => true,
     };
     if needs_launch {
-        let client = PlaywrightClient::launch().await.map_err(|e| e.to_string())?;
+        let client = PlaywrightClient::launch().await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         *client_guard = Some(client);
     }
     Ok(())
@@ -50,7 +55,12 @@ pub async fn browser_navigate(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.navigate(&url).await.map_err(|e| e.to_string())
+    client.navigate(&url).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -62,7 +72,12 @@ pub async fn browser_screenshot(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.screenshot(full_page.unwrap_or(false)).await.map_err(|e| e.to_string())
+    client.screenshot(full_page.unwrap_or(false)).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -71,7 +86,12 @@ pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Resu
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.click(&selector).await.map_err(|e| e.to_string())
+    client.click(&selector).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -84,7 +104,12 @@ pub async fn browser_fill(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.fill(&selector, &value).await.map_err(|e| e.to_string())
+    client.fill(&selector, &value).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -97,7 +122,12 @@ pub async fn browser_type(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.type_text(&selector, &text).await.map_err(|e| e.to_string())
+    client.type_text(&selector, &text).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -109,7 +139,12 @@ pub async fn browser_extract_text(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.extract_text(&selector).await.map_err(|e| e.to_string())
+    client.extract_text(&selector).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -121,7 +156,12 @@ pub async fn browser_extract_all(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.extract_all(&selector).await.map_err(|e| e.to_string())
+    client.extract_all(&selector).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -130,7 +170,12 @@ pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, S
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.get_content().await.map_err(|e| e.to_string())
+    client.get_content().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -143,7 +188,12 @@ pub async fn browser_wait_for(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.wait_for(&selector, timeout).await.map_err(|e| e.to_string())
+    client.wait_for(&selector, timeout).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -156,7 +206,12 @@ pub async fn browser_select(
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
     let client = guard.as_mut().ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
-    client.select_option(&selector, &value).await.map_err(|e| e.to_string())
+    client.select_option(&selector, &value).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(not(target_os = "android"))]
@@ -164,7 +219,12 @@ pub async fn browser_select(
 pub async fn browser_close(state: State<'_, AppState>) -> Result<(), String> {
     let mut guard = state.browser_client.lock().await;
     if let Some(mut client) = guard.take() {
-        client.close().await.map_err(|e| e.to_string())?;
+        client.close().await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
     Ok(())
 }

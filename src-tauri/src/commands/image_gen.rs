@@ -73,13 +73,23 @@ pub async fn generate_image(
             let api_token =
                 resolve_api_key(provider_name, api_key, &state.credential_manager).await?;
             let flux_provider = FluxProvider::new(api_token);
-            flux_provider.generate(request).await.map_err(|e| e.to_string())
+            flux_provider.generate(request).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "dall-e" | "dalle" | "DALL-E" => {
             let api_key =
                 resolve_api_key(provider_name, api_key, &state.credential_manager).await?;
             let dalle_provider = DallEProvider::new(api_key, None);
-            dalle_provider.generate(request).await.map_err(|e| e.to_string())
+            dalle_provider.generate(request).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         _ => Err(format!("Unknown provider: {}. Use 'flux' or 'dall-e'", provider_name)),
     }

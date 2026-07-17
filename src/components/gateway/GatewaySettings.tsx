@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useGatewayStore, useSettingsStore } from "@/stores";
@@ -37,7 +38,7 @@ export function GatewaySettings() {
     try {
       await saveSettings(partial);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   }, [saveSettings]);
 
@@ -58,7 +59,7 @@ export function GatewaySettings() {
         await handleSave({ [field]: selected });
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -179,7 +180,7 @@ export function GatewaySettings() {
       await stopGateway();
       message.success(t("gateway.stopped"));
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 

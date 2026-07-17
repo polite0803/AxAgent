@@ -40,13 +40,28 @@ async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, 
 
     let provider = axagent_dao::repo::provider::get_provider(state.harness.db(), provider_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), provider_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
         &provider.proxy_config,
@@ -80,7 +95,12 @@ async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, 
 pub async fn list_memory_namespaces(
     state: State<'_, AppState>,
 ) -> Result<Vec<MemoryNamespace>, String> {
-    axagent_dao::repo::memory::list_namespaces(state.harness.db()).await.map_err(|e| e.to_string())
+    axagent_dao::repo::memory::list_namespaces(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -88,9 +108,12 @@ pub async fn create_memory_namespace(
     state: State<'_, AppState>,
     input: CreateMemoryNamespaceInput,
 ) -> Result<MemoryNamespace, String> {
-    axagent_dao::repo::memory::create_namespace(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::memory::create_namespace(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -101,9 +124,12 @@ pub async fn delete_memory_namespace(state: State<'_, AppState>, id: String) -> 
         tracing::warn!("Failed to delete vector collection {}: {}", collection_name, e);
     }
 
-    axagent_dao::repo::memory::delete_namespace(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::memory::delete_namespace(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -112,9 +138,12 @@ pub async fn update_memory_namespace(
     id: String,
     input: UpdateMemoryNamespaceInput,
 ) -> Result<MemoryNamespace, String> {
-    axagent_dao::repo::memory::update_namespace(state.harness.db(), &id, input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::memory::update_namespace(state.harness.db(), &id, input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -135,11 +164,19 @@ pub async fn list_memory_items(
     // Verify namespace exists before accessing its items
     let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let _ = ns; // Namespace exists, proceed
-    axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -148,14 +185,23 @@ pub async fn add_memory_item(
     state: State<'_, AppState>,
     input: CreateMemoryItemInput,
 ) -> Result<MemoryItem, String> {
-    let item = axagent_dao::repo::memory::add_item(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())?;
+    let item =
+        axagent_dao::repo::memory::add_item(state.harness.db(), input).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // Spawn async embedding task if namespace has an embedding provider
     let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &item.namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if ns.embedding_provider.is_some() {
         let _ = axagent_dao::repo::memory::update_item_index_status(
@@ -176,7 +222,12 @@ pub async fn add_memory_item(
             None,
             None,
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
         Ok(MemoryItem { index_status: "pending".to_string(), ..item })
     } else {
@@ -210,7 +261,12 @@ pub async fn delete_memory_item(
     }
     drop(ms);
 
-    axagent_dao::repo::memory::delete_item(state.harness.db(), &id).await.map_err(|e| e.to_string())
+    axagent_dao::repo::memory::delete_item(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -224,13 +280,23 @@ pub async fn update_memory_item(
     let content_changed = input.content.is_some();
     let item = axagent_dao::repo::memory::update_item(state.harness.db(), &id, input)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // Re-index if content changed and namespace has embedding provider
     if content_changed {
         let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
         if ns.embedding_provider.is_some() {
             let _ = axagent_dao::repo::memory::update_item_index_status(
@@ -251,7 +317,12 @@ pub async fn update_memory_item(
                 None,
                 None,
             )
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
             return Ok(MemoryItem { index_status: "pending".to_string(), ..item });
         }
@@ -280,7 +351,12 @@ pub async fn search_memory(
     // Verify namespace exists before searching
     let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let _ = ns; // Namespace exists, proceed
     crate::indexing::search_memory(
         state.harness.db(),
@@ -291,7 +367,12 @@ pub async fn search_memory(
         top_k.unwrap_or(5),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -302,7 +383,12 @@ pub async fn rebuild_memory_index(
 ) -> Result<(), String> {
     let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if ns.embedding_provider.is_none() {
         return Err("No embedding provider configured".to_string());
@@ -313,7 +399,12 @@ pub async fn rebuild_memory_index(
 
     let items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     for item in &items {
         let _ = axagent_dao::repo::memory::update_item_index_status(
@@ -334,7 +425,12 @@ pub async fn rebuild_memory_index(
             Some(10),
             None,
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     Ok(())
@@ -353,7 +449,12 @@ pub async fn auto_extract_incremental_memories(
     let conv = conversations::Entity::find_by_id(&conversation_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let conv = match conv {
         Some(c) => c,
@@ -397,7 +498,12 @@ pub async fn auto_extract_incremental_memories(
             // 回退：找 name 含 "auto" 或 "default" 的 namespace
             let default_ns = axagent_dao::repo::memory::list_namespaces(state.harness.db())
                 .await
-                .map_err(|e| e.to_string())?
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?
                 .into_iter()
                 .find(|ns| {
                     ns.name.to_lowercase().contains("auto")
@@ -417,7 +523,12 @@ pub async fn auto_extract_incremental_memories(
 
     let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if messages.len() < 4 {
         return Ok(serde_json::json!({"skipped": true, "reason": "not enough messages"}));
@@ -456,7 +567,12 @@ pub async fn auto_extract_incremental_memories(
 
     let existing_items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let existing_contents: std::collections::HashSet<String> =
         existing_items.iter().map(|item| item.content.to_lowercase().trim().to_string()).collect();
 
@@ -565,12 +681,22 @@ pub async fn clear_memory_index(
     namespace_id: String,
 ) -> Result<(), String> {
     let collection_id = format!("mem_{}", namespace_id);
-    state.vector_store.delete_collection(&collection_id).await.map_err(|e| e.to_string())?;
+    state.vector_store.delete_collection(&collection_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Reset all items to "pending"
     let items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     for item in items {
         let _ = axagent_dao::repo::memory::update_item_index_status(
@@ -594,7 +720,12 @@ pub async fn reindex_memory_item(
 ) -> Result<(), String> {
     let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if ns.embedding_provider.is_none() {
         return Err("No embedding provider configured".to_string());
@@ -618,7 +749,12 @@ pub async fn reindex_memory_item(
         None,
         None,
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(())
 }
@@ -701,9 +837,14 @@ pub async fn reorder_memory_namespaces(
     state: State<'_, AppState>,
     namespace_ids: Vec<String>,
 ) -> Result<(), String> {
-    axagent_dao::repo::memory::reorder_namespaces(state.harness.db(), &namespace_ids)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::memory::reorder_namespaces(state.harness.db(), &namespace_ids).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -784,7 +925,12 @@ pub async fn extract_conversation_entities(
 ) -> Result<serde_json::Value, String> {
     let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     if messages.len() < 2 {
         return Ok(serde_json::json!({"entities": [], "relations": []}));
@@ -931,8 +1077,18 @@ pub async fn disambiguate_memory_entities(
 pub async fn list_knowledge_graph(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
     let storage = ms.storage();
-    let entities = storage.get_all_entities().await.map_err(|e| e.to_string())?;
-    let relationships = storage.get_all_relationships().await.map_err(|e| e.to_string())?;
+    let entities = storage.get_all_entities().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let relationships = storage.get_all_relationships().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(serde_json::json!({
         "entities": entities,
         "relationships": relationships,
@@ -1130,7 +1286,12 @@ pub async fn extract_conversation_memories(
 ) -> Result<Vec<MemoryItem>, String> {
     let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let resolved = resolve_default_provider(&state).await?;
 
@@ -1146,7 +1307,12 @@ pub async fn extract_conversation_memories(
 
     let existing_items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let existing_contents: std::collections::HashSet<String> =
         existing_items.iter().map(|item| item.content.to_lowercase().trim().to_string()).collect();
 
@@ -1305,10 +1471,12 @@ async fn update_conversation_memory_status(
     use axagent_entities::conversations;
     use sea_orm::{EntityTrait, Set};
 
-    let conv = conversations::Entity::find_by_id(conversation_id)
-        .one(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let conv = conversations::Entity::find_by_id(conversation_id).one(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if let Some(model) = conv {
         let mut am: conversations::ActiveModel = model.into();
@@ -1328,7 +1496,12 @@ async fn update_conversation_memory_status(
         };
         am.memory_status = Set(new_status.to_string());
         am.last_memory_extracted_at = Set(Some(chrono::Utc::now().to_rfc3339()));
-        am.update(db).await.map_err(|e| e.to_string())?;
+        am.update(db).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     Ok(())
@@ -1357,8 +1530,18 @@ pub async fn shared_memory_get(
     namespace: String,
 ) -> Result<serde_json::Value, String> {
     let mem = app_state.shared_memory.read().await;
-    let entry = mem.get(&key, &namespace).map_err(|e| e.to_string())?;
-    serde_json::to_value(entry).map_err(|e| e.to_string())
+    let entry = mem.get(&key, &namespace).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    serde_json::to_value(entry).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取共享记忆统计信息
@@ -1368,7 +1551,12 @@ pub async fn shared_memory_stats(
 ) -> Result<serde_json::Value, String> {
     let mem = app_state.shared_memory.read().await;
     let stats = mem.stats();
-    serde_json::to_value(stats).map_err(|e| e.to_string())
+    serde_json::to_value(stats).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 手动刷新记忆（前端触发）
@@ -1385,5 +1573,10 @@ pub async fn memory_flush(
     // 使用 MemoryService 持久化记忆
     let ms = app_state.memory_service.read().await;
     let result = ms.add_memory(valid_target, &content).await;
-    serde_json::to_value(result).map_err(|e| e.to_string())
+    serde_json::to_value(result).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

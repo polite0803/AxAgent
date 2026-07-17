@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Agent Execution Flow", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/chat");
     await page.waitForSelector('[data-testid="chat-view"]', { timeout: 60000 });
   });
 

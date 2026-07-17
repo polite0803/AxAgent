@@ -9,9 +9,14 @@ pub async fn list_messages(
     state: State<'_, AppState>,
     conversation_id: String,
 ) -> Result<Vec<Message>, String> {
-    axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -28,14 +33,22 @@ pub async fn list_messages_page(
         before_message_id.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn delete_message(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    axagent_dao::repo::message::delete_message(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::message::delete_message(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -46,7 +59,12 @@ pub async fn update_message_content(
 ) -> Result<Message, String> {
     axagent_dao::repo::message::update_message_content(state.harness.db(), &id, &content)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -59,7 +77,12 @@ pub async fn clear_conversation_messages(
         &conversation_id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // Also clear the agent session's SDK context so the agent doesn't retain old history
     let _ = axagent_dao::repo::agent_session::clear_sdk_context_by_conversation_id(
@@ -80,17 +103,32 @@ pub async fn export_conversation(
     let conversation =
         axagent_dao::repo::conversation::get_conversation(state.harness.db(), &conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
     let messages = axagent_dao::repo::message::list_messages(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     match format.as_str() {
         "json" => serde_json::to_string_pretty(&serde_json::json!({
             "conversation": conversation,
             "messages": messages,
         }))
-        .map_err(|e| e.to_string()),
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        }),
         "markdown" => {
             let mut md = format!("# {}\n\n", conversation.title);
             for msg in &messages {
@@ -115,5 +153,10 @@ pub async fn get_conversation_stats(
 ) -> Result<ConversationStats, String> {
     axagent_dao::repo::message::get_conversation_stats(state.harness.db(), &conversation_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }

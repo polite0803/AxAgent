@@ -112,16 +112,25 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
     // which makes a single broken SKILL.md kill the entire skills page.
     // By using the report directly, we can show successfully loaded plugins
     // while logging failures.
-    let report = plugin_manager.plugin_registry_report().map_err(|e| e.to_string())?;
+    let report = plugin_manager.plugin_registry_report().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let failures = report.failures();
     for f in failures {
         tracing::warn!("Skill load failure: {f}");
     }
     let plugins = report.into_registry_allowing_failures();
 
-    let disabled = axagent_dao::repo::skill::get_disabled_skills(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let disabled =
+        axagent_dao::repo::skill::get_disabled_skills(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let result: Vec<SkillInfo> = {
         let mut seen: std::collections::HashMap<String, SkillInfo> =
@@ -192,7 +201,12 @@ pub async fn get_skill(
     let plugin_manager = state.skill.plugin_manager.read().await;
     // Use plugin_registry_report() + into_registry_allowing_failures()
     // to tolerate individual plugin load failures (e.g. Claude Code format, missing version).
-    let report = plugin_manager.plugin_registry_report().map_err(|e| e.to_string())?;
+    let report = plugin_manager.plugin_registry_report().map_err(|e| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+    })?;
     let failures = report.failures();
     for f in failures {
         tracing::warn!("Skill load failure: {f}");
@@ -204,9 +218,13 @@ pub async fn get_skill(
             ErrorResponse::new(skill_err::NOT_FOUND).with_param("name".to_string(), name.clone())
         })?;
 
-    let disabled = axagent_dao::repo::skill::get_disabled_skills(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let disabled =
+        axagent_dao::repo::skill::get_disabled_skills(state.harness.db()).await.map_err(|e| {
+            crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            )
+        })?;
 
     let source_path =
         plugin.metadata.root.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
@@ -320,9 +338,14 @@ pub async fn toggle_skill(
     name: String,
     enabled: bool,
 ) -> Result<(), ErrorResponse> {
-    axagent_dao::repo::skill::set_skill_enabled(state.harness.db(), &name, enabled)
-        .await
-        .map_err(|e| e.to_string())?;
+    axagent_dao::repo::skill::set_skill_enabled(state.harness.db(), &name, enabled).await.map_err(
+        |e| {
+            crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            )
+        },
+    )?;
     let _ = app.emit(
         "skill-state-changed",
         serde_json::json!({
@@ -349,7 +372,12 @@ pub async fn install_skill(
         Some("workbuddy") => home_dir().join(".workbuddy").join("skills"),
         _ => skills_dir(),
     };
-    std::fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&target_dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let (skill_name, commit, source_ref, source_kind) =
         if source.starts_with('/') || source.starts_with('.') {
@@ -413,7 +441,12 @@ pub async fn install_skill(
         },
     };
 
-    state.trajectory_storage.save_skill(&skill).await.map_err(|e| e.to_string())?;
+    state.trajectory_storage.save_skill(&skill).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let _ = app.emit(
         "skill-state-changed",
@@ -432,7 +465,12 @@ fn check_skill_dependencies(skill_dir: &Path, target_dir: &Path) -> Result<(), S
     if !manifest_path.exists() {
         return Ok(()); // 无清单文件，跳过检查
     }
-    let contents = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+    let contents = std::fs::read_to_string(&manifest_path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let manifest: serde_json::Value = serde_json::from_str(&contents).map_err(|e| {
         ErrorResponse::new(skill_err::MANIFEST_PARSE_FAILED)
             .with_detail(format!("解析 skill-manifest.json 失败: {}", e))
@@ -547,7 +585,12 @@ async fn install_from_github(
     let skill_target = target_dir.join(repo);
 
     if skill_target.exists() {
-        std::fs::remove_dir_all(&skill_target).map_err(|e| e.to_string())?;
+        std::fs::remove_dir_all(&skill_target).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     let mut git_cmd = axagent_kit::utils::cmd("git");
@@ -593,10 +636,13 @@ async fn install_from_github_zipball(
     }
     let url = format!("https://api.github.com/repos/{}/{}/zipball", owner, repo);
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client =
+        reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -613,9 +659,19 @@ async fn install_from_github_zipball(
         ));
     }
 
-    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    let bytes = response.bytes().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
-    let temp_dir = tempfile::tempdir().map_err(|e| e.to_string())?;
+    let temp_dir = tempfile::tempdir().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let cursor = std::io::Cursor::new(&bytes);
     let mut archive =
         zip::ZipArchive::new(cursor).map_err(|e| format!("Failed to read zip: {}", e))?;
@@ -650,7 +706,10 @@ async fn install_from_github_zipball(
             .canonicalize()
             .map_err(|e| format!("Failed to canonicalize zip entry path: {}", e))?;
         if !canonical.starts_with(&dest_canonical) {
-            return Err("Path traversal detected in zip".into());
+            return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+                "Path traversal detected in zip".to_string(),
+                crate::commands::error::ErrorCategory::Validation,
+            )));
         }
     }
 
@@ -672,7 +731,10 @@ async fn install_from_github_zipball(
             if !canonical.starts_with(&dest_canonical) {
                 // 回滚已解压文件
                 let _ = std::fs::remove_dir_all(temp_dir.path());
-                return Err("Post-extract path traversal violation detected".into());
+                return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+                    "Post-extract path traversal violation detected".to_string(),
+                    crate::commands::error::ErrorCategory::Validation,
+                )));
             }
         }
     }
@@ -681,7 +743,12 @@ async fn install_from_github_zipball(
     let skill_target = target_dir.join(repo);
 
     if skill_target.exists() {
-        std::fs::remove_dir_all(&skill_target).map_err(|e| e.to_string())?;
+        std::fs::remove_dir_all(&skill_target).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     copy_dir_recursive(&extracted, &skill_target)?;
@@ -715,7 +782,12 @@ fn save_skill_manifest(
     let manifest_path = skill_target.join("skill-manifest.json");
 
     let mut manifest: serde_json::Value = if manifest_path.exists() {
-        let existing = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+        let existing = std::fs::read_to_string(&manifest_path).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         serde_json::from_str(&existing).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
@@ -746,7 +818,12 @@ fn save_skill_manifest(
     let manifest_str = serde_json::to_string_pretty(&manifest).map_err(|e| {
         ErrorResponse::new(skill_err::SERIALIZE_FAILED).with_detail(format!("JSON 序列化失败: {e}"))
     })?;
-    std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())
+    std::fs::write(&manifest_path, manifest_str).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -765,9 +842,18 @@ pub async fn get_skill_versions(skill_name: String) -> Result<Vec<SkillVersion>,
         return Err(format!("Skill {} not found", skill_name));
     }
 
-    let manifest_str = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
-    let manifest: serde_json::Value =
-        serde_json::from_str(&manifest_str).map_err(|e| e.to_string())?;
+    let manifest_str = std::fs::read_to_string(&manifest_path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let manifest: serde_json::Value = serde_json::from_str(&manifest_str).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let versions: Vec<SkillVersion> = manifest["versions"]
         .as_array()
@@ -796,9 +882,18 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
         return Err(format!("Skill {} not found", skill_name));
     }
 
-    let manifest_str = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
-    let manifest: serde_json::Value =
-        serde_json::from_str(&manifest_str).map_err(|e| e.to_string())?;
+    let manifest_str = std::fs::read_to_string(&manifest_path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let manifest: serde_json::Value = serde_json::from_str(&manifest_str).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let source_kind = manifest["source_kind"].as_str().unwrap_or("github");
     let source_ref = manifest["source_ref"].as_str().unwrap_or("");
@@ -816,8 +911,18 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
     let (owner, repo) = (parts[0], parts[1]);
     let git_url = format!("https://github.com/{}/{}.git", owner, repo);
 
-    std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(&skill_dir).map_err(|e| e.to_string())?;
+    std::fs::remove_dir_all(&skill_dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    std::fs::create_dir_all(&skill_dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let output = axagent_kit::utils::cmd("git")
         .args(["clone", "--depth", "50", &git_url, skill_dir.to_str().unwrap_or("")])
@@ -863,7 +968,12 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
 
     let skill_target = target_dir.join(&name);
     if skill_target.exists() {
-        std::fs::remove_dir_all(&skill_target).map_err(|e| e.to_string())?;
+        std::fs::remove_dir_all(&skill_target).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
 
     copy_dir_recursive(&source_path, &skill_target)?;
@@ -878,21 +988,51 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
     let manifest_str = serde_json::to_string_pretty(&manifest).map_err(|e| {
         ErrorResponse::new(skill_err::SERIALIZE_FAILED).with_detail(format!("JSON 序列化失败: {e}"))
     })?;
-    std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())?;
+    std::fs::write(&manifest_path, manifest_str).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok((name, "local".to_string()))
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
-    std::fs::create_dir_all(dst).map_err(|e| e.to_string())?;
-    for entry in std::fs::read_dir(src).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let ty = entry.file_type().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(dst).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    for entry in std::fs::read_dir(src).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })? {
+        let entry = entry.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        let ty = entry.file_type().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         let dst_path = dst.join(entry.file_name());
         if ty.is_dir() {
             copy_dir_recursive(&entry.path(), &dst_path)?;
         } else {
-            std::fs::copy(entry.path(), &dst_path).map_err(|e| e.to_string())?;
+            std::fs::copy(entry.path(), &dst_path).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         }
     }
     Ok(())
@@ -985,9 +1125,15 @@ pub async fn uninstall_skill(
         let skill_dir = parent.join(&name);
         let dir_label = parent.to_string_lossy().to_string();
         if skill_dir.exists() && skill_dir.is_dir() {
-            match ensure_path_under_base(&skill_dir, parent)
-                .and_then(|_| std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string()))
-            {
+            match ensure_path_under_base(&skill_dir, parent).and_then(|_| {
+                std::fs::remove_dir_all(&skill_dir).map_err(|e| {
+                    crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    )
+                    .to_string()
+                })
+            }) {
                 Ok(()) => {
                     results.push(UninstallResult {
                         dir: dir_label,
@@ -1044,7 +1190,12 @@ pub async fn uninstall_skill_group(group: String) -> Result<(), String> {
         let group_dir = parent.join(&group);
         if group_dir.exists() && group_dir.is_dir() {
             ensure_path_under_base(&group_dir, parent)?;
-            std::fs::remove_dir_all(&group_dir).map_err(|e| e.to_string())?;
+            std::fs::remove_dir_all(&group_dir).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             return Ok(());
         }
     }
@@ -1093,7 +1244,12 @@ pub async fn skill_set_domain(name: String, domain: String) -> Result<String, Er
         format!("---\ndomain: {}\n---\n\n{}", domain, existing)
     };
 
-    std::fs::write(&canonical_path, &edited).map_err(|e| e.to_string())?;
+    std::fs::write(&canonical_path, &edited).map_err(|e| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+    })?;
     Ok(format!("Skill '{}' domain set to {}", name, domain))
 }
 

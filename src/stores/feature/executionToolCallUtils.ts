@@ -28,6 +28,10 @@ export function shouldClearToolCall(
   if (currentToolCall.conversationId === doneConversationId) {
     return true;
   }
-  const ownerPhase = phases[currentToolCall.conversationId] || "idle";
+  const ownerPhase = phases[currentToolCall.conversationId];
+  if (!ownerPhase) {
+    // 无 phase 记录（默认 idle）：视为未结束的会话，保留其工具调用，不激进清空
+    return false;
+  }
   return !ACTIVE_PHASES.has(ownerPhase);
 }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import i18n from "@/i18n";
 import { invoke, logAndNotify } from "@/lib/invoke";
 import { create } from "zustand";
 
@@ -174,7 +175,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
       await invoke("save_checkpoint", { ...newCheckpoint });
       set((s) => ({ checkpoints: [...s.checkpoints, newCheckpoint] }));
     } catch (err) {
-      logAndNotify("保存 RL 检查点")(err);
+      logAndNotify(i18n.t("rlTrainingStore.saveCheckpoint"))(err);
     }
   },
 
@@ -182,7 +183,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
     try {
       await invoke("load_checkpoint", { checkpointId: id });
     } catch (err) {
-      logAndNotify("加载 RL 检查点")(err);
+      logAndNotify(i18n.t("rlTrainingStore.loadCheckpoint"))(err);
     }
   },
 
@@ -191,7 +192,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
       const checkpoints = await invoke<CheckpointInfo[]>("list_checkpoints");
       set({ checkpoints });
     } catch (err) {
-      logAndNotify("列出 RL 检查点")(err);
+      logAndNotify(i18n.t("rlTrainingStore.listCheckpoints"))(err);
     }
   },
 
@@ -200,7 +201,7 @@ export const useRlTrainingStore = create<RlTrainingState>((set, get) => ({
     try {
       await invoke("delete_checkpoint", { checkpointId: id });
     } catch (err) {
-      logAndNotify("删除 RL 检查点")(err);
+      logAndNotify(i18n.t("rlTrainingStore.deleteCheckpoint"))(err);
     }
   },
 }));

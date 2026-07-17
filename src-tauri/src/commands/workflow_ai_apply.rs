@@ -143,7 +143,12 @@ pub async fn apply_rollback_to_version(
 
     let restored = db_repo::get_template_by_version(db, &template_id, version)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("version {version} of template '{template_id}' not found"))?;
 
     let resp = workflow_template_response_from_model(restored);
@@ -180,7 +185,12 @@ pub async fn apply_rollback_to_version(
         input.tool_defs,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if !updated {
         return Err(format!("failed to update template '{template_id}'"));
@@ -207,7 +217,12 @@ pub async fn apply_update_input_mapping(
 
     // 1. 找到包含该节点的 template
     // 简化策略:遍历所有 template;生产环境应在 input_mapping 上加索引表(下轮优化)
-    let templates = db_repo::list_workflow_templates(db, None).await.map_err(|e| e.to_string())?;
+    let templates = db_repo::list_workflow_templates(db, None).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut target: Option<WorkflowTemplateResponse> = None;
     for t in templates {
@@ -657,7 +672,12 @@ async fn apply_single_action(
         ChatAction::EditAssetFile { data } => {
             let target = state.app_data_dir.join(&data.path);
             let before = if target.exists() {
-                std::fs::read_to_string(&target).map_err(|e| e.to_string())?
+                std::fs::read_to_string(&target).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?
             } else {
                 String::new()
             };
@@ -695,7 +715,12 @@ async fn restore_snapshot(state: &State<'_, AppState>, snap: &Snapshot) -> Resul
                 let _ = std::fs::remove_file(path);
                 return Ok(());
             }
-            std::fs::write(path, before).map_err(|e| e.to_string())
+            std::fs::write(path, before).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
     }
 }
@@ -746,7 +771,12 @@ async fn load_template(
 ) -> Result<WorkflowTemplateResponse, String> {
     db_repo::get_workflow_template(db, id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .map(workflow_template_response_from_model)
         .ok_or_else(|| format!("template '{id}' not found"))
 }
@@ -773,7 +803,12 @@ async fn persist_template(
         input.tool_defs.clone(),
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     if !updated {
         return Err(format!("failed to persist template '{id}'"));
     }

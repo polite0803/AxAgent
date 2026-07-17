@@ -2,6 +2,7 @@
 
 import { PasteButton } from "@/components/common/PasteButton";
 import { Tooltip } from "@/components/layout/Tooltip";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
 import type { WebDavConfig, WebDavFileInfo } from "@/types";
@@ -97,7 +98,7 @@ export function WebDavSync() {
       const backups = await invoke<WebDavFileInfo[]>("webdav_list_backups");
       setRemoteBackups(Array.isArray(backups) ? backups : []);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
@@ -160,7 +161,7 @@ export function WebDavSync() {
       setConfigModalOpen(false);
       loadRemoteBackups();
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -212,7 +213,7 @@ export function WebDavSync() {
       message.success(t("backup.restoreSuccess"));
       setRestoreTarget(null);
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -223,7 +224,7 @@ export function WebDavSync() {
       setSelectedFileNames((prev) => prev.filter((n) => n !== fileName));
       loadRemoteBackups();
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 
@@ -236,7 +237,7 @@ export function WebDavSync() {
       setSelectedFileNames([]);
       loadRemoteBackups();
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
   };
 

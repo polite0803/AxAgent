@@ -22,7 +22,7 @@ test.describe("Cache Configuration", () => {
   });
 
   test("should show cache status indicator in chat when visible", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/chat");
     await page.waitForSelector('[data-testid="chat-view"]', { timeout: 60000 });
 
     const cacheIndicator = page.locator('[data-testid="cache-indicator"]');
@@ -33,7 +33,7 @@ test.describe("Cache Configuration", () => {
   });
 
   test("should display token savings information when available", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/chat");
     await page.waitForSelector('[data-testid="chat-view"]', { timeout: 60000 });
 
     await page.waitForTimeout(2000);

@@ -103,6 +103,7 @@ const THEME_OPTIONS = [
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { LANG_OPTIONS } from "@/lib/constants";
+import { showBackendError } from "@/lib/errorI18n";
 
 export function TitleBar() {
   const { t, i18n } = useTranslation();
@@ -394,7 +395,7 @@ export function TitleBar() {
         message.success(t("backup.backupSuccess"));
         setBackupPopoverOpen(false);
       } catch (e) {
-        message.error(String(e));
+        showBackendError(message, e);
       } finally {
         setBackingUp(null);
       }

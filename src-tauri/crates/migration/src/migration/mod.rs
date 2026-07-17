@@ -437,3 +437,54 @@ pub use detect::detect_platforms;
 pub use migration_ops::{migrate_hermes, migrate_openclaw};
 pub use preview::{preview_hermes, preview_openclaw};
 pub use rollback::{DefaultMigrationRunner, list_backups, migrate_secrets, rollback};
+
+#[cfg(test)]
+mod tests {
+    use super::merge_yaml_values;
+    use serde_yaml::Value;
+
+    fn parse(s: &str) -> Value {
+        serde_yaml::from_str(s).unwrap()
+    }
+
+    #[test]
+    fn non_overwrite_keeps_base_and_adds_new_keys() {
+        let base = parse("a: 1\nb: 2\n");
+        let overlay = parse("a: 99\nc: 3\n");
+        let merged = merge_yaml_values(base, overlay, false);
+        let m = merged.as_mapping().unwrap();
+        assert_eq!(m.get(Value::from("a")).unwrap(), &Value::from(1)); // 保留 base
+        assert_eq!(m.get(Value::from("b")).unwrap(), &Value::from(2)); // base 原值
+        assert_eq!(m.get(Value::from("c")).unwrap(), &Value::from(3)); // 新增 key
+    }
+
+    #[test]
+    fn overwrite_replaces_existing_keys() {
+        let base = parse("a: 1\nb: 2\n");
+        let overlay = parse("a: 99\nc: 3\n");
+        let merged = merge_yaml_values(base, overlay, true);
+        let m = merged.as_mapping().unwrap();
+        assert_eq!(m.get(Value::from("a")).unwrap(), &Value::from(99)); // 被覆盖
+        assert_eq!(m.get(Value::from("b")).unwrap(), &Value::from(2));
+        assert_eq!(m.get(Value::from("c")).unwrap(), &Value::from(3));
+    }
+
+    #[test]
+    fn recursive_merge_nested_mapping() {
+        let base = parse("x:\n  p: 1\n  q: 2\n");
+        let overlay = parse("x:\n  q: 3\n  r: 4\n");
+        let merged = merge_yaml_values(base, overlay, false);
+        let x = merged.get("x").unwrap().as_mapping().unwrap();
+        assert_eq!(x.get(Value::from("p")).unwrap(), &Value::from(1)); // base 保留
+        assert_eq!(x.get(Value::from("q")).unwrap(), &Value::from(2)); // base 保留
+        assert_eq!(x.get(Value::from("r")).unwrap(), &Value::from(4)); // 新增
+    }
+
+    #[test]
+    fn scalar_overlay_replaces_scalar_base_when_overwrite() {
+        let base = parse("a: 1\n");
+        let overlay = parse("a: 2\n");
+        let merged = merge_yaml_values(base, overlay, true);
+        assert_eq!(merged.get("a").unwrap(), &Value::from(2));
+    }
+}

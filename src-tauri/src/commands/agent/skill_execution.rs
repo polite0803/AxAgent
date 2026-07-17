@@ -334,7 +334,12 @@ impl SkillOutputTracker {
         conversation_id: &str,
         record: SkillExecutionRecord,
     ) -> Result<(), String> {
-        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
+        let mut tracker = self.inner.lock().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         let entry = tracker.entry(conversation_id.to_string()).or_insert_with(ConvEntry::new);
         entry.touch();
 
@@ -352,7 +357,12 @@ impl SkillOutputTracker {
         conversation_id: &str,
         limit: usize,
     ) -> Result<Vec<SkillExecutionRecord>, String> {
-        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
+        let mut tracker = self.inner.lock().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         if let Some(entry) = tracker.get_mut(conversation_id) {
             entry.touch();
             let start = if entry.records.len() > limit {
@@ -371,7 +381,12 @@ impl SkillOutputTracker {
         skill_name: &str,
         output: String,
     ) -> Result<(), String> {
-        let mut tracker = self.inner.lock().map_err(|e| e.to_string())?;
+        let mut tracker = self.inner.lock().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         if let Some(entry) = tracker.get_mut(conversation_id) {
             entry.touch();
             if let Some(last) = entry.records.iter_mut().rev().find(|r| r.skill_name == skill_name)

@@ -55,12 +55,15 @@ pub async fn index_jobs_list(
         select
     };
 
-    let models = select
-        .order_by_desc(index_jobs::Column::CreatedAt)
-        .limit(lim)
-        .all(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let models =
+        select.order_by_desc(index_jobs::Column::CreatedAt).limit(lim).all(db).await.map_err(
+            |e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            },
+        )?;
 
     Ok(models.into_iter().map(index_jobs::model_to_job).collect())
 }
@@ -68,18 +71,34 @@ pub async fn index_jobs_list(
 #[tauri::command]
 pub async fn index_jobs_stats(state: State<'_, AppState>) -> Result<IndexQueueStats, String> {
     let db = state.harness.db();
-    let pending = index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_PENDING)
-        .await
-        .map_err(|e| e.to_string())?;
-    let running = index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_PROCESSING)
-        .await
-        .map_err(|e| e.to_string())?;
-    let completed = index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_COMPLETED)
-        .await
-        .map_err(|e| e.to_string())?;
-    let failed = index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_FAILED)
-        .await
-        .map_err(|e| e.to_string())?;
+    let pending =
+        index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_PENDING).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let running =
+        index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_PROCESSING).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let completed =
+        index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_COMPLETED).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let failed =
+        index_jobs::count_jobs_by_status(db, INDEX_JOB_STATUS_FAILED).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     Ok(IndexQueueStats { pending, running, completed, failed })
 }
 
@@ -89,10 +108,18 @@ pub async fn index_jobs_retry(
     app: AppHandle,
     job_id: String,
 ) -> Result<IndexJob, String> {
-    index_jobs::reset_job_for_retry(state.harness.db(), &job_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    let job = index_jobs::get_job(state.harness.db(), &job_id).await.map_err(|e| e.to_string())?;
+    index_jobs::reset_job_for_retry(state.harness.db(), &job_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let job = index_jobs::get_job(state.harness.db(), &job_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let _ = app.emit(
         "index-job-updated",
         serde_json::json!({ "jobId": job_id, "status": INDEX_JOB_STATUS_PENDING }),
@@ -106,8 +133,18 @@ pub async fn index_jobs_cancel(
     app: AppHandle,
     job_id: String,
 ) -> Result<IndexJob, String> {
-    index_jobs::cancel_job(state.harness.db(), &job_id).await.map_err(|e| e.to_string())?;
-    let job = index_jobs::get_job(state.harness.db(), &job_id).await.map_err(|e| e.to_string())?;
+    index_jobs::cancel_job(state.harness.db(), &job_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let job = index_jobs::get_job(state.harness.db(), &job_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let _ = app.emit(
         "index-job-updated",
         serde_json::json!({ "jobId": job_id, "status": INDEX_JOB_STATUS_CANCELLED }),
@@ -117,9 +154,12 @@ pub async fn index_jobs_cancel(
 
 #[tauri::command]
 pub async fn index_jobs_retry_all_failed(state: State<'_, AppState>) -> Result<u64, String> {
-    let jobs = index_jobs::list_retryable_failed_jobs(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let jobs = index_jobs::list_retryable_failed_jobs(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let count = jobs.len() as u64;
     for job in &jobs {
         let _ = index_jobs::reset_job_for_retry(state.harness.db(), &job.id).await;
@@ -129,7 +169,12 @@ pub async fn index_jobs_retry_all_failed(state: State<'_, AppState>) -> Result<u
 
 #[tauri::command]
 pub async fn index_jobs_clear_completed(state: State<'_, AppState>) -> Result<u64, String> {
-    index_jobs::cleanup_completed_jobs(state.harness.db(), 0).await.map_err(|e| e.to_string())
+    index_jobs::cleanup_completed_jobs(state.harness.db(), 0).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -143,7 +188,12 @@ pub async fn index_jobs_reindex_collection(
         "kb" => {
             let docs = axagent_dao::repo::knowledge::list_documents(state.harness.db(), &source_id)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
             let count = docs.len() as u64;
             for doc in docs {
                 let _ = axagent_dao::repo::knowledge::update_document_status(
@@ -168,7 +218,12 @@ pub async fn index_jobs_reindex_collection(
         "memory" => {
             let items = axagent_dao::repo::memory::list_namespaces(state.harness.db())
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
             let count = items.len() as u64;
             for item in items {
                 let _ = crate::index_queue::enqueue_job_sync(
@@ -187,7 +242,12 @@ pub async fn index_jobs_reindex_collection(
         "wiki" => {
             let notes = axagent_dao::repo::note::list_notes(state.harness.db(), &source_id)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             let count = notes.len() as u64;
             for note in notes {
                 let _ = crate::index_queue::enqueue_job_sync(

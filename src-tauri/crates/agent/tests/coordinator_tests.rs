@@ -5,6 +5,7 @@ use axagent_agent::coordinator::{
     AgentConfig, AgentCoordinator, AgentError, AgentImpl, AgentInput, AgentStatus,
     CoordinatorOutput,
 };
+use axagent_agent::event_bus::AgentEventType;
 use axagent_harness::cache_service::CacheService;
 use axagent_harness::hook_service::HookService;
 use std::sync::Arc;
@@ -13,6 +14,11 @@ fn make_coordinator<T: AgentImpl + Send + 'static>(
     agent: Arc<tokio::sync::Mutex<T>>,
 ) -> AgentCoordinator<T> {
     AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService))
+}
+
+/// 构建开启计划确认闸门的配置（P0-2）。
+fn config_with_approval() -> AgentConfig {
+    AgentConfig { require_plan_approval: true, ..AgentConfig::default() }
 }
 
 struct NoopCacheService;
@@ -224,4 +230,80 @@ async fn test_coordinator_cache_integration() {
     // prompt_cache 已重构为 cache_service，以下测试需适配新 API
     // coordinator.prompt_cache.record_system_prompt("test prompt").await;
     // assert!(coordinator.prompt_cache.is_cache_valid().await);
+}
+
+// ---------------------------------------------------------------------------
+// P0-2：对话级计划确认闸门（Draft → await_approval → execute）
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_coordinator_plan_approval_gate_complex_task() {
+    let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
+    let coordinator = make_coordinator(agent);
+    coordinator.initialize(config_with_approval()).await.unwrap();
+
+    let mut rx =
+        coordinator.event_bus().subscribe("test-gate", vec![AgentEventType::PlanReadyForApproval]);
+
+    // 复杂任务：多步 + 验证关键词 → 触发确认闸门
+    let input = AgentInput {
+        content: "首先读取所有发票，然后验证金额是否一致，最后生成审计报告".to_string(),
+        context: None,
+    };
+    let result = coordinator.execute(input).await.unwrap();
+    assert_eq!(result.status, AgentStatus::WaitingForConfirmation);
+    assert_eq!(result.metadata["awaiting_approval"], serde_json::json!(true));
+
+    // 应收到 PlanReadyForApproval 事件，且携带计划草稿
+    let evt = rx.recv().await.unwrap();
+    assert_eq!(evt.event_type, AgentEventType::PlanReadyForApproval);
+    assert!(evt.payload["plan"].as_str().is_some());
+
+    // approve_plan 后真正执行，内容应来自原始输入
+    let approved = coordinator.approve_plan().await.unwrap();
+    assert_eq!(approved.status, AgentStatus::Completed);
+    assert!(approved.content.contains("发票"));
+}
+
+#[tokio::test]
+async fn test_coordinator_plan_approval_skipped_for_simple_task() {
+    let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
+    let coordinator = make_coordinator(agent);
+    coordinator.initialize(config_with_approval()).await.unwrap();
+
+    // 简单任务：单步、无分支/验证关键词 → 直接执行，不进闸门
+    let input = AgentInput { content: "你好".to_string(), context: None };
+    let result = coordinator.execute(input).await.unwrap();
+    assert_eq!(result.status, AgentStatus::Completed);
+    assert_eq!(result.content, "你好");
+}
+
+#[tokio::test]
+async fn test_coordinator_approve_plan_requires_waiting_state() {
+    let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
+    let coordinator = make_coordinator(agent);
+
+    // 未进入等待确认状态，直接 approve 应报 InvalidState
+    let result = coordinator.approve_plan().await;
+    assert!(result.is_err());
+    match result {
+        Err(AgentError::InvalidState(_)) => {},
+        _ => panic!("expected InvalidState"),
+    }
+}
+
+#[tokio::test]
+async fn test_coordinator_plan_approval_disabled_by_default() {
+    let agent = Arc::new(tokio::sync::Mutex::new(MockAgent::new()));
+    let coordinator = make_coordinator(agent);
+    coordinator.initialize(AgentConfig::default()).await.unwrap();
+
+    // 默认关闭闸门：即使是复杂任务也直接执行，行为与改造前一致
+    let input = AgentInput {
+        content: "首先读取所有发票，然后验证金额是否一致，最后生成审计报告".to_string(),
+        context: None,
+    };
+    let result = coordinator.execute(input).await.unwrap();
+    assert_eq!(result.status, AgentStatus::Completed);
+    assert!(result.content.contains("发票"));
 }

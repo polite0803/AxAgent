@@ -8,9 +8,14 @@ use tauri::State;
 pub async fn list_prompt_templates(
     state: State<'_, AppState>,
 ) -> Result<Vec<PromptTemplate>, String> {
-    axagent_dao::repo::prompt_template::list_prompt_templates(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::prompt_template::list_prompt_templates(state.harness.db()).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -18,9 +23,14 @@ pub async fn get_prompt_template(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<PromptTemplate, String> {
-    axagent_dao::repo::prompt_template::get_prompt_template(state.harness.db(), &id)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::prompt_template::get_prompt_template(state.harness.db(), &id).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -30,7 +40,12 @@ pub async fn create_prompt_template(
 ) -> Result<PromptTemplate, String> {
     axagent_dao::repo::prompt_template::create_prompt_template(state.harness.db(), input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -41,14 +56,24 @@ pub async fn update_prompt_template(
 ) -> Result<PromptTemplate, String> {
     axagent_dao::repo::prompt_template::update_prompt_template(state.harness.db(), &id, input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
 pub async fn delete_prompt_template(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::prompt_template::delete_prompt_template(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -61,7 +86,12 @@ pub async fn get_prompt_template_versions(
         &template_id,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -76,7 +106,12 @@ pub async fn rollback_prompt_template(
         target_version,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -86,7 +121,12 @@ pub async fn import_prompt_templates(
 ) -> Result<ImportPromptResult, String> {
     axagent_dao::repo::prompt_template::import_prompt_templates(state.harness.db(), inputs)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -97,7 +137,12 @@ pub async fn export_prompt_templates(
 ) -> Result<String, String> {
     axagent_dao::repo::prompt_template::export_prompt_templates(state.harness.db(), ids, format)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -105,9 +150,14 @@ pub async fn import_prompt_from_url(
     state: State<'_, AppState>,
     input: ImportFromUrlInput,
 ) -> Result<ImportPromptResult, String> {
-    axagent_dao::repo::prompt_template::import_from_url(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_dao::repo::prompt_template::import_from_url(state.harness.db(), input).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
@@ -122,7 +172,12 @@ pub async fn import_prompt_from_folder(
         category_filter,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -132,5 +187,10 @@ pub async fn increment_prompt_usage(
 ) -> Result<PromptTemplate, String> {
     axagent_dao::repo::prompt_template::increment_usage_count(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }

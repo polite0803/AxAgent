@@ -413,3 +413,196 @@ fn derive_storage_master_key_v1() -> [u8; 32] {
     key[..len].copy_from_slice(&decoded[..len]);
     key
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── encrypt_key / decrypt_key 往返 ──
+
+    #[test]
+    fn encrypt_decrypt_roundtrip_ascii() {
+        let key = generate_master_key();
+        let enc = encrypt_key("hello world", &key).expect("encrypt 应成功");
+        let dec = decrypt_key(&enc, &key).expect("decrypt 应成功");
+        assert_eq!(dec, "hello world");
+    }
+
+    #[test]
+    fn encrypt_decrypt_roundtrip_unicode() {
+        let key = generate_master_key();
+        let plaintext = "密钥🔐包含中文与emoji";
+        let enc = encrypt_key(plaintext, &key).expect("encrypt 应成功");
+        let dec = decrypt_key(&enc, &key).expect("decrypt 应成功");
+        assert_eq!(dec, plaintext);
+    }
+
+    #[test]
+    fn encrypt_decrypt_roundtrip_empty() {
+        let key = generate_master_key();
+        let enc = encrypt_key("", &key).expect("encrypt 空串应成功");
+        let dec = decrypt_key(&enc, &key).expect("decrypt 空串应成功");
+        assert_eq!(dec, "");
+    }
+
+    #[test]
+    fn encrypt_is_nondeterministic_per_call() {
+        let key = generate_master_key();
+        let a = encrypt_key("same", &key).unwrap();
+        let b = encrypt_key("same", &key).unwrap();
+        // 由于随机 nonce，两次密文不应相同（抗重放/模式分析）。
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn decrypt_with_wrong_key_fails() {
+        let k1 = generate_master_key();
+        let k2 = generate_master_key();
+        let enc = encrypt_key("secret", &k1).expect("encrypt 应成功");
+        assert!(decrypt_key(&enc, &k2).is_err(), "错误主密钥应解密失败");
+    }
+
+    #[test]
+    fn decrypt_invalid_base64_fails() {
+        let key = generate_master_key();
+        assert!(decrypt_key("!!!not-base64!!!", &key).is_err());
+    }
+
+    #[test]
+    fn decrypt_too_short_data_fails() {
+        let key = generate_master_key();
+        // 短于 nonce(12) 的 base64 串，解码后不足 12 字节。
+        assert!(decrypt_key("AAAA", &key).is_err());
+    }
+
+    #[test]
+    fn decrypt_tampered_ciphertext_fails() {
+        let key = generate_master_key();
+        let enc = encrypt_key("tamper-me", &key).unwrap();
+        let mut bytes = BASE64.decode(&enc).unwrap();
+        // 翻转密文最后一个字节（保留前 12 字节 nonce 不动，避免长度/nonce 错误掩盖篡改）。
+        let last = bytes.len() - 1;
+        bytes[last] ^= 0xFF;
+        let tampered = BASE64.encode(&bytes);
+        assert!(decrypt_key(&tampered, &key).is_err(), "篡改密文应解密失败");
+    }
+
+    // ── sha256_hash 确定性 ──
+
+    #[test]
+    fn sha256_known_vectors() {
+        assert_eq!(
+            sha256_hash(""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_hash("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn sha256_distinct_inputs_distinct_outputs() {
+        assert_ne!(sha256_hash("foo"), sha256_hash("bar"));
+    }
+
+    // ── hmac_sha256 (RFC 4231 Test Case 6) ──
+
+    #[test]
+    fn hmac_sha256_rfc4231_test_case_6() {
+        let key = b"Jefe";
+        let msg = "what do ya want for nothing?";
+        assert_eq!(
+            hmac_sha256(key, msg),
+            "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+        );
+    }
+
+    #[test]
+    fn hmac_sha256_deterministic_and_msg_dependent() {
+        let key = b"shared-key";
+        let a = hmac_sha256(key, "message-one");
+        let b = hmac_sha256(key, "message-one");
+        let c = hmac_sha256(key, "message-two");
+        assert_eq!(a, b, "相同输入必须产生相同 HMAC");
+        assert_ne!(a, c, "不同消息必须产生不同 HMAC");
+    }
+
+    // ── key_prefix（仅 UI 展示，不用于权限判定）──
+
+    #[test]
+    fn key_prefix_short_inputs() {
+        assert_eq!(key_prefix(""), "");
+        assert_eq!(key_prefix("ab"), "**");
+    }
+
+    #[test]
+    fn key_prefix_normal_inputs() {
+        assert_eq!(key_prefix("abcd"), "ab…cd");
+        assert_eq!(key_prefix("abcde"), "ab…de");
+    }
+
+    // ── generate_gateway_key 格式 ──
+
+    #[test]
+    fn generate_gateway_key_format() {
+        let k = generate_gateway_key();
+        assert!(k.starts_with("aq-"), "应以 aq- 前缀开头");
+        assert_eq!(k.len(), 3 + 64, "格式为 aq- + 64 hex 字符");
+        assert!(k[3..].chars().all(|c| c.is_ascii_hexdigit()), "后缀须为 hex");
+    }
+
+    #[test]
+    fn generate_master_key_length() {
+        let k = generate_master_key();
+        assert_eq!(k.len(), 32);
+    }
+
+    // ── 备份密钥加密（v2 / Argon2id）──
+
+    #[test]
+    fn backup_key_encrypt_decrypt_roundtrip() {
+        let data = b"super-secret-backup-material-1234567890";
+        let enc = encrypt_backup_key(data).expect("备份加密应成功");
+        assert_eq!(enc[0], BACKUP_VERSION_BYTE, "应为 v2 版本字节 0x02");
+        let dec = decrypt_backup_key(&enc).expect("备份解密应成功");
+        assert_eq!(dec, data);
+    }
+
+    #[test]
+    fn decrypt_backup_key_truncated_data_fails() {
+        assert!(decrypt_backup_key(&[0u8; 4]).is_err());
+    }
+
+    #[test]
+    fn auto_upgrade_passthrough_for_v2() {
+        let data = b"already-v2-material";
+        let enc = encrypt_backup_key(data).unwrap();
+        let upgraded = auto_upgrade_backup_to_v2(&enc).expect("升级应成功");
+        assert_eq!(upgraded, enc, "v2 数据应原样返回（无操作）");
+    }
+
+    #[test]
+    fn auto_upgrade_invalid_data_fails() {
+        assert!(auto_upgrade_backup_to_v2(&[0u8; 4]).is_err());
+    }
+
+    // ── secure storage 主密钥往返 ──
+    // 注意：不经 `decrypt_storage_key`，因为它内部会重新派生密钥（依赖机器指纹
+    // I/O，且带 v1/v2 回退），与外部 `derive_storage_master_key()` 可能不一致，
+    // 使测试非确定。这里验证真正的不变量：派生出的存储主密钥是可用的 AES-256
+    // 密钥，用同一密钥对象加解密可无损往返。
+
+    #[test]
+    fn storage_master_key_is_usable_aes_key() {
+        let master = derive_storage_master_key();
+        // 派生的密钥必须是 32 字节且非全零
+        assert_eq!(master.len(), 32);
+        assert!(master.iter().any(|&b| b != 0), "派生密钥不应全为零");
+
+        // 同一密钥对象加解密往返无损
+        let enc = encrypt_key("storage-secret-value", &master).expect("encrypt 应成功");
+        let dec = decrypt_key(&enc, &master).expect("decrypt 应成功");
+        assert_eq!(dec, "storage-secret-value");
+    }
+}

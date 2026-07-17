@@ -225,6 +225,10 @@ pub struct AppState {
         Arc<Mutex<std::collections::HashMap<String, std::collections::HashSet<String>>>>,
     pub agent_prompters:
         Arc<Mutex<std::collections::HashMap<String, axagent_agent::ChannelPermissionPrompter>>>,
+    /// 计划确认闸门（P0-2）的挂起审批槽：conversationId → 批准信号发送端。
+    /// `agent_query` 在闸门触发时插入 sender 并 await；`agent_approve_plan` 取出并发送。
+    pub agent_plan_approvals:
+        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>>,
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
     pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,

@@ -682,7 +682,12 @@ pub async fn edit_dynamic_ui_schema_nl(
         .ok_or_else(|| "未配置可用的 LLM provider，无法执行 AI 编辑".to_string())?;
 
     // 3. 构造提示词
-    let existing_pretty = serde_json::to_string_pretty(&existing).map_err(|e| e.to_string())?;
+    let existing_pretty = serde_json::to_string_pretty(&existing).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let user_prompt = format!(
         "现有 Schema:\n{existing_pretty}\n\n编辑指令: {prompt}\n\n请输出修改后的完整 Schema JSON。"
     );
@@ -710,7 +715,12 @@ pub async fn edit_dynamic_ui_schema_nl(
         return Err("AI 返回的 Schema 缺少必要字段 (type/id)".to_string());
     }
 
-    let schema_str = serde_json::to_string(&schema_value).map_err(|e| e.to_string())?;
+    let schema_str = serde_json::to_string(&schema_value).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let description = if description.is_empty() {
         format!("根据指令\"{prompt}\"完成编辑")
     } else {
@@ -806,7 +816,12 @@ pub async fn generate_dynamic_ui_schema_nl(
         return Err("AI 返回的 Schema 缺少必要字段 (type/id)".to_string());
     }
 
-    let schema_str = serde_json::to_string(&schema_value).map_err(|e| e.to_string())?;
+    let schema_str = serde_json::to_string(&schema_value).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let title = if title.is_empty() {
         // 尝试从 schema 顶层 Text 节点推断标题
         schema_value

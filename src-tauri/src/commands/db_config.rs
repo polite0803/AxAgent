@@ -33,8 +33,18 @@ pub fn get_db_config() -> Result<DbConfig, String> {
     if !path.exists() {
         return Ok(DbConfig::default());
     }
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let mut cfg: DbConfig = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    let content = fs::read_to_string(&path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let mut cfg: DbConfig = serde_json::from_str(&content).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     // 解密密码供前端填充表单（pg_password_enc -> pg_password）
     if let Some(enc) = cfg.pg_password_enc.take() {
         if let Ok(key) = load_master_key() {
@@ -50,7 +60,12 @@ pub fn get_db_config() -> Result<DbConfig, String> {
 pub fn save_db_config(config: DbConfig) -> Result<(), String> {
     let path = db_config_path();
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        fs::create_dir_all(parent).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     }
     let mut to_save = config;
     // 若前端传回了明文密码，则加密落盘；空密码表示清除。
@@ -59,13 +74,28 @@ pub fn save_db_config(config: DbConfig) -> Result<(), String> {
             to_save.pg_password_enc = None;
         } else {
             let key = load_master_key()?;
-            let enc = encrypt_key(&pw, &key).map_err(|e| e.to_string())?;
+            let enc = encrypt_key(&pw, &key).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             to_save.pg_password_enc = Some(enc);
         }
     }
     // 明文密码不落盘
-    let content = serde_json::to_string_pretty(&to_save).map_err(|e| e.to_string())?;
-    fs::write(&path, content).map_err(|e| e.to_string())
+    let content = serde_json::to_string_pretty(&to_save).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    fs::write(&path, content).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 测试数据库连接是否可用（不持久化）。

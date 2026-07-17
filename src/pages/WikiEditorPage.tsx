@@ -8,6 +8,7 @@ import { OperationTimeline } from "@/components/wiki/OperationTimeline";
 import { TagAggregationPanel } from "@/components/wiki/TagAggregationPanel";
 import { VersionHistoryPanel } from "@/components/wiki/VersionHistoryPanel";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
+import { showBackendError } from "@/lib/errorI18n";
 import { message } from "@/lib/toast";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
@@ -98,7 +99,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         message.success(t("wiki.saved"));
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
     setSaving(false);
   }, [note, hasChanges, content, title, updateNote, t]);

@@ -19,7 +19,12 @@ use tokio::sync::Mutex;
 
 #[tauri::command]
 pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupManifest>, String> {
-    backup::list_backups(state.harness.db(), &DefaultPathEncoder).await.map_err(|e| e.to_string())
+    backup::list_backups(state.harness.db(), &DefaultPathEncoder).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -27,12 +32,22 @@ pub async fn create_backup(
     state: State<'_, AppState>,
     format: String,
 ) -> Result<BackupManifest, String> {
-    let settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let settings = get_settings(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
     backup::create_backup(state.harness.db(), &format, &backup_dir, &DefaultPathEncoder)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
@@ -44,7 +59,12 @@ pub async fn restore_backup(
 ) -> Result<serde_json::Value, String> {
     let manifest = backup::get_backup(state.harness.db(), &backup_id, &DefaultPathEncoder)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let backup_path = manifest.file_path.ok_or("Backup file path not available")?;
 
@@ -52,9 +72,12 @@ pub async fn restore_backup(
         "sqlite" => {
             let db_path =
                 state.harness.db_path().strip_prefix("sqlite:").unwrap_or(state.harness.db_path());
-            backup::restore_sqlite_backup(&backup_path, db_path)
-                .await
-                .map_err(|e| e.to_string())?;
+            backup::restore_sqlite_backup(&backup_path, db_path).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             // 移除残留的 WAL/SHM 文件，防止 SQLite 在重启后回放不兼容的日志
             // 文件不存在（NotFound）属正常路径，其他 I/O 错误必须打 warn 而非吞错
             let db_path = std::path::Path::new(db_path);
@@ -85,9 +108,19 @@ pub async fn restore_backup(
 
             let report = backup::restore_json_backup(state.harness.db(), &backup_path, &strategy)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
 
-            Ok(serde_json::to_value(&report).map_err(|e| e.to_string())?)
+            Ok(serde_json::to_value(&report).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?)
         },
         other => Err(ErrorResponse::new(backup_err::FORMAT_UNSUPPORTED)
             .with_detail(format!("不支持的备份格式: {}。仅支持 sqlite 和 json 格式。", other))
@@ -97,9 +130,12 @@ pub async fn restore_backup(
 
 #[tauri::command]
 pub async fn delete_backup(state: State<'_, AppState>, backup_id: String) -> Result<(), String> {
-    backup::delete_backup(state.harness.db(), &backup_id, &DefaultPathEncoder)
-        .await
-        .map_err(|e| e.to_string())
+    backup::delete_backup(state.harness.db(), &backup_id, &DefaultPathEncoder).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -109,12 +145,22 @@ pub async fn batch_delete_backups(
 ) -> Result<(), String> {
     backup::batch_delete_backups(state.harness.db(), &backup_ids, &DefaultPathEncoder)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]
 pub async fn get_backup_settings(state: State<'_, AppState>) -> Result<AutoBackupSettings, String> {
-    let settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let settings = get_settings(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let default_dir = backup::resolve_backup_dir(None, &state.app_data_dir);
     Ok(AutoBackupSettings {
@@ -133,15 +179,25 @@ pub async fn update_backup_settings(
     state: State<'_, AppState>,
     backup_settings: AutoBackupSettings,
 ) -> Result<(), String> {
-    let mut settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let mut settings = get_settings(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     settings.auto_backup_enabled = backup_settings.enabled;
     settings.auto_backup_interval_hours = backup_settings.interval_hours;
     settings.auto_backup_max_count = backup_settings.max_count;
     settings.backup_dir = axagent_storage::path_vars::encode_path_opt(&backup_settings.backup_dir);
 
-    axagent_dao::repo::settings::save_settings(state.harness.db(), &settings)
-        .await
-        .map_err(|e| e.to_string())?;
+    axagent_dao::repo::settings::save_settings(state.harness.db(), &settings).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
 
     // Restart scheduler with new settings
     restart_auto_backup(
@@ -292,7 +348,12 @@ pub async fn upload_backup_to_cloud(
 
     let manifest = backup::get_backup(state.harness.db(), &request.backup_id, &DefaultPathEncoder)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let backup_path = manifest.file_path.ok_or("备份文件路径不可用")?;
     let data = std::fs::read(&backup_path).map_err(|e| format!("读取备份文件失败: {}", e))?;
@@ -369,7 +430,12 @@ pub async fn download_cloud_backup(
     let obj =
         backend.get(&request.cloud_key).await.map_err(|e| format!("从云端下载备份失败: {}", e))?;
 
-    let settings = get_settings(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let settings = get_settings(state.harness.db()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let decoded_backup_dir = axagent_storage::path_vars::decode_path_opt(&settings.backup_dir);
     let backup_dir = backup::resolve_backup_dir(decoded_backup_dir.as_deref(), &state.app_data_dir);
     std::fs::create_dir_all(&backup_dir).map_err(|e| format!("创建备份目录失败: {}", e))?;

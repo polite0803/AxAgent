@@ -19,6 +19,7 @@ use crate::workflow_types::*;
 pub fn compile_plan_to_dag(
     plan: &Plan,
     tool_names: &[String],
+    agent_profile_id: Option<String>,
 ) -> (Vec<WorkflowNode>, Vec<WorkflowEdge>) {
     let mut nodes: Vec<WorkflowNode> = Vec::new();
     let mut edges: Vec<WorkflowEdge> = Vec::new();
@@ -137,7 +138,7 @@ pub fn compile_plan_to_dag(
                             .collect(),
                         exposed_tools: vec![],
                         output_mode: OutputMode::Text,
-                        agent_profile_id: None,
+                        agent_profile_id: agent_profile_id.clone(),
                         max_tool_rounds: None,
                         execution_mode: None,
                         rag_source_ids: vec![],
@@ -325,6 +326,7 @@ pub fn dag_to_plan(goal: &str, nodes: &[WorkflowNode], edges: &[WorkflowEdge]) -
             result: None,
             retry_count: 0,
             status: crate::plan_types::TaskStatus::Pending,
+            compensation: node.base().compensation.clone(),
         });
         all_ids.push(nid);
     }

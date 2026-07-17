@@ -28,6 +28,7 @@ import type { Artifact } from "@/types";
 import type { BackupManifest } from "@/types";
 import type { CreateKnowledgeBaseInput } from "@/types";
 import type { CreateMemoryItemInput, CreateMemoryNamespaceInput } from "@/types";
+import { emitBrowserEvent } from "./browserEvents";
 
 interface WorkflowTemplate {
   id: string;
@@ -680,6 +681,25 @@ const DEFAULT_SETTINGS = {
 
 // ── Command Handler ─────────────────────────────────────────────────────
 
+// ── 计划确认闸门（P0-2）浏览器模式模拟 ──
+// agent_query 在开启 requirePlanApproval 时弹出计划草稿并挂起，直到
+// agent_approve_plan 被调用（approve/reject）。用于 e2e 测试事件驱动流程。
+const planDecisionResolvers = new Map<string, (decision: string) => void>();
+
+function waitForPlanDecision(conversationId: string): Promise<string> {
+  return new Promise<string>((resolve) => {
+    planDecisionResolvers.set(conversationId, resolve);
+  });
+}
+
+function resolvePlanDecision(conversationId: string, decision: string): void {
+  const resolver = planDecisionResolvers.get(conversationId);
+  if (resolver) {
+    planDecisionResolvers.delete(conversationId);
+    resolver(decision);
+  }
+}
+
 export async function handleCommand<T>(
   cmd: string,
   args?: Record<string, unknown>,
@@ -1170,7 +1190,54 @@ export async function handleCommand<T>(
       return [] as T;
     }
     case "agent_query": {
+      const req = (args as {
+        request?: { requirePlanApproval?: boolean; input?: string; conversationId?: string };
+      } | undefined)?.request;
+      // P0-2：开启计划确认时，模拟后端判定为复杂任务并弹出计划草稿等待用户确认
+      if (req?.requirePlanApproval) {
+        const conversationId = req.conversationId ?? `mock-${genId()}`;
+        const input = req.input ?? "";
+        emitBrowserEvent("agent-plan-ready-for-approval", {
+          conversationId,
+          plan: JSON.stringify({
+            task_preview: input.slice(0, 200),
+            selected_engine: "ReactEngine",
+            features: {
+              node_count: 3,
+              estimated_tool_rounds: 2,
+              requires_verification: true,
+              has_branches: false,
+              has_conditions: false,
+            },
+            note: "任务已被判定为复杂任务，请确认后执行。",
+          }),
+        });
+        const decision = await waitForPlanDecision(conversationId);
+        if (decision !== "approve") {
+          return { conversationId, assistantMessageId: "", status: "rejected" } as T;
+        }
+        // 批准：模拟流式完成，使前端 eventPromise 正常 resolve
+        const assistantId = genId();
+        emitBrowserEvent("agent-message-id", { conversationId, assistantMessageId: assistantId });
+        emitBrowserEvent("agent-done", {
+          conversationId,
+          assistantMessageId: assistantId,
+          text: "（模拟）计划已批准，执行完成。",
+          thinking: "",
+          usage: { input_tokens: 1, output_tokens: 1 },
+        });
+        return { conversationId, assistantMessageId: "", status: undefined } as T;
+      }
       // Browser mock: return immediately without error
+      return undefined as T;
+    }
+    case "agent_approve_plan": {
+      const req = (args as {
+        request?: { conversationId?: string; decision?: string };
+      } | undefined)?.request;
+      if (req?.conversationId && req?.decision) {
+        resolvePlanDecision(req.conversationId, req.decision);
+      }
       return undefined as T;
     }
     case "plan_list": {
@@ -1247,11 +1314,34 @@ export async function handleCommand<T>(
     }
     case "send_message": {
       const raw = (args as { params?: unknown }).params ?? args;
-      const { conversationId, content, attachments } = raw as {
+      const { conversationId, content, attachments, options } = raw as {
         conversationId: string;
         content: string;
         attachments?: unknown[];
+        options?: { requirePlanApproval?: boolean };
       };
+      // P0-2 plan approval gate (browser mock): hang until user approves/rejects
+      if (options?.requirePlanApproval) {
+        emitBrowserEvent("agent-plan-ready-for-approval", {
+          conversationId,
+          plan: JSON.stringify({
+            task_preview: content.slice(0, 200),
+            selected_engine: "ReactEngine",
+            features: {
+              node_count: 3,
+              estimated_tool_rounds: 2,
+              requires_verification: true,
+              has_branches: false,
+              has_conditions: false,
+            },
+            note: "任务已被判定为复杂任务，请确认后执行。",
+          }),
+        });
+        const decision = await waitForPlanDecision(conversationId);
+        if (decision !== "approve") {
+          return { rejected: true, conversationId } as T;
+        }
+      }
       const userMsgId = genId();
       const userMsg = {
         id: userMsgId,

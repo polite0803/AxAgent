@@ -13,7 +13,12 @@ use tauri::State;
 #[tauri::command]
 pub async fn open_skills_dir() -> Result<(), String> {
     let dir = skills_dir();
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     open::that(&dir).map_err(|e| format!("Failed to open directory: {}", e))
 }
 
@@ -217,10 +222,13 @@ async fn search_github_marketplace(
         page
     );
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client =
+        reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -233,7 +241,12 @@ async fn search_github_marketplace(
         return Err(format!("GitHub API error: {}", response.status()));
     }
 
-    let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let body: serde_json::Value = response.json().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let items = body["items"].as_array().cloned().unwrap_or_default();
 
     let mut results: Vec<MarketplaceSkill> = Vec::new();
@@ -300,10 +313,13 @@ async fn search_skillhub_marketplace(
         offset
     );
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client =
+        reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -316,7 +332,12 @@ async fn search_skillhub_marketplace(
         return Err(format!("skillhub API error: {}", response.status()));
     }
 
-    let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let body: serde_json::Value = response.json().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let items = body["data"].as_array().cloned().unwrap_or_default();
 
     let mut results: Vec<MarketplaceSkill> = Vec::new();
@@ -383,10 +404,13 @@ async fn search_skillhub_marketplace(
 pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, String> {
     let url = "https://skillshub.wtf/api/v1/categories";
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client =
+        reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let response = client
         .get(url)
         .header("User-Agent", "AxAgent")
@@ -399,7 +423,12 @@ pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, St
         return Err(format!("skillhub API error: {}", response.status()));
     }
 
-    let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let body: serde_json::Value = response.json().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     let items = body["data"].as_array().cloned().unwrap_or_default();
 
     let categories: Vec<MarketplaceCategory> = items
@@ -461,10 +490,13 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
         let url =
             format!("https://api.github.com/repos/{}/{}/commits?per_page=1", parts[0], parts[1]);
 
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|e| e.to_string())?;
+        let client =
+            reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         let response = client
             .get(&url)
             .header("User-Agent", "AxAgent")
@@ -513,12 +545,27 @@ pub(crate) fn validate_and_read_skill_md(name: &str) -> Result<(PathBuf, String)
     if !path.exists() {
         return Err(format!("Skill '{}' not found", name));
     }
-    let canonical_dir = skills_dir().join(name).canonicalize().map_err(|e| e.to_string())?;
-    let canonical_path = path.canonicalize().map_err(|e| e.to_string())?;
+    let canonical_dir = skills_dir().join(name).canonicalize().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let canonical_path = path.canonicalize().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     if !canonical_path.starts_with(&canonical_dir) {
         return Err("Path traversal detected".to_string());
     }
-    let content = std::fs::read_to_string(&canonical_path).map_err(|e| e.to_string())?;
+    let content = std::fs::read_to_string(&canonical_path).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok((canonical_path, content))
 }
 
@@ -533,7 +580,12 @@ pub async fn skill_patch(name: String, content: String) -> Result<String, ErrorR
         content
     );
 
-    std::fs::write(&canonical_path, &patched).map_err(|e| e.to_string())?;
+    std::fs::write(&canonical_path, &patched).map_err(|e| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+    })?;
     Ok(format!("Skill '{}' patched", name))
 }
 
@@ -549,7 +601,12 @@ pub async fn skill_edit(name: String, content: String) -> Result<String, ErrorRe
         content
     };
 
-    std::fs::write(&canonical_path, &edited).map_err(|e| e.to_string())?;
+    std::fs::write(&canonical_path, &edited).map_err(|e| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+    })?;
     Ok(format!("Skill '{}' edited", name))
 }
 
@@ -632,7 +689,12 @@ pub async fn skill_check_similar(
         name.clone()
     };
 
-    let similar = closed_loop.find_similar_skills(&check_topic).await.map_err(|e| e.to_string())?;
+    let similar = closed_loop.find_similar_skills(&check_topic).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     if similar.is_empty() {
         return Ok(SkillCreateCheckResult {
@@ -697,7 +759,12 @@ pub async fn skill_create(
         });
     }
 
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let desc = if description.is_empty() {
         name.clone()
@@ -711,7 +778,12 @@ pub async fn skill_create(
         escaped_name, escaped_desc, content
     );
 
-    std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(SkillCreateCheckResult {
         has_similar: false,
@@ -770,7 +842,12 @@ pub async fn skill_upgrade_or_create(
 
         let auto_action = axagent_trajectory::AutoAction {
             action_type: "upgrade_skill".to_string(),
-            target: serde_json::to_string(&upgrade_proposal).map_err(|e| e.to_string())?,
+            target: serde_json::to_string(&upgrade_proposal).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?,
         };
 
         closed_loop.execute_upgrade_action(&auto_action).await;
@@ -782,7 +859,12 @@ pub async fn skill_upgrade_or_create(
         return Err(format!("Skill '{}' already exists", name));
     }
 
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let desc = if description.is_empty() {
         name.clone()
@@ -796,7 +878,12 @@ pub async fn skill_upgrade_or_create(
         escaped_name, escaped_desc, content
     );
 
-    std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("SKILL.md"), &skill_md).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(format!("Skill '{}' created at {}", name, dir.display()))
 }
 
@@ -816,7 +903,12 @@ pub async fn skill_set_manifest(
     let manifest_str = serde_json::to_string_pretty(&manifest).map_err(|e| {
         ErrorResponse::new(skill_err::SERIALIZE_FAILED).with_detail(format!("JSON 序列化失败: {e}"))
     })?;
-    std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())?;
+    std::fs::write(&manifest_path, manifest_str).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(format!("清单已保存: '{}'", name))
 }

@@ -12,6 +12,7 @@ import { Button, Empty, Modal, Popconfirm, Select, Spin, Tabs, Tag, theme, Toolt
 import { ArrowLeftRight, BookOpen, GitGraph, Network, PenLine, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
+import { showBackendError } from "@/lib/errorI18n";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -94,7 +95,7 @@ export function WikiDetailPanel({
         onNoteUpdated();
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     }
     setSaving(false);
   }, [note, hasChanges, updateNote, onNoteUpdated, content, title]);

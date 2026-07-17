@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { validate_workflow } from "@/lib/workflowLayout";
 import {
@@ -136,7 +137,7 @@ function BatchImportN8n({
         onImportComplete?.();
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setImporting(false);
       setProgressText("");
@@ -261,7 +262,7 @@ function BatchImportFolder({
         message.warning(t("workflow.importExport.noJsonFound"));
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setImporting(false);
       setProgressText("");

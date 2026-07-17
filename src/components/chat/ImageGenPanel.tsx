@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { Button, Image, Input, Select, Slider, Space, Typography } from "antd";
@@ -198,7 +199,7 @@ export function ImageGenPanel({
         await saveToArtifact(conversationId, prompt, res, t);
       }
     } catch (e) {
-      message.error(String(e));
+      showBackendError(message, e);
     } finally {
       setLoading(false);
     }
