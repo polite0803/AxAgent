@@ -259,6 +259,7 @@
     "viewSubSession": "Voir la sous-session"
   },
   "agentProfile": {
+    "businessRoleLabel": "Rôle Commercial",
     "category": {
       "business": "Affaires",
       "data": "Données",
@@ -275,6 +276,38 @@
     "importSkipped": "{{count}} ignorés, {{errors}} erreurs : {{detail}}",
     "importSuccess": "Importé avec succès{{count}} roles",
     "none": "Aucun"
+  },
+  "businessRole": {
+    "activeDomains": "Domaines Actifs",
+    "activeDomainsPlaceholder": "Sélectionnez les domaines d'outils activés par ce rôle",
+    "create": "Nouveau Rôle",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce rôle commercial ?",
+    "deleteSuccess": "Rôle commercial supprimé",
+    "disabled": "Désactivé",
+    "edit": "Modifier le Rôle",
+    "empty": "Aucun rôle commercial pour le moment. Cliquez sur \"Nouveau Rôle\" pour en créer un.",
+    "icon": "Icône",
+    "managedExpertIds": "IDs des Experts Subordonnés",
+    "managedExpertIdsPlaceholder": "IDs d'experts séparés par virgules, ex. expert-001, expert-002",
+    "managerTitle": "Gestion des Rôles Commerciaux",
+    "nameRequired": "Veuillez saisir le nom du rôle",
+    "noDesc": "Aucune description",
+    "noReportsTo": "Aucun (Rôle de niveau supérieur)",
+    "reportsTo": "Rend compte à",
+    "requiredCertifications": "Certifications Requises",
+    "requiredCertificationsPlaceholder": "Certifications séparées par virgules, ex. CFA, PMP",
+    "responsibilities": "Responsabilités Principales",
+    "responsibilitiesPlaceholder": "Responsabilités séparées par virgules, ex. Planification Stratégique, Gestion d'Équipe",
+    "saveSuccess": "Rôle commercial enregistré",
+    "sourceBuiltin": "Intégré",
+    "sourceCustom": "Personnalisé",
+    "systemPrompt": "Prompt Système du Rôle",
+    "systemPromptHint": "Concaténation à l'exécution (4 couches) : Rôle Commercial → Exécuteur → Expert → Nœud inline",
+    "systemPromptPlaceholder": "Prompt système décrivant les responsabilités et le comportement du rôle",
+    "systemPromptRequired": "Veuillez saisir le prompt système"
+  },
+  "businessRoleStore": {
+    "loadFailed": "Échec du chargement des rôles commerciaux : {{error}}"
   },
   "agentStats": {
     "askUser": "question(s)",

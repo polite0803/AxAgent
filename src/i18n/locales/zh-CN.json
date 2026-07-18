@@ -259,6 +259,7 @@
     "viewSubSession": "查看子会话"
   },
   "agentProfile": {
+    "businessRoleLabel": "业务岗位",
     "category": {
       "business": "商业",
       "data": "数据",
@@ -275,6 +276,38 @@
     "importSkipped": "跳过 {{count}} 个，{{errors}} 个错误: {{detail}}",
     "importSuccess": "成功导入 {{count}} 个角色",
     "none": "无"
+  },
+  "businessRole": {
+    "activeDomains": "激活业务域",
+    "activeDomainsPlaceholder": "选择该岗位激活的工具域",
+    "create": "新建岗位",
+    "deleteConfirm": "确定删除该业务岗位？",
+    "deleteSuccess": "业务岗位已删除",
+    "disabled": "已禁用",
+    "edit": "编辑岗位",
+    "empty": "暂无业务岗位，点击「新建岗位」开始创建",
+    "icon": "图标",
+    "managedExpertIds": "下属专家 ID",
+    "managedExpertIdsPlaceholder": "逗号分隔的专家 ID，如 expert-001, expert-002",
+    "managerTitle": "业务岗位管理",
+    "nameRequired": "请输入岗位名称",
+    "noDesc": "暂无描述",
+    "noReportsTo": "无（顶层岗位）",
+    "reportsTo": "汇报对象",
+    "requiredCertifications": "准入条件",
+    "requiredCertificationsPlaceholder": "逗号分隔的准入条件，如 CFA 证书, PMP 认证",
+    "responsibilities": "核心职责",
+    "responsibilitiesPlaceholder": "逗号分隔的职责描述，如 战略规划, 团队管理",
+    "saveSuccess": "业务岗位已保存",
+    "sourceBuiltin": "内置",
+    "sourceCustom": "自定义",
+    "systemPrompt": "岗位系统提示词",
+    "systemPromptHint": "运行时按 4 层拼接：业务岗位 → 执行器 → 专家 → 节点 inline",
+    "systemPromptPlaceholder": "该岗位的系统提示词，描述其职责边界与行为准则",
+    "systemPromptRequired": "请输入岗位系统提示词"
+  },
+  "businessRoleStore": {
+    "loadFailed": "加载业务岗位失败: {{error}}"
   },
   "agentStats": {
     "askUser": "次提问",

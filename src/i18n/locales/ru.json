@@ -259,6 +259,7 @@
     "viewSubSession": "Просмотр подсессии"
   },
   "agentProfile": {
+    "businessRoleLabel": "Бизнес-роль",
     "category": {
       "business": "Бизнес",
       "data": "Данные",
@@ -275,6 +276,38 @@
     "importSkipped": "Пропущено {{count}}, {{errors}} ошибок: {{detail}}",
     "importSuccess": "Успешно импортировано{{count}} roles",
     "none": "Нет"
+  },
+  "businessRole": {
+    "activeDomains": "Активные домены",
+    "activeDomainsPlaceholder": "Выберите домены инструментов, активируемые этой ролью",
+    "create": "Новая роль",
+    "deleteConfirm": "Вы уверены, что хотите удалить эту бизнес-роль?",
+    "deleteSuccess": "Бизнес-роль удалена",
+    "disabled": "Отключено",
+    "edit": "Изменить роль",
+    "empty": "Бизнес-ролей пока нет. Нажмите «Новая роль», чтобы создать.",
+    "icon": "Иконка",
+    "managedExpertIds": "ID подчинённых экспертов",
+    "managedExpertIdsPlaceholder": "ID экспертов, разделённые запятыми, напр. expert-001, expert-002",
+    "managerTitle": "Управление бизнес-ролями",
+    "nameRequired": "Пожалуйста, введите название роли",
+    "noDesc": "Нет описания",
+    "noReportsTo": "Нет (роль верхнего уровня)",
+    "reportsTo": "Отчитывается перед",
+    "requiredCertifications": "Требуемые сертификаты",
+    "requiredCertificationsPlaceholder": "Сертификаты, разделённые запятыми, напр. CFA, PMP",
+    "responsibilities": "Основные обязанности",
+    "responsibilitiesPlaceholder": "Обязанности, разделённые запятыми, напр. Стратегическое планирование, Управление командой",
+    "saveSuccess": "Бизнес-роль сохранена",
+    "sourceBuiltin": "Встроено",
+    "sourceCustom": "Пользовательский",
+    "systemPrompt": "Системный промпт роли",
+    "systemPromptHint": "Конкатенация во время выполнения (4 слоя): Бизнес-роль → Исполнитель → Эксперт → Узел inline",
+    "systemPromptPlaceholder": "Системный промпт, описывающий обязанности и поведение роли",
+    "systemPromptRequired": "Пожалуйста, введите системный промпт"
+  },
+  "businessRoleStore": {
+    "loadFailed": "Ошибка загрузки бизнес-ролей: {{error}}"
   },
   "agentStats": {
     "askUser": "вопрос(ы)",

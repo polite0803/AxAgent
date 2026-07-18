@@ -259,6 +259,7 @@
     "viewSubSession": "Ver sub-sesión"
   },
   "agentProfile": {
+    "businessRoleLabel": "Rol Comercial",
     "category": {
       "business": "Negocios",
       "data": "Datos",
@@ -275,6 +276,38 @@
     "importSkipped": "{{count}} omitidos, {{errors}} errores: {{detail}}",
     "importSuccess": "Importado correctamente{{count}} roles",
     "none": "Ninguno"
+  },
+  "businessRole": {
+    "activeDomains": "Dominios Activos",
+    "activeDomainsPlaceholder": "Seleccione los dominios de herramientas activados por este rol",
+    "create": "Nuevo Rol",
+    "deleteConfirm": "¿Está seguro de que desea eliminar este rol comercial?",
+    "deleteSuccess": "Rol comercial eliminado",
+    "disabled": "Deshabilitado",
+    "edit": "Editar Rol",
+    "empty": "No hay roles comerciales aún. Haga clic en \"Nuevo Rol\" para crear uno.",
+    "icon": "Icono",
+    "managedExpertIds": "IDs de Expertos Subordinados",
+    "managedExpertIdsPlaceholder": "IDs de expertos separados por comas, ej. expert-001, expert-002",
+    "managerTitle": "Gestión de Roles Comerciales",
+    "nameRequired": "Por favor, introduzca el nombre del rol",
+    "noDesc": "Sin descripción",
+    "noReportsTo": "Ninguno (Rol de nivel superior)",
+    "reportsTo": "Reporta a",
+    "requiredCertifications": "Certificaciones Requeridas",
+    "requiredCertificationsPlaceholder": "Certificaciones separadas por comas, ej. CFA, PMP",
+    "responsibilities": "Responsabilidades Principales",
+    "responsibilitiesPlaceholder": "Responsabilidades separadas por comas, ej. Planificación Estratégica, Gestión de Equipos",
+    "saveSuccess": "Rol comercial guardado",
+    "sourceBuiltin": "Integrado",
+    "sourceCustom": "Personalizado",
+    "systemPrompt": "Prompt del Sistema del Rol",
+    "systemPromptHint": "Concatenación en tiempo de ejecución (4 capas): Rol Comercial → Executor → Experto → Nodo inline",
+    "systemPromptPlaceholder": "Prompt del sistema que describe las responsabilidades y comportamiento del rol",
+    "systemPromptRequired": "Por favor, introduzca el prompt del sistema"
+  },
+  "businessRoleStore": {
+    "loadFailed": "Error al cargar los roles comerciales: {{error}}"
   },
   "agentStats": {
     "askUser": "pregunta(s)",
