@@ -102,6 +102,7 @@ pub mod trajectory_sessions;
 pub mod trajectory_skill_executions;
 pub mod trajectory_skills;
 pub mod trajectory_steps;
+pub mod trajectory_workflow_reflections;
 
 // Dynamic UI entities
 pub mod dynamic_ui_form_data;

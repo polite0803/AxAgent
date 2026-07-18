@@ -24,6 +24,8 @@ use axagent_harness::workflow_reflection::{
 };
 use axagent_harness::workflow_types::NodeStatus;
 
+use crate::storage::TrajectoryStorage;
+
 /// 启发式阈值(可由 wiring 层覆盖)。
 #[derive(Debug, Clone)]
 pub struct ReflectorConfig {
@@ -50,21 +52,33 @@ impl Default for ReflectorConfig {
 
 /// `WorkflowReflector` 的 trajectory 实现。
 ///
-/// 内部用 `RwLock<HashMap<workflow_id, Vec<Reflection>>>` 保留历史,
-/// 持久化(DAO / 文件)由 wiring 层在钩子中调用 `get_history` 后处理。
+/// 内部用 `RwLock<HashMap<workflow_id, Vec<Reflection>>>` 保留内存历史,
+/// 可选 `storage: Option<Arc<TrajectoryStorage>>` 在每次反思后同步落库到
+/// `trajectory_workflow_reflections` 表(优化 3)。`storage = None` 时退化为
+/// 纯内存模式(单测 / 离线场景)。
 pub struct WorkflowReflectorImpl {
     config: ReflectorConfig,
     history: RwLock<HashMap<String, Vec<Reflection>>>,
+    storage: Option<Arc<TrajectoryStorage>>,
 }
 
 impl WorkflowReflectorImpl {
     pub fn new(config: ReflectorConfig) -> Self {
-        Self { config, history: RwLock::new(HashMap::new()) }
+        Self { config, history: RwLock::new(HashMap::new()), storage: None }
     }
 
-    /// 默认配置构造。
+    /// 默认配置构造(纯内存模式,不落库)。
     pub fn with_defaults() -> Self {
         Self::new(ReflectorConfig::default())
+    }
+
+    /// 注入 `TrajectoryStorage` 启用持久化(优化 3)。
+    ///
+    /// 注入后,`reflect()` / `reflect_node()` 在写入内存历史后,会异步把反思
+    /// 落库到 `trajectory_workflow_reflections` 表。失败仅记录日志,不阻塞主流程
+    /// (反思落库是 best-effort,失败不应影响工作流执行)。
+    pub fn with_storage(config: ReflectorConfig, storage: Arc<TrajectoryStorage>) -> Self {
+        Self { config, history: RwLock::new(HashMap::new()), storage: Some(storage) }
     }
 
     /// 把反思写入内存历史(按 workflow_id 索引,trim 到 max_history)。
@@ -75,6 +89,31 @@ impl WorkflowReflectorImpl {
         if vec.len() > self.config.max_history_per_workflow {
             let drop_count = vec.len() - self.config.max_history_per_workflow;
             vec.drain(0..drop_count);
+        }
+    }
+
+    /// 把反思落库到 `trajectory_workflow_reflections`(best-effort)。
+    ///
+    /// 落库失败仅记录 warn 日志,不返回错误。理由:
+    /// - 反思落库是辅助功能,失败不应影响工作流主流程
+    /// - `WorkflowOptimizer` / `WorkflowEvolver` 仍可从内存 `get_history` 获取近期反思
+    /// - 跨进程重启场景才依赖落库数据,生产环境偶发 DB 错误不应触发工作流回滚
+    async fn persist_to_storage(
+        &self,
+        workflow_id: &str,
+        template_id: Option<&str>,
+        reflection: &Reflection,
+    ) {
+        if let Some(ref storage) = self.storage
+            && let Err(e) =
+                storage.save_workflow_reflection(workflow_id, template_id, reflection).await
+        {
+            tracing::warn!(
+                "Failed to persist workflow reflection (workflow_id={}, execution_id={}): {}",
+                workflow_id,
+                reflection.task_id,
+                e
+            );
         }
     }
 
@@ -402,6 +441,9 @@ impl WorkflowReflector for WorkflowReflectorImpl {
 
         // 写入内存历史
         self.store_history(&record.workflow_id, reflection.clone()).await;
+        // 落库到 trajectory_workflow_reflections(优化 3,best-effort)
+        self.persist_to_storage(&record.workflow_id, record.template_id.as_deref(), &reflection)
+            .await;
         Ok(reflection)
     }
 
@@ -473,6 +515,9 @@ impl WorkflowReflector for WorkflowReflectorImpl {
 
         // 节点级反思也写入历史(以 workflow_id 索引)
         self.store_history(&record.workflow_id, reflection.clone()).await;
+        // 落库到 trajectory_workflow_reflections(优化 3,best-effort)
+        self.persist_to_storage(&record.workflow_id, record.template_id.as_deref(), &reflection)
+            .await;
         Ok(reflection)
     }
 

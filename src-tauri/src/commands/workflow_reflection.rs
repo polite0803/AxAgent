@@ -48,7 +48,10 @@ pub struct WorkflowEvolveRequest {
 ///
 /// 统一使用 `ErrorCategory::Unrecoverable`(反思/进化失败通常不可重试)。
 /// 底层错误信息写入 `detail`,前端按 `t("error.${code}")` 翻译,可附带 detail 调试信息。
-fn wrap_err<T, E: std::fmt::Display>(result: Result<T, E>, code: &'static str) -> Result<T, String> {
+fn wrap_err<T, E: std::fmt::Display>(
+    result: Result<T, E>,
+    code: &'static str,
+) -> Result<T, String> {
     result.map_err(|e| {
         ErrorResponse::from_error_with_code(code, e, ErrorCategory::Unrecoverable).to_string()
     })
@@ -81,10 +84,7 @@ pub async fn workflow_optimize_apply(
     request: WorkflowOptimizeApplyRequest,
 ) -> Result<WorkflowTemplateData, String> {
     wrap_err(
-        state
-            .workflow_optimizer
-            .apply_suggestions(&request.template, &request.suggestions)
-            .await,
+        state.workflow_optimizer.apply_suggestions(&request.template, &request.suggestions).await,
         wf_reflect_err::APPLY_FAILED,
     )
 }
@@ -108,7 +108,9 @@ pub async fn workflow_evolve_template(
 
 /// 查询工作流进化器的统计信息(当前代数、最佳 / 平均适应度、是否收敛)。
 #[tauri::command]
-pub async fn workflow_evolution_stats(state: State<'_, AppState>) -> Result<EvolutionStats, String> {
+pub async fn workflow_evolution_stats(
+    state: State<'_, AppState>,
+) -> Result<EvolutionStats, String> {
     wrap_err(state.workflow_evolver.get_stats().await, wf_reflect_err::EVOLVE_FAILED)
 }
 

@@ -19,4 +19,4 @@ mod reflector;
 
 pub use evolver::WorkflowEvolverImpl;
 pub use optimizer::WorkflowOptimizerImpl;
-pub use reflector::WorkflowReflectorImpl;
+pub use reflector::{ReflectorConfig, WorkflowReflectorImpl};

@@ -211,4 +211,6 @@ pub use trajectory_impl::{ReplayContextExt, RewardCategoryExt, TrajectoryBuilder
 
 // ── 工作流反思/进化/优化三层 trait 实现(阶段 4) ──────────────────────
 
-pub use workflow_adapters::{WorkflowEvolverImpl, WorkflowOptimizerImpl, WorkflowReflectorImpl};
+pub use workflow_adapters::{
+    ReflectorConfig, WorkflowEvolverImpl, WorkflowOptimizerImpl, WorkflowReflectorImpl,
+};

@@ -342,8 +342,16 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // ── 阶段 5:工作流反思 / 进化 / 优化三层 trait 实现 ──
     // 同一份 Arc 实例同时挂载到 WorkEngine(用于自动触发钩子)与 AppState 字段(供命令层手动调用)。
     // 启动即用,纯启发式;真正的 LLM 变异 / 沙箱验证由 wiring 层后续通过 setter 注入(此处 MVP 不注入)。
+    //
+    // 优化 3:反思器注入 `shared_trajectory_storage`,每次 reflect()/reflect_node()
+    // 后同步落库到 `trajectory_workflow_reflections` 表,供跨会话查询 / 模式聚合 /
+    // 进化决策使用。落库 best-effort,失败仅 warn 日志,不影响工作流主流程。
     let workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector> =
-        axagent_trajectory::WorkflowReflectorImpl::with_defaults().into_arc();
+        axagent_trajectory::WorkflowReflectorImpl::with_storage(
+            axagent_trajectory::ReflectorConfig::default(),
+            shared_trajectory_storage.clone(),
+        )
+        .into_arc();
     let workflow_evolver: Arc<dyn axagent_harness::WorkflowEvolver> =
         axagent_trajectory::WorkflowEvolverImpl::with_defaults().into_arc();
     let workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer> =
