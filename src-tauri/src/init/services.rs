@@ -730,7 +730,7 @@ fn start_skill_evolution(state: &AppState) {
             axagent_runtime::llm_bridge::build_llm_bridge_from_db(&master_key).await
         {
             let engine = skill_evolution_engine.lock().await;
-            engine.set_llm_provider(std::sync::Arc::new(bridge));
+            engine.set_llm_provider(std::sync::Arc::new(bridge)).await;
             drop(engine);
             tracing::info!("[evolution] LLM provider injected into SkillEvolutionEngine");
         }

@@ -317,6 +317,7 @@ mod tests {
 
     #[tokio::test]
     async fn build_system_prompt_contains_key_sections() {
+        axagent_harness::test_support::register_noop_role_and_expert_repos();
         let prompt = build_system_prompt().await;
         assert!(prompt.contains("设计时编译"));
         assert!(prompt.contains(NODE_SCHEMAS_DOC));

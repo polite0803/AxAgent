@@ -4,7 +4,7 @@
 
 // DTO + 固有方法 + 构造器 由 axagent-harness 提供
 pub use axagent_harness::trajectory_types::{
-    ExportFormat, MessageRole, RLTrainingEntry, RewardSignal, RewardType, ToolCall, TrainingConfig,
-    Trajectory, TrajectoryExportOptions, TrajectoryOutcome, TrajectoryPattern, TrajectoryQuality,
+    ExportFormat, MessageRole, RLTrainingEntry, RewardSignal, RewardType, ToolCall, Trajectory,
+    TrajectoryExportOptions, TrajectoryOutcome, TrajectoryPattern, TrajectoryQuality,
     TrajectoryQuery, TrajectoryStep, TrajectoryToolResult,
 };

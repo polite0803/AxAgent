@@ -307,3 +307,138 @@ pub struct PipelineStats {
     pub pool_size: usize,
     pub train_count: u64,
 }
+
+#[cfg(test)]
+mod tests {
+    //! P1-5 修复:补齐 ExperiencePipeline 单元测试。
+    //! 覆盖 process_reflection / process_feedback / bridge_feedback_to_reflection / stats 主路径。
+
+    use super::*;
+    use crate::reflector::Reflection;
+
+    fn make_pipeline(threshold: usize) -> ExperiencePipeline {
+        let optimizer = Arc::new(RwLock::new(RLOptimizer::new(
+            "test_optimizer".to_string(),
+            "Test RL Optimizer".to_string(),
+        )));
+        ExperiencePipeline::new(optimizer, threshold)
+    }
+
+    fn make_reflection(quality_score: u8, task_id: &str) -> Reflection {
+        Reflection {
+            task_id: task_id.to_string(),
+            timestamp: chrono::Utc::now(),
+            quality_score,
+            quality_analysis: String::new(),
+            efficiency_analysis: String::new(),
+            error_patterns: vec!["timeout".to_string()],
+            reusable_patterns: vec!["search->read".to_string()],
+            knowledge_suggestions: Vec::new(),
+            improvement_suggestions: vec!["add retry".to_string()],
+            overall_summary: "test summary".to_string(),
+            quality_metrics: None,
+            metadata: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_reflection_writes_to_pool() {
+        let mut pipeline = make_pipeline(100);
+        let reflection = make_reflection(8, "task-1");
+
+        let experience = pipeline.process_reflection(&reflection).await;
+
+        // 验证 reward 映射 (quality_score=8 → (8-5.5)/5 = 0.5)
+        assert!((experience.reward - 0.5).abs() < 0.01);
+        assert_eq!(experience.state.task_id, "task-1");
+        assert_eq!(experience.action.tool_id, "reflection");
+
+        // 验证 ExperiencePool 已写入
+        let stats = pipeline.stats();
+        assert_eq!(stats.reflections_processed, 1);
+        assert_eq!(stats.pool_size, 1);
+    }
+
+    #[tokio::test]
+    async fn test_process_feedback_reward_mapping() {
+        let mut pipeline = make_pipeline(100);
+
+        // rating 1 → -1.0
+        let exp1 = pipeline.process_feedback("trace-1", 1, None).await;
+        assert!((exp1.reward - (-1.0)).abs() < 0.01);
+
+        // rating 3 → 0.0
+        let exp3 = pipeline.process_feedback("trace-3", 3, None).await;
+        assert!(exp3.reward.abs() < 0.01);
+
+        // rating 5 → 1.0
+        let exp5 = pipeline.process_feedback("trace-5", 5, Some("great")).await;
+        assert!((exp5.reward - 1.0).abs() < 0.01);
+        assert!(exp5.action.reasoning.contains("great"));
+
+        // rating 越界(0 / 9)应被 clamp 到 [1,5]
+        let exp_clamp = pipeline.process_feedback("trace-clamp", 0, None).await;
+        // rating 0 → clamp 到 1 → reward = -1.0
+        assert!((exp_clamp.reward - (-1.0)).abs() < 0.01);
+
+        let stats = pipeline.stats();
+        assert_eq!(stats.feedback_processed, 4);
+        assert_eq!(stats.pool_size, 4);
+    }
+
+    #[tokio::test]
+    async fn test_bridge_feedback_to_reflection() {
+        let mut pipeline = make_pipeline(100);
+
+        // rating=2 → quality_score=3,reward = (3-5.5)/5 = -0.5
+        pipeline.bridge_feedback_to_reflection("trace-low", 2, None).await;
+        let stats = pipeline.stats();
+        assert_eq!(stats.reflections_processed, 1);
+        assert_eq!(stats.pool_size, 1);
+
+        // rating=5 → quality_score=9,reward = (9-5.5)/5 = 0.7
+        pipeline.bridge_feedback_to_reflection("trace-high", 5, Some("nice")).await;
+        let stats = pipeline.stats();
+        assert_eq!(stats.reflections_processed, 2);
+        assert_eq!(stats.pool_size, 2);
+    }
+
+    #[tokio::test]
+    async fn test_auto_train_triggers_at_threshold() {
+        // 阈值设为 3,3 条经验后应触发训练
+        let mut pipeline = make_pipeline(3);
+
+        for i in 0..3 {
+            let r = make_reflection(7, &format!("task-{i}"));
+            pipeline.process_reflection(&r).await;
+        }
+
+        let stats = pipeline.stats();
+        // 训练可能成功或失败(取决于 RLOptimizer 内部),但 train_count 应 >=1
+        assert!(
+            stats.train_count >= 1,
+            "auto-train should have triggered at threshold, train_count={}",
+            stats.train_count
+        );
+    }
+
+    #[tokio::test]
+    async fn test_stats_initial_state() {
+        let pipeline = make_pipeline(100);
+        let stats = pipeline.stats();
+        assert_eq!(stats.reflections_processed, 0);
+        assert_eq!(stats.feedback_processed, 0);
+        assert_eq!(stats.pool_size, 0);
+        assert_eq!(stats.train_count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_threshold_zero_defaults_to_100() {
+        // threshold=0 应自动回退到 100,不会立即触发训练
+        let mut pipeline = make_pipeline(0);
+        let r = make_reflection(7, "task-1");
+        pipeline.process_reflection(&r).await;
+        let stats = pipeline.stats();
+        assert_eq!(stats.train_count, 0, "should not trigger train with single experience");
+    }
+}

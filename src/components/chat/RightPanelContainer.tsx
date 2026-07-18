@@ -491,7 +491,7 @@ export function RightPanelContainer({
           <button
             className="titlebar-btn"
             onClick={onToggleCompact}
-            title={t(compactMode ? "chatRightPanel.expand" : "chatRightPanel.collapse")}
+            title={compactMode ? t("chatRightPanel.expand") : t("chatRightPanel.collapse")}
           >
             {compactMode ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>

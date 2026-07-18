@@ -7,6 +7,7 @@ pub use axagent_harness::reflection_types::{
 
 use crate::insight_generator::InsightGenerator;
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -14,6 +15,8 @@ pub struct Reflector {
     config: ReflectionConfig,
     insight_generator: Arc<InsightGenerator>,
     history: Arc<RwLock<Vec<Reflection>>>,
+    /// 可选 JSONL 持久化路径(P0-3 修复:启用后每次 reflect 都 append 一行)。
+    persist_path: Option<PathBuf>,
 }
 
 impl Reflector {
@@ -22,12 +25,126 @@ impl Reflector {
             config: ReflectionConfig::default(),
             insight_generator: Arc::new(InsightGenerator::new()),
             history: Arc::new(RwLock::new(Vec::new())),
+            persist_path: None,
         }
     }
 
     pub fn with_config(mut self, config: ReflectionConfig) -> Self {
         self.config = config;
         self
+    }
+
+    /// 启用 JSONL 文件持久化(P0-3 修复)。
+    ///
+    /// 启用后:
+    /// - `reflect()` 完成后异步 append 一行 JSON 到 `path`
+    /// - `load_persistence()` 在启动时从 `path` 加载历史到内存
+    ///
+    /// 路径应为 `app_dir.join("reflections.jsonl")`,由 wiring 层提供。
+    /// 文件不存在时首次 reflect 会自动创建。
+    pub fn with_persistence(mut self, path: PathBuf) -> Self {
+        self.persist_path = Some(path);
+        self
+    }
+
+    /// 启动时从持久化文件加载历史反思到内存。
+    ///
+    /// 仅加载最后 `max_history` 条(避免内存膨胀)。文件不存在或损坏时返回空。
+    pub async fn load_persistence(&self) -> std::io::Result<usize> {
+        let path = match self.persist_path.as_ref() {
+            Some(p) => p.clone(),
+            None => return Ok(0),
+        };
+        if !path.exists() {
+            return Ok(0);
+        }
+        let content = tokio::fs::read_to_string(&path).await?;
+        let mut loaded = Vec::new();
+        for line in content.lines() {
+            if line.trim().is_empty() {
+                continue;
+            }
+            match serde_json::from_str::<Reflection>(line) {
+                Ok(r) => loaded.push(r),
+                Err(e) => {
+                    tracing::warn!(
+                        "[reflector] skip malformed reflection line in {}: {}",
+                        path.display(),
+                        e
+                    );
+                },
+            }
+        }
+        // 仅保留最后 max_history 条
+        let max = self.config.max_history;
+        if loaded.len() > max {
+            loaded = loaded.split_off(loaded.len() - max);
+        }
+        let count = loaded.len();
+        let mut history = self.history.write().await;
+        // 合并到现有内存历史(去重 by task_id)
+        for r in loaded {
+            if !history.iter().any(|h| h.task_id == r.task_id) {
+                history.push(r);
+            }
+            if history.len() >= max {
+                history.remove(0);
+            }
+        }
+        tracing::info!("[reflector] loaded {} reflections from {}", count, path.display());
+        Ok(count)
+    }
+
+    /// 将单条反思 append 到 JSONL 文件。
+    ///
+    /// 失败仅记录日志,不阻塞 reflect 主流程(反思持久化是辅助数据,失败不应影响业务)。
+    async fn persist_reflection(&self, reflection: &Reflection) {
+        let path = match self.persist_path.as_ref() {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        let line = match serde_json::to_string(reflection) {
+            Ok(s) => s + "\n",
+            Err(e) => {
+                tracing::warn!("[reflector] serialize reflection failed: {}", e);
+                return;
+            },
+        };
+        // 文件 IO 走 spawn_blocking,避免污染 async runtime(AGENTS.md 工程惯例)。
+        let result = tokio::task::spawn_blocking({
+            let path = path.clone();
+            let line = line.clone();
+            move || {
+                if let Some(parent) = path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                // 追加模式,文件不存在自动创建。
+                use std::io::Write;
+                let mut file = match std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&path)
+                {
+                    Ok(f) => f,
+                    Err(e) => return Err(e),
+                };
+                file.write_all(line.as_bytes())
+            }
+        })
+        .await;
+        match result {
+            Ok(Ok(())) => {},
+            Ok(Err(e)) => {
+                tracing::warn!(
+                    "[reflector] append reflection to {} failed: {}",
+                    path.display(),
+                    e
+                );
+            },
+            Err(e) => {
+                tracing::warn!("[reflector] persist task join error: {}", e);
+            },
+        }
     }
 
     pub async fn reflect(&self, record: &TaskExecutionRecord) -> Reflection {
@@ -58,6 +175,10 @@ impl Reflector {
                 history.remove(0);
             }
             history.push(reflection.clone());
+            drop(history);
+
+            // P0-3 修复:落盘到 JSONL 文件(异步,失败不阻塞主流程)。
+            self.persist_reflection(&reflection).await;
 
             if let Some(insights) = self.insight_generator.generate_from_reflection(&reflection) {
                 self.insight_generator.store_insight(insights).await;

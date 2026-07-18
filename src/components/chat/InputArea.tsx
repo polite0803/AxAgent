@@ -36,7 +36,15 @@ import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
-import type { AttachmentInput, CreateMcpServerInput, McpServer, Model, ProviderConfig, RealtimeConfig } from "@/types";
+import {
+  type AttachmentInput,
+  type CreateMcpServerInput,
+  EXPERT_CATEGORY_LABELS,
+  type McpServer,
+  type Model,
+  type ProviderConfig,
+  type RealtimeConfig,
+} from "@/types";
 import { AudioOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -979,7 +987,7 @@ export function InputArea() {
       }
       items.push({
         key: `category-${category}`,
-        label: t("expertCategory." + category) || category,
+        label: t(EXPERT_CATEGORY_LABELS[category as keyof typeof EXPERT_CATEGORY_LABELS]) || category,
         disabled: true,
       });
       for (const role of categoryRoles) {

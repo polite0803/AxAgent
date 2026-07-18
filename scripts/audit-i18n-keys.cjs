@@ -36,13 +36,13 @@ console.log(`Scanning ${files.length} files...\n`);
 
 // Each pattern is paired with the index of the captured key
 const PATTERNS = [
-  // t("...") or t('...')
+  // t("workflow.ellipsis") or t('workflow.ellipsis')
   [/(?<![\w$.])t\s*\(\s*(['"])([^'"\n]{2,}?)\1\s*(?:[,)])/g, 2],
-  // t(`...`)
+  // t(`workflow.ellipsis`)
   [/(?<![\w$.])t\s*\(\s*`([^`\n]{2,}?)`\s*(?:[,)])/g, 1],
-  // i18next.t("...") / i18n.t("...") / translation.t("...")
+  // i18next.t("workflow.ellipsis") / i18n.t("workflow.ellipsis") / translation.t("workflow.ellipsis")
   [/\b(?:i18next|i18n|translation)\s*\.\s*t\s*\(\s*(['"])([^'"\n]{2,}?)\1\s*(?:[,)])/g, 2],
-  // i18next.t(`...`)
+  // i18next.t(`workflow.ellipsis`)
   [/\b(?:i18next|i18n|translation)\s*\.\s*t\s*\(\s*`([^`\n]{2,}?)`\s*(?:[,)])/g, 1],
   // Trans i18nKey="..."
   [/i18nKey\s*=\s*(['"])([^'"\n]{2,}?)\1/g, 2],
@@ -56,7 +56,7 @@ const isDynamic = (key) =>
 const used = new Map();
 function record(key, file, line) {
   if (!key || isDynamic(key)) { return; }
-  if (!key.includes(".")) { return; // skip bare words like t("ok")
+  if (!key.includes(".")) { return; // skip bare words like t("workflow.ok")
    }
   if (!used.has(key)) { used.set(key, []); }
   used.get(key).push({ file, line });

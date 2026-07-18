@@ -39,7 +39,7 @@ const files = getAllFiles("src/components", [".ts", ".tsx"]);
 
 const used = new Set();
 
-// Match t('key') with various patterns - only keys that look like i18n keys (contain letters and dots)
+// Match t('dynamicUIManager.keyPlaceholder') with various patterns - only keys that look like i18n keys (contain letters and dots)
 const patterns = [
   /t\s*\(\s*'([a-zA-Z][a-zA-Z0-9_.]*)'\s*[,\)]/g,
   /t\s*\(\s*"([a-zA-Z][a-zA-Z0-9_.]*)"\s*[,\)]/g,

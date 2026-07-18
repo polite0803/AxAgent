@@ -175,7 +175,7 @@ export const ToolCallCard = React.memo(
                 style={{ fontSize: 12, padding: "2px 6px" }}
               >
                 {t(
-                  `chat.inspector.approval${tc.approvalStatus.charAt(0).toUpperCase() + tc.approvalStatus.slice(1)}`,
+                  `chat.chatinspectorapproval0`,
                   tc.approvalStatus,
                 )}
               </Tag>

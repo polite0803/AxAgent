@@ -229,7 +229,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new()));
     let steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>> =
         Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
-    let reflector = Arc::new(axagent_agent::Reflector::new());
+    // P0-3 修复:启用 Reflector JSONL 持久化(进程重启后历史反思不丢失)。
+    let reflector = Arc::new(axagent_agent::Reflector::new()
+        .with_persistence(app_dir.join("reflections.jsonl")));
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
         Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
     let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
@@ -266,7 +268,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             let mut engine = axagent_trajectory::SkillEvolutionEngine::new();
             engine.set_sandbox(Arc::new(
                 axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
-            ));
+            )).await;
             Arc::new(tokio::sync::Mutex::new(engine))
         }
         #[cfg(target_os = "android")]
@@ -706,19 +708,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_dao::memory_repository::DaoMemoryRepository::new(Arc::new(sea_db.clone())),
     ));
 
-    // 初始化 reflector 持久化
-    {
-        let r_clone = reflector.clone();
-        let _reflection_path: std::path::PathBuf = app_dir.join("reflections.jsonl");
-        let _insight_path: std::path::PathBuf = app_dir.join("insights.jsonl");
-        let _ig_clone = r_clone.get_insight_generator();
-        // 注：Reflector::init_persistence 和 InsightGenerator::init_persistence
-        // 将在后续版本中从远程同步（当前暂未合并到主分支）。
-        tokio::spawn(async move {
-            tracing::info!(
-                "[reflector] persistence init deferred — will be added in a follow-up sync"
-            );
-        });
+    // 启动时加载历史反思(P0-3 修复:进程重启后历史不丢失)。
+    // reflect() 落盘由 Reflector::persist_reflection 自动处理,
+    // 这里只需启动时从 `app_dir/reflections.jsonl` 加载到内存即可。
+    match reflector.load_persistence().await {
+        Ok(n) => tracing::info!("[reflector] loaded {n} reflections from disk"),
+        Err(e) => tracing::warn!(
+            "[reflector] load_persistence failed: {e} (will start with empty history)"
+        ),
     }
 
     Ok(AppState {

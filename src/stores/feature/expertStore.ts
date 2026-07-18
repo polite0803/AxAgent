@@ -4,7 +4,7 @@ import { BUILTIN_EXPERT_PRESETS, type BuiltinExpertPreset } from "@/data/expertP
 import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { message } from "@/lib/toast";
-import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
+import { type AgentBehaviorMode, type AgentProfile, EXPERT_CATEGORY_LABELS, type ExpertCategory } from "@/types";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
@@ -251,7 +251,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     if (!role) {
       return i18n.t("expertCategory.general");
     }
-    return i18n.t("expertCategory." + role.category) || role.category;
+    return i18n.t(EXPERT_CATEGORY_LABELS[role.category as keyof typeof EXPERT_CATEGORY_LABELS]) || role.category;
   },
 
   recordSwitch: (conversationId, roleId) => {

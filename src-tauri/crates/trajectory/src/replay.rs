@@ -22,8 +22,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use axagent_harness::replay_executor::{
-    RegressionSuite, RegressionSuiteResult, ReplayExecutor, ReplayOptions, ReplayReport,
-    build_replay_report, compare_trajectories,
+    ReplayExecutor, ReplayOptions, ReplayReport, build_replay_report, compare_trajectories,
 };
 use axagent_harness::trajectory_types::Trajectory;
 
@@ -110,7 +109,7 @@ impl ReplayExecutor for TrajectoryReplayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_harness::replay_executor::{DeviationKind, GoldenTrajectory};
+    use axagent_harness::replay_executor::{DeviationKind, GoldenTrajectory, RegressionSuite};
     use axagent_harness::trajectory_types::{
         MessageRole, TrajectoryOutcome, TrajectoryQuality, TrajectoryStep,
     };

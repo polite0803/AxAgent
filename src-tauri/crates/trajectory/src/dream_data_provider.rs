@@ -11,7 +11,6 @@ use axagent_harness::dream::{
 use chrono::{TimeZone, Utc};
 use tokio::sync::RwLock;
 
-use crate::dream_consolidation::ReplaySample;
 use crate::memory_providers::service::{
     AddMemoryRequest, MemoryEntry, MemoryNature, MemoryProvenance, MemoryService, MemoryTier,
 };

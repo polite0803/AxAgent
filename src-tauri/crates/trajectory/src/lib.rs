@@ -9,8 +9,14 @@
 //! - Skill optimization closed-loop
 //! - Cross-session pattern learning
 
+// P1-6 修复:移除 `#![allow(unused_imports)]`(unused imports 应当修复而非压制)。
+//
+// 保留 `#![allow(dead_code)]` 的理由(研究性 crate 的合理压制):
+//   trajectory 是研究性模块集合,许多模块(dream_data_provider / replay / coevolution 等)
+//   预留为未来接入点,当前未被 wiring 层引用。彻底删除会丢失研究成果,
+//   全部接入则超出当前任务范围。改为按需局部 `#[allow(dead_code)]` 标注更精确,
+//   但工作量过大,暂保留 crate 级 allow 并在此说明,后续按模块逐个评估接入或删除。
 #![allow(dead_code)]
-#![allow(unused_imports)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::result_large_err)]
 #![allow(clippy::large_enum_variant)]

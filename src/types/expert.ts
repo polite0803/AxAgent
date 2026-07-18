@@ -25,6 +25,19 @@ export const EXPERT_CATEGORY_KEYS = [
 
 export type ExpertCategoryKey = (typeof EXPERT_CATEGORY_KEYS)[number];
 
+/** 分类对应完整 i18n key 的查找表，供 i18n Ally 直接识别。 */
+export const EXPERT_CATEGORY_LABELS: Record<ExpertCategoryKey, string> = {
+  general: "expertCategory.general",
+  development: "expertCategory.development",
+  security: "expertCategory.security",
+  data: "expertCategory.data",
+  finance: "expertCategory.finance",
+  devops: "expertCategory.devops",
+  design: "expertCategory.design",
+  writing: "expertCategory.writing",
+  business: "expertCategory.business",
+};
+
 /** 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name */
 export interface ExpertRole {
   /** 唯一标识，如 "code-reviewer" */

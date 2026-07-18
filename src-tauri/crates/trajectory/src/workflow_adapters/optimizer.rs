@@ -23,7 +23,7 @@ use axagent_harness::workflow_optimization::{
 use axagent_harness::workflow_reflection::{
     BottleneckReason, FailureCategory, WorkflowReflectionMetadata,
 };
-use axagent_harness::workflow_types::{RetryConfig, WorkflowTemplateData};
+use axagent_harness::workflow_types::{WorkflowNode, WorkflowTemplateData};
 
 /// `WorkflowOptimizer` 的 trajectory 实现。
 pub struct WorkflowOptimizerImpl;
@@ -215,55 +215,74 @@ impl WorkflowOptimizerImpl {
     fn apply_one(template: &mut WorkflowTemplateData, suggestion: &WorkflowSuggestion) {
         match &suggestion.proposed_change {
             ProposedChange::TuneRetry { node_id, max_attempts, backoff_ms } => {
-                // 找到节点并更新 retry 配置
+                // P1-4 修复:通过 base_mut() 真正写回 retry 配置。
+                let mut applied = false;
                 for node in &mut template.nodes {
                     if node.base_id() == node_id {
-                        let mut retry = node.base_retry().clone();
+                        let retry = &mut node.base_mut().retry;
                         retry.enabled = true;
                         retry.max_retries = *max_attempts;
                         retry.base_delay_ms = *backoff_ms;
-                        // 应用到节点(WorkflowNode::base_retry_mut 不存在,需要按变体修改)
-                        // MVP:不实际修改,仅记录意图
-                        let _ = retry;
+                        applied = true;
                         break;
                     }
                 }
-                tracing::debug!("[Optimizer] TuneRetry applied to {} (intent recorded)", node_id);
+                if applied {
+                    tracing::debug!(
+                        "[Optimizer] TuneRetry applied to {} (max_retries={}, backoff_ms={})",
+                        node_id,
+                        max_attempts,
+                        backoff_ms
+                    );
+                } else {
+                    tracing::warn!("[Optimizer] TuneRetry target node not found: {}", node_id);
+                }
             },
             ProposedChange::RefinePrompt { node_id, new_prompt } => {
+                // P1-4 修复:真正写回 AgentNode.config.system_prompt / LLMNode.config.prompt。
+                // 仅这两种节点有 prompt 字段;其他变体(Condition/Parallel/...)视为不适用,告警跳过。
+                let mut applied = false;
+                let mut unsupported = false;
                 for node in &mut template.nodes {
-                    if node.base_id() == node_id {
-                        // MVP:仅 AgentNode / LLMNode 有 prompt,这里通过 serde 修改
-                        let mut value = match serde_json::to_value(&*node) {
-                            Ok(v) => v,
-                            Err(_) => continue,
-                        };
-                        if let Some(obj) = value.as_object_mut()
-                            && let Some(config) =
-                                obj.get_mut("config").and_then(|c| c.as_object_mut())
-                        {
-                            // 兼容 agent(system_prompt) 与 llm(prompt)
-                            if config.contains_key("system_prompt") {
-                                config.insert(
-                                    "system_prompt".to_string(),
-                                    serde_json::Value::String(new_prompt.clone()),
-                                );
-                            } else if config.contains_key("prompt") {
-                                config.insert(
-                                    "prompt".to_string(),
-                                    serde_json::Value::String(new_prompt.clone()),
-                                );
-                            }
-                        }
-                        // 注意:MVP 不实际重建 WorkflowNode(避免破坏类型),仅记录
-                        let _ = value;
-                        break;
+                    if node.base_id() != node_id {
+                        continue;
+                    }
+                    match node {
+                        WorkflowNode::Agent(agent) => {
+                            agent.config.system_prompt = new_prompt.clone();
+                            applied = true;
+                            break;
+                        },
+                        WorkflowNode::Llm(llm) => {
+                            llm.config.prompt = new_prompt.clone();
+                            applied = true;
+                            break;
+                        },
+                        WorkflowNode::LlmClassifier(c) => {
+                            c.config.prompt = new_prompt.clone();
+                            applied = true;
+                            break;
+                        },
+                        _ => {
+                            unsupported = true;
+                            break;
+                        },
                     }
                 }
-                tracing::debug!(
-                    "[Optimizer] RefinePrompt applied to {} (intent recorded)",
-                    node_id
-                );
+                if applied {
+                    tracing::debug!(
+                        "[Optimizer] RefinePrompt applied to {} (new length={})",
+                        node_id,
+                        new_prompt.len()
+                    );
+                } else if unsupported {
+                    tracing::warn!(
+                        "[Optimizer] RefinePrompt target node {} has no prompt field, skipped",
+                        node_id
+                    );
+                } else {
+                    tracing::warn!("[Optimizer] RefinePrompt target node not found: {}", node_id);
+                }
             },
             ProposedChange::RemoveNode { node_id } => {
                 template.nodes.retain(|n| n.base_id() != node_id);
@@ -279,10 +298,10 @@ impl WorkflowOptimizerImpl {
                 }
                 tracing::debug!("[Optimizer] RewireEdge applied from {}", from);
             },
-            // MVP 不实际处理 AddNode / ReplaceNode / UpdateConfig(需要 WorkflowNode 构造器,留待后续)
+            // AddNode / ReplaceNode / UpdateConfig 需 WorkflowNode 构造器,留待后续增强
             _ => {
                 tracing::debug!(
-                    "[Optimizer] suggestion kind not applied in MVP: {:?}",
+                    "[Optimizer] suggestion kind not applied (requires node constructor): {:?}",
                     suggestion.category
                 );
             },

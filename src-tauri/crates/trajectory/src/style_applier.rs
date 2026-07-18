@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use crate::style_extractor::{
-    DocumentFormat, DocumentStyleProfile, FormattingPreferences, IndentStyle, LineEnding,
-};
+use crate::style_extractor::{FormattingPreferences, IndentStyle, LineEnding};
 use crate::style_vectorizer::StyleVector;
 use regex::Regex;
 use regex::RegexBuilder;

@@ -53,7 +53,7 @@ for (const file of files) {
   const content = fs.readFileSync(file, "utf8");
 
   // Extract keys ONLY from calls that have fallbacks
-  // Pattern A: t("key", "string")
+  // Pattern A: t("dynamicUIManager.keyPlaceholder", "string")
   const reA = /\bt\(\s*(['"`])([^'"`]+)\1\s*,\s*(['"`])/g;
   let m;
   while ((m = reA.exec(content)) !== null) {
@@ -65,7 +65,7 @@ for (const file of files) {
     }
   }
 
-  // Pattern B: t("key", { defaultValue: ... })
+  // Pattern B: t("dynamicUIManager.keyPlaceholder", { defaultValue: ... })
   const reB = /\bt\(\s*(['"`])([^'"`]+)\1\s*,\s*\{\s*defaultValue:/g;
   while ((m = reB.exec(content)) !== null) {
     const key = m[2];
@@ -95,7 +95,7 @@ for (const file of files) {
   let fileCount = 0;
 
   // ----------------------------------------
-  // Rule 1: t("key", "string") -> t("key")
+  // Rule 1: t("dynamicUIManager.keyPlaceholder", "string") -> t("dynamicUIManager.keyPlaceholder")
   // Handles double/single/backtick quotes for the string value
   // The key must be a static string (no ${} template expressions)
   // ----------------------------------------
@@ -110,7 +110,7 @@ for (const file of files) {
   );
 
   // ----------------------------------------
-  // Rule 2: t("key", "string", { ... }) -> t("key", { ... })
+  // Rule 2: t("dynamicUIManager.keyPlaceholder", "string", { ... }) -> t("dynamicUIManager.keyPlaceholder", { ... })
   // Key must be static (no ${})
   // ----------------------------------------
   content = content.replace(
@@ -123,7 +123,7 @@ for (const file of files) {
   );
 
   // ----------------------------------------
-  // Rule 3: t("key", { defaultValue: "str" }) -> t("key")
+  // Rule 3: t("dynamicUIManager.keyPlaceholder", { defaultValue: "str" }) -> t("dynamicUIManager.keyPlaceholder")
   // ----------------------------------------
   content = content.replace(
     /\bt\(\s*(['"`])([^'"`]+?)\1\s*,\s*\{\s*defaultValue:\s*(['"`])([^'"`]*?)\3\s*\}\)/g,
@@ -135,7 +135,7 @@ for (const file of files) {
   );
 
   // ----------------------------------------
-  // Rule 4: t("key", { defaultValue: "str", ...rest }) -> t("key", { ...rest })
+  // Rule 4: t("dynamicUIManager.keyPlaceholder", { defaultValue: "str", ...rest }) -> t("dynamicUIManager.keyPlaceholder", { ...rest })
   // defaultValue at the start of the object
   // ----------------------------------------
   content = content.replace(

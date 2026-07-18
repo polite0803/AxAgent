@@ -2,14 +2,13 @@
 
 //! `WorkflowEvolverImpl`:基于 GEPA 风格遗传算法的工作流模板进化器实现。
 //!
-//! MVP 策略:
-//! - 不深度集成 `SkillEvolutionEngine`(其复杂度过高),走轻量遗传算子
+//! 变异策略(P0-2 修复后):
+//! - 无 LLM 时,使用 `apply_heuristic_adjustments` 做真实变异
+//!   (瓶颈节点 retry/timeout,全体 continue_on_fail)
+//! - 有 LLM 时,在启发式变异之上叠加语义级变异(优化 4-b)
 //! - 内存维护种群与运行状态(`tokio::sync::RwLock<EvolverState>`)
-//! - 真正的 LLM 变异由 wiring 层注入 `WorkflowLlmMutator`,默认不启用
 //! - 沙箱验证由 wiring 层注入 `WorkflowSandbox`,默认跳过(sandbox=None)
 //! - `should_auto_evolve` 基于近期 reflection 失败率启发式判定
-//!
-//! 后续增强:接入 trajectory::skill_evolution::SkillEvolutionEngine 的完整算子。
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,9 +18,9 @@ use tokio::sync::RwLock;
 
 use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{
-    EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
-    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader,
-    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox, merge_genome_by_mask,
+    EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, SandboxValidationResult,
+    WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader, WorkflowLlmMutator,
+    WorkflowModification, WorkflowSandbox, merge_genome_by_mask,
     validate_genome_basic,
 };
 use axagent_harness::workflow_reflection::{
@@ -94,39 +93,6 @@ impl WorkflowEvolverImpl {
         }
         let sum: u32 = reflections.iter().map(|r| r.quality_score as u32).sum();
         sum as f32 / (reflections.len() as f32 * 10.0)
-    }
-
-    /// 简单变异:对种群中适应度最低的个体进行"扰动"。
-    /// MVP:不实际修改 WorkflowNode(避免破坏模板),仅调整 fitness 标记 + 生成假 GenomeChange。
-    fn mutate_low_fitness(population: &mut EvolutionPopulation) -> Vec<GenomeChange> {
-        let mut changes = Vec::new();
-        if population.individuals.is_empty() {
-            return changes;
-        }
-        // 找出 fitness 最低的个体
-        let min_idx = population
-            .individuals
-            .iter()
-            .enumerate()
-            .min_by(|(_, a), (_, b)| {
-                a.fitness.partial_cmp(&b.fitness).unwrap_or(std::cmp::Ordering::Equal)
-            })
-            .map(|(i, _)| i);
-        if let Some(idx) = min_idx
-            && let Some(individual) = population.individuals.get_mut(idx)
-        {
-            // MVP:不修改 nodes/edges,仅提升 generation + 生成 ConfigPatched 占位变更
-            individual.generation = individual.generation.saturating_add(1);
-            changes.push(GenomeChange::ConfigPatched {
-                node_id: individual
-                    .nodes
-                    .first()
-                    .map(|n| n.base_id().to_string())
-                    .unwrap_or_else(|| "unknown".to_string()),
-                patch: serde_json::json!({ "_evolver_note": "mvp_placeholder" }),
-            });
-        }
-        changes
     }
 }
 
@@ -359,8 +325,21 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
             individual.fitness = new_fitness;
         }
 
-        // 执行变异(MVP 占位)
-        let _changes = Self::mutate_low_fitness(population);
+        // P0-2 修复：弃用 MVP 占位变异,改用启发式规则调整真实修改 genome
+        // (瓶颈节点 retry / timeout / 全体 continue_on_fail)。
+        // 无 LLM provider 时也能产生真实变异,而非仅生成 "mvp_placeholder"。
+        // 变更记录到 individual.generation,供后续审计。
+        for individual in &mut population.individuals {
+            let changes = apply_heuristic_adjustments(individual, reflections);
+            if !changes.is_empty() {
+                individual.generation = individual.generation.saturating_add(1);
+                tracing::debug!(
+                    "[Evolver] heuristic mutation applied to individual {} (changes={})",
+                    individual.template_id,
+                    changes.len()
+                );
+            }
+        }
 
         // 若配置了 LLM provider,对适应度最低的个体做语义级变异(优化 4-b)
         // LLM 调用失败 / 解析失败时,实现方返回原 genome(保守策略),不破坏模板。

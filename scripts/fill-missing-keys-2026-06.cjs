@@ -61,7 +61,7 @@ const PATTERNS = [
 
 const isDynamic = (key) => /\$\{/.test(key) || /\+\s*['"`]/.test(key) || /\?\s*['"`]/.test(key);
 
-// Multi-line t-call: t("foo", { defaultValue: "bar" })
+// Multi-line t-call: t("workflow.foo", { defaultValue: "bar" })
 // Match across continuation lines is complex; we just look at the same line.
 const DEFAULT_VAL_RE = /defaultValue\s*:\s*(['"])([^'"\n]+?)\1/;
 

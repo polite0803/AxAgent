@@ -20,7 +20,7 @@ use axagent_harness::reflection_types::{QualityMetrics, Reflection};
 use axagent_harness::workflow_reflection::{
     BottleneckNode, BottleneckReason, FailureCategory, NodeExecutionSnapshot, NodeFailureAnalysis,
     ProposedChange, WorkflowExecutionRecord, WorkflowExecutionRecord as WfRecord, WorkflowPattern,
-    WorkflowReflectionMetadata, WorkflowReflector, WorkflowRunStatus,
+    WorkflowReflectionMetadata, WorkflowReflector,
 };
 use axagent_harness::workflow_types::NodeStatus;
 

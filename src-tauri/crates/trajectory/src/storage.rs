@@ -4,7 +4,7 @@
 
 use crate::fts5::{FTS5Config, FTS5Query, FTS5Result, FTS5Search};
 use crate::memory::{Entity, Relationship};
-use crate::skill::{Skill, SkillAnalytics};
+use crate::skill::Skill;
 use crate::trajectory::{
     MessageRole, RLTrainingEntry, RewardSignal, Trajectory, TrajectoryExportOptions,
     TrajectoryOutcome, TrajectoryPattern, TrajectoryQuery, TrajectoryStep,
@@ -19,8 +19,8 @@ use axagent_entities::{
 use chrono::Utc;
 use futures::FutureExt;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, ExprTrait,
-    IntoActiveModel, PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ExprTrait, IntoActiveModel,
+    PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
 };
 use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
