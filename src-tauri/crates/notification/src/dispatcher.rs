@@ -544,8 +544,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_severity_filter() {
-        let mut policy = NotificationPolicy::default();
-        policy.min_severity = AlertSeverity::Error;
+        let policy =
+            NotificationPolicy { min_severity: AlertSeverity::Error, ..Default::default() };
         let dispatcher = NotificationDispatcher::with_policy(policy);
         dispatcher.register_channel(Arc::new(LogChannel::new("log", "日志"))).await;
         dispatcher
@@ -567,10 +567,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_quiet_hours_skip() {
-        let mut policy = NotificationPolicy::default();
-        // 13:00-14:00 静默（不跨午夜）
-        policy.quiet_hours_start = Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).unwrap());
-        policy.quiet_hours_end = Some(chrono::NaiveTime::from_hms_opt(14, 0, 0).unwrap());
+        let policy = NotificationPolicy {
+            quiet_hours_start: Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+            quiet_hours_end: Some(chrono::NaiveTime::from_hms_opt(14, 0, 0).unwrap()),
+            ..Default::default()
+        };
         let dispatcher = NotificationDispatcher::with_policy(policy);
         dispatcher.register_channel(Arc::new(LogChannel::new("log", "日志"))).await;
         dispatcher
@@ -590,8 +591,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_disabled_policy() {
-        let mut policy = NotificationPolicy::default();
-        policy.enabled = false;
+        let policy = NotificationPolicy { enabled: false, ..Default::default() };
         let dispatcher = NotificationDispatcher::with_policy(policy);
         dispatcher.register_channel(Arc::new(LogChannel::new("log", "日志"))).await;
         dispatcher
