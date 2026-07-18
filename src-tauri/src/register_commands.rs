@@ -621,6 +621,13 @@ macro_rules! register_all_commands {
             commands::workflow_ai_apply::apply_update_input_mapping,
             commands::workflow_ai_apply::apply_edit_asset_file,
             commands::workflow_ai_apply::apply_diff_with_validation,
+            // 工作流反思 / 进化 / 优化命令(阶段 5 wiring 暴露)
+            commands::workflow_reflection::workflow_optimize_suggest,
+            commands::workflow_reflection::workflow_optimize_apply,
+            commands::workflow_reflection::workflow_evolve_template,
+            commands::workflow_reflection::workflow_evolution_stats,
+            commands::workflow_reflection::workflow_evolution_is_running,
+            commands::workflow_reflection::workflow_should_auto_evolve,
             // Platform integration commands
             commands::platform_integration::get_platform_config,
             commands::platform_integration::update_platform_config,

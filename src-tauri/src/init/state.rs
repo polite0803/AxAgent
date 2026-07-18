@@ -339,12 +339,28 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         registry.tool_ranker = Some(crate::commands::_shared_state::SHARED_TOOL_RANKER.clone());
         Arc::new(tokio::sync::Mutex::new(registry))
     };
+    // ── 阶段 5:工作流反思 / 进化 / 优化三层 trait 实现 ──
+    // 同一份 Arc 实例同时挂载到 WorkEngine(用于自动触发钩子)与 AppState 字段(供命令层手动调用)。
+    // 启动即用,纯启发式;真正的 LLM 变异 / 沙箱验证由 wiring 层后续通过 setter 注入(此处 MVP 不注入)。
+    let workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector> =
+        axagent_trajectory::WorkflowReflectorImpl::with_defaults().into_arc();
+    let workflow_evolver: Arc<dyn axagent_harness::WorkflowEvolver> =
+        axagent_trajectory::WorkflowEvolverImpl::with_defaults().into_arc();
+    let workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer> =
+        axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc();
+
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =
         {
-            let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                master_key,
-                harness_registry.clone(),
-            ));
+            let engine = Arc::new(
+                axagent_runtime::work_engine::WorkEngine::new(
+                    master_key,
+                    harness_registry.clone(),
+                )
+                // 阶段 5:注入反思 / 进化 / 优化三层实现,WorkEngine 在工作流整体完成与节点级失败时自动触发反思。
+                .with_workflow_reflector(workflow_reflector.clone())
+                .with_workflow_evolver(workflow_evolver.clone())
+                .with_workflow_optimizer(workflow_optimizer.clone()),
+            );
             // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
             engine.inject_into_agent_executor(engine.clone()).await;
             // 注册领域约束：所有角色走通用 DomainConstraints::by_role
@@ -682,6 +698,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         user_profile,
         local_tool_registry,
         work_engine,
+        workflow_reflector,
+        workflow_evolver,
+        workflow_optimizer,
         skill_decomposer,
         proactive_service,
         dashboard_registry,

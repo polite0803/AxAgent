@@ -2978,6 +2978,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                 as Arc<dyn axagent_harness::registry::ProviderRegistry>,
         )),
+        workflow_reflector: axagent_trajectory::WorkflowReflectorImpl::with_defaults().into_arc(),
+        workflow_evolver: axagent_trajectory::WorkflowEvolverImpl::with_defaults().into_arc(),
+        workflow_optimizer: axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc(),
         skill_decomposer: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::SkillDecomposer::new(),
         )),
