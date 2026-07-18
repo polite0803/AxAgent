@@ -90,6 +90,9 @@ export function AgentProfileManager() {
   const [expertOptions, setExpertOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const [businessRoleOptions, setBusinessRoleOptions] = useState<
+    { value: string; label: string; source?: string }[]
+  >([]);
 
   const loadProfiles = useAgentStore((s) => s.loadProfiles);
   const getAllProfiles = useAgentStore((s) => s.getAllProfiles);
@@ -203,6 +206,20 @@ export function AgentProfileManager() {
     }
   }, []);
 
+  const loadBusinessRoles = useCallback(async () => {
+    try {
+      const roles: { id: string; name: string; source?: string }[] = await invoke(
+        "list_business_roles",
+        { source: null },
+      );
+      setBusinessRoleOptions(
+        Array.isArray(roles) ? roles.map((r) => ({ value: r.id, label: r.name, source: r.source })) : [],
+      );
+    } catch {
+      /* fallback */
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -216,6 +233,7 @@ export function AgentProfileManager() {
   const loadRef = useRef(load);
   const loadRolesRef = useRef(loadRoles);
   const loadExpertsRef = useRef(loadExperts);
+  const loadBusinessRolesRef = useRef(loadBusinessRoles);
 
   useEffect(() => {
     loadRef.current = load;
@@ -230,9 +248,14 @@ export function AgentProfileManager() {
   }, [loadExperts]);
 
   useEffect(() => {
+    loadBusinessRolesRef.current = loadBusinessRoles;
+  }, [loadBusinessRoles]);
+
+  useEffect(() => {
     loadRef.current();
     loadRolesRef.current();
     loadExpertsRef.current();
+    loadBusinessRolesRef.current();
   }, []);
 
   const filtered = useMemo(() => {
@@ -285,6 +308,7 @@ export function AgentProfileManager() {
       disallowedTools: p.disallowedTools,
       recommendedWorkflows: p.recommendedWorkflows,
       expertId: p.expertId ?? "",
+      businessRoleId: p.businessRoleId ?? "",
     });
     setEditorOpen(true);
   };
@@ -714,6 +738,23 @@ export function AgentProfileManager() {
               allowClear
             />
           </div>
+          <div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {t("agentProfile.businessRoleLabel")}
+            </Text>
+            <Select
+              id="agent-profile-manager-select-41"
+              size="small"
+              style={{ width: "100%" }}
+              value={form.businessRoleId ?? ""}
+              onChange={(v) => setForm((prev) => ({ ...prev, businessRoleId: v || undefined }))}
+              options={[
+                { value: "", label: t("agentProfile.none") },
+                ...businessRoleOptions,
+              ]}
+              allowClear
+            />
+          </div>
           <div
             style={{
               gridColumn: "span 2",
@@ -725,7 +766,7 @@ export function AgentProfileManager() {
               lineHeight: 1.6,
             }}
           >
-            {form.agentRole || form.expertId
+            {form.agentRole || form.expertId || form.businessRoleId
               ? (
                 <>
                   <div style={{ fontWeight: 500, marginBottom: 4 }}>
@@ -735,6 +776,15 @@ export function AgentProfileManager() {
                     <div>
                       {t("chat.workflow.agentProfileRole")}: <Tag>{form.agentRole}</Tag> {"\u2192"}{" "}
                       {t("common.inherit")}
+                    </div>
+                  )}
+                  {form.businessRoleId && (
+                    <div>
+                      {t("agentProfile.businessRoleLabel")}:{" "}
+                      <Tag>
+                        {businessRoleOptions.find((r) => r.value === form.businessRoleId)?.label ?? form.businessRoleId}
+                      </Tag>{" "}
+                      {"\u2192"} {t("common.inherit")}
                     </div>
                   )}
                   {form.expertId && (

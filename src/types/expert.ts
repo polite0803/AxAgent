@@ -68,4 +68,18 @@ export interface ExpertRole {
   recommendedWorkflows?: string[];
   /** @deprecated 指向对应的 AgentProfile ID，用于向后兼容过渡 */
   agentProfileId?: string;
+
+  // ── 资历与归属（对齐后端 AgencyExpertDto 扩展字段） ──
+  /** 资历等级：junior / mid / senior / expert */
+  seniority?: string;
+  /** 擅长细分领域列表 */
+  specialties?: string[];
+  /** 归属业务岗位 ID（business_roles.id） */
+  parentRoleId?: string;
+  /** 历史成功率（0.0 ~ 1.0） */
+  successRate?: number;
+  /** 平均执行延迟（毫秒） */
+  avgLatencyMs?: number;
+  /** 平均 token 成本 */
+  avgTokenCost?: number;
 }

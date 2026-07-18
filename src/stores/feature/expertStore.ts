@@ -82,6 +82,19 @@ interface AgencyExpertRow {
   recommendedWorkflows: string[] | null;
   recommendedTools: string[] | null;
   activeDomains: string[] | null;
+  // ── 资历与归属（对齐后端 AgencyExpertDto 扩展字段） ──
+  /** 资历等级：junior / mid / senior / expert */
+  seniority?: string | null;
+  /** 擅长细分领域列表（后端 JSON 字符串已 parse） */
+  specialties?: string[] | null;
+  /** 归属业务岗位 ID（business_roles.id） */
+  parentRoleId?: string | null;
+  /** 历史成功率（0.0 ~ 1.0） */
+  successRate?: number | null;
+  /** 平均执行延迟（毫秒） */
+  avgLatencyMs?: number | null;
+  /** 平均 token 成本 */
+  avgTokenCost?: number | null;
 }
 
 function agencyRowToRole(row: AgencyExpertRow): AgentProfile {

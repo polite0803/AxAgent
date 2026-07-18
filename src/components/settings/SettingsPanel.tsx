@@ -43,6 +43,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentProfileManager } from "./AgentProfileManager";
+import { BusinessRoleManager } from "./BusinessRoleManager";
 import { HookExecutionLog } from "./HookExecutionLog";
 import { SettingsGroup } from "./SettingsGroup";
 
@@ -472,6 +473,8 @@ function AgentsTab() {
 
   return (
     <div className="p-6 pb-12">
+      <BusinessRoleManager />
+      <Divider style={{ margin: "20px 0" }} />
       <AgentProfileManager />
       <Divider style={{ margin: "20px 0" }} />
       <div
