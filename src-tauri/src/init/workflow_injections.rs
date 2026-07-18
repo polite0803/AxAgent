@@ -53,21 +53,34 @@ impl ProviderWorkflowLlmMutator {
             serde_json::to_string_pretty(&genome.nodes).unwrap_or_else(|_| "[]".into());
         let edges_json =
             serde_json::to_string_pretty(&genome.edges).unwrap_or_else(|_| "[]".into());
+        let variables_json =
+            serde_json::to_string_pretty(&genome.variables).unwrap_or_else(|_| "[]".into());
         let failures_json =
             serde_json::to_string_pretty(failure_evidence).unwrap_or_else(|_| "[]".into());
         let successes_json =
             serde_json::to_string_pretty(success_evidence).unwrap_or_else(|_| "[]".into());
 
+        // 方案 4A:针对性 prompt 增强 — 显式要求针对频繁失败节点调整
+        // retry / timeout / continue_on_fail 字段,而非仅做拓扑重连。
         format!(
             "You are a workflow evolution expert. Given the current workflow genome and evidence,\n\
-             suggest improvements by modifying node configs and rewiring edges.\n\
-             DO NOT change node types or remove nodes. Only patch configs and rewire edges.\n\n\
+             suggest improvements by:\n\
+             1. Patching node configs (retry / timeout / continue_on_fail) for nodes that appear\n\
+                in failure_evidence. Increase `retry.max_retries` (up to 5) and enable\n\
+                `retry.enabled` for high-failure-rate nodes. Increase `timeout` (up to 60 seconds)\n\
+                for slow nodes. Set `continue_on_fail=true` only when the workflow should\n\
+                tolerate the node's failure.\n\
+             2. Rewiring edges only if a node is clearly misplaced.\n\
+             DO NOT change node types, remove nodes, or rename node IDs.\n\
+             DO NOT introduce duplicate node IDs or dangling edge endpoints.\n\n\
              Current nodes:\n{nodes_json}\n\n\
              Current edges:\n{edges_json}\n\n\
+             Current variables:\n{variables_json}\n\n\
              Failure evidence:\n{failures_json}\n\n\
              Success evidence:\n{successes_json}\n\n\
              Respond with ONLY a JSON object (no markdown, no explanation):\n\
-             {{\"nodes\": [...], \"edges\": [...]}}"
+             {{\"nodes\": [...], \"edges\": [...], \"variables\": [...]}}\n\
+             The \"nodes\" array must include ALL nodes (with patched configs), not just changed ones."
         )
     }
 
@@ -105,12 +118,19 @@ impl ProviderWorkflowLlmMutator {
             return None;
         }
 
+        // 方案 4A:variables 由 LLM 显式返回(缺失时保留原值)
+        let new_variables = v
+            .get("variables")
+            .and_then(|n| n.as_array())
+            .cloned()
+            .unwrap_or_else(|| original.variables.clone());
+
         Some(WorkflowGenome {
             template_id: original.template_id.clone(),
             name: original.name.clone(),
             nodes: new_nodes,
             edges: new_edges,
-            variables: original.variables.clone(),
+            variables: new_variables,
             fitness: original.fitness,
             generation: original.generation.saturating_add(1),
         })
@@ -253,7 +273,102 @@ impl WorkflowLlmMutator for ProviderWorkflowLlmMutator {
     }
 }
 
-/// 结构校验沙箱:不执行工作流,仅做静态结构检查。
+// ── 方案 3A:wiring 层基因组加载器 ──
+
+/// 从 DB 加载工作流模板并构造 `WorkflowGenome` 的 wiring 实现。
+///
+/// 委托 `WorkflowTemplateRepository::get_workflow_template`(harness trait),
+/// 将 `WorkflowTemplateData` 的 `nodes` / `edges` / `variables`(JSON Value)
+/// 反序列化出具体类型,组合成 `WorkflowGenome`。
+///
+/// trajectory 层通过 `WorkflowGenomeLoader` trait 拿到 genome,不直接依赖 dao。
+pub struct DaoWorkflowGenomeLoader {
+    repo: Arc<dyn axagent_harness::repositories::WorkflowTemplateRepository>,
+}
+
+impl DaoWorkflowGenomeLoader {
+    pub fn new(repo: Arc<dyn axagent_harness::repositories::WorkflowTemplateRepository>) -> Self {
+        Self { repo }
+    }
+}
+
+impl axagent_harness::workflow_evolution::WorkflowGenomeLoader for DaoWorkflowGenomeLoader {
+    fn load_genome(
+        &self,
+        template_id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<WorkflowGenome>> + Send>> {
+        let repo = self.repo.clone();
+        let id = template_id.to_string();
+        Box::pin(async move {
+            let data = match repo.get_workflow_template(&id).await {
+                Ok(Some(d)) => d,
+                _ => return None,
+            };
+
+            // `WorkflowTemplateData.nodes / edges` 是 JSON 字符串,需先 parse 成 Value
+            let nodes_value: serde_json::Value =
+                serde_json::from_str(&data.nodes).unwrap_or(serde_json::Value::Array(vec![]));
+            let edges_value: serde_json::Value =
+                serde_json::from_str(&data.edges).unwrap_or(serde_json::Value::Array(vec![]));
+            let variables_value: serde_json::Value = data
+                .variables
+                .as_ref()
+                .and_then(|s| serde_json::from_str(s).ok())
+                .unwrap_or(serde_json::Value::Array(vec![]));
+
+            // 反序列化 nodes
+            let nodes: Vec<axagent_harness::workflow_types::WorkflowNode> = nodes_value
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|n| {
+                            serde_json::from_value::<axagent_harness::workflow_types::WorkflowNode>(
+                                n.clone(),
+                            )
+                            .ok()
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            // 反序列化 edges
+            let edges: Vec<axagent_harness::workflow_types::WorkflowEdge> = edges_value
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|e| {
+                            serde_json::from_value::<axagent_harness::workflow_types::WorkflowEdge>(
+                                e.clone(),
+                            )
+                            .ok()
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            // variables 保留为 JSON Vec(WorkflowGenome.variables 即 Vec<Value>)
+            let variables: Vec<serde_json::Value> =
+                variables_value.as_array().map(|arr| arr.to_vec()).unwrap_or_default();
+
+            if nodes.is_empty() {
+                tracing::warn!("[Evolver] template {id} has no nodes, genome loader returns None");
+                return None;
+            }
+
+            Some(WorkflowGenome {
+                template_id: data.id,
+                name: data.name,
+                nodes,
+                edges,
+                variables,
+                fitness: 0.5,
+                generation: 0,
+            })
+        })
+    }
+}
+
+/// 结构校验沙箱:不实际执行工作流,仅做静态结构检查。
 ///
 /// 比内置的"占位通过"更严格,能在进化阶段捕获明显的结构错误:
 /// - nodes 非空

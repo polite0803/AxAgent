@@ -20,8 +20,8 @@ use tokio::sync::RwLock;
 use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{
     EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
-    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowLlmMutator,
-    WorkflowModification, WorkflowSandbox, validate_genome_basic,
+    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader,
+    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox, validate_genome_basic,
 };
 use axagent_harness::workflow_reflection::{
     BottleneckReason, WorkflowPattern, WorkflowReflectionMetadata, WorkflowRunStatus,
@@ -35,6 +35,9 @@ pub struct WorkflowEvolverImpl {
     llm_provider: RwLock<Option<Arc<dyn WorkflowLlmMutator>>>,
     /// 沙箱验证器(wiring 层注入,默认 None)。
     sandbox: RwLock<Option<Arc<dyn WorkflowSandbox>>>,
+    /// 基因组加载器(wiring 层注入,默认 None)。
+    /// 未注入时 `initialize` 退化为占位;注入后基于真实模板构造初始种群。
+    genome_loader: RwLock<Option<Arc<dyn WorkflowGenomeLoader>>>,
     /// 跨模板的近期反思记录(用于 `should_auto_evolve` 判定)。
     /// key = template_id,value = 该模板近期 reflection 的 (quality_score, status)。
     recent_reflections: RwLock<HashMap<String, Vec<(u8, WorkflowRunStatus)>>>,
@@ -61,6 +64,7 @@ impl WorkflowEvolverImpl {
             state: RwLock::new(EvolverState::default()),
             llm_provider: RwLock::new(None),
             sandbox: RwLock::new(None),
+            genome_loader: RwLock::new(None),
             recent_reflections: RwLock::new(HashMap::new()),
         }
     }
@@ -276,29 +280,68 @@ fn apply_heuristic_adjustments(
 #[async_trait]
 impl WorkflowEvolver for WorkflowEvolverImpl {
     async fn initialize(&self, template_id: &str) -> Result<EvolutionPopulation, String> {
-        // MVP:由于 trajectory 不能直接访问模板表,这里生成一个空个体作为占位。
-        // 真正的种群初始化应由 wiring 层在调用前注入 WorkflowGenome,
-        // 或通过 LLM provider 加载模板后构造。
-        let individual = WorkflowGenome {
-            template_id: template_id.to_string(),
-            name: format!("Workflow-{template_id}"),
-            nodes: Vec::new(),
-            edges: Vec::new(),
-            variables: Vec::new(),
-            fitness: 0.5,
-            generation: 0,
+        // 方案 3A:从注入的 genome_loader 加载真实模板(若已注入),
+        // 否则退化为占位(单个体空 genome,保持向后兼容)。
+        let seed: Option<WorkflowGenome> = {
+            let loader_guard = self.genome_loader.read().await;
+            if let Some(loader) = loader_guard.as_ref() {
+                loader.load_genome(template_id).await
+            } else {
+                None
+            }
         };
+
+        let individuals: Vec<WorkflowGenome> = if let Some(base) = seed {
+            // 种群初始化:原模板 + 扰动副本(每个节点 retry.max_retries +1 生成轻微变异),
+            // 数量上限 = population_size(MVP 限制 4 个,避免内存膨胀)
+            let pop_size = self.config.population_size.clamp(1, 4);
+            let mut vec = Vec::with_capacity(pop_size);
+            vec.push(base.clone()); // 第 0 个:原模板
+            for i in 1..pop_size {
+                let mut clone = base.clone();
+                clone.generation = 0;
+                // 扰动:每个节点 retry.max_retries +i,使每个个体略有差异
+                for node in &mut clone.nodes {
+                    let base = node.base_mut();
+                    base.retry.max_retries = base.retry.max_retries.saturating_add(i as u32);
+                }
+                vec.push(clone);
+            }
+            vec
+        } else {
+            tracing::debug!(
+                "[Evolver] genome_loader not injected, falling back to placeholder genome"
+            );
+            vec![WorkflowGenome {
+                template_id: template_id.to_string(),
+                name: format!("Workflow-{template_id}"),
+                nodes: Vec::new(),
+                edges: Vec::new(),
+                variables: Vec::new(),
+                fitness: 0.5,
+                generation: 0,
+            }]
+        };
+
+        let best_fitness = individuals.iter().map(|g| g.fitness).fold(0.0_f32, f32::max);
+        let avg_fitness = if individuals.is_empty() {
+            0.0
+        } else {
+            individuals.iter().map(|g| g.fitness).sum::<f32>() / individuals.len() as f32
+        };
+
         let population = EvolutionPopulation {
             generation: 0,
-            individuals: vec![individual],
-            best_fitness: 0.5,
-            avg_fitness: 0.5,
-            fitness_history: vec![0.5],
+            individuals,
+            best_fitness,
+            avg_fitness,
+            fitness_history: vec![best_fitness],
         };
+
         let mut state = self.state.write().await;
         state.generation = 0;
-        state.best_fitness = 0.5;
-        state.fitness_history = vec![0.5];
+        state.best_fitness = best_fitness;
+        state.fitness_history = vec![best_fitness];
         state.converged = false;
         Ok(population)
     }
@@ -550,6 +593,12 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
     async fn set_sandbox(&self, sandbox: Arc<dyn WorkflowSandbox>) -> Result<(), String> {
         let mut guard = self.sandbox.write().await;
         *guard = Some(sandbox);
+        Ok(())
+    }
+
+    async fn set_genome_loader(&self, loader: Arc<dyn WorkflowGenomeLoader>) -> Result<(), String> {
+        let mut guard = self.genome_loader.write().await;
+        *guard = Some(loader);
         Ok(())
     }
 

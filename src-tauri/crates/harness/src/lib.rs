@@ -349,8 +349,8 @@ pub use workflow_reflection::{
 pub mod workflow_evolution;
 pub use workflow_evolution::{
     EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
-    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowLlmMutator,
-    WorkflowModification, WorkflowSandbox,
+    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader,
+    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox,
 };
 pub mod workflow_optimization;
 pub use workflow_optimization::{

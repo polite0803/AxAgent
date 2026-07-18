@@ -405,6 +405,21 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }
     }
 
+    // 方案 3A:注入基因组加载器(从 DB 加载真实模板构造初始种群)
+    {
+        let repo = axagent_harness::repositories::workflow_template_repository();
+        let loader = super::workflow_injections::DaoWorkflowGenomeLoader::new(repo);
+        if let Err(e) = workflow_evolver
+            .set_genome_loader(std::sync::Arc::new(loader)
+                as std::sync::Arc<dyn axagent_harness::WorkflowGenomeLoader>)
+            .await
+        {
+            tracing::warn!("[Evolver] set_genome_loader failed: {e}");
+        } else {
+            tracing::info!("[Evolver] Genome loader injected (real template-based init)");
+        }
+    }
+
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =
         {
             let engine = Arc::new(

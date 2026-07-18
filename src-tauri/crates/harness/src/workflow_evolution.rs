@@ -200,9 +200,30 @@ pub trait WorkflowEvolver: Send + Sync {
     /// 注入沙箱验证器。
     async fn set_sandbox(&self, sandbox: Arc<dyn WorkflowSandbox>) -> Result<(), String>;
 
+    /// 注入基因组加载器(wiring 层从 DB 加载模板后构造 `WorkflowGenome`)。
+    ///
+    /// 未注入时,`initialize` 退化为占位(单个体空 genome);注入后,种群初始化
+    /// 才能基于真实模板生成多个个体(扰动 + 交叉)。
+    async fn set_genome_loader(&self, loader: Arc<dyn WorkflowGenomeLoader>) -> Result<(), String>;
+
     /// 状态查询。
     async fn get_stats(&self) -> Result<EvolutionStats, String>;
     async fn is_running(&self) -> Result<bool, String>;
+}
+
+/// 工作流基因组加载器:从 DB / 模板表加载并构造 `WorkflowGenome`。
+///
+/// **wiring 层**实现(委托 `WorkflowTemplateRepository`),trajectory 层只
+/// 通过此 trait 拿到 genome,不直接依赖 dao / entities。
+pub trait WorkflowGenomeLoader: Send + Sync {
+    /// 按 `template_id` 加载基因组(可选返回 None,如模板不存在)。
+    ///
+    /// 实现方应从 `WorkflowTemplateData.nodes / edges / variables` 反序列化
+    /// 出 `WorkflowNode` / `WorkflowEdge` 列表,组合成 `WorkflowGenome`。
+    fn load_genome(
+        &self,
+        template_id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<WorkflowGenome>> + Send>>;
 }
 
 /// 工作流 LLM 变异器:扩展 `LlmEvolutionProvider` 支持工作流节点语义。
