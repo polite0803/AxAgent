@@ -11522,6 +11522,12 @@
     "degradedMarker": {
       "tooltip": "Some analysis methods are unavailable in replay mode",
       "labelWithCount": "{{n}} degraded"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

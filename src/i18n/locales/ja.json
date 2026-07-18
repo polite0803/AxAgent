@@ -10859,6 +10859,12 @@
     "degradedMarker": {
       "tooltip": "リプレイモードでは一部の方法が利用できません",
       "labelWithCount": "{{n}} 件劣化"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

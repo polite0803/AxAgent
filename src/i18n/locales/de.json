@@ -10879,6 +10879,12 @@
     "degradedMarker": {
       "tooltip": "Einige Analysemethoden sind im Replay-Modus nicht verfügbar",
       "labelWithCount": "{{n}} eingeschränkt"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

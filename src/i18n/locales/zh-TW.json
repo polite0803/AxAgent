@@ -10860,6 +10860,12 @@
     "degradedMarker": {
       "tooltip": "部分分析方法在回放模式下不可用",
       "labelWithCount": "降級 {{n}} 項"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

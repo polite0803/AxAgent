@@ -10711,6 +10711,12 @@
     "degradedMarker": {
       "tooltip": "Некоторые методы анализа недоступны в режиме воспроизведения",
       "labelWithCount": "{{n}} ухудшено"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

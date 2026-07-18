@@ -10747,6 +10747,12 @@
     "degradedMarker": {
       "tooltip": "Algunos métodos de análisis no están disponibles en modo reproducción",
       "labelWithCount": "{{n}} degradados"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

@@ -10750,6 +10750,12 @@
     "degradedMarker": {
       "tooltip": "रीप्ले मोड में कुछ विश्लेषण विधियाँ उपलब्ध नहीं हैं",
       "labelWithCount": "{{n}} अवनत"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

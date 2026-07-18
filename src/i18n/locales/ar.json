@@ -10828,6 +10828,12 @@
     "degradedMarker": {
       "tooltip": "بعض طرق التحليل غير متاحة في وضع الإعادة",
       "labelWithCount": "{{n}} منخفضة"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {

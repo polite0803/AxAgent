@@ -39,10 +39,10 @@ describe("TradePage", () => {
     expect(title?.textContent).toBe("trade.title");
   });
 
-  it("renders PortfolioMonitorPanel, TradePanel and ExecutionReplayPanel in vertical stack", () => {
+  it("renders PortfolioMonitorPanel, TradePanel, TradeImportPanel and ExecutionReplayPanel in vertical stack", () => {
     const { container } = renderWithRouter();
     const body = container.querySelector(".space-y-4");
     expect(body).toBeTruthy();
-    expect(body?.children.length).toBe(3);
+    expect(body?.children.length).toBe(4);
   });
 });

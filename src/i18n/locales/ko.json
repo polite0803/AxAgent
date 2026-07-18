@@ -10859,6 +10859,12 @@
     "degradedMarker": {
       "tooltip": "리플레이 모드에서는 일부 분석 방법을 사용할 수 없습니다",
       "labelWithCount": "{{n}}개 저하"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {
