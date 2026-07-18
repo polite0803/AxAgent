@@ -6,6 +6,7 @@ pub mod agent_session;
 pub mod agent_session_repo;
 pub mod artifact;
 pub mod backup;
+pub mod business_role;
 pub mod cli_config;
 pub mod context_source;
 pub mod conversation;
@@ -40,6 +41,7 @@ pub mod tool_execution;
 pub mod vec_collection;
 pub mod workflow_approval;
 pub mod workflow_execution;
+pub mod workflow_execution_stats;
 pub mod workflow_template;
 
 pub mod louvain;

@@ -64,9 +64,13 @@ pub mod agent_profiles;
 pub mod agent_roles;
 pub mod agent_sessions;
 
+// 业务岗位（与 agent_roles 抽象执行器类型区别：表达现实业务岗位如 CEO/CTO/产品经理）
+pub mod business_roles;
+
 // Wave 3: Atomic Skill & Work Engine entities
 pub mod generated_tools;
 pub mod workflow_approvals;
+pub mod workflow_execution_stats;
 pub mod workflow_executions;
 pub mod workflow_marketplace;
 pub mod workflow_marketplace_review;

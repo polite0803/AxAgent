@@ -63,6 +63,29 @@ async fn validate_expert_id(
     }
 }
 
+/// 校验 business_role_id（如果不为 None）在 business_roles 表中存在。
+async fn validate_business_role_id(
+    db: &DatabaseConnection,
+    business_role_id: Option<&str>,
+) -> Result<Option<String>> {
+    use axagent_entities::business_roles;
+    match business_role_id {
+        None => Ok(None),
+        Some("") => Ok(None),
+        Some(rid) => {
+            let exists = business_roles::Entity::find_by_id(rid).one(db).await?.is_some();
+            if exists {
+                Ok(Some(rid.to_string()))
+            } else {
+                Err(AxAgentError::Validation(format!(
+                    "business_role_id '{}' does not exist in business_roles",
+                    rid
+                )))
+            }
+        },
+    }
+}
+
 fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
     let parse_json_arr = |raw: &Option<String>| -> Vec<String> {
         raw.as_deref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default()
@@ -89,6 +112,7 @@ fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
         sort_order: m.sort_order,
         is_enabled: m.is_enabled != 0,
         expert_id: m.expert_id,
+        business_role_id: m.business_role_id,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -188,6 +212,7 @@ pub async fn upsert_agent_profile(
     disallowed_tools: &[String],
     recommended_workflows: &[String],
     expert_id: Option<&str>,
+    business_role_id: Option<&str>,
 ) -> Result<AgentProfile> {
     let now = now_ts();
 
@@ -195,6 +220,8 @@ pub async fn upsert_agent_profile(
     let category = validate_category(category)?;
     // P1-5: expert_id 存在性校验（存量库兜底，新部署由 v100 DDL FK 约束保证）
     let expert_id = validate_expert_id(db, expert_id).await?;
+    // 业务岗位 ID 存在性校验
+    let business_role_id = validate_business_role_id(db, business_role_id).await?;
 
     let am = agent_profiles::ActiveModel {
         id: Set(id.to_string()),
@@ -233,6 +260,7 @@ pub async fn upsert_agent_profile(
         sort_order: Set(0),
         is_enabled: Set(1),
         expert_id: Set(expert_id),
+        business_role_id: Set(business_role_id),
         created_at: Set(now),
         updated_at: Set(now),
     };
@@ -256,6 +284,7 @@ pub async fn upsert_agent_profile(
                 .update_column(agent_profiles::Column::DisallowedTools)
                 .update_column(agent_profiles::Column::RecommendedWorkflows)
                 .update_column(agent_profiles::Column::ExpertId)
+                .update_column(agent_profiles::Column::BusinessRoleId)
                 .update_column(agent_profiles::Column::UpdatedAt)
                 .to_owned(),
         )
@@ -276,6 +305,7 @@ pub async fn update_agent_profile(
     agent_role: Option<Option<&str>>,
     tags: Option<&[String]>,
     is_enabled: Option<bool>,
+    business_role_id: Option<Option<&str>>,
 ) -> Result<AgentProfile> {
     let row = agent_profiles::Entity::find_by_id(id)
         .one(db)
@@ -310,6 +340,11 @@ pub async fn update_agent_profile(
     }
     if let Some(v) = is_enabled {
         am.is_enabled = Set(if v { 1 } else { 0 });
+    }
+    if let Some(v) = business_role_id {
+        // 校验目标 business_role_id 存在性（None 表示解除关联）
+        let validated = validate_business_role_id(db, v).await?;
+        am.business_role_id = Set(validated);
     }
 
     am.update(db).await?;

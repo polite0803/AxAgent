@@ -216,6 +216,7 @@ pub async fn get_template_by_version(
         error_config: v.error_config,
         composite_source: None,
         tool_defs: None,
+        mission_hash: None,
         created_at: v.created_at,
         updated_at: v.created_at,
     }))
@@ -227,6 +228,22 @@ pub async fn get_workflow_by_composite_source(
 ) -> Result<Option<workflow_template::Model>> {
     let template = workflow_template::Entity::find()
         .filter(workflow_template::Column::CompositeSource.eq(composite_source))
+        .one(db)
+        .await?;
+    Ok(template)
+}
+
+/// 按 mission_hash 查询模板（用于 compile_mission_to_template 去重缓存）。
+///
+/// 仅返回最新一条匹配记录（按 updated_at 倒序）。mission_hash 由命令层
+/// 计算 SHA-256 后传入，dao 层不关心算法细节。
+pub async fn find_latest_by_mission_hash(
+    db: &DatabaseConnection,
+    mission_hash: &str,
+) -> Result<Option<workflow_template::Model>> {
+    let template = workflow_template::Entity::find()
+        .filter(workflow_template::Column::MissionHash.eq(mission_hash))
+        .order_by(workflow_template::Column::UpdatedAt, Order::Desc)
         .one(db)
         .await?;
     Ok(template)
@@ -261,7 +278,7 @@ pub async fn seed_preset_templates(
     Ok(())
 }
 
-fn build_active_model_from_data(
+pub fn build_active_model_from_data(
     item: &axagent_harness::workflow_types::WorkflowTemplateData,
 ) -> workflow_template::ActiveModel {
     workflow_template::ActiveModel {
@@ -286,6 +303,7 @@ fn build_active_model_from_data(
         error_config: Set(item.error_config.as_ref().and_then(|e| serde_json::to_string(e).ok())),
         composite_source: Set(None),
         tool_defs: Set(None),
+        mission_hash: Set(item.mission_hash.clone()),
         created_at: Set(item.created_at),
         updated_at: Set(item.updated_at),
     }
@@ -326,6 +344,7 @@ pub fn template_model_to_data(
         created_at: model.created_at,
         updated_at: model.updated_at,
         error_workflow_id: None,
+        mission_hash: model.mission_hash.clone(),
     }
 }
 

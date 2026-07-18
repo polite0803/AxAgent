@@ -1549,6 +1549,10 @@ pub struct WorkflowTemplateData {
     pub error_workflow_id: Option<String>,
     /// Rhai 工具定义（非 DAG 节点，仅注册为可调用工具）
     pub tool_defs: Vec<RhaiToolDef>,
+    /// mission 哈希（SHA-256），用于 compile_mission_to_template 去重缓存。
+    /// 由 mission 编译生成的模板填充；手动创建的模板为 None。
+    #[serde(default)]
+    pub mission_hash: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -1592,6 +1596,7 @@ impl WorkflowTemplateData {
             variables: self.variables.clone(),
             error_config: self.error_config.clone(),
             tool_defs: Some(self.tool_defs.clone()),
+            mission_hash: self.mission_hash.clone(),
         }
     }
 }
@@ -1610,6 +1615,10 @@ pub struct WorkflowTemplateInput {
     pub variables: Vec<Variable>,
     pub error_config: Option<ErrorConfig>,
     pub tool_defs: Option<Vec<RhaiToolDef>>,
+    /// mission 哈希（SHA-256），用于 compile_mission_to_template 去重缓存。
+    /// 仅当此模板由 mission 编译生成时填充；手动创建时为 None。
+    #[serde(default)]
+    pub mission_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
@@ -1631,6 +1640,9 @@ pub struct WorkflowTemplateResponse {
     pub variables: Vec<Variable>,
     pub error_config: Option<ErrorConfig>,
     pub tool_defs: Option<Vec<RhaiToolDef>>,
+    /// mission 哈希（SHA-256），若模板由 mission 编译生成则填充
+    #[serde(default)]
+    pub mission_hash: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -1655,6 +1667,7 @@ impl From<WorkflowTemplateData> for WorkflowTemplateResponse {
             variables: data.variables,
             error_config: data.error_config,
             tool_defs: Some(data.tool_defs),
+            mission_hash: data.mission_hash,
             created_at: data.created_at,
             updated_at: data.updated_at,
         }

@@ -24,9 +24,11 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
 pub mod pg_ddl;
 pub mod v100_consolidated;
+pub mod v101_business_roles;
+pub mod v102_mission_hash;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 100;
+pub const CURRENT_VERSION: i32 = 102;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -52,11 +54,23 @@ struct Migration {
     up: MigrationFn,
 }
 
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 100,
-    description: "v100_consolidated: consolidated DDL snapshot with all ALTER passes (REAL→DOUBLE PRECISION + INTEGER→BOOLEAN) and route_history + active_domains columns",
-    up: |db| Box::pin(v100_consolidated::up(db)),
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 100,
+        description: "v100_consolidated: consolidated DDL snapshot with all ALTER passes (REAL→DOUBLE PRECISION + INTEGER→BOOLEAN) and route_history + active_domains columns",
+        up: |db| Box::pin(v100_consolidated::up(db)),
+    },
+    Migration {
+        version: 101,
+        description: "v101_business_roles: business_roles table + workflow_execution_stats table + agency_experts/agent_profiles new columns (business_role_id, seniority, specialties, parent_role_id, performance)",
+        up: |db| Box::pin(v101_business_roles::up(db)),
+    },
+    Migration {
+        version: 102,
+        description: "v102_mission_hash: workflow_templates.mission_hash column for compile_mission_to_template deduplication cache",
+        up: |db| Box::pin(v102_mission_hash::up(db)),
+    },
+];
 
 /// 执行所有尚未应用的 schema 迁移。
 ///
@@ -207,7 +221,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 1, "schema_version should have exactly 1 row (v100 consolidated only)");
+        assert_eq!(cnt, 3, "schema_version should have exactly 3 rows (v100 + v101 + v102)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

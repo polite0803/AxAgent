@@ -1,6 +1,7 @@
 use super::helpers::{
     FEW_SHOT_EXAMPLES, NODE_SCHEMAS_DOC, NodeRecommendation, WorkflowGenerationResult,
-    extract_json_from_response, parse_llm_response, resolve_ai_provider,
+    build_roles_and_experts_brief, extract_json_from_response, parse_llm_response,
+    resolve_ai_provider,
 };
 use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
@@ -83,6 +84,11 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 === Few-shot 范例 ===
 {FEW_SHOT_EXAMPLES}
 
+=== 可用业务岗位与专家清单 ===
+{roles_brief}
+提示：agent 节点的 config 中可引用上述业务岗位 ID（business_role_id）和专家 ID（expert_id），
+让节点执行时自动拼接对应的 system_prompt（详见 4 层 prompt 层级）。
+
 === 输出格式 ===
 {{
   "intent": "generate" | "clarify" | "refuse",
@@ -117,7 +123,10 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 7. 若请求违反平台规则（如要求越权访问），intent=refuse，explanation 写明原因。
 8. 涉及并发/批量处理用 parallel；循环遍历用 loop；不要把循环当并发。
 9. 跨多个服务编排时优先用 subWorkflow 复用已有工作流。
-10. 知识检索/文档问答用 vectorRetrieve + documentParser；不要用 llm 凭空生成。{context_section}"#
+10. 知识检索/文档问答用 vectorRetrieve + documentParser；不要用 llm 凭空生成。{context_section}"#,
+        roles_brief = build_roles_and_experts_brief()
+            .await
+            .unwrap_or_else(|| "（暂无可用业务岗位/专家）".to_string())
     );
 
     let request = ChatRequest {

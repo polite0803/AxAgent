@@ -607,8 +607,14 @@ macro_rules! register_all_commands {
             commands::workflow_ai::recommend_nodes,
             commands::workflow_ai::workflow_ai_chat_stream,
             commands::workflow_ai::workflow_ai_chat_cancel,
+            commands::workflow_ai::compile_mission_to_template,
             commands::workflow_ai_diagnose::llm_diagnose_workflow,
             commands::workflow_ai_diagnose::apply_diagnostic_fixes,
+            // 工作流执行统计命令（mission 效果导向优化）
+            commands::workflow_execution_stats::record_workflow_execution,
+            commands::workflow_execution_stats::get_workflow_stats_by_template,
+            commands::workflow_execution_stats::get_workflow_stats_by_mission,
+            commands::workflow_execution_stats::get_template_effect_summary,
             // V2 协议 chat action apply 命令(P0 #1 实现:5/5)
             commands::workflow_ai_apply::apply_update_variable,
             commands::workflow_ai_apply::apply_rollback_to_version,
@@ -848,6 +854,13 @@ macro_rules! register_all_commands {
             commands::agent_role::delete_agent_role,
             commands::agent_role::save_agent_role,
             commands::agent_role::update_agent_role,
+            // 业务岗位（business_role）—— 与 agent_role 区别：agent_role 是抽象执行器类型，
+            // business_role 是 CEO/CTO/产品经理 等业务岗位
+            commands::business_role::list_business_roles,
+            commands::business_role::list_business_role_tree,
+            commands::business_role::get_business_role,
+            commands::business_role::save_business_role,
+            commands::business_role::delete_business_role,
             // App config
             commands::app_config::get_app_config,
             commands::app_config::save_app_config,

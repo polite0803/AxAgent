@@ -17,6 +17,7 @@ pub mod backup;
 pub mod branches;
 #[cfg(not(mobile))]
 pub mod browser;
+pub mod business_role;
 pub mod chart_generator;
 pub mod cloud_workspace;
 #[cfg(not(mobile))]
@@ -108,6 +109,7 @@ pub mod work_engine;
 pub mod workflow_ai;
 pub mod workflow_ai_apply;
 pub mod workflow_ai_diagnose;
+pub mod workflow_execution_stats;
 pub mod workflow_template;
 pub mod workflow_yaml;
 pub mod workflows;

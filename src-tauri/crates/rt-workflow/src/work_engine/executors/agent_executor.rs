@@ -409,9 +409,58 @@ impl NodeExecutorTrait for AgentExecutor {
             }
         }
 
-        // 4b. AgentRole system_prompt（岗位）+ Expert system_prompt（技能）
+        // 4b. BusinessRole system_prompt（业务岗位）+ AgentRole system_prompt（执行器）+ Expert system_prompt（技能）
+        //
+        // 三层 prompt 拼接顺序（语义层级：高 → 低）：
+        //   1. BusinessRole.system_prompt —— 业务岗位（CEO/CTO/产品经理）= 在组织里担什么责
+        //   2. AgentRole.system_prompt    —— 抽象执行器（executor/planner）= 怎么干活
+        //   3. Expert.system_prompt       —— 业务人才（证券分析师）= 具体技能
+        //   4. 节点 inline system_prompt —— 工作流编辑器中本节点自定义的覆盖提示词
+        //
+        // 这样设计符合「业务岗位 → 执行器 → 专家 → 节点覆盖」的从抽象到具体的层级关系，
+        // 节点 inline prompt 可以覆盖上层岗位的指令（primacy + recency 双锚定）。
         if let Some(ref p) = profile {
-            // 解析 Role 的提示词
+            // 1. 解析 BusinessRole（业务岗位）的提示词
+            if let Some(ref business_role_id) = p.business_role_id {
+                match axagent_harness::repositories::business_role_repository()
+                    .get_business_role(business_role_id)
+                    .await
+                {
+                    Ok(Some(business_role)) if !business_role.system_prompt.is_empty() => {
+                        tracing::debug!(
+                            node_id = %node.base_id(),
+                            business_role_id = %business_role_id,
+                            business_role_source = %business_role.source,
+                            business_role_prompt_len = business_role.system_prompt.len(),
+                            "BusinessRole system_prompt resolved"
+                        );
+                        all_segments.extend(compile_prompt(&business_role.system_prompt).segments);
+                    },
+                    Ok(Some(_)) => {
+                        tracing::debug!(
+                            node_id = %node.base_id(),
+                            business_role_id = %business_role_id,
+                            "BusinessRole system_prompt 为空，跳过"
+                        );
+                    },
+                    Ok(None) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            business_role_id = %business_role_id,
+                            "BusinessRole 不存在（business_role_id 在 DB 中未找到），业务岗位提示词不会生效"
+                        );
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            business_role_id = %business_role_id,
+                            error = %e,
+                            "BusinessRole 查询失败（DB 错误），业务岗位提示词不会生效"
+                        );
+                    },
+                }
+            }
+            // 2. 解析 AgentRole（抽象执行器类型）的提示词
             if let Some(ref role_name) = p.agent_role {
                 match axagent_harness::repositories::agent_role_repository()
                     .get_agent_role(role_name)
@@ -452,7 +501,7 @@ impl NodeExecutorTrait for AgentExecutor {
                     },
                 }
             }
-            // 解析 Expert 的提示词
+            // 3. 解析 Expert（业务人才）的提示词
             if let Some(ref expert_id) = p.expert_id {
                 match axagent_harness::repositories::agency_expert_repository()
                     .get_agency_expert(expert_id)

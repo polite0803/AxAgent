@@ -120,6 +120,7 @@ pub async fn skills_hub_review(
                         error_config: Set(None),
                         composite_source: Set(None),
                         tool_defs: Set(None),
+                        mission_hash: Set(None),
                         created_at: Set(now),
                         updated_at: Set(now),
                     };
