@@ -79,8 +79,10 @@ impl ProviderWorkflowLlmMutator {
              Failure evidence:\n{failures_json}\n\n\
              Success evidence:\n{successes_json}\n\n\
              Respond with ONLY a JSON object (no markdown, no explanation):\n\
-             {{\"nodes\": [...], \"edges\": [...], \"variables\": [...]}}\n\
-             The \"nodes\" array must include ALL nodes (with patched configs), not just changed ones."
+             {{\"nodes\": [...], \"edges\": [...], \"variables\": [...], \"changed_node_ids\": [...]}}\n\
+             The \"nodes\" array must include ALL nodes (with patched configs), not just changed ones.\n\
+             The \"changed_node_ids\" array lists ONLY the node IDs whose configs you modified —\n\
+             unchanged nodes will be preserved from the original genome."
         )
     }
 
@@ -133,6 +135,12 @@ impl ProviderWorkflowLlmMutator {
             variables: new_variables,
             fitness: original.fitness,
             generation: original.generation.saturating_add(1),
+            // 方案 1B:LLM 显式声明变更的 node_id 列表
+            changed_node_ids: v
+                .get("changed_node_ids")
+                .and_then(|n| n.as_array())
+                .map(|arr| arr.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
+                .unwrap_or_default(),
         })
     }
 }
@@ -189,6 +197,65 @@ fn extract_first_float(text: &str) -> Option<f32> {
     }
     let s = start?;
     text[s..end].parse::<f32>().ok()
+}
+
+/// 从文本中提取所有 `{{var_name}}` 形式的变量引用。
+///
+/// 手动扫描(非正则),匹配规则:
+/// - 起始标记 `{{`
+/// - 可选空白
+/// - 标识符(首字符 `[a-zA-Z_]`,后续 `[a-zA-Z0-9_]*`)
+/// - 可选空白
+/// - 结束标记 `}}`
+///
+/// 不匹配时跳过 `{{`,从下一个位置继续扫描(避免死循环)。
+fn extract_var_refs(text: &str) -> Vec<String> {
+    let bytes = text.as_bytes();
+    let mut refs = Vec::new();
+    let mut i = 0;
+    while let Some(start) = find_subslice(bytes, b"{{", i) {
+        let mut pos = start + 2;
+        // 跳过空白
+        pos = skip_whitespace(bytes, pos);
+        // 收集标识符
+        let id_start = pos;
+        if pos < bytes.len() && (bytes[pos].is_ascii_alphabetic() || bytes[pos] == b'_') {
+            pos += 1;
+            while pos < bytes.len() && (bytes[pos].is_ascii_alphanumeric() || bytes[pos] == b'_') {
+                pos += 1;
+            }
+            let id_end = pos;
+            // 跳过空白
+            pos = skip_whitespace(bytes, pos);
+            // 匹配 `}}`
+            if pos + 1 < bytes.len() && bytes[pos] == b'}' && bytes[pos + 1] == b'}' {
+                if let Ok(name) = std::str::from_utf8(&bytes[id_start..id_end]) {
+                    refs.push(name.to_string());
+                }
+                i = pos + 2;
+                continue;
+            }
+        }
+        // 不匹配,从下一个字符继续扫描(避免在当前位置死循环)
+        i = start + 1;
+    }
+    refs
+}
+
+/// 从 `from` 位置开始查找 `needle` 在 `haystack` 中的首个出现位置(字节下标)。
+fn find_subslice(haystack: &[u8], needle: &[u8], from: usize) -> Option<usize> {
+    if from >= haystack.len() || needle.is_empty() {
+        return None;
+    }
+    haystack[from..].windows(needle.len()).position(|w| w == needle).map(|p| p + from)
+}
+
+/// 从 `pos` 开始跳过 ASCII 空白字符(空格/制表/换行/回车),返回新的位置。
+fn skip_whitespace(bytes: &[u8], mut pos: usize) -> usize {
+    while pos < bytes.len() && matches!(bytes[pos], b' ' | b'\t' | b'\n' | b'\r') {
+        pos += 1;
+    }
+    pos
 }
 
 #[async_trait]
@@ -363,8 +430,160 @@ impl axagent_harness::workflow_evolution::WorkflowGenomeLoader for DaoWorkflowGe
                 variables,
                 fitness: 0.5,
                 generation: 0,
+                changed_node_ids: Vec::new(),
             })
         })
+    }
+}
+
+// ── 方案 2A(简化版):拓扑可达性 + 变量引用校验沙箱 ──
+
+/// 拓扑可达性 + 变量引用校验沙箱(不实际执行工作流)。
+///
+/// 比 `StructuralWorkflowSandbox` 更强:在结构校验基础上增加两项语义校验:
+/// - 拓扑可达性:从 Trigger 节点出发,通过 edges BFS 遍历,所有节点必须可达
+///   (捕获孤立节点 — LLM 变异可能误删边或新增孤立节点)
+/// - 变量引用校验:nodes 的 config 字段中 `{{var_name}}` 形式引用的变量,
+///   必须在 `genome.variables` 中定义(捕获悬空变量引用)
+///
+/// 不实际调用 WorkEngine,避免循环依赖(WorkEngine 持有 Evolver,Evolver 不应反向调用 WorkEngine)。
+/// 仍属静态校验范畴,但不局限于字段级结构。
+pub struct ReachabilityWorkflowSandbox;
+
+impl ReachabilityWorkflowSandbox {
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// 从 Trigger 节点出发做 BFS,返回不可达的节点 ID 列表。
+    ///
+    /// 无 Trigger 节点时,从第一个节点出发(降级策略)。
+    fn find_unreachable_nodes(genome: &WorkflowGenome) -> Vec<String> {
+        use std::collections::{HashMap, HashSet, VecDeque};
+        if genome.nodes.is_empty() {
+            return Vec::new();
+        }
+
+        // 构建邻接表:source -> [target]
+        let mut adj: HashMap<&str, Vec<&str>> = HashMap::new();
+        for edge in &genome.edges {
+            adj.entry(edge.source.as_str()).or_default().push(edge.target.as_str());
+        }
+
+        // 找入口节点:优先 Trigger,否则用第一个节点
+        let start: &str = genome
+            .nodes
+            .iter()
+            .find(|n| matches!(n, axagent_harness::workflow_types::WorkflowNode::Trigger(_)))
+            .map(|n| n.base_id())
+            .or_else(|| genome.nodes.first().map(|n| n.base_id()))
+            .unwrap_or("");
+
+        if start.is_empty() {
+            return Vec::new();
+        }
+
+        // BFS
+        let mut visited: HashSet<&str> = HashSet::new();
+        let mut queue: VecDeque<&str> = VecDeque::new();
+        visited.insert(start);
+        queue.push_back(start);
+        while let Some(node) = queue.pop_front() {
+            if let Some(neighbors) = adj.get(node) {
+                for &next in neighbors {
+                    if visited.insert(next) {
+                        queue.push_back(next);
+                    }
+                }
+            }
+        }
+
+        // 找不可达节点
+        genome
+            .nodes
+            .iter()
+            .map(|n| n.base_id())
+            .filter(|id| !visited.contains(*id))
+            .map(|id| id.to_string())
+            .collect()
+    }
+
+    /// 扫描 nodes 的 config(序列化为 JSON),提取 `{{var_name}}` 引用,
+    /// 检查是否在 `genome.variables` 中定义。
+    ///
+    /// 返回未定义的变量引用列表(去重)。手动扫描实现,不引入 `regex` crate 依赖。
+    fn find_undefined_variable_refs(genome: &WorkflowGenome) -> Vec<String> {
+        // 收集已定义变量名
+        let defined: std::collections::HashSet<String> = genome
+            .variables
+            .iter()
+            .filter_map(|v| v.get("name").and_then(|n| n.as_str()).map(|s| s.to_string()))
+            .collect();
+
+        // 扫描每个 node 的 config JSON,手动提取 {{var}} 引用
+        let mut undefined: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for node in &genome.nodes {
+            let config_json = serde_json::to_string(node).unwrap_or_default();
+            for name in extract_var_refs(&config_json) {
+                if !defined.contains(&name) {
+                    undefined.insert(name);
+                }
+            }
+        }
+
+        undefined.into_iter().collect()
+    }
+
+    /// 执行校验,返回错误列表(空 = 通过)。
+    fn validate(genome: &WorkflowGenome) -> Vec<String> {
+        // 先做结构校验(复用 StructuralWorkflowSandbox 逻辑)
+        let mut errors = StructuralWorkflowSandbox::validate(genome);
+
+        // 拓扑可达性
+        let unreachable = Self::find_unreachable_nodes(genome);
+        if !unreachable.is_empty() {
+            errors.push(format!("unreachable nodes: {}", unreachable.join(", ")));
+        }
+
+        // 变量引用校验
+        let undefined_vars = Self::find_undefined_variable_refs(genome);
+        if !undefined_vars.is_empty() {
+            errors.push(format!("undefined variable references: {}", undefined_vars.join(", ")));
+        }
+
+        errors
+    }
+}
+
+#[async_trait]
+impl WorkflowSandbox for ReachabilityWorkflowSandbox {
+    async fn execute(
+        &self,
+        genome: &WorkflowGenome,
+        _test_input: &serde_json::Value,
+    ) -> Result<SandboxValidationResult, String> {
+        let errors = Self::validate(genome);
+        if errors.is_empty() {
+            Ok(SandboxValidationResult {
+                passed: true,
+                success_rate: 1.0,
+                execution_errors: Vec::new(),
+                avg_execution_time_ms: 0,
+            })
+        } else {
+            Ok(SandboxValidationResult {
+                passed: false,
+                success_rate: 0.0,
+                execution_errors: errors,
+                avg_execution_time_ms: 0,
+            })
+        }
+    }
+}
+
+impl Default for ReachabilityWorkflowSandbox {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -385,7 +604,7 @@ impl StructuralWorkflowSandbox {
     }
 
     /// 执行结构校验,返回错误列表(空 = 通过)。
-    fn validate(genome: &WorkflowGenome) -> Vec<String> {
+    pub(crate) fn validate(genome: &WorkflowGenome) -> Vec<String> {
         // 复用 harness 提供的基础校验(node id 不重复 / edge 引用有效 / variable name 不重复)
         let mut errors = axagent_harness::workflow_evolution::validate_genome_basic(genome);
 
@@ -545,11 +764,180 @@ mod tests {
             variables: Vec::new(),
             fitness: 0.5,
             generation: 0,
+            changed_node_ids: Vec::new(),
         };
         let sandbox = StructuralWorkflowSandbox::new();
         let result =
             futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
         assert!(!result.passed);
         assert!(result.execution_errors.iter().any(|e| e.contains("no nodes")));
+    }
+
+    // ── 方案 2A:extract_var_refs / ReachabilityWorkflowSandbox 单元测试 ──
+
+    #[test]
+    fn test_extract_var_refs_basic() {
+        let text = r#"{"prompt": "Hello {{name}}, your score is {{score}}"}"#;
+        let refs = extract_var_refs(text);
+        assert!(refs.contains(&"name".to_string()));
+        assert!(refs.contains(&"score".to_string()));
+        assert_eq!(refs.len(), 2);
+    }
+
+    #[test]
+    fn test_extract_var_refs_with_whitespace() {
+        let text = r#"{"prompt": "{{  name  }} - {{ age }}"}"#;
+        let refs = extract_var_refs(text);
+        assert!(refs.contains(&"name".to_string()));
+        assert!(refs.contains(&"age".to_string()));
+    }
+
+    #[test]
+    fn test_extract_var_refs_no_match() {
+        // 单 `{` 或 `}` 不应触发匹配,也不应死循环
+        let refs = extract_var_refs("{ not a var } { ");
+        assert!(refs.is_empty());
+        let refs = extract_var_refs("}}} {{ ");
+        assert!(refs.is_empty());
+        let refs = extract_var_refs("{{ 123invalid }}");
+        assert!(refs.is_empty(), "leading digit is not a valid identifier");
+    }
+
+    #[test]
+    fn test_extract_var_refs_underscore_and_digits() {
+        let text = "{{_user_id}} {{counter42}}";
+        let refs = extract_var_refs(text);
+        assert!(refs.contains(&"_user_id".to_string()));
+        assert!(refs.contains(&"counter42".to_string()));
+    }
+
+    #[test]
+    fn test_reachability_sandbox_single_node_self_loop() {
+        // 单节点 + 自环边 → 可达,通过校验
+        let json = r#"{
+            "template_id": "t1",
+            "name": "test",
+            "nodes": [
+                {"type": "delay",
+                 "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
+            ],
+            "edges": [
+                {"id": "e1", "source": "n1", "source_handle": null,
+                 "target": "n1", "target_handle": null,
+                 "edge_type": "direct", "label": null}
+            ],
+            "variables": [],
+            "fitness": 0.5,
+            "generation": 0
+        }"#;
+        let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
+        let sandbox = ReachabilityWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
+    }
+
+    #[test]
+    fn test_reachability_sandbox_isolated_node() {
+        // 链: trigger -> delay;孤立节点: isolated(无入边/出边)→ 应失败
+        let json = r#"{
+            "template_id": "t1",
+            "name": "test",
+            "nodes": [
+                {"type": "trigger",
+                 "id": "t", "title": "trigger", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"type": "manual", "config": {}}},
+                {"type": "delay",
+                 "id": "d", "title": "delay", "position": {"x": 100, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}},
+                {"type": "delay",
+                 "id": "isolated", "title": "isolated", "position": {"x": 200, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
+            ],
+            "edges": [
+                {"id": "e1", "source": "t", "source_handle": null,
+                 "target": "d", "target_handle": null,
+                 "edge_type": "direct", "label": null}
+            ],
+            "variables": [],
+            "fitness": 0.5,
+            "generation": 0
+        }"#;
+        let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
+        let sandbox = ReachabilityWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        assert!(!result.passed, "expected fail (isolated node), got pass");
+        assert!(
+            result.execution_errors.iter().any(|e| e.contains("unreachable")),
+            "expected unreachable error, got: {:?}",
+            result.execution_errors
+        );
+    }
+
+    #[test]
+    fn test_reachability_sandbox_undefined_variable_ref() {
+        // 引用了 {{missing_var}},但 variables 中只定义了 defined_var → 应失败
+        // TriggerConfig.config 是 serde_json::Value,可以放任意 JSON
+        let json = r#"{
+            "template_id": "t1",
+            "name": "test",
+            "nodes": [
+                {"type": "trigger",
+                 "id": "t", "title": "trigger", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"type": "manual", "config": {"prompt": "Hello {{missing_var}}"}}}
+            ],
+            "edges": [],
+            "variables": [{"name": "defined_var", "value": "ok"}],
+            "fitness": 0.5,
+            "generation": 0
+        }"#;
+        let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
+        let sandbox = ReachabilityWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        assert!(!result.passed, "expected fail (undefined var), got pass");
+        assert!(
+            result.execution_errors.iter().any(|e| e.contains("undefined variable")),
+            "expected undefined var error, got: {:?}",
+            result.execution_errors
+        );
+    }
+
+    #[test]
+    fn test_reachability_sandbox_defined_variable_ref_passes() {
+        // 引用了 {{defined_var}},variables 中已定义 → 不应因变量引用失败
+        let json = r#"{
+            "template_id": "t1",
+            "name": "test",
+            "nodes": [
+                {"type": "trigger",
+                 "id": "t", "title": "trigger", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"type": "manual", "config": {"prompt": "Hello {{defined_var}}"}}}
+            ],
+            "edges": [],
+            "variables": [{"name": "defined_var", "value": "world"}],
+            "fitness": 0.5,
+            "generation": 0
+        }"#;
+        let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
+        let sandbox = ReachabilityWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        // 单节点 + 无边 → 可达(自身);变量引用已定义 → 不应失败
+        assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
     }
 }

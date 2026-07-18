@@ -21,7 +21,8 @@ use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{
     EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
     SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader,
-    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox, validate_genome_basic,
+    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox, merge_genome_by_mask,
+    validate_genome_basic,
 };
 use axagent_harness::workflow_reflection::{
     BottleneckReason, WorkflowPattern, WorkflowReflectionMetadata, WorkflowRunStatus,
@@ -320,6 +321,7 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
                 variables: Vec::new(),
                 fitness: 0.5,
                 generation: 0,
+                changed_node_ids: Vec::new(),
             }]
         };
 
@@ -403,9 +405,13 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
                                 );
                                 match provider.evaluate_quality(&new_genome, &context).await {
                                     Ok(score) if score >= LLM_MUTATION_QUALITY_THRESHOLD => {
-                                        population.individuals[idx] = new_genome;
+                                        // 方案 1B:按 changed_node_ids mask 选择性合并,
+                                        // 未声明的节点保留原 genome 版本(避免 LLM 误伤健康节点)。
+                                        // mask 为空时退化为整体替换(向后兼容批次 A/B)。
+                                        let merged = merge_genome_by_mask(&original, &new_genome);
+                                        population.individuals[idx] = merged;
                                         tracing::debug!(
-                                            "[Evolver] LLM mutation applied to individual {} (quality={:.3})",
+                                            "[Evolver] LLM mutation applied to individual {} (quality={:.3}, merged by mask)",
                                             idx,
                                             score
                                         );
@@ -520,6 +526,7 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
                 variables: Vec::new(),
                 fitness: 0.5,
                 generation: 0,
+                changed_node_ids: Vec::new(),
             };
 
             Ok::<WorkflowModification, String>(WorkflowModification {
@@ -715,6 +722,7 @@ mod tests {
             variables: vec![],
             fitness: 0.5,
             generation: 0,
+            changed_node_ids: Vec::new(),
         };
 
         let meta = WorkflowReflectionMetadata {
@@ -762,6 +770,7 @@ mod tests {
             variables: vec![],
             fitness: 0.5,
             generation: 0,
+            changed_node_ids: Vec::new(),
         };
 
         // quality_score=2 (0.2 归一化),无 metadata → 无瓶颈
@@ -790,6 +799,7 @@ mod tests {
             variables: vec![],
             fitness: 0.5,
             generation: 0,
+            changed_node_ids: Vec::new(),
         };
 
         let changes = apply_heuristic_adjustments(&mut genome, &[]);

@@ -26,6 +26,12 @@ pub struct WorkflowGenome {
     pub variables: Vec<serde_json::Value>,
     pub fitness: f32,
     pub generation: u32,
+    /// 方案 1B:LLM 显式标注本次变异修改的 node_id 列表(空 = 未声明)。
+    ///
+    /// 合并器按此 mask 选择性替换原 genome 的节点,未声明的节点保留原值,
+    /// 避免 LLM"误伤"健康节点。LLM 在 prompt 中被要求输出 `changed_node_ids`。
+    #[serde(default)]
+    pub changed_node_ids: Vec<String>,
 }
 
 // ── 进化配置(与 trajectory::EvolutionConfig 字段对齐,便于转换) ──
@@ -302,6 +308,55 @@ pub fn validate_genome_basic(genome: &WorkflowGenome) -> Vec<String> {
     errors
 }
 
+// ── 节点级 diff 合并(方案 1B) ──
+
+/// 按 `changed_node_ids` mask 选择性合并 `original` 与 `mutated`。
+///
+/// - mask 中声明的 node_id → 取 `mutated` 的版本(允许 LLM 修改)
+/// - 未声明的 node_id → 保留 `original` 的版本(避免 LLM 误伤健康节点)
+/// - edges / variables / changed_node_ids → 取 `mutated`(允许 LLM 重连 / 调整变量)
+/// - fitness / generation → 取 `mutated`(LLM 变异后的版本号)
+///
+/// 若 `mutated.changed_node_ids` 为空(未声明),退化为整体替换(向后兼容批次 A/B)。
+pub fn merge_genome_by_mask(original: &WorkflowGenome, mutated: &WorkflowGenome) -> WorkflowGenome {
+    // mask 为空 → 整体替换(向后兼容)
+    if mutated.changed_node_ids.is_empty() {
+        return mutated.clone();
+    }
+
+    let mask: std::collections::HashSet<&str> =
+        mutated.changed_node_ids.iter().map(|s| s.as_str()).collect();
+
+    // nodes:按 mask 选择性合并
+    let mut merged_nodes: Vec<WorkflowNode> = Vec::with_capacity(original.nodes.len());
+    // 先放入 original 中未在 mask 内的节点
+    for node in &original.nodes {
+        if !mask.contains(node.base_id()) {
+            merged_nodes.push(node.clone());
+        }
+    }
+    // 再放入 mutated 中 mask 内的节点(顺序可能变化,但保持 mutated 的拓扑)
+    for node in &mutated.nodes {
+        if mask.contains(node.base_id()) {
+            merged_nodes.push(node.clone());
+        }
+    }
+
+    // 若 mask 中的 node_id 在 mutated 中不存在(LLM 声明删除),则该节点不会出现
+    // 若 mask 中的 node_id 在 original 中不存在(LLM 声明新增),则该节点会出现
+
+    WorkflowGenome {
+        template_id: mutated.template_id.clone(),
+        name: mutated.name.clone(),
+        nodes: merged_nodes,
+        edges: mutated.edges.clone(),
+        variables: mutated.variables.clone(),
+        fitness: mutated.fitness,
+        generation: mutated.generation,
+        changed_node_ids: mutated.changed_node_ids.clone(),
+    }
+}
+
 #[cfg(test)]
 mod validate_genome_basic_tests {
     use super::*;
@@ -356,6 +411,7 @@ mod validate_genome_basic_tests {
             variables,
             fitness: 0.5,
             generation: 0,
+            changed_node_ids: Vec::new(),
         }
     }
 
@@ -384,5 +440,103 @@ mod validate_genome_basic_tests {
         let g = make_genome(&["n1"], &[], &["v1", "v1"]);
         let errs = validate_genome_basic(&g);
         assert!(errs.iter().any(|e| e.contains("duplicate variable name")));
+    }
+}
+
+#[cfg(test)]
+mod merge_genome_by_mask_tests {
+    use super::*;
+
+    fn make_genome_with_mask(
+        node_ids: &[&str],
+        variables: Vec<serde_json::Value>,
+        mask: Vec<&str>,
+    ) -> WorkflowGenome {
+        use serde_json::json;
+        let nodes: Vec<crate::workflow_types::WorkflowNode> = node_ids
+            .iter()
+            .map(|id| {
+                json!({
+                    "type": "delay",
+                    "id": id,
+                    "title": format!("node-{id}"),
+                    "position": {"x": 0, "y": 0},
+                    "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "enabled": true,
+                    "config": {"delay_type": "seconds", "seconds": 1, "until": null}
+                })
+            })
+            .map(|v| serde_json::from_value(v).expect("deserialize node"))
+            .collect();
+        WorkflowGenome {
+            template_id: "test".into(),
+            name: "test".into(),
+            nodes,
+            edges: vec![],
+            variables,
+            fitness: 0.5,
+            generation: 0,
+            changed_node_ids: mask.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+
+    #[test]
+    fn empty_mask_falls_back_to_wholesale_replace() {
+        let original = make_genome_with_mask(&["n1", "n2"], vec![], vec![]);
+        let mutated = make_genome_with_mask(&["n1"], vec![], vec![]);
+        let merged = merge_genome_by_mask(&original, &mutated);
+        // mask 为空 → 整体替换,merged.nodes == mutated.nodes
+        assert_eq!(merged.nodes.len(), 1);
+        assert_eq!(merged.nodes[0].base_id(), "n1");
+    }
+
+    #[test]
+    fn mask_preserves_unmentioned_nodes() {
+        // original 有 n1, n2, n3;mutated 只声明改了 n2
+        let original = make_genome_with_mask(&["n1", "n2", "n3"], vec![], vec![]);
+        let mut mutated = make_genome_with_mask(&["n2"], vec![], vec!["n2"]);
+        mutated.nodes[0] = serde_json::from_value(serde_json::json!({
+            "type": "delay",
+            "id": "n2",
+            "title": "mutated-n2",
+            "position": {"x": 0, "y": 0},
+            "retry": {"enabled": true, "max_retries": 5, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+            "enabled": true,
+            "config": {"delay_type": "seconds", "seconds": 10, "until": null}
+        })).expect("deserialize mutated node");
+
+        let merged = merge_genome_by_mask(&original, &mutated);
+        // n1, n3 保留 original 版本,n2 取 mutated 版本
+        assert_eq!(merged.nodes.len(), 3);
+        let n2 = merged.nodes.iter().find(|n| n.base_id() == "n2").expect("n2 present");
+        assert_eq!(n2.base().title, "mutated-n2");
+        assert_eq!(n2.base().retry.max_retries, 5);
+        let n1 = merged.nodes.iter().find(|n| n.base_id() == "n1").expect("n1 present");
+        assert_eq!(n1.base().title, "node-n1"); // 保留 original
+    }
+
+    #[test]
+    fn mask_allows_node_deletion() {
+        // mutated 声明改了 n2,但 mutated.nodes 中没有 n2 → 视为删除
+        let original = make_genome_with_mask(&["n1", "n2", "n3"], vec![], vec![]);
+        let mutated = make_genome_with_mask(&[], vec![], vec!["n2"]);
+
+        let merged = merge_genome_by_mask(&original, &mutated);
+        // n1, n3 保留,n2 被删除
+        assert_eq!(merged.nodes.len(), 2);
+        assert!(merged.nodes.iter().all(|n| n.base_id() != "n2"));
+    }
+
+    #[test]
+    fn mask_allows_node_addition() {
+        // mutated 声明新增 n4(不在 original 中)
+        let original = make_genome_with_mask(&["n1"], vec![], vec![]);
+        let mutated = make_genome_with_mask(&["n4"], vec![], vec!["n4"]);
+
+        let merged = merge_genome_by_mask(&original, &mutated);
+        // n1 保留,n4 新增
+        assert_eq!(merged.nodes.len(), 2);
+        assert!(merged.nodes.iter().any(|n| n.base_id() == "n1"));
+        assert!(merged.nodes.iter().any(|n| n.base_id() == "n4"));
     }
 }

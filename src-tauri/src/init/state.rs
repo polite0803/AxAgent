@@ -391,9 +391,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }
     }
 
-    // 优化 4-c:注入结构校验沙箱(无副作用,始终注入)
+    // 方案 2A(简化版)+ 优化 4-c:注入可达性 + 变量引用校验沙箱(无副作用,始终注入)
+    // 比批次 A 的 StructuralWorkflowSandbox 更强:额外做拓扑可达性与变量引用校验。
     {
-        let sandbox = super::workflow_injections::StructuralWorkflowSandbox::new();
+        let sandbox = super::workflow_injections::ReachabilityWorkflowSandbox::new();
         if let Err(e) = workflow_evolver
             .set_sandbox(std::sync::Arc::new(sandbox)
                 as std::sync::Arc<dyn axagent_harness::WorkflowSandbox>)
@@ -401,7 +402,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         {
             tracing::warn!("[Evolver] set_sandbox failed: {e}");
         } else {
-            tracing::info!("[Evolver] Structural sandbox injected");
+            tracing::info!("[Evolver] Reachability sandbox injected (topology + variable refs)");
         }
     }
 
