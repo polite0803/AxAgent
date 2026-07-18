@@ -95,30 +95,8 @@ pub struct RunOptions {
     pub parent_cancel_token: Option<CancellationToken>,
 }
 
-/// 步骤进度事件
-#[derive(Debug, Clone)]
-pub struct StepProgressEvent {
-    pub node_id: String,
-    pub status: String,
-    pub total_nodes: usize,
-    pub completed_nodes: usize,
-    pub execution_id: Option<String>,
-}
-
-/// 活跃执行摘要（仅内存运行态，用于可观测性 / 前端轮询）。
-///
-/// 字段精简自 `ExecutionState`，剔除 callbacks / compiled_prompts / cancel_token
-/// 等非序列化运行时槽，便于直接 serde 序列化回传前端。
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct ActiveExecutionInfo {
-    pub execution_id: String,
-    pub workflow_id: String,
-    pub status: ExecutionStatus,
-    pub current_node_id: Option<String>,
-    pub parent_execution_id: Option<String>,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
+// 步骤进度事件 / 活跃执行摘要 已上移到 harness(阶段 2)
+pub use axagent_harness::workflow_types::{ActiveExecutionInfo, StepProgressEvent};
 
 /// 步骤进度回调：`&self` 不可用时使用独立函数签名
 pub type ProgressCallback = Arc<

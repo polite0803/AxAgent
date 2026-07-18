@@ -4,129 +4,21 @@
 //!
 //! 节点类型统一为 axagent_harness::workflow_types::WorkflowNode（28 种），
 //! 执行统一由 WorkEngine + NodeDispatcher 负责。
+//!
+//! 运行时执行态 DTO(NodeStatus/Workflow/NodeRuntimeState/WorkflowStatus/WorkflowError)
+//! 已上移到 axagent-harness,本 crate 通过 pub use 复用。
 
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+// 运行时执行态 DTO 复用 harness(阶段 2 上移)
+pub use axagent_harness::workflow_types::{
+    NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus,
+};
 
-use axagent_harness::workflow_types::{ErrorConfig, WorkflowEdge, WorkflowNode};
-
-// ── 节点运行时状态 ──
-
-/// 节点运行时状态（等价于原 StepStatus）
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum NodeStatus {
-    Pending,
-    Ready,
-    Running,
-    Completed,
-    Failed,
-    Skipped,
-}
-
-// ── 工作流容器 ──
-
-/// 工作流运行时容器。nodes/edges 来自 WorkflowNode/WorkflowEdge，
-/// 运行时状态（status/results/node_runtime_states）存储在内存中。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Workflow {
-    pub id: String,
-    pub name: String,
-    pub nodes: Vec<WorkflowNode>,
-    pub edges: Vec<WorkflowEdge>,
-    pub status: WorkflowStatus,
-    pub created_at: u64,
-    pub completed_at: Option<u64>,
-    /// 节点执行结果 keyed by node_id
-    pub results: HashMap<String, serde_json::Value>,
-    /// 每个节点的运行时状态
-    pub node_states: HashMap<String, NodeRuntimeState>,
-    /// 工作流最终输出（经 output_schema 过滤或 EndNode 聚合后的精简结果）
-    pub output: Option<serde_json::Value>,
-    /// 错误处理配置（模板级）
-    #[serde(default)]
-    pub error_config: Option<ErrorConfig>,
-    /// 错误工作流 ID（模板级，节点失败时触发独立的错误处理工作流）
-    #[serde(default)]
-    pub error_workflow_id: Option<String>,
-}
-
-/// 单个节点的运行时追踪状态
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NodeRuntimeState {
-    pub status: NodeStatus,
-    pub attempts: u32,
-    pub error: Option<String>,
-    pub started_at: Option<i64>,
-    pub completed_at: Option<i64>,
-}
-
-impl Default for NodeRuntimeState {
-    fn default() -> Self {
-        Self {
-            status: NodeStatus::Pending,
-            attempts: 0,
-            error: None,
-            started_at: None,
-            completed_at: None,
-        }
-    }
-}
-
-// ── 工作流状态 ──
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum WorkflowStatus {
-    Created,
-    Running,
-    Completed,
-    PartiallyCompleted,
-    Failed,
-    Cancelled,
-}
-
-// ── 错误类型 ──
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum WorkflowError {
-    DuplicateNodeId(String),
-    InvalidDependency { node_id: String, missing_dep: String },
-    WorkflowNotFound,
-    NodeNotFound,
-    CycleDetected,
-    SerializationError(String),
-    InputValidationFailed { errors: Vec<String> },
-    OutputValidationFailed { errors: Vec<String> },
-}
-
-impl std::fmt::Display for WorkflowError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::DuplicateNodeId(id) => write!(f, "Duplicate node ID: {id}"),
-            Self::InvalidDependency { node_id, missing_dep } => {
-                write!(f, "Node '{node_id}' depends on non-existent '{missing_dep}'")
-            },
-            Self::WorkflowNotFound => write!(f, "Workflow not found"),
-            Self::NodeNotFound => write!(f, "Node not found"),
-            Self::CycleDetected => write!(f, "Cycle detected in workflow"),
-            Self::SerializationError(msg) => write!(f, "Serialization error: {msg}"),
-            Self::InputValidationFailed { errors } => {
-                write!(f, "Input validation failed: {}", errors.join("; "))
-            },
-            Self::OutputValidationFailed { errors } => {
-                write!(f, "Output validation failed: {}", errors.join("; "))
-            },
-        }
-    }
-}
-
-impl std::error::Error for WorkflowError {}
-
+// 保留 From<WorkEngineError> for WorkflowError 转换,
+// 因 WorkEngineError 是 rt-workflow 内部类型,harness 不依赖它。
 impl From<crate::work_engine::engine::WorkEngineError> for WorkflowError {
-    /// 跨错误体系转换：`WorkEngineError` 多用于运行态错误（execution 不存在 / 取消 / DB 等），
+    /// 跨错误体系转换:`WorkEngineError` 多用于运行态错误(execution 不存在 / 取消 / DB 等),
     /// 在 `run_workflow` 返回 `Result<Workflow, WorkflowError>` 路径上需要 `?` 隐式转换时使用。
-    /// 保留原始 Display 文本以便排查，统一映射到 `SerializationError`（最接近"运行态序列化失败"语义）。
+    /// 保留原始 Display 文本以便排查,统一映射到 `SerializationError`(最接近"运行态序列化失败"语义)。
     fn from(e: crate::work_engine::engine::WorkEngineError) -> Self {
         Self::SerializationError(e.to_string())
     }

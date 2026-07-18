@@ -343,8 +343,8 @@ pub use reflection_types::{QualityMetrics, Reflection, ReflectionConfig, TaskExe
 pub mod workflow_reflection;
 pub use workflow_reflection::{
     BottleneckNode, BottleneckReason, FailureCategory, NodeExecutionSnapshot, NodeFailureAnalysis,
-    NodeRunStatus, ProposedChange, WorkflowErrorContext, WorkflowExecutionRecord, WorkflowPattern,
-    WorkflowReflectionMetadata, WorkflowReflector, WorkflowRunStatus,
+    ProposedChange, WorkflowExecutionRecord, WorkflowPattern, WorkflowReflectionMetadata,
+    WorkflowReflector, WorkflowRunStatus,
 };
 pub mod workflow_evolution;
 pub use workflow_evolution::{

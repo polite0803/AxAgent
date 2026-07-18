@@ -11,7 +11,7 @@
 //! - 异步 spawn 后台执行,不阻塞主流程
 
 use crate::reflection_types::Reflection;
-use crate::workflow_types::{WorkflowEdge, WorkflowNode};
+use crate::workflow_types::{NodeStatus, WorkflowEdge, WorkflowErrorContext, WorkflowNode};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -39,6 +39,7 @@ pub struct WorkflowExecutionRecord {
     pub error_context: Option<WorkflowErrorContext>,
 }
 
+/// 反思场景的工作流终态(`WorkflowStatus` 的子集,不含 Created/Running)。
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum WorkflowRunStatus {
     Completed,
@@ -47,12 +48,13 @@ pub enum WorkflowRunStatus {
     Cancelled,
 }
 
+/// 反思场景的节点执行快照(简化自 `NodeExecutionRecord`)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeExecutionSnapshot {
     pub node_id: String,
     pub node_type: String,
     pub node_name: Option<String>,
-    pub status: NodeRunStatus,
+    pub status: NodeStatus,
     pub attempts: u32,
     pub input: Option<serde_json::Value>,
     pub output: Option<serde_json::Value>,
@@ -61,25 +63,6 @@ pub struct NodeExecutionSnapshot {
     pub started_at: i64,
     pub completed_at: Option<i64>,
     pub sub_workflow_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-pub enum NodeRunStatus {
-    Completed,
-    Failed,
-    Skipped,
-    Running,
-    Pending,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkflowErrorContext {
-    pub failed_node_id: String,
-    pub failed_node_name: String,
-    pub error_code: String,
-    pub error_message: String,
-    pub timestamp: i64,
-    pub last_output: Option<serde_json::Value>,
 }
 
 // ── 工作流反思专有结构化数据(承载于 Reflection::metadata) ──

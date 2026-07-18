@@ -1,73 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 运行时执行态 DTO 复用 harness(阶段 2 上移)
+pub use axagent_harness::workflow_types::{
+    ExecutionStatus, NodeExecutionRecord, PartialResultEvent,
+};
+// 错误上下文:重命名后的 harness 类型,rt-workflow 内部保留 ErrorContext 别名以兼容
+use axagent_harness::workflow_types::WorkflowErrorContext;
+
 use serde::{Deserialize, Serialize};
 
-use crate::work_engine::error_handling::ErrorContext;
 use crate::work_engine::node_executor_trait::NodeOutput;
 
-/// Overall execution status of a workflow
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ExecutionStatus {
-    Running,
-    Paused,
-    Completed,
-    PartiallyCompleted,
-    Failed,
-    Cancelled,
-}
-
-impl std::fmt::Display for ExecutionStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ExecutionStatus::Running => write!(f, "running"),
-            ExecutionStatus::Paused => write!(f, "paused"),
-            ExecutionStatus::Completed => write!(f, "completed"),
-            ExecutionStatus::PartiallyCompleted => write!(f, "partially_completed"),
-            ExecutionStatus::Failed => write!(f, "failed"),
-            ExecutionStatus::Cancelled => write!(f, "cancelled"),
-        }
-    }
-}
-
-/// Record of a single node execution
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NodeExecutionRecord {
-    pub node_id: String,
-    pub node_type: String,
-    pub node_name: Option<String>,
-    pub status: String,
-    pub input: Option<serde_json::Value>,
-    pub output: Option<serde_json::Value>,
-    pub execution_time_ms: Option<u64>,
-    pub error: Option<String>,
-    pub started_at: i64,
-    pub completed_at: Option<i64>,
-    pub parent_execution_id: Option<String>,
-    pub sub_workflow_id: Option<String>,
-}
-
-/// 单次 Loop 迭代产出的 partial_result 事件。
-///
-/// 每次 LoopExecutor 完成一轮迭代后通过 `partial_result_tx` 广播。
-/// 前端可订阅 `execution_id + node_id` 维度的 channel 实时刷新进度面板。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PartialResultEvent {
-    pub execution_id: String,
-    pub node_id: String,
-    /// 0-based 迭代下标。
-    pub iter_index: u32,
-    /// 当前元素（item），与 `iter_input_var` 数组中第 `iter_index` 个元素一致。
-    pub item: serde_json::Value,
-    /// body 最后一节点的输出（聚合视角下的"本轮结果"）。
-    pub step_output: serde_json::Value,
-    /// 累计 partial_result 数组（长度 = iter_index + 1）。
-    pub cumulative_partial: Vec<serde_json::Value>,
-    /// 触发本事件的源：正常完成 / interrupt / 错误。
-    pub phase: String,
-    /// 时间戳（毫秒）。
-    pub emitted_at_ms: i64,
-}
+// 兼容别名:rt-workflow 内部代码继续用 ErrorContext 名称,实际指向 harness 的 WorkflowErrorContext
+pub(crate) type ErrorContext = WorkflowErrorContext;
 
 use std::collections::HashMap;
 use std::sync::Arc;
