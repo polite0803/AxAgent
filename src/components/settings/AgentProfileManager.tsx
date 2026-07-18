@@ -99,9 +99,9 @@ export function AgentProfileManager() {
 
   const loadRoles = useCallback(async () => {
     try {
-      const roles: { id: string; name: string; active_domains?: string[] }[] = await invoke("list_agent_roles");
+      const roles: { id: string; name: string; activeDomains?: string[] }[] = await invoke("list_agent_roles");
       setRoleOptions(
-        Array.isArray(roles) ? roles.map((r) => ({ value: r.id, label: r.name, activeDomains: r.active_domains })) : [],
+        Array.isArray(roles) ? roles.map((r) => ({ value: r.id, label: r.name, activeDomains: r.activeDomains })) : [],
       );
     } catch {
       /* fallback */

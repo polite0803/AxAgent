@@ -382,6 +382,7 @@ macro_rules! register_all_commands {
             commands::workflows::workflow_get_status,
             commands::workflows::workflow_cancel,
             commands::workflows::workflow_list,
+            commands::workflows::workflow_list_active_executions,
             commands::agent_advanced::agent_estimate_complexity,
             commands::sub_agent::sub_agent_list,
             commands::sub_agent::sub_agent_get,

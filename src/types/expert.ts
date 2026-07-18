@@ -5,6 +5,7 @@ export type ExpertCategory =
   | "development"
   | "security"
   | "data"
+  | "finance"
   | "devops"
   | "design"
   | "writing"
@@ -15,6 +16,7 @@ export const EXPERT_CATEGORY_KEYS = [
   "development",
   "security",
   "data",
+  "finance",
   "devops",
   "design",
   "writing",

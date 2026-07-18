@@ -123,6 +123,15 @@ impl std::fmt::Display for WorkflowError {
 
 impl std::error::Error for WorkflowError {}
 
+impl From<crate::work_engine::engine::WorkEngineError> for WorkflowError {
+    /// 跨错误体系转换：`WorkEngineError` 多用于运行态错误（execution 不存在 / 取消 / DB 等），
+    /// 在 `run_workflow` 返回 `Result<Workflow, WorkflowError>` 路径上需要 `?` 隐式转换时使用。
+    /// 保留原始 Display 文本以便排查，统一映射到 `SerializationError`（最接近"运行态序列化失败"语义）。
+    fn from(e: crate::work_engine::engine::WorkEngineError) -> Self {
+        Self::SerializationError(e.to_string())
+    }
+}
+
 // ── 辅助函数 ──
 
 pub(crate) fn current_epoch_ms() -> u64 {

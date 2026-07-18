@@ -16,11 +16,13 @@ use std::path::Path;
 use tauri::State;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportAgencyExpertsRequest {
     pub path: String,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportResult {
     pub count: u32,
     pub workflows_created: u32,
@@ -29,6 +31,7 @@ pub struct ImportResult {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct AgencyExpertRow {
     pub id: String,
     pub name: String,
@@ -44,6 +47,7 @@ pub struct AgencyExpertRow {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendedWorkflow {
     pub name: String,
     pub description: String,
@@ -55,7 +59,8 @@ fn map_directory_to_category(dir: &str) -> &str {
     match dir {
         "engineering" => "development",
         "security" => "security",
-        "data" | "finance" => "data",
+        "data" => "data",
+        "finance" => "finance",
         "devops" | "infrastructure" => "devops",
         "design" | "game-development" => "design",
         "marketing" | "writing" | "content" => "writing",
@@ -480,6 +485,7 @@ pub async fn list_agency_experts(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedWorkflowStep {
     pub title: String,
     pub description: String,
@@ -492,6 +498,7 @@ pub struct ExtractedWorkflowStep {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedWorkflow {
     pub name: String,
     pub description: String,
@@ -500,11 +507,13 @@ pub struct ExtractedWorkflow {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractExpertStructureRequest {
     pub expert_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractExpertStructureResult {
     pub workflows: Vec<ExtractedWorkflow>,
     pub tools: Vec<String>,
@@ -709,6 +718,7 @@ pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportRe
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateExpertRequest {
     pub id: String,
     pub name: Option<String>,
@@ -763,6 +773,7 @@ pub async fn update_agency_expert(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeleteExpertRequest {
     pub id: String,
 }

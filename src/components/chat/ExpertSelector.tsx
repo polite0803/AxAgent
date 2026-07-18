@@ -137,16 +137,16 @@ export function ExpertSelector({
         const parts = [
           t("expertSelector.importSuccess", { count: result.count }),
         ];
-        if (result.workflows_created && result.workflows_created > 0) {
+        if (result.workflowsCreated && result.workflowsCreated > 0) {
           parts.push(
             t("expertSelector.importWorkflows", {
-              count: result.workflows_created,
+              count: result.workflowsCreated,
             }),
           );
         }
-        if (result.tools_matched && result.tools_matched > 0) {
+        if (result.toolsMatched && result.toolsMatched > 0) {
           parts.push(
-            t("expertSelector.importTools", { count: result.tools_matched }),
+            t("expertSelector.importTools", { count: result.toolsMatched }),
           );
         }
         app.message.success(parts.join("，"));
@@ -223,16 +223,16 @@ export function ExpertSelector({
         const parts = [
           t("expertSelector.importSuccess", { count: result.count }),
         ];
-        if (result.workflows_created && result.workflows_created > 0) {
+        if (result.workflowsCreated && result.workflowsCreated > 0) {
           parts.push(
             t("expertSelector.importWorkflows", {
-              count: result.workflows_created,
+              count: result.workflowsCreated,
             }),
           );
         }
-        if (result.tools_matched && result.tools_matched > 0) {
+        if (result.toolsMatched && result.toolsMatched > 0) {
           parts.push(
-            t("expertSelector.importTools", { count: result.tools_matched }),
+            t("expertSelector.importTools", { count: result.toolsMatched }),
           );
         }
         app.message.success(parts.join("，"));
@@ -289,8 +289,8 @@ export function ExpertSelector({
           name: editName,
           description: editDesc,
           category: editCategory,
-          system_prompt: editPrompt,
-          active_domains: editDomains,
+          systemPrompt: editPrompt,
+          activeDomains: editDomains,
         });
       } else if (editingExpert.source === "custom") {
         updateCustomRole({

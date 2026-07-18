@@ -140,14 +140,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
 
   const openRolePromptEditor = async (roleId: string, roleName: string) => {
     try {
-      const roles: { id: string; system_prompt: string }[] = await invoke("list_agent_roles");
+      const roles: { id: string; systemPrompt: string }[] = await invoke("list_agent_roles");
       const role = roles.find((r) => r.id === roleId);
       setPromptEditor({
         open: true,
         type: "role",
         id: roleId,
         name: roleName,
-        prompt: role?.system_prompt || "",
+        prompt: role?.systemPrompt || "",
         saving: false,
       });
     } catch {

@@ -75,13 +75,13 @@ interface AgencyExpertRow {
   name: string;
   description: string | null;
   category: string;
-  system_prompt: string;
+  systemPrompt: string;
   color: string | null;
-  source_dir: string;
-  is_enabled: boolean;
-  recommended_workflows: string[] | null;
-  recommended_tools: string[] | null;
-  active_domains: string[] | null;
+  sourceDir: string;
+  isEnabled: boolean;
+  recommendedWorkflows: string[] | null;
+  recommendedTools: string[] | null;
+  activeDomains: string[] | null;
 }
 
 function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
@@ -89,6 +89,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     development: "💻",
     security: "🔒",
     data: "📊",
+    finance: "💰",
     devops: "🚀",
     design: "🎨",
     writing: "📝",
@@ -96,7 +97,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     general: "🤖",
   };
 
-  const tags = [row.source_dir, row.category];
+  const tags = [row.sourceDir, row.category];
   if (row.color) {
     tags.push(row.color);
   }
@@ -113,18 +114,18 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     id: row.id,
     name: row.name,
     description: row.description,
-    systemPrompt: row.system_prompt,
+    systemPrompt: row.systemPrompt,
     category: row.category as ExpertCategory,
     icon: CATEGORY_ICONS[row.category] ?? "🤖",
     source: "agency",
     agentRole: null,
     tags,
     recommendPermissionMode: PERMISSION_BY_CATEGORY[row.category] ?? "default",
-    recommendedWorkflows: row.recommended_workflows ?? undefined,
-    recommendedTools: row.recommended_tools ?? undefined,
-    activeDomains: row.active_domains ?? undefined,
+    recommendedWorkflows: row.recommendedWorkflows ?? undefined,
+    recommendedTools: row.recommendedTools ?? undefined,
+    activeDomains: row.activeDomains ?? undefined,
     sortOrder: 0,
-    isEnabled: row.is_enabled,
+    isEnabled: row.isEnabled,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -156,8 +157,8 @@ interface ExpertState {
     path: string,
   ) => Promise<{
     count: number;
-    workflows_created?: number;
-    tools_matched?: number;
+    workflowsCreated?: number;
+    toolsMatched?: number;
     errors: string[];
   }>;
   loadAgencyRoles: () => Promise<void>;
@@ -169,9 +170,9 @@ interface ExpertState {
       name?: string;
       description?: string;
       category?: string;
-      system_prompt?: string;
-      is_enabled?: boolean;
-      active_domains?: string[];
+      systemPrompt?: string;
+      isEnabled?: boolean;
+      activeDomains?: string[];
     },
   ) => Promise<void>;
   exportAgencyExperts: () => Promise<string>;
@@ -258,8 +259,8 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     try {
       const result = await invoke<{
         count: number;
-        workflows_created: number;
-        tools_matched: number;
+        workflowsCreated: number;
+        toolsMatched: number;
         errors: string[];
       }>("import_agency_experts", {
         request: { path },

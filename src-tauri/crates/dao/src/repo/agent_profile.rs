@@ -3,10 +3,65 @@
 use sea_orm::*;
 use serde_json;
 
+use axagent_entities::agency_experts;
 use axagent_entities::agent_profiles;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AgentProfile;
 use axagent_harness::util_fns::now_ts;
+
+/// agent_profiles.category 合法枚举值。
+/// 与前端 `src/types/expert.ts` 的 `EXPERT_CATEGORY_KEYS` 保持一致。
+const ALLOWED_CATEGORIES: &[&str] = &[
+    "general",
+    "development",
+    "security",
+    "data",
+    "finance",
+    "devops",
+    "design",
+    "writing",
+    "business",
+];
+
+/// 校验 category 是否在合法枚举值内。空字符串视为 "general"。
+/// 返回归一化后的 category。
+fn validate_category(category: &str) -> Result<String> {
+    let normalized = if category.is_empty() {
+        "general"
+    } else {
+        category
+    };
+    if ALLOWED_CATEGORIES.contains(&normalized) {
+        Ok(normalized.to_string())
+    } else {
+        Err(AxAgentError::Validation(format!(
+            "Invalid category '{}', allowed: {:?}",
+            category, ALLOWED_CATEGORIES
+        )))
+    }
+}
+
+/// 校验 expert_id（如果不为 None）在 agency_experts 表中存在。
+async fn validate_expert_id(
+    db: &DatabaseConnection,
+    expert_id: Option<&str>,
+) -> Result<Option<String>> {
+    match expert_id {
+        None => Ok(None),
+        Some(eid) if eid.is_empty() => Ok(None),
+        Some(eid) => {
+            let exists = agency_experts::Entity::find_by_id(eid).one(db).await?.is_some();
+            if exists {
+                Ok(Some(eid.to_string()))
+            } else {
+                Err(AxAgentError::Validation(format!(
+                    "expert_id '{}' does not exist in agency_experts",
+                    eid
+                )))
+            }
+        },
+    }
+}
 
 fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
     let parse_json_arr = |raw: &Option<String>| -> Vec<String> {
@@ -136,11 +191,16 @@ pub async fn upsert_agent_profile(
 ) -> Result<AgentProfile> {
     let now = now_ts();
 
+    // P2-8: category 白名单校验（存量库兜底，新部署由 v100 DDL CHECK 约束保证）
+    let category = validate_category(category)?;
+    // P1-5: expert_id 存在性校验（存量库兜底，新部署由 v100 DDL FK 约束保证）
+    let expert_id = validate_expert_id(db, expert_id).await?;
+
     let am = agent_profiles::ActiveModel {
         id: Set(id.to_string()),
         name: Set(name.to_string()),
         description: Set(description.map(|s| s.to_string())),
-        category: Set(category.to_string()),
+        category: Set(category),
         icon: Set(icon.to_string()),
         agent_role: Set(agent_role.map(|s| s.to_string())),
         source: Set(source.to_string()),
@@ -172,7 +232,7 @@ pub async fn upsert_agent_profile(
         }),
         sort_order: Set(0),
         is_enabled: Set(1),
-        expert_id: Set(expert_id.map(|s| s.to_string())),
+        expert_id: Set(expert_id),
         created_at: Set(now),
         updated_at: Set(now),
     };
@@ -232,7 +292,8 @@ pub async fn update_agent_profile(
         am.description = Set(v.map(|s| s.to_string()));
     }
     if let Some(v) = category {
-        am.category = Set(v.to_string());
+        // P2-8: category 白名单校验
+        am.category = Set(validate_category(v)?);
     }
     if let Some(v) = icon {
         am.icon = Set(v.to_string());
