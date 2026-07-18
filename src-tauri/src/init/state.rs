@@ -230,8 +230,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>> =
         Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
     // P0-3 修复:启用 Reflector JSONL 持久化(进程重启后历史反思不丢失)。
-    let reflector = Arc::new(axagent_agent::Reflector::new()
-        .with_persistence(app_dir.join("reflections.jsonl")));
+    let reflector = Arc::new(
+        axagent_agent::Reflector::new().with_persistence(app_dir.join("reflections.jsonl")),
+    );
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
         Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
     let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
@@ -266,9 +267,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         #[cfg(not(target_os = "android"))]
         {
             let mut engine = axagent_trajectory::SkillEvolutionEngine::new();
-            engine.set_sandbox(Arc::new(
-                axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
-            )).await;
+            engine
+                .set_sandbox(Arc::new(
+                    axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
+                ))
+                .await;
             Arc::new(tokio::sync::Mutex::new(engine))
         }
         #[cfg(target_os = "android")]

@@ -20,8 +20,7 @@ use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{
     EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, SandboxValidationResult,
     WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader, WorkflowLlmMutator,
-    WorkflowModification, WorkflowSandbox, merge_genome_by_mask,
-    validate_genome_basic,
+    WorkflowModification, WorkflowSandbox, merge_genome_by_mask, validate_genome_basic,
 };
 use axagent_harness::workflow_reflection::{
     BottleneckReason, WorkflowPattern, WorkflowReflectionMetadata, WorkflowRunStatus,

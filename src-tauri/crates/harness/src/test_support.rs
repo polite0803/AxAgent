@@ -1837,13 +1837,16 @@ pub fn noop_tool_registry() -> Arc<dyn ToolRegistryTrait> {
 
 // ── BusinessRoleRepository / AgencyExpertRepository 空实现（用于 workflow_ai 测试）──
 
-use crate::repositories::{AgencyExpertRepository, BusinessRoleRepository};
 use crate::repo_dtos::{AgencyExpertDto, BusinessRoleDto};
+use crate::repositories::{AgencyExpertRepository, BusinessRoleRepository};
 
 struct NoopBusinessRoleRepository;
 #[async_trait]
 impl BusinessRoleRepository for NoopBusinessRoleRepository {
-    async fn get_business_role(&self, _id: &str) -> std::result::Result<Option<BusinessRoleDto>, String> {
+    async fn get_business_role(
+        &self,
+        _id: &str,
+    ) -> std::result::Result<Option<BusinessRoleDto>, String> {
         Ok(None)
     }
     async fn list_business_roles(&self) -> std::result::Result<Vec<BusinessRoleDto>, String> {
@@ -1854,7 +1857,10 @@ impl BusinessRoleRepository for NoopBusinessRoleRepository {
 struct NoopAgencyExpertRepository;
 #[async_trait]
 impl AgencyExpertRepository for NoopAgencyExpertRepository {
-    async fn get_agency_expert(&self, _id: &str) -> std::result::Result<Option<AgencyExpertDto>, String> {
+    async fn get_agency_expert(
+        &self,
+        _id: &str,
+    ) -> std::result::Result<Option<AgencyExpertDto>, String> {
         Ok(None)
     }
     async fn list_agency_experts(&self) -> std::result::Result<Vec<AgencyExpertDto>, String> {

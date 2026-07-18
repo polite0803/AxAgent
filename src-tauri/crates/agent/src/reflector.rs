@@ -120,14 +120,11 @@ impl Reflector {
                 }
                 // 追加模式,文件不存在自动创建。
                 use std::io::Write;
-                let mut file = match std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&path)
-                {
-                    Ok(f) => f,
-                    Err(e) => return Err(e),
-                };
+                let mut file =
+                    match std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+                        Ok(f) => f,
+                        Err(e) => return Err(e),
+                    };
                 file.write_all(line.as_bytes())
             }
         })
@@ -135,11 +132,7 @@ impl Reflector {
         match result {
             Ok(Ok(())) => {},
             Ok(Err(e)) => {
-                tracing::warn!(
-                    "[reflector] append reflection to {} failed: {}",
-                    path.display(),
-                    e
-                );
+                tracing::warn!("[reflector] append reflection to {} failed: {}", path.display(), e);
             },
             Err(e) => {
                 tracing::warn!("[reflector] persist task join error: {}", e);
