@@ -2627,10 +2627,16 @@
     "TOOL_TRANSPORT_UNSUPPORTED": "Неподдерживаемый тип транспорта",
     "WIKI_NO_EMBEDDING_PROVIDER": "Провайдер эмбеддингов не настроен",
     "WIKI_PATH_NOT_DIR": "Путь не является директорией",
-    "WORKFLOW_INVALID_JSON": "Недопустимый JSON",
+    "WORKFLOW_INVALID_JSON": "Неверный формат JSON",
     "WORKFLOW_NODE_NOT_FOUND": "Узел не найден",
     "WORKFLOW_NOT_FOUND": "Рабочий процесс не найден",
     "WORKFLOW_PLAN_NOT_FOUND": "План не найден",
+    "WORKFLOW_REFLECTION_APPLY_FAILED": "Не удалось применить предложения по оптимизации",
+    "WORKFLOW_REFLECTION_EVOLVE_FAILED": "Ошибка эволюции рабочего процесса",
+    "WORKFLOW_REFLECTION_REFLECT_FAILED": "Ошибка выполнения рефлексии",
+    "WORKFLOW_REFLECTION_RECORD_INVALID": "Неверная запись рефлексии",
+    "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Не удалось сгенерировать предложения по оптимизации",
+    "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Неверный шаблон рабочего процесса",
     "WORKFLOW_VERSION_NOT_FOUND": "Версия не найдена"
   },
   "errorBoundary": {

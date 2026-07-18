@@ -2627,10 +2627,16 @@
     "TOOL_TRANSPORT_UNSUPPORTED": "サポートされていないトランスポートタイプ",
     "WIKI_NO_EMBEDDING_PROVIDER": "エンベディングプロバイダーが設定されていません",
     "WIKI_PATH_NOT_DIR": "パスはディレクトリではありません",
-    "WORKFLOW_INVALID_JSON": "無効なJSON",
+    "WORKFLOW_INVALID_JSON": "JSON形式が無効",
     "WORKFLOW_NODE_NOT_FOUND": "ノードが見つかりません",
     "WORKFLOW_NOT_FOUND": "ワークフローが見つかりません",
     "WORKFLOW_PLAN_NOT_FOUND": "プランが見つかりません",
+    "WORKFLOW_REFLECTION_APPLY_FAILED": "最適化提案の適用に失敗しました",
+    "WORKFLOW_REFLECTION_EVOLVE_FAILED": "ワークフロー進化に失敗しました",
+    "WORKFLOW_REFLECTION_REFLECT_FAILED": "リフレクション実行に失敗しました",
+    "WORKFLOW_REFLECTION_RECORD_INVALID": "無効なリフレクションレコード",
+    "WORKFLOW_REFLECTION_SUGGEST_FAILED": "最適化提案の生成に失敗しました",
+    "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "無効なワークフローテンプレート",
     "WORKFLOW_VERSION_NOT_FOUND": "バージョンが見つかりません"
   },
   "errorBoundary": {

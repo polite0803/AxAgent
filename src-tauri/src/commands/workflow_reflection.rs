@@ -8,8 +8,8 @@
 //! - 暴露优化器命令:基于历史反思生成 / 应用建议
 //! - 暴露进化器命令:基于反思批量触发模板进化,查询进化统计与运行状态
 //!
-//! 错误处理:统一通过 `ErrorResponse::from_error` 包装,前端通过 `t("error.${code}")` 翻译。
-//! 参考实现:`commands/workflow_ai_diagnose.rs`。
+//! 错误处理:统一通过 `wrap_err` 辅助包装为带 `WORKFLOW_REFLECTION_*` 错误码的 `ErrorResponse`,
+//! 前端按 `t("error.${code}")` 翻译,详见 `commands/error_code.rs::workflow_reflection`。
 
 use crate::AppState;
 use axagent_harness::reflection_types::Reflection;
@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use super::error::{ErrorCategory, ErrorResponse};
+use super::error_code::workflow_reflection as wf_reflect_err;
 
 // ── 命令请求 / 响应 DTO ──
 
@@ -41,6 +42,18 @@ pub struct WorkflowEvolveRequest {
     pub reflections: Vec<Reflection>,
 }
 
+// ── 命令层错误包装辅助 ──
+
+/// 把底层 trait 的 `Result<T, E>` 错误包装为带具体错误码的 `ErrorResponse` 字符串。
+///
+/// 统一使用 `ErrorCategory::Unrecoverable`(反思/进化失败通常不可重试)。
+/// 底层错误信息写入 `detail`,前端按 `t("error.${code}")` 翻译,可附带 detail 调试信息。
+fn wrap_err<T, E: std::fmt::Display>(result: Result<T, E>, code: &'static str) -> Result<T, String> {
+    result.map_err(|e| {
+        ErrorResponse::from_error_with_code(code, e, ErrorCategory::Unrecoverable).to_string()
+    })
+}
+
 // ── 命令实现 ──
 
 /// 基于单次反思生成工作流优化建议。
@@ -52,11 +65,10 @@ pub async fn workflow_optimize_suggest(
     state: State<'_, AppState>,
     request: WorkflowOptimizeSuggestRequest,
 ) -> Result<Vec<WorkflowSuggestion>, String> {
-    state
-        .workflow_optimizer
-        .suggest(&request.template, &request.reflection)
-        .await
-        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))
+    wrap_err(
+        state.workflow_optimizer.suggest(&request.template, &request.reflection).await,
+        wf_reflect_err::SUGGEST_FAILED,
+    )
 }
 
 /// 批量应用优化建议到模板,返回新模板(不修改原模板)。
@@ -68,11 +80,13 @@ pub async fn workflow_optimize_apply(
     state: State<'_, AppState>,
     request: WorkflowOptimizeApplyRequest,
 ) -> Result<WorkflowTemplateData, String> {
-    state
-        .workflow_optimizer
-        .apply_suggestions(&request.template, &request.suggestions)
-        .await
-        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))
+    wrap_err(
+        state
+            .workflow_optimizer
+            .apply_suggestions(&request.template, &request.suggestions)
+            .await,
+        wf_reflect_err::APPLY_FAILED,
+    )
 }
 
 /// 触发工作流模板进化(基于反思批量进化,返回最终修改结果)。
@@ -86,33 +100,22 @@ pub async fn workflow_evolve_template(
     state: State<'_, AppState>,
     request: WorkflowEvolveRequest,
 ) -> Result<WorkflowModification, String> {
-    state
-        .workflow_evolver
-        .run(&request.template_id, &request.reflections)
-        .await
-        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))
+    wrap_err(
+        state.workflow_evolver.run(&request.template_id, &request.reflections).await,
+        wf_reflect_err::EVOLVE_FAILED,
+    )
 }
 
 /// 查询工作流进化器的统计信息(当前代数、最佳 / 平均适应度、是否收敛)。
 #[tauri::command]
-pub async fn workflow_evolution_stats(
-    state: State<'_, AppState>,
-) -> Result<EvolutionStats, String> {
-    state
-        .workflow_evolver
-        .get_stats()
-        .await
-        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))
+pub async fn workflow_evolution_stats(state: State<'_, AppState>) -> Result<EvolutionStats, String> {
+    wrap_err(state.workflow_evolver.get_stats().await, wf_reflect_err::EVOLVE_FAILED)
 }
 
 /// 查询进化器是否正在执行(用于前端防重入)。
 #[tauri::command]
 pub async fn workflow_evolution_is_running(state: State<'_, AppState>) -> Result<bool, String> {
-    state
-        .workflow_evolver
-        .is_running()
-        .await
-        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))
+    wrap_err(state.workflow_evolver.is_running().await, wf_reflect_err::EVOLVE_FAILED)
 }
 
 /// 查询是否应自动触发进化(基于近期失败率与使用次数,阈值由 `EvolutionConfig` 配置)。
@@ -125,11 +128,10 @@ pub async fn workflow_should_auto_evolve(
     state: State<'_, AppState>,
     template_id: String,
 ) -> Result<bool, String> {
-    state
-        .workflow_evolver
-        .should_auto_evolve(&template_id)
-        .await
-        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))
+    wrap_err(
+        state.workflow_evolver.should_auto_evolve(&template_id).await,
+        wf_reflect_err::EVOLVE_FAILED,
+    )
 }
 
 // ── 单元测试 ──

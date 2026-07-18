@@ -3281,10 +3281,16 @@
     "TOOL_TRANSPORT_UNSUPPORTED": "Unsupported transport type",
     "WIKI_NO_EMBEDDING_PROVIDER": "No embedding provider configured",
     "WIKI_PATH_NOT_DIR": "Path is not a directory",
-    "WORKFLOW_INVALID_JSON": "Invalid JSON",
+    "WORKFLOW_INVALID_JSON": "Invalid JSON format",
     "WORKFLOW_NODE_NOT_FOUND": "Node not found",
     "WORKFLOW_NOT_FOUND": "Workflow not found",
     "WORKFLOW_PLAN_NOT_FOUND": "Plan not found",
+    "WORKFLOW_REFLECTION_APPLY_FAILED": "Failed to apply optimization suggestions",
+    "WORKFLOW_REFLECTION_EVOLVE_FAILED": "Workflow evolution failed",
+    "WORKFLOW_REFLECTION_REFLECT_FAILED": "Reflection execution failed",
+    "WORKFLOW_REFLECTION_RECORD_INVALID": "Invalid reflection record",
+    "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Failed to generate optimization suggestions",
+    "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Invalid workflow template",
     "WORKFLOW_VERSION_NOT_FOUND": "Version not found"
   },
   "desktop": {

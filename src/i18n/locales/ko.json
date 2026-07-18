@@ -2602,10 +2602,16 @@
     "TOOL_TRANSPORT_UNSUPPORTED": "지원되지 않는 전송 유형",
     "WIKI_NO_EMBEDDING_PROVIDER": "임베딩 제공자가 설정되지 않음",
     "WIKI_PATH_NOT_DIR": "경로가 디렉토리가 아님",
-    "WORKFLOW_INVALID_JSON": "잘못된 JSON",
+    "WORKFLOW_INVALID_JSON": "잘못된 JSON 형식",
     "WORKFLOW_NODE_NOT_FOUND": "노드를 찾을 수 없음",
     "WORKFLOW_NOT_FOUND": "워크플로를 찾을 수 없음",
-    "WORKFLOW_PLAN_NOT_FOUND": "플랜을 찾을 수 없음",
+    "WORKFLOW_PLAN_NOT_FOUND": "계획을 찾을 수 없음",
+    "WORKFLOW_REFLECTION_APPLY_FAILED": "최적화 제안 적용 실패",
+    "WORKFLOW_REFLECTION_EVOLVE_FAILED": "워크플로 진화 실패",
+    "WORKFLOW_REFLECTION_REFLECT_FAILED": "리플렉션 실행 실패",
+    "WORKFLOW_REFLECTION_RECORD_INVALID": "잘못된 리플렉션 기록",
+    "WORKFLOW_REFLECTION_SUGGEST_FAILED": "최적화 제안 생성 실패",
+    "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "잘못된 워크플로 템플릿",
     "WORKFLOW_VERSION_NOT_FOUND": "버전을 찾을 수 없음"
   },
   "errorBoundary": {

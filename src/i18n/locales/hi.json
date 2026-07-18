@@ -2627,10 +2627,16 @@
     "TOOL_TRANSPORT_UNSUPPORTED": "असमर्थित ट्रांसपोर्ट प्रकार",
     "WIKI_NO_EMBEDDING_PROVIDER": "कोई एम्बेडिंग प्रदाता कॉन्फ़िगर नहीं",
     "WIKI_PATH_NOT_DIR": "पथ डायरेक्टरी नहीं है",
-    "WORKFLOW_INVALID_JSON": "अमान्य JSON",
+    "WORKFLOW_INVALID_JSON": "अमान्य JSON प्रारूप",
     "WORKFLOW_NODE_NOT_FOUND": "नोड नहीं मिला",
     "WORKFLOW_NOT_FOUND": "वर्कफ़्लो नहीं मिला",
     "WORKFLOW_PLAN_NOT_FOUND": "योजना नहीं मिली",
+    "WORKFLOW_REFLECTION_APPLY_FAILED": "अनुकूलन सुझाव लागू करना विफल",
+    "WORKFLOW_REFLECTION_EVOLVE_FAILED": "वर्कफ़्लो विकास विफल",
+    "WORKFLOW_REFLECTION_REFLECT_FAILED": "प्रतिबिंब निष्पादन विफल",
+    "WORKFLOW_REFLECTION_RECORD_INVALID": "अमान्य प्रतिबिंब रिकॉर्ड",
+    "WORKFLOW_REFLECTION_SUGGEST_FAILED": "अनुकूलन सुझाव उत्पन्न करना विफल",
+    "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "अमान्य वर्कफ़्लो टेम्पलेट",
     "WORKFLOW_VERSION_NOT_FOUND": "संस्करण नहीं मिला"
   },
   "errorBoundary": {

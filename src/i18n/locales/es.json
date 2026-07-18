@@ -2631,6 +2631,12 @@
     "WORKFLOW_NODE_NOT_FOUND": "Nodo no encontrado",
     "WORKFLOW_NOT_FOUND": "Flujo de trabajo no encontrado",
     "WORKFLOW_PLAN_NOT_FOUND": "Plan no encontrado",
+    "WORKFLOW_REFLECTION_APPLY_FAILED": "Error al aplicar sugerencias de optimización",
+    "WORKFLOW_REFLECTION_EVOLVE_FAILED": "Evolución del flujo de trabajo fallida",
+    "WORKFLOW_REFLECTION_REFLECT_FAILED": "Ejecución de reflexión fallida",
+    "WORKFLOW_REFLECTION_RECORD_INVALID": "Registro de reflexión no válido",
+    "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Error al generar sugerencias de optimización",
+    "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Plantilla de flujo de trabajo no válida",
     "WORKFLOW_VERSION_NOT_FOUND": "Versión no encontrada"
   },
   "errorBoundary": {

@@ -2627,10 +2627,16 @@
     "TOOL_TRANSPORT_UNSUPPORTED": "نوع النقل غير مدعوم",
     "WIKI_NO_EMBEDDING_PROVIDER": "لا يوجد مزود تضمين مهيأ",
     "WIKI_PATH_NOT_DIR": "المسار ليس دليلاً",
-    "WORKFLOW_INVALID_JSON": "JSON غير صالح",
+    "WORKFLOW_INVALID_JSON": "تنسيق JSON غير صالح",
     "WORKFLOW_NODE_NOT_FOUND": "العقدة غير موجودة",
     "WORKFLOW_NOT_FOUND": "سير العمل غير موجود",
     "WORKFLOW_PLAN_NOT_FOUND": "الخطة غير موجودة",
+    "WORKFLOW_REFLECTION_APPLY_FAILED": "فشل تطبيق اقتراحات التحسين",
+    "WORKFLOW_REFLECTION_EVOLVE_FAILED": "فشل تطور سير العمل",
+    "WORKFLOW_REFLECTION_REFLECT_FAILED": "فشل تنفيذ التأمل",
+    "WORKFLOW_REFLECTION_RECORD_INVALID": "سجل التأمل غير صالح",
+    "WORKFLOW_REFLECTION_SUGGEST_FAILED": "فشل إنشاء اقتراحات التحسين",
+    "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "قالب سير العمل غير صالح",
     "WORKFLOW_VERSION_NOT_FOUND": "الإصدار غير موجود"
   },
   "errorBoundary": {
