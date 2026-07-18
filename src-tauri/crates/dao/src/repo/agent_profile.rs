@@ -48,7 +48,7 @@ async fn validate_expert_id(
 ) -> Result<Option<String>> {
     match expert_id {
         None => Ok(None),
-        Some(eid) if eid.is_empty() => Ok(None),
+        Some("") => Ok(None),
         Some(eid) => {
             let exists = agency_experts::Entity::find_by_id(eid).one(db).await?.is_some();
             if exists {
