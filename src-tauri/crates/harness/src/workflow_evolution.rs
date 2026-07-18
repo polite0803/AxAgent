@@ -234,3 +234,134 @@ pub trait WorkflowSandbox: Send + Sync {
         test_input: &serde_json::Value,
     ) -> Result<SandboxValidationResult, String>;
 }
+
+// ── 基础校验工具(方案 1A) ──
+
+/// 对基因组做最小一致性校验:node id 不重复 / edge 引用有效 / variable name 不重复。
+///
+/// 用于进化器在替换 LLM 变异结果前做快速结构检查(轻量,不调用 LLM)。
+/// 返回错误列表(空 = 通过)。**不**包含 nodes 非空 / variables 数量上限等业务约束,
+/// 后者由沙箱 [`WorkflowSandbox`] 实现(如 `StructuralWorkflowSandbox`)负责。
+pub fn validate_genome_basic(genome: &WorkflowGenome) -> Vec<String> {
+    let mut errors = Vec::new();
+
+    // 1. node id 不重复
+    let mut seen_node_ids = std::collections::HashSet::new();
+    for node in &genome.nodes {
+        let id = node.base_id();
+        if !seen_node_ids.insert(id.to_string()) {
+            errors.push(format!("duplicate node id: {id}"));
+        }
+    }
+
+    // 2. edge source/target 必须引用已存在的节点 id
+    let node_ids: std::collections::HashSet<&str> =
+        genome.nodes.iter().map(|n| n.base_id()).collect();
+    for edge in &genome.edges {
+        if !node_ids.contains(edge.source.as_str()) {
+            errors.push(format!("edge.source '{}' not in nodes", edge.source));
+        }
+        if !node_ids.contains(edge.target.as_str()) {
+            errors.push(format!("edge.target '{}' not in nodes", edge.target));
+        }
+    }
+
+    // 3. variable name 不重复(若 Value 是对象且含 "name" 字段)
+    //    `WorkflowGenome.variables` 类型为 `Vec<serde_json::Value>`,
+    //    实际承载 `Variable` 结构,这里宽容地从 JSON 提取 name。
+    let mut seen_var_names = std::collections::HashSet::new();
+    for v in &genome.variables {
+        if let Some(name) = v.get("name").and_then(|n| n.as_str())
+            && !seen_var_names.insert(name.to_string())
+        {
+            errors.push(format!("duplicate variable name: {name}"));
+        }
+    }
+
+    errors
+}
+
+#[cfg(test)]
+mod validate_genome_basic_tests {
+    use super::*;
+
+    /// 用 JSON 反序列化构造 genome(避免手工构造 WorkflowNodeBase 全字段)。
+    ///
+    /// `WorkflowNode` 用 `#[serde(tag="type", rename_all="camelCase")]` + `#[serde(flatten)]` base,
+    /// 因此 JSON 形式为 `{"type":"delay", ...平铺字段}`(非 `{"Delay":{...}}` 的 newtype 形式)。
+    fn make_genome(
+        node_ids: &[&str],
+        edges: &[(&str, &str)],
+        variables: &[&str],
+    ) -> WorkflowGenome {
+        use serde_json::json;
+        let nodes: Vec<crate::workflow_types::WorkflowNode> = node_ids
+            .iter()
+            .map(|id| {
+                json!({
+                    "type": "delay",
+                    "id": id,
+                    "title": format!("node-{id}"),
+                    "position": {"x": 0, "y": 0},
+                    "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "enabled": true,
+                    "config": {"delay_type": "seconds", "seconds": 1, "until": null}
+                })
+            })
+            .map(|v| serde_json::from_value(v).expect("deserialize node"))
+            .collect();
+        let edges: Vec<crate::workflow_types::WorkflowEdge> = edges
+            .iter()
+            .map(|(s, t)| {
+                json!({
+                    "id": format!("{s}-{t}"),
+                    "source": s,
+                    "source_handle": null,
+                    "target": t,
+                    "target_handle": null,
+                    "edge_type": "direct",
+                    "label": null
+                })
+            })
+            .map(|v| serde_json::from_value(v).expect("deserialize edge"))
+            .collect();
+        let variables: Vec<serde_json::Value> =
+            variables.iter().map(|n| json!({"name": n, "value": 0})).collect();
+        WorkflowGenome {
+            template_id: "test".into(),
+            name: "test".into(),
+            nodes,
+            edges,
+            variables,
+            fitness: 0.5,
+            generation: 0,
+        }
+    }
+
+    #[test]
+    fn passes_on_valid_genome() {
+        let g = make_genome(&["n1", "n2"], &[("n1", "n2")], &["v1"]);
+        assert!(validate_genome_basic(&g).is_empty());
+    }
+
+    #[test]
+    fn catches_duplicate_node_id() {
+        let g = make_genome(&["n1", "n1"], &[], &["v1"]);
+        let errs = validate_genome_basic(&g);
+        assert!(errs.iter().any(|e| e.contains("duplicate node id")));
+    }
+
+    #[test]
+    fn catches_dangling_edge() {
+        let g = make_genome(&["n1"], &[("n1", "missing")], &["v1"]);
+        let errs = validate_genome_basic(&g);
+        assert!(errs.iter().any(|e| e.contains("not in nodes")));
+    }
+
+    #[test]
+    fn catches_duplicate_variable_name() {
+        let g = make_genome(&["n1"], &[], &["v1", "v1"]);
+        let errs = validate_genome_basic(&g);
+        assert!(errs.iter().any(|e| e.contains("duplicate variable name")));
+    }
+}

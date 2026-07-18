@@ -21,9 +21,11 @@ use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{
     EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
     SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowLlmMutator,
-    WorkflowModification, WorkflowSandbox,
+    WorkflowModification, WorkflowSandbox, validate_genome_basic,
 };
-use axagent_harness::workflow_reflection::{WorkflowPattern, WorkflowRunStatus};
+use axagent_harness::workflow_reflection::{
+    BottleneckReason, WorkflowPattern, WorkflowReflectionMetadata, WorkflowRunStatus,
+};
 
 /// `WorkflowEvolver` 的 trajectory 实现。
 pub struct WorkflowEvolverImpl {
@@ -155,6 +157,122 @@ fn collect_evidence(reflections: &[Reflection]) -> (Vec<WorkflowPattern>, Vec<Wo
     (failure_ev, success_ev)
 }
 
+// ── 方案 4B:基于规则的启发式调整 ──
+
+/// 启发式调整上限常量(防止无限放大字段值)。
+const HEURISTIC_MAX_RETRIES: u32 = 5;
+const HEURISTIC_MAX_TIMEOUT_SECS: u64 = 60;
+const HEURISTIC_TIMEOUT_BACKOFF_FACTOR: f64 = 1.5;
+/// 反思平均质量低于该阈值且无明确瓶颈节点时,工作流级开启 `continue_on_fail`。
+const HEURISTIC_LOW_QUALITY_THRESHOLD: f32 = 0.5;
+/// LLM 变异质量评估下限,低于此值则回滚变异(方案 2C)。
+const LLM_MUTATION_QUALITY_THRESHOLD: f32 = 0.3;
+
+/// 从 `Reflection.metadata` 反序列化出 `WorkflowReflectionMetadata`(失败返回 None)。
+fn parse_workflow_meta(r: &Reflection) -> Option<WorkflowReflectionMetadata> {
+    r.metadata
+        .as_ref()
+        .and_then(|v| serde_json::from_value::<WorkflowReflectionMetadata>(v.clone()).ok())
+}
+
+/// 基于反思数据做启发式节点调整(方案 4B)。
+///
+/// 规则:
+/// - 节点瓶颈(HighFailureRate / HighRetryCount)→ `retry.max_retries += 1`(上限 5),
+///   并启用 `retry.enabled`
+/// - 节点瓶颈(HighLatency / ResourceHeavy)→ `timeout *= 1.5`(上限 60s,默认 30s)
+/// - 整体反思质量低且无明确瓶颈 → 全体节点 `continue_on_fail = true`
+///
+/// 调整直接修改 genome 节点字段,返回 `GenomeChange` 用于审计。
+/// 不依赖 LLM,确定性、可解释。
+fn apply_heuristic_adjustments(
+    genome: &mut WorkflowGenome,
+    reflections: &[Reflection],
+) -> Vec<GenomeChange> {
+    if reflections.is_empty() {
+        return Vec::new();
+    }
+
+    // 1. 收集所有反思中的瓶颈节点 ID 与原因(后写入覆盖前,以最新反思为准)
+    let mut bottleneck_map: std::collections::HashMap<String, BottleneckReason> =
+        std::collections::HashMap::new();
+    let mut has_any_bottleneck = false;
+    for r in reflections {
+        if let Some(meta) = parse_workflow_meta(r) {
+            for bn in &meta.bottleneck_nodes {
+                has_any_bottleneck = true;
+                bottleneck_map.insert(bn.node_id.clone(), bn.reason);
+            }
+        }
+    }
+
+    // 2. 计算平均反思质量(0.0-1.0)
+    let sum: u32 = reflections.iter().map(|r| r.quality_score as u32).sum();
+    let avg_quality = sum as f32 / (reflections.len() as f32 * 10.0);
+
+    // 3. 工作流整体失败但无明确瓶颈 → 全体节点 continue_on_fail = true
+    let should_continue_on_fail =
+        avg_quality < HEURISTIC_LOW_QUALITY_THRESHOLD && !has_any_bottleneck;
+
+    let mut changes = Vec::new();
+
+    for node in &mut genome.nodes {
+        let base = node.base_mut();
+        let node_id = base.id.clone();
+
+        // 规则 1+2:瓶颈节点调整 retry / timeout
+        if let Some(reason) = bottleneck_map.get(&node_id) {
+            match reason {
+                BottleneckReason::HighFailureRate | BottleneckReason::HighRetryCount => {
+                    if base.retry.max_retries < HEURISTIC_MAX_RETRIES {
+                        base.retry.max_retries = base.retry.max_retries.saturating_add(1);
+                        base.retry.enabled = true;
+                        changes.push(GenomeChange::ConfigPatched {
+                            node_id: node_id.clone(),
+                            patch: serde_json::json!({
+                                "retry.max_retries": base.retry.max_retries,
+                                "retry.enabled": true,
+                                "_reason": format!("heuristic: {reason:?}"),
+                            }),
+                        });
+                    }
+                },
+                BottleneckReason::HighLatency | BottleneckReason::ResourceHeavy => {
+                    let original_timeout = base.timeout.unwrap_or(30);
+                    let scaled = (original_timeout as f64) * HEURISTIC_TIMEOUT_BACKOFF_FACTOR;
+                    let new_timeout = (scaled as u64).min(HEURISTIC_MAX_TIMEOUT_SECS);
+                    if new_timeout != original_timeout {
+                        base.timeout = Some(new_timeout);
+                        changes.push(GenomeChange::ConfigPatched {
+                            node_id: node_id.clone(),
+                            patch: serde_json::json!({
+                                "timeout_secs": new_timeout,
+                                "_reason": format!("heuristic: {reason:?}"),
+                            }),
+                        });
+                    }
+                },
+                // SequentialBlocking 不在启发式规则范围(需要拓扑调整,留给 LLM 变异)
+                _ => {},
+            }
+        }
+
+        // 规则 3:整体低质量无瓶颈 → continue_on_fail
+        if should_continue_on_fail && !base.continue_on_fail {
+            base.continue_on_fail = true;
+            changes.push(GenomeChange::ConfigPatched {
+                node_id: node_id.clone(),
+                patch: serde_json::json!({
+                    "continue_on_fail": true,
+                    "_reason": "heuristic: low avg quality without bottleneck",
+                }),
+            });
+        }
+    }
+
+    changes
+}
+
 #[async_trait]
 impl WorkflowEvolver for WorkflowEvolverImpl {
     async fn initialize(&self, template_id: &str) -> Result<EvolutionPopulation, String> {
@@ -219,17 +337,49 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
                     let (failure_ev, success_ev) = collect_evidence(reflections);
                     match provider.generate_mutation(&original, &failure_ev, &success_ev).await {
                         Ok(new_genome) => {
-                            // 仅当 LLM 返回的 genome 有 nodes 时才替换(避免空替换)
-                            if !new_genome.nodes.is_empty() {
-                                population.individuals[idx] = new_genome;
-                                tracing::debug!(
-                                    "[Evolver] LLM mutation applied to individual {}",
-                                    idx
+                            // 方案 1A:基础校验(替换前做最小一致性检查)
+                            // 不通过则保留原 genome,避免 LLM 误伤(重复 id / 悬空 edge / 重名变量)
+                            let validation_errors = validate_genome_basic(&new_genome);
+                            if !validation_errors.is_empty() {
+                                tracing::warn!(
+                                    "[Evolver] LLM mutation failed basic validation, keeping original: {:?}",
+                                    validation_errors
                                 );
-                            } else {
+                            } else if new_genome.nodes.is_empty() {
                                 tracing::debug!(
                                     "[Evolver] LLM returned empty nodes, keeping original genome"
                                 );
+                            } else {
+                                // 方案 2C:LLM 质量评估,低分回滚
+                                // evaluate 失败时保守策略:不替换(避免不可信变异落地)
+                                let context = format!(
+                                    "template={}, reflections={}, fitness={:.3}",
+                                    original.template_id,
+                                    reflections.len(),
+                                    original.fitness
+                                );
+                                match provider.evaluate_quality(&new_genome, &context).await {
+                                    Ok(score) if score >= LLM_MUTATION_QUALITY_THRESHOLD => {
+                                        population.individuals[idx] = new_genome;
+                                        tracing::debug!(
+                                            "[Evolver] LLM mutation applied to individual {} (quality={:.3})",
+                                            idx,
+                                            score
+                                        );
+                                    },
+                                    Ok(score) => {
+                                        tracing::warn!(
+                                            "[Evolver] LLM mutation quality too low ({:.3} < {:.3}), keeping original",
+                                            score,
+                                            LLM_MUTATION_QUALITY_THRESHOLD
+                                        );
+                                    },
+                                    Err(e) => {
+                                        tracing::warn!(
+                                            "[Evolver] LLM quality eval failed, keeping original: {e}"
+                                        );
+                                    },
+                                }
                             }
                         },
                         Err(e) => {
@@ -238,6 +388,12 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
                     }
                 }
             }
+        }
+
+        // 方案 4B:基于反思数据做启发式调整(对所有个体)
+        // 规则:瓶颈节点 retry / timeout 调优;整体低质量无瓶颈 → continue_on_fail
+        for individual in &mut population.individuals {
+            let _heuristic_changes = apply_heuristic_adjustments(individual, reflections);
         }
 
         // 更新种群统计
@@ -482,5 +638,114 @@ mod tests {
     async fn test_is_running_default_false() {
         let e = WorkflowEvolverImpl::with_defaults();
         assert!(!e.is_running().await.unwrap());
+    }
+
+    // ── 方案 4B 启发式调整测试 ──
+
+    /// 构造一个带瓶颈节点(HighFailureRate)的反思,
+    /// 验证启发式调整会提升该节点的 retry.max_retries。
+    #[tokio::test]
+    async fn test_heuristic_adjustment_increases_retry_on_failure_rate() {
+        use axagent_harness::workflow_reflection::{
+            BottleneckNode, BottleneckReason, WorkflowReflectionMetadata,
+        };
+
+        let mut genome = WorkflowGenome {
+            template_id: "wf-1".into(),
+            name: "test".into(),
+            nodes: vec![serde_json::from_value(serde_json::json!({
+                "type": "delay",
+                "id": "n1",
+                "title": "delay",
+                "position": {"x": 0, "y": 0},
+                "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                "enabled": true,
+                "config": {"delay_type": "seconds", "seconds": 1, "until": null}
+            })).expect("deserialize node")],
+            edges: vec![],
+            variables: vec![],
+            fitness: 0.5,
+            generation: 0,
+        };
+
+        let meta = WorkflowReflectionMetadata {
+            workflow_id: "wf-1".into(),
+            execution_id: "exec-1".into(),
+            bottleneck_nodes: vec![BottleneckNode {
+                node_id: "n1".into(),
+                node_type: "delay".into(),
+                reason: BottleneckReason::HighFailureRate,
+                impact_score: 0.8,
+                detail: "frequently fails".into(),
+            }],
+            node_patterns: vec![],
+            failed_node_analysis: None,
+            proposed_changes: vec![],
+        };
+        let mut reflection = Reflection::new("exec-1".to_string()).with_quality(3, "bad".into());
+        reflection.metadata = Some(serde_json::to_value(&meta).unwrap());
+
+        let changes = apply_heuristic_adjustments(&mut genome, &[reflection]);
+        assert!(!changes.is_empty(), "expected heuristic changes");
+        // retry.max_retries 应从 1 提升到 2,且 enabled=true
+        let base = genome.nodes[0].base();
+        assert_eq!(base.retry.max_retries, 2);
+        assert!(base.retry.enabled);
+    }
+
+    /// 整体反思质量低(quality_score=2)且无瓶颈节点 →
+    /// 所有节点应开启 continue_on_fail。
+    #[tokio::test]
+    async fn test_heuristic_adjustment_enables_continue_on_fail_for_low_quality() {
+        let mut genome = WorkflowGenome {
+            template_id: "wf-1".into(),
+            name: "test".into(),
+            nodes: vec![serde_json::from_value(serde_json::json!({
+                "type": "delay",
+                "id": "n1",
+                "title": "delay",
+                "position": {"x": 0, "y": 0},
+                "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                "enabled": true,
+                "config": {"delay_type": "seconds", "seconds": 1, "until": null}
+            })).expect("deserialize node")],
+            edges: vec![],
+            variables: vec![],
+            fitness: 0.5,
+            generation: 0,
+        };
+
+        // quality_score=2 (0.2 归一化),无 metadata → 无瓶颈
+        let reflection = Reflection::new("exec-1".to_string()).with_quality(2, "bad".to_string());
+        let changes = apply_heuristic_adjustments(&mut genome, &[reflection]);
+        assert!(!changes.is_empty(), "expected continue_on_fail change");
+        assert!(genome.nodes[0].base().continue_on_fail);
+    }
+
+    /// 无反思数据时不应做任何调整。
+    #[tokio::test]
+    async fn test_heuristic_adjustment_noop_without_reflections() {
+        let mut genome = WorkflowGenome {
+            template_id: "wf-1".into(),
+            name: "test".into(),
+            nodes: vec![serde_json::from_value(serde_json::json!({
+                "type": "delay",
+                "id": "n1",
+                "title": "delay",
+                "position": {"x": 0, "y": 0},
+                "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                "enabled": true,
+                "config": {"delay_type": "seconds", "seconds": 1, "until": null}
+            })).expect("deserialize node")],
+            edges: vec![],
+            variables: vec![],
+            fitness: 0.5,
+            generation: 0,
+        };
+
+        let changes = apply_heuristic_adjustments(&mut genome, &[]);
+        assert!(changes.is_empty(), "expected no changes without reflections");
+        assert_eq!(genome.nodes[0].base().retry.max_retries, 1);
+        assert!(!genome.nodes[0].base().continue_on_fail);
     }
 }

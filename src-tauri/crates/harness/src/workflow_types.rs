@@ -1413,6 +1413,43 @@ impl WorkflowNode {
         }
     }
 
+    /// 从节点变体中提取基类可变引用(供进化器修改 retry / timeout / continue_on_fail)。
+    pub fn base_mut(&mut self) -> &mut WorkflowNodeBase {
+        match self {
+            WorkflowNode::Trigger(n) => &mut n.base,
+            WorkflowNode::Agent(n) => &mut n.base,
+            WorkflowNode::Llm(n) => &mut n.base,
+            WorkflowNode::Condition(n) => &mut n.base,
+            WorkflowNode::Parallel(n) => &mut n.base,
+            WorkflowNode::Loop(n) => &mut n.base,
+            WorkflowNode::Merge(n) => &mut n.base,
+            WorkflowNode::Delay(n) => &mut n.base,
+            WorkflowNode::Tool(n) => &mut n.base,
+            WorkflowNode::Code(n) => &mut n.base,
+            WorkflowNode::SubWorkflow(n) => &mut n.base,
+            WorkflowNode::DocumentParser(n) => &mut n.base,
+            WorkflowNode::VectorRetrieve(n) => &mut n.base,
+            WorkflowNode::Validation(n) => &mut n.base,
+            WorkflowNode::HttpRequest(n) => &mut n.base,
+            WorkflowNode::Switch(n) => &mut n.base,
+            WorkflowNode::DatabaseQuery(n) => &mut n.base,
+            WorkflowNode::Notification(n) => &mut n.base,
+            WorkflowNode::Approval(n) => &mut n.base,
+            WorkflowNode::FileOperation(n) => &mut n.base,
+            WorkflowNode::DataTransformer(n) => &mut n.base,
+            WorkflowNode::WebhookSend(n) => &mut n.base,
+            WorkflowNode::Logging(n) => &mut n.base,
+            WorkflowNode::LlmClassifier(n) => &mut n.base,
+            WorkflowNode::Aggregator(n) => &mut n.base,
+            WorkflowNode::Email(n) => &mut n.base,
+            WorkflowNode::Debate(n) => &mut n.base,
+            WorkflowNode::Swarm(n) => &mut n.base,
+            WorkflowNode::Storage(n) => &mut n.base,
+            WorkflowNode::WorkflowRef(n) => &mut n.base,
+            WorkflowNode::End(n) => &mut n.base,
+        }
+    }
+
     pub fn base_timeout(&self) -> Option<u64> {
         self.base().timeout
     }

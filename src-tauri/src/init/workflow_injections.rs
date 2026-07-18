@@ -271,25 +271,13 @@ impl StructuralWorkflowSandbox {
 
     /// 执行结构校验,返回错误列表(空 = 通过)。
     fn validate(genome: &WorkflowGenome) -> Vec<String> {
-        let mut errors = Vec::new();
+        // 复用 harness 提供的基础校验(node id 不重复 / edge 引用有效 / variable name 不重复)
+        let mut errors = axagent_harness::workflow_evolution::validate_genome_basic(genome);
 
+        // 额外业务约束:nodes 非空 + variables 数量合理
         if genome.nodes.is_empty() {
             errors.push("genome has no nodes".to_string());
         }
-
-        // edges 引用校验
-        let node_ids: std::collections::HashSet<&str> =
-            genome.nodes.iter().map(|n| n.base_id()).collect();
-        for edge in &genome.edges {
-            if !node_ids.contains(edge.source.as_str()) {
-                errors.push(format!("edge.source '{}' not in nodes", edge.source));
-            }
-            if !node_ids.contains(edge.target.as_str()) {
-                errors.push(format!("edge.target '{}' not in nodes", edge.target));
-            }
-        }
-
-        // variables 数量合理性检查
         if genome.variables.len() > 1000 {
             errors.push(format!(
                 "variables count {} exceeds 1000 (likely malformed)",
@@ -375,15 +363,16 @@ mod tests {
     #[test]
     fn test_structural_sandbox_valid_genome() {
         // 用 JSON 反序列化构造 WorkflowGenome(避免手工构造 WorkflowNodeBase 全字段)
+        // WorkflowNode 用 #[serde(tag="type", rename_all="camelCase")] + #[serde(flatten)] base
         let json = r#"{
             "template_id": "t1",
             "name": "test",
             "nodes": [
-                {"Delay": {
-                    "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
-                    "retry": {"max_attempts": 1, "delay_ms": 0},
-                    "config": {"delay_type": "seconds", "seconds": 1, "until": null}
-                }}
+                {"type": "delay",
+                 "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
             "edges": [
                 {"id": "e1", "source": "n1", "source_handle": null,
@@ -408,11 +397,11 @@ mod tests {
             "template_id": "t1",
             "name": "test",
             "nodes": [
-                {"Delay": {
-                    "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
-                    "retry": {"max_attempts": 1, "delay_ms": 0},
-                    "config": {"delay_type": "seconds", "seconds": 1, "until": null}
-                }}
+                {"type": "delay",
+                 "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
             "edges": [
                 {"id": "e1", "source": "n1", "source_handle": null,
