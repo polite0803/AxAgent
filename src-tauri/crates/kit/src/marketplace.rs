@@ -187,6 +187,7 @@ mod tests {
                 created_at: 0,
                 updated_at: 0,
                 error_workflow_id: None,
+                mission_hash: None,
             },
             vec![],
         );

@@ -443,7 +443,7 @@ function AgentsTab() {
       }));
       setAgents(list);
     } catch (e) {
-      logIpcError("获取 Agent 列表")(e);
+      logIpcError("SettingsPanel.fetchAgents")(e);
       setAgents([]);
     } finally {
       setLoading(false);
