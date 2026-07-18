@@ -334,6 +334,29 @@ pub use dream::{
     DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamConsolidator,
     DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
 };
+
+// ── 反思系统共享 DTO(任务级与工作流级共用) ──
+pub mod reflection_types;
+pub use reflection_types::{QualityMetrics, Reflection, ReflectionConfig, TaskExecutionRecord};
+
+// ── 工作流反思/进化/优化三层 trait 契约 ──
+pub mod workflow_reflection;
+pub use workflow_reflection::{
+    BottleneckNode, BottleneckReason, FailureCategory, NodeExecutionSnapshot, NodeFailureAnalysis,
+    NodeRunStatus, ProposedChange, WorkflowErrorContext, WorkflowExecutionRecord, WorkflowPattern,
+    WorkflowReflectionMetadata, WorkflowReflector, WorkflowRunStatus,
+};
+pub mod workflow_evolution;
+pub use workflow_evolution::{
+    EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
+    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowLlmMutator,
+    WorkflowModification, WorkflowSandbox,
+};
+pub mod workflow_optimization;
+pub use workflow_optimization::{
+    ProposedChange as WorkflowOptimizationProposedChange, SuggestionCategory, SuggestionPriority,
+    WorkflowOptimizer, WorkflowSuggestion,
+};
 // ── 用户自适应共享枚举（Verbosity/TechnicalLevel/ContentFormat） ──
 // 同时被 profile::UserProfile::update_style 和 trajectory 的 RealTimeLearning 使用
 pub mod adaptation;

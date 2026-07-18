@@ -278,6 +278,7 @@ impl ExperiencePipeline {
             improvement_suggestions,
             overall_summary,
             quality_metrics: None,
+            metadata: None,
         };
 
         self.process_reflection(&reflection).await;

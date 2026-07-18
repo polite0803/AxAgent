@@ -1,174 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 反思系统共享 DTO 已上移到 axagent-harness,本 crate 通过 pub use 复用。
+pub use axagent_harness::reflection_types::{
+    QualityMetrics, Reflection, ReflectionConfig, TaskExecutionRecord,
+};
+
 use crate::insight_generator::InsightGenerator;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskExecutionRecord {
-    pub task_id: String,
-    pub task_description: String,
-    pub result: Option<serde_json::Value>,
-    pub success: bool,
-    pub error: Option<String>,
-    pub start_time: DateTime<Utc>,
-    pub end_time: DateTime<Utc>,
-    pub duration_ms: u64,
-    pub tools_used: Vec<String>,
-    pub iterations: usize,
-}
-
-impl TaskExecutionRecord {
-    pub fn new(
-        task_id: String,
-        task_description: String,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            task_id,
-            task_description,
-            result: None,
-            success: false,
-            error: None,
-            start_time,
-            end_time,
-            duration_ms: 0,
-            tools_used: Vec::new(),
-            iterations: 0,
-        }
-    }
-
-    pub fn with_result(mut self, result: serde_json::Value) -> Self {
-        self.result = Some(result);
-        self
-    }
-
-    pub fn with_success(mut self, success: bool) -> Self {
-        self.success = success;
-        self
-    }
-
-    pub fn with_error(mut self, error: String) -> Self {
-        self.error = Some(error);
-        self.success = false;
-        self
-    }
-
-    pub fn with_tools(mut self, tools: Vec<String>) -> Self {
-        self.tools_used = tools;
-        self
-    }
-
-    pub fn with_iterations(mut self, iterations: usize) -> Self {
-        self.iterations = iterations;
-        self
-    }
-
-    pub fn compute_duration(&mut self) {
-        self.duration_ms =
-            self.end_time.signed_duration_since(self.start_time).num_milliseconds() as u64;
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct QualityMetrics {
-    pub task_success_score: f32,
-    pub tool_efficiency_score: f32,
-    pub iteration_efficiency_score: f32,
-    pub time_efficiency_score: f32,
-    pub error_recovery_score: f32,
-    pub goal_completion_score: f32,
-    pub overall_weighted_score: f32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Reflection {
-    pub task_id: String,
-    pub timestamp: DateTime<Utc>,
-    pub quality_score: u8,
-    pub quality_analysis: String,
-    pub efficiency_analysis: String,
-    pub error_patterns: Vec<String>,
-    pub reusable_patterns: Vec<String>,
-    pub knowledge_suggestions: Vec<String>,
-    pub improvement_suggestions: Vec<String>,
-    pub overall_summary: String,
-    pub quality_metrics: Option<QualityMetrics>,
-}
-
-impl Reflection {
-    pub fn new(task_id: String) -> Self {
-        Self {
-            task_id,
-            timestamp: Utc::now(),
-            quality_score: 0,
-            quality_analysis: String::new(),
-            efficiency_analysis: String::new(),
-            error_patterns: Vec::new(),
-            reusable_patterns: Vec::new(),
-            knowledge_suggestions: Vec::new(),
-            improvement_suggestions: Vec::new(),
-            overall_summary: String::new(),
-            quality_metrics: None,
-        }
-    }
-
-    pub fn with_quality(mut self, score: u8, analysis: String) -> Self {
-        self.quality_score = score.clamp(1, 10);
-        self.quality_analysis = analysis;
-        self
-    }
-
-    pub fn with_quality_metrics(mut self, metrics: QualityMetrics) -> Self {
-        self.quality_score = (metrics.overall_weighted_score.round() as u8).clamp(1, 10);
-        self.quality_metrics = Some(metrics);
-        self
-    }
-
-    pub fn with_efficiency(mut self, analysis: String) -> Self {
-        self.efficiency_analysis = analysis;
-        self
-    }
-
-    pub fn with_patterns(mut self, errors: Vec<String>, reusable: Vec<String>) -> Self {
-        self.error_patterns = errors;
-        self.reusable_patterns = reusable;
-        self
-    }
-
-    pub fn with_knowledge(mut self, suggestions: Vec<String>) -> Self {
-        self.knowledge_suggestions = suggestions;
-        self
-    }
-
-    pub fn with_improvements(mut self, suggestions: Vec<String>) -> Self {
-        self.improvement_suggestions = suggestions;
-        self
-    }
-
-    pub fn with_summary(mut self, summary: String) -> Self {
-        self.overall_summary = summary;
-        self
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ReflectionConfig {
-    pub enabled: bool,
-    pub min_quality_threshold: u8,
-    pub store_insights: bool,
-    pub max_history: usize,
-}
-
-impl Default for ReflectionConfig {
-    fn default() -> Self {
-        Self { enabled: true, min_quality_threshold: 5, store_insights: true, max_history: 100 }
-    }
-}
 
 pub struct Reflector {
     config: ReflectionConfig,
@@ -667,6 +507,7 @@ impl Default for Reflector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
 
     #[tokio::test]
     async fn test_reflection_creation() {
