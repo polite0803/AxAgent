@@ -767,15 +767,15 @@ impl DryRunWorkflowSandbox {
             color.entry(id).or_insert(0);
         }
 
-        fn dfs(
-            node: &str,
-            adj: &HashMap<&str, Vec<&str>>,
-            color: &mut HashMap<&str, u8>,
+        fn dfs<'a>(
+            node: &'a str,
+            adj: &HashMap<&'a str, Vec<&'a str>>,
+            color: &mut HashMap<&'a str, u8>,
         ) -> bool {
             match color.get(node).copied().unwrap_or(0) {
-                1 => return true, // 找到环
+                1 => return true,  // 找到环
                 2 => return false, // 已完成,跳过
-                _ => {}
+                _ => {},
             }
             color.insert(node, 1);
             if let Some(neighbors) = adj.get(node) {
@@ -1192,10 +1192,7 @@ mod tests {
             futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
         assert!(!result.passed, "expected fail");
         assert!(
-            result
-                .execution_errors
-                .iter()
-                .any(|e| e.contains("exceeds 300s")),
+            result.execution_errors.iter().any(|e| e.contains("exceeds 300s")),
             "expected timeout exceeds error, got: {:?}",
             result.execution_errors
         );
@@ -1227,10 +1224,7 @@ mod tests {
             futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
         assert!(!result.passed, "expected fail");
         assert!(
-            result
-                .execution_errors
-                .iter()
-                .any(|e| e.contains("retry.max_retries 20 exceeds 10")),
+            result.execution_errors.iter().any(|e| e.contains("retry.max_retries 20 exceeds 10")),
             "expected retry exceeds error, got: {:?}",
             result.execution_errors
         );
@@ -1268,10 +1262,7 @@ mod tests {
             futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
         assert!(!result.passed, "expected fail due to cycle");
         assert!(
-            result
-                .execution_errors
-                .iter()
-                .any(|e| e.contains("cycle")),
+            result.execution_errors.iter().any(|e| e.contains("cycle")),
             "expected cycle error, got: {:?}",
             result.execution_errors
         );
@@ -1309,10 +1300,7 @@ mod tests {
             futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
         // 不应有 cycle 错误(Loop 节点允许环)
         assert!(
-            !result
-                .execution_errors
-                .iter()
-                .any(|e| e.contains("cycle")),
+            !result.execution_errors.iter().any(|e| e.contains("cycle")),
             "Loop node should allow cycle, got: {:?}",
             result.execution_errors
         );

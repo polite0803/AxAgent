@@ -408,9 +408,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         {
             tracing::warn!("[Evolver] set_sandbox failed: {e}");
         } else {
-            tracing::info!(
-                "[Evolver] DryRun sandbox injected (static + simulate + hard timeout)"
-            );
+            tracing::info!("[Evolver] DryRun sandbox injected (static + simulate + hard timeout)");
         }
     }
 
