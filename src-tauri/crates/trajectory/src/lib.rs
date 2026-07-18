@@ -65,6 +65,7 @@ mod trajectory;
 mod trajectory_compressor;
 mod trajectory_impl;
 mod user_profile;
+mod workflow_adapters;
 
 // ── Explicit re-exports (only types used externally) ──────────────────
 
@@ -207,3 +208,7 @@ pub use user_profile::{
 // ── Extension methods migrated from harness ──────────────────────────
 
 pub use trajectory_impl::{ReplayContextExt, RewardCategoryExt, TrajectoryBuilderExt};
+
+// ── 工作流反思/进化/优化三层 trait 实现(阶段 4) ──────────────────────
+
+pub use workflow_adapters::{WorkflowEvolverImpl, WorkflowOptimizerImpl, WorkflowReflectorImpl};
