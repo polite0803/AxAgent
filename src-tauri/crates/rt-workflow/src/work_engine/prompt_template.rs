@@ -346,8 +346,25 @@ pub const INLINE_SCOPE_MARKER: &str = "## 节点配置补充（soft override，�
 ///   6. context            --- 上游节点输出 --- + parts（若非空切片）
 ///   7. rag                --- 知识库参考 --- + parts（若非空切片）
 ///   8. tail constraint    — constraints.tail（若 Some）
+///
+/// 修复问题 10：聚合各子编译的 `variable_refs`，确保编辑器预览/依赖分析
+/// 能获取 assemble 后的完整变量引用列表（原实现永远返回空 Vec）。
 pub fn assemble_template(req: TemplateRequest) -> CompiledPrompt {
     let mut segments: Vec<TemplateSegment> = Vec::new();
+    let mut variable_refs: Vec<String> = Vec::new();
+
+    // 收集子编译的 variable_refs（去重）并 extend segments
+    macro_rules! compile_and_extend {
+        ($p:expr) => {{
+            let compiled = compile_prompt($p);
+            for r in &compiled.variable_refs {
+                if !variable_refs.contains(r) {
+                    variable_refs.push(r.clone());
+                }
+            }
+            segments.extend(compiled.segments);
+        }};
+    }
 
     // slot 1: identity
     segments.push(TemplateSegment::Static(req.role_identity.to_string()));
@@ -361,14 +378,14 @@ pub fn assemble_template(req: TemplateRequest) -> CompiledPrompt {
     if let Some(p) = req.agent_role_prompt
         && !p.is_empty()
     {
-        segments.extend(compile_prompt(p).segments);
+        compile_and_extend!(p);
     }
 
     // slot 4: expert system_prompt
     if let Some(p) = req.expert_prompt
         && !p.is_empty()
     {
-        segments.extend(compile_prompt(p).segments);
+        compile_and_extend!(p);
     }
 
     // slot 5: inline system_prompt (with scope marker)
@@ -376,7 +393,7 @@ pub fn assemble_template(req: TemplateRequest) -> CompiledPrompt {
         && !p.is_empty()
     {
         segments.push(TemplateSegment::Static(INLINE_SCOPE_MARKER.to_string()));
-        segments.extend(compile_prompt(p).segments);
+        compile_and_extend!(p);
     }
 
     // slot 6: context sources
@@ -400,7 +417,7 @@ pub fn assemble_template(req: TemplateRequest) -> CompiledPrompt {
         segments.push(TemplateSegment::Static(t.clone()));
     }
 
-    CompiledPrompt { segments, variable_refs: Vec::new() }
+    CompiledPrompt { segments, variable_refs }
 }
 
 /// 简化版 wrap：head + body + tail。
