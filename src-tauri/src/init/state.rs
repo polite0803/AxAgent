@@ -396,10 +396,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }
     }
 
-    // 方案 2A(简化版)+ 优化 4-c:注入可达性 + 变量引用校验沙箱(无副作用,始终注入)
-    // 比批次 A 的 StructuralWorkflowSandbox 更强:额外做拓扑可达性与变量引用校验。
+    // P2-8:注入带有限试运行的沙箱(静态校验 + 模拟执行,始终注入)
+    // 比 ReachabilityWorkflowSandbox 更强:额外做节点级配置合理性、累积超时上限、
+    // 环检测,并用 tokio::time::timeout 做硬超时保护(5 秒)。
     {
-        let sandbox = super::workflow_injections::ReachabilityWorkflowSandbox::new();
+        let sandbox = super::workflow_injections::DryRunWorkflowSandbox::new();
         if let Err(e) = workflow_evolver
             .set_sandbox(std::sync::Arc::new(sandbox)
                 as std::sync::Arc<dyn axagent_harness::WorkflowSandbox>)
@@ -407,7 +408,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         {
             tracing::warn!("[Evolver] set_sandbox failed: {e}");
         } else {
-            tracing::info!("[Evolver] Reachability sandbox injected (topology + variable refs)");
+            tracing::info!(
+                "[Evolver] DryRun sandbox injected (static + simulate + hard timeout)"
+            );
         }
     }
 

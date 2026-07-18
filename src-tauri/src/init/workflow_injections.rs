@@ -655,6 +655,212 @@ impl WorkflowSandbox for StructuralWorkflowSandbox {
     }
 }
 
+/// 沙箱单次执行硬超时(秒)。
+///
+/// 即便静态校验 + 模拟执行都很快,也用 `tokio::time::timeout` 兜底,
+/// 防止意外死循环或大量节点导致沙箱卡住进化主流程。
+const SANDBOX_HARD_TIMEOUT_SECS: u64 = 5;
+
+/// 节点 `timeout` 字段上限(秒)。超过视为 LLM 误生成。
+const NODE_MAX_TIMEOUT_SECS: u64 = 300;
+
+/// 节点 `retry.max_retries` 上限。超过视为 LLM 误生成。
+const NODE_MAX_RETRIES: u32 = 10;
+
+/// 工作流累积模拟执行时间上限(秒)。
+///
+/// 所有节点 `timeout` 之和超过此值视为执行链过长(LLM 可能误生成超长链)。
+/// 不阻止进化,但会降低 `success_rate` 并记入 `execution_errors`。
+const WORKFLOW_MAX_TOTAL_TIMEOUT_SECS: u64 = 3600;
+
+/// 带有限试运行的沙箱(P2-8)。
+///
+/// 在 [`ReachabilityWorkflowSandbox`] 静态校验之上,新增"轻量模拟执行"层:
+/// - **节点级配置合理性**:每个节点的 `timeout` ≤ 300s,`retry.max_retries` ≤ 10,
+///   超过视为 LLM 误生成,降级 `success_rate` 并记入错误
+/// - **累积执行时间上限**:所有节点 `timeout` 之和 ≤ 3600s,避免超长执行链
+/// - **环检测**:edges 形成环且无 Loop 节点时,降级 `success_rate` 并警告
+/// - **硬超时保护**:用 `tokio::time::timeout` 包装整体执行,5 秒内未完成视为异常
+///
+/// 仍属"有限试运行"范畴(不实际调用 LLM / 工具,避免副作用与循环依赖),
+/// 但比纯静态校验能捕获更多运行时风险配置。
+pub struct DryRunWorkflowSandbox;
+
+impl DryRunWorkflowSandbox {
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// 模拟执行:对每个节点检查配置合理性,返回 (错误列表, 累积模拟耗时_ms)。
+    fn simulate_execution(genome: &WorkflowGenome) -> (Vec<String>, u64) {
+        let mut errors = Vec::new();
+        let mut total_timeout_secs: u64 = 0;
+
+        for node in &genome.nodes {
+            let base = node.base();
+            let node_id = base.id.as_str();
+
+            // 1. timeout 合理性
+            if let Some(timeout_secs) = base.timeout {
+                if timeout_secs > NODE_MAX_TIMEOUT_SECS {
+                    errors.push(format!(
+                        "node '{node_id}' timeout {timeout_secs}s exceeds {NODE_MAX_TIMEOUT_SECS}s"
+                    ));
+                }
+                total_timeout_secs = total_timeout_secs.saturating_add(timeout_secs);
+            }
+
+            // 2. retry 合理性
+            if base.retry.enabled && base.retry.max_retries > NODE_MAX_RETRIES {
+                errors.push(format!(
+                    "node '{node_id}' retry.max_retries {} exceeds {NODE_MAX_RETRIES}",
+                    base.retry.max_retries
+                ));
+            }
+        }
+
+        // 3. 累积执行时间上限
+        if total_timeout_secs > WORKFLOW_MAX_TOTAL_TIMEOUT_SECS {
+            errors.push(format!(
+                "cumulative timeout {total_timeout_secs}s exceeds {WORKFLOW_MAX_TOTAL_TIMEOUT_SECS}s"
+            ));
+        }
+
+        // 4. 环检测:edges 形成环且无 Loop 节点时警告
+        if Self::has_cycle_without_loop_node(genome) {
+            errors.push(
+                "edges form a cycle but no Loop node present (potential infinite loop)".to_string(),
+            );
+        }
+
+        // 模拟耗时 = 累积 timeout(ms),仅用于报告(不影响 passed 判定)
+        let simulated_ms = total_timeout_secs.saturating_mul(1000);
+        (errors, simulated_ms)
+    }
+
+    /// 简单环检测:DFS 三色标记法。
+    ///
+    /// 若图中存在环且 nodes 中无 `WorkflowNode::Loop` 变体,返回 true。
+    /// 有 Loop 节点时环是预期结构,跳过检测。
+    fn has_cycle_without_loop_node(genome: &WorkflowGenome) -> bool {
+        use std::collections::HashMap;
+
+        // 若包含 Loop 节点,环是合法结构,直接返回 false
+        if genome
+            .nodes
+            .iter()
+            .any(|n| matches!(n, axagent_harness::workflow_types::WorkflowNode::Loop(_)))
+        {
+            return false;
+        }
+
+        // 构建邻接表
+        let mut adj: HashMap<&str, Vec<&str>> = HashMap::new();
+        for edge in &genome.edges {
+            adj.entry(edge.source.as_str()).or_default().push(edge.target.as_str());
+        }
+
+        // 三色:0=未访问,1=访问中(在递归栈),2=已完成
+        let mut color: HashMap<&str, u8> = HashMap::new();
+        for node in &genome.nodes {
+            let id = node.base_id();
+            color.entry(id).or_insert(0);
+        }
+
+        fn dfs(
+            node: &str,
+            adj: &HashMap<&str, Vec<&str>>,
+            color: &mut HashMap<&str, u8>,
+        ) -> bool {
+            match color.get(node).copied().unwrap_or(0) {
+                1 => return true, // 找到环
+                2 => return false, // 已完成,跳过
+                _ => {}
+            }
+            color.insert(node, 1);
+            if let Some(neighbors) = adj.get(node) {
+                for &next in neighbors {
+                    if dfs(next, adj, color) {
+                        return true;
+                    }
+                }
+            }
+            color.insert(node, 2);
+            false
+        }
+
+        for node in &genome.nodes {
+            let id = node.base_id();
+            if color.get(id).copied().unwrap_or(0) == 0 && dfs(id, &adj, &mut color) {
+                return true;
+            }
+        }
+
+        false
+    }
+}
+
+impl Default for DryRunWorkflowSandbox {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl WorkflowSandbox for DryRunWorkflowSandbox {
+    async fn execute(
+        &self,
+        genome: &WorkflowGenome,
+        _test_input: &serde_json::Value,
+    ) -> Result<SandboxValidationResult, String> {
+        // 硬超时保护:整体执行 ≤ 5 秒,防止意外卡死
+        let execution = async {
+            // 1. 静态校验(复用 ReachabilityWorkflowSandbox 逻辑)
+            let mut errors = ReachabilityWorkflowSandbox::validate(genome);
+
+            // 2. 模拟执行层:节点级配置合理性 + 累积上限 + 环检测
+            let (sim_errors, simulated_ms) = Self::simulate_execution(genome);
+            errors.extend(sim_errors);
+
+            if errors.is_empty() {
+                SandboxValidationResult {
+                    passed: true,
+                    success_rate: 1.0,
+                    execution_errors: Vec::new(),
+                    avg_execution_time_ms: simulated_ms,
+                }
+            } else {
+                // 多错误时按错误数比例降低 success_rate(避免硬编码)
+                let err_count = errors.len() as f32;
+                let success_rate = (1.0 / (1.0 + err_count)).min(0.99);
+                SandboxValidationResult {
+                    passed: false,
+                    success_rate,
+                    execution_errors: errors,
+                    avg_execution_time_ms: simulated_ms,
+                }
+            }
+        };
+
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(SANDBOX_HARD_TIMEOUT_SECS),
+            execution,
+        )
+        .await
+        {
+            Ok(result) => Ok(result),
+            Err(_) => Ok(SandboxValidationResult {
+                passed: false,
+                success_rate: 0.0,
+                execution_errors: vec![format!(
+                    "sandbox hard timeout ({SANDBOX_HARD_TIMEOUT_SECS}s) exceeded"
+                )],
+                avg_execution_time_ms: SANDBOX_HARD_TIMEOUT_SECS * 1000,
+            }),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -939,5 +1145,176 @@ mod tests {
             futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
         // 单节点 + 无边 → 可达(自身);变量引用已定义 → 不应失败
         assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
+    }
+
+    /// 辅助:构造带 timeout 的单节点 genome
+    fn make_genome_with_timeout(timeout_secs: u64) -> WorkflowGenome {
+        let json = format!(
+            r#"{{
+                "template_id": "t1",
+                "name": "test",
+                "nodes": [
+                    {{"type": "delay",
+                     "id": "n1", "title": "delay", "position": {{"x": 0, "y": 0}},
+                     "retry": {{"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000}},
+                     "timeout": {timeout_secs},
+                     "enabled": true,
+                     "config": {{"delay_type": "seconds", "seconds": 1, "until": null}}}}
+                ],
+                "edges": [],
+                "variables": [],
+                "fitness": 0.5,
+                "generation": 0
+            }}"#
+        );
+        serde_json::from_str(&json).expect("deserialize genome")
+    }
+
+    #[test]
+    fn test_dry_run_sandbox_passes_with_reasonable_timeout() {
+        // timeout=10s ≤ 300s,无错误 → passed
+        let genome = make_genome_with_timeout(10);
+        let sandbox = DryRunWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
+        assert_eq!(result.success_rate, 1.0);
+        // 模拟耗时 = 10s = 10000ms
+        assert_eq!(result.avg_execution_time_ms, 10_000);
+    }
+
+    #[test]
+    fn test_dry_run_sandbox_fails_with_excessive_timeout() {
+        // timeout=400s > 300s 上限 → 失败,错误信息应包含 "exceeds 300s"
+        let genome = make_genome_with_timeout(400);
+        let sandbox = DryRunWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        assert!(!result.passed, "expected fail");
+        assert!(
+            result
+                .execution_errors
+                .iter()
+                .any(|e| e.contains("exceeds 300s")),
+            "expected timeout exceeds error, got: {:?}",
+            result.execution_errors
+        );
+        // success_rate 应被降级(0 < rate < 1)
+        assert!(result.success_rate > 0.0 && result.success_rate < 1.0);
+    }
+
+    #[test]
+    fn test_dry_run_sandbox_fails_with_excessive_retries() {
+        // max_retries=20 > 10 上限 → 失败
+        let json = r#"{
+            "template_id": "t1",
+            "name": "test",
+            "nodes": [
+                {"type": "delay",
+                 "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": true, "max_retries": 20, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
+            ],
+            "edges": [],
+            "variables": [],
+            "fitness": 0.5,
+            "generation": 0
+        }"#;
+        let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
+        let sandbox = DryRunWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        assert!(!result.passed, "expected fail");
+        assert!(
+            result
+                .execution_errors
+                .iter()
+                .any(|e| e.contains("retry.max_retries 20 exceeds 10")),
+            "expected retry exceeds error, got: {:?}",
+            result.execution_errors
+        );
+    }
+
+    #[test]
+    fn test_dry_run_sandbox_detects_cycle_without_loop_node() {
+        // 两个 delay 节点互相连接形成环,无 Loop 节点 → 应报 cycle 错误
+        let json = r#"{
+            "template_id": "t1",
+            "name": "test",
+            "nodes": [
+                {"type": "delay",
+                 "id": "n1", "title": "delay1", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}},
+                {"type": "delay",
+                 "id": "n2", "title": "delay2", "position": {"x": 100, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
+            ],
+            "edges": [
+                {"id": "e1", "source": "n1", "sourceHandle": null, "target": "n2", "targetHandle": null, "edge_type": "direct", "label": null},
+                {"id": "e2", "source": "n2", "sourceHandle": null, "target": "n1", "targetHandle": null, "edge_type": "direct", "label": null}
+            ],
+            "variables": [],
+            "fitness": 0.5,
+            "generation": 0
+        }"#;
+        let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
+        let sandbox = DryRunWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        assert!(!result.passed, "expected fail due to cycle");
+        assert!(
+            result
+                .execution_errors
+                .iter()
+                .any(|e| e.contains("cycle")),
+            "expected cycle error, got: {:?}",
+            result.execution_errors
+        );
+    }
+
+    #[test]
+    fn test_dry_run_sandbox_allows_cycle_with_loop_node() {
+        // 包含 Loop 节点 + 环 → 不应报 cycle 错误(环是 Loop 的预期结构)
+        let json = r#"{
+            "template_id": "t1",
+            "name": "test",
+            "nodes": [
+                {"type": "loop",
+                 "id": "loop1", "title": "loop", "position": {"x": 0, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"loop_type": "forEach", "items_var": "items", "iter_input_var": null, "iteratee_var": "item", "iter_output_var": "out"}},
+                {"type": "delay",
+                 "id": "n1", "title": "delay", "position": {"x": 100, "y": 0},
+                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "enabled": true,
+                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
+            ],
+            "edges": [
+                {"id": "e1", "source": "loop1", "sourceHandle": null, "target": "n1", "targetHandle": null, "edge_type": "direct", "label": null},
+                {"id": "e2", "source": "n1", "sourceHandle": null, "target": "loop1", "targetHandle": null, "edge_type": "direct", "label": null}
+            ],
+            "variables": [],
+            "fitness": 0.5,
+            "generation": 0
+        }"#;
+        let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
+        let sandbox = DryRunWorkflowSandbox::new();
+        let result =
+            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        // 不应有 cycle 错误(Loop 节点允许环)
+        assert!(
+            !result
+                .execution_errors
+                .iter()
+                .any(|e| e.contains("cycle")),
+            "Loop node should allow cycle, got: {:?}",
+            result.execution_errors
+        );
     }
 }
