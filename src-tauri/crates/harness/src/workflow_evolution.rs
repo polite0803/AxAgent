@@ -8,7 +8,7 @@
 //! 异步执行:进化流程在后台 `tokio::spawn`,不阻塞工作流引擎主流程。
 
 use crate::reflection_types::Reflection;
-use crate::workflow_reflection::WorkflowPattern;
+use crate::workflow_reflection::{WorkflowPattern, WorkflowRunStatus};
 use crate::workflow_types::{WorkflowEdge, WorkflowNode};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -181,6 +181,18 @@ pub trait WorkflowEvolver: Send + Sync {
 
     /// 自动触发判定(基于近期失败率与使用次数)。
     async fn should_auto_evolve(&self, template_id: &str) -> Result<bool, String>;
+
+    /// 记录一次反思结果(由 wiring 层在每次 reflect 完成后调用)。
+    ///
+    /// 实现方应保留近期反思的 (quality_score, status) 元组,供 `should_auto_evolve`
+    /// 判定是否达到自动进化阈值。**不返回错误**:反思记录是辅助数据,失败不应影响
+    /// 工作流主流程(实现方内部日志吞掉错误即可)。
+    async fn record_reflection(
+        &self,
+        template_id: &str,
+        quality_score: u8,
+        status: WorkflowRunStatus,
+    );
 
     /// 注入 LLM 变异 provider。
     async fn set_llm_provider(&self, provider: Arc<dyn WorkflowLlmMutator>) -> Result<(), String>;

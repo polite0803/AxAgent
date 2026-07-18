@@ -346,6 +346,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 优化 3:反思器注入 `shared_trajectory_storage`,每次 reflect()/reflect_node()
     // 后同步落库到 `trajectory_workflow_reflections` 表,供跨会话查询 / 模式聚合 /
     // 进化决策使用。落库 best-effort,失败仅 warn 日志,不影响工作流主流程。
+    //
+    // 优化 4:启动时尝试构造 `ProviderLlmBridge` 注入 evolver 的 LLM 变异器;
+    // 沙箱始终注入 `StructuralWorkflowSandbox`(静态结构校验,无副作用)。
+    // 若没有启用的 provider(LLM bridge = None),仅跳过 LLM 注入,evolver 仍可用
+    // 内置占位变异;沙箱结构校验始终生效。
     let workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector> =
         axagent_trajectory::WorkflowReflectorImpl::with_storage(
             axagent_trajectory::ReflectorConfig::default(),
@@ -356,6 +361,49 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_trajectory::WorkflowEvolverImpl::with_defaults().into_arc();
     let workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer> =
         axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc();
+
+    // 优化 4-b:注入 LLM 变异器(若 DB 中有启用的 provider)
+    {
+        if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(
+            &master_key,
+            &harness_registry,
+            None,
+            None,
+        )
+        .await
+        {
+            let mutator = super::workflow_injections::ProviderWorkflowLlmMutator::new(bridge);
+            if let Err(e) = workflow_evolver
+                .set_llm_provider(std::sync::Arc::new(mutator)
+                    as std::sync::Arc<dyn axagent_harness::WorkflowLlmMutator>)
+                .await
+            {
+                tracing::warn!("[Evolver] set_llm_provider failed: {e}");
+            } else {
+                tracing::info!(
+                    "[Evolver] LLM mutator injected (provider workflow evolution enabled)"
+                );
+            }
+        } else {
+            tracing::info!(
+                "[Evolver] No enabled provider in DB, LLM mutation disabled (using MVP placeholder)"
+            );
+        }
+    }
+
+    // 优化 4-c:注入结构校验沙箱(无副作用,始终注入)
+    {
+        let sandbox = super::workflow_injections::StructuralWorkflowSandbox::new();
+        if let Err(e) = workflow_evolver
+            .set_sandbox(std::sync::Arc::new(sandbox)
+                as std::sync::Arc<dyn axagent_harness::WorkflowSandbox>)
+            .await
+        {
+            tracing::warn!("[Evolver] set_sandbox failed: {e}");
+        } else {
+            tracing::info!("[Evolver] Structural sandbox injected");
+        }
+    }
 
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =
         {

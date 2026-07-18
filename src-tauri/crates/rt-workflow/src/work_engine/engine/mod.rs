@@ -3315,6 +3315,16 @@ impl WorkEngine {
                 reflection.reusable_patterns.len(),
             );
 
+            // 记录反思到 evolver 的 recent_reflections(优化 4-a)
+            // 仅当 evolver 已注入且有 template_id 时才记录,供 should_auto_evolve 判定
+            if let Some(evolver) = evolver.as_ref()
+                && let Some(template_id) = template_id_owned.as_ref()
+            {
+                evolver
+                    .record_reflection(template_id, reflection.quality_score, record.status)
+                    .await;
+            }
+
             // 低质量分 + 配置了 evolver → 触发自动进化判定
             if reflection.quality_score <= 5
                 && let Some(evolver) = evolver

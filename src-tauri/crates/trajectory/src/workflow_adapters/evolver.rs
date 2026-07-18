@@ -68,23 +68,6 @@ impl WorkflowEvolverImpl {
         Self::new(EvolutionConfig::default())
     }
 
-    /// 注入反思历史(由 wiring 层在每次 reflect 完成后调用,供 `should_auto_evolve` 判定)。
-    pub async fn record_reflection(
-        &self,
-        template_id: &str,
-        quality_score: u8,
-        status: WorkflowRunStatus,
-    ) {
-        let mut guard = self.recent_reflections.write().await;
-        let vec = guard.entry(template_id.to_string()).or_default();
-        vec.push((quality_score, status));
-        // 仅保留最近 20 次
-        if vec.len() > 20 {
-            let drop_count = vec.len() - 20;
-            vec.drain(0..drop_count);
-        }
-    }
-
     /// 计算种群平均适应度。
     fn avg_fitness(population: &EvolutionPopulation) -> f32 {
         if population.individuals.is_empty() {
@@ -140,6 +123,38 @@ impl WorkflowEvolverImpl {
     }
 }
 
+/// 从 reflections 中收集失败/成功模式作为 LLM 变异证据。
+///
+/// `Reflection::error_patterns` / `reusable_patterns` 是字符串列表,这里包装为
+/// `WorkflowPattern`(LLM 变异器只需 name + description 即可生成 prompt)。
+fn collect_evidence(reflections: &[Reflection]) -> (Vec<WorkflowPattern>, Vec<WorkflowPattern>) {
+    let mut failure_ev = Vec::new();
+    let mut success_ev = Vec::new();
+    for (i, r) in reflections.iter().enumerate() {
+        for (j, err) in r.error_patterns.iter().enumerate() {
+            failure_ev.push(WorkflowPattern {
+                id: format!("err-{i}-{j}"),
+                name: format!("failure-{i}-{j}"),
+                description: err.clone(),
+                node_ids: Vec::new(),
+                frequency: 1,
+                confidence: 0.5,
+            });
+        }
+        for (j, ok) in r.reusable_patterns.iter().enumerate() {
+            success_ev.push(WorkflowPattern {
+                id: format!("ok-{i}-{j}"),
+                name: format!("success-{i}-{j}"),
+                description: ok.clone(),
+                node_ids: Vec::new(),
+                frequency: 1,
+                confidence: 0.5,
+            });
+        }
+    }
+    (failure_ev, success_ev)
+}
+
 #[async_trait]
 impl WorkflowEvolver for WorkflowEvolverImpl {
     async fn initialize(&self, template_id: &str) -> Result<EvolutionPopulation, String> {
@@ -184,11 +199,44 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
         // 执行变异(MVP 占位)
         let _changes = Self::mutate_low_fitness(population);
 
-        // 若配置了 LLM provider,则委托做语义级变异(MVP 暂跳过实际调用,记录日志)
+        // 若配置了 LLM provider,对适应度最低的个体做语义级变异(优化 4-b)
+        // LLM 调用失败 / 解析失败时,实现方返回原 genome(保守策略),不破坏模板。
         {
             let llm = self.llm_provider.read().await;
-            if let Some(_provider) = llm.as_ref() {
-                tracing::debug!("[Evolver] LLM provider attached but MVP skips actual mutation");
+            if let Some(provider) = llm.as_ref() {
+                // 找出适应度最低的个体索引
+                if let Some(idx) = population
+                    .individuals
+                    .iter()
+                    .enumerate()
+                    .min_by(|(_, a), (_, b)| {
+                        a.fitness.partial_cmp(&b.fitness).unwrap_or(std::cmp::Ordering::Equal)
+                    })
+                    .map(|(i, _)| i)
+                {
+                    let original = population.individuals[idx].clone();
+                    // 从 reflections 收集失败/成功模式作为变异证据
+                    let (failure_ev, success_ev) = collect_evidence(reflections);
+                    match provider.generate_mutation(&original, &failure_ev, &success_ev).await {
+                        Ok(new_genome) => {
+                            // 仅当 LLM 返回的 genome 有 nodes 时才替换(避免空替换)
+                            if !new_genome.nodes.is_empty() {
+                                population.individuals[idx] = new_genome;
+                                tracing::debug!(
+                                    "[Evolver] LLM mutation applied to individual {}",
+                                    idx
+                                );
+                            } else {
+                                tracing::debug!(
+                                    "[Evolver] LLM returned empty nodes, keeping original genome"
+                                );
+                            }
+                        },
+                        Err(e) => {
+                            tracing::warn!("[Evolver] LLM mutation failed, keeping original: {e}");
+                        },
+                    }
+                }
             }
         }
 
@@ -319,6 +367,22 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
         // 满足条件:失败率 >= (1 - success_threshold) 且使用次数 >= min_usages
         let failure_threshold = 1.0 - self.config.auto_trigger_success_threshold;
         Ok(failure_rate >= failure_threshold)
+    }
+
+    async fn record_reflection(
+        &self,
+        template_id: &str,
+        quality_score: u8,
+        status: WorkflowRunStatus,
+    ) {
+        let mut guard = self.recent_reflections.write().await;
+        let vec = guard.entry(template_id.to_string()).or_default();
+        vec.push((quality_score, status));
+        // 仅保留最近 20 次
+        if vec.len() > 20 {
+            let drop_count = vec.len() - 20;
+            vec.drain(0..drop_count);
+        }
     }
 
     async fn set_llm_provider(&self, provider: Arc<dyn WorkflowLlmMutator>) -> Result<(), String> {
