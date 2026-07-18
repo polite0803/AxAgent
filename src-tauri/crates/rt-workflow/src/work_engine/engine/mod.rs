@@ -259,6 +259,21 @@ pub struct WorkEngine {
     pub trigger_manager: Arc<crate::trigger::TriggerManager>,
     /// 审计记录器（可选，None = 不记录审计日志）
     pub audit_recorder: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
+    /// 工作流反思器(可选,None = 不反思)。
+    ///
+    /// 阶段 3 注入:在工作流整体执行完成或节点级失败时触发 `reflect`/`reflect_node`,
+    /// 异步 spawn 后台执行,不阻塞主流程。
+    pub workflow_reflector:
+        Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowReflector>>>>,
+    /// 工作流模板进化器(可选,None = 不进化)。
+    ///
+    /// 阶段 3 注入:在反思质量分过低时异步触发 `should_auto_evolve` + `run`。
+    pub workflow_evolver: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowEvolver>>>>,
+    /// 工作流优化器(可选,None = 不生成优化建议)。
+    ///
+    /// 阶段 3 注入:基于反思结果生成 `WorkflowSuggestion`,不修改模板。
+    pub workflow_optimizer:
+        Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowOptimizer>>>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     tool_registry: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::ToolRegistry>>>>,
     /// per-execution partial_result 广播器。LoopExecutor 通过 ExecutionState.partial_result_tx
@@ -487,6 +502,45 @@ impl WorkEngine {
         self
     }
 
+    /// 注入工作流反思器(阶段 3)。
+    ///
+    /// 注入后,工作流执行完成与节点级失败时将异步触发反思。
+    #[must_use]
+    pub fn with_workflow_reflector(
+        self,
+        reflector: Arc<dyn axagent_harness::WorkflowReflector>,
+    ) -> Self {
+        if let Ok(mut guard) = self.workflow_reflector.lock() {
+            *guard = Some(reflector);
+        }
+        self
+    }
+
+    /// 注入工作流模板进化器(阶段 3)。
+    ///
+    /// 注入后,当反思质量分过低且 `should_auto_evolve` 返回 true 时,异步触发进化。
+    #[must_use]
+    pub fn with_workflow_evolver(self, evolver: Arc<dyn axagent_harness::WorkflowEvolver>) -> Self {
+        if let Ok(mut guard) = self.workflow_evolver.lock() {
+            *guard = Some(evolver);
+        }
+        self
+    }
+
+    /// 注入工作流优化器(阶段 3)。
+    ///
+    /// 注入后,基于反思结果生成 `WorkflowSuggestion`,不修改模板。
+    #[must_use]
+    pub fn with_workflow_optimizer(
+        self,
+        optimizer: Arc<dyn axagent_harness::WorkflowOptimizer>,
+    ) -> Self {
+        if let Ok(mut guard) = self.workflow_optimizer.lock() {
+            *guard = Some(optimizer);
+        }
+        self
+    }
+
     pub async fn execute_node(
         &self,
         node: &WorkflowNode,
@@ -664,6 +718,9 @@ impl WorkEngine {
             pending_dispatcher_registrations,
             trigger_manager: Arc::new(crate::trigger::TriggerManager::new()),
             audit_recorder: Arc::new(std::sync::Mutex::new(None)),
+            workflow_reflector: Arc::new(std::sync::Mutex::new(None)),
+            workflow_evolver: Arc::new(std::sync::Mutex::new(None)),
+            workflow_optimizer: Arc::new(std::sync::Mutex::new(None)),
             tool_registry: Arc::new(std::sync::Mutex::new(None)),
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
@@ -2326,6 +2383,37 @@ impl WorkEngine {
                                 );
                             }
 
+                            // 阶段 3:触发节点级失败反思(异步,不阻塞错误处理流程)
+                            // 构造失败节点的执行快照,交给 WorkflowReflector::reflect_node
+                            {
+                                let failed_node_snapshot = axagent_harness::NodeExecutionSnapshot {
+                                    node_id: nr.node_id.clone(),
+                                    node_type: node_type_name(&nr.node).to_string(),
+                                    node_name: Some(nr.node.base_title().to_string()),
+                                    status: axagent_harness::workflow_types::NodeStatus::Failed,
+                                    attempts: 0,
+                                    input: Some(nr.input_snapshot.clone()),
+                                    output: None,
+                                    execution_time_ms: Some(nr.elapsed_ms),
+                                    error: Some(err_msg.clone()),
+                                    started_at: nr.started_at,
+                                    completed_at: Some(Utc::now().timestamp_millis()),
+                                    sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &nr.node
+                                    {
+                                        Some(sw.config.sub_workflow_id.clone())
+                                    } else {
+                                        None
+                                    },
+                                };
+                                self.post_node_failure_reflect(
+                                    workflow_id,
+                                    &execution_id,
+                                    &error_ctx,
+                                    &failed_node_snapshot,
+                                )
+                                .await;
+                            }
+
                             // 读取 continue_on_fail 与 error_config
                             let continue_on_fail = nr.node.base().continue_on_fail;
                             let (ec_opt, ewf_id_opt) = {
@@ -2792,6 +2880,17 @@ impl WorkEngine {
             .await
             .ok();
 
+            // 阶段 3:触发工作流整体反思(异步 spawn,不阻塞主响应)
+            // workflow_id 在 AxAgent 架构中即模板 ID,因此 template_id 传 Some(workflow_id)
+            self.post_execution_reflect(
+                wf,
+                &execution_id,
+                Some(workflow_id),
+                total_time_ms,
+                Some(&persist_output),
+            )
+            .await;
+
             // 写回 execution_workflows 运行时实例，确保后续查询能读到 output
             // 注意：不写回 self.workflows（模板），避免污染同模板的其他并发执行
             if wf.output.is_some() {
@@ -3095,6 +3194,222 @@ impl WorkEngine {
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
         }
+    }
+
+    /// 工作流整体执行完成后的反思钩子(阶段 3)。
+    ///
+    /// 异步 `tokio::spawn` 后台执行,不阻塞主流程。流程:
+    /// 1. 构造 `WorkflowExecutionRecord`(从 wf + node_states + results 聚合)
+    /// 2. 调用 `WorkflowReflector::reflect()` 生成 `Reflection`
+    /// 3. 若质量分过低且配置了 evolver,异步触发 `should_auto_evolve` + `run`
+    /// 4. 若配置了 optimizer,异步生成 `WorkflowSuggestion`(供前端展示/人工审核)
+    ///
+    /// 任何环节失败均记录日志后吞掉,不影响工作流主响应。
+    async fn post_execution_reflect(
+        &self,
+        wf: &Workflow,
+        execution_id: &str,
+        template_id: Option<&str>,
+        total_time_ms: u64,
+        final_output: Option<&serde_json::Value>,
+    ) {
+        let reflector = {
+            let guard = match self.workflow_reflector.lock() {
+                Ok(g) => g,
+                Err(poisoned) => {
+                    tracing::error!("[Reflection] workflow_reflector mutex poisoned, recovering");
+                    poisoned.into_inner()
+                },
+            };
+            match guard.clone() {
+                Some(r) => r,
+                None => return,
+            }
+        };
+
+        // 聚合节点快照
+        let nodes: Vec<axagent_harness::NodeExecutionSnapshot> = wf
+            .node_states
+            .iter()
+            .map(|(node_id, state)| {
+                let node_type = wf
+                    .nodes
+                    .iter()
+                    .find(|n| n.base_id() == node_id)
+                    .map(|n| node_type_name(n).to_string())
+                    .unwrap_or_default();
+                let started_at = state.started_at.unwrap_or(0);
+                let completed_at = state.completed_at;
+                let execution_time_ms = completed_at.map(|c| (c - started_at) as u64);
+                axagent_harness::NodeExecutionSnapshot {
+                    node_id: node_id.clone(),
+                    node_type,
+                    node_name: None,
+                    status: state.status,
+                    attempts: state.attempts,
+                    input: None,
+                    output: wf.results.get(node_id).cloned(),
+                    execution_time_ms,
+                    error: state.error.clone(),
+                    started_at,
+                    completed_at,
+                    sub_workflow_id: None,
+                }
+            })
+            .collect();
+
+        let status = match wf.status {
+            WorkflowStatus::Completed => axagent_harness::WorkflowRunStatus::Completed,
+            WorkflowStatus::PartiallyCompleted => {
+                axagent_harness::WorkflowRunStatus::PartiallyCompleted
+            },
+            WorkflowStatus::Failed => axagent_harness::WorkflowRunStatus::Failed,
+            WorkflowStatus::Cancelled => axagent_harness::WorkflowRunStatus::Cancelled,
+            // Created/Running 不应到达此处,降级为 Failed
+            _ => axagent_harness::WorkflowRunStatus::Failed,
+        };
+
+        let record = axagent_harness::WorkflowExecutionRecord {
+            workflow_id: wf.id.clone(),
+            execution_id: execution_id.to_string(),
+            template_id: template_id.map(|s| s.to_string()),
+            template_version: None,
+            status,
+            started_at: wf.created_at as i64,
+            completed_at: wf.completed_at.map(|t| t as i64),
+            duration_ms: total_time_ms,
+            nodes,
+            edges: wf.edges.clone(),
+            template_nodes: wf.nodes.clone(),
+            input: None,
+            output: final_output.cloned(),
+            error_context: None,
+        };
+
+        // 克隆所需句柄,在 spawn 中使用
+        let evolver = {
+            let guard = self.workflow_evolver.lock().ok();
+            guard.and_then(|g| g.clone())
+        };
+        let optimizer = {
+            let guard = self.workflow_optimizer.lock().ok();
+            guard.and_then(|g| g.clone())
+        };
+        let template_id_owned = template_id.map(|s| s.to_string());
+
+        tokio::spawn(async move {
+            let reflection = match reflector.reflect(&record).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::warn!("[Reflection] reflect failed: {e}");
+                    return;
+                },
+            };
+
+            tracing::info!(
+                "[Reflection] workflow={} execution={} quality_score={}/10 patterns_err={} patterns_ok={}",
+                record.workflow_id,
+                record.execution_id,
+                reflection.quality_score,
+                reflection.error_patterns.len(),
+                reflection.reusable_patterns.len(),
+            );
+
+            // 低质量分 + 配置了 evolver → 触发自动进化判定
+            if reflection.quality_score <= 5
+                && let Some(evolver) = evolver
+                && let Some(template_id) = template_id_owned.clone()
+            {
+                match evolver.should_auto_evolve(&template_id).await {
+                    Ok(true) => {
+                        tracing::info!(
+                            "[Evolution] auto-evolving template={} (low quality_score={})",
+                            template_id,
+                            reflection.quality_score
+                        );
+                        if let Err(e) =
+                            evolver.run(&template_id, std::slice::from_ref(&reflection)).await
+                        {
+                            tracing::warn!("[Evolution] run failed: {e}");
+                        }
+                    },
+                    Ok(false) => {},
+                    Err(e) => tracing::warn!("[Evolution] should_auto_evolve failed: {e}"),
+                }
+            }
+
+            // 配置了 optimizer → 异步生成优化建议(不修改模板,仅产出建议)
+            if let Some(optimizer) = optimizer {
+                // optimizer 需要 template,本钩子内暂不持有完整 WorkflowTemplateData,
+                // 仅记录建议触发意图,实际 suggest 调用由命令层显式触发。
+                let _ = optimizer;
+                tracing::debug!(
+                    "[Optimization] reflection ready for workflow={} (optimizer attached, suggest triggered via command layer)",
+                    record.workflow_id
+                );
+            }
+        });
+    }
+
+    /// 节点级失败反思钩子(阶段 3)。
+    ///
+    /// 在 `ErrorContext::new(...)` 构造完成后异步触发,不阻塞工作流继续执行。
+    /// 仅分析失败节点及其依赖链,产出 `NodeFailureAnalysis` 与针对性 `ProposedChange`。
+    async fn post_node_failure_reflect(
+        &self,
+        workflow_id: &str,
+        execution_id: &str,
+        error_ctx: &ErrorContext,
+        failed_node_snapshot: &axagent_harness::NodeExecutionSnapshot,
+    ) {
+        let reflector = {
+            let guard = match self.workflow_reflector.lock() {
+                Ok(g) => g,
+                Err(poisoned) => {
+                    tracing::error!("[Reflection] workflow_reflector mutex poisoned, recovering");
+                    poisoned.into_inner()
+                },
+            };
+            match guard.clone() {
+                Some(r) => r,
+                None => return,
+            }
+        };
+
+        // 构造精简的 WorkflowExecutionRecord(只含失败节点)
+        let record = axagent_harness::WorkflowExecutionRecord {
+            workflow_id: workflow_id.to_string(),
+            execution_id: execution_id.to_string(),
+            template_id: None,
+            template_version: None,
+            status: axagent_harness::WorkflowRunStatus::Failed,
+            started_at: error_ctx.timestamp,
+            completed_at: Some(error_ctx.timestamp),
+            duration_ms: 0,
+            nodes: vec![failed_node_snapshot.clone()],
+            edges: Vec::new(),
+            template_nodes: Vec::new(),
+            input: None,
+            output: None,
+            error_context: Some(error_ctx.clone()),
+        };
+
+        // 克隆快照 owned,move 进 spawn(引用不可跨 'static)
+        let snapshot_owned = failed_node_snapshot.clone();
+        let snapshot_id = failed_node_snapshot.node_id.clone();
+        tokio::spawn(async move {
+            match reflector.reflect_node(&record, &snapshot_owned).await {
+                Ok(r) => {
+                    tracing::info!(
+                        "[Reflection::Node] node={} quality_score={}/10 root_cause_in_metadata={}",
+                        snapshot_id,
+                        r.quality_score,
+                        r.metadata.is_some(),
+                    );
+                },
+                Err(e) => tracing::warn!("[Reflection::Node] reflect_node failed: {e}"),
+            }
+        });
     }
 
     /// 记录审计日志（若已注入 AuditRecorder）
