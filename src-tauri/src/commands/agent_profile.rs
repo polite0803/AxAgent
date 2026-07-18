@@ -4,7 +4,7 @@ use crate::AppState;
 use crate::commands::error::{CommandError, ErrorCategory};
 use axagent_dao::repo::agent_profile;
 use axagent_harness::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::Serialize;
 use tauri::State;
 
@@ -109,6 +109,9 @@ pub async fn delete_agent_profile(
 }
 
 /// 从 agency_experts 导入到 agent_profiles（兼容导入）
+///
+/// 修复问题 13：导入时显式赋 "executor" 作为 agent_role，并确保 DB 中存在该 role。
+/// 原实现 agent_role 留空，导致所有从 agency 导入的 profile 永远没有 role 提示词。
 #[tauri::command]
 pub async fn import_agent_profiles_from_agency(
     app_state: State<'_, AppState>,
@@ -116,6 +119,9 @@ pub async fn import_agent_profiles_from_agency(
     let db = app_state.harness.db();
     let mut count = 0u32;
     let mut errors = Vec::new();
+
+    // 修复问题 13+14：确保 DB 中存在 "executor" 种子 role，作为导入 profile 的默认岗位
+    ensure_default_executor_role(db).await;
 
     let rows = axagent_entities::agency_experts::Entity::find()
         .filter(axagent_entities::agency_experts::Column::IsEnabled.eq(1))
@@ -144,7 +150,7 @@ pub async fn import_agent_profiles_from_agency(
             row.description.as_deref(),
             &row.category,
             "🤖",
-            None, // agent_role 未在 agency_experts 中定义，留空
+            Some("executor"), // 修复问题 13：显式赋 "executor" role，避免 profile 永远无 role 提示词
             "agency",
             &tags,
             None,
@@ -166,6 +172,47 @@ pub async fn import_agent_profiles_from_agency(
     }
 
     Ok(ImportAgentProfilesResult { count, errors })
+}
+
+/// 确保 DB 中存在 "executor" 默认 role（导入 agency profile 时使用）。
+///
+/// 修复问题 14：原 `resolve_role` 在 profile 无 agent_role 时 unwrap_or("executor")，
+/// 但 DB 中不一定有 "executor" 记录，导致 domain_constraints 查不到约束。
+/// 此函数在导入流程中幂等地确保该种子记录存在。
+async fn ensure_default_executor_role(db: &sea_orm::DatabaseConnection) {
+    use axagent_entities::agent_roles;
+
+    const DEFAULT_ROLE_NAME: &str = "executor";
+
+    let existing = agent_roles::Entity::find()
+        .filter(agent_roles::Column::Name.eq(DEFAULT_ROLE_NAME))
+        .one(db)
+        .await;
+
+    if matches!(existing, Ok(None)) {
+        let now = chrono::Utc::now().timestamp_millis();
+        let am = agent_roles::ActiveModel {
+            id: Set(DEFAULT_ROLE_NAME.to_string()),
+            name: Set(DEFAULT_ROLE_NAME.to_string()),
+            description: Set(Some("默认执行器岗位（agency 导入自动创建）".to_string())),
+            system_prompt: Set(String::new()),
+            default_tools: Set(None),
+            active_domains: Set(None),
+            max_concurrent: Set(3),
+            timeout_seconds: Set(600),
+            source: Set("builtin".to_string()),
+            sort_order: Set(0),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        if let Err(e) = agent_roles::Entity::insert(am).exec(db).await {
+            tracing::warn!(
+                role = DEFAULT_ROLE_NAME,
+                error = %e,
+                "ensure_default_executor_role: 创建默认 executor role 失败（可能已被并发创建）"
+            );
+        }
+    }
 }
 
 /// 确保 AgentProfile 在 DB 中存在（选择 Expert/Role 时自动调用）

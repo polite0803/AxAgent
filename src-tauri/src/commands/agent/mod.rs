@@ -236,8 +236,6 @@ pub(crate) struct ProfileToolContext {
     pub role_system_prompt: Option<String>,
     /// 技能（Expert）的 system_prompt
     pub expert_system_prompt: Option<String>,
-    /// 已解析的岗位名（用于状态展示）
-    pub effective_role_name: Option<String>,
     /// Profile 自身的推荐工具（白名单字符串）
     pub recommended_tools: Vec<String>,
     /// Profile 自身的禁用工具（黑名单字符串）
@@ -251,52 +249,129 @@ pub(crate) struct ProfileToolContext {
 /// - Layer 2: `profile.expert_id` → Expert 的 `active_domains` + system_prompt
 /// - Layer 3: Profile 自身的 `recommended_tools` / `disallowed_tools`
 ///
+/// active_domains 语义（修复缺陷 5）：
+///   - Role 定义权限上界（岗位允许激活的域）
+///   - Expert 只能在 Role 允许的域内激活（取交集）
+///   - 若 Role 不存在或 active_domains 为空 → Expert 的 domains 全部生效（向后兼容）
+///
 /// 返回 `None` 表示 profile 不存在或查询失败（调用方应回退到默认路径）。
+/// 所有失败路径均通过 `tracing::warn!` 记录（修复缺陷 4：静默吞错）。
 pub(crate) async fn resolve_profile_tool_context(
     app_state: &AppState,
     profile_id: &str,
 ) -> Option<ProfileToolContext> {
-    let profile =
-        axagent_dao::repo::agent_profile::get_agent_profile(app_state.harness.db(), profile_id)
-            .await
-            .ok()?;
+    let profile = match axagent_dao::repo::agent_profile::get_agent_profile(
+        app_state.harness.db(),
+        profile_id,
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(axagent_harness::AxAgentError::NotFound(_)) => {
+            tracing::warn!(
+                profile_id = %profile_id,
+                "AgentProfile 不存在（profile_id 无效或已删除），降级到默认路径"
+            );
+            return None;
+        },
+        Err(e) => {
+            tracing::warn!(
+                profile_id = %profile_id,
+                error = %e,
+                "AgentProfile 查询失败（DB 错误），降级到默认路径"
+            );
+            return None;
+        },
+    };
 
     let mut ctx = ProfileToolContext::default();
 
     // Layer 1: AgentRole system_prompt（岗位）+ active_domains
+    let mut role_domains: HashSet<ToolDomain> = HashSet::new();
+    let mut has_role_domains = false;
     if let Some(ref role_name) = profile.agent_role {
-        if let Some(resolved) = axagent_runtime::agent_roles::resolve(role_name).await {
-            ctx.effective_role_name = Some(resolved.name.clone());
-            if !resolved.system_prompt.is_empty() {
-                ctx.role_system_prompt = Some(resolved.system_prompt);
-            }
-            for d in &resolved.active_domains {
-                if let Some(td) = parse_domain_str(d) {
-                    ctx.active_domains.insert(td);
+        match axagent_runtime::agent_roles::resolve(role_name).await {
+            Some(resolved) => {
+                if !resolved.system_prompt.is_empty() {
+                    ctx.role_system_prompt = Some(resolved.system_prompt);
                 }
-            }
+                for d in &resolved.active_domains {
+                    if let Some(td) = parse_domain_str(d) {
+                        role_domains.insert(td);
+                        has_role_domains = true;
+                    }
+                }
+            },
+            None => {
+                tracing::warn!(
+                    profile_id = %profile_id,
+                    agent_role = %role_name,
+                    "AgentRole 解析失败（role_name 在 DB 和文件注册表中均未找到），role 提示词不会生效"
+                );
+            },
         }
     }
 
     // Layer 2: Expert domain knowledge（技能）+ active_domains
     if let Some(ref expert_id) = profile.expert_id {
-        if let Ok(Some(expert)) = axagent_entities::agency_experts::Entity::find_by_id(expert_id)
+        match axagent_entities::agency_experts::Entity::find_by_id(expert_id)
             .one(app_state.harness.db())
             .await
         {
-            if !expert.system_prompt.is_empty() {
-                ctx.expert_system_prompt = Some(expert.system_prompt);
-            }
-            if let Some(ref domains_json) = expert.active_domains {
-                if let Ok(domains) = serde_json::from_str::<Vec<String>>(domains_json) {
-                    for d in &domains {
-                        if let Some(td) = parse_domain_str(d) {
-                            ctx.active_domains.insert(td);
+            Ok(Some(expert)) => {
+                if !expert.system_prompt.is_empty() {
+                    ctx.expert_system_prompt = Some(expert.system_prompt);
+                }
+                if let Some(ref domains_json) = expert.active_domains {
+                    if let Ok(domains) = serde_json::from_str::<Vec<String>>(domains_json) {
+                        // 修复缺陷 5：active_domains 取交集（Role 定义上界）
+                        let expert_domains: HashSet<ToolDomain> =
+                            domains.iter().filter_map(|d| parse_domain_str(d)).collect();
+                        if has_role_domains {
+                            // Role 存在且有 active_domains → 取交集
+                            let intersection: HashSet<ToolDomain> =
+                                expert_domains.intersection(&role_domains).cloned().collect();
+                            let dropped: Vec<_> =
+                                expert_domains.difference(&role_domains).collect();
+                            if !dropped.is_empty() {
+                                tracing::info!(
+                                    profile_id = %profile_id,
+                                    expert_id = %expert_id,
+                                    role_domains = ?role_domains,
+                                    dropped_expert_domains = ?dropped,
+                                    "Expert 的部分 active_domains 不在 Role 允许范围内，已按交集语义裁剪"
+                                );
+                            }
+                            ctx.active_domains = intersection;
+                        } else {
+                            // Role 不存在或无 active_domains → Expert 全部生效（向后兼容）
+                            ctx.active_domains = expert_domains;
                         }
                     }
                 }
-            }
+            },
+            Ok(None) => {
+                tracing::warn!(
+                    profile_id = %profile_id,
+                    expert_id = %expert_id,
+                    "Expert 不存在（expert_id 无效或已删除），expert 提示词不会生效"
+                );
+            },
+            Err(e) => {
+                tracing::warn!(
+                    profile_id = %profile_id,
+                    expert_id = %expert_id,
+                    error = %e,
+                    "Expert 查询失败（DB 错误），expert 提示词不会生效"
+                );
+            },
         }
+    }
+
+    // 若 Role 有 active_domains 但 Expert 未覆盖或无 Expert，
+    // 直接使用 Role 的 domains（保证 Role 自身定义的域生效）
+    if ctx.active_domains.is_empty() && has_role_domains {
+        ctx.active_domains = role_domains.clone();
     }
 
     // Layer 3: Profile 自身推荐/禁用工具
@@ -434,7 +509,6 @@ pub async fn agent_query(
     let (
         role_system_prompt,
         expert_system_prompt,
-        effective_role_name,
         profile_recommended_tools,
         profile_disallowed_tools,
         profile_active_domains,
@@ -443,7 +517,6 @@ pub async fn agent_query(
             Some(ctx) => (
                 ctx.role_system_prompt,
                 ctx.expert_system_prompt,
-                ctx.effective_role_name,
                 ctx.recommended_tools,
                 ctx.disallowed_tools,
                 ctx.active_domains,
@@ -454,40 +527,53 @@ pub async fn agent_query(
         Default::default()
     };
 
-    // 提示词拼接：Role → Expert（两部分动态拼接，不在 DB 中预缓存）
-    let mut prompt_parts: Vec<&str> = Vec::new();
-    if let Some(ref s) = role_system_prompt {
-        if !s.is_empty() {
-            prompt_parts.push(s.as_str());
-        }
-    }
-    if let Some(ref s) = expert_system_prompt {
-        if !s.is_empty() {
-            prompt_parts.push(s.as_str());
-        }
-    }
-    let effective_system_prompt: Option<String> = if prompt_parts.is_empty() {
-        None
-    } else {
-        Some(prompt_parts.join("\n\n"))
-    };
-
-    // AgentProfile 未产生有效提示词时，降级到请求中携带的 system_prompt
-    let effective_system_prompt = effective_system_prompt.or_else(|| request.system_prompt.clone());
-
-    // Load active persona and prepend its system prompt injection.
-    // The persona defines the agent's identity, tone, and behavioral guidelines.
-    // It is prepended before the role/expert prompts so it acts as the
-    // foundational layer of the system prompt.
+    // 提示词合并：persona / role / expert / request.system_prompt 分层组装。
+    //
+    // 语义（与 build_agent_system_prompt 配合）：
+    //   - persona_prompt：系统级身份注入，作为独立 slot，不与 user-custom 混淆
+    //   - role_system_prompt + expert_system_prompt：profile 提示词，作为 <agent-profile> 段
+    //   - request.system_prompt：用户/调用方临时覆盖，作为 <user-custom-prompt> 段
+    //
+    // 不再用 prompt_parts.join("\n\n") 简单拼接，避免：
+    //   1. persona 被错误包装为 user-custom（缺陷 2）
+    //   2. 主聊天与工作流两套合并语义割裂（缺陷 1）
+    //   3. role 裸字符串占据 primacy 位置（缺陷 3，由 build_agent_system_prompt 配合修复）
     let persona_prompt = axagent_agent::personality::PersonalityManager::get_active()
         .ok()
         .flatten()
         .map(|p| p.system_prompt_injection());
 
-    let effective_system_prompt = match (persona_prompt, effective_system_prompt) {
-        (Some(p), Some(s)) => Some(format!("{}\n\n{}", p, s)),
-        (Some(p), None) => Some(p),
-        (None, s) => s,
+    // Profile 提示词合并：role + expert（运行时拼接，不在 DB 中预缓存）
+    let profile_prompt: Option<String> = {
+        let mut parts: Vec<&str> = Vec::new();
+        if let Some(ref s) = role_system_prompt {
+            if !s.is_empty() {
+                parts.push(s.as_str());
+            }
+        }
+        if let Some(ref s) = expert_system_prompt {
+            if !s.is_empty() {
+                parts.push(s.as_str());
+            }
+        }
+        if parts.is_empty() {
+            None
+        } else {
+            Some(parts.join("\n\n"))
+        }
+    };
+
+    // Profile 未产生有效提示词时，降级到 request.system_prompt（用户/调用方临时覆盖）
+    let user_custom_prompt = if profile_prompt.is_none() {
+        if request.system_prompt.is_some() {
+            tracing::warn!(
+                conversation_id = %conversation_id,
+                "AgentProfile 未产生有效提示词（role/expert 均为空），降级到 request.system_prompt"
+            );
+        }
+        request.system_prompt.clone()
+    } else {
+        None
     };
 
     // Pre-generate a placeholder assistant message ID for streaming events.
@@ -1400,10 +1486,11 @@ pub async fn agent_query(
         .map(|s| s.language);
 
     let system_prompt = build_agent_system_prompt(
-        effective_system_prompt.as_deref(),
+        persona_prompt.as_deref(),
+        profile_prompt.as_deref(),
+        user_custom_prompt.as_deref(),
         rag_context_parts.as_deref(),
         &skill_contents,
-        effective_role_name.as_deref(),
         working_memory_text.as_deref(),
         // nudge_messages 通过 runtime.set_nudge_lines 在每次 LLM 调用前动态注入，此处传 None 避免重复
         None,

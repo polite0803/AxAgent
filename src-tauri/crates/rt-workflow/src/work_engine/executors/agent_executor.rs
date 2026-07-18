@@ -59,7 +59,26 @@ pub(crate) type ProviderCache = Option<(
     Arc<dyn axagent_harness::ProviderAdapter>,
     String,
 )>;
-pub(crate) type ProfileCache = HashMap<String, axagent_harness::types::AgentProfile>;
+
+/// Profile 缓存项：profile 数据 + 写入时间戳。
+///
+/// 修复缺陷 6：profile_cache 一致性问题。
+/// TTL 由 `PROFILE_CACHE_TTL` 控制，超时后缓存项失效，强制重新查询 DB，
+/// 保证用户在执行工作流期间修改 profile 后能及时生效。
+#[derive(Clone)]
+pub struct CachedProfile {
+    pub profile: axagent_harness::types::AgentProfile,
+    pub cached_at: std::time::Instant,
+}
+
+/// Profile 缓存 TTL：60 秒。
+///
+/// 取 60 秒是为了在"工作流内多节点复用"和"用户修改 profile 后及时生效"之间取平衡。
+/// 工作流通常在分钟级完成，60 秒 TTL 既能避免短时间内的重复查询，
+/// 又能保证跨较长时间工作流的 profile 修改能被感知。
+pub(crate) const PROFILE_CACHE_TTL: Duration = Duration::from_secs(60);
+
+pub(crate) type ProfileCache = HashMap<String, CachedProfile>;
 
 pub type RagCallback = Arc<
     dyn Fn(
@@ -294,14 +313,26 @@ impl NodeExecutorTrait for AgentExecutor {
             ));
         };
 
-        // 1. 加载 agent profile（带缓存）
-        // 1. 加载 agent profile（带缓存，经 harness repository 抽象，不直接依赖 entities）
+        // 1. 加载 agent profile（带 TTL 缓存，经 harness repository 抽象，不直接依赖 entities）
+        // 修复缺陷 6：缓存项 60 秒后失效，避免用户修改 profile 后缓存仍是旧的
         let profile = if let Some(ref pid) = an.config.agent_profile_id {
-            // 先查缓存
+            // 先查缓存，检查 TTL
             {
                 let cache = self.profile_cache.lock().await;
-                if let Some(cached) = cache.get(pid.as_str()) {
-                    Some(cached.clone())
+                let cached_valid = cache.get(pid.as_str()).map(|c| {
+                    if c.cached_at.elapsed() > PROFILE_CACHE_TTL {
+                        tracing::debug!(
+                            profile_id = %pid,
+                            "Profile cache expired (TTL={:?}), will re-fetch from DB",
+                            PROFILE_CACHE_TTL
+                        );
+                        false
+                    } else {
+                        true
+                    }
+                });
+                if let Some(true) = cached_valid {
+                    Some(cache.get(pid.as_str()).unwrap().profile.clone())
                 } else {
                     drop(cache);
                     let result = axagent_harness::repositories::agent_profile_repository()
@@ -315,7 +346,13 @@ impl NodeExecutorTrait for AgentExecutor {
                         })?;
                     if let Some(ref p) = result {
                         let mut cache = self.profile_cache.lock().await;
-                        cache.insert(pid.clone(), p.clone());
+                        cache.insert(
+                            pid.clone(),
+                            CachedProfile {
+                                profile: p.clone(),
+                                cached_at: std::time::Instant::now(),
+                            },
+                        );
                     }
                     result
                 }
@@ -358,7 +395,7 @@ impl NodeExecutorTrait for AgentExecutor {
         let _ = &model;
 
         // 4. 构建 prompt：Role + Expert + 行内追加（运行时拼接，不预缓存）
-        let role_desc = resolve_role(&an.config, profile.as_ref());
+        let role_desc = resolve_role(profile.as_ref());
         let role_name =
             profile.as_ref().and_then(|p| p.agent_role.as_deref()).unwrap_or("executor");
         let mut all_segments: Vec<TemplateSegment> = Vec::new();
@@ -375,22 +412,85 @@ impl NodeExecutorTrait for AgentExecutor {
         // 4b. AgentRole system_prompt（岗位）+ Expert system_prompt（技能）
         if let Some(ref p) = profile {
             // 解析 Role 的提示词
-            if let Some(ref role_name) = p.agent_role
-                && let Ok(Some(resolved)) = axagent_harness::repositories::agent_role_repository()
+            if let Some(ref role_name) = p.agent_role {
+                match axagent_harness::repositories::agent_role_repository()
                     .get_agent_role(role_name)
                     .await
-                && !resolved.system_prompt.is_empty()
-            {
-                all_segments.extend(compile_prompt(&resolved.system_prompt).segments);
+                {
+                    Ok(Some(resolved)) if !resolved.system_prompt.is_empty() => {
+                        // 修复问题 15：记录 source 字段，便于追溯提示词来源
+                        tracing::debug!(
+                            node_id = %node.base_id(),
+                            role_name = %role_name,
+                            role_source = %resolved.source,
+                            role_prompt_len = resolved.system_prompt.len(),
+                            "AgentRole system_prompt resolved"
+                        );
+                        all_segments.extend(compile_prompt(&resolved.system_prompt).segments);
+                    },
+                    Ok(Some(_)) => {
+                        tracing::debug!(
+                            node_id = %node.base_id(),
+                            role_name = %role_name,
+                            "AgentRole system_prompt 为空，跳过"
+                        );
+                    },
+                    Ok(None) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            role_name = %role_name,
+                            "AgentRole 不存在（role_name 在 DB 中未找到），role 提示词不会生效"
+                        );
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            role_name = %role_name,
+                            error = %e,
+                            "AgentRole 查询失败（DB 错误），role 提示词不会生效"
+                        );
+                    },
+                }
             }
             // 解析 Expert 的提示词
-            if let Some(ref expert_id) = p.expert_id
-                && let Ok(Some(expert)) = axagent_harness::repositories::agency_expert_repository()
+            if let Some(ref expert_id) = p.expert_id {
+                match axagent_harness::repositories::agency_expert_repository()
                     .get_agency_expert(expert_id)
                     .await
-                && !expert.system_prompt.is_empty()
-            {
-                all_segments.extend(compile_prompt(&expert.system_prompt).segments);
+                {
+                    Ok(Some(expert)) if !expert.system_prompt.is_empty() => {
+                        tracing::debug!(
+                            node_id = %node.base_id(),
+                            expert_id = %expert_id,
+                            expert_source_dir = %expert.source_dir,
+                            expert_prompt_len = expert.system_prompt.len(),
+                            "Expert system_prompt resolved"
+                        );
+                        all_segments.extend(compile_prompt(&expert.system_prompt).segments);
+                    },
+                    Ok(Some(_)) => {
+                        tracing::debug!(
+                            node_id = %node.base_id(),
+                            expert_id = %expert_id,
+                            "Expert system_prompt 为空，跳过"
+                        );
+                    },
+                    Ok(None) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            expert_id = %expert_id,
+                            "Expert 不存在（expert_id 无效或已删除），expert 提示词不会生效"
+                        );
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            expert_id = %expert_id,
+                            error = %e,
+                            "Expert 查询失败（DB 错误），expert 提示词不会生效"
+                        );
+                    },
+                }
             }
         }
 
@@ -1250,7 +1350,7 @@ impl AgentExecutor {
     ) -> Result<NodeOutput, NodeError> {
         use axagent_harness::plan_types::{Plan, TaskStatus};
         use axagent_kit::plan_compiler::compile_plan_to_dag;
-        let role_desc = resolve_role(&an.config, None);
+        let role_desc = resolve_role(None);
         let base_url = axagent_providers::url_utils::resolve_base_url_for_type(
             &prov.api_host,
             &prov.provider_type,
@@ -1683,10 +1783,9 @@ impl AgentExecutor {
 // ── 自由函数 ──
 
 /// 解析角色描述：从 AgentProfile 获取，无 Profile 时默认 "executor"
-fn resolve_role(
-    _config: &axagent_harness::workflow_types::AgentNodeConfig,
-    profile: Option<&axagent_harness::types::AgentProfile>,
-) -> String {
+///
+/// 修复问题 11：删除未使用的 `_config` 参数（原为预留扩展点但从未实现）。
+fn resolve_role(profile: Option<&axagent_harness::types::AgentProfile>) -> String {
     if let Some(p) = profile
         && let Some(ref role) = p.agent_role
     {

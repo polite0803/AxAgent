@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::RwLock;
+use tokio::sync::RwLock;
 
 /// Resolved role data from DB or file registry
 #[derive(Debug, Clone)]
@@ -189,8 +189,15 @@ impl FileRoleRegistry {
 
     /// 从 YAML 或 JSON 文件加载角色定义。
     /// 支持 .yaml / .yml / .json 扩展名。
-    pub fn load_from_file(&self, path: &Path) -> Result<usize, String> {
-        let content = std::fs::read_to_string(path)
+    ///
+    /// 修复问题 9：原实现使用 `std::fs::read_to_string`（阻塞 I/O）和 `std::sync::RwLock`。
+    /// - 阻塞 I/O 在 async 上下文中会阻塞 tokio runtime，违反 project_memory 约束
+    /// - `std::sync::RwLock` 违反 AGENTS.md 禁区 8（必须 tokio::sync::RwLock）
+    ///
+    /// 现改为 async fn + `tokio::fs::read_to_string`。
+    pub async fn load_from_file(&self, path: &Path) -> Result<usize, String> {
+        let content = tokio::fs::read_to_string(path)
+            .await
             .map_err(|e| format!("无法读取角色配置文件 {}: {}", path.display(), e))?;
 
         let config: RoleConfigFile = if path.extension().is_some_and(|e| e == "yaml" || e == "yml")
@@ -204,7 +211,7 @@ impl FileRoleRegistry {
 
         let count = config.roles.len();
         let source = format!("file:{}", path.display());
-        let mut map = self.roles.write().map_err(|e| format!("Lock poisoned: {}", e))?;
+        let mut map = self.roles.write().await;
 
         for mut role in config.roles {
             if role.source.is_empty() {
@@ -217,8 +224,8 @@ impl FileRoleRegistry {
     }
 
     /// 按角色名查找文件定义的 ResolvedRole。
-    pub fn resolve(&self, role_name: &str) -> Option<ResolvedRole> {
-        let map = self.roles.read().ok()?;
+    pub async fn resolve(&self, role_name: &str) -> Option<ResolvedRole> {
+        let map = self.roles.read().await;
         map.get(role_name).map(|r| ResolvedRole {
             name: r.name.clone(),
             system_prompt: r.system_prompt.clone(),
@@ -231,13 +238,13 @@ impl FileRoleRegistry {
     }
 
     /// 列出所有文件角色的名称。
-    pub fn role_names(&self) -> Vec<String> {
-        self.roles.read().map(|map| map.keys().cloned().collect()).unwrap_or_default()
+    pub async fn role_names(&self) -> Vec<String> {
+        self.roles.read().await.keys().cloned().collect()
     }
 
     /// 列出所有文件角色定义。
-    pub fn all_roles(&self) -> Vec<FileRoleDefinition> {
-        self.roles.read().map(|map| map.values().cloned().collect()).unwrap_or_default()
+    pub async fn all_roles(&self) -> Vec<FileRoleDefinition> {
+        self.roles.read().await.values().cloned().collect()
     }
 }
 
@@ -303,12 +310,36 @@ pub async fn resolve(role_name: &str) -> Option<ResolvedRole> {
             system_prompt: row.system_prompt,
             default_tools: row.default_tools,
             active_domains: row.active_domains,
-            max_concurrent: row.max_concurrent as usize,
-            timeout_seconds: row.timeout_seconds as u64,
+            max_concurrent: normalize_max_concurrent(row.max_concurrent),
+            timeout_seconds: normalize_timeout_seconds(row.timeout_seconds),
             source: row.source,
         });
     }
     None
+}
+
+/// 将 DB 中的 `max_concurrent`（i32）安全转换为 usize。
+///
+/// 修复问题 12：原 `as usize` 在负数时会变成巨大的 usize（绕回），
+/// 导致并发数配置错误。现在用 try_from + 兜底默认值 3。
+fn normalize_max_concurrent(raw: i32) -> usize {
+    if raw < 0 {
+        tracing::warn!(raw, "agent_roles.max_concurrent 为负数，回退到默认值 3");
+        return 3;
+    }
+    usize::try_from(raw).unwrap_or(3)
+}
+
+/// 将 DB 中的 `timeout_seconds`（i64）安全转换为 u64。
+///
+/// 修复问题 12：原 `as u64` 在负数时会变成巨大的 u64（绕回），
+/// 导致超时配置错误。现在用 try_from + 兜底默认值 300。
+fn normalize_timeout_seconds(raw: i64) -> u64 {
+    if raw < 0 {
+        tracing::warn!(raw, "agent_roles.timeout_seconds 为负数，回退到默认值 300");
+        return 300;
+    }
+    u64::try_from(raw).unwrap_or(300)
 }
 
 /// Three-level lookup: DB -> file registry -> None (no more built-in enum).
@@ -322,10 +353,10 @@ pub async fn resolve_with_file_registry(
             system_prompt: row.system_prompt,
             default_tools: row.default_tools,
             active_domains: row.active_domains,
-            max_concurrent: row.max_concurrent as usize,
-            timeout_seconds: row.timeout_seconds as u64,
+            max_concurrent: normalize_max_concurrent(row.max_concurrent),
+            timeout_seconds: normalize_timeout_seconds(row.timeout_seconds),
             source: row.source,
         });
     }
-    file_registry.resolve(role_name)
+    file_registry.resolve(role_name).await
 }

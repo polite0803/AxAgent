@@ -805,16 +805,24 @@ pub(super) fn execute_skill_sync(
     }
 }
 
-/// Build the system prompt for the agent mode.
-/// Includes custom persona/system prompt, RAG context, and skill contents.
+/// Builds the complete system prompt for `agent_query`.
+///
+/// Slot 顺序（primacy → recency）：
+///   0. `<persona>` — 系统级身份注入（独立 slot，不与 user-custom 混淆）
+///   1. `<agent-profile>` — role + expert 运行时拼接的提示词（系统配置段）
+///   2. `<user-custom-prompt>` — 用户/调用方临时覆盖（隔离防注入）
+///   3. 默认指令（"You are AxAgent..."）
+///   4. workspace / RAG / working_memory / user_profile / adaptation_hint / skills
+///   5. nudges / insights / patterns / steer / language
+///
 /// Tool definitions are NOT included here — they are sent via the API `tools` parameter
 /// (ChatRequest.tools) to avoid double token consumption.
-/// If a role is provided, the role's system prompt is prepended.
 pub(super) fn build_agent_system_prompt(
-    custom_prompt: Option<&str>,
+    persona_prompt: Option<&str>,
+    profile_prompt: Option<&str>,
+    user_custom_prompt: Option<&str>,
     rag_context: Option<&[String]>,
     skills: &[(String, String)],
-    role: Option<&str>,
     working_memory: Option<&str>,
     nudge_messages: Option<&[String]>,
     insight_messages: Option<&[String]>,
@@ -827,23 +835,31 @@ pub(super) fn build_agent_system_prompt(
 ) -> Vec<String> {
     let mut prompts = Vec::new();
 
-    // If a role is specified, prepend the role's system prompt
-    if let Some(r) = role {
-        prompts.push(r.to_string());
+    // Slot 0: persona（系统级身份注入，作为独立 slot，不与 user-custom 混淆）
+    // 修复缺陷 2：persona 不再被 <user-custom-prompt> 包裹
+    if let Some(p) = persona_prompt {
+        if !p.is_empty() {
+            prompts.push(format!("<persona>\n{}\n</persona>", p));
+        }
     }
 
-    // If the user has a custom system prompt / persona, prepend it
-    if let Some(custom) = custom_prompt {
+    // Slot 1: AgentProfile 提示词（role + expert 运行时拼接）
+    // 作为系统配置段，隔离以便 LLM 识别边界，但不降级为"用户自定义内容"
+    if let Some(profile) = profile_prompt {
+        if !profile.is_empty() {
+            prompts.push(format!("<agent-profile>\n{}\n</agent-profile>", profile));
+        }
+    }
+
+    // Slot 2: 用户/调用方临时覆盖的 system_prompt
+    // 用 boundary markers 隔离，防止 prompt injection
+    if let Some(custom) = user_custom_prompt {
         if !custom.is_empty() {
-            // Wrap custom prompt with boundary markers to mitigate injection.
-            // The default instructions below explicitly tell the model to
-            // ignore any "ignore previous instructions" directives inside
-            // user-provided content.
             prompts.push(format!("<user-custom-prompt>\n{}\n</user-custom-prompt>", custom));
         }
     }
 
-    // Default agent instructions
+    // Default agent instructions（primacy 位置，紧跟系统级配置）
     // Note: Tool definitions are sent via the API `tools` parameter (ChatRequest.tools),
     // so we do NOT duplicate them here in the system prompt to avoid double token consumption.
     // i18n-exempt: LLM system prompt — model interaction data, not UI
