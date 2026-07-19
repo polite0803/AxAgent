@@ -8,8 +8,8 @@
 //! - `unrecoverable`: 显示错误并停止
 //! - `validation`: 提示用户修正输入
 //!
-//! 使用方式:
-//! ```rust
+//! 使用方式(示意伪代码，非可编译片段):
+//! ```ignore
 //! use crate::commands::error::{CommandError, ErrorCategory};
 //!
 //! // 简单错误
@@ -127,7 +127,7 @@ impl ErrorResponse {
     /// 从任意可 Display 的错误创建 CommandError。
     ///
     /// 用于替换 `.map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))` 模式：
-    /// ```rust
+    /// ```ignore
     /// some_op().map_err(|e| CommandError::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable))?;
     /// ```
     pub fn from_error(e: impl std::fmt::Display, category: ErrorCategory) -> Self {

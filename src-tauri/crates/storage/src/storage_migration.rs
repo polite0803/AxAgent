@@ -146,8 +146,8 @@ mod tests {
     use axagent_entities::{messages, stored_files};
     use axagent_harness::repositories::{set_message_repository, set_stored_file_repository};
     use sea_orm::{
-        ActiveModelTrait, ConnectionTrait, Database, DatabaseConnection, DbBackend, EntityTrait,
-        Set, Statement,
+        ActiveModelTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend,
+        EntityTrait, Set, Statement,
     };
     use std::fs;
 
@@ -195,7 +195,15 @@ mod tests {
         )";
 
     async fn test_db() -> DatabaseConnection {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        // sqlite::memory: 默认连接池给每个连接分配独立内存库，DDL 建表所在连接与
+        // 后续查询/仓储所用连接不同 → "no such table: stored_files"。限制为单连接，
+        // 确保建表、插入与 run_migration 内仓储查询共享同一个内存库。
+        // 关键：sqlite::memory: 即便限制单连接，SeaORM/sqlx 连接池仍可能为 DDL 与
+        // 后续查询分配不同内存库实例（"no such table"）。`?cache=shared` 让同一进程内
+        // 所有连接共享同一块内存库，彻底消除跨连接不可见问题。
+        let mut opts = ConnectOptions::new("sqlite::memory:?cache=shared".to_string());
+        opts.max_connections(1).min_connections(1);
+        let db = Database::connect(opts).await.unwrap();
         for ddl in [CREATE_STORED_FILES, CREATE_MESSAGES] {
             db.execute_raw(Statement::from_string(DbBackend::Sqlite, ddl)).await.unwrap();
         }

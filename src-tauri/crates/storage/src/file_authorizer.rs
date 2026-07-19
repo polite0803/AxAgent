@@ -400,17 +400,27 @@ impl FileAuthorizer {
     /// 检测 Windows NTFS 备用数据流语法（如 `file::$DATA`）和危险 UNC 前缀。
     #[cfg(windows)]
     fn has_ntfs_stream_or_unc_risk(path_str: &str) -> bool {
-        // UNC 路径：`\\?\` 或 `\\.\` 在 canonicalize 后通常已规范化，
-        // 但对于原始输入仍需防御。
+        // `\\.\` 设备命名空间：始终危险。
         if path_str.starts_with("\\\\.\\") {
             return true;
         }
 
+        // `\\?\` 是 std::fs::canonicalize 在 Windows 上必然产生的扩展长度前缀
+        // (安全)。若不剥离，`\\?\C:\...` 的盘符冒号会落在位置 5 而非 1，
+        // 被下面的 ADS 检测误判为风险，导致所有真实路径授权失败。
+        // `\\?\UNC\server\share` 剥离为无盘符的 UNC 主体。
+        let core = if let Some(rest) = path_str.strip_prefix("\\\\?\\UNC\\") {
+            rest
+        } else if let Some(rest) = path_str.strip_prefix("\\\\?\\") {
+            rest
+        } else {
+            path_str
+        };
+
         // NTFS 备用数据流：冒号出现在盘符之后的位置即视为风险。
         // 合法形式：`C:\...` (冒号在位置 1)；其余位置的冒号均为可疑。
-        if let Some(colon_pos) = path_str.find(':')
-            && (colon_pos != 1
-                || !path_str.as_bytes().first().is_some_and(|b| b.is_ascii_alphabetic()))
+        if let Some(colon_pos) = core.find(':')
+            && (colon_pos != 1 || !core.as_bytes().first().is_some_and(|b| b.is_ascii_alphabetic()))
         {
             return true;
         }
