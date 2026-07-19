@@ -22,6 +22,7 @@ use crate::hooks::{HookAbortSignal, HookProgressReporter, HookRunResult, HookRun
 use crate::permissions::{
     PermissionContext, PermissionOutcome, PermissionPolicy, PermissionPrompter,
 };
+use crate::reactive_compact::{ReactiveCompactResult, classify_trigger, try_reactive_compact};
 use crate::session::{ContentBlock, ConversationMessage, Session};
 use crate::usage::{TokenUsage, UsageTracker};
 
@@ -270,6 +271,18 @@ where
     pub fn with_context_contributor(mut self, contributor: Box<dyn ContextContributor>) -> Self {
         self.context_contributors.push(contributor);
         self
+    }
+
+    /// 准备发送给 LLM 的请求消息:先 L2 Microcompact 去重,再 L1 Snip 截断超长 ToolResult。
+    ///
+    /// 此方法不修改 session 自身,仅产生请求副本。
+    /// 顺序:Microcompact(去重) → Snip(单条截断),避免对占位符做截断。
+    fn prepare_request_messages(&self) -> Vec<ConversationMessage> {
+        let mc_config = crate::microcompact::MicrocompactConfig::default();
+        let snip_config = crate::snip::SnipConfig::default();
+        let deduped =
+            crate::microcompact::microcompact_messages(&self.session.messages, &mc_config);
+        crate::snip::snip_tool_results(&deduped, &snip_config)
     }
 
     fn run_pre_tool_use_hook(
@@ -532,64 +545,115 @@ where
                 system_prompt.push(nudge_block);
             }
 
-            let request = ApiRequest { system_prompt, messages: self.session.messages.clone() };
+            let request = ApiRequest { system_prompt, messages: self.prepare_request_messages() };
             let events = match self.api_client.stream(request) {
                 Ok(events) => events,
                 Err(error) => {
-                    // Retry on rate-limit (429) or transient network errors
-                    let err_msg = error.to_string().to_lowercase();
-                    let is_retryable = err_msg.contains("429")
-                        || err_msg.contains("rate")
-                        || err_msg.contains("timeout")
-                        || err_msg.contains("network")
-                        || err_msg.contains("connection");
+                    let err_msg = error.to_string();
+                    let err_lower = err_msg.to_lowercase();
 
-                    if is_retryable {
-                        const MAX_RETRIES: u32 = 3;
-                        const RETRY_DELAY_MS: u64 = 2000;
-                        let mut retry_count = 0;
-                        loop {
-                            retry_count += 1;
-                            if retry_count > MAX_RETRIES {
-                                self.record_turn_failed(iterations, &error);
-                                return Err(error);
-                            }
-                            // Check cancel token before sleeping
-                            if let Some(ref token) = self.cancel_token
-                                && token.load(std::sync::atomic::Ordering::Acquire)
-                            {
-                                let cancel_err =
-                                    RuntimeError::new("Agent cancelled by user".to_string());
-                                self.record_turn_failed(iterations, &cancel_err);
-                                return Err(cancel_err);
-                            }
-                            std::thread::sleep(std::time::Duration::from_millis(
-                                RETRY_DELAY_MS * retry_count as u64,
-                            ));
-                            let retry_request = ApiRequest {
-                                system_prompt: self.system_prompt.clone(),
-                                messages: self.session.messages.clone(),
-                            };
-                            match self.api_client.stream(retry_request) {
-                                Ok(events) => break events,
-                                Err(retry_error) => {
-                                    let retry_msg = retry_error.to_string().to_lowercase();
-                                    let still_retryable = retry_msg.contains("429")
-                                        || retry_msg.contains("rate")
-                                        || retry_msg.contains("timeout")
-                                        || retry_msg.contains("network")
-                                        || retry_msg.contains("connection");
-                                    if !still_retryable || retry_count >= MAX_RETRIES {
+                    // ── L4 Reactive Compact:检测上下文溢出错误,尝试响应式压缩后重试一次 ──
+                    // 当 API 返回 prompt_too_long / context_length_exceeded / 413 等错误时,
+                    // 用更激进的参数压缩会话,然后重试请求,而非直接返回硬错误。
+                    if let Some(trigger) = classify_trigger(&err_msg) {
+                        tracing::warn!(trigger = %trigger, "检测到上下文溢出错误,尝试响应式压缩");
+                        let compact_result = try_reactive_compact(
+                            &self.session,
+                            CompactionConfig::default(),
+                            trigger,
+                        );
+                        match compact_result {
+                            ReactiveCompactResult::Compacted { result, trigger: t } => {
+                                tracing::info!(
+                                    trigger = %t,
+                                    removed_messages = result.removed_message_count,
+                                    remaining_messages = result.compacted_session.messages.len(),
+                                    "响应式压缩成功,重试 LLM 请求"
+                                );
+                                // 应用压缩结果到当前 session
+                                self.session = result.compacted_session;
+                                let retry_request = ApiRequest {
+                                    system_prompt: self.system_prompt.clone(),
+                                    messages: self.prepare_request_messages(),
+                                };
+                                match self.api_client.stream(retry_request) {
+                                    Ok(events) => events,
+                                    Err(retry_error) => {
+                                        tracing::warn!(
+                                            error = %retry_error,
+                                            "响应式压缩后重试仍然失败"
+                                        );
                                         self.record_turn_failed(iterations, &retry_error);
                                         return Err(retry_error);
-                                    }
-                                    // Continue retrying
-                                },
-                            }
+                                    },
+                                }
+                            },
+                            ReactiveCompactResult::Failed { reason } => {
+                                tracing::warn!(reason = %reason, "响应式压缩失败");
+                                self.record_turn_failed(iterations, &error);
+                                return Err(error);
+                            },
+                            ReactiveCompactResult::Skipped => {
+                                tracing::warn!("响应式压缩被跳过:会话消息数过少,无法压缩");
+                                self.record_turn_failed(iterations, &error);
+                                return Err(error);
+                            },
                         }
                     } else {
-                        self.record_turn_failed(iterations, &error);
-                        return Err(error);
+                        // ── 原重试逻辑:429/rate/timeout/network/connection ──
+                        let is_retryable = err_lower.contains("429")
+                            || err_lower.contains("rate")
+                            || err_lower.contains("timeout")
+                            || err_lower.contains("network")
+                            || err_lower.contains("connection");
+
+                        if is_retryable {
+                            const MAX_RETRIES: u32 = 3;
+                            const RETRY_DELAY_MS: u64 = 2000;
+                            let mut retry_count = 0;
+                            loop {
+                                retry_count += 1;
+                                if retry_count > MAX_RETRIES {
+                                    self.record_turn_failed(iterations, &error);
+                                    return Err(error);
+                                }
+                                // Check cancel token before sleeping
+                                if let Some(ref token) = self.cancel_token
+                                    && token.load(std::sync::atomic::Ordering::Acquire)
+                                {
+                                    let cancel_err =
+                                        RuntimeError::new("Agent cancelled by user".to_string());
+                                    self.record_turn_failed(iterations, &cancel_err);
+                                    return Err(cancel_err);
+                                }
+                                std::thread::sleep(std::time::Duration::from_millis(
+                                    RETRY_DELAY_MS * retry_count as u64,
+                                ));
+                                let retry_request = ApiRequest {
+                                    system_prompt: self.system_prompt.clone(),
+                                    messages: self.prepare_request_messages(),
+                                };
+                                match self.api_client.stream(retry_request) {
+                                    Ok(events) => break events,
+                                    Err(retry_error) => {
+                                        let retry_msg = retry_error.to_string().to_lowercase();
+                                        let still_retryable = retry_msg.contains("429")
+                                            || retry_msg.contains("rate")
+                                            || retry_msg.contains("timeout")
+                                            || retry_msg.contains("network")
+                                            || retry_msg.contains("connection");
+                                        if !still_retryable || retry_count >= MAX_RETRIES {
+                                            self.record_turn_failed(iterations, &retry_error);
+                                            return Err(retry_error);
+                                        }
+                                        // Continue retrying
+                                    },
+                                }
+                            }
+                        } else {
+                            self.record_turn_failed(iterations, &error);
+                            return Err(error);
+                        }
                     }
                 },
             };

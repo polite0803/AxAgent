@@ -288,3 +288,204 @@ mod tests {
         assert_eq!(metrics.avg_duration_ms, 150);
     }
 }
+
+// ── 全局工作流 metrics(Prometheus 风格原子计数器) ──
+//
+// 提供 WorkEngine / NodeDispatcher 在关键节点调用的全局 metrics 函数。
+// 使用 atomic + OnceLock 实现,无锁,线程安全。
+// 后续可被 Prometheus exporter / OpenTelemetry collector 抓取。
+
+use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// 全局工作流 metrics 注册表(单例)。
+pub struct WorkflowMetricsRegistry {
+    pub total_executions: AtomicU64,
+    pub successful_executions: AtomicU64,
+    pub failed_executions: AtomicU64,
+    pub active_workflows: AtomicU64,
+    pub total_duration_ms: AtomicU64,
+    /// 节点级 dispatch 次数(含成功/失败)
+    pub node_dispatch_total: AtomicU64,
+    pub node_dispatch_failed: AtomicU64,
+}
+
+static WORKFLOW_METRICS: OnceLock<WorkflowMetricsRegistry> = OnceLock::new();
+
+fn registry() -> &'static WorkflowMetricsRegistry {
+    WORKFLOW_METRICS.get_or_init(|| WorkflowMetricsRegistry {
+        total_executions: AtomicU64::new(0),
+        successful_executions: AtomicU64::new(0),
+        failed_executions: AtomicU64::new(0),
+        active_workflows: AtomicU64::new(0),
+        total_duration_ms: AtomicU64::new(0),
+        node_dispatch_total: AtomicU64::new(0),
+        node_dispatch_failed: AtomicU64::new(0),
+    })
+}
+
+/// 记录一次工作流执行结果(成功/失败)。
+/// 由 WorkEngine.run_workflow 在结束时调用。
+pub fn inc_workflow_execution(success: bool) {
+    let r = registry();
+    r.total_executions.fetch_add(1, Ordering::Relaxed);
+    if success {
+        r.successful_executions.fetch_add(1, Ordering::Relaxed);
+    } else {
+        r.failed_executions.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+/// 记录工作流执行耗时(毫秒)。
+pub fn observe_workflow_duration_ms(duration_ms: u64) {
+    registry().total_duration_ms.fetch_add(duration_ms, Ordering::Relaxed);
+}
+
+/// 活跃工作流计数 +1(由 run_workflow 开始时调用)。
+pub fn inc_active_workflows() {
+    registry().active_workflows.fetch_add(1, Ordering::Relaxed);
+}
+
+/// 活跃工作流计数 -1(由 run_workflow 结束时调用,无论成功/失败)。
+pub fn dec_active_workflows() {
+    registry().active_workflows.fetch_sub(1, Ordering::Relaxed);
+}
+
+/// 直接设置活跃工作流计数(用于校准场景)。
+pub fn set_active_workflows(count: u64) {
+    registry().active_workflows.store(count, Ordering::Relaxed);
+}
+
+/// 记录一次节点 dispatch(由 NodeDispatcher.dispatch 调用)。
+pub fn inc_node_dispatch() {
+    registry().node_dispatch_total.fetch_add(1, Ordering::Relaxed);
+}
+
+/// 记录一次节点 dispatch 失败。
+pub fn inc_node_dispatch_failed() {
+    registry().node_dispatch_failed.fetch_add(1, Ordering::Relaxed);
+}
+
+/// 获取当前活跃工作流数。
+pub fn get_active_workflows() -> u64 {
+    registry().active_workflows.load(Ordering::Relaxed)
+}
+
+/// 全局工作流 metrics 快照(用于导出 / Prometheus scrape)。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowMetricsSnapshot {
+    pub total_executions: u64,
+    pub successful_executions: u64,
+    pub failed_executions: u64,
+    pub active_workflows: u64,
+    pub total_duration_ms: u64,
+    pub node_dispatch_total: u64,
+    pub node_dispatch_failed: u64,
+}
+
+pub fn get_workflow_metrics_snapshot() -> WorkflowMetricsSnapshot {
+    let r = registry();
+    WorkflowMetricsSnapshot {
+        total_executions: r.total_executions.load(Ordering::Relaxed),
+        successful_executions: r.successful_executions.load(Ordering::Relaxed),
+        failed_executions: r.failed_executions.load(Ordering::Relaxed),
+        active_workflows: r.active_workflows.load(Ordering::Relaxed),
+        total_duration_ms: r.total_duration_ms.load(Ordering::Relaxed),
+        node_dispatch_total: r.node_dispatch_total.load(Ordering::Relaxed),
+        node_dispatch_failed: r.node_dispatch_failed.load(Ordering::Relaxed),
+    }
+}
+
+/// RAII guard:在作用域开始时 inc_active_workflows,
+/// 在 drop 时 dec_active_workflows + observe_workflow_duration_ms。
+///
+/// `inc_workflow_execution(success)` 需要调用方在 return 前显式调用
+/// (因为 Drop 无法访问执行结果)。
+///
+/// 用法:
+/// ```ignore
+/// let _guard = WorkflowMetricsGuard::new();
+/// // ... 执行工作流 ...
+/// if success {
+///     inc_workflow_execution(true);
+/// } else {
+///     inc_workflow_execution(false);
+/// }
+/// ```
+pub struct WorkflowMetricsGuard {
+    start: std::time::Instant,
+    finished: bool,
+}
+
+impl WorkflowMetricsGuard {
+    /// 创建 guard 并 inc_active_workflows。
+    pub fn new() -> Self {
+        inc_active_workflows();
+        Self { start: std::time::Instant::now(), finished: false }
+    }
+
+    /// 显式完成(避免 drop 时重复 dec)。
+    /// 调用方在 return 前调用此方法 + inc_workflow_execution(success)。
+    pub fn finish(&mut self, success: bool) {
+        if !self.finished {
+            self.finished = true;
+            dec_active_workflows();
+            observe_workflow_duration_ms(self.start.elapsed().as_millis() as u64);
+            inc_workflow_execution(success);
+        }
+    }
+}
+
+impl Drop for WorkflowMetricsGuard {
+    fn drop(&mut self) {
+        if !self.finished {
+            // 调用方未显式 finish,默认按失败处理
+            dec_active_workflows();
+            observe_workflow_duration_ms(self.start.elapsed().as_millis() as u64);
+            // 不在此处 inc_workflow_execution(避免重复计数)
+        }
+    }
+}
+
+impl Default for WorkflowMetricsGuard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod workflow_metrics_tests {
+    use super::*;
+
+    #[test]
+    fn test_inc_workflow_execution() {
+        // 注意:全局 metrics,测试间会累积。这里只验证增量。
+        let before = get_workflow_metrics_snapshot();
+        inc_workflow_execution(true);
+        inc_workflow_execution(false);
+        let after = get_workflow_metrics_snapshot();
+        assert_eq!(after.total_executions - before.total_executions, 2);
+        assert_eq!(after.successful_executions - before.successful_executions, 1);
+        assert_eq!(after.failed_executions - before.failed_executions, 1);
+    }
+
+    #[test]
+    fn test_active_workflows_counter() {
+        let before = get_active_workflows();
+        inc_active_workflows();
+        inc_active_workflows();
+        assert_eq!(get_active_workflows(), before + 2);
+        dec_active_workflows();
+        assert_eq!(get_active_workflows(), before + 1);
+        // 清理
+        dec_active_workflows();
+    }
+
+    #[test]
+    fn test_observe_duration() {
+        let before = get_workflow_metrics_snapshot();
+        observe_workflow_duration_ms(500);
+        let after = get_workflow_metrics_snapshot();
+        assert_eq!(after.total_duration_ms - before.total_duration_ms, 500);
+    }
+}

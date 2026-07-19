@@ -72,6 +72,7 @@ pub mod shell_completer;
 pub mod shell_hooks;
 pub mod stale_base;
 pub mod stale_branch;
+pub mod subtask_dispatcher;
 pub mod summary_compression;
 pub mod task_manager;
 pub mod task_packet;
@@ -104,6 +105,9 @@ pub use axagent_runtime_core::session::{ContentBlock, Session};
 pub use bash::{BashCommandInput, BashCommandOutput, execute_bash};
 pub use bootstrap::{BootstrapPhase, BootstrapPlan};
 pub use branch_lock::{BranchLockCollision, BranchLockIntent, detect_branch_lock_collisions};
+
+// ── SubTaskDispatcher 生产 wiring ──
+pub use subtask_dispatcher::{NoopSubTaskHandler, RuntimeSubTaskDispatcher, SubTaskHandler};
 
 pub use file_ops::{
     EditFileOutput, GlobSearchOutput, GrepSearchInput, GrepSearchOutput, ReadFileOutput,

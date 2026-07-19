@@ -294,6 +294,23 @@ pub use cache_service::{CacheService, SharedCacheService};
 pub mod hook_service;
 pub use hook_service::{HookService, SharedHookService};
 
+// ── WorkflowHookSink 契约(工作流 Hook 触发端) ──
+pub mod workflow_hook_sink;
+pub use workflow_hook_sink::{NoopWorkflowHookSink, SharedWorkflowHookSink, WorkflowHookSink};
+
+// ── HookEvent 顶层 re-export(便于业务代码直接 `use axagent_harness::HookEvent`) ──
+pub use runtime_types::hooks::HookEvent;
+
+// ── PermissionChecker 契约顶层 re-export(供 NodeDispatcher / 工作流节点权限检查) ──
+pub use runtime_types::permission_enforcer::{EnforcementResult, PermissionChecker};
+
+// ── 多 Agent 协作契约(Swarm/Debate/SharedBlackboard 统一抽象) ──
+pub mod multi_agent;
+pub use multi_agent::{
+    AgentDecision, BlackboardMessage, ConflictRecord, ConflictResolution, CoordinationMode,
+    CoordinationOutcome, MultiAgentCoordination, SharedBlackboard,
+};
+
 // ── FeatureFlagProvider 契约 ──
 pub mod feature_flag_provider;
 pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};

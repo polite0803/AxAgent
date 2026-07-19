@@ -102,6 +102,9 @@ pub use session_manager::{
     AgentSession, ChannelPermissionPrompter, SessionManager, TauriHookProgressReporter,
 };
 
+// shared_blackboard — 外部引用：consumer crate 通过 harness trait 操控多 Agent 协作
+pub use shared_blackboard::BlackboardHandle;
+
 // reflector — 外部引用：commands/reflection, init/state
 pub use reflector::{Reflection, Reflector, TaskExecutionRecord};
 

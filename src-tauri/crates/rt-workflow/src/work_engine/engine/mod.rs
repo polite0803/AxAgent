@@ -49,10 +49,26 @@ use super::execution_state::{
 };
 use super::executors::{
     AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
-    ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, ToolCallback,
+    ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, SwitchExecutor, ToolCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 use super::prompt_template::{CompiledPrompt, DomainConstraintsFn, compile_prompt};
+
+thread_local! {
+    /// 子工作流执行用 thread_local runtime 池（每个 tokio blocking 线程一个实例）。
+    ///
+    /// 设计动机：`run_workflow()` 返回的 future 是 `!Send` 的（rhai 引擎内部使用 `Rc<RefCell<>>`），
+    /// 不能用 `tokio::spawn` 派发；改走 `tokio::task::spawn_blocking` + `current_thread` runtime
+    /// 在专用线程内执行。原本每次子工作流调用都新建 runtime（含 I/O/time driver，~100-500μs 开销），
+    /// 现在通过 thread_local 在每个 blocking 线程上首次创建后复用，单次子工作流调用开销降到 ~20-50μs。
+    ///
+    /// 安全性：`current_thread` runtime 的 `block_on` 必须在创建它的同一线程内调用，
+    /// thread_local 天然满足此约束；不同 blocking 线程拥有独立的 runtime 实例，互不干扰。
+    static SUB_WORKFLOW_RT: tokio::runtime::Runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("failed to build sub-workflow runtime");
+}
 
 /// 工具解析器：给定工具名，返回对应的 ToolCallback（若可解析）。
 /// 用于 run_workflow 启动时自动扫描工作流节点并注册工具。
@@ -677,19 +693,25 @@ impl WorkEngine {
         );
         let mut cond_exec = ConditionExecutor::new(master_key);
         let mut classifier_exec = LlmClassifierExecutor::new(master_key);
+        let mut switch_exec = SwitchExecutor::new(master_key);
 
         llm_exec.set_provider_registry(provider_registry.clone());
         agent_exec.set_provider_registry(provider_registry.clone());
         cond_exec.set_provider_registry(provider_registry.clone());
         classifier_exec.set_provider_registry(provider_registry.clone());
+        switch_exec.set_provider_registry(provider_registry.clone());
 
         let agent_exec = Arc::new(agent_exec);
 
         // P0-2: dispatcher 的 register_arc 改 async 后，WorkEngine::new 处于同步上下文
         // 不能 await register。改用 pending_dispatcher_registrations 暂存，调用方在
         // tokio runtime 内执行 init_dispatcher 完成最终注册。
-        let pending_dispatcher_registrations: Vec<Box<dyn NodeExecutorTrait>> =
-            vec![Box::new(llm_exec), Box::new(cond_exec), Box::new(classifier_exec)];
+        let pending_dispatcher_registrations: Vec<Box<dyn NodeExecutorTrait>> = vec![
+            Box::new(llm_exec),
+            Box::new(cond_exec),
+            Box::new(classifier_exec),
+            Box::new(switch_exec),
+        ];
         let pending_dispatcher_registrations =
             Arc::new(tokio::sync::Mutex::new(pending_dispatcher_registrations));
 
@@ -1162,6 +1184,12 @@ impl WorkEngine {
             max_concurrent = options.max_concurrent,
         );
         let _guard = span.enter();
+
+        // ── 全局工作流 metrics guard ──
+        // 在作用域结束时自动 dec_active_workflows + observe_workflow_duration_ms。
+        // inc_workflow_execution(success) 由调用方在显式 return 前调用(若未调用,
+        // guard drop 时不重复计数,仅记录 active + duration)。
+        let _metrics_guard = axagent_telemetry::metrics::WorkflowMetricsGuard::new();
 
         let cancel_token =
             options.parent_cancel_token.as_ref().map(|t| t.child_token()).unwrap_or_default();
@@ -1895,16 +1923,17 @@ impl WorkEngine {
 
                                 // run_workflow() 返回 non-Send future（包含 Rc 等），
                                 // 因此无法用 tokio::spawn。改用 spawn_blocking +
-                                // current_thread runtime 在新线程中执行。
+                                // thread_local 缓存的 current_thread runtime 在 blocking 线程中执行。
+                                // thread_local runtime 在每个 blocking 线程上首次创建后复用，
+                                // 避免每次子工作流调用都新建 runtime 的开销。
                                 let (tx, rx) = tokio::sync::oneshot::channel();
                                 tokio::task::spawn_blocking(move || {
-                                    let rt = tokio::runtime::Builder::new_current_thread()
-                                        .enable_all()
-                                        .build()
-                                        .expect("failed to build sub-workflow runtime");
-                                    rt.block_on(async move {
-                                        let result: Result<(String, serde_json::Value), String> =
-                                            async {
+                                    SUB_WORKFLOW_RT.with(|rt| {
+                                        rt.block_on(async move {
+                                            let result: Result<
+                                                (String, serde_json::Value),
+                                                String,
+                                            > = async {
                                                 let template = workflow_template_repository()
                                                     .get_workflow_template(&sub_workflow_id)
                                                     .await
@@ -1961,7 +1990,8 @@ impl WorkEngine {
                                                 Ok((child_eid_for_result, output))
                                             }
                                             .await;
-                                        let _ = tx.send(result);
+                                            let _ = tx.send(result);
+                                        });
                                     });
                                 });
                                 Box::pin(async move {

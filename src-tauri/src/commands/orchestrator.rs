@@ -12,6 +12,7 @@ use crate::app_state::AppState;
 use axagent_harness::streaming::{AgentStreamChunk, AgentStreamReporter};
 use axagent_harness::workflow_types::WorkflowNode;
 use axagent_orchestrator::{DynamicSubGraph, OrchestrationStrategy, OrchestratorExecutor};
+use axagent_runtime::RuntimeSubTaskDispatcher;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::{broadcast, mpsc};
@@ -153,7 +154,9 @@ pub async fn orchestrate_mission(
     };
 
     let mut subgraph_builder = DynamicSubGraph::new();
-    let executor = OrchestratorExecutor::new();
+    // 注入生产 SubTaskDispatcher(默认 Noop,后续 init 阶段替换为真实 handler)
+    let executor =
+        OrchestratorExecutor::new().with_dispatcher(Arc::new(RuntimeSubTaskDispatcher::noop()));
     let plan = executor
         .receive_mission(&mission, strategy)
         .await

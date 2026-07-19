@@ -56,6 +56,8 @@ pub mod error_code {
     pub const VECTOR_NOT_CONFIGURED: &str = "VECTOR_NOT_CONFIGURED";
     pub const VARIABLE_NOT_FOUND: &str = "VARIABLE_NOT_FOUND";
     pub const VALIDATION_FAILED: &str = "VALIDATION_FAILED";
+    /// 节点执行被 PermissionEnforcer 拒绝(对应 harness::error_codes::security::SECURITY_TOOL_ACCESS_DENIED 语义)
+    pub const PERMISSION_DENIED: &str = "PERMISSION_DENIED";
     pub const TIMEOUT: &str = "TIMEOUT";
     pub const CIRCUIT_BREAKER_OPEN: &str = "CIRCUIT_BREAKER_OPEN";
     pub const NODE_TYPE_MISMATCH: &str = "NODE_TYPE_MISMATCH";

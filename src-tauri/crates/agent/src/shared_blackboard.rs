@@ -3,45 +3,28 @@
 //! 多 Agent 协作的全局工作记忆（Blackboard 模式）。
 //!
 //! 提供共享状态、决策记录、冲突仲裁和消息广播功能。
+//!
+//! ## 架构位置
+//!
+//! 本模块的 DTO(`AgentDecision` / `BlackboardMessage` / `ConflictResolution` /
+//! `ConflictRecord`)和 trait(`SharedBlackboard`)权威定义在 `axagent-harness::multi_agent`。
+//! 本模块提供具体内存实现 `SharedBlackboard` struct,并为其 `Arc<RwLock<...>>` 包装
+//! 实现 harness trait,完成 P0 阶段的收口接入。
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
-/// Agent 的一次决策
-#[derive(Debug, Clone)]
-pub struct AgentDecision {
-    pub agent_id: String,
-    pub timestamp_ms: u64,
-    pub task_id: String,
-    pub field: String,
-    pub value: String,
-}
+use tokio::sync::RwLock;
 
-/// Blackboard 消息
-#[derive(Debug, Clone)]
-pub struct BlackboardMessage {
-    pub from: String,
-    pub to: Option<String>,
-    pub content: String,
-    pub timestamp_ms: u64,
-}
+// 从 harness 引入共享 DTO 和 trait(收口标志 — 不再重复定义)
+pub use axagent_harness::multi_agent::{
+    AgentDecision, BlackboardMessage, ConflictRecord, ConflictResolution, SharedBlackboard as _,
+};
 
-/// 冲突解决结果
-#[derive(Debug, Clone)]
-pub enum ConflictResolution {
-    MajorityVote { winner: String, vote_count: usize },
-    TieBreak { chosen: String, reason: String },
-}
-
-/// 冲突记录
-#[derive(Debug, Clone)]
-pub struct ConflictRecord {
-    pub task_id: String,
-    pub field: String,
-    pub conflicting_decisions: Vec<AgentDecision>,
-    pub resolution: ConflictResolution,
-}
-
-/// 多 Agent 协作的全局工作记忆
+/// 多 Agent 协作的全局工作记忆(内存实现)。
+///
+/// 字段公开供直接访问(向后兼容 session_manager 中的 `bb.write().await.field = ...` 模式)。
+/// 若需要 harness trait 接口,使用 `Arc<RwLock<SharedBlackboard>>` 并通过 trait 方法调用。
 #[derive(Debug)]
 pub struct SharedBlackboard {
     pub task_id: String,
@@ -171,6 +154,120 @@ fn now_ms() -> u64 {
         .as_millis() as u64
 }
 
+// ============================================================================
+// harness SharedBlackboard trait 实现(收口接入)
+// ============================================================================
+//
+// 由于孤儿规则(E0117),不能直接为 `Arc<RwLock<SharedBlackboard>>`(外部类型组合)
+// 实现 harness trait。这里通过 newtype `BlackboardHandle` 包装,
+// 让 trait impl 落在 agent crate 本地类型上。
+//
+// `BlackboardHandle` 通过 `Deref` 暴露底层 `Arc<RwLock<SharedBlackboard>>` 的所有方法,
+// 因此与原 `Arc<RwLock<SharedBlackboard>>` API 完全兼容(session_manager 可无缝替换)。
+
+/// 多 Agent 协作的黑板句柄(newtype 包装,用于实现 harness trait)。
+///
+/// 包装 `Arc<RwLock<SharedBlackboard>>`,通过 `Deref` 暴露底层 API,
+/// 同时作为 harness `SharedBlackboard` trait 的实现载体。
+///
+/// ## 用法
+///
+/// ```ignore
+/// use axagent_agent::shared_blackboard::{BlackboardHandle, SharedBlackboard};
+///
+/// let handle = BlackboardHandle::new("task-1", "test goal");
+/// // 作为 trait 对象使用
+/// let trait_obj: Arc<dyn axagent_harness::SharedBlackboard> = handle.clone().into();
+/// // 作为底层 Arc<RwLock<...>> 使用(通过 Deref)
+/// handle.write().await.set_state("k", "v");
+/// ```
+#[derive(Debug, Clone)]
+pub struct BlackboardHandle(pub Arc<RwLock<SharedBlackboard>>);
+
+impl BlackboardHandle {
+    /// 创建新的 BlackboardHandle(内部新建 SharedBlackboard)。
+    pub fn new(task_id: impl Into<String>, goal: impl Into<String>) -> Self {
+        Self(Arc::new(RwLock::new(SharedBlackboard::new(task_id, goal))))
+    }
+
+    /// 从已有的 `Arc<RwLock<SharedBlackboard>>` 包装为 handle。
+    pub fn from_arc(arc: Arc<RwLock<SharedBlackboard>>) -> Self {
+        Self(arc)
+    }
+
+    /// 获取内部 `Arc<RwLock<SharedBlackboard>>` 的克隆(便于传统 API 调用)。
+    pub fn inner(&self) -> Arc<RwLock<SharedBlackboard>> {
+        self.0.clone()
+    }
+}
+
+impl std::ops::Deref for BlackboardHandle {
+    type Target = Arc<RwLock<SharedBlackboard>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<Arc<RwLock<SharedBlackboard>>> for BlackboardHandle {
+    fn from(arc: Arc<RwLock<SharedBlackboard>>) -> Self {
+        Self(arc)
+    }
+}
+
+impl From<BlackboardHandle> for Arc<RwLock<SharedBlackboard>> {
+    fn from(handle: BlackboardHandle) -> Self {
+        handle.0
+    }
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::SharedBlackboard for BlackboardHandle {
+    async fn record_decision(
+        &self,
+        agent_id: &str,
+        task_id: &str,
+        field: &str,
+        value: &str,
+    ) -> Result<(), String> {
+        let mut bb = self.0.write().await;
+        bb.record_decision(agent_id, task_id, field, value);
+        Ok(())
+    }
+
+    async fn set_state(&self, key: &str, value: &str) -> Result<(), String> {
+        let mut bb = self.0.write().await;
+        bb.set_state(key, value);
+        Ok(())
+    }
+
+    async fn get_state(&self, key: &str) -> Option<String> {
+        let bb = self.0.read().await;
+        bb.get_state(key).cloned()
+    }
+
+    async fn get_consensus(&self, field: &str) -> Option<String> {
+        let bb = self.0.read().await;
+        bb.get_consensus(field)
+    }
+
+    async fn resolve_conflicts(&self) -> Result<Vec<ConflictRecord>, String> {
+        let mut bb = self.0.write().await;
+        Ok(bb.resolve_conflicts())
+    }
+
+    async fn broadcast(&self, from: &str, content: &str) -> Result<(), String> {
+        let mut bb = self.0.write().await;
+        bb.broadcast(from, content);
+        Ok(())
+    }
+
+    async fn get_messages_for(&self, agent_id: &str) -> Vec<BlackboardMessage> {
+        let bb = self.0.read().await;
+        bb.get_messages_for(agent_id).into_iter().cloned().collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,5 +336,69 @@ mod tests {
         let mut bb = SharedBlackboard::new("task-1", "test");
         bb.set_state("status", "in_progress");
         assert_eq!(bb.get_state("status"), Some(&"in_progress".to_string()));
+    }
+
+    // ── harness trait 接入测试 ──
+    //
+    // 这些测试通过 `BlackboardHandle` 调用 harness `SharedBlackboard` trait,
+    // 验证收口接入正确性。`BlackboardHandle` 是 agent crate 本地 newtype,
+    // 包装 `Arc<RwLock<SharedBlackboard>>` 并实现 harness trait(规避 E0117 孤儿规则)。
+
+    #[tokio::test]
+    async fn harness_trait_record_and_get_state() {
+        let bb = BlackboardHandle::new("task-1", "test");
+        bb.set_state("status", "running").await.unwrap();
+        let val = bb.get_state("status").await;
+        assert_eq!(val, Some("running".to_string()));
+    }
+
+    #[tokio::test]
+    async fn harness_trait_record_decision_and_consensus() {
+        let bb = BlackboardHandle::new("task-1", "test");
+        bb.record_decision("a", "task-1", "result", "A").await.unwrap();
+        bb.record_decision("b", "task-1", "result", "A").await.unwrap();
+        bb.record_decision("c", "task-1", "result", "B").await.unwrap();
+        let consensus = bb.get_consensus("result").await;
+        assert_eq!(consensus, Some("A".to_string()));
+    }
+
+    #[tokio::test]
+    async fn harness_trait_broadcast_and_get_messages() {
+        let bb = BlackboardHandle::new("task-1", "test");
+        bb.broadcast("agent-a", "hello all").await.unwrap();
+        let msgs = bb.get_messages_for("agent-b").await;
+        assert_eq!(msgs.len(), 1);
+        assert_eq!(msgs[0].content, "hello all");
+    }
+
+    #[tokio::test]
+    async fn harness_trait_resolve_conflicts() {
+        let bb = BlackboardHandle::new("task-1", "test");
+        bb.record_decision("a", "task-1", "action", "deploy").await.unwrap();
+        bb.record_decision("b", "task-1", "action", "deploy").await.unwrap();
+        bb.record_decision("c", "task-1", "action", "rollback").await.unwrap();
+        let records = bb.resolve_conflicts().await.unwrap();
+        assert_eq!(records.len(), 1);
+    }
+
+    /// 验证 `BlackboardHandle` 可作为 `dyn SharedBlackboard` trait 对象使用(收口验证)。
+    ///
+    /// 这是收口的关键验证点:harness 层定义的 trait 可以承载 agent crate 的具体实现,
+    /// 从而允许 consumer crate(orchestrator/runtime-core/gateway)通过 trait 接口
+    /// 操控多 Agent 协作,不依赖 agent crate 的具体类型。
+    #[tokio::test]
+    async fn harness_trait_object_compatibility() {
+        // 直接通过 BlackboardHandle 调用 trait 方法(验证 trait impl 正确)
+        let bb = BlackboardHandle::new("task-1", "test");
+        bb.set_state("k", "v").await.unwrap();
+        let val = bb.get_state("k").await;
+        assert_eq!(val, Some("v".to_string()));
+
+        // 验证可作为 trait 对象使用:用 Arc<BlackboardHandle> coerce 到 Arc<dyn Trait>
+        let bb_arc: Arc<BlackboardHandle> = Arc::new(BlackboardHandle::new("task-2", "test2"));
+        let trait_obj: Arc<dyn axagent_harness::SharedBlackboard> = bb_arc;
+        trait_obj.set_state("x", "y").await.unwrap();
+        let val = trait_obj.get_state("x").await;
+        assert_eq!(val, Some("y".to_string()));
     }
 }
