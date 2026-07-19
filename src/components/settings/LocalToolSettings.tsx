@@ -19,6 +19,7 @@ import {
   Shield,
   Terminal,
   Timer,
+  TrendingUp,
   Wrench,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -42,6 +43,7 @@ const GROUP_ICONS: Record<string, React.ReactNode> = {
   "builtin-knowledge": <BookOpen size={16} />,
   "builtin-browser": <Globe size={16} />,
   "builtin-desktop": <MousePointer size={16} />,
+  "builtin-finance": <TrendingUp size={16} />,
 };
 
 function ToolItem({

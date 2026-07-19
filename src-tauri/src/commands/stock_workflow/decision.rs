@@ -1130,7 +1130,10 @@ pub async fn rerun_decision(
         })
         .ok_or_else(|| "未找到 portfolio-mgr CodeNode".to_string())?;
 
-    // 4. 执行 Rhai 脚本（与 code_executor::execute_rhai_directly 相同逻辑）
+    // 4. 执行 Rhai 脚本（复用 code_executor 的 register_common_functions，确保函数集一致）
+    // 修复历史 bug：原手动注册漏掉 json_parse，导致 portfolio-mgr.rhai 的 safe_parse 在
+    // rerun 路径下失败，进而使公告关键词检测 f3、资金面 f9、筹码面 f10、龙虎榜 f10、
+    // PACE f11 等依赖 safe_parse 的下游逻辑全部失去数据。
     let mut engine = Engine::new();
     // SECURITY (C4): Rhai 沙箱限制 — 防 DoS
     engine.set_max_operations(200_000);
@@ -1138,18 +1141,7 @@ pub async fn rerun_decision(
     engine.set_max_modules(0);
     engine.set_max_string_size(2_000_000);
     engine.set_max_array_size(50_000);
-    engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
-        if value < min {
-            min
-        } else if value > max {
-            max
-        } else {
-            value
-        }
-    });
-    engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-        arr.iter().map(|item| item.to_string()).collect::<Vec<_>>().join(sep)
-    });
+    axagent_rt_workflow::work_engine::executors::register_common_functions(&mut engine);
     let mut scope = Scope::new();
 
     // 简化版 resolve_var_path：导航 JSON 嵌套（支持 JSON 字符串自动解析）

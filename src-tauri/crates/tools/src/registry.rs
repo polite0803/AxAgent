@@ -784,6 +784,10 @@ impl UnifiedToolRegistry {
             ("builtin-knowledge", "知识库"),
             ("builtin-browser", "浏览器"),
             ("builtin-desktop", "桌面控制"),
+            // AxInvest 专属：金融计算工具组（ToolCategory::Finance 通过 default_group() 返回 "builtin-finance"）。
+            // 历史遗漏：harness/tool.rs 已定义 Finance 分组，但未在此处注册显示名，
+            // 导致前端工具组管理页面看不到该组的显示名映射，用户无法在 UI 上单独禁用金融计算工具组。
+            ("builtin-finance", "金融计算"),
         ];
         for (gid, gname) in &default_groups {
             self.groups.group_names.entry(gid.to_string()).or_insert_with(|| gname.to_string());
