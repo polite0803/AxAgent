@@ -607,7 +607,11 @@ pub async fn extract_expert_structure(
     })?;
     let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| {
-        ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
+        // C-4: 动态错误信息走 params（前端按 t("error.EXPERT_KEY_DECRYPT_FAILED", { error }) 插值），
+        // detail 保留同样的内容作为翻译未命中时的回退
+        ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED)
+            .with_param("error", e.to_string())
+            .with_detail(e.to_string())
     })?;
 
     let registry_key = axagent_harness::types::provider_model::provider_registry_key(
@@ -707,10 +711,12 @@ pub async fn extract_expert_structure(
         response_format: None,
     };
 
-    let response = adapter
-        .chat(&ctx, chat_request.into())
-        .await
-        .map_err(|e| ErrorResponse::new(expert_err::LLM_CALL_FAILED).with_detail(e.to_string()))?;
+    let response = adapter.chat(&ctx, chat_request.into()).await.map_err(|e| {
+        // C-4: 动态错误信息走 params（前端按 t("error.EXPERT_LLM_CALL_FAILED", { error }) 插值）
+        ErrorResponse::new(expert_err::LLM_CALL_FAILED)
+            .with_param("error", e.to_string())
+            .with_detail(e.to_string())
+    })?;
 
     let extracted = extract_json_from_text(&response.content).map_err(|e| {
         let preview = &response.content[..200.min(response.content.len())];

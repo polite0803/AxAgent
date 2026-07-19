@@ -28,6 +28,7 @@ pub fn start_background_services(
     start_user_profile_persistence(state);
     start_skill_evolution(state);
     start_dream_consolidation(state);
+    start_dream_task_executor(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
     start_cron_scheduler(state);
@@ -1070,6 +1071,54 @@ fn start_memory_decay_tick(state: &AppState) {
             if evicted > 0 {
                 tracing::info!("[memory_decay] Evicted {} expired/decayed memories", evicted);
             }
+        }
+    });
+}
+
+/// DreamTask 全量清理定时任务
+///
+/// 每 60 分钟执行一次 FullCleanup，涵盖：
+/// - 轨迹整合（consolidator，与 start_dream_consolidation 共享实例，内部有门控）
+/// - 记忆压缩（auto_memory_extractor + FTS5 optimize）
+/// - 技能更新（skill_evolution_engine，与 start_skill_evolution 共享实例）
+/// - 僵尸 SubAgent 清理（sub_agent_registry）
+/// - FTS5 索引优化（optimize + vacuum）
+///
+/// 与 start_dream_consolidation 的关系：
+/// - start_dream_consolidation 30 分钟一次，仅做轨迹巩固（轻量）
+/// - start_dream_task_executor 60 分钟一次，做全量清理（重量）
+///
+/// 两者共享 DreamConsolidator 实例，consolidator 内部 should_consolidate 门控
+/// 会避免重复执行实际的巩固操作。
+fn start_dream_task_executor(state: &AppState) {
+    // 组装 DreamTaskContext（所有依赖均为 AppState 中的 Arc 克隆）
+    let ctx = axagent_runtime::tasks::dream_task::DreamTaskContext {
+        consolidator: Some(state.dream_consolidator.clone()),
+        trajectory_storage: Some(state.trajectory_storage.clone()),
+        skill_evolution_engine: Some(state.skill_evolution_engine.clone()),
+        auto_memory_extractor: Some(state.auto_memory_extractor.clone()),
+        sub_agent_registry: Some(state.sub_agent_registry.clone()),
+    };
+
+    tauri::async_runtime::spawn(async move {
+        // 启动后延迟 10 分钟首次执行，避免与启动期间的其它密集任务冲突
+        let initial_delay = std::time::Duration::from_secs(10 * 60);
+        tokio::time::sleep(initial_delay).await;
+
+        let interval = std::time::Duration::from_secs(60 * 60);
+        loop {
+            let task = axagent_runtime::tasks::dream_task::DreamTask::on_session_end();
+            tracing::info!("[dream_task_executor] 触发全量清理 (scope={:?})", task.scope);
+            let result =
+                axagent_runtime::tasks::dream_task::DreamTaskExecutor::execute(&task, &ctx).await;
+            if !result.errors.is_empty() {
+                tracing::warn!(
+                    "[dream_task_executor] 本次执行有 {} 个子任务跳过/失败: {:?}",
+                    result.errors.len(),
+                    result.errors
+                );
+            }
+            tokio::time::sleep(interval).await;
         }
     });
 }

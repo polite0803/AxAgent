@@ -254,8 +254,7 @@ pub async fn regenerate_message(
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
     // 从数据库加载全局禁用工具列表（与 agent 模式 load_enabled_state 一致）
-    // TODO: group_enabled 过滤需要 tool_registry.load_enabled_state(db)，
-    // streaming 流程中未创建 tool_registry，暂不实现组级别过滤。
+    // B-3: 补齐 group_enabled 工具组级别过滤，streaming 流程中通过辅助函数回退实现
     let disabled_tools_set: std::collections::HashSet<String> =
         axagent_harness::repositories::settings_repository()
             .get_setting("disabled_tools")
@@ -265,11 +264,18 @@ pub async fn regenerate_message(
             .and_then(|v| serde_json::from_str::<Vec<String>>(&v).ok())
             .map(|v| v.into_iter().collect())
             .unwrap_or_default();
+    let group_enabled = super::super::super::load_tool_groups_enabled().await;
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
         let mut all_tools = Vec::new();
-        if has_search_provider {
+        if has_search_provider
+            && super::super::super::is_builtin_tool_enabled(
+                "web_search",
+                &disabled_tools_set,
+                &group_enabled,
+            )
+        {
             all_tools.push(ChatTool {
                 r#type: "function".to_string(),
                 function: ChatToolFunction {
@@ -311,8 +317,9 @@ pub async fn regenerate_message(
             ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
-            // 过滤被禁用的内置工具
-            if disabled_tools_set.contains(*name) {
+            // B-3: 双层过滤 —— disabled_tools + group_enabled
+            if !super::super::super::is_builtin_tool_enabled(name, &disabled_tools_set, &group_enabled)
+            {
                 continue;
             }
             all_tools.push(ChatTool {
@@ -678,8 +685,7 @@ pub async fn regenerate_with_model(
             .map(|providers| providers.iter().any(|p| p.enabled))
             .unwrap_or(false);
     // 从数据库加载全局禁用工具列表（与 agent 模式 load_enabled_state 一致）
-    // TODO: group_enabled 过滤需要 tool_registry.load_enabled_state(db)，
-    // streaming 流程中未创建 tool_registry，暂不实现组级别过滤。
+    // B-3: 补齐 group_enabled 工具组级别过滤，streaming 流程中通过辅助函数回退实现
     let disabled_tools_set: std::collections::HashSet<String> =
         axagent_harness::repositories::settings_repository()
             .get_setting("disabled_tools")
@@ -689,11 +695,18 @@ pub async fn regenerate_with_model(
             .and_then(|v| serde_json::from_str::<Vec<String>>(&v).ok())
             .map(|v| v.into_iter().collect())
             .unwrap_or_default();
+    let group_enabled = super::super::super::load_tool_groups_enabled().await;
     let tools: Option<Vec<ChatTool>> = if mcp_ids.is_empty() && !has_search_provider {
         None
     } else {
         let mut all_tools = Vec::new();
-        if has_search_provider {
+        if has_search_provider
+            && super::super::super::is_builtin_tool_enabled(
+                "web_search",
+                &disabled_tools_set,
+                &group_enabled,
+            )
+        {
             all_tools.push(ChatTool {
                 r#type: "function".to_string(),
                 function: ChatToolFunction {
@@ -735,8 +748,9 @@ pub async fn regenerate_with_model(
             ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
-            // 过滤被禁用的内置工具
-            if disabled_tools_set.contains(*name) {
+            // B-3: 双层过滤 —— disabled_tools + group_enabled
+            if !super::super::super::is_builtin_tool_enabled(name, &disabled_tools_set, &group_enabled)
+            {
                 continue;
             }
             all_tools.push(ChatTool {

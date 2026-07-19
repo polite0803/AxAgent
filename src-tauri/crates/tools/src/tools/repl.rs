@@ -117,7 +117,11 @@ impl Tool for REPLTool {
                 }),
             }
         } else {
-            unreachable!()
+            // C-8: rust 分支已在上方 match 中提前 return，理论不可达；
+            // 改为返回错误而非 unreachable!()，防止不变量被破坏时 panic
+            Err(ToolError::execution_failed(
+                "internal error: rust branch should have returned earlier".to_string(),
+            ))
         }
     }
 }

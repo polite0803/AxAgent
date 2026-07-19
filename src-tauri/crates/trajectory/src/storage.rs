@@ -1365,6 +1365,16 @@ impl TrajectoryStorage {
             Ok(())
         }
     }
+
+    /// 对 FTS5 索引执行 VACUUM，回收已删除记录占用的磁盘空间。
+    /// 与 `optimize_fts`（合并 segments）互补，通常在 cleanup 后调用。
+    pub async fn vacuum_fts(&self) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.vacuum().await
+        } else {
+            Ok(())
+        }
+    }
 }
 
 // ── Model conversion helpers ──

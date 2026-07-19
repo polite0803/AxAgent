@@ -157,6 +157,114 @@ pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Res
     })
 }
 
+/// 删除 wiki source 记录，并清理 notes.source_refs 中的失效引用。
+///
+/// 设计说明：
+/// - source 删除后，notes.source_refs 中残留的 source_id 会导致引用失效，
+///   因此需要扫描该 wiki 下所有 notes，从 source_refs 中移除该 source_id。
+/// - note 本身保留（内容仍可查看），向量也保留（仍可检索）。
+/// - 若 note 的 source_refs 仅包含该 source_id，则 note 仍保留（避免误删用户内容）。
+/// - wiki_pages.source_ids 是编译产物，下次重新编译会自动更新，此处不清理。
+#[tauri::command]
+pub async fn llm_wiki_delete_source(
+    state: State<'_, AppState>,
+    source_id: String,
+) -> Result<(), String> {
+    let db = state.harness.db();
+
+    // 1. 查询 source 获取 wiki_id（用于扫描 notes）
+    let source = axagent_entities::wiki_sources::Entity::find_by_id(&source_id)
+        .one(db)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
+        .ok_or_else(|| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                axagent_harness::core_error::AxAgentError::NotFound(format!(
+                    "WikiSource {}",
+                    source_id
+                )),
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
+    let wiki_id = source.wiki_id.clone();
+
+    // 2. 删除 source 表记录
+    let deleted = axagent_entities::wiki_sources::Entity::delete_by_id(&source_id)
+        .exec(db)
+        .await
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    if deleted.rows_affected == 0 {
+        return Ok(());
+    }
+
+    // 3. 扫描该 wiki 下所有 notes，从 source_refs 中移除该 source_id
+    let notes = axagent_dao::repo::note::list_notes(db, &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let mut cleaned_count = 0usize;
+    for note in notes {
+        if let Some(ref refs) = note.source_refs {
+            if refs.contains(&source_id) {
+                let new_refs: Vec<String> =
+                    refs.iter().filter(|r| *r != &source_id).cloned().collect();
+                let new_refs_json: serde_json::Value = if new_refs.is_empty() {
+                    serde_json::Value::Null
+                } else {
+                    serde_json::to_value(&new_refs).unwrap_or(serde_json::Value::Null)
+                };
+
+                // 局部更新：仅修改 source_refs 和 updated_at，避免全字段回写
+                axagent_entities::notes::Entity::update_many()
+                    .col_expr(
+                        axagent_entities::notes::Column::SourceRefs,
+                        sea_orm::sea_query::Expr::value(new_refs_json),
+                    )
+                    .col_expr(
+                        axagent_entities::notes::Column::UpdatedAt,
+                        sea_orm::sea_query::Expr::value(chrono::Utc::now().timestamp()),
+                    )
+                    .filter(axagent_entities::notes::Column::Id.eq(&note.id))
+                    .exec(db)
+                    .await
+                    .map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?;
+                cleaned_count += 1;
+            }
+        }
+    }
+
+    if cleaned_count > 0 {
+        tracing::info!(
+            "Deleted wiki source {} and cleaned {} notes' source_refs",
+            source_id,
+            cleaned_count
+        );
+    } else {
+        tracing::info!("Deleted wiki source {} (no notes referenced it)", source_id);
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn llm_wiki_operations_list(
     state: State<'_, AppState>,
@@ -1222,7 +1330,12 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
                     crate::commands::error::ErrorCategory::Unrecoverable,
                 ))
             })?;
-            Err(e.to_string())
+            // C-3: 迁移到 ErrorResponse，保留原始错误信息用于调试
+            Err(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            )
+            .to_string())
         },
     }
 }

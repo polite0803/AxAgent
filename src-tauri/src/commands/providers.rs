@@ -294,7 +294,12 @@ pub async fn validate_provider_key(
                 false,
             )
             .await;
-            return Err(e.to_string());
+            // C-3: 迁移到 ErrorResponse，保留 Retryable 分类便于前端引导重试
+            return Err(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Retryable,
+            )
+            .to_string());
         },
     };
     // Update validation timestamp

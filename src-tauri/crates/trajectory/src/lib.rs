@@ -191,7 +191,7 @@ pub use style_extractor::{
 
 pub use style_vectorizer::{CodeSample, MessageSample, StyleVectorizer};
 
-pub use sub_agent::SubAgentRegistry;
+pub use sub_agent::{SubAgent, SubAgentMetadata, SubAgentRegistry, SubAgentStatus};
 
 pub use suggestion_engine::SuggestionEngine;
 

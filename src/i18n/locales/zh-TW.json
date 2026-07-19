@@ -242,11 +242,11 @@
       "pending": "等待",
       "running": "運行"
     },
-    "summary": "[TODO] Agent Pool ({completed}/{total})",
+    "summary": "Agent 池 ({completed}/{total})",
     "type": {
-      "step": "[TODO] Step",
-      "subAgent": "[TODO] Sub-Agent",
-      "worker": "[TODO] Worker"
+      "step": "步驟",
+      "subAgent": "子 Agent",
+      "worker": "工作器"
     },
     "viewSubSession": "查看子會話"
   },
@@ -306,12 +306,12 @@
     "quickBar": "QuickBar"
   },
   "appHeader": {
-    "closeAgentPanel": "[TODO] Close Agent Panel",
+    "closeAgentPanel": "關閉 Agent 面板",
     "dashboardContext": "系統運行狀態總覽",
     "filesContext": "檔案",
     "gatewayContext": "閘道",
     "knowledgeContext": "知識",
-    "openAgentPanel": "[TODO] Open Agent Panel",
+    "openAgentPanel": "開啟 Agent 面板",
     "terminalContext": "終端",
     "agentPanel": "Agent Panel"
   },
@@ -1329,7 +1329,7 @@
     "denied": "已拒絕",
     "deny": "拒絕",
     "description": "說明",
-    "details": "[TODO] Details",
+    "details": "詳情",
     "disabled": "已停用",
     "dismiss": "忽略",
     "download": "下載",
@@ -1914,8 +1914,8 @@
     "DESKTOP_NATIVE_NOTIFICATION_FAILED": "桌面通知傳送失敗",
     "EXPERT_DELETE_FAILED": "刪除專家失敗",
     "EXPERT_JSON_PARSE_FAILED": "專家 JSON 解析失敗",
-    "EXPERT_KEY_DECRYPT_FAILED": "專家金鑰解密失敗",
-    "EXPERT_LLM_CALL_FAILED": "專家 LLM 呼叫失敗",
+    "EXPERT_KEY_DECRYPT_FAILED": "專家金鑰解密失敗：{{error}}",
+    "EXPERT_LLM_CALL_FAILED": "專家 LLM 呼叫失敗：{{error}}",
     "EXPERT_LOAD_SETTINGS_FAILED": "載入專家設定失敗",
     "EXPERT_NOT_FOUND": "專家不存在",
     "EXPERT_NO_ACTIVE_KEY": "無活躍的專家金鑰",
@@ -1928,7 +1928,7 @@
     "EXPERT_UPDATE_FAILED": "更新專家失敗",
     "EXPERT_VENDOR_NOT_FOUND": "專家供應商未找到",
     "FILE_AND_PARENT_NOT_EXIST": "檔案及父目錄不存在",
-    "FILE_NOT_FOUND": "檔案不存在",
+    "FILE_NOT_FOUND": "檔案不存在：{{error}}",
     "FILE_PATH_EMPTY": "檔案路徑為空",
     "GATEWAY_ALREADY_RUNNING": "閘道已在執行",
     "GATEWAY_HTTP_UNAVAILABLE": "閘道 HTTP 服務不可用",
@@ -1937,7 +1937,7 @@
     "GATEWAY_SSL_NO_CERT": "缺少 SSL 憑證",
     "GATEWAY_SSL_NO_KEY": "缺少 SSL 金鑰",
     "GATEWAY_TEMPLATE_NOT_FOUND": "閘道模板未找到",
-    "MCP_CONNECT_FAILED": "MCP 連線失敗",
+    "MCP_CONNECT_FAILED": "MCP 連線失敗：{{error}}",
     "MCP_SERVER_CONFIG_FAILED": "MCP 伺服器設定失敗",
     "MCP_SERVER_CREATE_FAILED": "建立 MCP 伺服器失敗",
     "MCP_SERVER_DELETE_FAILED": "刪除 MCP 伺服器失敗",
@@ -2091,40 +2091,40 @@
   "evolution": {
     "engines": {
       "auto_tool_creator": {
-        "desc": "[TODO] Learns from frequent execution patterns and automatically creates new reusable tools",
-        "name": "[TODO] Auto Tool Creator"
+        "desc": "從頻繁執行模式中學習，自動建立新的可重用工具",
+        "name": "自動工具建立器"
       },
       "coevolution": {
-        "desc": "[TODO] Multi-agent coevolution environment that promotes cross-agent knowledge sharing and competition",
-        "name": "[TODO] Coevolution Environment"
+        "desc": "多 Agent 協同進化環境，促進跨 Agent 的知識共享與競爭",
+        "name": "協同進化環境"
       },
       "constitution": {
-        "desc": "[TODO] Rules system that constrains agent behavior to ensure safety and compliance",
-        "name": "[TODO] Constitution Engine"
+        "desc": "約束 Agent 行為的規則系統，確保安全合規",
+        "name": "憲法規則引擎"
       },
       "dream_consolidator": {
-        "desc": "[TODO] Memory consolidation mechanism analogous to human REM sleep, optimizing knowledge representation offline",
-        "name": "[TODO] Dream Consolidator"
+        "desc": "類似人類 REM 睡眠的記憶鞏固機制，離線最佳化知識表示",
+        "name": "夢境鞏固器"
       },
       "intrinsic_motivation": {
-        "desc": "[TODO] Self-driven learning system that simulates human curiosity-driven exploration behavior",
-        "name": "[TODO] Intrinsic Motivation System"
+        "desc": "自主驅動學習系統，模擬人類好奇心驅動的探索行為",
+        "name": "內在動機系統"
       },
       "process_reward": {
-        "desc": "[TODO] Evaluates intermediate step quality rather than only final results, providing fine-grained feedback signals",
-        "name": "[TODO] Process Reward Model"
+        "desc": "評估中間步驟品質而非僅最終結果，提供細粒度回饋信號",
+        "name": "過程獎勵模型"
       },
       "sandbox": {
-        "desc": "[TODO] Securely executes untrusted code in an isolated environment to prevent system damage",
-        "name": "[TODO] Sandbox Executor"
+        "desc": "安全執行不受信任的程式碼，隔離執行環境防止系統損害",
+        "name": "沙箱執行器"
       },
       "skill_evolution": {
-        "desc": "[TODO] Automatically evolves skill prompts and tool-calling strategies based on execution feedback",
-        "name": "[TODO] Skill Evolution Engine"
+        "desc": "自動進化技能提示詞和工具呼叫策略，基於執行回饋持續最佳化",
+        "name": "技能進化引擎"
       },
       "text_grad": {
-        "desc": "[TODO] Textual gradient optimization engine, analogous to gradient descent but for text prompt optimization",
-        "name": "[TODO] TextGrad Optimizer"
+        "desc": "文字梯度最佳化引擎，類似梯度下降但用於文字提示詞最佳化",
+        "name": "TextGrad 最佳化"
       }
     }
   },
@@ -2922,7 +2922,7 @@
     }
   },
   "promptTemplate": {
-    "unnamed": "[TODO] Unnamed"
+    "unnamed": "未命名"
   },
   "promptTemplates": {
     "abTest": "A/B 測試",
@@ -3244,14 +3244,14 @@
     "checkpoints": {
       "action": "操作",
       "delete": "刪除",
-      "empty": "[TODO] No checkpoints",
+      "empty": "暫無檢查點",
       "load": "載入",
       "loss": "損失",
       "name": "檢查點名稱",
-      "namePlaceholder": "[TODO] Enter checkpoint name...",
+      "namePlaceholder": "輸入檢查點名稱...",
       "reward": "獎勵",
       "save": "儲存",
-      "saveModal": "[TODO] Save Checkpoint",
+      "saveModal": "儲存檢查點",
       "step": "步數",
       "time": "時間",
       "title": "檢查點"
@@ -3265,7 +3265,7 @@
     },
     "monitor": {
       "currentStep": "目前步數",
-      "idle": "[TODO] Training not started. Configure and start training.",
+      "idle": "訓練未開始，請先設定並啟動訓練。",
       "insufficientData": "資料不足",
       "loss": "損失",
       "lossCurve": "損失曲線",
@@ -3275,12 +3275,12 @@
       "error": "監控錯誤"
     },
     "panel": {
-      "checkpoints": "[TODO] Checkpoints",
-      "config": "[TODO] Config",
-      "monitor": "[TODO] Monitor",
-      "start": "[TODO] Start Training",
-      "stop": "[TODO] Stop Training",
-      "title": "[TODO] RL Training Panel"
+      "checkpoints": "檢查點",
+      "config": "設定",
+      "monitor": "監控",
+      "start": "啟動訓練",
+      "stop": "停止訓練",
+      "title": "RL 訓練面板"
     },
     "status": {
       "completed": "已完成",
@@ -3312,7 +3312,7 @@
     "success": "成功"
   },
   "sdk": {
-    "acpRequestFailed": "[TODO] ACP request failed: {{message}}"
+    "acpRequestFailed": "ACP 請求失敗: {{message}}"
   },
   "search": {
     "caseSensitive": "區分大小寫",
@@ -3623,25 +3623,25 @@
     "enabledProviders": "已啟用的服務商",
     "endpointFormat": "端點格式",
     "evolution": {
-      "categoryCore": "[TODO] Core",
-      "categoryExperimental": "[TODO] Experimental",
-      "categoryLearning": "[TODO] Learning",
-      "categorySafety": "[TODO] Safety",
-      "config": "[TODO] Config",
-      "engineCount": "[TODO] Running",
-      "engineNotFound": "[TODO] Engine Not Found",
-      "engineNotFoundDesc": "[TODO] Engine \"{{name}}\" not found",
-      "logs": "[TODO] Logs",
-      "noLogs": "[TODO] No logs yet",
-      "refresh": "[TODO] Refresh Status",
-      "running": "[TODO] Running",
-      "saveConfig": "[TODO] Save Config",
-      "start": "[TODO] Start",
-      "startAll": "[TODO] Start All",
-      "stats": "[TODO] Stats",
-      "stop": "[TODO] Stop",
-      "stopAll": "[TODO] Stop All",
-      "stopped": "[TODO] Stopped"
+      "categoryCore": "核心",
+      "categoryExperimental": "實驗",
+      "categoryLearning": "學習",
+      "categorySafety": "安全",
+      "config": "設定",
+      "engineCount": "執行中",
+      "engineNotFound": "引擎未找到",
+      "engineNotFoundDesc": "未找到引擎 \"{{name}}\"",
+      "logs": "日誌",
+      "noLogs": "暫無日誌",
+      "refresh": "重新整理狀態",
+      "running": "執行中",
+      "saveConfig": "儲存設定",
+      "start": "啟動",
+      "startAll": "全部啟動",
+      "stats": "統計",
+      "stop": "停止",
+      "stopAll": "全部停止",
+      "stopped": "已停止"
     },
     "exitFullscreen": "退出全螢幕",
     "expandAll": "展開所有",
@@ -4290,10 +4290,10 @@
       "importFailed": "匯入失敗：{{error}}",
       "importSkill": "匯入",
       "imported": "已匯入 {{name}}",
-      "invalidSkillFile": "[TODO] Invalid skill file: missing name",
+      "invalidSkillFile": "無效的技能檔案：缺少名稱",
       "mySkills": "我的技能",
       "mySkillsDescription": "管理已安裝的技能",
-      "noSkillsToExport": "[TODO] No installed skills to export",
+      "noSkillsToExport": "沒有可匯出的技能",
       "title": "技能中心"
     },
     "startTest": "開始測試",
@@ -4529,10 +4529,10 @@
     "wechatWindows": "微信 Windows"
   },
   "sidebar": {
-    "closeAgent": "[TODO] Close Agent",
+    "closeAgent": "關閉 Agent",
     "collapse": "收起側邊欄",
     "expand": "展開側邊欄",
-    "openAgent": "[TODO] Open Agent",
+    "openAgent": "開啟 Agent",
     "sectionInfrastructure": "基礎設施",
     "sectionOverview": "概覽",
     "sectionTools": "工具",
@@ -4540,17 +4540,17 @@
   },
   "skill": {
     "abTest": {
-      "change": "[TODO] Change",
-      "conclusion": "[TODO] Conclusion: Version A won {{winCountA}} items, Version B won {{winCountB}} items.",
-      "metric": "[TODO] Metric",
-      "noData": "[TODO] No A/B test data yet",
-      "noDifference": "[TODO]  No significant difference between the two versions.",
-      "recommendA": "[TODO]  Recommended to adopt Version A.",
-      "recommendB": "[TODO]  Recommended to adopt Version B.",
-      "tie": "[TODO] Tie",
-      "versionA": "[TODO] Version A",
-      "versionB": "[TODO] Version B",
-      "winner": "[TODO] Winner"
+      "change": "變化",
+      "conclusion": "結論：版本 A 勝出 {{winCountA}} 項，版本 B 勝出 {{winCountB}} 項。",
+      "metric": "指標",
+      "noData": "暫無 A/B 測試資料",
+      "noDifference": "  兩個版本無明顯差異。",
+      "recommendA": "  推薦採用版本 A。",
+      "recommendB": "  推薦採用版本 B。",
+      "tie": "平手",
+      "versionA": "版本 A",
+      "versionB": "版本 B",
+      "winner": "勝出"
     },
     "addFrontend": "Add Frontend",
     "agentGenerated": "智能體生成",
@@ -4577,18 +4577,18 @@
     "editTitle": "編輯技能",
     "entryFileEmpty": "入口文件 \"{{entry}}\" 為空或不存在",
     "evolution": {
-      "abTestResults": "[TODO] A/B Test Results",
-      "confirmRollback": "[TODO] Confirm Rollback",
-      "currentVersion": "[TODO] Current Version",
-      "latestEvolution": "[TODO] Latest Evolution",
-      "newVersion": "[TODO] New (v{{version}})",
-      "noHistory": "[TODO] This skill has no evolution history yet",
-      "none": "[TODO] None",
-      "oldVersion": "[TODO] Old (v{{version}})",
-      "rollback": "[TODO] Rollback",
-      "rollbackConfirmMessage": "[TODO] Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version.",
-      "totalEvolutions": "[TODO] Total Evolutions",
-      "viewDiff": "[TODO] View Diff"
+      "abTestResults": "A/B 測試結果",
+      "confirmRollback": "確認回滾",
+      "currentVersion": "目前版本",
+      "latestEvolution": "最近進化",
+      "newVersion": "新版 (v{{version}})",
+      "noHistory": "該技能暫無進化歷史",
+      "none": "無",
+      "oldVersion": "舊版 (v{{version}})",
+      "rollback": "回滾",
+      "rollbackConfirmMessage": "確定要回滾到 v{{version}} 嗎？此操作將丟棄之後的所有進化變更。",
+      "totalEvolutions": "總進化次數",
+      "viewDiff": "檢視 Diff"
     },
     "exportFailed": "導出失敗",
     "exportPublishable": "Export Publishable",
@@ -5016,44 +5016,44 @@
   "trace": {
     "bottleneck": {
       "count": "次數",
-      "empty": "[TODO] No bottleneck data",
-      "error": "[TODO] Analysis failed",
-      "failurePatterns": "[TODO] Failure Patterns",
+      "empty": "暫無瓶頸資料",
+      "error": "分析失敗",
+      "failurePatterns": "失敗模式",
       "failureReason": "失敗原因",
-      "loading": "[TODO] Loading bottleneck analysis...",
+      "loading": "載入瓶頸分析...",
       "percentage": "佔比",
-      "timeDistribution": "[TODO] Time Distribution",
-      "tokenConsumption": "[TODO] Token Consumption"
+      "timeDistribution": "時間分布",
+      "tokenConsumption": "Token 消耗"
     },
     "duration": "耗時",
-    "empty": "[TODO] No execution trace data",
-    "error": "[TODO] Load failed",
-    "errors": "[TODO] Errors",
+    "empty": "未找到執行軌跡資料",
+    "error": "載入失敗",
+    "errors": "錯誤",
     "feedback": {
-      "commentPlaceholder": "[TODO] Describe the issue to help us improve...",
-      "error": "[TODO] Submit failed",
-      "errorRetry": "[TODO] Please retry later",
-      "helpful": "[TODO] Helpful",
-      "notHelpful": "[TODO] Not Helpful",
-      "question": "[TODO] Was this execution helpful?",
-      "received": "[TODO] Your feedback has been submitted and will be used to improve Agent execution.",
-      "submit": "[TODO] Submit Feedback",
-      "submitted": "[TODO] Feedback submitted",
-      "thanks": "[TODO] Thank you for your feedback"
+      "commentPlaceholder": "請描述具體問題，幫助我們改進...",
+      "error": "提交失敗",
+      "errorRetry": "請稍後重試",
+      "helpful": "有幫助",
+      "notHelpful": "不滿意",
+      "question": "這次執行對您有幫助嗎？",
+      "received": "您的回饋已提交，將用於最佳化 Agent 執行策略。",
+      "submit": "提交回饋",
+      "submitted": "回饋已提交",
+      "thanks": "感謝回饋"
     },
     "improvement": {
-      "applied": "[TODO] Improvement applied",
-      "apply": "[TODO] Apply Improvement",
-      "error": "[TODO] Generation failed",
-      "loading": "[TODO] Generating improvement suggestions...",
-      "noSuggestions": "[TODO] No improvement suggestions",
-      "problem": "[TODO] Problem",
-      "suggestion": "[TODO] Suggestion"
+      "applied": "改進已套用",
+      "apply": "套用改進",
+      "error": "生成失敗",
+      "loading": "生成改進建議...",
+      "noSuggestions": "暫無改進建議",
+      "problem": "問題",
+      "suggestion": "建議"
     },
-    "loading": "[TODO] Loading execution trace...",
-    "totalDuration": "[TODO] Total Duration",
-    "totalSteps": "[TODO] Total Steps",
-    "totalTokens": "[TODO] Total Tokens",
+    "loading": "載入執行軌跡...",
+    "totalDuration": "總耗時",
+    "totalSteps": "總步驟",
+    "totalTokens": "總 Token",
     "type": {
       "error": "錯誤",
       "thinking": "思考",
@@ -5065,11 +5065,11 @@
   "traceExplorer": {
     "selectTrace": "選擇一個 trace 查看詳情",
     "tab": {
-      "bottleneck": "[TODO] Bottleneck Analysis",
-      "detail": "[TODO] Details",
-      "feedback": "[TODO] Feedback",
-      "suggestions": "[TODO] Suggestions",
-      "timeline": "[TODO] Timeline"
+      "bottleneck": "瓶頸分析",
+      "detail": "詳情",
+      "feedback": "回饋",
+      "suggestions": "改進建議",
+      "timeline": "時間軸"
     }
   },
   "trainingJob": {
@@ -5267,7 +5267,10 @@
       "web": "網頁"
     },
     "ingestSource": {
-      "deleteNotImplemented": "刪除功能尚未實作",
+      "deleteConfirmContent": "將刪除源「{{title}}」及其記錄。關聯筆記內容將保留，但 source_refs 引用會被清理。",
+      "deleteConfirmTitle": "確認刪除源",
+      "deleteFailed": "刪除失敗",
+      "deleteSuccess": "已刪除源",
       "path": "路徑",
       "title": "標題",
       "type": "類型",
@@ -5671,7 +5674,7 @@
     },
     "decompositionSaved": "分解已保存",
     "decorativeContainerNoEdges": "裝飾性容器不能有連入或連出的邊",
-    "defaultWorkflowName": "[TODO] New Workflow",
+    "defaultWorkflowName": "新建工作流",
     "delayNode": {
       "minute": "分鐘",
       "minutes": "分鐘",
@@ -5936,7 +5939,7 @@
     },
     "dragToStart": "拖曳以開始",
     "duplicateFailed": "複製失敗",
-    "duplicateSuffix": "[TODO] {{name}} (copy)",
+    "duplicateSuffix": "{{name}} (副本)",
     "durationMinutes": "{{minutes}} min",
     "durationSeconds": "{{seconds}} sec",
     "edgeAlreadyExists": "該連線已存在",
@@ -5973,9 +5976,9 @@
       "viewDiff": "檢視差異"
     },
     "execution": {
-      "nodeCompleted": "[TODO] Node completed: {{label}}",
-      "startingNode": "[TODO] Starting node: {{label}}",
-      "success": "[TODO] Execution succeeded"
+      "nodeCompleted": "節點執行完成: {{label}}",
+      "startingNode": "開始執行節點: {{label}}",
+      "success": "執行成功"
     },
     "executor": {
       "close": "關閉",
@@ -6007,7 +6010,7 @@
     "exportSuccess": "匯出成功",
     "exportTemplate": "匯出範本",
     "exportTemplateIdPlaceholder": "輸入模板 ID",
-    "fromTemplate": "[TODO] {{name}} (from template)",
+    "fromTemplate": "{{name}} (來自範本)",
     "generatedSkill": "生成的技能",
     "generatingUpgrade": "正在生成升級",
     "groupNode": {
@@ -6434,12 +6437,12 @@
     },
     "paramKey": "參數鍵",
     "parse": {
-      "analyzingIntent": "[TODO] Analyzing intent...",
-      "buildingWorkflow": "[TODO] Building workflow...",
-      "complete": "[TODO] Complete",
-      "intentAnalysis": "[TODO] Intent Analysis",
-      "matchingNodes": "[TODO] Matching nodes...",
-      "optimizing": "[TODO] Optimizing..."
+      "analyzingIntent": "正在分析意圖...",
+      "buildingWorkflow": "正在建構工作流...",
+      "complete": "完成",
+      "intentAnalysis": "意圖分析",
+      "matchingNodes": "正在匹配節點...",
+      "optimizing": "正在最佳化..."
     },
     "pasteJsonData": "粘貼 JSON 數據",
     "pasteJsonPlaceholder": "粘貼 JSON 數據...",

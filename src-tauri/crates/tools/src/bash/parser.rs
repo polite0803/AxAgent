@@ -223,11 +223,17 @@ fn parse_tokens(tokens: &[Token]) -> Result<ParsedCommand, String> {
                 break; // 后面的视为独立命令
             },
             Token::RedirectOut | Token::RedirectAppend | Token::RedirectIn => {
+                // C-8: 用返回错误替代 unreachable!() —— 外层 match 已保证 token 类型，
+                // _ 分支仅为满足编译器穷尽性检查，运行时不可达
                 let kind = match &tokens[i] {
                     Token::RedirectOut => RedirectKind::Output,
                     Token::RedirectAppend => RedirectKind::Append,
                     Token::RedirectIn => RedirectKind::Input,
-                    _ => unreachable!(),
+                    _ => {
+                        return Err(format!(
+                            "internal error: unexpected redirect token at index {i}"
+                        ));
+                    },
                 };
                 if i + 1 < tokens.len()
                     && let Token::Word(target) = &tokens[i + 1]

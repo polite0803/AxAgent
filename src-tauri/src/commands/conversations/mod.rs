@@ -227,6 +227,56 @@ pub(crate) struct CompressContext<'a> {
     master_key: &'a [u8; 32],
 }
 
+/// 内置工具名 → 组 ID 的映射（与 `crates/tools/src/registry.rs::enabled_tool_names`
+/// 中 `ToolCategory::default_group()` 保持一致）。
+///
+/// 用于 streaming 流程中无法访问 `UnifiedToolRegistry` 时的组级别过滤回退。
+/// 未列出的工具名返回 `None`，调用方视为默认启用。
+pub(crate) fn builtin_tool_group_id(tool_name: &str) -> Option<&'static str> {
+    match tool_name {
+        // builtin-file-read
+        "FileRead" | "Glob" | "Grep" | "ListDirectory" => Some("builtin-file-read"),
+        // builtin-file-write
+        "FileWrite" | "FileEdit" | "DeleteFile" => Some("builtin-file-write"),
+        // builtin-shell
+        "Bash" => Some("builtin-shell"),
+        // builtin-network（web_search 是 streaming 流程中注入的别名，归类同组）
+        "WebFetch" | "WebSearch" | "web_search" => Some("builtin-network"),
+        // builtin-system-tools
+        "TaskCreate" | "TaskList" | "TaskUpdate" | "TodoWrite" => Some("builtin-system-tools"),
+        // builtin-agent
+        "Skill" | "DiscoverSkills" | "Agent" | "EnterPlanMode" => Some("builtin-agent"),
+        _ => None,
+    }
+}
+
+/// 从数据库加载工具组启用状态（与 `UnifiedToolRegistry::load_enabled_state` 读取
+/// `tool_groups_enabled` 一致）。streaming 流程中未创建 tool_registry，故用此辅助函数
+/// 做组级别过滤的回退实现。
+pub(crate) async fn load_tool_groups_enabled() -> std::collections::HashMap<String, bool> {
+    axagent_harness::repositories::settings_repository()
+        .get_setting("tool_groups_enabled")
+        .await
+        .ok()
+        .flatten()
+        .and_then(|v| serde_json::from_str::<std::collections::HashMap<String, bool>>(&v).ok())
+        .unwrap_or_default()
+}
+
+/// 检查工具是否启用（双层检查：disabled_tools + group_enabled）。
+/// 用于 streaming 流程中替代 `UnifiedToolRegistry::is_tool_enabled()`。
+pub(crate) fn is_builtin_tool_enabled(
+    tool_name: &str,
+    disabled_tools_set: &std::collections::HashSet<String>,
+    group_enabled: &std::collections::HashMap<String, bool>,
+) -> bool {
+    if disabled_tools_set.contains(tool_name) {
+        return false;
+    }
+    // 组未显式配置 → 默认启用；组已配置 → 取配置值（与 registry.rs::get_tool_groups 一致）
+    builtin_tool_group_id(tool_name).and_then(|gid| group_enabled.get(gid).copied()).unwrap_or(true)
+}
+
 /// 获取思考块开始标记
 pub(crate) fn get_thinking_block_start() -> String {
     format!("<think data-axagent=\"{}\" data-code=\"{}\">\n", "1", thinking_err::BLOCK_START)

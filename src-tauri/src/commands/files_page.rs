@@ -284,13 +284,19 @@ pub async fn reveal_attachment_file(
     use tauri_plugin_opener::OpenerExt;
     let path = Path::new(&abs);
     if path.exists() {
-        app.opener()
-            .reveal_item_in_dir(&abs)
-            .map_err(|e| ErrorResponse::new(file_err::FILE_NOT_FOUND).with_detail(e.to_string()))
+        app.opener().reveal_item_in_dir(&abs).map_err(|e| {
+            // C-4: 动态错误信息走 params（前端按 t("error.FILE_NOT_FOUND", { error }) 插值）
+            ErrorResponse::new(file_err::FILE_NOT_FOUND)
+                .with_param("error", e.to_string())
+                .with_detail(e.to_string())
+        })
     } else if let Some(parent) = path.parent().filter(|p| p.exists()) {
-        app.opener()
-            .reveal_item_in_dir(parent.to_string_lossy().as_ref())
-            .map_err(|e| ErrorResponse::new(file_err::FILE_NOT_FOUND).with_detail(e.to_string()))
+        app.opener().reveal_item_in_dir(parent.to_string_lossy().as_ref()).map_err(|e| {
+            // C-4: 动态错误信息走 params（前端按 t("error.FILE_NOT_FOUND", { error }) 插值）
+            ErrorResponse::new(file_err::FILE_NOT_FOUND)
+                .with_param("error", e.to_string())
+                .with_detail(e.to_string())
+        })
     } else {
         Err(ErrorResponse::new(file_err::FILE_AND_PARENT_NOT_EXIST))
     }
