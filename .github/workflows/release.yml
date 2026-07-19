@@ -400,25 +400,10 @@ jobs:
           # 不存在的 include 路径，导致 libspa-sys 的 bindgen 找不到 pipewire/version.h。
           # 显式给 bindgen 注入 include path（双重保险）。
           export BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="-I/usr/include/pipewire-0.3 -I/usr/include/spa-0.2"
-          # ============================================================
-          # proc-macro 链接失败根因（查 rustc 官方文档确认）：
-          # rustc 1.67+ 在 x86_64-unknown-linux-gnu 默认启用 self-contained linking + lld。
-          # rustc 通过 lld-wrapper shim 转发到 rust-lld（用 -B<sysroot>/gcc-ld/ld.lld）。
-          # cross-compile aarch64 时，lld-wrapper 把 target triple (aarch64) 传给 rust-lld，
-          # rust-lld 期望 aarch64 架构，但 host proc-macro 输入是 x86_64 → 报错。
-          #
-          # 修复：在 .cargo/config.toml 临时追加 [host.x86_64-unknown-linux-gnu] 段，
-          # 只对 host (x86_64) 设 rustflags = ["-C", "linker-features=-lld"]。
-          # 这样 rustc 编译 host proc-macro 时禁用 lld，不注入 -fuse-ld=lld 和
-          # -B<sysroot>/gcc-ld/，cc 直接用系统 ld.bfd。
-          # 关键：必须只对 host (x86_64) 应用，不能对 target (aarch64) 应用——
-          # 因为 -C linker-features=-lld 在 aarch64 是 unstable，需要 -Z unstable-options。
-          # 用 [host.<triple>] 段而非 [target.<triple>] 段，确保只影响 host crate。
-          # ============================================================
-          # 临时追加 [host.x86_64-unknown-linux-gnu] 段到 .cargo/config.toml
-          # 只对 host (x86_64) 应用 -C linker-features=-lld，禁用 rust-lld。
-          # 用 printf 而非 heredoc 避免 YAML 缩进问题。
-          printf '\n[host.x86_64-unknown-linux-gnu]\nrustflags = ["-C", "linker-features=-lld"]\n' >> src-tauri/.cargo/config.toml
+          # CARGO_ENCODED_RUSTFLAGS 用 0x1f (ASCII Unit Separator) 分隔每个独立 flag 部分。
+          # 传递 4 个 flag: -C, linker-features=-lld, -Z, unstable-options
+          # bash 里用 $'\x1f' 构造 0x1f 字符。
+          export CARGO_ENCODED_RUSTFLAGS=$'-C\x1flinker-features=-lld\x1f-Z\x1funstable-options'
           npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb,rpm
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
@@ -426,7 +411,35 @@ jobs:
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
           AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
-          # 禁用 sccache 排除缓存干扰
+          # ============================================================
+          # proc-macro 链接失败根因（查 rustc 官方文档确认）：
+          # rustc 1.67+ 在 x86_64-unknown-linux-gnu 默认启用 self-contained linking + lld。
+          # rustc 通过 lld-wrapper shim 转发到 rust-lld（用 -B<sysroot>/gcc-ld/ld.lld）。
+          # cross-compile aarch64 时，lld-wrapper 把 target triple (aarch64) 传给 rust-lld，
+          # rust-lld 期望 aarch64 架构，但 host proc-macro 输入是 x86_64 → 报错。
+          #
+          # 前 7 次失败原因：
+          # - -C link-arg=-fuse-ld=bfd 无效：-B<sysroot>/gcc-ld/ 让 cc 优先找到
+          #   lld-wrapper（名为 ld.lld），wrapper 强制用 rust-lld
+          # - CARGO_TARGET_X86_64_RUSTFLAGS / CARGO_HOST_RUSTFLAGS 不可靠
+          # - [host.x86_64] config.toml 段无效：[host] 段在 stable cargo 是 unstable
+          # - CARGO_ENCODED_RUSTFLAGS=-C linker-features=-lld 报错：
+          #   "unstable on aarch64-unknown-linux-gnu, need -Z unstable-options"
+          #
+          # 真正修复：CARGO_ENCODED_RUSTFLAGS 传 4 个 flag:
+          #   -C linker-features=-lld  (禁用 lld，stable on x86_64, unstable on aarch64)
+          #   -Z unstable-options       (让 stable rustc 接受 unstable -C flag)
+          # 配合 RUSTC_BOOTSTRAP=1 让 stable rustc 接受 -Z flag。
+          #
+          # 效果：
+          # - host (x86_64) proc-macro: 禁用 lld → cc 用系统 ld.bfd ✓
+          # - target (aarch64): 也禁用 lld，但 aarch64 用 aarch64-linux-gnu-gcc
+          #   (已显式指定)，本来就不走 lld，禁用无副作用 ✓
+          #
+          # CARGO_ENCODED_RUSTFLAGS 应用于所有 compiler invocations（包括 host
+          # proc-macro），用 0x1f 分隔每个独立 flag 部分。
+          # ============================================================
+          RUSTC_BOOTSTRAP: '1'
           RUSTC_WRAPPER: ''
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
