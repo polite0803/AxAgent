@@ -2082,7 +2082,7 @@
     "AGENT_SKILL_MISSING": "आवश्यक कौशल गायब",
     "AGENT_STATUS_CALLING_MODEL": "एजेंट मॉडल कॉल कर रहा है",
     "AGENT_STATUS_INITIALIZING": "एजेंट आरंभ हो रहा है",
-    "AGENT_STATUS_STEER_APPLIED": "स्टीयर निर्देश लागू",
+    "AGENT_STATUS_STEER_APPLIED": "{count} स्टीयर निर्देश लागू किए गए",
     "AGENT_STREAM_ERROR": "एजेंट स्ट्रीम त्रुटि",
     "AGENT_WORKFLOW_NOT_FOUND": "एजेंट वर्कफ़्लो नहीं मिला",
     "AGENT_WORKSPACE_URI_INVALID": "अमान्य कार्यक्षेत्र URI",

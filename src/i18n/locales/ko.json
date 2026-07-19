@@ -2143,7 +2143,7 @@
     "AGENT_SKILL_MISSING": "필요한 스킬이 없습니다",
     "AGENT_STATUS_CALLING_MODEL": "에이전트 모델 호출 중",
     "AGENT_STATUS_INITIALIZING": "에이전트 초기화 중",
-    "AGENT_STATUS_STEER_APPLIED": "스티어 명령이 적용되었습니다",
+    "AGENT_STATUS_STEER_APPLIED": "스티어 명령 {count}개가 적용되었습니다",
     "AGENT_STREAM_ERROR": "에이전트 스트림 오류",
     "AGENT_WORKFLOW_NOT_FOUND": "에이전트 워크플로우를 찾을 수 없습니다",
     "AGENT_WORKSPACE_URI_INVALID": "유효하지 않은 작업공간 URI입니다",

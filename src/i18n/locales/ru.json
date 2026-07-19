@@ -2082,7 +2082,7 @@
     "AGENT_SKILL_MISSING": "Отсутствует необходимый навык",
     "AGENT_STATUS_CALLING_MODEL": "Агент вызывает модель",
     "AGENT_STATUS_INITIALIZING": "Инициализация агента",
-    "AGENT_STATUS_STEER_APPLIED": "Инструкция управления применена",
+    "AGENT_STATUS_STEER_APPLIED": "Применено {count} инструкций управления",
     "AGENT_STREAM_ERROR": "Ошибка потока агента",
     "AGENT_WORKFLOW_NOT_FOUND": "Рабочий процесс агента не найден",
     "AGENT_WORKSPACE_URI_INVALID": "Недопустимый URI рабочего пространства",

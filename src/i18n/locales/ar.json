@@ -2126,7 +2126,7 @@
     "AGENT_SKILL_MISSING": "المهارة المطلوبة مفقودة",
     "AGENT_STATUS_CALLING_MODEL": "الوكيل يستدعي النموذج",
     "AGENT_STATUS_INITIALIZING": "جاري تهيئة الوكيل",
-    "AGENT_STATUS_STEER_APPLIED": "تم تطبيق تعليمات التوجيه",
+    "AGENT_STATUS_STEER_APPLIED": "تم تطبيق {count} تعليمات توجيه",
     "AGENT_STREAM_ERROR": "خطأ في تدفق الوكيل",
     "AGENT_WORKFLOW_NOT_FOUND": "سير عمل الوكيل غير موجود",
     "AGENT_WORKSPACE_URI_INVALID": "URI مساحة العمل غير صالح",

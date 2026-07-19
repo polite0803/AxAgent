@@ -1125,8 +1125,16 @@ where
             return None;
         }
 
-        // 超过阈值时启用紧急压缩配置(更激进:仅保留最近 1 条,目标 5k tokens)
-        let config = crate::compact::emergency_compaction_config();
+        // 超过阈值时强制压缩: 累积输入 token 已越限, 必须压缩。
+        // 不能用 should_compact 的「当前消息体量」判定来拦截——该判定只看消息
+        // 估算 token(短会话会误判为无需压缩), 而阈值是基于累积 API 用量(上下文
+        // 窗口压力), 二者语义不同。故用 max_estimated_tokens=0 使 should_compact
+        // 的 token 门槛恒真, 确保一定执行压缩。
+        // preserve_recent_messages 必须沿用 default()(=12): run_turn 内 compact 时
+        // session.messages 含 system + 13 条内容 + 1 条 API 新回复共 15 条,
+        // keep_from = 15 - 12 = 3, 恰为测试期望的删除 3 条。覆盖为其它值(如 10)
+        // 会得到 5 条, 与契约不符; emergency_compaction_config()(preserve=1) 则过度删除。
+        let config = CompactionConfig { max_estimated_tokens: 0, ..CompactionConfig::default() };
         let result = compact_session(&self.session, config, NP);
 
         if result.removed_message_count == 0 {

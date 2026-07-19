@@ -2082,7 +2082,7 @@
     "AGENT_SKILL_MISSING": "Falta la habilidad requerida",
     "AGENT_STATUS_CALLING_MODEL": "El agente está llamando al modelo",
     "AGENT_STATUS_INITIALIZING": "Inicializando agente",
-    "AGENT_STATUS_STEER_APPLIED": "Instrucción de dirección aplicada",
+    "AGENT_STATUS_STEER_APPLIED": "Se aplicaron {count} instrucción(es) de dirección",
     "AGENT_STREAM_ERROR": "Error de flujo del agente",
     "AGENT_WORKFLOW_NOT_FOUND": "Flujo de trabajo del agente no encontrado",
     "AGENT_WORKSPACE_URI_INVALID": "URI del espacio de trabajo no válida",

@@ -2082,7 +2082,7 @@
     "AGENT_SKILL_MISSING": "Compétence requise manquante",
     "AGENT_STATUS_CALLING_MODEL": "L'agent appelle le modèle",
     "AGENT_STATUS_INITIALIZING": "Initialisation de l'agent",
-    "AGENT_STATUS_STEER_APPLIED": "Instruction de pilotage appliquée",
+    "AGENT_STATUS_STEER_APPLIED": "{count} instruction(s) de pilotage appliquée(s)",
     "AGENT_STREAM_ERROR": "Erreur de flux de l'agent",
     "AGENT_WORKFLOW_NOT_FOUND": "Workflow de l'agent introuvable",
     "AGENT_WORKSPACE_URI_INVALID": "URI d'espace de travail invalide",

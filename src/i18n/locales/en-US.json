@@ -2213,7 +2213,7 @@
     "AGENT_SKILL_MISSING": "Required skill is missing",
     "AGENT_STATUS_CALLING_MODEL": "Agent calling model",
     "AGENT_STATUS_INITIALIZING": "Agent initializing",
-    "AGENT_STATUS_STEER_APPLIED": "Steer instruction applied",
+    "AGENT_STATUS_STEER_APPLIED": "Applied {count} steer instruction(s)",
     "AGENT_STREAM_ERROR": "Agent stream error",
     "AGENT_WORKFLOW_NOT_FOUND": "Agent workflow not found",
     "AGENT_WORKSPACE_URI_INVALID": "Invalid workspace URI",
