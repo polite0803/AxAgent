@@ -36,8 +36,8 @@ pub async fn get_evolution_stats(
 ) -> Result<EvolutionStats, String> {
     let skill_evolution = state.skill_evolution_engine.lock().await;
     let skill_count = skill_evolution.skill_count();
-    let llm_connected = skill_evolution.has_llm_provider();
-    let sandbox_enabled = skill_evolution.has_sandbox();
+    let llm_connected = skill_evolution.has_llm_provider().await;
+    let sandbox_enabled = skill_evolution.has_sandbox().await;
     drop(skill_evolution);
 
     let trajectories =

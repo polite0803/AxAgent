@@ -31,7 +31,7 @@ src/                         # React 前端 (npm run dev 浏览器模式走 loca
 src-tauri/                   # Rust 后端 (Cargo workspace)
 ├── src/                     # 主 crate
 │   ├── lib.rs               # run() + generate_handler![] 注册所有命令
-│   ├── commands/            # 67 个命令模块，mod.rs 统一声明
+│   ├── commands/            # 107 个命令模块，mod.rs 统一声明
 │   ├── init/                # 初始化（database, plugins, services, state）
 │   └── app_state.rs         # 全局 AppState
 ├── crates/                  # 29 个 workspace crate

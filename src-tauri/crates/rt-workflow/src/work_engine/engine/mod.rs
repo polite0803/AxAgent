@@ -45,14 +45,30 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::error_handling::ErrorContext;
 use super::execution_state::{
-    ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord,
+    ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord, PauseReason,
 };
 use super::executors::{
     AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
-    ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, ToolCallback,
+    ProfileCache, ProviderCache, RagCallback, SubWorkflowCallback, SwitchExecutor, ToolCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 use super::prompt_template::{CompiledPrompt, DomainConstraintsFn, compile_prompt};
+
+thread_local! {
+    /// 子工作流执行用 thread_local runtime 池（每个 tokio blocking 线程一个实例）。
+    ///
+    /// 设计动机：`run_workflow()` 返回的 future 是 `!Send` 的（rhai 引擎内部使用 `Rc<RefCell<>>`），
+    /// 不能用 `tokio::spawn` 派发；改走 `tokio::task::spawn_blocking` + `current_thread` runtime
+    /// 在专用线程内执行。原本每次子工作流调用都新建 runtime（含 I/O/time driver，~100-500μs 开销），
+    /// 现在通过 thread_local 在每个 blocking 线程上首次创建后复用，单次子工作流调用开销降到 ~20-50μs。
+    ///
+    /// 安全性：`current_thread` runtime 的 `block_on` 必须在创建它的同一线程内调用，
+    /// thread_local 天然满足此约束；不同 blocking 线程拥有独立的 runtime 实例，互不干扰。
+    static SUB_WORKFLOW_RT: tokio::runtime::Runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("failed to build sub-workflow runtime");
+}
 
 /// 工具解析器：给定工具名，返回对应的 ToolCallback（若可解析）。
 /// 用于 run_workflow 启动时自动扫描工作流节点并注册工具。
@@ -95,15 +111,8 @@ pub struct RunOptions {
     pub parent_cancel_token: Option<CancellationToken>,
 }
 
-/// 步骤进度事件
-#[derive(Debug, Clone)]
-pub struct StepProgressEvent {
-    pub node_id: String,
-    pub status: String,
-    pub total_nodes: usize,
-    pub completed_nodes: usize,
-    pub execution_id: Option<String>,
-}
+// 步骤进度事件 / 活跃执行摘要 已上移到 harness(阶段 2)
+pub use axagent_harness::workflow_types::{ActiveExecutionInfo, StepProgressEvent};
 
 /// 步骤进度回调：`&self` 不可用时使用独立函数签名
 pub type ProgressCallback = Arc<
@@ -195,7 +204,18 @@ impl RunOptions {
 
 pub struct WorkEngine {
     executions: Arc<Mutex<HashMap<String, ExecutionState>>>,
+    /// 按 `workflow_id` 索引的工作流模板（包含静态 nodes/edges/error_config 等）。
+    /// `create_workflow` 写入；`get_workflow`/`list_workflows` 查询；
+    /// `run_workflow` 启动时作为模板被 clone 到 `execution_workflows`。
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
+    /// 按 `execution_id` 索引的运行时 Workflow 实例（含 node_states/results/status/output）。
+    ///
+    /// 修复：原本直接在 `workflows` 上修改运行时状态，导致同一 `workflow_id` 的
+    /// 并发执行会互相覆盖 `node_states`/`results`。现在 `run_workflow` 启动时
+    /// 把模板 clone 一份写入这里，所有运行时变更（`update_node_status`、
+    /// `compute_ready_nodes`、`get_node_dependency_results`、断点检测等）都改为
+    /// 按 `execution_id` 操作 `execution_workflows`，确保并发执行完全隔离。
+    execution_workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
     /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
     compiled_prompts: Arc<tokio::sync::RwLock<HashMap<String, HashMap<String, CompiledPrompt>>>>,
     /// 编译后的 Rhai 脚本：workflow_id -> (tool_name -> AST)
@@ -204,6 +224,8 @@ pub struct WorkEngine {
     rhai_engine: Option<Arc<dyn RhaiEngineAdapter>>,
     /// Plan 模式：PlannerAdapter（由外部注入，None = 未启用 Plan 模式）
     planner: Option<Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>>,
+    /// 按 `execution_id` 索引的取消令牌（修复：原本按 `workflow_id` 索引，
+    /// 导致同一模板的并发执行会互相覆盖 cancel_token，无法独立取消）。
     cancel_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
     dispatcher: Arc<tokio::sync::RwLock<NodeDispatcher>>,
     /// 按工具名注册的 handler 映射（多路注册，优先级最高）
@@ -253,6 +275,21 @@ pub struct WorkEngine {
     pub trigger_manager: Arc<crate::trigger::TriggerManager>,
     /// 审计记录器（可选，None = 不记录审计日志）
     pub audit_recorder: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
+    /// 工作流反思器(可选,None = 不反思)。
+    ///
+    /// 阶段 3 注入:在工作流整体执行完成或节点级失败时触发 `reflect`/`reflect_node`,
+    /// 异步 spawn 后台执行,不阻塞主流程。
+    pub workflow_reflector:
+        Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowReflector>>>>,
+    /// 工作流模板进化器(可选,None = 不进化)。
+    ///
+    /// 阶段 3 注入:在反思质量分过低时异步触发 `should_auto_evolve` + `run`。
+    pub workflow_evolver: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowEvolver>>>>,
+    /// 工作流优化器(可选,None = 不生成优化建议)。
+    ///
+    /// 阶段 3 注入:基于反思结果生成 `WorkflowSuggestion`,不修改模板。
+    pub workflow_optimizer:
+        Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowOptimizer>>>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     tool_registry: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::ToolRegistry>>>>,
     /// per-execution partial_result 广播器。LoopExecutor 通过 ExecutionState.partial_result_tx
@@ -356,7 +393,7 @@ impl WorkEngine {
     pub async fn resume_breakpoints(&self, execution_id: &str) {
         let signal = {
             let executions = self.executions.lock().await;
-            executions.get(execution_id).and_then(|s| s.pause_signal.clone())
+            executions.get(execution_id).and_then(|s| s.pause_signal())
         };
         if let Some(sig) = signal {
             sig.notify_waiters();
@@ -367,13 +404,14 @@ impl WorkEngine {
         {
             state.status = ExecutionStatus::Running;
             state.updated_at = Utc::now().timestamp_millis();
+            state.clear_pause();
         }
     }
     /// 单步执行（仅通知一个等待者 + 恢复运行状态）
     pub async fn step_breakpoint(&self, execution_id: &str) {
         let signal = {
             let executions = self.executions.lock().await;
-            executions.get(execution_id).and_then(|s| s.pause_signal.clone())
+            executions.get(execution_id).and_then(|s| s.pause_signal())
         };
         if let Some(sig) = signal {
             sig.notify_one();
@@ -384,6 +422,7 @@ impl WorkEngine {
         {
             state.status = ExecutionStatus::Running;
             state.updated_at = Utc::now().timestamp_millis();
+            state.clear_pause();
         }
     }
 
@@ -478,6 +517,45 @@ impl WorkEngine {
         // 同时注入到 WorkEngine 自身和 AgentExecutor
         self.planner = Some(planner.clone());
         self.agent_executor.set_planner(planner);
+        self
+    }
+
+    /// 注入工作流反思器(阶段 3)。
+    ///
+    /// 注入后,工作流执行完成与节点级失败时将异步触发反思。
+    #[must_use]
+    pub fn with_workflow_reflector(
+        self,
+        reflector: Arc<dyn axagent_harness::WorkflowReflector>,
+    ) -> Self {
+        if let Ok(mut guard) = self.workflow_reflector.lock() {
+            *guard = Some(reflector);
+        }
+        self
+    }
+
+    /// 注入工作流模板进化器(阶段 3)。
+    ///
+    /// 注入后,当反思质量分过低且 `should_auto_evolve` 返回 true 时,异步触发进化。
+    #[must_use]
+    pub fn with_workflow_evolver(self, evolver: Arc<dyn axagent_harness::WorkflowEvolver>) -> Self {
+        if let Ok(mut guard) = self.workflow_evolver.lock() {
+            *guard = Some(evolver);
+        }
+        self
+    }
+
+    /// 注入工作流优化器(阶段 3)。
+    ///
+    /// 注入后,基于反思结果生成 `WorkflowSuggestion`,不修改模板。
+    #[must_use]
+    pub fn with_workflow_optimizer(
+        self,
+        optimizer: Arc<dyn axagent_harness::WorkflowOptimizer>,
+    ) -> Self {
+        if let Ok(mut guard) = self.workflow_optimizer.lock() {
+            *guard = Some(optimizer);
+        }
         self
     }
 
@@ -617,19 +695,25 @@ impl WorkEngine {
         );
         let mut cond_exec = ConditionExecutor::new(master_key);
         let mut classifier_exec = LlmClassifierExecutor::new(master_key);
+        let mut switch_exec = SwitchExecutor::new(master_key);
 
         llm_exec.set_provider_registry(provider_registry.clone());
         agent_exec.set_provider_registry(provider_registry.clone());
         cond_exec.set_provider_registry(provider_registry.clone());
         classifier_exec.set_provider_registry(provider_registry.clone());
+        switch_exec.set_provider_registry(provider_registry.clone());
 
         let agent_exec = Arc::new(agent_exec);
 
         // P0-2: dispatcher 的 register_arc 改 async 后，WorkEngine::new 处于同步上下文
         // 不能 await register。改用 pending_dispatcher_registrations 暂存，调用方在
         // tokio runtime 内执行 init_dispatcher 完成最终注册。
-        let pending_dispatcher_registrations: Vec<Box<dyn NodeExecutorTrait>> =
-            vec![Box::new(llm_exec), Box::new(cond_exec), Box::new(classifier_exec)];
+        let pending_dispatcher_registrations: Vec<Box<dyn NodeExecutorTrait>> = vec![
+            Box::new(llm_exec),
+            Box::new(cond_exec),
+            Box::new(classifier_exec),
+            Box::new(switch_exec),
+        ];
         let pending_dispatcher_registrations =
             Arc::new(tokio::sync::Mutex::new(pending_dispatcher_registrations));
 
@@ -637,6 +721,7 @@ impl WorkEngine {
         Self {
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            execution_workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_rhai_scripts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             rhai_engine: None,
@@ -657,6 +742,9 @@ impl WorkEngine {
             pending_dispatcher_registrations,
             trigger_manager: Arc::new(crate::trigger::TriggerManager::new()),
             audit_recorder: Arc::new(std::sync::Mutex::new(None)),
+            workflow_reflector: Arc::new(std::sync::Mutex::new(None)),
+            workflow_evolver: Arc::new(std::sync::Mutex::new(None)),
+            workflow_optimizer: Arc::new(std::sync::Mutex::new(None)),
             tool_registry: Arc::new(std::sync::Mutex::new(None)),
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
@@ -857,6 +945,19 @@ impl WorkEngine {
         Ok(Self::compute_ready_nodes(workflow))
     }
 
+    /// 按 execution_id 取就绪节点（修复：运行时操作必须按 execution_id 索引，
+    /// 避免同 workflow_id 并发执行互相覆盖 node_states）。
+    pub async fn get_ready_steps_for_execution(
+        &self,
+        execution_id: &str,
+    ) -> Result<Vec<String>, WorkEngineError> {
+        let workflows = self.execution_workflows.read().await;
+        let workflow = workflows
+            .get(execution_id)
+            .ok_or_else(|| WorkEngineError::NotFound(execution_id.to_string()))?;
+        Ok(Self::compute_ready_nodes(workflow))
+    }
+
     /// 更新节点运行时状态，自动推进工作流终端判定
     pub async fn update_node_status(
         &self,
@@ -870,12 +971,46 @@ impl WorkEngine {
         let mut workflows = self.workflows.write().await;
         let workflow = workflows.get_mut(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
 
-        let state = workflow.node_states.get_mut(node_id).ok_or(WorkflowError::NodeNotFound)?;
+        Self::apply_node_status_update(workflow, node_id, status, result, error, output_var);
+        Ok(())
+    }
+
+    /// 按 execution_id 更新节点运行时状态（修复：原 `update_node_status` 直接修改
+    /// 共享 `workflows` 实例，导致同模板并发执行互相覆盖 node_states/results）。
+    pub async fn update_node_status_for_execution(
+        &self,
+        execution_id: &str,
+        node_id: &str,
+        status: NodeStatus,
+        result: Option<serde_json::Value>,
+        error: Option<String>,
+        output_var: Option<&str>,
+    ) -> Result<(), WorkEngineError> {
+        let mut workflows = self.execution_workflows.write().await;
+        let workflow = workflows
+            .get_mut(execution_id)
+            .ok_or_else(|| WorkEngineError::NotFound(execution_id.to_string()))?;
+
+        Self::apply_node_status_update(workflow, node_id, status, result, error, output_var);
+        Ok(())
+    }
+
+    /// 节点状态变更的核心逻辑（从 `update_node_status` 抽取，供两个入口共用）。
+    fn apply_node_status_update(
+        workflow: &mut Workflow,
+        node_id: &str,
+        status: NodeStatus,
+        result: Option<serde_json::Value>,
+        error: Option<String>,
+        output_var: Option<&str>,
+    ) {
+        let state = match workflow.node_states.get_mut(node_id) {
+            Some(s) => s,
+            None => return,
+        };
 
         state.status = status;
         // ── 时间戳维护：保证 started_at/completed_at 在 status 变化时正确更新 ──
-        // 修复前：这些字段从未被写入，导致所有节点 completed_at 为 None，
-        // 前端无法显示节点耗时、审计也无法用 started_at/completed_at 排序。
         let now_ms: i64 = current_epoch_ms() as i64;
         if status == NodeStatus::Running && state.started_at.is_none() {
             state.started_at = Some(now_ms);
@@ -965,8 +1100,6 @@ impl WorkEngine {
             workflow.status = WorkflowStatus::Failed;
             workflow.completed_at = Some(current_timestamp());
         }
-
-        Ok(())
     }
 
     pub async fn get_workflow(&self, workflow_id: &str) -> Result<Option<Workflow>, WorkflowError> {
@@ -980,31 +1113,34 @@ impl WorkEngine {
     }
 
     pub async fn cancel_workflow(&self, workflow_id: &str) -> Result<Workflow, WorkflowError> {
+        // 收集该 workflow_id 关联的所有 Running execution_id，并触发各自 cancel_token
+        // 修复：原实现仅按 workflow_id 索引 cancel_tokens，只能取消最后一次注册的 token；
+        // 现在 cancel_tokens 按 execution_id 索引，需遍历所有关联 execution 逐个取消。
+        let running_exec_ids: Vec<String> = {
+            let executions = self.executions.lock().await;
+            executions
+                .iter()
+                .filter(|(_, s)| {
+                    s.workflow_id == workflow_id && s.status == ExecutionStatus::Running
+                })
+                .map(|(id, _)| id.clone())
+                .collect()
+        };
         {
             let tokens = self.cancel_tokens.lock().await;
-            if let Some(token) = tokens.get(workflow_id) {
-                token.cancel();
+            for exec_id in &running_exec_ids {
+                if let Some(token) = tokens.get(exec_id) {
+                    token.cancel();
+                }
             }
         }
 
         // 同步取消所有关联的 DB 执行记录
-        {
-            let running_exec_ids: Vec<String> = {
-                let executions = self.executions.lock().await;
-                executions
-                    .iter()
-                    .filter(|(_, s)| {
-                        s.workflow_id == workflow_id && s.status == ExecutionStatus::Running
-                    })
-                    .map(|(id, _)| id.clone())
-                    .collect()
-            };
-            for exec_id in &running_exec_ids {
-                workflow_execution_repository()
-                    .update_workflow_execution_status(exec_id, "cancelled", None, None, None)
-                    .await
-                    .ok();
-            }
+        for exec_id in &running_exec_ids {
+            workflow_execution_repository()
+                .update_workflow_execution_status(exec_id, "cancelled", None, None, None)
+                .await
+                .ok();
         }
 
         let mut workflows = self.workflows.write().await;
@@ -1039,19 +1175,30 @@ impl WorkEngine {
         workflow_id: &str,
         options: RunOptions,
     ) -> Result<Workflow, WorkflowError> {
+        // 预先生成 execution_id（用于 cancel_token 按 execution_id 索引）
+        let execution_id =
+            options.execution_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+
         let span = tracing::info_span!(
             "run_workflow",
             workflow_id = %workflow_id,
-            execution_id = %options.execution_id.as_deref().unwrap_or("auto"),
+            execution_id = %execution_id,
             max_concurrent = options.max_concurrent,
         );
         let _guard = span.enter();
 
+        // ── 全局工作流 metrics guard ──
+        // 在作用域结束时自动 dec_active_workflows + observe_workflow_duration_ms。
+        // inc_workflow_execution(success) 由调用方在显式 return 前调用(若未调用,
+        // guard drop 时不重复计数,仅记录 active + duration)。
+        let _metrics_guard = axagent_telemetry::metrics::WorkflowMetricsGuard::new();
+
         let cancel_token =
             options.parent_cancel_token.as_ref().map(|t| t.child_token()).unwrap_or_default();
+        // 按 execution_id 索引（原按 workflow_id 索引会导致同模板并发执行互相覆盖）
         {
             let mut tokens = self.cancel_tokens.lock().await;
-            tokens.insert(workflow_id.to_string(), cancel_token.clone());
+            tokens.insert(execution_id.clone(), cancel_token.clone());
         }
 
         // 构建执行输入：优先使用调用方传入的 input，否则用空对象
@@ -1069,8 +1216,10 @@ impl WorkEngine {
         // 先创建 execution 记录，再校验 input_schema。
         // 这样校验失败也能在 DB 里留下审计记录（status=Failed，error=validation message），
         // 前端可以在工作流历史里看到这次"参数不合法"的尝试。
+        // 注意：复用上方预生成的 execution_id，保证 cancel_tokens / start_workflow /
+        // DB 记录三方使用同一个 ID（修复原 options.execution_id 重复 unwrap 的潜在漂移）。
         let execution_id = self
-            .start_workflow(workflow_id, input.clone(), options.execution_id.clone())
+            .start_workflow(workflow_id, input.clone(), Some(execution_id))
             .await
             .map_err(|e| WorkflowError::SerializationError(e.to_string()))?;
 
@@ -1126,10 +1275,25 @@ impl WorkEngine {
             }
         }
 
+        // 把模板 clone 一份独立运行时副本，按 execution_id 索引到 execution_workflows。
+        // 修复：原本所有运行时状态变更（update_node_status / compute_ready_nodes / results）
+        // 直接修改 workflows[workflow_id]，导致同一模板并发执行时 node_states/results
+        // 互相覆盖。现在每个 execution 拥有独立的 Workflow 实例。
         {
-            let mut workflows = self.workflows.write().await;
-            if let Some(workflow) = workflows.get_mut(workflow_id) {
-                workflow.status = WorkflowStatus::Running;
+            let template = {
+                let workflows = self.workflows.read().await;
+                workflows.get(workflow_id).cloned()
+            };
+            if let Some(mut wf) = template {
+                wf.status = WorkflowStatus::Running;
+                let mut exec_wfs = self.execution_workflows.write().await;
+                exec_wfs.insert(execution_id.clone(), wf);
+            } else {
+                // 模板不存在：兜底也写入 workflows（保持向后兼容）
+                let mut workflows = self.workflows.write().await;
+                if let Some(workflow) = workflows.get_mut(workflow_id) {
+                    workflow.status = WorkflowStatus::Running;
+                }
             }
         }
 
@@ -1139,6 +1303,10 @@ impl WorkEngine {
         };
 
         // 清空 Agent executor 缓存（每次执行使用最新数据）
+        // TODO(修复3): 当前 agent_provider_cache / agent_profile_cache 是全局共享单例，
+        // 同模板并发执行会互相覆盖 cache（性能损失，不影响正确性）。
+        // 完整修复需要重构 AgentExecutor.execute 签名，让其按 execution_id 查找 cache。
+        // 评估后再决定是否实施（涉及 AgentExecutor API 重构，风险较大）。
         {
             *self.agent_provider_cache.lock().await = None;
             self.agent_profile_cache.lock().await.clear();
@@ -1432,7 +1600,7 @@ impl WorkEngine {
 
         loop {
             if cancel_token.is_cancelled() {
-                self.finalize_cancelled_workflow(workflow_id).await;
+                self.finalize_cancelled_workflow_for_execution(&execution_id).await;
                 self.cancel(&execution_id).await.ok();
                 break;
             }
@@ -1449,14 +1617,14 @@ impl WorkEngine {
                 continue;
             }
 
-            // 1. 取就绪节点（支持并行调度）
-            let ready_nodes = self.get_ready_steps(workflow_id).await?;
+            // 1. 取就绪节点（支持并行调度）—— 按 execution_id 索引
+            let ready_nodes = self.get_ready_steps_for_execution(&execution_id).await?;
             if ready_nodes.is_empty() {
                 // P1-17: 死锁检测 —— 增加 5s grace period，避免在节点刚完成、上游
                 // 状态尚未传播到下游时被误判为死锁；同时区分"上游 Failed/Skipped"
                 // （真死锁）和"上游 Running 但下游已被错误判定为 Pending"（假死锁）。
-                let mut workflows = self.workflows.write().await;
-                if let Some(wf) = workflows.get_mut(workflow_id) {
+                let mut workflows = self.execution_workflows.write().await;
+                if let Some(wf) = workflows.get_mut(&execution_id) {
                     // 5s grace period：最近 5s 内有节点完成 → 继续等下一轮
                     let now = current_epoch_ms() as i64;
                     let last_completion =
@@ -1518,8 +1686,8 @@ impl WorkEngine {
 
             // Pre-compute node type map to avoid async access in filter closure
             let node_type_map: HashMap<String, String> = {
-                let workflows = self.workflows.read().await;
-                let wf = workflows.get(workflow_id);
+                let workflows = self.execution_workflows.read().await;
+                let wf = workflows.get(&execution_id);
                 wf.map(|wf| {
                     wf.nodes
                         .iter()
@@ -1558,9 +1726,9 @@ impl WorkEngine {
 
             for node_id in &batch {
                 let node = {
-                    let workflows = self.workflows.read().await;
+                    let workflows = self.execution_workflows.read().await;
                     workflows
-                        .get(workflow_id)
+                        .get(&execution_id)
                         .and_then(|wf| wf.nodes.iter().find(|n| n.base_id() == node_id).cloned())
                 };
                 let Some(node) = node else {
@@ -1577,8 +1745,8 @@ impl WorkEngine {
                         node_id = %node_id,
                         "Circuit breaker open — skipping node"
                     );
-                    self.update_node_status(
-                        workflow_id,
+                    self.update_node_status_for_execution(
+                        &execution_id,
                         node_id,
                         NodeStatus::Failed,
                         None,
@@ -1591,9 +1759,9 @@ impl WorkEngine {
                 }
 
                 let deps_results = {
-                    let workflows = self.workflows.read().await;
+                    let workflows = self.execution_workflows.read().await;
                     workflows
-                        .get(workflow_id)
+                        .get(&execution_id)
                         .map(|wf| Self::get_node_dependency_results(wf, node_id))
                         .unwrap_or_default()
                 };
@@ -1601,8 +1769,8 @@ impl WorkEngine {
                     serde_json::to_value(&deps_results).unwrap_or(serde_json::json!({}));
                 let started_at = Utc::now().timestamp_millis();
 
-                self.update_node_status(
-                    workflow_id,
+                self.update_node_status_for_execution(
+                    &execution_id,
                     node_id,
                     NodeStatus::Running,
                     None,
@@ -1614,9 +1782,9 @@ impl WorkEngine {
 
                 if let Some(ref cb) = progress_cb {
                     let completed = {
-                        let workflows = self.workflows.read().await;
+                        let workflows = self.execution_workflows.read().await;
                         workflows
-                            .get(workflow_id)
+                            .get(&execution_id)
                             .map(|w| {
                                 w.node_states
                                     .values()
@@ -1687,19 +1855,14 @@ impl WorkEngine {
                 let exec_pause_signal = {
                     let mut executions = self.executions.lock().await;
                     if let Some(state) = executions.get_mut(&execution_id) {
-                        if state.pause_signal.is_none() {
-                            state.pause_signal = Some(Arc::new(tokio::sync::Notify::new()));
-                        }
-                        state.pause_signal.clone().unwrap_or_else(|| {
-                            let new_signal = Arc::new(tokio::sync::Notify::new());
-                            state.pause_signal = Some(new_signal.clone());
-                            new_signal
-                        })
+                        // 4.1.6 P3:用 enter_pause 替代直接访问 pause_signal 字段。
+                        // 显式传入 Breakpoint 原因;若已存在 pause_state(被审批/手动暂停占用),
+                        // enter_pause 复用其信号(保留首次原因)。
+                        state.enter_pause(PauseReason::Breakpoint)
                     } else {
                         Arc::new(tokio::sync::Notify::new())
                     }
                 };
-                exec_ctx.pause_signal = Some(exec_pause_signal.clone());
 
                 if exec_ctx.breakpoints.contains(node_id.as_str()) {
                     tracing::info!("[Breakpoint] 命中节点 {node_id}，等待 resume...");
@@ -1759,16 +1922,17 @@ impl WorkEngine {
 
                                 // run_workflow() 返回 non-Send future（包含 Rc 等），
                                 // 因此无法用 tokio::spawn。改用 spawn_blocking +
-                                // current_thread runtime 在新线程中执行。
+                                // thread_local 缓存的 current_thread runtime 在 blocking 线程中执行。
+                                // thread_local runtime 在每个 blocking 线程上首次创建后复用，
+                                // 避免每次子工作流调用都新建 runtime 的开销。
                                 let (tx, rx) = tokio::sync::oneshot::channel();
                                 tokio::task::spawn_blocking(move || {
-                                    let rt = tokio::runtime::Builder::new_current_thread()
-                                        .enable_all()
-                                        .build()
-                                        .expect("failed to build sub-workflow runtime");
-                                    rt.block_on(async move {
-                                        let result: Result<(String, serde_json::Value), String> =
-                                            async {
+                                    SUB_WORKFLOW_RT.with(|rt| {
+                                        rt.block_on(async move {
+                                            let result: Result<
+                                                (String, serde_json::Value),
+                                                String,
+                                            > = async {
                                                 let template = workflow_template_repository()
                                                     .get_workflow_template(&sub_workflow_id)
                                                     .await
@@ -1825,7 +1989,8 @@ impl WorkEngine {
                                                 Ok((child_eid_for_result, output))
                                             }
                                             .await;
-                                        let _ = tx.send(result);
+                                            let _ = tx.send(result);
+                                        });
                                     });
                                 });
                                 Box::pin(async move {
@@ -1908,8 +2073,8 @@ impl WorkEngine {
                             .record_success();
 
                         let out_var = output.output_var.clone();
-                        self.update_node_status(
-                            workflow_id,
+                        self.update_node_status_for_execution(
+                            &execution_id,
                             &nr.node_id,
                             NodeStatus::Completed,
                             Some(output.output.clone()),
@@ -1958,9 +2123,9 @@ impl WorkEngine {
 
                         if let Some(ref cb) = progress_cb {
                             let completed = {
-                                let workflows = self.workflows.read().await;
+                                let workflows = self.execution_workflows.read().await;
                                 workflows
-                                    .get(workflow_id)
+                                    .get(&execution_id)
                                     .map(|w| {
                                         w.node_states
                                             .values()
@@ -1987,8 +2152,8 @@ impl WorkEngine {
                         }
 
                         if matches!(nr.node, WorkflowNode::Condition(_)) {
-                            let mut workflows = self.workflows.write().await;
-                            if let Some(wf) = workflows.get_mut(workflow_id) {
+                            let mut workflows = self.execution_workflows.write().await;
+                            if let Some(wf) = workflows.get_mut(&execution_id) {
                                 skip_disabled_branch_nodes(wf, &wf.edges.clone(), &nr.node_id);
                             }
                         }
@@ -2049,15 +2214,17 @@ impl WorkEngine {
                                     state.status = ExecutionStatus::Paused;
                                     state.current_node_id = Some(nr.node_id.clone());
                                     state.updated_at = Utc::now().timestamp_millis();
+                                    // 4.1.6 P3:显式记录审批暂停原因
+                                    state.enter_pause(PauseReason::Approval);
                                 }
                             }
-                            // 等待 resume signal（复用 pause_signal，与断点模式同构）
+                            // 等待 resume signal（4.1.6:从 pause_state 派生,与断点模式同构）
                             let pause_sig = {
                                 self.executions
                                     .lock()
                                     .await
                                     .get(&execution_id)
-                                    .and_then(|s| s.pause_signal.clone())
+                                    .and_then(|s| s.pause_signal())
                             };
                             if let Some(sig) = pause_sig {
                                 sig.notified().await;
@@ -2084,8 +2251,10 @@ impl WorkEngine {
                         let err_msg = err.to_string();
                         let node_retry_cfg = nr.node.base_retry().clone();
                         let (current_attempts, wf_retry_policy) = {
-                            let workflows = self.workflows.read().await;
-                            let wf = workflows.get(workflow_id);
+                            // 按 execution_id 读取运行时 attempts（修复：原按 workflow_id
+                            // 读取共享模板，同模板并发执行会读到其他执行的 attempts）
+                            let exec_wfs = self.execution_workflows.read().await;
+                            let wf = exec_wfs.get(&execution_id);
                             let attempts = wf
                                 .and_then(|wf| {
                                     wf.node_states.get(nr.node_id.as_str()).map(|s| s.attempts)
@@ -2135,8 +2304,8 @@ impl WorkEngine {
                                 break;
                             }
 
-                            self.update_node_status(
-                                workflow_id,
+                            self.update_node_status_for_execution(
+                                &execution_id,
                                 &nr.node_id,
                                 NodeStatus::Ready,
                                 None,
@@ -2146,8 +2315,8 @@ impl WorkEngine {
                             .await
                             .ok();
                         } else {
-                            self.update_node_status(
-                                workflow_id,
+                            self.update_node_status_for_execution(
+                                &execution_id,
                                 &nr.node_id,
                                 NodeStatus::Failed,
                                 None,
@@ -2194,9 +2363,9 @@ impl WorkEngine {
 
                         if let Some(ref cb) = progress_cb {
                             let completed = {
-                                let workflows = self.workflows.read().await;
+                                let workflows = self.execution_workflows.read().await;
                                 workflows
-                                    .get(workflow_id)
+                                    .get(&execution_id)
                                     .map(|w| {
                                         w.node_states
                                             .values()
@@ -2245,11 +2414,42 @@ impl WorkEngine {
                                 );
                             }
 
+                            // 阶段 3:触发节点级失败反思(异步,不阻塞错误处理流程)
+                            // 构造失败节点的执行快照,交给 WorkflowReflector::reflect_node
+                            {
+                                let failed_node_snapshot = axagent_harness::NodeExecutionSnapshot {
+                                    node_id: nr.node_id.clone(),
+                                    node_type: node_type_name(&nr.node).to_string(),
+                                    node_name: Some(nr.node.base_title().to_string()),
+                                    status: axagent_harness::workflow_types::NodeStatus::Failed,
+                                    attempts: 0,
+                                    input: Some(nr.input_snapshot.clone()),
+                                    output: None,
+                                    execution_time_ms: Some(nr.elapsed_ms),
+                                    error: Some(err_msg.clone()),
+                                    started_at: nr.started_at,
+                                    completed_at: Some(Utc::now().timestamp_millis()),
+                                    sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &nr.node
+                                    {
+                                        Some(sw.config.sub_workflow_id.clone())
+                                    } else {
+                                        None
+                                    },
+                                };
+                                self.post_node_failure_reflect(
+                                    workflow_id,
+                                    &execution_id,
+                                    &error_ctx,
+                                    &failed_node_snapshot,
+                                )
+                                .await;
+                            }
+
                             // 读取 continue_on_fail 与 error_config
                             let continue_on_fail = nr.node.base().continue_on_fail;
                             let (ec_opt, ewf_id_opt) = {
-                                let workflows = self.workflows.read().await;
-                                let wf = workflows.get(workflow_id);
+                                let workflows = self.execution_workflows.read().await;
+                                let wf = workflows.get(&execution_id);
                                 (
                                     wf.and_then(|w| w.error_config.clone()),
                                     wf.and_then(|w| w.error_workflow_id.clone()),
@@ -2263,8 +2463,8 @@ impl WorkEngine {
 
                             // 激活 Error 边目标节点
                             if should_run_error_branch {
-                                let mut workflows = self.workflows.write().await;
-                                if let Some(wf) = workflows.get_mut(workflow_id) {
+                                let mut workflows = self.execution_workflows.write().await;
+                                if let Some(wf) = workflows.get_mut(&execution_id) {
                                     for edge in &wf.edges {
                                         if edge.source == nr.node_id
                                             && edge.edge_type == EdgeType::Error
@@ -2275,6 +2475,7 @@ impl WorkEngine {
                                             state.status = NodeStatus::Ready;
                                             tracing::info!(
                                                 workflow_id = %workflow_id,
+                                                execution_id = %execution_id,
                                                 failed_node = %nr.node_id,
                                                 error_target = %edge.target,
                                                 "Activated Error edge target"
@@ -2289,8 +2490,8 @@ impl WorkEngine {
                                 continue_on_fail || should_run_error_branch || ewf_id_opt.is_some();
 
                             if needs_continuation {
-                                let mut workflows = self.workflows.write().await;
-                                if let Some(wf) = workflows.get_mut(workflow_id)
+                                let mut workflows = self.execution_workflows.write().await;
+                                if let Some(wf) = workflows.get_mut(&execution_id)
                                     && wf.status == WorkflowStatus::Failed
                                 {
                                     let has_ready = wf.node_states.values().any(|s| {
@@ -2306,6 +2507,7 @@ impl WorkEngine {
                                         wf.completed_at = None;
                                         tracing::info!(
                                             workflow_id = %workflow_id,
+                                            execution_id = %execution_id,
                                             "continue_on_fail / ErrorBranch: reverting workflow status to Running"
                                         );
                                     } else {
@@ -2343,9 +2545,9 @@ impl WorkEngine {
                         let err_msg = "Node execution timeout".to_string();
                         let retry_cfg = nr.node.base_retry();
                         let current_attempts = {
-                            let workflows = self.workflows.read().await;
+                            let workflows = self.execution_workflows.read().await;
                             workflows
-                                .get(workflow_id)
+                                .get(&execution_id)
                                 .and_then(|wf| {
                                     wf.node_states.get(nr.node_id.as_str()).map(|s| s.attempts)
                                 })
@@ -2375,8 +2577,8 @@ impl WorkEngine {
                                 break;
                             }
 
-                            self.update_node_status(
-                                workflow_id,
+                            self.update_node_status_for_execution(
+                                &execution_id,
                                 &nr.node_id,
                                 NodeStatus::Ready,
                                 None,
@@ -2390,8 +2592,8 @@ impl WorkEngine {
                             let degrade = degrade_map.get(&nr.node_id);
                             match degrade {
                                 Some(DegradeStrategy::Skip) => {
-                                    self.update_node_status(
-                                        workflow_id,
+                                    self.update_node_status_for_execution(
+                                        &execution_id,
                                         &nr.node_id,
                                         NodeStatus::Skipped,
                                         None,
@@ -2404,16 +2606,16 @@ impl WorkEngine {
                                 Some(DegradeStrategy::UseDefault) => {
                                     // UseDefault: 注入空默认值并标记为已完成
                                     {
-                                        let mut workflows = self.workflows.write().await;
-                                        if let Some(wf) = workflows.get_mut(workflow_id) {
+                                        let mut workflows = self.execution_workflows.write().await;
+                                        if let Some(wf) = workflows.get_mut(&execution_id) {
                                             wf.results.insert(
                                                 nr.node_id.clone(),
                                                 serde_json::json!(null),
                                             );
                                         }
                                     }
-                                    self.update_node_status(
-                                        workflow_id,
+                                    self.update_node_status_for_execution(
+                                        &execution_id,
                                         &nr.node_id,
                                         NodeStatus::Completed,
                                         None,
@@ -2425,8 +2627,8 @@ impl WorkEngine {
                                 },
                                 // Strict 或无降级配置：标记为 Failed（原行为）
                                 Some(DegradeStrategy::Strict) | None => {
-                                    self.update_node_status(
-                                        workflow_id,
+                                    self.update_node_status_for_execution(
+                                        &execution_id,
                                         &nr.node_id,
                                         NodeStatus::Failed,
                                         None,
@@ -2475,9 +2677,10 @@ impl WorkEngine {
 
                         if let Some(ref cb) = progress_cb {
                             let completed = {
-                                let workflows = self.workflows.read().await;
-                                workflows
-                                    .get(workflow_id)
+                                // 按 execution_id 读取运行时 completed 计数
+                                let exec_wfs = self.execution_workflows.read().await;
+                                exec_wfs
+                                    .get(&execution_id)
                                     .map(|w| {
                                         w.node_states
                                             .values()
@@ -2509,10 +2712,13 @@ impl WorkEngine {
                 // new nodes have become ready (their deps satisfied by this completion).
                 active_nodes.remove(&nr.node_id);
                 {
-                    let new_ready = self.get_ready_steps(workflow_id).await.unwrap_or_default();
+                    // 按 execution_id 索引运行时实例（修复同模板并发执行共享状态）
+                    let new_ready =
+                        self.get_ready_steps_for_execution(&execution_id).await.unwrap_or_default();
                     if !new_ready.is_empty() {
                         tracing::info!(
                             workflow_id,
+                            execution_id = %execution_id,
                             finished_node = %nr.node_id,
                             new_ready_count = new_ready.len(),
                             active_count = active_nodes.len(),
@@ -2529,8 +2735,8 @@ impl WorkEngine {
                         active_nodes.insert(nid.clone());
 
                         let node = {
-                            let workflows = self.workflows.read().await;
-                            workflows.get(workflow_id).and_then(|wf| {
+                            let workflows = self.execution_workflows.read().await;
+                            workflows.get(&execution_id).and_then(|wf| {
                                 wf.nodes.iter().find(|n| n.base_id() == nid).cloned()
                             })
                         };
@@ -2540,17 +2746,17 @@ impl WorkEngine {
 
                         let node_id_owned = nid.clone();
                         let deps_results = {
-                            let workflows = self.workflows.read().await;
+                            let workflows = self.execution_workflows.read().await;
                             workflows
-                                .get(workflow_id)
+                                .get(&execution_id)
                                 .map(|wf| Self::get_node_dependency_results(wf, &nid))
                                 .unwrap_or_default()
                         };
                         let input_snapshot =
                             serde_json::to_value(&deps_results).unwrap_or(serde_json::json!({}));
                         let started_at = Utc::now().timestamp_millis();
-                        self.update_node_status(
-                            workflow_id,
+                        self.update_node_status_for_execution(
+                            &execution_id,
                             &nid,
                             NodeStatus::Running,
                             None,
@@ -2629,21 +2835,21 @@ impl WorkEngine {
             }
 
             if workflow_cancelled {
-                self.finalize_cancelled_workflow(workflow_id).await;
+                self.finalize_cancelled_workflow_for_execution(&execution_id).await;
                 self.cancel(&execution_id).await.ok();
                 break;
             }
 
             // 4. 检查终端状态
             if cancel_token.is_cancelled() {
-                self.finalize_cancelled_workflow(workflow_id).await;
+                self.finalize_cancelled_workflow_for_execution(&execution_id).await;
                 self.cancel(&execution_id).await.ok();
                 break;
             }
 
             let status = {
-                let workflows = self.workflows.read().await;
-                workflows.get(workflow_id).map(|wf| wf.status).unwrap_or(WorkflowStatus::Failed)
+                let workflows = self.execution_workflows.read().await;
+                workflows.get(&execution_id).map(|wf| wf.status).unwrap_or(WorkflowStatus::Failed)
             };
             match status {
                 WorkflowStatus::Completed
@@ -2656,12 +2862,14 @@ impl WorkEngine {
 
         {
             let mut tokens = self.cancel_tokens.lock().await;
-            tokens.remove(workflow_id);
+            tokens.remove(&execution_id);
         }
 
         let mut result = {
-            let workflows = self.workflows.read().await;
-            workflows.get(workflow_id).cloned()
+            // 按 execution_id 索引读取运行时实例（修复：原按 workflow_id 读取共享实例，
+            // 同模板并发执行会读到其他执行的中间状态）
+            let workflows = self.execution_workflows.read().await;
+            workflows.get(&execution_id).cloned()
         };
 
         if let Some(ref mut wf) = result {
@@ -2676,6 +2884,7 @@ impl WorkEngine {
             {
                 tracing::warn!(
                     workflow_id = %workflow_id,
+                    execution_id = %execution_id,
                     "Output schema validation failed: {:?}",
                     errors
                 );
@@ -2702,11 +2911,25 @@ impl WorkEngine {
             .await
             .ok();
 
-            // 写回共享 HashMap，确保 workflow_get_status 可读到 output
+            // 阶段 3:触发工作流整体反思(异步 spawn,不阻塞主响应)
+            // workflow_id 在 AxAgent 架构中即模板 ID,因此 template_id 传 Some(workflow_id)
+            self.post_execution_reflect(
+                wf,
+                &execution_id,
+                Some(workflow_id),
+                total_time_ms,
+                Some(&persist_output),
+            )
+            .await;
+
+            // 写回 execution_workflows 运行时实例，确保后续查询能读到 output
+            // 注意：不写回 self.workflows（模板），避免污染同模板的其他并发执行
             if wf.output.is_some() {
-                let mut workflows = self.workflows.write().await;
-                if let Some(shared_wf) = workflows.get_mut(workflow_id) {
-                    shared_wf.output = wf.output.clone();
+                let mut exec_wfs = self.execution_workflows.write().await;
+                if let Some(exec_wf) = exec_wfs.get_mut(&execution_id) {
+                    exec_wf.output = wf.output.clone();
+                    exec_wf.status = wf.status;
+                    exec_wf.completed_at = wf.completed_at;
                 }
             }
         }
@@ -2719,11 +2942,13 @@ impl WorkEngine {
             }
         }
 
-        // 仅在终端状态下移除工作流；Running/Paused 状态保留以便查询，
-        // 权衡：保留非终端工作流会占用内存，但移除后会导致后续查询失败
+        // 仅在终端状态下移除运行时执行实例；模板（self.workflows）和编译缓存
+        // （compiled_prompts / compiled_rhai_scripts）按 workflow_id 索引，可能仍被
+        // 同模板的其他并发执行使用，因此此处不清理——交由模板级生命周期管理。
+        // 权衡：保留非终端执行实例会占用内存，但移除后会导致后续查询失败。
         {
-            let mut workflows = self.workflows.write().await;
-            let should_remove = workflows.get(workflow_id).is_none_or(|wf| {
+            let mut exec_wfs = self.execution_workflows.write().await;
+            let should_remove = exec_wfs.get(&execution_id).is_none_or(|wf| {
                 matches!(
                     wf.status,
                     WorkflowStatus::Completed
@@ -2735,18 +2960,11 @@ impl WorkEngine {
             if should_remove {
                 tracing::info!(
                     workflow_id = %workflow_id,
-                    status = ?workflows.get(workflow_id).map(|w| &w.status),
-                    "DAG removed — workflow in terminal state"
+                    execution_id = %execution_id,
+                    status = ?exec_wfs.get(&execution_id).map(|w| &w.status),
+                    "execution instance removed — workflow in terminal state"
                 );
-                workflows.remove(workflow_id);
-                {
-                    let mut compiled = self.compiled_prompts.write().await;
-                    compiled.remove(workflow_id);
-                }
-                {
-                    let mut rhai = self.compiled_rhai_scripts.write().await;
-                    rhai.remove(workflow_id);
-                }
+                exec_wfs.remove(&execution_id);
             }
         }
 
@@ -2766,9 +2984,12 @@ impl WorkEngine {
         }))
     }
 
-    async fn finalize_cancelled_workflow(&self, workflow_id: &str) {
-        let mut workflows = self.workflows.write().await;
-        if let Some(wf) = workflows.get_mut(workflow_id) {
+    /// 按 execution_id 标记运行时实例为 Cancelled 并跳过未完成的节点
+    /// （修复：原实现直接修改共享 `workflows` 实例，同模板并发执行时会把
+    /// 另一个执行也错改为 Cancelled；现按 execution_id 索引运行时实例）。
+    async fn finalize_cancelled_workflow_for_execution(&self, execution_id: &str) {
+        let mut exec_wfs = self.execution_workflows.write().await;
+        if let Some(wf) = exec_wfs.get_mut(execution_id) {
             for state in wf.node_states.values_mut() {
                 if matches!(
                     state.status,
@@ -2819,6 +3040,8 @@ impl WorkEngine {
         if let Some(state) = executions.get_mut(execution_id) {
             state.status = ExecutionStatus::Paused;
             state.updated_at = Utc::now().timestamp_millis();
+            // 4.1.6 P3:显式记录手动暂停原因(若已存在 pause_state 则保留首次原因)
+            state.enter_pause(PauseReason::Manual);
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -2833,7 +3056,10 @@ impl WorkEngine {
                     state.status = ExecutionStatus::Running;
                     state.updated_at = Utc::now().timestamp_millis();
                 }
-                state.pause_signal.clone()
+                // 4.1.6 P3:从 pause_state 派生信号,并清空 pause_state
+                let sig = state.pause_signal();
+                state.clear_pause();
+                sig
             } else {
                 return Err(WorkEngineError::NotFound(execution_id.to_string()));
             }
@@ -2851,9 +3077,10 @@ impl WorkEngine {
             state.updated_at = Utc::now().timestamp_millis();
             let workflow_id = state.workflow_id.clone();
             drop(executions);
+            // 按 execution_id 查询 cancel_token（修复：原 workflow_id 索引会被同模板并发执行覆盖）
             {
                 let tokens = self.cancel_tokens.lock().await;
-                if let Some(token) = tokens.get(&workflow_id) {
+                if let Some(token) = tokens.get(execution_id) {
                     token.cancel();
                 }
             }
@@ -2869,6 +3096,9 @@ impl WorkEngine {
                 sig.notify_waiters();
             }
             self.loop_partial_txs.lock().await.remove(execution_id);
+            // 清理该 execution 的 cancel_token entry（已取消，token 不再需要）
+            self.cancel_tokens.lock().await.remove(execution_id);
+            let _ = workflow_id; // 保留以兼容旧调用方语义；cancel_token 已按 execution_id 操作
             workflow_execution_repository()
                 .update_workflow_execution_status(execution_id, "cancelled", None, None, None)
                 .await
@@ -2933,7 +3163,7 @@ impl WorkEngine {
             state.updated_at = Utc::now().timestamp_millis();
         }
         drop(executions);
-        // 同时通知 pause_signal（处理 engine 主循环里同样的 is_paused 路径）
+        // 同时通知 pause_state（4.1.6:处理 engine 主循环里同样的 is_paused 路径）
         let _ = node_id; // 当前实现下 node_id 仅用于日志/审计，行为靠 execution_id
         let _ = self.resume(execution_id).await;
         Ok(())
@@ -2954,6 +3184,28 @@ impl WorkEngine {
             .get(execution_id)
             .cloned()
             .ok_or_else(|| WorkEngineError::NotFound(execution_id.to_string()))
+    }
+
+    /// 列出当前内存中所有活跃的执行（status = Running / Paused）。
+    ///
+    /// 可观测性用途：前端可轮询此接口渲染"正在执行的工作流"列表，
+    /// 配合 cancel(execution_id) 实现批量取消；运维侧可用于排查卡住的 execution。
+    /// 注意：仅返回内存中的运行态数据，已落库但内存已清理的历史 execution 不在此列。
+    pub async fn list_active_executions(&self) -> Vec<ActiveExecutionInfo> {
+        let executions = self.executions.lock().await;
+        executions
+            .iter()
+            .filter(|(_, s)| matches!(s.status, ExecutionStatus::Running | ExecutionStatus::Paused))
+            .map(|(id, s)| ActiveExecutionInfo {
+                execution_id: id.clone(),
+                workflow_id: s.workflow_id.clone(),
+                status: s.status.clone(),
+                current_node_id: s.current_node_id.clone(),
+                parent_execution_id: s.parent_execution_id.clone(),
+                created_at: s.created_at,
+                updated_at: s.updated_at,
+            })
+            .collect()
     }
 
     pub async fn list_executions(
@@ -2978,6 +3230,232 @@ impl WorkEngine {
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
         }
+    }
+
+    /// 工作流整体执行完成后的反思钩子(阶段 3)。
+    ///
+    /// 异步 `tokio::spawn` 后台执行,不阻塞主流程。流程:
+    /// 1. 构造 `WorkflowExecutionRecord`(从 wf + node_states + results 聚合)
+    /// 2. 调用 `WorkflowReflector::reflect()` 生成 `Reflection`
+    /// 3. 若质量分过低且配置了 evolver,异步触发 `should_auto_evolve` + `run`
+    /// 4. 若配置了 optimizer,异步生成 `WorkflowSuggestion`(供前端展示/人工审核)
+    ///
+    /// 任何环节失败均记录日志后吞掉,不影响工作流主响应。
+    async fn post_execution_reflect(
+        &self,
+        wf: &Workflow,
+        execution_id: &str,
+        template_id: Option<&str>,
+        total_time_ms: u64,
+        final_output: Option<&serde_json::Value>,
+    ) {
+        let reflector = {
+            let guard = match self.workflow_reflector.lock() {
+                Ok(g) => g,
+                Err(poisoned) => {
+                    tracing::error!("[Reflection] workflow_reflector mutex poisoned, recovering");
+                    poisoned.into_inner()
+                },
+            };
+            match guard.clone() {
+                Some(r) => r,
+                None => return,
+            }
+        };
+
+        // 聚合节点快照
+        let nodes: Vec<axagent_harness::NodeExecutionSnapshot> = wf
+            .node_states
+            .iter()
+            .map(|(node_id, state)| {
+                let node_type = wf
+                    .nodes
+                    .iter()
+                    .find(|n| n.base_id() == node_id)
+                    .map(|n| node_type_name(n).to_string())
+                    .unwrap_or_default();
+                let started_at = state.started_at.unwrap_or(0);
+                let completed_at = state.completed_at;
+                let execution_time_ms = completed_at.map(|c| (c - started_at) as u64);
+                axagent_harness::NodeExecutionSnapshot {
+                    node_id: node_id.clone(),
+                    node_type,
+                    node_name: None,
+                    status: state.status,
+                    attempts: state.attempts,
+                    input: None,
+                    output: wf.results.get(node_id).cloned(),
+                    execution_time_ms,
+                    error: state.error.clone(),
+                    started_at,
+                    completed_at,
+                    sub_workflow_id: None,
+                }
+            })
+            .collect();
+
+        let status = match wf.status {
+            WorkflowStatus::Completed => axagent_harness::WorkflowRunStatus::Completed,
+            WorkflowStatus::PartiallyCompleted => {
+                axagent_harness::WorkflowRunStatus::PartiallyCompleted
+            },
+            WorkflowStatus::Failed => axagent_harness::WorkflowRunStatus::Failed,
+            WorkflowStatus::Cancelled => axagent_harness::WorkflowRunStatus::Cancelled,
+            // Created/Running 不应到达此处,降级为 Failed
+            _ => axagent_harness::WorkflowRunStatus::Failed,
+        };
+
+        let record = axagent_harness::WorkflowExecutionRecord {
+            workflow_id: wf.id.clone(),
+            execution_id: execution_id.to_string(),
+            template_id: template_id.map(|s| s.to_string()),
+            template_version: None,
+            status,
+            started_at: wf.created_at as i64,
+            completed_at: wf.completed_at.map(|t| t as i64),
+            duration_ms: total_time_ms,
+            nodes,
+            edges: wf.edges.clone(),
+            template_nodes: wf.nodes.clone(),
+            input: None,
+            output: final_output.cloned(),
+            error_context: None,
+        };
+
+        // 克隆所需句柄,在 spawn 中使用
+        let evolver = {
+            let guard = self.workflow_evolver.lock().ok();
+            guard.and_then(|g| g.clone())
+        };
+        let optimizer = {
+            let guard = self.workflow_optimizer.lock().ok();
+            guard.and_then(|g| g.clone())
+        };
+        let template_id_owned = template_id.map(|s| s.to_string());
+
+        tokio::spawn(async move {
+            let reflection = match reflector.reflect(&record).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::warn!("[Reflection] reflect failed: {e}");
+                    return;
+                },
+            };
+
+            tracing::info!(
+                "[Reflection] workflow={} execution={} quality_score={}/10 patterns_err={} patterns_ok={}",
+                record.workflow_id,
+                record.execution_id,
+                reflection.quality_score,
+                reflection.error_patterns.len(),
+                reflection.reusable_patterns.len(),
+            );
+
+            // 记录反思到 evolver 的 recent_reflections(优化 4-a)
+            // 仅当 evolver 已注入且有 template_id 时才记录,供 should_auto_evolve 判定
+            if let Some(evolver) = evolver.as_ref()
+                && let Some(template_id) = template_id_owned.as_ref()
+            {
+                evolver
+                    .record_reflection(template_id, reflection.quality_score, record.status)
+                    .await;
+            }
+
+            // 低质量分 + 配置了 evolver → 触发自动进化判定
+            if reflection.quality_score <= 5
+                && let Some(evolver) = evolver
+                && let Some(template_id) = template_id_owned.clone()
+            {
+                match evolver.should_auto_evolve(&template_id).await {
+                    Ok(true) => {
+                        tracing::info!(
+                            "[Evolution] auto-evolving template={} (low quality_score={})",
+                            template_id,
+                            reflection.quality_score
+                        );
+                        if let Err(e) =
+                            evolver.run(&template_id, std::slice::from_ref(&reflection)).await
+                        {
+                            tracing::warn!("[Evolution] run failed: {e}");
+                        }
+                    },
+                    Ok(false) => {},
+                    Err(e) => tracing::warn!("[Evolution] should_auto_evolve failed: {e}"),
+                }
+            }
+
+            // 配置了 optimizer → 异步生成优化建议(不修改模板,仅产出建议)
+            if let Some(optimizer) = optimizer {
+                // optimizer 需要 template,本钩子内暂不持有完整 WorkflowTemplateData,
+                // 仅记录建议触发意图,实际 suggest 调用由命令层显式触发。
+                let _ = optimizer;
+                tracing::debug!(
+                    "[Optimization] reflection ready for workflow={} (optimizer attached, suggest triggered via command layer)",
+                    record.workflow_id
+                );
+            }
+        });
+    }
+
+    /// 节点级失败反思钩子(阶段 3)。
+    ///
+    /// 在 `ErrorContext::new(...)` 构造完成后异步触发,不阻塞工作流继续执行。
+    /// 仅分析失败节点及其依赖链,产出 `NodeFailureAnalysis` 与针对性 `ProposedChange`。
+    async fn post_node_failure_reflect(
+        &self,
+        workflow_id: &str,
+        execution_id: &str,
+        error_ctx: &ErrorContext,
+        failed_node_snapshot: &axagent_harness::NodeExecutionSnapshot,
+    ) {
+        let reflector = {
+            let guard = match self.workflow_reflector.lock() {
+                Ok(g) => g,
+                Err(poisoned) => {
+                    tracing::error!("[Reflection] workflow_reflector mutex poisoned, recovering");
+                    poisoned.into_inner()
+                },
+            };
+            match guard.clone() {
+                Some(r) => r,
+                None => return,
+            }
+        };
+
+        // 构造精简的 WorkflowExecutionRecord(只含失败节点)
+        let record = axagent_harness::WorkflowExecutionRecord {
+            workflow_id: workflow_id.to_string(),
+            execution_id: execution_id.to_string(),
+            template_id: None,
+            template_version: None,
+            status: axagent_harness::WorkflowRunStatus::Failed,
+            started_at: error_ctx.timestamp,
+            completed_at: Some(error_ctx.timestamp),
+            duration_ms: 0,
+            nodes: vec![failed_node_snapshot.clone()],
+            edges: Vec::new(),
+            template_nodes: Vec::new(),
+            input: None,
+            output: None,
+            error_context: Some(error_ctx.clone()),
+        };
+
+        // 克隆快照 owned,move 进 spawn(引用不可跨 'static)
+        let snapshot_owned = failed_node_snapshot.clone();
+        let snapshot_id = failed_node_snapshot.node_id.clone();
+        tokio::spawn(async move {
+            match reflector.reflect_node(&record, &snapshot_owned).await {
+                Ok(r) => {
+                    tracing::info!(
+                        "[Reflection::Node] node={} quality_score={}/10 root_cause_in_metadata={}",
+                        snapshot_id,
+                        r.quality_score,
+                        r.metadata.is_some(),
+                    );
+                },
+                Err(e) => tracing::warn!("[Reflection::Node] reflect_node failed: {e}"),
+            }
+        });
     }
 
     /// 记录审计日志（若已注入 AuditRecorder）

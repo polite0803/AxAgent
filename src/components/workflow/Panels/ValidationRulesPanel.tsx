@@ -12,7 +12,7 @@
 import { useWorkflowEditorStore } from "@/stores";
 import { MinusCircleOutlined, PlusOutlined, SaveOutlined, SettingOutlined } from "@ant-design/icons";
 import { App, Button, Collapse, Empty, Input, Select, Space, Switch, Tag, theme, Tooltip, Typography } from "antd";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
@@ -95,11 +95,30 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
   const { token } = theme.useToken();
   const { message } = App.useApp();
 
-  const [validationConfig, setValidationConfig] = useState<WorkflowValidationConfig>({
-    enabled: true,
-    rules: [],
-    on_fail: "warn",
+  const [validationConfig, setValidationConfig] = useState<WorkflowValidationConfig>(() => {
+    // 从 localStorage 恢复上次配置，避免组件卸载后丢失
+    try {
+      const saved = localStorage.getItem("workflow_validation_config");
+      if (saved) {
+        const parsed = JSON.parse(saved) as WorkflowValidationConfig;
+        if (parsed && Array.isArray(parsed.rules) && typeof parsed.enabled === "boolean") {
+          return parsed;
+        }
+      }
+    } catch {
+      // localStorage 不可用或 JSON 解析失败，回退到默认值
+    }
+    return { enabled: true, rules: [], on_fail: "warn" };
   });
+
+  // 配置变更时自动持久化到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("workflow_validation_config", JSON.stringify(validationConfig));
+    } catch {
+      // localStorage 写入失败（如配额不足），静默忽略
+    }
+  }, [validationConfig]);
 
   const nodes = useWorkflowEditorStore(useShallow((s) => s.nodes));
 
@@ -132,7 +151,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
   }, []);
 
   const saveConfig = useCallback(async () => {
-    // TODO: persist to backend via invoke
+    // localStorage 已通过 useEffect 自动持久化；此处提示用户配置已保存
+    // TODO: 后端持久化命令接入后，改为 invoke 落库
     message.success(t("workflow.validation.saved"));
   }, [message, t]);
 

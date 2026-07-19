@@ -69,6 +69,10 @@ pub async fn workflow_create(
 }
 
 /// 执行工作流（含 LLM 步骤执行）
+///
+/// `max_concurrent`：最大并发节点数（None 使用默认值 3）。
+/// 暴露给前端用于按场景调节吞吐：CPU 密集型工作流降低并发避免压垮本机，
+/// IO 密集型工作流可提高并发缩短端到端时延。
 #[tauri::command]
 pub async fn workflow_execute(
     app: tauri::AppHandle,
@@ -77,6 +81,7 @@ pub async fn workflow_execute(
     model_id: Option<String>,
     provider_id: Option<String>,
     variables: Option<Vec<axagent_harness::workflow_types::Variable>>,
+    max_concurrent: Option<usize>,
 ) -> Result<String, String> {
     // 验证工作流存在
     let _ = app_state
@@ -122,6 +127,11 @@ pub async fn workflow_execute(
         }
         if let Some(vars) = variables {
             opts = opts.with_variables(vars);
+        }
+        if let Some(mc) = max_concurrent {
+            // 合理下限保护：至少 1 个并发，避免 0 导致死锁。
+            let clamped = mc.max(1);
+            opts = opts.with_max_concurrent(clamped);
         }
         match engine.run_workflow(&wid, opts).await {
             Ok(result) => {
@@ -208,6 +218,18 @@ pub async fn workflow_list(app_state: State<'_, AppState>) -> Result<Vec<Value>,
     })?;
 
     Ok(workflows.into_iter().filter_map(|w| serde_json::to_value(w).ok()).collect())
+}
+
+/// 列出当前内存中所有活跃执行（status = running / paused）。
+///
+/// 可观测性用途：前端轮询此接口渲染"正在执行的工作流"列表，
+/// 配合 `workflow_cancel_execution` 实现按 execution_id 取消。
+#[tauri::command]
+pub async fn workflow_list_active_executions(
+    app_state: State<'_, AppState>,
+) -> Result<Vec<Value>, String> {
+    let active = app_state.work_engine.list_active_executions().await;
+    Ok(active.into_iter().filter_map(|v| serde_json::to_value(v).ok()).collect())
 }
 
 /// 获取工作流步骤详情（用于 DAG 可视化）

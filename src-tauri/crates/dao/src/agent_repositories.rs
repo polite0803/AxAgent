@@ -63,9 +63,34 @@ impl AgentProfileRepository for DaoAgentProfileRepository {
             sort_order: m.sort_order,
             is_enabled: m.is_enabled != 0,
             expert_id: m.expert_id,
+            business_role_id: m.business_role_id,
             created_at: m.created_at,
             updated_at: m.updated_at,
         }))
+    }
+}
+
+/// 把 agency_experts::Model 转换为 AgencyExpertDto（含 v101 新增的 6 个字段）。
+fn expert_from_model(m: agency_experts::Model) -> AgencyExpertDto {
+    AgencyExpertDto {
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        category: m.category,
+        system_prompt: m.system_prompt,
+        color: m.color,
+        source_dir: m.source_dir,
+        is_enabled: m.is_enabled != 0,
+        imported_at: m.imported_at,
+        recommended_workflows: m.recommended_workflows,
+        recommended_tools: m.recommended_tools,
+        active_domains: m.active_domains,
+        seniority: m.seniority,
+        specialties: m.specialties,
+        parent_role_id: m.parent_role_id,
+        success_rate: m.success_rate,
+        avg_latency_ms: m.avg_latency_ms,
+        avg_token_cost: m.avg_token_cost,
     }
 }
 
@@ -76,20 +101,18 @@ impl AgencyExpertRepository for DaoAgencyExpertRepository {
             .one(&self.db)
             .await
             .map_err(|e| e.to_string())?;
-        Ok(row.map(|m| AgencyExpertDto {
-            id: m.id,
-            name: m.name,
-            description: m.description,
-            category: m.category,
-            system_prompt: m.system_prompt,
-            color: m.color,
-            source_dir: m.source_dir,
-            is_enabled: m.is_enabled != 0,
-            imported_at: m.imported_at,
-            recommended_workflows: m.recommended_workflows,
-            recommended_tools: m.recommended_tools,
-            active_domains: m.active_domains,
-        }))
+        Ok(row.map(expert_from_model))
+    }
+
+    async fn list_agency_experts(&self) -> Result<Vec<AgencyExpertDto>, String> {
+        // 仅返回 is_enabled=true 的记录，按 name 排序
+        let rows = agency_experts::Entity::find()
+            .filter(agency_experts::Column::IsEnabled.eq(1))
+            .order_by_asc(agency_experts::Column::Name)
+            .all(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(rows.into_iter().map(expert_from_model).collect())
     }
 }
 

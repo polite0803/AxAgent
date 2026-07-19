@@ -691,3 +691,148 @@ export function personalityAutoLearnFromConversation(
 ): Promise<AutoLearnResult> {
   return invoke("personality_auto_learn_from_conversation", { conversationId });
 }
+
+// ── 工作流反思 / 进化 / 优化命令(阶段 5 wiring 暴露) ──
+//
+// 以下 6 个函数对应后端 `commands::workflow_reflection` 6 个 Tauri 命令。
+// 错误处理:命令层返回 `Result<T, String>`,String 为 ErrorResponse 的 JSON 序列化。
+// 调用方应通过 `@/lib/errorI18n` 的 `showBackendError()` 解析错误码并走 i18n 翻译,
+// 详见 `hooks/workflow/useWorkflowReflection`。
+
+/** 反思结果(与后端 `axagent_harness::reflection_types::Reflection` 对齐)。 */
+export interface WorkflowReflection {
+  task_id: string;
+  timestamp: string;
+  quality_score: number;
+  quality_analysis: string;
+  efficiency_analysis: string;
+  error_patterns: string[];
+  reusable_patterns: string[];
+  knowledge_suggestions: string[];
+  improvement_suggestions: string[];
+  overall_summary: string;
+  quality_metrics?: {
+    task_success_score: number;
+    tool_efficiency_score: number;
+    iteration_efficiency_score: number;
+    time_efficiency_score: number;
+    error_recovery_score: number;
+    goal_completion_score: number;
+    overall_weighted_score: number;
+  };
+  metadata?: unknown;
+}
+
+/** 优化建议分类(与后端 `SuggestionCategory` 对齐)。 */
+export type WorkflowSuggestionCategory =
+  | "NodeConfig"
+  | "NodeReplacement"
+  | "EdgeRewire"
+  | "PromptRefine"
+  | "ErrorHandling"
+  | "VariableMisconfig"
+  | "ResourceTuning";
+
+/** 优化建议优先级。 */
+export type WorkflowSuggestionPriority = "Critical" | "High" | "Medium" | "Low";
+
+/** 单条优化建议(与后端 `WorkflowSuggestion` 对齐)。 */
+export interface WorkflowSuggestion {
+  id: string;
+  category: WorkflowSuggestionCategory;
+  priority: WorkflowSuggestionPriority;
+  target_node_id: string | null;
+  description: string;
+  proposed_change: Record<string, unknown>;
+  confidence: number;
+  estimated_impact?: number;
+}
+
+/** 进化统计(与后端 `EvolutionStats` 对齐)。 */
+export interface WorkflowEvolutionStats {
+  generation: number;
+  best_fitness: number;
+  avg_fitness: number;
+  fitness_history: number[];
+  converged: boolean;
+}
+
+/** 沙箱验证结果。 */
+export interface SandboxValidationResult {
+  passed: boolean;
+  success_rate: number;
+  execution_errors: string[];
+  avg_execution_time_ms: number;
+}
+
+/** 进化修改结果。 */
+export interface WorkflowModification {
+  evolved_genome: unknown;
+  changes: unknown[];
+  validation: SandboxValidationResult;
+}
+
+/**
+ * 基于单次反思生成工作流优化建议。
+ *
+ * 调用后端 `workflow_optimize_suggest` 命令。
+ * 失败时抛出字符串(JSON 形式的 ErrorResponse),调用方应通过 `@/lib/errorI18n` 的 `showBackendError()` 解析。
+ */
+export function workflowOptimizeSuggest(
+  template: unknown,
+  reflection: WorkflowReflection,
+): Promise<WorkflowSuggestion[]> {
+  return invoke<WorkflowSuggestion[]>("workflow_optimize_suggest", {
+    request: { template, reflection },
+  });
+}
+
+/**
+ * 批量应用优化建议到模板,返回新模板(不修改原模板)。
+ *
+ * 调用后端 `workflow_optimize_apply` 命令。
+ * 返回应用建议后的新模板,调用方决定是否持久化。
+ */
+export function workflowOptimizeApply(
+  template: unknown,
+  suggestions: WorkflowSuggestion[],
+): Promise<unknown> {
+  return invoke<unknown>("workflow_optimize_apply", {
+    request: { template, suggestions },
+  });
+}
+
+/**
+ * 触发工作流模板进化(基于反思批量进化,返回最终修改结果)。
+ *
+ * 调用后端 `workflow_evolve_template` 命令。
+ * 建议在前端以异步任务形式调用(可能耗时较长)。
+ */
+export function workflowEvolveTemplate(
+  templateId: string,
+  reflections: WorkflowReflection[],
+): Promise<WorkflowModification> {
+  return invoke<WorkflowModification>("workflow_evolve_template", {
+    request: { template_id: templateId, reflections },
+  });
+}
+
+/** 查询工作流进化器的统计信息(当前代数、最佳 / 平均适应度、是否收敛)。 */
+export function workflowEvolutionStats(): Promise<WorkflowEvolutionStats> {
+  return invoke<WorkflowEvolutionStats>("workflow_evolution_stats");
+}
+
+/** 查询进化器是否正在执行(用于前端防重入)。 */
+export function workflowEvolutionIsRunning(): Promise<boolean> {
+  return invoke<boolean>("workflow_evolution_is_running");
+}
+
+/**
+ * 查询是否应自动触发进化(基于近期失败率与使用次数)。
+ *
+ * 注意:依赖 evolver 内部的 `recent_reflections` 历史,
+ * 若 wiring 层未注入反思历史记录机制,本命令始终返回 false。
+ */
+export function workflowShouldAutoEvolve(templateId: string): Promise<boolean> {
+  return invoke<boolean>("workflow_should_auto_evolve", { templateId });
+}

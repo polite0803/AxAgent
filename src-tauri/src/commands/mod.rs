@@ -18,6 +18,7 @@ pub mod backup;
 pub mod branches;
 #[cfg(not(mobile))]
 pub mod browser;
+pub mod business_role;
 pub mod chart_generator;
 pub mod cloud_workspace;
 #[cfg(not(mobile))]
@@ -113,10 +114,15 @@ pub mod user_profile;
 pub mod webdav;
 pub mod webhook;
 pub mod wiki;
+// 工作流执行引擎命令:含审批(HITL)命令 list_pending_approvals/resume_approval/cancel_approval、
+// Loop 节点人工审查 resume_loop_after_review、节点执行白名单校验等。
+// 注:历史规划中曾设想独立 approval.rs,实际审批命令统一位于此模块。
 pub mod work_engine;
 pub mod workflow_ai;
 pub mod workflow_ai_apply;
 pub mod workflow_ai_diagnose;
+pub mod workflow_execution_stats;
+pub mod workflow_reflection;
 pub mod workflow_template;
 pub mod workflow_yaml;
 pub mod workflows;

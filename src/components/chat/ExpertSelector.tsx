@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { EXPERT_CATEGORY_KEYS } from "@/types";
-import type { AgentProfile, ExpertCategory } from "@/types";
+import { EXPERT_CATEGORY_KEYS, EXPERT_CATEGORY_LABELS } from "@/types";
+import type { AgentProfile, ExpertCategory, ExpertCategoryKey } from "@/types";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { App, Button, Card, Input, Modal, Popconfirm, Select, Space, Tag, theme, Typography } from "antd";
 import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
@@ -137,16 +137,16 @@ export function ExpertSelector({
         const parts = [
           t("expertSelector.importSuccess", { count: result.count }),
         ];
-        if (result.workflows_created && result.workflows_created > 0) {
+        if (result.workflowsCreated && result.workflowsCreated > 0) {
           parts.push(
             t("expertSelector.importWorkflows", {
-              count: result.workflows_created,
+              count: result.workflowsCreated,
             }),
           );
         }
-        if (result.tools_matched && result.tools_matched > 0) {
+        if (result.toolsMatched && result.toolsMatched > 0) {
           parts.push(
-            t("expertSelector.importTools", { count: result.tools_matched }),
+            t("expertSelector.importTools", { count: result.toolsMatched }),
           );
         }
         app.message.success(parts.join("，"));
@@ -223,16 +223,16 @@ export function ExpertSelector({
         const parts = [
           t("expertSelector.importSuccess", { count: result.count }),
         ];
-        if (result.workflows_created && result.workflows_created > 0) {
+        if (result.workflowsCreated && result.workflowsCreated > 0) {
           parts.push(
             t("expertSelector.importWorkflows", {
-              count: result.workflows_created,
+              count: result.workflowsCreated,
             }),
           );
         }
-        if (result.tools_matched && result.tools_matched > 0) {
+        if (result.toolsMatched && result.toolsMatched > 0) {
           parts.push(
-            t("expertSelector.importTools", { count: result.tools_matched }),
+            t("expertSelector.importTools", { count: result.toolsMatched }),
           );
         }
         app.message.success(parts.join("，"));
@@ -289,8 +289,8 @@ export function ExpertSelector({
           name: editName,
           description: editDesc,
           category: editCategory,
-          system_prompt: editPrompt,
-          active_domains: editDomains,
+          systemPrompt: editPrompt,
+          activeDomains: editDomains,
         });
       } else if (editingExpert.source === "custom") {
         updateCustomRole({
@@ -563,7 +563,7 @@ export function ExpertSelector({
                     display: "block",
                   }}
                 >
-                  {t("expertCategory." + category)}
+                  {t(EXPERT_CATEGORY_LABELS[category as ExpertCategoryKey])}
                 </Text>
                 <div
                   style={{
@@ -835,7 +835,7 @@ export function ExpertSelector({
                 style={{ width: "100%" }}
                 options={EXPERT_CATEGORY_KEYS.map((k) => ({
                   value: k,
-                  label: t("expertCategory." + k),
+                  label: t(EXPERT_CATEGORY_LABELS[k]),
                 }))}
               />
             </div>
@@ -977,7 +977,7 @@ export function ExpertSelector({
               style={{ width: "100%" }}
               options={EXPERT_CATEGORY_KEYS.map((k) => ({
                 value: k,
-                label: t("expertCategory." + k),
+                label: t(EXPERT_CATEGORY_LABELS[k]),
               }))}
             />
           </div>

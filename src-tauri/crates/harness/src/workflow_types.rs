@@ -328,6 +328,17 @@ pub struct AgentNodeConfig {
     /// 典型配置："glm-5.2"（当主模型为 qwen3.7-max 时）。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fallback_model: Option<String>,
+    /// 3.7 P2:任务场景 — 控制 Agent 节点的输出风格指令。
+    ///
+    /// - `Code`:强调直接给代码、少废话
+    /// - `Research`:强调结构化分析、引用、权衡
+    /// - `General`:无特殊约束(默认)
+    /// - `Auto`:由 `TaskScene::infer(input)` 自动推断
+    ///
+    /// 缺省 `None` 时按 `General` 处理;`Some(TaskScene::Auto)` 时
+    /// executor 会在拼接 prompt 前对 input 文本调用 `infer` 推断。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_scene: Option<crate::TaskScene>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
@@ -541,7 +552,9 @@ pub struct LoopNodeConfig {
     pub max_iterations: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub continue_condition: Option<String>,
+    #[serde(default)]
     pub continue_on_error: bool,
+    #[serde(default)]
     pub body_steps: Vec<String>,
     /// 每次迭代结束后挂起，等待人工确认后再继续。
     /// 与 `interrupt_nodes` 联合使用：留空且 `interrupt_after_each=true` 时
@@ -1418,6 +1431,43 @@ impl WorkflowNode {
         }
     }
 
+    /// 从节点变体中提取基类可变引用(供进化器修改 retry / timeout / continue_on_fail)。
+    pub fn base_mut(&mut self) -> &mut WorkflowNodeBase {
+        match self {
+            WorkflowNode::Trigger(n) => &mut n.base,
+            WorkflowNode::Agent(n) => &mut n.base,
+            WorkflowNode::Llm(n) => &mut n.base,
+            WorkflowNode::Condition(n) => &mut n.base,
+            WorkflowNode::Parallel(n) => &mut n.base,
+            WorkflowNode::Loop(n) => &mut n.base,
+            WorkflowNode::Merge(n) => &mut n.base,
+            WorkflowNode::Delay(n) => &mut n.base,
+            WorkflowNode::Tool(n) => &mut n.base,
+            WorkflowNode::Code(n) => &mut n.base,
+            WorkflowNode::SubWorkflow(n) => &mut n.base,
+            WorkflowNode::DocumentParser(n) => &mut n.base,
+            WorkflowNode::VectorRetrieve(n) => &mut n.base,
+            WorkflowNode::Validation(n) => &mut n.base,
+            WorkflowNode::HttpRequest(n) => &mut n.base,
+            WorkflowNode::Switch(n) => &mut n.base,
+            WorkflowNode::DatabaseQuery(n) => &mut n.base,
+            WorkflowNode::Notification(n) => &mut n.base,
+            WorkflowNode::Approval(n) => &mut n.base,
+            WorkflowNode::FileOperation(n) => &mut n.base,
+            WorkflowNode::DataTransformer(n) => &mut n.base,
+            WorkflowNode::WebhookSend(n) => &mut n.base,
+            WorkflowNode::Logging(n) => &mut n.base,
+            WorkflowNode::LlmClassifier(n) => &mut n.base,
+            WorkflowNode::Aggregator(n) => &mut n.base,
+            WorkflowNode::Email(n) => &mut n.base,
+            WorkflowNode::Debate(n) => &mut n.base,
+            WorkflowNode::Swarm(n) => &mut n.base,
+            WorkflowNode::Storage(n) => &mut n.base,
+            WorkflowNode::WorkflowRef(n) => &mut n.base,
+            WorkflowNode::End(n) => &mut n.base,
+        }
+    }
+
     pub fn base_timeout(&self) -> Option<u64> {
         self.base().timeout
     }
@@ -1554,9 +1604,273 @@ pub struct WorkflowTemplateData {
     pub error_workflow_id: Option<String>,
     /// Rhai 工具定义（非 DAG 节点，仅注册为可调用工具）
     pub tool_defs: Vec<RhaiToolDef>,
+    /// mission 哈希（SHA-256），用于 compile_mission_to_template 去重缓存。
+    /// 由 mission 编译生成的模板填充；手动创建的模板为 None。
+    #[serde(default)]
+    pub mission_hash: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
+
+// ── 工作流运行时执行态 DTO(阶段 2 从 rt-workflow 上移)──
+//
+// 这些类型是工作流执行过程中的纯数据快照,被 rt-workflow 引擎、
+// 前端进度推送、反思器(WorkflowReflector)共同使用。
+// 含运行时句柄(闭包/Arc<dyn Trait>)的类型仍保留在 rt-workflow。
+
+use std::collections::HashMap;
+
+/// 节点运行时状态(等价于原 StepStatus)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum NodeStatus {
+    Pending,
+    Ready,
+    Running,
+    Completed,
+    Failed,
+    Skipped,
+}
+
+/// 工作流整体状态。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkflowStatus {
+    Created,
+    Running,
+    Completed,
+    PartiallyCompleted,
+    Failed,
+    Cancelled,
+}
+
+/// 工作流执行状态(与 `WorkflowStatus` 区别:含 Paused,不含 Created)。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionStatus {
+    Running,
+    Paused,
+    Completed,
+    PartiallyCompleted,
+    Failed,
+    Cancelled,
+}
+
+impl std::fmt::Display for ExecutionStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Running => write!(f, "running"),
+            Self::Paused => write!(f, "paused"),
+            Self::Completed => write!(f, "completed"),
+            Self::PartiallyCompleted => write!(f, "partially_completed"),
+            Self::Failed => write!(f, "failed"),
+            Self::Cancelled => write!(f, "cancelled"),
+        }
+    }
+}
+
+/// 单个节点的运行时追踪状态。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct NodeRuntimeState {
+    pub status: NodeStatus,
+    pub attempts: u32,
+    pub error: Option<String>,
+    pub started_at: Option<i64>,
+    pub completed_at: Option<i64>,
+}
+
+impl Default for NodeRuntimeState {
+    fn default() -> Self {
+        Self {
+            status: NodeStatus::Pending,
+            attempts: 0,
+            error: None,
+            started_at: None,
+            completed_at: None,
+        }
+    }
+}
+
+/// 工作流运行时容器。
+///
+/// nodes/edges 来自 `WorkflowNode`/`WorkflowEdge`,
+/// 运行时状态(status/results/node_states)存储在内存中。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct Workflow {
+    pub id: String,
+    pub name: String,
+    pub nodes: Vec<WorkflowNode>,
+    pub edges: Vec<WorkflowEdge>,
+    pub status: WorkflowStatus,
+    pub created_at: u64,
+    pub completed_at: Option<u64>,
+    /// 节点执行结果 keyed by node_id
+    pub results: HashMap<String, serde_json::Value>,
+    /// 每个节点的运行时状态
+    pub node_states: HashMap<String, NodeRuntimeState>,
+    /// 工作流最终输出(经 output_schema 过滤或 EndNode 聚合后的精简结果)
+    pub output: Option<serde_json::Value>,
+    /// 错误处理配置(模板级)
+    #[serde(default)]
+    pub error_config: Option<ErrorConfig>,
+    /// 错误工作流 ID(模板级,节点失败时触发独立的错误处理工作流)
+    #[serde(default)]
+    pub error_workflow_id: Option<String>,
+}
+
+/// 单个节点的执行记录(用于持久化与前端展示)。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct NodeExecutionRecord {
+    pub node_id: String,
+    pub node_type: String,
+    pub node_name: Option<String>,
+    pub status: String,
+    pub input: Option<serde_json::Value>,
+    pub output: Option<serde_json::Value>,
+    pub execution_time_ms: Option<u64>,
+    pub error: Option<String>,
+    pub started_at: i64,
+    pub completed_at: Option<i64>,
+    pub parent_execution_id: Option<String>,
+    pub sub_workflow_id: Option<String>,
+}
+
+/// 单次 Loop 迭代产出的 partial_result 事件。
+///
+/// 每次 LoopExecutor 完成一轮迭代后通过 `partial_result_tx` 广播。
+/// 前端可订阅 `execution_id + node_id` 维度的 channel 实时刷新进度面板。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct PartialResultEvent {
+    pub execution_id: String,
+    pub node_id: String,
+    /// 0-based 迭代下标。
+    pub iter_index: u32,
+    /// 当前元素(item),与 `iter_input_var` 数组中第 `iter_index` 个元素一致。
+    pub item: serde_json::Value,
+    /// body 最后一节点的输出(聚合视角下的"本轮结果")。
+    pub step_output: serde_json::Value,
+    /// 累计 partial_result 数组(长度 = iter_index + 1)。
+    pub cumulative_partial: Vec<serde_json::Value>,
+    /// 触发本事件的源:正常完成 / interrupt / 错误。
+    pub phase: String,
+    /// 时间戳(毫秒)。
+    pub emitted_at_ms: i64,
+}
+
+/// 步骤进度事件。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct StepProgressEvent {
+    pub node_id: String,
+    pub status: String,
+    pub total_nodes: usize,
+    pub completed_nodes: usize,
+    pub execution_id: Option<String>,
+}
+
+/// 活跃执行摘要(仅内存运行态,用于可观测性 / 前端轮询)。
+///
+/// 字段精简自 rt-workflow `ExecutionState`,剔除 callbacks / compiled_prompts / cancel_token
+/// 等非序列化运行时槽,便于直接 serde 序列化回传前端。
+#[derive(Debug, Clone, Serialize, TS)]
+pub struct ActiveExecutionInfo {
+    pub execution_id: String,
+    pub workflow_id: String,
+    pub status: ExecutionStatus,
+    pub current_node_id: Option<String>,
+    pub parent_execution_id: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+/// 工作流错误上下文 — 在 Error Workflow 中通过 `$error` / `_error` 变量访问。
+///
+/// 当节点执行失败且配置了 RunErrorBranch 或 error_workflow_id 时,
+/// 引擎构造此上下文并注入到 ExecutionState 变量中,供错误处理
+/// 工作流引用失败节点的详细信息。
+///
+/// **重命名说明**:原 rt-workflow `ErrorContext` 上移到 harness 时
+/// 重命名为 `WorkflowErrorContext`,避免与 `crate::core_error::ErrorContext`
+/// (telemetry 语义)冲突。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct WorkflowErrorContext {
+    pub failed_node_id: String,
+    pub failed_node_name: String,
+    pub error_code: String,
+    pub error_message: String,
+    pub workflow_id: String,
+    pub execution_id: String,
+    pub timestamp: i64,
+    pub last_output: Option<serde_json::Value>,
+}
+
+impl WorkflowErrorContext {
+    pub fn new(
+        node_id: String,
+        node_name: String,
+        error_code: String,
+        error_message: String,
+        workflow_id: String,
+        execution_id: String,
+        last_output: Option<serde_json::Value>,
+    ) -> Self {
+        Self {
+            failed_node_id: node_id,
+            failed_node_name: node_name,
+            error_code,
+            error_message,
+            workflow_id,
+            execution_id,
+            timestamp: chrono::Utc::now().timestamp_millis(),
+            last_output,
+        }
+    }
+
+    /// 获取可在模板中引用的变量名。
+    pub const fn variable_name() -> &'static str {
+        "_error"
+    }
+
+    /// 将错误上下文序列化为 Value,注入到 variables 中。
+    pub fn to_variable(&self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap_or(serde_json::Value::Null)
+    }
+}
+
+/// 工作流错误类型。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub enum WorkflowError {
+    DuplicateNodeId(String),
+    InvalidDependency { node_id: String, missing_dep: String },
+    WorkflowNotFound,
+    NodeNotFound,
+    CycleDetected,
+    SerializationError(String),
+    InputValidationFailed { errors: Vec<String> },
+    OutputValidationFailed { errors: Vec<String> },
+}
+
+impl std::fmt::Display for WorkflowError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DuplicateNodeId(id) => write!(f, "Duplicate node ID: {id}"),
+            Self::InvalidDependency { node_id, missing_dep } => {
+                write!(f, "Node '{node_id}' depends on non-existent '{missing_dep}'")
+            },
+            Self::WorkflowNotFound => write!(f, "Workflow not found"),
+            Self::NodeNotFound => write!(f, "Node not found"),
+            Self::CycleDetected => write!(f, "Cycle detected in workflow"),
+            Self::SerializationError(msg) => write!(f, "Serialization error: {msg}"),
+            Self::InputValidationFailed { errors } => {
+                write!(f, "Input validation failed: {}", errors.join("; "))
+            },
+            Self::OutputValidationFailed { errors } => {
+                write!(f, "Output validation failed: {}", errors.join("; "))
+            },
+        }
+    }
+}
+
+impl std::error::Error for WorkflowError {}
 
 /// 不可变的模板版本快照（用于历史表/版本对比/导入导出）。
 /// 区别于 `WorkflowTemplateData`：没有 `composite_source`/`tool_defs`，
@@ -1597,6 +1911,7 @@ impl WorkflowTemplateData {
             variables: self.variables.clone(),
             error_config: self.error_config.clone(),
             tool_defs: Some(self.tool_defs.clone()),
+            mission_hash: self.mission_hash.clone(),
         }
     }
 }
@@ -1615,6 +1930,10 @@ pub struct WorkflowTemplateInput {
     pub variables: Vec<Variable>,
     pub error_config: Option<ErrorConfig>,
     pub tool_defs: Option<Vec<RhaiToolDef>>,
+    /// mission 哈希（SHA-256），用于 compile_mission_to_template 去重缓存。
+    /// 仅当此模板由 mission 编译生成时填充；手动创建时为 None。
+    #[serde(default)]
+    pub mission_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
@@ -1636,6 +1955,9 @@ pub struct WorkflowTemplateResponse {
     pub variables: Vec<Variable>,
     pub error_config: Option<ErrorConfig>,
     pub tool_defs: Option<Vec<RhaiToolDef>>,
+    /// mission 哈希（SHA-256），若模板由 mission 编译生成则填充
+    #[serde(default)]
+    pub mission_hash: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -1660,6 +1982,7 @@ impl From<WorkflowTemplateData> for WorkflowTemplateResponse {
             variables: data.variables,
             error_config: data.error_config,
             tool_defs: Some(data.tool_defs),
+            mission_hash: data.mission_hash,
             created_at: data.created_at,
             updated_at: data.updated_at,
         }

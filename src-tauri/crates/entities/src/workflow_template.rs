@@ -27,6 +27,10 @@ pub struct Model {
     pub error_config: Option<String>,
     pub composite_source: Option<String>,
     pub tool_defs: Option<String>,
+    /// mission 哈希（SHA-256），用于 compile_mission_to_template 去重缓存。
+    /// 当此模板由 mission 编译生成时填充；手动创建的模板该字段为 NULL。
+    #[sea_orm(column_name = "mission_hash")]
+    pub mission_hash: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

@@ -281,6 +281,95 @@ impl UpdateConversationInput {
     }
 }
 
+// ── 2.6 P1:会话级快照/回滚 DTO ──
+
+/// 会话工作区快照 — 持久化于 `conversations.workspace_snapshot_json`。
+///
+/// `branches` 与 `active_branch_id` 在 `get_workspace_snapshot` 时由
+/// `conversation_branches` 表实时拼装,不参与 `workspace_snapshot_json` 持久化
+/// (避免分支增减后快照与表数据脱节)。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceSnapshot {
+    /// 启用的知识库 / memory / wiki ID(由 Conversation.enabled_*_ids 镜像)
+    #[serde(default)]
+    pub context_sources: Vec<String>,
+    /// 当前会话激活的工具 ID(MCP server / skill)
+    #[serde(default)]
+    pub active_tools: Vec<String>,
+    /// 知识库绑定(包含绑定元数据,如检索阈值、rerank 策略)
+    #[serde(default)]
+    pub knowledge_bindings: Vec<KnowledgeBinding>,
+    /// 记忆策略(抽屉化、衰减、外溢阈值等)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_policy: Option<serde_json::Value>,
+    /// 搜索策略(provider / top_k / 时间范围等)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_policy: Option<serde_json::Value>,
+    /// 会话产出物(artifacts)的引用列表
+    #[serde(default)]
+    pub artifacts: Vec<ArtifactRef>,
+    /// 当前激活的分支 ID(镜像自 `conversations.active_branch_id`,便于前端直接消费)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_branch_id: Option<String>,
+    /// 分支列表(运行时由 conversation_branches 表拼装,不参与持久化)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub branches: Vec<super::rag_voice_etc::ConversationBranch>,
+}
+
+/// 知识库绑定元数据
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct KnowledgeBinding {
+    pub source_id: String,
+    pub source_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top_k: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rerank: Option<bool>,
+}
+
+/// 产出物引用
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtifactRef {
+    pub id: String,
+    pub kind: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
+}
+
+/// 分支对比结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BranchComparison {
+    pub branch_a: super::rag_voice_etc::ConversationBranch,
+    pub branch_b: super::rag_voice_etc::ConversationBranch,
+    /// 两条分支共享的前缀消息(从会话起点到分叉点)
+    pub common_prefix: Vec<MessageSummary>,
+    /// 仅在 branch_a 中存在的消息
+    pub only_in_a: Vec<MessageSummary>,
+    /// 仅在 branch_b 中存在的消息
+    pub only_in_b: Vec<MessageSummary>,
+    /// 分叉点消息 ID(branch_a 与 branch_b 的最近公共父消息)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diverge_at: Option<String>,
+}
+
+/// 消息摘要(用于分支对比,避免传输完整 content)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageSummary {
+    pub id: String,
+    pub role: String,
+    /// content 前 200 字符
+    pub content_preview: String,
+    pub created_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_message_id: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConversationCategory {
     pub id: String,

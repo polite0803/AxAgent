@@ -312,6 +312,22 @@ pub mod stock_setup {
     pub const INTERNAL: &str = "STOCK_SETUP_INTERNAL";
 }
 
+/// 工作流反思 / 进化 / 优化相关错误码(阶段 5 wiring 层)
+pub mod workflow_reflection {
+    /// 反思执行失败(内部异常,通常底层 trait 返回 Err)
+    pub const REFLECT_FAILED: &str = "WORKFLOW_REFLECTION_REFLECT_FAILED";
+    /// 反思记录缺失或无效(字段不完整 / 反序列化失败)
+    pub const RECORD_INVALID: &str = "WORKFLOW_REFLECTION_RECORD_INVALID";
+    /// 工作流模板无效(节点缺失 / 结构错误)
+    pub const TEMPLATE_INVALID: &str = "WORKFLOW_REFLECTION_TEMPLATE_INVALID";
+    /// 进化执行失败(代数超限 / 种群为空 / 变异异常)
+    pub const EVOLVE_FAILED: &str = "WORKFLOW_REFLECTION_EVOLVE_FAILED";
+    /// 优化建议生成失败
+    pub const SUGGEST_FAILED: &str = "WORKFLOW_REFLECTION_SUGGEST_FAILED";
+    /// 优化建议应用失败(模板修改冲突)
+    pub const APPLY_FAILED: &str = "WORKFLOW_REFLECTION_APPLY_FAILED";
+}
+
 /// 平台集成相关错误码
 pub mod platform {
     /// Telegram集成未启用

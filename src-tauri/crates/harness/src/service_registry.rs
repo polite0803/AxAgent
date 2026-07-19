@@ -9,7 +9,7 @@ use std::sync::{Arc, OnceLock, RwLock};
 
 use crate::repositories::{
     AgencyExpertRepository, AgentProfileRepository, AgentRoleRepository, BackgroundTaskRepository,
-    ConversationRepository, DatabaseInitializer, GeneratedToolRepository,
+    BusinessRoleRepository, ConversationRepository, DatabaseInitializer, GeneratedToolRepository,
     KnowledgeDocumentRepository, KnowledgeEntityRepository, KnowledgeFlowRepository,
     KnowledgeInterfaceRepository, LoopCheckpointRepository, MemoryRepository, MessageRepository,
     NoteBacklinkRepository, NoteRepository, PlatformConfigRepository, ProviderRepository,
@@ -51,6 +51,7 @@ pub struct ServiceRegistry {
     pub agent_profile_repo: OnceLock<RwLock<Option<Arc<dyn AgentProfileRepository>>>>,
     pub agency_expert_repo: OnceLock<RwLock<Option<Arc<dyn AgencyExpertRepository>>>>,
     pub agent_role_repo: OnceLock<RwLock<Option<Arc<dyn AgentRoleRepository>>>>,
+    pub business_role_repo: OnceLock<RwLock<Option<Arc<dyn BusinessRoleRepository>>>>,
     pub db_init: OnceLock<RwLock<Option<Arc<dyn DatabaseInitializer>>>>,
     pub skill_dirs: OnceLock<RwLock<Option<Arc<dyn SkillDirsProvider>>>>,
 }
@@ -86,6 +87,7 @@ impl ServiceRegistry {
             agent_profile_repo: OnceLock::new(),
             agency_expert_repo: OnceLock::new(),
             agent_role_repo: OnceLock::new(),
+            business_role_repo: OnceLock::new(),
             db_init: OnceLock::new(),
             skill_dirs: OnceLock::new(),
         }
@@ -553,6 +555,21 @@ impl ServiceRegistry {
             .clone()
             .expect("AgentRoleRepository not initialized.")
     }
+
+    // ── BusinessRoleRepository ──
+
+    pub fn set_business_role_repository(&self, repo: Arc<dyn BusinessRoleRepository>) {
+        self.business_role_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+    }
+
+    pub fn business_role_repository(&self) -> Arc<dyn BusinessRoleRepository> {
+        self.business_role_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap()
+            .clone()
+            .expect("BusinessRoleRepository not initialized.")
+    }
 }
 
 impl Default for ServiceRegistry {
@@ -601,6 +618,7 @@ pub trait ServiceRegistryProvider: Send + Sync {
     fn agent_profile_repository(&self) -> Option<Arc<dyn AgentProfileRepository>>;
     fn agency_expert_repository(&self) -> Option<Arc<dyn AgencyExpertRepository>>;
     fn agent_role_repository(&self) -> Option<Arc<dyn AgentRoleRepository>>;
+    fn business_role_repository(&self) -> Option<Arc<dyn BusinessRoleRepository>>;
     fn database_initializer(&self) -> Option<Arc<dyn DatabaseInitializer>>;
     fn skill_dirs_provider(&self) -> Option<Arc<dyn SkillDirsProvider>>;
 }
@@ -716,6 +734,10 @@ impl ServiceRegistryProvider for ServiceRegistry {
 
     fn agent_role_repository(&self) -> Option<Arc<dyn AgentRoleRepository>> {
         self.agent_role_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
+    fn business_role_repository(&self) -> Option<Arc<dyn BusinessRoleRepository>> {
+        self.business_role_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
     }
 
     fn database_initializer(&self) -> Option<Arc<dyn DatabaseInitializer>> {

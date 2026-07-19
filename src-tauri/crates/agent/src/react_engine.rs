@@ -310,7 +310,9 @@ impl LlmDrivenReasoningProvider {
                     thinking: None,
                 },
             ],
-            stream: false,
+            // 3.4 P2:启用流式传输,接入 ApiClient::stream() 路径
+            // execute_llm 内部会收集所有 chunk 后返回完整字符串,保持调用方签名兼容
+            stream: true,
             temperature: Some(0.3),
             max_tokens: Some(2048),
             top_p: None,

@@ -1,79 +1,63 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 运行时执行态 DTO 复用 harness(阶段 2 上移)
+pub use axagent_harness::workflow_types::{
+    ExecutionStatus, NodeExecutionRecord, PartialResultEvent,
+};
+// 错误上下文:重命名后的 harness 类型,rt-workflow 内部保留 ErrorContext 别名以兼容
+use axagent_harness::workflow_types::WorkflowErrorContext;
+
 use serde::{Deserialize, Serialize};
 
-use crate::work_engine::error_handling::ErrorContext;
 use crate::work_engine::node_executor_trait::NodeOutput;
 
-/// Overall execution status of a workflow
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ExecutionStatus {
-    Running,
-    Paused,
-    Completed,
-    PartiallyCompleted,
-    Failed,
-    Cancelled,
-}
-
-impl std::fmt::Display for ExecutionStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ExecutionStatus::Running => write!(f, "running"),
-            ExecutionStatus::Paused => write!(f, "paused"),
-            ExecutionStatus::Completed => write!(f, "completed"),
-            ExecutionStatus::PartiallyCompleted => write!(f, "partially_completed"),
-            ExecutionStatus::Failed => write!(f, "failed"),
-            ExecutionStatus::Cancelled => write!(f, "cancelled"),
-        }
-    }
-}
-
-/// Record of a single node execution
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NodeExecutionRecord {
-    pub node_id: String,
-    pub node_type: String,
-    pub node_name: Option<String>,
-    pub status: String,
-    pub input: Option<serde_json::Value>,
-    pub output: Option<serde_json::Value>,
-    pub execution_time_ms: Option<u64>,
-    pub error: Option<String>,
-    pub started_at: i64,
-    pub completed_at: Option<i64>,
-    pub parent_execution_id: Option<String>,
-    pub sub_workflow_id: Option<String>,
-}
-
-/// 单次 Loop 迭代产出的 partial_result 事件。
-///
-/// 每次 LoopExecutor 完成一轮迭代后通过 `partial_result_tx` 广播。
-/// 前端可订阅 `execution_id + node_id` 维度的 channel 实时刷新进度面板。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PartialResultEvent {
-    pub execution_id: String,
-    pub node_id: String,
-    /// 0-based 迭代下标。
-    pub iter_index: u32,
-    /// 当前元素（item），与 `iter_input_var` 数组中第 `iter_index` 个元素一致。
-    pub item: serde_json::Value,
-    /// body 最后一节点的输出（聚合视角下的"本轮结果"）。
-    pub step_output: serde_json::Value,
-    /// 累计 partial_result 数组（长度 = iter_index + 1）。
-    pub cumulative_partial: Vec<serde_json::Value>,
-    /// 触发本事件的源：正常完成 / interrupt / 错误。
-    pub phase: String,
-    /// 时间戳（毫秒）。
-    pub emitted_at_ms: i64,
-}
+// 兼容别名:rt-workflow 内部代码继续用 ErrorContext 名称,实际指向 harness 的 WorkflowErrorContext
+pub(crate) type ErrorContext = WorkflowErrorContext;
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use super::executors::{PlanCallbacks, SubWorkflowCallback, ToolCallback};
 use super::prompt_template::CompiledPrompt;
+
+/// 4.1.6 P3:暂停原因
+///
+/// 显式区分触发暂停的不同场景,便于日志/审计/UI 展示。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PauseReason {
+    /// 断点命中
+    Breakpoint,
+    /// 人工审批(HITL ApprovalExecutor 触发)
+    Approval,
+    /// Loop 节点人工审查(每轮迭代后等待用户确认)
+    LoopReview,
+    /// 用户手动调用 pause()
+    Manual,
+}
+
+/// 4.1.6 P3:暂停状态(显式封装)
+///
+/// 替代原先 `pause_signal: Option<Arc<Notify>>` + `ExecutionStatus::Paused` 的隐式联合。
+/// 把暂停原因和恢复信号绑定在一个结构内,作为暂停信息的唯一权威来源。
+#[derive(Debug, Clone)]
+pub struct PauseState {
+    /// 暂停原因
+    pub reason: PauseReason,
+    /// 恢复信号:resume 时调用 `signal.notify_waiters()` / `notify_one()`
+    pub signal: Arc<tokio::sync::Notify>,
+}
+
+impl PauseState {
+    /// 创建一个新的暂停状态
+    pub fn new(reason: PauseReason) -> Self {
+        Self { reason, signal: Arc::new(tokio::sync::Notify::new()) }
+    }
+
+    /// 获取恢复信号的引用
+    pub fn signal(&self) -> &Arc<tokio::sync::Notify> {
+        &self.signal
+    }
+}
 
 /// 运行时回调容器（非序列化，仅在内存中传递）
 #[derive(Clone)]
@@ -217,9 +201,17 @@ pub struct ExecutionState {
     /// 断点集（节点 ID 集合，不序列化）
     #[serde(skip, default)]
     pub breakpoints: std::collections::HashSet<String>,
-    /// 暂停信号（引擎注入，断点命中时等待，resume 时通知）
+    /// 暂停状态(显式封装暂停原因 + 恢复信号)
+    ///
+    /// 4.1.6 P3:替代原先 `pause_signal` + `ExecutionStatus::Paused` 的隐式联合。
+    /// 当此字段为 `Some(pause_state)` 时,表示执行流已被暂停并等待 resume:
+    /// - `pause_state.reason` 说明暂停原因(断点/审批/Loop审查/手动)
+    /// - `pause_state.signal` 是恢复信号,`signal.notified().await` 阻塞直到 resume
+    ///
+    /// `ExecutionStatus::Paused` 保留作为广义状态机标记(供外部查询),
+    /// 但暂停的详细信息(原因 + 信号)以此字段为唯一权威来源。
     #[serde(skip, default)]
-    pub pause_signal: Option<std::sync::Arc<tokio::sync::Notify>>,
+    pub pause_state: Option<PauseState>,
     /// Plan 模式回调（引擎从 RunOptions 注入，executor 读取）
     #[serde(skip, default)]
     pub plan_callbacks: Option<PlanCallbacks>,
@@ -287,7 +279,7 @@ impl ExecutionState {
             cancel_token: None,
             dry_run: false,
             breakpoints: std::collections::HashSet::new(),
-            pause_signal: None,
+            pause_state: None,
             plan_callbacks: None,
             tool_permissions: None,
             business_rule_engine: None,
@@ -314,8 +306,55 @@ impl ExecutionState {
         self.variables.get(key)
     }
 
+    /// 4.1.6 P3:获取暂停恢复信号(从 pause_state 派生)
+    ///
+    /// 替代原先直接访问 `pause_signal` 字段。当 `pause_state` 为 Some 时返回其信号克隆。
+    pub fn pause_signal(&self) -> Option<Arc<tokio::sync::Notify>> {
+        self.pause_state.as_ref().map(|p| p.signal.clone())
+    }
+
+    /// 4.1.6 P3:获取暂停原因(若已暂停)
+    pub fn pause_reason(&self) -> Option<PauseReason> {
+        self.pause_state.as_ref().map(|p| p.reason)
+    }
+
+    /// 4.1.6 P3:进入暂停状态
+    ///
+    /// 若已有 pause_state 则复用其信号(保留 reason 为首次原因),否则创建新的。
+    /// 返回恢复信号供调用方 `notified().await`。
+    pub fn enter_pause(&mut self, reason: PauseReason) -> Arc<tokio::sync::Notify> {
+        if let Some(existing) = &self.pause_state {
+            return existing.signal.clone();
+        }
+        let state = PauseState::new(reason);
+        let signal = state.signal.clone();
+        self.pause_state = Some(state);
+        signal
+    }
+
+    /// 4.1.6 P3:清除暂停状态(resume 后调用)
+    pub fn clear_pause(&mut self) {
+        self.pause_state = None;
+    }
+
     /// Add a node execution record
+    ///
+    /// 副作用:当节点成功完成时,同步把 output 写入 `node_outputs`,
+    /// 供表达式引擎 `$node["NodeId"]` / `$node["NodeName"]` 引用。
+    /// 同时以 node_id 和 node_name(若存在且与 node_id 不同)作为 key,
+    /// 兼容用户按 ID 或按名称引用的两种习惯。
     pub fn add_node_record(&mut self, record: NodeExecutionRecord) {
+        // 填充 node_outputs(修复 dead field:此前从未被写入)
+        if record.status == "completed"
+            && let Some(output) = record.output.clone()
+        {
+            self.node_outputs.insert(record.node_id.clone(), output.clone());
+            if let Some(name) = record.node_name.as_ref()
+                && name != &record.node_id
+            {
+                self.node_outputs.insert(name.clone(), output);
+            }
+        }
         self.node_records.push(record);
         self.updated_at = chrono::Utc::now().timestamp_millis();
     }

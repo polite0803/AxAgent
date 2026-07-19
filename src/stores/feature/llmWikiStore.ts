@@ -58,6 +58,7 @@ interface LlmWikiState {
     url?: string,
     title?: string,
   ) => Promise<IngestResult | null>;
+  deleteSource: (sourceId: string) => Promise<boolean>;
   compileWiki: (
     wikiId: string,
     sourceIds: string[],
@@ -156,6 +157,17 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     } catch (e) {
       set({ error: String(e) });
       return null;
+    }
+  },
+
+  deleteSource: async (sourceId) => {
+    try {
+      await invoke("llm_wiki_delete_source", { sourceId });
+      set((s) => ({ sources: s.sources.filter((src) => src.id !== sourceId) }));
+      return true;
+    } catch (e) {
+      set({ error: String(e) });
+      return false;
     }
   },
 

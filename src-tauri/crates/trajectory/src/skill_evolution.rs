@@ -8,6 +8,12 @@
 //! - Fitness evaluation based on success rate and execution time
 //! - Crossover and mutation operators
 //! - Multi-objective optimization (quality vs speed)
+//!
+//! P2-7 评估说明( Won't Fix ):
+//! `SkillGenome`(fitness: f64)与 `WorkflowGenome`(fitness: f32)类型不同,
+//! 且 crossover/mutate 因基因组结构(steps vs nodes/edges)差异完全不同。
+//! 抽取共享泛型算子需引入 `GenomeFitness` trait + 适配器,成本大于收益。
+//! 两者的 `tournament_select` 算法各自约 20 行,保持独立实现更清晰。
 //! - Convergence detection
 //! - LLM-driven semantic mutation (replaces random symbol manipulation)
 //! - Execution feedback-driven verification closed loop
@@ -23,7 +29,7 @@ use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::sync::RwLock;
+use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvolutionConfig {
@@ -497,29 +503,27 @@ impl SkillEvolutionEngine {
         }
     }
 
-    pub fn set_llm_provider(&self, provider: Arc<dyn LlmEvolutionProvider>) {
-        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
-        *self.llm_provider.write().unwrap_or_else(|e| e.into_inner()) = Some(provider);
+    pub async fn set_llm_provider(&self, provider: Arc<dyn LlmEvolutionProvider>) {
+        // tokio::sync::RwLock: 符合 AGENTS.md 第 8 条（禁止 std::sync::RwLock）。
+        *self.llm_provider.write().await = Some(provider);
     }
 
-    pub fn set_sandbox(&mut self, executor: Arc<dyn SandboxExecutor>) {
+    pub async fn set_sandbox(&mut self, executor: Arc<dyn SandboxExecutor>) {
         self.config.use_execution_validation = true;
-        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
-        *self.sandbox.write().unwrap_or_else(|e| e.into_inner()) = Some(executor);
+        // tokio::sync::RwLock: 符合 AGENTS.md 第 8 条（禁止 std::sync::RwLock）。
+        *self.sandbox.write().await = Some(executor);
     }
 
     pub fn skill_count(&self) -> usize {
         self.population.as_ref().map(|p| p.individuals.len()).unwrap_or(0)
     }
 
-    pub fn has_llm_provider(&self) -> bool {
-        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
-        self.llm_provider.read().unwrap_or_else(|e| e.into_inner()).is_some()
+    pub async fn has_llm_provider(&self) -> bool {
+        self.llm_provider.read().await.is_some()
     }
 
-    pub fn has_sandbox(&self) -> bool {
-        // SAFETY: guard 在本语句结束时立即释放，不跨 await 点。
-        self.sandbox.read().unwrap_or_else(|e| e.into_inner()).is_some()
+    pub async fn has_sandbox(&self) -> bool {
+        self.sandbox.read().await.is_some()
     }
 
     pub fn initialize(&mut self, skill: &Skill) {
@@ -575,9 +579,8 @@ impl SkillEvolutionEngine {
 
         if let Some(ref mut pop) = self.population {
             if self.config.use_llm_mutation {
-                // SAFETY: read guard 在 .clone() 后立即释放，不跨 await 点。
-                let llm_provider =
-                    self.llm_provider.read().unwrap_or_else(|e| e.into_inner()).clone();
+                // tokio::sync::RwLock: read guard 在 .clone() 后立即释放，不跨 await 点。
+                let llm_provider = self.llm_provider.read().await.clone();
                 if let Some(ref provider) = llm_provider {
                     for individual in &mut pop.individuals {
                         let failure_evidence: Vec<String> = test_trajectories
@@ -639,8 +642,8 @@ impl SkillEvolutionEngine {
             }
 
             if self.config.use_execution_validation {
-                // SAFETY: read guard 在 .clone() 后立即释放，不跨 await 点。
-                let sandbox = self.sandbox.read().unwrap_or_else(|e| e.into_inner()).clone();
+                // tokio::sync::RwLock: read guard 在 .clone() 后立即释放，不跨 await 点。
+                let sandbox = self.sandbox.read().await.clone();
                 if let Some(ref sandbox) = sandbox {
                     for individual in &mut pop.individuals.iter_mut() {
                         let mut total_success = 0.0;
@@ -908,7 +911,7 @@ mod tests {
     #[tokio::test]
     async fn test_engine_with_llm_provider() {
         let engine = SkillEvolutionEngine::new();
-        engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider));
-        assert!(engine.llm_provider.read().unwrap_or_else(|e| e.into_inner()).is_some());
+        engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider)).await;
+        assert!(engine.llm_provider.read().await.is_some());
     }
 }

@@ -214,11 +214,19 @@ impl MissionDecomposer for RuleBasedDecomposer {
 /// Sends the mission to an LLM with a structured prompt that asks for a
 /// JSON array of sub-tasks. Falls back to [`RuleBasedDecomposer`] on
 /// any failure (network error, parse error, empty response).
+///
+/// **架构约束（设计时工具）**：本 decomposer 在拆任务时会调用 LLM，违反
+/// 「运行时不调 LLM」的稳定性铁律。仅应在**设计时**（如 mission 编译、
+/// workflow_template 设计阶段）使用；**运行时**必须直接使用已编译的
+/// `workflow_template`，不得调用本 decomposer。详见 AGENTS.md「运行时边界」。
 pub struct LlmBasedDecomposer {
     adapter: Arc<dyn ProviderAdapter>,
     ctx: ProviderRequestContext,
     llm_service: Arc<dyn LlmExecutionService>,
     fallback: RuleBasedDecomposer,
+    /// 业务岗位/专家清单 brief（由调用方在构造时 async 获取后注入）。
+    /// 为 None 时 prompt 中不插入清单 section。
+    roles_and_experts_brief: Option<String>,
 }
 
 impl LlmBasedDecomposer {
@@ -227,7 +235,30 @@ impl LlmBasedDecomposer {
         ctx: ProviderRequestContext,
         llm_service: Arc<dyn LlmExecutionService>,
     ) -> Self {
-        Self { adapter, ctx, llm_service, fallback: RuleBasedDecomposer }
+        Self {
+            adapter,
+            ctx,
+            llm_service,
+            fallback: RuleBasedDecomposer,
+            roles_and_experts_brief: None,
+        }
+    }
+
+    /// 注入业务岗位/专家清单 brief（由调用方 async 获取后传入）。
+    ///
+    /// brief 格式建议：
+    /// ```text
+    /// === 可用业务岗位 ===
+    /// - CEO：负责战略决策与资源分配
+    /// - CTO：负责技术决策与团队管理
+    ///
+    /// === 可用专家 ===
+    /// - securities_analyst：证券分析师，擅长股票/债券估值
+    /// - lawyer：律师，擅长合同审查/合规
+    /// ```
+    pub fn with_roles_and_experts_brief(mut self, brief: impl Into<String>) -> Self {
+        self.roles_and_experts_brief = Some(brief.into());
+        self
     }
 }
 
@@ -247,6 +278,13 @@ impl MissionDecomposer for LlmBasedDecomposer {
         mission: &str,
         strategy: OrchestrationStrategy,
     ) -> Result<DecompositionPlan, OrchestrationError> {
+        // 业务岗位/专家清单 section（仅在调用方注入 brief 时插入）
+        let roles_section = self
+            .roles_and_experts_brief
+            .as_ref()
+            .map(|brief| format!("\n## Available Business Roles & Experts\n{brief}\n"))
+            .unwrap_or_default();
+
         let prompt = format!(
             r#"You are a task decomposition engine. Given a mission and an orchestration strategy, break it into 2–8 sub-tasks.
 
@@ -257,7 +295,9 @@ impl MissionDecomposer for LlmBasedDecomposer {
 - If strategy is "fan_out" or "race": keep dependencies minimal
 - If strategy is "debate": assign the last sub-task as adjudicator, all others feed into it
 - If strategy is "dynamic": let the LLM decide the topology naturally
-
+- 若提供了「Available Business Roles & Experts」清单，在 description 中说明该子任务
+  建议由哪个业务岗位/专家负责（如 "建议由证券分析师执行"），便于后续分配 AgentProfile。
+{roles_section}
 ## Mission
 {mission}
 
@@ -277,6 +317,7 @@ Respond with ONLY a JSON object:
   ]
 }}
 "#,
+            roles_section = roles_section,
             mission = mission,
             strategy = strategy.as_str(),
         );

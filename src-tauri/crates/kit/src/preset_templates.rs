@@ -148,6 +148,7 @@ fn step_to_agent_node(
             model_role: None,
             consistency_check: None,
             hallucination_guard: None,
+            task_scene: None,
             input_mapping: std::collections::HashMap::new(),
             fallback_model: None,
         },
@@ -711,6 +712,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         }),
         error_workflow_id: None,
         tool_defs: vec![],
+        mission_hash: None,
         created_at: now,
         updated_at: now,
     }

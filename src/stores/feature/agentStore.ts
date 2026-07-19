@@ -30,6 +30,9 @@ import type {
 import type { ToolExecution } from "@/types";
 import { create } from "zustand";
 import { setupExecutionEventListeners, useExecutionStore } from "./executionStore";
+import type { CurrentToolCall } from "./executionToolCallUtils";
+
+export type { CurrentToolCall };
 
 /** 计划确认闸门开关的 localStorage 持久化键（P0-2） */
 const PLAN_APPROVAL_ENABLED_KEY = "axagent:agent:planApprovalEnabled";
@@ -66,13 +69,7 @@ export interface WorkflowMatchSuggestion {
   similarity: number;
 }
 
-/** 当前正在执行（或最近执行）的工具调用追踪 */
-export interface CurrentToolCall {
-  toolName: string;
-  toolUseId: string;
-  conversationId: string;
-  startedAt: number;
-}
+/** 当前正在执行（或最近执行）的工具调用追踪（类型复用自 executionToolCallUtils） */
 
 interface AgentStore {
   // Session cache (truth lives in backend DB)
@@ -91,7 +88,7 @@ interface AgentStore {
   // 执行进度追踪（仅 agentStore 独有的标志——agentPool/agentStatus/sdkIdToExecId 由 executionStore 管理）
   isExecuting: Record<string, boolean>; // conversationId → 是否正在执行工具
   executingConversationIds: string[]; // 当前有工具在执行的对话 ID 列表（有序）
-  currentToolCall: { toolName: string; toolUseId: string; conversationId: string; startedAt: number } | null;
+  currentToolCall: CurrentToolCall | null;
   sdkIdToExecId: Record<string, string>;
   toolCalls: Record<string, ToolCallState>;
   agentStatus: Record<string, string>;

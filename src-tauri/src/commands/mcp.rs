@@ -115,8 +115,11 @@ pub async fn test_mcp_server(
                 let tools = axagent_mcp::mcp_client::discover_tools_stdio(command, &args, &env)
                     .await
                     .map_err(|e| {
+                        // C-4: 动态错误信息走 params（前端按 t("error.MCP_CONNECT_FAILED", { error }) 插值）
                         serde_json::to_string(
-                            &ErrorResponse::new(mcp_err::CONNECT_FAILED).with_detail(e.to_string()),
+                            &ErrorResponse::new(mcp_err::CONNECT_FAILED)
+                                .with_param("error", e.to_string())
+                                .with_detail(e.to_string()),
                         )
                         .unwrap_or_else(|e| {
                             format!("{{\"error\":\"serialization failed: {}\"}}", e)
@@ -142,8 +145,10 @@ pub async fn test_mcp_server(
                     axagent_mcp::mcp_client::discover_tools_http(endpoint, auth.as_deref())
                         .await
                         .map_err(|e| {
+                            // C-4: 动态错误信息走 params（前端按 t("error.MCP_CONNECT_FAILED", { error }) 插值）
                             serde_json::to_string(
                                 &ErrorResponse::new(mcp_err::CONNECT_FAILED)
+                                    .with_param("error", e.to_string())
                                     .with_detail(e.to_string()),
                             )
                             .unwrap_or_else(|e| {
@@ -154,8 +159,10 @@ pub async fn test_mcp_server(
                     axagent_mcp::mcp_client::discover_tools_sse(endpoint, auth.as_deref())
                         .await
                         .map_err(|e| {
+                            // C-4: 动态错误信息走 params（前端按 t("error.MCP_CONNECT_FAILED", { error }) 插值）
                             serde_json::to_string(
                                 &ErrorResponse::new(mcp_err::CONNECT_FAILED)
+                                    .with_param("error", e.to_string())
                                     .with_detail(e.to_string()),
                             )
                             .unwrap_or_else(|e| {

@@ -5,7 +5,6 @@ use crate::commands::skills;
 use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_harness::types::settings_chat::ChatTool;
 use axagent_providers::ProviderAdapter;
-use axagent_tools::registry::UnifiedToolRegistry;
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -438,7 +437,6 @@ pub(super) fn detect_inter_skill_dependencies(
 pub(super) struct SkillExecutionContext {
     sea_db: sea_orm::DatabaseConnection,
     conversation_id: String,
-    mcp_registry: Arc<UnifiedToolRegistry>,
 }
 
 impl SkillExecutionContext {
@@ -450,13 +448,8 @@ impl SkillExecutionContext {
         _api_key: String,
         conversation_id: String,
         _message_id: String,
-        mcp_registry: Arc<UnifiedToolRegistry>,
     ) -> Self {
-        Self { sea_db: app_state.harness.db().clone(), conversation_id, mcp_registry }
-    }
-
-    fn mcp_registry(&self) -> Arc<UnifiedToolRegistry> {
-        self.mcp_registry.clone()
+        Self { sea_db: app_state.harness.db().clone(), conversation_id }
     }
 }
 
@@ -465,17 +458,12 @@ pub(super) struct SkillExecutionResult {
     skill_name: String,
     task: String,
     content: String,
-    execution_mode: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     goal: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     constraints: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     steps: Option<Vec<SkillStep>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    mcp_tool_call: Option<McpToolCall>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    mcp_result: Option<String>,
     message: String,
 }
 
@@ -488,51 +476,12 @@ pub(crate) struct SkillStep {
     pub(crate) needs: Vec<usize>,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
-pub(super) struct McpToolCall {
-    tool_name: String,
-    arguments: serde_json::Value,
-}
-
 pub(super) fn parse_skill_input(input: &str) -> Result<SkillInput, String> {
     serde_json::from_str(input).map_err(|e| {
         ErrorResponse::new(agent_err::INTERNAL)
             .with_detail(format!("Invalid skill input JSON: {}", e))
             .to_string()
     })
-}
-
-pub(super) fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
-    let content_lower = content.to_lowercase();
-    if !content_lower.contains("mcp") {
-        return None;
-    }
-
-    let mut tool_name = None;
-    let mut arguments = serde_json::Value::Object(serde_json::Map::new());
-
-    for line in content.lines() {
-        let line_trimmed = line.trim();
-        if line_trimmed.starts_with("mcp tool:") || line_trimmed.starts_with("- tool:") {
-            let parts: Vec<&str> = line_trimmed.splitn(2, ':').collect();
-            if parts.len() > 1 {
-                tool_name = Some(parts[1].trim().to_string());
-            }
-        }
-        if line_trimmed.starts_with("arguments:") || line_trimmed.starts_with("args:") {
-            let json_str = line_trimmed.split_once(':').map(|x| x.1).unwrap_or("{}").trim();
-            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
-                arguments = parsed;
-            }
-        }
-        if line_trimmed.starts_with('{') && tool_name.is_some() {
-            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(line_trimmed) {
-                arguments = parsed;
-            }
-        }
-    }
-
-    tool_name.map(|name| McpToolCall { tool_name: name, arguments })
 }
 
 pub(crate) fn infer_agent_role(action: &str, description: &str) -> &'static str {
@@ -577,13 +526,7 @@ pub(super) async fn execute_skill_async(
     let context = &skill_input.input.context;
     let goal = context.as_ref().and_then(|c| c.goal.clone());
     let constraints = context.as_ref().and_then(|c| c.constraints.clone());
-    let execution_mode = "content".to_string();
-    // TODO P2-2.12: execution_mode 当前硬编码为 "content"，MCP 分支永远不可达。
-    // MCP 工具调用目前通过 UnifiedToolRegistry 独立路径处理，
-    // 而非 skill_execution 流程。如需恢复 MCP 分支，应从 skill manifest
-    // 中动态读取 execution_mode 声明。
-    let mcp_tool_call = extract_mcp_tool_call(skill_content);
-
+    // skill 以 "content" 模式返回结果供 LLM 处理，MCP 工具调用由 LLM 层直接走 tool_registry。
     let tracker = get_skill_output_tracker();
     let conversation_id = ctx.conversation_id.clone();
     let recent_skills = tracker.get_recent_skills(&conversation_id, 10).unwrap_or_else(|e| {
@@ -603,49 +546,16 @@ pub(super) async fn execute_skill_async(
         SkillExecutionRecord { skill_name: skill_name.to_string(), output: None };
     let _ = tracker.record_execution(&conversation_id, execution_record);
 
-    let mut mcp_result: Option<String> = None;
-    let mut message = format!("Skill '{}' executed. Task: {}", skill_name, task);
-
-    match execution_mode.as_str() {
-        "mcp" => {
-            if let Some(ref mcp_call) = mcp_tool_call {
-                match execute_mcp_tool_call(&mcp_call.tool_name, mcp_call.arguments.clone(), ctx)
-                    .await
-                {
-                    Ok(result) => {
-                        mcp_result = Some(result.clone());
-                        message = format!(
-                            "Skill '{}' executed MCP tool '{}' successfully. Result: {}. Task: {}",
-                            skill_name, mcp_call.tool_name, result, task
-                        );
-                    },
-                    Err(e) => {
-                        message = format!(
-                            "Skill '{}' attempted to execute MCP tool '{}' but failed: {}. Task: {}",
-                            skill_name, mcp_call.tool_name, e, task
-                        );
-                    },
-                }
-            }
-        },
-        _ => {
-            message = format!(
-                "Skill '{}' returned content for LLM to process. Task: {}",
-                skill_name, task
-            );
-        },
-    }
+    let message =
+        format!("Skill '{}' returned content for LLM to process. Task: {}", skill_name, task);
 
     let result = SkillExecutionResult {
         skill_name: skill_name.to_string(),
         task: task.clone(),
         content: skill_content.to_string(),
-        execution_mode,
         goal,
         constraints,
         steps: None,
-        mcp_tool_call,
-        mcp_result,
         message,
     };
 
@@ -756,28 +666,6 @@ pub(super) async fn execute_skill_async(
             .with_detail(format!("Failed to serialize result: {}", e))
             .to_string()
     })
-}
-
-pub(super) async fn execute_mcp_tool_call(
-    tool_name: &str,
-    arguments: serde_json::Value,
-    ctx: &SkillExecutionContext,
-) -> Result<String, String> {
-    let registry = ctx.mcp_registry().as_ref().clone();
-    let args_json = serde_json::to_string(&arguments).map_err(|e| {
-        ErrorResponse::new(agent_err::INTERNAL)
-            .with_detail(format!("Failed to serialize arguments: {}", e))
-    })?;
-    let result =
-        registry.execute_mcp(tool_name, &args_json).await.map(|r| r.content).map_err(|e| {
-            ErrorResponse::new(agent_err::INTERNAL)
-                .with_detail(format!("MCP tool execution failed: {}", e))
-        })?;
-    Ok(serde_json::json!({
-        "content": result,
-        "is_error": false
-    })
-    .to_string())
 }
 
 pub(super) fn execute_skill_sync(

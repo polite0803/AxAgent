@@ -732,6 +732,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // agent_executor 在 strict_mode 校验失败（空内容/格式错误）时触发重试，
                 // 重试使用简化 ChatRequest（无 tools），成功则替换 final_content。
                 fallback_model: Some("glm-5.2".to_string()),
+                task_scene: None,
             },
         })
     };
@@ -2977,6 +2978,7 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
         error_config: Set(Some(error_config_val)),
         composite_source: Set(None),
         tool_defs: Set(Some(tool_defs_val)),
+        mission_hash: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     }

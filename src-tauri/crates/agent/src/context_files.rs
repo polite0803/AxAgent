@@ -6,7 +6,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-const CONTEXT_FILE_NAMES: &[&str] = &["AGENTS.md", "CLAUDE.md", ".axagent/memory.md"];
+/// 始终加载的上下文文件名
+///
+/// 3.2 P2:旧 `.axagent/memory.md` 单文件已改为 `.axagent/MEMORY.md` 索引文件
+/// (200 行硬限制,索引 `.axagent/memory/{user,feedback,project,reference}/` 四类
+/// 分目录下的主题文件)。文件级检索由 `ProjectMemory::scan_relevant_files` 完成,
+/// 此处只负责始终加载的索引文件。
+const CONTEXT_FILE_NAMES: &[&str] = &["AGENTS.md", "CLAUDE.md", ".axagent/MEMORY.md"];
 
 const FILE_REF_SIZE_LIMIT: usize = 100 * 1024;
 const URL_REF_SIZE_LIMIT: usize = 50 * 1024;
@@ -68,8 +74,8 @@ impl ContextFileResolver {
 
     fn discover_in_dir(dir: &Path, files: &mut Vec<ContextFile>) {
         for &name in CONTEXT_FILE_NAMES {
-            let path = if name == ".axagent/memory.md" {
-                dir.join(".axagent").join("memory.md")
+            let path = if name == ".axagent/MEMORY.md" {
+                dir.join(".axagent").join("MEMORY.md")
             } else {
                 dir.join(name)
             };
@@ -354,11 +360,11 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let axagent_dir = dir.path().join(".axagent");
         std::fs::create_dir_all(&axagent_dir).unwrap();
-        std::fs::write(axagent_dir.join("memory.md"), "memory content").unwrap();
+        std::fs::write(axagent_dir.join("MEMORY.md"), "memory content").unwrap();
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert_eq!(result.files.len(), 1);
-        assert_eq!(result.files[0].name, ".axagent/memory.md");
+        assert_eq!(result.files[0].name, ".axagent/MEMORY.md");
         assert_eq!(result.files[0].format, ContextFileFormat::AxAgentMemory);
     }
 

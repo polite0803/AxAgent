@@ -109,6 +109,13 @@ pub mod service_registry;
 pub mod streaming;
 pub mod wiki_dtos;
 
+/// 3.7 P2:TaskScene 下沉到 harness(foundation 层)。
+///
+/// 历史上定义在 `axagent_runtime::prompt`(wiring 层),导致 hybrid 层
+/// (`rt-workflow`)无法引用。现在权威定义在本模块,各层 `pub use` 引用。
+pub mod task_scene;
+pub use task_scene::TaskScene;
+
 // ── ServiceRegistryProvider 契约重导出 ──
 pub use service_registry::ServiceRegistryProvider;
 
@@ -326,6 +333,23 @@ pub use cache_service::{CacheService, SharedCacheService};
 pub mod hook_service;
 pub use hook_service::{HookService, SharedHookService};
 
+// ── WorkflowHookSink 契约(工作流 Hook 触发端) ──
+pub mod workflow_hook_sink;
+pub use workflow_hook_sink::{NoopWorkflowHookSink, SharedWorkflowHookSink, WorkflowHookSink};
+
+// ── HookEvent 顶层 re-export(便于业务代码直接 `use axagent_harness::HookEvent`) ──
+pub use runtime_types::hooks::HookEvent;
+
+// ── PermissionChecker 契约顶层 re-export(供 NodeDispatcher / 工作流节点权限检查) ──
+pub use runtime_types::permission_enforcer::{EnforcementResult, PermissionChecker};
+
+// ── 多 Agent 协作契约(Swarm/Debate/SharedBlackboard 统一抽象) ──
+pub mod multi_agent;
+pub use multi_agent::{
+    AgentDecision, BlackboardMessage, ConflictRecord, ConflictResolution, CoordinationMode,
+    CoordinationOutcome, MultiAgentCoordination, SharedBlackboard,
+};
+
 // ── FeatureFlagProvider 契约 ──
 pub mod feature_flag_provider;
 pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};
@@ -365,6 +389,29 @@ pub use dream::{
     ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,
     DreamConsolidationConfig, DreamConsolidationResult, DreamConsolidationState, DreamConsolidator,
     DreamEventEmitter, ExperienceRecord, KnowledgeType, SuggestionType,
+};
+
+// ── 反思系统共享 DTO(任务级与工作流级共用) ──
+pub mod reflection_types;
+pub use reflection_types::{QualityMetrics, Reflection, ReflectionConfig, TaskExecutionRecord};
+
+// ── 工作流反思/进化/优化三层 trait 契约 ──
+pub mod workflow_reflection;
+pub use workflow_reflection::{
+    BottleneckNode, BottleneckReason, FailureCategory, NodeExecutionSnapshot, NodeFailureAnalysis,
+    ProposedChange, WorkflowExecutionRecord, WorkflowPattern, WorkflowReflectionMetadata,
+    WorkflowReflector, WorkflowRunStatus,
+};
+pub mod workflow_evolution;
+pub use workflow_evolution::{
+    EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
+    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader,
+    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox,
+};
+pub mod workflow_optimization;
+pub use workflow_optimization::{
+    ProposedChange as WorkflowOptimizationProposedChange, SuggestionCategory, SuggestionPriority,
+    WorkflowOptimizer, WorkflowSuggestion,
 };
 // ── 用户自适应共享枚举（Verbosity/TechnicalLevel/ContentFormat） ──
 // 同时被 profile::UserProfile::update_style 和 trajectory 的 RealTimeLearning 使用

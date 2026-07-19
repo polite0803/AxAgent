@@ -4,7 +4,7 @@
 
 use crate::fts5::{FTS5Config, FTS5Query, FTS5Result, FTS5Search};
 use crate::memory::{Entity, Relationship};
-use crate::skill::{Skill, SkillAnalytics};
+use crate::skill::Skill;
 use crate::trajectory::{
     MessageRole, RLTrainingEntry, RewardSignal, Trajectory, TrajectoryExportOptions,
     TrajectoryOutcome, TrajectoryPattern, TrajectoryQuery, TrajectoryStep,
@@ -14,13 +14,13 @@ use axagent_entities::{
     trajectories, trajectory_entities, trajectory_learned_patterns, trajectory_memories,
     trajectory_messages, trajectory_patterns, trajectory_preferences, trajectory_relationships,
     trajectory_rewards, trajectory_sessions, trajectory_skill_executions, trajectory_skills,
-    trajectory_steps,
+    trajectory_steps, trajectory_workflow_reflections,
 };
 use chrono::Utc;
 use futures::FutureExt;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, ExprTrait,
-    IntoActiveModel, PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ExprTrait, IntoActiveModel,
+    PaginatorTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
 };
 use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
@@ -437,6 +437,113 @@ impl TrajectoryStorage {
             .await?;
         let end = limit.unwrap_or(models.len()).min(models.len());
         Ok(models.iter().take(end).map(model_to_traj_pattern).collect())
+    }
+
+    // ── Workflow Reflections（优化 3：反思历史持久化） ──
+    //
+    // 由 `WorkflowReflectorImpl::with_storage()` 注入 storage 后，在每次
+    // `reflect()` / `reflect_node()` 内调用 `save_workflow_reflection` 落库。
+    // `WorkflowOptimizer` / `WorkflowEvolver` 通过 `get_workflow_reflections`
+    // 读取跨会话历史反思驱动优化（替代内存 `get_history` 的进程内限制）。
+
+    /// 把单次反思落库。
+    ///
+    /// - `workflow_id`：工作流 ID（用于按模板聚合历史）
+    /// - `template_id`：可选模板 ID（来自 `WorkflowExecutionRecord.template_id`）
+    /// - `reflection`：反思结果（含 quality_score / patterns / metadata）
+    ///
+    /// 主键 `id` 使用 `uuid`（每条反思独立 ID，与 `Reflection.task_id` 解耦，
+    /// 因为 `task_id = execution_id` 可能在同一工作流的多次反思中重复——
+    /// 节点级反思也以 `execution_id` 作为 `task_id`）。
+    pub async fn save_workflow_reflection(
+        &self,
+        workflow_id: &str,
+        template_id: Option<&str>,
+        reflection: &axagent_harness::reflection_types::Reflection,
+    ) -> Result<()> {
+        let error_patterns_json =
+            serde_json::to_string(&reflection.error_patterns).unwrap_or_else(|_| "[]".to_string());
+        let reusable_patterns_json = serde_json::to_string(&reflection.reusable_patterns)
+            .unwrap_or_else(|_| "[]".to_string());
+        let metadata_json = reflection
+            .metadata
+            .as_ref()
+            .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "{}".to_string()))
+            .unwrap_or_else(|| "{}".to_string());
+        let now = Utc::now().to_rfc3339();
+
+        trajectory_workflow_reflections::Entity::insert(
+            trajectory_workflow_reflections::ActiveModel {
+                id: Set(Uuid::new_v4().to_string()),
+                workflow_id: Set(workflow_id.to_string()),
+                execution_id: Set(reflection.task_id.clone()),
+                template_id: Set(template_id.map(|s| s.to_string())),
+                quality_score: Set(i32::from(reflection.quality_score)),
+                summary: Set(reflection.overall_summary.clone()),
+                error_patterns_json: Set(error_patterns_json),
+                reusable_patterns_json: Set(reusable_patterns_json),
+                metadata_json: Set(metadata_json),
+                timestamp: Set(reflection.timestamp.to_rfc3339()),
+                created_at: Set(now),
+            },
+        )
+        .exec(self.db.as_ref())
+        .await?;
+        Ok(())
+    }
+
+    /// 查询某工作流的最近 N 条反思（按时间戳倒序）。
+    ///
+    /// 用于 `WorkflowOptimizer::suggest()` / `WorkflowEvolver::run()` 读取跨会话历史，
+    /// 替代 `WorkflowReflector::get_history()` 的内存限制（默认上限 100 条 / workflow）。
+    pub async fn get_workflow_reflections(
+        &self,
+        workflow_id: &str,
+        limit: usize,
+    ) -> Result<Vec<axagent_harness::reflection_types::Reflection>> {
+        use axagent_harness::reflection_types::{QualityMetrics, Reflection};
+
+        let models = trajectory_workflow_reflections::Entity::find()
+            .filter(trajectory_workflow_reflections::Column::WorkflowId.eq(workflow_id))
+            .order_by_desc(trajectory_workflow_reflections::Column::Timestamp)
+            .all(self.db.as_ref())
+            .await?;
+
+        let end = limit.min(models.len());
+        Ok(models
+            .into_iter()
+            .take(end)
+            .map(|m| {
+                let error_patterns: Vec<String> =
+                    serde_json::from_str(&m.error_patterns_json).unwrap_or_default();
+                let reusable_patterns: Vec<String> =
+                    serde_json::from_str(&m.reusable_patterns_json).unwrap_or_default();
+                let metadata: Option<serde_json::Value> =
+                    serde_json::from_str(&m.metadata_json).ok();
+                let timestamp = chrono::DateTime::parse_from_rfc3339(&m.timestamp)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+
+                // 重建 Reflection：持久化字段不包含 quality_analysis /
+                // efficiency_analysis / knowledge_suggestions / improvement_suggestions
+                // / quality_metrics（这些字段在重载时丢失，置为空值）。
+                // 核心驱动字段（quality_score / patterns / metadata / summary）完整保留。
+                Reflection {
+                    task_id: m.execution_id,
+                    timestamp,
+                    quality_score: m.quality_score.clamp(0, 255) as u8,
+                    quality_analysis: String::new(),
+                    efficiency_analysis: String::new(),
+                    error_patterns,
+                    reusable_patterns,
+                    knowledge_suggestions: Vec::new(),
+                    improvement_suggestions: Vec::new(),
+                    overall_summary: m.summary,
+                    quality_metrics: None::<QualityMetrics>,
+                    metadata,
+                }
+            })
+            .collect())
     }
 
     // ── Skills ──
@@ -1254,6 +1361,16 @@ impl TrajectoryStorage {
     pub async fn optimize_fts(&self) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
             fts.optimize().await
+        } else {
+            Ok(())
+        }
+    }
+
+    /// 对 FTS5 索引执行 VACUUM，回收已删除记录占用的磁盘空间。
+    /// 与 `optimize_fts`（合并 segments）互补，通常在 cleanup 后调用。
+    pub async fn vacuum_fts(&self) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.vacuum().await
         } else {
             Ok(())
         }

@@ -2,21 +2,40 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::WorkflowNode;
+use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 
-pub struct SwitchExecutor;
+pub struct SwitchExecutor {
+    // SwitchExecutor 在 use_llm 模式下需要执行 LLM 调用，需要 master_key 解密 provider key；
+    // 同时保持与 AgentExecutor / LlmExecutor / ConditionExecutor 等兄弟 executor
+    // 的构造接口一致(均由 WorkEngine::new 统一注入 master_key)。
+    master_key: [u8; 32],
+    /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
+    provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
+}
 
 impl SwitchExecutor {
-    pub fn new() -> Self {
-        Self
+    pub fn new(master_key: [u8; 32]) -> Self {
+        Self { master_key, provider_registry: None }
     }
 }
 
 impl Default for SwitchExecutor {
     fn default() -> Self {
-        Self::new()
+        Self::new([0u8; 32])
+    }
+}
+
+impl axagent_harness::HasProviderRegistry for SwitchExecutor {
+    fn set_provider_registry(
+        &mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) {
+        self.provider_registry = Some(registry);
     }
 }
 
@@ -128,11 +147,126 @@ impl NodeExecutorTrait for SwitchExecutor {
                 }
                 // ── use_llm 模式：用 LLM 判断 ──
                 else if c.use_llm.unwrap_or(false) {
-                    // LLM 模式需要 context 中有 chat_adapter 或类似机制。
-                    // 当前暂不支持同步 LLM 调用；返回 first match 并标记为 LLM pending。
-                    // TODO: 集成 LLM 调用（复用 LlmClassifier 的 LLM 调用基础设施）
-                    tracing::warn!("[SwitchExecutor] LLM 路由暂未支持同步调用，回退到默认分支");
-                    c.default_case.clone()
+                    // 构造 LLM 路由 prompt：列出所有 case label + default，让 LLM 选最匹配的 label
+                    let input_text = actual_str.as_deref().unwrap_or("");
+                    let cases_list = c
+                        .cases
+                        .iter()
+                        .enumerate()
+                        .map(|(i, case)| format!("{}. {}", i + 1, case.label))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+
+                    let default_label = c.default_case.as_deref().unwrap_or("(none)");
+                    let prompt = if let Some(ref custom_prompt) = c.llm_prompt {
+                        format!(
+                            "{custom_prompt}\n\n\
+                             ## 可选分支（请输出最匹配的分支 label，仅输出 label 文本）\n{cases_list}\n\
+                             ## 默认分支\n{default_label}\n\n\
+                             ## 输入文本\n{input_text}\n\n\
+                             请仅输出最匹配的分支 label 文本，不要包含任何其他内容。",
+                        )
+                    } else {
+                        format!(
+                            "你是一个路由判断器。请根据输入文本，选择最匹配的分支。\n\n\
+                             ## 可选分支（请输出最匹配的分支 label，仅输出 label 文本）\n{cases_list}\n\
+                             ## 默认分支\n{default_label}\n\n\
+                             ## 输入文本\n{input_text}\n\n\
+                             请仅输出最匹配的分支 label 文本，不要包含任何其他内容。",
+                        )
+                    };
+
+                    let node_model = c.llm_model.as_deref().filter(|m| !m.is_empty());
+                    let session_model =
+                        context.variables.get(super::WORKFLOW_MODEL_VAR).and_then(|v| v.as_str());
+                    let session_provider_id = context
+                        .variables
+                        .get(super::WORKFLOW_PROVIDER_ID_VAR)
+                        .and_then(|v| v.as_str());
+
+                    let (prov, key, model, adapter, api_key) = super::resolve_provider_and_adapter(
+                        &self.master_key,
+                        self.provider_registry.as_ref(),
+                        node_model,
+                        session_model,
+                        session_provider_id,
+                        None,
+                        "SwitchExecutor",
+                    )
+                    .await?;
+
+                    if context.dry_run {
+                        tracing::info!("[SwitchExecutor] dry_run 模式：LLM 路由短路返回首个 case");
+                        found = c
+                            .cases
+                            .first()
+                            .map(|case| case.label.clone())
+                            .or_else(|| c.default_case.clone());
+                    } else {
+                        use axagent_harness::build_provider_request_context;
+                        use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+
+                        let req_ctx = build_provider_request_context(&prov, &key, api_key);
+                        let request = ChatRequest {
+                            model: model.clone(),
+                            messages: vec![ChatMessage {
+                                role: "user".to_string(),
+                                content: ChatContent::Text(prompt),
+                                tool_calls: None,
+                                tool_call_id: None,
+                                thinking: None,
+                            }],
+                            stream: false,
+                            temperature: Some(0.0),
+                            max_tokens: Some(64),
+                            top_p: None,
+                            tools: None,
+                            thinking_budget: None,
+                            use_max_completion_tokens: None,
+                            thinking_param_style: None,
+                            api_mode: None,
+                            instructions: None,
+                            conversation: None,
+                            previous_response_id: None,
+                            store: None,
+                            response_format: None,
+                        };
+
+                        let llm_config = axagent_harness::LlmCallConfig::default();
+                        let response =
+                            axagent_harness::execute_llm(&*adapter, &req_ctx, request, &llm_config)
+                                .await
+                                .map_err(|e| {
+                                    NodeError::exec_failed(
+                                        error_code::UNSUPPORTED_PROVIDER,
+                                        format!("Switch LLM routing call failed: {e}"),
+                                    )
+                                })?;
+
+                        let raw_label = response.response.content.trim();
+                        // 优先精确匹配 case label；未命中则尝试包含匹配；最后 fallback 到 default
+                        let matched = c
+                            .cases
+                            .iter()
+                            .find(|case| case.label == raw_label)
+                            .or_else(|| c.cases.iter().find(|case| raw_label.contains(&case.label)))
+                            .map(|case| case.label.clone());
+
+                        if let Some(label) = matched {
+                            tracing::info!(
+                                "[SwitchExecutor] LLM 路由命中 case '{}' (raw: {raw_label:?})",
+                                label
+                            );
+                            found = Some(label);
+                        } else {
+                            tracing::warn!(
+                                "[SwitchExecutor] LLM 路由未命中任何 case (raw: {raw_label:?})，回退到默认分支"
+                            );
+                            found = c.default_case.clone();
+                        }
+                    }
+
+                    found
                 }
                 // ── 传统模式：exact / regex / contains ──
                 else {

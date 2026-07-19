@@ -452,7 +452,7 @@ pub async fn ensure_stock_analysis_experts_seeded(
 /// ───────────────────────────────────────────────────────────────────────
 async fn seed_agency_experts(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
     use axagent_entities::agency_experts;
-    use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+    use sea_orm::{ActiveModelTrait, EntityTrait, NotSet, Set};
 
     let mut count = 0u32;
     for &(expert_id, content) in EMBEDDED_PROMPTS {
@@ -472,6 +472,12 @@ async fn seed_agency_experts(db: &sea_orm::DatabaseConnection) -> Result<(), Str
             recommended_workflows: Set(None),
             recommended_tools: Set(None),
             active_domains: Set(None),
+            seniority: NotSet,
+            specialties: NotSet,
+            parent_role_id: NotSet,
+            success_rate: NotSet,
+            avg_latency_ms: NotSet,
+            avg_token_cost: NotSet,
         };
         // v24: 改为 UPSERT — 已存在则 update，确保 .md 改动和新增的 R3 专家能同步到 DB
         // 历史版本: 已存在则 continue 跳过,导致 .md 改动 / 新增 .md 文件 (bull-r3/bear-r3) 不写库,
@@ -519,7 +525,7 @@ async fn seed_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String
 
 async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
     use axagent_entities::agent_profiles;
-    use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+    use sea_orm::{ActiveModelTrait, EntityTrait, NotSet, Set};
 
     // Profile → 工具映射（从模块级 PROFILE_TOOLS 构建）
     let profile_tools: std::collections::HashMap<&str, &[&str]> =
@@ -554,6 +560,7 @@ async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), Str
             sort_order: Set(0),
             is_enabled: Set(1),
             expert_id: Set(Some(format!("agency-stock-analysis-{expert_id}"))),
+            business_role_id: NotSet,
             created_at: Set(now),
             updated_at: Set(now),
         };
@@ -1095,6 +1102,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                     match_threshold: 0.4,
                 }),
                 fallback_model: None,
+                task_scene: None,
             },
         }),
         // 4. 硬裁决验证：reflection-agent → reflection-validator → store-ref
@@ -1308,6 +1316,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
         error_config: Set(None),
         composite_source: Set(None),
         tool_defs: Set(None),
+        mission_hash: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     }

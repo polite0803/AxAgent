@@ -48,6 +48,17 @@ pub enum HookEvent {
     WorktreeRemove,
     // 失败事件
     StopFailure,
+    // 工作流生命周期
+    WorkflowStarted,
+    WorkflowCompleted,
+    WorkflowFailed,
+    // 工作流节点生命周期
+    WorkflowNodePreExecute,
+    WorkflowNodePostExecute,
+    WorkflowNodePostExecuteFailure,
+    // 工作流循环节点迭代
+    WorkflowLoopIterationStarted,
+    WorkflowLoopIterationCompleted,
 }
 
 impl HookEvent {
@@ -80,6 +91,14 @@ impl HookEvent {
             Self::PermissionDenied => "PermissionDenied",
             Self::WorktreeCreate => "WorktreeCreate",
             Self::WorktreeRemove => "WorktreeRemove",
+            Self::WorkflowStarted => "WorkflowStarted",
+            Self::WorkflowCompleted => "WorkflowCompleted",
+            Self::WorkflowFailed => "WorkflowFailed",
+            Self::WorkflowNodePreExecute => "WorkflowNodePreExecute",
+            Self::WorkflowNodePostExecute => "WorkflowNodePostExecute",
+            Self::WorkflowNodePostExecuteFailure => "WorkflowNodePostExecuteFailure",
+            Self::WorkflowLoopIterationStarted => "WorkflowLoopIterationStarted",
+            Self::WorkflowLoopIterationCompleted => "WorkflowLoopIterationCompleted",
         }
     }
 
@@ -96,6 +115,29 @@ impl HookEvent {
     #[must_use]
     pub fn is_subagent_event(self) -> bool {
         matches!(self, Self::SubagentStart | Self::SubagentStop)
+    }
+
+    /// 是否为工作流生命周期事件(整体开始/完成/失败)。
+    #[must_use]
+    pub fn is_workflow_event(self) -> bool {
+        matches!(self, Self::WorkflowStarted | Self::WorkflowCompleted | Self::WorkflowFailed)
+    }
+
+    /// 是否为工作流节点级事件(节点执行前/后/失败)。
+    #[must_use]
+    pub fn is_workflow_node_event(self) -> bool {
+        matches!(
+            self,
+            Self::WorkflowNodePreExecute
+                | Self::WorkflowNodePostExecute
+                | Self::WorkflowNodePostExecuteFailure
+        )
+    }
+
+    /// 是否为工作流循环节点迭代事件。
+    #[must_use]
+    pub fn is_workflow_loop_event(self) -> bool {
+        matches!(self, Self::WorkflowLoopIterationStarted | Self::WorkflowLoopIterationCompleted)
     }
 }
 

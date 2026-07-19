@@ -26,22 +26,11 @@ pub enum TeammateTaskStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TeammateMessage {
     /// 任务分配
-    TaskAssign {
-        task_id: String,
-        description: String,
-    },
+    TaskAssign { task_id: String, description: String },
     /// 任务结果
-    TaskResult {
-        task_id: String,
-        result: String,
-        success: bool,
-    },
+    TaskResult { task_id: String, result: String, success: bool },
     /// 进度报告
-    ProgressReport {
-        task_id: String,
-        progress: f64,
-        message: String,
-    },
+    ProgressReport { task_id: String, progress: f64, message: String },
     /// 心跳
     Heartbeat,
     /// 关闭

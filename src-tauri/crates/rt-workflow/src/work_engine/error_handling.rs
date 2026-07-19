@@ -1,54 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+// `ErrorContext` 已上移到 axagent-harness 并重命名为 `WorkflowErrorContext`,
+// 以避免与 `axagent_harness::core_error::ErrorContext`(telemetry 语义)冲突。
+// 本 crate 通过 pub use 复用,并提供 `ErrorContext` 别名以兼容现有引用。
+pub use axagent_harness::workflow_types::WorkflowErrorContext;
 
-/// 错误上下文 —— 在 Error Workflow 中通过 $error / _error 变量访问。
+/// 兼容别名:rt-workflow 内部代码继续用 `ErrorContext` 名称。
 ///
-/// 当节点执行失败且配置了 RunErrorBranch 或 error_workflow_id 时，
-/// 引擎构造此上下文并注入到 ExecutionState 变量中，供错误处理
-/// 工作流引用失败节点的详细信息。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ErrorContext {
-    pub failed_node_id: String,
-    pub failed_node_name: String,
-    pub error_code: String,
-    pub error_message: String,
-    pub workflow_id: String,
-    pub execution_id: String,
-    pub timestamp: i64,
-    pub last_output: Option<Value>,
-}
-
-impl ErrorContext {
-    pub fn new(
-        node_id: String,
-        node_name: String,
-        error_code: String,
-        error_message: String,
-        workflow_id: String,
-        execution_id: String,
-        last_output: Option<Value>,
-    ) -> Self {
-        Self {
-            failed_node_id: node_id,
-            failed_node_name: node_name,
-            error_code,
-            error_message,
-            workflow_id,
-            execution_id,
-            timestamp: chrono::Utc::now().timestamp_millis(),
-            last_output,
-        }
-    }
-
-    /// 获取可在模板中引用的变量名。
-    pub const fn variable_name() -> &'static str {
-        "_error"
-    }
-
-    /// 将错误上下文序列化为 Value，注入到 variables 中。
-    pub fn to_variable(&self) -> Value {
-        serde_json::to_value(self).unwrap_or(Value::Null)
-    }
-}
+/// 新代码应直接使用 `WorkflowErrorContext` 以避免歧义。
+pub type ErrorContext = WorkflowErrorContext;

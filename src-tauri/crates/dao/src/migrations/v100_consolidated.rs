@@ -642,16 +642,21 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // agency_experts
+        // P2-8: category 加 CHECK 约束（新部署生效；存量库靠应用层 validate_category 兜底）
         "CREATE TABLE IF NOT EXISTS agency_experts (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
-            category TEXT NOT NULL, system_prompt TEXT NOT NULL, color TEXT, \
+            category TEXT NOT NULL CHECK (category IN ('general','development','security','data','finance','devops','design','writing','business')), \
+            system_prompt TEXT NOT NULL, color TEXT, \
             source_dir TEXT NOT NULL, is_enabled INTEGER NOT NULL DEFAULT 1, \
             imported_at INTEGER NOT NULL, recommended_workflows TEXT, recommended_tools TEXT, \
             active_domains TEXT)",
         // agent_profiles
+        // P2-8: category 加 CHECK 约束
+        // P1-5: expert_id 加 FK → agency_experts(id) ON DELETE SET NULL（专家被删除时 profile 保留）
         "CREATE TABLE IF NOT EXISTS agent_profiles (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
-            category TEXT NOT NULL DEFAULT 'general', icon TEXT NOT NULL DEFAULT '🤖', \
+            category TEXT NOT NULL DEFAULT 'general' CHECK (category IN ('general','development','security','data','finance','devops','design','writing','business')), \
+            icon TEXT NOT NULL DEFAULT '🤖', \
             agent_role TEXT, \
             source TEXT NOT NULL DEFAULT 'builtin', tags TEXT, \
             suggested_provider_id TEXT, suggested_model_id TEXT, \
@@ -659,7 +664,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             search_enabled BOOLEAN, recommend_permission_mode TEXT, \
             recommended_tools TEXT, disallowed_tools TEXT, recommended_workflows TEXT, \
             sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
-            expert_id TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
+            expert_id TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
+            FOREIGN KEY (expert_id) REFERENCES agency_experts(id) ON DELETE SET NULL)",
         // agent_roles
         "CREATE TABLE IF NOT EXISTS agent_roles (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \

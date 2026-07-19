@@ -1603,6 +1603,9 @@ impl WikiSourceRepository for EmptyWikiSourceRepository {
     ) -> std::result::Result<WikiSource, String> {
         Err("not implemented".into())
     }
+    async fn delete(&self, _source_id: &str) -> std::result::Result<bool, String> {
+        Ok(false)
+    }
 }
 
 struct EmptyWikiOperationRepository;
@@ -1833,4 +1836,44 @@ impl ToolRegistryTrait for NoopToolRegistry {
 /// 工厂：构造一个 `Arc<dyn ToolRegistry>` 测试替身
 pub fn noop_tool_registry() -> Arc<dyn ToolRegistryTrait> {
     Arc::new(NoopToolRegistry)
+}
+
+// ── BusinessRoleRepository / AgencyExpertRepository 空实现（用于 workflow_ai 测试）──
+
+use crate::repo_dtos::{AgencyExpertDto, BusinessRoleDto};
+use crate::repositories::{AgencyExpertRepository, BusinessRoleRepository};
+
+struct NoopBusinessRoleRepository;
+#[async_trait]
+impl BusinessRoleRepository for NoopBusinessRoleRepository {
+    async fn get_business_role(
+        &self,
+        _id: &str,
+    ) -> std::result::Result<Option<BusinessRoleDto>, String> {
+        Ok(None)
+    }
+    async fn list_business_roles(&self) -> std::result::Result<Vec<BusinessRoleDto>, String> {
+        Ok(vec![])
+    }
+}
+
+struct NoopAgencyExpertRepository;
+#[async_trait]
+impl AgencyExpertRepository for NoopAgencyExpertRepository {
+    async fn get_agency_expert(
+        &self,
+        _id: &str,
+    ) -> std::result::Result<Option<AgencyExpertDto>, String> {
+        Ok(None)
+    }
+    async fn list_agency_experts(&self) -> std::result::Result<Vec<AgencyExpertDto>, String> {
+        Ok(vec![])
+    }
+}
+
+/// 注册 Noop 的业务岗位与专家仓储，使 `build_roles_and_experts_brief()` 在测试中不崩溃。
+pub fn register_noop_role_and_expert_repos() {
+    use crate::repositories::{set_agency_expert_repository, set_business_role_repository};
+    set_business_role_repository(Arc::new(NoopBusinessRoleRepository));
+    set_agency_expert_repository(Arc::new(NoopAgencyExpertRepository));
 }

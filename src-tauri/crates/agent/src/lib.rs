@@ -78,6 +78,7 @@ pub mod search_planner;
 pub mod search_provider;
 pub mod self_verifier;
 pub mod session_manager;
+pub mod shadow_fs;
 pub mod slash_command;
 pub mod source_classifier;
 pub mod source_validator;
@@ -101,6 +102,9 @@ pub mod wiki_compiler;
 pub use session_manager::{
     AgentSession, ChannelPermissionPrompter, SessionManager, TauriHookProgressReporter,
 };
+
+// shared_blackboard — 外部引用：consumer crate 通过 harness trait 操控多 Agent 协作
+pub use shared_blackboard::BlackboardHandle;
 
 // reflector — 外部引用：commands/reflection, init/state
 pub use reflector::{Reflection, Reflector, TaskExecutionRecord};

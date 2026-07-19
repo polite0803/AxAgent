@@ -43,6 +43,7 @@ pub mod interceptor_chain;
 pub mod interceptors;
 pub mod json;
 pub mod message_importance;
+pub mod microcompact;
 pub mod normalizer;
 pub mod permission_enforcer;
 pub use normalizer::DefaultResponseNormalizer;
@@ -53,10 +54,12 @@ pub use llm_executor::{LlmCallConfig, execute_llm, execute_llm_stream};
 pub mod permissions;
 pub mod plugin_hooks;
 pub mod prompt_cache;
+pub mod reactive_compact;
 pub mod sandbox;
 pub mod session;
 pub mod session_control;
 pub mod session_memory_compact;
+pub mod snip;
 pub mod usage;
 
 // ── Public Re-exports ────────────────────────────────────────────────
@@ -124,6 +127,15 @@ pub use permissions::{
 pub use prompt_cache::{
     CacheBreakSummary, CacheReadEvent, PendingChange, PromptCache, PromptCacheState,
 };
+
+pub use reactive_compact::{
+    ReactiveCompactResult, ReactiveTrigger, classify_trigger, is_context_overflow_error,
+    is_media_size_error, try_reactive_compact,
+};
+
+pub use snip::{SnipConfig, snip_tool_results};
+
+pub use microcompact::{MicrocompactConfig, microcompact_messages};
 
 pub use sandbox::{
     ContainerEnvironment, FilesystemIsolationMode, LinuxSandboxCommand, MacosSandboxCommand,

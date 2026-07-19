@@ -520,6 +520,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                     match_threshold: 0.4,
                 }),
                 fallback_model: None,
+                task_scene: None,
             },
         })
     };
@@ -1354,6 +1355,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         error_config: Set(None),
         composite_source: Set(None),
         tool_defs: Set(Some(tool_defs_json)),
+        mission_hash: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     }

@@ -4,7 +4,7 @@ import { BUILTIN_EXPERT_PRESETS, type BuiltinExpertPreset } from "@/data/expertP
 import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { message } from "@/lib/toast";
-import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
+import { type AgentBehaviorMode, type AgentProfile, EXPERT_CATEGORY_LABELS, type ExpertCategory } from "@/types";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
@@ -75,13 +75,26 @@ interface AgencyExpertRow {
   name: string;
   description: string | null;
   category: string;
-  system_prompt: string;
+  systemPrompt: string;
   color: string | null;
-  source_dir: string;
-  is_enabled: boolean;
-  recommended_workflows: string[] | null;
-  recommended_tools: string[] | null;
-  active_domains: string[] | null;
+  sourceDir: string;
+  isEnabled: boolean;
+  recommendedWorkflows: string[] | null;
+  recommendedTools: string[] | null;
+  activeDomains: string[] | null;
+  // ── 资历与归属（对齐后端 AgencyExpertDto 扩展字段） ──
+  /** 资历等级：junior / mid / senior / expert */
+  seniority?: string | null;
+  /** 擅长细分领域列表（后端 JSON 字符串已 parse） */
+  specialties?: string[] | null;
+  /** 归属业务岗位 ID（business_roles.id） */
+  parentRoleId?: string | null;
+  /** 历史成功率（0.0 ~ 1.0） */
+  successRate?: number | null;
+  /** 平均执行延迟（毫秒） */
+  avgLatencyMs?: number | null;
+  /** 平均 token 成本 */
+  avgTokenCost?: number | null;
 }
 
 function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
@@ -89,6 +102,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     development: "💻",
     security: "🔒",
     data: "📊",
+    finance: "💰",
     devops: "🚀",
     design: "🎨",
     writing: "📝",
@@ -96,7 +110,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     general: "🤖",
   };
 
-  const tags = [row.source_dir, row.category];
+  const tags = [row.sourceDir, row.category];
   if (row.color) {
     tags.push(row.color);
   }
@@ -113,18 +127,18 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     id: row.id,
     name: row.name,
     description: row.description,
-    systemPrompt: row.system_prompt,
+    systemPrompt: row.systemPrompt,
     category: row.category as ExpertCategory,
     icon: CATEGORY_ICONS[row.category] ?? "🤖",
     source: "agency",
     agentRole: null,
     tags,
     recommendPermissionMode: PERMISSION_BY_CATEGORY[row.category] ?? "default",
-    recommendedWorkflows: row.recommended_workflows ?? undefined,
-    recommendedTools: row.recommended_tools ?? undefined,
-    activeDomains: row.active_domains ?? undefined,
+    recommendedWorkflows: row.recommendedWorkflows ?? undefined,
+    recommendedTools: row.recommendedTools ?? undefined,
+    activeDomains: row.activeDomains ?? undefined,
     sortOrder: 0,
-    isEnabled: row.is_enabled,
+    isEnabled: row.isEnabled,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -156,8 +170,8 @@ interface ExpertState {
     path: string,
   ) => Promise<{
     count: number;
-    workflows_created?: number;
-    tools_matched?: number;
+    workflowsCreated?: number;
+    toolsMatched?: number;
     errors: string[];
   }>;
   loadAgencyRoles: () => Promise<void>;
@@ -169,9 +183,9 @@ interface ExpertState {
       name?: string;
       description?: string;
       category?: string;
-      system_prompt?: string;
-      is_enabled?: boolean;
-      active_domains?: string[];
+      systemPrompt?: string;
+      isEnabled?: boolean;
+      activeDomains?: string[];
     },
   ) => Promise<void>;
   exportAgencyExperts: () => Promise<string>;
@@ -237,7 +251,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     if (!role) {
       return i18n.t("expertCategory.general");
     }
-    return i18n.t("expertCategory." + role.category) || role.category;
+    return i18n.t(EXPERT_CATEGORY_LABELS[role.category as keyof typeof EXPERT_CATEGORY_LABELS]) || role.category;
   },
 
   recordSwitch: (conversationId, roleId) => {
@@ -258,8 +272,8 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     try {
       const result = await invoke<{
         count: number;
-        workflows_created: number;
-        tools_matched: number;
+        workflowsCreated: number;
+        toolsMatched: number;
         errors: string[];
       }>("import_agency_experts", {
         request: { path },

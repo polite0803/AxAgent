@@ -31,11 +31,7 @@ pub struct ReconnectPolicy {
 
 impl Default for ReconnectPolicy {
     fn default() -> Self {
-        Self {
-            max_attempts: 5,
-            interval_ms: 2000,
-            exponential_backoff: true,
-        }
+        Self { max_attempts: 5, interval_ms: 2000, exponential_backoff: true }
     }
 }
 
@@ -120,7 +116,7 @@ impl RemoteAgentTask {
 
     /// 是否启用远程 agent（检查 feature flag）
     pub fn is_enabled() -> bool {
-        crate::feature_flags::global_feature_flags().remote_agent_sync()
+        axagent_runtime_core::feature_flags::global_feature_flags().remote_agent_sync()
     }
 
     /// 获取 URL（提取自 transport）
@@ -142,9 +138,7 @@ impl RemoteAgentTask {
         match self.last_heartbeat {
             Some(last) => {
                 let elapsed = Utc::now() - last;
-                chrono::Duration::from_std(safe_interval * 2)
-                    .map(|d| elapsed > d)
-                    .unwrap_or(true)
+                chrono::Duration::from_std(safe_interval * 2).map(|d| elapsed > d).unwrap_or(true)
             },
             None => true,
         }
@@ -221,10 +215,7 @@ impl RemoteAgentClient {
             req = req.header(key.as_str(), value.as_str());
         }
 
-        let response = req
-            .send()
-            .await
-            .map_err(|e| format!("状态查询失败: {}", e))?;
+        let response = req.send().await.map_err(|e| format!("状态查询失败: {}", e))?;
 
         match response.status().as_u16() {
             200 => Ok(RemoteAgentStatus::Connected),

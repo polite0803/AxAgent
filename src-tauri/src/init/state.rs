@@ -229,7 +229,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new()));
     let steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>> =
         Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
-    let reflector = Arc::new(axagent_agent::Reflector::new());
+    // P0-3 修复:启用 Reflector JSONL 持久化(进程重启后历史反思不丢失)。
+    let reflector = Arc::new(
+        axagent_agent::Reflector::new().with_persistence(app_dir.join("reflections.jsonl")),
+    );
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
         Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
     let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
@@ -264,9 +267,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         #[cfg(not(target_os = "android"))]
         {
             let mut engine = axagent_trajectory::SkillEvolutionEngine::new();
-            engine.set_sandbox(Arc::new(
-                axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
-            ));
+            engine
+                .set_sandbox(Arc::new(
+                    axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
+                ))
+                .await;
             Arc::new(tokio::sync::Mutex::new(engine))
         }
         #[cfg(target_os = "android")]
@@ -339,12 +344,101 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         registry.tool_ranker = Some(crate::commands::_shared_state::SHARED_TOOL_RANKER.clone());
         Arc::new(tokio::sync::Mutex::new(registry))
     };
+    // ── 阶段 5:工作流反思 / 进化 / 优化三层 trait 实现 ──
+    // 同一份 Arc 实例同时挂载到 WorkEngine(用于自动触发钩子)与 AppState 字段(供命令层手动调用)。
+    // 启动即用,纯启发式;真正的 LLM 变异 / 沙箱验证由 wiring 层后续通过 setter 注入(此处 MVP 不注入)。
+    //
+    // 优化 3:反思器注入 `shared_trajectory_storage`,每次 reflect()/reflect_node()
+    // 后同步落库到 `trajectory_workflow_reflections` 表,供跨会话查询 / 模式聚合 /
+    // 进化决策使用。落库 best-effort,失败仅 warn 日志,不影响工作流主流程。
+    //
+    // 优化 4:启动时尝试构造 `ProviderLlmBridge` 注入 evolver 的 LLM 变异器;
+    // 沙箱始终注入 `StructuralWorkflowSandbox`(静态结构校验,无副作用)。
+    // 若没有启用的 provider(LLM bridge = None),仅跳过 LLM 注入,evolver 仍可用
+    // 内置占位变异;沙箱结构校验始终生效。
+    let workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector> =
+        axagent_trajectory::WorkflowReflectorImpl::with_storage(
+            axagent_trajectory::ReflectorConfig::default(),
+            shared_trajectory_storage.clone(),
+        )
+        .into_arc();
+    let workflow_evolver: Arc<dyn axagent_harness::WorkflowEvolver> =
+        axagent_trajectory::WorkflowEvolverImpl::with_defaults().into_arc();
+    let workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer> =
+        axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc();
+
+    // 优化 4-b:注入 LLM 变异器(若 DB 中有启用的 provider)
+    {
+        if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(
+            &master_key,
+            &harness_registry,
+            None,
+            None,
+        )
+        .await
+        {
+            let mutator = super::workflow_injections::ProviderWorkflowLlmMutator::new(bridge);
+            if let Err(e) = workflow_evolver
+                .set_llm_provider(std::sync::Arc::new(mutator)
+                    as std::sync::Arc<dyn axagent_harness::WorkflowLlmMutator>)
+                .await
+            {
+                tracing::warn!("[Evolver] set_llm_provider failed: {e}");
+            } else {
+                tracing::info!(
+                    "[Evolver] LLM mutator injected (provider workflow evolution enabled)"
+                );
+            }
+        } else {
+            tracing::info!(
+                "[Evolver] No enabled provider in DB, LLM mutation disabled (using MVP placeholder)"
+            );
+        }
+    }
+
+    // P2-8:注入带有限试运行的沙箱(静态校验 + 模拟执行,始终注入)
+    // 比 ReachabilityWorkflowSandbox 更强:额外做节点级配置合理性、累积超时上限、
+    // 环检测,并用 tokio::time::timeout 做硬超时保护(5 秒)。
+    {
+        let sandbox = super::workflow_injections::DryRunWorkflowSandbox::new();
+        if let Err(e) = workflow_evolver
+            .set_sandbox(std::sync::Arc::new(sandbox)
+                as std::sync::Arc<dyn axagent_harness::WorkflowSandbox>)
+            .await
+        {
+            tracing::warn!("[Evolver] set_sandbox failed: {e}");
+        } else {
+            tracing::info!("[Evolver] DryRun sandbox injected (static + simulate + hard timeout)");
+        }
+    }
+
+    // 方案 3A:注入基因组加载器(从 DB 加载真实模板构造初始种群)
+    {
+        let repo = axagent_harness::repositories::workflow_template_repository();
+        let loader = super::workflow_injections::DaoWorkflowGenomeLoader::new(repo);
+        if let Err(e) = workflow_evolver
+            .set_genome_loader(std::sync::Arc::new(loader)
+                as std::sync::Arc<dyn axagent_harness::WorkflowGenomeLoader>)
+            .await
+        {
+            tracing::warn!("[Evolver] set_genome_loader failed: {e}");
+        } else {
+            tracing::info!("[Evolver] Genome loader injected (real template-based init)");
+        }
+    }
+
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =
         {
-            let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-                master_key,
-                harness_registry.clone(),
-            ));
+            let engine = Arc::new(
+                axagent_runtime::work_engine::WorkEngine::new(
+                    master_key,
+                    harness_registry.clone(),
+                )
+                // 阶段 5:注入反思 / 进化 / 优化三层实现,WorkEngine 在工作流整体完成与节点级失败时自动触发反思。
+                .with_workflow_reflector(workflow_reflector.clone())
+                .with_workflow_evolver(workflow_evolver.clone())
+                .with_workflow_optimizer(workflow_optimizer.clone()),
+            );
             // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
             engine.inject_into_agent_executor(engine.clone()).await;
             // 注册领域约束：所有角色走通用 DomainConstraints::by_role
@@ -618,19 +712,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_dao::memory_repository::DaoMemoryRepository::new(Arc::new(sea_db.clone())),
     ));
 
-    // 初始化 reflector 持久化
-    {
-        let r_clone = reflector.clone();
-        let _reflection_path: std::path::PathBuf = app_dir.join("reflections.jsonl");
-        let _insight_path: std::path::PathBuf = app_dir.join("insights.jsonl");
-        let _ig_clone = r_clone.get_insight_generator();
-        // 注：Reflector::init_persistence 和 InsightGenerator::init_persistence
-        // 将在后续版本中从远程同步（当前暂未合并到主分支）。
-        tokio::spawn(async move {
-            tracing::info!(
-                "[reflector] persistence init deferred — will be added in a follow-up sync"
-            );
-        });
+    // 启动时加载历史反思(P0-3 修复:进程重启后历史不丢失)。
+    // reflect() 落盘由 Reflector::persist_reflection 自动处理,
+    // 这里只需启动时从 `app_dir/reflections.jsonl` 加载到内存即可。
+    match reflector.load_persistence().await {
+        Ok(n) => tracing::info!("[reflector] loaded {n} reflections from disk"),
+        Err(e) => tracing::warn!(
+            "[reflector] load_persistence failed: {e} (will start with empty history)"
+        ),
     }
 
     // ── 股票业务客户端与交易引擎 ──
@@ -645,6 +734,12 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             Arc::new(sea_db.clone()),
             astock_client.clone(),
         )));
+    // 2.7 P1:从持久化 settings 读取遥测级别初值,构造共享句柄。
+    // `save_settings` 命令在用户修改级别后会更新此句柄;`FilteringSink`
+    // 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
+    let telemetry_level =
+        axagent_telemetry::TelemetryLevel::from_str_or_off(&app_settings.telemetry_level);
+    let telemetry_level_handle = Arc::new(std::sync::RwLock::new(telemetry_level));
 
     Ok(AppState {
         harness,
@@ -696,6 +791,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         user_profile,
         local_tool_registry,
         work_engine,
+        workflow_reflector,
+        workflow_evolver,
+        workflow_optimizer,
         skill_decomposer,
         proactive_service,
         dashboard_registry,
@@ -729,6 +827,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         stock_monitor: None,
         #[cfg(not(mobile))]
         pty_manager,
+        telemetry_level_handle,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,
         gateway_state,

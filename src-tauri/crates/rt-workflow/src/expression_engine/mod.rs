@@ -3,7 +3,7 @@
 pub mod rhai_eval;
 pub mod template;
 
-pub use rhai_eval::{RhaiEvalError, resolve_expression};
+pub use rhai_eval::{RhaiEvalError, resolve_expression, resolve_loop_condition};
 pub use template::{TemplateError, resolve_template, resolve_value_templates};
 
 use serde_json::Value;

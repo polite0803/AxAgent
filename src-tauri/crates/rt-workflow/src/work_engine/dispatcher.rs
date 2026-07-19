@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use axagent_harness::workflow_types::WorkflowNode;
+use axagent_harness::{EnforcementResult, HookEvent, PermissionChecker, SharedWorkflowHookSink};
 
 use crate::expression_engine::{ExpressionContext, resolve_value_templates};
 
@@ -13,8 +14,8 @@ use super::executors::{
     DatabaseQueryExecutor, DebateExecutor, DelayExecutor, DocumentParserExecutor, EmailExecutor,
     EndExecutor, FallbackExecutor, FileOperationExecutor, HttpRequestExecutor, LoggingExecutor,
     LoopExecutor, MergeExecutor, NotificationExecutor, ParallelExecutor, StorageExecutor,
-    SubWorkflowExecutor, SwitchExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor,
-    VectorRetrieveExecutor, WebhookSendExecutor,
+    SubWorkflowExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor, VectorRetrieveExecutor,
+    WebhookSendExecutor,
 };
 use super::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
@@ -25,6 +26,12 @@ use super::node_executor_trait::{
 /// `WorkEngine::init_dispatcher` 在 tokio runtime 内完成初始化。
 pub struct NodeDispatcher {
     executors: Arc<tokio::sync::RwLock<HashMap<&'static str, Arc<dyn NodeExecutorTrait>>>>,
+    /// 工作流 Hook 接收端(可选)。注入后,节点执行前后会触发对应 HookEvent。
+    /// 由 wiring 层通过 `with_hook_sink` 注入实际实现。
+    hook_sink: Arc<std::sync::Mutex<Option<SharedWorkflowHookSink>>>,
+    /// 权限检查器(可选)。注入后,对白名单节点类型在执行前做权限检查。
+    /// 由 wiring 层通过 `set_permission_checker` 注入实际实现。
+    permission_checker: Arc<std::sync::Mutex<Option<Arc<dyn PermissionChecker>>>>,
 }
 
 impl Default for NodeDispatcher {
@@ -35,7 +42,34 @@ impl Default for NodeDispatcher {
 
 impl NodeDispatcher {
     pub fn new() -> Self {
-        Self { executors: Arc::new(tokio::sync::RwLock::new(HashMap::new())) }
+        Self {
+            executors: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            hook_sink: Arc::new(std::sync::Mutex::new(None)),
+            permission_checker: Arc::new(std::sync::Mutex::new(None)),
+        }
+    }
+
+    /// 注入工作流 Hook 接收端。
+    /// 必须在 tokio runtime 中调用(因为 dispatch 中的 hook emit 是 async)。
+    pub fn set_hook_sink(&self, sink: SharedWorkflowHookSink) {
+        let mut guard = self.hook_sink.lock().expect("hook_sink mutex poisoned");
+        *guard = Some(sink);
+    }
+
+    /// 获取当前注入的 hook sink 克隆(若有)。
+    fn hook_sink_clone(&self) -> Option<SharedWorkflowHookSink> {
+        self.hook_sink.lock().ok()?.as_ref().cloned()
+    }
+
+    /// 注入权限检查器。注入后,对白名单节点类型在执行前调用 `check` 做权限检查。
+    pub fn set_permission_checker(&self, checker: Arc<dyn PermissionChecker>) {
+        let mut guard = self.permission_checker.lock().expect("permission_checker mutex poisoned");
+        *guard = Some(checker);
+    }
+
+    /// 获取当前注入的 permission_checker 克隆(若有)。
+    fn permission_checker_clone(&self) -> Option<Arc<dyn PermissionChecker>> {
+        self.permission_checker.lock().ok()?.as_ref().cloned()
     }
 
     /// 一次性注册所有内置 executor（异步版本）。
@@ -56,7 +90,7 @@ impl NodeDispatcher {
         self.register(DebateExecutor::new()).await;
         self.register(FallbackExecutor::new()).await;
         self.register(HttpRequestExecutor::new()).await;
-        self.register(SwitchExecutor::new()).await;
+        // SwitchExecutor 由 WorkEngine::init_dispatcher 配置并注册（需注入 provider_registry）
         self.register(DatabaseQueryExecutor::new()).await;
         self.register(NotificationExecutor::new()).await;
         self.register(ApprovalExecutor::new()).await;
@@ -65,7 +99,7 @@ impl NodeDispatcher {
         self.register(WebhookSendExecutor::new()).await;
         self.register(LoggingExecutor::new()).await;
         self.register(StorageExecutor::new()).await;
-        // LlmClassifierExecutor 由 WorkEngine::init_dispatcher 配置并注册
+        // LlmClassifierExecutor / SwitchExecutor 由 WorkEngine::init_dispatcher 配置并注册
         self.register(AggregatorExecutor::new()).await;
         self.register(EmailExecutor::new()).await;
     }
@@ -104,6 +138,34 @@ impl NodeDispatcher {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let node_type = node_type_name(node);
+        let node_id = node.base_id().to_string();
+
+        // ── 全局 metrics:节点 dispatch 计数 ──
+        axagent_telemetry::metrics::inc_node_dispatch();
+
+        // ── 触发 WorkflowNodePreExecute hook(可 veto) ──
+        if let Some(sink) = self.hook_sink_clone() {
+            let payload = serde_json::json!({
+                "execution_id": context.execution_id,
+                "workflow_id": context.workflow_id,
+                "node_id": node_id,
+                "node_type": node_type,
+            });
+            if let Err(reason) =
+                sink.emit(HookEvent::WorkflowNodePreExecute, &payload.to_string()).await
+            {
+                tracing::warn!(
+                    node_id = %node_id,
+                    node_type,
+                    reason = %reason,
+                    "WorkflowNodePreExecute hook 阻断执行"
+                );
+                return Err(NodeError::exec_failed(
+                    error_code::VALIDATION_FAILED,
+                    format!("[hook-veto] {reason}"),
+                ));
+            }
+        }
 
         // ── 业务规则引擎检查（硬约束） ──
         // 在执行之前先检查业务规则。仅对可执行节点类型进行检查。
@@ -160,6 +222,45 @@ impl NodeDispatcher {
                     ));
                 },
                 RuleEvaluationOutcome::Pass => {},
+            }
+        }
+
+        // ── 权限检查(PermissionChecker) ──
+        // 仅对执行"外部操作"的节点类型检查,与业务规则共用白名单。
+        // Denied → 阻断执行;AllowedWithAudit → 记录警告后继续;Allowed → 正常执行。
+        if let Some(checker) = self.permission_checker_clone()
+            && is_business_rule_applicable(node_type)
+        {
+            let node_input = build_node_input_snapshot(node, context);
+            let input_str = node_input.to_string();
+            match checker.check(node_type, &input_str) {
+                EnforcementResult::Allowed => {},
+                EnforcementResult::AllowedWithAudit { outside_workspace, sensitive_path } => {
+                    tracing::warn!(
+                        node_id = %node_id,
+                        node_type,
+                        outside_workspace,
+                        sensitive_path,
+                        "权限检查: AllowedWithAudit — 节点执行将记录审计日志后继续"
+                    );
+                },
+                EnforcementResult::Denied { tool, active_mode, required_mode, reason } => {
+                    tracing::warn!(
+                        node_id = %node_id,
+                        node_type,
+                        tool = %tool,
+                        active_mode = %active_mode,
+                        required_mode = %required_mode,
+                        reason = %reason,
+                        "权限检查: Denied — 阻断节点执行"
+                    );
+                    return Err(NodeError::exec_failed(
+                        error_code::PERMISSION_DENIED,
+                        format!(
+                            "[权限拒绝] 节点 '{node_type}' 需要 {required_mode} 权限,当前为 {active_mode}: {reason}"
+                        ),
+                    ));
+                },
             }
         }
 
@@ -220,7 +321,39 @@ impl NodeDispatcher {
                 },
             }
         };
-        executor.execute(&resolved_node, context).await
+        let execute_result = executor.execute(&resolved_node, context).await;
+
+        // ── 全局 metrics:节点 dispatch 失败计数 ──
+        if execute_result.is_err() {
+            axagent_telemetry::metrics::inc_node_dispatch_failed();
+        }
+
+        // ── 触发 WorkflowNodePostExecute / WorkflowNodePostExecuteFailure hook ──
+        if let Some(sink) = self.hook_sink_clone() {
+            let event = if execute_result.is_ok() {
+                HookEvent::WorkflowNodePostExecute
+            } else {
+                HookEvent::WorkflowNodePostExecuteFailure
+            };
+            let payload = serde_json::json!({
+                "execution_id": context.execution_id,
+                "workflow_id": context.workflow_id,
+                "node_id": node_id,
+                "node_type": node_type,
+                "success": execute_result.is_ok(),
+            });
+            // PostExecute hook 失败仅记录日志,不影响已完成的执行结果
+            if let Err(reason) = sink.emit(event, &payload.to_string()).await {
+                tracing::warn!(
+                    node_id = %node_id,
+                    node_type,
+                    reason = %reason,
+                    "PostExecute hook 调用失败(已忽略)"
+                );
+            }
+        }
+
+        execute_result
     }
 
     pub async fn get_executor(&self, node_type: &str) -> Option<Arc<dyn NodeExecutorTrait>> {
@@ -229,6 +362,38 @@ impl NodeDispatcher {
 
     pub async fn registered_types(&self) -> Vec<&'static str> {
         self.executors.read().await.keys().copied().collect()
+    }
+
+    /// 触发工作流级 hook 事件(非节点级)。
+    /// 用于 `WorkflowStarted` / `WorkflowCompleted` / `WorkflowFailed` 等。
+    /// 由 WorkEngine 在工作流整体开始/结束/失败时调用。
+    pub async fn emit_workflow_event(
+        &self,
+        event: HookEvent,
+        execution_id: &str,
+        workflow_id: &str,
+        extra: Option<&serde_json::Value>,
+    ) {
+        let Some(sink) = self.hook_sink_clone() else { return };
+        let mut payload = serde_json::json!({
+            "execution_id": execution_id,
+            "workflow_id": workflow_id,
+        });
+        if let Some(extra) = extra
+            && let (Some(obj), Some(extra_obj)) = (payload.as_object_mut(), extra.as_object())
+        {
+            for (k, v) in extra_obj {
+                obj.insert(k.clone(), v.clone());
+            }
+        }
+        if let Err(reason) = sink.emit(event, &payload.to_string()).await {
+            tracing::warn!(
+                workflow_id = workflow_id,
+                execution_id = execution_id,
+                reason = %reason,
+                "工作流级 hook 调用失败(已忽略)"
+            );
+        }
     }
 }
 
@@ -385,6 +550,124 @@ mod tests {
         let result = disp.dispatch(&node, &ctx).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().output["node_type"], "fallback");
+    }
+
+    // ── PermissionChecker mock 实现 ──
+
+    /// 始终允许的 checker
+    struct AlwaysAllowChecker;
+    impl PermissionChecker for AlwaysAllowChecker {
+        fn check(&self, _tool_name: &str, _input: &str) -> EnforcementResult {
+            EnforcementResult::Allowed
+        }
+        fn is_allowed(&self, _tool_name: &str, _input: &str) -> bool {
+            true
+        }
+        fn check_file_write(&self, _path: &str, _workspace_root: &str) -> EnforcementResult {
+            EnforcementResult::Allowed
+        }
+        fn check_bash(&self, _command: &str) -> EnforcementResult {
+            EnforcementResult::Allowed
+        }
+    }
+
+    /// 始终拒绝的 checker
+    struct AlwaysDenyChecker;
+    impl PermissionChecker for AlwaysDenyChecker {
+        fn check(&self, tool_name: &str, _input: &str) -> EnforcementResult {
+            EnforcementResult::Denied {
+                tool: tool_name.to_owned(),
+                active_mode: "ReadOnly".to_owned(),
+                required_mode: "WorkspaceWrite".to_owned(),
+                reason: "mock deny".to_owned(),
+            }
+        }
+        fn is_allowed(&self, _tool_name: &str, _input: &str) -> bool {
+            false
+        }
+        fn check_file_write(&self, path: &str, _workspace_root: &str) -> EnforcementResult {
+            EnforcementResult::Denied {
+                tool: "write_file".to_owned(),
+                active_mode: "ReadOnly".to_owned(),
+                required_mode: "WorkspaceWrite".to_owned(),
+                reason: format!("mock deny for path {path}"),
+            }
+        }
+        fn check_bash(&self, _command: &str) -> EnforcementResult {
+            EnforcementResult::Denied {
+                tool: "bash".to_owned(),
+                active_mode: "ReadOnly".to_owned(),
+                required_mode: "DangerFullAccess".to_owned(),
+                reason: "mock deny".to_owned(),
+            }
+        }
+    }
+
+    /// 始终审计允许的 checker
+    struct AlwaysAuditChecker;
+    impl PermissionChecker for AlwaysAuditChecker {
+        fn check(&self, _tool_name: &str, _input: &str) -> EnforcementResult {
+            EnforcementResult::AllowedWithAudit { outside_workspace: false, sensitive_path: false }
+        }
+        fn is_allowed(&self, _tool_name: &str, _input: &str) -> bool {
+            true
+        }
+        fn check_file_write(&self, _path: &str, _workspace_root: &str) -> EnforcementResult {
+            EnforcementResult::AllowedWithAudit { outside_workspace: false, sensitive_path: false }
+        }
+        fn check_bash(&self, _command: &str) -> EnforcementResult {
+            EnforcementResult::AllowedWithAudit { outside_workspace: false, sensitive_path: false }
+        }
+    }
+
+    #[tokio::test]
+    async fn permission_check_denied_blocks_execution() {
+        let disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("tool")).await;
+        disp.set_permission_checker(Arc::new(AlwaysDenyChecker));
+        let node = make_tool_node("perm_deny", true);
+        let ctx = make_test_exec_state();
+        let result = disp.dispatch(&node, &ctx).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.code(), error_code::PERMISSION_DENIED);
+    }
+
+    #[tokio::test]
+    async fn permission_check_allowed_proceeds_execution() {
+        let disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("tool")).await;
+        disp.set_permission_checker(Arc::new(AlwaysAllowChecker));
+        let node = make_tool_node("perm_allow", true);
+        let ctx = make_test_exec_state();
+        let result = disp.dispatch(&node, &ctx).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().output["node_type"], "tool");
+    }
+
+    #[tokio::test]
+    async fn permission_check_audit_proceeds_execution() {
+        let disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("tool")).await;
+        disp.set_permission_checker(Arc::new(AlwaysAuditChecker));
+        let node = make_tool_node("perm_audit", true);
+        let ctx = make_test_exec_state();
+        let result = disp.dispatch(&node, &ctx).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().output["node_type"], "tool");
+    }
+
+    #[tokio::test]
+    async fn permission_check_absent_backward_compatible() {
+        // 未注入 permission_checker 时,dispatch 行为与之前一致(正常执行)
+        let disp = NodeDispatcher::new();
+        disp.register(TestExecutor::new("tool")).await;
+        // 故意不调用 set_permission_checker
+        let node = make_tool_node("perm_absent", true);
+        let ctx = make_test_exec_state();
+        let result = disp.dispatch(&node, &ctx).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().output["node_type"], "tool");
     }
 
     // Re-use helper from dag_store tests — define locally

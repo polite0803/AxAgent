@@ -16,11 +16,13 @@ use std::path::Path;
 use tauri::State;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportAgencyExpertsRequest {
     pub path: String,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportResult {
     pub count: u32,
     pub workflows_created: u32,
@@ -29,6 +31,7 @@ pub struct ImportResult {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct AgencyExpertRow {
     pub id: String,
     pub name: String,
@@ -41,9 +44,22 @@ pub struct AgencyExpertRow {
     pub recommended_workflows: Option<Vec<String>>,
     pub recommended_tools: Option<Vec<String>>,
     pub active_domains: Option<Vec<String>>,
+    /// 资历等级：junior / mid / senior / expert
+    pub seniority: Option<String>,
+    /// 擅长细分领域
+    pub specialties: Option<Vec<String>>,
+    /// 归属业务岗位（business_roles.id）
+    pub parent_role_id: Option<String>,
+    /// 历史成功率（0.0 ~ 1.0）
+    pub success_rate: Option<f64>,
+    /// 平均执行延迟（毫秒）
+    pub avg_latency_ms: Option<i64>,
+    /// 平均 token 成本
+    pub avg_token_cost: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendedWorkflow {
     pub name: String,
     pub description: String,
@@ -55,7 +71,8 @@ fn map_directory_to_category(dir: &str) -> &str {
     match dir {
         "engineering" => "development",
         "security" => "security",
-        "data" | "finance" => "data",
+        "data" => "data",
+        "finance" => "finance",
         "devops" | "infrastructure" => "devops",
         "design" | "game-development" => "design",
         "marketing" | "writing" | "content" => "writing",
@@ -411,9 +428,18 @@ pub async fn import_agency_experts(
                 recommended_workflows: Set(recommended_workflows_json),
                 recommended_tools: Set(recommended_tools_json),
                 active_domains: Set(None),
+                // 新增字段：导入时不解析，保留为 None，由前端编辑时填充
+                seniority: Set(None),
+                specialties: Set(None),
+                parent_role_id: Set(None),
+                success_rate: Set(None),
+                avg_latency_ms: Set(None),
+                avg_token_cost: Set(None),
             };
 
             // 使用 UPSERT 支持重复导入：已存在的记录会被更新
+            // 注意：UPSERT 不更新新增字段（seniority/specialties/parent_role_id 等），
+            // 避免导入时覆盖用户已编辑的值
             match agency_experts::Entity::insert(model)
                 .on_conflict(
                     sea_orm::sea_query::OnConflict::column(agency_experts::Column::Id)
@@ -473,6 +499,12 @@ pub async fn list_agency_experts(
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),
             recommended_tools: m.recommended_tools.and_then(|s| serde_json::from_str(&s).ok()),
+            seniority: m.seniority,
+            specialties: m.specialties.as_deref().and_then(|s| serde_json::from_str(s).ok()),
+            parent_role_id: m.parent_role_id,
+            success_rate: m.success_rate,
+            avg_latency_ms: m.avg_latency_ms,
+            avg_token_cost: m.avg_token_cost,
         })
         .collect();
 
@@ -480,6 +512,7 @@ pub async fn list_agency_experts(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedWorkflowStep {
     pub title: String,
     pub description: String,
@@ -492,6 +525,7 @@ pub struct ExtractedWorkflowStep {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedWorkflow {
     pub name: String,
     pub description: String,
@@ -500,11 +534,13 @@ pub struct ExtractedWorkflow {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractExpertStructureRequest {
     pub expert_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractExpertStructureResult {
     pub workflows: Vec<ExtractedWorkflow>,
     pub tools: Vec<String>,
@@ -571,7 +607,11 @@ pub async fn extract_expert_structure(
     })?;
     let api_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, state.harness.master_key())
         .map_err(|e| {
-        ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
+        // C-4: 动态错误信息走 params（前端按 t("error.EXPERT_KEY_DECRYPT_FAILED", { error }) 插值），
+        // detail 保留同样的内容作为翻译未命中时的回退
+        ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED)
+            .with_param("error", e.to_string())
+            .with_detail(e.to_string())
     })?;
 
     let registry_key = axagent_harness::types::provider_model::provider_registry_key(
@@ -671,10 +711,12 @@ pub async fn extract_expert_structure(
         response_format: None,
     };
 
-    let response = adapter
-        .chat(&ctx, chat_request.into())
-        .await
-        .map_err(|e| ErrorResponse::new(expert_err::LLM_CALL_FAILED).with_detail(e.to_string()))?;
+    let response = adapter.chat(&ctx, chat_request.into()).await.map_err(|e| {
+        // C-4: 动态错误信息走 params（前端按 t("error.EXPERT_LLM_CALL_FAILED", { error }) 插值）
+        ErrorResponse::new(expert_err::LLM_CALL_FAILED)
+            .with_param("error", e.to_string())
+            .with_detail(e.to_string())
+    })?;
 
     let extracted = extract_json_from_text(&response.content).map_err(|e| {
         let preview = &response.content[..200.min(response.content.len())];
@@ -709,6 +751,7 @@ pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportRe
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateExpertRequest {
     pub id: String,
     pub name: Option<String>,
@@ -717,6 +760,18 @@ pub struct UpdateExpertRequest {
     pub system_prompt: Option<String>,
     pub is_enabled: Option<bool>,
     pub active_domains: Option<Vec<String>>,
+    /// 资历等级：junior / mid / senior / expert
+    pub seniority: Option<String>,
+    /// 擅长细分领域
+    pub specialties: Option<Vec<String>>,
+    /// 归属业务岗位（business_roles.id）
+    pub parent_role_id: Option<String>,
+    /// 历史成功率（0.0 ~ 1.0）
+    pub success_rate: Option<f64>,
+    /// 平均执行延迟（毫秒）
+    pub avg_latency_ms: Option<i64>,
+    /// 平均 token 成本
+    pub avg_token_cost: Option<i64>,
 }
 
 #[tauri::command]
@@ -755,6 +810,47 @@ pub async fn update_agency_expert(
         let json = serde_json::to_string(&domains).unwrap_or_default();
         am.active_domains = Set(if domains.is_empty() { None } else { Some(json) });
     }
+    if let Some(seniority) = request.seniority {
+        am.seniority = Set(if seniority.is_empty() {
+            None
+        } else {
+            Some(seniority)
+        });
+    }
+    if let Some(specialties) = request.specialties {
+        let json = serde_json::to_string(&specialties).unwrap_or_default();
+        am.specialties = Set(if specialties.is_empty() {
+            None
+        } else {
+            Some(json)
+        });
+    }
+    if let Some(parent_role_id) = request.parent_role_id {
+        am.parent_role_id = Set(if parent_role_id.is_empty() {
+            None
+        } else {
+            Some(parent_role_id)
+        });
+    }
+    if let Some(success_rate) = request.success_rate {
+        // 边界校验：成功率应在 [0.0, 1.0] 区间
+        let clamped = success_rate.clamp(0.0, 1.0);
+        am.success_rate = Set(Some(clamped));
+    }
+    if let Some(avg_latency_ms) = request.avg_latency_ms {
+        am.avg_latency_ms = Set(if avg_latency_ms < 0 {
+            None
+        } else {
+            Some(avg_latency_ms)
+        });
+    }
+    if let Some(avg_token_cost) = request.avg_token_cost {
+        am.avg_token_cost = Set(if avg_token_cost < 0 {
+            None
+        } else {
+            Some(avg_token_cost)
+        });
+    }
 
     am.update(db).await.map_err(|e| {
         ErrorResponse::new(expert_err::UPDATE_FAILED).with_detail(format!("更新失败: {}", e))
@@ -763,6 +859,7 @@ pub async fn update_agency_expert(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeleteExpertRequest {
     pub id: String,
 }
@@ -806,6 +903,12 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
                 .recommended_workflows
                 .and_then(|s| serde_json::from_str(&s).ok()),
             recommended_tools: m.recommended_tools.and_then(|s| serde_json::from_str(&s).ok()),
+            seniority: m.seniority,
+            specialties: m.specialties.as_deref().and_then(|s| serde_json::from_str(s).ok()),
+            parent_role_id: m.parent_role_id,
+            success_rate: m.success_rate,
+            avg_latency_ms: m.avg_latency_ms,
+            avg_token_cost: m.avg_token_cost,
         })
         .collect();
 

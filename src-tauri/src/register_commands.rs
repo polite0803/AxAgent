@@ -382,6 +382,7 @@ macro_rules! register_all_commands {
             commands::workflows::workflow_get_status,
             commands::workflows::workflow_cancel,
             commands::workflows::workflow_list,
+            commands::workflows::workflow_list_active_executions,
             commands::agent_advanced::agent_estimate_complexity,
             commands::sub_agent::sub_agent_list,
             commands::sub_agent::sub_agent_get,
@@ -606,14 +607,27 @@ macro_rules! register_all_commands {
             commands::workflow_ai::recommend_nodes,
             commands::workflow_ai::workflow_ai_chat_stream,
             commands::workflow_ai::workflow_ai_chat_cancel,
+            commands::workflow_ai::compile_mission_to_template,
             commands::workflow_ai_diagnose::llm_diagnose_workflow,
             commands::workflow_ai_diagnose::apply_diagnostic_fixes,
+            // 工作流执行统计命令（mission 效果导向优化）
+            commands::workflow_execution_stats::record_workflow_execution,
+            commands::workflow_execution_stats::get_workflow_stats_by_template,
+            commands::workflow_execution_stats::get_workflow_stats_by_mission,
+            commands::workflow_execution_stats::get_template_effect_summary,
             // V2 协议 chat action apply 命令(P0 #1 实现:5/5)
             commands::workflow_ai_apply::apply_update_variable,
             commands::workflow_ai_apply::apply_rollback_to_version,
             commands::workflow_ai_apply::apply_update_input_mapping,
             commands::workflow_ai_apply::apply_edit_asset_file,
             commands::workflow_ai_apply::apply_diff_with_validation,
+            // 工作流反思 / 进化 / 优化命令(阶段 5 wiring 暴露)
+            commands::workflow_reflection::workflow_optimize_suggest,
+            commands::workflow_reflection::workflow_optimize_apply,
+            commands::workflow_reflection::workflow_evolve_template,
+            commands::workflow_reflection::workflow_evolution_stats,
+            commands::workflow_reflection::workflow_evolution_is_running,
+            commands::workflow_reflection::workflow_should_auto_evolve,
             // Platform integration commands
             commands::platform_integration::get_platform_config,
             commands::platform_integration::update_platform_config,
@@ -771,6 +785,7 @@ macro_rules! register_all_commands {
             commands::llm_wiki::llm_wiki_list,
             commands::llm_wiki::llm_wiki_create,
             commands::llm_wiki::llm_wiki_delete,
+            commands::llm_wiki::llm_wiki_delete_source,
             commands::llm_wiki::llm_wiki_operations_list,
             commands::llm_wiki::llm_wiki_ingest,
             commands::llm_wiki::llm_wiki_compile,
@@ -847,6 +862,13 @@ macro_rules! register_all_commands {
             commands::agent_role::delete_agent_role,
             commands::agent_role::save_agent_role,
             commands::agent_role::update_agent_role,
+            // 业务岗位（business_role）—— 与 agent_role 区别：agent_role 是抽象执行器类型，
+            // business_role 是 CEO/CTO/产品经理 等业务岗位
+            commands::business_role::list_business_roles,
+            commands::business_role::list_business_role_tree,
+            commands::business_role::get_business_role,
+            commands::business_role::save_business_role,
+            commands::business_role::delete_business_role,
             // App config
             commands::app_config::get_app_config,
             commands::app_config::save_app_config,

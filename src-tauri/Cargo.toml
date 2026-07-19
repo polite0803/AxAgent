@@ -104,7 +104,7 @@ ignored = [
 
 [lib]
 name = "axagent_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["staticlib", "rlib"]
 
 [[bin]]
 name = "AxInvest"
@@ -112,6 +112,7 @@ path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+embed-resource = "3"
 
 [dependencies]
 async-trait = "0.1"

@@ -256,7 +256,12 @@ pub async fn execute_workflow_node(
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         }),
-        Err(e) => Err(e.to_string()),
+        // C-3: 迁移到 ErrorResponse，节点执行错误归类为 Unrecoverable
+        Err(e) => Err(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+        .to_string()),
     }
 }
 

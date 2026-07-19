@@ -409,6 +409,9 @@ pub fn agent_profile_repository() -> Arc<dyn AgentProfileRepository> {
 #[async_trait]
 pub trait AgencyExpertRepository: Send + Sync {
     async fn get_agency_expert(&self, id: &str) -> Result<Option<AgencyExpertDto>, String>;
+    /// 列出所有专家（按 sort_order/name 排序），用于 LLM prompt 注入清单。
+    /// 仅返回 enabled=true 的记录。
+    async fn list_agency_experts(&self) -> Result<Vec<AgencyExpertDto>, String>;
 }
 
 pub fn set_agency_expert_repository(repo: Arc<dyn AgencyExpertRepository>) {
@@ -432,6 +435,25 @@ pub fn set_agent_role_repository(repo: Arc<dyn AgentRoleRepository>) {
 
 pub fn agent_role_repository() -> Arc<dyn AgentRoleRepository> {
     get_service_registry().read().unwrap().agent_role_repository()
+}
+
+// ── BusinessRoleRepository ─────────────────────
+// 业务岗位（CEO/CTO/产品经理 等）—— 与 AgentRole 抽象执行器类型区别。
+
+#[async_trait]
+pub trait BusinessRoleRepository: Send + Sync {
+    async fn get_business_role(&self, id: &str) -> Result<Option<BusinessRoleDto>, String>;
+    /// 列出所有业务岗位（按 sort_order 排序），用于 LLM prompt 注入清单。
+    /// 仅返回 is_enabled=true 的记录。
+    async fn list_business_roles(&self) -> Result<Vec<BusinessRoleDto>, String>;
+}
+
+pub fn set_business_role_repository(repo: Arc<dyn BusinessRoleRepository>) {
+    get_service_registry().read().unwrap().set_business_role_repository(repo);
+}
+
+pub fn business_role_repository() -> Arc<dyn BusinessRoleRepository> {
+    get_service_registry().read().unwrap().business_role_repository()
 }
 
 // ── BackgroundTaskRepository ──────────────────

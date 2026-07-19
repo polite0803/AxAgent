@@ -311,6 +311,7 @@ pub fn tracer_get_bottlenecks(trace_id: String) -> Result<BottleneckResult, Stri
             SpanType::Agent | SpanType::Reasoning | SpanType::Reflection => "LLM 推理",
             SpanType::Tool | SpanType::Task | SpanType::SubTask => "工具调用",
             SpanType::LlmCall => "LLM 调用",
+            SpanType::Workflow | SpanType::WorkflowNode => "工作流",
         };
         *type_time.entry(key.to_string()).or_insert(0) += span.duration_ms.unwrap_or(0);
     }

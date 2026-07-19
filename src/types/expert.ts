@@ -5,6 +5,7 @@ export type ExpertCategory =
   | "development"
   | "security"
   | "data"
+  | "finance"
   | "devops"
   | "design"
   | "writing"
@@ -15,6 +16,7 @@ export const EXPERT_CATEGORY_KEYS = [
   "development",
   "security",
   "data",
+  "finance",
   "devops",
   "design",
   "writing",
@@ -22,6 +24,19 @@ export const EXPERT_CATEGORY_KEYS = [
 ] as const;
 
 export type ExpertCategoryKey = (typeof EXPERT_CATEGORY_KEYS)[number];
+
+/** 分类对应完整 i18n key 的查找表，供 i18n Ally 直接识别。 */
+export const EXPERT_CATEGORY_LABELS: Record<ExpertCategoryKey, string> = {
+  general: "expertCategory.general",
+  development: "expertCategory.development",
+  security: "expertCategory.security",
+  data: "expertCategory.data",
+  finance: "expertCategory.finance",
+  devops: "expertCategory.devops",
+  design: "expertCategory.design",
+  writing: "expertCategory.writing",
+  business: "expertCategory.business",
+};
 
 /** 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name */
 export interface ExpertRole {
@@ -66,4 +81,18 @@ export interface ExpertRole {
   recommendedWorkflows?: string[];
   /** @deprecated 指向对应的 AgentProfile ID，用于向后兼容过渡 */
   agentProfileId?: string;
+
+  // ── 资历与归属（对齐后端 AgencyExpertDto 扩展字段） ──
+  /** 资历等级：junior / mid / senior / expert */
+  seniority?: string;
+  /** 擅长细分领域列表 */
+  specialties?: string[];
+  /** 归属业务岗位 ID（business_roles.id） */
+  parentRoleId?: string;
+  /** 历史成功率（0.0 ~ 1.0） */
+  successRate?: number;
+  /** 平均执行延迟（毫秒） */
+  avgLatencyMs?: number;
+  /** 平均 token 成本 */
+  avgTokenCost?: number;
 }

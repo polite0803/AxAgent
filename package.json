@@ -33,6 +33,7 @@
     "test:integration": "vitest run --config vite.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:rust": "node scripts/cargo-test-win.mjs",
     "bump": "node scripts/bump-version.mjs",
     "format": "dprint fmt",
     "format:check": "dprint check",

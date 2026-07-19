@@ -54,6 +54,11 @@ pub mod message_gateway;
 pub mod mode_selector;
 pub mod module_switch;
 mod oauth;
+/// 3.3 P2:6 小时无人值守持久重试调度器
+///
+/// 跨进程持久化重试调度器,失败后保存 session → 等待冷却 → 自动加载恢复 → 继续执行。
+/// 由 src-tauri/src/init/ 的后台守护进程定时唤醒检查 pending session。
+pub mod persistent_runner;
 pub mod plugin_lifecycle;
 mod policy_engine;
 pub mod priority_scheduler;
@@ -72,10 +77,12 @@ pub mod shell_completer;
 pub mod shell_hooks;
 pub mod stale_base;
 pub mod stale_branch;
+pub mod subtask_dispatcher;
 pub mod summary_compression;
 pub mod task_manager;
 pub mod task_packet;
 pub mod task_registry;
+pub mod tasks;
 pub mod team_cron_registry;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod terminal;
@@ -104,6 +111,9 @@ pub use axagent_runtime_core::session::{ContentBlock, Session};
 pub use bash::{BashCommandInput, BashCommandOutput, execute_bash};
 pub use bootstrap::{BootstrapPhase, BootstrapPlan};
 pub use branch_lock::{BranchLockCollision, BranchLockIntent, detect_branch_lock_collisions};
+
+// ── SubTaskDispatcher 生产 wiring ──
+pub use subtask_dispatcher::{NoopSubTaskHandler, RuntimeSubTaskDispatcher, SubTaskHandler};
 
 pub use file_ops::{
     EditFileOutput, GlobSearchOutput, GrepSearchInput, GrepSearchOutput, ReadFileOutput,

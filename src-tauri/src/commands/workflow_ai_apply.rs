@@ -166,6 +166,7 @@ pub async fn apply_rollback_to_version(
         variables: resp.variables.clone(),
         error_config: resp.error_config.clone(),
         tool_defs: resp.tool_defs.clone().filter(|v| !v.is_empty()),
+        mission_hash: resp.mission_hash.clone(),
     };
 
     let updated = db_repo::update_workflow_template(
@@ -829,6 +830,7 @@ fn template_to_input(template: &WorkflowTemplateResponse) -> WorkflowTemplateInp
         variables: template.variables.clone(),
         error_config: template.error_config.clone(),
         tool_defs: template.tool_defs.clone().filter(|v| !v.is_empty()),
+        mission_hash: template.mission_hash.clone(),
     }
 }
 

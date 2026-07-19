@@ -151,6 +151,9 @@ pub trait WikiSourceRepository: Send + Sync {
 
     /// Find a single source by its ID.
     async fn find_by_id(&self, source_id: &str) -> Result<Option<WikiSource>, String>;
+
+    /// Delete a wiki source by its ID. Returns true if a row was deleted.
+    async fn delete(&self, source_id: &str) -> Result<bool, String>;
 }
 
 // ── WikiPageRepository trait ────────────────────────────────────

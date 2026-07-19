@@ -13,6 +13,7 @@ use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::SyncEngine;
 use axagent_storage::file_authorizer::FileAuthorizer;
+use axagent_telemetry::TelemetryLevel;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -265,6 +266,14 @@ pub struct AppState {
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
     pub work_engine: Arc<axagent_runtime::work_engine::WorkEngine>,
+    /// 工作流反思器(阶段 5 注入):同一实例同时挂载到 WorkEngine 与此字段,
+    /// 供命令层手动触发整体 / 节点级反思。None = 反思未启用(理论上 wiring 层必注入)。
+    pub workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector>,
+    /// 工作流进化器(阶段 5 注入):同一实例同时挂载到 WorkEngine 与此字段,
+    /// 供命令层手动触发模板进化、查询是否应自动进化等。
+    pub workflow_evolver: Arc<dyn axagent_harness::WorkflowEvolver>,
+    /// 工作流优化器(阶段 5 注入):无状态,命令层可基于历史反思生成 / 应用建议。
+    pub workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer>,
     pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
     pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
     pub dashboard_registry: Option<Arc<DashboardRegistry>>,
@@ -315,6 +324,14 @@ pub struct AppState {
     /// PTY 伪终端管理器，管理所有终端会话（仅桌面端可用）
     #[cfg(not(mobile))]
     pub pty_manager: Arc<axagent_runtime::pty::PtyManager>,
+    /// 2.7 P1:遥测级别共享句柄 — 启动时从 `AppSettings.telemetry_level`
+    /// 读取初值,`save_settings` 命令检测到变更后更新此句柄;运行中的
+    /// `FilteringSink` 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
+    ///
+    /// 当前主 crate 未实例化 `JsonlTelemetrySink`(基础设施已就绪但未接入
+    /// 生产路径),此字段先行就位 — 未来接入 sink 时直接
+    /// `FilteringSink::new(inner, *handle.read().unwrap())` 即可。
+    pub telemetry_level_handle: Arc<std::sync::RwLock<TelemetryLevel>>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

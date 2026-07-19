@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { executeShortcutAction } from "@/lib/shortcutActions";
-import { getShortcutBinding, matchesShortcutEvent, SHORTCUT_ACTIONS, type ShortcutAction } from "@/lib/shortcuts";
+import { getShortcutBinding, matchesShortcutEvent, SHORTCUT_ACTIONS } from "@/lib/shortcuts";
 import { useConversationStore, useSettingsStore, useTabStore } from "@/stores";
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-export function useKeyboardShortcuts() {
+export function useKeyboardShortcuts(): void {
   const navigate = useNavigate();
   const settings = useSettingsStore((s) => s.settings);
 
@@ -16,7 +16,7 @@ export function useKeyboardShortcuts() {
       const isInputField = e.target instanceof HTMLInputElement
         || e.target instanceof HTMLTextAreaElement
         || e.target instanceof HTMLSelectElement;
-      const isWorkflowCanvas = (e.target as HTMLElement)?.closest?.(".react-flow") != null;
+      const isWorkflowCanvas = e.target instanceof HTMLElement && e.target.closest(".react-flow") != null;
       if (isInputField || isWorkflowCanvas) {
         return;
       }
@@ -54,7 +54,7 @@ export function useKeyboardShortcuts() {
           altKey: e.altKey,
         });
         e.preventDefault();
-        await executeShortcutAction(matchedAction as ShortcutAction);
+        await executeShortcutAction(matchedAction);
         return;
       }
 

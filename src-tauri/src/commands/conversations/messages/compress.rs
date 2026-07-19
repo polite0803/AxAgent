@@ -800,12 +800,18 @@ mod tests_conversation {
                 Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                     as Arc<dyn axagent_harness::registry::ProviderRegistry>,
             )),
+            workflow_reflector: axagent_trajectory::WorkflowReflectorImpl::with_defaults().into_arc(),
+            workflow_evolver: axagent_trajectory::WorkflowEvolverImpl::with_defaults().into_arc(),
+            workflow_optimizer: axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc(),
             skill_decomposer: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::SkillDecomposer::new(),
             )),
             proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
             dashboard_registry: None,
             webhook_subscription_manager: None,
+            telemetry_level_handle: Arc::new(std::sync::RwLock::new(
+                axagent_telemetry::TelemetryLevel::default(),
+            )),
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(

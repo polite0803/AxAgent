@@ -136,6 +136,7 @@ impl DynamicSubGraph {
             consistency_check: None,
             hallucination_guard: None,
             fallback_model: None,
+            task_scene: None,
         };
 
         WorkflowNode::Agent(AgentNode { base, config })
@@ -449,6 +450,7 @@ mod tests {
                         consistency_check: None,
                         hallucination_guard: None,
                         fallback_model: None,
+                        task_scene: None,
                     },
                 })
             })
@@ -517,6 +519,7 @@ mod tests {
                         consistency_check: None,
                         hallucination_guard: None,
                         fallback_model: None,
+                        task_scene: None,
                     },
                 })
             })

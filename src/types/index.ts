@@ -580,6 +580,17 @@ export interface AppSettings {
   cloud_sync_enabled?: boolean;
   /** RAG 高级管线配置（查询增强、重排序、自省式质检） */
   rag_pipeline_config?: RAGPipelineConfig;
+  /**
+   * 2.7 P1:遥测级别三级开关 — "off" | "minimal" | "full"。
+   *
+   * - `off`:完全关闭遥测(默认)
+   * - `minimal`:仅记录用户行为级事件(Analytics / SessionTrace)
+   * - `full`:记录所有遥测事件(含 HTTP 请求细节)
+   *
+   * 后端 `FilteringSink` 装饰器在运行时通过共享 `Arc<RwLock<TelemetryLevel>>`
+   * 引用此设置,`save_settings` 命令保存后立即生效。
+   */
+  telemetry_level?: "off" | "minimal" | "full";
 }
 
 // === Streaming ===
@@ -1156,6 +1167,7 @@ export * from "./agentProfile";
 export * from "./approval";
 export * from "./artifact";
 export * from "./backup";
+export * from "./businessRole";
 export * from "./citation";
 export * from "./evaluator";
 export * from "./expert";

@@ -489,6 +489,7 @@ pub async fn confirm_decomposition(
         error_config: Set(None),
         composite_source: Set(composite_source),
         tool_defs: Set(None),
+        mission_hash: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };

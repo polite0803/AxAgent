@@ -14,6 +14,10 @@ pub enum SpanType {
     SubTask,
     Reflection,
     Reasoning,
+    /// 工作流整体执行 span(覆盖一次 run_workflow 调用)
+    Workflow,
+    /// 工作流节点执行 span(覆盖一次 NodeDispatcher::dispatch)
+    WorkflowNode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

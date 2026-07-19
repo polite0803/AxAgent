@@ -1,179 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// 反思系统共享 DTO 已上移到 axagent-harness,本 crate 通过 pub use 复用。
+pub use axagent_harness::reflection_types::{
+    QualityMetrics, Reflection, ReflectionConfig, TaskExecutionRecord,
+};
+
 use crate::insight_generator::InsightGenerator;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskExecutionRecord {
-    pub task_id: String,
-    pub task_description: String,
-    pub result: Option<serde_json::Value>,
-    pub success: bool,
-    pub error: Option<String>,
-    pub start_time: DateTime<Utc>,
-    pub end_time: DateTime<Utc>,
-    pub duration_ms: u64,
-    pub tools_used: Vec<String>,
-    pub iterations: usize,
-}
-
-impl TaskExecutionRecord {
-    pub fn new(
-        task_id: String,
-        task_description: String,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            task_id,
-            task_description,
-            result: None,
-            success: false,
-            error: None,
-            start_time,
-            end_time,
-            duration_ms: 0,
-            tools_used: Vec::new(),
-            iterations: 0,
-        }
-    }
-
-    pub fn with_result(mut self, result: serde_json::Value) -> Self {
-        self.result = Some(result);
-        self
-    }
-
-    pub fn with_success(mut self, success: bool) -> Self {
-        self.success = success;
-        self
-    }
-
-    pub fn with_error(mut self, error: String) -> Self {
-        self.error = Some(error);
-        self.success = false;
-        self
-    }
-
-    pub fn with_tools(mut self, tools: Vec<String>) -> Self {
-        self.tools_used = tools;
-        self
-    }
-
-    pub fn with_iterations(mut self, iterations: usize) -> Self {
-        self.iterations = iterations;
-        self
-    }
-
-    pub fn compute_duration(&mut self) {
-        self.duration_ms =
-            self.end_time.signed_duration_since(self.start_time).num_milliseconds() as u64;
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct QualityMetrics {
-    pub task_success_score: f32,
-    pub tool_efficiency_score: f32,
-    pub iteration_efficiency_score: f32,
-    pub time_efficiency_score: f32,
-    pub error_recovery_score: f32,
-    pub goal_completion_score: f32,
-    pub overall_weighted_score: f32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Reflection {
-    pub task_id: String,
-    pub timestamp: DateTime<Utc>,
-    pub quality_score: u8,
-    pub quality_analysis: String,
-    pub efficiency_analysis: String,
-    pub error_patterns: Vec<String>,
-    pub reusable_patterns: Vec<String>,
-    pub knowledge_suggestions: Vec<String>,
-    pub improvement_suggestions: Vec<String>,
-    pub overall_summary: String,
-    pub quality_metrics: Option<QualityMetrics>,
-}
-
-impl Reflection {
-    pub fn new(task_id: String) -> Self {
-        Self {
-            task_id,
-            timestamp: Utc::now(),
-            quality_score: 0,
-            quality_analysis: String::new(),
-            efficiency_analysis: String::new(),
-            error_patterns: Vec::new(),
-            reusable_patterns: Vec::new(),
-            knowledge_suggestions: Vec::new(),
-            improvement_suggestions: Vec::new(),
-            overall_summary: String::new(),
-            quality_metrics: None,
-        }
-    }
-
-    pub fn with_quality(mut self, score: u8, analysis: String) -> Self {
-        self.quality_score = score.clamp(1, 10);
-        self.quality_analysis = analysis;
-        self
-    }
-
-    pub fn with_quality_metrics(mut self, metrics: QualityMetrics) -> Self {
-        self.quality_score = (metrics.overall_weighted_score.round() as u8).clamp(1, 10);
-        self.quality_metrics = Some(metrics);
-        self
-    }
-
-    pub fn with_efficiency(mut self, analysis: String) -> Self {
-        self.efficiency_analysis = analysis;
-        self
-    }
-
-    pub fn with_patterns(mut self, errors: Vec<String>, reusable: Vec<String>) -> Self {
-        self.error_patterns = errors;
-        self.reusable_patterns = reusable;
-        self
-    }
-
-    pub fn with_knowledge(mut self, suggestions: Vec<String>) -> Self {
-        self.knowledge_suggestions = suggestions;
-        self
-    }
-
-    pub fn with_improvements(mut self, suggestions: Vec<String>) -> Self {
-        self.improvement_suggestions = suggestions;
-        self
-    }
-
-    pub fn with_summary(mut self, summary: String) -> Self {
-        self.overall_summary = summary;
-        self
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ReflectionConfig {
-    pub enabled: bool,
-    pub min_quality_threshold: u8,
-    pub store_insights: bool,
-    pub max_history: usize,
-}
-
-impl Default for ReflectionConfig {
-    fn default() -> Self {
-        Self { enabled: true, min_quality_threshold: 5, store_insights: true, max_history: 100 }
-    }
-}
 
 pub struct Reflector {
     config: ReflectionConfig,
     insight_generator: Arc<InsightGenerator>,
     history: Arc<RwLock<Vec<Reflection>>>,
+    /// 可选 JSONL 持久化路径(P0-3 修复:启用后每次 reflect 都 append 一行)。
+    persist_path: Option<PathBuf>,
 }
 
 impl Reflector {
@@ -182,12 +25,119 @@ impl Reflector {
             config: ReflectionConfig::default(),
             insight_generator: Arc::new(InsightGenerator::new()),
             history: Arc::new(RwLock::new(Vec::new())),
+            persist_path: None,
         }
     }
 
     pub fn with_config(mut self, config: ReflectionConfig) -> Self {
         self.config = config;
         self
+    }
+
+    /// 启用 JSONL 文件持久化(P0-3 修复)。
+    ///
+    /// 启用后:
+    /// - `reflect()` 完成后异步 append 一行 JSON 到 `path`
+    /// - `load_persistence()` 在启动时从 `path` 加载历史到内存
+    ///
+    /// 路径应为 `app_dir.join("reflections.jsonl")`,由 wiring 层提供。
+    /// 文件不存在时首次 reflect 会自动创建。
+    pub fn with_persistence(mut self, path: PathBuf) -> Self {
+        self.persist_path = Some(path);
+        self
+    }
+
+    /// 启动时从持久化文件加载历史反思到内存。
+    ///
+    /// 仅加载最后 `max_history` 条(避免内存膨胀)。文件不存在或损坏时返回空。
+    pub async fn load_persistence(&self) -> std::io::Result<usize> {
+        let path = match self.persist_path.as_ref() {
+            Some(p) => p.clone(),
+            None => return Ok(0),
+        };
+        if !path.exists() {
+            return Ok(0);
+        }
+        let content = tokio::fs::read_to_string(&path).await?;
+        let mut loaded = Vec::new();
+        for line in content.lines() {
+            if line.trim().is_empty() {
+                continue;
+            }
+            match serde_json::from_str::<Reflection>(line) {
+                Ok(r) => loaded.push(r),
+                Err(e) => {
+                    tracing::warn!(
+                        "[reflector] skip malformed reflection line in {}: {}",
+                        path.display(),
+                        e
+                    );
+                },
+            }
+        }
+        // 仅保留最后 max_history 条
+        let max = self.config.max_history;
+        if loaded.len() > max {
+            loaded = loaded.split_off(loaded.len() - max);
+        }
+        let count = loaded.len();
+        let mut history = self.history.write().await;
+        // 合并到现有内存历史(去重 by task_id)
+        for r in loaded {
+            if !history.iter().any(|h| h.task_id == r.task_id) {
+                history.push(r);
+            }
+            if history.len() >= max {
+                history.remove(0);
+            }
+        }
+        tracing::info!("[reflector] loaded {} reflections from {}", count, path.display());
+        Ok(count)
+    }
+
+    /// 将单条反思 append 到 JSONL 文件。
+    ///
+    /// 失败仅记录日志,不阻塞 reflect 主流程(反思持久化是辅助数据,失败不应影响业务)。
+    async fn persist_reflection(&self, reflection: &Reflection) {
+        let path = match self.persist_path.as_ref() {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        let line = match serde_json::to_string(reflection) {
+            Ok(s) => s + "\n",
+            Err(e) => {
+                tracing::warn!("[reflector] serialize reflection failed: {}", e);
+                return;
+            },
+        };
+        // 文件 IO 走 spawn_blocking,避免污染 async runtime(AGENTS.md 工程惯例)。
+        let result = tokio::task::spawn_blocking({
+            let path = path.clone();
+            let line = line.clone();
+            move || {
+                if let Some(parent) = path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                // 追加模式,文件不存在自动创建。
+                use std::io::Write;
+                let mut file =
+                    match std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+                        Ok(f) => f,
+                        Err(e) => return Err(e),
+                    };
+                file.write_all(line.as_bytes())
+            }
+        })
+        .await;
+        match result {
+            Ok(Ok(())) => {},
+            Ok(Err(e)) => {
+                tracing::warn!("[reflector] append reflection to {} failed: {}", path.display(), e);
+            },
+            Err(e) => {
+                tracing::warn!("[reflector] persist task join error: {}", e);
+            },
+        }
     }
 
     pub async fn reflect(&self, record: &TaskExecutionRecord) -> Reflection {
@@ -218,6 +168,10 @@ impl Reflector {
                 history.remove(0);
             }
             history.push(reflection.clone());
+            drop(history);
+
+            // P0-3 修复:落盘到 JSONL 文件(异步,失败不阻塞主流程)。
+            self.persist_reflection(&reflection).await;
 
             if let Some(insights) = self.insight_generator.generate_from_reflection(&reflection) {
                 self.insight_generator.store_insight(insights).await;
@@ -667,6 +621,7 @@ impl Default for Reflector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
 
     #[tokio::test]
     async fn test_reflection_creation() {

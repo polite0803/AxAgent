@@ -82,9 +82,7 @@ export const WorkflowLegend: React.FC = memo(() => {
         role="button"
         tabIndex={0}
         aria-label={t("workflow.legend.toggleLabel", {
-          action: t(collapsed ? "workflow.legend.expand" : "workflow.legend.collapse", {
-            defaultValue: collapsed ? "Expand" : "Collapse",
-          }),
+          action: collapsed ? t("workflow.legend.expand") : t("workflow.legend.collapse"),
           defaultValue: collapsed ? "Expand legend" : "Collapse legend",
         })}
         aria-expanded={!collapsed}

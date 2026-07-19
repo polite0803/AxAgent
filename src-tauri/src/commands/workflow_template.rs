@@ -51,6 +51,7 @@ fn model_to_active_model(
         } else {
             serde_json::to_string(&template.tool_defs).ok()
         }),
+        mission_hash: Set(template.mission_hash.clone()),
         created_at: Set(template.created_at),
         updated_at: Set(now),
     }
@@ -127,6 +128,7 @@ pub async fn create_workflow_template(
         error_config: input.error_config,
         tool_defs: input.tool_defs.unwrap_or_default(),
         error_workflow_id: None,
+        mission_hash: input.mission_hash,
         created_at: now,
         updated_at: now,
     };
@@ -241,6 +243,7 @@ pub async fn duplicate_workflow_template(
         error_config: response.error_config,
         tool_defs: vec![],
         error_workflow_id: None,
+        mission_hash: None,
         created_at: now,
         updated_at: now,
     };
@@ -981,6 +984,12 @@ async fn ensure_agent_profile(
             recommended_workflows: Set(None),
             recommended_tools: Set(None),
             active_domains: Set(None),
+            seniority: Set(None),
+            specialties: Set(None),
+            parent_role_id: Set(None),
+            success_rate: Set(None),
+            avg_latency_ms: Set(None),
+            avg_token_cost: Set(None),
         };
         agency_experts::Entity::insert(expert_am)
             .exec(db)
@@ -1354,6 +1363,7 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
         model_role: None,
         consistency_check: None,
         hallucination_guard: None,
+        task_scene: None,
         input_mapping: std::collections::HashMap::new(),
         fallback_model: None,
     }
@@ -1689,6 +1699,7 @@ async fn convert_n8n_to_axagent(
         error_config: None,
         tool_defs: vec![],
         error_workflow_id: None,
+        mission_hash: None,
         created_at: now,
         updated_at: now,
     })
@@ -1732,6 +1743,7 @@ async fn do_import_workflow(
             error_config: template.error_config,
             tool_defs: vec![],
             error_workflow_id: None,
+            mission_hash: None,
             created_at: now,
             updated_at: now,
         }

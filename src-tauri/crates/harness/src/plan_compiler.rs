@@ -145,6 +145,7 @@ pub fn compile_plan_to_dag(
                         model_role: None,
                         consistency_check: None,
                         hallucination_guard: None,
+                        task_scene: None,
                         input_mapping: std::collections::HashMap::new(),
                         fallback_model: None,
                     },

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 pub mod decomposer;
-pub mod llm_assisted;
 pub mod multi_turn;
 pub mod multi_turn_executor;
 pub mod package_parser;

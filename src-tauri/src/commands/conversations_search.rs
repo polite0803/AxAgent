@@ -4,20 +4,6 @@ use crate::AppState;
 use sea_orm::{ConnectionTrait, DbBackend, Statement, Value};
 use tauri::State;
 
-/// 会话搜索查询参数，与前端 SearchQuery 类型对应。
-#[derive(Debug, Clone, serde::Deserialize)]
-#[allow(dead_code)]
-pub struct SessionSearchQuery {
-    pub query: String,
-    pub regex: Option<bool>,
-    pub case_sensitive: Option<bool>,
-    pub session_filter: Option<Vec<String>>,
-    pub date_from: Option<String>,
-    pub date_to: Option<String>,
-    pub limit: Option<u32>,
-    pub offset: Option<u32>,
-}
-
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct SessionSearchResult {
     pub conversation_id: String,

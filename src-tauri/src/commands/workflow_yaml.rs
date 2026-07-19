@@ -16,10 +16,23 @@ pub async fn export_workflow_yaml(
     _state: tauri::State<'_, AppState>,
     workflow_json: String,
 ) -> Result<String, String> {
-    let workflow: Workflow = serde_json::from_str(&workflow_json)
-        .map_err(|e| format!("Failed to parse workflow JSON: {e}"))?;
+    let workflow: Workflow = serde_json::from_str(&workflow_json).map_err(|e| {
+        // C-3: 迁移到 ErrorResponse，JSON 解析错误归类为 Validation
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Validation,
+        )
+        .to_string()
+    })?;
 
-    io_export(&workflow).map_err(|e: YamlIoError| e.to_string())
+    // C-3: 迁移到 ErrorResponse，YAML 序列化错误归类为 Unrecoverable
+    io_export(&workflow).map_err(|e: YamlIoError| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )
+        .to_string()
+    })
 }
 
 #[tauri::command]
@@ -28,7 +41,14 @@ pub async fn import_workflow_yaml(
     _state: tauri::State<'_, AppState>,
     yaml_str: String,
 ) -> Result<String, String> {
-    let (workflow, metadata) = io_import(&yaml_str).map_err(|e: YamlIoError| e.to_string())?;
+    // C-3: 迁移到 ErrorResponse，YAML 解析错误归类为 Validation
+    let (workflow, metadata) = io_import(&yaml_str).map_err(|e: YamlIoError| {
+        crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Validation,
+        )
+        .to_string()
+    })?;
 
     // Return both the parsed Workflow and metadata as a JSON string
     // so the frontend can destructure them.

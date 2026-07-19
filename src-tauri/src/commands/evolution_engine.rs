@@ -104,6 +104,8 @@ async fn collect_real_stats(state: &AppState) -> HashMap<String, serde_json::Val
     {
         let engine = state.skill_evolution_engine.lock().await;
         let s = engine.get_stats();
+        let has_llm = engine.has_llm_provider().await;
+        let has_sandbox = engine.has_sandbox().await;
         stats.insert(
             "skill_evolution".into(),
             serde_json::json!({
@@ -115,8 +117,8 @@ async fn collect_real_stats(state: &AppState) -> HashMap<String, serde_json::Val
                 "bestFitness": s.best_fitness,
                 "avgFitness": s.avg_fitness,
                 "converged": s.converged,
-                "hasLlmProvider": engine.has_llm_provider(),
-                "hasSandbox": engine.has_sandbox(),
+                "hasLlmProvider": has_llm,
+                "hasSandbox": has_sandbox,
             }),
         );
     }
@@ -453,6 +455,8 @@ pub async fn run_skill_evolution_generation(
     let result = {
         let mut engine = state.skill_evolution_engine.lock().await;
         let best = engine.evolve_generation_v2(&traj_refs).await;
+        let has_llm = engine.has_llm_provider().await;
+        let has_sandbox = engine.has_sandbox().await;
 
         match best {
             Some(genome) => serde_json::json!({
@@ -463,8 +467,8 @@ pub async fn run_skill_evolution_generation(
                 "stepsCount": genome.steps.len(),
                 "avgFitness": engine.get_stats().avg_fitness,
                 "converged": engine.get_stats().converged,
-                "hasLlmProvider": engine.has_llm_provider(),
-                "hasSandbox": engine.has_sandbox(),
+                "hasLlmProvider": has_llm,
+                "hasSandbox": has_sandbox,
             }),
             None => serde_json::json!({
                 "success": false,
