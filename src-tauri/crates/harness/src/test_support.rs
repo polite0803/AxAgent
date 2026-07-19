@@ -1603,6 +1603,9 @@ impl WikiSourceRepository for EmptyWikiSourceRepository {
     ) -> std::result::Result<WikiSource, String> {
         Err("not implemented".into())
     }
+    async fn delete(&self, _source_id: &str) -> std::result::Result<bool, String> {
+        Ok(false)
+    }
 }
 
 struct EmptyWikiOperationRepository;

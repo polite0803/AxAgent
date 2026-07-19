@@ -1070,9 +1070,8 @@ pub async fn agent_query(
         info!("[agent] No search provider configured — WebSearch will fall back to DDG");
     }
 
-    // Register skill tool handlers in tool_registry for execution
-    // This is done AFTER tool_registry is fully configured to ensure MCP tools are available
-    // The skill handlers will use a global registry for MCP tool execution
+    // Register skill tool handlers in tool_registry for execution.
+    // skill handler 以 "content" 模式返回结果供 LLM 处理，MCP 工具调用由 LLM 层直接走 tool_registry。
     if skill_tools_count > 0 {
         let skill_ctx = SkillExecutionContext::new(
             app.clone(),
@@ -1082,7 +1081,6 @@ pub async fn agent_query(
             ctx.api_key.clone(),
             conversation_id.clone(),
             streaming_message_id.clone(),
-            std::sync::Arc::new(tool_registry.clone()),
         );
         for (tool_name, skill) in &skill_map {
             let skill_name = skill.name.clone();

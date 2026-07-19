@@ -13,7 +13,7 @@ import {
   LeftOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
+import { Button, Card, Modal, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -34,6 +34,7 @@ export function IngestPage() {
     error,
     loadWikis,
     selectWiki,
+    deleteSource,
   } = useLlmWikiStore();
 
   const [activeTab, setActiveTab] = useState("upload");
@@ -80,6 +81,24 @@ export function IngestPage() {
     }
   };
 
+  const handleDeleteSource = (record: WikiSource) => {
+    Modal.confirm({
+      title: t("wiki.ingestSource.deleteConfirmTitle"),
+      content: t("wiki.ingestSource.deleteConfirmContent", { title: record.title }),
+      okText: t("common.confirm"),
+      cancelText: t("common.cancel"),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        const ok = await deleteSource(record.id);
+        if (ok) {
+          message.success(t("wiki.ingestSource.deleteSuccess"));
+        } else {
+          message.error(t("wiki.ingestSource.deleteFailed"));
+        }
+      },
+    });
+  };
+
   const columns = [
     {
       title: t("wiki.ingestSource.title"),
@@ -113,15 +132,13 @@ export function IngestPage() {
     {
       title: t("common.actions"),
       key: "actions",
-      render: (_: unknown, _record: WikiSource) => (
+      render: (_: unknown, record: WikiSource) => (
         <Space>
           <Button
             type="text"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => {
-              message.info(t("wiki.ingestSource.deleteNotImplemented"));
-            }}
+            onClick={() => handleDeleteSource(record)}
           />
         </Space>
       ),

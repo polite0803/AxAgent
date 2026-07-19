@@ -87,4 +87,13 @@ impl WikiSourceRepository for DaoWikiSourceRepository {
 
         Ok(model.map(model_to_dto))
     }
+
+    async fn delete(&self, source_id: &str) -> Result<bool, String> {
+        let result = wiki_sources::Entity::delete_by_id(source_id)
+            .exec(self.db.as_ref())
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(result.rows_affected > 0)
+    }
 }

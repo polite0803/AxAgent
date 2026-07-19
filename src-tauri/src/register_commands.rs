@@ -785,6 +785,7 @@ macro_rules! register_all_commands {
             commands::llm_wiki::llm_wiki_list,
             commands::llm_wiki::llm_wiki_create,
             commands::llm_wiki::llm_wiki_delete,
+            commands::llm_wiki::llm_wiki_delete_source,
             commands::llm_wiki::llm_wiki_operations_list,
             commands::llm_wiki::llm_wiki_ingest,
             commands::llm_wiki::llm_wiki_compile,
