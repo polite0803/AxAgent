@@ -400,6 +400,10 @@ jobs:
           # 不存在的 include 路径，导致 libspa-sys 的 bindgen 找不到 pipewire/version.h。
           # 显式给 bindgen 注入 include path（双重保险）。
           export BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="-I/usr/include/pipewire-0.3 -I/usr/include/spa-0.2"
+          # CARGO_ENCODED_RUSTFLAGS 用 0x1f (ASCII Unit Separator) 分隔每个独立 flag 部分。
+          # -C 和 link-arg=-fuse-ld=bfd 是两个独立部分，必须用 0x1f 分隔，不能用空格。
+          # bash 里用 $'\x1f' 构造 0x1f 字符。
+          export CARGO_ENCODED_RUSTFLAGS=$'-C\x1flink-arg=-fuse-ld=bfd'
           npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb,rpm
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
@@ -421,7 +425,8 @@ jobs:
           #
           # 真正修复：用 CARGO_ENCODED_RUSTFLAGS——cargo 官方文档明确说
           # "A list of custom flags to pass to ALL compiler invocations that
-          # Cargo performs"——包括 host proc-macro。用 0x1f 分隔多个 flag。
+          # Cargo performs"——包括 host proc-macro。用 0x1f 分隔多个 flag 部分。
+          # -C 和 link-arg=-fuse-ld=bfd 是两个独立部分，用 0x1f 分隔。
           # 追加 -C link-arg=-fuse-ld=bfd 覆盖 rustc 注入的 -fuse-ld=lld，
           # 让 cc 改用系统 GNU ld (/usr/bin/ld.bfd)，bfd 根据 ELF header
           # 自动识别 x86_64 架构，正确链接 host proc-macro。
@@ -430,7 +435,6 @@ jobs:
           # 排除缓存干扰，确保 rustflags 生效。
           # ============================================================
           RUSTC_WRAPPER: ''
-          CARGO_ENCODED_RUSTFLAGS: '-C link-arg=-fuse-ld=bfd'
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
