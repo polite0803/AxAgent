@@ -40,6 +40,8 @@ use std::collections::HashMap;
 use tauri::State;
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::stock_workflow as wf_err;
 
 /// 跑决策回测请求参数
 #[derive(Debug, Deserialize)]
@@ -99,7 +101,9 @@ pub async fn run_decision_backtest(
         query = query.filter(reco_picks::Column::Period.eq(period.as_str()));
     }
     // 按 generated_at 倒序，优先回测最近的数据
-    let picks = query.all(db).await.map_err(|e| format!("读取 reco_picks 失败: {e}"))?;
+    let picks = query.all(db).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("读取 reco_picks 失败: {e}"))
+    })?;
 
     if picks.is_empty() {
         // 空集合：返回空报告，避免前端拿到 None 报错
@@ -173,9 +177,10 @@ pub async fn run_decision_backtest(
     let written_count = if dry_run || validations.is_empty() {
         0
     } else {
-        write_decision_validations(db, &validations)
-            .await
-            .map_err(|e| format!("写 decision_validations 失败: {e}"))?
+        write_decision_validations(db, &validations).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("写 decision_validations 失败: {e}"))
+        })?
     };
 
     // ── 5. 聚合报告 ──
@@ -204,11 +209,10 @@ async fn fetch_and_validate(
     // 不包含决策日之后的足够数据。改为 500（约 2 个交易年）确保覆盖。
     let fetch_limit = (t_plus_n as u32 + 10).max(500);
 
-    let klines = state
-        .astock_client
-        .get_klines(&reco_pick.stock_code, "daily", fetch_limit)
-        .await
-        .map_err(|e| format!("K 线拉取失败: {e}"))?;
+    let klines =
+        state.astock_client.get_klines(&reco_pick.stock_code, "daily", fetch_limit).await.map_err(
+            |e| ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("K 线拉取失败: {e}")),
+        )?;
 
     if klines.is_empty() {
         return Err("K 线为空".to_string());
@@ -254,7 +258,10 @@ async fn write_decision_validations(
             .filter(decision_validations::Column::TPlusN.eq(v.t_plus_n))
             .one(db)
             .await
-            .map_err(|e| format!("查询已存在验证记录失败: {e}"))?;
+            .map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("查询已存在验证记录失败: {e}"))
+            })?;
 
         if existing.is_some() {
             // 已存在则跳过（避免覆盖前次结果）
@@ -294,10 +301,10 @@ async fn write_decision_validations(
             created_at: Set(now.clone()),
         };
 
-        decision_validations::Entity::insert(active)
-            .exec(db)
-            .await
-            .map_err(|e| format!("插入 decision_validations 失败: {e}"))?;
+        decision_validations::Entity::insert(active).exec(db).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("插入 decision_validations 失败: {e}"))
+        })?;
         count += 1;
     }
 
@@ -357,10 +364,10 @@ pub async fn list_decision_validations(
     let paginator = query
         .order_by_desc(decision_validations::Column::ValidatedAt)
         .paginate(db, limit.unwrap_or(100) as u64);
-    let items = paginator
-        .fetch_page(offset.unwrap_or(0) as u64)
-        .await
-        .map_err(|e| format!("查询 decision_validations 失败: {e}"))?;
+    let items = paginator.fetch_page(offset.unwrap_or(0) as u64).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("查询 decision_validations 失败: {e}"))
+    })?;
 
     Ok(items
         .into_iter()
@@ -400,10 +407,10 @@ pub async fn compute_validation_report(
     state: State<'_, AppState>,
 ) -> Result<HitRateReport, String> {
     let db = state.harness.db();
-    let all = decision_validations::Entity::find()
-        .all(db)
-        .await
-        .map_err(|e| format!("读取 decision_validations 失败: {e}"))?;
+    let all = decision_validations::Entity::find().all(db).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("读取 decision_validations 失败: {e}"))
+    })?;
 
     if all.is_empty() {
         return Ok(empty_report());

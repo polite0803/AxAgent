@@ -158,6 +158,48 @@ struct StockRoleDef {
     timeout_seconds: i64,
 }
 
+/// AxInvest 专属业务岗位 — 证券投资负责人。
+///
+/// 与 `agent_roles`（抽象执行器：stock-analyst / debater / trader 等）正交：
+/// - BusinessRole 表达「在组织里担什么责」——证券投资决策的责任与合规边界
+/// - AgentRole 表达「怎么干活」——执行器类型
+///
+/// 上游 agent_executor 4 层 prompt 拼接顺序（高 → 低）：
+///   BusinessRole → AgentRole → Expert → 节点 inline
+/// 本业务岗位的 system_prompt 作为最外层身份提示词注入。
+const STOCK_BUSINESS_ROLE_ID: &str = "stock-investment-lead";
+
+struct StockBusinessRoleDef {
+    id: &'static str,
+    name: &'static str,
+    description: &'static str,
+    responsibilities: &'static [&'static str],
+    decision_authority: &'static str,
+    required_certifications: &'static [&'static str],
+    active_domains: &'static [&'static str],
+    system_prompt: &'static str,
+    icon: &'static str,
+    color: &'static str,
+}
+
+const STOCK_BUSINESS_ROLE: StockBusinessRoleDef = StockBusinessRoleDef {
+    id: STOCK_BUSINESS_ROLE_ID,
+    name: "证券投资负责人",
+    description: "领导多专家团队进行 A 股证券投资分析与决策，对决策合规性与风险调整后收益负责",
+    responsibilities: &[
+        "组织多专家团队完成 A 股标的的多维度分析",
+        "评估投资风险与仓位边界，制定风险调整后收益最大化方案",
+        "决策买入 / 持有 / 卖出动作，维护决策链路的可追溯性",
+        "确保分析过程遵循监管要求与合规边界",
+    ],
+    decision_authority: r#"{"max_position_pct":100,"scopes":["stock-analysis","portfolio-mgmt","risk-assessment"]}"#,
+    required_certifications: &["证券从业资格", "5 年 A 股研究经验"],
+    active_domains: &["stock-analysis", "finance"],
+    system_prompt: "你是证券投资负责人，领导多专家团队进行 A 股投资分析与决策。所有结论须基于公开市场数据与已验证的研究方法论，杜绝内幕信息与市场操纵行为。决策以风险调整后收益最大化为目标，对每一条建议承担可追溯的合规责任。在分析过程中：1) 优先采纳已交叉验证的数据与证据；2) 对不确定性显式标注并量化置信度；3) 在多空辩论分歧时，要求辩手给出可证伪的判定条件；4) 对所有 LLM 输出保持怀疑，发现幻觉或与事实不符时立即标注 untrusted。",
+    icon: "📈",
+    color: "#dc2626",
+};
+
 const STOCK_ROLES: &[StockRoleDef] = &[
     StockRoleDef {
         id: "stock-analyst",
@@ -413,6 +455,7 @@ pub async fn ensure_stock_analysis_experts_seeded(
 
     seed_agency_experts(db).await?;
     seed_agent_roles(db).await?;
+    seed_business_role(db).await?;
     seed_agent_profiles(db).await?;
     seed_stock_analysis_workflow_template(db).await?;
     seed_reflection_workflow_template(db).await?;
@@ -523,9 +566,46 @@ async fn seed_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String
     Ok(())
 }
 
+/// 种子化 AxInvest 专属业务岗位 `stock-investment-lead`（证券投资负责人）。
+///
+/// 该岗位的 system_prompt 作为最外层身份提示词，通过上游 agent_executor 4 层
+/// prompt 拼接（BusinessRole → AgentRole → Expert → 节点 inline）注入到所有
+/// 股票专家 AgentProfile 的运行时上下文中。详见 STOCK_BUSINESS_ROLE 注释。
+async fn seed_business_role(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
+    let r = STOCK_BUSINESS_ROLE;
+    let responsibilities: Vec<String> = r.responsibilities.iter().map(|s| s.to_string()).collect();
+    let certifications: Vec<String> =
+        r.required_certifications.iter().map(|s| s.to_string()).collect();
+    let domains: Vec<String> = r.active_domains.iter().map(|s| s.to_string()).collect();
+    // managed_expert_ids 留空——股票专家众多且会动态增减，由前端按 source_dir="stock-analysis" 聚合
+    repo::business_role::upsert_business_role(
+        db,
+        r.id,
+        r.name,
+        Some(r.description),
+        Some(&responsibilities),
+        Some(r.decision_authority),
+        None,
+        None,
+        Some(&certifications),
+        Some(&domains),
+        r.system_prompt,
+        Some(r.icon),
+        Some(r.color),
+        "stock-analysis",
+        100,
+    )
+    .await
+    .map_err(|e| {
+        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("种子业务岗位失败: {e}"))
+    })?;
+    tracing::info!("[stock_analysis_setup] 已种子化/更新业务岗位 {} ({})", r.id, r.name);
+    Ok(())
+}
+
 async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
     use axagent_entities::agent_profiles;
-    use sea_orm::{ActiveModelTrait, EntityTrait, NotSet, Set};
+    use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
     // Profile → 工具映射（从模块级 PROFILE_TOOLS 构建）
     let profile_tools: std::collections::HashMap<&str, &[&str]> =
@@ -560,7 +640,7 @@ async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), Str
             sort_order: Set(0),
             is_enabled: Set(1),
             expert_id: Set(Some(format!("agency-stock-analysis-{expert_id}"))),
-            business_role_id: NotSet,
+            business_role_id: Set(Some(STOCK_BUSINESS_ROLE_ID.into())),
             created_at: Set(now),
             updated_at: Set(now),
         };
@@ -568,12 +648,21 @@ async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), Str
         if agent_profiles::Entity::find_by_id(&profile_id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| {
+                ErrorResponse::new(stock_setup::INTERNAL)
+                    .with_detail(format!("查询 profile 失败: {e}"))
+            })?
             .is_some()
         {
-            active.update(db).await.map_err(|e| e.to_string())?;
+            active.update(db).await.map_err(|e| {
+                ErrorResponse::new(stock_setup::INTERNAL)
+                    .with_detail(format!("更新 profile 失败: {e}"))
+            })?;
         } else {
-            active.insert(db).await.map_err(|e| e.to_string())?;
+            active.insert(db).await.map_err(|e| {
+                ErrorResponse::new(stock_setup::INTERNAL)
+                    .with_detail(format!("插入 profile 失败: {e}"))
+            })?;
         }
         count += 1;
     }

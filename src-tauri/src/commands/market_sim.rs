@@ -19,6 +19,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_market_sim::{
     ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, SimConfig, SimKernel, SimResult,
     ValueAgent,
@@ -393,10 +395,16 @@ pub fn market_sim_run_strategy(request: QuantSimRequest) -> Result<QuantSimRunRe
     let strategy: Box<dyn axagent_quant::Strategy> = match request.strategy_name.as_str() {
         "ma_cross" => Box::new(MaCrossStrategy::new(5, 20)),
         "macd" => Box::new(MacdStrategy::new(12, 26, 9)),
-        "rsi" => Box::new(RsiStrategy::new(14, 70.0, 30.0).map_err(|e| e.to_string())?),
+        "rsi" => Box::new(RsiStrategy::new(14, 70.0, 30.0).map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("创建 RSI 策略失败: {e}"))
+        })?),
         "boll" => Box::new(BollStrategy::new(20, 2.0)),
         "turtle" => Box::new(TurtleStrategy::new(20, 10, 20, 2.0)),
-        _ => return Err(format!("未知策略: {}", request.strategy_name)),
+        _ => {
+            return Err(ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("未知策略: {}", request.strategy_name))
+                .to_string());
+        },
     };
 
     let config = SimConfig {

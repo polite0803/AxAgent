@@ -29,7 +29,11 @@ pub struct RecoCronConfig {
 
 impl RecoCronConfig {
     pub fn from_json(s: &str) -> Result<Self, String> {
-        serde_json::from_str(s).map_err(|e| e.to_string())
+        serde_json::from_str(s).map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("解析荐股 cron 配置失败: {e}"))
+                .to_string()
+        })
     }
 }
 
@@ -113,6 +117,8 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::stock_workflow as wf_err;
 
 /// 与前端 `RecoCronRow` 对齐的响应结构
 #[derive(Debug, Serialize)]
@@ -184,7 +190,9 @@ pub async fn create_recommendation_cron(
         return Err("top_n 必须大于 0".to_string());
     }
     let config = RecoCronConfig { periods, min_confidence, top_n };
-    let prompt = serde_json::to_string(&config).map_err(|e| e.to_string())?;
+    let prompt = serde_json::to_string(&config).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化荐股 cron 配置失败: {e}"))
+    })?;
     let desc = format!("荐股定时推送 (置信度≥{}%, 前{}只)", min_confidence, top_n);
     let job = CronJob::new(&name, &cron_expression, &prompt, &desc)
         .with_task_type("stock-recommendation");

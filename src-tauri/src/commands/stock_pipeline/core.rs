@@ -20,6 +20,8 @@ use tauri::{AppHandle, Emitter, State};
 use tokio::sync::Semaphore;
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::stock_workflow as wf_err;
 use crate::commands::stock_workflow::core::run_single_stock_analysis;
 
 /// 进度回调类型（线程安全）
@@ -540,7 +542,9 @@ pub async fn get_pipeline_history(
         .limit(limit)
         .all(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询管道运行记录失败: {e}"))
+        })?;
 
     Ok(runs
         .into_iter()
@@ -570,8 +574,14 @@ pub async fn get_pipeline_run_detail(
     let run = stock_pipeline_runs::Entity::find_by_id(&run_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "管道运行记录不存在".to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询管道运行记录失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("管道运行记录不存在: {run_id}"))
+                .to_string()
+        })?;
 
     Ok(json!({
         "id": run.id,

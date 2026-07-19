@@ -37,6 +37,8 @@ use tauri::State;
 use uuid::Uuid;
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::stock_workflow as wf_err;
 
 /// 回测运行请求（对齐前端 `BacktestRunRequest`）
 #[derive(Debug, Deserialize, Serialize)]
@@ -155,12 +157,18 @@ pub async fn quant_backtest_run(
     let strategy_model = quant_strategies::Entity::find_by_id(&request.strategy_id)
         .one(db)
         .await
-        .map_err(|e| format!("查询策略失败: {e}"))?
-        .ok_or_else(|| format!("策略不存在: {}", request.strategy_id))?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询策略失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("策略不存在: {}", request.strategy_id))
+        })?;
 
     // 2. 插入 pending 记录
-    let config_json =
-        serde_json::to_string(&request).map_err(|e| format!("序列化配置失败: {e}"))?;
+    let config_json = serde_json::to_string(&request).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化配置失败: {e}"))
+    })?;
     let run_id = Uuid::new_v4().to_string();
     let pending = quant_runs::ActiveModel {
         id: Set(run_id.clone()),
@@ -175,14 +183,17 @@ pub async fn quant_backtest_run(
         started_at: Set(started_at),
         ..Default::default()
     };
-    let pending = pending.insert(db).await.map_err(|e| format!("插入回测记录失败: {e}"))?;
+    let pending = pending.insert(db).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("插入回测记录失败: {e}"))
+    })?;
 
     // 3. 执行回测
     match execute_backtest(&request, &strategy_model, &state.astock_client).await {
         Ok((result, metrics, walk_forward_rust)) => {
             let finished_at = Utc::now().timestamp();
-            let result_json =
-                serde_json::to_string(&result).map_err(|e| format!("序列化结果失败: {e}"))?;
+            let result_json = serde_json::to_string(&result).map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化结果失败: {e}"))
+            })?;
             let walk_forward = walk_forward_rust.as_ref().map(map_wf_report);
 
             let mut am: quant_runs::ActiveModel = pending.into();
@@ -193,7 +204,9 @@ pub async fn quant_backtest_run(
                 am.walk_forward_overfit_warning = Set(Some(wf.overfit_warning));
                 am.walk_forward_stability_score = Set(Some(wf.stability_score));
             }
-            let model = am.update(db).await.map_err(|e| format!("更新回测记录失败: {e}"))?;
+            let model = am.update(db).await.map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("更新回测记录失败: {e}"))
+            })?;
 
             Ok(BacktestRunResponse {
                 run: model,
@@ -230,8 +243,14 @@ pub async fn quant_run_get(
     quant_runs::Entity::find_by_id(&run_id)
         .one(db)
         .await
-        .map_err(|e| format!("查询回测记录失败: {e}"))?
-        .ok_or_else(|| format!("回测记录不存在: {}", run_id))
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询回测记录失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("回测记录不存在: {}", run_id))
+                .to_string()
+        })
 }
 
 /// 核心执行：拉数据 + 跑引擎 + 可选 Walk-Forward
@@ -270,9 +289,14 @@ async fn execute_backtest(
     let klines = client
         .get_klines_with_adj(&request.code, "daily", kline_count, Some(AdjType::Forward))
         .await
-        .map_err(|e| format!("拉取前复权K线失败(limit={kline_count}): {e}"))?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("拉取前复权K线失败(limit={kline_count}): {e}"))
+        })?;
     if klines.is_empty() {
-        return Err(format!("未获取到 {} 的K线数据", request.code));
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("未获取到 {} 的K线数据", request.code))
+            .to_string());
     }
     let bars: Vec<Bar> = klines
         .into_iter()
@@ -292,8 +316,9 @@ async fn execute_backtest(
     // 4. 跑主回测
     let engine = BacktestEngine::new(config);
     let bars_for_wf = bars.clone();
-    let result =
-        engine.run(strategy.as_mut(), bars).await.map_err(|e| format!("回测执行失败: {e}"))?;
+    let result = engine.run(strategy.as_mut(), bars).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("回测执行失败: {e}"))
+    })?;
     let metrics = MetricsReport::from_backtest_result(&result, 0.025);
 
     // 5. 可选 Walk-Forward 验证（默认开启，forceOff 可显式关闭）
@@ -309,13 +334,20 @@ async fn execute_backtest(
             .run(
                 move |_| {
                     build_strategy(&sm, &params).map_err(|e| {
-                        format!("WalkForward 策略构造失败 (name={strategy_name}): {e}")
+                        ErrorResponse::new(wf_err::INTERNAL)
+                            .with_detail(format!(
+                                "WalkForward 策略构造失败 (name={strategy_name}): {e}"
+                            ))
+                            .to_string()
                     })
                 },
                 bars_for_wf,
             )
             .await
-            .map_err(|e| format!("Walk-Forward 验证失败: {e}"))?;
+            .map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("Walk-Forward 验证失败: {e}"))
+            })?;
         Some(report)
     } else {
         None
@@ -338,12 +370,13 @@ fn build_strategy(
 
     match model.strategy_type.as_str() {
         "rhai" => {
-            let script = model
-                .script_source
-                .clone()
-                .ok_or_else(|| format!("rhai 策略 {} 缺少 script_source", model.name))?;
-            let s = RhaiStrategy::from_script(model.name.clone(), script)
-                .map_err(|e| format!("编译 rhai 策略失败: {e}"))?;
+            let script = model.script_source.clone().ok_or_else(|| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("rhai 策略 {} 缺少 script_source", model.name))
+            })?;
+            let s = RhaiStrategy::from_script(model.name.clone(), script).map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("编译 rhai 策略失败: {e}"))
+            })?;
             Ok(Box::new(s))
         },
         // builtin 或未知类型：按 name 关键字分发到内置策略
@@ -355,7 +388,10 @@ fn build_strategy(
                     f64_param("overbought", 70.0),
                     f64_param("oversold", 30.0),
                 )
-                .map_err(|e| format!("RSI 策略参数错误: {e}"))?;
+                .map_err(|e| {
+                    ErrorResponse::new(wf_err::INTERNAL)
+                        .with_detail(format!("RSI 策略参数错误: {e}"))
+                })?;
                 Ok(Box::new(s))
             } else if name.contains("boll") || name.contains("布林") {
                 Ok(Box::new(BollStrategy::new(usize_param("period", 20), f64_param("stddev", 2.0))))
@@ -383,7 +419,9 @@ fn build_strategy(
                     "Unknown builtin strategy '{}', defaulting to RSI(14,70,30)",
                     model.name
                 );
-                let s = RsiStrategy::new(14, 70.0, 30.0).map_err(|e| format!("{e}"))?;
+                let s = RsiStrategy::new(14, 70.0, 30.0).map_err(|e| {
+                    ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("{e}"))
+                })?;
                 Ok(Box::new(s))
             }
         },
@@ -424,10 +462,11 @@ pub async fn quant_strategies_list(
     state: State<'_, AppState>,
 ) -> Result<Vec<quant_strategies::Model>, String> {
     use sea_orm::EntityTrait;
-    quant_strategies::Entity::find()
-        .all(state.harness.db())
-        .await
-        .map_err(|e| format!("查询策略列表失败: {e}"))
+    quant_strategies::Entity::find().all(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("查询策略列表失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 注册 Rhai 策略
@@ -463,7 +502,9 @@ pub async fn quant_strategy_register_rhai(
             .filter(quant_strategies::Column::Name.eq(&request.name))
             .one(db)
             .await
-            .map_err(|e| format!("查询已有策略失败: {e}"))?
+            .map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询已有策略失败: {e}"))
+            })?
         {
             let mut am: quant_strategies::ActiveModel = existing.into();
             am.version = Set(request.version.clone());
@@ -472,7 +513,11 @@ pub async fn quant_strategy_register_rhai(
             am.params_json = Set(Some(params_json));
             am.walk_forward_enabled = Set(request.walk_forward_enabled);
             am.updated_at = Set(now);
-            return am.update(db).await.map_err(|e| format!("更新策略失败: {e}"));
+            return am.update(db).await.map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("更新策略失败: {e}"))
+                    .to_string()
+            });
         }
     }
 
@@ -490,7 +535,9 @@ pub async fn quant_strategy_register_rhai(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    model.insert(db).await.map_err(|e| format!("插入策略失败: {e}"))
+    model.insert(db).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("插入策略失败: {e}")).to_string()
+    })
 }
 
 // ── 指标对比 ──
@@ -523,16 +570,18 @@ pub async fn quant_metrics_compare(
     let db = state.harness.db();
     let mut runs = Vec::with_capacity(run_ids.len());
     for rid in run_ids {
-        let run = quant_runs::Entity::find_by_id(&rid)
-            .one(db)
-            .await
-            .map_err(|e| format!("查询 run {rid} 失败: {e}"))?;
+        let run = quant_runs::Entity::find_by_id(&rid).one(db).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询 run {rid} 失败: {e}"))
+        })?;
         if let Some(r) = run {
             let strategy_name = {
                 let sm = quant_strategies::Entity::find_by_id(&r.strategy_id)
                     .one(db)
                     .await
-                    .map_err(|e| format!("查询策略 {rid} 失败: {e}"))?;
+                    .map_err(|e| {
+                        ErrorResponse::new(wf_err::INTERNAL)
+                            .with_detail(format!("查询策略 {rid} 失败: {e}"))
+                    })?;
                 sm.map(|s| s.name).unwrap_or_default()
             };
             let metrics = r.result_json.as_ref().and_then(|json| {

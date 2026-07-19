@@ -17,6 +17,8 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::stock_workflow as wf_err;
 
 /// 内置策略包目录标识（用于前端区分来源）
 const BUILTIN_SOURCE: &str = "builtin";
@@ -339,14 +341,18 @@ pub async fn get_strategy_pack_detail(
     };
 
     // 构造 LoadedStrategyPack 以获取 template_vars
-    let pack = LoadedStrategyPack::from_spec(spec.clone(), &id).map_err(|e| e.to_string())?;
+    let pack = LoadedStrategyPack::from_spec(spec.clone(), &id).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("构造策略包失败: {e}"))
+    })?;
     let template_vars: serde_json::Value = serde_json::to_value(
         pack.template_vars
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect::<serde_json::Map<String, serde_json::Value>>(),
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化 template_vars 失败: {e}"))
+    })?;
 
     Ok(StrategyPackDetail { info, spec, template_vars })
 }
@@ -359,8 +365,12 @@ pub async fn validate_strategy_pack_yaml(
     _state: State<'_, AppState>,
     yaml: String,
 ) -> Result<StrategyPackManifest, String> {
-    let spec = StrategyPackSpec::from_yaml(&yaml).map_err(|e| e.to_string())?;
-    spec.validate().map_err(|e| e.to_string())?;
+    let spec = StrategyPackSpec::from_yaml(&yaml).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("解析 YAML 失败: {e}"))
+    })?;
+    spec.validate().map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("校验 spec 失败: {e}"))
+    })?;
     let manifest = StrategyPackManifest {
         id: "preview".to_string(),
         name: spec.name.clone(),
@@ -383,8 +393,12 @@ pub async fn save_user_strategy_pack(
     yaml: String,
 ) -> Result<String, String> {
     // 先校验
-    let spec = StrategyPackSpec::from_yaml(&yaml).map_err(|e| e.to_string())?;
-    spec.validate().map_err(|e| e.to_string())?;
+    let spec = StrategyPackSpec::from_yaml(&yaml).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("解析 YAML 失败: {e}"))
+    })?;
+    spec.validate().map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("校验 spec 失败: {e}"))
+    })?;
 
     let dir = user_packs_dir();
     std::fs::create_dir_all(&dir).map_err(|e| format!("创建目录失败: {e}"))?;

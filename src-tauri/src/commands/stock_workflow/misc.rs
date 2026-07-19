@@ -21,8 +21,12 @@ pub async fn export_md_to_docx(
     });
     let ctx = ToolContext::new(std::env::temp_dir().to_string_lossy().to_string());
     let registry = state.local_tool_registry.lock().await;
-    let tool = registry.get("ExportWord").ok_or_else(|| "ExportWord 工具未注册".to_string())?;
-    let result = tool.call(input, &ctx).await.map_err(|e| e.to_string())?;
+    let tool = registry.get("ExportWord").ok_or_else(|| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail("ExportWord 工具未注册").to_string()
+    })?;
+    let result = tool.call(input, &ctx).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("导出 Word 失败: {e}"))
+    })?;
     Ok(result.content)
 }
 
@@ -41,8 +45,12 @@ pub async fn export_md_to_pptx(
     });
     let ctx = ToolContext::new(std::env::temp_dir().to_string_lossy().to_string());
     let registry = state.local_tool_registry.lock().await;
-    let tool = registry.get("ExportPptx").ok_or_else(|| "ExportPptx 工具未注册".to_string())?;
-    let result = tool.call(input, &ctx).await.map_err(|e| e.to_string())?;
+    let tool = registry.get("ExportPptx").ok_or_else(|| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail("ExportPptx 工具未注册").to_string()
+    })?;
+    let result = tool.call(input, &ctx).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("导出 Pptx 失败: {e}"))
+    })?;
     Ok(result.content)
 }
 

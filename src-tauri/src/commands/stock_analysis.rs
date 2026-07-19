@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_astock_data::batch::{BatchRequest, BatchResult, BatchRunner, MarketBatchQuery};
 use axagent_astock_data::fundamentals_report::{FundamentalsAnalyzer, FundamentalsReport};
@@ -213,12 +215,15 @@ pub fn compute_what_if(params: WhatIfRequest) -> Result<WhatIfResult, String> {
     //    使用 include_str! 编译时嵌入，与 DAG 中实际使用的文件保持同步
     let code = include_str!("portfolio-mgr.rhai");
 
-    let result: rhai::Dynamic = engine
-        .eval_with_scope(&mut scope, code)
-        .map_err(|e| format!("Rhai execution failed: {e}"))?;
+    let result: rhai::Dynamic = engine.eval_with_scope(&mut scope, code).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("Rhai 执行失败: {e}"))
+    })?;
 
     // 4. 转换结果为 WhatIfResult
-    let result_map = result.clone().try_cast::<rhai::Map>().ok_or("Result is not a map")?;
+    let result_map = result
+        .clone()
+        .try_cast::<rhai::Map>()
+        .ok_or_else(|| ErrorResponse::new(wf_err::INTERNAL).with_detail("Rhai 返回结果不是 map"))?;
 
     let get_str = |key: &str| -> String {
         result_map.get(key).and_then(|v| v.clone().try_cast::<String>()).unwrap_or_default()
@@ -402,7 +407,9 @@ pub async fn replay_tool_chain(
             // 行情成功，K 线失败 → 尝试使用缓存的 K 线（检查 TTL）
             let cached = LAST_MARKET_DATA
                 .lock()
-                .map_err(|_| "缓存锁 poisoned".to_string())?
+                .map_err(|_| {
+                    ErrorResponse::new(wf_err::INTERNAL).with_detail("K 线缓存锁 poisoned")
+                })?
                 .get(code)
                 .and_then(|(k, _, ts)| {
                     if *ts + LAST_MARKET_DATA_TTL >= Instant::now() {
@@ -424,7 +431,9 @@ pub async fn replay_tool_chain(
             // 两者皆失败 → 整组使用缓存（检查 TTL）
             let cached = LAST_MARKET_DATA
                 .lock()
-                .map_err(|_| "缓存锁 poisoned".to_string())?
+                .map_err(|_| {
+                    ErrorResponse::new(wf_err::INTERNAL).with_detail("行情缓存锁 poisoned")
+                })?
                 .get(code)
                 .and_then(|(k, q, ts)| {
                     if *ts + LAST_MARKET_DATA_TTL >= Instant::now() {
@@ -647,9 +656,11 @@ pub async fn search_stock(
     market: Option<String>,
 ) -> Result<Vec<axagent_astock_data::StockSearchResult>, String> {
     if keyword.trim().is_empty() {
-        return Err("keyword 不能为空".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("keyword 不能为空").into());
     }
-    let results = state.astock_client.search_stock(&keyword).await.map_err(|e| e.to_string())?;
+    let results = state.astock_client.search_stock(&keyword).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("搜索股票失败: {e}"))
+    })?;
     // 按市场过滤（基于 market 描述字段或代码后缀）
     let filtered = match market.as_deref() {
         Some("A") => results
@@ -674,10 +685,12 @@ pub async fn search_news(
     limit: Option<u32>,
 ) -> Result<Vec<axagent_astock_data::NewsItem>, String> {
     if keyword.trim().is_empty() {
-        return Err("keyword 不能为空".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("keyword 不能为空").into());
     }
     let limit = limit.unwrap_or(20).min(100);
-    state.astock_client.search_news(&keyword, limit).await.map_err(|e| e.to_string())
+    state.astock_client.search_news(&keyword, limit).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("搜索新闻失败: {e}")).to_string()
+    })
 }
 
 /// 获取社交舆情数据（股吧/雪球热度）
@@ -689,9 +702,13 @@ pub async fn get_social_sentiment(
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::SocialSentiment>, String> {
     if stock_code.trim().is_empty() {
-        return Err("stock_code 不能为空".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("stock_code 不能为空").into());
     }
-    state.astock_client.get_social_sentiment(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_social_sentiment(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取社交舆情失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 获取实时行情
@@ -706,13 +723,18 @@ pub async fn get_stock_quote(
 ) -> Result<axagent_astock_data::StockQuote, String> {
     // 修复 L-12: 参数非空校验，避免空代码触发无意义的 vendor 请求
     if stock_code.trim().is_empty() {
-        return Err("stock_code 不能为空".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("stock_code 不能为空").into());
     }
-    let as_of_ctx = AsOfContext::parse_optional(as_of_date.as_deref())
-        .map_err(|e| format!("as_of_date 解析失败: {e}"))?;
+    let as_of_ctx = AsOfContext::parse_optional(as_of_date.as_deref()).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("as_of_date 解析失败: {e}"))
+    })?;
     axagent_astock_data::as_of::with_optional_asof(as_of_ctx, async {
         axagent_astock_data::as_of::with_degradation_log(async {
-            state.astock_client.get_quote(&stock_code).await.map_err(|e| e.to_string())
+            state.astock_client.get_quote(&stock_code).await.map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("获取实时行情失败: {e}"))
+                    .to_string()
+            })
         })
         .await
     })
@@ -733,23 +755,27 @@ pub async fn get_stock_kline(
 ) -> Result<Vec<axagent_astock_data::KLine>, String> {
     // 修复 L-12: 参数非空校验，避免空值触发无意义的 vendor 请求
     if stock_code.trim().is_empty() {
-        return Err("stock_code 不能为空".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("stock_code 不能为空").into());
     }
     if period.trim().is_empty() {
-        return Err("period 不能为空".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("period 不能为空").into());
     }
-    let as_of_ctx = AsOfContext::parse_optional(as_of_date.as_deref())
-        .map_err(|e| format!("as_of_date 解析失败: {e}"))?;
+    let as_of_ctx = AsOfContext::parse_optional(as_of_date.as_deref()).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("as_of_date 解析失败: {e}"))
+    })?;
     let adj_type = match adj.as_deref() {
         None | Some("") | Some("auto") => None,
         Some("none") | Some("forward") | Some("backward") => {
             let parsed: axagent_astock_data::types::AdjType =
-                serde_json::from_value(serde_json::Value::String(adj.unwrap()))
-                    .map_err(|e| format!("adj 解析失败: {e}"))?;
+                serde_json::from_value(serde_json::Value::String(adj.unwrap())).map_err(|e| {
+                    ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("adj 解析失败: {e}"))
+                })?;
             Some(parsed)
         },
         Some(other) => {
-            return Err(format!("adj 必须是 none/forward/backward/auto, 收到: {other}"));
+            return Err(ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("adj 必须是 none/forward/backward/auto, 收到: {other}"))
+                .into());
         },
     };
     axagent_astock_data::as_of::with_optional_asof(as_of_ctx, async {
@@ -758,7 +784,11 @@ pub async fn get_stock_kline(
                 .astock_client
                 .get_klines_with_adj(&stock_code, &period, limit, adj_type)
                 .await
-                .map_err(|e| e.to_string())
+                .map_err(|e| {
+                    ErrorResponse::new(wf_err::INTERNAL)
+                        .with_detail(format!("获取 K 线数据失败: {e}"))
+                        .to_string()
+                })
         })
         .await
     })
@@ -819,11 +849,13 @@ pub async fn batch_get_klines(
     // 发起上百个 vendor 请求耗尽信号量池。
     const MAX_CODES: usize = 50;
     if codes.len() > MAX_CODES {
-        return Err(format!(
-            "batch_get_klines codes 数量 {} 超过上限 {}，请分批调用",
-            codes.len(),
-            MAX_CODES
-        ));
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!(
+                "batch_get_klines codes 数量 {} 超过上限 {}，请分批调用",
+                codes.len(),
+                MAX_CODES
+            ))
+            .into());
     }
     let client = state.astock_client.clone();
     let runner = BatchRunner::new(client);
@@ -862,12 +894,15 @@ pub async fn generate_fundamentals_report(
     let include_md = request.include_markdown.unwrap_or(true);
 
     // 1. 拉取实时行情
-    let quote =
-        state.astock_client.get_quote(&request.stock_code).await.map_err(|e| e.to_string())?;
+    let quote = state.astock_client.get_quote(&request.stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取实时行情失败: {e}"))
+    })?;
 
     // 2. 拉取财务数据（按时间倒序,首项为最新）
     let financials =
-        state.astock_client.get_financials(&request.stock_code).await.map_err(|e| e.to_string())?;
+        state.astock_client.get_financials(&request.stock_code).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取财务数据失败: {e}"))
+        })?;
 
     // 3. 生成报告
     let report = FundamentalsAnalyzer::generate(&request.stock_code, &quote, &financials);
@@ -895,9 +930,12 @@ pub async fn get_fundamentals_report_markdown(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<String, String> {
-    let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| e.to_string())?;
-    let financials =
-        state.astock_client.get_financials(&stock_code).await.map_err(|e| e.to_string())?;
+    let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取实时行情失败: {e}"))
+    })?;
+    let financials = state.astock_client.get_financials(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取财务数据失败: {e}"))
+    })?;
     let report = FundamentalsAnalyzer::generate(&stock_code, &quote, &financials);
     Ok(report.to_markdown())
 }
@@ -914,7 +952,9 @@ pub async fn cancel_stock_analysis(
         tracing::info!("cancel_stock_analysis: 已设置取消令牌 {}", analysis_id);
         Ok(())
     } else {
-        Err(format!("分析任务不存在或已完成: {}", analysis_id))
+        Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("分析任务不存在或已完成: {}", analysis_id))
+            .into())
     }
 }
 
@@ -939,7 +979,11 @@ pub async fn list_stock_analyses(
         .offset(Some(offset as u64))
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("查询历史分析列表失败: {e}"))
+                .to_string()
+        })
 }
 
 /// 获取单个分析详情
@@ -951,8 +995,14 @@ pub async fn get_stock_analysis(
     stock_analyses::Entity::find_by_id(&analysis_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("分析记录不存在: {}", analysis_id))
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询分析详情失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("分析记录不存在: {}", analysis_id))
+                .to_string()
+        })
 }
 
 /// 删除历史分析记录
@@ -961,10 +1011,9 @@ pub async fn delete_stock_analysis(
     state: State<'_, AppState>,
     analysis_id: String,
 ) -> Result<(), String> {
-    stock_analyses::Entity::delete_by_id(&analysis_id)
-        .exec(state.harness.db())
-        .await
-        .map_err(|e| format!("删除分析记录失败: {e}"))?;
+    stock_analyses::Entity::delete_by_id(&analysis_id).exec(state.harness.db()).await.map_err(
+        |e| ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("删除分析记录失败: {e}")),
+    )?;
     Ok(())
 }
 
@@ -978,18 +1027,19 @@ pub async fn batch_delete_stock_analyses(
     // 事务导致 SQLite 锁定过久 / 内存占用过高。
     const MAX_IDS: usize = 100;
     if analysis_ids.len() > MAX_IDS {
-        return Err(format!(
-            "batch_delete_stock_analyses ids 数量 {} 超过上限 {}，请分批调用",
-            analysis_ids.len(),
-            MAX_IDS
-        ));
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!(
+                "batch_delete_stock_analyses ids 数量 {} 超过上限 {}，请分批调用",
+                analysis_ids.len(),
+                MAX_IDS
+            ))
+            .into());
     }
     let db = state.harness.db();
     for id in &analysis_ids {
-        stock_analyses::Entity::delete_by_id(id)
-            .exec(db)
-            .await
-            .map_err(|e| format!("批量删除分析记录失败: {e}"))?;
+        stock_analyses::Entity::delete_by_id(id).exec(db).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("批量删除分析记录失败: {e}"))
+        })?;
     }
     Ok(())
 }
@@ -1006,11 +1056,18 @@ pub async fn rename_stock_analysis(
     let mut record: stock_analyses::ActiveModel = stock_analyses::Entity::find_by_id(&analysis_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("分析记录不存在: {analysis_id}"))?
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询分析记录失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("分析记录不存在: {analysis_id}"))
+        })?
         .into();
     record.stock_name = Set(new_name);
-    record.update(state.harness.db()).await.map_err(|e| e.to_string())?;
+    record.update(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("更新分析记录失败: {e}"))
+    })?;
     Ok(())
 }
 
@@ -1034,16 +1091,17 @@ pub async fn add_to_watchlist(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    model.insert(state.harness.db()).await.map_err(|e| e.to_string())
+    model.insert(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("添加自选股失败: {e}")).to_string()
+    })
 }
 
 /// 移除自选股
 #[tauri::command]
 pub async fn remove_from_watchlist(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    watchlist_items::Entity::delete_by_id(id)
-        .exec(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    watchlist_items::Entity::delete_by_id(id).exec(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("移除自选股失败: {e}"))
+    })?;
     Ok(())
 }
 
@@ -1056,7 +1114,11 @@ pub async fn list_watchlist(
         .order_by_desc(watchlist_items::Column::CreatedAt)
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("查询自选股列表失败: {e}"))
+                .to_string()
+        })
 }
 
 // ── Portfolio ──
@@ -1081,7 +1143,9 @@ pub async fn add_portfolio_holding(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    model.insert(state.harness.db()).await.map_err(|e| e.to_string())
+    model.insert(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("添加持仓失败: {e}")).to_string()
+    })
 }
 
 /// 更新持仓
@@ -1100,7 +1164,9 @@ pub async fn update_portfolio_holding(
         .filter(portfolio_holdings::Column::Id.eq(id))
         .exec(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("更新持仓失败: {e}"))
+        })?;
     Ok(())
 }
 
@@ -1110,20 +1176,19 @@ pub async fn remove_portfolio_holding(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<(), String> {
-    portfolio_holdings::Entity::delete_by_id(id)
-        .exec(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    portfolio_holdings::Entity::delete_by_id(id).exec(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("移除持仓失败: {e}"))
+    })?;
     Ok(())
 }
 
 /// 持仓列表（含实时盈亏）
 #[tauri::command]
 pub async fn list_portfolio(state: State<'_, AppState>) -> Result<Vec<serde_json::Value>, String> {
-    let holdings = portfolio_holdings::Entity::find()
-        .all(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    let holdings =
+        portfolio_holdings::Entity::find().all(state.harness.db()).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询持仓列表失败: {e}"))
+        })?;
 
     let client = state.astock_client.clone();
     let codes: Vec<String> = holdings.iter().map(|h| h.stock_code.clone()).collect();
@@ -1309,7 +1374,9 @@ pub async fn backtest_all_history(
         "replay" => query.filter(stock_analyses::Column::AnalysisKind.eq("replay")),
         _ => query, // "all" 或未知值 = 不过滤
     };
-    let analyses = query.all(state.harness.db()).await.map_err(|e| e.to_string())?;
+    let analyses = query.all(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询历史分析失败: {e}"))
+    })?;
 
     let historical: Vec<HistoricalAnalysis> = analyses
         .iter()
@@ -1463,7 +1530,11 @@ pub async fn create_price_alert(
         created_at: Set(now),
         updated_at: Set(now),
     };
-    model.insert(state.harness.db()).await.map_err(|e| e.to_string())
+    model.insert(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("创建价格告警失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 查询价格告警列表
@@ -1475,16 +1546,19 @@ pub async fn list_price_alerts(
         .order_by_desc(price_alerts::Column::CreatedAt)
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("查询价格告警失败: {e}"))
+                .to_string()
+        })
 }
 
 /// 删除价格告警
 #[tauri::command]
 pub async fn delete_price_alert(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    price_alerts::Entity::delete_by_id(id)
-        .exec(state.harness.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    price_alerts::Entity::delete_by_id(id).exec(state.harness.db()).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("删除价格告警失败: {e}"))
+    })?;
     Ok(())
 }
 
@@ -1507,31 +1581,32 @@ pub async fn generate_stock_report(
     let record = stock_analyses::Entity::find_by_id(&analysis_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "分析记录不存在".to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询分析记录失败: {e}"))
+        })?
+        .ok_or_else(|| ErrorResponse::new(wf_err::INTERNAL).with_detail("分析记录不存在"))?;
 
     // 生成报告路径
     let reports_dir = dirs::data_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join("AxInvest")
         .join("reports");
-    std::fs::create_dir_all(&reports_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&reports_dir).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("创建报告目录失败: {e}"))
+    })?;
 
     let filename = format!("{}_{}.html", record.stock_code, record.analysis_date.replace('-', ""));
     let filepath = reports_dir.join(&filename);
 
     // 获取行情和K线数据
-    let quote = state
-        .astock_client
-        .get_quote(&record.stock_code)
-        .await
-        .map_err(|e| format!("获取行情失败: {}", e))?;
+    let quote = state.astock_client.get_quote(&record.stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取行情失败: {e}"))
+    })?;
 
-    let klines = state
-        .astock_client
-        .get_klines(&record.stock_code, "daily", 120)
-        .await
-        .map_err(|e| format!("获取K线失败: {}", e))?;
+    let klines =
+        state.astock_client.get_klines(&record.stock_code, "daily", 120).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取 K 线失败: {e}"))
+        })?;
 
     // 计算技术指标和客观评分
     let indicators =
@@ -1602,7 +1677,9 @@ pub async fn generate_stock_report(
         &bb_str("raw.option_pcr"),
     );
 
-    std::fs::write(&filepath, &html).map_err(|e| e.to_string())?;
+    std::fs::write(&filepath, &html).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("写入报告文件失败: {e}"))
+    })?;
 
     Ok(filepath.to_string_lossy().to_string())
 }
@@ -1672,7 +1749,11 @@ pub async fn toggle_trading_enabled(
         &enabled.to_string(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("切换交易功能失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 获取最近分析记录（用于 Dashboard）
@@ -1689,7 +1770,9 @@ pub async fn get_recent_analyses(
         .limit(limit.unwrap_or(5) as u64)
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询最近分析记录失败: {e}"))
+        })?;
     let result: Vec<serde_json::Value> = rows
         .into_iter()
         .map(|r| {
@@ -1732,8 +1815,10 @@ pub async fn compare_trade_with_analysis(
     let trade = trades::Entity::find_by_id(&trade_id)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "交易记录不存在".to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询交易记录失败: {e}"))
+        })?
+        .ok_or_else(|| ErrorResponse::new(wf_err::INTERNAL).with_detail("交易记录不存在"))?;
 
     let engine = state.trading_engine.read().await;
     engine.compare_trade_vs_prediction(&trade).await
@@ -1809,7 +1894,9 @@ pub async fn generate_daily_review(state: State<'_, AppState>) -> Result<DailyRe
     let watchlist: Vec<(String, String)> = axagent_entities::watchlist_items::Entity::find()
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询自选股失败: {e}"))
+        })?
         .iter()
         .map(|w| (w.stock_code.clone(), w.stock_name.clone()))
         .collect();
@@ -1892,11 +1979,17 @@ async fn backtest_reco_strategies_inner(
         .order_by_desc(reco_picks::Column::GeneratedAt)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询荐股记录失败: {e}"))
+        })?;
 
     let latest_run = match latest {
         Some(r) => r,
-        None => return Err("暂无荐股记录。请先打开荐股面板获取推荐后再运行回测。".to_string()),
+        None => {
+            return Err(ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail("暂无荐股记录。请先打开荐股面板获取推荐后再运行回测。")
+                .into());
+        },
     };
     let run_ts = latest_run.generated_at;
 
@@ -1905,10 +1998,14 @@ async fn backtest_reco_strategies_inner(
         .filter(reco_picks::Column::GeneratedAt.eq(&run_ts))
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询荐股记录失败: {e}"))
+        })?;
 
     if all_picks.is_empty() {
-        return Err("荐股记录为空，无法回测".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail("荐股记录为空，无法回测")
+            .into());
     }
 
     // 3. 解析候选池快照（从任一记录的 seed_pool_json 字段）
@@ -1974,8 +2071,12 @@ pub async fn preview_adjust_reco_weights(
     let tmpl = workflow_template::Entity::find_by_id("stock-analysis")
         .one(db)
         .await
-        .map_err(|e| format!("读取模板失败: {e}"))?
-        .ok_or_else(|| "stock-analysis 模板不存在".to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("读取模板失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail("stock-analysis 模板不存在")
+        })?;
 
     let existing: BTreeMap<String, f64> = tmpl
         .variables
@@ -2053,8 +2154,12 @@ pub async fn apply_reco_weights(
     let tmpl = workflow_template::Entity::find_by_id("stock-analysis")
         .one(db)
         .await
-        .map_err(|e| format!("读取模板失败: {e}"))?
-        .ok_or_else(|| "stock-analysis 模板不存在".to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("读取模板失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail("stock-analysis 模板不存在")
+        })?;
 
     let mut vars: Vec<serde_json::Value> =
         tmpl.variables.as_deref().and_then(|v| serde_json::from_str(v).ok()).unwrap_or_default();
@@ -2071,17 +2176,23 @@ pub async fn apply_reco_weights(
             .collect(),
         None => {
             // 没有指定 weights → 跑一次完整回测再全部应用（向后兼容）
-            return Err("请先调用 preview_adjust_reco_weights 获取建议权重再确认应用".to_string());
+            return Err(ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail("请先调用 preview_adjust_reco_weights 获取建议权重再确认应用")
+                .into());
         },
     };
 
     if weight_map.is_empty() {
-        return Err("未选中任何权重调整项".to_string());
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail("未选中任何权重调整项")
+            .into());
     }
 
     // 3. 更新或创建 reco_strategy_weights
     let mut found = false;
-    let weights_value = serde_json::to_value(&weight_map).map_err(|e| e.to_string())?;
+    let weights_value = serde_json::to_value(&weight_map).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化权重失败: {e}"))
+    })?;
     for v in &mut vars {
         if v.get("name").and_then(|n| n.as_str()) == Some("reco_strategy_weights") {
             if let Some(obj) = v.as_object_mut() {
@@ -2110,13 +2221,17 @@ pub async fn apply_reco_weights(
     }
 
     // 4. 写回 DB
-    let vars_str = serde_json::to_string(&vars).map_err(|e| e.to_string())?;
+    let vars_str = serde_json::to_string(&vars).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化模板变量失败: {e}"))
+    })?;
     workflow_template::Entity::update_many()
         .col_expr(workflow_template::Column::Variables, Expr::value(vars_str))
         .filter(workflow_template::Column::Id.eq("stock-analysis"))
         .exec(db)
         .await
-        .map_err(|e| format!("写入模板变量失败: {e}"))?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("写入模板变量失败: {e}"))
+        })?;
 
     Ok(serde_json::json!({
         "applied": weight_map.len(),
@@ -2139,11 +2254,17 @@ pub async fn get_reco_signal_history(
         .order_by_desc(reco_picks::Column::GeneratedAt)
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询荐股记录失败: {e}"))
+        })?;
 
     let latest_run = match latest {
         Some(r) => r,
-        None => return Err("暂无荐股记录。请先打开荐股面板获取推荐。".to_string()),
+        None => {
+            return Err(ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail("暂无荐股记录。请先打开荐股面板获取推荐。")
+                .into());
+        },
     };
     let run_ts = latest_run.generated_at;
 
@@ -2152,7 +2273,9 @@ pub async fn get_reco_signal_history(
         .filter(reco_picks::Column::GeneratedAt.eq(&run_ts))
         .all(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询荐股记录失败: {e}"))
+        })?;
 
     // 3. 构建股票列表（从推荐记录 + 候选池去重）
     let seed_pool_json =
@@ -2345,8 +2468,12 @@ pub async fn get_value_assessment(
     stock_code: String,
 ) -> Result<axagent_stock_analysis::value::ValueAssessment, String> {
     let client = &state.astock_client;
-    let quote = client.get_quote(&stock_code).await.map_err(|e| e.to_string())?;
-    let financials = client.get_financials(&stock_code).await.map_err(|e| e.to_string())?;
+    let quote = client.get_quote(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取实时行情失败: {e}"))
+    })?;
+    let financials = client.get_financials(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取财务数据失败: {e}"))
+    })?;
     let shares = quote.total_mv.and_then(|mv| {
         if quote.price > 0.0 {
             Some(mv / quote.price / 1_0000_0000.0)
@@ -2376,9 +2503,12 @@ pub async fn compute_value_metrics(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<axagent_stock_analysis::value_investing::ValueMetrics, String> {
-    let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| e.to_string())?;
-    let financials =
-        state.astock_client.get_financials(&stock_code).await.map_err(|e| e.to_string())?;
+    let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取实时行情失败: {e}"))
+    })?;
+    let financials = state.astock_client.get_financials(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取财务数据失败: {e}"))
+    })?;
     let total_shares = quote.total_mv.and_then(|mv| {
         if quote.price > 0.0 {
             Some(mv / quote.price / 1_0000_0000.0)
@@ -2413,7 +2543,11 @@ pub async fn get_stock_research_reports(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::ResearchReport>, String> {
-    state.astock_client.get_research_reports(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_research_reports(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取研究报告失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
@@ -2421,7 +2555,11 @@ pub async fn get_stock_consensus_eps(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Option<axagent_astock_data::ConsensusEPS>, String> {
-    state.astock_client.get_consensus_eps(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_consensus_eps(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取一致预期 EPS 失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
@@ -2429,7 +2567,11 @@ pub async fn get_stock_concept_blocks(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Option<axagent_astock_data::ConceptBlocks>, String> {
-    state.astock_client.get_concept_blocks(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_concept_blocks(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取概念板块失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
@@ -2437,7 +2579,9 @@ pub async fn get_stock_announcements(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::Announcement>, String> {
-    state.astock_client.get_announcements(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_announcements(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取公告失败: {e}")).to_string()
+    })
 }
 
 /// 财报披露日历(R3-B):
@@ -2449,7 +2593,11 @@ pub async fn get_earnings_calendar(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::EarningsEvent>, String> {
-    state.astock_client.get_earnings_calendar(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_earnings_calendar(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取财报日历失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 估值带(R3-C):
@@ -2482,7 +2630,9 @@ pub async fn compute_valuation_band(
         .order_by_asc(financial_snapshots::Column::SnapshotDate)
         .all(db)
         .await
-        .map_err(|e| format!("query financial_snapshots failed: {e}"))?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询财务快照失败: {e}"))
+        })?;
 
     // 把 ORM Model 转换为本地 struct 实现 trait
     struct SnapAdapter {
@@ -2539,7 +2689,9 @@ pub async fn list_financial_snapshots(
         .order_by_asc(financial_snapshots::Column::SnapshotDate)
         .all(state.harness.db())
         .await
-        .map_err(|err| err.to_string())?;
+        .map_err(|err| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询财务快照失败: {err}"))
+        })?;
     Ok(rows)
 }
 
@@ -2547,42 +2699,62 @@ pub async fn list_financial_snapshots(
 pub async fn get_hot_stocks(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::HotStock>, String> {
-    state.astock_client.get_hot_stocks().await.map_err(|e| e.to_string())
+    state.astock_client.get_hot_stocks().await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取热门股票失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
 pub async fn get_industry_ranking(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::IndustryRank>, String> {
-    state.astock_client.get_industry_ranking().await.map_err(|e| e.to_string())
+    state.astock_client.get_industry_ranking().await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取行业排名失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
 pub async fn get_cls_flash(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::ClsFlashItem>, String> {
-    state.astock_client.get_cls_flash().await.map_err(|e| e.to_string())
+    state.astock_client.get_cls_flash().await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取财联社快讯失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
 pub async fn get_market_dragon_tiger(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::MarketDragonTiger>, String> {
-    state.astock_client.get_market_dragon_tiger().await.map_err(|e| e.to_string())
+    state.astock_client.get_market_dragon_tiger().await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取龙虎榜失败: {e}")).to_string()
+    })
 }
 
 #[tauri::command]
 pub async fn get_north_bound_flow(
     state: State<'_, AppState>,
 ) -> Result<Option<axagent_astock_data::NorthBoundFlow>, String> {
-    state.astock_client.get_north_bound_flow().await.map_err(|e| e.to_string())
+    Ok(state.astock_client.get_north_bound_flow().await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取北向资金失败: {e}"))
+    })?)
 }
 
 #[tauri::command]
 pub async fn get_index_quotes(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_astock_data::IndexQuote>, String> {
-    state.astock_client.get_index_quotes().await.map_err(|e| e.to_string())
+    state.astock_client.get_index_quotes().await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取指数行情失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
@@ -2590,7 +2762,11 @@ pub async fn get_stock_peers(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::PeerComparison>, String> {
-    state.astock_client.get_peers(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_peers(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取同行业对比失败: {e}"))
+            .to_string()
+    })
 }
 
 #[tauri::command]
@@ -2598,7 +2774,11 @@ pub async fn get_stock_option_pcr(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Option<axagent_astock_data::OptionPCR>, String> {
-    state.astock_client.get_option_pcr(&stock_code).await.map_err(|e| e.to_string())
+    state.astock_client.get_option_pcr(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取期权 PCR 失败: {e}"))
+            .to_string()
+    })
 }
 
 // ── CronJob 定时任务（基于上游 CronJobStore + 持久化）──
@@ -2776,7 +2956,9 @@ pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> 
         let template = axagent_entities::workflow_template::Entity::find_by_id("stock-analysis")
             .one(state.harness.db())
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询模板失败: {e}"))
+            })?;
         if let Some(t) = template {
             let vars = extract_template_vars(&t);
             for (name, value) in &vars {
@@ -2809,7 +2991,11 @@ pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> 
         }
     }
 
-    state.astock_client.check_vendor_health(&vendor).await.map_err(|e| e.to_string())
+    state.astock_client.check_vendor_health(&vendor).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("检查数据源健康度失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 将 NeoData token 保存到 Python 脚本缓存文件
@@ -2820,12 +3006,15 @@ pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> 
 #[tauri::command]
 pub async fn save_neodata_token(state: State<'_, AppState>, token: String) -> Result<(), String> {
     if token.is_empty() {
-        return Err("NeoData token 不能为空".into());
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail("NeoData token 不能为空")
+            .into());
     }
     // 1) 写入 Python 脚本缓存
-    axagent_astock_data::vendors::neodata::save_token_to_cache(&token)
-        .await
-        .map_err(|e| format!("保存 NeoData token 到脚本缓存失败: {e}"))?;
+    axagent_astock_data::vendors::neodata::save_token_to_cache(&token).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("保存 NeoData token 到脚本缓存失败: {e}"))
+    })?;
 
     // 2) 同时写入共享内存（立即生效，无需重启）
     if let Some(ref nd) = state.astock_client.neodata_token {
@@ -2838,7 +3027,9 @@ pub async fn save_neodata_token(state: State<'_, AppState>, token: String) -> Re
     if let Some(t) = workflow_template::Entity::find_by_id("stock-analysis")
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询模板失败: {e}"))
+        })?
     {
         let mut vars = t
             .variables
@@ -2866,9 +3057,10 @@ pub async fn save_neodata_token(state: State<'_, AppState>, token: String) -> Re
         use sea_orm::ActiveModelTrait;
         let mut am: ActiveModel = t.into();
         am.variables = sea_orm::ActiveValue::Set(Some(json_str));
-        am.update(state.harness.db())
-            .await
-            .map_err(|e| format!("持久化 NeoData token 失败: {e}"))?;
+        am.update(state.harness.db()).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("持久化 NeoData token 失败: {e}"))
+        })?;
     }
 
     Ok(())
@@ -2892,7 +3084,9 @@ pub async fn sweep_daily_snapshots(state: State<'_, AppState>) -> Result<String,
     let watchlist_codes: Vec<String> = axagent_entities::watchlist_items::Entity::find()
         .all(state.harness.db())
         .await
-        .map_err(|e| format!("读取自选股失败: {e}"))?
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("读取自选股失败: {e}"))
+        })?
         .into_iter()
         .map(|w| w.stock_code)
         .collect();
@@ -3016,7 +3210,9 @@ pub async fn recommend_stocks(
     let template = axagent_entities::workflow_template::Entity::find_by_id("stock-analysis")
         .one(state.harness.db())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询模板失败: {e}"))
+        })?;
 
     let vars: Vec<(String, serde_json::Value)> = match template {
         Some(t) => extract_template_vars(&t),
@@ -3116,7 +3312,7 @@ pub async fn get_cached_recommendation(
         .limit(1)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询荐股记录失败: {e}")))?;
 
     let Some(latest_row) = latest else {
         return Ok(None);
@@ -3129,7 +3325,9 @@ pub async fn get_cached_recommendation(
         .filter(reco_picks::Column::PickData.is_not_null())
         .all(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询荐股记录失败: {e}"))
+        })?;
 
     if rows.is_empty() {
         return Ok(None);
@@ -3244,12 +3442,13 @@ pub async fn get_latest_analysis_for_stock(
         query = query.filter(stock_analyses::Column::AnalysisDate.lte(cutoff));
     }
 
-    let row = query
-        .order_by_desc(stock_analyses::Column::CreatedAt)
-        .limit(1)
-        .one(db)
-        .await
-        .map_err(|e| format!("查询 stock_analyses 失败: {e}"))?;
+    let row =
+        query.order_by_desc(stock_analyses::Column::CreatedAt).limit(1).one(db).await.map_err(
+            |e| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("查询 stock_analyses 失败: {e}"))
+            },
+        )?;
 
     let Some(model) = row else {
         return Ok(None);
@@ -3304,12 +3503,13 @@ pub async fn get_latest_analyses_for_stocks(
             query = query.filter(stock_analyses::Column::AnalysisDate.lte(cutoff));
         }
 
-        let row = query
-            .order_by_desc(stock_analyses::Column::CreatedAt)
-            .limit(1)
-            .one(db)
-            .await
-            .map_err(|e| format!("批量查询 stock_analyses({code}) 失败: {e}"))?;
+        let row =
+            query.order_by_desc(stock_analyses::Column::CreatedAt).limit(1).one(db).await.map_err(
+                |e| {
+                    ErrorResponse::new(wf_err::INTERNAL)
+                        .with_detail(format!("批量查询 stock_analyses({code}) 失败: {e}"))
+                },
+            )?;
 
         let summary = row.map(|model| {
             let confidence: Option<i32> = model.decision_json.as_ref().and_then(|raw| {
@@ -3594,7 +3794,9 @@ pub async fn list_reflections(
     if let Some(ref code) = stock_code {
         query = query.filter(stock_reflections::Column::StockCode.eq(code));
     }
-    let items = query.all(db).await.map_err(|e| format!("查询反思记录失败: {e}"))?;
+    let items = query.all(db).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询反思记录失败: {e}"))
+    })?;
     let limit = limit.unwrap_or(50) as usize;
     let result: Vec<serde_json::Value> = items
         .into_iter()
@@ -3634,7 +3836,9 @@ pub async fn delete_reflection(
     stock_reflections::Entity::delete_by_id(&reflection_id)
         .exec(state.harness.db())
         .await
-        .map_err(|e| format!("删除反思记录失败: {e}"))?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("删除反思记录失败: {e}"))
+        })?;
     Ok(())
 }
 
@@ -3719,7 +3923,9 @@ pub async fn list_param_suggestions(
     if let Some(ref code) = stock_code {
         query = query.filter(stock_reflections::Column::StockCode.eq(code));
     }
-    let items = query.all(db).await.map_err(|e| format!("查询参数建议失败: {e}"))?;
+    let items = query.all(db).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询参数建议失败: {e}"))
+    })?;
 
     let result: Vec<serde_json::Value> = items
         .into_iter()
@@ -3760,16 +3966,25 @@ pub async fn apply_param_suggestions(
     let tmpl = workflow_template::Entity::find_by_id("stock-analysis")
         .one(db)
         .await
-        .map_err(|e| format!("读取模板失败: {e}"))?
-        .ok_or_else(|| "stock-analysis 模板不存在".to_string())?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("读取模板失败: {e}"))
+        })?
+        .ok_or_else(|| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail("stock-analysis 模板不存在")
+        })?;
 
     let mut vars: Vec<serde_json::Value> =
         tmpl.variables.as_deref().and_then(|v| serde_json::from_str(v).ok()).unwrap_or_default();
 
     // 2. 逐个更新
     for update in &updates {
-        let param_name = update.get("param").and_then(|v| v.as_str()).ok_or("缺少 param")?;
-        let new_value = update.get("value").ok_or("缺少 value")?;
+        let param_name = update
+            .get("param")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ErrorResponse::new(wf_err::INTERNAL).with_detail("缺少 param"))?;
+        let new_value = update
+            .get("value")
+            .ok_or_else(|| ErrorResponse::new(wf_err::INTERNAL).with_detail("缺少 value"))?;
 
         // 找到匹配的变量并更新 value
         let mut found = false;
@@ -3793,7 +4008,9 @@ pub async fn apply_param_suggestions(
     }
 
     // 3. 持久化
-    let vars_json = serde_json::to_string(&vars).map_err(|e| format!("序列化失败: {e}"))?;
+    let vars_json = serde_json::to_string(&vars).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化失败: {e}"))
+    })?;
     let now = chrono::Utc::now().timestamp_millis();
     workflow_template::Entity::update_many()
         .col_expr(workflow_template::Column::Variables, Expr::value(vars_json))
@@ -3801,7 +4018,9 @@ pub async fn apply_param_suggestions(
         .filter(workflow_template::Column::Id.eq("stock-analysis"))
         .exec(db)
         .await
-        .map_err(|e| format!("更新模板变量失败: {e}"))?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("更新模板变量失败: {e}"))
+        })?;
 
     tracing::info!("[param_suggestions] 已应用 {} 项参数调整到 stock-analysis 模板", updates.len());
 
@@ -3862,7 +4081,10 @@ pub async fn get_agreement_score_history(
         .limit(limit)
         .all(state.harness.db())
         .await
-        .map_err(|e| format!("查询 agreement_score 历史失败: {e}"))?;
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!("查询 agreement_score 历史失败: {e}"))
+        })?;
 
     let result: Vec<serde_json::Value> = rows
         .iter()
@@ -3927,8 +4149,9 @@ pub async fn get_reco_strategy_weights(
 pub async fn get_t0_config(
     state: State<'_, AppState>,
 ) -> Result<axagent_stock_analysis::monitor::TZeroConfig, String> {
-    let monitor =
-        state.stock_monitor.as_ref().ok_or_else(|| "RealtimeMonitor 未初始化".to_string())?;
+    let monitor = state.stock_monitor.as_ref().ok_or_else(|| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail("RealtimeMonitor 未初始化")
+    })?;
     Ok(monitor.t0_config().await)
 }
 
@@ -3938,8 +4161,9 @@ pub async fn set_t0_config(
     state: State<'_, AppState>,
     config: axagent_stock_analysis::monitor::TZeroConfig,
 ) -> Result<(), String> {
-    let monitor =
-        state.stock_monitor.as_ref().ok_or_else(|| "RealtimeMonitor 未初始化".to_string())?;
+    let monitor = state.stock_monitor.as_ref().ok_or_else(|| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail("RealtimeMonitor 未初始化")
+    })?;
     monitor.set_t0_config(config).await;
     Ok(())
 }
@@ -4023,9 +4247,11 @@ pub async fn import_trades(
 ) -> Result<axagent_stock_analysis::trade_import::ImportSummary, String> {
     let rows = axagent_stock_analysis::trade_import::parse_csv(&file_path)?;
     let db = state.harness.db();
-    axagent_stock_analysis::trade_import::batch_import_trades(db, &rows)
-        .await
-        .map_err(|e| e.to_string())
+    axagent_stock_analysis::trade_import::batch_import_trades(db, &rows).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("批量导入交易失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 批量导入 VLM 识别的持仓
@@ -4158,10 +4384,12 @@ pub async fn quick_backtest(
     let stock_code = request.stock_code.clone();
     let sample_interval = request.sample_interval.unwrap_or(10).max(1);
     let hold_days = request.hold_days.unwrap_or(20).max(1);
-    let start_date = NaiveDate::parse_from_str(&request.start_date, "%Y-%m-%d")
-        .map_err(|e| format!("无效的开始日期: {e}"))?;
-    let end_date = NaiveDate::parse_from_str(&request.end_date, "%Y-%m-%d")
-        .map_err(|e| format!("无效的结束日期: {e}"))?;
+    let start_date = NaiveDate::parse_from_str(&request.start_date, "%Y-%m-%d").map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("无效的开始日期: {e}"))
+    })?;
+    let end_date = NaiveDate::parse_from_str(&request.end_date, "%Y-%m-%d").map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("无效的结束日期: {e}"))
+    })?;
 
     // 生成采样日期列表（按间隔采样）
     let mut sample_dates: Vec<String> = Vec::new();
@@ -4193,10 +4421,10 @@ pub async fn quick_backtest(
         let entry_ctx = AsOfContext::parse_optional(request.as_of_date.as_deref())?;
         let entry_price = as_of::with_optional_asof(entry_ctx, async {
             let client = &state.astock_client;
-            let klines = client
-                .get_klines(&stock_code, "daily", 1)
-                .await
-                .map_err(|e| format!("获取 K 线失败({analysis_date}): {e}"))?;
+            let klines = client.get_klines(&stock_code, "daily", 1).await.map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("获取 K 线失败({analysis_date}): {e}"))
+            })?;
             Ok::<f64, String>(klines.first().map(|k| k.close).unwrap_or(0.0))
         })
         .await?;
@@ -4219,10 +4447,10 @@ pub async fn quick_backtest(
         let exit_ctx = AsOfContext::parse_optional(Some(&exit_date_str))?;
         let exit_price = as_of::with_optional_asof(exit_ctx, async {
             let client = &state.astock_client;
-            let klines = client
-                .get_klines(&stock_code, "daily", 1)
-                .await
-                .map_err(|e| format!("获取退出日K线失败({exit_date_str}): {e}"))?;
+            let klines = client.get_klines(&stock_code, "daily", 1).await.map_err(|e| {
+                ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("获取退出日 K 线失败({exit_date_str}): {e}"))
+            })?;
             Ok::<f64, String>(klines.first().map(|k| k.close).unwrap_or(0.0))
         })
         .await?;
@@ -4304,11 +4532,11 @@ pub async fn get_lockup_schedule(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::types::LockupSchedule>, String> {
-    state
-        .astock_client
-        .get_lockup_schedule(&stock_code)
-        .await
-        .map_err(|e| format!("获取解禁数据失败: {e}"))
+    state.astock_client.get_lockup_schedule(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取解禁数据失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 获取分红记录
@@ -4317,11 +4545,11 @@ pub async fn get_dividend_records(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_astock_data::types::DividendRecord>, String> {
-    state
-        .astock_client
-        .get_dividend_records(&stock_code)
-        .await
-        .map_err(|e| format!("获取分红数据失败: {e}"))
+    state.astock_client.get_dividend_records(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取分红数据失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 获取股票财务数据（对比面板使用）
@@ -4330,11 +4558,11 @@ pub async fn get_stock_financials(
     state: State<'_, AppState>,
     stock_code: String,
 ) -> Result<Vec<axagent_harness::market_data::FinancialReport>, String> {
-    state
-        .astock_client
-        .get_financials(&stock_code)
-        .await
-        .map_err(|e| format!("获取财务数据失败: {e}"))
+    state.astock_client.get_financials(&stock_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取财务数据失败: {e}"))
+            .to_string()
+    })
 }
 
 /// 演化漂移重算（EvolutionDriftPanel 重算按钮）
