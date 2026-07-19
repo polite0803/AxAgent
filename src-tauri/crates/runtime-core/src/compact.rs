@@ -102,8 +102,8 @@ pub fn get_compact_continuation_message(
     recent_messages_preserved: bool,
     provider: &dyn PromptProvider,
 ) -> String {
-    let mut base =
-        compact_continuation_preamble(provider).to_string() + &format_compact_summary(summary);
+    let mut base = compact_continuation_preamble(provider).to_string();
+    base.push_str(&format_compact_summary(summary));
 
     if recent_messages_preserved {
         base.push_str("\n\n");

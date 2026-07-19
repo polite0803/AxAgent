@@ -12,6 +12,7 @@ futures = "0.3"
 hex = { workspace = true }
 regex = "1"
 reqwest = { workspace = true }
+rhai = { workspace = true }
 schemars = "1.2"
 sea-orm = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

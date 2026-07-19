@@ -14,6 +14,11 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
+// 复用 harness 下沉的通用 Rhai 函数与转换工具，避免重复定义（铁律 4）。
+// 历史上 rt-workflow 与 quant 各自维护一份 json_value_to_dynamic/json_value_to_rhai，
+// 且 rt-workflow 版本把 JSON 整数静默转 f64，存在 subtle bug。下沉后统一采纳 quant 版本语义。
+use axagent_harness::{dynamic_to_json_value, json_value_to_dynamic, register_common_functions};
+
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
@@ -31,36 +36,6 @@ impl Default for CodeExecutor {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// 注册通用 Rhai 函数（clamp / join / json_parse）。
-///
-/// 所有执行 Rhai 脚本的 Engine 实例都应调用此函数，确保脚本可用的
-/// 自定义函数集一致，避免分散注册导致遗漏。
-/// 参考: portfolio-mgr.rhai / consistency-check.rhai / bottleneck-calc.rhai 等
-/// 脚本均依赖 json_parse；clamp 用于信号夹紧；join 用于数组拼接。
-pub fn register_common_functions(engine: &mut Engine) {
-    engine.register_fn("clamp", |value: f64, min: f64, max: f64| -> f64 {
-        if value < min {
-            min
-        } else if value > max {
-            max
-        } else {
-            value
-        }
-    });
-    engine.register_fn("join", |arr: rhai::Array, sep: &str| -> String {
-        arr.iter().map(|item| item.to_string()).collect::<Vec<_>>().join(sep)
-    });
-    engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
-        match serde_json::from_str::<serde_json::Value>(s) {
-            Ok(v) => json_value_to_dynamic(&v),
-            Err(e) => {
-                tracing::warn!("[code_executor] json_parse 失败: {e}");
-                rhai::Dynamic::UNIT
-            },
-        }
-    });
 }
 
 /// 共享 Rhai Engine 单例（池化 + 复用），避免每次执行重复分配与初始化。
@@ -177,70 +152,6 @@ async fn execute_rhai_directly(
 
     // 将 Rhai 结果转换回 JSON
     Ok((dynamic_to_json_value(&result), Value::Object(input_params_snapshot)))
-}
-
-/// 将 serde_json::Value 转换为 Rhai Dynamic
-fn json_value_to_dynamic(v: &Value) -> rhai::Dynamic {
-    match v {
-        Value::Null => rhai::Dynamic::UNIT,
-        Value::Bool(b) => rhai::Dynamic::from(*b),
-        Value::Number(n) => {
-            if let Some(f) = n.as_f64() {
-                rhai::Dynamic::from(f)
-            } else if let Some(i) = n.as_i64() {
-                rhai::Dynamic::from(i as f64)
-            } else {
-                rhai::Dynamic::from(0.0_f64)
-            }
-        },
-        Value::String(s) => rhai::Dynamic::from(s.clone()),
-        Value::Array(arr) => {
-            let items: rhai::Array = arr.iter().map(json_value_to_dynamic).collect();
-            rhai::Dynamic::from(items)
-        },
-        Value::Object(obj) => {
-            let mut map = rhai::Map::new();
-            for (k, v) in obj {
-                map.insert(k.clone().into(), json_value_to_dynamic(v));
-            }
-            rhai::Dynamic::from(map)
-        },
-    }
-}
-
-/// 将 Rhai Dynamic 转换回 serde_json::Value
-fn dynamic_to_json_value(v: &rhai::Dynamic) -> Value {
-    if v.is_unit() {
-        return Value::Null;
-    }
-    if v.is_bool() {
-        return Value::Bool(v.as_bool().unwrap_or(false));
-    }
-    if let Ok(s) = v.clone().into_string() {
-        return Value::String(s);
-    }
-    if let Ok(i) = v.as_int() {
-        return Value::Number(serde_json::Number::from(i));
-    }
-    if let Ok(f) = v.as_float() {
-        if let Some(n) = serde_json::Number::from_f64(f) {
-            return Value::Number(n);
-        }
-        return Value::Number(serde_json::Number::from(0));
-    }
-    // Array
-    if let Some(arr) = v.clone().try_cast::<rhai::Array>() {
-        return Value::Array(arr.into_iter().map(|item| dynamic_to_json_value(&item)).collect());
-    }
-    // Map
-    if let Some(map) = v.clone().try_cast::<rhai::Map>() {
-        let mut obj = serde_json::Map::new();
-        for (k, val) in &map {
-            obj.insert(format!("{k}"), dynamic_to_json_value(val));
-        }
-        return Value::Object(obj);
-    }
-    Value::String(format!("{v}"))
 }
 
 #[async_trait]

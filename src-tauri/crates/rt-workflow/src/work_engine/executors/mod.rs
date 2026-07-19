@@ -50,7 +50,8 @@ pub use agent_executor::{
 };
 pub(crate) use agent_executor::{ProfileCache, ProviderCache};
 pub use code_executor::CodeExecutor;
-pub use code_executor::register_common_functions;
+// P1-3: register_common_functions 已下沉到 harness，保持下游 API 路径不变
+pub use axagent_harness::register_common_functions;
 pub use condition_executor::ConditionExecutor;
 pub use debate_executor::DebateExecutor;
 pub use delay_executor::DelayExecutor;

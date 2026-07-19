@@ -367,6 +367,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer> =
         axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc();
 
+    // P1-5/P1-6: 用 AxInvest 装饰器包装默认 reflector / evolver
+    // - ReflectorDecorator: 扫描 __untrusted 标记，追加到 Reflection.metadata
+    // - EvolverDecorator: 对 stock-* 模板的自动进化做保护性阻断
+    let workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector> =
+        Arc::new(super::axinvest_decorators::AxInvestReflectorDecorator::new(workflow_reflector));
+    let workflow_evolver: Arc<dyn axagent_harness::WorkflowEvolver> =
+        Arc::new(super::axinvest_decorators::AxInvestEvolverDecorator::new(workflow_evolver));
+
     // 优化 4-b:注入 LLM 变异器(若 DB 中有启用的 provider)
     {
         if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(

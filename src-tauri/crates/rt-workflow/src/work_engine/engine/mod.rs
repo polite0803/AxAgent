@@ -3249,6 +3249,46 @@ impl WorkEngine {
         total_time_ms: u64,
         final_output: Option<&serde_json::Value>,
     ) {
+        // P1-4: best-effort 写入 workflow_execution_stats 表
+        // 前端从未调用 record_workflow_execution 命令，导致该表恒为空。
+        // 引擎层在每次工作流执行完成后自动写入：status / duration_ms / template_id / execution_id。
+        // input_tokens / output_tokens 引擎层无感知（需上游 LLM hook 注入），暂记 0；
+        // 如有 LlmUsage 上报链路，可后续扩展在 llm_executor 节点写入。
+        {
+            let db_clone = {
+                let db_guard = self.db.lock().expect("db mutex poisoned");
+                db_guard.clone()
+            };
+            if let Some(db) = db_clone.as_ref() {
+                // WorkflowStatus 已是 snake_case serde，直接序列化取字符串
+                let status_str = serde_json::to_string(&wf.status)
+                    .unwrap_or_else(|_| "\"unknown\"".to_string())
+                    .trim_matches('"')
+                    .to_string();
+                // 提取第一个节点 error 作为 error_message（best-effort）
+                let error_message: Option<String> =
+                    wf.node_states.iter().find_map(|(_, s)| s.error.clone());
+                let stat_id = uuid::Uuid::new_v4().to_string();
+                if let Err(e) = axagent_dao::repo::workflow_execution_stats::record_execution(
+                    db,
+                    &stat_id,
+                    None, // mission_hash 引擎层无概念
+                    template_id,
+                    Some(execution_id),
+                    &status_str,
+                    total_time_ms as i64,
+                    0, // input_tokens
+                    0, // output_tokens
+                    error_message.as_deref(),
+                    None, // user_rating
+                )
+                .await
+                {
+                    tracing::warn!("[Stats] record_workflow_execution failed: {e}");
+                }
+            }
+        }
+
         let reflector = {
             let guard = match self.workflow_reflector.lock() {
                 Ok(g) => g,

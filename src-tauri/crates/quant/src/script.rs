@@ -206,7 +206,7 @@ impl Strategy for RhaiStrategy {
         let engine = self.engine.clone();
         let ast = self.ast.clone();
         let params_value = serde_json::to_value(&self.params).unwrap_or(Value::Null);
-        let params_map = json_value_to_rhai(&params_value);
+        let params_map = axagent_harness::json_value_to_dynamic(&params_value);
         let _ = tokio::task::spawn_blocking(move || {
             let engine = engine.blocking_lock();
             let mut scope = Scope::new();
@@ -254,6 +254,8 @@ fn build_engine() -> Engine {
     engine.register_fn("sma", sma_rhai);
     engine.register_fn("ema", ema_rhai);
     engine.register_fn("rsi", rsi_rhai);
+    // P1-3: 复用 harness 通用 Rhai 函数（clamp/join/json_parse）
+    axagent_harness::register_common_functions(&mut engine);
     engine
 }
 
@@ -347,35 +349,6 @@ fn rhai_array_to_signals(arr: Array) -> HarnessResult<Vec<Signal>> {
         out.push(Signal { code, action, strength, reason, target_weight: None, close_reason });
     }
     Ok(out)
-}
-
-fn json_value_to_rhai(v: &Value) -> rhai::Dynamic {
-    match v {
-        Value::Null => rhai::Dynamic::UNIT,
-        Value::Bool(b) => (*b).into(),
-        Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                i.into()
-            } else if let Some(f) = n.as_f64() {
-                f.into()
-            } else {
-                rhai::Dynamic::UNIT
-            }
-        },
-        Value::String(s) => s.clone().into(),
-        Value::Array(arr) => {
-            let rhai_arr: Array = arr.iter().map(json_value_to_rhai).collect();
-            // 这里会动 array，按值返回
-            rhai::Dynamic::from_array(rhai_arr)
-        },
-        Value::Object(obj) => {
-            let mut m = Map::new();
-            for (k, v) in obj {
-                m.insert(k.clone().into(), json_value_to_rhai(v));
-            }
-            m.into()
-        },
-    }
 }
 
 // ===================== 注册给 Rhai 调用的 helper 函数 =====================
@@ -505,7 +478,7 @@ fn on_bar(bar, ctx) {
             "c": [1, 2, 3],
             "d": true
         });
-        let r = json_value_to_rhai(&v);
+        let r = axagent_harness::json_value_to_dynamic(&v);
         // 简单 smoke test：不崩溃
         let _ = r.to_string();
     }

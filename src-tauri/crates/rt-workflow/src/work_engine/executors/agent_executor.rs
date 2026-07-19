@@ -1358,6 +1358,9 @@ impl NodeExecutorTrait for AgentExecutor {
                                     "verdict": {"verdict": "数据不足", "bull_score": 0, "bear_score": 0, "confidence": 0, "position_pct": 50},
                                     "strict_mode_fallback": true,
                                     "__data_quality_alert": true,
+                                    // P0-2: 标记 __untrusted=true 让 reflection-comparator.rhai 能识别
+                                    // （原版只写 __data_quality_alert，下游扫描 6 路径恒为 null）
+                                    "__untrusted": true,
                                     "strict_mode_failure_reason": "LLM 输出非标准格式，无法解析为 JSON",
                                     "tool_results_summary": tool_summary,
                                     // H4.1: 标记 fallback_model 配置（供下游 portfolio-mgr 感知）

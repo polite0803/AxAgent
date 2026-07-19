@@ -46,6 +46,8 @@ impl RhaiAgent {
         engine.set_max_map_size(10_000);
         // 修复 M-DEF-3: 设置最大调用栈深度，防止递归策略脚本栈溢出
         engine.set_max_call_levels(64);
+        // P1-3: 复用 harness 通用 Rhai 函数（clamp/join/json_parse）
+        axagent_harness::register_common_functions(&mut engine);
 
         Self { id: id.into(), script: script.into(), next_id: 1, cached_ast: None, engine }
     }

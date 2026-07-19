@@ -75,13 +75,14 @@ impl PromptMarkers {
     }
 
     fn format_invoke(&self, name: &str, params_inner: &str) -> String {
-        format!("{}{}{}{}", self.invoke_open, name, "\">", params_inner) + &self.invoke_close
+        format!("{}{}{}{}{}", self.invoke_open, name, "\">", params_inner, self.invoke_close)
     }
 
     fn format_param(&self, name: &str, cdata_value: &str) -> String {
-        format!("{}{}{}{}", self.param_open, name, "\"><![CDATA[", cdata_value)
-            + "]]>"
-            + &self.param_close
+        format!(
+            "{}{}{}{}]]>{}",
+            self.param_open, name, "\"><![CDATA[", cdata_value, self.param_close
+        )
     }
 
     fn format_tool_result(&self, tool_call_id: &str, content: &str) -> String {

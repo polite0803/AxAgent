@@ -1396,10 +1396,22 @@ fn start_cron_scheduler(state: &AppState) {
     {
         let registry = state.local_tool_registry.clone();
         let work_engine = state.work_engine.clone();
+        // P0-1: 注入 astock_client 用于接通 32 个 stock_mcp_tools 到工作流执行路径
+        let astock_client = state.astock_client.clone();
+        // P0-1: 缓存 stock_mcp_tools 工具名集合，避免每次 resolve 都重新生成 Vec
+        static STOCK_TOOL_NAMES: std::sync::OnceLock<std::collections::HashSet<String>> =
+            std::sync::OnceLock::new();
+        let stock_tools = STOCK_TOOL_NAMES.get_or_init(|| {
+            axagent_astock_data::mcp_tools::stock_mcp_tools()
+                .into_iter()
+                .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                .collect()
+        });
         let resolver: axagent_runtime::work_engine::ToolResolver =
             std::sync::Arc::new(move |tool_name: String| {
                 let registry = registry.clone();
                 let work_engine = work_engine.clone();
+                let astock_client = astock_client.clone();
                 Box::pin(async move {
                     let reg = registry.lock().await;
                     let known = reg.list_all_tool_names().contains(&tool_name)
@@ -1446,6 +1458,28 @@ fn start_cron_scheduler(state: &AppState) {
                                         Err(e) => {
                                             Err(format!("Workflow tool '{}' failed: {:?}", tid, e))
                                         },
+                                    }
+                                })
+                            });
+                        Some(cb)
+                    } else if stock_tools.contains(&tool_name) {
+                        // P0-1: stock_mcp_tools 接通——32 个股票工具之前从未接通工作流执行路径，
+                        // ToolResolver 返回 None 导致所有 ToolNode 失败，错误被 core.rs Failed 分支
+                        // emit degraded: true 吞掉。现在通过 astock_client.execute_mcp_tool 真正执行。
+                        let client = astock_client.clone();
+                        let cb: axagent_runtime::work_engine::ToolCallback =
+                            std::sync::Arc::new(move |tn: String, args: serde_json::Value| {
+                                let client = client.clone();
+                                Box::pin(async move {
+                                    match axagent_astock_data::mcp_tools::execute_mcp_tool(
+                                        &client, &tn, &args,
+                                    )
+                                    .await
+                                    {
+                                        Ok(content) => {
+                                            Ok(serde_json::json!({ "content": content }))
+                                        },
+                                        Err(e) => Err(format!("stock tool '{}' failed: {}", tn, e)),
                                     }
                                 })
                             });

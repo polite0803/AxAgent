@@ -270,7 +270,10 @@ pub use session_tracer::SessionTracer;
 pub use npm_registry::{NpmRegistryService, parse_npm_package_spec};
 
 // ── RhaiEngine 契约重导出 ──
-pub use rhai_engine::{RhaiEngineAdapter, RhaiToolFn};
+pub use rhai_engine::{
+    RhaiEngineAdapter, RhaiToolFn, dynamic_to_json_value, json_value_to_dynamic,
+    register_common_functions,
+};
 
 // ── Planner 契约重导出 ──
 pub use planner::PlannerAdapter;
