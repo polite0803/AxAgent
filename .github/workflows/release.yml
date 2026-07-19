@@ -200,7 +200,11 @@ jobs:
           echo "AR_x86_64_unknown_linux_gnu=x86_64-linux-gnu-ar" >> "$GITHUB_ENV"
           echo "PKG_CONFIG_ALLOW_CROSS=1" >> "$GITHUB_ENV"
           echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/" >> "$GITHUB_ENV"
-          echo "PKG_CONFIG_SYSROOT_DIR=/usr/x86_64-linux-gnu/" >> "$GITHUB_ENV"
+          # 注：不能设 PKG_CONFIG_SYSROOT_DIR=/usr/x86_64-linux-gnu/ — ubuntu multiarch 把
+          # dev headers 装在 /usr/include/ 而非 sysroot 下；设错会让 pkg-config 输出
+          # 不存在的 include 路径，导致 libspa-sys 的 bindgen 找不到 pipewire/version.h。
+          # 显式给 bindgen 注入 include path（双重保险）。
+          echo "BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_gnu=-I/usr/include/pipewire-0.3 -I/usr/include/spa-0.2" >> "$GITHUB_ENV"
 
       - name: Install Protoc (Windows)
         if: matrix.os == 'windows-latest'
@@ -392,7 +396,11 @@ jobs:
         run: |
           export PKG_CONFIG_ALLOW_CROSS=1
           export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
-          export PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu/
+          # 注：不能设 PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu/ — ubuntu multiarch 把
+          # dev headers 装在 /usr/include/ 而非 sysroot 下；设错会让 pkg-config 输出
+          # 不存在的 include 路径，导致 libspa-sys 的 bindgen 找不到 pipewire/version.h。
+          # 显式给 bindgen 注入 include path（双重保险）。
+          export BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="-I/usr/include/pipewire-0.3 -I/usr/include/spa-0.2"
           npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb,rpm
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
