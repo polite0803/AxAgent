@@ -12,6 +12,7 @@ use rmcp::{
 /// Using Peer<RoleClient> (which is Clone + Send + Sync) instead of the
 /// ClientHandler trait allows storing connections in the pool and cloning
 /// them for reuse across multiple tool calls.
+#[cfg(not(target_os = "android"))]
 type McpPeer = rmcp::service::Peer<RoleClient>;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -19,9 +20,12 @@ use std::collections::HashMap;
 #[cfg(all(unix, not(target_os = "android")))]
 use std::collections::HashSet;
 use std::sync::Arc;
+#[cfg(not(target_os = "android"))]
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(not(target_os = "android"))]
 use tokio::sync::Mutex;
+#[cfg(not(target_os = "android"))]
 use tracing::info;
 
 use crate::mcp_oauth::McpOAuthStore;
@@ -299,6 +303,7 @@ fn build_stdio_command(
 /// - 阻断已知的危险长 flag（`--script`、`--eval`、`--allow-run`、`--danger`、`-rf`）
 /// - 不阻断 `-c` / `-e`：避免误伤 `bash -c`、`node -e` 等合法调用（M1）
 /// - args 中路径不能含 NUL
+#[cfg(not(target_os = "android"))]
 fn validate_mcp_command(command: &str, args: &[String]) -> Result<()> {
     if command.is_empty() || command.contains('\0') || command.contains("..") {
         return Err(AxAgentError::Gateway(format!("MCP command path invalid: '{}'", command)));
