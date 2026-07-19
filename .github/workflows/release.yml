@@ -408,6 +408,10 @@ jobs:
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
           AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
+          # cross-compile 时 proc-macro (host=x86_64) 用 rust-lld 链接会报
+          # "incompatible with elf64-littleaarch64"（rust-lld 错误地用了 target 架构）。
+          # 禁用 rust-lld，改用系统 ld（通过 cc）。
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: '-C linker-features=-lld'
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
