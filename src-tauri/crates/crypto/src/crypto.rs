@@ -417,6 +417,7 @@ fn derive_storage_master_key_v1() -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     // ── encrypt_key / decrypt_key 往返 ──
 
@@ -561,6 +562,7 @@ mod tests {
     // ── 备份密钥加密（v2 / Argon2id）──
 
     #[test]
+    #[serial]
     fn backup_key_encrypt_decrypt_roundtrip() {
         let data = b"super-secret-backup-material-1234567890";
         let enc = encrypt_backup_key(data).expect("备份加密应成功");
@@ -575,6 +577,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn auto_upgrade_passthrough_for_v2() {
         let data = b"already-v2-material";
         let enc = encrypt_backup_key(data).unwrap();
@@ -594,6 +597,7 @@ mod tests {
     // 密钥，用同一密钥对象加解密可无损往返。
 
     #[test]
+    #[serial]
     fn storage_master_key_is_usable_aes_key() {
         let master = derive_storage_master_key();
         // 派生的密钥必须是 32 字节且非全零
