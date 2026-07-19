@@ -235,15 +235,13 @@ fn validate_relative_path(path: &str) -> Result<(), String> {
             return Err(format!("path traversal not allowed: {}", path));
         }
     }
-    // Windows 绝对路径检查(如 C:\)
-    #[cfg(windows)]
+    // 驱动盘根绝对路径(如 C:\ 或 C:/) — 无论宿主平台都拒绝，它是绝对路径，
+    // 不应作为相对路径落到项目根下，否则会绕过沙箱安全语义。
+    if path.len() >= 2
+        && path.as_bytes()[1] == b':'
+        && (path.as_bytes()[2] == b'\\' || path.as_bytes()[2] == b'/')
     {
-        if path.len() >= 2
-            && path.as_bytes()[1] == b':'
-            && (path.as_bytes()[2] == b'\\' || path.as_bytes()[2] == b'/')
-        {
-            return Err(format!("absolute path not allowed: {}", path));
-        }
+        return Err(format!("absolute path not allowed: {}", path));
     }
     Ok(())
 }
