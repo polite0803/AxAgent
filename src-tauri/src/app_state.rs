@@ -13,6 +13,7 @@ use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::SyncEngine;
 use axagent_storage::file_authorizer::FileAuthorizer;
+use axagent_telemetry::TelemetryLevel;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -315,6 +316,14 @@ pub struct AppState {
     /// PTY 伪终端管理器，管理所有终端会话（仅桌面端可用）
     #[cfg(not(mobile))]
     pub pty_manager: Arc<axagent_runtime::pty::PtyManager>,
+    /// 2.7 P1:遥测级别共享句柄 — 启动时从 `AppSettings.telemetry_level`
+    /// 读取初值,`save_settings` 命令检测到变更后更新此句柄;运行中的
+    /// `FilteringSink` 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
+    ///
+    /// 当前主 crate 未实例化 `JsonlTelemetrySink`(基础设施已就绪但未接入
+    /// 生产路径),此字段先行就位 — 未来接入 sink 时直接
+    /// `FilteringSink::new(inner, *handle.read().unwrap())` 即可。
+    pub telemetry_level_handle: Arc<std::sync::RwLock<TelemetryLevel>>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

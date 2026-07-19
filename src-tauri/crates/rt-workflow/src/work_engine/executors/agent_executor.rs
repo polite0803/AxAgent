@@ -705,6 +705,53 @@ impl NodeExecutorTrait for AgentExecutor {
             }
         }
 
+        // 4i. 3.7 P2:TaskScene 场景化输出约束(recency 锚定)。
+        //
+        // `AgentNodeConfig.task_scene` 由用户在工作流编辑器中显式指定:
+        // - `None` / `Some(General)` → 无约束
+        // - `Some(Code)` → 强调直接给代码、少废话
+        // - `Some(Research)` → 强调结构化分析、引用、权衡
+        // - `Some(Auto)` → 由 `TaskScene::infer(user_prompt)` 推断
+        //
+        // 由于此处 `user_prompt` 尚未构造,先取 context_sources 拼出预览文本用于推断;
+        // Auto 模式下若 context 为空则按 General 处理(无指令注入)。
+        let resolved_scene = match an.config.task_scene {
+            Some(axagent_harness::TaskScene::Auto) | None => {
+                // None 等价于 General(无约束),Auto 需推断
+                if matches!(an.config.task_scene, Some(axagent_harness::TaskScene::Auto)) {
+                    let preview = an
+                        .config
+                        .context_sources
+                        .iter()
+                        .filter_map(|s| context.variables.get(s).map(|v| v.to_string()))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    if preview.is_empty() {
+                        None
+                    } else {
+                        let inferred = axagent_harness::TaskScene::infer(&preview);
+                        if matches!(inferred, axagent_harness::TaskScene::General) {
+                            None
+                        } else {
+                            Some(inferred)
+                        }
+                    }
+                } else {
+                    None
+                }
+            },
+            Some(axagent_harness::TaskScene::General) => None,
+            Some(
+                scene @ (axagent_harness::TaskScene::Code | axagent_harness::TaskScene::Research),
+            ) => Some(scene),
+        };
+        if let Some(scene) = resolved_scene {
+            let directive = scene.concise_directive();
+            if !directive.is_empty() {
+                all_segments.push(TemplateSegment::Static(format!("\n\n{directive}")));
+            }
+        }
+
         let compiled = CompiledPrompt { segments: all_segments, variable_refs: Vec::new() };
 
         // 拉取内建变量(可选)。由主 crate 在 as-of 模式下注入 data_freshness / as_of_date 等

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useSettingsStore } from "@/stores";
-import { Divider, InputNumber, Select, Slider, Switch } from "antd";
+import { Divider, InputNumber, Radio, Select, Slider, Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import { CacheConfigPanel } from "./CacheConfigPanel";
 import { SettingsGroup } from "./SettingsGroup";
@@ -611,6 +611,58 @@ function LspDiagnosticsSection() {
 }
 
 // ---------------------------------------------------------------------------
+// 2.7 P1:隐私控制 / 遥测级别三级开关
+// ---------------------------------------------------------------------------
+
+function PrivacyControlSection() {
+  const { t } = useTranslation();
+  const settings = useSettingsStore((s) => s.settings);
+  const saveSettings = useSettingsStore((s) => s.saveSettings);
+  // 后端默认 "off";旧版 settings 若无此字段也回退到 "off"。
+  const level = settings.telemetry_level ?? "off";
+
+  return (
+    <SettingsGroup title={t("advancedSettings.privacyControl")}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+        data-search-key="advanced:telemetryLevel"
+      >
+        <span>{t("advancedSettings.telemetryLevelLabel")}</span>
+        <Radio.Group
+          value={level}
+          onChange={(e) => saveSettings({ telemetry_level: e.target.value })}
+          optionType="button"
+          buttonStyle="solid"
+          size="small"
+        >
+          <Radio.Button value="off">
+            {t("advancedSettings.telemetryLevel.off")}
+          </Radio.Button>
+          <Radio.Button value="minimal">
+            {t("advancedSettings.telemetryLevel.minimal")}
+          </Radio.Button>
+          <Radio.Button value="full">
+            {t("advancedSettings.telemetryLevel.full")}
+          </Radio.Button>
+        </Radio.Group>
+      </div>
+      <Divider style={{ margin: "4px 0" }} />
+      <div
+        className="text-xs"
+        style={{
+          padding: "4px 0",
+          color: "var(--ant-color-text-tertiary)",
+          lineHeight: 1.6,
+        }}
+      >
+        {t("advancedSettings.telemetryLevelHint")}
+      </div>
+    </SettingsGroup>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 主面板
 // ---------------------------------------------------------------------------
 
@@ -625,6 +677,7 @@ export function AdvancedSettings() {
       <GreenContractSection />
       <DreamConsolidationSection />
       <LspDiagnosticsSection />
+      <PrivacyControlSection />
       <CacheBreakpointSection />
     </div>
   );

@@ -31,6 +31,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::expression_engine::{ExpressionContext, resolve_loop_condition};
 use crate::work_engine::execution_state::{ExecutionState, PartialResultEvent};
 use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
@@ -438,7 +439,7 @@ impl NodeExecutorTrait for LoopExecutor {
             if matches!(c.loop_type, LoopType::While | LoopType::Until)
                 && let Some(ref cond) = c.continue_condition
             {
-                let should_stop = !evaluate_continue_condition(cond, &partial, iter_index);
+                let should_stop = !evaluate_continue_condition(cond, &partial, iter_index, context);
                 if should_stop {
                     break;
                 }
@@ -492,15 +493,31 @@ impl NodeExecutorTrait for LoopExecutor {
     }
 }
 
-/// 简易 continue_condition 求值（true 表示继续）。
+/// continue_condition 求值(true 表示继续)。
 ///
-/// 支持的语法：
+/// 4.2 P3:接入 Rhai 表达式引擎,支持任意表达式。
+///
+/// Fast path(向后兼容,无 Rhai 开销):
 ///  - 字面量 `true` / `false`
-///  - 单个 `iter_index < N` / `iter_index >= N`（数字比较）
+///  - 单个 `iter_index < N` / `iter_index >= N`(数字比较)
+///  - 单个 `partial.length < N` 形式
 ///
-/// 不支持任意表达式 —— 复杂条件由用户在 body 内部用条件节点判断。
-/// 返回 `true` 表示"继续"，`false` 表示"停止"。
-fn evaluate_continue_condition(cond: &str, partial: &[serde_json::Value], iter_index: u32) -> bool {
+/// Rhai 表达式路径(fast path 未命中时):
+///  - 注入 `vars` / `node` / `input` / `now` / `env` / `iter_index` / `partial`
+///    (注意:Rhai 1.x 中 `$` 是保留符号,变量名不带 `$` 前缀)
+///  - 返回值按 `dynamic_to_bool` 规则转换
+///  - 求值失败 → false(停止循环,防死循环)
+///
+/// 示例(推荐用法):
+///  - `iter_index < 10`
+///  - `vars.threshold > 0 && partial.len() < vars.threshold`
+///  - `node["check_result"].ok`
+fn evaluate_continue_condition(
+    cond: &str,
+    partial: &[serde_json::Value],
+    iter_index: u32,
+    context: &ExecutionState,
+) -> bool {
     let trimmed = cond.trim();
     if trimmed == "true" {
         return true;
@@ -560,13 +577,25 @@ fn evaluate_continue_condition(cond: &str, partial: &[serde_json::Value], iter_i
             _ => {},
         }
     }
-    // 默认继续
-    // P1-11: 未识别的表达式 → 改 false + 记 error 级别日志，让用户察觉
-    tracing::error!(
-        cond = %cond,
-        "loop continue_condition: 无法识别的表达式，默认停止循环以防死循环"
-    );
-    false
+
+    // 4.2 P3:Rhai 表达式路径 —— 处理任意复杂表达式
+    let expr_ctx = ExpressionContext {
+        variables: context.variables.clone(),
+        node_outputs: context.node_outputs.clone(),
+        input_params: context.input_params.clone(),
+        env: std::env::vars().collect(),
+    };
+    match resolve_loop_condition(trimmed, &expr_ctx, iter_index, partial) {
+        Ok(result) => result,
+        Err(e) => {
+            tracing::error!(
+                cond = %cond,
+                error = %e,
+                "loop continue_condition: Rhai 表达式求值失败，默认停止循环以防死循环"
+            );
+            false
+        },
+    }
 }
 
 #[cfg(test)]
@@ -641,11 +670,57 @@ mod tests {
 
     #[test]
     fn continue_condition_eval() {
-        assert!(evaluate_continue_condition("true", &[], 0));
-        assert!(!evaluate_continue_condition("false", &[], 0));
-        assert!(evaluate_continue_condition("iter_index < 3", &[], 2));
-        assert!(!evaluate_continue_condition("iter_index < 3", &[], 5));
-        assert!(evaluate_continue_condition("partial.length < 2", &[json!(1)], 0));
-        assert!(!evaluate_continue_condition("partial.length < 2", &[json!(1), json!(2)], 0));
+        let ctx = ExecutionState::new("t1".to_string(), "wf1".to_string(), serde_json::Value::Null);
+        assert!(evaluate_continue_condition("true", &[], 0, &ctx));
+        assert!(!evaluate_continue_condition("false", &[], 0, &ctx));
+        assert!(evaluate_continue_condition("iter_index < 3", &[], 2, &ctx));
+        assert!(!evaluate_continue_condition("iter_index < 3", &[], 5, &ctx));
+        assert!(evaluate_continue_condition("partial.length < 2", &[json!(1)], 0, &ctx));
+        assert!(!evaluate_continue_condition("partial.length < 2", &[json!(1), json!(2)], 0, &ctx));
+    }
+
+    /// 4.2 P3:验证 Rhai 表达式路径(任意复杂表达式)
+    #[test]
+    fn continue_condition_rhai_eval() {
+        let mut ctx =
+            ExecutionState::new("t2".to_string(), "wf1".to_string(), serde_json::Value::Null);
+        // 注入 vars.threshold = 3
+        ctx.variables.insert("threshold".to_string(), serde_json::json!(3));
+        // 注入 node["check_result"].ok = true
+        ctx.node_outputs.insert("check_result".to_string(), serde_json::json!({"ok": true}));
+
+        // 1. iter_index 路径(等价于 fast path 的 iter_index < N)
+        assert!(evaluate_continue_condition("iter_index < 10", &[], 5, &ctx));
+        assert!(!evaluate_continue_condition("iter_index >= 10", &[], 5, &ctx));
+
+        // 2. vars.threshold 复合表达式
+        assert!(evaluate_continue_condition(
+            "vars.threshold > 0 && iter_index < vars.threshold",
+            &[],
+            2,
+            &ctx
+        ));
+        assert!(!evaluate_continue_condition(
+            "vars.threshold > 0 && iter_index < vars.threshold",
+            &[],
+            5,
+            &ctx
+        ));
+
+        // 3. partial.len() 路径
+        assert!(evaluate_continue_condition("partial.len() < 2", &[json!(1)], 0, &ctx));
+        assert!(!evaluate_continue_condition("partial.len() < 2", &[json!(1), json!(2)], 0, &ctx));
+
+        // 4. node["NodeName"].field 路径
+        assert!(evaluate_continue_condition("node[\"check_result\"].ok", &[], 0, &ctx));
+
+        // 5. 表达式语法错误 → false(停止循环)
+        assert!(!evaluate_continue_condition("invalid syntax !!!", &[], 0, &ctx));
+
+        // 6. 返回非 bool 值:数字非零 → true
+        assert!(evaluate_continue_condition("vars.threshold", &[], 0, &ctx));
+        // 数字 0 → false
+        ctx.variables.insert("zero".to_string(), serde_json::json!(0));
+        assert!(!evaluate_continue_condition("vars.zero", &[], 0, &ctx));
     }
 }

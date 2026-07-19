@@ -120,7 +120,15 @@
     "retryDelay": "リトライ遅延（秒）",
     "shellConfirm": "Shell Execution Requires Confirmation",
     "tokenBudgetLimit": "トークンバジェット制限",
-    "warningBuffer": "警告バッファ（トークン）"
+    "warningBuffer": "警告バッファ（トークン）",
+    "telemetryLevel": {
+      "full": "フル",
+      "minimal": "最小",
+      "off": "オフ"
+    },
+    "telemetryLevelHint": "AxAgent はデフォルトでテレメトリを収集しません。「最小」はユーザー行動イベントのみを記録し（セッション追跡用）、「フル」は HTTP リクエストの詳細（URL、ステータスコードなど）も記録します。変更は即座に有効になります。",
+    "telemetryLevelLabel": "テレメトリレベル",
+    "privacyControl": "プライバシーコントロール"
   },
   "agent": {
     "answerSubmitted": "回答が送信されました",
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "システムプロンプトを入力...",
       "temperature": "温度",
       "temperatureHint": "高いほど創造的、低いほど正確",
+      "taskScene": "タスクシーン",
+      "taskSceneAuto": "🔄 自動推論",
+      "taskSceneCode": "💻 コードモード",
+      "taskSceneGeneral": "🌐 汎用",
+      "taskSceneHint": "Agent の出力スタイルを制御：コードモードは直接コードを生成、研究モードは構造化分析と引用を重視、自動モードは入力から推論",
+      "taskSceneResearch": "🔬 研究モード",
       "timeout": "タイムアウト",
       "timeoutSeconds": "タイムアウト (秒)",
       "timeoutSecondsParallel": "タイムアウト (秒)",

@@ -120,7 +120,15 @@
     "retryDelay": "पुनः प्रयास विलंब (सेकंड)",
     "shellConfirm": "Shell Execution Requires Confirmation",
     "tokenBudgetLimit": "टोकन बजट सीमा",
-    "warningBuffer": "चेतावनी बफर (टोकन)"
+    "warningBuffer": "चेतावनी बफर (टोकन)",
+    "telemetryLevel": {
+      "full": "पूर्ण",
+      "minimal": "न्यूनतम",
+      "off": "बंद करें"
+    },
+    "telemetryLevelHint": "AxAgent डिफ़ॉल्ट रूप से कोई टेलीमेट्री डेटा एकत्र नहीं करता है। 'न्यूनतम' चुनने पर केवल उपयोगकर्ता व्यवहार घटनाएँ (सत्र ट्रैकिंग के लिए) रिकॉर्ड होती हैं, 'पूर्ण' अतिरिक्त HTTP अनुरोध विवरण (URL, स्थिति कोड आदि) रिकॉर्ड करता है। परिवर्तन तुरंत प्रभावी होते हैं।",
+    "telemetryLevelLabel": "टेलीमेट्री स्तर",
+    "privacyControl": "गोपनीयता नियंत्रण"
   },
   "agent": {
     "answerSubmitted": "उत्तर सबमिट किया गया",
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "एजेंट के व्यवहार और क्षमताओं को परिभाषित करें...",
       "temperature": "तापमान",
       "temperatureHint": "0: निर्धारकता ↑ | 2: यादृच्छिकता ↑",
+      "taskScene": "कार्य दृश्य",
+      "taskSceneAuto": "🔄 स्वतः अनुमान",
+      "taskSceneCode": "💻 कोड मोड",
+      "taskSceneGeneral": "🌐 सामान्य",
+      "taskSceneHint": "Agent आउटपुट शैली नियंत्रित करता है: कोड मोड सीधे कोड देता है, शोध मोड संरचित विश्लेषण और उद्धरण पर जोर देता है, स्वतः मोड इनपुट से अनुमान लगाता है",
+      "taskSceneResearch": "🔬 शोध मोड",
       "timeout": "टाइमआउट",
       "timeoutSeconds": "टाइमआउट (सेकंड)",
       "timeoutSecondsParallel": "टाइमआउट (सेकंड)",

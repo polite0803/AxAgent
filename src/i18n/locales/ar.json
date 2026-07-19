@@ -120,7 +120,15 @@
     "retryDelay": "تأخير إعادة المحاولة (ثوانٍ)",
     "shellConfirm": "Shell Execution Requires Confirmation",
     "tokenBudgetLimit": "حد ميزانية الرموز",
-    "warningBuffer": "مخزن التحذير (رمز)"
+    "warningBuffer": "مخزن التحذير (رمز)",
+    "telemetryLevel": {
+      "full": "كامل",
+      "minimal": "تصغير",
+      "off": "إغلاق"
+    },
+    "telemetryLevelHint": "لا يجمع AxAgent أي بيانات تتبع عن بُعد افتراضيًا. اختيار 'تصغير' يسجل فقط أحداث سلوك المستخدم (لتتبع الجلسات)، بينما 'كامل' يسجل أيضًا تفاصيل طلبات HTTP (URL، رموز الحالة، إلخ). التغييرات تسري فورًا.",
+    "telemetryLevelLabel": "مستوى التتبع عن بُعد",
+    "privacyControl": "التحكم في الخصوصية"
   },
   "agent": {
     "answerSubmitted": "تم إرسال الإجابة",
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "حدد سلوك وقدرات الوكيل...",
       "temperature": "الحرارة",
       "temperatureHint": "0: حتمية ↑ | 2: عشوائية ↑",
+      "taskScene": "مشهد المهمة",
+      "taskSceneAuto": "🔄 استنتاج تلقائي",
+      "taskSceneCode": "💻 وضع الكود",
+      "taskSceneGeneral": "🌐 عام",
+      "taskSceneHint": "يتحكم في أسلوب إخراج Agent: وضع الكود ينتج الكود مباشرة، وضع البحث يركز على التحليل المنظم والاقتباسات، الوضع التلقائي يستنتج من الإدخال",
+      "taskSceneResearch": "🔬 وضع البحث",
       "timeout": "المهلة",
       "timeoutSeconds": "المهلة (ثانية)",
       "timeoutSecondsParallel": "مهلة (ثوانٍ)",

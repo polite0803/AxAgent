@@ -45,7 +45,7 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::error_handling::ErrorContext;
 use super::execution_state::{
-    ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord,
+    ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord, PauseReason,
 };
 use super::executors::{
     AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
@@ -393,7 +393,7 @@ impl WorkEngine {
     pub async fn resume_breakpoints(&self, execution_id: &str) {
         let signal = {
             let executions = self.executions.lock().await;
-            executions.get(execution_id).and_then(|s| s.pause_signal.clone())
+            executions.get(execution_id).and_then(|s| s.pause_signal())
         };
         if let Some(sig) = signal {
             sig.notify_waiters();
@@ -404,13 +404,14 @@ impl WorkEngine {
         {
             state.status = ExecutionStatus::Running;
             state.updated_at = Utc::now().timestamp_millis();
+            state.clear_pause();
         }
     }
     /// 单步执行（仅通知一个等待者 + 恢复运行状态）
     pub async fn step_breakpoint(&self, execution_id: &str) {
         let signal = {
             let executions = self.executions.lock().await;
-            executions.get(execution_id).and_then(|s| s.pause_signal.clone())
+            executions.get(execution_id).and_then(|s| s.pause_signal())
         };
         if let Some(sig) = signal {
             sig.notify_one();
@@ -421,6 +422,7 @@ impl WorkEngine {
         {
             state.status = ExecutionStatus::Running;
             state.updated_at = Utc::now().timestamp_millis();
+            state.clear_pause();
         }
     }
 
@@ -1851,19 +1853,14 @@ impl WorkEngine {
                 let exec_pause_signal = {
                     let mut executions = self.executions.lock().await;
                     if let Some(state) = executions.get_mut(&execution_id) {
-                        if state.pause_signal.is_none() {
-                            state.pause_signal = Some(Arc::new(tokio::sync::Notify::new()));
-                        }
-                        state.pause_signal.clone().unwrap_or_else(|| {
-                            let new_signal = Arc::new(tokio::sync::Notify::new());
-                            state.pause_signal = Some(new_signal.clone());
-                            new_signal
-                        })
+                        // 4.1.6 P3:用 enter_pause 替代直接访问 pause_signal 字段。
+                        // 显式传入 Breakpoint 原因;若已存在 pause_state(被审批/手动暂停占用),
+                        // enter_pause 复用其信号(保留首次原因)。
+                        state.enter_pause(PauseReason::Breakpoint)
                     } else {
                         Arc::new(tokio::sync::Notify::new())
                     }
                 };
-                exec_ctx.pause_signal = Some(exec_pause_signal.clone());
 
                 if exec_ctx.breakpoints.contains(node_id.as_str()) {
                     tracing::info!("[Breakpoint] 命中节点 {node_id}，等待 resume...");
@@ -2215,15 +2212,17 @@ impl WorkEngine {
                                     state.status = ExecutionStatus::Paused;
                                     state.current_node_id = Some(nr.node_id.clone());
                                     state.updated_at = Utc::now().timestamp_millis();
+                                    // 4.1.6 P3:显式记录审批暂停原因
+                                    state.enter_pause(PauseReason::Approval);
                                 }
                             }
-                            // 等待 resume signal（复用 pause_signal，与断点模式同构）
+                            // 等待 resume signal（4.1.6:从 pause_state 派生,与断点模式同构）
                             let pause_sig = {
                                 self.executions
                                     .lock()
                                     .await
                                     .get(&execution_id)
-                                    .and_then(|s| s.pause_signal.clone())
+                                    .and_then(|s| s.pause_signal())
                             };
                             if let Some(sig) = pause_sig {
                                 sig.notified().await;
@@ -3039,6 +3038,8 @@ impl WorkEngine {
         if let Some(state) = executions.get_mut(execution_id) {
             state.status = ExecutionStatus::Paused;
             state.updated_at = Utc::now().timestamp_millis();
+            // 4.1.6 P3:显式记录手动暂停原因(若已存在 pause_state 则保留首次原因)
+            state.enter_pause(PauseReason::Manual);
             Ok(())
         } else {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
@@ -3053,7 +3054,10 @@ impl WorkEngine {
                     state.status = ExecutionStatus::Running;
                     state.updated_at = Utc::now().timestamp_millis();
                 }
-                state.pause_signal.clone()
+                // 4.1.6 P3:从 pause_state 派生信号,并清空 pause_state
+                let sig = state.pause_signal();
+                state.clear_pause();
+                sig
             } else {
                 return Err(WorkEngineError::NotFound(execution_id.to_string()));
             }
@@ -3157,7 +3161,7 @@ impl WorkEngine {
             state.updated_at = Utc::now().timestamp_millis();
         }
         drop(executions);
-        // 同时通知 pause_signal（处理 engine 主循环里同样的 is_paused 路径）
+        // 同时通知 pause_state（4.1.6:处理 engine 主循环里同样的 is_paused 路径）
         let _ = node_id; // 当前实现下 node_id 仅用于日志/审计，行为靠 execution_id
         let _ = self.resume(execution_id).await;
         Ok(())

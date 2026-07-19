@@ -1,107 +1,413 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//! 3.2 P2:长期记忆文件级四类分目录
+//!
+//! 对齐 Claude Code MEMORY.md 模型。在 `.axagent/memory/` 下按四类分目录:
+//! - `user/`       — 用户偏好/信息(技术栈、沟通风格、工作习惯)
+//! - `feedback/`   — 用户反馈(显式喜好/排斥、纠正记录)
+//! - `project/`    — 项目相关(架构决策、约定、命令)
+//! - `reference/`  — 参考资料(外部链接、文档索引)
+//!
+//! `.axagent/MEMORY.md` 是索引文件(200 行硬限制),始终加载,
+//! 索引四类主题文件的相对路径与一句话摘要。
+//!
+//! ## 检索策略
+//! 启动时加载 MEMORY.md 索引(始终加载);文件级检索时扫描 `.axagent/memory/`
+//! 目录下所有 .md 文件,按关键词匹配度选最相关 N 个,与现有 DB 检索并存。
+
+use axagent_harness::constants::memory as mem_const;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// 记忆四类分目录枚举
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MemoryCategory {
+    /// 用户偏好/信息(技术栈、沟通风格、工作习惯)
+    User,
+    /// 用户反馈(显式喜好/排斥、纠正记录)
+    Feedback,
+    /// 项目相关(架构决策、约定、命令)
+    Project,
+    /// 参考资料(外部链接、文档索引)
+    Reference,
+}
+
+impl MemoryCategory {
+    /// 目录名
+    pub fn dir_name(self) -> &'static str {
+        match self {
+            Self::User => mem_const::USER_DIR,
+            Self::Feedback => mem_const::FEEDBACK_DIR,
+            Self::Project => mem_const::PROJECT_DIR,
+            Self::Reference => mem_const::REFERENCE_DIR,
+        }
+    }
+
+    /// 从目录名解析
+    pub fn from_dir_name(name: &str) -> Option<Self> {
+        match name {
+            mem_const::USER_DIR => Some(Self::User),
+            mem_const::FEEDBACK_DIR => Some(Self::Feedback),
+            mem_const::PROJECT_DIR => Some(Self::Project),
+            mem_const::REFERENCE_DIR => Some(Self::Reference),
+            _ => None,
+        }
+    }
+
+    /// 全部四类
+    pub const ALL: [Self; 4] = [Self::User, Self::Feedback, Self::Project, Self::Reference];
+}
+
+/// 单个主题文件的索引条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryFileEntry {
+    /// 相对于 `.axagent/memory/` 的路径(如 `user/preferences.md`)
+    pub relative_path: String,
+    /// 类别
+    pub category: MemoryCategory,
+    /// 一句话摘要(单行)
+    pub summary: String,
+    /// 标签(用于检索)
+    pub tags: Vec<String>,
+}
+
+/// MEMORY.md 索引文件内容
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MemoryIndex {
+    pub entries: Vec<MemoryFileEntry>,
+}
+
+impl MemoryIndex {
+    /// 解析 MEMORY.md 索引文件
+    ///
+    /// 格式:
+    /// ```markdown
+    /// # Memory Index
+    ///
+    /// - [user/preferences.md] 用户偏好:Rust + Tauri 技术栈 #rust #tauri
+    /// - [project/architecture.md] 项目架构:Cargo workspace 分层 #architecture
+    /// ```
+    pub fn parse(content: &str) -> Self {
+        let mut entries = Vec::new();
+        for line in content.lines() {
+            let trimmed = line.trim();
+            let Some(after_dash) = trimmed.strip_prefix("- [") else {
+                continue;
+            };
+            let Some(close_idx) = after_dash.find(']') else {
+                continue;
+            };
+            let relative_path = after_dash[..close_idx].trim().to_string();
+            if relative_path.is_empty() {
+                continue;
+            }
+            let rest = after_dash[close_idx + 1..].trim();
+            // 提取 tags(以 # 开头的单词)
+            let mut summary_parts = Vec::new();
+            let mut tags = Vec::new();
+            for word in rest.split_whitespace() {
+                if let Some(tag) = word.strip_prefix('#') {
+                    if !tag.is_empty() {
+                        tags.push(tag.to_string());
+                    }
+                } else {
+                    summary_parts.push(word);
+                }
+            }
+            let summary = summary_parts.join(" ");
+            // 从路径推断类别
+            let category = relative_path
+                .split('/')
+                .next()
+                .and_then(MemoryCategory::from_dir_name)
+                .unwrap_or(MemoryCategory::Reference);
+            entries.push(MemoryFileEntry { relative_path, category, summary, tags });
+        }
+        Self { entries }
+    }
+
+    /// 渲染为 MEMORY.md 内容(强制 200 行硬限制)
+    pub fn render(&self) -> String {
+        let mut md = String::from("# Memory Index\n\n");
+        for entry in &self.entries {
+            let tags_str = if entry.tags.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    " {}",
+                    entry.tags.iter().map(|t| format!("#{}", t)).collect::<Vec<_>>().join(" ")
+                )
+            };
+            md.push_str(&format!("- [{}] {}{}\n", entry.relative_path, entry.summary, tags_str));
+        }
+        // 200 行硬限制:超出则截断
+        let lines: Vec<&str> = md.lines().collect();
+        if lines.len() > mem_const::MEMORY_INDEX_MAX_LINES {
+            let truncated: Vec<&str> =
+                lines.into_iter().take(mem_const::MEMORY_INDEX_MAX_LINES).collect();
+            truncated.join("\n") + "\n"
+        } else {
+            md
+        }
+    }
+
+    /// 添加条目(若同路径已存在则覆盖)
+    pub fn upsert(&mut self, entry: MemoryFileEntry) {
+        if let Some(existing) =
+            self.entries.iter_mut().find(|e| e.relative_path == entry.relative_path)
+        {
+            *existing = entry;
+        } else {
+            self.entries.push(entry);
+        }
+    }
+
+    /// 按相对路径删除条目
+    pub fn remove(&mut self, relative_path: &str) -> bool {
+        let before = self.entries.len();
+        self.entries.retain(|e| e.relative_path != relative_path);
+        self.entries.len() < before
+    }
+}
+
+/// 文件级检索结果项
+#[derive(Debug, Clone)]
+pub struct MemorySearchResult {
+    /// 文件绝对路径
+    pub path: PathBuf,
+    /// 类别
+    pub category: MemoryCategory,
+    /// 文件内容
+    pub content: String,
+    /// 关键词匹配得分(越高越相关)
+    pub score: f64,
+}
+
+/// 长期记忆文件级存储(本地文件系统实现)
+///
+/// 管理 `.axagent/memory/{user,feedback,project,reference}/` 四类分目录,
+/// 以及 `.axagent/MEMORY.md` 索引文件(200 行硬限制,始终加载)。
 pub struct ProjectMemory {
-    pub project_path: String,
-    pub conventions: Vec<String>,
-    pub architecture_notes: Vec<String>,
-    pub common_commands: Vec<String>,
-    pub tech_stack: Vec<String>,
-    pub user_preferences: Vec<String>,
+    /// 项目根目录
+    pub project_root: PathBuf,
 }
 
 impl ProjectMemory {
-    const MEMORY_FILE: &'static str = ".axagent/memory.md";
-
-    pub async fn load(project_path: &str) -> Result<Option<Self>, String> {
-        let memory_path = PathBuf::from(project_path).join(Self::MEMORY_FILE);
-        if !memory_path.exists() {
-            return Ok(None);
-        }
-        let content = tokio::fs::read_to_string(&memory_path).await.map_err(|e| e.to_string())?;
-        Ok(Some(Self::parse_from_markdown(&content, project_path)))
+    /// 创建新的记忆存储实例
+    pub fn new(project_root: impl Into<PathBuf>) -> Self {
+        Self { project_root: project_root.into() }
     }
 
-    pub async fn save(&self) -> Result<(), String> {
-        let memory_path = PathBuf::from(&self.project_path).join(Self::MEMORY_FILE);
-        if let Some(parent) = memory_path.parent() {
+    /// 索引文件绝对路径(`.axagent/MEMORY.md`)
+    pub fn index_path(&self) -> PathBuf {
+        self.project_root.join(mem_const::MEMORY_INDEX)
+    }
+
+    /// 记忆根目录绝对路径(`.axagent/memory`)
+    pub fn memory_dir(&self) -> PathBuf {
+        self.project_root.join(mem_const::MEMORY_DIR)
+    }
+
+    /// 类别子目录绝对路径
+    pub fn category_dir(&self, category: MemoryCategory) -> PathBuf {
+        self.memory_dir().join(category.dir_name())
+    }
+
+    /// 主题文件绝对路径
+    pub fn topic_file_path(&self, category: MemoryCategory, file_name: &str) -> PathBuf {
+        self.category_dir(category).join(file_name)
+    }
+
+    /// 加载 MEMORY.md 索引文件(始终加载,不存在则返回空索引)
+    pub async fn load_index(&self) -> MemoryIndex {
+        let path = self.index_path();
+        match tokio::fs::read_to_string(&path).await {
+            Ok(content) => MemoryIndex::parse(&content),
+            Err(_) => MemoryIndex::default(),
+        }
+    }
+
+    /// 保存索引文件(强制 200 行硬限制)
+    pub async fn save_index(&self, index: &MemoryIndex) -> Result<(), String> {
+        let path = self.index_path();
+        if let Some(parent) = path.parent() {
             tokio::fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
         }
-        let content = self.to_markdown();
-        tokio::fs::write(&memory_path, content).await.map_err(|e| e.to_string())
+        let content = index.render();
+        tokio::fs::write(&path, content).await.map_err(|e| e.to_string())
     }
 
-    pub fn to_markdown(&self) -> String {
-        let mut md = String::new();
-        md.push_str("# Project Memory\n\n");
-        if !self.tech_stack.is_empty() {
-            md.push_str("## Tech Stack\n");
-            for item in &self.tech_stack {
-                md.push_str(&format!("- {}\n", item));
-            }
-            md.push('\n');
+    /// 加载某个类别的所有文件内容(返回 (绝对路径, 内容) 列表)
+    pub async fn load_category(
+        &self,
+        category: MemoryCategory,
+    ) -> Result<Vec<(PathBuf, String)>, String> {
+        let dir = self.category_dir(category);
+        if !dir.exists() {
+            return Ok(Vec::new());
         }
-        if !self.conventions.is_empty() {
-            md.push_str("## Conventions\n");
-            for item in &self.conventions {
-                md.push_str(&format!("- {}\n", item));
+        let mut results = Vec::new();
+        let mut reader = tokio::fs::read_dir(&dir).await.map_err(|e| e.to_string())?;
+        while let Some(entry) = reader.next_entry().await.map_err(|e| e.to_string())? {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("md") {
+                continue;
             }
-            md.push('\n');
-        }
-        if !self.common_commands.is_empty() {
-            md.push_str("## Common Commands\n");
-            for item in &self.common_commands {
-                md.push_str(&format!("- {}\n", item));
+            let content = tokio::fs::read_to_string(&path).await.map_err(|e| e.to_string())?;
+            // 单文件大小限制检查
+            if content.len() > mem_const::MEMORY_FILE_SIZE_LIMIT {
+                tracing::warn!(
+                    path = %path.display(),
+                    size = content.len(),
+                    limit = mem_const::MEMORY_FILE_SIZE_LIMIT,
+                    "[ProjectMemory] 主题文件超过 256KB 大小限制,跳过加载"
+                );
+                continue;
             }
-            md.push('\n');
+            results.push((path, content));
         }
-        if !self.architecture_notes.is_empty() {
-            md.push_str("## Architecture\n");
-            for item in &self.architecture_notes {
-                md.push_str(&format!("- {}\n", item));
-            }
-            md.push('\n');
-        }
-        if !self.user_preferences.is_empty() {
-            md.push_str("## User Preferences\n");
-            for item in &self.user_preferences {
-                md.push_str(&format!("- {}\n", item));
-            }
-            md.push('\n');
-        }
-        md
+        Ok(results)
     }
 
-    pub fn parse_from_markdown(content: &str, project_path: &str) -> Self {
-        let mut memory = Self {
-            project_path: project_path.into(),
-            conventions: vec![],
-            architecture_notes: vec![],
-            common_commands: vec![],
-            tech_stack: vec![],
-            user_preferences: vec![],
+    /// 写入一个主题文件(不自动更新索引,需另行调用 save_index)
+    pub async fn save_topic_file(
+        &self,
+        category: MemoryCategory,
+        file_name: &str,
+        content: &str,
+    ) -> Result<PathBuf, String> {
+        // 路径验证:file_name 不能包含 .. 或绝对路径
+        if file_name.is_empty()
+            || file_name.contains('/')
+            || file_name.contains('\\')
+            || file_name.contains("..")
+            || file_name.starts_with('.')
+        {
+            return Err(format!("invalid topic file name: {}", file_name));
+        }
+        if !file_name.ends_with(".md") {
+            return Err(format!("topic file must end with .md: {}", file_name));
+        }
+        // 大小限制检查
+        if content.len() > mem_const::MEMORY_FILE_SIZE_LIMIT {
+            return Err(format!(
+                "topic file content exceeds {}KB size limit ({} bytes)",
+                mem_const::MEMORY_FILE_SIZE_LIMIT / 1024,
+                content.len()
+            ));
+        }
+        let path = self.topic_file_path(category, file_name);
+        if let Some(parent) = path.parent() {
+            tokio::fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
+        }
+        tokio::fs::write(&path, content).await.map_err(|e| e.to_string())?;
+        Ok(path)
+    }
+
+    /// 删除主题文件(同步删除索引条目需另行调用 save_index)
+    pub async fn delete_topic_file(
+        &self,
+        category: MemoryCategory,
+        file_name: &str,
+    ) -> Result<bool, String> {
+        let path = self.topic_file_path(category, file_name);
+        if !path.exists() {
+            return Ok(false);
+        }
+        tokio::fs::remove_file(&path).await.map_err(|e| e.to_string())?;
+        Ok(true)
+    }
+
+    /// 扫描四类分目录,按关键词选最相关 N 个文件
+    ///
+    /// 检索策略:简单 TF 关键词匹配
+    /// - query 按空格/标点分词
+    /// - 文件内容中每个 query 词出现次数累加
+    /// - 归一化 score = total_hits / (content_len + 1)
+    /// - 按 score 降序排序,取前 N 个
+    pub async fn scan_relevant_files(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<MemorySearchResult>, String> {
+        let limit = if limit == 0 {
+            mem_const::MEMORY_RELEVANT_FILES_LIMIT
+        } else {
+            limit
         };
-        let mut current_section = "";
-        for line in content.lines() {
-            if line.starts_with("## ") {
-                current_section = line.trim_start_matches("## ").trim();
-            } else if line.starts_with("- ") {
-                let item = line.trim_start_matches("- ").trim().to_string();
-                match current_section {
-                    "Tech Stack" => memory.tech_stack.push(item),
-                    "Conventions" => memory.conventions.push(item),
-                    "Common Commands" => memory.common_commands.push(item),
-                    "Architecture" => memory.architecture_notes.push(item),
-                    "User Preferences" => memory.user_preferences.push(item),
-                    _ => {},
-                }
+        let keywords = tokenize_query(query);
+        let mut results: Vec<MemorySearchResult> = Vec::new();
+        for category in MemoryCategory::ALL {
+            let files = self.load_category(category).await?;
+            for (path, content) in files {
+                let score = compute_relevance_score(&content, &keywords);
+                results.push(MemorySearchResult { path, category, content, score });
             }
         }
-        memory
+        // 按得分降序排序,取前 N 个
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.truncate(limit);
+        Ok(results)
     }
+
+    /// 从旧的单文件 `.axagent/memory.md` 迁移到四类分目录
+    ///
+    /// 如果存在旧的 `.axagent/memory.md` 但不存在新结构,则将其内容
+    /// 迁移到 `.axagent/memory/project/legacy.md` 并创建索引。
+    pub async fn migrate_from_legacy(&self) -> Result<bool, String> {
+        let legacy_path = self.project_root.join(".axagent/memory.md");
+        let new_index = self.index_path();
+        // 已有新索引或旧文件不存在,无需迁移
+        if new_index.exists() || !legacy_path.exists() {
+            return Ok(false);
+        }
+        let content = tokio::fs::read_to_string(&legacy_path).await.map_err(|e| e.to_string())?;
+        // 迁移到 project/legacy.md
+        self.save_topic_file(MemoryCategory::Project, "legacy.md", &content).await?;
+        // 创建初始索引
+        let mut index = MemoryIndex::default();
+        index.upsert(MemoryFileEntry {
+            relative_path: "project/legacy.md".to_string(),
+            category: MemoryCategory::Project,
+            summary: "从旧 .axagent/memory.md 迁移的遗留记忆".to_string(),
+            tags: vec!["legacy".to_string()],
+        });
+        self.save_index(&index).await?;
+        // 删除旧文件
+        tokio::fs::remove_file(&legacy_path).await.map_err(|e| e.to_string())?;
+        tracing::info!(
+            legacy = %legacy_path.display(),
+            "[ProjectMemory] 旧 memory.md 已迁移至 .axagent/memory/project/legacy.md"
+        );
+        Ok(true)
+    }
+}
+
+/// 简单分词:按空格/标点切分,转小写,过滤空词
+fn tokenize_query(query: &str) -> Vec<String> {
+    query
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_lowercase())
+        .collect()
+}
+
+/// 计算关键词在内容中的匹配得分
+fn compute_relevance_score(content: &str, keywords: &[String]) -> f64 {
+    if keywords.is_empty() {
+        return 0.0;
+    }
+    let lower = content.to_lowercase();
+    let mut total_hits: usize = 0;
+    for kw in keywords {
+        if kw.is_empty() {
+            continue;
+        }
+        total_hits += lower.matches(kw.as_str()).count();
+    }
+    // 归一化:用内容长度 + 1 避免除零,防止长文件占优
+    let content_len = lower.len().max(1);
+    (total_hits as f64) / (content_len as f64) * 1000.0
 }
 
 #[cfg(test)]
@@ -109,194 +415,498 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_project_memory_to_markdown_empty() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec![],
-            architecture_notes: vec![],
-            common_commands: vec![],
-            tech_stack: vec![],
-            user_preferences: vec![],
-        };
-        let md = memory.to_markdown();
-        assert!(md.contains("# Project Memory"));
-        assert!(!md.contains("## Tech Stack"));
-        assert!(!md.contains("## Conventions"));
+    fn test_memory_category_dir_name() {
+        assert_eq!(MemoryCategory::User.dir_name(), "user");
+        assert_eq!(MemoryCategory::Feedback.dir_name(), "feedback");
+        assert_eq!(MemoryCategory::Project.dir_name(), "project");
+        assert_eq!(MemoryCategory::Reference.dir_name(), "reference");
     }
 
     #[test]
-    fn test_project_memory_to_markdown_with_tech_stack() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec![],
-            architecture_notes: vec![],
-            common_commands: vec![],
-            tech_stack: vec!["Rust".to_string(), "Tauri".to_string()],
-            user_preferences: vec![],
-        };
-        let md = memory.to_markdown();
-        assert!(md.contains("## Tech Stack"));
-        assert!(md.contains("- Rust"));
-        assert!(md.contains("- Tauri"));
+    fn test_memory_category_from_dir_name() {
+        assert_eq!(MemoryCategory::from_dir_name("user"), Some(MemoryCategory::User));
+        assert_eq!(MemoryCategory::from_dir_name("feedback"), Some(MemoryCategory::Feedback));
+        assert_eq!(MemoryCategory::from_dir_name("project"), Some(MemoryCategory::Project));
+        assert_eq!(MemoryCategory::from_dir_name("reference"), Some(MemoryCategory::Reference));
+        assert_eq!(MemoryCategory::from_dir_name("unknown"), None);
     }
 
     #[test]
-    fn test_project_memory_to_markdown_with_conventions() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec!["Use tabs".to_string()],
-            architecture_notes: vec![],
-            common_commands: vec![],
-            tech_stack: vec![],
-            user_preferences: vec![],
-        };
-        let md = memory.to_markdown();
-        assert!(md.contains("## Conventions"));
-        assert!(md.contains("- Use tabs"));
+    fn test_memory_category_all() {
+        assert_eq!(MemoryCategory::ALL.len(), 4);
+        assert!(MemoryCategory::ALL.contains(&MemoryCategory::User));
+        assert!(MemoryCategory::ALL.contains(&MemoryCategory::Feedback));
+        assert!(MemoryCategory::ALL.contains(&MemoryCategory::Project));
+        assert!(MemoryCategory::ALL.contains(&MemoryCategory::Reference));
     }
 
     #[test]
-    fn test_project_memory_to_markdown_with_common_commands() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec![],
-            architecture_notes: vec![],
-            common_commands: vec!["cargo build".to_string()],
-            tech_stack: vec![],
-            user_preferences: vec![],
-        };
-        let md = memory.to_markdown();
-        assert!(md.contains("## Common Commands"));
-        assert!(md.contains("- cargo build"));
+    fn test_memory_index_parse_empty() {
+        let idx = MemoryIndex::parse("");
+        assert!(idx.entries.is_empty());
     }
 
     #[test]
-    fn test_project_memory_to_markdown_with_architecture() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec![],
-            architecture_notes: vec!["Modular design".to_string()],
-            common_commands: vec![],
-            tech_stack: vec![],
-            user_preferences: vec![],
-        };
-        let md = memory.to_markdown();
-        assert!(md.contains("## Architecture"));
-        assert!(md.contains("- Modular design"));
+    fn test_memory_index_parse_header_only() {
+        let idx = MemoryIndex::parse("# Memory Index\n");
+        assert!(idx.entries.is_empty());
     }
 
     #[test]
-    fn test_project_memory_to_markdown_with_user_preferences() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec![],
-            architecture_notes: vec![],
-            common_commands: vec![],
-            tech_stack: vec![],
-            user_preferences: vec!["Dark mode".to_string()],
-        };
-        let md = memory.to_markdown();
-        assert!(md.contains("## User Preferences"));
-        assert!(md.contains("- Dark mode"));
-    }
-
-    #[test]
-    fn test_project_memory_to_markdown_all_sections() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec!["Use tabs".to_string()],
-            architecture_notes: vec!["Modular".to_string()],
-            common_commands: vec!["cargo test".to_string()],
-            tech_stack: vec!["Rust".to_string()],
-            user_preferences: vec!["Dark mode".to_string()],
-        };
-        let md = memory.to_markdown();
-        assert!(md.contains("## Tech Stack"));
-        assert!(md.contains("## Conventions"));
-        assert!(md.contains("## Common Commands"));
-        assert!(md.contains("## Architecture"));
-        assert!(md.contains("## User Preferences"));
-    }
-
-    #[test]
-    fn test_project_memory_parse_from_markdown_basic() {
+    fn test_memory_index_parse_single_entry() {
         let content =
-            "# Project Memory\n\n## Tech Stack\n- Rust\n- Tauri\n\n## Conventions\n- Use tabs\n";
-        let memory = ProjectMemory::parse_from_markdown(content, "/test");
-        assert_eq!(memory.project_path, "/test");
-        assert_eq!(memory.tech_stack, vec!["Rust", "Tauri"]);
-        assert_eq!(memory.conventions, vec!["Use tabs"]);
+            "# Memory Index\n\n- [user/preferences.md] 用户偏好:Rust + Tauri #rust #tauri\n";
+        let idx = MemoryIndex::parse(content);
+        assert_eq!(idx.entries.len(), 1);
+        assert_eq!(idx.entries[0].relative_path, "user/preferences.md");
+        assert_eq!(idx.entries[0].category, MemoryCategory::User);
+        assert_eq!(idx.entries[0].summary, "用户偏好:Rust + Tauri");
+        assert_eq!(idx.entries[0].tags, vec!["rust", "tauri"]);
     }
 
     #[test]
-    fn test_project_memory_parse_from_markdown_all_sections() {
-        let content = "# Project Memory\n\n## Tech Stack\n- Rust\n\n## Conventions\n- Use tabs\n\n## Common Commands\n- cargo build\n\n## Architecture\n- Modular\n\n## User Preferences\n- Dark mode\n";
-        let memory = ProjectMemory::parse_from_markdown(content, "/test");
-        assert_eq!(memory.tech_stack, vec!["Rust"]);
-        assert_eq!(memory.conventions, vec!["Use tabs"]);
-        assert_eq!(memory.common_commands, vec!["cargo build"]);
-        assert_eq!(memory.architecture_notes, vec!["Modular"]);
-        assert_eq!(memory.user_preferences, vec!["Dark mode"]);
+    fn test_memory_index_parse_multiple_entries() {
+        let content = "\
+# Memory Index
+
+- [user/preferences.md] Rust 技术栈 #rust
+- [project/architecture.md] Cargo workspace 分层 #architecture
+- [feedback/code_style.md] 偏好 tabs 而非 spaces #style
+- [reference/links.md] 外部参考资料 #docs
+";
+        let idx = MemoryIndex::parse(content);
+        assert_eq!(idx.entries.len(), 4);
+        assert_eq!(idx.entries[0].category, MemoryCategory::User);
+        assert_eq!(idx.entries[1].category, MemoryCategory::Project);
+        assert_eq!(idx.entries[2].category, MemoryCategory::Feedback);
+        assert_eq!(idx.entries[3].category, MemoryCategory::Reference);
     }
 
     #[test]
-    fn test_project_memory_parse_from_markdown_empty() {
-        let content = "# Project Memory\n";
-        let memory = ProjectMemory::parse_from_markdown(content, "/test");
-        assert!(memory.tech_stack.is_empty());
-        assert!(memory.conventions.is_empty());
-        assert!(memory.common_commands.is_empty());
-        assert!(memory.architecture_notes.is_empty());
-        assert!(memory.user_preferences.is_empty());
+    fn test_memory_index_parse_unknown_category_defaults_to_reference() {
+        let content = "- [unknown/foo.md] 未知类别\n";
+        let idx = MemoryIndex::parse(content);
+        assert_eq!(idx.entries.len(), 1);
+        assert_eq!(idx.entries[0].category, MemoryCategory::Reference);
     }
 
     #[test]
-    fn test_project_memory_roundtrip() {
-        let original = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec!["Use tabs".to_string()],
-            architecture_notes: vec!["Modular design".to_string()],
-            common_commands: vec!["cargo test".to_string()],
-            tech_stack: vec!["Rust".to_string(), "Tauri".to_string()],
-            user_preferences: vec!["Dark mode".to_string()],
+    fn test_memory_index_parse_no_tags() {
+        let content = "- [project/arch.md] 项目架构\n";
+        let idx = MemoryIndex::parse(content);
+        assert_eq!(idx.entries.len(), 1);
+        assert!(idx.entries[0].tags.is_empty());
+        assert_eq!(idx.entries[0].summary, "项目架构");
+    }
+
+    #[test]
+    fn test_memory_index_render_empty() {
+        let idx = MemoryIndex::default();
+        let md = idx.render();
+        assert!(md.contains("# Memory Index"));
+    }
+
+    #[test]
+    fn test_memory_index_render_with_entries() {
+        let mut idx = MemoryIndex::default();
+        idx.entries.push(MemoryFileEntry {
+            relative_path: "user/prefs.md".to_string(),
+            category: MemoryCategory::User,
+            summary: "用户偏好".to_string(),
+            tags: vec!["rust".to_string()],
+        });
+        let md = idx.render();
+        assert!(md.contains("# Memory Index"));
+        assert!(md.contains("- [user/prefs.md] 用户偏好 #rust"));
+    }
+
+    #[test]
+    fn test_memory_index_render_respects_line_limit() {
+        let mut idx = MemoryIndex::default();
+        // 添加 300 个条目(每个一行,加 header 2 行 = 302 行,超过 200 限制)
+        for i in 0..300 {
+            idx.entries.push(MemoryFileEntry {
+                relative_path: format!("project/file_{}.md", i),
+                category: MemoryCategory::Project,
+                summary: format!("summary {}", i),
+                tags: vec![],
+            });
+        }
+        let md = idx.render();
+        let line_count = md.lines().count();
+        assert!(
+            line_count <= mem_const::MEMORY_INDEX_MAX_LINES,
+            "expected <= {} lines, got {}",
+            mem_const::MEMORY_INDEX_MAX_LINES,
+            line_count
+        );
+    }
+
+    #[test]
+    fn test_memory_index_roundtrip() {
+        let mut original = MemoryIndex::default();
+        original.entries.push(MemoryFileEntry {
+            relative_path: "user/prefs.md".to_string(),
+            category: MemoryCategory::User,
+            summary: "用户偏好".to_string(),
+            tags: vec!["rust".to_string(), "tauri".to_string()],
+        });
+        original.entries.push(MemoryFileEntry {
+            relative_path: "project/arch.md".to_string(),
+            category: MemoryCategory::Project,
+            summary: "项目架构".to_string(),
+            tags: vec![],
+        });
+        let md = original.render();
+        let parsed = MemoryIndex::parse(&md);
+        assert_eq!(parsed.entries.len(), 2);
+        assert_eq!(parsed.entries[0].relative_path, "user/prefs.md");
+        assert_eq!(parsed.entries[0].category, MemoryCategory::User);
+        assert_eq!(parsed.entries[0].summary, "用户偏好");
+        assert_eq!(parsed.entries[0].tags, vec!["rust", "tauri"]);
+        assert_eq!(parsed.entries[1].relative_path, "project/arch.md");
+        assert_eq!(parsed.entries[1].category, MemoryCategory::Project);
+        assert!(parsed.entries[1].tags.is_empty());
+    }
+
+    #[test]
+    fn test_memory_index_upsert_new() {
+        let mut idx = MemoryIndex::default();
+        let entry = MemoryFileEntry {
+            relative_path: "user/prefs.md".to_string(),
+            category: MemoryCategory::User,
+            summary: "用户偏好".to_string(),
+            tags: vec![],
         };
-        let md = original.to_markdown();
-        let parsed = ProjectMemory::parse_from_markdown(&md, "/test");
-        assert_eq!(parsed.tech_stack, original.tech_stack);
-        assert_eq!(parsed.conventions, original.conventions);
-        assert_eq!(parsed.common_commands, original.common_commands);
-        assert_eq!(parsed.architecture_notes, original.architecture_notes);
-        assert_eq!(parsed.user_preferences, original.user_preferences);
+        idx.upsert(entry);
+        assert_eq!(idx.entries.len(), 1);
     }
 
     #[test]
-    fn test_project_memory_parse_unknown_section_ignored() {
-        let content = "# Project Memory\n\n## Unknown Section\n- should be ignored\n\n## Tech Stack\n- Rust\n";
-        let memory = ProjectMemory::parse_from_markdown(content, "/test");
-        assert_eq!(memory.tech_stack, vec!["Rust"]);
-        assert!(memory.conventions.is_empty());
-    }
-
-    #[test]
-    fn test_project_memory_serialization() {
-        let memory = ProjectMemory {
-            project_path: "/test".to_string(),
-            conventions: vec!["Use tabs".to_string()],
-            architecture_notes: vec![],
-            common_commands: vec!["cargo build".to_string()],
-            tech_stack: vec!["Rust".to_string()],
-            user_preferences: vec![],
+    fn test_memory_index_upsert_existing() {
+        let mut idx = MemoryIndex::default();
+        idx.entries.push(MemoryFileEntry {
+            relative_path: "user/prefs.md".to_string(),
+            category: MemoryCategory::User,
+            summary: "旧摘要".to_string(),
+            tags: vec![],
+        });
+        let new_entry = MemoryFileEntry {
+            relative_path: "user/prefs.md".to_string(),
+            category: MemoryCategory::User,
+            summary: "新摘要".to_string(),
+            tags: vec!["rust".to_string()],
         };
-        let json = serde_json::to_string(&memory).unwrap();
-        let deserialized: ProjectMemory = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.project_path, "/test");
-        assert_eq!(deserialized.tech_stack, vec!["Rust"]);
-        assert_eq!(deserialized.conventions, vec!["Use tabs"]);
-        assert_eq!(deserialized.common_commands, vec!["cargo build"]);
+        idx.upsert(new_entry);
+        assert_eq!(idx.entries.len(), 1);
+        assert_eq!(idx.entries[0].summary, "新摘要");
+        assert_eq!(idx.entries[0].tags, vec!["rust"]);
     }
 
     #[test]
-    fn test_project_memory_memory_file_constant() {
-        assert_eq!(ProjectMemory::MEMORY_FILE, ".axagent/memory.md");
+    fn test_memory_index_remove_existing() {
+        let mut idx = MemoryIndex::default();
+        idx.entries.push(MemoryFileEntry {
+            relative_path: "user/prefs.md".to_string(),
+            category: MemoryCategory::User,
+            summary: "用户偏好".to_string(),
+            tags: vec![],
+        });
+        assert!(idx.remove("user/prefs.md"));
+        assert!(idx.entries.is_empty());
+    }
+
+    #[test]
+    fn test_memory_index_remove_nonexistent() {
+        let mut idx = MemoryIndex::default();
+        assert!(!idx.remove("nonexistent.md"));
+    }
+
+    #[test]
+    fn test_tokenize_query_basic() {
+        let tokens = tokenize_query("rust tauri react");
+        assert_eq!(tokens, vec!["rust", "tauri", "react"]);
+    }
+
+    #[test]
+    fn test_tokenize_query_with_punctuation() {
+        let tokens = tokenize_query("rust, tauri; react!");
+        assert_eq!(tokens, vec!["rust", "tauri", "react"]);
+    }
+
+    #[test]
+    fn test_tokenize_query_empty() {
+        let tokens = tokenize_query("");
+        assert!(tokens.is_empty());
+    }
+
+    #[test]
+    fn test_tokenize_query_lowercase() {
+        let tokens = tokenize_query("Rust TAURI React");
+        assert_eq!(tokens, vec!["rust", "tauri", "react"]);
+    }
+
+    #[test]
+    fn test_compute_relevance_score_empty_keywords() {
+        let score = compute_relevance_score("some content", &[]);
+        assert_eq!(score, 0.0);
+    }
+
+    #[test]
+    fn test_compute_relevance_score_no_match() {
+        let keywords = vec!["python".to_string()];
+        let score = compute_relevance_score("rust and tauri", &keywords);
+        assert_eq!(score, 0.0);
+    }
+
+    #[test]
+    fn test_compute_relevance_score_with_match() {
+        let keywords = vec!["rust".to_string()];
+        let content = "rust is great, rust is fun";
+        let score = compute_relevance_score(content, &keywords);
+        assert!(score > 0.0);
+    }
+
+    #[test]
+    fn test_compute_relevance_score_multiple_keywords() {
+        let keywords = vec!["rust".to_string(), "tauri".to_string()];
+        let content = "rust and tauri together";
+        let score = compute_relevance_score(content, &keywords);
+        assert!(score > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_new() {
+        let pm = ProjectMemory::new("/test/project");
+        assert_eq!(pm.project_root, PathBuf::from("/test/project"));
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_index_path() {
+        let pm = ProjectMemory::new("/test/project");
+        assert_eq!(pm.index_path(), PathBuf::from("/test/project/.axagent/MEMORY.md"));
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_memory_dir() {
+        let pm = ProjectMemory::new("/test/project");
+        assert_eq!(pm.memory_dir(), PathBuf::from("/test/project/.axagent/memory"));
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_category_dir() {
+        let pm = ProjectMemory::new("/test/project");
+        assert_eq!(
+            pm.category_dir(MemoryCategory::User),
+            PathBuf::from("/test/project/.axagent/memory/user")
+        );
+        assert_eq!(
+            pm.category_dir(MemoryCategory::Project),
+            PathBuf::from("/test/project/.axagent/memory/project")
+        );
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_load_index_nonexistent() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let idx = pm.load_index().await;
+        assert!(idx.entries.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_save_and_load_index() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let mut idx = MemoryIndex::default();
+        idx.entries.push(MemoryFileEntry {
+            relative_path: "user/prefs.md".to_string(),
+            category: MemoryCategory::User,
+            summary: "用户偏好".to_string(),
+            tags: vec!["rust".to_string()],
+        });
+        pm.save_index(&idx).await.unwrap();
+        let loaded = pm.load_index().await;
+        assert_eq!(loaded.entries.len(), 1);
+        assert_eq!(loaded.entries[0].relative_path, "user/prefs.md");
+        assert_eq!(loaded.entries[0].category, MemoryCategory::User);
+        assert_eq!(loaded.entries[0].summary, "用户偏好");
+        assert_eq!(loaded.entries[0].tags, vec!["rust"]);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_load_category_nonexistent() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let result = pm.load_category(MemoryCategory::User).await.unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_save_and_load_topic_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let path =
+            pm.save_topic_file(MemoryCategory::Project, "arch.md", "项目架构内容").await.unwrap();
+        assert!(path.exists());
+        let files = pm.load_category(MemoryCategory::Project).await.unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].1, "项目架构内容");
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_save_topic_file_invalid_name_with_slash() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let result = pm.save_topic_file(MemoryCategory::Project, "sub/arch.md", "content").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_save_topic_file_invalid_name_dotdot() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let result = pm.save_topic_file(MemoryCategory::Project, "../escape.md", "content").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_save_topic_file_invalid_name_leading_dot() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let result = pm.save_topic_file(MemoryCategory::Project, ".hidden.md", "content").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_save_topic_file_invalid_name_not_md() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let result = pm.save_topic_file(MemoryCategory::Project, "arch.txt", "content").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_save_topic_file_too_large() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        // 创建超过 256KB 的内容
+        let huge_content = "a".repeat(mem_const::MEMORY_FILE_SIZE_LIMIT + 1);
+        let result = pm.save_topic_file(MemoryCategory::Project, "huge.md", &huge_content).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_delete_topic_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        pm.save_topic_file(MemoryCategory::User, "prefs.md", "content").await.unwrap();
+        let deleted = pm.delete_topic_file(MemoryCategory::User, "prefs.md").await.unwrap();
+        assert!(deleted);
+        // 再次删除应返回 false
+        let deleted_again = pm.delete_topic_file(MemoryCategory::User, "prefs.md").await.unwrap();
+        assert!(!deleted_again);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_delete_topic_file_nonexistent() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let deleted = pm.delete_topic_file(MemoryCategory::User, "nonexistent.md").await.unwrap();
+        assert!(!deleted);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_scan_relevant_files_empty_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let results = pm.scan_relevant_files("rust", 5).await.unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_scan_relevant_files_with_matches() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        pm.save_topic_file(MemoryCategory::User, "prefs.md", "rust and tauri").await.unwrap();
+        pm.save_topic_file(MemoryCategory::Project, "arch.md", "python and django").await.unwrap();
+        let results = pm.scan_relevant_files("rust", 5).await.unwrap();
+        assert!(!results.is_empty());
+        // rust 匹配 user/prefs.md
+        assert_eq!(results[0].category, MemoryCategory::User);
+        assert!(results[0].score > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_scan_relevant_files_respects_limit() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        // 创建 3 个文件
+        for i in 0..3 {
+            pm.save_topic_file(MemoryCategory::Project, &format!("file_{}.md", i), "rust content")
+                .await
+                .unwrap();
+        }
+        let results = pm.scan_relevant_files("rust", 2).await.unwrap();
+        assert_eq!(results.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_scan_relevant_files_default_limit() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        // 创建 7 个文件(超过默认限制 5)
+        for i in 0..7 {
+            pm.save_topic_file(MemoryCategory::Project, &format!("file_{}.md", i), "rust content")
+                .await
+                .unwrap();
+        }
+        let results = pm.scan_relevant_files("rust", 0).await.unwrap();
+        assert_eq!(results.len(), mem_const::MEMORY_RELEVANT_FILES_LIMIT);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_migrate_from_legacy_no_legacy() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let migrated = pm.migrate_from_legacy().await.unwrap();
+        assert!(!migrated);
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_migrate_from_legacy_with_legacy() {
+        let dir = tempfile::tempdir().unwrap();
+        // 创建旧文件
+        let axagent_dir = dir.path().join(".axagent");
+        std::fs::create_dir_all(&axagent_dir).unwrap();
+        std::fs::write(axagent_dir.join("memory.md"), "# Legacy Memory\n\n- old content\n")
+            .unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let migrated = pm.migrate_from_legacy().await.unwrap();
+        assert!(migrated);
+        // 旧文件应已删除
+        assert!(!axagent_dir.join("memory.md").exists());
+        // 新文件应已创建
+        assert!(pm.topic_file_path(MemoryCategory::Project, "legacy.md").exists());
+        // 索引应已创建
+        let idx = pm.load_index().await;
+        assert_eq!(idx.entries.len(), 1);
+        assert_eq!(idx.entries[0].relative_path, "project/legacy.md");
+    }
+
+    #[tokio::test]
+    async fn test_project_memory_migrate_from_legacy_already_migrated() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        // 先创建新索引
+        pm.save_index(&MemoryIndex::default()).await.unwrap();
+        // 创建旧文件
+        let axagent_dir = dir.path().join(".axagent");
+        std::fs::create_dir_all(&axagent_dir).unwrap();
+        std::fs::write(axagent_dir.join("memory.md"), "legacy").unwrap();
+        let migrated = pm.migrate_from_legacy().await.unwrap();
+        assert!(!migrated);
+        // 旧文件应保留(未迁移)
+        assert!(axagent_dir.join("memory.md").exists());
     }
 }

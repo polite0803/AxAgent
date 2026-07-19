@@ -116,9 +116,17 @@
       "fullAccess": "Full Access"
     },
     "permissionStrategy": "Permission Strategy",
+    "privacyControl": "Privacy Control",
     "resourceControl": "Resource Control & Eco Strategy",
     "retryDelay": "Retry Delay (seconds)",
     "shellConfirm": "Shell Confirm",
+    "telemetryLevel": {
+      "full": "Full",
+      "minimal": "Minimal",
+      "off": "Off"
+    },
+    "telemetryLevelHint": "AxAgent collects no telemetry by default. \"Minimal\" records only user-behavior events (for session tracing); \"Full\" additionally logs HTTP request details (URL, status, etc.). Changes take effect immediately.",
+    "telemetryLevelLabel": "Telemetry Level",
     "tokenBudgetLimit": "Token Budget Limit",
     "warningBuffer": "Warning Buffer (token)"
   },
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "Define the agent's behavior and capabilities...",
       "temperature": "Temperature",
       "temperatureHint": "0: Deterministic ↑ | 2: Random ↑",
+      "taskScene": "Task Scene",
+      "taskSceneAuto": "🔄 Auto Infer",
+      "taskSceneCode": "💻 Code Mode",
+      "taskSceneGeneral": "🌐 General",
+      "taskSceneHint": "Control Agent output style: Code mode provides code directly with minimal explanation; Research mode emphasizes structured analysis with citations; Auto mode infers from input text",
+      "taskSceneResearch": "🔬 Research Mode",
       "timeout": "timeout",
       "timeoutSeconds": "Timeout (seconds)",
       "timeoutSecondsParallel": "Timeout (seconds)",

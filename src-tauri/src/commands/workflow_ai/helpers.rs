@@ -832,6 +832,7 @@ pub(super) fn parse_llm_response(
                         model_role: None,
                         consistency_check: None,
                         hallucination_guard: None,
+                        task_scene: None,
                         input_mapping: std::collections::HashMap::new(),
                     });
                 WorkflowNode::Agent(AgentNode { base, config: agent_config })
@@ -1172,6 +1173,7 @@ pub(super) fn parse_llm_response(
                     consistency_check: None,
                     hallucination_guard: None,
                     input_mapping: std::collections::HashMap::new(),
+                    task_scene: None,
                 },
             }),
         };

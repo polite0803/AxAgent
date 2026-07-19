@@ -131,3 +131,98 @@ pub fn resolve_expression(expr: &str, ctx: &ExpressionContext) -> Result<Value, 
 
     Ok(dynamic_to_value(result))
 }
+
+/// 4.2 P3:while/until 条件表达式求值(支持 Rhai 任意表达式)
+///
+/// 与 `resolve_expression` 不同,本函数额外注入 Loop 上下文变量:
+/// - `iter_index`: 当前迭代序号(i64)
+/// - `partial`: 已完成的迭代输出数组(可通过 `partial.len()` / `partial[0]` 访问)
+///
+/// 变量命名约定(无 `$` 前缀;Rhai 1.x 中 `$` 是保留符号):
+/// - `vars`        — 全局变量(ExecutionState.variables)
+/// - `node`        — 节点输出(ExecutionState.node_outputs)
+/// - `input`       — 当前节点输入参数
+/// - `env`         — 环境变量
+/// - `now`         — 当前时间(map: timestamp/iso/year/month/day/hour/minute)
+/// - `iter_index`  — 当前迭代序号
+/// - `partial`     — 已完成迭代输出数组
+///
+/// 表达式返回值按以下规则转换为 bool:
+/// - `bool` → 原值
+/// - `i64` / `f64` → 非 0 即 true
+/// - `String` → 非空即 true
+/// - 其他 / 错误 → false(避免错误条件触发死循环)
+///
+/// 示例:
+/// - `iter_index < 10`
+/// - `vars.threshold > 0 && partial.len() < vars.threshold`
+/// - `node["check_result"].ok`
+pub fn resolve_loop_condition(
+    cond: &str,
+    ctx: &ExpressionContext,
+    iter_index: u32,
+    partial: &[Value],
+) -> Result<bool, RhaiEvalError> {
+    let engine = Engine::new();
+    let mut scope = Scope::new();
+
+    // 复用 resolve_expression 的注入逻辑(但用不带 `$` 的标识符)
+    let vars_map =
+        ctx.variables.iter().map(|(k, v)| (k.clone().into(), value_to_dynamic(v))).collect::<Map>();
+    scope.push_dynamic("vars", Dynamic::from_map(vars_map));
+
+    let node_map = ctx
+        .node_outputs
+        .iter()
+        .map(|(k, v)| (k.clone().into(), value_to_dynamic(v)))
+        .collect::<Map>();
+    scope.push_dynamic("node", Dynamic::from_map(node_map));
+
+    scope.push_dynamic("input", value_to_dynamic(&ctx.input_params));
+
+    let now = Utc::now();
+    let mut now_map = Map::new();
+    now_map.insert("timestamp".into(), Dynamic::from_int(now.timestamp()));
+    now_map.insert("iso".into(), Dynamic::from(now.to_rfc3339()));
+    now_map.insert("year".into(), Dynamic::from_int(now.year() as i64));
+    now_map.insert("month".into(), Dynamic::from_int(now.month() as i64));
+    now_map.insert("day".into(), Dynamic::from_int(now.day() as i64));
+    now_map.insert("hour".into(), Dynamic::from_int(now.hour() as i64));
+    now_map.insert("minute".into(), Dynamic::from_int(now.minute() as i64));
+    scope.push_dynamic("now", Dynamic::from_map(now_map));
+
+    let env_map =
+        ctx.env.iter().map(|(k, v)| (k.clone().into(), Dynamic::from(v.clone()))).collect::<Map>();
+    scope.push_dynamic("env", Dynamic::from_map(env_map));
+
+    // Loop 专属变量
+    scope.push("iter_index", Dynamic::from_int(iter_index as i64));
+    let partial_arr: Vec<Dynamic> = partial.iter().map(value_to_dynamic).collect();
+    scope.push_dynamic("partial", Dynamic::from_array(partial_arr));
+
+    let ast =
+        engine.compile_expression(cond).map_err(|e| RhaiEvalError::CompileError(e.to_string()))?;
+
+    let result = engine
+        .eval_ast_with_scope::<Dynamic>(&mut scope, &ast)
+        .map_err(|e| RhaiEvalError::RuntimeError(e.to_string()))?;
+
+    Ok(dynamic_to_bool(result))
+}
+
+/// 将 Rhai Dynamic 转换为 bool(条件表达式专用)
+///
+/// 规则:`bool` 原值;数字非零为 true;字符串非空为 true;其他类型 false。
+fn dynamic_to_bool(d: Dynamic) -> bool {
+    if d.is::<bool>() {
+        d.try_cast().unwrap_or(false)
+    } else if d.is::<i64>() {
+        d.try_cast::<i64>().unwrap_or(0) != 0
+    } else if d.is::<f64>() {
+        d.try_cast::<f64>().unwrap_or(0.0) != 0.0
+    } else if d.is::<String>() {
+        !d.try_cast::<String>().unwrap_or_default().is_empty()
+    } else {
+        false
+    }
+}

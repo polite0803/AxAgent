@@ -2,21 +2,39 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::WorkflowNode;
+use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
-pub struct SwitchExecutor;
+pub struct SwitchExecutor {
+    // SwitchExecutor 当前不直接执行 LLM 调用,无需解密 provider key;
+    // 但为保持与 AgentExecutor / LlmExecutor / ConditionExecutor 等兄弟 executor
+    // 的构造接口一致(均由 WorkEngine::new 统一注入 master_key),此处保留字段。
+    #[allow(dead_code)]
+    master_key: [u8; 32],
+    /// 由 Harness 注入的 ProviderRegistry（运行时按 provider 类型查找 adapter）
+    provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
+}
 
 impl SwitchExecutor {
-    pub fn new() -> Self {
-        Self
+    pub fn new(master_key: [u8; 32]) -> Self {
+        Self { master_key, provider_registry: None }
     }
 }
 
 impl Default for SwitchExecutor {
     fn default() -> Self {
-        Self::new()
+        Self::new([0u8; 32])
+    }
+}
+
+impl axagent_harness::HasProviderRegistry for SwitchExecutor {
+    fn set_provider_registry(
+        &mut self,
+        registry: Arc<dyn axagent_harness::registry::ProviderRegistry>,
+    ) {
+        self.provider_registry = Some(registry);
     }
 }
 

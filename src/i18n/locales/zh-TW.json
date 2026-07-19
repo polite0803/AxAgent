@@ -120,7 +120,15 @@
     "retryDelay": "重試延遲（秒）",
     "shellConfirm": "Shell Execution Requires Confirmation",
     "tokenBudgetLimit": "Token 預算上限",
-    "warningBuffer": "警告閾值緩衝（token）"
+    "warningBuffer": "警告閾值緩衝（token）",
+    "telemetryLevel": {
+      "full": "完整",
+      "minimal": "最小化",
+      "off": "關閉"
+    },
+    "telemetryLevelHint": "AxAgent 預設不收集任何遙測資料。選擇「最小化」僅記錄使用者行為事件（用於工作階段追蹤），「完整」會額外記錄 HTTP 請求細節（URL、狀態碼等）。修改後立即生效。",
+    "telemetryLevelLabel": "遙測級別",
+    "privacyControl": "隱私控制"
   },
   "agent": {
     "answerSubmitted": "回答已提交",
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "輸入系統提示詞...",
       "temperature": "溫度",
       "temperatureHint": "越高越有創造性，越低越精確",
+      "taskScene": "任務場景",
+      "taskSceneAuto": "🔄 自動推斷",
+      "taskSceneCode": "💻 程式碼模式",
+      "taskSceneGeneral": "🌐 通用",
+      "taskSceneHint": "控制 Agent 輸出風格:程式碼模式直接給程式碼少廢話;研究模式強調結構化分析與引用;自動模式由輸入文本推斷",
+      "taskSceneResearch": "🔬 研究模式",
       "timeout": "逾時",
       "timeoutSeconds": "逾時 (秒)",
       "timeoutSecondsParallel": "超時 (秒)",

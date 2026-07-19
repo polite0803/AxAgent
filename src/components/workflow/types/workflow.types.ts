@@ -113,6 +113,15 @@ export interface AgentNodeConfig {
   /** RAG 知识源 ID 列表。格式: "knowledge:<kb_id>", "memory:<ns_id>", "wiki:<wiki_id>" */
   rag_source_ids?: string[];
   model_role?: "quick_think" | "deep_think";
+  /**
+   * 3.7 P2:任务场景 — 控制 Agent 节点的输出风格指令。
+   * - `general`:无特殊约束(默认)
+   * - `code`:强调直接给代码、少废话
+   * - `research`:强调结构化分析、引用、权衡
+   * - `auto`:由 `TaskScene::infer(input)` 自动推断
+   * 缺省 `undefined` 时按 `general` 处理。
+   */
+  task_scene?: "general" | "code" | "research" | "auto";
 }
 
 export interface AgentNode extends WorkflowNodeBase {

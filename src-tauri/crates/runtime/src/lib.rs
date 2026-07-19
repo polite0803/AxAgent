@@ -54,6 +54,11 @@ pub mod message_gateway;
 pub mod mode_selector;
 pub mod module_switch;
 mod oauth;
+/// 3.3 P2:6 小时无人值守持久重试调度器
+///
+/// 跨进程持久化重试调度器,失败后保存 session → 等待冷却 → 自动加载恢复 → 继续执行。
+/// 由 src-tauri/src/init/ 的后台守护进程定时唤醒检查 pending session。
+pub mod persistent_runner;
 pub mod plugin_lifecycle;
 mod policy_engine;
 pub mod priority_scheduler;

@@ -116,9 +116,17 @@
       "fullAccess": "Полный доступ"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "Контроль конфиденциальности",
     "resourceControl": "Управление ресурсами и эко-стратегия",
     "retryDelay": "Задержка повтора (секунды)",
     "shellConfirm": "Shell Execution Requires Confirmation",
+    "telemetryLevel": {
+      "full": "Полный",
+      "minimal": "Минимальный",
+      "off": "Выключено"
+    },
+    "telemetryLevelHint": "AxAgent по умолчанию не собирает телеметрию. «Минимальный» записывает только события поведения пользователя (для отслеживания сеансов); «Полный» дополнительно фиксирует детали HTTP-запросов (URL, статус и т. д.). Изменения вступают в силу немедленно.",
+    "telemetryLevelLabel": "Уровень телеметрии",
     "tokenBudgetLimit": "Лимит бюджета токенов",
     "warningBuffer": "Буфер предупреждения (токенов)"
   },
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "Определите поведение и возможности агента...",
       "temperature": "Температура",
       "temperatureHint": "0: детерминированность ↑ | 2: случайность ↑",
+      "taskScene": "Сцена задачи",
+      "taskSceneAuto": "🔄 Авто-вывод",
+      "taskSceneCode": "💻 Режим кода",
+      "taskSceneGeneral": "🌐 Общий",
+      "taskSceneHint": "Управляет стилем вывода Agent: режим кода выдаёт код напрямую, режим исследования акцентирует структурированный анализ и цитаты, автоматический режим выводит из ввода",
+      "taskSceneResearch": "🔬 Режим исследования",
       "timeout": "Таймаут",
       "timeoutSeconds": "Таймаут (сек)",
       "timeoutSecondsParallel": "Таймаут (секунды)",

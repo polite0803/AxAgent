@@ -439,102 +439,10 @@ fn collapse_blank_lines(content: &str) -> String {
 }
 
 /// The task scene determines which prompt modules to load dynamically.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TaskScene {
-    /// General chat, document processing, system operations.
-    General,
-    /// Code reading, project modification, feature development, code search.
-    Code,
-    /// Research-oriented tasks: knowledge extraction, academic search.
-    Research,
-    /// Automatic mode inferred from context — no explicit scene chosen.
-    Auto,
-}
-
-impl TaskScene {
-    /// Infer the task scene from user input text.
-    pub fn infer(text: &str) -> Self {
-        let lowered = text.to_lowercase();
-
-        let code_keywords = [
-            "code",
-            "function",
-            "class",
-            "impl",
-            "compile",
-            "build",
-            "cargo",
-            "npm",
-            "test",
-            "debug",
-            "error",
-            "fix",
-            "refactor",
-            "rust",
-            "typescript",
-            "javascript",
-            "python",
-            "golang",
-            "java",
-            "struct",
-            "trait",
-            "mod",
-            "import",
-            "export",
-            "component",
-            "hook",
-            "api",
-            "endpoint",
-        ];
-        let research_keywords = [
-            "research",
-            "analyze",
-            "knowledge",
-            "extract",
-            "academic",
-            "paper",
-            "search for",
-            "find information",
-            "learn about",
-            "explain concept",
-        ];
-
-        let code_score = code_keywords.iter().filter(|k| lowered.contains(*k)).count();
-        let research_score = research_keywords.iter().filter(|k| lowered.contains(*k)).count();
-
-        if code_score >= 2 {
-            TaskScene::Code
-        } else if research_score >= 2 {
-            TaskScene::Research
-        } else if code_score > 0 {
-            TaskScene::Code
-        } else {
-            TaskScene::General
-        }
-    }
-
-    /// The concise output directive injected for code-heavy scenes.
-    pub fn concise_directive(&self) -> &str {
-        match self {
-            TaskScene::Code => concat!(
-                "## Output Constraints for Code Mode\n",
-                "- Provide code solutions directly without lengthy explanations.\n",
-                "- Do not restate what the code does unless asked.\n",
-                "- Minimize commentary; focus on implementation.\n",
-                "- Include only essential comments in generated code.\n",
-                "- Skip boilerplate explanations (e.g., \"Here is how you...\").\n",
-                "- If the solution is short, output only the code."
-            ),
-            TaskScene::Research => concat!(
-                "## Output Constraints for Research Mode\n",
-                "- Provide thorough analysis with citations.\n",
-                "- Structure output with clear headings.\n",
-                "- Include trade-offs and alternatives where relevant."
-            ),
-            TaskScene::General | TaskScene::Auto => "",
-        }
-    }
-}
+///
+/// 3.7 P2:已下沉到 `axagent_harness::TaskScene`(foundation 层),
+/// 这里通过 re-export 保持向后兼容,所有现有调用方无需修改。
+pub use axagent_harness::TaskScene;
 
 /// Loads config and project context, then renders the system prompt text.
 pub fn load_system_prompt(

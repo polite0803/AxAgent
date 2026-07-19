@@ -167,6 +167,15 @@ pub struct AppSettings {
     pub onboarding_tutorial_completed: bool,
     /// Onboarding — quick-start preset selected during the wizard.
     pub onboarding_selected_preset: Option<String>,
+    /// 2.7 P1:遥测级别三级开关 — "off" | "minimal" | "full"。
+    ///
+    /// - `off`:完全关闭遥测
+    /// - `minimal`:仅记录用户行为级事件(Analytics / SessionTrace)
+    /// - `full`:记录所有遥测事件(含 HTTP 请求细节)
+    ///
+    /// 默认 `off`,遵循"最小化采集"原则,用户未明确选择时不记录任何遥测。
+    /// 后端 `FilteringSink` 在初始化时读取此值并包装内部 sink。
+    pub telemetry_level: String,
 }
 
 impl Default for AppSettings {
@@ -299,6 +308,7 @@ impl Default for AppSettings {
             onboarding_wizard_dismissed: false,
             onboarding_tutorial_completed: false,
             onboarding_selected_preset: None,
+            telemetry_level: "off".to_string(),
         }
     }
 }

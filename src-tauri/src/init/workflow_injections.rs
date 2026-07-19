@@ -1170,26 +1170,24 @@ mod tests {
         serde_json::from_str(&json).expect("deserialize genome")
     }
 
-    #[test]
-    fn test_dry_run_sandbox_passes_with_reasonable_timeout() {
+    #[tokio::test]
+    async fn test_dry_run_sandbox_passes_with_reasonable_timeout() {
         // timeout=10s ≤ 300s,无错误 → passed
         let genome = make_genome_with_timeout(10);
         let sandbox = DryRunWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
         assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
         assert_eq!(result.success_rate, 1.0);
         // 模拟耗时 = 10s = 10000ms
         assert_eq!(result.avg_execution_time_ms, 10_000);
     }
 
-    #[test]
-    fn test_dry_run_sandbox_fails_with_excessive_timeout() {
+    #[tokio::test]
+    async fn test_dry_run_sandbox_fails_with_excessive_timeout() {
         // timeout=400s > 300s 上限 → 失败,错误信息应包含 "exceeds 300s"
         let genome = make_genome_with_timeout(400);
         let sandbox = DryRunWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
         assert!(!result.passed, "expected fail");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("exceeds 300s")),
@@ -1200,8 +1198,8 @@ mod tests {
         assert!(result.success_rate > 0.0 && result.success_rate < 1.0);
     }
 
-    #[test]
-    fn test_dry_run_sandbox_fails_with_excessive_retries() {
+    #[tokio::test]
+    async fn test_dry_run_sandbox_fails_with_excessive_retries() {
         // max_retries=20 > 10 上限 → 失败
         let json = r#"{
             "template_id": "t1",
@@ -1220,8 +1218,7 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = DryRunWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
         assert!(!result.passed, "expected fail");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("retry.max_retries 20 exceeds 10")),
@@ -1230,8 +1227,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_dry_run_sandbox_detects_cycle_without_loop_node() {
+    #[tokio::test]
+    async fn test_dry_run_sandbox_detects_cycle_without_loop_node() {
         // 两个 delay 节点互相连接形成环,无 Loop 节点 → 应报 cycle 错误
         let json = r#"{
             "template_id": "t1",
@@ -1258,8 +1255,7 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = DryRunWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
         assert!(!result.passed, "expected fail due to cycle");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("cycle")),
@@ -1268,8 +1264,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_dry_run_sandbox_allows_cycle_with_loop_node() {
+    #[tokio::test]
+    async fn test_dry_run_sandbox_allows_cycle_with_loop_node() {
         // 包含 Loop 节点 + 环 → 不应报 cycle 错误(环是 Loop 的预期结构)
         let json = r#"{
             "template_id": "t1",
@@ -1296,8 +1292,7 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = DryRunWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
         // 不应有 cycle 错误(Loop 节点允许环)
         assert!(
             !result.execution_errors.iter().any(|e| e.contains("cycle")),

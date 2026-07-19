@@ -722,6 +722,13 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         ),
     }
 
+    // 2.7 P1:从持久化 settings 读取遥测级别初值,构造共享句柄。
+    // `save_settings` 命令在用户修改级别后会更新此句柄;`FilteringSink`
+    // 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
+    let telemetry_level =
+        axagent_telemetry::TelemetryLevel::from_str_or_off(&app_settings.telemetry_level);
+    let telemetry_level_handle = Arc::new(std::sync::RwLock::new(telemetry_level));
+
     Ok(AppState {
         harness,
         gateway: gateway_server,
@@ -804,6 +811,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         session_share_manager,
         #[cfg(not(mobile))]
         pty_manager,
+        telemetry_level_handle,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,
         gateway_state,

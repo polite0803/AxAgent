@@ -120,7 +120,15 @@
     "retryDelay": "Wiederholungsverzögerung (Sekunden)",
     "shellConfirm": "Shell Execution Requires Confirmation",
     "tokenBudgetLimit": "Token-Budgetlimit",
-    "warningBuffer": "Warnungspuffer (Token)"
+    "warningBuffer": "Warnungspuffer (Token)",
+    "telemetryLevel": {
+      "full": "Voll",
+      "minimal": "Minimal",
+      "off": "Aus"
+    },
+    "telemetryLevelHint": "AxAgent erfasst standardmäßig keine Telemetriedaten. „Minimal“ zeichnet nur Benutzerinteraktionsereignisse auf (zur Sitzungsverfolgung); „Voll“ protokolliert zusätzlich HTTP-Anfragedetails (URL, Status usw.). Änderungen werden sofort wirksam.",
+    "telemetryLevelLabel": "Telemetriestufe",
+    "privacyControl": "Datenschutzkontrolle"
   },
   "agent": {
     "answerSubmitted": "Antwort eingereicht",
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "Definieren Sie das Verhalten und die Fähigkeiten des Agenten...",
       "temperature": "Temperatur",
       "temperatureHint": "0: deterministisch ↑ | 2: zufällig ↑",
+      "taskScene": "Aufgabenszene",
+      "taskSceneAuto": "🔄 Auto-Inferenz",
+      "taskSceneCode": "💻 Code-Modus",
+      "taskSceneGeneral": "🌐 Allgemein",
+      "taskSceneHint": "Steuert den Ausgabestil des Agenten: Code-Modus gibt Code direkt aus, Forschungsmodus betont strukturierte Analyse und Zitate, Auto-Modus schließt aus Eingabe",
+      "taskSceneResearch": "🔬 Forschungsmodus",
       "timeout": "Timeout",
       "timeoutSeconds": "Timeout (Sek.)",
       "timeoutSecondsParallel": "Zeitüberschreitung (Sekunden)",

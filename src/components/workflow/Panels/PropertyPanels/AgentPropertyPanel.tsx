@@ -743,6 +743,28 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         </div>
       </div>
 
+      {/* 3.7 P2:TaskScene 场景化输出约束 */}
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          {t("workflow.props.taskScene")}
+        </label>
+        <Select
+          value={config.task_scene ?? "general"}
+          onChange={(v) => handleConfigChange("task_scene", v === "general" ? undefined : v)}
+          size="small"
+          style={{ width: "100%" }}
+          options={[
+            { value: "general", label: t("workflow.props.taskSceneGeneral") },
+            { value: "code", label: t("workflow.props.taskSceneCode") },
+            { value: "research", label: t("workflow.props.taskSceneResearch") },
+            { value: "auto", label: t("workflow.props.taskSceneAuto") },
+          ]}
+        />
+        <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+          {t("workflow.props.taskSceneHint")}
+        </div>
+      </div>
+
       <div>
         <label
           style={{

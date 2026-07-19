@@ -808,6 +808,9 @@ mod tests_conversation {
             proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
             dashboard_registry: None,
             webhook_subscription_manager: None,
+            telemetry_level_handle: Arc::new(std::sync::RwLock::new(
+                axagent_telemetry::TelemetryLevel::default(),
+            )),
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(

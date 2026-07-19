@@ -78,6 +78,7 @@ pub mod search_planner;
 pub mod search_provider;
 pub mod self_verifier;
 pub mod session_manager;
+pub mod shadow_fs;
 pub mod slash_command;
 pub mod source_classifier;
 pub mod source_validator;

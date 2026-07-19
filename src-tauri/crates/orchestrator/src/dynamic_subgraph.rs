@@ -135,6 +135,7 @@ impl DynamicSubGraph {
             model_role: None,
             consistency_check: None,
             hallucination_guard: None,
+            task_scene: None,
         };
 
         WorkflowNode::Agent(AgentNode { base, config })
@@ -447,6 +448,7 @@ mod tests {
                         model_role: None,
                         consistency_check: None,
                         hallucination_guard: None,
+                        task_scene: None,
                     },
                 })
             })
@@ -514,6 +516,7 @@ mod tests {
                         model_role: None,
                         consistency_check: None,
                         hallucination_guard: None,
+                        task_scene: None,
                     },
                 })
             })

@@ -118,6 +118,62 @@ pub use axagent_harness::runtime_types::conversation::TurnSummary;
 /// Details about automatic session compaction — 从 harness 导入
 pub use axagent_harness::runtime_types::conversation::AutoCompactionEvent;
 
+/// 3.4 P2:ReAct 循环状态机阶段
+///
+/// 文档化 conversation.rs 内 ReAct 循环的状态机意图,为未来重构 loop{} 为
+/// 显式 `loop { match state { ... } }` 结构奠定基础。当前 loop{} 内部逻辑
+/// 已按此状态机顺序执行,只是未显式化为 enum + match。
+///
+/// ## 状态转移图
+/// ```text
+/// Start ──▶ CheckCancel ──▶ CheckPause ──▶ CheckIterationLimit
+///              │                │                │
+///              ▼                ▼                ▼
+///          (cancel)         (paused)        (exceeded)
+///              │                │                │
+///              ▼                ▼                ▼
+///           Return           Wait             Return
+///
+/// CheckIterationLimit ──▶ BuildSystemPrompt ──▶ InjectContext
+///                                                       │
+///                                                       ▼
+///                                                  CallLlm
+///                                                       │
+///                                                       ▼
+///                                              (retry on transient)
+///                                                       │
+///                                                       ▼
+///                                            ParseToolCalls
+///                                                       │
+///                                       ┌───────────────┴───────────────┐
+///                                       ▼                               ▼
+///                                  (no tools)                      ExecuteTools
+///                                       │                               │
+///                                       ▼                               │
+///                                  Complete ◀─────────────────────────┘
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReactState {
+    /// 检查取消令牌
+    CheckCancel,
+    /// 检查暂停状态
+    CheckPause,
+    /// 检查迭代上限
+    CheckIterationLimit,
+    /// 构建系统提示词
+    BuildSystemPrompt,
+    /// 注入动态上下文
+    InjectContext,
+    /// 调用 LLM(含重试,见 RecoveryCoordinator)
+    CallLlm,
+    /// 解析工具调用
+    ParseToolCalls,
+    /// 执行工具(含重试,见 RecoveryCoordinator)
+    ExecuteTools,
+    /// 循环完成
+    Complete,
+}
+
 /// Coordinates the model loop, tool execution, hooks, and session updates.
 pub struct ConversationRuntime<C, T> {
     session: Session,
@@ -550,7 +606,6 @@ where
                 Ok(events) => events,
                 Err(error) => {
                     let err_msg = error.to_string();
-                    let err_lower = err_msg.to_lowercase();
 
                     // ── L4 Reactive Compact:检测上下文溢出错误,尝试响应式压缩后重试一次 ──
                     // 当 API 返回 prompt_too_long / context_length_exceeded / 413 等错误时,
@@ -600,59 +655,65 @@ where
                             },
                         }
                     } else {
-                        // ── 原重试逻辑:429/rate/timeout/network/connection ──
-                        let is_retryable = err_lower.contains("429")
-                            || err_lower.contains("rate")
-                            || err_lower.contains("timeout")
-                            || err_lower.contains("network")
-                            || err_lower.contains("connection");
-
-                        if is_retryable {
-                            const MAX_RETRIES: u32 = 3;
-                            const RETRY_DELAY_MS: u64 = 2000;
-                            let mut retry_count = 0;
-                            loop {
-                                retry_count += 1;
-                                if retry_count > MAX_RETRIES {
-                                    self.record_turn_failed(iterations, &error);
-                                    return Err(error);
+                        // ── 3.6 P2:使用 RecoveryCoordinator 统一调度 LLM API 重试 ──
+                        // 替代原局部 MAX_RETRIES=3 + 线性退避逻辑,
+                        // 采用错误分类 → 策略选择 → 指数退避的统一模式。
+                        let error_type = classify_recovery_error(&err_msg);
+                        match get_recovery_action(error_type) {
+                            RecoveryAction::Fail => {
+                                tracing::warn!(
+                                    error_type = ?error_type,
+                                    error = %err_msg,
+                                    "[RecoveryCoordinator] LLM API 错误不可恢复,直接失败"
+                                );
+                                self.record_turn_failed(iterations, &error);
+                                return Err(error);
+                            },
+                            RecoveryAction::Retry { max_attempts, base_delay_ms } => {
+                                let mut retry_count = 0;
+                                loop {
+                                    retry_count += 1;
+                                    if retry_count > max_attempts {
+                                        self.record_turn_failed(iterations, &error);
+                                        return Err(error);
+                                    }
+                                    // Check cancel token before sleeping
+                                    if let Err(cancel_err) =
+                                        check_cancelled(self.cancel_token.as_ref())
+                                    {
+                                        self.record_turn_failed(iterations, &cancel_err);
+                                        return Err(cancel_err);
+                                    }
+                                    let delay = compute_backoff_delay(base_delay_ms, retry_count);
+                                    std::thread::sleep(std::time::Duration::from_millis(delay));
+                                    let retry_request = ApiRequest {
+                                        system_prompt: self.system_prompt.clone(),
+                                        messages: self.prepare_request_messages(),
+                                    };
+                                    match self.api_client.stream(retry_request) {
+                                        Ok(events) => break events,
+                                        Err(retry_error) => {
+                                            let retry_str = retry_error.to_string();
+                                            let new_type = classify_recovery_error(&retry_str);
+                                            // 不可恢复错误或重试耗尽:立即失败
+                                            if matches!(new_type, RecoveryErrorType::Unrecoverable)
+                                                || retry_count >= max_attempts
+                                            {
+                                                self.record_turn_failed(iterations, &retry_error);
+                                                return Err(retry_error);
+                                            }
+                                            tracing::warn!(
+                                                attempt = retry_count,
+                                                max_attempts,
+                                                error_type = ?new_type,
+                                                error = %retry_str,
+                                                "[RecoveryCoordinator] LLM API 重试中"
+                                            );
+                                            // Continue retrying with reclassified type
+                                        },
+                                    }
                                 }
-                                // Check cancel token before sleeping
-                                if let Some(ref token) = self.cancel_token
-                                    && token.load(std::sync::atomic::Ordering::Acquire)
-                                {
-                                    let cancel_err =
-                                        RuntimeError::new("Agent cancelled by user".to_string());
-                                    self.record_turn_failed(iterations, &cancel_err);
-                                    return Err(cancel_err);
-                                }
-                                std::thread::sleep(std::time::Duration::from_millis(
-                                    RETRY_DELAY_MS * retry_count as u64,
-                                ));
-                                let retry_request = ApiRequest {
-                                    system_prompt: self.system_prompt.clone(),
-                                    messages: self.prepare_request_messages(),
-                                };
-                                match self.api_client.stream(retry_request) {
-                                    Ok(events) => break events,
-                                    Err(retry_error) => {
-                                        let retry_msg = retry_error.to_string().to_lowercase();
-                                        let still_retryable = retry_msg.contains("429")
-                                            || retry_msg.contains("rate")
-                                            || retry_msg.contains("timeout")
-                                            || retry_msg.contains("network")
-                                            || retry_msg.contains("connection");
-                                        if !still_retryable || retry_count >= MAX_RETRIES {
-                                            self.record_turn_failed(iterations, &retry_error);
-                                            return Err(retry_error);
-                                        }
-                                        // Continue retrying
-                                    },
-                                }
-                            }
-                        } else {
-                            self.record_turn_failed(iterations, &error);
-                            return Err(error);
+                            },
                         }
                     }
                 },
@@ -819,85 +880,88 @@ where
                                 Ok(output) => (output, false),
                                 Err(error) => {
                                     let err_str = error.to_string();
-                                    let err_lower = err_str.to_lowercase();
-                                    // Retry on transient/retryable errors (timeout, network,
-                                    // connection issues) — same pattern as API call retries.
-                                    let is_retryable = err_lower.contains("timeout")
-                                        || err_lower.contains("timed out")
-                                        || err_lower.contains("network")
-                                        || err_lower.contains("connection")
-                                        || err_lower.contains("reset")
-                                        || err_lower.contains("broken pipe")
-                                        || err_lower.contains("eof")
-                                        || err_lower.contains("unavailable");
-
-                                    if is_retryable {
-                                        const MAX_TOOL_RETRIES: u32 = 3;
-                                        const TOOL_RETRY_DELAY_MS: u64 = 1000;
-                                        let mut retry_count = 0;
-                                        loop {
-                                            retry_count += 1;
-                                            if retry_count > MAX_TOOL_RETRIES {
-                                                break (err_str, true);
-                                            }
-                                            // Check cancel token before sleeping
-                                            if let Some(ref token) = self.cancel_token
-                                                && token.load(std::sync::atomic::Ordering::Acquire)
-                                            {
-                                                break (
-                                                    "Agent cancelled by user".to_string(),
-                                                    true,
-                                                );
-                                            }
-                                            std::thread::sleep(std::time::Duration::from_millis(
-                                                TOOL_RETRY_DELAY_MS * retry_count as u64,
-                                            ));
-                                            // Emit heartbeat before retry so the frontend
-                                            // watchdog doesn't fire during retry chains.
-                                            if let Some(reporter) =
-                                                self.hook_progress_reporter.as_mut()
-                                            {
-                                                reporter.on_progress(
-                                                    &format!(
-                                                        "正在重试工具: {} (第 {} 轮, 第 {} 次尝试)",
-                                                        tool_name, iterations, retry_count
-                                                    ),
-                                                    iterations,
-                                                    self.max_iterations,
-                                                );
-                                            }
-                                            let retry_result = Self::execute_tool_threaded(
-                                                &self.tool_executor,
-                                                &tool_name,
-                                                &effective_input,
-                                                tool_timeout,
-                                                Some(retry_count),
+                                    // ── 3.6 P2:使用 RecoveryCoordinator 统一调度工具执行重试 ──
+                                    // 替代原局部 MAX_TOOL_RETRIES=3 + 线性退避逻辑,
+                                    // 采用错误分类 → 策略选择 → 指数退避的统一模式。
+                                    let error_type = classify_recovery_error(&err_str);
+                                    match get_recovery_action(error_type) {
+                                        RecoveryAction::Fail => {
+                                            tracing::warn!(
+                                                error_type = ?error_type,
+                                                error = %err_str,
+                                                "[RecoveryCoordinator] 工具执行错误不可恢复,直接失败"
                                             );
-                                            match retry_result {
-                                                Ok(output) => break (output, false),
-                                                Err(retry_err) => {
-                                                    let retry_str = retry_err.to_string();
-                                                    let retry_lower = retry_str.to_lowercase();
-                                                    let still_retryable = retry_lower
-                                                        .contains("timeout")
-                                                        || retry_lower.contains("timed out")
-                                                        || retry_lower.contains("network")
-                                                        || retry_lower.contains("connection")
-                                                        || retry_lower.contains("reset")
-                                                        || retry_lower.contains("broken pipe")
-                                                        || retry_lower.contains("eof")
-                                                        || retry_lower.contains("unavailable");
-                                                    if !still_retryable
-                                                        || retry_count >= MAX_TOOL_RETRIES
-                                                    {
-                                                        break (retry_str, true);
-                                                    }
-                                                    // Continue retrying
-                                                },
+                                            (err_str, true)
+                                        },
+                                        RecoveryAction::Retry { max_attempts, base_delay_ms } => {
+                                            let mut retry_count = 0;
+                                            let mut last_err = err_str.clone();
+                                            loop {
+                                                retry_count += 1;
+                                                if retry_count > max_attempts {
+                                                    break (last_err, true);
+                                                }
+                                                // Check cancel token before sleeping
+                                                if let Err(cancel_err) =
+                                                    check_cancelled(self.cancel_token.as_ref())
+                                                {
+                                                    break (cancel_err.to_string(), true);
+                                                }
+                                                let delay = compute_backoff_delay(
+                                                    base_delay_ms,
+                                                    retry_count,
+                                                );
+                                                std::thread::sleep(
+                                                    std::time::Duration::from_millis(delay),
+                                                );
+                                                // Emit heartbeat before retry so the frontend
+                                                // watchdog doesn't fire during retry chains.
+                                                if let Some(reporter) =
+                                                    self.hook_progress_reporter.as_mut()
+                                                {
+                                                    reporter.on_progress(
+                                                        &format!(
+                                                            "正在重试工具: {} (第 {} 轮, 第 {} 次尝试)",
+                                                            tool_name, iterations, retry_count
+                                                        ),
+                                                        iterations,
+                                                        self.max_iterations,
+                                                    );
+                                                }
+                                                let retry_result = Self::execute_tool_threaded(
+                                                    &self.tool_executor,
+                                                    &tool_name,
+                                                    &effective_input,
+                                                    tool_timeout,
+                                                    Some(retry_count),
+                                                );
+                                                match retry_result {
+                                                    Ok(output) => break (output, false),
+                                                    Err(retry_err) => {
+                                                        let retry_str = retry_err.to_string();
+                                                        let new_type =
+                                                            classify_recovery_error(&retry_str);
+                                                        // 不可恢复错误或重试耗尽:立即失败
+                                                        if matches!(
+                                                            new_type,
+                                                            RecoveryErrorType::Unrecoverable
+                                                        ) || retry_count >= max_attempts
+                                                        {
+                                                            break (retry_str, true);
+                                                        }
+                                                        tracing::warn!(
+                                                            attempt = retry_count,
+                                                            max_attempts,
+                                                            error_type = ?new_type,
+                                                            error = %retry_str,
+                                                            "[RecoveryCoordinator] 工具执行重试中"
+                                                        );
+                                                        last_err = retry_str;
+                                                        // Continue retrying with reclassified type
+                                                    },
+                                                }
                                             }
-                                        }
-                                    } else {
-                                        (err_str, true)
+                                        },
                                     }
                                 },
                             }
@@ -1061,12 +1125,8 @@ where
             return None;
         }
 
-        let config = if false {
-            crate::compact::emergency_compaction_config()
-        } else {
-            CompactionConfig { max_estimated_tokens: 0, ..CompactionConfig::default() }
-        };
-
+        // 超过阈值时启用紧急压缩配置(更激进:仅保留最近 1 条,目标 5k tokens)
+        let config = crate::compact::emergency_compaction_config();
         let result = compact_session(&self.session, config, NP);
 
         if result.removed_message_count == 0 {
@@ -1385,6 +1445,103 @@ fn flush_text_block(text: &mut String, blocks: &mut Vec<ContentBlock>) {
     if !text.is_empty() {
         blocks.push(ContentBlock::Text { text: std::mem::take(text) });
     }
+}
+
+// ── 3.6 P2:统一恢复策略调度(本地化 ErrorRecoveryEngine 风格) ─────────────
+//
+// runtime-core 是 consumer crate,按架构铁律不能依赖 agent crate 的
+// `ErrorRecoveryEngine`。此处实现本地化的恢复协调器,采用相同的
+// 「错误分类 → 策略选择 → 退避重试」模式,统一 conversation.rs 内
+// LLM API 调用与工具执行两段原本各自为政的 `MAX_RETRIES` 逻辑。
+//
+// 策略映射:
+// - Transient (timeout/network/429/...) → Retry(指数退避,3 次)
+// - Recoverable (permission/quota)      → Retry(短退避,2 次)
+// - Unrecoverable (syntax/auth/panic)   → Fail(立即失败)
+// - Unknown                              → Retry(按 Transient 处理)
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RecoveryErrorType {
+    Transient,
+    Recoverable,
+    Unrecoverable,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum RecoveryAction {
+    Retry { max_attempts: u32, base_delay_ms: u64 },
+    Fail,
+}
+
+/// 分类错误类型 — 基于 ErrorRecoveryEngine 的分类逻辑(本地化实现)
+fn classify_recovery_error(err: &str) -> RecoveryErrorType {
+    let lower = err.to_lowercase();
+
+    // 不可恢复:语法错误、认证失败、内存耗尽、panic
+    if lower.contains("syntax error")
+        || lower.contains("authentication")
+        || lower.contains("unauthorized")
+        || lower.contains("forbidden")
+        || lower.contains("invalid api key")
+        || lower.contains("out of memory")
+        || lower.contains("panic")
+    {
+        return RecoveryErrorType::Unrecoverable;
+    }
+
+    // 可恢复:权限问题、配额限制
+    if lower.contains("permission denied") || lower.contains("quota") {
+        return RecoveryErrorType::Recoverable;
+    }
+
+    // 瞬时错误:超时、网络、限流、连接问题
+    if lower.contains("timeout")
+        || lower.contains("timed out")
+        || lower.contains("network")
+        || lower.contains("connection")
+        || lower.contains("reset")
+        || lower.contains("broken pipe")
+        || lower.contains("eof")
+        || lower.contains("unavailable")
+        || lower.contains("429")
+        || lower.contains("rate")
+        || lower.contains("temporarily")
+    {
+        return RecoveryErrorType::Transient;
+    }
+
+    RecoveryErrorType::Unknown
+}
+
+/// 根据错误类型选择恢复策略
+fn get_recovery_action(error_type: RecoveryErrorType) -> RecoveryAction {
+    match error_type {
+        RecoveryErrorType::Unrecoverable => RecoveryAction::Fail,
+        RecoveryErrorType::Transient | RecoveryErrorType::Unknown => {
+            RecoveryAction::Retry { max_attempts: 3, base_delay_ms: 1000 }
+        },
+        RecoveryErrorType::Recoverable => {
+            RecoveryAction::Retry { max_attempts: 2, base_delay_ms: 500 }
+        },
+    }
+}
+
+/// 检查取消令牌 — 若已取消则返回 RuntimeError
+fn check_cancelled(cancel_token: Option<&Arc<AtomicBool>>) -> Result<(), RuntimeError> {
+    if let Some(token) = cancel_token
+        && token.load(Ordering::Acquire)
+    {
+        return Err(RuntimeError::new("Agent cancelled by user".to_string()));
+    }
+    Ok(())
+}
+
+/// 计算指数退避延迟 — base * 2^(attempt-1),attempt 从 1 开始
+fn compute_backoff_delay(base_delay_ms: u64, attempt: u32) -> u64 {
+    // cap exponent at 10 to avoid overflow;attempt=1 → base,attempt=2 → 2*base,...
+    let exp = (attempt.saturating_sub(1)).min(10);
+    base_delay_ms.saturating_mul(1u64 << exp)
 }
 
 fn format_hook_message(result: &HookRunResult, fallback: &str) -> String {
@@ -2551,5 +2708,154 @@ mod tests {
 
         // then
         assert_eq!(error.to_string(), "upstream failed");
+    }
+
+    // ── 3.6 P2:RecoveryCoordinator 单元测试 ──────────────────────────
+
+    #[test]
+    fn test_classify_recovery_error_transient() {
+        use super::{RecoveryErrorType, classify_recovery_error};
+        assert_eq!(classify_recovery_error("connection timeout"), RecoveryErrorType::Transient);
+        assert_eq!(
+            classify_recovery_error("HTTP 429 too many requests"),
+            RecoveryErrorType::Transient
+        );
+        assert_eq!(classify_recovery_error("network unreachable"), RecoveryErrorType::Transient);
+        assert_eq!(
+            classify_recovery_error("connection reset by peer"),
+            RecoveryErrorType::Transient
+        );
+        assert_eq!(classify_recovery_error("service unavailable"), RecoveryErrorType::Transient);
+        assert_eq!(classify_recovery_error("rate limit exceeded"), RecoveryErrorType::Transient);
+    }
+
+    #[test]
+    fn test_classify_recovery_error_unrecoverable() {
+        use super::{RecoveryErrorType, classify_recovery_error};
+        assert_eq!(
+            classify_recovery_error("syntax error in prompt"),
+            RecoveryErrorType::Unrecoverable
+        );
+        assert_eq!(
+            classify_recovery_error("authentication failed"),
+            RecoveryErrorType::Unrecoverable
+        );
+        assert_eq!(
+            classify_recovery_error("unauthorized access"),
+            RecoveryErrorType::Unrecoverable
+        );
+        assert_eq!(classify_recovery_error("forbidden resource"), RecoveryErrorType::Unrecoverable);
+        assert_eq!(classify_recovery_error("invalid api key"), RecoveryErrorType::Unrecoverable);
+        assert_eq!(classify_recovery_error("out of memory"), RecoveryErrorType::Unrecoverable);
+        assert_eq!(
+            classify_recovery_error("panic: thread panicked"),
+            RecoveryErrorType::Unrecoverable
+        );
+    }
+
+    #[test]
+    fn test_classify_recovery_error_recoverable() {
+        use super::{RecoveryErrorType, classify_recovery_error};
+        assert_eq!(classify_recovery_error("permission denied"), RecoveryErrorType::Recoverable);
+        assert_eq!(classify_recovery_error("quota exceeded"), RecoveryErrorType::Recoverable);
+    }
+
+    #[test]
+    fn test_classify_recovery_error_unknown() {
+        use super::{RecoveryErrorType, classify_recovery_error};
+        assert_eq!(classify_recovery_error("something weird happened"), RecoveryErrorType::Unknown);
+        assert_eq!(classify_recovery_error("unexpected state"), RecoveryErrorType::Unknown);
+        assert_eq!(classify_recovery_error(""), RecoveryErrorType::Unknown);
+    }
+
+    #[test]
+    fn test_get_recovery_action_fail_for_unrecoverable() {
+        use super::{RecoveryAction, RecoveryErrorType, get_recovery_action};
+        assert!(matches!(
+            get_recovery_action(RecoveryErrorType::Unrecoverable),
+            RecoveryAction::Fail
+        ));
+    }
+
+    #[test]
+    fn test_get_recovery_action_retry_for_transient() {
+        use super::{RecoveryAction, RecoveryErrorType, get_recovery_action};
+        match get_recovery_action(RecoveryErrorType::Transient) {
+            RecoveryAction::Retry { max_attempts, base_delay_ms } => {
+                assert_eq!(max_attempts, 3);
+                assert_eq!(base_delay_ms, 1000);
+            },
+            other => panic!("预期 Retry,实际: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_get_recovery_action_retry_for_recoverable() {
+        use super::{RecoveryAction, RecoveryErrorType, get_recovery_action};
+        match get_recovery_action(RecoveryErrorType::Recoverable) {
+            RecoveryAction::Retry { max_attempts, base_delay_ms } => {
+                assert_eq!(max_attempts, 2);
+                assert_eq!(base_delay_ms, 500);
+            },
+            other => panic!("预期 Retry,实际: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_get_recovery_action_unknown_treated_as_transient() {
+        use super::{RecoveryAction, RecoveryErrorType, get_recovery_action};
+        match get_recovery_action(RecoveryErrorType::Unknown) {
+            RecoveryAction::Retry { max_attempts, base_delay_ms } => {
+                assert_eq!(max_attempts, 3);
+                assert_eq!(base_delay_ms, 1000);
+            },
+            other => panic!("预期 Retry,实际: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_compute_backoff_delay_exponential() {
+        use super::compute_backoff_delay;
+        // attempt=1 → base * 2^0 = base
+        assert_eq!(compute_backoff_delay(1000, 1), 1000);
+        // attempt=2 → base * 2^1 = 2*base
+        assert_eq!(compute_backoff_delay(1000, 2), 2000);
+        // attempt=3 → base * 2^2 = 4*base
+        assert_eq!(compute_backoff_delay(1000, 3), 4000);
+        // attempt=4 → base * 2^3 = 8*base
+        assert_eq!(compute_backoff_delay(1000, 4), 8000);
+    }
+
+    #[test]
+    fn test_compute_backoff_delay_caps_exponent() {
+        use super::compute_backoff_delay;
+        // 指数被 cap 在 10,避免溢出;attempt=20 仍用 2^10
+        let expected = 1000u64.saturating_mul(1u64 << 10);
+        assert_eq!(compute_backoff_delay(1000, 20), expected);
+    }
+
+    #[test]
+    fn test_check_cancelled_none_token() {
+        use super::check_cancelled;
+        // 无取消令牌 → Ok
+        assert!(check_cancelled(None).is_ok());
+    }
+
+    #[test]
+    fn test_check_cancelled_not_cancelled() {
+        use super::check_cancelled;
+        use std::sync::atomic::AtomicBool;
+        let token = Arc::new(AtomicBool::new(false));
+        assert!(check_cancelled(Some(&token)).is_ok());
+    }
+
+    #[test]
+    fn test_check_cancelled_cancelled() {
+        use super::check_cancelled;
+        use std::sync::atomic::AtomicBool;
+        let token = Arc::new(AtomicBool::new(true));
+        let result = check_cancelled(Some(&token));
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Agent cancelled by user");
     }
 }

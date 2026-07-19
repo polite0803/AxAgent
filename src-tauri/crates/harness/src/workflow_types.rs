@@ -323,6 +323,17 @@ pub struct AgentNodeConfig {
     /// 防幻觉锚定检查配置（可选，不配置时零影响）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hallucination_guard: Option<HallucinationGuardConfig>,
+    /// 3.7 P2:任务场景 — 控制 Agent 节点的输出风格指令。
+    ///
+    /// - `Code`:强调直接给代码、少废话
+    /// - `Research`:强调结构化分析、引用、权衡
+    /// - `General`:无特殊约束(默认)
+    /// - `Auto`:由 `TaskScene::infer(input)` 自动推断
+    ///
+    /// 缺省 `None` 时按 `General` 处理;`Some(TaskScene::Auto)` 时
+    /// executor 会在拼接 prompt 前对 input 文本调用 `infer` 推断。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_scene: Option<crate::TaskScene>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
@@ -536,7 +547,9 @@ pub struct LoopNodeConfig {
     pub max_iterations: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub continue_condition: Option<String>,
+    #[serde(default)]
     pub continue_on_error: bool,
+    #[serde(default)]
     pub body_steps: Vec<String>,
     /// 每次迭代结束后挂起，等待人工确认后再继续。
     /// 与 `interrupt_nodes` 联合使用：留空且 `interrupt_after_each=true` 时

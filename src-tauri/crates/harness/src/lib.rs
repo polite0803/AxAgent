@@ -87,6 +87,13 @@ pub mod service_registry;
 pub mod streaming;
 pub mod wiki_dtos;
 
+/// 3.7 P2:TaskScene 下沉到 harness(foundation 层)。
+///
+/// 历史上定义在 `axagent_runtime::prompt`(wiring 层),导致 hybrid 层
+/// (`rt-workflow`)无法引用。现在权威定义在本模块,各层 `pub use` 引用。
+pub mod task_scene;
+pub use task_scene::TaskScene;
+
 // ── ServiceRegistryProvider 契约重导出 ──
 pub use service_registry::ServiceRegistryProvider;
 

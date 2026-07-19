@@ -13,6 +13,8 @@ pub struct UnifiedConfig {
     pub security: SecuritySettings,
     pub logging: LoggingSettings,
     pub profile: ProfileSettings,
+    /// 3.3 P2:持久重试调度器配置(6 小时无人值守)
+    pub persistent_runner: PersistentRunnerSettings,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -113,6 +115,36 @@ impl Default for LoggingSettings {
             level: "info".to_string(),
             enable_sql_logging: false,
             enable_performance_metrics: true,
+        }
+    }
+}
+
+/// 3.3 P2:持久重试调度器配置
+///
+/// 支持长时任务的跨进程持久化重试。失败后保存 session → 等待冷却 →
+/// 自动加载恢复 → 继续执行,在 `max_run_hours` 小时内自动重试恢复。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersistentRunnerSettings {
+    /// 最大运行时长(小时),默认 6 小时
+    pub max_run_hours: u32,
+    /// 失败后冷却时间(秒),默认 60 秒
+    pub cooldown_secs: u64,
+    /// 最大重试次数,默认 10 次
+    pub max_retries: u32,
+    /// 是否启用持久重试,默认 false(需用户显式开启)
+    pub enabled: bool,
+    /// 持久化 session 存储路径(相对于 .axagent 目录)
+    pub storage_path: String,
+}
+
+impl Default for PersistentRunnerSettings {
+    fn default() -> Self {
+        Self {
+            max_run_hours: 6,
+            cooldown_secs: 60,
+            max_retries: 10,
+            enabled: false,
+            storage_path: "persistent_sessions".to_string(),
         }
     }
 }

@@ -193,7 +193,12 @@ mod tests {
         let mut messages = vec![];
         for i in 0..3 {
             // 每个 output 前缀不同(用不同字符填前 2000 字符,确保 fingerprint 不同)
-            let prefix_char = match i { 0 => 'A', 1 => 'B', 2 => 'C', _ => 'Z' };
+            let prefix_char = match i {
+                0 => 'A',
+                1 => 'B',
+                2 => 'C',
+                _ => 'Z',
+            };
             let output = format!("{}{}", prefix_char.to_string().repeat(2000), i);
             messages.push(make_tool_result_message(&output));
         }

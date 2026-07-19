@@ -884,6 +884,9 @@ mod tests_conversation {
             webhook_subscription_manager: None,
             #[cfg(not(mobile))]
             pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
+            telemetry_level_handle: Arc::new(std::sync::RwLock::new(
+                axagent_telemetry::TelemetryLevel::default(),
+            )),
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(

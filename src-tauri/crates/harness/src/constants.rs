@@ -115,7 +115,11 @@ pub mod file_name {
     pub const USER_MD: &str = "USER.md";
     pub const AGENTS_MD: &str = "AGENTS.md";
     pub const CLAUDE_MD: &str = "CLAUDE.md";
-    pub const MEMORY_MD: &str = ".axagent/memory.md";
+    /// 3.2 P2:长期记忆索引文件路径(原 `.axagent/memory.md` 单文件已废弃)
+    ///
+    /// 现在是 200 行硬限制的索引文件,索引 `.axagent/memory/` 下四类分目录
+    /// 的主题文件。详见 `memory::MEMORY_INDEX`。
+    pub const MEMORY_MD: &str = ".axagent/MEMORY.md";
     pub const CRASH_LOG: &str = "axagent-crash.log";
     pub const STARTUP_PHASE: &str = ".startup_phase";
     pub const PRICING_TOML: &str = "pricing.toml";
@@ -127,6 +131,57 @@ pub mod dir_name {
     pub const AXAGENT: &str = ".axagent";
     pub const CLAUDE: &str = ".claude";
     pub const SKILLS: &str = "skills";
+}
+
+/// 3.1 P2:投机执行影子目录常量
+///
+/// 投机执行(CoW 覆盖文件系统轻量方案):等待用户确认时,后台投机执行
+/// 工具调用,写入 `.axagent/shadow/{session_id}/` 影子目录。用户确认后
+/// diff 应用到真实目录;用户拒绝时删除影子目录回滚。
+///
+/// 与 FUSE/驱动级 CoW 相比,此方案无需系统级支持,跨平台兼容。
+pub mod shadow {
+    /// 影子目录根目录(相对于项目根)
+    pub const SHADOW_DIR: &str = ".axagent/shadow";
+    /// 单个文件 diff 最大大小(字节,1MB)
+    pub const DIFF_FILE_SIZE_LIMIT: usize = 1024 * 1024;
+    /// 影子目录最大文件数(防止失控)
+    pub const SHADOW_MAX_FILES: usize = 1000;
+}
+
+/// 3.2 P2:长期记忆文件级四类分目录常量
+///
+/// 对齐 Claude Code MEMORY.md 模型,在 `.axagent/memory/` 下按四类分目录:
+/// - `user/`       — 用户偏好/信息(技术栈、沟通风格、工作习惯)
+/// - `feedback/`   — 用户反馈(显式喜好/排斥、纠正记录)
+/// - `project/`    — 项目相关(架构决策、约定、命令)
+/// - `reference/`  — 参考资料(外部链接、文档索引)
+///
+/// `.axagent/MEMORY.md` 为索引文件(200 行硬限制),始终加载,
+/// 索引四类主题文件的相对路径与一句话摘要。
+pub mod memory {
+    /// 记忆根目录(相对于项目根)
+    pub const MEMORY_DIR: &str = ".axagent/memory";
+    /// 索引文件路径(相对于项目根,始终加载,200 行硬限制)
+    pub const MEMORY_INDEX: &str = ".axagent/MEMORY.md";
+    /// 索引文件最大行数(硬限制)
+    pub const MEMORY_INDEX_MAX_LINES: usize = 200;
+    /// 文件级检索时选取的最相关文件数上限
+    pub const MEMORY_RELEVANT_FILES_LIMIT: usize = 5;
+    /// 单个记忆主题文件大小上限(字节,256KB)
+    pub const MEMORY_FILE_SIZE_LIMIT: usize = 256 * 1024;
+
+    /// 用户偏好/信息子目录
+    pub const USER_DIR: &str = "user";
+    /// 用户反馈子目录
+    pub const FEEDBACK_DIR: &str = "feedback";
+    /// 项目相关子目录
+    pub const PROJECT_DIR: &str = "project";
+    /// 参考资料子目录
+    pub const REFERENCE_DIR: &str = "reference";
+
+    /// 四类分目录列表(供扫描器遍历)
+    pub const ALL_DIRS: &[&str] = &[USER_DIR, FEEDBACK_DIR, PROJECT_DIR, REFERENCE_DIR];
 }
 
 /// 提供商类型/注册表 key

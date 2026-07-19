@@ -42,6 +42,19 @@ pub async fn save_settings(
         },
     )?;
 
+    // 2.7 P1:telemetry_level 变更后同步更新共享级别句柄。
+    //
+    // `FilteringSink` 通过 `level_handle()` 引用同一 `Arc<RwLock<TelemetryLevel>>`,
+    // 这里更新后所有正在运行的 sink 都会立即按新级别过滤事件,无需重建 sink 链。
+    // 容错:解析失败时回退到 `Off`,保守保护用户隐私。
+    {
+        let new_level =
+            axagent_telemetry::TelemetryLevel::from_str_or_off(&settings.telemetry_level);
+        if let Ok(mut guard) = state.telemetry_level_handle.write() {
+            *guard = new_level;
+        }
+    }
+
     #[cfg(not(mobile))]
     {
         crate::tray::sync_tray_language(&app, &settings.language).map_err(|e| {

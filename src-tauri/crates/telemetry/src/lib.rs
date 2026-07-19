@@ -234,6 +234,121 @@ pub trait TelemetrySink: Send + Sync {
     fn record(&self, event: TelemetryEvent);
 }
 
+// ── 2.7 P1:隐私控制三级开关 ──
+
+/// 遥测级别 — 三级隐私控制。
+///
+/// - `Off`:不记录任何遥测事件(完全关闭)
+/// - `Minimal`:仅记录用户行为级事件(Analytics / SessionTrace),
+///   不记录 HTTP 请求细节(避免泄露 URL / path / headers 等网络元数据)
+/// - `Full`:记录所有遥测事件(包含 HttpRequestStarted/Succeeded/Failed)
+///
+/// 默认值为 `Minimal`,在用户未明确选择时,按"最小化采集"原则执行。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum TelemetryLevel {
+    /// 完全关闭遥测
+    #[default]
+    Off,
+    /// 最小化采集(仅 Analytics / SessionTrace)
+    Minimal,
+    /// 完整采集(含 HTTP 请求细节)
+    Full,
+}
+
+impl TelemetryLevel {
+    /// 从字符串解析(容错:未知值回退到 `Off`)。
+    ///
+    /// 接受大小写不敏感的 "off" / "minimal" / "full"。
+    pub fn from_str_or_off(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "minimal" => Self::Minimal,
+            "full" => Self::Full,
+            _ => Self::Off,
+        }
+    }
+
+    /// 判断给定事件是否允许记录。
+    pub fn allows(&self, event: &TelemetryEvent) -> bool {
+        match self {
+            Self::Off => false,
+            Self::Minimal => {
+                matches!(event, TelemetryEvent::Analytics(_) | TelemetryEvent::SessionTrace(_))
+            },
+            Self::Full => true,
+        }
+    }
+}
+
+impl std::fmt::Display for TelemetryLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Off => write!(f, "off"),
+            Self::Minimal => write!(f, "minimal"),
+            Self::Full => write!(f, "full"),
+        }
+    }
+}
+
+/// 过滤装饰器 — 包装内部 sink,根据 `TelemetryLevel` 过滤事件。
+///
+/// 装饰器模式:用户设置 `telemetry_level = "minimal"` 时,在 sink 链外层
+/// 包一个 `FilteringSink`,所有 `record` 调用先经过 `level.allows(event)`
+/// 判断,通过则转发给内部 sink,否则丢弃。
+///
+/// 运行时切换级别:`FilteringSink::set_level` 接受 `Arc<RwLock<TelemetryLevel>>`,
+/// 用户在前端修改级别后,后端立即更新共享级别,sink 链无需重建。
+pub struct FilteringSink {
+    inner: Arc<dyn TelemetrySink>,
+    level: Arc<std::sync::RwLock<TelemetryLevel>>,
+}
+
+impl Debug for FilteringSink {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let level = self.level.read().map(|l| *l).unwrap_or(TelemetryLevel::Off);
+        f.debug_struct("FilteringSink").field("level", &level).finish_non_exhaustive()
+    }
+}
+
+impl FilteringSink {
+    #[must_use]
+    pub fn new(inner: Arc<dyn TelemetrySink>, level: TelemetryLevel) -> Self {
+        Self { inner, level: Arc::new(std::sync::RwLock::new(level)) }
+    }
+
+    /// 返回共享级别句柄,调用方可用于运行时切换级别。
+    #[must_use]
+    pub fn level_handle(&self) -> Arc<std::sync::RwLock<TelemetryLevel>> {
+        self.level.clone()
+    }
+
+    /// 运行时切换级别(立即生效,无需重建 sink 链)。
+    ///
+    /// 使用 `std::sync::RwLock` 而非 `tokio::sync::RwLock`,因为
+    /// `TelemetrySink::record` 是同步方法,不能在内部 await。
+    /// 写锁持有时间极短(仅赋值),不会阻塞异步运行时。
+    pub fn set_level(&self, level: TelemetryLevel) {
+        if let Ok(mut guard) = self.level.write() {
+            *guard = level;
+        }
+    }
+
+    /// 读取当前级别(读锁失败时回退到 `Off`,保守保护用户隐私)。
+    pub fn current_level(&self) -> TelemetryLevel {
+        self.level.read().map(|g| *g).unwrap_or(TelemetryLevel::Off)
+    }
+}
+
+impl TelemetrySink for FilteringSink {
+    fn record(&self, event: TelemetryEvent) {
+        // 读锁失败时按 Off 处理(保守:不记录任何事件,保护隐私)
+        let level = self.current_level();
+        if level.allows(&event) {
+            self.inner.record(event);
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct MemoryTelemetrySink {
     events: Mutex<Vec<TelemetryEvent>>,
@@ -520,5 +635,165 @@ mod tests {
         assert!(contents.contains("\"action\":\"turn_completed\""));
 
         let _ = std::fs::remove_file(path);
+    }
+}
+
+#[cfg(test)]
+mod tests_2_7 {
+    use super::*;
+
+    fn http_started_event() -> TelemetryEvent {
+        TelemetryEvent::HttpRequestStarted {
+            session_id: "s1".to_string(),
+            attempt: 1,
+            method: "POST".to_string(),
+            path: "/v1/messages".to_string(),
+            attributes: Map::new(),
+        }
+    }
+
+    fn analytics_event() -> TelemetryEvent {
+        TelemetryEvent::Analytics(AnalyticsEvent::new("cli", "turn_completed"))
+    }
+
+    fn trace_event() -> TelemetryEvent {
+        TelemetryEvent::SessionTrace(SessionTraceRecord {
+            session_id: "s1".to_string(),
+            sequence: 0,
+            name: "test".to_string(),
+            timestamp_ms: 0,
+            attributes: Map::new(),
+        })
+    }
+
+    #[test]
+    fn telemetry_level_default_is_off() {
+        let level = TelemetryLevel::default();
+        assert_eq!(level, TelemetryLevel::Off);
+    }
+
+    #[test]
+    fn telemetry_level_off_blocks_all_events() {
+        let level = TelemetryLevel::Off;
+        assert!(!level.allows(&http_started_event()));
+        assert!(!level.allows(&analytics_event()));
+        assert!(!level.allows(&trace_event()));
+    }
+
+    #[test]
+    fn telemetry_level_minimal_allows_only_user_events() {
+        let level = TelemetryLevel::Minimal;
+        // HTTP 请求细节被屏蔽
+        assert!(!level.allows(&http_started_event()));
+        // Analytics 与 SessionTrace 允许
+        assert!(level.allows(&analytics_event()));
+        assert!(level.allows(&trace_event()));
+    }
+
+    #[test]
+    fn telemetry_level_full_allows_all_events() {
+        let level = TelemetryLevel::Full;
+        assert!(level.allows(&http_started_event()));
+        assert!(level.allows(&analytics_event()));
+        assert!(level.allows(&trace_event()));
+    }
+
+    #[test]
+    fn telemetry_level_from_str_or_off_handles_inputs() {
+        assert_eq!(TelemetryLevel::from_str_or_off("off"), TelemetryLevel::Off);
+        assert_eq!(TelemetryLevel::from_str_or_off("MINIMAL"), TelemetryLevel::Minimal);
+        assert_eq!(TelemetryLevel::from_str_or_off("Full"), TelemetryLevel::Full);
+        // 未知值回退到 Off(保守保护隐私)
+        assert_eq!(TelemetryLevel::from_str_or_off("unknown"), TelemetryLevel::Off);
+        assert_eq!(TelemetryLevel::from_str_or_off(""), TelemetryLevel::Off);
+    }
+
+    #[test]
+    fn telemetry_level_display_round_trips() {
+        assert_eq!(TelemetryLevel::Off.to_string(), "off");
+        assert_eq!(TelemetryLevel::Minimal.to_string(), "minimal");
+        assert_eq!(TelemetryLevel::Full.to_string(), "full");
+    }
+
+    #[test]
+    fn filtering_sink_off_level_blocks_everything() {
+        let inner = Arc::new(MemoryTelemetrySink::default());
+        let filtering = FilteringSink::new(inner.clone(), TelemetryLevel::Off);
+
+        filtering.record(http_started_event());
+        filtering.record(analytics_event());
+        filtering.record(trace_event());
+
+        assert!(inner.events().is_empty(), "Off 级别应屏蔽所有事件");
+    }
+
+    #[test]
+    fn filtering_sink_minimal_level_filters_http_only() {
+        let inner = Arc::new(MemoryTelemetrySink::default());
+        let filtering = FilteringSink::new(inner.clone(), TelemetryLevel::Minimal);
+
+        filtering.record(http_started_event());
+        filtering.record(analytics_event());
+        filtering.record(trace_event());
+
+        let events = inner.events();
+        assert_eq!(events.len(), 2, "Minimal 应仅记录 Analytics + SessionTrace");
+        assert!(matches!(&events[0], TelemetryEvent::Analytics(_)));
+        assert!(matches!(&events[1], TelemetryEvent::SessionTrace(_)));
+    }
+
+    #[test]
+    fn filtering_sink_full_level_passes_all() {
+        let inner = Arc::new(MemoryTelemetrySink::default());
+        let filtering = FilteringSink::new(inner.clone(), TelemetryLevel::Full);
+
+        filtering.record(http_started_event());
+        filtering.record(analytics_event());
+        filtering.record(trace_event());
+
+        assert_eq!(inner.events().len(), 3, "Full 应记录所有事件");
+    }
+
+    #[test]
+    fn filtering_sink_runtime_level_switch() {
+        let inner = Arc::new(MemoryTelemetrySink::default());
+        let filtering = FilteringSink::new(inner.clone(), TelemetryLevel::Off);
+
+        // 初始 Off,所有事件被屏蔽
+        filtering.record(analytics_event());
+        assert!(inner.events().is_empty());
+
+        // 运行时切换到 Full
+        filtering.set_level(TelemetryLevel::Full);
+        assert_eq!(filtering.current_level(), TelemetryLevel::Full);
+        filtering.record(analytics_event());
+        assert_eq!(inner.events().len(), 1);
+
+        // 再切换回 Off
+        filtering.set_level(TelemetryLevel::Off);
+        filtering.record(analytics_event());
+        assert_eq!(inner.events().len(), 1, "切回 Off 后不再记录");
+    }
+
+    #[test]
+    fn filtering_sink_level_handle_shares_state() {
+        let inner = Arc::new(MemoryTelemetrySink::default());
+        let filtering = FilteringSink::new(inner.clone(), TelemetryLevel::Off);
+        let handle = filtering.level_handle();
+
+        // 通过共享句柄切换级别
+        *handle.write().unwrap() = TelemetryLevel::Full;
+        assert_eq!(filtering.current_level(), TelemetryLevel::Full);
+
+        filtering.record(analytics_event());
+        assert_eq!(inner.events().len(), 1);
+    }
+
+    #[test]
+    fn filtering_sink_debug_output_contains_level() {
+        let filtering =
+            FilteringSink::new(Arc::new(MemoryTelemetrySink::default()), TelemetryLevel::Minimal);
+        let debug_str = format!("{:?}", filtering);
+        assert!(debug_str.contains("Minimal") || debug_str.contains("minimal"));
     }
 }

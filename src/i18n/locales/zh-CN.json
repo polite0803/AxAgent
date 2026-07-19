@@ -116,9 +116,17 @@
       "fullAccess": "完全访问"
     },
     "permissionStrategy": "权限执行策略",
+    "privacyControl": "隐私控制",
     "resourceControl": "资源管控 & 环保策略",
     "retryDelay": "重试延迟（秒）",
     "shellConfirm": "Shell 执行需确认",
+    "telemetryLevel": {
+      "full": "完整",
+      "minimal": "最小化",
+      "off": "关闭"
+    },
+    "telemetryLevelHint": "AxAgent 默认不采集任何遥测数据。选择「最小化」仅记录用户行为事件（用于会话追踪），「完整」会额外记录 HTTP 请求细节（URL、状态码等）。修改后立即生效。",
+    "telemetryLevelLabel": "遥测级别",
     "tokenBudgetLimit": "Token 预算上限",
     "warningBuffer": "警告阈值缓冲（token）"
   },
@@ -6695,6 +6703,12 @@
       "systemPromptPlaceholder": "输入系统提示词...",
       "temperature": "温度",
       "temperatureHint": "越高越有创造性，越低越精确",
+      "taskScene": "任务场景",
+      "taskSceneAuto": "🔄 自动推断",
+      "taskSceneCode": "💻 代码模式",
+      "taskSceneGeneral": "🌐 通用",
+      "taskSceneHint": "控制 Agent 输出风格：代码模式直接给代码少废话；研究模式强调结构化分析与引用；自动模式由输入文本推断",
+      "taskSceneResearch": "🔬 研究模式",
       "timeout": "超时",
       "timeoutSeconds": "超时 (秒)",
       "timeoutSecondsParallel": "超时 (秒)",

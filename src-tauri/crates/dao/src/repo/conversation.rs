@@ -1007,6 +1007,81 @@ pub async fn decrement_message_count(db: &DatabaseConnection, conversation_id: &
     Ok(())
 }
 
+// ── 2.6 P1:会话级快照/回滚 ──
+
+/// 读取 `conversations.workspace_snapshot_json` 原始 JSON 字符串。
+///
+/// 返回值未经过反序列化,调用方负责按 `WorkspaceSnapshot` 结构解析。
+/// 不存在或为空时返回 `"{}"`(数据库默认值)。
+pub async fn get_workspace_snapshot_json(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+) -> Result<String> {
+    let row = conversations::Entity::find_by_id(conversation_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
+
+    let raw = row.workspace_snapshot_json.clone();
+    if raw.is_empty() {
+        Ok("{}".to_string())
+    } else {
+        Ok(raw)
+    }
+}
+
+/// 同步更新 `conversations.workspace_snapshot_json`。
+///
+/// 调用方应传入序列化后的 JSON 字符串(通常由 `WorkspaceSnapshot` 序列化得到,
+/// 但 `branches` 字段在序列化前应被清空,因为分支列表由 `conversation_branches`
+/// 表实时拼装,持久化进 JSON 会导致与表数据脱节)。
+pub async fn update_workspace_snapshot_json(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+    snapshot_json: &str,
+) -> Result<()> {
+    let row = conversations::Entity::find_by_id(conversation_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
+
+    let mut am: conversations::ActiveModel = row.into();
+    am.workspace_snapshot_json = Set(snapshot_json.to_string());
+    am.updated_at = Set(now_ts());
+    am.update(db).await?;
+    Ok(())
+}
+
+/// 读取 `conversations.active_branch_id` 字段。
+pub async fn get_active_branch_id(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+) -> Result<Option<String>> {
+    let row = conversations::Entity::find_by_id(conversation_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
+    Ok(row.active_branch_id)
+}
+
+/// 更新 `conversations.active_branch_id` 字段(传 None 清空)。
+pub async fn set_active_branch_id(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+    branch_id: Option<&str>,
+) -> Result<()> {
+    let row = conversations::Entity::find_by_id(conversation_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Conversation {}", conversation_id)))?;
+
+    let mut am: conversations::ActiveModel = row.into();
+    am.active_branch_id = Set(branch_id.map(|s| s.to_string()));
+    am.updated_at = Set(now_ts());
+    am.update(db).await?;
+    Ok(())
+}
+
 pub async fn set_message_count<C: sea_orm::ConnectionTrait>(
     db: &C,
     conversation_id: &str,
