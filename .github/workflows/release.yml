@@ -115,7 +115,7 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: windows-latest
             target: aarch64-pc-windows-msvc
-          # Linux x86_64 (use x64 runner to avoid aarch64→x86_64 cross-compile link failure)
+          # Linux x86_64 (native build on x64 runner; 不需要 cross 工具链)
           # 注：必须用 ubuntu-24.04 (noble)，其 libpipewire-0.3-dev = 1.0.5，
           # 否则 libspa-0.9.2 safe wrapper 与 22.04 的 pipewire 0.3.48 C 结构体不匹配
           # (spa_video_info_raw 缺 flags 字段、modifier 为 i64 而非 u64)
@@ -143,36 +143,20 @@ jobs:
           workspaces: src-tauri -> target
           cache-targets: ${{ matrix.os != 'windows-latest' }}
 
-      - name: Setup x86_64 (amd64) cross-compile on ARM64 runner
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-24.04'
         run: |
-          cat > /tmp/sources.list << 'EOF'
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main multiverse universe restricted
-          deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main multiverse universe restricted
-          deb [arch=amd64] http://security.ubuntu.com/ubuntu noble-security main multiverse universe restricted
-          deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-updates main multiverse universe restricted
-          EOF
-          # ubuntu-24.04+ 默认用 DEB822 格式 (/etc/apt/sources.list.d/ubuntu.sources)，
-          # 必须先禁用它，否则传统格式 sources.list 不会生效（或源冲突）。
-          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-            sudo mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
-          fi
-          [ -f /etc/apt/sources.list ] && sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak || true
-          sudo mv /tmp/sources.list /etc/apt/sources.list
-          sudo dpkg --add-architecture amd64
           sudo apt-get update
           sudo apt-get install -y \
-            gcc-x86-64-linux-gnu \
-            g++-x86-64-linux-gnu \
-            protobuf-compiler \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
             patchelf \
-            libwebkit2gtk-4.1-dev:amd64 \
-            libayatana-appindicator3-dev:amd64 \
-            librsvg2-dev:amd64 \
-            libssl-dev:amd64 \
-            libpipewire-0.3-dev:amd64
+            libpipewire-0.3-dev
+
+      - name: Install Protoc (Ubuntu)
+        if: matrix.os == 'ubuntu-24.04'
+        run: sudo apt-get install -y protobuf-compiler
 
       - name: Install x86_64 OpenSSL (macOS Intel cross-compile)
         if: matrix.target == 'x86_64-apple-darwin'
@@ -189,21 +173,6 @@ jobs:
       - name: Install create-dmg (macOS DMG bundling)
         if: matrix.os == 'macos-latest'
         run: brew install create-dmg
-
-      - name: Set x86_64 cross-compile linker env
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
-        run: |
-          echo "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc" >> "$GITHUB_ENV"
-          echo "CC_x86_64_unknown_linux_gnu=x86_64-linux-gnu-gcc" >> "$GITHUB_ENV"
-          echo "CXX_x86_64_unknown_linux_gnu=x86_64-linux-gnu-g++" >> "$GITHUB_ENV"
-          echo "AR_x86_64_unknown_linux_gnu=x86_64-linux-gnu-ar" >> "$GITHUB_ENV"
-          echo "PKG_CONFIG_ALLOW_CROSS=1" >> "$GITHUB_ENV"
-          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/" >> "$GITHUB_ENV"
-          # 注：不能设 PKG_CONFIG_SYSROOT_DIR=/usr/x86_64-linux-gnu/ — ubuntu multiarch 把
-          # dev headers 装在 /usr/include/ 而非 sysroot 下；设错会让 pkg-config 输出
-          # 不存在的 include 路径，导致 libspa-sys 的 bindgen 找不到 pipewire/version.h。
-          # 显式给 bindgen 注入 include path（双重保险）。
-          echo "BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_gnu=-I/usr/include/pipewire-0.3 -I/usr/include/spa-0.2" >> "$GITHUB_ENV"
 
       - name: Install Protoc (Windows)
         if: matrix.os == 'windows-latest'
