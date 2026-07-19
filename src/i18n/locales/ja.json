@@ -1869,7 +1869,7 @@
     "AGENT_SKILL_MISSING": "必要なスキルが不足しています",
     "AGENT_STATUS_CALLING_MODEL": "エージェントがモデルを呼び出し中",
     "AGENT_STATUS_INITIALIZING": "エージェントを初期化中",
-    "AGENT_STATUS_STEER_APPLIED": "ステアリング指示を適用しました",
+    "AGENT_STATUS_STEER_APPLIED": "{count} 件のステアリング指示を適用しました",
     "AGENT_STREAM_ERROR": "エージェントストリームエラー",
     "AGENT_WORKFLOW_NOT_FOUND": "エージェントワークフローが見つかりません",
     "AGENT_WORKSPACE_URI_INVALID": "無効なワークスペースURIです",

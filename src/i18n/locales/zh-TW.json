@@ -2042,7 +2042,7 @@
     "TOOL_EXECUTION_ERROR": "工具執行錯誤",
     "TOOL_EXECUTION_TIMEOUT": "工具執行逾時",
     "TOOL_HTTP_NO_ENDPOINT": "HTTP 傳輸未指定端點",
-    "TOOL_NOT_FOUND": "工具不存在",
+    "TOOL_NOT_FOUND": "工具未找到",
     "TOOL_PARAM_REQUIRED": "缺少必填參數",
     "TOOL_SSE_NO_ENDPOINT": "SSE 傳輸未指定端點",
     "TOOL_STDIO_NO_COMMAND": "Stdio 傳輸未指定命令",

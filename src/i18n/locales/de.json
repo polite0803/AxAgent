@@ -1869,7 +1869,7 @@
     "AGENT_SKILL_MISSING": "Erforderlicher Skill fehlt",
     "AGENT_STATUS_CALLING_MODEL": "Agent ruft Modell auf",
     "AGENT_STATUS_INITIALIZING": "Agent wird initialisiert",
-    "AGENT_STATUS_STEER_APPLIED": "Steuerungsanweisung angewendet",
+    "AGENT_STATUS_STEER_APPLIED": "{count} Steuerungsanweisung(en) angewendet",
     "AGENT_STREAM_ERROR": "Agent-Stream-Fehler",
     "AGENT_WORKFLOW_NOT_FOUND": "Agent-Workflow nicht gefunden",
     "AGENT_WORKSPACE_URI_INVALID": "Ungültige Arbeitsbereichs-URI",
