@@ -65,10 +65,6 @@ def main():
         print("signingConfigs already exists in build.gradle.kts, skipping injection")
         # Still ensure the release buildType references it
         if 'signingConfig = signingConfigs.getByName("release")' not in content:
-            content = content.replace(
-                'getByName("release")',
-                'getByName("release")',
-            )
             print("Warning: release signing config reference not found")
     else:
         # Insert signingConfigs block before the first buildTypes block inside android { }
@@ -80,14 +76,20 @@ def main():
             count=1,
         )
 
-        # Also reference the signing config in the release buildType
-        content = content.replace(
-            'getByName("release")',
-            '''getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
-        }''',
-            1,
+        # 在 buildTypes 块内的 getByName("release") { ... } body 开头注入 signingConfig。
+        # 注：必须匹配带左大括号的完整模式，否则原 block 的 `{` 会留在替换文本之后，
+        # 形成 `} {` 语法错误（Gradle Kotlin DSL 报 "Only one lambda expression is allowed"）。
+        # 用正则允许 getByName("release") 和 { 之间任意空白（换行/空格/注释）。
+        new_content, n = re.subn(
+            r'(getByName\(\s*"release"\s*\)\s*\{)',
+            r'\1\n            signingConfig = signingConfigs.getByName("release")',
+            content,
+            count=1,
         )
+        if n == 0:
+            print("Warning: getByName(\"release\") block not found, signingConfig not injected")
+        else:
+            content = new_content
 
     with open(build_file, "w") as f:
         f.write(content)
