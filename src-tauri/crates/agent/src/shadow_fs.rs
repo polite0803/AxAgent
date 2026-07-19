@@ -229,10 +229,20 @@ fn validate_relative_path(path: &str) -> Result<(), String> {
     if path.is_empty() || path.starts_with('/') || path.starts_with('\\') {
         return Err(format!("invalid relative path: {}", path));
     }
-    // 检查 .. 段
+    // 逐段规整检查路径遍历: 仅当 .. 导致逃逸出项目根才拒绝。
+    // 中间的 .. 若仍能落回项目根内(如 src/../sub/file.rs)视为合法。
+    let mut depth: i32 = 0;
     for segment in path.split(['/', '\\']) {
+        if segment.is_empty() || segment == "." {
+            continue;
+        }
         if segment == ".." {
-            return Err(format!("path traversal not allowed: {}", path));
+            depth -= 1;
+            if depth < 0 {
+                return Err(format!("path traversal not allowed: {}", path));
+            }
+        } else {
+            depth += 1;
         }
     }
     // 驱动盘根绝对路径(如 C:\ 或 C:/) — 无论宿主平台都拒绝，它是绝对路径，
