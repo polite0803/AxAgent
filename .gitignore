@@ -123,5 +123,9 @@ axagent-layout-v4.html
 # Temp debug output (Rust)
 /src-tauri/temp/
 
+# Python
+__pycache__/
+*.pyc
+
 # Generated output files
 output/
