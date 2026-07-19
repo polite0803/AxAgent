@@ -325,13 +325,19 @@ jobs:
           files: |
             src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-*.dmg
 
-  # ── Build for Linux ARM64 (cross-compile) ──────────────
+  # ── Build for Linux ARM64 (native on ARM64 runner) ───
+  # 注：用 GitHub ARM64 native runner (ubuntu-24.04-arm) 原生编译，
+  # host = target = aarch64，无 cross-compile，彻底绕过 rust-lld bug。
+  # rustc 1.67+ 在 x86_64 cross-compile aarch64 时，rust-lld 错误地按
+  # target (aarch64) 架构链接 host (x86_64) proc-macro，导致：
+  #   rust-lld: error: .../x86_64-linux-gnu/crti.o is incompatible with elf64-littleaarch64
+  # 前 9 次尝试用 RUSTFLAGS/env var/ld.lld wrapper 修都失败（rustc 强制注入
+  # -fuse-ld=lld -B<sysroot>/gcc-ld/）。native ARM64 runner 是唯一可靠方案。
+  # GitHub 2025-01-16 推出 ARM64 runner，对 public repo 免费。
   release-linux-arm:
     name: Build (aarch64-unknown-linux-gnu)
     needs: [resolve-tag, check-version, draft-release-notes]
-    # 注：必须用 ubuntu-24.04 (noble)，其 libpipewire-0.3-dev = 1.0.5，
-    # 否则 libspa-0.9.2 safe wrapper 与 22.04 的 pipewire 0.3.48 C 结构体不匹配
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -348,41 +354,20 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 'v1'
-          key: 'ubuntu-24.04-aarch64-unknown-linux-gnu'
+          key: 'ubuntu-24.04-arm-aarch64-unknown-linux-gnu'
           workspaces: src-tauri -> target
 
-      - name: Setup cross-compilation sources
+      - name: Install ARM64 native dependencies
         run: |
-          cat > /tmp/sources.list << 'EOF'
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu noble main multiverse universe restricted
-          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu noble-security main multiverse universe restricted
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu noble-updates main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main multiverse universe restricted
-          EOF
-          # ubuntu-24.04+ 默认用 DEB822 格式 (/etc/apt/sources.list.d/ubuntu.sources)，
-          # 必须先禁用它，否则传统格式 sources.list 不会生效（或源冲突）。
-          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-            sudo mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
-          fi
-          [ -f /etc/apt/sources.list ] && sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak || true
-          sudo mv /tmp/sources.list /etc/apt/sources.list
-          sudo dpkg --add-architecture arm64
           sudo apt-get update
-
-      - name: Install ARM64 dependencies
-        run: |
           sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
             protobuf-compiler \
             patchelf \
-            libwebkit2gtk-4.1-dev:arm64 \
-            libayatana-appindicator3-dev:arm64 \
-            librsvg2-dev:arm64 \
-            libssl-dev:arm64 \
-            libpipewire-0.3-dev:arm64
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libpipewire-0.3-dev
 
       - uses: actions/setup-node@v4
         with:
@@ -393,54 +378,9 @@ jobs:
 
       - name: Build for Linux ARM64
         run: |
-          export PKG_CONFIG_ALLOW_CROSS=1
-          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
-          # 注：不能设 PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu/ — ubuntu multiarch 把
-          # dev headers 装在 /usr/include/ 而非 sysroot 下；设错会让 pkg-config 输出
-          # 不存在的 include 路径，导致 libspa-sys 的 bindgen 找不到 pipewire/version.h。
-          # 显式给 bindgen 注入 include path（双重保险）。
-          export BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="-I/usr/include/pipewire-0.3 -I/usr/include/spa-0.2"
-          # CARGO_ENCODED_RUSTFLAGS 用 0x1f (ASCII Unit Separator) 分隔每个独立 flag 部分。
-          # 传递 4 个 flag: -C, linker-features=-lld, -Z, unstable-options
-          # bash 里用 $'\x1f' 构造 0x1f 字符。
-          export CARGO_ENCODED_RUSTFLAGS=$'-C\x1flinker-features=-lld\x1f-Z\x1funstable-options'
           npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb,rpm
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
-          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
-          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
-          # ============================================================
-          # proc-macro 链接失败根因（查 rustc 官方文档确认）：
-          # rustc 1.67+ 在 x86_64-unknown-linux-gnu 默认启用 self-contained linking + lld。
-          # rustc 通过 lld-wrapper shim 转发到 rust-lld（用 -B<sysroot>/gcc-ld/ld.lld）。
-          # cross-compile aarch64 时，lld-wrapper 把 target triple (aarch64) 传给 rust-lld，
-          # rust-lld 期望 aarch64 架构，但 host proc-macro 输入是 x86_64 → 报错。
-          #
-          # 前 7 次失败原因：
-          # - -C link-arg=-fuse-ld=bfd 无效：-B<sysroot>/gcc-ld/ 让 cc 优先找到
-          #   lld-wrapper（名为 ld.lld），wrapper 强制用 rust-lld
-          # - CARGO_TARGET_X86_64_RUSTFLAGS / CARGO_HOST_RUSTFLAGS 不可靠
-          # - [host.x86_64] config.toml 段无效：[host] 段在 stable cargo 是 unstable
-          # - CARGO_ENCODED_RUSTFLAGS=-C linker-features=-lld 报错：
-          #   "unstable on aarch64-unknown-linux-gnu, need -Z unstable-options"
-          #
-          # 真正修复：CARGO_ENCODED_RUSTFLAGS 传 4 个 flag:
-          #   -C linker-features=-lld  (禁用 lld，stable on x86_64, unstable on aarch64)
-          #   -Z unstable-options       (让 stable rustc 接受 unstable -C flag)
-          # 配合 RUSTC_BOOTSTRAP=1 让 stable rustc 接受 -Z flag。
-          #
-          # 效果：
-          # - host (x86_64) proc-macro: 禁用 lld → cc 用系统 ld.bfd ✓
-          # - target (aarch64): 也禁用 lld，但 aarch64 用 aarch64-linux-gnu-gcc
-          #   (已显式指定)，本来就不走 lld，禁用无副作用 ✓
-          #
-          # CARGO_ENCODED_RUSTFLAGS 应用于所有 compiler invocations（包括 host
-          # proc-macro），用 0x1f 分隔每个独立 flag 部分。
-          # ============================================================
-          RUSTC_BOOTSTRAP: '1'
-          RUSTC_WRAPPER: ''
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
