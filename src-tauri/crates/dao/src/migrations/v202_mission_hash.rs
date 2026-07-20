@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! v102: workflow_templates.mission_hash 列
+//! v202: workflow_templates.mission_hash 列
+//!
+//! ## 版本号策略
+//!
+//! AxInvest 本地迁移从 **v200** 起单调递增，预留 v101–v199 给上游 AxAgent 未来
+//! 新增迁移使用。本文件原名 `v102_mission_hash.rs`，现重命名为 v202 以落实该策略。
 //!
 //! ## 背景
 //!

@@ -16,7 +16,7 @@ pub async fn record_request_log(
     model: Option<&str>,
     provider_id: Option<&str>,
     status_code: i32,
-    duration_ms: i32,
+    duration_ms: i64,
     request_tokens: i64,
     response_tokens: i64,
     error_message: Option<&str>,

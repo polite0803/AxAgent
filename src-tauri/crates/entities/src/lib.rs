@@ -2,7 +2,7 @@
 
 //! SeaORM entity definitions for AxAgent database tables.
 
-// Smart Router 路由历史（v101 migration 创建）
+// Smart Router 路由历史（v100 consolidated migration 创建）
 pub mod route_history;
 
 pub mod background_tasks;

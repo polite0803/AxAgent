@@ -2294,9 +2294,14 @@ export function InputArea() {
   React.useEffect(() => {
     if (gatewayKeys.length > 0 && !voiceApiKey) {
       const enabledKey = gatewayKeys.find((k) => k.enabled) || gatewayKeys[0];
-      decryptKey(enabledKey.id).then(setVoiceApiKey).catch(() => {});
+      // P1-10：解密失败时给用户可见的反馈，而不是静默吞错（之前 .catch(() => {}) 会让语音入口无任何提示直接失效）
+      decryptKey(enabledKey.id)
+        .then(setVoiceApiKey)
+        .catch(() => {
+          messageApi.error(t("voice.decryptKeyFailed"));
+        });
     }
-  }, [gatewayKeys, decryptKey, voiceApiKey]);
+  }, [gatewayKeys, decryptKey, voiceApiKey, messageApi, t]);
 
   React.useEffect(() => {
     const onEscape = () => setVoiceCallVisible(false);

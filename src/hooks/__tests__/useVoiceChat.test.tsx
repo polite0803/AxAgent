@@ -141,7 +141,12 @@ describe("useVoiceChat", () => {
         sampleRate = 24000;
         destination = {} as AudioDestinationNode;
         createGain = () => ({ gain: { value: 1 } as unknown as AudioParam, connect: vi.fn() });
-        createBuffer = vi.fn();
+        createBuffer = vi.fn(() => ({
+          getChannelData: vi.fn(() => new Float32Array(1024)),
+          length: 1024,
+          numberOfChannels: 1,
+          sampleRate: 24000,
+        }));
         createBufferSource = () => ({
           buffer: null,
           connect: vi.fn(),
@@ -345,7 +350,7 @@ describe("useVoiceChat", () => {
   // 错误处理
   // ═══════════════════════════════════════════════════════════
 
-  it("shows error and returns to Idle when ticket request fails", async () => {
+  it("transitions to Error when ticket request fails", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network unreachable"));
 
     const { result } = renderVoiceChat();
@@ -355,10 +360,10 @@ describe("useVoiceChat", () => {
     await flushTimers();
 
     expect(messageError).toHaveBeenCalled();
-    expect(result.current.state).toBe("Idle");
+    expect(result.current.state).toBe("Error");
   });
 
-  it("shows error when ticket response is not ok", async () => {
+  it("transitions to Error when ticket response is not ok", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
 
     const { result } = renderVoiceChat();
@@ -368,7 +373,7 @@ describe("useVoiceChat", () => {
     await flushTimers();
 
     expect(messageError).toHaveBeenCalled();
-    expect(result.current.state).toBe("Idle");
+    expect(result.current.state).toBe("Error");
   });
 
   // ═══════════════════════════════════════════════════════════

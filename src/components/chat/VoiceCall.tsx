@@ -3,7 +3,7 @@
 import { useVoiceChat } from "@/hooks/useVoiceChat";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
 import { Button, Spin, theme, Typography } from "antd";
-import { Loader, Mic, MicOff, Phone, Volume2 } from "lucide-react";
+import { AlertCircle, Loader, Mic, MicOff, Phone, Volume2 } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -99,6 +99,15 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
             />
             <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.disconnecting")}
+            </Typography.Text>
+          </div>
+        );
+      case "Error":
+        return (
+          <div className="flex flex-col items-center gap-4">
+            <AlertCircle size={48} style={{ color: token.colorError }} />
+            <Typography.Text style={{ color: token.colorError, fontSize: 18 }}>
+              {t("voice.stateError")}
             </Typography.Text>
           </div>
         );

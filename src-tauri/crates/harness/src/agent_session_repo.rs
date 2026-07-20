@@ -36,7 +36,7 @@ pub trait AgentSessionRepository: Send + Sync {
         id: &str,
         runtime_status: &str,
         sdk_context_json: Option<&str>,
-        tokens_delta: i32,
+        tokens_delta: i64,
         cost_delta: f64,
     ) -> Result<()>;
 
@@ -46,7 +46,7 @@ pub trait AgentSessionRepository: Send + Sync {
         id: &str,
         status: SessionStatus,
         sdk_context_json: Option<&str>,
-        tokens_delta: i32,
+        tokens_delta: i64,
         cost_delta: f64,
     ) -> Result<()> {
         self.update_agent_session_after_query(

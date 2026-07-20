@@ -19,7 +19,7 @@ pub struct Model {
     pub updated_at: String,
     pub usage_count: i32,
     pub success_rate: f64,
-    pub avg_execution_time_ms: f64,
+    pub avg_execution_time_ms: i64,
     /// 连续失败次数：Failure 累加，Success/Partial 清零
     #[sea_orm(default_value = 0)]
     pub consecutive_failures: i32,

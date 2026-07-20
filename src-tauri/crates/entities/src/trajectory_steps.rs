@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "trajectory_steps")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
+    pub id: i64,
     pub trajectory_id: String,
     pub step_index: i32,
     pub timestamp_ms: i64,

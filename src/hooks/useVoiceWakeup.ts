@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { logIpcError } from "@/lib/invoke";
+import { App } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const WAKE_THRESHOLD = 0.02;
 /** 需连续检测到语音达到该时长（ms）才触发唤醒，避免环境噪声误触发 */
@@ -28,11 +31,17 @@ interface UseVoiceWakeupReturn {
  * 与通话浮层（useVoiceChat）解耦：它只用一个低成本 AnalyserNode 做 RMS VAD，
  * 不接 worklet、不连 WebSocket、不合成音频，CPU/内存开销极低，可长时间挂载。
  * 命中唤醒后调用 onWake（例如打开 VoiceCall 浮层）。
+ *
+ * 状态机：activeRef / startingRef / stoppingRef 三个 ref 互斥，
+ * 防止快速点击两次「启动」造成 MediaStream 泄漏（P0-2 修复）。
  */
 export function useVoiceWakeup({
   onWake,
   threshold = WAKE_THRESHOLD,
 }: UseVoiceWakeupOptions): UseVoiceWakeupReturn {
+  const { t } = useTranslation();
+  const { message } = App.useApp();
+
   const [active, setActive] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
@@ -44,17 +53,25 @@ export function useVoiceWakeup({
   const onWakeRef = useRef(onWake);
   onWakeRef.current = onWake;
 
+  // 互斥 ref：防止 start/stop 竞态导致 MediaStream 泄漏
+  const activeRef = useRef(false);
+  const startingRef = useRef(false);
+  const stoppingRef = useRef(false);
+
   const cleanup = useCallback(() => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     if (ctxRef.current && ctxRef.current.state !== "closed") {
-      ctxRef.current.close().catch(() => {});
+      // 关闭失败时记录日志，便于排查（P3-18 改进）
+      ctxRef.current.close().catch((e: unknown) => {
+        logIpcError("VoiceWakeup.closeAudioCtx")(e);
+      });
       ctxRef.current = null;
     }
     analyserRef.current = null;
@@ -63,13 +80,20 @@ export function useVoiceWakeup({
   }, []);
 
   const start = useCallback(async () => {
-    if (active) {
+    // 互斥：正在启动 / 已激活 / 正在停止中均直接返回
+    if (activeRef.current || startingRef.current || stoppingRef.current) {
       return;
     }
+    startingRef.current = true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true },
       });
+      // await 期间用户可能已点击 stop，此时丢弃新申请到的 stream
+      if (stoppingRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
 
       const ctx = new AudioContext({ sampleRate: 16000 });
@@ -82,6 +106,9 @@ export function useVoiceWakeup({
 
       const data = new Float32Array(analyser.fftSize);
       const tick = () => {
+        if (!activeRef.current) {
+          return;
+        }
         analyser.getFloatTimeDomainData(data);
         let sum = 0;
         for (let i = 0; i < data.length; i++) {
@@ -102,21 +129,51 @@ export function useVoiceWakeup({
         }
         rafRef.current = requestAnimationFrame(tick);
       };
-      rafRef.current = requestAnimationFrame(tick);
+      activeRef.current = true;
       setActive(true);
-    } catch {
+      rafRef.current = requestAnimationFrame(tick);
+    } catch (err) {
+      // P1-8：错误处理补全，按 DOMException name 分类提示
       cleanup();
+      activeRef.current = false;
       setActive(false);
+      const errName = err instanceof DOMException ? err.name : "";
+      let errMsg: string;
+      switch (errName) {
+        case "NotAllowedError":
+        case "SecurityError":
+          errMsg = t("voice.micPermissionDenied");
+          break;
+        case "NotFoundError":
+        case "OverconstrainedError":
+          errMsg = t("voice.micNotFound");
+          break;
+        case "NotReadableError":
+          errMsg = t("voice.micInUse");
+          break;
+        default:
+          errMsg = err instanceof Error ? err.message : t("voice.micError");
+      }
+      message.error(errMsg);
+    } finally {
+      startingRef.current = false;
     }
-  }, [active, cleanup, threshold]);
+  }, [cleanup, message, t, threshold]);
 
   const stop = useCallback(() => {
-    cleanup();
+    // 正在启动时设置 stoppingRef，让 start 的 await 完成后自行丢弃 stream
+    if (startingRef.current) {
+      stoppingRef.current = true;
+    }
+    activeRef.current = false;
     setActive(false);
+    cleanup();
+    stoppingRef.current = false;
   }, [cleanup]);
 
   useEffect(() => {
     return () => {
+      activeRef.current = false;
       cleanup();
     };
   }, [cleanup]);

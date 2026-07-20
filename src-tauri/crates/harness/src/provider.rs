@@ -296,7 +296,7 @@ pub struct RealtimeProviderConfig {
     pub api_key: String,
     /// 额外的自定义 HTTP Headers（如 OpenAI 的 Authorization 已自动处理）
     pub headers: Option<std::collections::HashMap<String, String>>,
-    /// 提供商类型（openai / gemini 等），用于 RealtimeClient 选择协议适配
+    /// 提供商类型（openai / gemini 等），用于网关选择协议适配
     pub provider_type: String,
 }
 

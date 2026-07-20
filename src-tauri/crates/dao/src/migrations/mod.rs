@@ -39,9 +39,6 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
 pub mod pg_ddl;
 pub mod v100_consolidated;
-pub mod v101_business_roles;
-pub mod v102_mission_hash;
-pub mod v103_workflow_reflections;
 pub mod v200_pg_int4_to_int8_axinvest;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
@@ -74,28 +71,13 @@ struct Migration {
 const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 100,
-        description: "v100_consolidated: consolidated DDL snapshot (replaces v001-v011) with all INT4→INT8 fixes",
+        description: "v100_consolidated: 合并 v001–v011 + v101–v104 的全部 DDL（表/索引/触发器/种子数据），统一用正确类型建表；不再保留旧库类型修复 ALTER 通道",
         up: |db| Box::pin(v100_consolidated::up(db)),
     },
     Migration {
         version: 200,
-        description: "v200_pg_int4_to_int8_axinvest: AxInvest-targeted INT4→INT8 fix for timestamps + max_tokens/thinking_budget (merged from v014/v015; renamed from v101 to free up v101–v199 for upstream)",
+        description: "v200_pg_int4_to_int8_axinvest: AxInvest-targeted INT4→INT8 fix for timestamps + max_tokens/thinking_budget",
         up: |db| Box::pin(v200_pg_int4_to_int8_axinvest::up(db)),
-    },
-    Migration {
-        version: 101,
-        description: "v101_business_roles: business_roles table + workflow_execution_stats table + agency_experts/agent_profiles new columns (business_role_id, seniority, specialties, parent_role_id, performance)",
-        up: |db| Box::pin(v101_business_roles::up(db)),
-    },
-    Migration {
-        version: 102,
-        description: "v102_mission_hash: workflow_templates.mission_hash column for compile_mission_to_template deduplication cache",
-        up: |db| Box::pin(v102_mission_hash::up(db)),
-    },
-    Migration {
-        version: 103,
-        description: "v103_workflow_reflections: trajectory_workflow_reflections table for persisting workflow reflection history (优化 3: 跨会话反思查询 / 模式聚合 / 进化决策)",
-        up: |db| Box::pin(v103_workflow_reflections::up(db)),
     },
 ];
 
@@ -238,8 +220,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表行数应等于 MIGRATIONS 数组长度（每条 migration 一行）
-        // schema_version 表应有 4 行（v100 consolidated + v101 business_roles + v102 mission_hash + v103 workflow_reflections）
+        // schema_version 表应有 1 行（v100 已合并 v001–v011 + v101–v104 全部 DDL）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -249,18 +230,13 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(
-            cnt,
-            MIGRATIONS.len() as i32,
-            "schema_version should have exactly {} rows (one per migration)",
-            MIGRATIONS.len()
-        );
-        assert_eq!(cnt, 4, "schema_version should have exactly 4 rows (v100 + v101 + v102 + v103)");
+        assert_eq!(cnt, 1, "schema_version should have exactly 1 row (v100 only)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。
     /// partial index (`idx_messages_branch`) 在 messages.branch_id IS NOT NULL
     /// 命中时使用。
+    /// 注：v002 已被合并到 v100_consolidated，索引由 PHASE 4 创建。
     #[tokio::test]
     async fn v002_critical_indices_exist() {
         let db = Database::connect("sqlite::memory:").await.unwrap();

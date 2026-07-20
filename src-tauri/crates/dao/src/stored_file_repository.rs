@@ -8,6 +8,7 @@ use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use axagent_entities::stored_files;
 use axagent_harness::repo_dtos::{CreateStoredFileInput, StoredFile};
 use axagent_harness::repositories::StoredFileRepository;
+use axagent_harness::util_fns::now_datetime_str;
 
 fn model_to_dto(m: stored_files::Model) -> StoredFile {
     StoredFile {
@@ -35,8 +36,7 @@ impl DaoStoredFileRepository {
 #[async_trait]
 impl StoredFileRepository for DaoStoredFileRepository {
     async fn create_stored_file(&self, input: CreateStoredFileInput) -> Result<StoredFile, String> {
-        use chrono::Utc;
-        let now = Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+        let now = now_datetime_str();
 
         let am = stored_files::ActiveModel {
             id: Set(input.id),

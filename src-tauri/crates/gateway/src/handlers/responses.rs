@@ -94,7 +94,7 @@ pub async fn get_response(
 
     match adapter.get_response(&ctx, &response_id).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -118,7 +118,7 @@ pub async fn get_response(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -219,7 +219,7 @@ pub async fn delete_response(
 
     match adapter.delete_response(&ctx, &response_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -237,7 +237,7 @@ pub async fn delete_response(
             Json(json!({ "deleted": true, "id": response_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,

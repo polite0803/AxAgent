@@ -26,259 +26,9 @@
 //!
 //! 本 migration 取代 v001–v011。历史文件保留仅作参考。
 
-use sea_orm::{ConnectionTrait, DbBackend, DbErr};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
 pub use super::pg_ddl::exec_ddl;
-
-// ============================================================================
-// 综合 ALTER 目标列表：所有 entity 字段类型为 `i64` / `Option<i64>` 的列。
-// ALTER 通道检查 information_schema，只有 INTEGER (INT4) 才转换 → 幂等。
-// 包含 v010/v011 已覆盖的列（全量清单，不自查遗留）。
-// ============================================================================
-
-const ALTER_TARGETS: &[(&str, &str)] = &[
-    // ======== v001 核心表 ========
-    ("providers", "created_at"),
-    ("providers", "updated_at"),
-    ("provider_keys", "last_validated_at"),
-    ("provider_keys", "created_at"),
-    ("models", "max_tokens"),
-    ("conversations", "max_tokens"),
-    ("conversations", "thinking_budget"),
-    ("conversations", "created_at"),
-    ("conversations", "updated_at"),
-    ("messages", "token_count"),
-    ("messages", "prompt_tokens"),
-    ("messages", "completion_tokens"),
-    ("messages", "first_token_latency_ms"),
-    ("messages", "cache_creation_tokens"),
-    ("messages", "cache_read_tokens"),
-    ("messages", "created_at"),
-    ("gateway_keys", "created_at"),
-    ("gateway_keys", "last_used_at"),
-    ("gateway_usage", "id"),
-    ("gateway_usage", "request_tokens"),
-    ("gateway_usage", "response_tokens"),
-    ("gateway_usage", "cached_input_tokens"),
-    ("gateway_usage", "created_at"),
-    ("gateway_request_logs", "request_tokens"),
-    ("gateway_request_logs", "response_tokens"),
-    ("gateway_request_logs", "created_at"),
-    ("conversation_summaries", "token_count"),
-    ("conversation_summaries", "created_at"),
-    ("conversation_summaries", "updated_at"),
-    ("conversation_categories", "default_max_tokens"),
-    ("conversation_categories", "created_at"),
-    ("conversation_categories", "updated_at"),
-    ("skill_states", "updated_at"),
-    ("wikis", "created_at"),
-    ("wikis", "updated_at"),
-    ("wiki_sources", "size_bytes"),
-    ("wiki_sources", "created_at"),
-    ("wiki_sources", "updated_at"),
-    ("wiki_pages", "last_linted_at"),
-    ("wiki_pages", "last_compiled_at"),
-    ("wiki_pages", "created_at"),
-    ("wiki_pages", "updated_at"),
-    ("wiki_operations", "id"),
-    ("wiki_operations", "created_at"),
-    ("wiki_operations", "completed_at"),
-    ("wiki_sync_queue", "id"),
-    ("wiki_sync_queue", "pending_count"),
-    ("wiki_sync_queue", "processing_count"),
-    ("wiki_sync_queue", "failed_count"),
-    ("wiki_sync_queue", "last_sync_at"),
-    ("wiki_sync_queue", "created_at"),
-    ("wiki_sync_queue", "processed_at"),
-    ("note_links", "id"),
-    ("note_links", "created_at"),
-    ("note_backlinks", "id"),
-    ("note_backlinks", "created_at"),
-    ("plans", "created_at"),
-    ("plans", "updated_at"),
-    ("agency_experts", "imported_at"),
-    ("agent_profiles", "suggested_max_tokens"),
-    ("agent_profiles", "created_at"),
-    ("agent_profiles", "updated_at"),
-    ("agent_roles", "timeout_seconds"),
-    ("agent_roles", "created_at"),
-    ("agent_roles", "updated_at"),
-    ("semantic_cache", "created_at"),
-    ("stored_files", "size_bytes"),
-    ("desktop_state", "x"),
-    ("desktop_state", "y"),
-    ("search_providers", "safe_search"),
-    ("program_policies", "rate_limit_per_minute"),
-    ("tool_executions", "duration_ms"),
-    ("backup_manifests", "file_size"),
-    // ======== v001 工作流表 ========
-    ("workflow_templates", "created_at"),
-    ("workflow_templates", "updated_at"),
-    ("workflow_template_versions", "created_at"),
-    ("workflow_executions", "created_at"),
-    ("workflow_executions", "updated_at"),
-    ("workflow_marketplace", "downloads"),
-    ("workflow_marketplace", "created_at"),
-    ("workflow_marketplace", "updated_at"),
-    ("workflow_marketplace_reviews", "created_at"),
-    ("workflow_marketplace_reviews", "updated_at"),
-    ("workflow_snapshots", "created_at"),
-    ("loop_checkpoints", "updated_at"),
-    // ======== v001 网关 / 工具表 ========
-    ("gateway_links", "last_sync_at"),
-    ("gateway_links", "latency_ms"),
-    ("gateway_links", "created_at"),
-    ("gateway_links", "updated_at"),
-    ("gateway_link_policies", "global_rpm"),
-    ("gateway_link_policies", "per_model_rpm"),
-    ("gateway_link_policies", "token_limit_per_minute"),
-    ("gateway_link_activities", "created_at"),
-    ("generated_tools", "created_at"),
-    // ======== v001 知识扩展表 ========
-    ("notes", "last_linted_at"),
-    ("notes", "last_compiled_at"),
-    ("notes", "user_edited_at"),
-    ("notes", "created_at"),
-    ("notes", "updated_at"),
-    ("knowledge_entities", "created_at"),
-    ("knowledge_entities", "updated_at"),
-    ("knowledge_attributes", "created_at"),
-    ("knowledge_attributes", "updated_at"),
-    ("knowledge_relations", "created_at"),
-    ("knowledge_relations", "updated_at"),
-    ("knowledge_flows", "created_at"),
-    ("knowledge_flows", "updated_at"),
-    ("knowledge_interfaces", "created_at"),
-    ("knowledge_interfaces", "updated_at"),
-    ("knowledge_documents", "size_bytes"),
-    ("knowledge_documents", "created_at"),
-    ("knowledge_documents", "updated_at"),
-    // ======== v001 Prompt 表 ========
-    ("prompt_templates", "created_at"),
-    ("prompt_templates", "updated_at"),
-    ("prompt_template_versions", "created_at"),
-    ("background_tasks", "created_at"),
-    ("background_tasks", "updated_at"),
-    ("background_tasks", "finished_at"),
-    // ======== v001 Wiki 扩展表 ========
-    ("wiki_templates", "created_at"),
-    ("wiki_templates", "updated_at"),
-    ("wiki_page_versions", "id"),
-    ("wiki_page_versions", "created_at"),
-    // ======== v001 Trajectory 表 ========
-    ("trajectory_trajectories", "duration_ms"),
-    ("trajectory_steps", "timestamp_ms"),
-    ("trajectory_skill_executions", "execution_time_ms"),
-    ("trajectory_sessions", "token_input"),
-    ("trajectory_sessions", "token_output"),
-    // ======== v005 索引队列表 ========
-    ("index_jobs", "created_at"),
-    ("index_jobs", "started_at"),
-    ("index_jobs", "completed_at"),
-    // ======== v006 向量集合表 ========
-    ("vec_collections", "vector_count"),
-    ("vec_collections", "created_at"),
-    ("vec_collections", "updated_at"),
-    ("vec_collections", "last_indexed_at"),
-    // ======== v007 动态 UI 版本表 ========
-    ("dynamic_ui_schema_versions", "id"),
-    ("dynamic_ui_schema_versions", "created_at"),
-    // ======== v008 凭据表 ========
-    ("credentials", "created_at"),
-    ("credentials", "updated_at"),
-];
-
-// ============================================================================
-// REAL → DOUBLE PRECISION 目标列表
-// ============================================================================
-// SQLite 的 `REAL` 是 8 字节双精度（f64），但 PostgreSQL 的 `REAL` 是 4 字节
-// 单精度（f32，即 FLOAT4）。v100 的 DDL 中大量浮点列声明为 `REAL`，在 SQLite
-// 上与 entity 的 `f64` 匹配，但在 PG 上变成 FLOAT4，导致 SeaORM 解码报错：
-//
-//   `Rust type core::option::Option<f64> (as SQL type FLOAT8)
-//    is not compatible with SQL type FLOAT4`
-//
-// `pg_ddl()` 已修复（新表在 PG 上直接创建为 `DOUBLE PRECISION`）。本列表用于
-// 修正已存在的 PG 数据库：把 entity 为 `f64` 的列从 `real` ALTER 为
-// `double precision`。entity 为 `f32` 的列（`retrieval_threshold`、
-// `avg_reward`）保持 `REAL`，不在此列表中。
-// ============================================================================
-
-const REAL_TO_DOUBLE_TARGETS: &[(&str, &str)] = &[
-    // agent_sessions
-    ("agent_sessions", "total_cost_usd"),
-    // retrieval_hits
-    ("retrieval_hits", "score"),
-    // trajectories — 质量评分
-    ("trajectories", "quality_overall"),
-    ("trajectories", "quality_task_completion"),
-    ("trajectories", "quality_tool_efficiency"),
-    ("trajectories", "quality_reasoning_quality"),
-    ("trajectories", "quality_user_satisfaction"),
-    ("trajectories", "value_score"),
-    // trajectory_entities / trajectory_preferences
-    ("trajectory_entities", "confidence"),
-    ("trajectory_preferences", "confidence"),
-    // trajectory_memories
-    ("trajectory_memories", "importance"),
-    ("trajectory_memories", "decay_rate"),
-    // trajectory_patterns
-    ("trajectory_patterns", "success_rate"),
-    ("trajectory_patterns", "average_quality"),
-    ("trajectory_patterns", "average_value_score"),
-    // trajectory_relationships
-    ("trajectory_relationships", "weight"),
-    // trajectory_rewards
-    ("trajectory_rewards", "value"),
-    // trajectory_skills
-    ("trajectory_skills", "success_rate"),
-    ("trajectory_skills", "avg_execution_time_ms"),
-    // workflow_marketplace
-    ("workflow_marketplace", "rating_average"),
-    // models — 定价
-    ("models", "input_price_per_mtok"),
-    ("models", "output_price_per_mtok"),
-    // conversations — 采样参数
-    ("conversations", "temperature"),
-    ("conversations", "top_p"),
-    ("conversations", "frequency_penalty"),
-    // messages
-    ("messages", "tokens_per_second"),
-    // conversation_categories
-    ("conversation_categories", "default_temperature"),
-    ("conversation_categories", "default_top_p"),
-    ("conversation_categories", "default_frequency_penalty"),
-    // agent_profiles
-    ("agent_profiles", "suggested_temperature"),
-    // wiki_pages / notes
-    ("wiki_pages", "quality_score"),
-    ("notes", "quality_score"),
-];
-
-// ============================================================================
-// INTEGER → BOOLEAN 目标列表：entity 中声明为 `bool` 的列，在 DDL 中写作
-// `INTEGER`，PG 下需要 ALTER 为 `BOOLEAN`。幂等：仅 data_type = 'integer'
-// 才转换。
-// ============================================================================
-
-const BOOL_ALTER_TARGETS: &[(&str, &str)] = &[
-    ("agent_profiles", "search_enabled"),
-    ("knowledge_attributes", "is_required"),
-    ("prompt_templates", "is_active"),
-    ("prompt_templates", "ab_test_enabled"),
-    ("prompt_templates", "is_favorite"),
-    ("wiki_templates", "is_builtin"),
-    ("workflow_marketplace", "is_featured"),
-    ("workflow_marketplace", "is_verified"),
-    ("workflow_marketplace", "is_public"),
-    ("workflow_marketplace_reviews", "is_hidden"),
-    ("workflow_templates", "is_preset"),
-    ("workflow_templates", "is_editable"),
-    ("workflow_templates", "is_public"),
-    ("workflow_template_versions", "is_preset"),
-    ("workflow_template_versions", "is_editable"),
-    ("workflow_template_versions", "is_public"),
-];
 
 // ============================================================================
 // 缺失字段目标列表：v100 之前的旧库（v001–v011）已存在 agent_roles /
@@ -351,7 +101,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         // conversations
         "CREATE TABLE IF NOT EXISTS conversations (\
             id TEXT NOT NULL PRIMARY KEY, title TEXT NOT NULL, model_id TEXT NOT NULL, \
-            provider_id TEXT NOT NULL, app_id TEXT, system_prompt TEXT, temperature REAL, \
+            provider_id TEXT NOT NULL, system_prompt TEXT, temperature REAL, \
             max_tokens INTEGER, top_p REAL, frequency_penalty REAL, \
             message_count INTEGER NOT NULL DEFAULT 0, is_pinned INTEGER NOT NULL DEFAULT 0, \
             is_archived INTEGER NOT NULL DEFAULT 0, \
@@ -374,11 +124,11 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         // messages
         "CREATE TABLE IF NOT EXISTS messages (\
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, role TEXT NOT NULL, \
-            content TEXT NOT NULL, provider_id TEXT, model_id TEXT, token_count INTEGER, \
+            content TEXT NOT NULL, provider_id TEXT, model_id TEXT, token_count BIGINT, \
             attachments TEXT NOT NULL DEFAULT '[]', thinking TEXT, parent_message_id TEXT, \
             version_index INTEGER NOT NULL DEFAULT 0, is_active INTEGER NOT NULL DEFAULT 1, \
             branch_id TEXT, tool_calls_json TEXT, tool_call_id TEXT, \
-            created_at INTEGER NOT NULL, parts TEXT, prompt_tokens BIGINT, \
+            created_at BIGINT NOT NULL, parts TEXT, prompt_tokens BIGINT, \
             completion_tokens BIGINT, status TEXT NOT NULL DEFAULT 'complete', \
             tokens_per_second REAL, first_token_latency_ms BIGINT, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
@@ -403,8 +153,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS gateway_usage (\
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, key_id TEXT NOT NULL, \
             provider_id TEXT NOT NULL, model_id TEXT, \
-            request_tokens INTEGER NOT NULL DEFAULT 0, response_tokens INTEGER NOT NULL DEFAULT 0, \
-            created_at INTEGER NOT NULL, \
+            request_tokens BIGINT NOT NULL DEFAULT 0, response_tokens BIGINT NOT NULL DEFAULT 0, \
+            created_at BIGINT NOT NULL, \
             FOREIGN KEY (key_id) REFERENCES gateway_keys(id) ON DELETE CASCADE)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
@@ -479,7 +229,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         // memory_namespaces
         "CREATE TABLE IF NOT EXISTS memory_namespaces (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, \
-            scope TEXT NOT NULL DEFAULT 'global', app_id TEXT, embedding_provider TEXT, \
+            scope TEXT NOT NULL DEFAULT 'global', embedding_provider TEXT, \
             embedding_dimensions INTEGER, retrieval_threshold REAL, retrieval_top_k INTEGER, \
             icon_type TEXT, icon_value TEXT, sort_order INTEGER NOT NULL DEFAULT 0)",
         // memory_items
@@ -547,7 +297,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS stored_files (\
             id TEXT NOT NULL PRIMARY KEY, hash TEXT NOT NULL, original_name TEXT NOT NULL, \
             mime_type TEXT NOT NULL DEFAULT 'application/octet-stream', \
-            size_bytes INTEGER NOT NULL, storage_path TEXT NOT NULL, conversation_id TEXT, \
+            size_bytes BIGINT NOT NULL, storage_path TEXT NOT NULL, conversation_id TEXT, \
             created_at TEXT NOT NULL DEFAULT (datetime('now')), \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL)",
         // gateway_request_logs
@@ -582,9 +332,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, cwd TEXT, \
             workspace_locked INTEGER NOT NULL DEFAULT 0, permission_mode TEXT NOT NULL, \
             runtime_status TEXT NOT NULL, sdk_context_json TEXT, \
-            sdk_context_backup_json TEXT, total_tokens INTEGER NOT NULL DEFAULT 0, \
+            sdk_context_backup_json TEXT, total_tokens BIGINT NOT NULL DEFAULT 0, \
             total_cost_usd REAL NOT NULL DEFAULT 0.0, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // wikis
         "CREATE TABLE IF NOT EXISTS wikis (\
@@ -605,7 +355,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS wiki_pages (\
             id TEXT NOT NULL PRIMARY KEY, wiki_id TEXT NOT NULL, note_id TEXT NOT NULL, \
             page_type TEXT NOT NULL, title TEXT NOT NULL, source_ids TEXT, \
-            quality_score REAL, last_linted_at INTEGER, last_compiled_at INTEGER, \
+            quality_score REAL, last_linted_at INTEGER, last_compiled_at INTEGER NOT NULL, \
             compiled_source_hash TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
             FOREIGN KEY (wiki_id) REFERENCES wikis(id) ON DELETE CASCADE)",
         // wiki_operations
@@ -613,7 +363,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, wiki_id TEXT NOT NULL, \
             operation_type TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, \
             status TEXT NOT NULL, details_json TEXT, error_message TEXT, \
-            created_at INTEGER NOT NULL, completed_at INTEGER, \
+            created_at BIGINT NOT NULL, completed_at BIGINT, \
             FOREIGN KEY (wiki_id) REFERENCES wikis(id) ON DELETE CASCADE)",
         // wiki_sync_queue
         "CREATE TABLE IF NOT EXISTS wiki_sync_queue (\
@@ -621,18 +371,18 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             event_type TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, \
             payload TEXT, status TEXT NOT NULL DEFAULT 'pending', \
             retry_count INTEGER NOT NULL DEFAULT 0, error_message TEXT, \
-            created_at INTEGER NOT NULL, processed_at INTEGER, \
+            created_at BIGINT NOT NULL, processed_at BIGINT, \
             FOREIGN KEY (wiki_id) REFERENCES wikis(id) ON DELETE CASCADE)",
         // note_links
         "CREATE TABLE IF NOT EXISTS note_links (\
-            id INTEGER NOT NULL PRIMARY KEY, vault_id TEXT NOT NULL, \
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, vault_id TEXT NOT NULL, \
             source_note_id TEXT NOT NULL, target_note_id TEXT NOT NULL, link_text TEXT, \
-            link_type TEXT NOT NULL, created_at INTEGER NOT NULL)",
+            link_type TEXT NOT NULL, created_at BIGINT NOT NULL)",
         // note_backlinks
         "CREATE TABLE IF NOT EXISTS note_backlinks (\
-            id INTEGER NOT NULL PRIMARY KEY, vault_id TEXT NOT NULL, \
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, vault_id TEXT NOT NULL, \
             source_note_id TEXT NOT NULL, target_note_id TEXT NOT NULL, link_text TEXT, \
-            link_type TEXT NOT NULL, created_at INTEGER NOT NULL)",
+            link_type TEXT NOT NULL, created_at BIGINT NOT NULL)",
         // plans
         "CREATE TABLE IF NOT EXISTS plans (\
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, \
@@ -843,7 +593,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS wiki_page_versions (\
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, wiki_id TEXT NOT NULL, \
             note_id TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, \
-            content_hash TEXT NOT NULL, author TEXT NOT NULL, created_at INTEGER NOT NULL)",
+            content_hash TEXT NOT NULL, author TEXT NOT NULL, created_at BIGINT NOT NULL)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
     }
@@ -860,7 +610,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             value_score REAL NOT NULL, patterns TEXT NOT NULL, created_at TEXT NOT NULL, \
             replay_count INTEGER NOT NULL DEFAULT 0, last_replay_at TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_steps (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT, trajectory_id TEXT NOT NULL, \
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, trajectory_id TEXT NOT NULL, \
             step_index INTEGER NOT NULL, timestamp_ms INTEGER NOT NULL, role TEXT NOT NULL, \
             content TEXT NOT NULL, reasoning TEXT, tool_calls TEXT, tool_results TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_rewards (\
@@ -872,7 +622,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             tags TEXT NOT NULL, scenarios TEXT NOT NULL DEFAULT '[]', \
             parameters TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, \
             usage_count INTEGER NOT NULL DEFAULT 0, success_rate REAL NOT NULL DEFAULT 0.0, \
-            avg_execution_time_ms REAL NOT NULL DEFAULT 0.0, \
+            avg_execution_time_ms BIGINT NOT NULL DEFAULT 0, \
             consecutive_failures INTEGER NOT NULL DEFAULT 0, last_failure_at TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_skill_executions (\
             id TEXT PRIMARY KEY, skill_id TEXT NOT NULL, trajectory_id TEXT, \
@@ -899,17 +649,17 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             platform TEXT NOT NULL DEFAULT 'web', user_id TEXT NOT NULL DEFAULT 'default', \
             model TEXT NOT NULL DEFAULT 'unknown', system_prompt TEXT NOT NULL DEFAULT '', \
             created_at TEXT NOT NULL, updated_at TEXT NOT NULL, parent_session_id TEXT, \
-            token_input INTEGER NOT NULL DEFAULT 0, token_output INTEGER NOT NULL DEFAULT 0)",
+            token_input BIGINT NOT NULL DEFAULT 0, token_output BIGINT NOT NULL DEFAULT 0)",
         "CREATE TABLE IF NOT EXISTS trajectory_messages (\
             id TEXT PRIMARY KEY, session_id TEXT NOT NULL, role TEXT NOT NULL, \
             content TEXT NOT NULL, tool_calls TEXT, tool_results TEXT, usage TEXT, \
             created_at TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS trajectory_memories (\
             id TEXT PRIMARY KEY, memory_type TEXT NOT NULL, content TEXT NOT NULL, \
-            updated_at TEXT NOT NULL, \
+            updated_at BIGINT NOT NULL, \
             tier TEXT NOT NULL DEFAULT 'working', importance REAL NOT NULL DEFAULT 0.5, \
-            access_count INTEGER NOT NULL DEFAULT 0, last_accessed TEXT, \
-            decay_rate REAL NOT NULL DEFAULT 0.01, created_at TEXT, expires_at TEXT, \
+            access_count INTEGER NOT NULL DEFAULT 0, last_accessed BIGINT, \
+            decay_rate REAL NOT NULL DEFAULT 0.01, created_at BIGINT, expires_at BIGINT, \
             source_conversation_id TEXT, source_message_id TEXT, \
             memory_nature TEXT NOT NULL DEFAULT 'semantic', tags TEXT NOT NULL DEFAULT '[]', \
             namespace_id TEXT)",
@@ -931,8 +681,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             CREATE TABLE IF NOT EXISTS route_history (\
                 id TEXT NOT NULL PRIMARY KEY, prompt_hash TEXT NOT NULL, \
                 prompt_preview TEXT NOT NULL, heuristic_tier TEXT NOT NULL, \
-                selected_tier TEXT NOT NULL, outcome_success INTEGER, \
-                outcome_quality_score REAL, outcome_user_override INTEGER, \
+                selected_tier TEXT NOT NULL, outcome_success BOOLEAN, \
+                outcome_quality_score REAL, outcome_user_override BOOLEAN, \
                 outcome_user_tier TEXT, outcome_latency_ms BIGINT, \
                 outcome_tokens_used BIGINT, outcome_cost_usd REAL, \
                 timestamp BIGINT NOT NULL, features_json TEXT)";
@@ -1066,21 +816,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // --- v007: Dynamic UI schema versions ---
 
-    let create_versions_sql = if is_pg {
-        // PG: id → BIGSERIAL（v100 改用 BIGSERIAL 匹配 entity i64）
-        "CREATE TABLE IF NOT EXISTS dynamic_ui_schema_versions (\
-         id BIGSERIAL PRIMARY KEY, \
-         schema_id TEXT NOT NULL, \
-         version TEXT NOT NULL, \
-         title TEXT NOT NULL, \
-         description TEXT NOT NULL DEFAULT '', \
-         schema_json TEXT NOT NULL, \
-         category TEXT NOT NULL DEFAULT 'custom', \
-         tags TEXT NOT NULL DEFAULT '[]', \
-         change_log TEXT NOT NULL DEFAULT '', \
-         created_at BIGINT NOT NULL)"
-    } else {
-        // SQLite: id → BIGINT AUTOINCREMENT（匹配 entity i64）
+    exec_ddl(
+        &db,
+        is_pg,
         "CREATE TABLE IF NOT EXISTS dynamic_ui_schema_versions (\
          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \
          schema_id TEXT NOT NULL, \
@@ -1091,9 +829,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
          category TEXT NOT NULL DEFAULT 'custom', \
          tags TEXT NOT NULL DEFAULT '[]', \
          change_log TEXT NOT NULL DEFAULT '', \
-         created_at INTEGER NOT NULL)"
-    };
-    db.execute_unprepared(create_versions_sql).await?;
+         created_at BIGINT NOT NULL)",
+    )
+    .await?;
 
     // --- v007: Add version column to dynamic_ui_schemas ---
 
@@ -1109,178 +847,6 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let _ = db
         .execute_unprepared("ALTER TABLE providers ADD COLUMN tool_adaptation_marker_prefix TEXT")
         .await;
-
-    // ========================================================================
-    // PHASE 3: 综合 ALTER 通道（仅 PG）
-    //   对所有 entity 中 i64 但 PG 上仍是 INTEGER 的列执行 ALTER TYPE BIGINT。
-    //   幂等：只改 data_type = 'integer' 的列。
-    // ========================================================================
-
-    if is_pg {
-        let mut altered = 0usize;
-        let mut skipped = 0usize;
-        let mut missing = 0usize;
-
-        for (table, column) in ALTER_TARGETS {
-            let row = db
-                .query_one_raw(sea_orm::Statement::from_string(
-                    DbBackend::Postgres,
-                    format!(
-                        "SELECT data_type FROM information_schema.columns \
-                         WHERE table_schema = current_schema() \
-                           AND table_name = '{table}' AND column_name = '{column}'"
-                    ),
-                ))
-                .await?;
-
-            match row {
-                None => {
-                    missing += 1;
-                },
-                Some(r) => {
-                    let data_type: Option<String> = r.try_get_by("data_type").ok();
-                    match data_type.as_deref() {
-                        Some("integer") => {
-                            let sql = format!(
-                                "ALTER TABLE {table} \
-                                 ALTER COLUMN {column} TYPE BIGINT USING {column}::bigint"
-                            );
-                            db.execute_unprepared(&sql).await?;
-                            altered += 1;
-                        },
-                        _ => {
-                            skipped += 1;
-                        },
-                    }
-                },
-            }
-        }
-
-        tracing::info!(
-            "[v100] ALTER pass done: {} ALTERed, {} skipped (already BIGINT or not INTEGER), {} missing (table/column not found)",
-            altered,
-            skipped,
-            missing
-        );
-    } else {
-        tracing::info!("[v100] SQLite: ALTER pass no-op");
-    }
-
-    // ========================================================================
-    // PHASE 3.5: REAL → DOUBLE PRECISION 修正通道（仅 PG）
-    //   SQLite 的 `REAL` 是 8 字节双精度（f64），但 PG 的 `REAL` 是 4 字节
-    //   单精度（f32，FLOAT4）。v100 DDL 中浮点列声明为 `REAL`，在 PG 上变
-    //   FLOAT4，与 entity 的 `f64`（FLOAT8）不匹配。`pg_ddl()` 已修复新表，
-    //   本通道修正已存在 PG 数据库：把 entity 为 `f64` 的列从 `real` ALTER
-    //   为 `double precision`。幂等：仅 data_type = 'real' 才转换。
-    // ========================================================================
-
-    if is_pg {
-        let mut real_altered = 0usize;
-        let mut real_skipped = 0usize;
-        let mut real_missing = 0usize;
-
-        for (table, column) in REAL_TO_DOUBLE_TARGETS {
-            let row = db
-                .query_one_raw(sea_orm::Statement::from_string(
-                    DbBackend::Postgres,
-                    format!(
-                        "SELECT data_type FROM information_schema.columns \
-                         WHERE table_schema = current_schema() \
-                           AND table_name = '{table}' AND column_name = '{column}'"
-                    ),
-                ))
-                .await?;
-
-            match row {
-                None => {
-                    real_missing += 1;
-                },
-                Some(r) => {
-                    let data_type: Option<String> = r.try_get_by("data_type").ok();
-                    match data_type.as_deref() {
-                        Some("real") => {
-                            let sql = format!(
-                                "ALTER TABLE {table} \
-                                 ALTER COLUMN {column} TYPE DOUBLE PRECISION USING {column}::double precision"
-                            );
-                            db.execute_unprepared(&sql).await?;
-                            real_altered += 1;
-                        },
-                        _ => {
-                            real_skipped += 1;
-                        },
-                    }
-                },
-            }
-        }
-
-        tracing::info!(
-            "[v100] REAL→DOUBLE PRECISION pass done: {} ALTERed, {} skipped (already double precision), {} missing (table/column not found)",
-            real_altered,
-            real_skipped,
-            real_missing
-        );
-    } else {
-        tracing::info!("[v100] SQLite: REAL→DOUBLE PRECISION pass no-op");
-    }
-
-    // ========================================================================
-    // PHASE 3.6: INTEGER → BOOLEAN 修正通道（仅 PG）
-    //   entity 中声明为 `bool` 的列，在 DDL 中写作 `INTEGER`（SQLite 无 native
-    //   BOOLEAN），但 PG 下 SeaORM 强类型检查要求 `BOOL`。幂等：仅
-    //   data_type = 'integer' 才转换。
-    // ========================================================================
-
-    if is_pg {
-        let mut bool_altered = 0usize;
-        let mut bool_skipped = 0usize;
-        let mut bool_missing = 0usize;
-
-        for (table, column) in BOOL_ALTER_TARGETS {
-            let row = db
-                .query_one_raw(sea_orm::Statement::from_string(
-                    DbBackend::Postgres,
-                    format!(
-                        "SELECT data_type FROM information_schema.columns \
-                         WHERE table_schema = current_schema() \
-                           AND table_name = '{table}' AND column_name = '{column}'"
-                    ),
-                ))
-                .await?;
-
-            match row {
-                None => {
-                    bool_missing += 1;
-                },
-                Some(r) => {
-                    let data_type: Option<String> = r.try_get_by("data_type").ok();
-                    match data_type.as_deref() {
-                        Some("integer") => {
-                            let sql = format!(
-                                "ALTER TABLE {table} \
-                                 ALTER COLUMN {column} TYPE BOOLEAN USING {column}::boolean"
-                            );
-                            db.execute_unprepared(&sql).await?;
-                            bool_altered += 1;
-                        },
-                        _ => {
-                            bool_skipped += 1;
-                        },
-                    }
-                },
-            }
-        }
-
-        tracing::info!(
-            "[v100] INTEGER→BOOLEAN pass done: {} ALTERed, {} skipped (already BOOLEAN or not INTEGER), {} missing (table/column not found)",
-            bool_altered,
-            bool_skipped,
-            bool_missing
-        );
-    } else {
-        tracing::info!("[v100] SQLite: INTEGER→BOOLEAN pass no-op");
-    }
 
     // ========================================================================
     // PHASE 3.7: 补充旧库缺失字段
@@ -1605,5 +1171,380 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     )
     .await?;
 
+    // ========================================================================
+    // PHASE 8: business_roles + workflow_execution_stats + 字段扩展 + 种子数据
+    //   来自 v101_business_roles：业务岗位表 / 工作流执行统计表 /
+    //   agency_experts 人才属性扩展 / agent_profiles.business_role_id 外键 /
+    //   6 个内置业务岗位种子数据。
+    // ========================================================================
+
+    let backend = db.get_database_backend();
+
+    // --- 8.1: 创建 business_roles 表（业务岗位） ---
+
+    let create_business_roles = if is_pg {
+        "CREATE TABLE IF NOT EXISTS business_roles (\
+            id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
+            responsibilities TEXT, decision_authority TEXT, reports_to TEXT, \
+            managed_expert_ids TEXT, required_certifications TEXT, active_domains TEXT, \
+            system_prompt TEXT NOT NULL DEFAULT '', \
+            icon TEXT, color TEXT, \
+            source TEXT NOT NULL DEFAULT 'builtin', \
+            sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
+            FOREIGN KEY (reports_to) REFERENCES business_roles(id) ON DELETE SET NULL)"
+    } else {
+        "CREATE TABLE IF NOT EXISTS business_roles (\
+            id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
+            responsibilities TEXT, decision_authority TEXT, reports_to TEXT, \
+            managed_expert_ids TEXT, required_certifications TEXT, active_domains TEXT, \
+            system_prompt TEXT NOT NULL DEFAULT '', \
+            icon TEXT, color TEXT, \
+            source TEXT NOT NULL DEFAULT 'builtin', \
+            sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
+            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
+    };
+    db.execute_unprepared(create_business_roles).await?;
+
+    // --- 8.2: 创建 workflow_execution_stats 表（工作流执行统计） ---
+
+    let create_stats = if is_pg {
+        "CREATE TABLE IF NOT EXISTS workflow_execution_stats (\
+            id TEXT NOT NULL PRIMARY KEY, mission_hash TEXT, template_id TEXT, \
+            execution_id TEXT, status TEXT NOT NULL, \
+            total_time_ms BIGINT NOT NULL DEFAULT 0, \
+            input_tokens BIGINT NOT NULL DEFAULT 0, \
+            output_tokens BIGINT NOT NULL DEFAULT 0, \
+            error_message TEXT, user_rating DOUBLE PRECISION, \
+            created_at BIGINT NOT NULL)"
+    } else {
+        "CREATE TABLE IF NOT EXISTS workflow_execution_stats (\
+            id TEXT NOT NULL PRIMARY KEY, mission_hash TEXT, template_id TEXT, \
+            execution_id TEXT, status TEXT NOT NULL, \
+            total_time_ms INTEGER NOT NULL DEFAULT 0, \
+            input_tokens INTEGER NOT NULL DEFAULT 0, \
+            output_tokens INTEGER NOT NULL DEFAULT 0, \
+            error_message TEXT, user_rating REAL, \
+            created_at INTEGER NOT NULL)"
+    };
+    db.execute_unprepared(create_stats).await?;
+
+    // 索引：按 mission_hash 聚合查询（PG/SQLite 语法一致）
+    db.execute_unprepared(
+        "CREATE INDEX IF NOT EXISTS idx_workflow_exec_stats_mission \
+         ON workflow_execution_stats(mission_hash)",
+    )
+    .await?;
+
+    db.execute_unprepared(
+        "CREATE INDEX IF NOT EXISTS idx_workflow_exec_stats_template \
+         ON workflow_execution_stats(template_id)",
+    )
+    .await?;
+
+    // --- 8.3: 扩展 agency_experts 表（人才属性） ---
+
+    let agency_experts_columns: &[(&str, &str)] = &[
+        ("seniority", "TEXT"),
+        ("specialties", "TEXT"),
+        ("parent_role_id", "TEXT"),
+        ("success_rate", "REAL"),
+        ("avg_latency_ms", "BIGINT"),
+        ("avg_token_cost", "BIGINT"),
+    ];
+
+    for (col, ty) in agency_experts_columns {
+        if is_pg {
+            let sql = format!("ALTER TABLE agency_experts ADD COLUMN IF NOT EXISTS {} {}", col, ty);
+            db.execute_unprepared(&sql).await?;
+        } else {
+            // SQLite: ADD COLUMN 不支持 IF NOT EXISTS，重复列错误吞掉实现幂等
+            let sql = format!("ALTER TABLE agency_experts ADD COLUMN {} {}", col, ty);
+            let _ = db.execute_raw(Statement::from_string(backend, sql)).await;
+        }
+    }
+
+    // SQLite 的 agency_experts.parent_role_id 无法加 FK（SQLite 限制），靠应用层校验。
+    // PostgreSQL 的 FK 也跳过（ALTER ADD CONSTRAINT IF NOT EXISTS 在 PG < 9.4 不支持，
+    // 且存量库可能存在数据不一致），改由应用层 validate_parent_role_id 校验。
+
+    // --- 8.4: 扩展 agent_profiles 表（business_role_id 外键） ---
+
+    if is_pg {
+        db.execute_unprepared(
+            "ALTER TABLE agent_profiles ADD COLUMN IF NOT EXISTS business_role_id TEXT",
+        )
+        .await?;
+    } else {
+        let _ = db
+            .execute_raw(Statement::from_string(
+                backend,
+                "ALTER TABLE agent_profiles ADD COLUMN business_role_id TEXT",
+            ))
+            .await;
+    }
+
+    // --- 8.5: 内置业务岗位种子数据（仅首次创建时插入） ---
+
+    let now = axagent_harness::util_fns::now_ts();
+    let builtin_roles = builtin_business_roles(now);
+
+    for role in builtin_roles {
+        let stmt = if is_pg {
+            Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                "INSERT INTO business_roles \
+                 (id, name, description, responsibilities, decision_authority, reports_to, \
+                  managed_expert_ids, required_certifications, active_domains, system_prompt, \
+                  icon, color, source, sort_order, is_enabled, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) \
+                 ON CONFLICT (id) DO NOTHING",
+                [
+                    role.id.into(),
+                    role.name.into(),
+                    role.description.into(),
+                    role.responsibilities.into(),
+                    role.decision_authority.into(),
+                    role.reports_to.into(),
+                    role.managed_expert_ids.into(),
+                    role.required_certifications.into(),
+                    role.active_domains.into(),
+                    role.system_prompt.into(),
+                    role.icon.into(),
+                    role.color.into(),
+                    role.source.into(),
+                    role.sort_order.into(),
+                    1i32.into(),
+                    now.into(),
+                    now.into(),
+                ],
+            )
+        } else {
+            Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "INSERT OR IGNORE INTO business_roles \
+                 (id, name, description, responsibilities, decision_authority, reports_to, \
+                  managed_expert_ids, required_certifications, active_domains, system_prompt, \
+                  icon, color, source, sort_order, is_enabled, created_at, updated_at) \
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    role.id.into(),
+                    role.name.into(),
+                    role.description.into(),
+                    role.responsibilities.into(),
+                    role.decision_authority.into(),
+                    role.reports_to.into(),
+                    role.managed_expert_ids.into(),
+                    role.required_certifications.into(),
+                    role.active_domains.into(),
+                    role.system_prompt.into(),
+                    role.icon.into(),
+                    role.color.into(),
+                    role.source.into(),
+                    role.sort_order.into(),
+                    1i32.into(),
+                    now.into(),
+                    now.into(),
+                ],
+            )
+        };
+        db.execute_raw(stmt).await?;
+    }
+
+    // ========================================================================
+    // PHASE 9: workflow_templates.mission_hash 列 + 部分索引
+    //   来自 v102_mission_hash：支持 compile_mission_to_template 去重缓存。
+    // ========================================================================
+
+    // 添加 mission_hash 列（用于 compile_mission_to_template 去重缓存）
+    if is_pg {
+        db.execute_unprepared(
+            "ALTER TABLE workflow_templates ADD COLUMN IF NOT EXISTS mission_hash TEXT",
+        )
+        .await?;
+    } else {
+        // SQLite 不支持 IF NOT EXISTS，吞掉重复列错误实现幂等
+        let _ = db
+            .execute_unprepared("ALTER TABLE workflow_templates ADD COLUMN mission_hash TEXT")
+            .await;
+    }
+
+    // 为 mission_hash 创建索引（仅在非 NULL 时索引，加速查重）
+    let _ = db
+        .execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_workflow_templates_mission_hash \
+             ON workflow_templates(mission_hash) WHERE mission_hash IS NOT NULL",
+        )
+        .await;
+
+    // ========================================================================
+    // PHASE 10: trajectory_workflow_reflections 表 + 索引
+    //   来自 v103_workflow_reflections：工作流反思历史持久化，
+    //   支持跨会话反思查询 / 模式聚合 / 进化决策。
+    // ========================================================================
+
+    // 主表：trajectory_workflow_reflections
+    //
+    // 字段类型选择：
+    // - quality_score: INTEGER（u8 转 i32，PG/SQLite 一致）
+    // - timestamp / created_at: TEXT（RFC3339 字符串，避免 PG/SQLite 时间类型差异）
+    // - error_patterns_json / reusable_patterns_json / metadata_json: TEXT（JSON 字符串）
+    //
+    // 注：所有字段均为 TEXT/INTEGER，PG 与 SQLite 语法一致，无需分支。
+    // 不使用 PG 的 JSONB 是因为反思数据以读为主，无需 GIN 索引；保持与
+    // trajectories.patterns 等已有 JSON 字段一致的 TEXT 存储方式。
+    db.execute_unprepared(
+        "CREATE TABLE IF NOT EXISTS trajectory_workflow_reflections (\
+            id TEXT NOT NULL PRIMARY KEY, \
+            workflow_id TEXT NOT NULL, \
+            execution_id TEXT NOT NULL, \
+            template_id TEXT, \
+            quality_score INTEGER NOT NULL, \
+            summary TEXT NOT NULL DEFAULT '', \
+            error_patterns_json TEXT NOT NULL DEFAULT '[]', \
+            reusable_patterns_json TEXT NOT NULL DEFAULT '[]', \
+            metadata_json TEXT NOT NULL DEFAULT '{}', \
+            timestamp TEXT NOT NULL, \
+            created_at TEXT NOT NULL)",
+    )
+    .await?;
+
+    // 索引 1：按 workflow_id 查询历史反思（聚合进化用）
+    // 索引 2：按 timestamp 倒序查询（最近反思列表 / 分页用）
+    db.execute_unprepared(
+        "CREATE INDEX IF NOT EXISTS idx_workflow_reflections_workflow \
+         ON trajectory_workflow_reflections(workflow_id)",
+    )
+    .await?;
+
+    db.execute_unprepared(
+        "CREATE INDEX IF NOT EXISTS idx_workflow_reflections_timestamp \
+         ON trajectory_workflow_reflections(timestamp)",
+    )
+    .await?;
+
     Ok(())
+}
+
+// ============================================================================
+// 内置业务岗位种子数据（来自 v101_business_roles）
+// ============================================================================
+
+/// 内置业务岗位种子数据
+struct BuiltinRole {
+    id: &'static str,
+    name: &'static str,
+    description: &'static str,
+    responsibilities: &'static str,
+    decision_authority: &'static str,
+    reports_to: Option<&'static str>,
+    managed_expert_ids: &'static str,
+    required_certifications: &'static str,
+    active_domains: &'static str,
+    system_prompt: &'static str,
+    icon: &'static str,
+    color: &'static str,
+    source: &'static str,
+    sort_order: i32,
+}
+
+fn builtin_business_roles(_now: i64) -> Vec<BuiltinRole> {
+    vec![
+        BuiltinRole {
+            id: "ceo",
+            name: "CEO 首席执行官",
+            description: "负责公司整体战略与决策",
+            responsibilities: "[\"制定公司战略\",\"重大决策审批\",\"资源分配\"]",
+            decision_authority: "{\"max_budget\": 10000000, \"scopes\": [\"all\"]}",
+            reports_to: None,
+            managed_expert_ids: "[]",
+            required_certifications: "[\"10 年管理经验\"]",
+            active_domains: "[\"business\",\"strategy\"]",
+            system_prompt: "你是 CEO 首席执行官。你负责公司整体战略方向，对重大决策有最终审批权。在分析问题时，从全局视角出发，平衡短期收益与长期价值。",
+            icon: "👑",
+            color: "#FFD700",
+            source: "builtin",
+            sort_order: 0,
+        },
+        BuiltinRole {
+            id: "cto",
+            name: "CTO 首席技术官",
+            description: "负责技术战略与研发管理",
+            responsibilities: "[\"技术战略制定\",\"技术选型决策\",\"技术团队管理\",\"技术风险评估\"]",
+            decision_authority: "{\"max_budget\": 1000000, \"scopes\": [\"tech\",\"architecture\",\"security\"]}",
+            reports_to: Some("ceo"),
+            managed_expert_ids: "[]",
+            required_certifications: "[\"8 年技术管理经验\"]",
+            active_domains: "[\"development\",\"security\",\"devops\",\"data\"]",
+            system_prompt: "你是 CTO 首席技术官。你负责技术战略、架构选型与团队管理。在决策时权衡技术先进性、团队能力与交付风险，优先考虑长期可维护性。",
+            icon: "💻",
+            color: "#4169E1",
+            source: "builtin",
+            sort_order: 1,
+        },
+        BuiltinRole {
+            id: "cfo",
+            name: "CFO 首席财务官",
+            description: "负责财务管理与风险控制",
+            responsibilities: "[\"财务规划\",\"预算审批\",\"财务风险评估\",\"投资决策\"]",
+            decision_authority: "{\"max_budget\": 5000000, \"scopes\": [\"finance\",\"budget\"]}",
+            reports_to: Some("ceo"),
+            managed_expert_ids: "[]",
+            required_certifications: "[\"CPA 或同等资质\",\"8 年财务管理经验\"]",
+            active_domains: "[\"finance\",\"business\"]",
+            system_prompt: "你是 CFO 首席财务官。你负责财务规划、预算控制与风险评估。在决策时严格把控财务纪律，对投入产出比与现金流敏感。",
+            icon: "💰",
+            color: "#2E8B57",
+            source: "builtin",
+            sort_order: 2,
+        },
+        BuiltinRole {
+            id: "cpo",
+            name: "CPO 首席产品官",
+            description: "负责产品战略与规划",
+            responsibilities: "[\"产品战略\",\"需求优先级\",\"用户体验\",\"产品路线图\"]",
+            decision_authority: "{\"max_budget\": 500000, \"scopes\": [\"product\",\"design\"]}",
+            reports_to: Some("ceo"),
+            managed_expert_ids: "[]",
+            required_certifications: "[\"8 年产品管理经验\"]",
+            active_domains: "[\"business\",\"design\",\"writing\"]",
+            system_prompt: "你是 CPO 首席产品官。你负责产品战略、需求优先级与用户体验。在决策时以用户价值为核心，平衡商业目标与技术成本。",
+            icon: "🎯",
+            color: "#FF6347",
+            source: "builtin",
+            sort_order: 3,
+        },
+        BuiltinRole {
+            id: "pm",
+            name: "产品经理",
+            description: "负责产品需求与项目执行",
+            responsibilities: "[\"需求分析\",\"产品文档\",\"项目跟进\",\"跨部门协调\"]",
+            decision_authority: "{\"max_budget\": 100000, \"scopes\": [\"product\",\"project\"]}",
+            reports_to: Some("cpo"),
+            managed_expert_ids: "[]",
+            required_certifications: "[\"3 年产品经验\"]",
+            active_domains: "[\"business\",\"design\",\"writing\"]",
+            system_prompt: "你是产品经理。你负责需求分析、产品文档与项目跟进。在执行时关注用户痛点与商业目标，善用数据驱动决策。",
+            icon: "📋",
+            color: "#9370DB",
+            source: "builtin",
+            sort_order: 4,
+        },
+        BuiltinRole {
+            id: "tech_lead",
+            name: "技术负责人",
+            description: "负责技术架构与研发执行",
+            responsibilities: "[\"架构设计\",\"技术方案评审\",\"代码审查\",\"技术难点攻坚\"]",
+            decision_authority: "{\"max_budget\": 100000, \"scopes\": [\"tech\",\"architecture\"]}",
+            reports_to: Some("cto"),
+            managed_expert_ids: "[]",
+            required_certifications: "[\"5 年研发经验\",\"架构设计能力\"]",
+            active_domains: "[\"development\",\"security\",\"devops\"]",
+            system_prompt: "你是技术负责人。你负责架构设计、技术评审与代码质量。在执行时关注可维护性、可扩展性与工程效率。",
+            icon: "🔧",
+            color: "#1E90FF",
+            source: "builtin",
+            sort_order: 5,
+        },
+    ]
 }

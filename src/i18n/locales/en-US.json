@@ -2410,7 +2410,16 @@
     "proxyTestFailed": "Proxy test failed",
     "message": "Error",
     "STOCK_SETUP_INTERNAL": "Stock setup internal error",
-    "STOCK_WORKFLOW_INTERNAL": "Stock workflow internal error"
+    "STOCK_WORKFLOW_INTERNAL": "Stock workflow internal error",
+    "VOICE_TICKET_INVALID": "Voice session ticket is invalid or expired",
+    "VOICE_MODEL_NOT_FOUND": "Voice model not found or unsupported",
+    "VOICE_PROVIDER_NOT_FOUND": "Voice provider not found",
+    "VOICE_PROVIDER_NO_SPEECH": "Provider does not support speech capability",
+    "VOICE_DECRYPT_KEY_FAILED": "Gateway key decryption failed",
+    "VOICE_STT_FAILED": "Speech recognition failed",
+    "VOICE_TTS_FAILED": "Speech synthesis failed",
+    "VOICE_INVALID_MESSAGE": "Invalid voice message format",
+    "VOICE_SESSION_CREATE_REQUIRED": "Please send session.create first"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -6331,7 +6340,18 @@
     "connectionLost": "Voice connection lost",
     "startCall": "Start Voice Call",
     "wakeup": "Voice Wake",
-    "wakeupActive": "Wakeup Listening"
+    "wakeupActive": "Wakeup Listening",
+    "wakeup": "Voice Wake",
+    "wakeupActive": "Wake listening (click to stop)",
+    "startCall": "Start Voice Call",
+    "micNotFound": "No microphone device found",
+    "micInUse": "Microphone is being used by another application",
+    "micOverconstrained": "Microphone does not satisfy constraints",
+    "micSecurity": "Current page security context does not support microphone access",
+    "ticketFailed": "Failed to obtain voice session ticket",
+    "decryptKeyFailed": "Gateway key decryption failed, cannot start voice call",
+    "sessionError": "Voice session error",
+    "stateError": "Voice session disconnected abnormally"
   },
   "wiki": {
     "backlinks": "Backlinks",
@@ -8347,9 +8367,6 @@
     },
     "workflowSavedAsNew": "Workflow saved as new",
     "workflowUpdated": "Workflow updated",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

@@ -247,7 +247,7 @@ impl GatewayRequestLogRepository for EmptyGatewayRequestLogRepository {
         _model_id: Option<&str>,
         _provider_id: Option<&str>,
         _status_code: i32,
-        _duration_ms: i32,
+        _duration_ms: i64,
         _request_tokens: i64,
         _response_tokens: i64,
         _error_message: Option<&str>,
@@ -1780,7 +1780,7 @@ impl AgentSessionRepository for EmptyAgentSessionRepository {
         _id: &str,
         _runtime_status: &str,
         _sdk_context_json: Option<&str>,
-        _tokens_delta: i32,
+        _tokens_delta: i64,
         _cost_delta: f64,
     ) -> Result<()> {
         Ok(())

@@ -87,6 +87,7 @@ pub enum VoiceSessionState {
     Speaking,
     Listening,
     Disconnecting,
+    Error,
 }
 
 // ─── Phase-2 Types ───────────────────────────────────────────────
@@ -190,7 +191,7 @@ pub struct AgentSession {
     pub runtime_status: String,
     pub sdk_context_json: Option<String>,
     pub sdk_context_backup_json: Option<String>,
-    pub total_tokens: i32,
+    pub total_tokens: i64,
     pub total_cost_usd: f64,
     pub created_at: i64,
     pub updated_at: i64,
@@ -696,7 +697,7 @@ pub struct GatewayRequestLog {
     pub model: Option<String>,
     pub provider_id: Option<String>,
     pub status_code: i32,
-    pub duration_ms: i32,
+    pub duration_ms: i64,
     pub request_tokens: i64,
     pub response_tokens: i64,
     pub error_message: Option<String>,

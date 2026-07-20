@@ -104,8 +104,8 @@ export function CompareView() {
 
     const labels = [
       t("stockAnalysis.price"),
-      t("stockAnalysis.compare.pe"),
-      t("stockAnalysis.compare.pb"),
+      t("stockAnalysis.peRatio"),
+      t("stockAnalysis.pbRatio"),
       t("stockAnalysis.volume"),
       t("stockAnalysis.turnoverRate"),
     ];
@@ -164,7 +164,7 @@ export function CompareView() {
       size="small"
       title={
         <span>
-          <SwapOutlined /> {t("stockAnalysis.compare.title")}
+          <SwapOutlined /> {t("stockAnalysis.stockAnalysis.title01")}
         </span>
       }
       styles={{ body: { padding: "8px 10px" } }}
@@ -225,12 +225,12 @@ export function CompareView() {
             better={quote1.changePct > quote2.changePct ? "left" : "right"}
           />
           <CompareRow
-            label={t("stockAnalysis.compare.pe")}
+            label={t("stockAnalysis.peRatio")}
             v1={quote1.pe ?? "—"}
             v2={quote2.pe ?? "—"}
             better={quote1.pe && quote2.pe ? (quote1.pe < quote2.pe ? "left" : "right") : undefined}
           />
-          <CompareRow label={t("stockAnalysis.compare.pb")} v1={quote1.pb ?? "—"} v2={quote2.pb ?? "—"} />
+          <CompareRow label={t("stockAnalysis.pbRatio")} v1={quote1.pb ?? "—"} v2={quote2.pb ?? "—"} />
           <CompareRow label={t("stockAnalysis.marketCap")} v1={fmtMv(quote1.totalMv)} v2={fmtMv(quote2.totalMv)} />
           <CompareRow
             label={t("stockAnalysis.turnoverRate")}
@@ -242,34 +242,34 @@ export function CompareView() {
           {fin1 && fin2 && (
             <>
               <div className="text-xs font-semibold mt-2 mb-1" style={{ color: "var(--muted)" }}>
-                {t("stockAnalysis.compare.financialMetrics")}
+                {t("stockAnalysis.nalysis.financialMetrics01")}
               </div>
               <CompareRow
-                label={t("stockAnalysis.compare.roe")}
+                label={t("stockAnalysis.roe")}
                 v1={fmtPct(fin1.roe)}
                 v2={fmtPct(fin2.roe)}
                 better={compareFin(fin1.roe, fin2.roe, true)}
               />
               <CompareRow
-                label={t("stockAnalysis.compare.revenueGrowth")}
+                label={t("stockAnalysis.ckAnalysis.revenueGrowth01")}
                 v1={fmtPct(fin1.revenueYoy)}
                 v2={fmtPct(fin2.revenueYoy)}
                 better={compareFin(fin1.revenueYoy, fin2.revenueYoy, true)}
               />
               <CompareRow
-                label={t("stockAnalysis.compare.profitGrowth")}
+                label={t("stockAnalysis.ockAnalysis.profitGrowth01")}
                 v1={fmtPct(fin1.profitYoy)}
                 v2={fmtPct(fin2.profitYoy)}
                 better={compareFin(fin1.profitYoy, fin2.profitYoy, true)}
               />
               <CompareRow
-                label={t("stockAnalysis.compare.grossMargin")}
+                label={t("stockAnalysis.tockAnalysis.grossMargin01")}
                 v1={fmtPct(fin1.grossMargin)}
                 v2={fmtPct(fin2.grossMargin)}
                 better={compareFin(fin1.grossMargin, fin2.grossMargin, true)}
               />
               <CompareRow
-                label={t("stockAnalysis.compare.debtRatio")}
+                label={t("stockAnalysis.stockAnalysis.debtRatio01")}
                 v1={fmtPct(fin1.debtRatio)}
                 v2={fmtPct(fin2.debtRatio)}
                 better={compareFin(fin1.debtRatio, fin2.debtRatio, false)}

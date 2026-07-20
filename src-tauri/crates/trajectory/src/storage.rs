@@ -563,7 +563,7 @@ impl TrajectoryStorage {
             updated_at: Set(skill.updated_at.to_rfc3339()),
             usage_count: Set(skill.total_usages as i32),
             success_rate: Set(skill.success_rate),
-            avg_execution_time_ms: Set(skill.avg_execution_time_ms as f64),
+            avg_execution_time_ms: Set(skill.avg_execution_time_ms as i64),
             consecutive_failures: Set(skill.consecutive_failures as i32),
             last_failure_at: Set(skill.last_failure_at.map(|dt| dt.to_rfc3339())),
         })
@@ -654,8 +654,8 @@ impl TrajectoryStorage {
             .col_expr(
                 trajectory_skills::Column::AvgExecutionTimeMs,
                 sea_orm::sea_query::Expr::col(trajectory_skills::Column::AvgExecutionTimeMs)
-                    .add(et as f64)
-                    .div(2.0),
+                    .add(et as i64)
+                    .div(2),
             )
             .col_expr(
                 trajectory_skills::Column::UpdatedAt,
@@ -986,15 +986,11 @@ impl TrajectoryStorage {
                 tier: crate::memory::MemoryTier::from_str(&m.tier),
                 importance: m.importance,
                 access_count: m.access_count as u64,
-                last_accessed: m
-                    .last_accessed
-                    .as_ref()
-                    .and_then(|s| s.parse::<i64>().ok())
-                    .unwrap_or(0),
+                last_accessed: m.last_accessed.unwrap_or(0),
                 decay_rate: m.decay_rate,
-                created_at: m.created_at.as_ref().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0),
-                updated_at: m.updated_at.parse::<i64>().unwrap_or(0),
-                expires_at: m.expires_at.as_ref().and_then(|s| s.parse::<i64>().ok()),
+                created_at: m.created_at.unwrap_or(0),
+                updated_at: m.updated_at,
+                expires_at: m.expires_at,
                 nature: crate::memory::MemoryNature::from_str(&m.memory_nature),
                 provenance: Some(crate::memory::MemoryProvenance {
                     conversation_id: m.source_conversation_id,
@@ -1016,14 +1012,14 @@ impl TrajectoryStorage {
             id: Set(mem.id.clone()),
             content: Set(mem.content.clone()),
             memory_type: Set(mem.memory_type.clone()),
-            updated_at: Set(format!("{}", mem.updated_at)),
+            updated_at: Set(mem.updated_at),
             tier: Set(mem.tier.as_str().to_string()),
             importance: Set(mem.importance),
             access_count: Set(mem.access_count as i32),
-            last_accessed: Set(Some(format!("{}", mem.last_accessed))),
+            last_accessed: Set(Some(mem.last_accessed)),
             decay_rate: Set(mem.decay_rate),
-            created_at: Set(Some(format!("{}", mem.created_at))),
-            expires_at: Set(mem.expires_at.map(|t| format!("{}", t))),
+            created_at: Set(Some(mem.created_at)),
+            expires_at: Set(mem.expires_at),
             source_conversation_id: Set(source_conv_id),
             source_message_id: Set(source_msg_id),
             memory_nature: Set(mem.nature.as_str().to_string()),

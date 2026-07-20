@@ -300,21 +300,21 @@ function R1View({ data, isDark }: { data: R1DebateJson; isDark: boolean }) {
       {data.core_arguments && data.core_arguments.length > 0 && (
         <div>
           <div className="text-xs font-semibold mb-1" style={{ color: "var(--muted)" }}>
-            {t("stockAnalysis.debate.coreArguments")}
+            {t("stockAnalysis.coreArguments")}
           </div>
           <ul className="list-disc pl-4 space-y-1">
             {data.core_arguments.map((arg, i) => (
               <li key={i} className="text-xs">
-                <span className="font-medium">{arg.claim || t("stockAnalysis.debate.unnamedArgument")}</span>
+                <span className="font-medium">{arg.claim || t("stockAnalysis.unnamedArgument")}</span>
                 {arg.category && <Tag className="ml-1 text-xs">{arg.category}</Tag>}
                 {typeof arg.strength === "number" && (
                   <span className="ml-1" style={{ color: "var(--sa-red)" }}>
-                    {t("stockAnalysis.debate.strength")}:{arg.strength}
+                    {t("stockAnalysis.strength")}:{arg.strength}
                   </span>
                 )}
                 {arg.evidence_refs && arg.evidence_refs.length > 0 && (
                   <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                    {t("stockAnalysis.debate.references")}: {arg.evidence_refs.slice(0, 2).join("；")}
+                    {t("stockAnalysis.references")}: {arg.evidence_refs.slice(0, 2).join("；")}
                   </div>
                 )}
               </li>
@@ -331,7 +331,7 @@ function R1View({ data, isDark }: { data: R1DebateJson; isDark: boolean }) {
           <ul className="list-disc pl-4 space-y-1">
             {data.resonance_points.map((rp, i) => (
               <li key={i} className="text-xs">
-                {rp.point || t("stockAnalysis.debate.resonancePoint")}
+                {rp.point || t("stockAnalysis.resonancePoint")}
                 {rp.dimensions && rp.dimensions.length > 0 && (
                   <span className="ml-1" style={{ color: "var(--muted)" }}>
                     ({rp.dimensions.join("+")})
@@ -339,7 +339,7 @@ function R1View({ data, isDark }: { data: R1DebateJson; isDark: boolean }) {
                 )}
                 {typeof rp.weight === "number" && (
                   <span className="ml-1" style={{ color: "var(--sa-amber)" }}>
-                    {t("stockAnalysis.debate.weight")}:{rp.weight}
+                    {t("stockAnalysis.weight")}:{rp.weight}
                   </span>
                 )}
               </li>
@@ -351,7 +351,7 @@ function R1View({ data, isDark }: { data: R1DebateJson; isDark: boolean }) {
       {data.preempted_counter_attacks && data.preempted_counter_attacks.length > 0 && (
         <div>
           <div className="text-xs font-semibold mb-1" style={{ color: "var(--muted)" }}>
-            {t("stockAnalysis.debate.counterArgument")}
+            {t("stockAnalysis.counterArgument")}
           </div>
           <div className="space-y-2">
             {data.preempted_counter_attacks.map((pa, i) => (
@@ -364,16 +364,16 @@ function R1View({ data, isDark }: { data: R1DebateJson; isDark: boolean }) {
                 }}
               >
                 <div className="font-medium mb-0.5">
-                  {pa.our_claim || `${t("stockAnalysis.debate.argument")} ${i + 1}`}
+                  {pa.our_claim || `${t("stockAnalysis.argument")} ${i + 1}`}
                 </div>
                 {pa.bear_attack && (
                   <div className="mb-0.5" style={{ color: "var(--sa-green)" }}>
-                    <span className="font-medium">{t("stockAnalysis.debate.bearAttack")}:</span> {pa.bear_attack}
+                    <span className="font-medium">{t("stockAnalysis.bearAttack")}:</span> {pa.bear_attack}
                   </div>
                 )}
                 {pa.our_response && (
                   <div style={{ color: "var(--sa-red)" }}>
-                    <span className="font-medium">{t("stockAnalysis.debate.ourResponse")}:</span> {pa.our_response}
+                    <span className="font-medium">{t("stockAnalysis.ourResponse")}:</span> {pa.our_response}
                   </div>
                 )}
               </div>
@@ -384,18 +384,18 @@ function R1View({ data, isDark }: { data: R1DebateJson; isDark: boolean }) {
 
       {typeof data.bull_strength_score === "number" && (
         <div className="text-xs">
-          <Tag color="red">{t("stockAnalysis.debate.bullStrength")}: {data.bull_strength_score}</Tag>
+          <Tag color="red">{t("stockAnalysis.bullStrength")}: {data.bull_strength_score}</Tag>
         </div>
       )}
       {typeof data.bear_strength_score === "number" && (
         <div className="text-xs">
-          <Tag color="green">{t("stockAnalysis.debate.bearStrength")}: {data.bear_strength_score}</Tag>
+          <Tag color="green">{t("stockAnalysis.bearStrength")}: {data.bear_strength_score}</Tag>
         </div>
       )}
 
       {data.data_gaps && data.data_gaps.length > 0 && (
         <div className="text-xs" style={{ color: "var(--muted)" }}>
-          {t("stockAnalysis.debate.dataGaps")}: {data.data_gaps.join("；")}
+          {t("stockAnalysis.dataGaps")}: {data.data_gaps.join("；")}
         </div>
       )}
     </div>
@@ -432,7 +432,7 @@ function R2View({ data, isDark }: { data: R2DebateJson; isDark: boolean }) {
                 )}
                 {ce.if_unanswered_impact && (
                   <div className="mt-1" style={{ color: "var(--muted)" }}>
-                    <span className="font-medium">{t("stockAnalysis.debate.impact")}:</span> {ce.if_unanswered_impact}
+                    <span className="font-medium">{t("stockAnalysis.impact")}:</span> {ce.if_unanswered_impact}
                   </div>
                 )}
               </div>
@@ -446,8 +446,7 @@ function R2View({ data, isDark }: { data: R2DebateJson; isDark: boolean }) {
           className="p-2 rounded text-xs"
           style={{ background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)" }}
         >
-          <span className="font-medium">{t("stockAnalysis.debate.convergenceSummary")}:</span>{" "}
-          {data.summary_for_convergence}
+          <span className="font-medium">{t("stockAnalysis.convergenceSummary")}:</span> {data.summary_for_convergence}
         </div>
       )}
     </div>
@@ -500,7 +499,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
           <Tag color={posInfo.color}>{posInfo.text}</Tag>
           {typeof data.confidence === "number" && (
             <span className="text-xs" style={{ color: "var(--muted)" }}>
-              {t("stockAnalysis.debate.confidence")} {data.confidence}
+              {t("stockAnalysis.stockAnalysis.confidence01")} {data.confidence}
             </span>
           )}
         </div>
@@ -524,7 +523,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
       {data.r2_cross_examination_response && data.r2_cross_examination_response.length > 0 && (
         <div>
           <div className="text-xs font-semibold mb-1" style={{ color: "var(--muted)" }}>
-            {t("stockAnalysis.debate.r2Responses")}
+            {t("stockAnalysis.round2Responses")}
           </div>
           <div className="space-y-2">
             {data.r2_cross_examination_response.map((resp, i) => {
@@ -582,7 +581,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
                 )}
                 {typeof sa.final_strength === "number" && (
                   <span className="ml-1" style={{ color: "var(--sa-red)" }}>
-                    {t("stockAnalysis.debate.finalStrength")}:{sa.final_strength}
+                    {t("stockAnalysis.finalStrength")}:{sa.final_strength}
                   </span>
                 )}
                 {sa.additional_evidence && (
@@ -631,12 +630,12 @@ function VerdictView({ data }: { data: DebateJson }) {
       {stanceInfo && <Tag color={stanceInfo.color}>{stanceInfo.text}</Tag>}
       {typeof score === "number" && (
         <Tag color={data.stance?.includes("bear") ? "green" : "red"}>
-          {t("stockAnalysis.debate.strength")}: {score}
+          {t("stockAnalysis.strength")}: {score}
         </Tag>
       )}
       {typeof conf === "number" && (
         <span className="text-xs" style={{ color: "var(--muted)" }}>
-          {t("stockAnalysis.debate.confidence")}: {conf}
+          {t("stockAnalysis.stockAnalysis.confidence01")}: {conf}
         </span>
       )}
       {/* 如果有任何未渲染的额外字段，显示为 key-value 摘要 */}
@@ -860,7 +859,7 @@ export function DebatePanel() {
 
   // Round 标签
   const roundOptions = processedRounds.map((r, i) => ({
-    label: `${t("stockAnalysis.debate.round")}${r.round}`,
+    label: `${t("stockAnalysis.round")}${r.round}`,
     value: i,
   }));
 
@@ -873,8 +872,8 @@ export function DebatePanel() {
             <span>{t("acp.debate")}</span>
             {finalVerdict && (finalVerdict.final_position || finalVerdict.claim) && (
               <Tag color={finalVerdict.final_position?.includes("bear") ? "green" : "red"}>
-                {t("stockAnalysis.debate.finalVerdict")}:{" "}
-                {finalVerdict.claim?.slice(0, 30) || finalVerdict.final_position || t("stockAnalysis.debate.pending")}
+                {t("stockAnalysis.finalVerdict")}:{" "}
+                {finalVerdict.claim?.slice(0, 30) || finalVerdict.final_position || t("stockAnalysis.pending")}
               </Tag>
             )}
           </div>
@@ -980,11 +979,11 @@ export function DebatePanel() {
                 <div className="flex items-center gap-2 mb-1">
                   <span role="img" aria-label="gavel">⚖️</span>
                   <span className="font-semibold" style={{ color: "#7c3aed" }}>
-                    {t("stockAnalysis.debate.verdictReason")}
+                    {t("stockAnalysis.verdictReason")}
                   </span>
                 </div>
                 <Typography.Paragraph
-                  ellipsis={{ rows: 3, expandable: true, symbol: t("stockAnalysis.debate.expand") }}
+                  ellipsis={{ rows: 3, expandable: true, symbol: t("stockAnalysis.expand") }}
                   className="mb-0"
                   style={{ fontSize: 11, color: "var(--color-text-secondary)" }}
                 >
@@ -1079,7 +1078,7 @@ export function DebatePanel() {
                   </span>
                 </div>
                 <Typography.Paragraph
-                  ellipsis={{ rows: 5, expandable: true, symbol: t("stockAnalysis.debate.expandFull") }}
+                  ellipsis={{ rows: 5, expandable: true, symbol: t("stockAnalysis.expandFull") }}
                   className="mb-1"
                   style={{ fontSize: 12, color: "var(--color-text-secondary)" }}
                 >
@@ -1092,7 +1091,7 @@ export function DebatePanel() {
                 )}
                 {typeof finalVerdict.confidence === "number" && (
                   <Tag color="blue">
-                    {t("stockAnalysis.debate.confidence")}: {finalVerdict.confidence}
+                    {t("stockAnalysis.stockAnalysis.confidence01")}: {finalVerdict.confidence}
                   </Tag>
                 )}
               </div>

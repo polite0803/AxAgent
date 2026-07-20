@@ -2,7 +2,7 @@
 
 //! Smart Router 路由历史记录实体 —— 持久化 CostAwareRouter 的决策与反馈数据。
 //!
-//! 表 `route_history` 由 v101 migration 创建，存储每次路由决策及其后续反馈：
+//! 表 `route_history` 由 v100 consolidated migration 创建，存储每次路由决策及其后续反馈：
 //! - 决策时：插入一行（outcome_* 字段为 NULL）
 //! - 反馈到达：UPDATE 对应 prompt_hash 的 outcome_* 字段
 //!

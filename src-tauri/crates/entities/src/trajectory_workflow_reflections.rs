@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 工作流反思历史持久化 entity（v103 migration 创建）。
+//! 工作流反思历史持久化 entity（v100 consolidated migration 创建）。
 //!
 //! 反思结果由 `WorkflowReflectorImpl` 在每次 `reflect()` / `reflect_node()` 调用后落库，
 //! 用于跨会话查询 / 模式聚合 / 进化决策。`WorkflowOptimizer` / `WorkflowEvolver` 通过

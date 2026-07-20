@@ -124,7 +124,7 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
         id: &str,
         runtime_status: &str,
         sdk_context_json: Option<&str>,
-        tokens_delta: i32,
+        tokens_delta: i64,
         cost_delta: f64,
     ) -> Result<()> {
         let model = agent_sessions::Entity::find_by_id(id)

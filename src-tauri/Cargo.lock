@@ -1126,7 +1126,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-market-sim"
-version = "2.8.5"
+version = "2.8.6"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1178,7 +1178,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-notification"
-version = "2.8.5"
+version = "2.8.6"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1268,7 +1268,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-quant"
-version = "2.8.5"
+version = "2.8.6"
 dependencies = [
  "async-trait",
  "axagent-harness",

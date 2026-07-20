@@ -2,6 +2,7 @@
 
 use axagent_harness::ProviderAdapter;
 use axagent_harness::ProviderRequestContext;
+use axagent_harness::error_codes::voice as voice_err;
 use axagent_harness::speech::{AudioChunkStream, SpeakRequest, SpeechInput};
 use axagent_harness::types::{AudioEncoding, AudioFormat, ChatContent, ChatMessage, ChatRequest};
 use axum::{
@@ -18,7 +19,7 @@ use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{Value, json};
 use tokio::sync::{Mutex, mpsc};
 use tokio::task::JoinHandle;
 
@@ -74,8 +75,35 @@ enum RealtimeServerMessage {
     AudioDone,
     #[serde(rename = "response.done")]
     ResponseDone,
+    /// 错误消息：`code` 对应前端 i18n 的 `error.${code}` 翻译键，`params` 用于插值，
+    /// `message` 为兜底英文说明（前端未配置翻译时显示）。
     #[serde(rename = "error")]
-    Error { message: String },
+    Error {
+        code: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        params: Option<Value>,
+        message: String,
+    },
+}
+
+impl RealtimeServerMessage {
+    /// 构造带错误码的 Error 消息（无插值参数）
+    fn error(code: &str, message: impl Into<String>) -> Self {
+        RealtimeServerMessage::Error {
+            code: code.to_string(),
+            params: None,
+            message: message.into(),
+        }
+    }
+
+    /// 构造带错误码 + 插值参数的 Error 消息
+    fn error_with_params(code: &str, message: impl Into<String>, params: Value) -> Self {
+        RealtimeServerMessage::Error {
+            code: code.to_string(),
+            params: Some(params),
+            message: message.into(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -83,7 +111,7 @@ pub struct RealtimeQuery {
     ticket: Option<String>,
 }
 
-/// Build a 401 JSON response.
+/// Build a 401 JSON response with voice error code.
 fn unauth(message: &str) -> Response {
     (
         StatusCode::UNAUTHORIZED,
@@ -91,7 +119,7 @@ fn unauth(message: &str) -> Response {
             "error": {
                 "message": message,
                 "type": "invalid_request_error",
-                "code": "invalid_api_key"
+                "code": voice_err::TICKET_INVALID,
             }
         })),
     )
@@ -209,6 +237,8 @@ struct VoicePipelineDeps {
     tts_tx: mpsc::Sender<String>,
     transcript_tx: mpsc::Sender<String>,
     done_tx: mpsc::Sender<()>,
+    /// P1-9：STT/TTS 失败时通过此通道把错误码推回主循环，由主循环经 socket 发给前端
+    error_tx: mpsc::Sender<RealtimeServerMessage>,
 }
 
 /// 本地语音回合：STT → LLM 流式 → TTS 流式，结果经通道推回主循环。
@@ -233,6 +263,14 @@ async fn run_voice_turn(
         Err(e) => {
             tracing::warn!(error = %e, "STT failed");
             if session_gen() == my_generation {
+                // P1-9：通知前端 STT 失败（按错误码翻译）
+                let _ = deps
+                    .error_tx
+                    .send(RealtimeServerMessage::error(
+                        voice_err::STT_FAILED,
+                        format!("STT failed: {}", e),
+                    ))
+                    .await;
                 let _ = deps.done_tx.send(()).await;
             }
             return;
@@ -342,6 +380,14 @@ async fn run_voice_turn(
         Ok(s) => s,
         Err(e) => {
             tracing::warn!(error = %e, "TTS failed");
+            // P1-9：通知前端 TTS 失败（按错误码翻译）
+            let _ = deps
+                .error_tx
+                .send(RealtimeServerMessage::error(
+                    voice_err::TTS_FAILED,
+                    format!("TTS failed: {}", e),
+                ))
+                .await;
             let _ = deps.done_tx.send(()).await;
             return;
         },
@@ -419,9 +465,14 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                         let client_msg: RealtimeClientMessage = match serde_json::from_str(&t) {
                             Ok(m) => m,
                             Err(e) => {
-                                let _ = send_msg(&mut socket, &RealtimeServerMessage::Error {
-                                    message: format!("Invalid message: {}", e),
-                                }).await;
+                                let _ = send_msg(
+                                    &mut socket,
+                                    &RealtimeServerMessage::error(
+                                        voice_err::INVALID_MESSAGE,
+                                        format!("Invalid message: {}", e),
+                                    ),
+                                )
+                                .await;
                                 continue;
                             },
                         };
@@ -430,9 +481,14 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                                 break (model, voice, stt_provider, tts_provider);
                             },
                             _ => {
-                                let _ = send_msg(&mut socket, &RealtimeServerMessage::Error {
-                                    message: "Send session.create first".into(),
-                                }).await;
+                                let _ = send_msg(
+                                    &mut socket,
+                                    &RealtimeServerMessage::error(
+                                        voice_err::SESSION_CREATE_REQUIRED,
+                                        "Send session.create first",
+                                    ),
+                                )
+                                .await;
                             },
                         }
                     }
@@ -462,9 +518,11 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
             tracing::warn!(session_id = %session_id, model = %resolved_model, error = %e, "Failed to resolve model");
             let _ = send_msg(
                 &mut socket,
-                &RealtimeServerMessage::Error {
-                    message: format!("Failed to resolve model '{}': {}", resolved_model, e),
-                },
+                &RealtimeServerMessage::error_with_params(
+                    voice_err::MODEL_NOT_FOUND,
+                    format!("Failed to resolve model '{}': {}", resolved_model, e),
+                    json!({ "model": resolved_model }),
+                ),
             )
             .await;
             return;
@@ -476,14 +534,14 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
         {
             Some(a) => a,
             None => {
+                let provider_type = provider_type_to_str(&llm_provider_config.provider_type);
                 let _ = send_msg(
                     &mut socket,
-                    &RealtimeServerMessage::Error {
-                        message: format!(
-                            "Provider type '{}' not found in registry",
-                            provider_type_to_str(&llm_provider_config.provider_type)
-                        ),
-                    },
+                    &RealtimeServerMessage::error_with_params(
+                        voice_err::PROVIDER_NOT_FOUND,
+                        format!("Provider type '{}' not found in registry", provider_type),
+                        json!({ "provider_type": provider_type }),
+                    ),
                 )
                 .await;
                 return;
@@ -548,9 +606,10 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                 tracing::error!(error = %e, "Failed to decrypt provider key");
                 let _ = send_msg(
                     &mut socket,
-                    &RealtimeServerMessage::Error {
-                        message: "Failed to decrypt provider key".into(),
-                    },
+                    &RealtimeServerMessage::error(
+                        voice_err::DECRYPT_KEY_FAILED,
+                        format!("Failed to decrypt provider key: {}", e),
+                    ),
                 )
                 .await;
                 return;
@@ -578,7 +637,15 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
         Some(pid) => match resolve_speech_adapter(pid, &state).await {
             Ok(r) => r,
             Err(e) => {
-                let _ = send_msg(&mut socket, &RealtimeServerMessage::Error { message: e }).await;
+                let _ = send_msg(
+                    &mut socket,
+                    &RealtimeServerMessage::error_with_params(
+                        voice_err::PROVIDER_NOT_FOUND,
+                        e,
+                        json!({ "provider_id": pid }),
+                    ),
+                )
+                .await;
                 return;
             },
         },
@@ -588,7 +655,15 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
         Some(pid) => match resolve_speech_adapter(pid, &state).await {
             Ok(r) => r,
             Err(e) => {
-                let _ = send_msg(&mut socket, &RealtimeServerMessage::Error { message: e }).await;
+                let _ = send_msg(
+                    &mut socket,
+                    &RealtimeServerMessage::error_with_params(
+                        voice_err::PROVIDER_NOT_FOUND,
+                        e,
+                        json!({ "provider_id": pid }),
+                    ),
+                )
+                .await;
                 return;
             },
         },
@@ -601,9 +676,10 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
     if !stt_caps.stt || !tts_caps.tts {
         let _ = send_msg(
             &mut socket,
-            &RealtimeServerMessage::Error {
-                message: "当前模型提供商不支持语音（STT/TTS 提供商需分别支持语音能力）".to_string(),
-            },
+            &RealtimeServerMessage::error(
+                voice_err::PROVIDER_NO_SPEECH,
+                "Provider does not support speech (STT/TTS required)",
+            ),
         )
         .await;
         return;
@@ -635,6 +711,8 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
     let (tts_tx, mut tts_rx) = mpsc::channel::<String>(LLM_CHANNEL_SIZE);
     let (transcript_tx, mut transcript_rx) = mpsc::channel::<String>(LLM_CHANNEL_SIZE);
     let (done_tx, mut done_rx) = mpsc::channel::<()>(8);
+    // P1-9：run_voice_turn 把 STT/TTS 失败错误码推回主循环，由主循环经 socket 发给前端
+    let (error_tx, mut error_rx) = mpsc::channel::<RealtimeServerMessage>(8);
 
     let history: Arc<Mutex<Vec<ChatMessage>>> = Arc::new(Mutex::new(Vec::new()));
     let generation = Arc::new(AtomicU64::new(0));
@@ -721,6 +799,15 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                 }
             }
 
+            // 后端 → 前端：STT/TTS 失败错误码（run_voice_turn 推送）
+            err_msg = error_rx.recv() => {
+                if let Some(msg) = err_msg {
+                    if send_msg(&mut socket, &msg).await.is_err() { break; }
+                } else {
+                    break;
+                }
+            }
+
             // 前端 → 后端
             msg_result = socket.recv() => {
                 let msg = match msg_result {
@@ -741,9 +828,14 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                         let client_msg: RealtimeClientMessage = match serde_json::from_str(&t) {
                             Ok(m) => m,
                             Err(e) => {
-                                let _ = send_msg(&mut socket, &RealtimeServerMessage::Error {
-                                    message: format!("Invalid message: {}", e),
-                                }).await;
+                                let _ = send_msg(
+                                    &mut socket,
+                                    &RealtimeServerMessage::error(
+                                        voice_err::INVALID_MESSAGE,
+                                        format!("Invalid message: {}", e),
+                                    ),
+                                )
+                                .await;
                                 continue;
                             },
                         };
@@ -757,6 +849,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                                 }
                                 // 打断并接管：中止上一轮（若有），开启新一轮
                                 abort_current_turn(
+                                    &mut socket,
                                     &mut pipeline_task,
                                     &mut current_cancel,
                                     &mut current_turn_history_len,
@@ -779,6 +872,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                                     &tts_tx,
                                     &transcript_tx,
                                     &done_tx,
+                                    &error_tx,
                                     audio,
                                     hist_len,
                                     &mut current_turn_history_len,
@@ -789,6 +883,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                             },
                             RealtimeClientMessage::ResponseCancel => {
                                 abort_current_turn(
+                                    &mut socket,
                                     &mut pipeline_task,
                                     &mut current_cancel,
                                     &mut current_turn_history_len,
@@ -807,6 +902,7 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
                         // AI 正在说话时收到音频 = 用户打断（隐式 cancel）
                         if is_responding {
                             abort_current_turn(
+                                &mut socket,
                                 &mut pipeline_task,
                                 &mut current_cancel,
                                 &mut current_turn_history_len,
@@ -841,22 +937,36 @@ async fn handle_realtime_session(socket: WebSocket, state: GatewayAppState) {
 }
 
 /// 中止当前正在进行的语音回合（用户打断 / 新音频到达时调用）。
+///
+/// P0-5：abort 后由主循环主动给前端补发 `AudioDone` + `ResponseDone`，
+/// 否则前端 `aiRespondingRef.current` 不会复位、状态卡在 `Listening`。
+///
+/// P2-15：不 await task join，避免阻塞主循环 select!；被取消的 task 在下个
+/// await point 退出，靠 `cancel.load` + `generation` 检查阻止其继续写 `tts_tx`。
 async fn abort_current_turn(
+    socket: &mut WebSocket,
     pipeline_task: &mut Option<JoinHandle<()>>,
     current_cancel: &mut Option<Arc<AtomicBool>>,
     current_turn_history_len: &mut Option<usize>,
     history: &Arc<Mutex<Vec<ChatMessage>>>,
 ) {
+    let was_running = pipeline_task.is_some();
     if let Some(c) = current_cancel.take() {
         c.store(true, Ordering::SeqCst);
     }
     if let Some(t) = pipeline_task.take() {
         t.abort();
+        // 不 await join：见 P2-15 注释
     }
     // 回滚本回合已写入历史的部分（如已落库的用户消息），避免上下文污染
     if let Some(len) = current_turn_history_len.take() {
         let mut h = history.lock().await;
         h.truncate(len);
+    }
+    // P0-5：补发 AudioDone + ResponseDone，让前端 aiRespondingRef 复位
+    if was_running {
+        let _ = send_msg(socket, &RealtimeServerMessage::AudioDone).await;
+        let _ = send_msg(socket, &RealtimeServerMessage::ResponseDone).await;
     }
 }
 
@@ -877,6 +987,7 @@ fn spawn_turn(
     tts_tx: &mpsc::Sender<String>,
     transcript_tx: &mpsc::Sender<String>,
     done_tx: &mpsc::Sender<()>,
+    error_tx: &mpsc::Sender<RealtimeServerMessage>,
     audio: Vec<u8>,
     hist_len: usize,
     current_turn_history_len: &mut Option<usize>,
@@ -903,6 +1014,7 @@ fn spawn_turn(
         tts_tx: tts_tx.clone(),
         transcript_tx: transcript_tx.clone(),
         done_tx: done_tx.clone(),
+        error_tx: error_tx.clone(),
     };
 
     *pipeline_task = Some(tokio::spawn(run_voice_turn(deps, audio, cancel, my_generation)));
@@ -1065,11 +1177,27 @@ mod tests {
 
     #[test]
     fn serialize_error() {
-        let msg = RealtimeServerMessage::Error { message: "Something went wrong".into() };
+        let msg = RealtimeServerMessage::error(voice_err::STT_FAILED, "Something went wrong");
         let json = serde_json::to_string(&msg).unwrap();
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(v["type"], "error");
+        assert_eq!(v["code"], voice_err::STT_FAILED);
         assert_eq!(v["message"], "Something went wrong");
+        // 无插值参数时 params 应被省略
+        assert!(v.get("params").is_none() || v["params"].is_null());
+    }
+
+    #[test]
+    fn serialize_error_with_params() {
+        let msg = RealtimeServerMessage::error_with_params(
+            voice_err::MODEL_NOT_FOUND,
+            "model not found",
+            json!({ "model": "gpt-4o-voice" }),
+        );
+        let v: serde_json::Value = serde_json::to_value(&msg).unwrap();
+        assert_eq!(v["type"], "error");
+        assert_eq!(v["code"], voice_err::MODEL_NOT_FOUND);
+        assert_eq!(v["params"]["model"], "gpt-4o-voice");
     }
 
     // ── 常量 ────────────────────────────────────────────────

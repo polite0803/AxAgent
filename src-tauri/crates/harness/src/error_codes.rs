@@ -258,3 +258,29 @@ pub mod desktop {
     pub const CONNECTION_TIMEOUT: &str = "DESKTOP_CONNECTION_TIMEOUT";
     pub const NATIVE_NOTIFICATION_FAILED: &str = "DESKTOP_NATIVE_NOTIFICATION_FAILED";
 }
+
+/// 语音会话相关错误码（realtime WebSocket 通道）
+///
+/// 通过 `RealtimeServerMessage::Error { code, params, .. }` 回传前端，
+/// 前端按 `t("error.${code}", params)` 翻译。
+/// 与 `commands/error_code.rs::voice` 模块及 locales/*.json 的 `error` 段对齐。
+pub mod voice {
+    /// 票据无效/过期/已被使用（401 鉴权失败）
+    pub const TICKET_INVALID: &str = "VOICE_TICKET_INVALID";
+    /// 语音模型未找到或不支持
+    pub const MODEL_NOT_FOUND: &str = "VOICE_MODEL_NOT_FOUND";
+    /// 语音提供商未找到
+    pub const PROVIDER_NOT_FOUND: &str = "VOICE_PROVIDER_NOT_FOUND";
+    /// 提供商不支持语音能力（STT/TTS）
+    pub const PROVIDER_NO_SPEECH: &str = "VOICE_PROVIDER_NO_SPEECH";
+    /// 网关密钥解密失败
+    pub const DECRYPT_KEY_FAILED: &str = "VOICE_DECRYPT_KEY_FAILED";
+    /// 语音识别（STT）失败
+    pub const STT_FAILED: &str = "VOICE_STT_FAILED";
+    /// 语音合成（TTS）失败
+    pub const TTS_FAILED: &str = "VOICE_TTS_FAILED";
+    /// 无效的语音消息格式
+    pub const INVALID_MESSAGE: &str = "VOICE_INVALID_MESSAGE";
+    /// 未先发送 session.create 消息
+    pub const SESSION_CREATE_REQUIRED: &str = "VOICE_SESSION_CREATE_REQUIRED";
+}

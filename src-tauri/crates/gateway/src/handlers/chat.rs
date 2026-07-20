@@ -216,7 +216,7 @@ pub(crate) async fn handle_non_stream_with_failover(
                     )
                     .await;
 
-                let elapsed = start_time.elapsed().as_millis() as i32;
+                let elapsed = start_time.elapsed().as_millis() as i64;
                 record_log!(
                     &state.adapter,
                     gateway_key,
@@ -282,7 +282,7 @@ pub(crate) async fn handle_non_stream_with_failover(
         }
     }
 
-    let elapsed = start_time.elapsed().as_millis() as i32;
+    let elapsed = start_time.elapsed().as_millis() as i64;
     let err_msg = last_error.as_ref().map(|e| e.to_string()).unwrap_or_default();
     record_log!(
         &state.adapter,
@@ -403,7 +403,7 @@ pub(crate) async fn handle_stream(
             )
             .await;
 
-        let elapsed = start_time.elapsed().as_millis() as i32;
+        let elapsed = start_time.elapsed().as_millis() as i64;
         let status_code = if stream_error.is_some() { 502 } else { 200 };
         record_log!(
             &platform_adapter,

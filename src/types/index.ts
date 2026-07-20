@@ -630,7 +630,8 @@ export type VoiceSessionState =
   | "Connected"
   | "Speaking"
   | "Listening"
-  | "Disconnecting";
+  | "Disconnecting"
+  | "Error";
 
 export type AudioEncoding = "Pcm16" | "Opus";
 
