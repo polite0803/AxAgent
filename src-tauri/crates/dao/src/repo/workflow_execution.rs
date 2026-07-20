@@ -43,7 +43,7 @@ pub async fn update_workflow_execution_status(
     status: &str,
     output_result: Option<&str>,
     node_executions: Option<&str>,
-    total_time_ms: Option<i32>,
+    total_time_ms: Option<i64>,
 ) -> Result<bool> {
     let execution = workflow_executions::Entity::find_by_id(id).one(db).await?;
     if let Some(e) = execution {

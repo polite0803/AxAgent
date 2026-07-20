@@ -33,7 +33,8 @@ pub struct WorkflowExecutionData {
     pub input_params: Option<String>,
     pub output_result: Option<String>,
     pub node_executions: Option<String>,
-    pub total_time_ms: Option<i32>,
+    // workflow_executions.total_time_ms 列为 BIGINT，用 i64 匹配。
+    pub total_time_ms: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
 }

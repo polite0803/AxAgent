@@ -13,7 +13,9 @@ pub struct Model {
     pub input_params: Option<String>,
     pub output_result: Option<String>,
     pub node_executions: Option<String>,
-    pub total_time_ms: Option<i32>,
+    // DDL 为 BIGINT（v100_consolidated.rs），必须用 i64；旧库该列实际也是
+    // BIGINT，用 i32 会导致 PG 上 INT8→INT4 解码失败。
+    pub total_time_ms: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
 }
