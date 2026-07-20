@@ -1765,6 +1765,10 @@ pub struct StepProgressEvent {
     pub total_nodes: usize,
     pub completed_nodes: usize,
     pub execution_id: Option<String>,
+    /// 节点失败/超时的真实错误信息。此前该字段缺失导致进度回调只能透传占位符，
+    /// 前端 Debug 面板无法显示具体失败原因（AxInvest #10 数据工具节点失败不可诊断）。
+    /// 仅 failed/timeout 状态携带 Some，其余为 None（向后兼容）。
+    pub error: Option<String>,
 }
 
 /// 活跃执行摘要(仅内存运行态,用于可观测性 / 前端轮询)。

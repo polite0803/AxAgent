@@ -1315,7 +1315,7 @@ pub async fn backtest_analysis(
             &analysis_date,
             &decision_action,
             decision_confidence,
-            holding_days,
+            holding_days as i64,
             None,
             None,
         )
@@ -1417,7 +1417,7 @@ pub struct ReplaySweepItem {
     #[serde(default)]
     pub time_horizon: Option<String>,
     #[serde(default)]
-    pub expected_holding_days: Option<u32>,
+    pub expected_holding_days: Option<i64>,
 }
 
 /// Sweep 中失败的样本 + 失败原因
@@ -1470,7 +1470,7 @@ pub async fn run_replay_backtest(
                 continue;
             },
         };
-        let effective_holding = item.expected_holding_days.unwrap_or(holding_days);
+        let effective_holding = item.expected_holding_days.unwrap_or(holding_days as i64);
         let result = as_of::with_optional_asof(ctx, async {
             BacktestEngine::backtest_decision(
                 &*state.astock_client,
@@ -1525,7 +1525,7 @@ pub async fn create_price_alert(
         stock_name: Set(stock_name),
         condition: Set(condition),
         target_price: Set(target_price),
-        is_triggered: Set(false),
+        is_triggered: Set(0),
         triggered_at: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
@@ -3418,7 +3418,7 @@ pub struct LatestAnalysisSummary {
     pub status: String,          // completed / running / failed
     pub outcome: Option<String>, // win / loss / pending
     pub decision_time_horizon: Option<String>,
-    pub decision_expected_holding_days: Option<i32>,
+    pub decision_expected_holding_days: Option<i64>,
 }
 
 /// 查询个股最近一次已完成分析的决策摘要
@@ -3473,7 +3473,7 @@ pub async fn get_latest_analysis_for_stock(
         status: model.status,
         outcome: model.outcome,
         decision_time_horizon: model.decision_time_horizon,
-        decision_expected_holding_days: model.decision_expected_holding_days.map(|d| d as i32),
+        decision_expected_holding_days: model.decision_expected_holding_days,
     }))
 }
 
@@ -3530,9 +3530,7 @@ pub async fn get_latest_analyses_for_stocks(
                 status: model.status,
                 outcome: model.outcome,
                 decision_time_horizon: model.decision_time_horizon,
-                decision_expected_holding_days: model
-                    .decision_expected_holding_days
-                    .map(|d| d as i32),
+                decision_expected_holding_days: model.decision_expected_holding_days,
             }
         });
 

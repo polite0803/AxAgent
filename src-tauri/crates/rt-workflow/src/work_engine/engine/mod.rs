@@ -1806,6 +1806,7 @@ impl WorkEngine {
                         total_nodes,
                         completed_nodes: completed,
                         execution_id: Some(execution_id.clone()),
+                        error: None,
                     })
                     .await;
                 }
@@ -2147,6 +2148,7 @@ impl WorkEngine {
                                 total_nodes,
                                 completed_nodes: completed,
                                 execution_id: Some(execution_id.clone()),
+                                error: None,
                             })
                             .await;
                         }
@@ -2387,6 +2389,7 @@ impl WorkEngine {
                                 total_nodes,
                                 completed_nodes: completed,
                                 execution_id: Some(execution_id.clone()),
+                                error: Some(err_msg.clone()),
                             })
                             .await;
                         }
@@ -2671,7 +2674,7 @@ impl WorkEngine {
                             "timeout",
                             &nr.input_snapshot,
                             None,
-                            Some(err_msg),
+                            Some(err_msg.clone()),
                             nr.elapsed_ms,
                         );
 
@@ -2702,6 +2705,7 @@ impl WorkEngine {
                                 total_nodes,
                                 completed_nodes: completed,
                                 execution_id: Some(execution_id.clone()),
+                                error: Some(err_msg.clone()),
                             })
                             .await;
                         }

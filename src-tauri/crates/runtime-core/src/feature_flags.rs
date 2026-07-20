@@ -20,7 +20,7 @@
 //! | `SUBSCRIBE_PR` | true | PR 订阅通知 |
 
 use std::collections::{BTreeMap, HashMap};
-use tokio::sync::RwLock;
+use std::sync::RwLock;
 
 /// Feature Flag 的注册描述
 #[derive(Debug, Clone)]
@@ -129,44 +129,48 @@ impl FeatureFlags {
 
     /// 检查指定 flag 是否启用
     pub async fn is_enabled(&self, name: &str) -> bool {
-        let guard = self.flags.read().await;
+        let guard = self.flags.read().unwrap();
         guard.get(name).copied().unwrap_or(false)
     }
 
-    /// 同步版本：在无法使用 .await 的上下文中检查 flag（如 Sync 函数中）
-    /// 使用 blocking_read 访问 tokio RwLock
+    /// 同步版本：在无法使用 .await 的上下文中检查 flag（如 Sync 函数中）。
+    ///
+    /// 内部使用 `std::sync::RwLock` 而非 `tokio::sync::RwLock`：
+    /// `tokio::sync::RwLock::blocking_read()` 在 runtime worker 线程上会直接 panic
+    /// （"Cannot block the current thread from within a runtime"）。本锁临界区仅拷贝
+    /// 一个 bool / 替换整个 HashMap，绝不跨 `.await` 持有，故可从任意线程安全调用。
     pub fn is_enabled_sync(&self, name: &str) -> bool {
-        let guard = self.flags.blocking_read();
+        let guard = self.flags.read().unwrap();
         guard.get(name).copied().unwrap_or(false)
     }
 
     /// 运行时启用一个 flag（仅当前会话）
     pub async fn enable(&self, name: &str) {
-        let mut guard = self.flags.write().await;
+        let mut guard = self.flags.write().unwrap();
         guard.insert(name.to_uppercase(), true);
     }
 
     /// 同步版本：在无法使用 .await 的上下文中启用 flag（如测试中）
     pub fn enable_sync(&self, name: &str) {
-        let mut guard = self.flags.blocking_write();
+        let mut guard = self.flags.write().unwrap();
         guard.insert(name.to_uppercase(), true);
     }
 
     /// 运行时禁用一个 flag（仅当前会话）
     pub async fn disable(&self, name: &str) {
-        let mut guard = self.flags.write().await;
+        let mut guard = self.flags.write().unwrap();
         guard.insert(name.to_uppercase(), false);
     }
 
     /// 重新从环境变量和配置刷新所有 flag
     pub async fn refresh(&self) {
-        let mut guard = self.flags.write().await;
+        let mut guard = self.flags.write().unwrap();
         *guard = Self::build_flags(&self.config_overrides);
     }
 
     /// 获取所有已注册 flag 的名称和当前值
     pub async fn all_flags(&self) -> Vec<(String, bool)> {
-        let guard = self.flags.read().await;
+        let guard = self.flags.read().unwrap();
         guard.iter().map(|(k, v)| (k.clone(), *v)).collect()
     }
 
@@ -258,7 +262,7 @@ impl Default for FeatureFlags {
 
 impl Clone for FeatureFlags {
     fn clone(&self) -> Self {
-        let guard = self.flags.blocking_read();
+        let guard = self.flags.read().unwrap();
         Self { flags: RwLock::new(guard.clone()), config_overrides: self.config_overrides.clone() }
     }
 }
@@ -278,7 +282,7 @@ pub fn init_global_feature_flags(config_features: Option<&BTreeMap<String, bool>
     let new_flags = FeatureFlags::new(config_features);
     // 通过 LazyLock 内部可变性刷新（这里使用一个技巧）
     let global = global_feature_flags();
-    let mut guard = global.flags.blocking_write();
+    let mut guard = global.flags.write().unwrap();
     *guard = FeatureFlags::build_flags(&new_flags.config_overrides);
 }
 

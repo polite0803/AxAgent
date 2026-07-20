@@ -27,7 +27,7 @@ pub struct Model {
     /// 时间维度: "ultra_short" | "short" | "mid" | "long"
     pub decision_time_horizon: Option<String>,
     /// 期望持有天数（交易日）
-    pub decision_expected_holding_days: Option<u32>,
+    pub decision_expected_holding_days: Option<i64>,
     /// 决策所用 LLM 的版本标识（用于复现实验）
     pub model_version: Option<String>,
     /// 关联到 L2 disk-cache 的快照 ID

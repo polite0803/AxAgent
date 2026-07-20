@@ -336,8 +336,8 @@ pub struct DecisionValidationItem {
     pub max_return_pct: Option<f64>,
     pub max_drawdown_pct: Option<f64>,
     pub final_return_pct: Option<f64>,
-    pub hit_stop_loss: Option<bool>,
-    pub hit_target: Option<bool>,
+    pub hit_stop_loss: Option<i32>,
+    pub hit_target: Option<i32>,
     pub hit_outcome: Option<String>,
     pub data_source: String,
 }

@@ -12,7 +12,7 @@ pub struct Model {
     /// 条件: "above" 或 "below"
     pub condition: String,
     pub target_price: f64,
-    pub is_triggered: bool,
+    pub is_triggered: i32,
     pub triggered_at: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,

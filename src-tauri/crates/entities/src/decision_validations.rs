@@ -65,10 +65,10 @@ pub struct Model {
     pub max_drawdown_pct: Option<f64>,
     /// T+N 收益（%）
     pub final_return_pct: Option<f64>,
-    /// 是否触及止损
-    pub hit_stop_loss: Option<bool>,
-    /// 是否触及目标
-    pub hit_target: Option<bool>,
+    /// 是否触及止损（0/1，INTEGER 列）
+    pub hit_stop_loss: Option<i32>,
+    /// 是否触及目标（0/1，INTEGER 列）
+    pub hit_target: Option<i32>,
     /// 综合命中判定：buy 且 final_return_pct>0 → hit；buy 且 final_return_pct<-5% → false_hit
     /// 写入规则: "hit" | "miss" | "false_hit" | "partial" | "insufficient"
     pub hit_outcome: Option<String>,

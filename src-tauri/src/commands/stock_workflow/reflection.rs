@@ -170,7 +170,7 @@ pub async fn run_reflection_workflow(
 
     let original_ctx: Option<(String, i64)> = original_analysis.as_ref().and_then(|a| {
         let t = a.decision_time_horizon.clone()?;
-        let h = a.decision_expected_holding_days.map(|d| d as i64)?;
+        let h = a.decision_expected_holding_days?;
         Some((t, h))
     });
 
@@ -712,7 +712,7 @@ pub async fn run_batch_reflection(
 
         // 2b. 计算持仓期是否到达
         // 默认 28 天 = mid 决策标准持仓期(用户没指定时取 stock-analysis 模板默认)
-        let expected_days = analysis.decision_expected_holding_days.map(|d| d as i64).unwrap_or(28);
+        let expected_days = analysis.decision_expected_holding_days.unwrap_or(28);
         let analysis_date = analysis.as_of_date.as_deref().unwrap_or(&p.as_of_date);
 
         // [时间旅行模式] 评估时点由 pending row 的 hindsight_date 决定。
@@ -1165,7 +1165,7 @@ pub async fn run_batch_reflection_inner(
                 },
             };
 
-        let expected_days = analysis.decision_expected_holding_days.map(|d| d as i64).unwrap_or(28);
+        let expected_days = analysis.decision_expected_holding_days.unwrap_or(28);
         let analysis_date = analysis.as_of_date.as_deref().unwrap_or(&p.as_of_date);
 
         // [时间旅行模式] 评估时点由 pending row 的 hindsight_date 决定。

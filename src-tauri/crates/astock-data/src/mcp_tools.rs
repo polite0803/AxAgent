@@ -61,6 +61,17 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
             }
         }),
         json!({
+            "name": "get_fundamentals_report_markdown",
+            "description": "获取基本面预聚合 Markdown 报告（健康度评分/估值带/安全边际/同比环比），供基本面分析师直接消费，避免重复计算基础比率",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
             "name": "get_stock_news",
             "description": "获取A股相关新闻公告（含情绪评分）",
             "inputSchema": {
@@ -130,6 +141,17 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
         json!({
             "name": "get_stock_lockup",
             "description": "获取限售解禁日程（解禁日期、股数、比例、股东名称）",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "get_stock_lockup_bundle",
+            "description": "获取解禁+大股东增减持+大宗交易聚合包（lockup-watcher 冷启动数据）",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -380,6 +402,17 @@ pub async fn execute_mcp_tool(
             let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&financials).map_err(|e| e.to_string())
         },
+        "get_fundamentals_report_markdown" => {
+            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let quote = client.get_quote(code).await.map_err(|e| e.to_string())?;
+            let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
+            let report = crate::fundamentals_report::FundamentalsAnalyzer::generate(
+                code,
+                &quote,
+                &financials,
+            );
+            Ok(report.to_markdown())
+        },
         "get_stock_news" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
             let limit = arguments["limit"].as_u64().unwrap_or(30).min(100) as u32;
@@ -415,6 +448,11 @@ pub async fn execute_mcp_tool(
             let code = arguments["stock_code"].as_str().unwrap_or("");
             let lockup = client.get_lockup_schedule(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&lockup).map_err(|e| e.to_string())
+        },
+        "get_stock_lockup_bundle" => {
+            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let bundle = client.get_lockup_bundle(code).await.map_err(|e| e.to_string())?;
+            serde_json::to_string(&bundle).map_err(|e| e.to_string())
         },
         "get_stock_shareholder_trades" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");

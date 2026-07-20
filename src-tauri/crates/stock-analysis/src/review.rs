@@ -47,7 +47,7 @@ pub struct DecisionComparison {
     /// 原始决策时间维度
     pub time_horizon: Option<String>,
     /// 原始期望持有天数
-    pub expected_holding_days: Option<u32>,
+    pub expected_holding_days: Option<i64>,
     /// 收盘价在目标区间内？(仅 BUY)
     pub in_target_zone: bool,
     /// 已触发止损？
@@ -204,7 +204,7 @@ async fn fetch_latest_analysis_decision(
             serde_json::from_str::<serde_json::Value>(raw).ok().and_then(|v| {
                 v.get("expectedHoldingDays")
                     .or_else(|| v.get("expected_holding_days"))
-                    .and_then(|n| n.as_u64().map(|n| n as u32))
+                    .and_then(|n| n.as_u64().map(|n| n as i64))
             })
         })
     });

@@ -307,7 +307,9 @@ async fn run_stock_workflow_inner(
                     serde_json::json!({
                         "conversationId": format!("wf-{}", wf_id),
                         "stepId": event.node_id,
-                        "error": format!("Step {}", event.status),
+                        // 修复: 透传 StepProgressEvent.error 真实错误，而非占位符 "Step failed"
+                        "error": event.error.clone()
+                            .unwrap_or_else(|| format!("Step {}", event.status)),
                     }),
                 ),
                 _ => return, // 未知状态，忽略
@@ -323,6 +325,8 @@ async fn run_stock_workflow_inner(
                     "totalNodes": event.total_nodes,
                     "completedNodes": event.completed_nodes,
                     "executionId": event.execution_id,
+                    // 修复: 携带真实错误，前端 failedNodeErrors 才能显示具体失败原因
+                    "error": event.error.clone(),
                 }),
             );
         })
@@ -774,7 +778,7 @@ async fn run_stock_workflow_inner(
                             )
                             .col_expr(
                                 stock_analyses::Column::DecisionExpectedHoldingDays,
-                                Expr::value(expected_holding_days.map(|d| d as i64)),
+                                Expr::value(expected_holding_days),
                             )
                             .col_expr(
                                 stock_analyses::Column::LlmDecisionJson,
@@ -993,7 +997,7 @@ async fn run_stock_workflow_inner(
                             )
                             .col_expr(
                                 stock_analyses::Column::DecisionExpectedHoldingDays,
-                                Expr::value(expected_holding_days.map(|d| d as i64)),
+                                Expr::value(expected_holding_days),
                             )
                             .col_expr(
                                 stock_analyses::Column::LlmDecisionJson,

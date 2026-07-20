@@ -179,7 +179,7 @@ pub async fn quant_backtest_run(
         initial_cash: Set(request.initial_cash),
         config_json: Set(config_json),
         status: Set("pending".to_string()),
-        walk_forward_enabled: Set(request.walk_forward_enabled),
+        walk_forward_enabled: Set(if request.walk_forward_enabled { 1 } else { 0 }),
         started_at: Set(started_at),
         ..Default::default()
     };
@@ -201,7 +201,7 @@ pub async fn quant_backtest_run(
             am.result_json = Set(Some(result_json));
             am.finished_at = Set(Some(finished_at));
             if let Some(wf) = &walk_forward_rust {
-                am.walk_forward_overfit_warning = Set(Some(wf.overfit_warning));
+                am.walk_forward_overfit_warning = Set(Some(if wf.overfit_warning { 1 } else { 0 }));
                 am.walk_forward_stability_score = Set(Some(wf.stability_score));
             }
             let model = am.update(db).await.map_err(|e| {
@@ -511,7 +511,7 @@ pub async fn quant_strategy_register_rhai(
             am.description = Set(request.description.clone());
             am.script_source = Set(Some(request.script_source.clone()));
             am.params_json = Set(Some(params_json));
-            am.walk_forward_enabled = Set(request.walk_forward_enabled);
+            am.walk_forward_enabled = Set(if request.walk_forward_enabled { 1 } else { 0 });
             am.updated_at = Set(now);
             return am.update(db).await.map_err(|e| {
                 ErrorResponse::new(wf_err::INTERNAL)
@@ -531,7 +531,7 @@ pub async fn quant_strategy_register_rhai(
         description: Set(request.description),
         script_source: Set(Some(request.script_source)),
         params_json: Set(Some(params_json)),
-        walk_forward_enabled: Set(request.walk_forward_enabled),
+        walk_forward_enabled: Set(if request.walk_forward_enabled { 1 } else { 0 }),
         created_at: Set(now),
         updated_at: Set(now),
     };

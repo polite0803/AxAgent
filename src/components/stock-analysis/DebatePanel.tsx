@@ -499,7 +499,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
           <Tag color={posInfo.color}>{posInfo.text}</Tag>
           {typeof data.confidence === "number" && (
             <span className="text-xs" style={{ color: "var(--muted)" }}>
-              {t("stockAnalysis.stockAnalysis.confidence01")} {data.confidence}
+              {t("stockAnalysis.confidence")} {data.confidence}
             </span>
           )}
         </div>
@@ -635,7 +635,7 @@ function VerdictView({ data }: { data: DebateJson }) {
       )}
       {typeof conf === "number" && (
         <span className="text-xs" style={{ color: "var(--muted)" }}>
-          {t("stockAnalysis.stockAnalysis.confidence01")}: {conf}
+          {t("stockAnalysis.confidence")}: {conf}
         </span>
       )}
       {/* 如果有任何未渲染的额外字段，显示为 key-value 摘要 */}
@@ -1091,7 +1091,7 @@ export function DebatePanel() {
                 )}
                 {typeof finalVerdict.confidence === "number" && (
                   <Tag color="blue">
-                    {t("stockAnalysis.stockAnalysis.confidence01")}: {finalVerdict.confidence}
+                    {t("stockAnalysis.confidence")}: {finalVerdict.confidence}
                   </Tag>
                 )}
               </div>

@@ -24,8 +24,8 @@ pub struct Model {
     /// 参数 JSON 字符串
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub params_json: Option<String>,
-    /// 是否启用 Walk-Forward（D3 决策，默认 true）
-    pub walk_forward_enabled: bool,
+    /// 是否启用 Walk-Forward（D3 决策，默认 true；0/1，INTEGER 列）
+    pub walk_forward_enabled: i32,
     pub created_at: i64,
     pub updated_at: i64,
 }

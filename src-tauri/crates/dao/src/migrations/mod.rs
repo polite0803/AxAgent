@@ -3,8 +3,11 @@
 //!
 //! ## 当前状态
 //!
-//! 本项目采用「单一基线迁移」架构：所有 DDL（表/索引/触发器/种子数据）都
-//! 合并在 [v100_consolidated] 一个文件中。新装库只需跑一次 v100，类型即正确。
+//! 本项目采用「上游基线 + 本地增量」的双层迁移架构：
+//! - [v100_consolidated]：上游所有 DDL（表/索引/触发器/种子数据）的单一基线。
+//! - [v200_axinvest_stock_tables]：AxInvest fork 独有的股票业务表 + 上游
+//!   CHECK 约束扩展。本地独有迁移从 v200 起单调递增，预留 v101–v199 给
+//!   上游未来扩展（详见 project_memory.md）。
 //!
 //! ## 历史
 //!
@@ -18,20 +21,26 @@
 //!   - v200_pg_int4_to_int8_axinvest 删除（pg_ddl 在 CREATE TABLE 时一次性
 //!     产出正确类型，无需二次 ALTER）
 //!   - 所有 ALTER TABLE 补字段通道删除（字段直接在 CREATE TABLE 中建好）
+//! - AxInvest 独有表（stock_analyses / stock_reflections /
+//!   stock_pipeline_runs / strategy_performance）原散落各处，现统一收纳
+//!   到 v200_axinvest_stock_tables。上游 v100 保持原貌，合并上游无冲突。
 //!
 //! ## 约定
 //!
-//! - 新增表/字段：直接修改 v100_consolidated.rs 的 PHASE 2 CREATE TABLE
-//! - 新增索引：在 v100 PHASE 4 中添加
-//! - 不再创建新的迁移版本（除非有破坏性 schema 变更需要独立追踪）
+//! - 上游表/字段变更：直接修改 v100_consolidated.rs（与上游保持同步）
+//! - AxInvest 独有表/字段：在 v200_axinvest_stock_tables.rs 中追加，或
+//!   新建 v201/v202/... 递增版本
+//! - 新增索引：跟随所属表的迁移文件
+//! - 上游表需扩展（如 CHECK 约束加值）：在 v200+ 迁移中用 ALTER 语句扩展
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
 pub mod pg_ddl;
 pub mod v100_consolidated;
+pub mod v200_axinvest_stock_tables;
 
 /// 当前 schema 版本号。
-pub const CURRENT_VERSION: i32 = 100;
+pub const CURRENT_VERSION: i32 = 200;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -57,11 +66,18 @@ struct Migration {
     up: MigrationFn,
 }
 
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 100,
-    description: "v100_consolidated: 合并 v001–v011 + v101–v103 + v200 的全部 DDL（表/索引/触发器/种子数据），统一用正确类型建表；不再保留旧库类型修复 ALTER 通道",
-    up: |db| Box::pin(v100_consolidated::up(db)),
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 100,
+        description: "v100_consolidated: 上游基线 — 合并 v001–v011 + v101–v103 的全部 DDL（表/索引/触发器/种子数据），DDL 直接写 PG 语法，SQLite 侧 sqlite_ddl 自动转换",
+        up: |db| Box::pin(v100_consolidated::up(db)),
+    },
+    Migration {
+        version: 200,
+        description: "v200_axinvest_stock_tables: AxInvest 独有股票业务表（stock_analyses / stock_reflections / stock_pipeline_runs / strategy_performance）+ agency_experts/agent_profiles 的 category CHECK 约束扩展（加入 stock-analysis）",
+        up: |db| Box::pin(v200_axinvest_stock_tables::up(db)),
+    },
+];
 
 /// 执行所有尚未应用的 schema 迁移。
 ///
@@ -202,7 +218,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 1 行（v100 已合并 v001–v011 + v101–v104 全部 DDL）
+        // schema_version 表应有 2 行（v100 上游基线 + v200 AxInvest 独有表）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -212,7 +228,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 1, "schema_version should have exactly 1 row (v100 only)");
+        assert_eq!(cnt, 2, "schema_version should have exactly 2 rows (v100 + v200)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

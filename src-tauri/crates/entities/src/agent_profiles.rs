@@ -25,7 +25,7 @@ pub struct Model {
     #[sea_orm(column_name = "suggested_max_tokens")]
     pub suggested_max_tokens: Option<i64>,
     #[sea_orm(column_name = "search_enabled")]
-    pub search_enabled: Option<i32>,
+    pub search_enabled: Option<bool>,
     #[sea_orm(column_name = "recommend_permission_mode")]
     pub recommend_permission_mode: Option<String>,
     #[sea_orm(column_name = "recommended_tools")]

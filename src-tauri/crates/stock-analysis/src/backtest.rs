@@ -18,7 +18,7 @@ pub struct BacktestResult {
     /// 原始决策时间维度
     pub time_horizon: Option<String>,
     /// 原始期望持有天数
-    pub expected_holding_days: Option<u32>,
+    pub expected_holding_days: Option<i64>,
     /// 分析日的收盘价（入场价）
     pub entry_price: Option<f64>,
     /// 持有N日后的收盘价（出场价）
@@ -87,7 +87,7 @@ pub struct HistoricalAnalysis {
     pub time_horizon: Option<String>,
     /// 个性化持有天数（优先于 backtest_history 的统一参数）
     #[serde(default)]
-    pub expected_holding_days: Option<u32>,
+    pub expected_holding_days: Option<i64>,
 }
 
 /// 回测引擎
@@ -105,9 +105,9 @@ impl BacktestEngine {
         analysis_date: &str,
         decision_action: &str,
         decision_confidence: f64,
-        holding_days: u32,
+        holding_days: i64,
         time_horizon: Option<String>,
-        expected_holding_days: Option<u32>,
+        expected_holding_days: Option<i64>,
     ) -> Result<BacktestResult, String> {
         // 取最近 BACKTEST_KLINE_COUNT 日K线，最大化覆盖 analysis_date 的概率
         // 注：get_klines 返回最近 N 根K线（按时间升序），若 analysis_date 超出范围则回测失败
@@ -186,7 +186,7 @@ impl BacktestEngine {
             expected_holding_days,
             entry_price,
             exit_price,
-            holding_days,
+            holding_days: holding_days.try_into().unwrap_or(u32::MAX),
             return_pct,
             was_correct,
             max_drawdown: max_dd * 100.0,
@@ -207,7 +207,7 @@ impl BacktestEngine {
             // 修复 P1: T+1 下界校验 — expected_holding_days=0 时当天买入当天卖出，
             // 违反 A 股 T+1 交收规则。强制最小持有 1 个交易日。
             let holding_days =
-                analysis.expected_holding_days.unwrap_or(default_holding_days).max(1);
+                analysis.expected_holding_days.unwrap_or(default_holding_days as i64).max(1);
             match Self::backtest_decision(
                 client,
                 &analysis.stock_code,

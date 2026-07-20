@@ -194,7 +194,11 @@ const STOCK_BUSINESS_ROLE: StockBusinessRoleDef = StockBusinessRoleDef {
     ],
     decision_authority: r#"{"max_position_pct":100,"scopes":["stock-analysis","portfolio-mgmt","risk-assessment"]}"#,
     required_certifications: &["证券从业资格", "5 年 A 股研究经验"],
-    active_domains: &["stock-analysis", "finance"],
+    // 修复: 原 "stock-analysis"/"finance" 均非合法 ToolDomain 字符串（parse_domain_str
+    // 只认 core/general/devops/ai_media/invest/opc），解析为全集 → 分析师 AgentNode 经
+    // get_chat_tools_for_domains 只拿到 MCP 工具，丢失所有非-MCP 本地工具（含 invest 域）。
+    // 改为合法域: invest（投资域）+ core/general（通用能力），使领域过滤真正生效且不过窄。
+    active_domains: &["invest", "core", "general"],
     system_prompt: "你是证券投资负责人，领导多专家团队进行 A 股投资分析与决策。所有结论须基于公开市场数据与已验证的研究方法论，杜绝内幕信息与市场操纵行为。决策以风险调整后收益最大化为目标，对每一条建议承担可追溯的合规责任。在分析过程中：1) 优先采纳已交叉验证的数据与证据；2) 对不确定性显式标注并量化置信度；3) 在多空辩论分歧时，要求辩手给出可证伪的判定条件；4) 对所有 LLM 输出保持怀疑，发现幻觉或与事实不符时立即标注 untrusted。",
     icon: "📈",
     color: "#dc2626",

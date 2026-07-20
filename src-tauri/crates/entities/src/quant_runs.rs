@@ -26,14 +26,14 @@ pub struct Model {
     /// BacktestResult JSON（status=completed 时填入）
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub result_json: Option<String>,
-    /// Walk-Forward 启用
-    pub walk_forward_enabled: bool,
+    /// Walk-Forward 启用（0/1，INTEGER 列）
+    pub walk_forward_enabled: i32,
     /// Walk-Forward fold 数
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub walk_forward_folds: Option<i32>,
-    /// 整体过拟合告警
+    /// 整体过拟合告警（0/1，INTEGER 列）
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub walk_forward_overfit_warning: Option<bool>,
+    pub walk_forward_overfit_warning: Option<i32>,
     /// 参数稳定度 0..1
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub walk_forward_stability_score: Option<f64>,

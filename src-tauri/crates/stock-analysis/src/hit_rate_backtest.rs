@@ -58,8 +58,8 @@ pub struct PickValidation {
     pub max_return_pct: Option<f64>,
     pub max_drawdown_pct: Option<f64>,
     pub final_return_pct: Option<f64>,
-    pub hit_stop_loss: Option<bool>,
-    pub hit_target: Option<bool>,
+    pub hit_stop_loss: Option<i32>,
+    pub hit_target: Option<i32>,
     /// "hit" | "miss" | "false_hit" | "partial" | "insufficient"
     pub hit_outcome: Option<String>,
     /// 9 因子快照（key=factor_id, value=0-1 数值），供 IC 重标定
@@ -154,17 +154,17 @@ pub fn infer_action(price: f64, target_price: f64) -> &'static str {
 pub fn compute_hit_outcome(
     action: &str,
     final_return_pct: Option<f64>,
-    hit_stop_loss: Option<bool>,
-    hit_target: Option<bool>,
+    hit_stop_loss: Option<i32>,
+    hit_target: Option<i32>,
 ) -> Option<String> {
     let Some(ret) = final_return_pct else {
         return Some("insufficient".to_string());
     };
     match action {
         "buy" => {
-            if hit_stop_loss == Some(true) {
+            if hit_stop_loss == Some(1) {
                 Some("miss".to_string())
-            } else if hit_target == Some(true) || ret > 0.0 {
+            } else if hit_target == Some(1) || ret > 0.0 {
                 Some("hit".to_string())
             } else if ret < -5.0 {
                 Some("false_hit".to_string())
@@ -218,8 +218,8 @@ pub struct PriceMetrics {
     pub max_return_pct: Option<f64>,
     pub max_drawdown_pct: Option<f64>,
     pub final_return_pct: Option<f64>,
-    pub hit_stop_loss: Option<bool>,
-    pub hit_target: Option<bool>,
+    pub hit_stop_loss: Option<i32>,
+    pub hit_target: Option<i32>,
 }
 
 pub fn compute_price_metrics(
@@ -272,8 +272,8 @@ pub fn compute_price_metrics(
         max_return_pct: Some(max_return_pct),
         max_drawdown_pct: Some(max_drawdown_pct),
         final_return_pct: Some(final_return_pct),
-        hit_stop_loss: Some(hit_stop_loss),
-        hit_target: Some(hit_target),
+        hit_stop_loss: Some(if hit_stop_loss { 1 } else { 0 }),
+        hit_target: Some(if hit_target { 1 } else { 0 }),
     }
 }
 
@@ -580,7 +580,7 @@ mod tests {
         // 纯上行（closes 严格递增）无回撤，peak-to-trough 定义为 0
         assert!((m.max_drawdown_pct.unwrap() - 0.0).abs() < 1e-6);
         assert!((m.final_return_pct.unwrap() - 20.0).abs() < 1e-6);
-        assert_eq!(m.hit_target, Some(true));
+        assert_eq!(m.hit_target, Some(1));
     }
 
     #[test]
@@ -605,7 +605,7 @@ mod tests {
         let highs = vec![10.0, 9.7, 9.4];
         let lows = vec![9.5, 9.3, 9.0]; // 9.0 < stop_loss 9.5
         let m = compute_price_metrics(10.0, &closes, &highs, &lows, 12.0, 9.5);
-        assert_eq!(m.hit_stop_loss, Some(true));
+        assert_eq!(m.hit_stop_loss, Some(1));
     }
 
     #[test]
