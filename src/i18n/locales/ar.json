@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "فشل انعكاس سير العمل",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "فشل اقتراح انعكاس سير العمل",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "قالب انعكاس سير عمل غير صالح",
-    "WORKFLOW_VERSION_NOT_FOUND": "إصدار سير العمل غير موجود"
+    "WORKFLOW_VERSION_NOT_FOUND": "إصدار سير العمل غير موجود",
+    "VOICE_TICKET_INVALID": "تذكرة الجلسة الصوتية غير صالحة أو منتهية الصلاحية",
+    "VOICE_MODEL_NOT_FOUND": "نموذج الصوت غير موجود أو غير مدعوم",
+    "VOICE_PROVIDER_NOT_FOUND": "مزود الصوت غير موجود",
+    "VOICE_PROVIDER_NO_SPEECH": "المزود لا يدعم خاصية الصوت",
+    "VOICE_DECRYPT_KEY_FAILED": "فشل فك تشفير مفتاح البوابة",
+    "VOICE_STT_FAILED": "فشل التعرف على الكلام",
+    "VOICE_TTS_FAILED": "فشل تركيب الكلام",
+    "VOICE_INVALID_MESSAGE": "تنسيق رسالة صوتية غير صالح",
+    "VOICE_SESSION_CREATE_REQUIRED": "يرجى إرسال session.create أولاً"
   },
   "errorBoundary": {
     "copied": "تم النسخ",
@@ -5221,7 +5230,18 @@
     "voiceType": "نوع الصوت",
     "sttProvider": "موفر التعرف على الكلام",
     "ttsProvider": "موفر تركيب الكلام",
-    "providerAuto": "تلقائي (استخدام نفس موفر LLM)"
+    "providerAuto": "تلقائي (استخدام نفس موفر LLM)",
+    "wakeup": "التنشيط الصوتي",
+    "wakeupActive": "الاستماع للتنشيط (انقر للإيقاف)",
+    "startCall": "بدء مكالمة صوتية",
+    "micNotFound": "لم يتم العثور على جهاز ميكروفون",
+    "micInUse": "الميكروفون قيد الاستخدام من قبل تطبيق آخر",
+    "micOverconstrained": "الميكروفون لا يفي بالقيود",
+    "micSecurity": "سياق الأمان الحالي لا يدعم الوصول إلى الميكروفون",
+    "ticketFailed": "فشل في الحصول على تذكرة الجلسة الصوتية",
+    "decryptKeyFailed": "فشل فك تشفير مفتاح البوابة، لا يمكن بدء المكالمة",
+    "sessionError": "حدث خطأ في الجلسة الصوتية",
+    "stateError": "انقطعت الجلسة الصوتية بشكل غير طبيعي"
   },
   "wiki": {
     "backlinks": "روابط عكسية",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "تم حفظ سير العمل كجديد",
     "workflowUpdated": "تم تحديث سير العمل",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

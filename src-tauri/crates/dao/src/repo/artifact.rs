@@ -5,11 +5,7 @@ use sea_orm::*;
 use axagent_entities::artifacts;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::{Artifact, CreateArtifactInput, UpdateArtifactInput};
-use axagent_harness::util_fns::gen_id;
-
-fn now_datetime() -> String {
-    chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string()
-}
+use axagent_harness::util_fns::{gen_id, now_datetime_str};
 
 fn model_to_artifact(m: artifacts::Model) -> Artifact {
     Artifact {
@@ -60,7 +56,7 @@ pub async fn create_artifact(
         content: Set(input.content.clone()),
         format: Set(input.format.clone()),
         pinned: Set(0),
-        updated_at: Set(now_datetime()),
+        updated_at: Set(now_datetime_str()),
     };
 
     am.insert(db).await?;
@@ -89,7 +85,7 @@ pub async fn update_artifact(
     } else {
         0
     });
-    am.updated_at = Set(now_datetime());
+    am.updated_at = Set(now_datetime_str());
     am.update(db).await?;
 
     get_artifact(db, id).await

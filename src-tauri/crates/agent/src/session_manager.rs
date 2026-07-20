@@ -61,8 +61,8 @@ impl TokenUsageBreakdown {
         }
     }
 
-    pub fn tokens_delta(&self) -> i32 {
-        self.total_tokens as i32
+    pub fn tokens_delta(&self) -> i64 {
+        self.total_tokens as i64
     }
 }
 
@@ -404,7 +404,7 @@ impl SessionManager {
                     usage.or_else(|| session.session().messages.iter().rev().find_map(|m| m.usage));
                 let tokens_delta = effective_usage
                     .as_ref()
-                    .map(|u| u.input_tokens as i32 + u.output_tokens as i32)
+                    .map(|u| u.input_tokens as i64 + u.output_tokens as i64)
                     .unwrap_or(0);
 
                 drop(conv_index);
@@ -710,7 +710,7 @@ impl SessionManager {
         // Persist updates
         if let Some(axagent_session_id) = session.axagent_session_id() {
             let tokens_delta =
-                summary.usage.input_tokens as i32 + summary.usage.output_tokens as i32;
+                summary.usage.input_tokens as i64 + summary.usage.output_tokens as i64;
             // Cost is now calculated in agent_query command and emitted via agent-done event.
             // The DB field is kept for historical records; we store 0.0 here as the
             // authoritative cost comes from the event payload.

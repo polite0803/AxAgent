@@ -2,11 +2,11 @@
 
 use axagent_harness::core_error::Result;
 use axagent_harness::types::GatewayDiagnostic;
-use axagent_harness::util_fns::gen_id;
+use axagent_harness::util_fns::{gen_id, now_datetime_str};
 use sea_orm::DatabaseConnection;
 
 pub async fn get_diagnostics(_db: &DatabaseConnection) -> Result<Vec<GatewayDiagnostic>> {
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = now_datetime_str();
 
     Ok(vec![
         GatewayDiagnostic {

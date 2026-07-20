@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Échec de la réflexion du workflow",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Échec de la suggestion de réflexion du workflow",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Modèle de réflexion de workflow invalide",
-    "WORKFLOW_VERSION_NOT_FOUND": "Version de workflow introuvable"
+    "WORKFLOW_VERSION_NOT_FOUND": "Version de workflow introuvable",
+    "VOICE_TICKET_INVALID": "Le ticket de session vocale est invalide ou expiré",
+    "VOICE_MODEL_NOT_FOUND": "Modèle vocal introuvable ou non pris en charge",
+    "VOICE_PROVIDER_NOT_FOUND": "Fournisseur vocal introuvable",
+    "VOICE_PROVIDER_NO_SPEECH": "Le fournisseur ne prend pas en charge la capacité vocale",
+    "VOICE_DECRYPT_KEY_FAILED": "Échec du déchiffrement de la clé passerelle",
+    "VOICE_STT_FAILED": "Échec de la reconnaissance vocale",
+    "VOICE_TTS_FAILED": "Échec de la synthèse vocale",
+    "VOICE_INVALID_MESSAGE": "Format de message vocal invalide",
+    "VOICE_SESSION_CREATE_REQUIRED": "Veuillez d'abord envoyer session.create"
   },
   "errorBoundary": {
     "copied": "Copié",
@@ -5221,7 +5230,18 @@
     "voiceType": "Type de voix",
     "sttProvider": "Fournisseur STT",
     "ttsProvider": "Fournisseur TTS",
-    "providerAuto": "Auto (même fournisseur LLM)"
+    "providerAuto": "Auto (même fournisseur LLM)",
+    "wakeup": "Réveil vocal",
+    "wakeupActive": "Écoute de réveil (cliquez pour arrêter)",
+    "startCall": "Démarrer l'appel vocal",
+    "micNotFound": "Aucun microphone trouvé",
+    "micInUse": "Le microphone est utilisé par une autre application",
+    "micOverconstrained": "Le microphone ne satisfait pas les contraintes",
+    "micSecurity": "Le contexte de sécurité actuel ne prend pas en charge l'accès au microphone",
+    "ticketFailed": "Échec de l'obtention du ticket de session vocale",
+    "decryptKeyFailed": "Échec du déchiffrement de la clé passerelle, impossible de démarrer l'appel vocal",
+    "sessionError": "Erreur de session vocale",
+    "stateError": "Session vocale déconnectée anormalement"
   },
   "wiki": {
     "backlinks": "Rétroliens",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "Workflow enregistré comme nouveau",
     "workflowUpdated": "Workflow mis à jour",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

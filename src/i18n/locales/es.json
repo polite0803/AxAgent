@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Error en la reflexión del flujo de trabajo",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Error en la sugerencia de reflexión del flujo de trabajo",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Plantilla de reflexión de flujo de trabajo no válida",
-    "WORKFLOW_VERSION_NOT_FOUND": "Versión de flujo de trabajo no encontrada"
+    "WORKFLOW_VERSION_NOT_FOUND": "Versión de flujo de trabajo no encontrada",
+    "VOICE_TICKET_INVALID": "El ticket de sesión de voz es inválido o ha expirado",
+    "VOICE_MODEL_NOT_FOUND": "Modelo de voz no encontrado o no soportado",
+    "VOICE_PROVIDER_NOT_FOUND": "Proveedor de voz no encontrado",
+    "VOICE_PROVIDER_NO_SPEECH": "El proveedor no soporta capacidad de voz",
+    "VOICE_DECRYPT_KEY_FAILED": "Error al descifrar la clave de puerta de enlace",
+    "VOICE_STT_FAILED": "Reconocimiento de voz fallido",
+    "VOICE_TTS_FAILED": "Síntesis de voz fallida",
+    "VOICE_INVALID_MESSAGE": "Formato de mensaje de voz inválido",
+    "VOICE_SESSION_CREATE_REQUIRED": "Por favor, envíe session.create primero"
   },
   "errorBoundary": {
     "copied": "Copiado",
@@ -5221,7 +5230,18 @@
     "voiceType": "Tipo de voz",
     "sttProvider": "Proveedor de STT",
     "ttsProvider": "Proveedor de TTS",
-    "providerAuto": "Automático (usar el mismo proveedor LLM)"
+    "providerAuto": "Automático (usar el mismo proveedor LLM)",
+    "wakeup": "Activación por voz",
+    "wakeupActive": "Escucha de activación (clic para detener)",
+    "startCall": "Iniciar llamada de voz",
+    "micNotFound": "No se encontró dispositivo de micrófono",
+    "micInUse": "El micrófono está siendo usado por otra aplicación",
+    "micOverconstrained": "El micrófono no satisface las restricciones",
+    "micSecurity": "El contexto de seguridad actual no soporta acceso al micrófono",
+    "ticketFailed": "Error al obtener el ticket de sesión de voz",
+    "decryptKeyFailed": "Error al descifrar la clave de puerta de enlace, no se puede iniciar la llamada",
+    "sessionError": "Error de sesión de voz",
+    "stateError": "Sesión de voz desconectada anormalmente"
   },
   "wiki": {
     "backlinks": "Retroenlaces",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "Flujo de trabajo guardado como nuevo",
     "workflowUpdated": "Flujo de trabajo actualizado",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

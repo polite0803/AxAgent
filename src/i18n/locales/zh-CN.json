@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "工作流反思失败",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "工作流反思建议失败",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "无效的工作流反思模板",
-    "WORKFLOW_VERSION_NOT_FOUND": "工作流版本未找到"
+    "WORKFLOW_VERSION_NOT_FOUND": "工作流版本未找到",
+    "VOICE_TICKET_INVALID": "语音会话票据无效或已过期",
+    "VOICE_MODEL_NOT_FOUND": "语音模型未找到或不支持",
+    "VOICE_PROVIDER_NOT_FOUND": "语音提供商未找到",
+    "VOICE_PROVIDER_NO_SPEECH": "提供商不支持语音能力",
+    "VOICE_DECRYPT_KEY_FAILED": "网关密钥解密失败",
+    "VOICE_STT_FAILED": "语音识别失败",
+    "VOICE_TTS_FAILED": "语音合成失败",
+    "VOICE_INVALID_MESSAGE": "无效的语音消息格式",
+    "VOICE_SESSION_CREATE_REQUIRED": "请先发送 session.create 消息"
   },
   "errorBoundary": {
     "copied": "已复制",
@@ -5221,7 +5230,18 @@
     "voiceType": "语音类型",
     "sttProvider": "语音识别提供商",
     "ttsProvider": "语音合成提供商",
-    "providerAuto": "自动（使用 LLM 同一家）"
+    "providerAuto": "自动（使用 LLM 同一家）",
+    "wakeup": "语音唤醒",
+    "wakeupActive": "唤醒监听中（点击关闭）",
+    "startCall": "开始语音通话",
+    "micNotFound": "未找到麦克风设备",
+    "micInUse": "麦克风被其他应用占用",
+    "micOverconstrained": "麦克风不满足约束条件",
+    "micSecurity": "当前页面安全上下文不支持麦克风访问",
+    "ticketFailed": "获取语音会话票据失败",
+    "decryptKeyFailed": "网关密钥解密失败，无法启动语音通话",
+    "sessionError": "语音会话发生错误",
+    "stateError": "语音会话异常断开"
   },
   "wiki": {
     "backlinks": "反向链接",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "工作流已另存为新技能",
     "workflowUpdated": "工作流已更新",
-    "voiceChat": {
-      "noTicket": "无可用的票据，请重新开始。"
-    },
     "app": {
       "quickBar": "QuickBar"
     },

@@ -33,7 +33,7 @@ pub async fn list_jobs(
 
     match adapter.list_jobs(&ctx).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -57,7 +57,7 @@ pub async fn list_jobs(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -103,7 +103,7 @@ pub async fn create_job(
 
     match adapter.create_job(&ctx, &job_data_str).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -127,7 +127,7 @@ pub async fn create_job(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -170,7 +170,7 @@ pub async fn get_job(
 
     match adapter.get_job(&ctx, &job_id).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -194,7 +194,7 @@ pub async fn get_job(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -241,7 +241,7 @@ pub async fn update_job(
 
     match adapter.update_job(&ctx, &job_id, &job_data_str).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -265,7 +265,7 @@ pub async fn update_job(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -308,7 +308,7 @@ pub async fn delete_job(
 
     match adapter.delete_job(&ctx, &job_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -326,7 +326,7 @@ pub async fn delete_job(
             Json(json!({ "deleted": true, "id": job_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -369,7 +369,7 @@ pub async fn pause_job(
 
     match adapter.pause_job(&ctx, &job_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -387,7 +387,7 @@ pub async fn pause_job(
             Json(json!({ "paused": true, "id": job_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -430,7 +430,7 @@ pub async fn resume_job(
 
     match adapter.resume_job(&ctx, &job_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -448,7 +448,7 @@ pub async fn resume_job(
             Json(json!({ "resumed": true, "id": job_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -491,7 +491,7 @@ pub async fn trigger_job(
 
     match adapter.trigger_job(&ctx, &job_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -509,7 +509,7 @@ pub async fn trigger_job(
             Json(json!({ "triggered": true, "id": job_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -552,7 +552,7 @@ pub async fn list_runs(
 
     match adapter.list_runs(&ctx, &job_id).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -576,7 +576,7 @@ pub async fn list_runs(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -622,7 +622,7 @@ pub async fn trigger_run(
 
     match adapter.trigger_run(&ctx, &job_id, Some(&params_str)).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -646,7 +646,7 @@ pub async fn trigger_run(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -688,7 +688,7 @@ pub async fn get_run(
 
     match adapter.get_run(&ctx, &job_id, &run_id).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -712,7 +712,7 @@ pub async fn get_run(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -754,7 +754,7 @@ pub async fn cancel_run(
 
     match adapter.cancel_run(&ctx, &job_id, &run_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -771,7 +771,7 @@ pub async fn cancel_run(
             Json(json!({ "cancelled": true, "job_id": job_id, "run_id": run_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -813,7 +813,7 @@ pub async fn get_run_logs(
 
     match adapter.get_run_logs(&ctx, &job_id, &run_id).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -837,7 +837,7 @@ pub async fn get_run_logs(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -879,7 +879,7 @@ pub async fn retry_run(
 
     match adapter.retry_run(&ctx, &job_id, &run_id).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -903,7 +903,7 @@ pub async fn retry_run(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -945,7 +945,7 @@ pub async fn get_job_schedule(
 
     match adapter.get_job_schedule(&ctx, &job_id).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -969,7 +969,7 @@ pub async fn get_job_schedule(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -1015,7 +1015,7 @@ pub async fn update_job_schedule(
 
     match adapter.update_job_schedule(&ctx, &job_id, &schedule_str).await {
         Ok(response_body) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -1039,7 +1039,7 @@ pub async fn update_job_schedule(
                 })
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -1084,7 +1084,7 @@ pub async fn enable_job(
 
     match adapter.enable_job(&ctx, &job_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -1101,7 +1101,7 @@ pub async fn enable_job(
             Json(json!({ "enabled": true, "id": job_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -1143,7 +1143,7 @@ pub async fn disable_job(
 
     match adapter.disable_job(&ctx, &job_id).await {
         Ok(_) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,
@@ -1160,7 +1160,7 @@ pub async fn disable_job(
             Json(json!({ "disabled": true, "id": job_id })).into_response()
         },
         Err(e) => {
-            let elapsed = start_time.elapsed().as_millis() as i32;
+            let elapsed = start_time.elapsed().as_millis() as i64;
             record_log!(
                 &state.adapter,
                 gateway_key,

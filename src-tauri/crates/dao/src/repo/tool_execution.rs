@@ -6,7 +6,7 @@ use axagent_entities::tool_executions;
 use axagent_harness::constants;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::ToolExecution;
-use axagent_harness::util_fns::gen_id;
+use axagent_harness::util_fns::{gen_id, now_datetime_str};
 
 fn model_to_tool_execution(m: tool_executions::Model) -> ToolExecution {
     ToolExecution {
@@ -50,7 +50,7 @@ pub async fn create_tool_execution(
     approval_status: Option<&str>,
 ) -> Result<ToolExecution> {
     let id = gen_id();
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = now_datetime_str();
 
     tool_executions::ActiveModel {
         id: Set(id.clone()),

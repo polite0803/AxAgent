@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "ワークフローリフレクションに失敗しました",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "ワークフローリフレクションの提案に失敗しました",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "無効なワークフローリフレクションテンプレートです",
-    "WORKFLOW_VERSION_NOT_FOUND": "ワークフローバージョンが見つかりません"
+    "WORKFLOW_VERSION_NOT_FOUND": "ワークフローバージョンが見つかりません",
+    "VOICE_TICKET_INVALID": "音声セッションチケットが無効または期限切れです",
+    "VOICE_MODEL_NOT_FOUND": "音声モデルが見つからないかサポートされていません",
+    "VOICE_PROVIDER_NOT_FOUND": "音声プロバイダーが見つかりません",
+    "VOICE_PROVIDER_NO_SPEECH": "プロバイダーは音声機能をサポートしていません",
+    "VOICE_DECRYPT_KEY_FAILED": "ゲートウェイキーの復号に失敗しました",
+    "VOICE_STT_FAILED": "音声認識に失敗しました",
+    "VOICE_TTS_FAILED": "音声合成に失敗しました",
+    "VOICE_INVALID_MESSAGE": "無効な音声メッセージ形式です",
+    "VOICE_SESSION_CREATE_REQUIRED": "先に session.create を送信してください"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -5221,7 +5230,18 @@
     "voiceType": "音声タイプ",
     "sttProvider": "音声認識プロバイダー",
     "ttsProvider": "音声合成プロバイダー",
-    "providerAuto": "自動（LLMと同じプロバイダーを使用）"
+    "providerAuto": "自動（LLMと同じプロバイダーを使用）",
+    "wakeup": "ボイスウェイク",
+    "wakeupActive": "ウェイク監視中（クリックで停止）",
+    "startCall": "音声通話を開始",
+    "micNotFound": "マイクデバイスが見つかりません",
+    "micInUse": "マイクが他のアプリに占有されています",
+    "micOverconstrained": "マイクが制約を満たしません",
+    "micSecurity": "現在のページのセキュリティコンテキストはマイクアクセスをサポートしていません",
+    "ticketFailed": "音声セッションチケットの取得に失敗しました",
+    "decryptKeyFailed": "ゲートウェイキーの復号に失敗したため、音声通話を開始できません",
+    "sessionError": "音声セッションエラーが発生しました",
+    "stateError": "音声セッションが異常切断されました"
   },
   "wiki": {
     "backlinks": "バックリンク",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "ワークフローを新しいスキルとして保存しました",
     "workflowUpdated": "ワークフローを更新しました",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

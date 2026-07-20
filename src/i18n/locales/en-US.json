@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Workflow reflection failed",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Workflow reflection suggestion failed",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Invalid workflow reflection template",
-    "WORKFLOW_VERSION_NOT_FOUND": "Workflow version not found"
+    "WORKFLOW_VERSION_NOT_FOUND": "Workflow version not found",
+    "VOICE_TICKET_INVALID": "Voice session ticket is invalid or expired",
+    "VOICE_MODEL_NOT_FOUND": "Voice model not found or unsupported",
+    "VOICE_PROVIDER_NOT_FOUND": "Voice provider not found",
+    "VOICE_PROVIDER_NO_SPEECH": "Provider does not support speech capability",
+    "VOICE_DECRYPT_KEY_FAILED": "Gateway key decryption failed",
+    "VOICE_STT_FAILED": "Speech recognition failed",
+    "VOICE_TTS_FAILED": "Speech synthesis failed",
+    "VOICE_INVALID_MESSAGE": "Invalid voice message format",
+    "VOICE_SESSION_CREATE_REQUIRED": "Please send session.create first"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -5221,7 +5230,18 @@
     "voiceType": "Voice Type",
     "sttProvider": "STT Provider",
     "ttsProvider": "TTS Provider",
-    "providerAuto": "Auto (Use LLM provider)"
+    "providerAuto": "Auto (Use LLM provider)",
+    "wakeup": "Voice Wake",
+    "wakeupActive": "Wake listening (click to stop)",
+    "startCall": "Start Voice Call",
+    "micNotFound": "No microphone device found",
+    "micInUse": "Microphone is being used by another application",
+    "micOverconstrained": "Microphone does not satisfy constraints",
+    "micSecurity": "Current page security context does not support microphone access",
+    "ticketFailed": "Failed to obtain voice session ticket",
+    "decryptKeyFailed": "Gateway key decryption failed, cannot start voice call",
+    "sessionError": "Voice session error",
+    "stateError": "Voice session disconnected abnormally"
   },
   "wiki": {
     "backlinks": "Backlinks",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "Workflow saved as new",
     "workflowUpdated": "Workflow updated",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

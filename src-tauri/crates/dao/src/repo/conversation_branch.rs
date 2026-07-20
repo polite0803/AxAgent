@@ -5,7 +5,7 @@ use sea_orm::*;
 use axagent_entities::{conversation_branches, messages};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::{BranchComparison, ConversationBranch, MessageSummary};
-use axagent_harness::util_fns::gen_id;
+use axagent_harness::util_fns::{gen_id, now_datetime_str};
 
 fn model_to_branch(m: conversation_branches::Model) -> ConversationBranch {
     ConversationBranch {
@@ -48,7 +48,7 @@ pub async fn create_branch(
     label: &str,
 ) -> Result<ConversationBranch> {
     let id = gen_id();
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let now = now_datetime_str();
 
     let backend = db.get_database_backend();
     let (count_sql, count_values): (&str, Vec<sea_orm::Value>) = match backend {

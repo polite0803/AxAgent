@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "工作流程反思失敗",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "工作流程反思建議失敗",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "無效的工作流程反思模板",
-    "WORKFLOW_VERSION_NOT_FOUND": "工作流程版本未找到"
+    "WORKFLOW_VERSION_NOT_FOUND": "工作流程版本未找到",
+    "VOICE_TICKET_INVALID": "語音會話票據無效或已過期",
+    "VOICE_MODEL_NOT_FOUND": "語音模型未找到或不支援",
+    "VOICE_PROVIDER_NOT_FOUND": "語音提供商未找到",
+    "VOICE_PROVIDER_NO_SPEECH": "提供商不支援語音能力",
+    "VOICE_DECRYPT_KEY_FAILED": "閘道金鑰解密失敗",
+    "VOICE_STT_FAILED": "語音辨識失敗",
+    "VOICE_TTS_FAILED": "語音合成失敗",
+    "VOICE_INVALID_MESSAGE": "無效的語音訊息格式",
+    "VOICE_SESSION_CREATE_REQUIRED": "請先發送 session.create 訊息"
   },
   "errorBoundary": {
     "copied": "已複製",
@@ -5221,7 +5230,18 @@
     "voiceType": "語音類型",
     "sttProvider": "語音識別提供商",
     "ttsProvider": "語音合成提供商",
-    "providerAuto": "自動（使用 LLM 同一家）"
+    "providerAuto": "自動（使用 LLM 同一家）",
+    "wakeup": "語音喚醒",
+    "wakeupActive": "喚醒監聽中（點擊關閉）",
+    "startCall": "開始語音通話",
+    "micNotFound": "未找到麥克風裝置",
+    "micInUse": "麥克風被其他應用佔用",
+    "micOverconstrained": "麥克風不滿足約束條件",
+    "micSecurity": "當前頁面安全上下文不支援麥克風存取",
+    "ticketFailed": "取得語音會話票據失敗",
+    "decryptKeyFailed": "閘道金鑰解密失敗，無法啟動語音通話",
+    "sessionError": "語音會話發生錯誤",
+    "stateError": "語音會話異常斷開"
   },
   "wiki": {
     "backlinks": "反向連結",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "工作流已另存為新技能",
     "workflowUpdated": "工作流已更新",
-    "voiceChat": {
-      "noTicket": "無可用票證，請重新開始。"
-    },
     "app": {
       "quickBar": "QuickBar"
     },

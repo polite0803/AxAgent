@@ -20,10 +20,20 @@
 ///
 /// 替换规则：
 /// - `AUTOINCREMENT`（SQLite 专有）→ 删除（PG 用 `SERIAL`/`BIGSERIAL` 表达自增）；
-/// - `INTEGER NOT NULL PRIMARY KEY` / `INTEGER PRIMARY KEY` → `SERIAL PRIMARY KEY`；
-/// - `BIGINT NOT NULL PRIMARY KEY` → `BIGSERIAL PRIMARY KEY`；
-/// - `BIGINT PRIMARY KEY` → `BIGSERIAL PRIMARY KEY`；
-/// - `datetime('now')`（SQLite 函数）→ `CURRENT_TIMESTAMP::text`；
+/// - `INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT` / `INTEGER PRIMARY KEY AUTOINCREMENT`
+///   → `BIGSERIAL PRIMARY KEY`（i64 PK，INT8 序列）。
+///   **背景**：SQLite 限制 `AUTOINCREMENT` 只能用于 `INTEGER PRIMARY KEY`，而
+///   SQLite 的 `INTEGER` 本身就是 64 位（与 Rust `i64` 兼容），因此所有 i64 自增
+///   主键表在 SQLite DDL 中统一写为 `INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT`。
+///   到了 PG 侧，本函数把这种写法转成 `BIGSERIAL PRIMARY KEY`（INT8 序列）以
+///   匹配 entity 的 `i64` 字段。
+/// - `BIGINT NOT NULL PRIMARY KEY` / `BIGINT PRIMARY KEY` → `BIGSERIAL PRIMARY KEY`
+///   （i64 PK，INT8 序列）；保留以兼容历史 DDL。
+/// - `INTEGER NOT NULL PRIMARY KEY` / `INTEGER PRIMARY KEY` → `SERIAL PRIMARY KEY`
+///   （i32 PK，INT4 序列）；仅对**不带** AUTOINCREMENT 的 INTEGER PK 生效，
+///   因为带 AUTOINCREMENT 的已经被上面的规则转成 BIGSERIAL。
+/// - `datetime('now')`（SQLite 函数）→ PG `to_char(...)`，输出格式与 DAO 写入的
+///   `"%Y-%m-%d %H:%M:%S"` 一致（UTC 无时区无微秒），确保字符串排序与时序一致。
 /// - 时间戳列（`created_at` / `updated_at` / `completed_at` 等）的
 ///   `INTEGER` → `BIGINT`（PG 下 INT4 → INT8，匹配 SeaORM entity 里 `i64`）。
 ///   仅在已知时间戳列名上做替换，避免误伤其它业务列。
@@ -35,18 +45,37 @@
 ///   / `per_model_rpm` / `token_limit_per_minute` / `latency_ms` / `last_sync_at` /
 ///   / `token_input` / `token_output` / `execution_time_ms` / `timestamp_ms` /
 ///   / `x` / `y` / `pending_count` / `processing_count` / `failed_count` /
-///   / `last_sync_at`) 的 `INTEGER` → `BIGINT`。
+///   / `last_sync_at`）的 `INTEGER` → `BIGINT`。
 /// - `REAL` → `DOUBLE PRECISION`（PG 上 `REAL` 是 FLOAT4，entity 里 `f64` 需要
 ///   FLOAT8）；但 `retrieval_threshold` 和 `avg_reward` 的 entity 字段是 `f32`，
 ///   保持 `REAL`。
 pub fn pg_ddl(sql: &str) -> String {
+    // 替换顺序非常重要：
+    //   1. 先处理带 AUTOINCREMENT 的 INTEGER PK（i64 自增主键的 SQLite 写法）→ BIGSERIAL。
+    //      必须在删除 AUTOINCREMENT 和 INTEGER→SERIAL 转换之前处理，否则会丢失
+    //      AUTOINCREMENT 信号导致 i64 PK 被错误降级为 SERIAL（INT4）。
+    //   2. 再删除剩余的 AUTOINCREMENT（兼容历史 BIGINT NOT NULL PRIMARY KEY AUTOINCREMENT
+    //      写法，虽然 v100 已经统一为 INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT）。
+    //   3. 最后处理不带 AUTOINCREMENT 的 BIGINT/INTEGER PK → BIGSERIAL/SERIAL。
     let s = sql
+        // i64 自增 PK：SQLite 写 INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT
+        // （SQLite 的 INTEGER 是 64 位，与 Rust i64 兼容），PG 需要 BIGSERIAL。
+        // 必须在删除 AUTOINCREMENT 和 INTEGER→SERIAL 转换之前处理。
+        .replace(
+            "INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT",
+            "BIGSERIAL PRIMARY KEY",
+        )
+        .replace("INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY")
+        // 删除剩余的 AUTOINCREMENT（如果有遗漏）
         .replace(" AUTOINCREMENT", "")
-        .replace("INTEGER NOT NULL PRIMARY KEY", "SERIAL PRIMARY KEY")
-        .replace("INTEGER PRIMARY KEY", "SERIAL PRIMARY KEY")
         .replace("BIGINT NOT NULL PRIMARY KEY", "BIGSERIAL PRIMARY KEY")
         .replace("BIGINT PRIMARY KEY", "BIGSERIAL PRIMARY KEY")
-        .replace("datetime('now')", "CURRENT_TIMESTAMP::text");
+        .replace("INTEGER NOT NULL PRIMARY KEY", "SERIAL PRIMARY KEY")
+        .replace("INTEGER PRIMARY KEY", "SERIAL PRIMARY KEY")
+        .replace(
+            "datetime('now')",
+            "to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')",
+        );
 
     // 时间戳列替换（必须出现在相关业务列替换之前，避免被误匹配）
     let s = s
@@ -80,6 +109,7 @@ pub fn pg_ddl(sql: &str) -> String {
         .replace("cached_input_tokens INTEGER", "cached_input_tokens BIGINT")
         .replace("token_input INTEGER", "token_input BIGINT")
         .replace("token_output INTEGER", "token_output BIGINT")
+        .replace("total_tokens INTEGER", "total_tokens BIGINT")
         .replace("vector_count INTEGER", "vector_count BIGINT")
         .replace("pending_count INTEGER", "pending_count BIGINT")
         .replace("processing_count INTEGER", "processing_count BIGINT")

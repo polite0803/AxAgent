@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "워크플로우 반영에 실패했습니다",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "워크플로우 반영 제안에 실패했습니다",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "유효하지 않은 워크플로우 반영 템플릿입니다",
-    "WORKFLOW_VERSION_NOT_FOUND": "워크플로우 버전을 찾을 수 없습니다"
+    "WORKFLOW_VERSION_NOT_FOUND": "워크플로우 버전을 찾을 수 없습니다",
+    "VOICE_TICKET_INVALID": "음성 세션 티켓이 유효하지 않거나 만료되었습니다",
+    "VOICE_MODEL_NOT_FOUND": "음성 모델을 찾을 수 없거나 지원되지 않습니다",
+    "VOICE_PROVIDER_NOT_FOUND": "음성 제공자를 찾을 수 없습니다",
+    "VOICE_PROVIDER_NO_SPEECH": "제공자가 음성 기능을 지원하지 않습니다",
+    "VOICE_DECRYPT_KEY_FAILED": "게이트웨이 키 복호화 실패",
+    "VOICE_STT_FAILED": "음성 인식 실패",
+    "VOICE_TTS_FAILED": "음성 합성 실패",
+    "VOICE_INVALID_MESSAGE": "잘못된 음성 메시지 형식",
+    "VOICE_SESSION_CREATE_REQUIRED": "먼저 session.create를 보내주세요"
   },
   "errorBoundary": {
     "copied": "복사됨",
@@ -5221,7 +5230,18 @@
     "voiceType": "음성 유형",
     "sttProvider": "음성 인식 공급자",
     "ttsProvider": "음성 합성 공급자",
-    "providerAuto": "자동 (LLM과 동일 공급자 사용)"
+    "providerAuto": "자동 (LLM과 동일 공급자 사용)",
+    "wakeup": "음성 웨이크",
+    "wakeupActive": "웨이크 수신 대기 중 (클릭하여 중지)",
+    "startCall": "음성 통화 시작",
+    "micNotFound": "마이크 장치를 찾을 수 없습니다",
+    "micInUse": "마이크가 다른 앱에 의해 사용 중입니다",
+    "micOverconstrained": "마이크가 제약 조건을 만족하지 않습니다",
+    "micSecurity": "현재 페이지 보안 컨텍스트가 마이크 액세스를 지원하지 않습니다",
+    "ticketFailed": "음성 세션 티켓 가져오기 실패",
+    "decryptKeyFailed": "게이트웨이 키 복호화 실패, 음성 통화를 시작할 수 없습니다",
+    "sessionError": "음성 세션 오류가 발생했습니다",
+    "stateError": "음성 세션이 비정상적으로 연결이 끊어졌습니다"
   },
   "wiki": {
     "backlinks": "백링크",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "워크플로우가 새로 저장되었습니다",
     "workflowUpdated": "워크플로우가 업데이트되었습니다",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

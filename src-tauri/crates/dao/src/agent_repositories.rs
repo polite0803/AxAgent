@@ -70,7 +70,7 @@ impl AgentProfileRepository for DaoAgentProfileRepository {
     }
 }
 
-/// 把 agency_experts::Model 转换为 AgencyExpertDto（含 v101 新增的 6 个字段）。
+/// 把 agency_experts::Model 转换为 AgencyExpertDto（含 v100 consolidated 新增的 6 个字段）。
 fn expert_from_model(m: agency_experts::Model) -> AgencyExpertDto {
     AgencyExpertDto {
         id: m.id,

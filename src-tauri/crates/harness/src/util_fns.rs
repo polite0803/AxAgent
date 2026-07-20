@@ -14,6 +14,15 @@ pub fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
+/// 返回当前 UTC 时间的 `"YYYY-MM-DD HH:MM:SS"` 格式字符串。
+///
+/// 这是数据库 TEXT 类型时间列的统一写入格式，与 SQLite `datetime('now')`
+/// 以及 PG `to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')`
+/// 默认值格式完全一致，保证字符串排序与时序一致。
+pub fn now_datetime_str() -> String {
+    chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string()
+}
+
 /// 返回"本地时区今日 00:00:00"对应的 Unix 时间戳（秒）。
 ///
 /// 用于 dashboard / gateway 的"今日"统计：避免 `chrono::Utc::now().date_naive()`

@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Workflow-Reflexion fehlgeschlagen",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Workflow-Reflexionsvorschlag fehlgeschlagen",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Ungültige Workflow-Reflexionsvorlage",
-    "WORKFLOW_VERSION_NOT_FOUND": "Workflow-Version nicht gefunden"
+    "WORKFLOW_VERSION_NOT_FOUND": "Workflow-Version nicht gefunden",
+    "VOICE_TICKET_INVALID": "Voice-Session-Ticket ist ungültig oder abgelaufen",
+    "VOICE_MODEL_NOT_FOUND": "Sprachmodell nicht gefunden oder nicht unterstützt",
+    "VOICE_PROVIDER_NOT_FOUND": "Sprachanbieter nicht gefunden",
+    "VOICE_PROVIDER_NO_SPEECH": "Anbieter unterstützt keine Sprachfunktion",
+    "VOICE_DECRYPT_KEY_FAILED": "Entschlüsselung des Gateway-Schlüssels fehlgeschlagen",
+    "VOICE_STT_FAILED": "Spracherkennung fehlgeschlagen",
+    "VOICE_TTS_FAILED": "Sprachsynthese fehlgeschlagen",
+    "VOICE_INVALID_MESSAGE": "Ungültiges Sprachnachrichtenformat",
+    "VOICE_SESSION_CREATE_REQUIRED": "Bitte zuerst session.create senden"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -5221,7 +5230,18 @@
     "voiceType": "Stimmtyp",
     "sttProvider": "STT-Anbieter",
     "ttsProvider": "TTS-Anbieter",
-    "providerAuto": "Automatisch (gleicher LLM-Anbieter)"
+    "providerAuto": "Automatisch (gleicher LLM-Anbieter)",
+    "wakeup": "Sprachaktivierung",
+    "wakeupActive": "Wake-Listener aktiv (Klicken zum Stoppen)",
+    "startCall": "Anruf starten",
+    "micNotFound": "Kein Mikrofongerät gefunden",
+    "micInUse": "Mikrofon wird von einer anderen App verwendet",
+    "micOverconstrained": "Mikrofon erfüllt die Einschränkungen nicht",
+    "micSecurity": "Der aktuelle Seiten-Sicherheitskontext unterstützt keinen Mikrofonzugriff",
+    "ticketFailed": "Abruf des Voice-Session-Tickets fehlgeschlagen",
+    "decryptKeyFailed": "Entschlüsselung des Gateway-Schlüssels fehlgeschlagen, Anruf kann nicht gestartet werden",
+    "sessionError": "Fehler in der Voice-Session",
+    "stateError": "Voice-Session abnormal getrennt"
   },
   "wiki": {
     "backlinks": "Rückverweise",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "Workflow als neu gespeichert",
     "workflowUpdated": "Workflow aktualisiert",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },

@@ -588,7 +588,7 @@ async fn record_native_outcome(
             .await;
     }
 
-    let elapsed = start_time.elapsed().as_millis() as i32;
+    let elapsed = start_time.elapsed().as_millis() as i64;
     let request_tokens = usage.map(|usage| usage.input_tokens as i64).unwrap_or(0);
     let response_tokens = usage.map(|usage| usage.output_tokens as i64).unwrap_or(0);
     let _ = adapter
@@ -1275,7 +1275,7 @@ mod tests {
             _model_id: Option<&str>,
             _provider_id: Option<&str>,
             _status_code: i32,
-            _duration_ms: i32,
+            _duration_ms: i64,
             _request_tokens: i64,
             _response_tokens: i64,
             _error_message: Option<&str>,

@@ -2059,7 +2059,16 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Ошибка рефлексии рабочего процесса",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Ошибка предложения рефлексии рабочего процесса",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Недопустимый шаблон рефлексии рабочего процесса",
-    "WORKFLOW_VERSION_NOT_FOUND": "Версия рабочего процесса не найдена"
+    "WORKFLOW_VERSION_NOT_FOUND": "Версия рабочего процесса не найдена",
+    "VOICE_TICKET_INVALID": "Билет голосовой сессии недействителен или истёк",
+    "VOICE_MODEL_NOT_FOUND": "Голосовая модель не найдена или не поддерживается",
+    "VOICE_PROVIDER_NOT_FOUND": "Голосовой провайдер не найден",
+    "VOICE_PROVIDER_NO_SPEECH": "Провайдер не поддерживает голосовые функции",
+    "VOICE_DECRYPT_KEY_FAILED": "Не удалось расшифровать ключ шлюза",
+    "VOICE_STT_FAILED": "Ошибка распознавания речи",
+    "VOICE_TTS_FAILED": "Ошибка синтеза речи",
+    "VOICE_INVALID_MESSAGE": "Неверный формат голосового сообщения",
+    "VOICE_SESSION_CREATE_REQUIRED": "Сначала отправьте session.create"
   },
   "errorBoundary": {
     "copied": "Скопировано",
@@ -5221,7 +5230,18 @@
     "voiceType": "Тип голоса",
     "sttProvider": "Провайдер STT",
     "ttsProvider": "Провайдер TTS",
-    "providerAuto": "Авто (использовать того же провайдера LLM)"
+    "providerAuto": "Авто (использовать того же провайдера LLM)",
+    "wakeup": "Голосовое пробуждение",
+    "wakeupActive": "Ожидание пробуждения (нажмите, чтобы остановить)",
+    "startCall": "Начать голосовой вызов",
+    "micNotFound": "Микрофон не найден",
+    "micInUse": "Микрофон используется другим приложением",
+    "micOverconstrained": "Микрофон не удовлетворяет ограничениям",
+    "micSecurity": "Текущий контекст безопасности не поддерживает доступ к микрофону",
+    "ticketFailed": "Не удалось получить билет голосовой сессии",
+    "decryptKeyFailed": "Не удалось расшифровать ключ шлюза, невозможно начать вызов",
+    "sessionError": "Ошибка голосовой сессии",
+    "stateError": "Голосовая сессия ненормально отключена"
   },
   "wiki": {
     "backlinks": "Обратные ссылки",
@@ -7177,9 +7197,6 @@
     },
     "workflowSavedAsNew": "Рабочий процесс сохранён как новый",
     "workflowUpdated": "Рабочий процесс обновлён",
-    "voiceChat": {
-      "noTicket": "No ticket available. Please start again."
-    },
     "app": {
       "quickBar": "QuickBar"
     },
