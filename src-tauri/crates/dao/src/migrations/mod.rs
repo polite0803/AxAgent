@@ -1,48 +1,37 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //! Versioned schema migration framework.
 //!
-//! Phase 2 引入的迁移系统：取代旧 `ddl.rs::run_initialization` 的 "drop
-//! seaql_migrations + 全量重建" 模式。`run_migrations` 启动时读
-//! `axagent_schema_version.MAX(version)`，按顺序补跑未应用迁移，每条
-//! 完成后写入版本号 → 幂等 + 可重启 + 任何后续 ALTER 都可以版本化追踪。
+//! ## 当前状态
+//!
+//! 本项目采用「单一基线迁移」架构：所有 DDL（表/索引/触发器/种子数据）都
+//! 合并在 [v100_consolidated] 一个文件中。新装库只需跑一次 v100，类型即正确。
+//!
+//! ## 历史
+//!
+//! - 旧版采用 v001–v011 + v101–v103 + v200 多版本迁移，导致：
+//!   - v100 后续追加的 PHASE 在已应用 v100 的旧库上永远不会跑
+//!   - v200 INT4→INT8 ALTER 通道与 v100 pg_ddl() 类型转换重复
+//!   - 多次数据转换逻辑相互覆盖，难以维护
+//! - 现已合并为 v100 单一基线：
+//!   - v101_business_roles / v102_mission_hash / v103_workflow_reflections
+//!     的字段和表全部合并到 v100 PHASE 2/8/9/10
+//!   - v200_pg_int4_to_int8_axinvest 删除（pg_ddl 在 CREATE TABLE 时一次性
+//!     产出正确类型，无需二次 ALTER）
+//!   - 所有 ALTER TABLE 补字段通道删除（字段直接在 CREATE TABLE 中建好）
 //!
 //! ## 约定
 //!
-//! - 版本号单调递增；每条 migration 写一个文件 `vNNN_xxx.rs`。
-//! - 每个 `up()` 必须自带 `CREATE ... IF NOT EXISTS` 等幂等保护，
-//!   或显式检查 schema_version 防重复跑。
-//! - 新加 migration 时：1) 创建文件，2) 在 `MIGRATIONS` 数组中注册，
-//!   3) 在 `CURRENT_VERSION` 累加。
-//!
-//! ## 向后兼容
-//!
-//! `ddl.rs::run_initialization` 现在是 thin shim，直接转发到
-//! `migrations::run_migrations`，确保所有已有 call sites 继续工作。
-//! 旧 DROP seaql_migrations 行为已删除（无 seaql 依赖）。
+//! - 新增表/字段：直接修改 v100_consolidated.rs 的 PHASE 2 CREATE TABLE
+//! - 新增索引：在 v100 PHASE 4 中添加
+//! - 不再创建新的迁移版本（除非有破坏性 schema 变更需要独立追踪）
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
-// ============================================================================
-// v100 是合并后的唯一迁移。历史 v001–v011 已合并至此文件，旧文件已删除。
-// 所有未来变更直接加在 v100 上或创建新版本。
-//
-// ============================================================================
-// AxInvest 版本号策略：本地迁移从 v200 起编号
-// ============================================================================
-// - v100：上游 AxAgent 合并迁移（来自 ecba666de `refactor(dao): consolidate
-//   v001–v011 → v100 merged migration`），上游 master 当前最新版本号。
-// - v101–v199：预留段。留给上游 AxAgent 未来新增迁移使用，避免合并上游时
-//   版本号冲突。AxInvest 新增迁移一律跳过本段。
-// - v200+：AxInvest 本地迁移段。所有 AxInvest 独有的 schema 变更从这里
-//   起单调递增。新增 v201/v202/... 时仅累加 CURRENT_VERSION 即可。
-// ============================================================================
-
 pub mod pg_ddl;
 pub mod v100_consolidated;
-pub mod v200_pg_int4_to_int8_axinvest;
 
-/// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 200;
+/// 当前 schema 版本号。
+pub const CURRENT_VERSION: i32 = 100;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -68,18 +57,11 @@ struct Migration {
     up: MigrationFn,
 }
 
-const MIGRATIONS: &[Migration] = &[
-    Migration {
-        version: 100,
-        description: "v100_consolidated: 合并 v001–v011 + v101–v104 的全部 DDL（表/索引/触发器/种子数据），统一用正确类型建表；不再保留旧库类型修复 ALTER 通道",
-        up: |db| Box::pin(v100_consolidated::up(db)),
-    },
-    Migration {
-        version: 200,
-        description: "v200_pg_int4_to_int8_axinvest: AxInvest-targeted INT4→INT8 fix for timestamps + max_tokens/thinking_budget",
-        up: |db| Box::pin(v200_pg_int4_to_int8_axinvest::up(db)),
-    },
-];
+const MIGRATIONS: &[Migration] = &[Migration {
+    version: 100,
+    description: "v100_consolidated: 合并 v001–v011 + v101–v103 + v200 的全部 DDL（表/索引/触发器/种子数据），统一用正确类型建表；不再保留旧库类型修复 ALTER 通道",
+    up: |db| Box::pin(v100_consolidated::up(db)),
+}];
 
 /// 执行所有尚未应用的 schema 迁移。
 ///
