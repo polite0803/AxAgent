@@ -3575,7 +3575,7 @@ impl WorkEngine {
                     db_status,
                     output_result.as_deref(),
                     node_executions.as_deref(),
-                    Some(total_time_ms as i32),
+                    Some(total_time_ms as i64),
                 )
                 .await
                 .map_err(WorkEngineError::Db)?;

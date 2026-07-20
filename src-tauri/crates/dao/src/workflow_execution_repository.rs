@@ -36,7 +36,7 @@ impl WorkflowExecutionRepository for DaoWorkflowExecutionRepository {
         status: &str,
         output_result: Option<&str>,
         node_executions: Option<&str>,
-        total_time_ms: Option<i32>,
+        total_time_ms: Option<i64>,
     ) -> Result<bool, String> {
         crate::repo::workflow_execution::update_workflow_execution_status(
             &self.db,

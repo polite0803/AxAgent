@@ -1649,7 +1649,7 @@ impl WorkflowExecutionRepository for EmptyWorkflowExecutionRepository {
         _status: &str,
         _output_result: Option<&str>,
         _node_executions: Option<&str>,
-        _total_time_ms: Option<i32>,
+        _total_time_ms: Option<i64>,
     ) -> std::result::Result<bool, String> {
         Ok(true)
     }
