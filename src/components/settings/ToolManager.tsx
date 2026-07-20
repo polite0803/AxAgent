@@ -259,13 +259,6 @@ export function ToolManager() {
         }}
         tabBarStyle={{ marginBottom: 16, flexShrink: 0 }}
       />
-      <style>
-        {`
-        .ant-tabs-content-holder, .ant-tabs-content, .ant-tabs-tabpane-active {
-          flex: 1 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important;
-        }
-      `}
-      </style>
     </div>
   );
 }
