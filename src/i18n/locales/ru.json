@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "Создавать ежедневную сводку моего почтового ящика",
       "schedule": "Расписание (выражение cron)",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "Имя, расписание и промпт обязательны"
+      "validationRequired": "Имя, расписание и промпт обязательны",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "Пользовательские заголовки",
     "customHeadersPlaceholder": "По одному на строку, формат: key=value\nнапр. X-Custom-Header=my-value",
@@ -3641,7 +3642,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "Выйти из полного экрана",
     "expandAll": "Развернуть всё",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "Ошибка открытия папки: {{error}}",
       "refreshFailed": "Ошибка обновления: {{error}}",
       "toggleFailed": "Ошибка переключения: {{error}}",
-      "unloadFailed": "Ошибка выгрузки: {{error}}"
+      "unloadFailed": "Ошибка выгрузки: {{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "Нажмите сочетание клавиш...",
     "primaryColor": "Основной цвет",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "Режим службы поддержки (приём через опрос, экспериментально)",
       "wechatModeOfficial": "Режим официального аккаунта (приём через Webhook)"
     },
-    "toolAccess": "Tool Access"
+    "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    }
   },
   "settingsPage": {
     "refreshPage": "Обновить страницу"

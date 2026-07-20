@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "Tägliche Zusammenfassung meines Posteingangs generieren",
       "schedule": "Zeitplan (Cron-Ausdruck)",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "Name, Zeitplan und Prompt sind erforderlich"
+      "validationRequired": "Name, Zeitplan und Prompt sind erforderlich",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "Benutzerdefinierte Header",
     "customHeadersPlaceholder": "Eines pro Zeile, Format: Schlüssel=Wert\nz. B. X-Custom-Header=mein-Wert",
@@ -3641,7 +3642,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "Vollbild beenden",
     "expandAll": "Alle ausklappen",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "Ordner öffnen fehlgeschlagen: {{error}}",
       "refreshFailed": "Aktualisierung fehlgeschlagen: {{error}}",
       "toggleFailed": "Umschalten fehlgeschlagen: {{error}}",
-      "unloadFailed": "Entladen fehlgeschlagen: {{error}}"
+      "unloadFailed": "Entladen fehlgeschlagen: {{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "Tastenkombination drücken…",
     "primaryColor": "Primärfarbe",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "Kundenservice-Modus (Polling-Empfang, experimentell)",
       "wechatModeOfficial": "Offizieller-Konto-Modus (Webhook-Empfang)"
     },
-    "toolAccess": "Tool Access"
+    "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    }
   },
   "settingsPage": {
     "refreshPage": "Seite aktualisieren"

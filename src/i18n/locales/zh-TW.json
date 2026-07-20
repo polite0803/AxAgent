@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "生成每日收件箱摘要",
       "schedule": "計劃（cron 表達式）",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "名稱、計劃、提示詞為必填項"
+      "validationRequired": "名稱、計劃、提示詞為必填項",
+      "title": "計劃任務"
     },
     "customHeaders": "自訂請求標頭",
     "customHeadersPlaceholder": "每行一個，格式：key=value\n例如：X-Custom-Header=my-value",
@@ -3641,7 +3642,8 @@
       "stats": "統計",
       "stop": "停止",
       "stopAll": "全部停止",
-      "stopped": "已停止"
+      "stopped": "已停止",
+      "title": "自我進化"
     },
     "exitFullscreen": "退出全螢幕",
     "expandAll": "展開所有",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "開啟資料夾失敗：{{error}}",
       "refreshFailed": "重新整理失敗：{{error}}",
       "toggleFailed": "切換狀態失敗：{{error}}",
-      "unloadFailed": "卸載失敗：{{error}}"
+      "unloadFailed": "卸載失敗：{{error}}",
+      "title": "插件"
     },
     "pressShortcut": "請按下快捷鍵組合...",
     "primaryColor": "主題色",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "客服模式 (輪詢接收，實驗性)",
       "wechatModeOfficial": "公眾號模式 (Webhook 接收)"
     },
-    "toolAccess": "工具存取權限"
+    "toolAccess": "工具存取權限",
+    "providers": {
+      "title": "服務商"
+    },
+    "defaultModel": {
+      "title": "默認模型"
+    },
+    "display": {
+      "title": "顯示"
+    },
+    "appConfig": {
+      "title": "應用配置"
+    },
+    "proxy": {
+      "title": "代理"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "about": {
+      "title": "關於"
+    },
+    "promptTemplates": {
+      "title": "提示詞模板"
+    },
+    "shortcuts": {
+      "title": "快捷鍵"
+    },
+    "imageGen": {
+      "title": "圖像生成"
+    },
+    "acp": {
+      "title": "ACP 連接"
+    },
+    "cloudWorkspace": {
+      "title": "雲工作區"
+    },
+    "advanced": {
+      "title": "高級"
+    }
   },
   "settingsPage": {
     "refreshPage": "刷新頁面"

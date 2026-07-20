@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "إنشاء ملخص يومي لصندوق الوارد",
       "schedule": "الجدول (تعبير cron)",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "الاسم والجدول والمطالبة مطلوبون"
+      "validationRequired": "الاسم والجدول والمطالبة مطلوبون",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "رؤوس مخصصة",
     "customHeadersPlaceholder": "سطر لكل رأس، التنسيق: key=value\nمثال: X-Custom-Header=my-value",
@@ -3641,7 +3642,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "الخروج من ملء الشاشة",
     "expandAll": "توسيع الكل",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "فشل فتح المجلد: {{error}}",
       "refreshFailed": "فشل التحديث: {{error}}",
       "toggleFailed": "فشل تبديل الحالة: {{error}}",
-      "unloadFailed": "فشل الإلغاء: {{error}}"
+      "unloadFailed": "فشل الإلغاء: {{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "اضغط مجموعة الاختصار...",
     "primaryColor": "اللون الأساسي",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "وضع خدمة العملاء (استقبال بالاقتراع، تجريبي)",
       "wechatModeOfficial": "وضع الحساب الرسمي (استقبال عبر Webhook)"
     },
-    "toolAccess": "Tool Access"
+    "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    }
   },
   "settingsPage": {
     "refreshPage": "تحديث الصفحة"

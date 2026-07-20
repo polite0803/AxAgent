@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "受信箱の日次サマリーを生成",
       "schedule": "スケジュール",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "名前、スケジュール、プロンプトは必須です"
+      "validationRequired": "名前、スケジュール、プロンプトは必須です",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "カスタムヘッダー",
     "customHeadersPlaceholder": "1 行に 1 つ、形式: key=value\n例: X-Custom-Header=my-value",
@@ -3641,7 +3642,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "フルスクリーン解除",
     "expandAll": "全て展開",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "フォルダを開けませんでした：{{error}}",
       "refreshFailed": "更新に失敗しました：{{error}}",
       "toggleFailed": "状態の切り替えに失敗しました：{{error}}",
-      "unloadFailed": "アンロードに失敗しました：{{error}}"
+      "unloadFailed": "アンロードに失敗しました：{{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "ショートカットキーを押してください...",
     "primaryColor": "プライマリカラー",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "カスタマーモード (ポーリング受信、実験的)",
       "wechatModeOfficial": "公式アカウントモード (Webhook 受信)"
     },
-    "toolAccess": "Tool Access"
+    "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    }
   },
   "settingsPage": {
     "refreshPage": "ページを更新"

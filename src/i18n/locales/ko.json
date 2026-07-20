@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "받은편지함의 일일 요약 생성",
       "schedule": "일정 (cron 표현식)",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "이름, 일정 및 프롬프트는 필수입니다"
+      "validationRequired": "이름, 일정 및 프롬프트는 필수입니다",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "사용자 정의 헤더",
     "customHeadersPlaceholder": "한 줄에 하나씩, 형식: key=value\n예: X-Custom-Header=my-value",
@@ -3641,7 +3642,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "전체 화면 종료",
     "expandAll": "모두 펼치기",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "폴더 열기 실패: {{error}}",
       "refreshFailed": "새로고침 실패: {{error}}",
       "toggleFailed": "상태 전환 실패: {{error}}",
-      "unloadFailed": "언로드 실패: {{error}}"
+      "unloadFailed": "언로드 실패: {{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "단축키 조합을 누르세요...",
     "primaryColor": "주색",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "고객 서비스 모드(폴링 수신, 실험적)",
       "wechatModeOfficial": "공식 계정 모드(Webhook 수신)"
     },
-    "toolAccess": "Tool Access"
+    "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    }
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"

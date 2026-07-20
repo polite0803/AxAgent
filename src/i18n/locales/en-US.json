@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "Generate a daily summary of my inbox",
       "schedule": "Schedule (cron expression)",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "Name, schedule, and prompt are required"
+      "validationRequired": "Name, schedule, and prompt are required",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "Custom Headers",
     "customHeadersPlaceholder": "One per line, format: key=value\ne.g. X-Custom-Header=my-value",
@@ -3641,7 +3642,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "Exit fullscreen",
     "expandAll": "Expand all",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "Failed to open folder: {{error}}",
       "refreshFailed": "Refresh failed: {{error}}",
       "toggleFailed": "Toggle failed: {{error}}",
-      "unloadFailed": "Unload failed: {{error}}"
+      "unloadFailed": "Unload failed: {{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "Press shortcut combination...",
     "primaryColor": "Primary Color",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "Customer Service Mode (Polling Receive, Experimental)",
       "wechatModeOfficial": "Official Account Mode (Webhook Receive)"
     },
-    "toolAccess": "Tool Access"
+    "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    }
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"

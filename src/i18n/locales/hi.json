@@ -3527,7 +3527,8 @@
       "promptPlaceholder": "मेरे इनबॉक्स का दैनिक सारांश बनाएं",
       "schedule": "अनुसूची (cron अभिव्यक्ति)",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "नाम, अनुसूची और प्रॉम्प्ट आवश्यक हैं"
+      "validationRequired": "नाम, अनुसूची और प्रॉम्प्ट आवश्यक हैं",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "कस्टम हेडर",
     "customHeadersPlaceholder": "प्रत्येक पंक्ति में एक, प्रारूप: key=value\nउदाहरण: X-Custom-Header=my-value",
@@ -3641,7 +3642,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "पूर्ण स्क्रीन से बाहर",
     "expandAll": "सब विस्तृत करें",
@@ -4032,7 +4034,8 @@
       "openFolderFailed": "फोल्डर खोलना विफल: {{error}}",
       "refreshFailed": "रीफ्रेश विफल: {{error}}",
       "toggleFailed": "स्थिति टॉगल विफल: {{error}}",
-      "unloadFailed": "अनलोड विफल: {{error}}"
+      "unloadFailed": "अनलोड विफल: {{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "शॉर्टकट कॉम्बिनेशन दबाएँ...",
     "primaryColor": "प्राथमिक रंग",
@@ -4515,7 +4518,46 @@
       "wechatModeCustomer": "ग्राहक सेवा मोड (पोलिंग रिसीव, प्रायोगिक)",
       "wechatModeOfficial": "आधिकारिक खाता मोड (Webhook रिसीव)"
     },
-    "toolAccess": "Tool Access"
+    "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    }
   },
   "settingsPage": {
     "refreshPage": "पृष्ठ रीफ़्रेश करें"
