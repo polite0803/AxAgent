@@ -2064,7 +2064,7 @@
     "page": "त्रुटि",
     "pageNotFound": "क्षमा करें, आपके द्वारा देखा गया पृष्ठ मौजूद नहीं है।",
     "saveFailed": "सहेजने में विफल, कृपया पुनः प्रयास करें",
-    "unknown": "अज्ञात त्रुटि",
+
     "unknown": "अज्ञात त्रुटि",
     "AGENT_CANCEL_FAILED": "एजेंट रद्द करने में विफल",
     "AGENT_EXECUTION_ABORTED": "एजेंट निष्पादन निरस्त",
@@ -5202,18 +5202,7 @@
         "description": "कस्टम रणनीति पैक"
       }
     },
-    "display": "डिस्प्ले",
-    "proxy": "प्रॉक्सी",
-    "shortcuts": {
-      "description": "कीबोर्ड शॉर्टकट बाइंडिंग अनुकूलित करें",
-      "label": "शॉर्टकट",
-      "reset": "रीसेट",
-      "resetAll": "सभी रीसेट करें",
-      "saved": "सहेजा गया",
-      "title": "शॉर्टकट"
-    },
-    "about": "के बारे में",
-    "acp": "ACP",
+
     "globalShortcut": "वैश्विक शॉर्टकट",
     "globalShortcutRegisterOk": "वैश्विक शॉर्टकट पंजीकृत: {{count}}",
     "globalShortcutRegisterPartial": "वैश्विक शॉर्टकट पंजीकरण: {{ok}} सफल, {{fail}} विफल",
@@ -5328,25 +5317,13 @@
         "casual": "आकस्मिक"
       }
     },
-    "imageGen": {
-      "defaultProvider": "डिफ़ॉल्ट प्रदाता",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "छवि निर्माण"
-    },
-    "advanced": "उन्नत सेटिंग्स",
-    "promptTemplates": "प्रॉम्प्ट टेम्पलेट",
-    "appConfig": "एजेंट कंट्रोल पैनल",
+
     "appConfigDesc": "मॉडल चयन, फ़ीचर स्विच, एजेंट प्रबंधन और हुक कॉन्फ़िगरेशन",
-    "cloudWorkspace": {
-      "title": "क्लाउड वर्कस्पेस"
-    },
+
     "knowledgeSettings": {
       "title": "ज्ञान"
     },
-    "notificationCenter": {
-      "title": "सूचनाएं"
-    },
+
     "stockAnalysis": "Stock Analysis",
     "providers": {
       "title": "Providers"
@@ -6052,7 +6029,7 @@
     "sttProvider": "STT प्रदाता",
     "ttsProvider": "TTS प्रदाता",
     "providerAuto": "स्वचालित (उसी LLM प्रदाता का उपयोग करें)",
-    "startCall": "वॉयस कॉल शुरू करें",
+
     "wakeup": "वॉइस वेक",
     "wakeupActive": "वेक सुन रहा है (रोकने के लिए क्लिक करें)",
     "startCall": "वॉइस कॉल शुरू करें",

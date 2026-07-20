@@ -2064,7 +2064,7 @@
     "page": "Ошибка",
     "pageNotFound": "Извините, страница, которую вы посетили, не существует.",
     "saveFailed": "Ошибка сохранения, повторите попытку",
-    "unknown": "Неизвестная ошибка",
+
     "unknown": "Неизвестная ошибка",
     "AGENT_CANCEL_FAILED": "Не удалось отменить агента",
     "AGENT_EXECUTION_ABORTED": "Выполнение агента прервано",
@@ -5202,18 +5202,7 @@
         "description": "Пользовательская стратегия"
       }
     },
-    "display": "Отображение",
-    "proxy": "Прокси",
-    "shortcuts": {
-      "description": "Настроить сочетания клавиш",
-      "label": "Горячие клавиши",
-      "reset": "Сбросить",
-      "resetAll": "Сбросить всё",
-      "saved": "Сохранено",
-      "title": "Сочетания клавиш"
-    },
-    "about": "О программе",
-    "acp": "ACP",
+
     "globalShortcut": "Глобальная горячая клавиша",
     "globalShortcutRegisterOk": "Глобальные горячие клавиши зарегистрированы: {{count}}",
     "globalShortcutRegisterPartial": "Регистрация горячих клавиш: {{ok}} успешно, {{fail}} ошибок",
@@ -5328,25 +5317,13 @@
         "casual": "Непринужденный"
       }
     },
-    "imageGen": {
-      "defaultProvider": "Провайдер по умолчанию",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "Ген. изображений"
-    },
-    "advanced": "Расширенные настройки",
-    "promptTemplates": "Шаблоны промптов",
-    "appConfig": "Панель управления агентом",
+
     "appConfigDesc": "Выбор модели, переключатели функций, управление агентом и конфигурация хуков",
-    "cloudWorkspace": {
-      "title": "Облачное рабочее пространство"
-    },
+
     "knowledgeSettings": {
       "title": "Знания"
     },
-    "notificationCenter": {
-      "title": "Уведомления"
-    },
+
     "stockAnalysis": "Stock Analysis",
     "providers": {
       "title": "Providers"
@@ -6052,7 +6029,7 @@
     "sttProvider": "Провайдер STT",
     "ttsProvider": "Провайдер TTS",
     "providerAuto": "Авто (использовать того же провайдера LLM)",
-    "startCall": "Начать звонок",
+
     "wakeup": "Голосовое пробуждение",
     "wakeupActive": "Ожидание пробуждения (нажмите, чтобы остановить)",
     "startCall": "Начать голосовой вызов",

@@ -2064,7 +2064,7 @@
     "page": "Fehler",
     "pageNotFound": "Die aufgerufene Seite existiert leider nicht.",
     "saveFailed": "Speichern fehlgeschlagen, bitte erneut versuchen",
-    "unknown": "Unbekannter Fehler",
+
     "unknown": "Unbekannter Fehler",
     "AGENT_CANCEL_FAILED": "Abbrechen des Agents fehlgeschlagen",
     "AGENT_EXECUTION_ABORTED": "Agent-Ausführung abgebrochen",
@@ -5202,18 +5202,7 @@
         "description": "Benutzerdefiniertes Strategiepaket"
       }
     },
-    "display": "Anzeige",
-    "proxy": "Proxy",
-    "shortcuts": {
-      "description": "Tastenkürzel zuweisen",
-      "label": "Tastenkürzel",
-      "reset": "Zurücksetzen",
-      "resetAll": "Alle zurücksetzen",
-      "saved": "Gespeichert",
-      "title": "Tastenkürzel"
-    },
-    "about": "Über",
-    "acp": "ACP",
+
     "globalShortcut": "Globales Tastenkürzel",
     "globalShortcutRegisterOk": "Globale Tastenkürzel registriert: {{count}}",
     "globalShortcutRegisterPartial": "Globale Tastenkürzel-Registrierung: {{ok}} erfolgreich, {{fail}} fehlgeschlagen",
@@ -5328,25 +5317,13 @@
         "casual": "Lässig"
       }
     },
-    "imageGen": {
-      "defaultProvider": "Standardanbieter",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "Bildgenerierung"
-    },
-    "advanced": "Erweiterte Einstellungen",
-    "promptTemplates": "Prompt-Vorlagen",
-    "appConfig": "Agent-Kontrollzentrale",
+
     "appConfigDesc": "Modellauswahl, Funktionsschalter, Agent-Verwaltung und Hook-Konfiguration",
-    "cloudWorkspace": {
-      "title": "Cloud-Arbeitsbereich"
-    },
+
     "knowledgeSettings": {
       "title": "Wissen"
     },
-    "notificationCenter": {
-      "title": "Benachrichtigungen"
-    },
+
     "stockAnalysis": "Stock Analysis",
     "providers": {
       "title": "Providers"
@@ -6052,7 +6029,7 @@
     "sttProvider": "STT-Anbieter",
     "ttsProvider": "TTS-Anbieter",
     "providerAuto": "Automatisch (gleicher LLM-Anbieter)",
-    "startCall": "Sprachanruf starten",
+
     "wakeup": "Sprachaktivierung",
     "wakeupActive": "Wake-Listener aktiv (Klicken zum Stoppen)",
     "startCall": "Anruf starten",

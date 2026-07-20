@@ -2064,7 +2064,7 @@
     "page": "エラー",
     "pageNotFound": "申し訳ありませんが、アクセスしたページは存在しません。",
     "saveFailed": "保存に失敗しました。もう一度お試しください",
-    "unknown": "不明なエラー",
+
     "unknown": "不明なエラー",
     "AGENT_CANCEL_FAILED": "エージェントのキャンセルに失敗しました",
     "AGENT_EXECUTION_ABORTED": "エージェントの実行が中断されました",
@@ -5202,19 +5202,7 @@
         "description": "カスタム戦略パック"
       }
     },
-    "display": "表示",
-    "proxy": "プロキシ",
-    "shortcuts": {
-      "label": "ショートカット",
-      "title": "ショートカット",
-      "description": "キーボードショートカットバインディングをカスタマイズ",
-      "reset": "リセット",
-      "resetAll": "すべてリセット",
-      "saved": "保存しました"
-    },
-    "advanced": "詳細設定",
-    "about": "について",
-    "acp": "ACP 設定",
+
     "globalShortcut": "グローバルショートカット",
     "globalShortcutRegisterOk": "グローバルショートカット登録成功: {{count}} 件",
     "globalShortcutRegisterPartial": "グローバルショートカット登録結果: 成功 {{ok}} 件、失敗 {{fail}} 件",
@@ -5329,24 +5317,13 @@
       "builtin": "組み込みツール",
       "custom": "カスタム"
     },
-    "imageGen": {
-      "providerFlux": "Flux",
-      "providerDalle": "DALL-E 3",
-      "defaultProvider": "デフォルトプロバイダー",
-      "title": "画像生成"
-    },
-    "promptTemplates": "プロンプトテンプレート",
-    "appConfig": "エージェント制御パネル",
+
     "appConfigDesc": "モデル選択、機能スイッチ、エージェント管理とフック設定",
-    "cloudWorkspace": {
-      "title": "クラウドワークスペース"
-    },
+
     "knowledgeSettings": {
       "title": "ナレッジ"
     },
-    "notificationCenter": {
-      "title": "通知センター"
-    },
+
     "stockAnalysis": "Stock Analysis",
     "providers": {
       "title": "Providers"
@@ -6052,7 +6029,7 @@
     "sttProvider": "音声認識プロバイダー",
     "ttsProvider": "音声合成プロバイダー",
     "providerAuto": "自動（LLMと同じプロバイダーを使用）",
-    "startCall": "通話を開始",
+
     "wakeup": "ボイスウェイク",
     "wakeupActive": "ウェイク監視中（クリックで停止）",
     "startCall": "音声通話を開始",

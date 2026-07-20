@@ -2064,7 +2064,7 @@
     "page": "Error",
     "pageNotFound": "Lo sentimos, la página que visitó no existe.",
     "saveFailed": "Error al guardar, inténtelo de nuevo",
-    "unknown": "Error desconocido",
+
     "unknown": "Error desconocido",
     "AGENT_CANCEL_FAILED": "Error al cancelar el agente",
     "AGENT_EXECUTION_ABORTED": "Ejecución del agente abortada",
@@ -5202,18 +5202,7 @@
         "description": "Paquete de estrategia personalizado"
       }
     },
-    "display": "Pantalla",
-    "proxy": "Proxy",
-    "shortcuts": {
-      "description": "Personalizar enlaces de atajos de teclado",
-      "label": "Atajos de teclado",
-      "reset": "Restablecer",
-      "resetAll": "Restablecer todo",
-      "saved": "Guardado",
-      "title": "Atajos"
-    },
-    "about": "Acerca de",
-    "acp": "ACP",
+
     "globalShortcut": "Atajo global",
     "globalShortcutRegisterOk": "Atajos globales registrados: {{count}}",
     "globalShortcutRegisterPartial": "Registro de atajos globales: {{ok}} correctos, {{fail}} fallidos",
@@ -5328,25 +5317,13 @@
         "casual": "Casual"
       }
     },
-    "imageGen": {
-      "defaultProvider": "Proveedor predeterminado",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "Gen. imágenes"
-    },
-    "advanced": "Configuración avanzada",
-    "promptTemplates": "Plantillas de prompts",
-    "appConfig": "Panel de control del Agent",
+
     "appConfigDesc": "Selección de modelo, interruptores de funciones, gestión de Agent y configuración de Hooks",
-    "cloudWorkspace": {
-      "title": "Espacio de trabajo en la nube"
-    },
+
     "knowledgeSettings": {
       "title": "Conocimiento"
     },
-    "notificationCenter": {
-      "title": "Notificaciones"
-    },
+
     "stockAnalysis": "Stock Analysis",
     "providers": {
       "title": "Providers"
@@ -6052,7 +6029,7 @@
     "sttProvider": "Proveedor de STT",
     "ttsProvider": "Proveedor de TTS",
     "providerAuto": "Automático (usar el mismo proveedor LLM)",
-    "startCall": "Iniciar llamada de voz",
+
     "wakeup": "Activación por voz",
     "wakeupActive": "Escucha de activación (clic para detener)",
     "startCall": "Iniciar llamada de voz",

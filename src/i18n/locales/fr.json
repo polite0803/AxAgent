@@ -2064,7 +2064,7 @@
     "page": "Erreur",
     "pageNotFound": "Désolé, la page que vous avez visitée n'existe pas.",
     "saveFailed": "Échec de l'enregistrement, veuillez réessayer",
-    "unknown": "Erreur inconnue",
+
     "unknown": "Erreur inconnue",
     "AGENT_CANCEL_FAILED": "Échec de l'annulation de l'agent",
     "AGENT_EXECUTION_ABORTED": "Exécution de l'agent interrompue",
@@ -5202,18 +5202,7 @@
         "description": "Pack de stratégie personnalisé"
       }
     },
-    "display": "Affichage",
-    "proxy": "Proxy",
-    "shortcuts": {
-      "description": "Personnaliser les raccourcis clavier",
-      "label": "Raccourcis",
-      "reset": "Réinitialiser",
-      "resetAll": "Tout réinitialiser",
-      "saved": "Enregistré",
-      "title": "Raccourcis"
-    },
-    "about": "À propos",
-    "acp": "ACP",
+
     "globalShortcut": "Raccourci global",
     "globalShortcutRegisterOk": "Raccourcis globaux enregistrés : {{count}}",
     "globalShortcutRegisterPartial": "Enregistrement des raccourcis globaux : {{ok}} réussis, {{fail}} échoués",
@@ -5328,25 +5317,13 @@
         "casual": "Décontracté"
       }
     },
-    "imageGen": {
-      "defaultProvider": "Fournisseur par défaut",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "Génération d'images"
-    },
-    "advanced": "Paramètres avancés",
-    "promptTemplates": "Modèles de prompts",
-    "appConfig": "Panneau de contrôle de l'Agent",
+
     "appConfigDesc": "Sélection du modèle, interrupteurs de fonctions, gestion de l'Agent et configuration des Hooks",
-    "cloudWorkspace": {
-      "title": "Espace de travail cloud"
-    },
+
     "knowledgeSettings": {
       "title": "Connaissance"
     },
-    "notificationCenter": {
-      "title": "Centre de notifications"
-    },
+
     "stockAnalysis": "Stock Analysis",
     "providers": {
       "title": "Providers"
@@ -6052,7 +6029,7 @@
     "sttProvider": "Fournisseur STT",
     "ttsProvider": "Fournisseur TTS",
     "providerAuto": "Auto (même fournisseur LLM)",
-    "startCall": "Démarrer l'appel vocal",
+
     "wakeup": "Réveil vocal",
     "wakeupActive": "Écoute de réveil (cliquez pour arrêter)",
     "startCall": "Démarrer l'appel vocal",

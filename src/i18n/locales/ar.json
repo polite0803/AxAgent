@@ -2064,7 +2064,7 @@
     "page": "خطأ",
     "pageNotFound": "عذراً، الصفحة التي زرتها غير موجودة.",
     "saveFailed": "فشل الحفظ، يرجى المحاولة مجدداً",
-    "unknown": "خطأ غير معروف",
+
     "unknown": "خطأ غير معروف",
     "AGENT_CANCEL_FAILED": "فشل إلغاء الوكيل",
     "AGENT_EXECUTION_ABORTED": "تم إحباط تنفيذ الوكيل",
@@ -5202,18 +5202,7 @@
         "description": "حزمة استراتيجية مخصصة"
       }
     },
-    "display": "العرض",
-    "proxy": "الوكيل",
-    "shortcuts": {
-      "description": "تخصيص ربطات اختصار لوحة المفاتيح",
-      "label": "اختصارات",
-      "reset": "إعادة تعيين",
-      "resetAll": "إعادة تعيين الكل",
-      "saved": "تم الحفظ",
-      "title": "الاختصارات"
-    },
-    "about": "حول",
-    "acp": "ACP",
+
     "globalShortcut": "اختصار عام",
     "globalShortcutRegisterOk": "تم تسجيل الاختصارات العامة: {{count}}",
     "globalShortcutRegisterPartial": "تسجيل الاختصارات العامة: {{ok}} نجح، {{fail}} فشل",
@@ -5328,25 +5317,13 @@
         "casual": "غير رسمي"
       }
     },
-    "imageGen": {
-      "defaultProvider": "المزود الافتراضي",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "توليد الصور"
-    },
-    "advanced": "الإعدادات المتقدمة",
-    "promptTemplates": "قوالب الأوامر",
-    "appConfig": "لوحة تحكم الوكيل",
+
     "appConfigDesc": "اختيار النموذج، مفاتيح الميزات، إدارة الوكيل وتكوين الخطافات",
-    "cloudWorkspace": {
-      "title": "مساحة العمل السحابية"
-    },
+
     "knowledgeSettings": {
       "title": "المعرفة"
     },
-    "notificationCenter": {
-      "title": "الإشعارات"
-    },
+
     "stockAnalysis": "Stock Analysis",
     "providers": {
       "title": "Providers"
@@ -6052,7 +6029,7 @@
     "sttProvider": "موفر التعرف على الكلام",
     "ttsProvider": "موفر تركيب الكلام",
     "providerAuto": "تلقائي (استخدام نفس موفر LLM)",
-    "startCall": "بدء مكالمة صوتية",
+
     "wakeup": "التنشيط الصوتي",
     "wakeupActive": "الاستماع للتنشيط (انقر للإيقاف)",
     "startCall": "بدء مكالمة صوتية",
