@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "Échec de la reconnaissance vocale",
     "VOICE_TTS_FAILED": "Échec de la synthèse vocale",
     "VOICE_INVALID_MESSAGE": "Format de message vocal invalide",
-    "VOICE_SESSION_CREATE_REQUIRED": "Veuillez d'abord envoyer session.create"
+    "VOICE_SESSION_CREATE_REQUIRED": "Veuillez d'abord envoyer session.create",
+    "STOCK_WORKFLOW_INTERNAL": "Erreur interne du flux de travail boursier",
+    "STOCK_SETUP_INTERNAL": "Erreur interne de configuration boursière"
   },
   "errorBoundary": {
     "copied": "Copié",

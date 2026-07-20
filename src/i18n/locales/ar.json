@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "فشل التعرف على الكلام",
     "VOICE_TTS_FAILED": "فشل تركيب الكلام",
     "VOICE_INVALID_MESSAGE": "تنسيق رسالة صوتية غير صالح",
-    "VOICE_SESSION_CREATE_REQUIRED": "يرجى إرسال session.create أولاً"
+    "VOICE_SESSION_CREATE_REQUIRED": "يرجى إرسال session.create أولاً",
+    "STOCK_WORKFLOW_INTERNAL": "خطأ داخلي في سير عمل الأسهم",
+    "STOCK_SETUP_INTERNAL": "خطأ داخلي في إعداد الأسهم"
   },
   "errorBoundary": {
     "copied": "تم النسخ",

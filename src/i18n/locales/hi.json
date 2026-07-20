@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "स्पीच रिकग्निशन विफल",
     "VOICE_TTS_FAILED": "स्पीच सिंथेसिस विफल",
     "VOICE_INVALID_MESSAGE": "अमान्य वॉइस संदेश प्रारूप",
-    "VOICE_SESSION_CREATE_REQUIRED": "कृपया पहले session.create भेजें"
+    "VOICE_SESSION_CREATE_REQUIRED": "कृपया पहले session.create भेजें",
+    "STOCK_WORKFLOW_INTERNAL": "स्टॉक वर्कफ्लो में आंतरिक त्रुटि",
+    "STOCK_SETUP_INTERNAL": "स्टॉक सेटअप में आंतरिक त्रुटि"
   },
   "errorBoundary": {
     "copied": "कॉपी हुआ",

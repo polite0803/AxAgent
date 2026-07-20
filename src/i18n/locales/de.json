@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "Spracherkennung fehlgeschlagen",
     "VOICE_TTS_FAILED": "Sprachsynthese fehlgeschlagen",
     "VOICE_INVALID_MESSAGE": "Ungültiges Sprachnachrichtenformat",
-    "VOICE_SESSION_CREATE_REQUIRED": "Bitte zuerst session.create senden"
+    "VOICE_SESSION_CREATE_REQUIRED": "Bitte zuerst session.create senden",
+    "STOCK_WORKFLOW_INTERNAL": "Interner Fehler im Aktien-Workflow",
+    "STOCK_SETUP_INTERNAL": "Interner Fehler bei der Aktien-Einrichtung"
   },
   "errorBoundary": {
     "copied": "Kopiert",

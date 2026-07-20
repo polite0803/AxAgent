@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "Ошибка распознавания речи",
     "VOICE_TTS_FAILED": "Ошибка синтеза речи",
     "VOICE_INVALID_MESSAGE": "Неверный формат голосового сообщения",
-    "VOICE_SESSION_CREATE_REQUIRED": "Сначала отправьте session.create"
+    "VOICE_SESSION_CREATE_REQUIRED": "Сначала отправьте session.create",
+    "STOCK_WORKFLOW_INTERNAL": "Внутренняя ошибка рабочего процесса акций",
+    "STOCK_SETUP_INTERNAL": "Внутренняя ошибка настройки акций"
   },
   "errorBoundary": {
     "copied": "Скопировано",

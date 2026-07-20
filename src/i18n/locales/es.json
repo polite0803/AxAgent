@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "Reconocimiento de voz fallido",
     "VOICE_TTS_FAILED": "Síntesis de voz fallida",
     "VOICE_INVALID_MESSAGE": "Formato de mensaje de voz inválido",
-    "VOICE_SESSION_CREATE_REQUIRED": "Por favor, envíe session.create primero"
+    "VOICE_SESSION_CREATE_REQUIRED": "Por favor, envíe session.create primero",
+    "STOCK_WORKFLOW_INTERNAL": "Error interno del flujo de trabajo de acciones",
+    "STOCK_SETUP_INTERNAL": "Error interno de configuración de acciones"
   },
   "errorBoundary": {
     "copied": "Copiado",

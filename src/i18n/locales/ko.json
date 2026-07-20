@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "음성 인식 실패",
     "VOICE_TTS_FAILED": "음성 합성 실패",
     "VOICE_INVALID_MESSAGE": "잘못된 음성 메시지 형식",
-    "VOICE_SESSION_CREATE_REQUIRED": "먼저 session.create를 보내주세요"
+    "VOICE_SESSION_CREATE_REQUIRED": "먼저 session.create를 보내주세요",
+    "STOCK_WORKFLOW_INTERNAL": "주식 워크플로 내부 오류",
+    "STOCK_SETUP_INTERNAL": "주식 설정 내부 오류"
   },
   "errorBoundary": {
     "copied": "복사됨",

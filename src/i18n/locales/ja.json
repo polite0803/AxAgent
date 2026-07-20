@@ -2278,7 +2278,9 @@
     "VOICE_STT_FAILED": "音声認識に失敗しました",
     "VOICE_TTS_FAILED": "音声合成に失敗しました",
     "VOICE_INVALID_MESSAGE": "無効な音声メッセージ形式です",
-    "VOICE_SESSION_CREATE_REQUIRED": "先に session.create を送信してください"
+    "VOICE_SESSION_CREATE_REQUIRED": "先に session.create を送信してください",
+    "STOCK_WORKFLOW_INTERNAL": "株式ワークフロー内部エラー",
+    "STOCK_SETUP_INTERNAL": "株式セットアップ内部エラー"
   },
   "errorBoundary": {
     "copied": "コピーしました",
