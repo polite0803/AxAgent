@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_long_output_snipped() {
-        let long_output = "H".repeat(50_000) + &"T".repeat(50_000);
+        let long_output = "H".repeat(50_000) + "T".repeat(50_000);
         let msg = make_tool_result_message(&long_output);
         let config = SnipConfig::default();
         let result = snip_tool_results(&[msg], &config);

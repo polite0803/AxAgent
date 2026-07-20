@@ -977,7 +977,7 @@ export function DebatePanel() {
                 }}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span role="img" aria-label="gavel">⚖️</span>
+                  <span aria-hidden="true">⚖️</span>
                   <span className="font-semibold" style={{ color: "#7c3aed" }}>
                     {t("stockAnalysis.verdictReason")}
                   </span>
@@ -1072,7 +1072,7 @@ export function DebatePanel() {
                 }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span style={{ fontSize: 20 }} role="img" aria-label="gavel">⚖️</span>
+                  <span style={{ fontSize: 20 }} aria-hidden="true">⚖️</span>
                   <span className="font-semibold" style={{ color: "#7c3aed" }}>
                     {t("acp.finalVerdict")}
                   </span>

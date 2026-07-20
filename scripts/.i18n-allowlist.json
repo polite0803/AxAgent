@@ -168,7 +168,7 @@
     },
     {
       "file": "src/components/stock-analysis/DebatePanel.tsx",
-      "lines": "232,981,1076",
+      "lines": "232",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
