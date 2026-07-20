@@ -4,6 +4,22 @@
 #![allow(clippy::collapsible_match)]
 #![allow(clippy::needless_borrow)]
 
+// ── Windows: 为 lib 单元测试 harness 链接 Common Controls v6 manifest ──
+//
+// 背景：cargo test --lib 生成的测试 EXE（rustc --test src\lib.rs）不继承
+// tauri_build 为主 bin 嵌入的 manifest 资源，也不被 build.rs 中的
+// `cargo:rustc-link-arg-tests` 覆盖（cargo 仅对 [[test]] 集成测试目标生效）。
+// 没有manifest → Windows 加载 comctl32.dll v5 → 缺少 v6 入口点 →
+// STATUS_ENTRYPOINT_NOT_FOUND (0xC0000139) 启动崩溃。
+//
+// 通过 `#[cfg(test)] #[link(name = "test-manifest")]` 在 lib 单元测试 harness
+// 编译时显式声明链接 test-manifest.lib（由 build.rs 中的
+// `embed_resource::compile_for_tests("test-manifest.rc", ...)` 生成）。
+// 主 bin 不声明此 link，因此不会与 tauri_build 的 resource.lib 产生 duplicate resource 冲突。
+#[cfg(all(test, target_os = "windows"))]
+#[link(name = "test-manifest")]
+unsafe extern "C" {}
+
 mod android_utils;
 mod commands;
 mod context_manager;
