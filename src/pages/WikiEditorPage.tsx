@@ -354,7 +354,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                 icon={<CheckSquare size={14} />}
                 onClick={() => setLintOpen(true)}
               >
-                {t("wiki.lint")}
+                {t("wiki.lint.runLint")}
               </Button>
               <Button
                 size="small"

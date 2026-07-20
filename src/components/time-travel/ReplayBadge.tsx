@@ -24,11 +24,11 @@ export function ReplayBadge({ style }: { style?: React.CSSProperties }) {
   const isSweep = mode === "backtest_sweep";
   const color = isSweep ? "blue" : "orange";
   const label = isSweep
-    ? t("timeTravel.replayBadge.sweep")
-    : t("timeTravel.replayBadge.replay", { date: asOfDate ?? "" });
+    ? t("acp.sweep")
+    : t("acp.replay", { date: asOfDate ?? "" });
 
   return (
-    <Tooltip title={t("timeTravel.replayBadge.tooltip", { date: asOfDate ?? "" })}>
+    <Tooltip title={t("acp.replayBadgeTooltip", { date: asOfDate ?? "" })}>
       <Tag
         color={color}
         icon={<Clock size={11} />}

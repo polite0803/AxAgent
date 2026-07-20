@@ -175,7 +175,7 @@ export function BacktestTab() {
 
           {selectedStrategy && (
             <div style={{ marginTop: 16 }}>
-              <Text strong>{t("quant.metrics.strategyParams")}</Text>
+              <Text strong>{t("acp.strategyParameters")}</Text>
               <div style={{ marginTop: 8 }}>
                 <StrategyForm
                   strategy={selectedStrategy}
@@ -292,7 +292,7 @@ function MetricsPanel({ metrics }: { metrics: MetricsReport }) {
     const r2: MetricItem[] = [
       {
         key: "annualizedVolatility",
-        title: t("quant.metrics.annualizedVolatility"),
+        title: t("acp.annualizedVolatility"),
         value: metrics.annualizedVolatility * 100,
         suffix: "%",
         good: false,
@@ -301,14 +301,14 @@ function MetricsPanel({ metrics }: { metrics: MetricsReport }) {
       { key: "calmar", title: t("quant.metrics.calmar"), value: metrics.calmar ?? 0, good: true },
       {
         key: "profitFactor",
-        title: t("quant.metrics.profitFactor"),
+        title: t("acp.profitFactor"),
         value: metrics.profitFactor,
         good: true,
       },
-      { key: "payoffRatio", title: t("quant.metrics.payoffRatio"), value: metrics.payoffRatio, good: true },
+      { key: "payoffRatio", title: t("acp.payoffRatio"), value: metrics.payoffRatio, good: true },
       {
         key: "avgHoldingDays",
-        title: t("quant.metrics.avgHoldingDays"),
+        title: t("acp.averageHoldingDays"),
         value: metrics.avgHoldingDays,
         prec: 1,
       },
@@ -316,34 +316,34 @@ function MetricsPanel({ metrics }: { metrics: MetricsReport }) {
     const r3: MetricItem[] = [
       {
         key: "maxDrawdown",
-        title: t("quant.metrics.maxDrawdown"),
+        title: t("acp.maxDrawdown"),
         value: metrics.maxDrawdown,
         prec: 0,
         good: false,
       },
       {
         key: "maxDrawdownDurationDays",
-        title: t("quant.metrics.maxDrawdownDuration"),
+        title: t("acp.maxDrawdownDuration"),
         value: metrics.maxDrawdownDurationDays,
         prec: 0,
         good: false,
       },
       {
         key: "winningTrades",
-        title: t("quant.metrics.winningTrades"),
+        title: t("acp.winningTrades"),
         value: metrics.winningTrades,
         prec: 0,
       },
       {
         key: "losingTrades",
-        title: t("quant.metrics.losingTrades"),
+        title: t("acp.losingTrades"),
         value: metrics.losingTrades,
         prec: 0,
       },
-      { key: "avgWin", title: t("quant.metrics.avgWin"), value: metrics.avgWin, prec: 0 },
+      { key: "avgWin", title: t("acp.averageWin"), value: metrics.avgWin, prec: 0 },
       {
         key: "avgLoss",
-        title: t("quant.metrics.avgLoss"),
+        title: t("acp.averageLoss"),
         value: Math.abs(metrics.avgLoss),
         prec: 0,
         good: false,
@@ -411,13 +411,13 @@ function WalkForwardPanel({
   const foldColumns: ColumnsType<WalkForwardFold> = [
     { title: "Fold", dataIndex: "foldIndex", key: "fi", width: 60, sorter: (a, b) => a.foldIndex - b.foldIndex },
     {
-      title: t("quant.metrics.trainRange"),
+      title: t("acp.trainRange"),
       key: "train",
       width: 240,
       render: (_, r) => `${r.trainStart} → ${r.trainEnd} (${r.trainBarsCount})`,
     },
     {
-      title: t("quant.metrics.testRange"),
+      title: t("acp.testRange"),
       key: "test",
       width: 240,
       render: (_, r) => `${r.testStart} → ${r.testEnd} (${r.testBarsCount})`,

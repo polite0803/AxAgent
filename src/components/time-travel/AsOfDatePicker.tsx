@@ -34,7 +34,7 @@ export function AsOfDatePicker({ onPick, onCancel }: AsOfDatePickerProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 240 }}>
       <div style={{ fontSize: 12, color: "var(--ax-text-secondary, #6b7280)" }}>
-        {t("timeTravel.datePicker.hint")}
+        {t("acp.datePickerHint")}
       </div>
       <DatePicker
         value={val}
@@ -48,11 +48,11 @@ export function AsOfDatePicker({ onPick, onCancel }: AsOfDatePickerProps) {
       />
       <Space>
         <Button type="primary" onClick={ok} disabled={!val} size="small">
-          {t("timeTravel.datePicker.ok")}
+          {t("acp.ok")}
         </Button>
         {onCancel && (
           <Button onClick={onCancel} size="small">
-            {t("timeTravel.datePicker.cancel")}
+            {t("acp.acp.cancel01")}
           </Button>
         )}
       </Space>

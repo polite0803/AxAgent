@@ -41,17 +41,17 @@ function getNodeColor(nodeId: string): string {
 }
 
 function getNodeTypeLabel(nodeId: string, t: (k: string) => string): string {
-  if (nodeId.startsWith("a-")) { return t("stockAnalysis.workflow.analyst"); }
+  if (nodeId.startsWith("a-")) { return t("acp.analyst"); }
   if (
     nodeId.startsWith("risk-") || nodeId === "p-risk-assess" || nodeId === "agg-risk" || nodeId === "risk-convergence"
-  ) { return t("stockAnalysis.riskControl"); }
-  if (nodeId.startsWith("bull-")) { return t("stockAnalysis.bullDebate"); }
-  if (nodeId.startsWith("bear-")) { return t("stockAnalysis.bearDebate"); }
-  if (nodeId.startsWith("t-")) { return t("stockAnalysis.dataTool"); }
-  if (nodeId === "debate-convergence") { return t("stockAnalysis.debateConvergence"); }
-  if (nodeId.includes("mgr") || nodeId.includes("manager")) { return t("stockAnalysis.decisionEngine"); }
-  if (nodeId.includes("checker") || nodeId === "rule-check") { return t("stockAnalysis.ruleCheck"); }
-  return t("stockAnalysis.other");
+  ) { return t("acp.riskControl"); }
+  if (nodeId.startsWith("bull-")) { return t("acp.bullDebate"); }
+  if (nodeId.startsWith("bear-")) { return t("acp.bearDebate"); }
+  if (nodeId.startsWith("t-")) { return t("acp.dataTool"); }
+  if (nodeId === "debate-convergence") { return t("acp.debateConvergence"); }
+  if (nodeId.includes("mgr") || nodeId.includes("manager")) { return t("acp.decisionEngine"); }
+  if (nodeId.includes("checker") || nodeId === "rule-check") { return t("acp.ruleCheck"); }
+  return t("acp.other");
 }
 
 export function AnalysisDebugPanel() {

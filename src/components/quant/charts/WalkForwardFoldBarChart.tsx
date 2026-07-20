@@ -56,8 +56,8 @@ export function WalkForwardFoldBarChart({ windows, height = 280 }: WalkForwardFo
               `<b>Fold ${f.foldIndex}</b> ${
                 w.overfitFlag ? `<span style='color:#cf1322'>(${t("quant.metrics.overfit")})</span>` : ""
               }`,
-              `IS: ${f.trainStart} → ${f.trainEnd} (${t("quant.chart.barsCount", { count: f.trainBarsCount })})`,
-              `OOS: ${f.testStart} → ${f.testEnd} (${t("quant.chart.barsCount", { count: f.testBarsCount })})`,
+              `IS: ${f.trainStart} → ${f.trainEnd} (${t("acp.barsCount", { count: f.trainBarsCount })})`,
+              `OOS: ${f.testStart} → ${f.testEnd} (${t("acp.barsCount", { count: f.testBarsCount })})`,
               `Train Sharpe: ${w.trainMetrics.sharpe.toFixed(3)}`,
               `Test  Sharpe: ${w.testMetrics.sharpe.toFixed(3)}`,
               `Degradation: ${w.degradationRatio.toFixed(3)} ${w.overfitFlag ? "⚠️" : ""}`,

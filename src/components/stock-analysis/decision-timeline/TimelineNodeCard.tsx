@@ -103,7 +103,7 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
     [allViolations, node.id],
   );
   const violationCount = nodeViolations.length;
-  const markClass = t("timeTravel.violations.markClass");
+  const markClass = t("acp.markClass");
   const summaryNodes = useMemo(
     () =>
       highlightViolations(
@@ -154,12 +154,12 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
         </span>
         {violationCount > 0 && (
           <Tooltip
-            title={t("timeTravel.violations.tooltip")}
+            title={t("acp.tooltip")}
             data-testid="violation-chip-tooltip"
           >
             <span
               data-testid="violation-chip"
-              aria-label={t("timeTravel.violations.chipAria", { n: violationCount })}
+              aria-label={t("acp.chipAria", { n: violationCount })}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -173,7 +173,7 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
                 flexShrink: 0,
               }}
             >
-              {t("timeTravel.violations.chip", { n: violationCount })}
+              {t("acp.chip", { n: violationCount })}
             </span>
           </Tooltip>
         )}

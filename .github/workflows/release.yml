@@ -115,7 +115,10 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: windows-latest
             target: aarch64-pc-windows-msvc
-          # Linux x86_64
+          # Linux x86_64 (native build on x64 runner; 不需要 cross 工具链)
+          # 注：必须用 ubuntu-24.04 (noble)，其 libpipewire-0.3-dev = 1.0.5，
+          # 否则 libspa-0.9.2 safe wrapper 与 22.04 的 pipewire 0.3.48 C 结构体不匹配
+          # (spa_video_info_raw 缺 flags 字段、modifier 为 i64 而非 u64)
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
 
@@ -149,7 +152,12 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf \
-            libpipewire-0.3-dev
+            libpipewire-0.3-dev \
+            libgbm-dev
+
+      - name: Install Protoc (Ubuntu)
+        if: matrix.os == 'ubuntu-24.04'
+        run: sudo apt-get install -y protobuf-compiler
 
       - name: Install x86_64 OpenSSL (macOS Intel cross-compile)
         if: matrix.target == 'x86_64-apple-darwin'
@@ -166,10 +174,6 @@ jobs:
       - name: Install create-dmg (macOS DMG bundling)
         if: matrix.os == 'macos-latest'
         run: brew install create-dmg
-
-      - name: Install Protoc (Ubuntu)
-        if: matrix.os == 'ubuntu-24.04'
-        run: sudo apt-get install -y protobuf-compiler
 
       - name: Install Protoc (Windows)
         if: matrix.os == 'windows-latest'
@@ -291,11 +295,19 @@ jobs:
           files: |
             src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-*.dmg
 
-  # ── Build for Linux ARM64 (cross-compile) ──────────────
+  # ── Build for Linux ARM64 (native on ARM64 runner) ───
+  # 注：用 GitHub ARM64 native runner (ubuntu-24.04-arm) 原生编译，
+  # host = target = aarch64，无 cross-compile，彻底绕过 rust-lld bug。
+  # rustc 1.67+ 在 x86_64 cross-compile aarch64 时，rust-lld 错误地按
+  # target (aarch64) 架构链接 host (x86_64) proc-macro，导致：
+  #   rust-lld: error: .../x86_64-linux-gnu/crti.o is incompatible with elf64-littleaarch64
+  # 前 9 次尝试用 RUSTFLAGS/env var/ld.lld wrapper 修都失败（rustc 强制注入
+  # -fuse-ld=lld -B<sysroot>/gcc-ld/）。native ARM64 runner 是唯一可靠方案。
+  # GitHub 2025-01-16 推出 ARM64 runner，对 public repo 免费。
   release-linux-arm:
     name: Build (aarch64-unknown-linux-gnu)
     needs: [resolve-tag, check-version, draft-release-notes]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -312,36 +324,21 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 'v1'
-          key: 'ubuntu-22.04-aarch64-unknown-linux-gnu'
+          key: 'ubuntu-24.04-arm-aarch64-unknown-linux-gnu'
           workspaces: src-tauri -> target
 
-      - name: Setup cross-compilation sources
+      - name: Install ARM64 native dependencies
         run: |
-          cat > /tmp/sources.list << 'EOF'
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy main multiverse universe restricted
-          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu jammy-security main multiverse universe restricted
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy-updates main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main multiverse universe restricted
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main multiverse universe restricted
-          EOF
-          sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak
-          sudo mv /tmp/sources.list /etc/apt/sources.list
-          sudo dpkg --add-architecture arm64
           sudo apt-get update
-
-      - name: Install ARM64 dependencies
-        run: |
           sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
             protobuf-compiler \
             patchelf \
-            libwebkit2gtk-4.1-dev:arm64 \
-            libayatana-appindicator3-dev:arm64 \
-            librsvg2-dev:arm64 \
-            libssl-dev:arm64 \
-            libpipewire-0.3-dev:arm64
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libpipewire-0.3-dev \
+            libgbm-dev
 
       - uses: actions/setup-node@v4
         with:
@@ -352,16 +349,9 @@ jobs:
 
       - name: Build for Linux ARM64
         run: |
-          export PKG_CONFIG_ALLOW_CROSS=1
-          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH
-          export PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu/
           npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb,rpm
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
-          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
-          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 

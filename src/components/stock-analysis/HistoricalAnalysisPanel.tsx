@@ -247,7 +247,7 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
                       setSelectedIds([]);
                     }}
                   >
-                    {t("chat.batchExit")}
+                    {t("acp.batchExit")}
                   </Button>
                   {selectedIds.length > 0 && (
                     <Button

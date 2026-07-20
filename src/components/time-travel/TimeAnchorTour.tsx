@@ -32,7 +32,7 @@ export function TimeAnchorTour() {
     <div
       data-testid="time-anchor-tour"
       role="dialog"
-      aria-label={t("timeTravel.tour.title")}
+      aria-label={t("acp.tourTitle")}
       style={{
         position: "absolute",
         top: "calc(100% + 10px)",
@@ -74,12 +74,12 @@ export function TimeAnchorTour() {
       >
         <Sparkles size={14} color="var(--ax-warning, #f59e0b)" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>
-          {t("timeTravel.tour.title")}
+          {t("acp.tourTitle")}
         </div>
         <button
           type="button"
           onClick={onDismiss}
-          aria-label={t("stockAnalysis.timeTravel.close")}
+          aria-label={t("acp.acp.close02")}
           style={{
             background: "transparent",
             border: 0,
@@ -93,7 +93,7 @@ export function TimeAnchorTour() {
         </button>
       </div>
       <p style={{ margin: "0 0 8px 0", color: "var(--ax-text-secondary, #4b5563)" }}>
-        {t("timeTravel.tour.body")}
+        {t("acp.tourBody")}
       </p>
       <p
         style={{
@@ -105,11 +105,11 @@ export function TimeAnchorTour() {
           fontSize: 11,
         }}
       >
-        {t("timeTravel.tour.stepAnchor")}
+        {t("acp.stepAnchor")}
       </p>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <Button type="primary" size="small" onClick={onDismiss}>
-          {t("timeTravel.tour.gotIt")}
+          {t("acp.gotIt")}
         </Button>
       </div>
     </div>

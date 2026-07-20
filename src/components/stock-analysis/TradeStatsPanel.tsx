@@ -89,7 +89,7 @@ export function TradeStatsPanel() {
       size="small"
       title={
         <div className="flex justify-between items-center">
-          <span>{t("stockAnalysis.tradeStats.title")}</span>
+          <span>{t("acp.tradeStatisticsTitle")}</span>
           <Button size="small" icon={<ReloadOutlined />} loading={loading} onClick={loadStats} />
         </div>
       }
@@ -98,14 +98,14 @@ export function TradeStatsPanel() {
       {/* 概览行 */}
       <div className="grid grid-cols-4 gap-2 mb-2">
         <div className="text-xs p-1 rounded" style={{ background: "var(--surface)" }}>
-          <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.tradeStats.totalPnl")}</span>
+          <span style={{ color: "var(--muted)" }}>{t("acp.totalPl")}</span>
           <div style={{ color: stats.totalRealizedPnl >= 0 ? "var(--sa-red)" : "var(--sa-green)", fontWeight: "bold" }}>
             {stats.totalRealizedPnl >= 0 ? "+" : ""}
             {stats.totalRealizedPnl.toFixed(0)}
           </div>
         </div>
         <div className="text-xs p-1 rounded" style={{ background: "var(--surface)" }}>
-          <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.tradeStats.winRate")}</span>
+          <span style={{ color: "var(--muted)" }}>{t("acp.winRate")}</span>
           <div style={{ fontWeight: "bold" }}>
             {stats.winRate.toFixed(1)}%<span className="text-xs" style={{ color: "var(--muted)" }}>
               ({stats.winCount}/{stats.totalSells})
@@ -113,33 +113,33 @@ export function TradeStatsPanel() {
           </div>
         </div>
         <div className="text-xs p-1 rounded" style={{ background: "var(--surface)" }}>
-          <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.tradeStats.profitFactor")}</span>
+          <span style={{ color: "var(--muted)" }}>{t("acp.acp.profitFactor01")}</span>
           <div style={{ color: profitFactorColor(stats.profitFactor), fontWeight: "bold" }}>
             {stats.profitFactor > 10 ? "∞" : stats.profitFactor.toFixed(2)}
           </div>
         </div>
         <div className="text-xs p-1 rounded" style={{ background: "var(--surface)" }}>
-          <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.tradeStats.avgHoldingDays")}</span>
+          <span style={{ color: "var(--muted)" }}>{t("acp.avgHoldingDays")}</span>
           <div style={{ fontWeight: "bold" }}>
             {stats.avgHoldingDays.toFixed(1)}
-            {t("stockAnalysis.tradeStats.daysUnit")}
+            {t("acp.daysUnit")}
           </div>
         </div>
       </div>
 
       {/* 税费 */}
       <div className="text-xs mb-2 p-1 rounded" style={{ background: "var(--surface)" }}>
-        <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.tradeStats.feeEstimate")}</span>
+        <span style={{ color: "var(--muted)" }}>{t("acp.feeEstimate")}</span>
         <span style={{ color: "var(--sa-green)" }}>
-          {t("stockAnalysis.tradeStats.stampTax")} ¥{stats.totalStampTax.toFixed(0)}
+          {t("acp.stampTax")} ¥{stats.totalStampTax.toFixed(0)}
         </span>
         <span className="mx-1" style={{ color: "var(--muted)" }}>|</span>
         <span style={{ color: "var(--muted)" }}>
-          {t("stockAnalysis.tradeStats.commission")} ¥{stats.totalFeesEst.toFixed(0)}
+          {t("acp.commission")} ¥{stats.totalFeesEst.toFixed(0)}
         </span>
         <span className="mx-1" style={{ color: "var(--muted)" }}>|</span>
         <span>
-          {t("stockAnalysis.tradeStats.tradeCount", {
+          {t("acp.tradeCount", {
             total: stats.totalBuys + stats.totalSells,
             buys: stats.totalBuys,
             sells: stats.totalSells,
@@ -151,13 +151,13 @@ export function TradeStatsPanel() {
       {stats.holdingDaysDist.filter(h => h.count > 0).length > 0 && (
         <div className="mb-2">
           <div className="text-xs mb-1" style={{ color: "var(--muted)" }}>
-            {t("stockAnalysis.tradeStats.holdingDaysDist")}
+            {t("acp.holdingDaysDistribution")}
           </div>
           <div className="flex gap-1 flex-wrap">
             {stats.holdingDaysDist.filter(h => h.count > 0).map(h => (
               <div key={h.label} className="text-xs p-1 rounded" style={{ background: "var(--surface)", minWidth: 60 }}>
                 <div>{h.label}</div>
-                <b>{t("stockAnalysis.tradeStats.tradeCountUnit", { count: h.count })}</b>
+                <b>{t("acp.tradeCountUnit", { count: h.count })}</b>
                 <div style={{ color: h.totalPnl >= 0 ? "var(--sa-red)" : "var(--sa-green)", fontSize: 9 }}>
                   {h.totalPnl >= 0 ? "+" : ""}
                   {h.totalPnl.toFixed(0)}
@@ -172,7 +172,7 @@ export function TradeStatsPanel() {
       {stats.strategyBreakdown.length > 0 && (
         <div className="mb-2">
           <div className="text-xs mb-1" style={{ color: "var(--muted)" }}>
-            {t("stockAnalysis.tradeStats.byStrategy")}
+            {t("acp.byStrategy")}
           </div>
           <div className="flex gap-1 flex-wrap">
             {stats.strategyBreakdown.map(s => (
@@ -182,7 +182,7 @@ export function TradeStatsPanel() {
                 style={{ background: "var(--surface)", minWidth: 80 }}
               >
                 <Tag style={{ fontSize: 9, lineHeight: "14px", margin: 0 }}>{s.strategy}</Tag>
-                <div>{t("stockAnalysis.tradeStats.tradeCountUnit", { count: s.tradeCount })}</div>
+                <div>{t("acp.tradeCountUnit", { count: s.tradeCount })}</div>
                 <div style={{ color: s.totalPnl >= 0 ? "var(--sa-red)" : "var(--sa-green)", fontSize: 9 }}>
                   {s.totalPnl >= 0 ? "+" : ""}
                   {s.totalPnl.toFixed(0)} ({s.winRate.toFixed(0)}%)
@@ -197,7 +197,7 @@ export function TradeStatsPanel() {
       {stats.monthlyPnl.length > 0 && (
         <div>
           <div className="text-xs mb-1" style={{ color: "var(--muted)" }}>
-            {t("stockAnalysis.tradeStats.monthlyPnl")}
+            {t("acp.monthlyPl")}
           </div>
           <div className="flex gap-1 flex-wrap">
             {stats.monthlyPnl.slice(-12).map(m => (

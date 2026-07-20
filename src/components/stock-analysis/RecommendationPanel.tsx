@@ -354,7 +354,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
           className="!text-xs !mb-2"
           message={
             <span className="text-xs">
-              {t("timeTravel.recommendationBanner", { date: asOfDate })}
+              {t("acp.recommendationBanner", { date: asOfDate })}
             </span>
           }
         />
@@ -511,7 +511,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
                       {/* B15: 降级风格在 label 处加 ⛔ 徽标(橙色),区别于 disabled 的灰 */}
                       {isDegraded && (
                         <Tag color="orange" className="m-0 text-[10px]">
-                          ⛔ {t("timeTravel.degradedStyles.title")}
+                          ⛔ {t("acp.degradedStylesTitle")}
                         </Tag>
                       )}
                       <span className="text-xs text-gray-500">

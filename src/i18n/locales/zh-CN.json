@@ -4076,7 +4076,8 @@
       "promptPlaceholder": "生成每日收件箱摘要",
       "schedule": "计划（cron 表达式）",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "名称、计划、提示词为必填项"
+      "validationRequired": "名称、计划、提示词为必填项",
+      "title": "计划任务"
     },
     "customHeaders": "自定义请求头",
     "customHeadersPlaceholder": "每行一个，格式：key=value\n例如：X-Custom-Header=my-value",
@@ -4190,7 +4191,8 @@
       "stats": "统计",
       "stop": "停止",
       "stopAll": "全部停止",
-      "stopped": "已停止"
+      "stopped": "已停止",
+      "title": "自我进化"
     },
     "exitFullscreen": "退出全屏",
     "expandAll": "展开所有",
@@ -4581,7 +4583,8 @@
       "openFolderFailed": "打开文件夹失败：{{error}}",
       "refreshFailed": "刷新失败：{{error}}",
       "toggleFailed": "切换状态失败：{{error}}",
-      "unloadFailed": "卸载失败：{{error}}"
+      "unloadFailed": "卸载失败：{{error}}",
+      "title": "插件"
     },
     "pressShortcut": "请按下快捷键组合...",
     "primaryColor": "主题色",
@@ -5065,9 +5068,46 @@
       "wechatModeOfficial": "公众号模式(Webhook 接收)"
     },
     "toolAccess": "工具访问权限",
+    "providers": {
+      "title": "服务商"
+    },
+    "defaultModel": {
+      "title": "默认模型"
+    },
+    "display": {
+      "title": "显示"
+    },
+    "appConfig": {
+      "title": "应用配置"
+    },
+    "proxy": {
+      "title": "代理"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "about": {
+      "title": "关于"
+    },
+    "promptTemplates": {
+      "title": "提示词模板"
+    },
+    "shortcuts": {
+      "title": "快捷键"
+    },
+    "imageGen": {
+      "title": "图像生成"
+    },
+    "acp": {
+      "title": "ACP 连接"
+    },
+    "cloudWorkspace": {
+      "title": "云工作区"
+    },
+    "advanced": {
+      "title": "高级"
+    },
     "title": "设置",
-    "providers": "服务商管理",
-    "defaultModel": "默认模型",
     "scheduled-recommendation": {
       "description": "定时扫描荐股结果并推送到已配置的通知渠道。",
       "tooltip-cron-dependency": "定时任务仅在应用运行期间执行，关闭应用后不会触发",
@@ -5154,18 +5194,6 @@
         "description": "自定义策略包"
       }
     },
-    "display": "显示设置",
-    "proxy": "代理设置",
-    "shortcuts": {
-      "label": "快捷键",
-      "title": "快捷键",
-      "description": "自定义快捷键绑定",
-      "reset": "重置",
-      "resetAll": "重置所有",
-      "saved": "已保存"
-    },
-    "about": "关于",
-    "acp": "ACP 设置",
     "globalShortcut": "全局唤起快捷键",
     "globalShortcutRegisterOk": "全局快捷键注册成功：{{count}} 项",
     "globalShortcutRegisterPartial": "全局快捷键注册结果：成功 {{ok}} 项，失败 {{fail}} 项",
@@ -5280,24 +5308,9 @@
         "casual": "随意"
       }
     },
-    "imageGen": {
-      "defaultProvider": "默认服务商",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "图像生成"
-    },
-    "advanced": "高级设置",
-    "promptTemplates": "提示词模板",
-    "appConfig": "Agent 控制面板",
     "appConfigDesc": "模型选择、功能开关、Agent 管理与 Hook 配置",
-    "cloudWorkspace": {
-      "title": "云工作区"
-    },
     "knowledgeSettings": {
       "title": "知识库"
-    },
-    "notificationCenter": {
-      "title": "通知"
     },
     "stockAnalysis": "股票分析"
   },

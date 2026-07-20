@@ -28,7 +28,7 @@ describe("TimeAnchorTour", () => {
     expect(screen.getByTestId("time-anchor-tour")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toHaveAttribute(
       "aria-label",
-      i18n.t("timeTravel.tour.title"),
+      i18n.t("acp.tourTitle"),
     );
   });
 
@@ -40,16 +40,16 @@ describe("TimeAnchorTour", () => {
 
   it("renders the body text and a 'Got it' button", () => {
     renderWithI18n(<TimeAnchorTour />);
-    expect(screen.getByText(i18n.t("timeTravel.tour.body"))).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("acp.tourBody"))).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: i18n.t("timeTravel.tour.gotIt") }),
+      screen.getByRole("button", { name: i18n.t("acp.gotIt") }),
     ).toBeInTheDocument();
   });
 
   it("renders the anchor hint pointing to the LIVE pill", () => {
     renderWithI18n(<TimeAnchorTour />);
     expect(
-      screen.getByText(i18n.t("timeTravel.tour.stepAnchor")),
+      screen.getByText(i18n.t("acp.stepAnchor")),
     ).toBeInTheDocument();
   });
 

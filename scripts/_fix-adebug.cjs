@@ -6,15 +6,15 @@ const fs = require("fs");
 // 第三个参数：是否精准匹配（避免误伤）
 const rules = [
   // getNodeTypeLabel 函数（独立的）
-  [/return "分析师"/g, 'return t("stockAnalysis.workflow.analyst")'],
-  [/return "风控"/g, 'return t("stockAnalysis.riskControl")'],
-  [/return "多方辩论"/g, 'return t("stockAnalysis.bullDebate")'],
-  [/return "空方辩论"/g, 'return t("stockAnalysis.bearDebate")'],
-  [/return "数据工具"/g, 'return t("stockAnalysis.dataTool")'],
-  [/return "辩论收敛"/g, 'return t("stockAnalysis.debateConvergence")'],
-  [/return "决策引擎"/g, 'return t("stockAnalysis.decisionEngine")'],
-  [/return "规则检查"/g, 'return t("stockAnalysis.ruleCheck")'],
-  [/return "其他"/g, 'return t("stockAnalysis.other")'],
+  [/return "分析师"/g, 'return t("acp.analyst")'],
+  [/return "风控"/g, 'return t("acp.riskControl")'],
+  [/return "多方辩论"/g, 'return t("acp.bullDebate")'],
+  [/return "空方辩论"/g, 'return t("acp.bearDebate")'],
+  [/return "数据工具"/g, 'return t("acp.dataTool")'],
+  [/return "辩论收敛"/g, 'return t("acp.debateConvergence")'],
+  [/return "决策引擎"/g, 'return t("acp.decisionEngine")'],
+  [/return "规则检查"/g, 'return t("acp.ruleCheck")'],
+  [/return "其他"/g, 'return t("acp.other")'],
 ];
 
 // 批量替换

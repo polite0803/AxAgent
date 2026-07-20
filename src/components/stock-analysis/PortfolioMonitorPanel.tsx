@@ -317,7 +317,7 @@ export function PortfolioMonitorPanel() {
                       style={{ color: s.portfolioPnl < 0 ? "#cf1322" : "#389e0d" }}
                     >
                       {fmtMoney(s.portfolioPnl)}
-                      {t("stockAnalysis.portfolioMonitor.yuan")}
+                      {t("acp.yuan")}
                     </div>
                     <div className="text-xs text-gray-500">
                       {fmtPct(s.portfolioPnlPct, false)} · {t("stockAnalysis.portfolioMonitor.worstHit")}:{" "}

@@ -169,7 +169,7 @@ export function DecisionBanner() {
       message.success(result);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(t("stockAnalysis.decisionBanner.exportFailed", { errMsg }));
+      message.error(t("acp.exportFailed", { errMsg }));
     } finally {
       setExporting(null);
     }
@@ -195,7 +195,7 @@ export function DecisionBanner() {
 
   const exportMenuItems: { key: ExportFormat; icon: React.ReactNode; label: string }[] = [
     { key: "md", icon: <FileTextOutlined />, label: "Markdown (.md)" },
-    { key: "docx", icon: <FileWordOutlined />, label: t("stockAnalysis.decisionBanner.wordDocument") },
+    { key: "docx", icon: <FileWordOutlined />, label: t("acp.wordDocument") },
     { key: "pptx", icon: <FilePptOutlined />, label: "PowerPoint (.pptx)" },
   ];
 
@@ -402,7 +402,7 @@ export function DecisionBanner() {
                 LLM {t(getActionTKey(llmStance))}
               </Tag>
               {asOfDate && (
-                <Tag color="purple" title={t("timeTravel.replayBadge.tooltip", { date: asOfDate })}>
+                <Tag color="purple" title={t("acp.replayBadgeTooltip", { date: asOfDate })}>
                   ⏪ {t("timeTravel.pageAnchor.untilDate", { date: asOfDate })}
                 </Tag>
               )}
@@ -421,7 +421,7 @@ export function DecisionBanner() {
                 {actionLabel(decision.action)}
               </Tag>
               {asOfDate && (
-                <Tag color="purple" title={t("timeTravel.replayBadge.tooltip", { date: asOfDate })}>
+                <Tag color="purple" title={t("acp.replayBadgeTooltip", { date: asOfDate })}>
                   ⏪ {t("timeTravel.pageAnchor.untilDate", { date: asOfDate })}
                 </Tag>
               )}
@@ -558,11 +558,11 @@ export function DecisionBanner() {
                 </div>
                 <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                   <span>
-                    {t("stockAnalysis.decisionBanner.confidenceAbbr")} <b>{confidencePct}%</b>
+                    {t("acp.confidence")} <b>{confidencePct}%</b>
                   </span>
                   <span>|</span>
                   <span>
-                    {t("stockAnalysis.decisionBanner.positionAbbr")} <b>{decision.positionPct}%</b>
+                    {t("acp.position")} <b>{decision.positionPct}%</b>
                   </span>
                 </div>
                 {decision.reasoning && (
@@ -608,7 +608,7 @@ export function DecisionBanner() {
                 </div>
                 <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                   <span>
-                    {t("stockAnalysis.decisionBanner.confidenceAbbr")}{" "}
+                    {t("acp.confidence")}{" "}
                     <b>
                       {(() => {
                         const c = extractLlmField(llmDecisionJson, "confidence") as number | null;
@@ -618,7 +618,7 @@ export function DecisionBanner() {
                   </span>
                   <span>|</span>
                   <span>
-                    {t("stockAnalysis.decisionBanner.positionAbbr")}{" "}
+                    {t("acp.position")}{" "}
                     <b>
                       {(() => {
                         const p = extractLlmField(llmDecisionJson, "positionPct") as number | null;
@@ -734,11 +734,11 @@ export function DecisionBanner() {
                 color: stockCodeEvidence.holdGate.holdAllowed ? "var(--sa-blue)" : "var(--sa-amber)",
               }}
             >
-              <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.decisionBanner.gateControl")}</span>
+              <span style={{ color: "var(--muted)" }}>{t("acp.gateControl")}</span>
               <span className="font-semibold text-sm">
                 {stockCodeEvidence.holdGate.holdAllowed
                   ? "✅ HOLD"
-                  : t("stockAnalysis.decisionBanner.mandatoryDirection")}
+                  : t("acp.mandatoryDirection")}
               </span>
             </span>
           )}
@@ -747,11 +747,11 @@ export function DecisionBanner() {
               className="text-sm px-2 py-1 rounded flex items-center justify-between font-mono"
               style={{ background: "var(--surface)", color: "var(--color-text-primary)" }}
             >
-              <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.decisionBanner.evidenceScore")}</span>
+              <span style={{ color: "var(--muted)" }}>{t("acp.evidenceScore")}</span>
               <span className="font-semibold">
-                {t("stockAnalysis.decisionBanner.bullishAbbr")}
-                {stockCodeEvidence.consensus.bullishScore.toFixed(1)} | {t("stockAnalysis.decisionBanner.bearishAbbr")}
-                {stockCodeEvidence.consensus.bearishScore.toFixed(1)} | {t("stockAnalysis.decisionBanner.netAbbr")}
+                {t("acp.bullish")}
+                {stockCodeEvidence.consensus.bullishScore.toFixed(1)} | {t("acp.bearish")}
+                {stockCodeEvidence.consensus.bearishScore.toFixed(1)} | {t("acp.net")}
                 {stockCodeEvidence.consensus.netScore.toFixed(1)}
               </span>
             </span>
@@ -996,11 +996,11 @@ export function DecisionBanner() {
               </div>
               <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                 <span>
-                  {t("stockAnalysis.decisionBanner.confidenceAbbr")} <b>{confidencePct}%</b>
+                  {t("acp.confidence")} <b>{confidencePct}%</b>
                 </span>
                 <span>|</span>
                 <span>
-                  {t("stockAnalysis.decisionBanner.positionAbbr")} <b>{decision ? `${decision.positionPct}%` : "—"}</b>
+                  {t("acp.position")} <b>{decision ? `${decision.positionPct}%` : "—"}</b>
                 </span>
               </div>
               {decision?.reasoning && (
@@ -1023,7 +1023,7 @@ export function DecisionBanner() {
               </div>
               <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                 <span>
-                  {t("stockAnalysis.decisionBanner.confidenceAbbr")}{" "}
+                  {t("acp.confidence")}{" "}
                   <b>
                     {(() => {
                       const c = extractLlmField(llmDecisionJson, "confidence") as number | null;
@@ -1033,7 +1033,7 @@ export function DecisionBanner() {
                 </span>
                 <span>|</span>
                 <span>
-                  {t("stockAnalysis.decisionBanner.positionAbbr")}{" "}
+                  {t("acp.position")}{" "}
                   <b>
                     {(() => {
                       const p = extractLlmField(llmDecisionJson, "positionPct") as number | null;
@@ -1058,20 +1058,20 @@ export function DecisionBanner() {
             >
               <span>
                 {decision.agreementBreakdown.actionNote === "opposite"
-                  ? t("stockAnalysis.decisionBanner.oppositeDirection")
-                  : t("stockAnalysis.decisionBanner.disagreement")}
+                  ? t("acp.oppositeDirection")
+                  : t("acp.disagreement")}
                 ({decision.agreementBreakdown.formulaAction} vs {decision.agreementBreakdown.llmAction})
               </span>
               {decision.agreementBreakdown.positionGap != null && (
                 <span>
-                  {t("stockAnalysis.decisionBanner.positionGap", {
+                  {t("acp.positionGap", {
                     gap: Math.round(decision.agreementBreakdown.positionGap),
                   })}
                 </span>
               )}
               {decision.agreementBreakdown.confidenceGap != null && (
                 <span>
-                  {t("stockAnalysis.decisionBanner.confidenceGap", {
+                  {t("acp.confidenceGap", {
                     gap: Math.round(decision.agreementBreakdown.confidenceGap),
                   })}
                 </span>
@@ -1088,7 +1088,7 @@ export function DecisionBanner() {
               {actionLabel(decision.action)}
             </Tag>
             {asOfDate && (
-              <Tag color="purple" title={t("timeTravel.replayBadge.tooltip", { date: asOfDate })}>
+              <Tag color="purple" title={t("acp.replayBadgeTooltip", { date: asOfDate })}>
                 ⏪ {t("timeTravel.pageAnchor.untilDate", { date: asOfDate })}
               </Tag>
             )}

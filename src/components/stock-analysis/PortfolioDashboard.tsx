@@ -103,7 +103,7 @@ export function PortfolioDashboard() {
         } else {
           // 部分失败时给出明细，让用户知道哪些成功、哪些失败
           message.warning(
-            t("portfolio.importPartial", { ok: ok.length, failed: failed.length }),
+            t("acp.importPartial", { ok: ok.length, failed: failed.length }),
           );
           console.warn("[PortfolioDashboard] VLM 导入部分失败:", failed);
         }
@@ -363,7 +363,7 @@ export function PortfolioDashboard() {
               {vlmResult.map((h, i) => (
                 <div key={i} className="text-xs py-1">
                   {h.stockName} ({h.stockCode}) — {h.shares.toLocaleString()}
-                  {t("portfolio.sharesUnit")} @ ¥{h.avgCost.toFixed(2)}
+                  {t("acp.sharesUnit")} @ ¥{h.avgCost.toFixed(2)}
                 </div>
               ))}
             </div>

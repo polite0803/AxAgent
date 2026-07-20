@@ -146,8 +146,8 @@ export function StrategyPackSettings() {
         });
     } else {
       setYamlId("");
-      setYamlInput(`name: "${t("stockAnalysis.strategyPack.editorTemplate.name")}"
-description: "${t("stockAnalysis.strategyPack.editorTemplate.description")}"
+      setYamlInput(`name: "${t("acp.name")}"
+description: "${t("acp.description")}"
 version: "1.0.0"
 author: "user"
 minConfidence: 65
@@ -204,7 +204,7 @@ strategies:
 
   const columns = [
     {
-      title: t("stockAnalysis.strategyPack.column.name"),
+      title: t("acp.acp.name01"),
       dataIndex: "name",
       key: "name",
       render: (text: string, record: StrategyPackInfo) => (
@@ -217,23 +217,23 @@ strategies:
       ),
     },
     {
-      title: t("stockAnalysis.strategyPack.column.description"),
+      title: t("acp.acp.description01"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
     },
     {
-      title: t("stockAnalysis.strategyPack.column.source"),
+      title: t("acp.source"),
       dataIndex: "source",
       key: "source",
       width: 90,
       render: (source: string) =>
         source === "builtin"
-          ? <Tag color="blue">{t("stockAnalysis.strategyPack.source.builtin")}</Tag>
-          : <Tag color="orange">{t("stockAnalysis.strategyPack.source.user")}</Tag>,
+          ? <Tag color="blue">{t("acp.builtIn")}</Tag>
+          : <Tag color="orange">{t("acp.user")}</Tag>,
     },
     {
-      title: t("stockAnalysis.strategyPack.column.strategies"),
+      title: t("acp.strategies"),
       key: "strategies",
       width: 100,
       render: (_: unknown, record: StrategyPackInfo) => (
@@ -243,33 +243,33 @@ strategies:
       ),
     },
     {
-      title: t("stockAnalysis.strategyPack.column.minConfidence"),
+      title: t("acp.minimumConfidence"),
       dataIndex: "minConfidence",
       key: "minConfidence",
       width: 110,
       render: (v: number) => <Tag color={v >= 80 ? "red" : v >= 70 ? "orange" : "default"}>{v}%</Tag>,
     },
     {
-      title: t("stockAnalysis.strategyPack.column.maxPicks"),
+      title: t("acp.maximumPicks"),
       dataIndex: "maxPicks",
       key: "maxPicks",
       width: 90,
     },
     {
-      title: t("stockAnalysis.strategyPack.column.actions"),
+      title: t("acp.actions"),
       key: "actions",
       width: 180,
       render: (_: unknown, record: StrategyPackInfo) => (
         <Space size="small">
           <Button size="small" onClick={() => showDetail(record)}>
-            {t("stockAnalysis.strategyPack.action.detail")}
+            {t("acp.detail")}
           </Button>
           <Button size="small" onClick={() => openEditor(record)}>
-            {t("stockAnalysis.strategyPack.action.copy")}
+            {t("acp.copy")}
           </Button>
           {record.source === "user" && (
             <Popconfirm
-              title={t("stockAnalysis.strategyPack.confirmDelete")}
+              title={t("acp.confirmDelete")}
               onConfirm={() => deleteUserPack(record.id)}
             >
               <Button size="small" danger icon={<DeleteOutlined />} />
@@ -286,7 +286,7 @@ strategies:
         <Col span={8}>
           <Card>
             <Statistic
-              title={t("stockAnalysis.strategyPack.stat.total")}
+              title={t("acp.total")}
               value={packs.length}
             />
           </Card>
@@ -294,7 +294,7 @@ strategies:
         <Col span={8}>
           <Card>
             <Statistic
-              title={t("stockAnalysis.strategyPack.stat.builtin")}
+              title={t("acp.acp.builtIn01")}
               value={builtinCount}
               valueStyle={{ color: "#1677ff" }}
             />
@@ -303,7 +303,7 @@ strategies:
         <Col span={8}>
           <Card>
             <Statistic
-              title={t("stockAnalysis.strategyPack.stat.user")}
+              title={t("acp.acp.user01")}
               value={userCount}
               valueStyle={{ color: "#fa8c16" }}
             />
@@ -312,11 +312,11 @@ strategies:
       </Row>
 
       <Card
-        title={t("stockAnalysis.strategyPack.title")}
+        title={t("acp.strategyPack")}
         extra={
           <Space>
             <Input
-              placeholder={t("stockAnalysis.strategyPack.searchPlaceholder")}
+              placeholder={t("acp.searchPlaceholder")}
               prefix={<SearchOutlined />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -324,10 +324,10 @@ strategies:
               style={{ width: 240 }}
             />
             <Button icon={<ReloadOutlined />} onClick={loadPacks} loading={loading}>
-              {t("stockAnalysis.strategyPack.action.refresh")}
+              {t("acp.acp.refresh01")}
             </Button>
             <Button type="primary" icon={<SaveOutlined />} onClick={() => openEditor()}>
-              {t("stockAnalysis.strategyPack.action.new")}
+              {t("acp.new")}
             </Button>
           </Space>
         }
@@ -339,18 +339,18 @@ strategies:
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: true }}
           locale={{
-            emptyText: <Empty description={t("stockAnalysis.strategyPack.empty")} />,
+            emptyText: <Empty description={t("acp.empty")} />,
           }}
         />
       </Card>
 
       <Modal
-        title={detail?.name ?? t("stockAnalysis.strategyPack.detailTitle")}
+        title={detail?.name ?? t("acp.detailTitle")}
         open={!!detail}
         onCancel={() => setDetail(null)}
         footer={[
           <Button key="close" onClick={() => setDetail(null)}>
-            {t("stockAnalysis.strategyPack.action.close")}
+            {t("acp.acp.close01")}
           </Button>,
         ]}
         width={800}
@@ -385,31 +385,31 @@ strategies:
                   key: "id",
                 },
                 {
-                  title: t("stockAnalysis.strategyPack.column.style"),
+                  title: t("acp.style"),
                   dataIndex: "style",
                   key: "style",
                   render: (s: string) => <Tag color={STYLE_COLORS[s] ?? "default"}>{s}</Tag>,
                 },
                 {
-                  title: t("stockAnalysis.strategyPack.column.period"),
+                  title: t("acp.period"),
                   dataIndex: "period",
                   key: "period",
                   render: (p: string) =>
                     PERIOD_KEYS.includes(p as (typeof PERIOD_KEYS)[number])
-                      ? t(`stockAnalysis.strategyPack.period.${p}`)
+                      ? t(`acp.period0`, { 0: p })
                       : p,
                 },
                 {
-                  title: t("stockAnalysis.strategyPack.column.enabled"),
+                  title: t("acp.enabled"),
                   dataIndex: "enabled",
                   key: "enabled",
                   render: (e: boolean) =>
                     e
-                      ? <Badge status="success" text={t("stockAnalysis.strategyPack.yes")} />
-                      : <Badge status="default" text={t("stockAnalysis.strategyPack.no")} />,
+                      ? <Badge status="success" text={t("acp.yes")} />
+                      : <Badge status="default" text={t("acp.no")} />,
                 },
                 {
-                  title: t("stockAnalysis.strategyPack.column.weight"),
+                  title: t("acp.weight"),
                   dataIndex: "weight",
                   key: "weight",
                   render: (w: number) => <Text>{w.toFixed(2)}</Text>,
@@ -421,25 +421,25 @@ strategies:
       </Modal>
 
       <Modal
-        title={t("stockAnalysis.strategyPack.editorTitle")}
+        title={t("acp.editorTitle")}
         open={editorOpen}
         onCancel={() => setEditorOpen(false)}
         footer={[
           <Button key="cancel" onClick={() => setEditorOpen(false)}>
-            {t("stockAnalysis.strategyPack.action.cancel")}
+            {t("acp.cancel")}
           </Button>,
           <Button key="validate" onClick={validateYaml}>
-            {t("stockAnalysis.strategyPack.action.validate")}
+            {t("acp.validate")}
           </Button>,
           <Button key="save" type="primary" icon={<SaveOutlined />} onClick={saveYaml}>
-            {t("stockAnalysis.strategyPack.action.save")}
+            {t("acp.save")}
           </Button>,
         ]}
         width={800}
       >
         <div className="space-y-3">
           <div>
-            <Text type="secondary">{t("stockAnalysis.strategyPack.editorIdLabel")}</Text>
+            <Text type="secondary">{t("acp.id")}</Text>
             <Input
               value={yamlId}
               onChange={(e) => setYamlId(e.target.value)}
@@ -448,8 +448,8 @@ strategies:
             />
           </div>
           <div>
-            <Text type="secondary">{t("stockAnalysis.strategyPack.editorYamlLabel")}</Text>
-            <Tooltip title={t("stockAnalysis.strategyPack.editorYamlTip")}>
+            <Text type="secondary">{t("acp.yaml")}</Text>
+            <Tooltip title={t("acp.yamlTip")}>
               <Input.TextArea
                 value={yamlInput}
                 onChange={(e) => setYamlInput(e.target.value)}
@@ -459,7 +459,7 @@ strategies:
                   fontSize: 12,
                   marginTop: 4,
                 }}
-                placeholder={t("stockAnalysis.strategyPack.editorYamlPlaceholder")}
+                placeholder={t("acp.yamlPlaceholder")}
               />
             </Tooltip>
           </div>

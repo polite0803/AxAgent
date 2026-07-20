@@ -3,6 +3,9 @@
   "productName": "AxInvest",
   "version": "2.8.4",
   "identifier": "top.axinvest.desktop",
+  "productName": "AxAgent",
+  "version": "2.8.6",
+  "identifier": "top.axagent.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",

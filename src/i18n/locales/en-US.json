@@ -4321,7 +4321,8 @@
       "promptPlaceholder": "Generate a daily summary of my inbox",
       "schedule": "Schedule (cron expression)",
       "schedulePlaceholder": "0 9 * * *",
-      "validationRequired": "Name, schedule, and prompt are required"
+      "validationRequired": "Name, schedule, and prompt are required",
+      "title": "Scheduled Tasks"
     },
     "customHeaders": "Custom Headers",
     "customHeadersPlaceholder": "One per line, format: key=value\ne.g. X-Custom-Header=my-value",
@@ -4435,7 +4436,8 @@
       "stats": "Stats",
       "stop": "Stop",
       "stopAll": "Stop All",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "title": "Evolution"
     },
     "exitFullscreen": "Exit fullscreen",
     "expandAll": "Expand all",
@@ -4826,7 +4828,8 @@
       "openFolderFailed": "Failed to open folder: {{error}}",
       "refreshFailed": "Refresh failed: {{error}}",
       "toggleFailed": "Toggle failed: {{error}}",
-      "unloadFailed": "Unload failed: {{error}}"
+      "unloadFailed": "Unload failed: {{error}}",
+      "title": "Plugins"
     },
     "pressShortcut": "Press shortcut combination...",
     "primaryColor": "Primary Color",
@@ -5310,9 +5313,46 @@
       "wechatModeOfficial": "Official Account Mode (Webhook Receive)"
     },
     "toolAccess": "Tool Access",
+    "providers": {
+      "title": "Providers"
+    },
+    "defaultModel": {
+      "title": "Default Model"
+    },
+    "display": {
+      "title": "Display"
+    },
+    "appConfig": {
+      "title": "App Config"
+    },
+    "proxy": {
+      "title": "Proxy"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "about": {
+      "title": "About"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates"
+    },
+    "shortcuts": {
+      "title": "Shortcuts"
+    },
+    "imageGen": {
+      "title": "Image Generation"
+    },
+    "acp": {
+      "title": "ACP Connection"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    },
+    "advanced": {
+      "title": "Advanced"
+    },
     "title": "Settings",
-    "providers": "Provider Management",
-    "defaultModel": "Default Model",
     "scheduled-recommendation": {
       "description": "Periodically scan recommendations and push to configured notification channels.",
       "tooltip-cron-dependency": "Scheduled tasks only run while the app is open; closing the app pauses them.",
@@ -5399,17 +5439,7 @@
         "description": "Custom strategy pack"
       }
     },
-    "display": "Display",
-    "proxy": "Proxy",
-    "advanced": "Advanced",
-    "promptTemplates": "Prompt Templates",
-    "appConfig": "Agent Control Panel",
     "appConfigDesc": "Model selection, feature flags, agent management & hook configuration",
-    "cloudWorkspace": {
-      "title": "Cloud Workspace"
-    },
-    "about": "About",
-    "acp": "ACP",
     "globalShortcut": "Global Shortcut",
     "globalShortcutRegisterOk": "Global shortcuts registered: {{count}}",
     "globalShortcutRegisterPartial": "Global shortcut registration: {{ok}} succeeded, {{fail}} failed",
@@ -5524,25 +5554,8 @@
         "casual": "Casual"
       }
     },
-    "imageGen": {
-      "defaultProvider": "Default Provider",
-      "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)",
-      "title": "Image Generation"
-    },
-    "shortcuts": {
-      "label": "Shortcuts",
-      "title": "Shortcuts",
-      "description": "Customize keyboard shortcut bindings",
-      "reset": "Reset",
-      "resetAll": "Reset All",
-      "saved": "Saved"
-    },
     "knowledgeSettings": {
       "title": "Knowledge"
-    },
-    "notificationCenter": {
-      "title": "Notifications"
     },
     "stockAnalysis": "Stock Analysis"
   },

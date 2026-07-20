@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 基于 TypeScript Compiler API 的 i18n 引用扫描器。
- * 模拟 i18n Ally 的精确度，找出所有 t('key') 静态 key 引用。
+ * 模拟 i18n Ally 的精确度，找出所有 t('acp.key') 静态 key 引用。
  */
 
 const fs = require("fs");
@@ -50,7 +50,7 @@ function collectFiles(dir, files = []) {
   return files;
 }
 
-// 用 TypeScript AST 提取所有 t('key') 调用
+// 用 TypeScript AST 提取所有 t('acp.key') 调用
 function extractKeysFromAst(filePath) {
   const code = fs.readFileSync(filePath, "utf-8");
   const source = ts.createSourceFile(

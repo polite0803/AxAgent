@@ -1,0 +1,16 @@
+{
+  "adapter_type": "lora",
+  "alpha": 16,
+  "base_model": "model1",
+  "dataset_id": "ds1",
+  "format": "json",
+  "note": "Placeholder — real training backend not configured. Replace with actual LoRA weights (.safetensors) from candle/llama.cpp training pipeline.",
+  "rank": 8,
+  "target_modules": [
+    "q_proj",
+    "v_proj",
+    "k_proj",
+    "o_proj"
+  ],
+  "training_job_id": "06f6a05b-20dd-41f4-9884-b1d6876be45e"
+}

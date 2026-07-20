@@ -198,6 +198,9 @@ impl InferenceEngineTrait for InferenceEngine {
 // ── Worker 主循环 ──────────────────────────────────────────────────────────
 
 #[allow(unused_variables)]
+// Android 平台不加载 candle 模型（gguf/tok/kind 仅在 load_candle_model 中使用），
+// 因此这三个参数在 android 上是未使用的。
+#[cfg_attr(target_os = "android", allow(unused_variables))]
 fn worker_main(
     gguf: &Path,
     tok: &Path,
@@ -207,9 +210,6 @@ fn worker_main(
 ) {
     #[cfg(not(target_os = "android"))]
     let loaded = load_candle_model(gguf, tok, kind);
-
-    #[cfg(target_os = "android")]
-    let _loaded: Option<()> = None;
 
     for msg in rx {
         match msg {

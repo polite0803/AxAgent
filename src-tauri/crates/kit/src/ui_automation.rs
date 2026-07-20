@@ -493,7 +493,10 @@ fn map_key(key: &str) -> Key {
         "End" | "end" => Key::End,
         "PageUp" | "pageup" => Key::PageUp,
         "PageDown" | "pagedown" => Key::PageDown,
+        #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
         "Insert" | "insert" => Key::Insert,
+        #[cfg(target_os = "macos")]
+        "Insert" | "insert" => Key::Help,
         "CapsLock" | "capslock" => Key::CapsLock,
         s if s.len() > 1 && (s.starts_with('F') || s.starts_with('f')) => {
             let n: u8 = s[1..].parse().unwrap_or(1);

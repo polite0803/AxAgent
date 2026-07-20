@@ -246,8 +246,6 @@ browser_tool!(
 );
 
 #[cfg(target_os = "android")]
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
-#[cfg(target_os = "android")]
 use async_trait::async_trait;
 #[cfg(target_os = "android")]
 use serde_json::Value;

@@ -32,3 +32,6 @@ hmac = "0.13"
 sha2 = "0.11"
 tracing = { workspace = true }
 zeroize = "1"
+
+[dev-dependencies]
+serial_test = "3"
