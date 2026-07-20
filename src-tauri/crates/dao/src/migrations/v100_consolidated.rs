@@ -14,12 +14,13 @@
 //! ## 策略
 //!
 //! 本 migration 一劳永逸：
-//!   - 使用 `pg_ddl()` 转换器（已补齐所有 i64 列名映射），在 PG 上 CREATE TABLE
-//!     时自动将 INTEGER 转 BIGINT。
-//!   - 运行**综合 ALTER 通道**，覆盖所有 entity 定义中为 i64 的列，对 PG 上仍为
-//!     INTEGER 的列执行 `ALTER COLUMN TYPE BIGINT`。
-//!   - 新实例：CREATE TABLE 直接产出正确类型，ALTER 通道幂等 no-op。
-//!   - 旧实例：CREATE TABLE IF NOT EXISTS 是 no-op，ALTER 通道修类型。
+//!   - DDL 直接写 PostgreSQL 语法（BIGINT/DOUBLE PRECISION/BOOLEAN/BIGSERIAL），
+//!     PG 下 CREATE TABLE 直接产出正确类型。
+//!   - SQLite 侧通过 [`sqlite_ddl`](super::pg_ddl::sqlite_ddl) 仅做 3 条确定性
+//!     替换（BIGSERIAL→INTEGER AUTOINCREMENT, SERIAL→INTEGER, to_char→datetime），
+//!     其他类型 SQLite 动态亲和性自动兼容。
+//!   - 新实例：CREATE TABLE 直接产出正确类型。
+//!   - 旧实例：CREATE TABLE IF NOT EXISTS 是 no-op，类型由原库保留。
 //!   - SQLite：全部 no-op（动态类型无此问题）。
 //!
 //! ## 替代
@@ -68,8 +69,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // ========================================================================
     // PHASE 2: 创建全部表（合并 v001 + v004–v009）
-    //   使用 exec_ddl 确保 PG 下 pg_ddl() 将 INTEGER→BIGINT 转换生效。
-    //   SQLite 动态类型无影响。
+    //   DDL 直接写 PG 语法，exec_ddl 在 SQLite 下自动转换 BIGSERIAL/to_char。
+    //   SQLite 动态类型亲和性接受 BIGINT/DOUBLE PRECISION/BOOLEAN/TEXT。
     // ========================================================================
 
     // --- Section A: Core tables（来自 v001） ---
@@ -80,40 +81,40 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, provider_type TEXT NOT NULL, \
             api_host TEXT NOT NULL, api_path TEXT, enabled INTEGER NOT NULL DEFAULT 1, \
             proxy_config TEXT, sort_order INTEGER NOT NULL DEFAULT 0, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             custom_headers TEXT, icon TEXT, builtin_id TEXT)",
         // provider_keys
         "CREATE TABLE IF NOT EXISTS provider_keys (\
             id TEXT NOT NULL PRIMARY KEY, provider_id TEXT NOT NULL, \
             key_encrypted TEXT NOT NULL, key_prefix TEXT NOT NULL DEFAULT '', \
-            enabled INTEGER NOT NULL DEFAULT 1, last_validated_at INTEGER, last_error TEXT, \
-            rotation_index INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, \
+            enabled INTEGER NOT NULL DEFAULT 1, last_validated_at BIGINT, last_error TEXT, \
+            rotation_index INTEGER NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, \
             FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE)",
         // models (composite PK)
         "CREATE TABLE IF NOT EXISTS models (\
             provider_id TEXT NOT NULL, model_id TEXT NOT NULL, name TEXT NOT NULL, \
-            capabilities TEXT NOT NULL DEFAULT '[]', max_tokens INTEGER, \
+            capabilities TEXT NOT NULL DEFAULT '[]', max_tokens BIGINT, \
             enabled INTEGER NOT NULL DEFAULT 1, param_overrides TEXT, \
             model_type TEXT NOT NULL DEFAULT 'chat', group_name TEXT, \
-            input_price_per_mtok REAL, output_price_per_mtok REAL, \
+            input_price_per_mtok DOUBLE PRECISION, output_price_per_mtok DOUBLE PRECISION, \
             PRIMARY KEY (provider_id, model_id), \
             FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE)",
         // conversations
         "CREATE TABLE IF NOT EXISTS conversations (\
             id TEXT NOT NULL PRIMARY KEY, title TEXT NOT NULL, model_id TEXT NOT NULL, \
-            provider_id TEXT NOT NULL, system_prompt TEXT, temperature REAL, \
-            max_tokens INTEGER, top_p REAL, frequency_penalty REAL, \
+            provider_id TEXT NOT NULL, system_prompt TEXT, temperature DOUBLE PRECISION, \
+            max_tokens BIGINT, top_p DOUBLE PRECISION, frequency_penalty DOUBLE PRECISION, \
             message_count INTEGER NOT NULL DEFAULT 0, is_pinned INTEGER NOT NULL DEFAULT 0, \
             is_archived INTEGER NOT NULL DEFAULT 0, \
             workspace_snapshot_json TEXT NOT NULL DEFAULT '{}', \
             active_branch_id TEXT, active_artifact_id TEXT, \
             research_mode INTEGER NOT NULL DEFAULT 0, search_enabled INTEGER NOT NULL DEFAULT 0, \
-            search_provider_id TEXT, thinking_budget INTEGER, \
+            search_provider_id TEXT, thinking_budget BIGINT, \
             enabled_mcp_server_ids TEXT NOT NULL DEFAULT '[]', \
             enabled_knowledge_base_ids TEXT NOT NULL DEFAULT '[]', \
             enabled_memory_namespace_ids TEXT NOT NULL DEFAULT '[]', \
             enabled_wiki_ids TEXT NOT NULL DEFAULT '[]', agent_profile_id TEXT, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             context_compression INTEGER NOT NULL DEFAULT 0, category_id TEXT, \
             parent_conversation_id TEXT, mode TEXT NOT NULL DEFAULT 'chat', \
             work_strategy TEXT, scenario TEXT, \
@@ -130,7 +131,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             branch_id TEXT, tool_calls_json TEXT, tool_call_id TEXT, \
             created_at BIGINT NOT NULL, parts TEXT, prompt_tokens BIGINT, \
             completion_tokens BIGINT, status TEXT NOT NULL DEFAULT 'complete', \
-            tokens_per_second REAL, first_token_latency_ms BIGINT, \
+            tokens_per_second DOUBLE PRECISION, first_token_latency_ms BIGINT, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
@@ -149,9 +150,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS gateway_keys (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, \
             key_hash TEXT NOT NULL UNIQUE, key_prefix TEXT NOT NULL, encrypted_key TEXT, \
-            enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL, last_used_at INTEGER)",
+            enabled INTEGER NOT NULL DEFAULT 1, created_at BIGINT NOT NULL, last_used_at BIGINT)",
         "CREATE TABLE IF NOT EXISTS gateway_usage (\
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, key_id TEXT NOT NULL, \
+            id BIGSERIAL PRIMARY KEY, key_id TEXT NOT NULL, \
             provider_id TEXT NOT NULL, model_id TEXT, \
             request_tokens BIGINT NOT NULL DEFAULT 0, response_tokens BIGINT NOT NULL DEFAULT 0, \
             created_at BIGINT NOT NULL, \
@@ -173,7 +174,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS search_providers (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, \
             provider_type TEXT NOT NULL DEFAULT 'tavily', endpoint TEXT, api_key_ref TEXT, \
-            enabled INTEGER NOT NULL DEFAULT 1, region TEXT, language TEXT, safe_search INTEGER, \
+            enabled INTEGER NOT NULL DEFAULT 1, region TEXT, language TEXT, safe_search BIGINT, \
             result_limit INTEGER NOT NULL DEFAULT 10, timeout_ms INTEGER NOT NULL DEFAULT 5000)",
         // search_citations
         "CREATE TABLE IF NOT EXISTS search_citations (\
@@ -199,9 +200,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, message_id TEXT, \
             server_id TEXT NOT NULL, tool_name TEXT NOT NULL, \
             status TEXT NOT NULL DEFAULT 'pending', input_preview TEXT, output_preview TEXT, \
-            error_message TEXT, duration_ms INTEGER, approval_status TEXT, \
+            error_message TEXT, duration_ms BIGINT, approval_status TEXT, \
             skill_steps_json TEXT, depends_on TEXT, \
-            created_at TEXT NOT NULL DEFAULT (datetime('now')), \
+            created_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')), \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // knowledge_bases
         "CREATE TABLE IF NOT EXISTS knowledge_bases (\
@@ -223,7 +224,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS retrieval_hits (\
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, message_id TEXT NOT NULL, \
             knowledge_base_id TEXT NOT NULL, document_id TEXT NOT NULL, chunk_ref TEXT NOT NULL, \
-            score REAL NOT NULL DEFAULT 0.0, preview TEXT NOT NULL, \
+            score DOUBLE PRECISION NOT NULL DEFAULT 0.0, preview TEXT NOT NULL, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE, \
             FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE)",
         // memory_namespaces
@@ -237,7 +238,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, namespace_id TEXT NOT NULL, title TEXT NOT NULL, \
             content TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'manual', \
             index_status TEXT NOT NULL DEFAULT 'pending', index_error TEXT, \
-            updated_at TEXT NOT NULL DEFAULT (datetime('now')), \
+            updated_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')), \
             FOREIGN KEY (namespace_id) REFERENCES memory_namespaces(id) ON DELETE CASCADE)",
         // artifacts
         "CREATE TABLE IF NOT EXISTS artifacts (\
@@ -245,7 +246,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             kind TEXT NOT NULL DEFAULT 'draft', title TEXT NOT NULL, \
             content TEXT NOT NULL DEFAULT '', format TEXT NOT NULL DEFAULT 'markdown', \
             pinned INTEGER NOT NULL DEFAULT 0, \
-            updated_at TEXT NOT NULL DEFAULT (datetime('now')), \
+            updated_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')), \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // context_sources
         "CREATE TABLE IF NOT EXISTS context_sources (\
@@ -258,12 +259,12 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, \
             parent_message_id TEXT NOT NULL, branch_label TEXT NOT NULL, \
             branch_index INTEGER NOT NULL DEFAULT 0, compared_message_ids_json TEXT, \
-            created_at TEXT NOT NULL DEFAULT (datetime('now')), \
+            created_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')), \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // backup_manifests
         "CREATE TABLE IF NOT EXISTS backup_manifests (\
             id TEXT NOT NULL PRIMARY KEY, version TEXT NOT NULL, \
-            created_at TEXT NOT NULL DEFAULT (datetime('now')), \
+            created_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')), \
             encrypted INTEGER NOT NULL DEFAULT 0, checksum TEXT NOT NULL, \
             object_counts_json TEXT NOT NULL DEFAULT '{}', source_app_version TEXT NOT NULL, \
             file_path TEXT, file_size BIGINT NOT NULL DEFAULT 0)",
@@ -276,64 +277,64 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, source_type TEXT NOT NULL, \
             status TEXT NOT NULL DEFAULT 'scanning', summary_json TEXT, \
             conflict_count INTEGER NOT NULL DEFAULT 0, \
-            created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+            created_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')))",
         // program_policies
         "CREATE TABLE IF NOT EXISTS program_policies (\
             id TEXT NOT NULL PRIMARY KEY, program_name TEXT NOT NULL UNIQUE, \
             allowed_provider_ids_json TEXT NOT NULL DEFAULT '[]', \
             allowed_model_ids_json TEXT NOT NULL DEFAULT '[]', \
-            default_provider_id TEXT, default_model_id TEXT, rate_limit_per_minute INTEGER)",
+            default_provider_id TEXT, default_model_id TEXT, rate_limit_per_minute BIGINT)",
         // gateway_diagnostics
         "CREATE TABLE IF NOT EXISTS gateway_diagnostics (\
             id TEXT NOT NULL PRIMARY KEY, category TEXT NOT NULL, \
             status TEXT NOT NULL DEFAULT 'ok', message TEXT NOT NULL, \
-            created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+            created_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')))",
         // desktop_state
         "CREATE TABLE IF NOT EXISTS desktop_state (\
             window_key TEXT NOT NULL PRIMARY KEY, width INTEGER NOT NULL DEFAULT 1200, \
-            height INTEGER NOT NULL DEFAULT 800, x INTEGER, y INTEGER, \
+            height INTEGER NOT NULL DEFAULT 800, x BIGINT, y BIGINT, \
             maximized INTEGER NOT NULL DEFAULT 0, visible INTEGER NOT NULL DEFAULT 1)",
         // stored_files
         "CREATE TABLE IF NOT EXISTS stored_files (\
             id TEXT NOT NULL PRIMARY KEY, hash TEXT NOT NULL, original_name TEXT NOT NULL, \
             mime_type TEXT NOT NULL DEFAULT 'application/octet-stream', \
             size_bytes BIGINT NOT NULL, storage_path TEXT NOT NULL, conversation_id TEXT, \
-            created_at TEXT NOT NULL DEFAULT (datetime('now')), \
+            created_at TEXT NOT NULL DEFAULT (to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')), \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL)",
         // gateway_request_logs
         "CREATE TABLE IF NOT EXISTS gateway_request_logs (\
             id TEXT NOT NULL PRIMARY KEY, key_id TEXT NOT NULL, key_name TEXT NOT NULL, \
             method TEXT NOT NULL, path TEXT NOT NULL, model TEXT, provider_id TEXT, \
-            status_code INTEGER NOT NULL, duration_ms INTEGER NOT NULL, \
-            request_tokens INTEGER NOT NULL DEFAULT 0, response_tokens INTEGER NOT NULL DEFAULT 0, \
-            error_message TEXT, created_at INTEGER NOT NULL)",
+            status_code INTEGER NOT NULL, duration_ms BIGINT NOT NULL, \
+            request_tokens BIGINT NOT NULL DEFAULT 0, response_tokens BIGINT NOT NULL DEFAULT 0, \
+            error_message TEXT, created_at BIGINT NOT NULL)",
         // conversation_summaries
         "CREATE TABLE IF NOT EXISTS conversation_summaries (\
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, \
             summary_text TEXT NOT NULL, compressed_until_message_id TEXT, \
             token_count BIGINT, model_used TEXT, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // conversation_categories
         "CREATE TABLE IF NOT EXISTS conversation_categories (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, \
             icon_type TEXT, icon_value TEXT, system_prompt TEXT, \
             default_provider_id TEXT, default_model_id TEXT, \
-            default_temperature REAL, default_max_tokens BIGINT, \
-            default_top_p REAL, default_frequency_penalty REAL, \
+            default_temperature DOUBLE PRECISION, default_max_tokens BIGINT, \
+            default_top_p DOUBLE PRECISION, default_frequency_penalty DOUBLE PRECISION, \
             sort_order INTEGER NOT NULL DEFAULT 0, is_collapsed INTEGER NOT NULL DEFAULT 0, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         // skill_states
         "CREATE TABLE IF NOT EXISTS skill_states (\
             name TEXT NOT NULL PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 0, \
-            updated_at INTEGER NOT NULL)",
+            updated_at BIGINT NOT NULL)",
         // agent_sessions
         "CREATE TABLE IF NOT EXISTS agent_sessions (\
             id TEXT NOT NULL PRIMARY KEY, conversation_id TEXT NOT NULL, cwd TEXT, \
             workspace_locked INTEGER NOT NULL DEFAULT 0, permission_mode TEXT NOT NULL, \
             runtime_status TEXT NOT NULL, sdk_context_json TEXT, \
             sdk_context_backup_json TEXT, total_tokens BIGINT NOT NULL DEFAULT 0, \
-            total_cost_usd REAL NOT NULL DEFAULT 0.0, \
+            total_cost_usd DOUBLE PRECISION NOT NULL DEFAULT 0.0, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // wikis
@@ -343,31 +344,31 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             note_count INTEGER NOT NULL DEFAULT 0, source_count INTEGER NOT NULL DEFAULT 0, \
             embedding_provider TEXT, embedding_dimensions INTEGER, \
             retrieval_threshold REAL, retrieval_top_k INTEGER, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         // wiki_sources
         "CREATE TABLE IF NOT EXISTS wiki_sources (\
             id TEXT NOT NULL PRIMARY KEY, wiki_id TEXT NOT NULL, source_type TEXT NOT NULL, \
             source_path TEXT NOT NULL, title TEXT NOT NULL, mime_type TEXT NOT NULL, \
             size_bytes BIGINT NOT NULL, content_hash TEXT NOT NULL, metadata_json TEXT, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             FOREIGN KEY (wiki_id) REFERENCES wikis(id) ON DELETE CASCADE)",
         // wiki_pages
         "CREATE TABLE IF NOT EXISTS wiki_pages (\
             id TEXT NOT NULL PRIMARY KEY, wiki_id TEXT NOT NULL, note_id TEXT NOT NULL, \
             page_type TEXT NOT NULL, title TEXT NOT NULL, source_ids TEXT, \
-            quality_score REAL, last_linted_at INTEGER, last_compiled_at INTEGER NOT NULL, \
-            compiled_source_hash TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            quality_score DOUBLE PRECISION, last_linted_at BIGINT, last_compiled_at BIGINT NOT NULL, \
+            compiled_source_hash TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             FOREIGN KEY (wiki_id) REFERENCES wikis(id) ON DELETE CASCADE)",
         // wiki_operations
         "CREATE TABLE IF NOT EXISTS wiki_operations (\
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, wiki_id TEXT NOT NULL, \
+            id BIGSERIAL PRIMARY KEY, wiki_id TEXT NOT NULL, \
             operation_type TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, \
             status TEXT NOT NULL, details_json TEXT, error_message TEXT, \
             created_at BIGINT NOT NULL, completed_at BIGINT, \
             FOREIGN KEY (wiki_id) REFERENCES wikis(id) ON DELETE CASCADE)",
         // wiki_sync_queue
         "CREATE TABLE IF NOT EXISTS wiki_sync_queue (\
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, wiki_id TEXT NOT NULL, \
+            id BIGSERIAL PRIMARY KEY, wiki_id TEXT NOT NULL, \
             event_type TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, \
             payload TEXT, status TEXT NOT NULL DEFAULT 'pending', \
             retry_count INTEGER NOT NULL DEFAULT 0, error_message TEXT, \
@@ -375,12 +376,12 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             FOREIGN KEY (wiki_id) REFERENCES wikis(id) ON DELETE CASCADE)",
         // note_links
         "CREATE TABLE IF NOT EXISTS note_links (\
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, vault_id TEXT NOT NULL, \
+            id BIGSERIAL PRIMARY KEY, vault_id TEXT NOT NULL, \
             source_note_id TEXT NOT NULL, target_note_id TEXT NOT NULL, link_text TEXT, \
             link_type TEXT NOT NULL, created_at BIGINT NOT NULL)",
         // note_backlinks
         "CREATE TABLE IF NOT EXISTS note_backlinks (\
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, vault_id TEXT NOT NULL, \
+            id BIGSERIAL PRIMARY KEY, vault_id TEXT NOT NULL, \
             source_note_id TEXT NOT NULL, target_note_id TEXT NOT NULL, link_text TEXT, \
             link_type TEXT NOT NULL, created_at BIGINT NOT NULL)",
         // plans
@@ -389,7 +390,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             user_message_id TEXT NOT NULL, title TEXT NOT NULL, \
             steps_json TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'draft', \
             is_active INTEGER NOT NULL DEFAULT 1, created_under_strategy TEXT, reason TEXT, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // agency_experts
         // P2-8: category 加 CHECK 约束（新部署生效；存量库靠应用层 validate_category 兜底）
@@ -398,7 +399,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             category TEXT NOT NULL CHECK (category IN ('general','development','security','data','finance','devops','design','writing','business')), \
             system_prompt TEXT NOT NULL, color TEXT, \
             source_dir TEXT NOT NULL, is_enabled INTEGER NOT NULL DEFAULT 1, \
-            imported_at INTEGER NOT NULL, recommended_workflows TEXT, recommended_tools TEXT, \
+            imported_at BIGINT NOT NULL, recommended_workflows TEXT, recommended_tools TEXT, \
             active_domains TEXT)",
         // agent_profiles
         // P2-8: category 加 CHECK 约束
@@ -410,7 +411,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             agent_role TEXT, \
             source TEXT NOT NULL DEFAULT 'builtin', tags TEXT, \
             suggested_provider_id TEXT, suggested_model_id TEXT, \
-            suggested_temperature REAL, suggested_max_tokens BIGINT, \
+            suggested_temperature DOUBLE PRECISION, suggested_max_tokens BIGINT, \
             search_enabled BOOLEAN, recommend_permission_mode TEXT, \
             recommended_tools TEXT, disallowed_tools TEXT, recommended_workflows TEXT, \
             sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
@@ -430,7 +431,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, prompt_hash TEXT NOT NULL, response TEXT NOT NULL, \
             model_id TEXT, token_count INTEGER NOT NULL DEFAULT 0, \
             task_type TEXT NOT NULL DEFAULT 'moderate', ttl_secs INTEGER NOT NULL, \
-            created_at INTEGER NOT NULL, hit_count INTEGER NOT NULL DEFAULT 0)",
+            created_at BIGINT NOT NULL, hit_count INTEGER NOT NULL DEFAULT 0)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
     }
@@ -457,11 +458,11 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS workflow_executions (\
             id TEXT NOT NULL PRIMARY KEY, workflow_id TEXT NOT NULL, status TEXT NOT NULL, \
             input_params TEXT, output_result TEXT, node_executions TEXT, \
-            total_time_ms INTEGER, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
+            total_time_ms BIGINT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS workflow_marketplace (\
             id TEXT NOT NULL PRIMARY KEY, template_id TEXT NOT NULL, author_id TEXT NOT NULL, \
             name TEXT NOT NULL, description TEXT, category TEXT NOT NULL, \
-            icon TEXT NOT NULL DEFAULT '', tags TEXT, downloads BIGINT NOT NULL DEFAULT 0, rating_average REAL NOT NULL DEFAULT 0.0, rating_count INTEGER NOT NULL DEFAULT 0, \
+            icon TEXT NOT NULL DEFAULT '', tags TEXT, downloads BIGINT NOT NULL DEFAULT 0, rating_average DOUBLE PRECISION NOT NULL DEFAULT 0.0, rating_count INTEGER NOT NULL DEFAULT 0, \
             is_featured BOOLEAN NOT NULL DEFAULT FALSE, is_verified BOOLEAN NOT NULL DEFAULT FALSE, \
             is_public BOOLEAN NOT NULL DEFAULT TRUE, created_at BIGINT NOT NULL, \
             updated_at BIGINT NOT NULL)",
@@ -516,7 +517,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             id TEXT NOT NULL PRIMARY KEY, vault_id TEXT NOT NULL, title TEXT NOT NULL, \
             file_path TEXT NOT NULL, content TEXT NOT NULL, content_hash TEXT NOT NULL, \
             author TEXT NOT NULL, page_type TEXT, source_refs TEXT, related_pages TEXT, \
-            quality_score REAL, last_linted_at BIGINT, last_compiled_at BIGINT, \
+            quality_score DOUBLE PRECISION, last_linted_at BIGINT, last_compiled_at BIGINT, \
             compiled_source_hash TEXT, user_edited INTEGER NOT NULL DEFAULT 0, \
             user_edited_at BIGINT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             is_deleted INTEGER NOT NULL DEFAULT 0)",
@@ -591,7 +592,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             is_builtin BOOLEAN NOT NULL DEFAULT FALSE, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS wiki_page_versions (\
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, wiki_id TEXT NOT NULL, \
+            id BIGSERIAL PRIMARY KEY, wiki_id TEXT NOT NULL, \
             note_id TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, \
             content_hash TEXT NOT NULL, author TEXT NOT NULL, created_at BIGINT NOT NULL)",
     ] {
@@ -604,46 +605,46 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS trajectory_trajectories (\
             id TEXT PRIMARY KEY, session_id TEXT NOT NULL, user_id TEXT NOT NULL, \
             topic TEXT NOT NULL, summary TEXT NOT NULL, outcome TEXT NOT NULL, \
-            duration_ms INTEGER NOT NULL, quality_overall REAL NOT NULL, \
-            quality_task_completion REAL NOT NULL, quality_tool_efficiency REAL NOT NULL, \
-            quality_reasoning_quality REAL NOT NULL, quality_user_satisfaction REAL NOT NULL, \
-            value_score REAL NOT NULL, patterns TEXT NOT NULL, created_at TEXT NOT NULL, \
+            duration_ms BIGINT NOT NULL, quality_overall DOUBLE PRECISION NOT NULL, \
+            quality_task_completion DOUBLE PRECISION NOT NULL, quality_tool_efficiency DOUBLE PRECISION NOT NULL, \
+            quality_reasoning_quality DOUBLE PRECISION NOT NULL, quality_user_satisfaction DOUBLE PRECISION NOT NULL, \
+            value_score DOUBLE PRECISION NOT NULL, patterns TEXT NOT NULL, created_at TEXT NOT NULL, \
             replay_count INTEGER NOT NULL DEFAULT 0, last_replay_at TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_steps (\
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, trajectory_id TEXT NOT NULL, \
-            step_index INTEGER NOT NULL, timestamp_ms INTEGER NOT NULL, role TEXT NOT NULL, \
+            id BIGSERIAL PRIMARY KEY, trajectory_id TEXT NOT NULL, \
+            step_index INTEGER NOT NULL, timestamp_ms BIGINT NOT NULL, role TEXT NOT NULL, \
             content TEXT NOT NULL, reasoning TEXT, tool_calls TEXT, tool_results TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_rewards (\
             id TEXT PRIMARY KEY, trajectory_id TEXT NOT NULL, reward_type TEXT NOT NULL, \
-            step_index INTEGER NOT NULL DEFAULT 0, value REAL NOT NULL, created_at TEXT NOT NULL)",
+            step_index INTEGER NOT NULL DEFAULT 0, value DOUBLE PRECISION NOT NULL, created_at TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS trajectory_skills (\
             id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, \
             skill_type TEXT NOT NULL, content TEXT NOT NULL, category TEXT NOT NULL, \
             tags TEXT NOT NULL, scenarios TEXT NOT NULL DEFAULT '[]', \
             parameters TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, \
-            usage_count INTEGER NOT NULL DEFAULT 0, success_rate REAL NOT NULL DEFAULT 0.0, \
+            usage_count INTEGER NOT NULL DEFAULT 0, success_rate DOUBLE PRECISION NOT NULL DEFAULT 0.0, \
             avg_execution_time_ms BIGINT NOT NULL DEFAULT 0, \
             consecutive_failures INTEGER NOT NULL DEFAULT 0, last_failure_at TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_skill_executions (\
             id TEXT PRIMARY KEY, skill_id TEXT NOT NULL, trajectory_id TEXT, \
-            success INTEGER NOT NULL, execution_time_ms INTEGER NOT NULL, \
+            success INTEGER NOT NULL, execution_time_ms BIGINT NOT NULL, \
             created_at TEXT NOT NULL, input_args TEXT, output_result TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_patterns (\
             id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, \
             pattern_type TEXT NOT NULL, trajectory_ids TEXT NOT NULL, \
-            frequency INTEGER NOT NULL, success_rate REAL NOT NULL, \
-            average_quality REAL NOT NULL, average_value_score REAL NOT NULL, \
+            frequency INTEGER NOT NULL, success_rate DOUBLE PRECISION NOT NULL, \
+            average_quality DOUBLE PRECISION NOT NULL, average_value_score DOUBLE PRECISION NOT NULL, \
             reward_profile TEXT NOT NULL, created_at TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS trajectory_entities (\
             id TEXT PRIMARY KEY, name TEXT NOT NULL, entity_type TEXT NOT NULL, \
             properties TEXT NOT NULL DEFAULT '{}', aliases TEXT NOT NULL DEFAULT '[]', \
             first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL, \
-            mention_count INTEGER NOT NULL DEFAULT 1, confidence REAL NOT NULL DEFAULT 0.5, \
+            mention_count INTEGER NOT NULL DEFAULT 1, confidence DOUBLE PRECISION NOT NULL DEFAULT 0.5, \
             created_at TEXT, updated_at TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_relationships (\
             id TEXT PRIMARY KEY, source_id TEXT NOT NULL, target_id TEXT NOT NULL, \
             relation_type TEXT NOT NULL, properties TEXT NOT NULL DEFAULT '{}', \
-            weight REAL NOT NULL DEFAULT 1.0, created_at TEXT NOT NULL)",
+            weight DOUBLE PRECISION NOT NULL DEFAULT 1.0, created_at TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS trajectory_sessions (\
             id TEXT PRIMARY KEY, title TEXT NOT NULL, \
             platform TEXT NOT NULL DEFAULT 'web', user_id TEXT NOT NULL DEFAULT 'default', \
@@ -657,9 +658,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS trajectory_memories (\
             id TEXT PRIMARY KEY, memory_type TEXT NOT NULL, content TEXT NOT NULL, \
             updated_at BIGINT NOT NULL, \
-            tier TEXT NOT NULL DEFAULT 'working', importance REAL NOT NULL DEFAULT 0.5, \
+            tier TEXT NOT NULL DEFAULT 'working', importance DOUBLE PRECISION NOT NULL DEFAULT 0.5, \
             access_count INTEGER NOT NULL DEFAULT 0, last_accessed BIGINT, \
-            decay_rate REAL NOT NULL DEFAULT 0.01, created_at BIGINT, expires_at BIGINT, \
+            decay_rate DOUBLE PRECISION NOT NULL DEFAULT 0.01, created_at BIGINT, expires_at BIGINT, \
             source_conversation_id TEXT, source_message_id TEXT, \
             memory_nature TEXT NOT NULL DEFAULT 'semantic', tags TEXT NOT NULL DEFAULT '[]', \
             namespace_id TEXT)",
@@ -669,7 +670,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             last_used TEXT NOT NULL, created_at TEXT NOT NULL, metadata TEXT)",
         "CREATE TABLE IF NOT EXISTS trajectory_preferences (\
             id TEXT PRIMARY KEY, key TEXT NOT NULL UNIQUE, value TEXT NOT NULL, \
-            confidence REAL NOT NULL DEFAULT 0.0, updated_at TEXT NOT NULL)",
+            confidence DOUBLE PRECISION NOT NULL DEFAULT 0.0, updated_at TEXT NOT NULL)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
     }
@@ -682,9 +683,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
                 id TEXT NOT NULL PRIMARY KEY, prompt_hash TEXT NOT NULL, \
                 prompt_preview TEXT NOT NULL, heuristic_tier TEXT NOT NULL, \
                 selected_tier TEXT NOT NULL, outcome_success BOOLEAN, \
-                outcome_quality_score REAL, outcome_user_override BOOLEAN, \
+                outcome_quality_score DOUBLE PRECISION, outcome_user_override BOOLEAN, \
                 outcome_user_tier TEXT, outcome_latency_ms BIGINT, \
-                outcome_tokens_used BIGINT, outcome_cost_usd REAL, \
+                outcome_tokens_used BIGINT, outcome_cost_usd DOUBLE PRECISION, \
                 timestamp BIGINT NOT NULL, features_json TEXT)";
         exec_ddl(&db, is_pg, rh).await?;
         exec_ddl(&db, is_pg, "CREATE INDEX IF NOT EXISTS idx_route_history_prompt_hash ON route_history(prompt_hash)").await?;
@@ -745,8 +746,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
          name TEXT NOT NULL, \
          credential_type TEXT NOT NULL, \
          data_encrypted TEXT NOT NULL, \
-         created_at INTEGER NOT NULL, \
-         updated_at INTEGER NOT NULL)",
+         created_at BIGINT NOT NULL, \
+         updated_at BIGINT NOT NULL)",
     )
     .await?;
 
@@ -786,9 +787,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
          retry_count INTEGER NOT NULL DEFAULT 0, \
          max_retries INTEGER NOT NULL DEFAULT 3, \
          priority INTEGER NOT NULL DEFAULT 0, \
-         created_at INTEGER NOT NULL, \
-         started_at INTEGER, \
-         completed_at INTEGER, \
+         created_at BIGINT NOT NULL, \
+         started_at BIGINT, \
+         completed_at BIGINT, \
          metadata TEXT)",
     )
     .await?;
@@ -806,10 +807,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
          hnsw_ef_construction INTEGER, \
          hnsw_m INTEGER, \
          hnsw_ef_search INTEGER, \
-         vector_count INTEGER NOT NULL DEFAULT 0, \
-         created_at INTEGER NOT NULL, \
-         updated_at INTEGER NOT NULL, \
-         last_indexed_at INTEGER, \
+         vector_count BIGINT NOT NULL DEFAULT 0, \
+         created_at BIGINT NOT NULL, \
+         updated_at BIGINT NOT NULL, \
+         last_indexed_at BIGINT, \
          metadata TEXT)",
     )
     .await?;
@@ -820,7 +821,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         &db,
         is_pg,
         "CREATE TABLE IF NOT EXISTS dynamic_ui_schema_versions (\
-         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \
+         id BIGSERIAL PRIMARY KEY, \
          schema_id TEXT NOT NULL, \
          version TEXT NOT NULL, \
          title TEXT NOT NULL, \
@@ -1120,48 +1121,31 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // ========================================================================
     // PHASE 7: workflow_approvals 表 — ApprovalNode HITL 审批持久化
+    //   DDL 写 PG 语法（BIGINT），SQLite 通过 exec_ddl 自动接受。
     // ========================================================================
 
-    let create_approvals = if is_pg {
-        "CREATE TABLE IF NOT EXISTS workflow_approvals (
-            id TEXT NOT NULL PRIMARY KEY,
-            execution_id TEXT NOT NULL,
-            node_id TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending',
-            title TEXT NOT NULL DEFAULT '',
-            message TEXT NOT NULL DEFAULT '',
-            approver TEXT,
-            channels TEXT,
-            payload TEXT,
-            decision TEXT,
-            approver_actual TEXT,
-            comment TEXT,
-            timeout_secs BIGINT NOT NULL DEFAULT 86400,
-            expires_at BIGINT NOT NULL DEFAULT 0,
-            created_at BIGINT NOT NULL,
-            resolved_at BIGINT
-        )"
-    } else {
-        "CREATE TABLE IF NOT EXISTS workflow_approvals (
-            id TEXT NOT NULL PRIMARY KEY,
-            execution_id TEXT NOT NULL,
-            node_id TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending',
-            title TEXT NOT NULL DEFAULT '',
-            message TEXT NOT NULL DEFAULT '',
-            approver TEXT,
-            channels TEXT,
-            payload TEXT,
-            decision TEXT,
-            approver_actual TEXT,
-            comment TEXT,
-            timeout_secs INTEGER NOT NULL DEFAULT 86400,
-            expires_at INTEGER NOT NULL DEFAULT 0,
-            created_at INTEGER NOT NULL,
-            resolved_at INTEGER
-        )"
-    };
-    db.execute_unprepared(create_approvals).await?;
+    exec_ddl(
+        &db,
+        is_pg,
+        "CREATE TABLE IF NOT EXISTS workflow_approvals (\
+            id TEXT NOT NULL PRIMARY KEY, \
+            execution_id TEXT NOT NULL, \
+            node_id TEXT NOT NULL, \
+            status TEXT NOT NULL DEFAULT 'pending', \
+            title TEXT NOT NULL DEFAULT '', \
+            message TEXT NOT NULL DEFAULT '', \
+            approver TEXT, \
+            channels TEXT, \
+            payload TEXT, \
+            decision TEXT, \
+            approver_actual TEXT, \
+            comment TEXT, \
+            timeout_secs BIGINT NOT NULL DEFAULT 86400, \
+            expires_at BIGINT NOT NULL DEFAULT 0, \
+            created_at BIGINT NOT NULL, \
+            resolved_at BIGINT)",
+    )
+    .await?;
     db.execute_unprepared(
         "CREATE INDEX IF NOT EXISTS idx_wf_approvals_exec ON workflow_approvals(execution_id)",
     )
@@ -1180,9 +1164,13 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     let backend = db.get_database_backend();
 
-    // --- 8.1: 创建 business_roles 表（业务岗位） ---
+    // --- 8.1: 创建 business_roles 表（业务岗位）
+    //   DDL 写 PG 语法（BIGINT + FK），SQLite 通过 exec_ddl 自动接受。
+    //   SQLite 支持 CREATE TABLE 内的 FK 声明（需 PRAGMA foreign_keys=ON 生效）。
 
-    let create_business_roles = if is_pg {
+    exec_ddl(
+        &db,
+        is_pg,
         "CREATE TABLE IF NOT EXISTS business_roles (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
             responsibilities TEXT, decision_authority TEXT, reports_to TEXT, \
@@ -1192,23 +1180,16 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             source TEXT NOT NULL DEFAULT 'builtin', \
             sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
-            FOREIGN KEY (reports_to) REFERENCES business_roles(id) ON DELETE SET NULL)"
-    } else {
-        "CREATE TABLE IF NOT EXISTS business_roles (\
-            id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
-            responsibilities TEXT, decision_authority TEXT, reports_to TEXT, \
-            managed_expert_ids TEXT, required_certifications TEXT, active_domains TEXT, \
-            system_prompt TEXT NOT NULL DEFAULT '', \
-            icon TEXT, color TEXT, \
-            source TEXT NOT NULL DEFAULT 'builtin', \
-            sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
-            created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
-    };
-    db.execute_unprepared(create_business_roles).await?;
+            FOREIGN KEY (reports_to) REFERENCES business_roles(id) ON DELETE SET NULL)",
+    )
+    .await?;
 
-    // --- 8.2: 创建 workflow_execution_stats 表（工作流执行统计） ---
+    // --- 8.2: 创建 workflow_execution_stats 表（工作流执行统计）
+    //   DDL 写 PG 语法（BIGINT + DOUBLE PRECISION），SQLite 自动接受。
 
-    let create_stats = if is_pg {
+    exec_ddl(
+        &db,
+        is_pg,
         "CREATE TABLE IF NOT EXISTS workflow_execution_stats (\
             id TEXT NOT NULL PRIMARY KEY, mission_hash TEXT, template_id TEXT, \
             execution_id TEXT, status TEXT NOT NULL, \
@@ -1216,18 +1197,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             input_tokens BIGINT NOT NULL DEFAULT 0, \
             output_tokens BIGINT NOT NULL DEFAULT 0, \
             error_message TEXT, user_rating DOUBLE PRECISION, \
-            created_at BIGINT NOT NULL)"
-    } else {
-        "CREATE TABLE IF NOT EXISTS workflow_execution_stats (\
-            id TEXT NOT NULL PRIMARY KEY, mission_hash TEXT, template_id TEXT, \
-            execution_id TEXT, status TEXT NOT NULL, \
-            total_time_ms INTEGER NOT NULL DEFAULT 0, \
-            input_tokens INTEGER NOT NULL DEFAULT 0, \
-            output_tokens INTEGER NOT NULL DEFAULT 0, \
-            error_message TEXT, user_rating REAL, \
-            created_at INTEGER NOT NULL)"
-    };
-    db.execute_unprepared(create_stats).await?;
+            created_at BIGINT NOT NULL)",
+    )
+    .await?;
 
     // 索引：按 mission_hash 聚合查询（PG/SQLite 语法一致）
     db.execute_unprepared(
@@ -1248,7 +1220,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         ("seniority", "TEXT"),
         ("specialties", "TEXT"),
         ("parent_role_id", "TEXT"),
-        ("success_rate", "REAL"),
+        ("success_rate", "DOUBLE PRECISION"),
         ("avg_latency_ms", "BIGINT"),
         ("avg_token_cost", "BIGINT"),
     ];
