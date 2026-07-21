@@ -91,7 +91,7 @@ export function WalkForwardOOSChart({
           trigger: "axis",
           valueFormatter: (v: number | string) => (typeof v === "number" ? v.toFixed(2) : String(v)),
         },
-        legend: { top: 0, data: [t("acp.outOfSampleEquity"), t("acp.initialCash")] },
+        legend: { top: 0, data: [t("quant.backtest.outOfSampleEquity"), t("quant.backtest.initialCash")] },
         grid: { left: 60, right: 30, top: 36, bottom: 50 },
         xAxis: {
           type: "category",
@@ -107,7 +107,7 @@ export function WalkForwardOOSChart({
         dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
         series: [
           {
-            name: t("acp.outOfSampleEquity"),
+            name: t("quant.backtest.outOfSampleEquity"),
             type: "line",
             smooth: false,
             showSymbol: false,
@@ -119,12 +119,12 @@ export function WalkForwardOOSChart({
               silent: true,
               symbol: "none",
               lineStyle: { color: "#999", type: "dashed", width: 1 },
-              data: [{ yAxis: initialCash, label: { formatter: t("acp.initialCash") } }],
+              data: [{ yAxis: initialCash, label: { formatter: t("quant.backtest.initialCash") } }],
             },
           },
           {
             // 占位系列：让 legend 显示"初始资金基线"
-            name: t("acp.initialCash"),
+            name: t("quant.backtest.initialCash"),
             type: "line",
             showSymbol: false,
             data: [],

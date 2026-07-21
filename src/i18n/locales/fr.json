@@ -1614,9 +1614,9 @@
     "yes": "Oui",
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results",
+    "inherit": "Hériter",
+    "more": "Plus",
+    "noResults": "Aucun résultat",
     "comingSoon": "Bientôt disponible",
     "unknown": "Inconnu",
     "workingDirectory": "Répertoire de travail",
@@ -1628,9 +1628,6 @@
     "deleted": "Supprimé",
     "required": "Requis",
     "action": "Action"
-    "inherit": "Hériter",
-    "more": "Plus",
-    "noResults": "Aucun résultat"
   },
   "computerControl": {
     "auto": "Auto",
@@ -2036,16 +2033,6 @@
     "versionAutoHint": "Laissez vide pour incrementer automatiquement la version patch",
     "versionHistory": "Historique des versions",
     "versionUpdatedAt": "Date de creation",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
-    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
-    "title": "Dynamic UI Manager"
     "import": "Importer",
     "importSuccess": "{{count}} interface(s) importée(s) avec succès",
     "importInvalid": "Fichier de schéma invalide ou vide",
@@ -2053,7 +2040,9 @@
     "exportAll": "Tout exporter",
     "exportSuccess": "Exporté avec succès",
     "keyPlaceholder": "clé",
-    "valuePlaceholder": "valeur"
+    "valuePlaceholder": "valeur",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "title": "Dynamic UI Manager"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} erreurs",
@@ -2075,7 +2064,6 @@
     "page": "Erreur",
     "pageNotFound": "Désolé, la page que vous avez visitée n'existe pas.",
     "saveFailed": "Échec de l'enregistrement, veuillez réessayer",
-
     "unknown": "Erreur inconnue",
     "AGENT_CANCEL_FAILED": "Échec de l'annulation de l'agent",
     "AGENT_EXECUTION_ABORTED": "Exécution de l'agent interrompue",
@@ -5126,7 +5114,7 @@
       "wechatModeCustomer": "Mode service client (réception par polling, expérimental)",
       "wechatModeOfficial": "Mode compte officiel (réception Webhook)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "Accès aux outils",
     "scheduled-recommendation": {
       "description": "Analyser périodiquement les recommandations et envoyer vers les canaux de notification configurés.",
       "tooltip-cron-dependency": "Les tâches planifiées ne s'exécutent que pendant que l'application est ouverte ; la fermer les met en pause.",
@@ -5213,7 +5201,6 @@
         "description": "Pack de stratégie personnalisé"
       }
     },
-
     "globalShortcut": "Raccourci global",
     "globalShortcutRegisterOk": "Raccourcis globaux enregistrés : {{count}}",
     "globalShortcutRegisterPartial": "Enregistrement des raccourcis globaux : {{ok}} réussis, {{fail}} échoués",
@@ -5328,15 +5315,11 @@
         "casual": "Décontracté"
       }
     },
-
     "appConfigDesc": "Sélection du modèle, interrupteurs de fonctions, gestion de l'Agent et configuration des Hooks",
-
     "knowledgeSettings": {
       "title": "Connaissance"
     },
-
     "stockAnalysis": "Stock Analysis",
-    "toolAccess": "Accès aux outils",
     "providers": {
       "title": "Fournisseurs"
     },
@@ -5398,13 +5381,12 @@
     "sectionInfrastructure": "Infrastructure",
     "sectionOverview": "Aperçu",
     "sectionTools": "Outils",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "Panneau d'agent",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "Espace de travail",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor"
-    "agentPanel": "Panneau d'agent"
   },
   "skill": {
     "abTest": {
@@ -6026,7 +6008,6 @@
         "basic": "De base",
         "style": "Style"
       },
-      "title": "Property Panel"
       "title": "Panneau de propriétés",
       "field": "champ"
     }
@@ -6046,7 +6027,6 @@
     "sttProvider": "Fournisseur STT",
     "ttsProvider": "Fournisseur TTS",
     "providerAuto": "Auto (même fournisseur LLM)",
-
     "wakeup": "Réveil vocal",
     "wakeupActive": "Écoute de réveil (cliquez pour arrêter)",
     "startCall": "Démarrer l'appel vocal",
@@ -8292,7 +8272,7 @@
     "notePlaceholder": "Ajouter une note (facultatif)",
     "approver": "Approbateur"
   },
-  "cancel": "Cancel",
+  "cancel": "Annuler",
   "browserMock": {
     "greeting": "Bonjour ! Que puis-je faire pour vous ?",
     "understandGoal": "Comprendre l'objectif",
@@ -8319,7 +8299,6 @@
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "Annuler",
   "searchUtils": {
     "highCredibility": "Haute crédibilité",
     "mediumCredibility": "Crédibilité moyenne"
@@ -8336,9 +8315,9 @@
     "temperature": "Température"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "Exécuter",
+    "readonly": "Lecture seule",
+    "write": "Écriture"
   },
   "compare": {
     "title": "Comparaison"
@@ -8721,6 +8700,10 @@
     "offlineMode": "Offline mode",
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
+    "strength": "Force",
+    "bullStrength": "Force haussière",
+    "bearStrength": "Force baissière",
+    "finalStrength": "Force finale",
     "searchPlaceholder": "Enter stock code or name",
     "reportLanguageHint": "Langue de sortie du rapport : chinois ou anglais",
     "startAnalysis": "Start Analysis",
@@ -8854,7 +8837,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
     "bull": "Bull",
@@ -10940,7 +10924,9 @@
     "alert.conditionVolume": "Pic de volume",
     "alert.noHistory": "Aucun enregistrement déclenché",
     "alert.activeTab": "Actif ({{count}})",
-    "alert.triggeredTab": "Déclenché ({{count}})"
+    "alert.triggeredTab": "Déclenché ({{count}})",
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "Pipeline d'Actions",
@@ -11039,11 +11025,7 @@
       "riskLevel": "Risque",
       "expectedUpside": "Hausse attendue",
       "asOf": "Au"
-    }
-  },
-  "collapseComparison": "Réduire la comparaison"
-    "execute": "Exécuter",
-    "readonly": "Lecture seule",
-    "write": "Écriture"
+    },
+    "collapseComparison": "Réduire la comparaison"
   }
 }

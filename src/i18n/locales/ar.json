@@ -1614,9 +1614,9 @@
     "yes": "نعم",
     "zoomIn": "تكبير",
     "zoomOut": "تصغير",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results",
+    "inherit": "وراثة",
+    "more": "المزيد",
+    "noResults": "لا توجد نتائج",
     "comingSoon": "قريباً",
     "unknown": "غير معروف",
     "workingDirectory": "مجلد العمل",
@@ -1628,9 +1628,6 @@
     "deleted": "محذوف",
     "required": "مطلوب",
     "action": "إجراء"
-    "inherit": "وراثة",
-    "more": "المزيد",
-    "noResults": "لا توجد نتائج"
   },
   "computerControl": {
     "auto": "تلقائي",
@@ -2036,16 +2033,6 @@
     "versionAutoHint": "atrkih farighaan liziyadat iSdar al-tashih tlyqayyan",
     "versionHistory": "tarikh al-iSdarat",
     "versionUpdatedAt": "tarikh al-insha",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
-    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
-    "title": "Dynamic UI Manager"
     "import": "استيراد",
     "importSuccess": "تم استيراد {{count}} واجهة (واجهات) مستخدم بنجاح",
     "importInvalid": "ملف مخطط غير صالح أو فارغ",
@@ -2053,7 +2040,9 @@
     "exportAll": "تصدير الكل",
     "exportSuccess": "تم التصدير بنجاح",
     "keyPlaceholder": "مفتاح",
-    "valuePlaceholder": "قيمة"
+    "valuePlaceholder": "قيمة",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "title": "Dynamic UI Manager"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} أخطاء",
@@ -2075,7 +2064,6 @@
     "page": "خطأ",
     "pageNotFound": "عذراً، الصفحة التي زرتها غير موجودة.",
     "saveFailed": "فشل الحفظ، يرجى المحاولة مجدداً",
-
     "unknown": "خطأ غير معروف",
     "AGENT_CANCEL_FAILED": "فشل إلغاء الوكيل",
     "AGENT_EXECUTION_ABORTED": "تم إحباط تنفيذ الوكيل",
@@ -2766,15 +2754,15 @@
     "detail": "تفاصيل",
     "edges": "الحواف",
     "entities": "الكيانات",
-    "emptyDescription": "No data yet. Complete tasks to generate learning graph",
-    "insights": "Insights",
-    "lexicalOverlap": "Related",
-    "memories": "Memories",
-    "refresh": "Refresh",
-    "searchPlaceholder": "Search nodes...",
-    "skills": "Skills",
-    "title": "Learning Graph",
-    "useCount": "Use count: {count}",
+    "emptyDescription": "لا توجد بيانات بعد. أكمل المهام لإنشاء الرسم البياني للتعلم",
+    "insights": "الرؤى",
+    "lexicalOverlap": "ذات صلة",
+    "memories": "الذكريات",
+    "refresh": "تحديث",
+    "searchPlaceholder": "ابحث في العقد...",
+    "skills": "مهارات",
+    "title": "الرسم البياني للتعلم",
+    "useCount": "عدد الاستخدامات: {count}",
     "stockAnalysis": {
       "configDescriptions": {
         "ruleRsiOverbought": "RSI overbought threshold",
@@ -3139,15 +3127,6 @@
     "stockAnalysis.configDescriptions.limitUpThMed": "Limit up threshold medium",
     "stockAnalysis.configDescriptions.limitUpThLow": "Limit up threshold low",
     "stockAnalysis.configDescriptions.analysisDryRun": "Analysis dry run"
-    "emptyDescription": "لا توجد بيانات بعد. أكمل المهام لإنشاء الرسم البياني للتعلم",
-    "insights": "الرؤى",
-    "lexicalOverlap": "ذات صلة",
-    "memories": "الذكريات",
-    "refresh": "تحديث",
-    "searchPlaceholder": "ابحث في العقد...",
-    "skills": "مهارات",
-    "title": "الرسم البياني للتعلم",
-    "useCount": "عدد الاستخدامات: {count}"
   },
   "link": {
     "actions": "الإجراءات",
@@ -5135,7 +5114,7 @@
       "wechatModeCustomer": "وضع خدمة العملاء (استقبال بالاقتراع، تجريبي)",
       "wechatModeOfficial": "وضع الحساب الرسمي (استقبال عبر Webhook)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "الوصول إلى الأداة",
     "scheduled-recommendation": {
       "description": "فحص التوصيات دوريًا ودفعها إلى قنوات الإشعارات المُعدة.",
       "tooltip-cron-dependency": "تعمل المهام المجدولة فقط أثناء فتح التطبيق؛ إغلاق التطبيق يوقفها مؤقتًا.",
@@ -5222,7 +5201,6 @@
         "description": "حزمة استراتيجية مخصصة"
       }
     },
-
     "globalShortcut": "اختصار عام",
     "globalShortcutRegisterOk": "تم تسجيل الاختصارات العامة: {{count}}",
     "globalShortcutRegisterPartial": "تسجيل الاختصارات العامة: {{ok}} نجح، {{fail}} فشل",
@@ -5337,15 +5315,11 @@
         "casual": "غير رسمي"
       }
     },
-
     "appConfigDesc": "اختيار النموذج، مفاتيح الميزات، إدارة الوكيل وتكوين الخطافات",
-
     "knowledgeSettings": {
       "title": "المعرفة"
     },
-
     "stockAnalysis": "Stock Analysis",
-    "toolAccess": "الوصول إلى الأداة",
     "providers": {
       "title": "المزودون"
     },
@@ -5407,13 +5381,12 @@
     "sectionInfrastructure": "البنية التحتية",
     "sectionOverview": "نظرة عامة",
     "sectionTools": "الأدوات",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "لوحة الوكيل",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "مساحة العمل",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor"
-    "agentPanel": "لوحة الوكيل"
   },
   "skill": {
     "abTest": {
@@ -6053,7 +6026,6 @@
     "sttProvider": "موفر التعرف على الكلام",
     "ttsProvider": "موفر تركيب الكلام",
     "providerAuto": "تلقائي (استخدام نفس موفر LLM)",
-
     "wakeup": "التنشيط الصوتي",
     "wakeupActive": "الاستماع للتنشيط (انقر للإيقاف)",
     "startCall": "بدء مكالمة صوتية",
@@ -8299,7 +8271,7 @@
     "notePlaceholder": "إضافة ملاحظة (اختياري)",
     "approver": "الموافق"
   },
-  "cancel": "Cancel",
+  "cancel": "إلغاء",
   "browserMock": {
     "greeting": "مرحبًا! كيف يمكنني مساعدتك؟",
     "understandGoal": "فهم الهدف",
@@ -8326,7 +8298,6 @@
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "إلغاء",
   "searchUtils": {
     "highCredibility": "مصداقية عالية",
     "mediumCredibility": "مصداقية متوسطة"
@@ -8343,9 +8314,9 @@
     "temperature": "درجة الحرارة"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "تنفيذ",
+    "readonly": "للقراءة فقط",
+    "write": "كتابة"
   },
   "compare": {
     "title": "مقارنة"
@@ -8728,6 +8699,10 @@
     "offlineMode": "Offline mode",
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
+    "strength": "القوة",
+    "bullStrength": "قوة الشراء",
+    "bearStrength": "قوة البيع",
+    "finalStrength": "القوة النهائية",
     "searchPlaceholder": "Enter stock code or name",
     "reportLanguageHint": "لغة إخراج التقرير: الصينية أو الإنجليزية",
     "startAnalysis": "Start Analysis",
@@ -8861,7 +8836,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
     "bull": "Bull",
@@ -10947,7 +10923,9 @@
     "alert.conditionVolume": "📊 حجم مرتفع",
     "alert.noHistory": "لا توجد سجلات تفعيل",
     "alert.activeTab": "نشط ({{count}})",
-    "alert.triggeredTab": "مُفعَّل ({{count}})"
+    "alert.triggeredTab": "مُفعَّل ({{count}})",
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "خط أنابيب الأسهم",
@@ -11046,11 +11024,7 @@
       "riskLevel": "المخاطرة",
       "expectedUpside": "الصعود المتوقع",
       "asOf": "حتى"
-    }
-  },
-  "collapseComparison": "طي المقارنة"
-    "execute": "تنفيذ",
-    "readonly": "للقراءة فقط",
-    "write": "كتابة"
+    },
+    "collapseComparison": "طي المقارنة"
   }
 }

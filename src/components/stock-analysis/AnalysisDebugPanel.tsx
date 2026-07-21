@@ -41,17 +41,17 @@ function getNodeColor(nodeId: string): string {
 }
 
 function getNodeTypeLabel(nodeId: string, t: (k: string) => string): string {
-  if (nodeId.startsWith("a-")) { return t("acp.analyst"); }
+  if (nodeId.startsWith("a-")) { return t("stockAnalysis.debugLabel.analyst"); }
   if (
     nodeId.startsWith("risk-") || nodeId === "p-risk-assess" || nodeId === "agg-risk" || nodeId === "risk-convergence"
-  ) { return t("acp.riskControl"); }
-  if (nodeId.startsWith("bull-")) { return t("acp.bullDebate"); }
-  if (nodeId.startsWith("bear-")) { return t("acp.bearDebate"); }
-  if (nodeId.startsWith("t-")) { return t("acp.dataTool"); }
-  if (nodeId === "debate-convergence") { return t("acp.debateConvergence"); }
-  if (nodeId.includes("mgr") || nodeId.includes("manager")) { return t("acp.decisionEngine"); }
-  if (nodeId.includes("checker") || nodeId === "rule-check") { return t("acp.ruleCheck"); }
-  return t("acp.other");
+  ) { return t("stockAnalysis.debugLabel.riskControl"); }
+  if (nodeId.startsWith("bull-")) { return t("stockAnalysis.debugLabel.bullDebate"); }
+  if (nodeId.startsWith("bear-")) { return t("stockAnalysis.debugLabel.bearDebate"); }
+  if (nodeId.startsWith("t-")) { return t("stockAnalysis.debugLabel.dataTool"); }
+  if (nodeId === "debate-convergence") { return t("stockAnalysis.debugLabel.debateConvergence"); }
+  if (nodeId.includes("mgr") || nodeId.includes("manager")) { return t("stockAnalysis.debugLabel.decisionEngine"); }
+  if (nodeId.includes("checker") || nodeId === "rule-check") { return t("stockAnalysis.debugLabel.ruleCheck"); }
+  return t("stockAnalysis.debugLabel.other");
 }
 
 export function AnalysisDebugPanel() {

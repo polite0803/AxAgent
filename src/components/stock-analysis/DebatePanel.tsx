@@ -243,6 +243,57 @@ function processDebateInput(raw: string): DebateContent {
   if (!unwrapped.trim()) {
     return { text: "", parsed: null, empty: true };
   }
+
+  // ── 优先识别 `<!-- VERDICT: {...} -->` 格式 ──
+  // 辩论节点 prompt 要求：正文为自由自然语言，末尾追加 VERDICT 标签。
+  // 此前 processDebateInput 完全不识别此格式，导致：
+  //   1. JSON.parse 失败 → 无结构化字段
+  //   2. 走到 isLikelyReasoning 兜底，返回 Alert 警告或纯 <pre> 文本
+  //   3. VERDICT 标签泄漏到界面，且无 Markdown 渲染
+  // 修复：把 VERDICT 标签前的全部正文作为 `report` 字段，
+  // 把标签内的 stance/strength_score/confidence 提到顶层，
+  // 让 DebateContentView 走 VerdictView + reportSection 路径完整渲染。
+  const trimmed = unwrapped.trim();
+  const verdictIdx = trimmed.indexOf("<!-- VERDICT:");
+  if (verdictIdx !== -1) {
+    const jsonStr = trimmed.slice(verdictIdx + "<!-- VERDICT:".length);
+    const jsonEnd = jsonStr.indexOf("-->");
+    if (jsonEnd !== -1) {
+      const report = trimmed.slice(0, verdictIdx).trim();
+      try {
+        const meta = JSON.parse(jsonStr.slice(0, jsonEnd).trim()) as Record<string, unknown>;
+        const parsed = {
+          report: report.length > 0 ? report : undefined,
+          stance: typeof meta.stance === "string"
+            ? meta.stance
+            : (typeof meta.verdict === "string" ? meta.verdict : undefined),
+          strength_score: typeof meta.strength_score === "number"
+            ? meta.strength_score
+            : (typeof meta.bull_score === "number" ? meta.bull_score : undefined),
+          confidence: typeof meta.confidence === "number" ? meta.confidence : undefined,
+          bull_strength_score: typeof meta.bull_score === "number" ? meta.bull_score : undefined,
+          bear_strength_score: typeof meta.bear_score === "number" ? meta.bear_score : undefined,
+        } as DebateJson;
+        // 有 report 或 stance/strength_score 任一字段即视为有内容
+        const hasContent = (typeof parsed.report === "string" && parsed.report.length > 20)
+          || typeof parsed.stance === "string"
+          || typeof parsed.strength_score === "number";
+        if (hasContent) {
+          return { text: unwrapped, parsed, empty: false };
+        }
+      } catch {
+        // JSON 解析失败：保留正文作为 report，让 Markdown 渲染正常显示
+        if (report.length > 20) {
+          return {
+            text: unwrapped,
+            parsed: { report } as DebateJson,
+            empty: false,
+          };
+        }
+      }
+    }
+  }
+
   const parsed = tryParseDebate(unwrapped);
 
   // 检查嵌套 verdict 对象（strict_mode 下 LLM 输出 {report, verdict:{stance,strength_score,confidence}}）
@@ -326,7 +377,7 @@ function R1View({ data, isDark }: { data: R1DebateJson; isDark: boolean }) {
       {data.resonance_points && data.resonance_points.length > 0 && (
         <div>
           <div className="text-xs font-semibold mb-1" style={{ color: "var(--muted)" }}>
-            {t("acp.multiDimensionResonance")}
+            {t("stockAnalysis.debate.multiDimResonance")}
           </div>
           <ul className="list-disc pl-4 space-y-1">
             {data.resonance_points.map((rp, i) => (
@@ -409,7 +460,7 @@ function R2View({ data, isDark }: { data: R2DebateJson; isDark: boolean }) {
       {data.cross_examination && data.cross_examination.length > 0 && (
         <div>
           <div className="text-xs font-semibold mb-1" style={{ color: "var(--muted)" }}>
-            {t("acp.crossExaminationPoints")}
+            {t("stockAnalysis.debate.challengePoints")}
           </div>
           <div className="space-y-2">
             {data.cross_examination.map((ce, i) => (
@@ -422,7 +473,7 @@ function R2View({ data, isDark }: { data: R2DebateJson; isDark: boolean }) {
                 }}
               >
                 <div className="font-medium mb-0.5">
-                  {ce.target_claim_ref || `${t("acp.crossExamination")} ${i + 1}`}
+                  {ce.target_claim_ref || `${t("stockAnalysis.debate.challenge")} ${i + 1}`}
                 </div>
                 {ce.weakness_type && <Tag className="mb-1 text-xs">{ce.weakness_type}</Tag>}
                 {ce.questions && ce.questions.length > 0 && (
@@ -457,12 +508,15 @@ function r3PosLabel(key: string, t: (k: string) => string): { text: string; colo
   const m: Record<string, [string, string]> = {
     strong_bull: ["stockAnalysis.debate.strongBullish", "red"],
     bull: ["stockAnalysis.debate.bullish", "red"],
+    bullish: ["stockAnalysis.debate.bullish", "red"],
     weak_bull: ["stockAnalysis.debate.weakBullish", "orange"],
+    neutral: ["profile.options.neutral", "default"],
     strong_bear: ["stockAnalysis.debate.strongBearish", "green"],
     bear: ["stockAnalysis.debate.bearish", "green"],
+    bearish: ["stockAnalysis.debate.bearish", "green"],
     weak_bear: ["stockAnalysis.debate.weakBearish", "lime"],
   };
-  const e = m[key];
+  const e = m[key.toLowerCase().trim()];
   return e ? { text: t(e[0]), color: e[1] } : { text: key, color: "default" };
 }
 function r3VerdictLabel(key: string, t: (k: string) => string): { text: string; color: string } {
@@ -478,13 +532,15 @@ function stanceLabel(key: string, t: (k: string) => string): { text: string; col
   const m: Record<string, [string, string]> = {
     strong_bull: ["stockAnalysis.debate.strongBullish", "red"],
     bull: ["stockAnalysis.debate.bullish", "red"],
+    bullish: ["stockAnalysis.debate.bullish", "red"],
     weak_bull: ["stockAnalysis.debate.weakBullish", "orange"],
     neutral: ["profile.options.neutral", "default"],
     weak_bear: ["stockAnalysis.debate.weakBearish", "lime"],
     bear: ["stockAnalysis.debate.bearish", "green"],
+    bearish: ["stockAnalysis.debate.bearish", "green"],
     strong_bear: ["stockAnalysis.debate.strongBearish", "green"],
   };
-  const e = m[key];
+  const e = m[key.toLowerCase().trim()];
   return e ? { text: t(e[0]), color: e[1] } : { text: key, color: "default" };
 }
 
@@ -515,7 +571,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
               : "2px solid var(--sa-red)",
           }}
         >
-          <span className="font-medium">{t("acp.finalStance")}:</span> {data.claim}
+          <span className="font-medium">{t("stockAnalysis.debate.finalPosition")}:</span> {data.claim}
         </div>
       )}
 
@@ -538,7 +594,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
                   }}
                 >
                   <div className="flex items-center gap-1 flex-wrap mb-0.5">
-                    <span className="font-medium">{t("acp.crossExamination")} {i + 1}</span>
+                    <span className="font-medium">{t("stockAnalysis.debate.challenge")} {i + 1}</span>
                     {resp.verdict && (
                       <Tag className="text-xs" color={vInfo?.color ?? "default"}>
                         {vInfo?.text ?? resp.verdict}
@@ -548,13 +604,13 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
                   </div>
                   {resp.r2_question_ref && (
                     <div className="text-xs mb-0.5" style={{ color: "var(--muted)" }}>
-                      {t("acp.targeting")}: {resp.r2_question_ref}
+                      {t("stockAnalysis.debate.target")}: {resp.r2_question_ref}
                     </div>
                   )}
                   {resp.response && <div className="text-xs">{resp.response}</div>}
                   {resp.concession && (
                     <div className="text-xs mt-0.5" style={{ color: "var(--sa-amber)" }}>
-                      <span className="font-medium">{t("acp.revision")}:</span> {resp.concession}
+                      <span className="font-medium">{t("stockAnalysis.debate.concession")}:</span> {resp.concession}
                     </div>
                   )}
                 </div>
@@ -568,12 +624,12 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
       {data.strengthened_arguments && data.strengthened_arguments.length > 0 && (
         <div>
           <div className="text-xs font-semibold mb-1" style={{ color: "var(--muted)" }}>
-            {t("acp.strengthenedArguments")}
+            {t("stockAnalysis.debate.retainedArguments")}
           </div>
           <ul className="list-disc pl-4 space-y-1">
             {data.strengthened_arguments.map((sa, i) => (
               <li key={i} className="text-xs">
-                <span className="font-medium">{sa.claim_ref || `${t("acp.evidence")} ${i + 1}`}</span>
+                <span className="font-medium">{sa.claim_ref || `${t("stockAnalysis.debate.evidence")} ${i + 1}`}</span>
                 {sa.r2_challenge_summary && (
                   <span className="ml-1" style={{ color: "var(--muted)" }}>
                     (R2: {sa.r2_challenge_summary})
@@ -586,7 +642,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
                 )}
                 {sa.additional_evidence && (
                   <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                    {t("acp.supplementaryEvidence")}: {sa.additional_evidence}
+                    {t("stockAnalysis.debate.additionalEvidence")}: {sa.additional_evidence}
                   </div>
                 )}
               </li>
@@ -598,7 +654,7 @@ function R3View({ data, isDark }: { data: R3DebateJson; isDark: boolean }) {
       {/* 数据缺口 */}
       {data.data_gaps && data.data_gaps.length > 0 && (
         <div className="text-xs" style={{ color: "var(--muted)" }}>
-          {t("acp.unresolvedDataGaps")}: {data.data_gaps.join("；")}
+          {t("stockAnalysis.debate.unresolvedGaps")}: {data.data_gaps.join("；")}
         </div>
       )}
     </div>
@@ -641,7 +697,7 @@ function VerdictView({ data }: { data: DebateJson }) {
       {/* 如果有任何未渲染的额外字段，显示为 key-value 摘要 */}
       {!stanceInfo && typeof score !== "number" && typeof conf !== "number" && (
         <span className="text-xs" style={{ color: "var(--muted)" }}>
-          {t("acp.parsedNoDisplayableFields")}
+          {t("stockAnalysis.debate.parsedNoDisplay")}
         </span>
       )}
     </div>
@@ -751,8 +807,8 @@ function DebateContentView({ content, isDark }: { content: DebateContent; isDark
       <Alert
         type="warning"
         showIcon
-        message={t("acp.unstructuredReasoning")}
-        description={t("acp.unstructuredReasoningDescription")}
+        message={t("stockAnalysis.debate.unstructuredOutput")}
+        description={t("stockAnalysis.debate.unstructuredDesc")}
         className="text-xs"
       />
     );
@@ -869,7 +925,7 @@ export function DebatePanel() {
         size="small"
         title={
           <div className="flex items-center gap-2">
-            <span>{t("acp.debate")}</span>
+            <span>{t("stockAnalysis.debate.title")}</span>
             {finalVerdict && (finalVerdict.final_position || finalVerdict.claim) && (
               <Tag color={finalVerdict.final_position?.includes("bear") ? "green" : "red"}>
                 {t("stockAnalysis.finalVerdict")}:{" "}
@@ -987,7 +1043,7 @@ export function DebatePanel() {
                   className="mb-0"
                   style={{ fontSize: 11, color: "var(--color-text-secondary)" }}
                 >
-                  {finalVerdict.claim || t("acp.noVerdictDescription")}
+                  {finalVerdict.claim || t("stockAnalysis.debate.noVerdict")}
                 </Typography.Paragraph>
               </div>
             )}
@@ -1013,7 +1069,7 @@ export function DebatePanel() {
       </Card>
 
       <Modal
-        title={t("acp.debate")}
+        title={t("stockAnalysis.debate.title")}
         open={expanded}
         onCancel={() => setExpanded(false)}
         footer={null}
@@ -1074,7 +1130,7 @@ export function DebatePanel() {
                 <div className="flex items-center gap-2 mb-2">
                   <span style={{ fontSize: 20 }} aria-hidden="true">⚖️</span>
                   <span className="font-semibold" style={{ color: "#7c3aed" }}>
-                    {t("acp.finalVerdict")}
+                    {t("stockAnalysis.debate.finalVerdict")}
                   </span>
                 </div>
                 <Typography.Paragraph
@@ -1082,11 +1138,11 @@ export function DebatePanel() {
                   className="mb-1"
                   style={{ fontSize: 12, color: "var(--color-text-secondary)" }}
                 >
-                  {finalVerdict.claim || t("acp.noVerdictDescription")}
+                  {finalVerdict.claim || t("stockAnalysis.debate.noVerdict")}
                 </Typography.Paragraph>
                 {finalVerdict.final_position && (
                   <Tag color={finalVerdict.final_position.includes("bear") ? "green" : "red"}>
-                    {t("acp.stance")}: {finalVerdict.final_position}
+                    {t("stockAnalysis.debate.position")}: {finalVerdict.final_position}
                   </Tag>
                 )}
                 {typeof finalVerdict.confidence === "number" && (

@@ -327,6 +327,8 @@ async fn run_stock_workflow_inner(
                     "executionId": event.execution_id,
                     // 修复: 携带真实错误，前端 failedNodeErrors 才能显示具体失败原因
                     "error": event.error.clone(),
+                    // 修复: 携带节点输出，前端 analystReports 能实时填充（一边进行一边显示）
+                    "output": event.output,
                 }),
             );
         })

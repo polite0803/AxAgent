@@ -66,13 +66,27 @@ impl StockVendor for CninfoVendor {
             _ => "sz",
         };
 
+        // 修复(2026-07-21): 原硬编码 seDate=2020-01-01~{today} 让 2020 年前的公告
+        // 完全不可见。改为动态起始日期 = 当前日期 - 365 天,与 eastmoney 的
+        // get_announcements_with_asof 保持一致。end_date 优先用 as_of_date
+        // (replay 模式),否则用 today (live 模式)。
+        let end_date = crate::as_of::current_as_of()
+            .map(|c| c.as_of_date.format("%Y-%m-%d").to_string())
+            .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
+        let begin_date = (chrono::NaiveDate::parse_from_str(&end_date, "%Y-%m-%d")
+            .unwrap_or_else(|_| chrono::Utc::now().date_naive())
+            - chrono::Duration::days(365))
+        .format("%Y-%m-%d")
+        .to_string();
+
         let url = "https://www.cninfo.com.cn/new/hisAnnouncement/query";
         let body = format!(
-            "pageNum=1&pageSize=20&column={}&tabName=fulltext&plate={}&stock={}&searchkey=&secid=&category=&seDate=2020-01-01~{}&sortName=&sortType=&isHLtitle=true",
+            "pageNum=1&pageSize=30&column={}&tabName=fulltext&plate={}&stock={}&searchkey=&secid=&category=&seDate={}~{}&sortName=&sortType=&isHLtitle=true",
             plate,
             plate,
             urlencoding::encode(&stock_param),
-            chrono::Utc::now().format("%Y-%m-%d")
+            begin_date,
+            end_date
         );
 
         let resp = self

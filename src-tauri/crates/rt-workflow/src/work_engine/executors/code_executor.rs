@@ -109,8 +109,29 @@ async fn execute_rhai_directly(
         serde_json::to_string(&input_params_snapshot).unwrap_or_default()
     );
 
+    // V57: 扫描脚本中 `present(xxx)` / `present(xxx.yyy)` 调用，对未在 input_mapping
+    // 中提供的变量自动补 unit 默认值，避免 Rhai 在求值参数阶段直接抛
+    // `Variable not found: xxx`（present 函数体根本进不去）。
+    // 这一次性根治所有 Rhai 脚本对未注入变量的安全访问问题，
+    // 无需每次新增 input_mapping 占位都重新生成工作流模板。
+    let missing_vars = extract_present_vars(code)
+        .into_iter()
+        .filter(|name| !scope_vars.contains_key(name))
+        .collect::<Vec<_>>();
+    if !missing_vars.is_empty() {
+        tracing::warn!("[code_executor] V57 自动补默认 unit 的未注入变量: {:?}", missing_vars);
+        for name in &missing_vars {
+            scope_vars.insert(name.clone(), rhai::Dynamic::UNIT);
+        }
+    }
+
     // 执行脚本，期望返回一个 map
     // scope_vars 已从 input_mapping 直接构建为 HashMap，避免 Rhai Scope 的 Send 限制。
+    // 使用 `eval_with_scope` 而非 `eval`：`eval` 不接受 scope，会导致 input_mapping
+    // 注入的所有变量（llm_events / money_flow_net 等）根本无法被脚本访问，
+    // 触发 `Variable not found: xxx` 错误。这是 V57 修复的真正根因。
+    // 使用 `eval_with_scope` 而非 `eval_expression_with_scope`：.rhai 脚本含 `fn` 定义、
+    // `let` 语句等，`eval_expression_*` 仅支持单个表达式，遇到 `fn`/`let` 会报 "Unexpected 'fn'"。
     let code_owned = code.to_string();
     let join = tokio::task::spawn_blocking(move || {
         let engine = shared_rhai_engine();
@@ -118,7 +139,7 @@ async fn execute_rhai_directly(
         for (k, v) in scope_vars {
             scope.push_constant(k, v);
         }
-        engine.eval_expression::<rhai::Dynamic>(&code_owned).map_err(|e| e.to_string())
+        engine.eval_with_scope::<rhai::Dynamic>(&mut scope, &code_owned).map_err(|e| e.to_string())
     });
     let result: rhai::Dynamic = match tokio::time::timeout(
         std::time::Duration::from_secs(30), // P2-18: 30s 硬上限
@@ -152,6 +173,112 @@ async fn execute_rhai_directly(
 
     // 将 Rhai 结果转换回 JSON
     Ok((dynamic_to_json_value(&result), Value::Object(input_params_snapshot)))
+}
+
+/// 从 Rhai 脚本源码中提取所有 `present(<var>)` / `present(<var>.field)` 调用
+/// 中引用的顶层变量名，用于在 scope 中预先补上默认 unit 值，避免
+/// `Variable not found` 错误（Rhai 在求值参数阶段就会失败，函数体进不去）。
+///
+/// 仅识别合法 Rhai 标识符（`[_a-zA-Z][_a-zA-Z0-9]*`），跳过 `_present(` / `fpresent(`
+/// 这类更长标识符的子串匹配。去重后返回。
+fn extract_present_vars(code: &str) -> Vec<String> {
+    use std::collections::HashSet;
+
+    let mut result: HashSet<String> = HashSet::new();
+    let bytes = code.as_bytes();
+    let n = bytes.len();
+    let needle = b"present(";
+
+    let mut i = 0usize;
+    while i + needle.len() <= n {
+        if &bytes[i..i + needle.len()] != needle {
+            i += 1;
+            continue;
+        }
+        // 检查前一个字符是否为标识符字符，若是则跳过（避免匹配 _present( / fpresent(）
+        // 使用 let-chain 风格合并 if 以满足 clippy::collapsible_if
+        if i > 0 && {
+            let prev = bytes[i - 1];
+            prev.is_ascii_alphanumeric() || prev == b'_'
+        } {
+            i += 1;
+            continue;
+        }
+        // 跳过 `present(` 后的前导空白
+        let mut k = i + needle.len();
+        while k < n && (bytes[k] == b' ' || bytes[k] == b'\t') {
+            k += 1;
+        }
+        // 读取标识符
+        if k < n && (bytes[k].is_ascii_alphabetic() || bytes[k] == b'_') {
+            let id_start = k;
+            while k < n && (bytes[k].is_ascii_alphanumeric() || bytes[k] == b'_') {
+                k += 1;
+            }
+            if let Ok(name) = std::str::from_utf8(&bytes[id_start..k])
+                && !name.is_empty()
+            {
+                result.insert(name.to_string());
+            }
+        }
+        i += needle.len();
+    }
+
+    let mut v: Vec<String> = result.into_iter().collect();
+    v.sort();
+    v
+}
+
+#[cfg(test)]
+mod extract_present_vars_tests {
+    use super::extract_present_vars;
+
+    #[test]
+    fn extracts_simple_present_calls() {
+        let code = r#"
+            if present(llm_events) && llm_events != "" { }
+            if present(announcement_events) { }
+        "#;
+        let mut v = extract_present_vars(code);
+        v.sort();
+        assert_eq!(v, vec!["announcement_events".to_string(), "llm_events".to_string()]);
+    }
+
+    #[test]
+    fn skips_substring_matches() {
+        // 不应匹配 _present( 或 fpresent(
+        let code = "let x = _present(foo);";
+        assert!(extract_present_vars(code).is_empty());
+        let code2 = "let y = fpresent(bar);";
+        assert!(extract_present_vars(code2).is_empty());
+    }
+
+    #[test]
+    fn handles_present_with_member_access() {
+        // present(obj.field) 应提取 "obj"
+        let code = "if present(obj.field) { }";
+        let v = extract_present_vars(code);
+        assert_eq!(v, vec!["obj".to_string()]);
+    }
+
+    #[test]
+    fn dedupes_repeated_vars() {
+        let code = r#"
+            if present(x) { }
+            if present(x) { }
+            if present(y) { }
+        "#;
+        let mut v = extract_present_vars(code);
+        v.sort();
+        assert_eq!(v, vec!["x".to_string(), "y".to_string()]);
+    }
+
+    #[test]
+    fn handles_tight_whitespace() {
+        let code = "if present(   spaced   ) { }";
+        let v = extract_present_vars(code);
+        assert_eq!(v, vec!["spaced".to_string()]);
+    }
 }
 
 #[async_trait]
@@ -250,5 +377,31 @@ impl NodeExecutorTrait for CodeExecutor {
             output_var: Some(code_node.config.output_var.clone()),
             control: None,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 验证 pace-calc.rhai 能被 Rhai 引擎编译通过（不含 fn/let 语法错误）。
+    /// 历史上 `eval_expression` 不支持 `fn`/`let` 语句，改用 `eval` 后需确认所有脚本都能编译。
+    ///
+    /// V57: 同时验证 `extract_present_vars` 自动补 unit 机制 + `eval_with_scope`
+    /// 能根治 `Variable not found: llm_events` 错误。
+    #[test]
+    fn pace_calc_rhai_compiles_with_eval() {
+        let code = include_str!("../../../../../src/commands/pace-calc.rhai");
+        let mut engine = Engine::new();
+        register_common_functions(&mut engine);
+        let mut scope = rhai::Scope::new();
+        // V57: 模拟 execute_rhai_directly 的自动补默认 unit 逻辑
+        for name in extract_present_vars(code) {
+            scope.push_constant(name, rhai::Dynamic::UNIT);
+        }
+        let result = engine.eval_with_scope::<rhai::Dynamic>(&mut scope, code);
+        if let Err(e) = result {
+            panic!("pace-calc.rhai 编译失败: {e}");
+        }
     }
 }

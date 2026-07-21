@@ -939,6 +939,42 @@ impl WorkEngine {
         results
     }
 
+    /// 获取 Agent 节点 `context_sources` 声明的所有软依赖节点输出。
+    ///
+    /// **背景**：`get_node_dependency_results` 只返回 edges 直接上游的输出，
+    /// 但 Agent 节点的 `context_sources` 通常声明更广范围的节点（包括间接上游，
+    /// 如辩论节点 bear-r2 引用 a-market-analyst / a-sentiment 等分析师报告）。
+    /// 历史问题：这些软依赖节点的输出不会被注入到 `context.variables`，导致
+    /// agent_executor 报 `context_sources 变量未在 context.variables 中找到` ERROR。
+    ///
+    /// **V57 修复**：从 `workflow.results` 中按 `context_sources` 列表逐项查找，
+    /// 返回所有已存在节点的输出（不存在的不报错，由 agent_executor 自行记日志）。
+    /// 仅对 Agent 节点生效，其他节点类型返回空 Map。
+    pub(crate) fn get_context_source_results(
+        workflow: &Workflow,
+        node_id: &str,
+    ) -> HashMap<String, serde_json::Value> {
+        let Some(node) = workflow.nodes.iter().find(|n| n.base_id() == node_id) else {
+            return HashMap::new();
+        };
+        let context_sources = match node {
+            WorkflowNode::Agent(a) => &a.config.context_sources,
+            _ => return HashMap::new(),
+        };
+        let mut results = HashMap::new();
+        for source_id in context_sources {
+            // 跳过空字符串与自引用
+            if source_id.is_empty() || source_id == node_id {
+                continue;
+            }
+            if let Some(result) = workflow.results.get(source_id) {
+                results.insert(source_id.clone(), result.clone());
+            }
+            // 不存在的不报错：agent_executor 会记 ERROR 并降级提示 LLM
+        }
+        results
+    }
+
     pub async fn get_ready_steps(&self, workflow_id: &str) -> Result<Vec<String>, WorkflowError> {
         let workflows = self.workflows.read().await;
         let workflow = workflows.get(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
@@ -1329,10 +1365,30 @@ impl WorkEngine {
         // 自动扫描工作流节点中的工具定义，按需注册（模板级工具自动注册）
         {
             let resolver_opt = self.tool_resolver.lock().await.clone();
+            tracing::info!(
+                "[WorkEngine] run_workflow 注册段: workflow_id={}, resolver_opt={}",
+                workflow_id,
+                if resolver_opt.is_some() {
+                    "Some"
+                } else {
+                    "None"
+                }
+            );
             if let Some(ref resolver) = resolver_opt {
                 let workflows = self.workflows.read().await;
+                let wf_exists = workflows.get(workflow_id).is_some();
+                tracing::info!(
+                    "[WorkEngine] run_workflow 注册段: workflow_id={} 在 self.workflows 中存在={}",
+                    workflow_id,
+                    wf_exists
+                );
                 if let Some(wf) = workflows.get(workflow_id) {
                     let tool_names = collect_workflow_tool_names(&wf.nodes);
+                    tracing::info!(
+                        "[WorkEngine] run_workflow 注册段: 收集到 {} 个工具名: {:?}",
+                        tool_names.len(),
+                        tool_names
+                    );
                     let mut handlers = self.tool_handlers.lock().await;
                     for name in tool_names {
                         if !handlers.contains_key(&name) {
@@ -1765,6 +1821,17 @@ impl WorkEngine {
                         .map(|wf| Self::get_node_dependency_results(wf, node_id))
                         .unwrap_or_default()
                 };
+                // V57: 同时获取 Agent 节点 context_sources 声明的软依赖节点输出。
+                // 历史问题：只注入 edges 直接上游导致 bear-r2 等节点无法读取
+                // a-market-analyst / a-sentiment 等间接上游的分析师报告，报
+                // `context_sources 变量未在 context.variables 中找到` ERROR。
+                let context_source_results = {
+                    let workflows = self.execution_workflows.read().await;
+                    workflows
+                        .get(&execution_id)
+                        .map(|wf| Self::get_context_source_results(wf, node_id))
+                        .unwrap_or_default()
+                };
                 let input_snapshot =
                     serde_json::to_value(&deps_results).unwrap_or(serde_json::json!({}));
                 let started_at = Utc::now().timestamp_millis();
@@ -1807,6 +1874,7 @@ impl WorkEngine {
                         completed_nodes: completed,
                         execution_id: Some(execution_id.clone()),
                         error: None,
+                        output: None,
                     })
                     .await;
                 }
@@ -1823,10 +1891,15 @@ impl WorkEngine {
                 // 全局变量 → tool 节点 input_mapping 解析 stock_code 返回 None
                 // → "stock_code不能为空"。
                 // 合并策略（按优先级，覆盖优先于 fallback）：
-                //   1) deps_results        — 上游节点输出
-                //   2) state.variables     — options.variables 注入的 stock_code 等
-                //   3) state.input_params  — start_workflow(input) 透传
+                //   1) deps_results             — edges 直接上游节点输出
+                //   2) context_source_results   — Agent 节点 context_sources 声明的软依赖输出（V57）
+                //   3) state.variables          — options.variables 注入的 stock_code 等
+                //   4) state.input_params       — start_workflow(input) 透传
                 let mut merged_vars: HashMap<String, serde_json::Value> = deps_results;
+                // V57: 合并 context_sources 软依赖（仅 Agent 节点有值，其他节点类型为空 Map）
+                for (k, v) in context_source_results {
+                    merged_vars.entry(k).or_insert(v);
+                }
                 {
                     let executions = self.executions.lock().await;
                     if let Some(state) = executions.get(&execution_id) {
@@ -2149,6 +2222,7 @@ impl WorkEngine {
                                 completed_nodes: completed,
                                 execution_id: Some(execution_id.clone()),
                                 error: None,
+                                output: Some(output.output.clone()),
                             })
                             .await;
                         }
@@ -2390,6 +2464,7 @@ impl WorkEngine {
                                 completed_nodes: completed,
                                 execution_id: Some(execution_id.clone()),
                                 error: Some(err_msg.clone()),
+                                output: None,
                             })
                             .await;
                         }
@@ -2706,6 +2781,7 @@ impl WorkEngine {
                                 completed_nodes: completed,
                                 execution_id: Some(execution_id.clone()),
                                 error: Some(err_msg.clone()),
+                                output: None,
                             })
                             .await;
                         }
@@ -2756,6 +2832,14 @@ impl WorkEngine {
                                 .map(|wf| Self::get_node_dependency_results(wf, &nid))
                                 .unwrap_or_default()
                         };
+                        // V57: 同时获取 Agent 节点 context_sources 声明的软依赖节点输出
+                        let context_source_results = {
+                            let workflows = self.execution_workflows.read().await;
+                            workflows
+                                .get(&execution_id)
+                                .map(|wf| Self::get_context_source_results(wf, &nid))
+                                .unwrap_or_default()
+                        };
                         let input_snapshot =
                             serde_json::to_value(&deps_results).unwrap_or(serde_json::json!({}));
                         let started_at = Utc::now().timestamp_millis();
@@ -2780,6 +2864,10 @@ impl WorkEngine {
                             serde_json::json!({}),
                         );
                         let mut merged_vars: HashMap<String, serde_json::Value> = deps_results;
+                        // V57: 合并 context_sources 软依赖
+                        for (k, v) in context_source_results {
+                            merged_vars.entry(k).or_insert(v);
+                        }
                         {
                             let executions = self.executions.lock().await;
                             if let Some(state) = executions.get(&execution_id) {
@@ -2805,6 +2893,25 @@ impl WorkEngine {
                         {
                             let compiled = self.compiled_prompts.read().await;
                             exec_ctx.compiled_prompts = compiled.get(workflow_id).cloned();
+                        }
+                        // 修复：inter-batch early scheduling 路径必须和首批节点路径一样
+                        // 注入 callbacks（含 tool_handlers / tool_fallback / trigger_manager /
+                        // subworkflow / loop_body_dispatch / loop_checkpoint），
+                        // 否则 tool_executor 拿不到 tool_handlers 导致"工具未注册"错误。
+                        {
+                            let tool_handlers = self.tool_handlers.lock().await.clone();
+                            let tool_fallback = self.tool_fallback.lock().await.clone();
+                            exec_ctx.callbacks =
+                                Some(super::execution_state::ExecutionContextCallbacks {
+                                    trigger_manager: Some(self.trigger_manager.clone()),
+                                    tool_handlers,
+                                    tool_fallback,
+                                    subworkflow: None,
+                                    loop_body_dispatch: Some(build_loop_body_dispatch(
+                                        self.clone(),
+                                    )),
+                                    loop_checkpoint: Some(build_loop_checkpoint_ops()),
+                                });
                         }
                         let dispatcher = Arc::clone(&self.dispatcher);
                         let _cancel_token = options
@@ -3579,7 +3686,7 @@ impl WorkEngine {
                     db_status,
                     output_result.as_deref(),
                     node_executions.as_deref(),
-                    Some(total_time_ms as i64),
+                    Some(total_time_ms as i32),
                 )
                 .await
                 .map_err(WorkEngineError::Db)?;

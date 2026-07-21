@@ -5566,7 +5566,7 @@
     "knowledgeSettings": {
       "title": "Knowledge"
     },
-    "stockAnalysis": "Stock Analysis"
+    "stockAnalysis": "Stock Analysis",
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)"
   },
@@ -6342,10 +6342,7 @@
     "connectionLost": "Voice connection lost",
     "startCall": "Start Voice Call",
     "wakeup": "Voice Wake",
-    "wakeupActive": "Wakeup Listening",
-    "wakeup": "Voice Wake",
     "wakeupActive": "Wake listening (click to stop)",
-    "startCall": "Start Voice Call",
     "micNotFound": "No microphone device found",
     "micInUse": "Microphone is being used by another application",
     "micOverconstrained": "Microphone does not satisfy constraints",
@@ -9670,7 +9667,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateHistory": "Debate History",
     "debateRound": "Round {{round}}",
@@ -10507,6 +10505,10 @@
       "overviewTitle": "Decision Chain"
     },
     "title": "Stock Analysis",
+    "strength": "Strength",
+    "bullStrength": "Bull Strength",
+    "bearStrength": "Bear Strength",
+    "finalStrength": "Final Strength",
     "tool": {
       "announcement": "Announcement",
       "blockTrade": "Block Trade",
@@ -11215,7 +11217,9 @@
       "valuationParams": "Valuation Params",
       "riskParams": "Risk Params",
       "decisionTrail": "Decision Trail"
-    }
+    },
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "Stock Pipeline",

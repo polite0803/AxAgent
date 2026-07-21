@@ -13,9 +13,10 @@ pub struct Model {
     pub input_params: Option<String>,
     pub output_result: Option<String>,
     pub node_executions: Option<String>,
-    // DDL 为 BIGINT（v100_consolidated.rs），必须用 i64；旧库该列实际也是
-    // BIGINT，用 i32 会导致 PG 上 INT8→INT4 解码失败。
-    pub total_time_ms: Option<i64>,
+    // 实际库列是 INT4（INTEGER）。迁移 DDL 虽声明 BIGINT，但当前运行库该列
+    // 实际为 INTEGER，用 i64 会在 PG 上触发 INT8→INT4 解码失败。按"实体适配
+    // 库列"纪律改用 i32（INT4）。若日后重建库使列变回 BIGINT，需同步改回 i64。
+    pub total_time_ms: Option<i32>,
     pub created_at: i64,
     pub updated_at: i64,
 }

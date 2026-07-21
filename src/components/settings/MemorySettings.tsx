@@ -1405,7 +1405,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
           : (
             <Table
               dataSource={searchResults || []}
-              rowKey={(_, i) => String(i)}
+              rowKey={(r) => r.id}
               pagination={{ pageSize: 10, size: "small" }}
               size="small"
               bordered

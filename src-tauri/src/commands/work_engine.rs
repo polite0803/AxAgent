@@ -64,7 +64,7 @@ pub struct ExecutionSummaryResponse {
     pub id: String,
     pub workflow_id: String,
     pub status: String,
-    pub total_time_ms: Option<i64>,
+    pub total_time_ms: Option<i32>,
     pub created_at: i64,
 }
 

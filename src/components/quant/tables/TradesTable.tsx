@@ -204,8 +204,8 @@ export function TradesTable({ trades }: TradesTableProps) {
       <Table<QuantBacktestTrade>
         size="small"
         columns={columns}
-        dataSource={filtered}
-        rowKey={(_, index) => String(index)}
+        dataSource={filtered.map((t, i) => ({ ...t, _rowKey: String(i) }))}
+        rowKey={(t) => t._rowKey ?? `${t.code}-${t.timestamp}`}
         pagination={{
           pageSize: 20,
           showSizeChanger: true,

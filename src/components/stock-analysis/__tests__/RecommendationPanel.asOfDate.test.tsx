@@ -101,7 +101,7 @@ describe("RecommendationPanel — as-of propagation", () => {
     await waitFor(() => {
       expect(
         screen.getByText(
-          i18n.t("acp.recommendationBanner", { date: "2026-06-01" }),
+          i18n.t("stockAnalysis.recommendation.bannerAsOf", { date: "2026-06-01" }),
         ),
       ).toBeInTheDocument();
     });
@@ -112,7 +112,7 @@ describe("RecommendationPanel — as-of propagation", () => {
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
     expect(
       screen.queryByText(
-        i18n.t("acp.recommendationBanner", { date: "" }),
+        i18n.t("stockAnalysis.recommendation.bannerAsOf", { date: "" }),
       ),
     ).toBeNull();
   });

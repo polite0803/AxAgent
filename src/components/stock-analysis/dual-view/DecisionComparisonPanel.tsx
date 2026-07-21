@@ -123,21 +123,21 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
                 <div className="text-sm space-y-0.5">
                   <div>
                     {t("dualView.decision.action")}: {view.agreementBreakdown.actionNote === "opposite"
-                      ? t("acp.opposite")
+                      ? t("stockAnalysis.decision.opposite")
                       : view.agreementBreakdown.actionNote === "same_direction"
-                      ? t("acp.sameDirection")
-                      : t("acp.acp.disagreement01")} ({view.agreementBreakdown.formulaAction} vs{" "}
+                      ? t("stockAnalysis.decision.sameDirection")
+                      : t("stockAnalysis.decision.disagreement")} ({view.agreementBreakdown.formulaAction} vs{" "}
                     {view.agreementBreakdown.llmAction})
                   </div>
                   {view.agreementBreakdown.positionGap != null && (
                     <div>
-                      {t("dualView.decision.positionPct")}: {t("acp.diff")}{" "}
+                      {t("dualView.decision.positionPct")}: {t("stockAnalysis.decision.diff")}{" "}
                       {Math.round(view.agreementBreakdown.positionGap)}%
                     </div>
                   )}
                   {view.agreementBreakdown.confidenceGap != null && (
                     <div>
-                      {t("dualView.decision.confidence")}: {t("acp.diff")}{" "}
+                      {t("dualView.decision.confidence")}: {t("stockAnalysis.decision.diff")}{" "}
                       {Math.round(view.agreementBreakdown.confidenceGap)}%
                     </div>
                   )}
@@ -193,11 +193,13 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
           </div>
           <div className="flex items-center gap-1.5 font-mono text-sm">
             <span style={{ color: "var(--color-text-secondary)" }}>
-              {t("acp.confidenceLabel")} <b style={{ fontSize: "13px" }}>{fmtNum(view.confidence)}%</b>
+              {t("stockAnalysis.decision.confidenceLabel")}{" "}
+              <b style={{ fontSize: "13px" }}>{fmtNum(view.confidence)}%</b>
             </span>
             <span style={{ color: "var(--muted)", opacity: 0.4 }}>|</span>
             <span style={{ color: "var(--color-text-secondary)" }}>
-              {t("acp.positionLabel")} <b style={{ fontSize: "13px" }}>{fmtNum(view.decisionPositionPct, "%")}</b>
+              {t("stockAnalysis.decision.positionLabel")}{" "}
+              <b style={{ fontSize: "13px" }}>{fmtNum(view.decisionPositionPct, "%")}</b>
             </span>
           </div>
           {formulaReasoning && (
@@ -234,11 +236,13 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
           </div>
           <div className="flex items-center gap-1.5 font-mono text-sm">
             <span style={{ color: "var(--color-text-secondary)" }}>
-              {t("acp.confidenceLabel")} <b style={{ fontSize: "13px" }}>{fmtNum(view.llmConfidence)}%</b>
+              {t("stockAnalysis.decision.confidenceLabel")}{" "}
+              <b style={{ fontSize: "13px" }}>{fmtNum(view.llmConfidence)}%</b>
             </span>
             <span style={{ color: "var(--muted)", opacity: 0.4 }}>|</span>
             <span style={{ color: "var(--color-text-secondary)" }}>
-              {t("acp.positionLabel")} <b style={{ fontSize: "13px" }}>{fmtNum(view.llmDecisionPositionPct, "%")}</b>
+              {t("stockAnalysis.decision.positionLabel")}{" "}
+              <b style={{ fontSize: "13px" }}>{fmtNum(view.llmDecisionPositionPct, "%")}</b>
             </span>
           </div>
           {llmReasoning && (

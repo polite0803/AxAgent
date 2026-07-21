@@ -1,12 +1,95 @@
 import { classifySentiment } from "@/lib/stock-analysis-utils";
 import { useStockAnalysisStore } from "@/stores";
-import { Tooltip } from "antd";
+import { Card, Tag, Tooltip } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AnalystReportCard } from "./AnalystReportCard";
 import { cleanToolCallTags } from "./utils";
 
 type Consensus = "bullish" | "bearish" | "neutral" | "divided";
+
+// ── 10 个分析师 AgentNode ID（与 stockWorkflowChatBridge 的 ANALYST_NODE_TO_NAME 一致） ──
+// 顺序按工作流惯常执行顺序：技术面 → 情绪面 → 消息面 → 基本面 → 政策面 → 资金面 → 解禁 → 研报 → 板块 → 催化剂
+const ANALYST_NODE_IDS = [
+  "a-market-analyst",
+  "a-sentiment",
+  "a-news",
+  "a-fundamentals",
+  "a-policy",
+  "a-hot-money",
+  "a-lockup",
+  "a-research",
+  "a-sector",
+  "a-catalyst",
+] as const;
+
+type AnalystEntry =
+  | { nodeId: string; expertId: string; status: "done"; report: string }
+  | { nodeId: string; expertId: string; status: "pending" }
+  | { nodeId: string; expertId: string; status: "failed"; error?: string };
+
+/**
+ * 分析师占位卡片：工作流运行中或节点失败时显示，让用户看到"分析师 tab 在同步工作流状态"
+ *  - pending: ⏳ 等待中
+ *  - failed:  ❌ 失败 + 错误信息
+ */
+function AnalystPlaceholderCard({
+  expertId,
+  status,
+  error,
+}: {
+  expertId: string;
+  status: "pending" | "failed";
+  error?: string;
+}) {
+  const { t } = useTranslation();
+  const name = t(`stockAnalysis.workflow.analyst.${expertId}`, expertId);
+
+  const config = {
+    pending: {
+      icon: "⏳",
+      color: "var(--muted, #6b7280)",
+      bg: "var(--muted-bg, #e5e7eb)",
+      label: t("stockAnalysis.workflow.pending"),
+      tagColor: "default" as const,
+    },
+    failed: {
+      icon: "❌",
+      color: "var(--sa-red, #dc2626)",
+      bg: "var(--sa-red-bg, #fee2e2)",
+      label: t("common.failed"),
+      tagColor: "error" as const,
+    },
+  }[status];
+
+  return (
+    <Card
+      size="small"
+      className="h-full"
+      styles={{ body: { padding: 12 } }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-base leading-none">{config.icon}</span>
+        <span className="font-medium text-sm" style={{ color: "var(--color-text-base)" }}>{name}</span>
+      </div>
+      <Tag color={config.tagColor}>{config.label}</Tag>
+      {status === "failed" && error && (
+        <div
+          className="mt-2 text-xs"
+          style={{
+            color: config.color,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            maxHeight: 120,
+            overflow: "auto",
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 /**
  * 从报告中提取结构化多空分数（与 AnalystReportCard 同源）
@@ -77,6 +160,9 @@ function deriveConsensus(
 export function AnalystReportGrid() {
   const { t } = useTranslation();
   const analystReports = useStockAnalysisStore((s) => s.analystReports);
+  const failedNodes = useStockAnalysisStore((s) => s.failedNodes);
+  const failedNodeErrors = useStockAnalysisStore((s) => s.failedNodeErrors);
+  const workflowStatus = useStockAnalysisStore((s) => s.status);
 
   // Aggregate sentiment from reports — 优先用结构化 bull_score/bear_score（与单个分析师卡片一致）
   const sentiment = useMemo(() => {
@@ -110,7 +196,44 @@ export function AnalystReportGrid() {
     [sentiment],
   );
 
-  if (Object.keys(analystReports).length === 0) { return null; }
+  // ── 统一构造显示列表：done / pending / failed ──
+  // done:    analystReports 已有内容 → 渲染完整 AnalystReportCard
+  // failed:  failedNodes 包含该 nodeId → 渲染失败占位卡片（带错误信息）
+  // pending: 工作流运行中且节点未完成未失败 → 渲染等待占位卡片
+  // 工作流完成后既无 report 也未 failed 的节点 → 不显示（理论上不应出现）
+  const entries = useMemo<AnalystEntry[]>(() => {
+    const result: AnalystEntry[] = [];
+    const seen = new Set<string>();
+    const isRunning = workflowStatus === "running" || workflowStatus === "loading";
+
+    for (const nodeId of ANALYST_NODE_IDS) {
+      const expertId = nodeId.slice(2);
+      seen.add(expertId);
+      const report = analystReports[expertId];
+
+      if (typeof report === "string" && report.length > 0) {
+        result.push({ nodeId, expertId, status: "done", report });
+      } else if (failedNodes.includes(nodeId)) {
+        result.push({ nodeId, expertId, status: "failed", error: failedNodeErrors[nodeId] });
+      } else if (isRunning) {
+        result.push({ nodeId, expertId, status: "pending" });
+      }
+      // 工作流已完成但节点既无 report 也未 failed → 跳过（避免渲染空占位）
+    }
+
+    // 追加 analystReports 中存在但不在预定义列表里的 key（如 trader 的 "investment-plan"）
+    for (const [expertId, report] of Object.entries(analystReports)) {
+      if (seen.has(expertId)) { continue; }
+      if (typeof report === "string" && report.length > 0) {
+        result.push({ nodeId: expertId, expertId, status: "done", report });
+      }
+    }
+
+    return result;
+  }, [analystReports, failedNodes, failedNodeErrors, workflowStatus]);
+
+  // 空态：工作流未启动 / 无任何分析师数据 → 不渲染（保持原行为）
+  if (entries.length === 0) { return null; }
 
   const consensusConfig: Record<Consensus, { color: string; bg: string; labelKey: string; icon: string }> = {
     bullish: {
@@ -251,9 +374,26 @@ export function AnalystReportGrid() {
         className="grid gap-2"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))" }}
       >
-        {Object.entries(analystReports)
-          .filter(([, r]) => typeof r === "string" && r.length > 0)
-          .map(([expertId, report]) => <AnalystReportCard key={expertId} expertId={expertId} report={report} />)}
+        {entries.map((entry) => {
+          if (entry.status === "done") {
+            return (
+              <AnalystReportCard
+                key={entry.expertId}
+                expertId={entry.expertId}
+                report={entry.report}
+              />
+            );
+          }
+          const isFailed = entry.status === "failed";
+          return (
+            <AnalystPlaceholderCard
+              key={entry.expertId}
+              expertId={entry.expertId}
+              status={entry.status}
+              error={isFailed ? entry.error : undefined}
+            />
+          );
+        })}
       </div>
     </div>
   );

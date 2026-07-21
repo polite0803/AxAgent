@@ -202,7 +202,7 @@ export function ExecutionReplayPanel() {
                             <span className="font-medium" style={{ fontSize: 11 }}>
                               {t("workEngine.status")}: {status.status}
                               {" · "}
-                              {status.node_count} {t("acp.nodes")}
+                              {status.node_count} {t("stockAnalysis.execution.nodes")}
                               {" · "}
                               {status.total_time_ms != null ? formatMs(status.total_time_ms) : "-"}
                             </span>

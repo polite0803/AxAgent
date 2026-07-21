@@ -1407,15 +1407,27 @@ fn start_cron_scheduler(state: &AppState) {
                 .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
                 .collect()
         });
-        let resolver: axagent_runtime::work_engine::ToolResolver =
-            std::sync::Arc::new(move |tool_name: String| {
+        let resolver: axagent_runtime::work_engine::ToolResolver = std::sync::Arc::new(
+            move |tool_name: String| {
                 let registry = registry.clone();
                 let work_engine = work_engine.clone();
                 let astock_client = astock_client.clone();
+                let in_stock_tools = stock_tools.contains(&tool_name);
+                tracing::info!(
+                    "[ToolResolver] 被调用: tool_name={}, in_stock_tools={}",
+                    tool_name,
+                    in_stock_tools
+                );
                 Box::pin(async move {
                     let reg = registry.lock().await;
                     let known = reg.list_all_tool_names().contains(&tool_name)
                         || reg.mcp.mcp_tools.contains_key(&tool_name);
+                    tracing::info!(
+                        "[ToolResolver] 解析 tool_name={}, known={}, in_stock_tools={}",
+                        tool_name,
+                        known,
+                        in_stock_tools
+                    );
                     if known {
                         let registry = registry.clone();
                         let cb: axagent_runtime::work_engine::ToolCallback =
@@ -1462,7 +1474,7 @@ fn start_cron_scheduler(state: &AppState) {
                                 })
                             });
                         Some(cb)
-                    } else if stock_tools.contains(&tool_name) {
+                    } else if in_stock_tools {
                         // P0-1: stock_mcp_tools 接通——32 个股票工具之前从未接通工作流执行路径，
                         // ToolResolver 返回 None 导致所有 ToolNode 失败，错误被 core.rs Failed 分支
                         // emit degraded: true 吞掉。现在通过 astock_client.execute_mcp_tool 真正执行。
@@ -1485,12 +1497,19 @@ fn start_cron_scheduler(state: &AppState) {
                             });
                         Some(cb)
                     } else {
+                        tracing::warn!(
+                            "[ToolResolver] 工具 '{}' 未匹配任何解析路径 (known=false, not workflow::, not stock_tools)",
+                            tool_name
+                        );
                         None
                     }
                 })
-            });
+            },
+        );
         // 复用 Tauri 全局 runtime，避免一次性创建/销毁 runtime 的开销。
+        tracing::info!("[start_cron_scheduler] 即将调用 set_tool_resolver");
         tauri::async_runtime::block_on(state.work_engine.set_tool_resolver(resolver));
+        tracing::info!("[start_cron_scheduler] set_tool_resolver 已完成");
     }
 
     // 设置 RAG 知识源检索回调（供工作流 Agent 节点从知识库/记忆/Wiki 检索上下文）

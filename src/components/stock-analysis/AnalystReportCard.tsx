@@ -185,6 +185,9 @@ function tryParse(report: string): ParsedReport | null {
 /** 从任意 ParsedReport 中提取可读的摘要文本 */
 function extractSummary(parsed: ParsedReport): string {
   const candidates = [
+    // `report` 字段是 catalyst-analyst 等节点的完整分析报告，
+    // 必须优先于 `reasoning`（一句话摘要），否则会显示"分析完成，但未返回结构化内容"
+    parsed.report,
     parsed.summary,
     parsed.argument,
     parsed.analysis,
@@ -424,7 +427,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
           )}
 
           {summary && (
-            <div className="sa-markdown-content text-xs" style={{ marginTop: 4 }}>
+            <div className="sa-markdown-content" style={{ marginTop: 4 }}>
               <NodeRenderer content={summary} isDark={isDark} />
             </div>
           )}
@@ -641,7 +644,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
         styles={{ body: { flex: 1, maxHeight: 400, overflow: "auto" } }}
       >
         {fuzzy.summary && (
-          <div className="sa-markdown-content text-xs">
+          <div className="sa-markdown-content">
             <NodeRenderer content={fuzzy.summary} isDark={isDark} />
           </div>
         )}

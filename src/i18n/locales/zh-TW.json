@@ -328,11 +328,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "發現新的技能建議: {name}",
-    "title": "智聊助手",
-    "quickBar": "QuickBar",
-    "description": "智能工作助手"
     "title": "智慧聊天助手",
-    "quickBar": "快速工具列"
+    "quickBar": "快速工具列",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "關閉 Agent 面板",
@@ -497,7 +495,7 @@
     "title": "基準測試運行器",
     "totalDuration": "總耗時",
     "traceId": "追蹤ID",
-    "waiting": "等待",
+    "waiting": "等待中",
     "selectBenchmarkFirst": "請先選擇基準測試",
     "runFailed": "運行失敗",
     "runner": "基準測試運行器",
@@ -508,7 +506,6 @@
     "strategyOverwrite": "Overwrite（覆蓋）",
     "strategyMerge": "Merge（合併）",
     "strategyDryRun": "Dry run（僅驗證）"
-    "waiting": "等待中"
   },
   "browser": {
     "clickBody": "點擊頁面主體",
@@ -1343,7 +1340,7 @@
     "steer": "引導",
     "task": "任務",
     "teammate": "協作",
-    "title": "助手面板",
+    "title": "助理面板",
     "visionAnalysis": "視覺分析",
     "research": "調研",
     "git": "Git",
@@ -1364,8 +1361,6 @@
     "steerInput": "引導",
     "showExtras": "更多面板",
     "hideExtras": "收起"
-    "title": "助理面板",
-    "visionAnalysis": "視覺分析"
   },
   "citationManager": {
     "addCitation": "新載引用",
@@ -2105,16 +2100,14 @@
     "export": "匯出",
     "exportAll": "匯出全部",
     "exportSuccess": "匯出成功",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
+    "keyPlaceholder": "鍵",
+    "valuePlaceholder": "值",
     "title": "動態UI管理",
     "subtitle": "創建、管理和預覽動態UI元件，支援自然語言生成",
     "versionLoading": "載入版本歷史...",
     "versionRequired": "新版本號必須高於當前版本",
     "versionInvalid": "版本號格式無效（應為 major.minor.patch）",
     "rollbackArchive": "回滾前存檔（回滾到 {version})"
-    "keyPlaceholder": "鍵",
-    "valuePlaceholder": "值"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}}个错误",
@@ -2540,7 +2533,7 @@
     "tryCreateNew": "點擊「+ 新建」創建自定義專家",
     "tryModifySearch": "嘗試修改搜索條件",
     "unnamed": "未命名專家",
-    "workflows": "{{count}} 工作流",
+    "workflows": "{{count}} 個工作流程",
     "promptPlaceholder": "定義專家的角色、能力和行為規範...",
     "builtinAlreadyImported": "內置專家已導入",
     "builtinImported": "12 built-in experts imported",
@@ -2549,7 +2542,6 @@
     "importBuiltinBtn": "Import Built-in",
     "capabilityDetail": "能力詳情",
     "detail": "詳"
-    "workflows": "{{count}} 個工作流程"
   },
   "expertStore": {
     "clearFailed": "清除外部專家失敗: {{error}}",
@@ -2756,7 +2748,7 @@
     "usageByDay": "每日使用量",
     "usageByKey": "按金鑰用量",
     "usageByProvider": "按供應商用量",
-    "viewMoreLogs": "查看更多",
+    "viewMoreLogs": "檢視更多",
     "connectedPrograms": "最近請求記錄",
     "noPrograms": "暫無連線",
     "active": "活躍",
@@ -2778,7 +2770,6 @@
     "copied": "已複製到剪貼簿",
     "target": "目標平臺",
     "format": "格式"
-    "viewMoreLogs": "檢視更多"
   },
   "gatewayMonitor": {
     "activeConnections": "活躍連接",
@@ -3043,11 +3034,9 @@
     "dataset": "數據集",
     "epochs": "輪次",
     "learningRate": "學習率",
-    "rank": "秩",
+    "rank": "排名",
     "reset": "重設",
     "trainingSetup": "訓練設置"
-    "rank": "排名",
-    "reset": "重設"
   },
   "markdown": "Markdown",
   "marketplace": {
@@ -3847,11 +3836,10 @@
     "modelId": "模型 ID",
     "modelIdRequired": "請輸入模型 ID",
     "modelIdPlaceholder": "輸入模型 ID",
-    "train": "訓練"
-      "strategyOverwrite": "覆寫（全部取代）",
-      "strategyMerge": "合併（保留現有）",
-      "strategyDryRun": "試執行（僅驗證）"
-    }
+    "train": "訓練",
+    "strategyOverwrite": "覆寫（全部取代）",
+    "strategyMerge": "合併（保留現有）",
+    "strategyDryRun": "試執行（僅驗證）"
   },
   "rlTrainingStore": {
     "saveCheckpoint": "儲存 RL 檢查點",
@@ -5326,7 +5314,7 @@
     "knowledgeSettings": {
       "title": "知識庫"
     },
-    "stockAnalysis": "股票分析"
+    "stockAnalysis": "股票分析",
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "標記前綴（預設 CHAT2API，通常無需修改）"
   },
@@ -5338,8 +5326,8 @@
     "invalidShortcut": "無效的快捷鍵",
     "shortcutNotSupported": "不支援此快捷鍵",
     "feishuWechat": "飛書/微信",
-    "qqWechat": "QQ/微信",
-    "wechatWindows": "微信 Windows",
+    "qqWechat": "QQ/WeChat",
+    "wechatWindows": "WeChat Windows",
     "newConversation": "新建對話",
     "closeConversation": "關閉對話",
     "focusSearch": "聚焦搜尋",
@@ -5347,8 +5335,6 @@
     "conflictApp1": "飛書/微信/企業微信/釘釘",
     "conflictApp2": "QQ/微信",
     "conflictApp3": "微信 (Windows)"
-    "qqWechat": "QQ/WeChat",
-    "wechatWindows": "WeChat Windows"
   },
   "sidebar": {
     "closeAgent": "關閉 Agent",
@@ -5358,7 +5344,7 @@
     "sectionInfrastructure": "基礎設施",
     "sectionOverview": "概覽",
     "sectionTools": "工具",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "代理面板",
     "sectionWork": "工作",
     "sectionInvest": "投資",
     "sectionPlugins": "外掛程式",
@@ -5367,7 +5353,6 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review"
-    "agentPanel": "代理面板"
   },
   "skill": {
     "abTest": {
@@ -5682,9 +5667,6 @@
       "wikiList": "Wiki 列表"
     },
     "importSelectBase": "Please select a target knowledge base"
-      "title": "Wiki 來源",
-      "wikiList": "維基列表"
-    }
   },
   "sshConfig": {
     "connect": "連接",
@@ -6054,9 +6036,8 @@
       "navigation": "導航"
     },
     "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏"
-      "field": "欄位"
-    }
+    "exitFullscreen": "退出全屏",
+    "field": "欄位"
   },
   "voice": {
     "connected": "已連線",
@@ -6076,10 +6057,7 @@
     "connectionLost": "語音連線已中斷",
     "startCall": "開始語音通話",
     "wakeup": "語音喚醒",
-    "wakeupActive": "語音喚醒監聽中",
-    "wakeup": "語音喚醒",
     "wakeupActive": "喚醒監聽中（點擊關閉）",
-    "startCall": "開始語音通話",
     "micNotFound": "未找到麥克風裝置",
     "micInUse": "麥克風被其他應用佔用",
     "micOverconstrained": "麥克風不滿足約束條件",
@@ -6337,8 +6315,8 @@
     "versionRestored": "版本已恢復",
     "viewBacklinks": "查看反向連結",
     "wiki": "知識庫",
-    "timeline": "Timeline",
-    "operationTimeline": "Operation Timeline",
+    "timeline": "時間軸",
+    "operationTimeline": "操作時間軸",
     "lintReport": "Lint 報告",
     "compile": {
       "noPages": "沒有生成任何頁面",
@@ -6400,9 +6378,6 @@
     "wikiMeta": {
       "rootPath": "根路徑"
     }
-    "timeline": "時間軸",
-    "operationTimeline": "操作時間軸",
-    "lintReport": "Lint 報告"
   },
   "workflow": {
     "agentNode": {
@@ -8302,9 +8277,8 @@
     "menu": "選單"
   },
   "inputArea": {
-    "uploadFile": "Upload file",
+    "uploadFile": "上傳檔案",
     "resizeHandle": "resize handle"
-    "uploadFile": "上傳檔案"
   },
   "debugPanel": {
     "trace": "追蹤 ID",
@@ -9222,6 +9196,10 @@
     "offlineMode": "离线模式 (LLM Driver 未连接，占位資料)",
     "charCount": "{{count}} 字",
     "title": "股票分析",
+    "strength": "強度",
+    "bullStrength": "多方強度",
+    "bearStrength": "空方強度",
+    "finalStrength": "最終強度",
     "searchPlaceholder": "输入股票代碼或名稱",
     "reportLanguageHint": "報告輸出語言：中文或英文",
     "startAnalysis": "開始分析",
@@ -9308,7 +9286,56 @@
     "stage.debate": "多空辯論",
     "stage.risk": "風險評估",
     "stage.decision": "投资決策",
-    "debate": "多空辯論",
+    "debate": {
+      "strongBullish": "強烈看多",
+      "bullish": "看多",
+      "weakBullish": "弱看多",
+      "strongBearish": "強烈看空",
+      "bearish": "看空",
+      "weakBearish": "弱看空",
+      "rejected": "反駁",
+      "partiallyAccepted": "部分接受",
+      "accepted": "接受",
+      "pending": "待定",
+      "noVerdict": "暫無裁決說明",
+      "verdictReason": "裁決理由",
+      "expand": "展開",
+      "expandFull": "展開全文",
+      "argument": "論點",
+      "unnamedArgument": "未命名論點",
+      "round": "第{n}輪",
+      "coreArguments": "核心論點",
+      "strength": "強度",
+      "references": "引用",
+      "multiDimResonance": "多維度共振",
+      "resonancePoint": "共振點",
+      "weight": "權重",
+      "bearAttack": "空方攻擊",
+      "ourResponse": "我方回應",
+      "bullStrength": "看多強度",
+      "bearStrength": "看空強度",
+      "dataGaps": "數據缺口",
+      "challengePoints": "質詢要點",
+      "impact": "影響",
+      "convergenceSummary": "收斂總結",
+      "finalPosition": "最終立場",
+      "confidence": "置信度",
+      "r2Responses": "逐條回應 R2 質詢",
+      "challenge": "質詢",
+      "target": "針對",
+      "concession": "修正",
+      "retainedArguments": "強化保留論據",
+      "finalStrength": "最終強度",
+      "additionalEvidence": "補充證據",
+      "unresolvedGaps": "仍未解決的數據缺口",
+      "finalVerdict": "最終裁決",
+      "position": "立場",
+      "counterArgument": "反駁預防",
+      "unstructuredOutput": "LLM 輸出為非結構化推理文本",
+      "unstructuredDesc": "辯論節點未能產出 JSON 格式的結構化數據，原始輸出為 LLM 內部推理過程，無法渲染。",
+      "parsedNoDisplay": "(原始數據已解析但無可用展示字段)",
+      "title": "辯論總結"
+    },
     "debateRound": "第{{round}}轮",
     "bull": "多方",
     "bear": "空方",
@@ -10794,7 +10821,9 @@
       "days": "天",
       "position": "仓位",
       "suggestedPrice": "建议挂出"
-    }
+    },
+    "round": "第",
+    "round2Responses": "逐條回應 R2 質詢"
   },
   "pipeline": {
     "title": "股票管道",

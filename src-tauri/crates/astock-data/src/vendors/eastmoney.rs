@@ -1178,20 +1178,26 @@ impl StockVendor for EastMoneyVendor {
     }
 
     async fn get_announcements(&self, stock_code: &str) -> Result<Vec<Announcement>, DataError> {
-        let market = if stock_code.starts_with('6') || stock_code.starts_with('9') {
-            "1"
-        } else if stock_code.starts_with('8') || stock_code.starts_with('4') {
-            "0"
-        } else {
-            "0"
-        };
+        // 修复(2026-07-21): 原实现 stock_list={market},{stock_code} 的 market 前缀
+        // (沪市="1"/深市&北交所="0")不规范,且与 get_announcements_with_asof 的
+        // stock_list={stock_code} 格式不一致。统一为不带 market 前缀的格式,
+        // 依赖 ann_type=A 让 eastmoney API 自动识别市场。
         let url = format!(
-            "https://np-anotice-stock.eastmoney.com/api/security/ann?page_index=1&page_size=20&stock_list={market},{stock_code}"
+            "https://np-anotice-stock.eastmoney.com/api/security/ann?cb=jQuery&sr=-1&page_size=20&page_index=1&ann_type=A&client_source=web&stock_list={stock_code}&f_node=0&s_node=0"
         );
 
         let resp = self.em_get(&url).await?;
-        let json: Value = resp.json().await?;
-
+        // 修复 P0-A5 同类问题: 用 text + 手动剥 JSONP 包裹,与 with_asof 路径一致
+        // (em_get 返回的 resp 直接 .json() 在 cb=jQuery 时会解析失败)
+        let body = resp.text().await?;
+        let json_str =
+            body.trim_start_matches("jQuery(").trim_end_matches(')').trim_end_matches(';');
+        let json: Value = serde_json::from_str(json_str).map_err(|e| {
+            DataError::ParseError(format!(
+                "eastmoney announcements json 解析失败: {e}, body preview={}",
+                &json_str[..json_str.len().min(200)]
+            ))
+        })?;
         let items = match json["data"]["list"].as_array() {
             Some(arr) => arr,
             None => return Ok(vec![]),

@@ -654,6 +654,11 @@ impl AStockClient {
 
     /// 按当前 AsOfContext 截断 News：保留 publish_time 日期 <= as_of_date 的项。
     /// **Phase 1 混合 as-of**：当 data_scope=Structured 时放行（用户回放仍想看实时新闻）。
+    ///
+    /// 修复(2026-07-21): 原实现把 publish_time 不可解析的新闻直接丢弃,导致 vendor
+    /// 返回的 showTime 字段格式异常时全部新闻被过滤掉。改为:不可解析的 publish_time
+    /// 视为不可信但保留,并记录降级日志。news_date_key 已对常见格式做兼容,空串
+    /// 通常意味着字段缺失而非真的"未来新闻"。
     fn truncate_news_by_asof(news: Vec<NewsItem>) -> Vec<NewsItem> {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Unstructured) {
             return news;
@@ -663,14 +668,29 @@ impl AStockClient {
             None => return news,
         };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
-        news.into_iter()
+        let mut empty_date_count = 0;
+        let filtered: Vec<NewsItem> = news
+            .into_iter()
             .filter(|n| {
                 let key = news_date_key(&n.publish_time);
-                // 不可解析的 publish_time 视为不可信（丢弃），避免空串
-                // 与 cutoff 比较时把"没有日期"当作"未来"处理
-                !key.is_empty() && key <= cutoff.as_str()
+                if key.is_empty() {
+                    empty_date_count += 1;
+                    return true; // 空日期视为不可信但保留
+                }
+                key <= cutoff.as_str()
             })
-            .collect()
+            .collect();
+        if empty_date_count > 0 {
+            crate::as_of::record_degradation(
+                "astock-data",
+                "truncate_news_by_asof",
+                &format!(
+                    "{} 条新闻 publish_time 不可解析,视为不可信但保留(可能含未来新闻)",
+                    empty_date_count
+                ),
+            );
+        }
+        filtered
     }
 
     /// 按当前 AsOfContext 截断 FinancialReport：保留 report_date <= as_of_date 的项。
@@ -703,6 +723,11 @@ impl AStockClient {
 
     /// 按当前 AsOfContext 截断 Announcement：保留 announce_date <= as_of_date 的项。
     /// **Phase 1 混合 as-of**：当 data_scope=Structured 时放行（公告属于非结构化）。
+    ///
+    /// 修复(2026-07-21): 原实现对 announce_date 为空的项直接丢弃,导致 vendor 返回
+    /// 的 notice_date 字段缺失时(如 eastmoney 部分历史公告)所有公告被全部过滤掉,
+    /// 触发"公告数据获取为空"警告。改为:空 announce_date 视为不可信但保留,并记录
+    /// 降级日志,让下游分析师能拿到数据自行判断时效性。
     fn truncate_announcements_by_asof(items: Vec<Announcement>) -> Vec<Announcement> {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Unstructured) {
             return items;
@@ -712,10 +737,28 @@ impl AStockClient {
             None => return items,
         };
         let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
-        items
+        let mut empty_date_count = 0;
+        let filtered: Vec<Announcement> = items
             .into_iter()
-            .filter(|a| !a.announce_date.is_empty() && a.announce_date.as_str() <= cutoff.as_str())
-            .collect()
+            .filter(|a| {
+                if a.announce_date.is_empty() {
+                    empty_date_count += 1;
+                    return true; // 空日期视为不可信但保留
+                }
+                a.announce_date.as_str() <= cutoff.as_str()
+            })
+            .collect();
+        if empty_date_count > 0 {
+            crate::as_of::record_degradation(
+                "astock-data",
+                "truncate_announcements_by_asof",
+                &format!(
+                    "{} 条公告 announce_date 为空,视为不可信但保留(可能含未来公告)",
+                    empty_date_count
+                ),
+            );
+        }
+        filtered
     }
 
     /// 按当前 AsOfContext 截断 ResearchReport：保留 publish_date <= as_of_date 的项。
@@ -2610,7 +2653,16 @@ impl AStockClient {
                 self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                // 与 get_news / get_financials 一致：全部数据源失败时返回 Err，
+                // 避免调用方把空列表误判为"无公告"。原实现 Ok(vec![]) 会让前端
+                // 触发"公告数据获取为空"警告且无法区分"真无数据"与"获取失败"。
+                tracing::warn!("[announcements] {stock_code} 所有公告数据源失败: {e}");
+                Err(DataError::VendorError {
+                    vendor: "all".into(),
+                    message: format!("所有公告数据源失败，无法获取 {} 的公告", stock_code),
+                })
+            },
         }
     }
 
@@ -3708,12 +3760,14 @@ mod asof_truncate_tests {
     #[tokio::test]
     async fn truncate_news_drops_unparseable_publish_time() {
         use crate::as_of::AS_OF;
+        // 修复(2026-07-21): 不可解析的 publish_time 视为不可信但保留,
+        // 不再丢弃。避免 vendor 字段缺失时全部新闻被过滤掉。
         let items = vec![news("2026-06-01 10:00:00"), news("not-a-date")];
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
         let ctx = AsOfContext::new(date, AsOfSource::UserReplay).unwrap();
         let out =
             AS_OF.scope(Some(ctx), async { AStockClient::truncate_news_by_asof(items) }).await;
-        assert_eq!(out.len(), 1);
+        assert_eq!(out.len(), 2); // 保留 1 条可解析 + 1 条不可解析(降级保留)
     }
 
     #[tokio::test]
@@ -3865,6 +3919,7 @@ mod asof_realtime_degrade_tests {
     }
 
     #[test]
+    #[serial(asof)]
     fn quote_from_klines_returns_none_in_live_mode() {
         let ks = vec![kline("2026-06-01", 10.0)];
         assert!(AStockClient::quote_from_klines("000001", &ks).is_none());
@@ -4166,6 +4221,7 @@ mod asof_realtime_degrade_tests {
     // 期望:eastmoney 申报 NativeDateParam,会调 get_market_dragon_tiger_with_asof
     //       网络失败会进 record_degradation,最终 live 路径兜底返回空
     #[tokio::test]
+    #[serial(asof)]
     async fn d_bug_fix_market_dragon_tiger_uses_capability() {
         use crate::as_of::{peek_global_degradation_report, AS_OF};
         let client = AStockClient::new();

@@ -95,6 +95,17 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
             }
         }),
         json!({
+            "name": "get_social_sentiment",
+            "description": "获取社交舆情数据（东方财富股吧帖子数/情感倾向/看多看空比例），用于情绪面分析师",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
             "name": "get_stock_dragon_tiger",
             "description": "获取个股龙虎榜数据（营业部买卖、上榜原因）",
             "inputSchema": {
@@ -345,13 +356,15 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
         }),
         json!({
             "name": "compute_portfolio_risk",
-            "description": "组合风险指标：集中度、分散度评分、行业暴露、风险等级",
+            "description": "计算单股风险画像：年化波动率/最大回撤/夏普比率/ROE/毛利率/负债率/营收增速/PE，输出 stockRiskProfile 供下游 portfolio-mgr 决策",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "positions_json": { "type": "string", "description": "持仓数据JSON数组" }
+                    "stock_codes": { "type": "string", "description": "逗号分隔的股票代码列表（工作流节点传入，取第一个为主标的）" },
+                    "stock_code": { "type": "string", "description": "单个6位股票代码（LLM 直接调用时使用）" },
+                    "weights": { "type": "string", "description": "逗号分隔的持仓权重(0-1)，不填则等权（可选）" }
                 },
-                "required": ["positions_json"]
+                "required": []
             }
         }),
         json!({
@@ -423,6 +436,11 @@ pub async fn execute_mcp_tool(
             let code = arguments["stock_code"].as_str().unwrap_or("");
             let flow = client.get_money_flow(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&flow).map_err(|e| e.to_string())
+        },
+        "get_social_sentiment" => {
+            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let sentiment = client.get_social_sentiment(code).await.map_err(|e| e.to_string())?;
+            serde_json::to_string(&sentiment).map_err(|e| e.to_string())
         },
         "get_stock_dragon_tiger" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
@@ -527,6 +545,160 @@ pub async fn execute_mcp_tool(
             let code = arguments["stock_code"].as_str().unwrap_or("");
             let pcr = client.get_option_pcr(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&pcr).map_err(|e| e.to_string())
+        },
+        // ── 算法工具：compute_scoring / compute_valuation / compute_portfolio_risk ──
+        // 历史问题：工具列表（stock_mcp_tools）声明了这些算法工具，但 dispatch_tool
+        // 的 match 中没有对应分支，LLM 调用时走到 `_ => Unknown MCP tool` 分支失败。
+        // V57 修复：补全三个算法工具的分发，复用 astock-data 内的 ScoringEngine 等模块，
+        // 避免重复实现（铁律 4）。
+        "compute_scoring" => {
+            let code = arguments["stock_code"].as_str().unwrap_or("");
+            if code.is_empty() {
+                return Err("compute_scoring 缺少 stock_code 参数".to_string());
+            }
+            // 允许调用方传入 kline_json（避免重复拉取）；若未提供则现场拉取 120 日 K 线
+            let klines = if let Some(kj) = arguments["kline_json"].as_str() {
+                serde_json::from_str::<Vec<crate::types::KLine>>(kj)
+                    .map_err(|e| format!("kline_json 解析失败: {e}"))?
+            } else {
+                client.get_klines(code, "daily", 120).await.map_err(|e| e.to_string())?
+            };
+            let ind = crate::indicators::compute_indicators(code, &klines);
+            let latest_price = klines.last().map(|k| k.close).unwrap_or(0.0);
+            let score = crate::scoring::ScoringEngine::score(&ind, latest_price, None);
+            serde_json::to_string(&score).map_err(|e| e.to_string())
+        },
+        "compute_valuation" => {
+            let code = arguments["stock_code"].as_str().unwrap_or("");
+            if code.is_empty() {
+                return Err("compute_valuation 缺少 stock_code 参数".to_string());
+            }
+            // 估值需要行情（PE/PB）和财务数据
+            let quote = client.get_quote(code).await.map_err(|e| e.to_string())?;
+            let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
+            // 取最近一期财务快照用于估值带计算
+            let fin_snap = financials.first();
+            let pe = quote.pe;
+            let pb = quote.pb;
+            let result = json!({
+                "stock_code": code,
+                "pe": pe,
+                "pb": pb,
+                "quote": &quote,
+                "financials": fin_snap,
+                "valuation_note": "基于 PE/PB 与财务快照的简化估值判断，详细 DCF/F-Score 请见 replay_tool_chain",
+            });
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
+        "compute_portfolio_risk" => {
+            // 修复(2026-07-21):
+            // 1) 参数名兼容: 节点传 `stock_codes`(逗号分隔), LLM 直接调用传 `stock_code`(单数)
+            // 2) 输出结构对齐 portfolio-mgr.rhai 期望的 stockRiskProfile 字段
+            //    (annualizedVolatilityPct/maxDrawdownPct/sharpeRatio/roeTTMPct/
+            //     grossMarginPct/debtRatioPct/revenueGrowthYoYPct/peTTM)
+            // 3) 用真实 K 线计算波动率/回撤/夏普, 用财报提取基本面指标
+            let primary_code = arguments["stock_codes"]
+                .as_str()
+                .and_then(|s| s.split(',').next())
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .or_else(|| arguments["stock_code"].as_str().map(str::trim))
+                .ok_or_else(|| {
+                    "compute_portfolio_risk 缺少 stock_codes/stock_code 参数".to_string()
+                })?;
+
+            // 拉取 60 日前复权 K 线计算量化风险指标
+            let klines = client
+                .get_klines_with_adj(
+                    primary_code,
+                    "daily",
+                    60,
+                    Some(crate::types::AdjType::Forward),
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+
+            let (ann_vol_pct, max_dd_pct, sharpe) = if klines.len() >= 2 {
+                let closes: Vec<f64> = klines.iter().map(|k| k.close).collect();
+                // 日收益率序列
+                let returns: Vec<f64> = closes
+                    .windows(2)
+                    .map(|w| {
+                        if w[0] > 0.0 {
+                            (w[1] - w[0]) / w[0]
+                        } else {
+                            0.0
+                        }
+                    })
+                    .collect();
+                // 年化波动率 = std(daily_returns) * sqrt(252) * 100
+                let mean = returns.iter().sum::<f64>() / returns.len() as f64;
+                let variance = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>()
+                    / returns.len().max(1) as f64;
+                let std = variance.sqrt();
+                let ann_vol = std * (252.0_f64).sqrt() * 100.0;
+                // 最大回撤
+                let mut peak = closes[0];
+                let mut max_dd = 0.0_f64;
+                for &p in &closes {
+                    if p > peak {
+                        peak = p;
+                    }
+                    if peak > 0.0 {
+                        let dd = (peak - p) / peak;
+                        if dd > max_dd {
+                            max_dd = dd;
+                        }
+                    }
+                }
+                let max_dd_pct = max_dd * 100.0;
+                // 夏普比率 (年化, rf=3%)
+                let rf_daily = 0.03 / 252.0;
+                let sharpe = if std > 0.0 {
+                    (mean - rf_daily) / std * (252.0_f64).sqrt()
+                } else {
+                    0.0
+                };
+                (
+                    (ann_vol * 10.0).round() / 10.0,
+                    (max_dd_pct * 10.0).round() / 10.0,
+                    (sharpe * 1000.0).round() / 1000.0,
+                )
+            } else {
+                (0.0, 0.0, 0.0)
+            };
+
+            // 拉取财报提取基本面指标(取最新一条)
+            let financials =
+                client.get_financials(primary_code).await.map_err(|e| e.to_string())?;
+            let fin = financials.first();
+            let roe_ttm_pct = fin.and_then(|f| f.roe).map(|v| (v * 100.0 * 10.0).round() / 10.0);
+            let gross_margin_pct =
+                fin.and_then(|f| f.gross_margin).map(|v| (v * 100.0 * 10.0).round() / 10.0);
+            let debt_ratio_pct =
+                fin.and_then(|f| f.debt_ratio).map(|v| (v * 100.0 * 10.0).round() / 10.0);
+            let revenue_growth_yoy_pct =
+                fin.and_then(|f| f.revenue_yoy).map(|v| (v * 100.0 * 10.0).round() / 10.0);
+
+            // 拉取行情拿 PE/PB
+            let quote = client.get_quote(primary_code).await.map_err(|e| e.to_string())?;
+            let pe_ttm = quote.pe;
+
+            let result = json!({
+                "stock_code": primary_code,
+                "stockRiskProfile": {
+                    "annualizedVolatilityPct": ann_vol_pct,
+                    "maxDrawdownPct": max_dd_pct,
+                    "sharpeRatio": sharpe,
+                    "roeTTMPct": roe_ttm_pct,
+                    "grossMarginPct": gross_margin_pct,
+                    "debtRatioPct": debt_ratio_pct,
+                    "revenueGrowthYoYPct": revenue_growth_yoy_pct,
+                    "peTTM": pe_ttm,
+                },
+                "risk_note": "基于60日前复权K线计算波动率/回撤/夏普, 基本面指标取最新财报",
+            });
+            serde_json::to_string(&result).map_err(|e| e.to_string())
         },
         _ => Err(format!("Unknown MCP tool: {tool_name}")),
     }

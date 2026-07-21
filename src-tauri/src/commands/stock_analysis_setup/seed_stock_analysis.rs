@@ -24,10 +24,14 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
 
     const TEMPLATE_ID: &str = "stock-analysis";
 
-    // V55: 最新版本 — 包含 hallucination_guard、untrusted 哨兵、f9/f10/f11 因子体系、
-    // 算法风险分类、校准一致性、权重坍缩修复等技术债修复。
+    // V57: 双保险修复 pace-calc `Variable not found: llm_events`：
+    // 1) code_executor.rs V57 — 自动扫描脚本 `present(xxx)` 调用并为未注入变量补 unit 默认值
+    //    （一次性根治所有 Rhai 脚本对未注入变量的安全访问问题，对已存在工作流实例生效）
+    // 2) pace-calc input_mapping 显式补 `llm_events: ""` 占位（对新模板双保险）
+    // V56: 修复 pace-calc.rhai 第 310 行 Rhai 语法错误（`(valid_event_count as f64).max(1.0)`
+    // 链式调用解析歧义，改为先 `let count_f = ... as f64;` 再用变量）。
     // 每次修改 DAG 拓扑/节点配置/input_mapping 后必须递增此常量。
-    const TEMPLATE_VERSION: i32 = 55;
+    const TEMPLATE_VERSION: i32 = 58; // v58: 修复 t-news-data/t-sentiment-data/t-catalyst-data 工具分配错位
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
@@ -258,6 +262,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     let td_mf = ToolDef {
         name: "get_stock_money_flow".into(),
         description: Some("获取资金流向：主力/超大单/大单/中单/小单净流入".into()),
+        parameters: stock_code_params(),
+    };
+    let td_social_sentiment = ToolDef {
+        name: "get_social_sentiment".into(),
+        description: Some("获取社交舆情：股吧帖子数/情感倾向/看多看空比例".into()),
         parameters: stock_code_params(),
     };
     let td_score = ToolDef {
@@ -605,6 +614,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         ("get_market_regime", td_regime.clone()),
         ("get_stock_news", td_news.clone()),
         ("get_stock_money_flow", td_mf.clone()),
+        ("get_social_sentiment", td_social_sentiment.clone()),
         ("compute_scoring", td_score.clone()),
         ("compute_valuation", td_val.clone()),
         ("compute_portfolio_risk", td_risk.clone()),
@@ -806,14 +816,20 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // 9 个分析师产出的报告与各自的角色语义不符。
     let tool_assignments: &[(&str, &str, &str, &str)] = &[
         ("t-market-data", "获取K线+行情", "get_stock_kline", "stock_code"),
-        // 修复: t-sentiment-data 原调用 get_hot_stocks（热门股票列表，非个股新闻），
-        // 导致情绪面分析师拿不到个股新闻舆情数据。改为 get_stock_news。
-        ("t-sentiment-data", "获取新闻+热门", "get_stock_news", "stock_code"),
-        // 修复(2026-07-11): t-news-data 不再重复调用 get_stock_news，
-        // 改为 get_stock_announcements 获取公司公告全文。a-news 简报分析
-        // 师可在执行时通过 PROFILE_TOOLS 调用 get_stock_news 补充新闻数据。
-        // 历史: 原切换为 get_stock_news 是因为 a-news 拿不到新闻，现已解耦。
-        ("t-news-data", "获取公司公告", "get_stock_announcements", "stock_code"),
+        // 修复(2026-07-21): t-sentiment-data 改为 get_social_sentiment。
+        // 原调用 get_stock_news 与 t-policy-data/t-news-data 重复,且 news API
+        // 失败时 sentiment-analyst 拿不到任何前置数据。改为 get_social_sentiment:
+        //   1) 真正对齐前端 "舆情" label —— 股吧帖子数/情感倾向/看多看空比例
+        //   2) 与 t-hotmoney-data (get_stock_money_flow) 解耦,避免重复
+        //   3) PROFILE_TOOLS 中仍保留 get_stock_news/get_stock_money_flow,
+        //      LLM 可按需调用补充新闻和资金流数据
+        ("t-sentiment-data", "获取股吧社交舆情", "get_social_sentiment", "stock_code"),
+        // 修复(2026-07-21): t-news-data 改回 get_stock_news。
+        // 2026-07-11 改为 get_stock_announcements 是因为 a-news 拿不到新闻,但
+        // 导致前端 label "新闻" 与实际数据源 "公告" 错位,且与 t-catalyst-data
+        // 重复调用同一工具。改回 get_stock_news 让 "新闻" label 真对应新闻,
+        // a-news 仍可通过 PROFILE_TOOLS 调用 get_stock_announcements 补充公告。
+        ("t-news-data", "获取近期新闻", "get_stock_news", "stock_code"),
         // 修复 P1: 基本面分析师前置数据改用 get_stock_financials（财报）而非
         // get_consensus_eps（一致预期），让 a-fundamentals 启动时就能拿到
         // 营收/利润/资产负债等核心财务数据。
@@ -834,7 +850,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         // get_announcements（公告）。新闻覆盖宏观/产业政策动态更广，
         // 与 a-news 的公告视角形成互补。
         //
-        // TODO(2026-07-11): 当前 get_stock_news 与 t-sentiment-data 重复调用,
+        // TODO(2026-07-11): 当前 get_stock_news 与 t-news-data 重复调用,
         //   理想方案: 在 tools/finance.rs 注册新工具 `get_policy_news`,
         //   接受参数 category=policy 走单独数据源(政府/官媒/监管公告)。
         //   当前保留 get_stock_news 作为冷启动数据，a-policy 的分析师 prompt
@@ -847,6 +863,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         // F-8 重排: a-research 前置改为研报工具
         ("t-research-data", "获取研报+新闻", "get_stock_research_reports", "stock_code"),
         ("t-sector-data", "获取行情+行业排名", "get_industry_ranking", "stock_code"),
+        // 修复(2026-07-21): t-catalyst-data 保留 get_stock_announcements。
+        // 这是唯一调用 get_stock_announcements 的前置 ToolNode,避免与 t-news-data
+        // 重复调用同一工具导致缓存击穿 + 双份失败警告。
         ("t-catalyst-data", "获取公司公告", "get_stock_announcements", "stock_code"),
     ];
 
@@ -2009,7 +2028,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // P1-7 修复: LLM 风险分类器作为算法分类的 fallback
                 // Rhai 脚本先基于 t-risk stockRiskProfile 做确定性算法分类，
                 // 仅当数据缺失时回退到此 LLM 分类结果。
-                ("overall_risk_llm", "risk-level.category"),
+                // 注意：该 LlmClassifierNode 的节点 id 是 "cls-risk-level"（output_var 才是 "risk-level"），
+                // 边与 input_mapping 必须以节点 id 为准，否则 context.variables 查不到。
+                ("overall_risk_llm", "cls-risk-level.category"),
                 // AgentNode(Json mode) 输出包裹在 {role, content: <json_string>, ...} 中
                 ("catalyst_level", "a-catalyst.content.catalyst_level"),
                 ("consensusScore", "debate-convergence.content.consensus_score"),
@@ -2193,6 +2214,19 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // t-catalyst-data 输出公司公告列表，用于公告关键词风险检测
     edges.push(edge("e-t-catalyst-data-portfolio-mgr", "t-catalyst-data", "portfolio-mgr"));
 
+    // ── 修复 portfolio-mgr 因子输入全空（决策塌成全零空壳）: 补齐缺失的显式边 ──
+    // portfolio-mgr 是 CodeNode（无 context_sources），其结构化输入仅来自 edges 直接上游节点。
+    // 下方 5 个节点的输出被 portfolio-mgr.input_mapping 引用，但此前缺指向它的边，
+    // 导致这些节点不进入 context.variables，因子输入（totalScore / catalyst_level /
+    // 估值因子 / pace_signal / LLM 风险兜底）全部取不到 → 后验塌成先验 0.5 →
+    // action=观望、positionPct=0、confidence=0 的全零空壳。
+    // 与下方 p-risk-assess 补 e-scoring-p-risk-assess 边的修复同源（见行 1421 注释）。
+    edges.push(edge("e-t-scoring-portfolio-mgr", "t-scoring", "portfolio-mgr"));
+    edges.push(edge("e-a-catalyst-portfolio-mgr", "a-catalyst", "portfolio-mgr"));
+    edges.push(edge("e-t-valuation-portfolio-mgr", "t-valuation", "portfolio-mgr"));
+    edges.push(edge("e-pace-calc-portfolio-mgr", "pace-calc", "portfolio-mgr"));
+    edges.push(edge("e-cls-risk-level-portfolio-mgr", "cls-risk-level", "portfolio-mgr"));
+
     // ── PACE 情绪因子（f11）: pace-calc.rhai — 基于公告的四维情绪向量计算 ──
     // pace-calc.rhai 已实现完整的 PACE 计算逻辑（Polarity/Actuality/Credibility/Expectation），
     // 基于 t-catalyst-data 的公告数据输出 pace_signal（[-1, 1]）。
@@ -2234,6 +2268,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     ("sector_etf_direction", ""),
                     // 历史 P 值 - 暂未接入（需要 upstream LLM 长期输出）
                     ("p_history", ""),
+                    // LLM 事件源（a-catalyst/a-news 输出）- 暂未接入，留空占位避免 Rhai 访问未定义变量
+                    ("llm_events", ""),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))

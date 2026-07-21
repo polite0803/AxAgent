@@ -155,6 +155,10 @@ pub fn register_repositories(db: &DatabaseConnection) {
     axagent_harness::repositories::set_agent_role_repository(Arc::new(DaoAgentRoleRepository {
         db: db.clone(),
     }));
+    // 注册业务岗位 repository（a-* agent 节点通过 business_rule_engine 查询岗位信息时需要）
+    axagent_harness::repositories::set_business_role_repository(Arc::new(
+        crate::repo::business_role::BusinessRoleRepositoryImpl::new(db.clone()),
+    ));
     axagent_harness::repositories::set_workflow_execution_repository(Arc::new(
         crate::workflow_execution_repository::DaoWorkflowExecutionRepository {
             db: Arc::new(db.clone()),

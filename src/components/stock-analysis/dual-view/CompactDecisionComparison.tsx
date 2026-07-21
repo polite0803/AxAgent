@@ -176,11 +176,11 @@ export function CompactDecisionComparison({ data }: CompactDecisionComparisonPro
         <div className="text-sm" style={{ color: "#ef4444", opacity: 0.85 }}>
           {view.agreementBreakdown.actionNote === "opposite"
             ? `⚠ ${view.agreementBreakdown.formulaAction} ≠ ${view.agreementBreakdown.llmAction}（${
-              t("acp.acp.oppositeDirection01")
+              t("stockAnalysis.decision.oppositeDirection")
             }）`
-            : `⚠ ${t("acp.acp.disagreement01")}（${
+            : `⚠ ${t("stockAnalysis.decision.disagreement")}（${
               view.agreementBreakdown.conflictType === "opposite_direction"
-                ? t("acp.directionConflict")
+                ? t("stockAnalysis.decision.directionConflict")
                 : view.agreementBreakdown.conflictType
             }）`}
         </div>

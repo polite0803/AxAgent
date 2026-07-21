@@ -169,7 +169,7 @@ export function DecisionBanner() {
       message.success(result);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(t("acp.exportFailed", { errMsg }));
+      message.error(t("stockAnalysis.decision.exportFailed", { errMsg }));
     } finally {
       setExporting(null);
     }
@@ -195,7 +195,7 @@ export function DecisionBanner() {
 
   const exportMenuItems: { key: ExportFormat; icon: React.ReactNode; label: string }[] = [
     { key: "md", icon: <FileTextOutlined />, label: "Markdown (.md)" },
-    { key: "docx", icon: <FileWordOutlined />, label: t("acp.wordDocument") },
+    { key: "docx", icon: <FileWordOutlined />, label: t("stockAnalysis.decision.wordDocument") },
     { key: "pptx", icon: <FilePptOutlined />, label: "PowerPoint (.pptx)" },
   ];
 
@@ -402,7 +402,7 @@ export function DecisionBanner() {
                 LLM {t(getActionTKey(llmStance))}
               </Tag>
               {asOfDate && (
-                <Tag color="purple" title={t("acp.replayBadgeTooltip", { date: asOfDate })}>
+                <Tag color="purple" title={t("timeTravel.badge.replayTooltip", { date: asOfDate })}>
                   ⏪ {t("timeTravel.pageAnchor.untilDate", { date: asOfDate })}
                 </Tag>
               )}
@@ -421,7 +421,7 @@ export function DecisionBanner() {
                 {actionLabel(decision.action)}
               </Tag>
               {asOfDate && (
-                <Tag color="purple" title={t("acp.replayBadgeTooltip", { date: asOfDate })}>
+                <Tag color="purple" title={t("timeTravel.badge.replayTooltip", { date: asOfDate })}>
                   ⏪ {t("timeTravel.pageAnchor.untilDate", { date: asOfDate })}
                 </Tag>
               )}
@@ -558,11 +558,11 @@ export function DecisionBanner() {
                 </div>
                 <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                   <span>
-                    {t("acp.confidence")} <b>{confidencePct}%</b>
+                    {t("stockAnalysis.confidence")} <b>{confidencePct}%</b>
                   </span>
                   <span>|</span>
                   <span>
-                    {t("acp.position")} <b>{decision.positionPct}%</b>
+                    {t("stockAnalysis.position")} <b>{decision.positionPct}%</b>
                   </span>
                 </div>
                 {decision.reasoning && (
@@ -608,7 +608,7 @@ export function DecisionBanner() {
                 </div>
                 <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                   <span>
-                    {t("acp.confidence")}{" "}
+                    {t("stockAnalysis.confidence")}{" "}
                     <b>
                       {(() => {
                         const c = extractLlmField(llmDecisionJson, "confidence") as number | null;
@@ -618,7 +618,7 @@ export function DecisionBanner() {
                   </span>
                   <span>|</span>
                   <span>
-                    {t("acp.position")}{" "}
+                    {t("stockAnalysis.position")}{" "}
                     <b>
                       {(() => {
                         const p = extractLlmField(llmDecisionJson, "positionPct") as number | null;
@@ -734,11 +734,11 @@ export function DecisionBanner() {
                 color: stockCodeEvidence.holdGate.holdAllowed ? "var(--sa-blue)" : "var(--sa-amber)",
               }}
             >
-              <span style={{ color: "var(--muted)" }}>{t("acp.gateControl")}</span>
+              <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.decision.gateControl")}</span>
               <span className="font-semibold text-sm">
                 {stockCodeEvidence.holdGate.holdAllowed
                   ? "✅ HOLD"
-                  : t("acp.mandatoryDirection")}
+                  : t("stockAnalysis.decision.mandatoryDirection")}
               </span>
             </span>
           )}
@@ -747,11 +747,11 @@ export function DecisionBanner() {
               className="text-sm px-2 py-1 rounded flex items-center justify-between font-mono"
               style={{ background: "var(--surface)", color: "var(--color-text-primary)" }}
             >
-              <span style={{ color: "var(--muted)" }}>{t("acp.evidenceScore")}</span>
+              <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.decision.evidenceScore")}</span>
               <span className="font-semibold">
-                {t("acp.bullish")}
-                {stockCodeEvidence.consensus.bullishScore.toFixed(1)} | {t("acp.bearish")}
-                {stockCodeEvidence.consensus.bearishScore.toFixed(1)} | {t("acp.net")}
+                {t("stockAnalysis.debate.bullish")}
+                {stockCodeEvidence.consensus.bullishScore.toFixed(1)} | {t("stockAnalysis.debate.bearish")}
+                {stockCodeEvidence.consensus.bearishScore.toFixed(1)} | {t("stockAnalysis.decision.net")}
                 {stockCodeEvidence.consensus.netScore.toFixed(1)}
               </span>
             </span>
@@ -996,11 +996,11 @@ export function DecisionBanner() {
               </div>
               <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                 <span>
-                  {t("acp.confidence")} <b>{confidencePct}%</b>
+                  {t("stockAnalysis.confidence")} <b>{confidencePct}%</b>
                 </span>
                 <span>|</span>
                 <span>
-                  {t("acp.position")} <b>{decision ? `${decision.positionPct}%` : "—"}</b>
+                  {t("stockAnalysis.position")} <b>{decision ? `${decision.positionPct}%` : "—"}</b>
                 </span>
               </div>
               {decision?.reasoning && (
@@ -1023,7 +1023,7 @@ export function DecisionBanner() {
               </div>
               <div className="font-mono flex gap-2" style={{ color: "var(--color-text-secondary)" }}>
                 <span>
-                  {t("acp.confidence")}{" "}
+                  {t("stockAnalysis.confidence")}{" "}
                   <b>
                     {(() => {
                       const c = extractLlmField(llmDecisionJson, "confidence") as number | null;
@@ -1033,7 +1033,7 @@ export function DecisionBanner() {
                 </span>
                 <span>|</span>
                 <span>
-                  {t("acp.position")}{" "}
+                  {t("stockAnalysis.position")}{" "}
                   <b>
                     {(() => {
                       const p = extractLlmField(llmDecisionJson, "positionPct") as number | null;
@@ -1058,20 +1058,20 @@ export function DecisionBanner() {
             >
               <span>
                 {decision.agreementBreakdown.actionNote === "opposite"
-                  ? t("acp.oppositeDirection")
-                  : t("acp.disagreement")}
+                  ? t("stockAnalysis.decision.oppositeDirection")
+                  : t("stockAnalysis.decision.disagreement")}
                 ({decision.agreementBreakdown.formulaAction} vs {decision.agreementBreakdown.llmAction})
               </span>
               {decision.agreementBreakdown.positionGap != null && (
                 <span>
-                  {t("acp.positionGap", {
+                  {t("stockAnalysis.decision.positionGap", {
                     gap: Math.round(decision.agreementBreakdown.positionGap),
                   })}
                 </span>
               )}
               {decision.agreementBreakdown.confidenceGap != null && (
                 <span>
-                  {t("acp.confidenceGap", {
+                  {t("stockAnalysis.decision.confidenceGap", {
                     gap: Math.round(decision.agreementBreakdown.confidenceGap),
                   })}
                 </span>
@@ -1088,7 +1088,7 @@ export function DecisionBanner() {
               {actionLabel(decision.action)}
             </Tag>
             {asOfDate && (
-              <Tag color="purple" title={t("acp.replayBadgeTooltip", { date: asOfDate })}>
+              <Tag color="purple" title={t("timeTravel.badge.replayTooltip", { date: asOfDate })}>
                 ⏪ {t("timeTravel.pageAnchor.untilDate", { date: asOfDate })}
               </Tag>
             )}

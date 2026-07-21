@@ -335,6 +335,14 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
+            path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/:id`}
+            element={
+              <PageContextProvider page="stock-analysis">
+                <SafeLazyPage Page={LazyStockAnalysisPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
             path={BUILTIN_PAGE_PATH.screener}
             element={
               <PageContextProvider page="screener">

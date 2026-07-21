@@ -1614,9 +1614,9 @@
     "yes": "Да",
     "zoomIn": "Увеличить",
     "zoomOut": "Уменьшить",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results",
+    "inherit": "Наследовать",
+    "more": "Еще",
+    "noResults": "Нет результатов",
     "comingSoon": "Скоро",
     "unknown": "Неизвестно",
     "workingDirectory": "Рабочий каталог",
@@ -1628,9 +1628,6 @@
     "deleted": "Удалено",
     "required": "Обязательно",
     "action": "Действие"
-    "inherit": "Наследовать",
-    "more": "Еще",
-    "noResults": "Нет результатов"
   },
   "computerControl": {
     "auto": "Авто",
@@ -2036,16 +2033,6 @@
     "versionAutoHint": "Ostavte pustym dlya avtomaticeskogo uveliceniya patc-versii",
     "versionHistory": "Istoriya versij",
     "versionUpdatedAt": "Data sozdaniya",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
-    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
-    "title": "Dynamic UI Manager"
     "import": "Импорт",
     "importSuccess": "Успешно импортировано {{count}} UI",
     "importInvalid": "Недопустимый или пустой файл схемы",
@@ -2053,7 +2040,9 @@
     "exportAll": "Экспорт всех",
     "exportSuccess": "Успешно экспортировано",
     "keyPlaceholder": "ключ",
-    "valuePlaceholder": "значение"
+    "valuePlaceholder": "значение",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "title": "Dynamic UI Manager"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} ошибок",
@@ -2075,7 +2064,6 @@
     "page": "Ошибка",
     "pageNotFound": "Извините, страница, которую вы посетили, не существует.",
     "saveFailed": "Ошибка сохранения, повторите попытку",
-
     "unknown": "Неизвестная ошибка",
     "AGENT_CANCEL_FAILED": "Не удалось отменить агента",
     "AGENT_EXECUTION_ABORTED": "Выполнение агента прервано",
@@ -5126,7 +5114,7 @@
       "wechatModeCustomer": "Режим службы поддержки (приём через опрос, экспериментально)",
       "wechatModeOfficial": "Режим официального аккаунта (приём через Webhook)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "Доступ к инструментам",
     "scheduled-recommendation": {
       "description": "Периодически сканировать рекомендации и отправлять в настроенные каналы уведомлений.",
       "tooltip-cron-dependency": "Запланированные задачи выполняются только при открытом приложении; закрытие приложения приостанавливает их.",
@@ -5213,7 +5201,6 @@
         "description": "Пользовательская стратегия"
       }
     },
-
     "globalShortcut": "Глобальная горячая клавиша",
     "globalShortcutRegisterOk": "Глобальные горячие клавиши зарегистрированы: {{count}}",
     "globalShortcutRegisterPartial": "Регистрация горячих клавиш: {{ok}} успешно, {{fail}} ошибок",
@@ -5328,15 +5315,11 @@
         "casual": "Непринужденный"
       }
     },
-
     "appConfigDesc": "Выбор модели, переключатели функций, управление агентом и конфигурация хуков",
-
     "knowledgeSettings": {
       "title": "Знания"
     },
-
     "stockAnalysis": "Stock Analysis",
-    "toolAccess": "Доступ к инструментам",
     "providers": {
       "title": "Провайдеры"
     },
@@ -5398,13 +5381,12 @@
     "sectionInfrastructure": "Инфраструктура",
     "sectionOverview": "Обзор",
     "sectionTools": "Инструменты",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "Панель агента",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "Рабочая область",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor"
-    "agentPanel": "Панель агента"
   },
   "skill": {
     "abTest": {
@@ -6026,7 +6008,6 @@
         "basic": "Базовый",
         "style": "Стиль"
       },
-      "title": "Property Panel"
       "title": "Панель свойств",
       "field": "поле"
     }
@@ -6046,7 +6027,6 @@
     "sttProvider": "Провайдер STT",
     "ttsProvider": "Провайдер TTS",
     "providerAuto": "Авто (использовать того же провайдера LLM)",
-
     "wakeup": "Голосовое пробуждение",
     "wakeupActive": "Ожидание пробуждения (нажмите, чтобы остановить)",
     "startCall": "Начать голосовой вызов",
@@ -8292,7 +8272,7 @@
     "notePlaceholder": "Добавить примечание (необязательно)",
     "approver": "Утверждающий"
   },
-  "cancel": "Cancel",
+  "cancel": "Отмена",
   "browserMock": {
     "greeting": "Здравствуйте! Чем я могу вам помочь?",
     "understandGoal": "Понять цель",
@@ -8319,7 +8299,6 @@
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "Отмена",
   "searchUtils": {
     "highCredibility": "Высокая достоверность",
     "mediumCredibility": "Средняя достоверность"
@@ -8336,9 +8315,9 @@
     "temperature": "Температура"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "Выполнить",
+    "readonly": "Только чтение",
+    "write": "Запись"
   },
   "compare": {
     "title": "Сравнение"
@@ -8721,6 +8700,10 @@
     "offlineMode": "Offline mode",
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
+    "strength": "Сила",
+    "bullStrength": "Сила быков",
+    "bearStrength": "Сила медведей",
+    "finalStrength": "Итоговая сила",
     "searchPlaceholder": "Enter stock code or name",
     "reportLanguageHint": "Язык вывода отчёта: китайский или английский",
     "startAnalysis": "Start Analysis",
@@ -8854,7 +8837,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
     "bull": "Bull",
@@ -10940,7 +10924,9 @@
     "alert.conditionVolume": "📊 Увеличение объема",
     "alert.noHistory": "Нет записей о срабатываниях",
     "alert.activeTab": "Активные ({{count}})",
-    "alert.triggeredTab": "Сработавшие ({{count}})"
+    "alert.triggeredTab": "Сработавшие ({{count}})",
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "Конвейер акций",
@@ -11039,11 +11025,7 @@
       "riskLevel": "Риск",
       "expectedUpside": "Ожидаемый рост",
       "asOf": "По состоянию на"
-    }
-  },
-  "collapseComparison": "Скрыть сравнение"
-    "execute": "Выполнить",
-    "readonly": "Только чтение",
-    "write": "Запись"
+    },
+    "collapseComparison": "Скрыть сравнение"
   }
 }

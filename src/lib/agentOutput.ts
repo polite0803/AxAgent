@@ -90,6 +90,32 @@ export function tryBeautifyJson(text: string): string {
     } catch { /* 不完美 JSON：尝试提取中间片段 */ }
   }
   // 不完美 JSON 提取：找第一个 { 到最后一个 }（或 [ 到 ]）
+  // ── 重要：检测 `<!-- VERDICT: {...} -->` 格式 ──
+  // 分析师/辩论节点 prompt 要求"正文 + 末尾 VERDICT 标签"。
+  // 此前实现直接把"第一个 { 到最后一个 }"切片，导致 VERDICT 标签之前的完整分析报告被丢弃，
+  // AnalystReportCard 只显示 verdict/bull_score/bear_score/confidence，无任何正文（AxInvest 报告正文丢失）。
+  // 修复：识别 VERDICT 标签，把标签前的正文 + 解析后的标签内容合并为 Markdown 报告。
+  const verdictMatch = trimmed.match(/<!--\s*VERDICT:\s*(\{[\s\S]*?\})\s*-->/);
+  if (verdictMatch) {
+    const preamble = trimmed.slice(0, verdictMatch.index).trim();
+    let verdictJson: unknown;
+    try {
+      verdictJson = JSON.parse(verdictMatch[1]);
+    } catch {
+      verdictJson = null;
+    }
+    if (preamble.length > 0) {
+      // 正文中可能也含 JSON（嵌套结构），尝试 beautify；失败则原样保留
+      const prettyVerdict = verdictJson != null
+        ? JSON.stringify(verdictJson, null, 2)
+        : verdictMatch[1];
+      return `${preamble}\n\n<!-- VERDICT: ${prettyVerdict} -->`;
+    }
+    // 无正文（只有 VERDICT 标签）：回退到原行为
+    if (verdictJson != null) {
+      return JSON.stringify(verdictJson, null, 2);
+    }
+  }
   const firstBrace = trimmed.indexOf("{");
   const lastBrace = trimmed.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -420,25 +446,71 @@ export function tryParseDecision(text: string): StockDecision | null {
  * 在旧版格式中，先从顶层 JSON 取 field；取不到且存在 content 字符串时，
  * 递归解析 content 内部 JSON 再取一次。
  */
+/**
+ * 宽松解析 LLM 输出的 JSON：
+ * - 兼容 markdown 代码块包装（```json\n{...}\n``` 或 ```\n{...}\n```）
+ * - 兼容前后带杂文的混合格式（取第一个 { 到最后一个 } 切片）
+ * - 失败时返回 null
+ *
+ * 注意：LLM 决策常因 prompt 要求或模型习惯被 ```json 代码块包裹，
+ * 直接 JSON.parse 会抛异常。此前 extractLlmField 因此对整个字段返回 null，
+ * 导致 llmDecisionJson 中的 action/positionPct/confidence 全部读不到。
+ */
+export function parseJsonLoose(text: string | null): Record<string, unknown> | null {
+  if (!text) { return null; }
+  let src = text.trim();
+  const fence = src.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (fence) {
+    src = fence[1].trim();
+  }
+  const tryParse = (s: string): Record<string, unknown> | null => {
+    try {
+      const v = JSON.parse(s);
+      return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  };
+  // 1) 直接解析（已去 fence）
+  const direct = tryParse(src);
+  if (direct) { return direct; }
+  // 2) 退路：取第一个 { 到最后一个 } 切片再试（容忍前后杂文/残留标签）
+  const firstBrace = src.indexOf("{");
+  const lastBrace = src.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const sliced = tryParse(src.slice(firstBrace, lastBrace + 1));
+    if (sliced) { return sliced; }
+  }
+  return null;
+}
+
 export function extractLlmField(llmDecisionJson: string | null, field: string): unknown {
   if (!llmDecisionJson) { return null; }
-  try {
-    const parsed = JSON.parse(llmDecisionJson);
+  // 宽松解析（自动剥离 ```json 代码块 + 容错杂文）
+  const parsed = parseJsonLoose(llmDecisionJson);
+  if (parsed) {
     // 直接取 field
     if (parsed[field] !== undefined && parsed[field] !== null) {
       return parsed[field];
     }
     // 兼容旧版 AgentNode 包装：content 字段里才是真正的 LLM 输出
     if (typeof parsed.content === "string" && parsed.content.length > 0) {
-      try {
-        const inner = JSON.parse(parsed.content);
-        if (inner[field] !== undefined && inner[field] !== null) {
-          return inner[field];
-        }
-      } catch { /* inner parse failed, not AgentNode format */ }
+      const inner = parseJsonLoose(parsed.content);
+      if (inner && inner[field] !== undefined && inner[field] !== null) {
+        return inner[field];
+      }
     }
     return null;
-  } catch {
-    return null;
   }
+  // 整段解析失败（极端情况）仍尝试从 content 包装里捞
+  try {
+    const rawObj = JSON.parse(llmDecisionJson);
+    if (rawObj && typeof rawObj === "object" && typeof rawObj.content === "string") {
+      const inner = parseJsonLoose(rawObj.content);
+      if (inner && inner[field] !== undefined && inner[field] !== null) {
+        return inner[field];
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
 }

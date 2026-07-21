@@ -102,12 +102,50 @@ pub(crate) fn resolve_var_path(
         return None;
     }
     let parts: Vec<&str> = path.split('.').collect();
+    // 优先按节点输出路径导航：root 为节点 ID，后续为嵌套字段。
+    // ToolNode/AgentNode 的 result/content 常为 JSON 字符串，导航进入字符串字段时
+    // 自动解析为对象再继续（修复 portfolio-mgr 因子输入全空：t-scoring.result.totalScore
+    // / a-catalyst.content.catalyst_level / debate-convergence.content.consensus_score
+    // / t-risk.result.stockRiskProfile.peTTM 等此前因字符串无法被 .get 导航而全部取不到）。
     if let Some(root) = variables.get(parts[0]) {
-        let mut current = root.clone();
+        let mut current = auto_parse_value(root.clone());
+        let mut navigated = true;
         for part in &parts[1..] {
-            current = current.get(part)?.clone();
+            // 进入字符串字段时尝试自动解析 JSON，使深层导航可行
+            if let serde_json::Value::String(s) = &current {
+                match serde_json::from_str::<serde_json::Value>(s) {
+                    Ok(parsed) => current = parsed,
+                    Err(_) => {
+                        // 非 JSON 字符串无法继续导航（如纯文本 content），终止导航
+                        navigated = false;
+                        break;
+                    },
+                }
+            }
+            match current.get(part) {
+                Some(v) => current = v.clone(),
+                None => {
+                    navigated = false;
+                    break;
+                },
+            }
         }
-        return Some(current);
+        if navigated {
+            return Some(auto_parse_value(current));
+        }
     }
-    variables.get(path).cloned()
+    // fallback：整路径作为模板变量名直查（向后兼容）
+    variables.get(path).cloned().map(auto_parse_value)
+}
+
+/// 若值是合法 JSON 字符串，解析为对应的 `serde_json::Value`；否则原样返回。
+/// 用于 `resolve_var_path` 在导航过程中穿透 ToolNode 的 `result` / AgentNode 的
+/// `content` 字符串包裹，使结构化字段可被正确解析。
+fn auto_parse_value(v: serde_json::Value) -> serde_json::Value {
+    if let serde_json::Value::String(s) = &v {
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(s) {
+            return parsed;
+        }
+    }
+    v
 }

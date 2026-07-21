@@ -482,8 +482,8 @@ export function DataVendorsTab() {
                   checked={enabled}
                   onChange={(checked) => setVendorValues((prev) => ({ ...prev, [v.key]: checked }))}
                 />
-                <span className="font-medium text-sm">{t("acp.dataVendors0", { 0: v.name })}</span>
-                <span className="text-xs text-gray-400">{t("acp.dataVendors0", { 0: v.desc })}</span>
+                <span className="font-medium text-sm">{t("settings.dataVendors.name", { 0: v.name })}</span>
+                <span className="text-xs text-gray-400">{t("settings.dataVendors.name", { 0: v.desc })}</span>
                 <Tag
                   className="text-xs m-0"
                   color={status === "ok"
@@ -543,7 +543,7 @@ export function DataVendorsTab() {
                         message.info(t("stockAnalysis.settings.neodataRefreshHint"));
                       }}
                     >
-                      {t("acp.refreshNeodataButton")}
+                      {t("settings.dataVendors.refreshNeodata")}
                     </Button>
                   </>
                 )}
@@ -558,7 +558,7 @@ export function DataVendorsTab() {
               <Space wrap size={[2, 4]}>
                 {v.capabilities.map((cap) => (
                   <Tag key={cap} color="blue" className="text-xs m-0">
-                    {t("acp.capabilityLabels0", { 0: CAP_LABELS[cap] }) ?? cap}
+                    {t("settings.dataVendors.capabilityLabel", { 0: CAP_LABELS[cap] }) ?? cap}
                   </Tag>
                 ))}
               </Space>
@@ -571,12 +571,14 @@ export function DataVendorsTab() {
                   {v.helpUrl}
                 </a>
                 {v.helpText && (
-                  <span className="text-gray-400 ml-1">{t("acp.dataVendorHelp0", { 0: v.helpText })}</span>
+                  <span className="text-gray-400 ml-1">{t("settings.dataVendors.helpText", { 0: v.helpText })}</span>
                 )}
               </div>
             )}
             {v.helpText && !v.helpUrl && (
-              <div className="text-xs text-gray-400 mb-2">💡 {t("acp.dataVendorHelp0", { 0: v.helpText })}</div>
+              <div className="text-xs text-gray-400 mb-2">
+                💡 {t("settings.dataVendors.helpText", { 0: v.helpText })}
+              </div>
             )}
             {/* 固定工具 (🔧) + LLM 暴露工具 (🤖) */}
             {deps.length > 0 && (
@@ -589,7 +591,7 @@ export function DataVendorsTab() {
                     {fixedDeps.map((tr) => (
                       <div key={tr.tool} className="flex items-center gap-1 text-xs py-0.5">
                         <Tag color="default" className="text-xs m-0">{tr.tool}</Tag>
-                        <span className="text-gray-400">{t("acp.toolLabels0", { 0: tr.label })}</span>
+                        <span className="text-gray-400">{t("settings.dataVendors.toolLabel", { 0: tr.label })}</span>
                         <span className="text-gray-300">
                           {tr.vendors.map((vn, i) => (
                             <span key={vn}>
@@ -618,7 +620,7 @@ export function DataVendorsTab() {
                     {exposedDeps.map((tr) => (
                       <div key={tr.tool} className="flex items-center gap-1 text-xs py-0.5">
                         <Tag color="green" className="text-xs m-0">{tr.tool}</Tag>
-                        <span className="text-gray-400">{t("acp.toolLabels0", { 0: tr.label })}</span>
+                        <span className="text-gray-400">{t("settings.dataVendors.toolLabel", { 0: tr.label })}</span>
                         <span className="text-gray-300">
                           {tr.vendors.map((vn, i) => (
                             <span key={vn}>

@@ -1614,9 +1614,9 @@
     "yes": "はい",
     "zoomIn": "拡大",
     "zoomOut": "縮小",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results",
+    "inherit": "継承",
+    "more": "もっと見る",
+    "noResults": "結果なし",
     "comingSoon": "近日公開",
     "unknown": "不明",
     "workingDirectory": "作業ディレクトリ",
@@ -1628,9 +1628,6 @@
     "deleted": "削除済み",
     "required": "必須",
     "action": "アクション"
-    "inherit": "継承",
-    "more": "もっと見る",
-    "noResults": "結果なし"
   },
   "computerControl": {
     "auto": "自動",
@@ -2036,16 +2033,6 @@
     "versionAutoHint": "未指定の場合はパッチバージョンが自動的にインクリメントされます",
     "versionHistory": "バージョン履歴",
     "versionUpdatedAt": "作成日時",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
-    "subtitle": "動的UIコンポーネントの作成、管理、プレビュー（自然言語生成対応）",
-    "title": "動的UI管理"
     "import": "インポート",
     "importSuccess": "{{count}} 個のUIを正常にインポートしました",
     "importInvalid": "無効または空のスキーマファイル",
@@ -2053,7 +2040,9 @@
     "exportAll": "すべてエクスポート",
     "exportSuccess": "正常にエクスポートされました",
     "keyPlaceholder": "キー",
-    "valuePlaceholder": "値"
+    "valuePlaceholder": "値",
+    "subtitle": "動的UIコンポーネントの作成、管理、プレビュー（自然言語生成対応）",
+    "title": "動的UI管理"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} 個のエラー",
@@ -2075,7 +2064,6 @@
     "page": "エラー",
     "pageNotFound": "申し訳ありませんが、アクセスしたページは存在しません。",
     "saveFailed": "保存に失敗しました。もう一度お試しください",
-
     "unknown": "不明なエラー",
     "AGENT_CANCEL_FAILED": "エージェントのキャンセルに失敗しました",
     "AGENT_EXECUTION_ABORTED": "エージェントの実行が中断されました",
@@ -5126,7 +5114,7 @@
       "wechatModeCustomer": "カスタマーモード (ポーリング受信、実験的)",
       "wechatModeOfficial": "公式アカウントモード (Webhook 受信)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "ツールアクセス",
     "scheduled-recommendation": {
       "description": "定期的に推薦をスキャンし、設定された通知チャネルにプッシュします。",
       "tooltip-cron-dependency": "スケジュールされたタスクはアプリ起動中のみ実行されます。アプリを閉じると一時停止します。",
@@ -5213,7 +5201,6 @@
         "description": "カスタム戦略パック"
       }
     },
-
     "globalShortcut": "グローバルショートカット",
     "globalShortcutRegisterOk": "グローバルショートカット登録成功: {{count}} 件",
     "globalShortcutRegisterPartial": "グローバルショートカット登録結果: 成功 {{ok}} 件、失敗 {{fail}} 件",
@@ -5328,15 +5315,11 @@
       "builtin": "組み込みツール",
       "custom": "カスタム"
     },
-
     "appConfigDesc": "モデル選択、機能スイッチ、エージェント管理とフック設定",
-
     "knowledgeSettings": {
       "title": "ナレッジ"
     },
-
     "stockAnalysis": "Stock Analysis",
-    "toolAccess": "ツールアクセス",
     "providers": {
       "title": "プロバイダー"
     },
@@ -5398,13 +5381,12 @@
     "sectionInfrastructure": "インフラ",
     "sectionOverview": "概要",
     "sectionTools": "ツール",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "エージェントパネル",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "ワークスペース",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor"
-    "agentPanel": "エージェントパネル"
   },
   "skill": {
     "abTest": {
@@ -6026,7 +6008,6 @@
         "basic": "基本",
         "style": "スタイル"
       },
-      "title": "プロパティパネル"
       "title": "プロパティパネル",
       "field": "フィールド"
     }
@@ -6046,7 +6027,6 @@
     "sttProvider": "音声認識プロバイダー",
     "ttsProvider": "音声合成プロバイダー",
     "providerAuto": "自動（LLMと同じプロバイダーを使用）",
-
     "wakeup": "ボイスウェイク",
     "wakeupActive": "ウェイク監視中（クリックで停止）",
     "startCall": "音声通話を開始",
@@ -8292,7 +8272,7 @@
     "notePlaceholder": "メモを追加（任意）",
     "approver": "承認者"
   },
-  "cancel": "Cancel",
+  "cancel": "キャンセル",
   "browserMock": {
     "greeting": "こんにちは！何をお手伝いしましょうか？",
     "understandGoal": "目標を理解",
@@ -8319,7 +8299,6 @@
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "キャンセル",
   "searchUtils": {
     "highCredibility": "信頼性:高",
     "mediumCredibility": "信頼性:中"
@@ -8336,9 +8315,9 @@
     "temperature": "温度"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "実行",
+    "readonly": "読み取り専用",
+    "write": "書き込み"
   },
   "compare": {
     "title": "Stock Comparison"
@@ -8721,6 +8700,10 @@
     "offlineMode": "Offline mode",
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
+    "strength": "強度",
+    "bullStrength": "買い強度",
+    "bearStrength": "売り強度",
+    "finalStrength": "最終強度",
     "searchPlaceholder": "Enter stock code or name",
     "reportLanguageHint": "レポート出力言語：中国語または英語",
     "startAnalysis": "Start Analysis",
@@ -8854,7 +8837,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
     "bull": "Bull",
@@ -10940,7 +10924,9 @@
     "alert.conditionVolume": "📊 出来高増加",
     "alert.noHistory": "トリガー記録なし",
     "alert.activeTab": "アクティブ ({{count}})",
-    "alert.triggeredTab": "トリガー済み ({{count}})"
+    "alert.triggeredTab": "トリガー済み ({{count}})",
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "株式パイプライン",
@@ -11039,11 +11025,7 @@
       "riskLevel": "リスク",
       "expectedUpside": "予想上昇幅",
       "asOf": "現在日"
-    }
-  },
-  "collapseComparison": "比較を折りたたむ"
-    "execute": "実行",
-    "readonly": "読み取り専用",
-    "write": "書き込み"
+    },
+    "collapseComparison": "比較を折りたたむ"
   }
 }

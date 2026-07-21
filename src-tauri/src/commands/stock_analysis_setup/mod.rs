@@ -265,6 +265,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "sentiment-analyst",
         &[
+            "get_social_sentiment",
             "get_stock_news",
             "get_stock_money_flow",
             "get_stock_option_pcr",

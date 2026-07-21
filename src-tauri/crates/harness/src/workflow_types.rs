@@ -1769,6 +1769,12 @@ pub struct StepProgressEvent {
     /// 前端 Debug 面板无法显示具体失败原因（AxInvest #10 数据工具节点失败不可诊断）。
     /// 仅 failed/timeout 状态携带 Some，其余为 None（向后兼容）。
     pub error: Option<String>,
+    /// 节点输出（仅 completed 状态携带）。
+    /// 此前该字段缺失导致前端 `workflow-step-done` 事件无法实时获取节点输出，
+    /// 分析师卡片只能在工作流全部结束后由 `workflow-completed` 批量填充，
+    /// 无法实现"一边进行一边填充"（AxInvest 分析师 tab 实时性修复）。
+    /// running/failed/timeout 状态为 None（向后兼容）。
+    pub output: Option<serde_json::Value>,
 }
 
 /// 活跃执行摘要(仅内存运行态,用于可观测性 / 前端轮询)。

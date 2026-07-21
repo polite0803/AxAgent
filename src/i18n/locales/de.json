@@ -1614,9 +1614,9 @@
     "yes": "Ja",
     "zoomIn": "Vergrößern",
     "zoomOut": "Verkleinern",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results",
+    "inherit": "Vererben",
+    "more": "Mehr",
+    "noResults": "Keine Ergebnisse",
     "comingSoon": "Demnächst verfügbar",
     "unknown": "Unbekannt",
     "workingDirectory": "Arbeitsverzeichnis",
@@ -1628,9 +1628,6 @@
     "deleted": "Gelöscht",
     "required": "Erforderlich",
     "action": "Aktion"
-    "inherit": "Vererben",
-    "more": "Mehr",
-    "noResults": "Keine Ergebnisse"
   },
   "computerControl": {
     "auto": "Auto",
@@ -2036,16 +2033,6 @@
     "versionAutoHint": "Leer lassen, um die Patch-Version automatisch zu erhoehen",
     "versionHistory": "Versionsverlauf",
     "versionUpdatedAt": "Erstellungsdatum",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
-    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
-    "title": "Dynamic UI Manager"
     "import": "Importieren",
     "importSuccess": "{{count}} UI(s) erfolgreich importiert",
     "importInvalid": "Ungültige oder leere Schema-Datei",
@@ -2053,7 +2040,9 @@
     "exportAll": "Alle exportieren",
     "exportSuccess": "Erfolgreich exportiert",
     "keyPlaceholder": "Schlüssel",
-    "valuePlaceholder": "Wert"
+    "valuePlaceholder": "Wert",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "title": "Dynamic UI Manager"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} Fehler",
@@ -2075,7 +2064,6 @@
     "page": "Fehler",
     "pageNotFound": "Die aufgerufene Seite existiert leider nicht.",
     "saveFailed": "Speichern fehlgeschlagen, bitte erneut versuchen",
-
     "unknown": "Unbekannter Fehler",
     "AGENT_CANCEL_FAILED": "Abbrechen des Agents fehlgeschlagen",
     "AGENT_EXECUTION_ABORTED": "Agent-Ausführung abgebrochen",
@@ -5126,7 +5114,7 @@
       "wechatModeCustomer": "Kundenservice-Modus (Polling-Empfang, experimentell)",
       "wechatModeOfficial": "Offizieller-Konto-Modus (Webhook-Empfang)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "Tool-Zugriff",
     "scheduled-recommendation": {
       "description": "Empfehlungen regelmäßig scannen und an konfigurierte Benachrichtigungskanäle senden.",
       "tooltip-cron-dependency": "Geplante Aufgaben werden nur ausgeführt, während die App geöffnet ist; beim Schließen werden sie pausiert.",
@@ -5213,7 +5201,6 @@
         "description": "Benutzerdefiniertes Strategiepaket"
       }
     },
-
     "globalShortcut": "Globales Tastenkürzel",
     "globalShortcutRegisterOk": "Globale Tastenkürzel registriert: {{count}}",
     "globalShortcutRegisterPartial": "Globale Tastenkürzel-Registrierung: {{ok}} erfolgreich, {{fail}} fehlgeschlagen",
@@ -5328,15 +5315,11 @@
         "casual": "Lässig"
       }
     },
-
     "appConfigDesc": "Modellauswahl, Funktionsschalter, Agent-Verwaltung und Hook-Konfiguration",
-
     "knowledgeSettings": {
       "title": "Wissen"
     },
-
     "stockAnalysis": "Stock Analysis",
-    "toolAccess": "Tool-Zugriff",
     "providers": {
       "title": "Anbieter"
     },
@@ -5398,13 +5381,12 @@
     "sectionInfrastructure": "Infrastruktur",
     "sectionOverview": "Übersicht",
     "sectionTools": "Werkzeuge",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "Agent-Panel",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "Arbeitsbereich",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor"
-    "agentPanel": "Agent-Panel"
   },
   "skill": {
     "abTest": {
@@ -6026,7 +6008,6 @@
         "basic": "Basis",
         "style": "Stil"
       },
-      "title": "Property Panel"
       "title": "Eigenschaftenpanel",
       "field": "Feld"
     }
@@ -6046,7 +6027,6 @@
     "sttProvider": "STT-Anbieter",
     "ttsProvider": "TTS-Anbieter",
     "providerAuto": "Automatisch (gleicher LLM-Anbieter)",
-
     "wakeup": "Sprachaktivierung",
     "wakeupActive": "Wake-Listener aktiv (Klicken zum Stoppen)",
     "startCall": "Anruf starten",
@@ -8292,7 +8272,7 @@
     "notePlaceholder": "Notiz hinzufügen (optional)",
     "approver": "Genehmiger"
   },
-  "cancel": "Cancel",
+  "cancel": "Abbrechen",
   "browserMock": {
     "greeting": "Hallo! Womit kann ich Ihnen helfen?",
     "understandGoal": "Ziel verstehen",
@@ -8319,7 +8299,6 @@
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "Abbrechen",
   "searchUtils": {
     "highCredibility": "Hohe Glaubwürdigkeit",
     "mediumCredibility": "Mittlere Glaubwürdigkeit"
@@ -8336,9 +8315,9 @@
     "temperature": "Temperatur"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "Ausführen",
+    "readonly": "Schreibgeschützt",
+    "write": "Schreiben"
   },
   "compare": {
     "title": "Vergleich"
@@ -8721,6 +8700,10 @@
     "offlineMode": "Offline mode",
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
+    "strength": "Stärke",
+    "bullStrength": "Kaufstärke",
+    "bearStrength": "Verkaufsstärke",
+    "finalStrength": "Endgültige Stärke",
     "searchPlaceholder": "Enter stock code or name",
     "reportLanguageHint": "Berichtssprache: Chinesisch oder Englisch",
     "startAnalysis": "Start Analysis",
@@ -8854,7 +8837,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
     "bull": "Bull",
@@ -10940,7 +10924,9 @@
     "alert.conditionVolume": "📊 Volumenanstieg",
     "alert.noHistory": "Keine Auslöseaufzeichnungen",
     "alert.activeTab": "Aktiv ({{count}})",
-    "alert.triggeredTab": "Ausgelöst ({{count}})"
+    "alert.triggeredTab": "Ausgelöst ({{count}})",
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "Aktien-Pipeline",
@@ -11039,11 +11025,7 @@
       "riskLevel": "Risiko",
       "expectedUpside": "Erwartetes Kurspotenzial",
       "asOf": "Stand"
-    }
-  },
-  "collapseComparison": "Vergleich einklappen"
-    "execute": "Ausführen",
-    "readonly": "Schreibgeschützt",
-    "write": "Schreiben"
+    },
+    "collapseComparison": "Vergleich einklappen"
   }
 }

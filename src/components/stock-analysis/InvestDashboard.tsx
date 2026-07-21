@@ -22,6 +22,8 @@ interface RecentAnalysis {
   decisionAction: string | null;
   analysisDate: string;
   status: string;
+  /** 前端生成的唯一 key（stockCode+analysisDate+idx），用于 antd Table rowKey */
+  _uid?: string;
 }
 
 interface MarketRegimeInfo {
@@ -199,8 +201,8 @@ export function InvestDashboard() {
         >
           <Table
             size="small"
-            dataSource={recentAnalyses}
-            rowKey={(r) => `${r.stockCode}-${r.analysisDate}`}
+            dataSource={recentAnalyses.map((r, i) => ({ ...r, _uid: `${r.stockCode}-${r.analysisDate}-${i}` }))}
+            rowKey={(r) => r._uid ?? `${r.stockCode}-${r.analysisDate}`}
             pagination={false}
             showHeader={false}
             columns={[

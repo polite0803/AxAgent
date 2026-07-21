@@ -351,17 +351,17 @@ export function ReplaySweep() {
               })}
               value={`${result.valid} / ${result.invalid}`}
             />
-            <Statistic title={t("acp.acp.total01")} value={result.total} />
+            <Statistic title={t("timeTravel.sweep.total")} value={result.total} />
             <Statistic
-              title={t("acp.accuracy")}
+              title={t("timeTravel.sweep.accuracy")}
               value={(result.stats.accuracy * 100).toFixed(1) + "%"}
             />
             <Statistic
-              title={t("acp.alpha")}
+              title={t("timeTravel.sweep.alpha")}
               value={(result.stats.alpha * 100).toFixed(2) + "%"}
             />
             <Statistic
-              title={t("acp.sharpe")}
+              title={t("timeTravel.sweep.sharpe")}
               value={result.stats.sharpe.toFixed(2)}
             />
             <Space>

@@ -307,7 +307,9 @@ let anomaly_reason = if e_anomaly {
 // P: 基于所有有效事件贡献，用 tanh 归一化
 let p_normalized = if valid_event_count > 0 {
     // 使用 tanh 做 soft clamp，单个事件 ±3.0 贡献约映射到 ±0.995
-    let tanh_input = p_score / (valid_event_count as f64).max(1.0) / 1.5;
+    let count_f = valid_event_count * 1.0;
+    let denom = if count_f > 1.0 { count_f } else { 1.0 };
+    let tanh_input = p_score / denom / 1.5;
     let tanh_val = (tanh_input.exp() - (-tanh_input).exp()) / (tanh_input.exp() + (-tanh_input).exp());
     clamp(tanh_val * p_score.sign(), -1.0, 1.0)
 } else { 0.0 };

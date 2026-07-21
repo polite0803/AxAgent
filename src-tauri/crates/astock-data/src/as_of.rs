@@ -312,6 +312,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(asof)]
     async fn current_as_of_returns_value_inside_scope() {
         let _ = clear_global_asof();
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
@@ -395,6 +396,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(asof)]
     async fn cache_suffix_returns_live_outside_scope() {
         let _ = clear_global_asof();
         let s = cache_suffix();
@@ -436,6 +438,7 @@ mod tests {
     // 实时性方法在 as-of 模式下跳过时，必须把降级原因写入日志供 workflow 消费
 
     #[tokio::test]
+    #[serial(asof)]
     async fn record_degradation_ignored_in_live_mode() {
         let _ = clear_global_asof();
         record_degradation("vendor", "method", "test");
@@ -445,6 +448,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(asof)]
     async fn record_degradation_captures_entries_in_asof_scope() {
         let _ = clear_global_asof();
         let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
@@ -520,6 +524,7 @@ mod tests {
 
     /// RAII 守卫：早返回也必须恢复原值
     #[tokio::test]
+    #[serial(asof)]
     async fn raii_guard_restores_on_early_return() {
         let _ = clear_global_asof();
         let today = Local::now().date_naive();

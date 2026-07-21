@@ -329,9 +329,8 @@
     "name": "AxAgent",
     "newSkillProposal": "发现新的技能建议: {name}",
     "title": "智聊助手",
-    "quickBar": "QuickBar",
+    "quickBar": "快速栏",
     "description": "智能工作助手"
-    "quickBar": "快速栏"
   },
   "appHeader": {
     "closeAgentPanel": "关闭 Agent 面板",
@@ -1159,7 +1158,7 @@
     "yesterday": "昨天",
     "you": "你",
     "createConversationFailed": "创建对话失败",
-    "chatinspectorapproval0": "chat.inspector.approval{{0}}",
+    "chatinspectorapproval0": "审批{{0}}",
     "send": "发送",
     "welcomeSubtitle": "选择一个模型，开始你的 AI 对话之旅",
     "clearConversation": "清空对话",
@@ -1317,7 +1316,6 @@
     "yes": "是",
     "zoomIn": "放大",
     "zoomOut": "缩小"
-    "chatinspectorapproval0": "审批{{0}}"
   },
   "chatMarkdown": {
     "inputParams": "输入参数",
@@ -2112,16 +2110,14 @@
     "export": "导出",
     "exportAll": "导出全部",
     "exportSuccess": "导出成功",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
+    "keyPlaceholder": "键",
+    "valuePlaceholder": "值",
     "title": "动态UI管理",
     "subtitle": "创建、管理和预览动态UI组件，支持自然语言生成",
     "versionLoading": "加载版本历史...",
     "versionRequired": "新版本号必须高于当前版本",
     "versionInvalid": "版本号格式无效（应为 major.minor.patch）",
     "rollbackArchive": "回滚前存档（回滚到 {version})"
-    "keyPlaceholder": "键",
-    "valuePlaceholder": "值"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} 个错误",
@@ -3850,11 +3846,10 @@
     "modelId": "模型 ID",
     "modelIdRequired": "请输入模型 ID",
     "modelIdPlaceholder": "输入模型 ID",
-    "train": "训练"
-      "strategyOverwrite": "覆盖（全部替换）",
-      "strategyMerge": "合并（保留现有）",
-      "strategyDryRun": "试运行（仅验证）"
-    }
+    "train": "训练",
+    "strategyOverwrite": "覆盖（全部替换）",
+    "strategyMerge": "合并（保留现有）",
+    "strategyDryRun": "试运行（仅验证）"
   },
   "rlTrainingStore": {
     "saveCheckpoint": "保存 RL 检查点",
@@ -5329,7 +5324,7 @@
     "knowledgeSettings": {
       "title": "知识库"
     },
-    "stockAnalysis": "股票分析"
+    "stockAnalysis": "股票分析",
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "标记前缀（默认 CHAT2API，通常无需修改）"
   },
@@ -6050,9 +6045,8 @@
       "navigation": "导航"
     },
     "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏"
-      "field": "字段"
-    }
+    "exitFullscreen": "退出全屏",
+    "field": "字段"
   },
   "voice": {
     "connected": "已连接",
@@ -6072,10 +6066,7 @@
     "connectionLost": "语音连接已断开",
     "startCall": "开始语音通话",
     "wakeup": "语音唤醒",
-    "wakeupActive": "语音唤醒监听中",
-    "wakeup": "语音唤醒",
     "wakeupActive": "唤醒监听中（点击关闭）",
-    "startCall": "开始语音通话",
     "micNotFound": "未找到麦克风设备",
     "micInUse": "麦克风被其他应用占用",
     "micOverconstrained": "麦克风不满足约束条件",
@@ -9170,6 +9161,10 @@
     "offlineMode": "离线模式 (LLM Driver 未连接，占位数据)",
     "charCount": "{{count}} 字",
     "title": "股票分析",
+    "strength": "强度",
+    "bullStrength": "多方强度",
+    "bearStrength": "空方强度",
+    "finalStrength": "最终强度",
     "searchPlaceholder": "输入股票代码或名称",
     "parsedAs": "识别为",
     "reportLanguageHint": "报告输出语言：中文或英文",
@@ -9306,7 +9301,8 @@
       "counterArgument": "反驳预防",
       "unstructuredOutput": "LLM 输出为非结构化推理文本",
       "unstructuredDesc": "辩论节点未能产出 JSON 格式的结构化数据，原始输出为 LLM 内部推理过程，无法渲染。",
-      "parsedNoDisplay": "(原始数据已解析但无可用展示字段)"
+      "parsedNoDisplay": "(原始数据已解析但无可用展示字段)",
+      "title": "辩论总结"
     },
     "debateRound": "第{{round}}轮",
     "bull": "多方",
@@ -11310,7 +11306,9 @@
       "bear": "熊市",
       "flashCrash": "闪崩",
       "highVol": "高波动"
-    }
+    },
+    "round": "第",
+    "round2Responses": "逐条回应 R2 质询"
   },
   "pipeline": {
     "title": "股票管道",

@@ -218,6 +218,9 @@ let f3_signal = if f3_weight > 0.0 {
 // ── P1-7 修复: 确定性风险分类（优先算法，LLM 仅作 fallback）──
 // 基于 t-risk.stockRiskProfile 的量化指标做规则分类，结果覆盖 overall_risk，
 // 仅当 t-risk 数据完全缺失时才 fallback 到 cls-risk-level 的 LLM 分类。
+// 修复(2026-07-21): overall_risk 必须先 let 声明，否则后续 `overall_risk = ...`
+// 赋值会报 "Variable not found: overall_risk"（Rhai 不允许未声明变量直接赋值）
+let overall_risk = "中风险";  // 默认中风险，被算法/LLM/无数据分支覆盖
 let risk_source = "算法";  // "算法"/"LLM回退"/"无数据"
 let risk_classified = false;
 

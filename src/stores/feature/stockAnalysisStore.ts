@@ -4,6 +4,7 @@ import {
   extractDecision,
   extractLlmField,
   normalizeDecision,
+  parseJsonLoose,
   tryParseDecision,
 } from "@/lib/agentOutput";
 import { invoke, listen } from "@/lib/invoke";
@@ -944,7 +945,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     });
     if (record.decisionJson) {
       try {
-        const raw = JSON.parse(record.decisionJson);
+        // 宽松解析：decisionJson 也可能被 ```json 代码块包裹（与 llmDecisionJson 同源）。
+        const raw = parseJsonLoose(record.decisionJson) ?? JSON.parse(record.decisionJson);
         // normalizeDecision 可能返回 null：raw 是全零空壳（LLM 输出过短/解析残缺）。
         // null 不写入 store，让上层走 !decision 分支并在 UI 渲染"决策缺失"占位，
         // 避免 DecisionBanner 拿到全零对象静默不渲染。
@@ -956,6 +958,37 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             "[StockAnalysis] loadAnalysis decisionJson 全零空壳，跳过 set:",
             { analysisId: record.id, keys: Object.keys(raw) },
           );
+          // 兜底：formula 决策为空壳，但 llmDecisionJson 有真实决策时，
+          // 用 LLM 决策填充 store，避免 UI 永久显示"决策缺失"（方案 D 双向并存，
+          // 公式侧缺失时以 LLM 侧为准渲染）。
+          if (record.llmDecisionJson) {
+            const llmRaw = parseJsonLoose(record.llmDecisionJson);
+            const llmDecision = llmRaw ? normalizeDecision(llmRaw) : null;
+            if (llmDecision && llmRaw) {
+              // 二次兜底：trader 节点按设计只输出价格目标（trader.md 明确定义 schema
+              // 仅含 currentPrice/targetPrice/stopLoss/timeHorizon/expectedHoldingDays/
+              // confidence/reasoning），不含 action/positionPct。公式侧 portfolio-mgr
+              // 又返回空壳时，action 会被 normalizeDecision 退化为默认 WAIT（观望），
+              // 导致看空股被误显为"观望"。trader.md 第 101 行保证 reasoning 以
+              // `方向:看多|看空|中性` 开头，这里复用既有 parseAction 的 label 映射
+              // （"看空"→SELL/"看多"→BUY/"中性"→HOLD）从 reasoning 推导 action，
+              // 让横幅方向正确。positionPct 仍由公式侧计算，此处无数据则保持 0（未知）。
+              if (
+                (llmDecision.action === "WAIT" || !llmDecision.action)
+                && llmRaw.reasoning
+              ) {
+                const derived = parseAction(String(llmRaw.reasoning));
+                if (derived !== "WAIT") {
+                  llmDecision.action = derived;
+                }
+              }
+              console.warn(
+                "[StockAnalysis] loadAnalysis decisionJson 空壳，回退使用 llmDecisionJson 填充 decision",
+                { analysisId: record.id, derivedAction: llmDecision.action },
+              );
+              set({ decision: llmDecision });
+            }
+          }
         }
       } catch (e) {
         console.error("[StockAnalysis] Failed to parse decision JSON:", e);
@@ -975,7 +1008,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       // 2. 旧记录无此字段时，前端自行计算（从 action 而非 stance 读取）。
       try {
         // 优先取后端预计算的一致性分数
-        const djParsed = record.decisionJson ? JSON.parse(record.decisionJson) : null;
+        // 宽松解析：decisionJson 同样可能被 ```json 代码块包裹
+        const djParsed = record.decisionJson ? parseJsonLoose(record.decisionJson) : null;
         console.log("[loadAnalysis] djParsed.formulaLlmAgreement:", djParsed?.formulaLlmAgreement);
         if (djParsed?.formulaLlmAgreement != null) {
           decisionAgreementScore = Math.round(Number(djParsed.formulaLlmAgreement));

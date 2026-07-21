@@ -95,6 +95,8 @@ export interface QuantBacktestTrade {
   timestamp: string;
   reason: string;
   realizedPnl: number;
+  /** 前端生成的行 key，用于 antd Table rowKey（数据源无唯一业务字段时使用） */
+  _rowKey?: string;
 }
 
 // ── 回测订单 / 成交回报（与 Rust Order / Fill 对齐） ──

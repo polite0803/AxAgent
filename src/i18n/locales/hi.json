@@ -1614,9 +1614,9 @@
     "yes": "हाँ",
     "zoomIn": "ज़ूम इन",
     "zoomOut": "ज़ूम आउट",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results",
+    "inherit": "विरासत में लें",
+    "more": "अधिक",
+    "noResults": "कोई परिणाम नहीं",
     "comingSoon": "जल्द आ रहा है",
     "unknown": "अज्ञात",
     "workingDirectory": "कार्य निर्देशिका",
@@ -1628,9 +1628,6 @@
     "deleted": "हटाया गया",
     "required": "आवश्यक",
     "action": "कार्रवाई"
-    "inherit": "विरासत में लें",
-    "more": "अधिक",
-    "noResults": "कोई परिणाम नहीं"
   },
   "computerControl": {
     "auto": "स्वतः",
@@ -2036,16 +2033,6 @@
     "versionAutoHint": "pach sanskaran ko svachalit roop se badhane ke liye khali chhoden",
     "versionHistory": "sanskaran itihas",
     "versionUpdatedAt": "nirman samay",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
-    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
-    "title": "Dynamic UI Manager"
     "import": "आयात",
     "importSuccess": "{{count}} UI(s) सफलतापूर्वक आयात किए गए",
     "importInvalid": "अमान्य या खाली स्कीमा फ़ाइल",
@@ -2053,7 +2040,9 @@
     "exportAll": "सभी निर्यात करें",
     "exportSuccess": "सफलतापूर्वक निर्यात किया गया",
     "keyPlaceholder": "कुंजी",
-    "valuePlaceholder": "मान"
+    "valuePlaceholder": "मान",
+    "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
+    "title": "Dynamic UI Manager"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} त्रुटियाँ",
@@ -2075,7 +2064,6 @@
     "page": "त्रुटि",
     "pageNotFound": "क्षमा करें, आपके द्वारा देखा गया पृष्ठ मौजूद नहीं है।",
     "saveFailed": "सहेजने में विफल, कृपया पुनः प्रयास करें",
-
     "unknown": "अज्ञात त्रुटि",
     "AGENT_CANCEL_FAILED": "एजेंट रद्द करने में विफल",
     "AGENT_EXECUTION_ABORTED": "एजेंट निष्पादन निरस्त",
@@ -2766,15 +2754,15 @@
     "detail": "विवरण",
     "edges": "किनारे",
     "entities": "इकाइयाँ",
-    "emptyDescription": "No data yet. Complete tasks to generate learning graph",
-    "insights": "Insights",
-    "lexicalOverlap": "Related",
-    "memories": "Memories",
-    "refresh": "Refresh",
-    "searchPlaceholder": "Search nodes...",
-    "skills": "Skills",
-    "title": "Learning Graph",
-    "useCount": "Use count: {count}",
+    "emptyDescription": "अभी तक कोई डेटा नहीं। लर्निंग ग्राफ उत्पन्न करने के लिए कार्य पूर्ण करें",
+    "insights": "अंतर्दृष्टि",
+    "lexicalOverlap": "संबंधित",
+    "memories": "यादें",
+    "refresh": "ताज़ा करें",
+    "searchPlaceholder": "नोड्स खोजें...",
+    "skills": "कौशल",
+    "title": "लर्निंग ग्राफ",
+    "useCount": "उपयोग गणना: {count}",
     "stockAnalysis": {
       "configDescriptions": {
         "ruleRsiOverbought": "RSI overbought threshold",
@@ -3139,15 +3127,6 @@
     "stockAnalysis.configDescriptions.limitUpThMed": "Limit up threshold medium",
     "stockAnalysis.configDescriptions.limitUpThLow": "Limit up threshold low",
     "stockAnalysis.configDescriptions.analysisDryRun": "Analysis dry run"
-    "emptyDescription": "अभी तक कोई डेटा नहीं। लर्निंग ग्राफ उत्पन्न करने के लिए कार्य पूर्ण करें",
-    "insights": "अंतर्दृष्टि",
-    "lexicalOverlap": "संबंधित",
-    "memories": "यादें",
-    "refresh": "ताज़ा करें",
-    "searchPlaceholder": "नोड्स खोजें...",
-    "skills": "कौशल",
-    "title": "लर्निंग ग्राफ",
-    "useCount": "उपयोग गणना: {count}"
   },
   "link": {
     "actions": "कार्रवाई",
@@ -5135,7 +5114,7 @@
       "wechatModeCustomer": "ग्राहक सेवा मोड (पोलिंग रिसीव, प्रायोगिक)",
       "wechatModeOfficial": "आधिकारिक खाता मोड (Webhook रिसीव)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "उपकरण पहुँच",
     "scheduled-recommendation": {
       "description": "सिफारिशों को समय-समय पर स्कैन करें और कॉन्फ़िगर किए गए सूचना चैनलों पर भेजें।",
       "tooltip-cron-dependency": "शेड्यूल किए गए कार्य केवल ऐप खुला होने पर चलते हैं; ऐप बंद करने पर रुक जाते हैं।",
@@ -5222,7 +5201,6 @@
         "description": "कस्टम रणनीति पैक"
       }
     },
-
     "globalShortcut": "वैश्विक शॉर्टकट",
     "globalShortcutRegisterOk": "वैश्विक शॉर्टकट पंजीकृत: {{count}}",
     "globalShortcutRegisterPartial": "वैश्विक शॉर्टकट पंजीकरण: {{ok}} सफल, {{fail}} विफल",
@@ -5337,15 +5315,11 @@
         "casual": "आकस्मिक"
       }
     },
-
     "appConfigDesc": "मॉडल चयन, फ़ीचर स्विच, एजेंट प्रबंधन और हुक कॉन्फ़िगरेशन",
-
     "knowledgeSettings": {
       "title": "ज्ञान"
     },
-
     "stockAnalysis": "Stock Analysis",
-    "toolAccess": "उपकरण पहुँच",
     "providers": {
       "title": "प्रदाता"
     },
@@ -5407,13 +5381,12 @@
     "sectionInfrastructure": "बुनियादी ढांचा",
     "sectionOverview": "अवलोकन",
     "sectionTools": "उपकरण",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "एजेंट पैनल",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "वर्कस्पेस",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor"
-    "agentPanel": "एजेंट पैनल"
   },
   "skill": {
     "abTest": {
@@ -6035,7 +6008,6 @@
         "basic": "मूल",
         "style": "शैली"
       },
-      "title": "Property Panel"
       "title": "गुण पैनल",
       "field": "क्षेत्र"
     }
@@ -6055,7 +6027,6 @@
     "sttProvider": "STT प्रदाता",
     "ttsProvider": "TTS प्रदाता",
     "providerAuto": "स्वचालित (उसी LLM प्रदाता का उपयोग करें)",
-
     "wakeup": "वॉइस वेक",
     "wakeupActive": "वेक सुन रहा है (रोकने के लिए क्लिक करें)",
     "startCall": "वॉइस कॉल शुरू करें",
@@ -8301,7 +8272,7 @@
     "notePlaceholder": "एक नोट जोड़ें (वैकल्पिक)",
     "approver": "अनुमोदक"
   },
-  "cancel": "Cancel",
+  "cancel": "रद्द करें",
   "browserMock": {
     "greeting": "नमस्ते! मैं आपकी कैसे मदद कर सकता हूँ?",
     "understandGoal": "लक्ष्य समझें",
@@ -8328,7 +8299,6 @@
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "रद्द करें",
   "searchUtils": {
     "highCredibility": "उच्च विश्वसनीयता",
     "mediumCredibility": "मध्यम विश्वसनीयता"
@@ -8345,9 +8315,9 @@
     "temperature": "तापमान"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "निष्पादित करें",
+    "readonly": "केवल पढ़ने योग्य",
+    "write": "लिखें"
   },
   "compare": {
     "title": "तुलना"
@@ -8730,6 +8700,10 @@
     "offlineMode": "Offline mode",
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
+    "strength": "ताकत",
+    "bullStrength": "बैल ताकत",
+    "bearStrength": "बेयर ताकत",
+    "finalStrength": "अंतिम ताकत",
     "searchPlaceholder": "Enter stock code or name",
     "reportLanguageHint": "रिपोर्ट आउटपुट भाषा: चीनी या अंग्रेज़ी",
     "startAnalysis": "Start Analysis",
@@ -8863,7 +8837,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
     "bull": "Bull",
@@ -10949,7 +10924,9 @@
     "alert.conditionVolume": "📊 मात्रा में वृद्धि",
     "alert.noHistory": "अभी कोई ट्रिगर रिकॉर्ड नहीं",
     "alert.activeTab": "सक्रिय ({{count}})",
-    "alert.triggeredTab": "ट्रिगर किया गया ({{count}})"
+    "alert.triggeredTab": "ट्रिगर किया गया ({{count}})",
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "स्टॉक पाइपलाइन",
@@ -11048,11 +11025,7 @@
       "riskLevel": "जोखिम",
       "expectedUpside": "अपेक्षित वृद्धि",
       "asOf": "तिथि तक"
-    }
-  },
-  "collapseComparison": "तुलना छुपाएं"
-    "execute": "निष्पादित करें",
-    "readonly": "केवल पढ़ने योग्य",
-    "write": "लिखें"
+    },
+    "collapseComparison": "तुलना छुपाएं"
   }
 }

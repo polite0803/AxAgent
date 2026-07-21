@@ -1,7 +1,8 @@
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { ScheduledAnalysisPanel } from "@/components/stock-analysis/ScheduledAnalysisPanel";
 import { invoke } from "@/lib/invoke";
-import { Button, Card, Col, message, Modal, Row, Spin, Statistic, Table, Tag } from "antd";
-import { BarChart3, Plus, RefreshCw, Trash2, TrendingDown, TrendingUp, Upload, Wallet } from "lucide-react";
+import { Button, Card, Col, message, Modal, Row, Spin, Statistic, Table, Tabs, Tag } from "antd";
+import { BarChart3, Calendar, Plus, RefreshCw, Trash2, TrendingDown, TrendingUp, Upload, Wallet } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +23,47 @@ interface Holding {
 
 /** 组合跟踪看板 — 借鉴 TradingAgents tracking board 设计 */
 export function PortfolioDashboard() {
+  const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<"holdings" | "scheduled">("holdings");
+
+  return (
+    <PageErrorBoundary title={t("stockAnalysis.page.portfolioDashboard")}>
+      <div className="flex h-full flex-col">
+        <Tabs
+          activeKey={activeTab}
+          onChange={(k) => setActiveTab(k as "holdings" | "scheduled")}
+          size="small"
+          className="portfolio-tabs"
+          items={[
+            {
+              key: "holdings",
+              label: (
+                <span className="flex items-center gap-1">
+                  <Wallet size={14} />
+                  {t("portfolio.title")}
+                </span>
+              ),
+              children: <HoldingsTab />,
+            },
+            {
+              key: "scheduled",
+              label: (
+                <span className="flex items-center gap-1">
+                  <Calendar size={14} />
+                  {t("stockAnalysis.scheduledAnalysis.title")}
+                </span>
+              ),
+              children: <ScheduledAnalysisPanel />,
+            },
+          ]}
+        />
+      </div>
+    </PageErrorBoundary>
+  );
+}
+
+/** 持仓视图 — 原 PortfolioDashboard 主体逻辑 */
+function HoldingsTab() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -103,7 +145,7 @@ export function PortfolioDashboard() {
         } else {
           // 部分失败时给出明细，让用户知道哪些成功、哪些失败
           message.warning(
-            t("acp.importPartial", { ok: ok.length, failed: failed.length }),
+            t("stockAnalysis.portfolio.importPartial", { ok: ok.length, failed: failed.length }),
           );
           console.warn("[PortfolioDashboard] VLM 导入部分失败:", failed);
         }
@@ -227,149 +269,147 @@ export function PortfolioDashboard() {
   ];
 
   return (
-    <PageErrorBoundary title={t("stockAnalysis.page.portfolioDashboard")}>
-      <div className="flex h-full flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--color-border)" }}>
-          <div className="flex items-center gap-3">
-            <Wallet size={20} />
-            <h2 className="text-base font-semibold m-0">{t("portfolio.title")}</h2>
-            <Tag>{holdings.length} {t("portfolio.holdings")}</Tag>
-          </div>
-          <div className="flex gap-2">
-            <Button icon={<Upload size={14} />} size="small" onClick={() => setVlmModalOpen(true)}>
-              {t("portfolio.vlmImport")}
-            </Button>
-            <Button icon={<Plus size={14} />} size="small" onClick={() => setImportModalOpen(true)}>
-              {t("portfolio.manualImport")}
-            </Button>
-            <Button icon={<RefreshCw size={14} />} size="small" loading={loading} onClick={loadHoldings}>
-              {t("common.refresh")}
-            </Button>
-          </div>
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--color-border)" }}>
+        <div className="flex items-center gap-3">
+          <Wallet size={20} />
+          <h2 className="text-base font-semibold m-0">{t("portfolio.title")}</h2>
+          <Tag>{holdings.length} {t("portfolio.holdings")}</Tag>
         </div>
-
-        {/* Summary */}
-        <div className="p-4">
-          <Row gutter={16}>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic
-                  title={t("portfolio.totalMarketValue")}
-                  value={totalMarketValue}
-                  precision={2}
-                  prefix="¥"
-                  valueStyle={{ fontSize: 18 }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic
-                  title={t("portfolio.totalPnl")}
-                  value={totalPnl}
-                  precision={2}
-                  prefix={totalPnl >= 0
-                    ? <TrendingUp size={16} className="text-red-500" />
-                    : <TrendingDown size={16} className="text-green-500" />}
-                  suffix={`(${totalPnlPct >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%)`}
-                  valueStyle={{ color: totalPnl >= 0 ? "var(--color-up)" : "var(--color-down)", fontSize: 18 }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic
-                  title={t("portfolio.totalCost")}
-                  value={totalCost}
-                  precision={2}
-                  prefix="¥"
-                  valueStyle={{ fontSize: 18 }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic
-                  title={t("portfolio.holdings")}
-                  value={holdings.length}
-                  prefix={<BarChart3 size={16} />}
-                  valueStyle={{ fontSize: 18 }}
-                />
-              </Card>
-            </Col>
-          </Row>
+        <div className="flex gap-2">
+          <Button icon={<Upload size={14} />} size="small" onClick={() => setVlmModalOpen(true)}>
+            {t("portfolio.vlmImport")}
+          </Button>
+          <Button icon={<Plus size={14} />} size="small" onClick={() => setImportModalOpen(true)}>
+            {t("portfolio.manualImport")}
+          </Button>
+          <Button icon={<RefreshCw size={14} />} size="small" loading={loading} onClick={loadHoldings}>
+            {t("common.refresh")}
+          </Button>
         </div>
-
-        {/* Holdings table */}
-        <div className="flex-1 px-4 overflow-auto pb-4">
-          <Spin spinning={loading}>
-            <Table
-              dataSource={holdings}
-              columns={columns}
-              rowKey="id"
-              pagination={false}
-              size="small"
-              className="portfolio-table"
-            />
-          </Spin>
-        </div>
-
-        {/* Manual import modal */}
-        <Modal
-          title={t("portfolio.manualImport")}
-          open={importModalOpen}
-          onCancel={() => setImportModalOpen(false)}
-          onOk={handleManualImport}
-          confirmLoading={importLoading}
-          okText={t("common.import")}
-        >
-          <p className="text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
-            {t("portfolio.importHint")}
-          </p>
-          <textarea
-            className="w-full border rounded p-2 text-sm font-mono"
-            rows={8}
-            placeholder={t("portfolio.importPlaceholder")}
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-            style={{ background: "var(--color-bg)", color: "var(--color-text)", borderColor: "var(--color-border)" }}
-          />
-        </Modal>
-
-        {/* VLM import modal */}
-        <Modal
-          title={t("portfolio.vlmImport")}
-          open={vlmModalOpen}
-          onCancel={() => setVlmModalOpen(false)}
-          onOk={handleVlmImport}
-          confirmLoading={importLoading}
-          okText={t("common.import")}
-        >
-          <p className="text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
-            {t("portfolio.vlmHint")}
-          </p>
-          <textarea
-            className="w-full border rounded p-2 text-sm"
-            rows={8}
-            placeholder={t("portfolio.vlmPlaceholder")}
-            value={vlmRaw}
-            onChange={(e) => setVlmRaw(e.target.value)}
-            style={{ background: "var(--color-bg)", color: "var(--color-text)", borderColor: "var(--color-border)" }}
-          />
-          {vlmResult.length > 0 && (
-            <div className="mt-2">
-              <p className="text-sm font-medium">{t("portfolio.preview")}:</p>
-              {vlmResult.map((h, i) => (
-                <div key={i} className="text-xs py-1">
-                  {h.stockName} ({h.stockCode}) — {h.shares.toLocaleString()}
-                  {t("acp.sharesUnit")} @ ¥{h.avgCost.toFixed(2)}
-                </div>
-              ))}
-            </div>
-          )}
-        </Modal>
       </div>
-    </PageErrorBoundary>
+
+      {/* Summary */}
+      <div className="p-4">
+        <Row gutter={16}>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title={t("portfolio.totalMarketValue")}
+                value={totalMarketValue}
+                precision={2}
+                prefix="¥"
+                valueStyle={{ fontSize: 18 }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title={t("portfolio.totalPnl")}
+                value={totalPnl}
+                precision={2}
+                prefix={totalPnl >= 0
+                  ? <TrendingUp size={16} className="text-red-500" />
+                  : <TrendingDown size={16} className="text-green-500" />}
+                suffix={`(${totalPnlPct >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%)`}
+                valueStyle={{ color: totalPnl >= 0 ? "var(--color-up)" : "var(--color-down)", fontSize: 18 }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title={t("portfolio.totalCost")}
+                value={totalCost}
+                precision={2}
+                prefix="¥"
+                valueStyle={{ fontSize: 18 }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small">
+              <Statistic
+                title={t("portfolio.holdings")}
+                value={holdings.length}
+                prefix={<BarChart3 size={16} />}
+                valueStyle={{ fontSize: 18 }}
+              />
+            </Card>
+          </Col>
+        </Row>
+      </div>
+
+      {/* Holdings table */}
+      <div className="flex-1 px-4 overflow-auto pb-4">
+        <Spin spinning={loading}>
+          <Table
+            dataSource={holdings}
+            columns={columns}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            className="portfolio-table"
+          />
+        </Spin>
+      </div>
+
+      {/* Manual import modal */}
+      <Modal
+        title={t("portfolio.manualImport")}
+        open={importModalOpen}
+        onCancel={() => setImportModalOpen(false)}
+        onOk={handleManualImport}
+        confirmLoading={importLoading}
+        okText={t("common.import")}
+      >
+        <p className="text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
+          {t("portfolio.importHint")}
+        </p>
+        <textarea
+          className="w-full border rounded p-2 text-sm font-mono"
+          rows={8}
+          placeholder={t("portfolio.importPlaceholder")}
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+          style={{ background: "var(--color-bg)", color: "var(--color-text)", borderColor: "var(--color-border)" }}
+        />
+      </Modal>
+
+      {/* VLM import modal */}
+      <Modal
+        title={t("portfolio.vlmImport")}
+        open={vlmModalOpen}
+        onCancel={() => setVlmModalOpen(false)}
+        onOk={handleVlmImport}
+        confirmLoading={importLoading}
+        okText={t("common.import")}
+      >
+        <p className="text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
+          {t("portfolio.vlmHint")}
+        </p>
+        <textarea
+          className="w-full border rounded p-2 text-sm"
+          rows={8}
+          placeholder={t("portfolio.vlmPlaceholder")}
+          value={vlmRaw}
+          onChange={(e) => setVlmRaw(e.target.value)}
+          style={{ background: "var(--color-bg)", color: "var(--color-text)", borderColor: "var(--color-border)" }}
+        />
+        {vlmResult.length > 0 && (
+          <div className="mt-2">
+            <p className="text-sm font-medium">{t("portfolio.preview")}:</p>
+            {vlmResult.map((h, i) => (
+              <div key={i} className="text-xs py-1">
+                {h.stockName} ({h.stockCode}) — {h.shares.toLocaleString()}
+                {t("stockAnalysis.sharesUnit")} @ ¥{h.avgCost.toFixed(2)}
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+    </div>
   );
 }

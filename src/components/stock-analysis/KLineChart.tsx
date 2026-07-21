@@ -456,7 +456,7 @@ export function KLineChart() {
               color: "#7c3aed",
               border: "1px solid rgba(124,58,237,0.35)",
             }}
-            title={t("acp.replayBadgeTooltip", { date: asOfDate })}
+            title={t("timeTravel.badge.replayTooltip", { date: asOfDate })}
           >
             ⏪ {t("timeTravel.pageAnchor.untilDate", { date: asOfDate })}
           </span>

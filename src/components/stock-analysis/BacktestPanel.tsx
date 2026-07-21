@@ -109,7 +109,7 @@ export function BacktestPanel() {
           className="!text-xs !mb-2"
           message={
             <span className="text-xs">
-              {t("acp.backtestHint", { date: asOfDate })}
+              {t("stockAnalysis.backtest.backtestHint", { date: asOfDate })}
             </span>
           }
         />

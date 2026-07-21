@@ -1614,9 +1614,9 @@
     "yes": "예",
     "zoomIn": "확대",
     "zoomOut": "축소",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results",
+    "inherit": "상속",
+    "more": "더 보기",
+    "noResults": "결과 없음",
     "comingSoon": "출시 예정",
     "unknown": "알 수 없음",
     "workingDirectory": "작업 디렉터리",
@@ -1628,9 +1628,6 @@
     "deleted": "삭제됨",
     "required": "필수",
     "action": "액션"
-    "inherit": "상속",
-    "more": "더 보기",
-    "noResults": "결과 없음"
   },
   "computerControl": {
     "auto": "자동",
@@ -2036,16 +2033,6 @@
     "versionAutoHint": "지정하지 않으면 패치 버전이 자동으로 증가합니다",
     "versionHistory": "버전 기록",
     "versionUpdatedAt": "생성 시간",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value",
-    "subtitle": "NL 생성 지원으로 동적 UI 구성 요소 생성, 관리 및 미리보기",
-    "title": "동적 UI 관리"
     "import": "가져오기",
     "importSuccess": "{{count}}개의 UI를 성공적으로 가져왔습니다",
     "importInvalid": "스키마 파일이 유효하지 않거나 비어 있습니다",
@@ -2053,7 +2040,9 @@
     "exportAll": "모두 내보내기",
     "exportSuccess": "내보내기 성공",
     "keyPlaceholder": "키",
-    "valuePlaceholder": "값"
+    "valuePlaceholder": "값",
+    "subtitle": "NL 생성 지원으로 동적 UI 구성 요소 생성, 관리 및 미리보기",
+    "title": "동적 UI 관리"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}}개의 오류",
@@ -2075,7 +2064,6 @@
     "page": "오류",
     "pageNotFound": "죄송합니다, 방문하신 페이지가 존재하지 않습니다.",
     "saveFailed": "저장에 실패했습니다. 다시 시도하세요",
-
     "unknown": "알 수 없는 오류",
     "AGENT_CANCEL_FAILED": "에이전트 취소에 실패했습니다",
     "AGENT_EXECUTION_ABORTED": "에이전트 실행이 중단되었습니다",
@@ -5126,7 +5114,7 @@
       "wechatModeCustomer": "고객 서비스 모드(폴링 수신, 실험적)",
       "wechatModeOfficial": "공식 계정 모드(Webhook 수신)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "도구 접근",
     "scheduled-recommendation": {
       "description": "정기적으로 추천을 스캔하여 구성된 알림 채널로 푸시합니다.",
       "tooltip-cron-dependency": "예약된 작업은 앱이 열려 있는 동안에만 실행됩니다. 앱을 닫으면 일시정지됩니다.",
@@ -5213,7 +5201,6 @@
         "description": "사용자 정의 전략 팩"
       }
     },
-
     "globalShortcut": "전역 단축키",
     "globalShortcutRegisterOk": "전역 단축키 등록됨: {{count}}",
     "globalShortcutRegisterPartial": "전역 단축키 등록: {{ok}} 성공, {{fail}} 실패",
@@ -5328,15 +5315,11 @@
         "casual": "일상체"
       }
     },
-
     "appConfigDesc": "모델 선택, 기능 스위치, 에이전트 관리 및 Hook 구성",
-
     "knowledgeSettings": {
       "title": "지식"
     },
-
     "stockAnalysis": "Stock Analysis",
-    "toolAccess": "도구 접근",
     "providers": {
       "title": "공급자"
     },
@@ -5398,13 +5381,12 @@
     "sectionInfrastructure": "인프라",
     "sectionOverview": "개요",
     "sectionTools": "도구",
-    "agentPanel": "Agent Panel",
+    "agentPanel": "에이전트 패널",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "워크스페이스",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
     "sectionInvestMonitor": "Monitor"
-    "agentPanel": "에이전트 패널"
   },
   "skill": {
     "abTest": {
@@ -6026,7 +6008,6 @@
         "basic": "기본",
         "style": "스타일"
       },
-      "title": "Property Panel"
       "title": "속성 패널",
       "field": "필드"
     }
@@ -6046,7 +6027,6 @@
     "sttProvider": "음성 인식 공급자",
     "ttsProvider": "음성 합성 공급자",
     "providerAuto": "자동 (LLM과 동일 공급자 사용)",
-
     "wakeup": "음성 웨이크",
     "wakeupActive": "웨이크 수신 대기 중 (클릭하여 중지)",
     "startCall": "음성 통화 시작",
@@ -8292,7 +8272,7 @@
     "notePlaceholder": "메모 추가 (선택 사항)",
     "approver": "승인자"
   },
-  "cancel": "Cancel",
+  "cancel": "취소",
   "browserMock": {
     "greeting": "안녕하세요! 무엇을 도와드릴까요?",
     "understandGoal": "목표 이해",
@@ -8319,7 +8299,6 @@
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "취소",
   "searchUtils": {
     "highCredibility": "신뢰도 높음",
     "mediumCredibility": "신뢰도 중간"
@@ -8336,9 +8315,9 @@
     "temperature": "온도"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "실행",
+    "readonly": "읽기 전용",
+    "write": "쓰기"
   },
   "compare": {
     "title": "비교 분석"
@@ -8721,6 +8700,10 @@
     "offlineMode": "Offline mode",
     "charCount": "{{count}} chars",
     "title": "Stock Analysis",
+    "strength": "강도",
+    "bullStrength": "매도 강도",
+    "bearStrength": "매수 강도",
+    "finalStrength": "최종 강도",
     "searchPlaceholder": "Enter stock code or name",
     "reportLanguageHint": "보고서 출력 언어: 중국어 또는 영어",
     "startAnalysis": "Start Analysis",
@@ -8854,7 +8837,8 @@
       "counterArgument": "Counter Argument",
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
-      "parsedNoDisplay": "(Parsed but no displayable fields)"
+      "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
     "bull": "Bull",
@@ -10940,7 +10924,9 @@
     "alert.conditionVolume": "📊 거래량 증가",
     "alert.noHistory": "트리거 기록 없음",
     "alert.activeTab": "활성 ({{count}})",
-    "alert.triggeredTab": "트리거됨 ({{count}})"
+    "alert.triggeredTab": "트리거됨 ({{count}})",
+    "round": "Round ",
+    "round2Responses": "R2 Responses"
   },
   "pipeline": {
     "title": "주식 파이프라인",
@@ -11039,11 +11025,7 @@
       "riskLevel": "위험",
       "expectedUpside": "예상 상승폭",
       "asOf": "기준일"
-    }
-  },
-  "collapseComparison": "비교 접기"
-    "execute": "실행",
-    "readonly": "읽기 전용",
-    "write": "쓰기"
+    },
+    "collapseComparison": "비교 접기"
   }
 }

@@ -4482,8 +4482,98 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   overflow-y: auto;
 }
 .sa-markdown-content {
-  line-height: 1.65;
+  /* 统一基础字号：分析师卡片、辩论卡片、RiskMatrix、DecisionBanner 均走 13px */
+  /* 显式定义子元素字号，避免继承混乱导致 h1/h2 也只有 13px 失去层级 */
   font-size: 13px;
+  line-height: 1.65;
+  color: var(--color-text-base, inherit);
+  word-break: break-word;
+}
+.sa-markdown-content h1,
+.sa-markdown-content h2,
+.sa-markdown-content h3,
+.sa-markdown-content h4,
+.sa-markdown-content h5,
+.sa-markdown-content h6 {
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.6em 0 0.4em;
+}
+.sa-markdown-content h1 { font-size: 16px; }
+.sa-markdown-content h2 { font-size: 15px; }
+.sa-markdown-content h3 { font-size: 14px; }
+.sa-markdown-content h4 { font-size: 13px; }
+.sa-markdown-content h5 { font-size: 12px; }
+.sa-markdown-content h6 { font-size: 12px; }
+.sa-markdown-content p {
+  margin: 0.4em 0;
+}
+.sa-markdown-content ul,
+.sa-markdown-content ol {
+  margin: 0.4em 0;
+  padding-left: 1.4em;
+}
+.sa-markdown-content li {
+  margin: 0.15em 0;
+}
+.sa-markdown-content blockquote {
+  margin: 0.5em 0;
+  padding: 4px 10px;
+  border-left: 3px solid var(--border, #d9d9d9);
+  color: var(--muted, #6b7280);
+  background: var(--surface, rgba(0, 0, 0, 0.02));
+}
+.sa-markdown-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--surface, rgba(0, 0, 0, 0.04));
+}
+.sa-markdown-content pre {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--surface, rgba(0, 0, 0, 0.04));
+  overflow-x: auto;
+}
+.sa-markdown-content pre code {
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+}
+.sa-markdown-content table {
+  border-collapse: collapse;
+  margin: 0.4em 0;
+  font-size: inherit;
+}
+.sa-markdown-content th,
+.sa-markdown-content td {
+  border: 1px solid var(--border, #d9d9d9);
+  padding: 4px 8px;
+  text-align: left;
+}
+.sa-markdown-content th {
+  font-weight: 600;
+  background: var(--surface, rgba(0, 0, 0, 0.02));
+}
+.sa-markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--border, #d9d9d9);
+  margin: 0.8em 0;
+}
+.sa-markdown-content a {
+  color: var(--ant-color-link, #1677ff);
+  text-decoration: none;
+}
+.sa-markdown-content a:hover {
+  text-decoration: underline;
+}
+.sa-markdown-content strong {
+  font-weight: 600;
+}
+.sa-markdown-content em {
+  font-style: italic;
 }
 .sa-settings-inline {
   display: flex;

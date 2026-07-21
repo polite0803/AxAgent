@@ -739,7 +739,7 @@ export function WhatIfBacktest() {
                 {result.decisionTrail && result.decisionTrail.length > 0 && (
                   <div className="mt-2">
                     <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
-                      {t("acp.decisionTrail") ?? t("stockAnalysis.whatIf.decisionTrail")}
+                      {t("stockAnalysis.whatIf.decisionTrail")}
                     </div>
                     <div className="space-y-0.5">
                       {result.decisionTrail.map((t, i) => (
@@ -767,7 +767,7 @@ export function WhatIfBacktest() {
                 {/* 技术面否决详情 */}
                 {result.technicalVeto?.vetoed && (
                   <div className="mt-2 px-2 py-1.5 bg-red-900/20 rounded text-[11px] text-red-400">
-                    ⛔ {t("acp.technicalVeto")}: {result.technicalVeto.ruleId ?? ""}
+                    ⛔ {t("stockAnalysis.whatIf.technicalVeto")}: {result.technicalVeto.ruleId ?? ""}
                     {result.technicalVeto.reason ? ` — ${result.technicalVeto.reason}` : ""}
                   </div>
                 )}
@@ -776,21 +776,21 @@ export function WhatIfBacktest() {
                 {result.simulationGate?.vetoed && (
                   <div className="mt-2">
                     <div className="px-2 py-1.5 bg-amber-900/20 rounded text-[11px] text-amber-400">
-                      🏭 {t("acp.simulationGate")} {result.simulationGate.ruleId ?? ""}:
+                      🏭 {t("stockAnalysis.whatIf.simulationGate")} {result.simulationGate.ruleId ?? ""}:
                       {result.simulationGate.reason ? ` ${result.simulationGate.reason}` : ""}
                     </div>
                     {result.preSimAction && (
                       <div className="mt-1 px-2 py-1 text-[10px] text-gray-500">
-                        {t("acp.preSimulationDecision")}: {result.preSimAction}
+                        {t("stockAnalysis.whatIf.preSimulationDecision")}: {result.preSimAction}
                         {result.preSimPositionPct != null ? ` @ ${result.preSimPositionPct}%` : ""}
                         {result.simulationGate.simStability != null
-                          ? ` | ${t("acp.stability")} ${result.simulationGate.simStability}`
+                          ? ` | ${t("stockAnalysis.whatIf.stability")} ${result.simulationGate.simStability}`
                           : ""}
                         {result.simulationGate.simLiquidity != null
-                          ? ` | ${t("acp.liquidity")} ${result.simulationGate.simLiquidity}`
+                          ? ` | ${t("stockAnalysis.whatIf.liquidity")} ${result.simulationGate.simLiquidity}`
                           : ""}
                         {result.simulationGate.simImpact != null
-                          ? ` | ${t("acp.impact")} ${result.simulationGate.simImpact}bps`
+                          ? ` | ${t("stockAnalysis.whatIf.impact")} ${result.simulationGate.simImpact}bps`
                           : ""}
                       </div>
                     )}
