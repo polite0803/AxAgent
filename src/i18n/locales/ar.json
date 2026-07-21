@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "متقدم"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "بادئة العلامة (الافتراضية CHAT2API، عادةً لا حاجة للتعديل)"
   },
   "settingsPage": {
     "refreshPage": "تحديث الصفحة"

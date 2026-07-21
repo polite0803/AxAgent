@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "उन्नत"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "मार्कर प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधन की आवश्यकता नहीं)"
   },
   "settingsPage": {
     "refreshPage": "पृष्ठ रीफ़्रेश करें"

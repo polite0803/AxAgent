@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "詳細設定"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常変更不要）"
   },
   "settingsPage": {
     "refreshPage": "ページを更新"

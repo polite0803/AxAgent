@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "Расширенные"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Префикс маркера (по умолчанию CHAT2API, обычно не нужно изменять)"
   },
   "settingsPage": {
     "refreshPage": "Обновить страницу"

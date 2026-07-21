@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "高級"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "標記前綴（預設 CHAT2API，通常無需修改）"
   },
   "settingsPage": {
     "refreshPage": "刷新頁面"

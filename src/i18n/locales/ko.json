@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "고급"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 보통 수정 불필요)"
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"

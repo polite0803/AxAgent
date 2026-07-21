@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "高级"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "标记前缀（默认 CHAT2API，通常无需修改）"
   },
   "settingsPage": {
     "refreshPage": "刷新页面"

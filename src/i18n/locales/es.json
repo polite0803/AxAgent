@@ -4566,7 +4566,9 @@
     },
     "advanced": {
       "title": "Avanzado"
-    }
+    },
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Prefijo de marcador (predeterminado: CHAT2API, generalmente no es necesario modificar)"
   },
   "settingsPage": {
     "refreshPage": "Actualizar página"
