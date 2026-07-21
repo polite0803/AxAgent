@@ -116,10 +116,11 @@
       "fullAccess": "Full Access"
     },
     "permissionStrategy": "Permission Strategy",
-    "privacyControl": "Privacy Control",
     "resourceControl": "Resource Control & Eco Strategy",
     "retryDelay": "Retry Delay (seconds)",
     "shellConfirm": "Shell Confirm",
+    "tokenBudgetLimit": "Token Budget Limit",
+    "warningBuffer": "Warning Buffer (token)",
     "telemetryLevel": {
       "full": "Full",
       "minimal": "Minimal",
@@ -127,8 +128,7 @@
     },
     "telemetryLevelHint": "AxAgent collects no telemetry by default. \"Minimal\" records only user-behavior events (for session tracing); \"Full\" additionally logs HTTP request details (URL, status, etc.). Changes take effect immediately.",
     "telemetryLevelLabel": "Telemetry Level",
-    "tokenBudgetLimit": "Token Budget Limit",
-    "warningBuffer": "Warning Buffer (token)"
+    "privacyControl": "Privacy Control"
   },
   "agent": {
     "answerSubmitted": "Answer submitted",
@@ -5285,8 +5285,6 @@
     },
     "zhipu": "Zhipu",
     "groupVoice": "Voice",
-    "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)",
     "platform": {
       "activeSessions": "Active Sessions",
       "apiServerPort": "API Server Port",
@@ -5300,6 +5298,8 @@
       "enableApiServer": "Enable API Server",
       "generalSettings": "General Settings",
       "lastActivity": "Last Active",
+      "markerPrefixDesc": "Marker prefix (default CHAT2API, usually no need to modify)",
+      "markerPrefixPlaceholder": "CHAT2API",
       "maxHistoryPerSession": "Max History Per Session",
       "noStatuses": "No Connection Status",
       "placeholder": {
@@ -5567,6 +5567,8 @@
       "title": "Knowledge"
     },
     "stockAnalysis": "Stock Analysis"
+    "markerPrefixPlaceholder": "CHAT2API",
+    "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
