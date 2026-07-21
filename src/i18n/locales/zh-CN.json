@@ -303,7 +303,7 @@
     "name": "AxAgent",
     "newSkillProposal": "发现新的技能建议: {name}",
     "title": "智聊助手",
-    "quickBar": "QuickBar"
+    "quickBar": "快速栏"
   },
   "appHeader": {
     "closeAgentPanel": "关闭 Agent 面板",
@@ -1108,16 +1108,16 @@
         "failed": "已失败",
         "partiallyCompleted": "部分完成",
         "running": "运行中",
-        "strategyOverwrite": "Overwrite (replace all)",
-        "strategyMerge": "Merge (keep existing)",
-        "strategyDryRun": "Dry run (validate only)"
+        "strategyOverwrite": "覆盖（全部替换）",
+        "strategyMerge": "合并（保留现有）",
+        "strategyDryRun": "试运行（仅验证）"
       }
     },
     "workflowLabel": "工作流",
     "yesterday": "昨天",
     "you": "你",
     "createConversationFailed": "创建对话失败",
-    "chatinspectorapproval0": "chat.inspector.approval{{0}}"
+    "chatinspectorapproval0": "审批{{0}}"
   },
   "chatMarkdown": {
     "inputParams": "输入参数",
@@ -1127,7 +1127,7 @@
   },
   "chatPage": {
     "loading": "加载中…",
-    "resizeHandle": "resize handle"
+    "resizeHandle": "调整大小手柄"
   },
   "chatRightPanel": {
     "agent": "智能体",
@@ -1184,7 +1184,7 @@
     "active": "已激活",
     "browse": "浏览云端",
     "browserTitle": "云端目录浏览器",
-    "bucketPlaceholder": "my-bucket",
+    "bucketPlaceholder": "我的存储桶",
     "bucketRequired": "请输入 Bucket 名称",
     "cacheDir": "缓存目录",
     "chineseProviders": "国内服务商",
@@ -1832,8 +1832,8 @@
     "export": "导出",
     "exportAll": "导出全部",
     "exportSuccess": "导出成功",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value"
+    "keyPlaceholder": "键",
+    "valuePlaceholder": "值"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}} 个错误",
@@ -2524,7 +2524,7 @@
     "replicateApiTokenPlaceholder": "r8_...",
     "title": "图像生成",
     "generatedImageTitle": "## AI 生成的图片",
-    "duration": "**Duration**",
+    "duration": "**时长**",
     "savedToArtifact": "已保存到产物"
   },
   "input": {
@@ -3297,9 +3297,9 @@
       "idle": "空闲",
       "paused": "已暂停",
       "running": "训练中",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
+      "strategyOverwrite": "覆盖（全部替换）",
+      "strategyMerge": "合并（保留现有）",
+      "strategyDryRun": "试运行（仅验证）"
     }
   },
   "rlTrainingStore": {
@@ -3342,7 +3342,7 @@
     "bocha": "博查",
     "tavily": "Tavily",
     "zhipu": "智谱",
-    "apiKey": "API Key"
+    "apiKey": "API 密钥"
   },
   "settings": {
     "activeProfile": "当前配置",
@@ -3532,7 +3532,7 @@
       "deleteConfirm": "删除此定时任务？",
       "namePlaceholder": "每日摘要",
       "platform": "平台（可选）",
-      "platformPlaceholder": "telegram / discord / web",
+      "platformPlaceholder": "Telegram / Discord / Web",
       "promptPlaceholder": "生成每日收件箱摘要",
       "schedule": "计划（cron 表达式）",
       "schedulePlaceholder": "0 9 * * *",
@@ -3996,7 +3996,7 @@
       "editFailed": "编辑失败",
       "emptyContent": "（空）",
       "nameLabel": "名称",
-      "namePlaceholder": "my-persona",
+      "namePlaceholder": "我的角色",
       "noPersona": "暂无人格",
       "personaList": "人格列表",
       "save": "保存",
@@ -4491,8 +4491,6 @@
     },
     "zhipu": "智谱",
     "groupVoice": "语音",
-    "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）",
     "platform": {
       "activeSessions": "活跃会话数",
       "apiServerPort": "API Server 端口",
@@ -4506,6 +4504,8 @@
       "enableApiServer": "启用 API Server",
       "generalSettings": "通用设置",
       "lastActivity": "最后活跃",
+      "markerPrefixDesc": "Marker 前缀（默认 CHAT2API，通常无需修改）",
+      "markerPrefixPlaceholder": "CHAT2API",
       "maxHistoryPerSession": "单会话最大历史消息数",
       "noStatuses": "暂无连接状态",
       "placeholder": {
@@ -5213,7 +5213,7 @@
         "style": "样式"
       },
       "title": "属性面板",
-      "field": "field"
+      "field": "字段"
     }
   },
   "voice": {
@@ -7198,10 +7198,10 @@
     "workflowSavedAsNew": "工作流已另存为新技能",
     "workflowUpdated": "工作流已更新",
     "app": {
-      "quickBar": "QuickBar"
+      "quickBar": "快速栏"
     },
     "searchProvider": {
-      "apiKey": "API Key"
+      "apiKey": "API 密钥"
     },
     "dynamicUI": {
       "uiSchemaJson": "UI Schema JSON"
@@ -7233,7 +7233,7 @@
       "optimizing": "优化中...",
       "optimizeBtn": "优化提示词",
       "optimizedResult": "优化结果",
-      "copy": "Copy",
+      "copy": "复制",
       "tabRecommend": "推荐节点",
       "describeContext": "描述工作流上下文和目标",
       "recommendPlaceholder": "示例：我正在构建一个自动化测试工作流...",
@@ -7381,16 +7381,16 @@
     "containersExpanded": "容器已全部展开",
     "debugPanel": "调试面板",
     "thisnestingsuffixmpmgp": "),this.nestingSuffix=m?p(m):g||p(",
-    "nestingsuffix": ",nestingSuffix:",
+    "nestingsuffix": ",嵌套后缀：",
     "ellipsis": "...",
-    "ok": "ok",
+    "ok": "确定",
     "foo": "foo"
   },
   "voiceChat": {
     "noTicket": "无可用的票据，请重新开始。"
   },
   "chatSidebar": {
-    "menu": "Menu"
+    "menu": "菜单"
   },
   "inputArea": {
     "uploadFile": "上传文件"

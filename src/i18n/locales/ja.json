@@ -49,11 +49,11 @@
     "unknownStoreOp": "不明なストア操作：{{operation}}",
     "unknownType": "不明なアクションタイプ：\"{{type}}\"、有効なタイプ：{{validTypes}}",
     "unregisteredAction": "未登録のアクションタイプ：{{type}}",
-    "emitMissingNamespace": "Emit action missing namespace",
-    "emitReservedEvent": "Emit uses reserved event name",
-    "navigatePathTraversal": "Navigation path contains path traversal",
-    "storeGetSelectorInvalid": "Store get selector invalid",
-    "storeSetPayloadInvalid": "Store set payload invalid"
+    "emitMissingNamespace": "Emitアクションに名前空間がありません",
+    "emitReservedEvent": "Emitが予約済みのイベント名を使用しています",
+    "navigatePathTraversal": "ナビゲーションパスにパストラバーサルが含まれています",
+    "storeGetSelectorInvalid": "Store getセレクターが無効です",
+    "storeSetPayloadInvalid": "Store setペイロードが無効です"
   },
   "advanced": {
     "bashSecurity": "Bashセキュリティ",
@@ -185,48 +185,48 @@
   },
   "agentPanel": {
     "chatDefaultTitle": "エージェントチャット",
-    "chatEmptyHint": "Send a message to start chatting",
-    "chatInputPlaceholder": "Type a message...",
-    "chatNewConversation": "New Conversation",
-    "chatStartHint": "Start a new Agent conversation",
-    "closePanel": "Close Panel",
+    "chatEmptyHint": "メッセージを送信してチャットを開始",
+    "chatInputPlaceholder": "メッセージを入力...",
+    "chatNewConversation": "新しい会話",
+    "chatStartHint": "新しいエージェント会話を開始",
+    "closePanel": "パネルを閉じる",
     "executionComingSoon": "Execution tracing coming soon",
-    "expandFullPanel": "Expand to Full Panel",
-    "globalMode": "Global Mode",
-    "miniMode": "Mini Mode",
-    "miniPanelComingSoon": "Chat features coming soon",
+    "expandFullPanel": "フルパネルに展開",
+    "globalMode": "グローバルモード",
+    "miniMode": "ミニモード",
+    "miniPanelComingSoon": "チャット機能は近日公開",
     "miniPanelTitle": "エージェントミニパネル",
-    "newChat": "New Chat",
+    "newChat": "新しいチャット",
     "nlGen": {
-      "applySkillFailed": "Failed to apply skill",
-      "applySkillSuccess": "Skill applied successfully",
-      "applyUIFailed": "Failed to save UI schema",
-      "applyUISuccess": "UI schema saved successfully",
-      "defaultUITitle": "Generated UI",
+      "applySkillFailed": "スキルの適用に失敗しました",
+      "applySkillSuccess": "スキルが正常に適用されました",
+      "applyUIFailed": "UIスキーマの保存に失敗しました",
+      "applyUISuccess": "UIスキーマが正常に保存されました",
+      "defaultUITitle": "生成されたUI",
       "emptyHint": "Enter description and click Generate",
       "generate": "生成",
       "generateFailed": "Generation failed",
       "skillPlaceholder": "Describe the skill you need",
-      "skillTypeAutomation": "Automation",
-      "skillTypeChat": "Chat",
+      "skillTypeAutomation": "自動化",
+      "skillTypeChat": "チャット",
       "skillTypeTool": "ツール",
-      "skillTypeWorkflow": "Workflow",
+      "skillTypeWorkflow": "ワークフロー",
       "uiPlaceholder": "Describe the UI you need",
       "uiTypeCustom": "カスタム",
       "uiTypeDashboard": "ダッシュボード",
       "uiTypeForm": "フォーム",
-      "uiTypeReport": "Report",
+      "uiTypeReport": "レポート",
       "uiTypeSettings": "設定"
     },
-    "openMiniPanel": "Open Agent Mini Panel",
-    "openPanel": "Open AxAgent Panel",
+    "openMiniPanel": "エージェントミニパネルを開く",
+    "openPanel": "AxAgentパネルを開く",
     "panelTitle": "エージェント",
     "skillComingSoon": "Skill management coming soon",
     "tabs": {
-      "chat": "Chat",
-      "execution": "Execution",
-      "nlGeneration": "NL Gen",
-      "skill": "Skills"
+      "chat": "チャット",
+      "execution": "実行",
+      "nlGeneration": "NL生成",
+      "skill": "スキル"
     }
   },
   "agentPool": {
@@ -245,8 +245,8 @@
     "summary": "エージェントプール ({completed}/{total})",
     "type": {
       "step": "ステップ",
-      "subAgent": "Sub-Agent",
-      "worker": "Worker"
+      "subAgent": "サブエージェント",
+      "worker": "ワーカー"
     },
     "viewSubSession": "サブセッションを表示"
   },
@@ -258,7 +258,7 @@
     "importSkipped": "スキップ {{count}}、エラー {{errors}}: {{detail}}",
     "importSuccess": "{{count}} ロールをインポートしました",
     "none": "なし",
-    "saveSuccess": "Profile saved"
+    "saveSuccess": "プロファイルを保存しました"
   },
   "businessRole": {
     "activeDomains": "アクティブドメイン",
@@ -303,17 +303,17 @@
     "name": "AxAgent",
     "newSkillProposal": "新しいスキル提案: {name}",
     "title": "スマートワークスペース",
-    "quickBar": "QuickBar"
+    "quickBar": "クイックバー"
   },
   "appHeader": {
-    "closeAgentPanel": "Close Agent Panel",
+    "closeAgentPanel": "エージェントパネルを閉じる",
     "dashboardContext": "システユ概要",
     "filesContext": "ファイル",
     "gatewayContext": "ゲートウェイ",
     "knowledgeContext": "ナレッジ",
-    "openAgentPanel": "Open Agent Panel",
+    "openAgentPanel": "エージェントパネルを開く",
     "terminalContext": "ターミナル",
-    "agentPanel": "Agent Panel"
+    "agentPanel": "エージェントパネル"
   },
   "appInit": {
     "applyConfig": "設定を適用中...",
@@ -486,7 +486,7 @@
       "chaos": "混沌",
       "debugging": "デバッグ",
       "patience": "忍耐",
-      "snark": "毒舌",
+      "snark": "スナーク",
       "wisdom": "知恵"
     },
     "attributes": "属性",
@@ -654,7 +654,7 @@
         "readWrite": "読み書き",
         "retrieves": "検索",
         "searches": "検索",
-        "uses": "使用"
+        "uses": "使用数"
       },
       "empty": "コンテキストソースが有効になっていません",
       "hideType": "クリックして非表示",
@@ -976,7 +976,7 @@
         "noElements": "要素が見つかりません",
         "screenshot": "スクリーンショット",
         "static": "静的",
-        "title": "UI 分析",
+        "title": "UI分析",
         "types": "タイプ"
       },
       "uploadImage": "クリックまたはドラッグして画像をアップロード"
@@ -990,7 +990,7 @@
     },
     "workflow": {
       "agentProfileAdvanced": "詳細オプション",
-      "agentProfileAgency": "外部",
+      "agentProfileAgency": "エージェンシー",
       "agentProfileAutoRole": "自動推論",
       "agentProfileBuiltin": "組み込み",
       "agentProfileBusiness": "ビジネス",
@@ -1108,9 +1108,9 @@
         "failed": "失敗",
         "partiallyCompleted": "部分完了",
         "running": "実行中",
-        "strategyOverwrite": "Overwrite (replace all)",
-        "strategyMerge": "Merge (keep existing)",
-        "strategyDryRun": "Dry run (validate only)"
+        "strategyOverwrite": "上書き（すべて置換）",
+        "strategyMerge": "マージ（既存を保持）",
+        "strategyDryRun": "ドライラン（検証のみ）"
       }
     },
     "workflowLabel": "ワークフロー",
@@ -1127,7 +1127,7 @@
   },
   "chatPage": {
     "loading": "読み込み中...",
-    "resizeHandle": "resize handle"
+    "resizeHandle": "リサイズハンドル"
   },
   "chatRightPanel": {
     "agent": "エージェント",
@@ -1180,7 +1180,7 @@
   },
   "cloudWorkspace": {
     "accessKeyRequired": "アクセスキーを入力してください",
-    "actions": "操作",
+    "actions": "アクション",
     "active": "アクティブ",
     "browse": "クラウドを閲覧",
     "browserTitle": "クラウドディレクトリブラウザ",
@@ -1298,7 +1298,7 @@
     "stopGeneration": "生成を停止"
   },
   "common": {
-    "actions": "操作",
+    "actions": "アクション",
     "active": "有効",
     "add": "追加",
     "affectedPaths": "影響を受けるパス",
@@ -1353,7 +1353,7 @@
     "increase": "増やす",
     "input": "入力",
     "key": "キー",
-    "lambda": "λ (TD)",
+    "lambda": "Lambda",
     "learnAboutPermissions": "権限について",
     "loading": "読み込み中...",
     "minimize": "最小化",
@@ -1418,9 +1418,9 @@
     "yes": "はい",
     "zoomIn": "拡大",
     "zoomOut": "縮小",
-    "inherit": "Inherit",
-    "more": "More",
-    "noResults": "No results"
+    "inherit": "継承",
+    "more": "もっと見る",
+    "noResults": "結果なし"
   },
   "computerControl": {
     "auto": "自動",
@@ -1429,7 +1429,7 @@
     "clickSuccess": "クリックしました ({{x}}, {{y}})",
     "coordOps": "座標操作",
     "coordinates": "座標",
-    "down": "下",
+    "down": "ダウン",
     "executeClick": "クリック実行",
     "findElement": "要素を検索",
     "foundElements": "{{count}} 要素を発見",
@@ -1443,7 +1443,7 @@
     "typeComplete": "入力完了",
     "typePlaceholder": "テキストを入力",
     "unnamed": "(名前なし)",
-    "up": "上"
+    "up": "アップ"
   },
   "constants": {
     "language": {
@@ -1541,10 +1541,10 @@
     "usageTrend": "日次使用量トレンド"
   },
   "dataBinding": {
-    "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
-    "apiRequestFailed": "API request failed: {{statusText}}",
-    "storeNotRegistered": "Store \"{{storeName}}\" not registered",
-    "unknownSourceType": "Unknown data source type: {{type}}"
+    "agentDataNotFound": "エージェント生成データ \"{{generationId}}\" が実行ストアに見つかりません",
+    "apiRequestFailed": "APIリクエスト失敗: {{statusText}}",
+    "storeNotRegistered": "ストア \"{{storeName}}\" は登録されていません",
+    "unknownSourceType": "不明なデータソースタイプ: {{type}}"
   },
   "datasetManager": {
     "action": "アクション",
@@ -1684,7 +1684,7 @@
     "timeToFirstToken": "最初のトークン時間",
     "timeline": "タイムライン",
     "timelineView": "タイムラインビュー（{{count}}スパン）",
-    "tokenDistribution": "Token 分布",
+    "tokenDistribution": "トークン分布",
     "toolRecommender": {
       "taskPlaceholder": "タスクを記述（例：'Rust プログラミングに関する情報を検索してファイルに書き込みたい'）"
     },
@@ -1752,7 +1752,7 @@
     "unregisteredComponent": "未登録コンポーネント: {{type}}",
     "unsupportedChartType": "サポートされていないチャートタイプ: {{type}}",
     "schemaNotFound": "動的ページが見つかりません",
-    "uiSchemaJson": "UI Schema JSON"
+    "uiSchemaJson": "UIスキーマJSON"
   },
   "dynamicUIManager": {
     "addChild": "子を追加",
@@ -1779,14 +1779,14 @@
       "dateLabel": "日付",
       "formSubmit": "送信",
       "inputLabel": "入力",
-      "inputPlaceholder": "Please enter",
+      "inputPlaceholder": "入力してください",
       "numberLabel": "数値",
       "radioLabel": "ラジオ",
       "selectLabel": "選択",
       "switchLabel": "スイッチ",
       "tagText": "タグ",
       "textContent": "テキスト",
-      "textareaLabel": "Textarea"
+      "textareaLabel": "テキストエリア"
     },
     "deleteSuccess": "削除成功",
     "descPlaceholder": "UIの説明を入力",
@@ -1821,22 +1821,22 @@
     "tagsPlaceholder": "タグを入力してEnter",
     "titlePlaceholder": "UIタイトルを入力",
     "titleRequired": "タイトルを入力してください",
-    "updateSuccess": "更新成功",
+    "updateSuccess": "正常に更新されました",
     "version": "バージョン",
     "versionAutoHint": "未指定の場合はパッチバージョンが自動的にインクリメントされます",
     "versionHistory": "バージョン履歴",
     "versionUpdatedAt": "作成日時",
-    "import": "Import",
-    "importSuccess": "Imported {{count}} UI(s) successfully",
-    "importInvalid": "Invalid or empty schema file",
-    "export": "Export",
-    "exportAll": "Export All",
-    "exportSuccess": "Exported successfully",
-    "keyPlaceholder": "key",
-    "valuePlaceholder": "value"
+    "import": "インポート",
+    "importSuccess": "{{count}} 個のUIを正常にインポートしました",
+    "importInvalid": "無効または空のスキーマファイル",
+    "export": "エクスポート",
+    "exportAll": "すべてエクスポート",
+    "exportSuccess": "正常にエクスポートされました",
+    "keyPlaceholder": "キー",
+    "valuePlaceholder": "値"
   },
   "dynamicUIPreview": {
-    "errorsCount": "{{count}} errors",
+    "errorsCount": "{{count}} 個のエラー",
     "jsonParseError": "JSON解析エラー",
     "livePreview": "ライブプレビュー",
     "parseErrorCantValidate": "JSON解析エラー、検証できません",
@@ -2100,40 +2100,40 @@
   "evolution": {
     "engines": {
       "auto_tool_creator": {
-        "desc": "Learns from frequent execution patterns and automatically creates new reusable tools",
-        "name": "Auto Tool Creator"
+        "desc": "頻繁な実行パターンから学習し、新しい再利用可能なツールを自動的に作成します",
+        "name": "自動ツール作成機能"
       },
       "coevolution": {
-        "desc": "Multi-agent coevolution environment that promotes cross-agent knowledge sharing and competition",
-        "name": "Coevolution Environment"
+        "desc": "エージェント間の知識共有と競争を促進するマルチエージェント共進化環境",
+        "name": "共進化環境"
       },
       "constitution": {
-        "desc": "Rules system that constrains agent behavior to ensure safety and compliance",
-        "name": "Constitution Engine"
+        "desc": "エージェントの動作を制約し、安全性とコンプライアンスを確保するルールシステム",
+        "name": "憲法エンジン"
       },
       "dream_consolidator": {
-        "desc": "Memory consolidation mechanism analogous to human REM sleep, optimizing knowledge representation offline",
-        "name": "Dream Consolidator"
+        "desc": "人間のレム睡眠に類似した記憶統合メカニズムで、オフラインで知識表現を最適化します",
+        "name": "夢の統合機"
       },
       "intrinsic_motivation": {
-        "desc": "Self-driven learning system that simulates human curiosity-driven exploration behavior",
-        "name": "Intrinsic Motivation System"
+        "desc": "人間の好奇心駆動型探索行動を模倣した自己駆動学習システム",
+        "name": "内発的動機付けシステム"
       },
       "process_reward": {
-        "desc": "Evaluates intermediate step quality rather than only final results, providing fine-grained feedback signals",
-        "name": "Process Reward Model"
+        "desc": "最終結果だけでなく中間ステップの品質も評価し、細かいフィードバック信号を提供します",
+        "name": "プロセス報酬モデル"
       },
       "sandbox": {
-        "desc": "Securely executes untrusted code in an isolated environment to prevent system damage",
-        "name": "Sandbox Executor"
+        "desc": "信頼できないコードを隔離環境で安全に実行し、システムへの損害を防ぎます",
+        "name": "サンドボックス実行環境"
       },
       "skill_evolution": {
-        "desc": "Automatically evolves skill prompts and tool-calling strategies based on execution feedback",
-        "name": "Skill Evolution Engine"
+        "desc": "実行フィードバックに基づいてスキルプロンプトとツール呼び出し戦略を自動的に進化させます",
+        "name": "スキル進化エンジン"
       },
       "text_grad": {
-        "desc": "Textual gradient optimization engine, analogous to gradient descent but for text prompt optimization",
-        "name": "TextGrad Optimizer"
+        "desc": "勾配降下法に類似したテキストプロンプト最適化のためのテキスト勾配最適化エンジン",
+        "name": "TextGrad最適化機能"
       }
     }
   },
@@ -2150,7 +2150,7 @@
     "design": "デザイン",
     "development": "開発",
     "devops": "DevOps",
-    "finance": "Finance",
+    "finance": "財務",
     "general": "全般",
     "security": "セキュリティ",
     "writing": "執筆"
@@ -2523,9 +2523,9 @@
     "replicateApiToken": "Replicate APIトークン",
     "replicateApiTokenPlaceholder": "r8_...",
     "title": "画像生成",
-    "generatedImageTitle": "## AI Generated Image",
-    "duration": "**Duration**",
-    "savedToArtifact": "Saved to Artifact"
+    "generatedImageTitle": "## AI生成画像",
+    "duration": "**期間**",
+    "savedToArtifact": "アーティファクトに保存"
   },
   "input": {
     "recordAudio": "音声を録音",
@@ -2544,7 +2544,7 @@
     "edges": "関連",
     "entities": "エンティティ",
     "emptyDescription": "データがありません。タスクを完了すると学習グラフが生成されます",
-    "insights": "洞察",
+    "insights": "インサイト",
     "lexicalOverlap": "関連",
     "memories": "記憶",
     "refresh": "更新",
@@ -2554,7 +2554,7 @@
     "useCount": "使用回数: {count}"
   },
   "link": {
-    "actions": "操作",
+    "actions": "アクション",
     "addFailed": "ゲートウェイ接続の追加に失敗しました",
     "addGateway": "ゲートウェイ接続を追加",
     "addSuccess": "ゲートウェイ接続を追加しました",
@@ -2650,7 +2650,7 @@
     "rank": "ランク",
     "reset": "リセット"
   },
-  "markdown": "Markdown",
+  "markdown": "マークダウン",
   "marketplace": {
     "allReviews": "すべてのレビュー",
     "author": "作成者",
@@ -2732,7 +2732,7 @@
     "snooze15": "後で通知（15 分）",
     "snooze30": "後で通知（30 分）",
     "snooze1h": "後で通知（1 時間）",
-    "snooze": "Snooze"
+    "snooze": "スヌーズ"
   },
   "onboarding": {
     "done": "完了",
@@ -2931,7 +2931,7 @@
     }
   },
   "promptTemplate": {
-    "unnamed": "Unnamed"
+    "unnamed": "無名"
   },
   "promptTemplates": {
     "abTest": "A/B テスト",
@@ -3102,7 +3102,7 @@
     },
     "generatedInsights": "生成されたインサイト",
     "goalCompletionScore": "目標達成",
-    "good": "良好",
+    "good": "良い",
     "improvementSuggestions": "改善提案",
     "iterationEfficiencyScore": "イテレーション効率",
     "knowledgeSuggestions": "ナレッジ提案",
@@ -3127,8 +3127,8 @@
       "insightSection": "インサイト設定",
       "maxHistory": "最大履歴数",
       "maxHistoryHint": "最新のN件のリフレクション履歴を保持",
-      "maxInsights": "Max Insights",
-      "maxInsightsHint": "Keep at most N insight records",
+      "maxInsights": "最大インサイト",
+      "maxInsightsHint": "最大N件のインサイトレコードを保持",
       "qualitySection": "品質閾値",
       "qualityThreshold": "品質閾値",
       "qualityThresholdHint": "この閾値以下のインサイトはフィルタリングされます",
@@ -3182,7 +3182,7 @@
     "noReport": "レポートがありません",
     "noSummary": "概要なし",
     "preview": "プレビュー",
-    "references": "参考文献",
+    "references": "参照",
     "startNewResearch": "新規研究",
     "summary": "概要"
   },
@@ -3247,20 +3247,20 @@
     "failedToSubmit": "送信失敗",
     "ratingRequired": "評価を選択してください",
     "submittedSuccess": "送信成功",
-    "updatedSuccess": "更新成功"
+    "updatedSuccess": "正常に更新されました"
   },
   "rl": {
     "checkpoints": {
       "action": "アクション",
       "delete": "削除",
       "empty": "チェックポイントなし",
-      "load": "Load",
+      "load": "読み込み",
       "loss": "損失",
       "name": "名前",
-      "namePlaceholder": "Enter checkpoint name...",
+      "namePlaceholder": "チェックポイント名を入力...",
       "reward": "報酬",
-      "save": "Save Checkpoint",
-      "saveModal": "Save Checkpoint",
+      "save": "チェックポイントを保存",
+      "saveModal": "チェックポイントを保存",
       "step": "ステップ",
       "time": "時間",
       "title": "チェックポイント"
@@ -3274,22 +3274,22 @@
     },
     "monitor": {
       "currentStep": "現在のステップ",
-      "idle": "Training not started. Configure and start training.",
+      "idle": "トレーニングが開始されていません。設定して開始してください。",
       "insufficientData": "データ不足",
       "loss": "損失",
       "lossCurve": "損失曲線",
       "reward": "報酬",
       "rewardCurve": "報酬曲線",
-      "speed": "Speed",
-      "error": "Monitor error"
+      "speed": "速度",
+      "error": "エラーを監視"
     },
     "panel": {
       "checkpoints": "チェックポイント",
-      "config": "Config",
+      "config": "設定",
       "monitor": "モニター",
-      "start": "Start Training",
-      "stop": "Stop Training",
-      "title": "RL Training Panel"
+      "start": "トレーニング開始",
+      "stop": "トレーニング停止",
+      "title": "RLトレーニングパネル"
     },
     "status": {
       "completed": "完了",
@@ -3297,9 +3297,9 @@
       "idle": "アイドル",
       "paused": "一時停止",
       "running": "学習中",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
+      "strategyOverwrite": "上書き（すべて置換）",
+      "strategyMerge": "マージ（既存を保持）",
+      "strategyDryRun": "ドライラン（検証のみ）"
     }
   },
   "rlTrainingStore": {
@@ -3321,7 +3321,7 @@
     "success": "成功"
   },
   "sdk": {
-    "acpRequestFailed": "ACP request failed: {{message}}"
+    "acpRequestFailed": "ACPリクエスト失敗: {{message}}"
   },
   "search": {
     "caseSensitive": "大文字小文字を区別",
@@ -3342,7 +3342,7 @@
     "bocha": "博査",
     "tavily": "Tavily",
     "zhipu": "智譜",
-    "apiKey": "API Key"
+    "apiKey": "APIキー"
   },
   "settings": {
     "activeProfile": "現在の設定",
@@ -3355,7 +3355,7 @@
       "addShellCommand": "シェルコマンドを追加",
       "agentConfig": "エージェント設定",
       "agents": "エージェント",
-      "capabilitiesLabel": "能力",
+      "capabilitiesLabel": "機能",
       "commandAddedForEvent": "{{event}} にコマンドを追加しました",
       "commandRemoved": "コマンドを削除しました",
       "confirmRemove": "削除確認?",
@@ -3537,7 +3537,7 @@
       "schedule": "スケジュール",
       "schedulePlaceholder": "0 9 * * *",
       "validationRequired": "名前、スケジュール、プロンプトは必須です",
-      "title": "Scheduled Tasks"
+      "title": "スケジュールタスク"
     },
     "customHeaders": "カスタムヘッダー",
     "customHeadersPlaceholder": "1 行に 1 つ、形式: key=value\n例: X-Custom-Header=my-value",
@@ -3606,7 +3606,7 @@
     "disabledProviders": "無効なプロバイダー",
     "duplicateModelError": "モデルIDが既に存在します。別のモデルIDを使用してください",
     "dynamicPages": {
-      "actions": "操作",
+      "actions": "アクション",
       "aiEdit": "AI編集",
       "aiEditPlaceholder": "変更内容を説明してください。例：検索ボックスを追加、2カラムレイアウトに変更...",
       "aiGenerate": "AI生成",
@@ -3633,26 +3633,26 @@
     "enabledProviders": "有効なプロバイダー",
     "endpointFormat": "エンドポイント形式",
     "evolution": {
-      "categoryCore": "Core",
-      "categoryExperimental": "Experimental",
-      "categoryLearning": "Learning",
-      "categorySafety": "Safety",
-      "config": "Config",
+      "categoryCore": "コア",
+      "categoryExperimental": "実験的",
+      "categoryLearning": "学習",
+      "categorySafety": "安全性",
+      "config": "設定",
       "engineCount": "実行中",
-      "engineNotFound": "Engine Not Found",
-      "engineNotFoundDesc": "Engine \"{{name}}\" not found",
-      "logs": "Logs",
-      "noLogs": "No logs yet",
-      "refresh": "Refresh Status",
+      "engineNotFound": "エンジンが見つかりません",
+      "engineNotFoundDesc": "エンジン「{{name}}」が見つかりません",
+      "logs": "ログ",
+      "noLogs": "まだログはありません",
+      "refresh": "ステータスを更新",
       "running": "実行中",
-      "saveConfig": "Save Config",
+      "saveConfig": "設定を保存",
       "start": "開始",
-      "startAll": "Start All",
-      "stats": "Stats",
-      "stop": "Stop",
-      "stopAll": "Stop All",
-      "stopped": "Stopped",
-      "title": "Evolution"
+      "startAll": "すべて開始",
+      "stats": "統計",
+      "stop": "停止",
+      "stopAll": "すべて停止",
+      "stopped": "停止済み",
+      "title": "進化"
     },
     "exitFullscreen": "フルスクリーン解除",
     "expandAll": "全て展開",
@@ -3667,7 +3667,7 @@
     "fontSize": "フォントサイズ",
     "fontWeight": "フォントウェイト",
     "forceMaxTokens": "最大トークン数を強制",
-    "frequencyPenalty": "Frequency Penalty",
+    "frequencyPenalty": "頻度ペナルティ",
     "frequencyPenaltyTooltip": "繰り返しトークンにペナルティを与え、出力の繰り返しを減らします",
     "fullscreen": "フルスクリーン",
     "gateway": {
@@ -3747,7 +3747,7 @@
       "importDone": "インポート済み {{imported}}、スキップ {{skipped}}、失敗 {{error}}",
       "importErrors": "エラー詳細",
       "importExtensions": "拡張子フィルタ（カンマ区切り、空 = 全サポートタイプ）",
-      "importExtensionsPlaceholder": "e.g. md, txt, pdf",
+      "importExtensionsPlaceholder": "例: md, txt, pdf",
       "importRecursive": "サブディレクトリを再帰",
       "importSelectFirst": "先にフォルダを選択してください",
       "importSkipped": "スキップ（未サポートタイプ）",
@@ -3876,7 +3876,7 @@
       "extractionMethod": "抽出方法",
       "feedbackNotUseful": "不要",
       "feedbackSuccess": "フィードバックを記録しました",
-      "feedbackUseful": "有用",
+      "feedbackUseful": "便利",
       "findDuplicates": "重複を検索",
       "fromConversation": "会話から",
       "global": "グローバル",
@@ -3994,7 +3994,7 @@
       "createFirst": "ペルソナを選択または作成してください",
       "description": "エージェントのペルソナとソウル定義を管理",
       "editFailed": "編集失敗",
-      "emptyContent": "（空）",
+      "emptyContent": "(空)",
       "nameLabel": "名前",
       "namePlaceholder": "my-persona",
       "noPersona": "ペルソナがありません",
@@ -4044,7 +4044,7 @@
       "refreshFailed": "更新に失敗しました：{{error}}",
       "toggleFailed": "状態の切り替えに失敗しました：{{error}}",
       "unloadFailed": "アンロードに失敗しました：{{error}}",
-      "title": "Plugins"
+      "title": "プラグイン"
     },
     "pressShortcut": "ショートカットキーを押してください...",
     "primaryColor": "プライマリカラー",
@@ -4302,10 +4302,10 @@
       "importFailed": "インポート失敗：{{error}}",
       "importSkill": "インポート",
       "imported": "インポートしました {{name}}",
-      "invalidSkillFile": "Invalid skill file: missing name",
+      "invalidSkillFile": "無効なスキルファイル: 名前がありません",
       "mySkills": "マイスキル",
       "mySkillsDescription": "インストール済みスキルを管理",
-      "noSkillsToExport": "No installed skills to export",
+      "noSkillsToExport": "エクスポートするインストール済みスキルがありません",
       "title": "スキルハブ"
     },
     "startTest": "テスト開始",
@@ -4349,9 +4349,9 @@
     "tabData": "データ",
     "tabExtensions": "ツールと拡張",
     "tabModel": "モデルとサービス",
-    "tabNetwork": "通信",
+    "tabNetwork": "ネットワーク",
     "tabSystem": "システム",
-    "temperature": "Temperature",
+    "temperature": "温度",
     "temperatureTooltip": "値が高いほど出力がランダムになり、低いほど確定的になります",
     "testAllModels": "全モデルテスト",
     "testGroup": "このグループをテスト",
@@ -4392,9 +4392,9 @@
     "titleSummaryPromptDefault": "以下の会話内容に基づいて、短くて簡潔なタイトル（20文字以内）を生成してください。タイトルテキストのみを返し、引用符や追加の説明を含めないでください。",
     "titleSummaryPromptPlaceholder": "会話内容に基づいて短いタイトルを生成...",
     "toolCallingMode": "ツール呼び出しモード",
-    "toolCallingModeDesc": "Select the tool calling mode for this provider",
-    "toolCallingModeManaged": "Managed (AxAgent injects tools via system prompt, parses text for tool_calls — use for Chat2API-like gateways)",
-    "toolCallingModeNative": "Native (model built-in function calling)",
+    "toolCallingModeDesc": "このプロバイダーのツール呼び出しモードを選択",
+    "toolCallingModeManaged": "管理型 (AxAgentがシステムプロンプトを介してツールを注入し、テキストからtool_callsを解析 — Chat2APIのようなゲートウェイに使用)",
+    "toolCallingModeNative": "ネイティブ (モデル組み込みの関数呼び出し)",
     "toolSemanticCheck": {
       "checkingTool": "{{tool}} と類似のツールを確認中",
       "empty": "検索語を入力して類似ツールを見つける",
@@ -4476,14 +4476,14 @@
       "test": "テスト",
       "testFailed": "テストに失敗しました：{{error}}",
       "testSuccess": "Webhook テストに成功しました",
-      "title": "Webhook",
+      "title": "Webhooks",
       "toggleFailed": "状態の切り替えに失敗しました：{{error}}",
       "toolEvents": "ツールイベント",
       "url": "URL",
       "urlInvalid": "有効な URL を入力してください",
       "urlRequired": "URL を入力してください"
     },
-    "webhooks": "Webhook",
+    "webhooks": "Webhooks",
     "workflow": {
       "createNew": "新規テンプレート作成",
       "marketplace": "マーケットプレイス",
@@ -4491,8 +4491,6 @@
     },
     "zhipu": "Zhipu",
     "groupVoice": "音声",
-    "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker プレフィックス（デフォルト CHAT2API、通常は変更不要）",
     "platform": {
       "activeSessions": "アクティブセッション数",
       "apiServerPort": "API Server ポート",
@@ -4506,6 +4504,8 @@
       "enableApiServer": "API Server を有効化",
       "generalSettings": "一般設定",
       "lastActivity": "最終アクティビティ",
+      "markerPrefixDesc": "Marker プレフィックス（デフォルト CHAT2API、通常は変更不要）",
+      "markerPrefixPlaceholder": "CHAT2API",
       "maxHistoryPerSession": "セッションあたりの最大履歴メッセージ数",
       "noStatuses": "接続状態なし",
       "placeholder": {
@@ -4527,45 +4527,45 @@
       "wechatModeCustomer": "カスタマーモード (ポーリング受信、実験的)",
       "wechatModeOfficial": "公式アカウントモード (Webhook 受信)"
     },
-    "toolAccess": "Tool Access",
+    "toolAccess": "ツールアクセス",
     "providers": {
-      "title": "Providers"
+      "title": "プロバイダー"
     },
     "defaultModel": {
-      "title": "Default Model"
+      "title": "デフォルトモデル"
     },
     "display": {
-      "title": "Display"
+      "title": "表示"
     },
     "appConfig": {
-      "title": "App Config"
+      "title": "アプリ設定"
     },
     "proxy": {
-      "title": "Proxy"
+      "title": "プロキシ"
     },
     "notificationCenter": {
-      "title": "Notifications"
+      "title": "通知"
     },
     "about": {
-      "title": "About"
+      "title": "概要"
     },
     "promptTemplates": {
-      "title": "Prompt Templates"
+      "title": "プロンプトテンプレート"
     },
     "shortcuts": {
-      "title": "Shortcuts"
+      "title": "ショートカット"
     },
     "imageGen": {
-      "title": "Image Generation"
+      "title": "画像生成"
     },
     "acp": {
-      "title": "ACP Connection"
+      "title": "ACP接続"
     },
     "cloudWorkspace": {
-      "title": "Cloud Workspace"
+      "title": "クラウドワークスペース"
     },
     "advanced": {
-      "title": "Advanced"
+      "title": "詳細設定"
     }
   },
   "settingsPage": {
@@ -4573,32 +4573,32 @@
   },
   "shortcuts": {
     "conflictError": "ショートカットは別のアプリケーションで使用されています。別のキーをお試しください",
-    "invalidShortcut": "Invalid shortcut format",
-    "shortcutNotSupported": "System does not support this shortcut combination",
+    "invalidShortcut": "無効なショートカット形式",
+    "shortcutNotSupported": "システムはこのショートカットの組み合わせをサポートしていません",
     "feishuWechat": "Lark/WeChat",
     "qqWechat": "QQ/WeChat",
     "wechatWindows": "WeChat Windows"
   },
   "sidebar": {
-    "closeAgent": "Close Agent",
+    "closeAgent": "エージェントを閉じる",
     "collapse": "サイドバーを折りたたみ",
     "expand": "サイドバーを展開",
-    "openAgent": "Open Agent",
+    "openAgent": "エージェントを開く",
     "sectionInfrastructure": "インフラ",
     "sectionOverview": "概要",
     "sectionTools": "ツール",
-    "agentPanel": "Agent Panel"
+    "agentPanel": "エージェントパネル"
   },
   "skill": {
     "abTest": {
-      "change": "Change",
-      "conclusion": "Conclusion: Version A won {{winCountA}} items, Version B won {{winCountB}} items.",
+      "change": "変更",
+      "conclusion": "結論: バージョンAが{{winCountA}}項目、バージョンBが{{winCountB}}項目で勝利しました。",
       "metric": "指標",
-      "noData": "No A/B test data yet",
+      "noData": "A/Bテストデータはまだありません",
       "noDifference": "No significant difference between the two versions.",
       "recommendA": "Recommended to adopt Version A.",
       "recommendB": "Recommended to adopt Version B.",
-      "tie": "Tie",
+      "tie": "引き分け",
       "versionA": "バージョンA",
       "versionB": "バージョンB",
       "winner": "勝者"
@@ -4631,13 +4631,13 @@
       "abTestResults": "A/Bテスト結果",
       "confirmRollback": "ロールバックを確認",
       "currentVersion": "現在のバージョン",
-      "latestEvolution": "Latest Evolution",
-      "newVersion": "New (v{{version}})",
-      "noHistory": "This skill has no evolution history yet",
-      "none": "None",
-      "oldVersion": "Old (v{{version}})",
-      "rollback": "Rollback",
-      "rollbackConfirmMessage": "Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version.",
+      "latestEvolution": "最新の進化",
+      "newVersion": "新規 (v{{version}})",
+      "noHistory": "このスキルにはまだ進化履歴がありません",
+      "none": "なし",
+      "oldVersion": "旧 (v{{version}})",
+      "rollback": "ロールバック",
+      "rollbackConfirmMessage": "v{{version}}にロールバックしてもよろしいですか？そのバージョン以降のすべての進化変更が破棄されます。",
       "totalEvolutions": "総進化回数",
       "viewDiff": "差分を表示"
     },
@@ -4697,7 +4697,7 @@
     "timeoutError": "サンドボックスの読み込みがタイムアウトしました。再試行してください",
     "uninstall": "アンインストール",
     "unknownError": "不明なエラー",
-    "error": "Skill error"
+    "error": "スキルエラー"
   },
   "skillEditor": {
     "actionAdd": "アクション追加",
@@ -4816,7 +4816,7 @@
     "description": "説明",
     "disabled": "無効",
     "embeddingModel": "埋め込みモデル",
-    "embeddingRequired": "Please select an embedding model",
+    "embeddingRequired": "埋め込みモデルを選択してください",
     "empty": "データソースなし",
     "knowledge": {
       "recentBases": "最近のナレッジベース",
@@ -4839,7 +4839,7 @@
       "notes": "ノート",
       "vectorReady": "ベクトル準備完了",
       "wikiSources": "データソース",
-      "wikis": "Wiki"
+      "wikis": "Wikis"
     },
     "tab": {
       "all": "すべて",
@@ -4922,7 +4922,7 @@
       "casual": "カジュアル",
       "compact": "コンパクト",
       "comprehensive": "包括的",
-      "concrete": "具体",
+      "concrete": "コンクリート",
       "detailed": "詳細",
       "formal": "フォーマル",
       "minimal": "ミニマル",
@@ -5066,45 +5066,45 @@
   },
   "trace": {
     "bottleneck": {
-      "count": "Count",
-      "empty": "No bottleneck data",
-      "error": "Analysis failed",
-      "failurePatterns": "Failure Patterns",
+      "count": "カウント",
+      "empty": "ボトルネックデータなし",
+      "error": "分析失敗",
+      "failurePatterns": "障害パターン",
       "failureReason": "失敗理由",
-      "loading": "Loading bottleneck analysis...",
+      "loading": "ボトルネック分析を読み込み中...",
       "percentage": "割合",
-      "timeDistribution": "Time Distribution",
-      "tokenConsumption": "Token Consumption"
+      "timeDistribution": "時間分布",
+      "tokenConsumption": "トークン消費量"
     },
-    "duration": "Duration: {{duration}}s",
-    "empty": "No execution trace data",
-    "error": "Load failed",
-    "errors": "Errors",
+    "duration": "所要時間: {{duration}}秒",
+    "empty": "実行トレースデータなし",
+    "error": "読み込み失敗",
+    "errors": "エラー",
     "feedback": {
-      "commentPlaceholder": "Describe the issue to help us improve...",
-      "error": "Submit failed",
-      "errorRetry": "Please retry later",
-      "helpful": "Helpful",
-      "notHelpful": "Not Helpful",
-      "question": "Was this execution helpful?",
-      "received": "Your feedback has been submitted and will be used to improve Agent execution.",
-      "submit": "Submit Feedback",
-      "submitted": "Feedback submitted",
-      "thanks": "Thank you for your feedback"
+      "commentPlaceholder": "問題を説明して改善にご協力ください...",
+      "error": "送信失敗",
+      "errorRetry": "後でもう一度お試しください",
+      "helpful": "役に立った",
+      "notHelpful": "役に立たなかった",
+      "question": "この実行は役に立ちましたか？",
+      "received": "フィードバックが送信されました。Agentの実行改善に活用されます。",
+      "submit": "フィードバックを送信",
+      "submitted": "フィードバック送信済み",
+      "thanks": "フィードバックありがとうございます"
     },
     "improvement": {
-      "applied": "Improvement applied",
-      "apply": "Apply Improvement",
-      "error": "Generation failed",
-      "loading": "Generating improvement suggestions...",
-      "noSuggestions": "No improvement suggestions",
-      "problem": "Problem",
-      "suggestion": "Suggestion"
+      "applied": "改善が適用されました",
+      "apply": "改善を適用",
+      "error": "生成失敗",
+      "loading": "改善案を生成中...",
+      "noSuggestions": "改善案なし",
+      "problem": "問題",
+      "suggestion": "提案"
     },
-    "loading": "Loading execution trace...",
-    "totalDuration": "Total Duration",
-    "totalSteps": "Total Steps",
-    "totalTokens": "Total Tokens",
+    "loading": "実行トレースを読み込み中...",
+    "totalDuration": "合計時間",
+    "totalSteps": "合計ステップ数",
+    "totalTokens": "合計トークン数",
     "type": {
       "error": "エラー",
       "thinking": "思考中",
@@ -5116,10 +5116,10 @@
   "traceExplorer": {
     "selectTrace": "トレースを選択して詳細を表示",
     "tab": {
-      "bottleneck": "Bottleneck Analysis",
+      "bottleneck": "ボトルネック分析",
       "detail": "詳細",
       "feedback": "フィードバック",
-      "suggestions": "Suggestions",
+      "suggestions": "提案",
       "timeline": "タイムライン"
     }
   },
@@ -5173,7 +5173,7 @@
       "Image": "画像",
       "Input": "入力",
       "List": "リスト",
-      "Markdown": "Markdown",
+      "Markdown": "マークダウン",
       "Number": "数値",
       "Progress": "進捗",
       "Radio": "ラジオ",
@@ -5184,36 +5184,36 @@
       "Tabs": "タブ",
       "Tag": "タグ",
       "Text": "テキスト",
-      "Textarea": "Textarea",
+      "Textarea": "テキストエリア",
       "Timeline": "タイムライン",
       "Tree": "ツリー"
     },
     "palette": {
-      "title": "Components"
+      "title": "コンポーネント"
     },
     "property": {
       "delete": "削除",
       "placeholder": {
-        "propKey": "Key",
+        "propKey": "キー",
         "propValue": "値"
       },
-      "selectHint": "Click a component on the canvas\nto edit its properties",
+      "selectHint": "キャンバス上のコンポーネントをクリックして\nプロパティを編集",
       "style": {
         "add": "追加",
-        "empty": "No style properties",
-        "label": "Style Properties",
+        "empty": "スタイルプロパティなし",
+        "label": "スタイルプロパティ",
         "placeholder": {
-          "propKey": "Property",
+          "propKey": "プロパティ",
           "propValue": "値"
         },
-        "quickStyles": "Quick Styles"
+        "quickStyles": "クイックスタイル"
       },
       "tabs": {
         "basic": "基本",
         "style": "スタイル"
       },
       "title": "プロパティパネル",
-      "field": "field"
+      "field": "フィールド"
     }
   },
   "voice": {
@@ -5249,7 +5249,7 @@
     "chunks": "チャンク",
     "close": "閉じる",
     "common": {
-      "actions": "操作",
+      "actions": "アクション",
       "close": "閉じる",
       "refresh": "更新"
     },
@@ -5275,7 +5275,7 @@
       "communities": "コミュニティ",
       "edgeType": {
         "backlink": "バックリンク",
-        "contradicts": "矛盾",
+        "contradicts": "矛盾する",
         "derived": "派生",
         "link": "リンク",
         "reference": "参照"
@@ -5297,8 +5297,8 @@
     },
     "hidePanel": "パネルを非表示",
     "history": "履歴",
-    "importKnowledgeMdDesc": "将 KNOWLEDGE.md（精炼知识源）导入为 Wiki 笔记",
-    "importKnowledgeMdResult": "知识源导入完成：导入 {{imported}} 条，跳过 {{skipped}} 条，失败 {{failed}} 条",
+    "importKnowledgeMdDesc": "RAGインデックス用にKNOWLEDGE.mdをWikiノートとしてインポート",
+    "importKnowledgeMdResult": "ナレッジソースをインポートしました: {{imported}}作成、{{skipped}}スキップ、{{failed}}失敗",
     "ingest": {
       "desc": "ドキュメントをナレッジベースにインポート",
       "docx": "Word ドキュメント",
@@ -5308,7 +5308,7 @@
       "folderPathPlaceholder": "フォルダパスを入力...",
       "folderPathRequired": "フォルダパスを入力してください",
       "history": "インポート履歴",
-      "markdown": "Markdown",
+      "markdown": "マークダウン",
       "notion": "Notion",
       "path": "パス",
       "pathPlaceholder": "パスを入力...",
@@ -5345,27 +5345,27 @@
     "linkedPrefix": "関連",
     "linkedRef": "関連",
     "lint": {
-      "averageScore": "Avg score",
-      "code": "Code",
-      "details": "Details",
-      "issues": "Issues",
-      "line": "Line",
-      "loadError": "Load failed",
-      "message": "Message",
-      "noIssues": "No issues",
-      "noResults": "No results",
-      "note": "Note",
-      "rerun": "Re-run",
-      "runLint": "Run lint",
-      "score": "Score",
-      "scoreUpdated": "Score updated",
-      "selectNote": "Select note",
-      "severity": "Severity",
-      "success": "Success",
-      "totalIssues": "Total issues",
-      "totalNotes": "Total notes",
-      "updateScore": "Update score",
-      "viewDetails": "View details"
+      "averageScore": "平均スコア",
+      "code": "コード",
+      "details": "詳細",
+      "issues": "問題",
+      "line": "線",
+      "loadError": "読み込み失敗",
+      "message": "メッセージ",
+      "noIssues": "問題なし",
+      "noResults": "結果なし",
+      "note": "ノート",
+      "rerun": "再実行",
+      "runLint": "Lintを実行",
+      "score": "スコア",
+      "scoreUpdated": "スコア更新済み",
+      "selectNote": "ノートを選択",
+      "severity": "重大度",
+      "success": "成功",
+      "totalIssues": "問題の総数",
+      "totalNotes": "ノートの総数",
+      "updateScore": "スコアを更新",
+      "viewDetails": "詳細を表示"
     },
     "llm": {
       "confirmDelete": "削除確認",
@@ -5409,7 +5409,7 @@
       "excellent": "優秀",
       "factors": "品質要因",
       "fair": "普通",
-      "good": "良好",
+      "good": "良い",
       "issueList": "問題リスト",
       "issues": "問題",
       "more": "その他",
@@ -5491,9 +5491,9 @@
     "versionRestored": "バージョンを復元しました",
     "viewBacklinks": "バックリンクを表示",
     "wiki": "Wiki",
-    "timeline": "Timeline",
-    "operationTimeline": "Operation Timeline",
-    "lintReport": "Lint report"
+    "timeline": "タイムライン",
+    "operationTimeline": "操作タイムライン",
+    "lintReport": "Lint レポート"
   },
   "workflow": {
     "agentNode": {
@@ -5517,7 +5517,7 @@
       "applied": "AI 提案を適用しました",
       "btn": {
         "contextComplete": "コンテキスト補完",
-        "generate": "AI 生成",
+        "generate": "AI生成",
         "optimize": "AI 最適化",
         "rewrite": "AI 書き換え",
         "suggest": "AI 提案"
@@ -5535,7 +5535,7 @@
       "optimizing": "AI 最適化中...",
       "parallel": {
         "branchesHint": "並列分岐の入力とターゲット出力を記述してください。",
-        "systemPrompt": "You are a workflow parallel-branch design expert. Based on the user's description, output the parallel node's `branches` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
+        "systemPrompt": "あなたはワークフローの並列ブランチ設計の専門家です。ユーザーの説明に基づいて、並列ノードの `branches` 配列を出力してください。各項目は {{schema}} とします。JSON 配列文字列のみを出力し、説明や Markdown ラッパーは不要です。"
       },
       "subWorkflow": {
         "needPick": "既存ワークフローを選択するか、新規ワークフローを記述してください。",
@@ -5543,7 +5543,7 @@
       },
       "switch": {
         "casesHint": "すべての分岐とトリガー条件をリストアップしてください。",
-        "systemPrompt": "You are a workflow branching design expert. Based on the user's description, output the switch node's `cases` array, each item as {{schema}}. Output only the JSON array string — no explanations or Markdown wrappers."
+        "systemPrompt": "あなたはワークフローの分岐設計の専門家です。ユーザーの説明に基づいて、スイッチノードの `cases` 配列を出力してください。各項目は {{schema}} とします。JSON 配列文字列のみを出力し、説明や Markdown ラッパーは不要です。"
       },
       "tooltip": "AI を使って最適化または生成",
       "trigger": {
@@ -5556,7 +5556,7 @@
       "panelTitle": "承認",
       "noPending": "保留中の承認はありません",
       "message": "メッセージ",
-      "workflowId": "Workflow",
+      "workflowId": "ワークフロー",
       "status": "ステータス",
       "expiresAt": "期限切れ",
       "actions": "アクション",
@@ -5572,14 +5572,14 @@
     "autoLayout": "自動レイアウト",
     "autoLayoutTooltip": "ノードを自動配置",
     "autoLayoutWithSubs": "自動レイアウト（子ワークフロー {{count}} 件）",
-    "back": "Back",
+    "back": "戻る",
     "batchEdit": {
       "apply": "{count} 件のノードに適用",
       "noChange": "変更なし",
       "title": "バッチ編集"
     },
     "batchEditMode": "一括編集モード",
-    "caseLabel": "Case {{n}}",
+    "caseLabel": "ケース {{n}}",
     "categories": {
       "agent": "エージェント",
       "execution": "実行",
@@ -5601,7 +5601,7 @@
       "toolChainCall": "ツールチェーン呼出"
     },
     "codeNode": {
-      "lineCount": "{{count}} 行"
+      "lineCount": "{{count}}行"
     },
     "collapseLeftPanel": "左パネルを折りたたむ",
     "collapseRightPanel": "右パネルを折りたたむ",
@@ -5618,7 +5618,7 @@
       "opRegexMatch": "正規表現一致",
       "opStartsWith": "で始まる",
       "title": "条件分岐",
-      "true": "真"
+      "true": "✅ 真"
     },
     "confirmDelete": "削除確認",
     "confirmDeleteTemplate": "テンプレートを削除しますか？",
@@ -5672,7 +5672,7 @@
       "executionLabel": "実行: {{id}} | ワークフロー: {{name}} | トリガー: {{trigger}}",
       "failed": "失敗",
       "fastestNode": "最速ノード",
-      "hideSpanTree": "隐藏 Span 树",
+      "hideSpanTree": "スパンツリーを隠す",
       "input": "入力",
       "issuesFound": "問題を検出",
       "labelError": "エラー",
@@ -5680,14 +5680,14 @@
       "labelNode": "ノード",
       "labelOutput": "出力",
       "labelType": "タイプ",
-      "loadTraces": "加载 Trace",
+      "loadTraces": "トレースを読み込む",
       "noBreakpoints": "ブレークポイントなし",
       "noExecutionData": "実行データがありません。先にワークフローを実行してください。",
       "noHistory": "履歴なし",
       "noPrompt": "プロンプトなし",
       "noRuntimeData": "ランタイムデータなし",
-      "noSpanData": "暂未解析到 Span 数据",
-      "noTraceData": "暂无 Trace 数据",
+      "noSpanData": "解決されたスパンデータがありません",
+      "noTraceData": "トレースデータがありません",
       "noVariables": "変数なし",
       "nodeDiagnostics": "ノード診断",
       "nodeExecutions": "ノード実行",
@@ -5708,7 +5708,7 @@
       "strategyDryRun": "Dry run",
       "runtimeTrace": "ランタイムトレース",
       "selectedNodeDetails": "選択ノードの詳細",
-      "showSpanTree": "显示 Span 树",
+      "showSpanTree": "スパンツリーを表示",
       "slowestNode": "最遅ノード",
       "startDebug": "デバッグ開始",
       "staticCheck": "静的チェック",
@@ -5724,7 +5724,7 @@
       "totalDuration": "総所要時間",
       "totalEdges": "総エッジ数",
       "totalNodes": "総ノード数",
-      "traceSnapshot": "Trace 快照",
+      "traceSnapshot": "トレーススナップショット",
       "unreachableNodesCount": "到達不能ノード",
       "variableSnapshots": "変数スナップショット",
       "variables": "変数",
@@ -6001,9 +6001,9 @@
     },
     "dragToStart": "ドラッグして開始",
     "duplicateFailed": "複製に失敗しました",
-    "duplicateSuffix": "{{name}} (copy)",
-    "durationMinutes": "{{minutes}} min",
-    "durationSeconds": "{{seconds}} sec",
+    "duplicateSuffix": "{{name}} (コピー)",
+    "durationMinutes": "{{minutes}} 分",
+    "durationSeconds": "{{seconds}}秒",
     "edgeAlreadyExists": "エッジは既に存在します",
     "edit": "編集",
     "endNode": {
@@ -6013,19 +6013,19 @@
     "enterTemplateId": "テンプレート ID を入力",
     "entryType": "エントリタイプ",
     "evolution": {
-      "abTestTitle": "A/B Test ({{count}})",
+      "abTestTitle": "A/B テスト ({{count}})",
       "abTestWon": "A/B勝利",
-      "confidence": "Confidence: {{value}}%",
-      "latency": "Latency {{diff}}",
+      "confidence": "信頼度: {{value}}%",
+      "latency": "レイテンシ {{diff}}",
       "noActiveABTest": "アクティブなA/Bテストなし",
       "noEvolutionRecord": "進化記録なし — 最初の進化をトリガー",
       "noHistory": "進化履歴なし",
       "noNodes": "現在のキャンバスにノードなし",
-      "successRate": "Success Rate {{diff}}",
+      "successRate": "成功率 {{diff}}",
       "title": "進化ステータス",
       "triggerAll": "すべての進化をトリガー",
       "triggerEvolution": "進化をトリガー",
-      "winner": "{{winner}} Won",
+      "winner": "{{winner}} の勝利",
       "apply": "適用",
       "current": "現在のバージョン",
       "diff": "差分",
@@ -6038,18 +6038,18 @@
       "viewDiff": "差分を表示"
     },
     "execution": {
-      "nodeCompleted": "Node completed: {{label}}",
-      "startingNode": "Starting node: {{label}}",
-      "success": "Execution succeeded"
+      "nodeCompleted": "ノード完了: {{label}}",
+      "startingNode": "ノード開始: {{label}}",
+      "success": "実行成功"
     },
     "executor": {
       "close": "閉じる",
       "duration": "所要時間",
       "execute": "ワークフローを実行",
-      "executing": "Executing...",
+      "executing": "実行中...",
       "executionFailed": "実行失敗",
       "executionLog": "実行ログ",
-      "executionSuccess": "Execution Successful",
+      "executionSuccess": "実行成功",
       "inputVariables": "入力変数",
       "nodeExecutionStatus": "ノード実行ステータス",
       "outputResult": "出力結果",
@@ -6065,18 +6065,18 @@
     "expandLeftPanel": "左パネルを展開",
     "expandRightPanel": "右パネルを展開",
     "export": "エクスポート",
-    "exportEmpty": "No nodes to export",
+    "exportEmpty": "エクスポートするノードがありません",
     "exportFailed": "エクスポート失敗",
     "exportNotFoundOrFailed": "テンプレートが見つからないか、エクスポート失敗",
     "exportResultJson": "エクスポート結果 (JSON)",
     "exportSuccess": "エクスポート成功",
     "exportTemplate": "テンプレートをエクスポート",
     "exportTemplateIdPlaceholder": "テンプレート ID を入力",
-    "fromTemplate": "{{name}} (from template)",
+    "fromTemplate": "{{name}} (テンプレートから)",
     "generatedSkill": "生成されたスキル",
     "generatingUpgrade": "アップグレードを生成中",
     "groupNode": {
-      "folded": "folded",
+      "folded": "折りたたみ済み",
       "untitled": "グループ",
       "add": "グループを追加",
       "remove": "グループを削除"
@@ -6108,10 +6108,10 @@
       "importFailed": "インポートに失敗",
       "importFailedWithError": "インポート失敗：{{error}}",
       "importHint": "インポートはテンプレートの新しいコピーを作成します。インポートされたテンプレートはデフォルトでカスタムテンプレート（プリセットではない）になります。",
-      "importStructuralErrors": "Imported workflow has {{count}} structural error(s):\n{{details}}",
+      "importStructuralErrors": "インポートしたワークフローに {{count}} 個の構造エラーがあります:\n{{details}}",
       "importSuccess": "{{count}} 件のワークフローをインポートしました",
       "importTemplate": "テンプレートをインポート",
-      "importValidationWarnings": "Imported workflow has {{count}} warning(s):\n{{details}}",
+      "importValidationWarnings": "インポートしたワークフローに {{count}} 個の警告があります:\n{{details}}",
       "invalidJson": "JSON 形式が無効です",
       "invalidJsonFile": "無効なJSONファイル",
       "jsonTooDeep": "JSONのネストが深すぎます",
@@ -6136,13 +6136,13 @@
       "uploadJsonFile": "JSON ファイルをアップロード",
       "viewAllErrors": "全 {{count}} 件のエラーを表示",
       "workflowName": "ワークフロー名",
-      "exportYamlBtn": "Export YAML",
-      "exportYamlDesc": "Export current workflow as YAML",
-      "uploadYamlFile": "Upload YAML file",
-      "yamlExportFailed": "YAML export failed",
-      "yamlExportSuccess": "YAML exported",
-      "yamlImportFailed": "YAML import failed",
-      "yamlImportSuccess": "YAML imported"
+      "exportYamlBtn": "YAML エクスポート",
+      "exportYamlDesc": "現在のワークフローを YAML としてエクスポート",
+      "uploadYamlFile": "YAML ファイルをアップロード",
+      "yamlExportFailed": "YAML エクスポートに失敗しました",
+      "yamlExportSuccess": "YAMLをエクスポートしました",
+      "yamlImportFailed": "YAMLのインポートに失敗しました",
+      "yamlImportSuccess": "YAMLをインポートしました"
     },
     "importExportTemplates": "テンプレートのインポート/エクスポート",
     "importFailed": "インポート失敗",
@@ -6161,64 +6161,64 @@
       "fallbackTypePrefix": "{{type}}: ",
       "suggestTitle": {
         "noun": {
-          "account": "Account",
-          "alert": "Alert",
-          "config": "Config",
+          "account": "アカウント",
+          "alert": "アラート",
+          "config": "設定",
           "data": "データ",
           "kline": "KLine",
           "log": "ログ",
-          "market": "Market",
+          "market": "マーケット",
           "metric": "指標",
-          "news": "News",
-          "order": "Order",
-          "portfolio": "Portfolio",
+          "news": "ニュース",
+          "order": "注文",
+          "portfolio": "ポートフォリオ",
           "position": "ポジション",
           "price": "価格",
-          "report": "Report",
+          "report": "レポート",
           "risk": "リスク",
-          "signal": "Signal",
-          "trade": "Trade",
-          "user": "User"
+          "signal": "シグナル",
+          "trade": "トレード",
+          "user": "ユーザー"
         },
         "verb": {
           "analyze": "分析",
-          "calc": "Calc",
-          "classify": "Classify",
+          "calc": "計算",
+          "classify": "分類",
           "create": "作成",
           "delete": "削除",
-          "extract": "Extract",
-          "fetch": "Fetch",
-          "filter": "Filter",
+          "extract": "抽出",
+          "fetch": "取得",
+          "filter": "フィルター",
           "gen": "生成",
-          "get": "Get",
+          "get": "取得",
           "merge": "マージ",
-          "notify": "Notify",
-          "parse": "Parse",
+          "notify": "通知",
+          "parse": "解析",
           "query": "クエリ",
-          "recommend": "Recommend",
+          "recommend": "レコメンド",
           "search": "検索",
           "send": "送信",
-          "sort": "Sort",
-          "split": "Split",
-          "summarize": "Summarize",
+          "sort": "並べ替え",
+          "split": "分割",
+          "summarize": "要約",
           "transform": "変換",
-          "translate": "Translate",
+          "translate": "翻訳",
           "update": "更新",
           "validate": "検証"
         }
       },
       "validate": {
-        "cycle_no_exit": "Nodes [{{nodes}}] form a cycle without a break condition (loopBack)",
-        "data_blackhole": "Aggregator node \"{{nodeId}}\" has indegree≥3 but outdegree=0, data has no exit",
-        "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
-        "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
-        "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
-        "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
-        "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
-        "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",
-        "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference",
-        "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
-        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself"
+        "cycle_no_exit": "ノード[{{nodes}}]がブレーク条件(loopBack)なしでサイクルを形成しています",
+        "data_blackhole": "集約ノード\"{{nodeId}}\"の入次数が3以上で出次数が0のため、データに出口がありません",
+        "dead_branch_decorative": "コンテナノード\"{{nodeId}}\"(装飾用)に子ノードがなく、接続もありません",
+        "dead_branch_scheduled": "コンテナノード\"{{nodeId}}\"({{type}})はデッドブランチです — 子ノードはあるが入出力エッジがありません",
+        "duplicate_title": "{{count}}個の{{type}}ノードが同じタイトル\"{{title}}\"を共有しています",
+        "orphan_node": "ノード\"{{nodeId}}\"は孤立しています(入出力エッジなし)",
+        "self_loop": "エッジ{{edgeId}}は自己ループです(source === target)",
+        "unconnected_port": "条件ノード\"{{nodeId}}\"に未接続の{{missing}}出力があります",
+        "workflow_ref_depth": "WorkflowRefチェーンが{{maxDepth}}レベルの制限を超える可能性があります。複数のWorkflowRefが同じ\"{{refId}}\"を指しており、循環参照の可能性があります",
+        "workflow_ref_empty": "WorkflowRefノード\"{{nodeId}}\"にターゲットワークフローがありません",
+        "workflow_ref_self": "WorkflowRefノード\"{{nodeId}}\"が自分自身を参照しています"
       },
       "autoLayout": "自動レイアウト",
       "canvas": "キャンバス",
@@ -6269,7 +6269,7 @@
       "collapse": "折りたたむ",
       "expand": "展開",
       "title": "ワークフロー凡例",
-      "toggleLabel": "{{action}} legend",
+      "toggleLabel": "{{action}} 凡例",
       "end": "終了",
       "start": "開始",
       "running": "実行中"
@@ -6282,14 +6282,14 @@
       "deleteConfirm": "このワークフローを削除してもよろしいですか？",
       "draft": "下書き",
       "duplicate": "複製",
-      "edgeCount": "{{count}} edges",
+      "edgeCount": "{{count}} エッジ",
       "edit": "編集",
       "empty": "ワークフローがありません。上のボタンをクリックして作成",
       "noDescription": "説明なし",
-      "nodeCount": "{{count}} nodes",
-      "searchPlaceholder": "Search workflows...",
+      "nodeCount": "{{count}} ノード",
+      "searchPlaceholder": "ワークフローを検索...",
       "templates": "テンプレート",
-      "title": "Workflows",
+      "title": "ワークフロー",
       "confirmDelete": "このワークフローを削除しますか？",
       "createWorkflow": "ワークフローを作成",
       "noWorkflows": "ワークフローがありません。上のボタンをクリックして作成してください",
@@ -6303,7 +6303,7 @@
       "export": "ログをエクスポート",
       "noLogs": "ログなし"
     },
-    "loopBackCycleDetected": "Loop-back edge would form a cycle, please adjust the target node",
+    "loopBackCycleDetected": "ループバックエッジはサイクルを形成します。ターゲットノードを調整してください",
     "loopNode": {
       "continueOnError": "エラー時続行",
       "doWhile": "実行後に判定",
@@ -6326,7 +6326,7 @@
       "title": "マージ",
       "waitAll": "すべて待機",
       "waitAny": "任意完了",
-      "branches": "Branches"
+      "branches": "ブランチ"
     },
     "newNode": "新規ノード",
     "newTemplate": "新規テンプレート",
@@ -6335,12 +6335,12 @@
       "applySkill": "このスキルを適用",
       "optional": "任意",
       "parameters": "パラメータ",
-      "parametersLabel": "Parameters: ",
+      "parametersLabel": "パラメータ: ",
       "parsingPhases": "解析フェーズ",
       "required": "必須",
       "tools": "ツール",
       "triggers": "トリガー",
-      "triggersLabel": "Triggers: ",
+      "triggersLabel": "トリガー: ",
       "unit": "個",
       "generate": "スキルを生成",
       "generating": "生成中...",
@@ -6354,7 +6354,7 @@
     "nl2UI": {
       "applyUI": "このUIを適用",
       "componentCount": "コンポーネント数",
-      "components": "{{count}} components",
+      "components": "{{count}} コンポーネント",
       "depthLevel": "深度",
       "rootType": "ルートタイプ",
       "generate": "生成",
@@ -6369,20 +6369,20 @@
       "applySolution": "このプランを適用",
       "confidence": "解析信頼度",
       "constraintsOptional": "制約条件（任意）",
-      "constraintsPlaceholder": "e.g.: execution time no more than 5 minutes, retry 3 times on error",
+      "constraintsPlaceholder": "例: 実行時間5分以内、エラー時に3回再試行",
       "edges": "エッジ",
-      "examplePlaceholder": "e.g. {{example}}",
+      "examplePlaceholder": "例: {{example}}",
       "naturalLanguageDesc": "自然言語の説明",
       "nodes": "ノード",
       "parseGenerate": "解析して生成",
       "parseResult": "解析結果",
-      "parsing": "Parsing...",
-      "planLabel": "Plan {{index}}: {{desc}}",
-      "resultSummary": "{{nodes}} nodes · {{edges}} edges · {{variables}} variables",
+      "parsing": "解析中...",
+      "planLabel": "計画 {{index}}: {{desc}}",
+      "resultSummary": "{{nodes}} ノード · {{edges}} エッジ · {{variables}} 変数",
       "variables": "変数",
       "constraints": "制約条件（任意）",
       "description": "自然言語の説明",
-      "generating": "解析中",
+      "generating": "解析",
       "suggestions": "AI の提案",
       "example1": "毎日朝 8 時に指定したウェブサイトの最新記事を取得",
       "example2": "新着メールを受信したら AI で内容を分析し、緊急の場合は通知",
@@ -6422,7 +6422,7 @@
     "nodeDropFailed": "ノードの配置に失敗",
     "nodeKind": {
       "agent": "AIエージェント",
-      "condition": "Routing",
+      "condition": "ルーティング",
       "container": "コンテナ",
       "input": "入力",
       "loop": "ループ",
@@ -6475,7 +6475,7 @@
       "script": "スクリプト",
       "timer": "タイマー"
     },
-    "nodesCount": "{{count}} nodes",
+    "nodesCount": "{{count}} ノード",
     "nodesPasted": "ノードを貼り付けました",
     "notificationCenter": {
       "title": "通知"
@@ -6495,16 +6495,16 @@
       "waitAll": "すべて待機",
       "waitAny": "いずれか待機",
       "waitForAll": "全完了を待機",
-      "decorative": "Decorative node"
+      "decorative": "装飾ノード"
     },
     "paramKey": "param_{{n}}",
     "parse": {
-      "analyzingIntent": "Analyzing intent...",
-      "buildingWorkflow": "Building workflow...",
-      "complete": "Complete",
-      "intentAnalysis": "Intent Analysis",
-      "matchingNodes": "Matching nodes...",
-      "optimizing": "Optimizing..."
+      "analyzingIntent": "意図分析中...",
+      "buildingWorkflow": "ワークフロー構築中...",
+      "complete": "完了",
+      "intentAnalysis": "意図分析",
+      "matchingNodes": "ノードマッチング中...",
+      "optimizing": "最適化中..."
     },
     "pasteJsonData": "JSON データを貼り付け",
     "pasteJsonPlaceholder": "JSON データを貼り付け...",
@@ -6531,7 +6531,7 @@
       "aggregationHint": "複数の並列ブランチの結果を集約する方法",
       "aggregationMajority": "マジョリティ",
       "aggregationRace": "レース",
-      "aiGenerate": "AI 生成",
+      "aiGenerate": "AI生成",
       "andAllTrue": "全て満たす (AND)",
       "anyBranchHint": "いずれかの分岐が完了したら続行",
       "append": "追加",
@@ -6571,10 +6571,10 @@
       "codeReturnHint": "返されたデータはノード出力として渡されます",
       "codeTemplates": "コードテンプレート",
       "collection": "コレクション/テーブル",
-      "collectionPlaceholder": "e.g. records",
+      "collectionPlaceholder": "例: レコード",
       "conditionValue": "条件値",
       "conditionVarPath": "変数パス",
-      "conditions": "条件",
+      "conditions": "条件 ({{count}})",
       "connectInputsHint": "複数の入力をこのノードに接続",
       "connectInputsManually": "手動で入力を接続",
       "connection": "データソース",
@@ -6584,7 +6584,7 @@
       "contextSourcesCount": "{{count}} ソース",
       "continue": "続行",
       "continueCondition": "継続条件",
-      "continueConditionExample": "例: item.active",
+      "continueConditionExample": "例: count < 10 && hasMore",
       "continueOnError": "エラー時続行",
       "cronExpression": "Cron 式",
       "custom": "カスタム",
@@ -6613,7 +6613,7 @@
       "executionPlanHint": "ノードは計画されたトポロジカル順序で実行されます",
       "executionReact": "リアクティブ",
       "executionReactHint": "上流データが変更されるとノードがリアクティブに実行されます",
-      "exists": "存在",
+      "exists": "存在する",
       "expectedValue": "期待値",
       "expertNotFound": "エキスパートが見つかりません",
       "expertRole": "専門家ロール",
@@ -6637,13 +6637,13 @@
       "inputVarDocument": "ドキュメント",
       "inputVarPlaceholder": "node_id.field",
       "inputVariable": "入力変数",
-      "inputVariablePlaceholder": "e.g. data.result",
+      "inputVariablePlaceholder": "例: data.result",
       "insert": "挿入",
-      "itemsVarExample": "例: items",
+      "itemsVarExample": "例: input.items",
       "iterateVar": "反復変数",
       "iterateVarExample": "例: item",
       "keyVariable": "キー変数",
-      "keyVariablePlaceholder": "e.g. record.id",
+      "keyVariablePlaceholder": "例: record.id",
       "knowledgeBase": "ナレッジベース",
       "language": "言語",
       "linear": "リニア",
@@ -6759,11 +6759,11 @@
       "steps": "ステップ",
       "stop": "停止",
       "stopCondition": "停止条件",
-      "stopConditionExample": "例: result.done",
+      "stopConditionExample": "例: isComplete == true",
       "subject": "件名",
       "switchInputVarPlaceholder": "node_id.output_field",
-      "switchLabelPlaceholder": "label",
-      "switchValuePlaceholder": "value",
+      "switchLabelPlaceholder": "ラベル",
+      "switchValuePlaceholder": "値",
       "systemPrompt": "システムプロンプト",
       "systemPromptPlaceholder": "システムプロンプトを入力...",
       "temperature": "温度",
@@ -6794,7 +6794,7 @@
       "triggerType": "トリガータイプ",
       "untilSpecifiedTime": "指定時刻まで",
       "upsert": "アップサート",
-      "url": "URL",
+      "url": "url",
       "urlPlaceholder": "https://api.example.com/data",
       "variable": "変数",
       "vectorDb": "ベクトルデータベース",
@@ -6803,39 +6803,39 @@
       "waitForAnyHint": "いずれかの分岐が完了したら続行",
       "webhookPath": "パス",
       "webhookUrlPlaceholder": "https://hook.example.com/...",
-      "aggregAll": "All (array)",
-      "aggregConcat": "Concat (string)",
-      "aggregConcatHint": "Joins string values together",
-      "aggregCount": "Count",
-      "aggregLsmHint": "Summarizes text inputs. LLM call pending - currently concats.",
-      "aggregLlmHint": "Summarizes text inputs. LLM call pending - currently concats.",
-      "aggregLlmSummarize": "LLM Summarize (text)",
-      "aggregMerge": "Merge (object)",
-      "aggregMergeHint": "Shallow-merges JSON objects (latter overwrites)",
-      "aggregStrategy": "Aggregation Strategy",
-      "aggregSum": "Sum (numeric)",
-      "aggregWeighted": "Weighted (numeric)",
-      "aggregWeightedHint": "Weighted sum: enter comma-separated weights below",
-      "branchTimeoutMs": "Timeout (ms)",
-      "defaultCase": "Default case (fallback)",
-      "defaultModel": "Use default model",
-      "degradeOnTimeout": "On timeout",
-      "expressionHint": "Each case value is a Rhai expression. Use `_value` for input.",
+      "aggregAll": "すべて（配列）",
+      "aggregConcat": "連結（文字列）",
+      "aggregConcatHint": "文字列値を連結します",
+      "aggregCount": "カウント",
+      "aggregLsmHint": "テキスト入力を要約します。LLM呼び出し保留中 - 現在は連結します。",
+      "aggregLlmHint": "テキスト入力を要約します。LLM呼び出し保留中 - 現在は連結します。",
+      "aggregLlmSummarize": "LLM要約（テキスト）",
+      "aggregMerge": "マージ（オブジェクト）",
+      "aggregMergeHint": "JSONオブジェクトを浅くマージします（後者が上書き）",
+      "aggregStrategy": "集約戦略",
+      "aggregSum": "合計（数値）",
+      "aggregWeighted": "加重（数値）",
+      "aggregWeightedHint": "加重合計：以下にカンマ区切りの重みを入力",
+      "branchTimeoutMs": "タイムアウト（ミリ秒）",
+      "defaultCase": "デフォルトケース（フォールバック）",
+      "defaultModel": "デフォルトモデルを使用",
+      "degradeOnTimeout": "タイムアウト時",
+      "expressionHint": "各ケースの値はRhai式です。入力には`_value`を使用します。",
       "expressionPlaceholder": "_value > 100",
-      "llmRoutingModel": "Model (optional)",
-      "llmRoutingPrompt": "Routing Prompt",
-      "llmRoutingPromptPlaceholder": "Describe how to route inputs to cases...",
-      "matchModeContains": "Contains",
-      "matchModeExact": "Exact",
-      "matchModeExpression": "Expression",
-      "matchModeRegex": "Regex",
-      "summarizeModel": "Model (optional)",
-      "summarizePrompt": "Summarize prompt",
-      "summarizePromptPlaceholder": "Describe how to summarize...",
-      "useLlmRouting": "LLM Smart Routing",
-      "waitForAll": "Wait for all inputs",
-      "weights": "Weights (comma-separated)",
-      "weightsPlaceholder": "e.g. 0.5, 1.0, 1.5"
+      "llmRoutingModel": "モデル（オプション）",
+      "llmRoutingPrompt": "ルーティングプロンプト",
+      "llmRoutingPromptPlaceholder": "入力をケースにルーティングする方法を記述...",
+      "matchModeContains": "含む",
+      "matchModeExact": "完全一致",
+      "matchModeExpression": "式",
+      "matchModeRegex": "正規表現",
+      "summarizeModel": "モデル（オプション）",
+      "summarizePrompt": "要約プロンプト",
+      "summarizePromptPlaceholder": "要約方法を記述...",
+      "useLlmRouting": "LLMスマートルーティング",
+      "waitForAll": "すべての入力を待つ",
+      "weights": "重み（カンマ区切り）",
+      "weightsPlaceholder": "例: 0.5, 1.0, 1.5"
     },
     "publish": "公開",
     "publishInDevelopment": "公開機能は開発中です",
@@ -6912,7 +6912,7 @@
       "tagWorkflow": "ワークフロー",
       "tags": "タグ",
       "unsupportedNodeType": "未対応のノードタイプ",
-      "invalidSchemaShape": "Invalid schema shape"
+      "invalidSchemaShape": "無効なスキーマ形状"
     },
     "run": "実行",
     "save": "保存",
@@ -6961,10 +6961,10 @@
       "saveFailed": "保存に失敗しました",
       "unsaved": "未保存",
       "valid": "有効",
-      "warning": "警告",
-      "warnings": "警告"
+      "warning": "{{count}}件の警告",
+      "warnings": "{{count}}件の警告"
     },
-    "subWorkflowLabel": "Sub Workflow",
+    "subWorkflowLabel": "サブワークフロー",
     "subWorkflowNode": {
       "async": "非同期",
       "collapse": "折りたたむ",
@@ -6993,16 +6993,16 @@
     "templateId": "テンプレート ID",
     "templateList": {
       "confirmDelete": "削除を確認",
-      "confirmDeleteMessage": "Are you sure to delete template {{name}}?",
-      "copied": "Copied",
-      "copyFailed": "Copy failed",
+      "confirmDeleteMessage": "テンプレート「{{name}}」を削除してもよろしいですか？",
+      "copied": "コピーしました",
+      "copyFailed": "コピーに失敗しました",
       "custom": "カスタム",
       "delete": "削除",
-      "deleteFailed": "Delete failed",
+      "deleteFailed": "削除に失敗しました",
       "deleted": "削除済み",
       "duplicate": "複製",
       "edit": "編集",
-      "importPresets": "Import",
+      "importPresets": "インポート",
       "importPresetsTitle": "内蔵エキスパートをインポート",
       "irreversible": "この操作は元に戻せません",
       "moreActions": "{{name}}のその他の操作",
@@ -7011,12 +7011,12 @@
       "noMatchFound": "一致するテンプレートなし",
       "noTemplates": "テンプレートなし",
       "preset": "プリセット",
-      "presetsImportFailed": "Import failed",
+      "presetsImportFailed": "インポートに失敗しました",
       "presetsImported": "インポート済み",
       "readonly": "読み取り専用",
-      "searchPlaceholder": "Search templates",
-      "tagPlaceholder": "Filter by tag",
-      "typePlaceholder": "Filter by type",
+      "searchPlaceholder": "テンプレートを検索",
+      "tagPlaceholder": "タグでフィルター",
+      "typePlaceholder": "タイプでフィルター",
       "versionHistory": "バージョン履歴",
       "view": "表示",
       "blank": "空のワークフロー",
@@ -7071,31 +7071,31 @@
     "uploadHint": "クリックまたはファイルをドラッグしてアップロード",
     "uploadJsonFile": "JSON ファイルをアップロード",
     "validation": {
-      "addRule": "添加规则",
-      "assertionOp": "断言操作",
-      "block": "阻止执行",
-      "continue": "继续执行",
-      "description": "描述",
-      "descriptionPlaceholder": "这条规则是做什么的",
-      "expectedPath": "期望路径",
-      "expectedPathPlaceholder": "例如 output.status",
-      "expectedValue": "期望值",
-      "expectedValuePlaceholder": "输入期望值",
-      "maxValue": "最大值",
-      "metric": "指标",
-      "minValue": "最小值",
-      "noRules": "暂无验证规则。点击「添加规则」开始创建。",
-      "onFailStrategy": "失败策略",
-      "rule": "规则",
-      "ruleName": "规则名称",
-      "ruleNamePlaceholder": "给自己的规则取个名字",
-      "ruleType": "规则类型",
-      "saved": "验证规则已保存",
-      "schema": "JSON Schema",
-      "selectNode": "选择节点",
-      "sourceNode": "源节点",
-      "title": "验证规则",
-      "warn": "仅警告"
+      "addRule": "ルールを追加",
+      "assertionOp": "アサーション操作",
+      "block": "実行をブロック",
+      "continue": "実行を続行",
+      "description": "説明",
+      "descriptionPlaceholder": "このルールは何をしますか？",
+      "expectedPath": "期待されるパス",
+      "expectedPathPlaceholder": "例: output.status",
+      "expectedValue": "期待される値",
+      "expectedValuePlaceholder": "期待値を入力",
+      "maxValue": "最大値",
+      "metric": "メトリック",
+      "minValue": "最小値",
+      "noRules": "検証ルールがありません。「ルールを追加」をクリックして開始してください。",
+      "onFailStrategy": "失敗時の戦略",
+      "rule": "ルール",
+      "ruleName": "ルール名",
+      "ruleNamePlaceholder": "ルールに名前を付けてください",
+      "ruleType": "ルールタイプ",
+      "saved": "検証ルールを保存しました",
+      "schema": "JSONスキーマ",
+      "selectNode": "ノードを選択",
+      "sourceNode": "ソースノード",
+      "title": "検証ルール",
+      "warn": "警告のみ"
     },
     "validationFailed": "検証失敗",
     "validationNode": {
@@ -7107,7 +7107,7 @@
       "stop": "停止",
       "title": "検証"
     },
-    "validationWarnings": "Workflow has {{count}} warning(s):\n{{details}}",
+    "validationWarnings": "ワークフローに{{count}}個の警告があります:\n{{details}}",
     "vectorRetrieveNode": {
       "notSelected": "未選択",
       "threshold": "しきい値",
@@ -7118,15 +7118,15 @@
       "addedBranch": "条件分岐を追加",
       "changeSummary": "変更概要",
       "clearSelection": "選択をクリア",
-      "compareHint": "Comparing version {{v1}} with version {{v2}}",
-      "compareSelected": "Compare selected ({{selected}}/2)",
-      "confirmRestore": "Restore to version {{version}}?",
-      "current": "Current version",
+      "compareHint": "バージョン{{v1}}とバージョン{{v2}}を比較中",
+      "compareSelected": "選択を比較（{{selected}}/2）",
+      "confirmRestore": "バージョン{{version}}に復元しますか？",
+      "current": "現在のバージョン",
       "currentWorkflowWillBeOverwritten": "現在のワークフローは新しいバージョンで上書きされます",
-      "deletedNode": "- Removed node: {{id}} ({{desc}})",
+      "deletedNode": "- ノード削除: {{id}} ({{desc}})",
       "initialCreation": "初期作成",
-      "modifiedNode": "~ Modified node: {{id}} ({{desc}})",
-      "newNode": "+ Added node: {{id}} ({{desc}})",
+      "modifiedNode": "~ ノード変更: {{id}} ({{desc}})",
+      "newNode": "+ ノード追加: {{id}} ({{desc}})",
       "noVersionHistory": "バージョン履歴なし",
       "optimizedConfig": "ノード設定を最適化",
       "restoreToVersion": "このバージョンに復元",
@@ -7134,7 +7134,7 @@
       "timeline": "タイムライン",
       "updateTime": "更新時刻",
       "version": "バージョン",
-      "versionManager": "Version Manager: {{name}}",
+      "versionManager": "バージョンマネージャー: {{name}}",
       "archived": "アーカイブ済み",
       "changelog": "変更履歴",
       "comparison": "バージョン比較",
@@ -7147,17 +7147,17 @@
       "updatedAt": "更新日時"
     },
     "versionHistory": {
-      "cannotLoadOldVersion": "Cannot load old version data",
+      "cannotLoadOldVersion": "古いバージョンのデータを読み込めません",
       "compare": "比較",
-      "compareFailed": "Comparison failed",
+      "compareFailed": "比較に失敗しました",
       "compareVersions": "バージョン比較",
       "currentVersion": "現在のバージョン",
-      "diffEdgeAdded": "Edge added ({{type}})",
-      "diffEdgeRemoved": "Edge removed ({{type}})",
-      "diffNodeAdded": "Node added",
-      "diffNodeConfigChanged": "Node config changed",
-      "diffNodeRemoved": "Node removed",
-      "diffNodeTypeChanged": "Node type changed",
+      "diffEdgeAdded": "エッジ追加（{{type}}）",
+      "diffEdgeRemoved": "エッジ削除（{{type}}）",
+      "diffNodeAdded": "ノード追加",
+      "diffNodeConfigChanged": "ノード設定変更",
+      "diffNodeRemoved": "ノード削除",
+      "diffNodeTypeChanged": "ノードタイプ変更",
       "latest": "最新",
       "loadFailed": "バージョン履歴の読み込みに失敗",
       "loadThisVersion": "このバージョンを読み込む",
@@ -7168,8 +7168,8 @@
       "noHistory": "バージョン履歴なし",
       "rollback": "このバージョンにロールバック",
       "rollbackConfirm": "ロールバックを確認しますか？",
-      "rollbackFailed": "Rollback failed: {{error}}",
-      "rollbackTo": "Rollback to {{version}}",
+      "rollbackFailed": "ロールバック失敗: {{error}}",
+      "rollbackTo": "{{version}}にロールバック",
       "rolledBack": "ロールバック済み",
       "title": "バージョン履歴",
       "version": "バージョン",
@@ -7198,116 +7198,116 @@
     "workflowSavedAsNew": "ワークフローを新しいスキルとして保存しました",
     "workflowUpdated": "ワークフローを更新しました",
     "app": {
-      "quickBar": "QuickBar"
+      "quickBar": "クイックバー"
     },
     "searchProvider": {
-      "apiKey": "API Key"
+      "apiKey": "APIキー"
     },
     "dynamicUI": {
-      "uiSchemaJson": "UI Schema JSON"
+      "uiSchemaJson": "UIスキーマJSON"
     },
     "aiPanel": {
-      "enterWorkflowDesc": "Please enter a workflow description",
-      "workflowGenerated": "Workflow generated",
-      "explanation": "Explanation",
-      "generationFailed": "Generation failed",
-      "enterPromptToOptimize": "Please enter a prompt to optimize",
-      "promptOptimized": "Prompt optimized",
-      "optimizationFailed": "Optimization failed",
-      "enterContext": "Please enter context information",
-      "recommendationGenerated": "Recommendations generated",
-      "recommendationFailed": "Recommendation failed",
-      "copiedToClipboard": "Copied to clipboard",
-      "lockedByExpert": "System prompt is provided by the selected expert and cannot be modified",
-      "tabGenerateWorkflow": "Generate Workflow",
-      "describeWorkflow": "Describe your workflow",
-      "generatePlaceholder": "Example: Create a code review workflow that explores the codebase structure...",
-      "generating": "Generating...",
-      "generateBtn": "Generate Workflow",
-      "currentCanvasState": "Current canvas state:",
-      "canvasStatus": "{{nodes}} nodes, {{edges}} edges",
-      "replaceCanvasWarning": "Generated workflow will replace current canvas content",
-      "tabOptimizePrompt": "Optimize Prompt",
-      "enterAgentPrompt": "Enter Agent Prompt to optimize",
-      "optimizePlaceholder": "Paste your prompt...",
-      "optimizing": "Optimizing...",
-      "optimizeBtn": "Optimize Prompt",
-      "optimizedResult": "Optimized Result",
-      "copy": "Copy",
-      "tabRecommend": "Recommend Nodes",
-      "describeContext": "Describe the workflow context and goals",
-      "recommendPlaceholder": "Example: I'm building an automated testing workflow...",
-      "recommending": "Recommending...",
-      "getRecommendation": "Get Recommendation",
-      "recommendedNodeTypes": "Recommended Node Types",
-      "dragHint": "Drag these node types from the left panel onto the canvas",
-      "noRecommendations": "No recommendations yet",
-      "aiAssistant": "AI Assistant",
-      "replaceConfirmTitle": "Confirm Replace",
-      "replaceConfirmContent": "The current canvas has {{nodes}} nodes and {{edges}} edges. Generating will replace all of them. Continue?",
-      "actionGenerateWorkflow": "Generate Workflow",
-      "actionAddNodes": "Add Node(s)",
-      "actionModifyNode": "Update Node",
-      "actionDeleteNodes": "Delete Node(s)",
-      "actionAddEdge": "Add Edge",
-      "actionUpdateEdge": "Update Edge",
-      "actionDeleteEdge": "Delete Edge",
-      "actionOptimizePrompt": "Optimize Prompt",
-      "actionApply": "Apply",
-      "actionApplyAll": "Review {{count}} changes",
+      "enterWorkflowDesc": "ワークフローの説明を入力してください",
+      "workflowGenerated": "ワークフロー生成完了",
+      "explanation": "説明",
+      "generationFailed": "生成失敗",
+      "enterPromptToOptimize": "最適化するプロンプトを入力してください",
+      "promptOptimized": "プロンプト最適化完了",
+      "optimizationFailed": "最適化に失敗しました",
+      "enterContext": "コンテキスト情報を入力してください",
+      "recommendationGenerated": "レコメンデーション生成完了",
+      "recommendationFailed": "レコメンデーションに失敗しました",
+      "copiedToClipboard": "クリップボードにコピーしました",
+      "lockedByExpert": "システムプロンプトは選択されたエキスパートによって提供されており、変更できません",
+      "tabGenerateWorkflow": "ワークフローを生成",
+      "describeWorkflow": "ワークフローを説明してください",
+      "generatePlaceholder": "例：コードベース構造を探索するコードレビューワークフローを作成...",
+      "generating": "生成中...",
+      "generateBtn": "ワークフローを生成",
+      "currentCanvasState": "現在のキャンバス状態:",
+      "canvasStatus": "{{nodes}}ノード、{{edges}}エッジ",
+      "replaceCanvasWarning": "生成されたワークフローは現在のキャンバス内容を置き換えます",
+      "tabOptimizePrompt": "プロンプトを最適化",
+      "enterAgentPrompt": "最適化するエージェントプロンプトを入力",
+      "optimizePlaceholder": "プロンプトを貼り付け...",
+      "optimizing": "最適化中...",
+      "optimizeBtn": "プロンプトを最適化",
+      "optimizedResult": "最適化結果",
+      "copy": "コピー",
+      "tabRecommend": "ノードを推奨",
+      "describeContext": "ワークフローのコンテキストと目標を説明",
+      "recommendPlaceholder": "例：自動テストワークフローを構築しています...",
+      "recommending": "推奨中...",
+      "getRecommendation": "推奨を取得",
+      "recommendedNodeTypes": "推奨ノードタイプ",
+      "dragHint": "左パネルからこれらのノードタイプをキャンバスにドラッグ",
+      "noRecommendations": "まだ推奨はありません",
+      "aiAssistant": "AIアシスタント",
+      "replaceConfirmTitle": "置き換えを確認",
+      "replaceConfirmContent": "現在のキャンバスには{{nodes}}個のノードと{{edges}}個のエッジがあります。生成するとすべて置き換えられます。続行しますか？",
+      "actionGenerateWorkflow": "ワークフローを生成",
+      "actionAddNodes": "ノードを追加",
+      "actionModifyNode": "ノードを更新",
+      "actionDeleteNodes": "ノードを削除",
+      "actionAddEdge": "エッジを追加",
+      "actionUpdateEdge": "エッジを更新",
+      "actionDeleteEdge": "エッジを削除",
+      "actionOptimizePrompt": "プロンプトを最適化",
+      "actionApply": "適用",
+      "actionApplyAll": "{{count}}件の変更を確認",
       "diffPreview": {
-        "title": "AI Edit Preview",
-        "subtitle": "Please review these {{count}} changes before applying to your workflow",
-        "before": "Before",
-        "after": "After",
-        "apply": "Apply this",
-        "applyAll": "Apply All",
-        "cancel": "Cancel",
-        "applied": "Applied",
-        "appliedHint": "Applied {{count}} / {{total}} in this session",
-        "empty": "No changes to preview",
-        "noBefore": "(new item, no prior content)",
-        "noAfter": "(deletion, no new content)",
-        "noChanges": "No field changes",
-        "applyFailed": "Apply failed",
-        "applyAllFailed": "Apply All failed",
-        "rollbackBatch": "Rollback Batch",
-        "rollbackSuccess": "Batch rolled back",
-        "rollbackTip": "Undo the entire batch of AI changes",
-        "nodesEdgesLabel": "{{nodes}} nodes / {{edges}} edges",
-        "newNodes": "{{count}} new nodes",
-        "nodeNotFound": "Node not found",
-        "edgeNotFound": "Edge not found",
+        "title": "AI編集プレビュー",
+        "subtitle": "ワークフローに適用する前に、これらの{{count}}件の変更を確認してください",
+        "before": "変更前",
+        "after": "変更後",
+        "apply": "これを適用",
+        "applyAll": "すべて適用",
+        "cancel": "キャンセル",
+        "applied": "適用済み",
+        "appliedHint": "このセッションで{{count}} / {{total}}を適用しました",
+        "empty": "プレビューする変更はありません",
+        "noBefore": "（新規項目、以前の内容なし）",
+        "noAfter": "（削除、新しい内容なし）",
+        "noChanges": "フィールドの変更なし",
+        "applyFailed": "適用に失敗しました",
+        "applyAllFailed": "すべての適用に失敗しました",
+        "rollbackBatch": "バッチをロールバック",
+        "rollbackSuccess": "バッチがロールバックされました",
+        "rollbackTip": "AIによる変更のバッチ全体を元に戻す",
+        "nodesEdgesLabel": "{{nodes}} ノード / {{edges}} エッジ",
+        "newNodes": "{{count}} 個の新しいノード",
+        "nodeNotFound": "ノードが見つかりません",
+        "edgeNotFound": "エッジが見つかりません",
         "promptLength": "プロンプト長: {{from}} → {{to}} 文字",
         "deleted": "— 削除済み —",
         "deletedCount": "— 削除済み {{count}} —"
       },
-      "applyToNode": "Apply to node",
-      "chatMode": "Chat mode",
-      "chatWelcome": "Hi, I'm your AI assistant.",
-      "chatWelcomeHint": "Ask me about workflow or node configuration.",
-      "dragCanvasToAdd": "Drag to canvas to add",
-      "dragHintUpdated": "Canvas updated from prompt",
-      "fillFromSelectedNode": "Fill from selected node",
-      "generateMergeBtn": "Generate merge",
-      "mergeMode": "Merge mode",
-      "promptAppliedToNode": "Prompt applied to node",
-      "replaceMode": "Replace mode",
-      "retry": "Retry",
-      "toolsMode": "Tools mode",
-      "tabEvolution": "Evolution",
-      "evolutionHistory": "Evolution History",
-      "evolutionFallback": "Optimization",
-      "verified": "Verified",
-      "hasEvolution": "Has evolution records",
+      "applyToNode": "ノードに適用",
+      "chatMode": "チャットモード",
+      "chatWelcome": "こんにちは、私はあなたのAIアシスタントです。",
+      "chatWelcomeHint": "ワークフローやノード設定について質問してください。",
+      "dragCanvasToAdd": "キャンバスにドラッグして追加",
+      "dragHintUpdated": "プロンプトからキャンバスを更新",
+      "fillFromSelectedNode": "選択したノードから入力",
+      "generateMergeBtn": "マージを生成",
+      "mergeMode": "マージモード",
+      "promptAppliedToNode": "ノードにプロンプトを適用",
+      "replaceMode": "置換モード",
+      "retry": "リトライ",
+      "toolsMode": "ツールモード",
+      "tabEvolution": "進化",
+      "evolutionHistory": "進化履歴",
+      "evolutionFallback": "最適化",
+      "verified": "検証済み",
+      "hasEvolution": "進化記録あり",
       "progressAnalyzing": "インテントを分析中",
       "progressMatching": "ノードをマッチング中",
       "progressBuilding": "ワークフローを構築中",
       "progressOptimizing": "最適化中",
       "clickCanvasToAdd": "\"{{label}}\" を選択 — キャンバスをクリックしてノードを配置",
       "chatPlaceholder": "メッセージを入力…",
-      "workflowParsed": "Workflow parsed",
-      "workflowParsedLowConfidence": "Workflow parsed (low confidence)"
+      "workflowParsed": "ワークフロー解析済み",
+      "workflowParsedLowConfidence": "ワークフロー解析済み（低信頼度）"
     },
     "canvasTitle": {
       "clickToRename": "クリックして名前を変更"
@@ -7317,7 +7317,7 @@
     },
     "leftPanel": {
       "layout": "レイアウト補助",
-      "legacySuffix": " (旧版)",
+      "legacySuffix": "（レガシー）",
       "nodesTab": "ノード",
       "searchNodes": "ノードを検索",
       "searchTemplates": "テンプレートを検索",
@@ -7375,11 +7375,11 @@
     "reactPreview": {
       "title": "React プレビュー"
     },
-    "collapsed": "All containers collapsed",
-    "expanded": "All containers expanded",
-    "containersCollapsed": "All containers collapsed",
-    "containersExpanded": "All containers expanded",
-    "debugPanel": "Debug panel",
+    "collapsed": "すべてのコンテナを折りたたむ",
+    "expanded": "すべてのコンテナを展開",
+    "containersCollapsed": "すべてのコンテナを折りたたむ",
+    "containersExpanded": "すべてのコンテナを展開",
+    "debugPanel": "デバッグパネル",
     "thisnestingsuffixmpmgp": "),this.nestingSuffix=m?p(m):g||p(",
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
@@ -7387,140 +7387,140 @@
     "foo": "foo"
   },
   "voiceChat": {
-    "noTicket": "No ticket available. Please start again."
+    "noTicket": "利用可能なチケットがありません。もう一度開始してください。"
   },
   "chatSidebar": {
-    "menu": "Menu"
+    "menu": "メニュー"
   },
   "inputArea": {
-    "uploadFile": "Upload file"
+    "uploadFile": "ファイルをアップロード"
   },
   "debugPanel": {
-    "trace": "Trace ID",
-    "spans": "Spans",
-    "tokens": "Tokens",
-    "nodeId": "Node ID",
-    "type": "Type",
-    "status": "Status",
-    "duration": "Duration",
-    "subWorkflow": "Sub-workflow",
-    "executionId": "Execution ID",
-    "workflowId": "Workflow ID",
-    "parentExecution": "Parent execution ID"
+    "trace": "トレースID",
+    "spans": "スパン",
+    "tokens": "トークン",
+    "nodeId": "ノードID",
+    "type": "タイプ",
+    "status": "ステータス",
+    "duration": "期間",
+    "subWorkflow": "サブワークフロー",
+    "executionId": "実行ID",
+    "workflowId": "ワークフローID",
+    "parentExecution": "親実行ID"
   },
   "spanDetail": {
-    "parentSpan": "Parent Span"
+    "parentSpan": "親スパン"
   },
   "traceDetail": {
-    "userId": "User ID"
+    "userId": "ユーザーID"
   },
   "settingsPanel": {
-    "featureFlags": "Feature Flags"
+    "featureFlags": "機能フラグ"
   },
   "skillTimeline": {
-    "promptDiff": "Prompt Diff"
+    "promptDiff": "プロンプト差分"
   },
   "subWorkflowNode": {
-    "collapse": "Collapse",
-    "expand": "Expand"
+    "collapse": "折りたたむ",
+    "expand": "展開"
   },
   "workflowRefNode": {
-    "noWorkflow": "No workflow referenced"
+    "noWorkflow": "参照されているワークフローはありません"
   },
   "versionHistory": {
     "vA": "vA",
     "vB": "vB"
   },
   "aiPanel": {
-    "progressAnalyzing": "Analyzing intent",
-    "progressMatching": "Matching nodes",
-    "progressBuilding": "Building workflow",
-    "progressOptimizing": "Optimizing"
+    "progressAnalyzing": "意図を分析中",
+    "progressMatching": "ノードをマッチング中",
+    "progressBuilding": "ワークフローを構築中",
+    "progressOptimizing": "最適化中"
   },
   "chartPreview": {
-    "title": "Chart Preview"
+    "title": "チャートプレビュー"
   },
   "htmlPreview": {
-    "title": "HTML Preview"
+    "title": "HTMLプレビュー"
   },
   "reactPreview": {
-    "title": "React Preview"
+    "title": "Reactプレビュー"
   },
   "planApprovalModal": {
-    "title": "Plan Approval",
-    "approve": "Approve & Execute",
-    "reject": "Reject",
-    "taskPreview": "Task Preview",
-    "engine": "Reasoning Engine",
-    "features": "Task Features",
-    "expandPlan": "Expand plan details",
-    "collapsePlan": "Collapse plan details",
-    "empty": "(empty)"
+    "title": "計画承認",
+    "approve": "承認して実行",
+    "reject": "却下",
+    "taskPreview": "タスクプレビュー",
+    "engine": "推論エンジン",
+    "features": "タスク機能",
+    "expandPlan": "計画詳細を展開",
+    "collapsePlan": "計画詳細を折りたたむ",
+    "empty": "(空)"
   },
   "planApproval": {
-    "rejectedToast": "Plan rejected — turn not executed",
-    "toggleLabel": "Plan Approval Gate"
+    "rejectedToast": "計画が却下されました — ターンは実行されませんでした",
+    "toggleLabel": "計画承認ゲート"
   },
   "approval": {
-    "panelTitle": "Pending Approvals",
-    "noPending": "No pending approvals",
-    "message": "Approval message",
-    "workflowId": "Workflow",
-    "status": "Status",
-    "expiresAt": "Expires at",
-    "actions": "Actions",
-    "decision": "Decision",
-    "approve": "Approve",
-    "reject": "Reject",
-    "cancel": "Cancel",
-    "notePlaceholder": "Add a note (optional)",
-    "approver": "Approver"
+    "panelTitle": "保留中の承認",
+    "noPending": "保留中の承認はありません",
+    "message": "承認メッセージ",
+    "workflowId": "ワークフロー",
+    "status": "ステータス",
+    "expiresAt": "有効期限",
+    "actions": "アクション",
+    "decision": "決定",
+    "approve": "承認",
+    "reject": "却下",
+    "cancel": "キャンセル",
+    "notePlaceholder": "メモを追加（任意）",
+    "approver": "承認者"
   },
   "browserMock": {
-    "greeting": "Hello! What can I help you with?",
-    "understandGoal": "Understand goal",
-    "analyzeRequirements": "Analyze requirements",
-    "designPlan": "Design plan",
-    "implementSteps": "Implement steps",
-    "verifyResult": "Verify result",
-    "confirmCompletion": "Confirm completion",
-    "receivedMessage": "Received message",
-    "executeLabel": "Execute",
-    "triggerLabel": "Trigger",
-    "fileRead": "Read file",
-    "fileReadDesc": "Read local file content",
-    "fileWrite": "Write file",
-    "fileWriteDesc": "Write content to local file",
-    "shellCommand": "Shell command",
-    "shellCommandDesc": "Execute a command in terminal",
-    "copyHintCursor": "Use Cursor editor for file operations",
-    "copyHintContinue": "Press Enter to continue...",
-    "copyHintEnv": "Environment variables loaded",
-    "copyHintOpenAI": "Call via OpenAI API format",
-    "nlWorkflowExplanation": "The above will be automatically converted to a workflow",
+    "greeting": "こんにちは！何をお手伝いしましょうか？",
+    "understandGoal": "目標を理解",
+    "analyzeRequirements": "要件を分析",
+    "designPlan": "計画を設計",
+    "implementSteps": "手順を実行",
+    "verifyResult": "結果を検証",
+    "confirmCompletion": "完了を確認",
+    "receivedMessage": "メッセージを受信",
+    "executeLabel": "実行",
+    "triggerLabel": "トリガー",
+    "fileRead": "ファイルを読む",
+    "fileReadDesc": "ローカルファイルの内容を読む",
+    "fileWrite": "ファイルを書く",
+    "fileWriteDesc": "ローカルファイルに内容を書き込む",
+    "shellCommand": "シェルコマンド",
+    "shellCommandDesc": "ターミナルでコマンドを実行",
+    "copyHintCursor": "Cursorエディタを使用してファイル操作",
+    "copyHintContinue": "続行するにはEnterキーを押してください...",
+    "copyHintEnv": "環境変数が読み込まれました",
+    "copyHintOpenAI": "OpenAI API形式で呼び出し",
+    "nlWorkflowExplanation": "上記は自動的にワークフローに変換されます",
     "doubao": "Doubao",
     "tongyi": "Tongyi",
     "siliconFlow": "SiliconFlow"
   },
-  "cancel": "Cancel",
+  "cancel": "キャンセル",
   "searchUtils": {
-    "highCredibility": "High credibility",
-    "mediumCredibility": "Medium credibility"
+    "highCredibility": "信頼性:高",
+    "mediumCredibility": "信頼性:中"
   },
   "settingsSearch": {
-    "boot": "Boot",
-    "chatSettings": "Chat",
-    "context": "Context",
-    "general": "General",
-    "history": "History",
-    "language": "Language",
-    "maxToken": "Max Token",
-    "startup": "Startup",
-    "temperature": "Temperature"
+    "boot": "起動",
+    "chatSettings": "チャット",
+    "context": "コンテキスト",
+    "general": "一般",
+    "history": "履歴",
+    "language": "言語",
+    "maxToken": "最大トークン数",
+    "startup": "スタートアップ",
+    "temperature": "温度"
   },
   "permission": {
-    "execute": "Execute",
-    "readonly": "Readonly",
-    "write": "Write"
+    "execute": "実行",
+    "readonly": "読み取り専用",
+    "write": "書き込み"
   }
 }
