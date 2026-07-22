@@ -1088,50 +1088,14 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             },
         }));
     }
-    // ── SwitchNode: 检查 analyst-brief 是否有内容，决定辩论是否执行 ──
-    // 表达式检查：_value 非空即为有效摘要（空/null 走默认分支跳过辩论）
-    nodes.push(WorkflowNode::Switch(SwitchNode {
-        base: WorkflowNodeBase {
-            id: "switch-brief-valid".into(),
-            title: "分析师摘要有效性检查".into(),
-            description: Some("检查 analyst-brief 是否有效，无效则跳过辩论阶段".into()),
-            position: Position { x: 150.0, y: 1170.0 },
-            retry: RetryConfig::default(),
-            timeout: Some(5),
-            enabled: true,
-            parent_id: None,
-            compensation: None,
-            continue_on_fail: false,
-        },
-        config: SwitchNodeConfig {
-            input_var: "analyst-brief".into(),
-            cases: vec![SwitchCase {
-                value: "_value.contains(\"看多=\")".into(),
-                label: "brief_ok".into(),
-            }],
-            default_case: Some("brief_fallback".into()),
-            match_mode: "expression".into(),
-            use_llm: None,
-            llm_prompt: None,
-            llm_model: None,
-            output_var: String::new(),
-        },
-    }));
+    // analyst-brief 直接喂给辩论阶段。个别维度缺数据的兜底由 brief 内的
+    // 「**数据不可用**」标记处理——辩手看到标记自然知道跳过该维度。
+    // 整份 brief 全空（极低概率）时辩手仍能输出「数据不足」的降级辩论，
+    // 下游 pipeline 不会因缺少辩论输出而断裂。
     edges.push(WorkflowEdge {
-        id: "e-brief-switch".into(),
+        id: "e-brief-debate".into(),
         source: "analyst-brief".into(),
         source_handle: None,
-        target: "switch-brief-valid".into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    });
-    // switch-brief-valid (brief_ok) →  debate-bull-bear
-    // brief_fallback（默认分支）不连接任何下游 → 辩论跳过，下游基于结构化评分出决策
-    edges.push(WorkflowEdge {
-        id: "e-switch-debate".into(),
-        source: "switch-brief-valid".into(),
-        source_handle: Some("brief_ok".into()),
         target: "debate-bull-bear".into(),
         target_handle: None,
         edge_type: EdgeType::Direct,
