@@ -31,8 +31,19 @@ pub enum MdInline {
     Bold(String),
     Italic(String),
     Code(String),
-    Link { text: String, url: String },
-    Image { alt: String, path: String },
+    Link {
+        text: String,
+        url: String,
+    },
+    Image {
+        alt: String,
+        path: String,
+    },
+    /// 数学公式：LaTeX 源码 + 是否为块级（`$$...$$`）
+    Math {
+        latex: String,
+        display: bool,
+    },
 }
 
 /// 解析 Markdown 文本为结构化 IR
@@ -42,12 +53,12 @@ pub fn parse_markdown(text: &str) -> MdDocument {
     options.insert(Options::ENABLE_FOOTNOTES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TASKLISTS);
+    options.insert(Options::ENABLE_MATH);
 
     let parser = Parser::new_ext(text, options);
     let mut doc = MdDocument { blocks: Vec::new() };
     let mut current_block: Option<MdBlock> = None;
     let mut current_inlines: Vec<MdInline> = Vec::new();
-    let mut in_table_head = false;
     let mut table_headers: Vec<String> = Vec::new();
     let mut table_rows: Vec<Vec<String>> = Vec::new();
     let mut table_cells: Vec<String> = Vec::new();
@@ -80,13 +91,14 @@ pub fn parse_markdown(text: &str) -> MdDocument {
                 },
                 Tag::Table(_) => {
                     flush_inlines(&mut current_inlines, &mut current_block, &mut doc);
-                    in_table_head = true;
                     table_headers.clear();
                     table_rows.clear();
                     table_cells.clear();
+                    // 占位：让 push_inline 能识别"在表格内"
+                    current_block = Some(MdBlock::Table { headers: Vec::new(), rows: Vec::new() });
                 },
                 Tag::TableHead => {
-                    in_table_head = true;
+                    // cmark 0.13 不会标记头/体分界，靠 TagEnd::TableRow 处识别 alignment row
                 },
                 Tag::TableRow => {
                     table_cells.clear();
@@ -134,17 +146,35 @@ pub fn parse_markdown(text: &str) -> MdDocument {
                             rows: std::mem::take(&mut table_rows),
                         });
                     }
-                    in_table_head = false;
                     current_block = None;
                 },
                 TagEnd::TableHead => {
-                    in_table_head = false;
+                    // pulldown-cmark 0.13 会发送 TableHead 事件（表头行）。
+                    // 表头行结束后，将累积的 cells 移交到 table_headers，
+                    // 避免被后续 TableRow 的 clear 吞掉。
+                    if !table_cells.is_empty() && table_headers.is_empty() {
+                        table_headers = std::mem::take(&mut table_cells);
+                    }
                 },
                 TagEnd::TableRow => {
-                    if in_table_head {
-                        table_headers = std::mem::take(&mut table_cells);
-                    } else if !table_cells.is_empty() {
-                        table_rows.push(std::mem::take(&mut table_cells));
+                    // pulldown-cmark 0.13 的 GFM 表格事件流：
+                    // 1) 表头行（cells 含真实文字）
+                    // 2) alignment 行（cells 全为 "-"/":"/空）
+                    // 3) 数据行
+                    // 但 cmark 不会发 TableHead/End 标记表头范围，需手动识别 alignment row。
+                    let is_alignment_row = table_cells.iter().all(|c| {
+                        c.trim().is_empty() || c.trim().chars().all(|ch| ch == '-' || ch == ':')
+                    });
+                    if is_alignment_row {
+                        // alignment 行：丢弃 cells，不当作 header 也不当作 row
+                        table_cells.clear();
+                    } else {
+                        // 第一行非 alignment → 视为表头；其后所有非 alignment 行 → 数据
+                        if table_headers.is_empty() {
+                            table_headers = std::mem::take(&mut table_cells);
+                        } else {
+                            table_rows.push(std::mem::take(&mut table_cells));
+                        }
                     }
                 },
                 TagEnd::TableCell => {},
@@ -192,8 +222,19 @@ pub fn parse_markdown(text: &str) -> MdDocument {
                 );
             },
 
-            Event::InlineMath(text) | Event::DisplayMath(text) => {
-                let inline = MdInline::Code(text.to_string());
+            Event::InlineMath(text) => {
+                let inline = MdInline::Math { latex: text.to_string(), display: false };
+                push_inline(
+                    inline,
+                    &mut current_block,
+                    &mut current_inlines,
+                    &mut current_item_inlines,
+                    &mut table_cells,
+                );
+            },
+
+            Event::DisplayMath(text) => {
+                let inline = MdInline::Math { latex: text.to_string(), display: true };
                 push_inline(
                     inline,
                     &mut current_block,
@@ -460,6 +501,13 @@ fn inline_to_string(inline: &MdInline) -> String {
         MdInline::Code(s) => s.clone(),
         MdInline::Link { text, .. } => text.clone(),
         MdInline::Image { alt, .. } => alt.clone(),
+        MdInline::Math { latex, display } => {
+            if *display {
+                format!("$${}$$", latex)
+            } else {
+                format!("${}$", latex)
+            }
+        },
     }
 }
 
