@@ -100,8 +100,6 @@ pub mod sources;
 pub mod spawn_guard;
 pub mod stock_analysis;
 pub mod stock_analysis_setup;
-// ── Walk-Forward + DES 对比 ──
-pub mod wf_des;
 pub mod stock_pipeline;
 pub mod stock_workflow;
 pub mod storage;
@@ -115,6 +113,8 @@ pub mod tracer;
 pub mod user_profile;
 pub mod webdav;
 pub mod webhook;
+// ── Walk-Forward + DES 对比 ──
+pub mod wf_des;
 pub mod wiki;
 // 工作流执行引擎命令:含审批(HITL)命令 list_pending_approvals/resume_approval/cancel_approval、
 // Loop 节点人工审查 resume_loop_after_review、节点执行白名单校验等。
