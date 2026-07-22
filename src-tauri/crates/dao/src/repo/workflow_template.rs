@@ -115,9 +115,7 @@ pub async fn update_workflow_template(
         // 历史快照若已存在（如回滚后再次保存相同 version），保留旧快照不覆盖
         workflow_template_version::Entity::insert(version_snapshot)
             .on_conflict(
-                OnConflict::column(workflow_template_version::Column::Id)
-                    .do_nothing()
-                    .to_owned(),
+                OnConflict::column(workflow_template_version::Column::Id).do_nothing().to_owned(),
             )
             .exec(db)
             .await?;

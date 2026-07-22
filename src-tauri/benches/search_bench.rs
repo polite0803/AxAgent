@@ -107,7 +107,8 @@ fn bench_chunk_code_style(c: &mut Criterion) {
 }
 
 fn bench_chunk_custom_separator(c: &mut Criterion) {
-    let sections = format!("{}{}", "---SECTION---\n".repeat(100), "Content for section.\n".repeat(2000));
+    let sections =
+        format!("{}{}", "---SECTION---\n".repeat(100), "Content for section.\n".repeat(2000));
     c.bench_function("search_chunk_custom_separator", |b| {
         b.iter(|| {
             std::hint::black_box(text_chunker::chunk_text_with_separator_and_markdown(
