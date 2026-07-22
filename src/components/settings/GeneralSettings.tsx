@@ -84,7 +84,7 @@ export function GeneralSettings() {
                     await disable();
                   }
                 } catch (e) {
-                  logIpcError("自启动切换")(e);
+                  logIpcError("autostart toggle")(e);
                 }
               }
             }}

@@ -192,6 +192,12 @@ impl CjkFont {
         self.bytes
     }
 
+    /// 查询字符的字形索引（GID）。缺字形时返回 None。
+    /// 用于配合 Identity-H + CIDToGIDMap=Identity 把内容流 CID 设为 GID。
+    pub fn glyph_index(&self, c: char) -> Option<u16> {
+        self.face.glyph_index(c).map(|g| g.0)
+    }
+
     /// 设计单位每 em。
     pub fn units_per_em(&self) -> u16 {
         self.units_per_em
@@ -234,19 +240,16 @@ impl CjkFont {
     }
 
     /// Identity-H 复合字体字节流（十六进制字符串，不含 `<>` 包裹）。
-    /// 每个 Unicode 字符 CID = codepoint，BMP 内 2 字节大端，BMP 外 surrogate pair。
+    ///
+    /// 配合 [`crate::tools::document::register_cjk_font`] 的 `CIDToGIDMap = Identity`，
+    /// 内容流里的 CID 必须等于 TrueType 的**字形索引 (GID)**，渲染器据此取正确字形。
+    /// 因此这里编码的是 GID（2 字节大端），而非 Unicode 码点。
+    /// 字符在字体中缺字形时回退为 GID 0（不渲染），并由 ToUnicode CMap 兜底映射。
     pub fn encode_cid_hex(&self, text: &str) -> String {
         let mut hex = String::with_capacity(text.len() * 4);
         for c in text.chars() {
-            let cp = c as u32;
-            if cp <= 0xFFFF {
-                hex.push_str(&format!("{:04X}", cp));
-            } else {
-                let v = cp - 0x10000;
-                let hi = 0xD800 + (v >> 10);
-                let lo = 0xDC00 + (v & 0x3FF);
-                hex.push_str(&format!("{:04X}{:04X}", hi, lo));
-            }
+            let gid = self.glyph_index(c).unwrap_or(0);
+            hex.push_str(&format!("{:04X}", gid));
         }
         hex
     }
