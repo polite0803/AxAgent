@@ -114,9 +114,15 @@ async fn execute_rhai_directly(
     // `Variable not found: xxx`（present 函数体根本进不去）。
     // 这一次性根治所有 Rhai 脚本对未注入变量的安全访问问题，
     // 无需每次新增 input_mapping 占位都重新生成工作流模板。
+    //
+    // V57-fix: 排除函数形参（`fn name(param)`）和脚本内 `let` 局部变量，
+    // 避免误报（如 portfolio-mgr.rhai 中 fn present(x) 的形参 x、
+    // fn safe_parse(raw) 的形参 raw、let f7_signal = ... 的局部变量 f7_signal）。
+    let local_vars = extract_local_vars(code);
     let missing_vars = extract_present_vars(code)
         .into_iter()
         .filter(|name| !scope_vars.contains_key(name))
+        .filter(|name| !local_vars.contains(name))
         .collect::<Vec<_>>();
     if !missing_vars.is_empty() {
         tracing::warn!("[code_executor] V57 自动补默认 unit 的未注入变量: {:?}", missing_vars);
@@ -229,9 +235,73 @@ fn extract_present_vars(code: &str) -> Vec<String> {
     v
 }
 
+/// 扫描 Rhai 脚本中的局部变量定义，返回需要排除的变量名集合。
+///
+/// 包括两类：
+/// 1. 函数形参：`fn name(param1, param2)` → param1, param2
+/// 2. `let` 局部变量：`let var = ...` → var
+///
+/// 这些变量在脚本内部定义，不需要从 input_mapping 注入，
+/// 因此 V57 自动补默认值时应跳过它们，避免误报。
+fn extract_local_vars(code: &str) -> std::collections::HashSet<String> {
+    use std::collections::HashSet;
+    let mut result: HashSet<String> = HashSet::new();
+
+    // 1. 匹配函数形参：fn <name>(<params>)
+    //    形参用逗号分隔，可能有空白
+    for line in code.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("fn ") {
+            if let Some(close) = rest.find('(') {
+                let after_paren = &rest[close + 1..];
+                if let Some(close_paren) = after_paren.find(')') {
+                    let params_str = &after_paren[..close_paren];
+                    for param in params_str.split(',') {
+                        let p = param.trim();
+                        // 跳过 `&` 引用标记和类型注解
+                        let p = p.strip_prefix('&').unwrap_or(p).trim();
+                        let p = p.split(':').next().unwrap_or(p).trim();
+                        if !p.is_empty()
+                            && (p.as_bytes()[0].is_ascii_alphabetic() || p.as_bytes()[0] == b'_')
+                        {
+                            result.insert(p.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. 匹配 let 局部变量：let <name> = ...
+    //    仅匹配顶层 let，不匹配 for 循环中的 let（虽然 Rhai 中 let 在任何位置都定义局部变量）
+    for line in code.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("let ") {
+            // 读取变量名（到空格、=、分号为止）
+            let mut name_end = 0;
+            for (i, c) in rest.char_indices() {
+                if c.is_ascii_alphanumeric() || c == '_' {
+                    name_end = i + c.len_utf8();
+                } else {
+                    break;
+                }
+            }
+            if name_end > 0 {
+                if let Ok(name) = std::str::from_utf8(&rest.as_bytes()[..name_end])
+                    && !name.is_empty()
+                {
+                    result.insert(name.to_string());
+                }
+            }
+        }
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod extract_present_vars_tests {
-    use super::extract_present_vars;
+    use super::{extract_local_vars, extract_present_vars};
 
     #[test]
     fn extracts_simple_present_calls() {
@@ -278,6 +348,54 @@ mod extract_present_vars_tests {
         let code = "if present(   spaced   ) { }";
         let v = extract_present_vars(code);
         assert_eq!(v, vec!["spaced".to_string()]);
+    }
+
+    #[test]
+    fn extract_local_vars_fn_params() {
+        let code = r#"
+            fn present(x) { type_of(x) != "()" }
+            fn safe_parse(raw) { if !present(raw) { return (); } }
+        "#;
+        let vars = extract_local_vars(code);
+        assert!(vars.contains("x"));
+        assert!(vars.contains("raw"));
+    }
+
+    #[test]
+    fn extract_local_vars_let_bindings() {
+        let code = r#"
+            let f7_signal = if present(trader_direction) { 0.5 } else { 0.0 };
+            let score = 100.0;
+        "#;
+        let vars = extract_local_vars(code);
+        assert!(vars.contains("f7_signal"));
+        assert!(vars.contains("score"));
+    }
+
+    #[test]
+    fn extract_local_vars_portfolio_mgr_scenario() {
+        // 模拟 portfolio-mgr.rhai 中的场景：
+        // fn present(x) / fn safe_parse(raw) / let f7_signal = ...
+        // V57 不应误报这三个变量
+        let code = r#"
+            fn present(x) { type_of(x) != "()" }
+            fn safe_parse(raw) { if !present(raw) { return (); } }
+            let f7_signal = if present(trader_direction) { 0.5 } else { 0.0 };
+            if present(f7_signal) && f7_weight > 0.0 { }
+        "#;
+        let local_vars = extract_local_vars(code);
+        let present_vars = extract_present_vars(code);
+        // present_vars 应包含 f7_signal 和 trader_direction
+        assert!(present_vars.contains("f7_signal"));
+        assert!(present_vars.contains("trader_direction"));
+        // local_vars 应包含 x, raw, f7_signal
+        assert!(local_vars.contains("x"));
+        assert!(local_vars.contains("raw"));
+        assert!(local_vars.contains("f7_signal"));
+        // 过滤后应只剩 trader_direction（真正需要从外部注入的变量）
+        let filtered: Vec<String> =
+            present_vars.into_iter().filter(|name| !local_vars.contains(name)).collect();
+        assert_eq!(filtered, vec!["trader_direction".to_string()]);
     }
 }
 

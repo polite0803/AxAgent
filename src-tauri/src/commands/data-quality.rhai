@@ -21,8 +21,10 @@
 //   - gap_count 阈值（4/3/2/1）是经验值，随分析师数量增大可等比调整
 
 fn present(x) { type_of(x) != "()" }
-fn safe_conf(v) { if type_of(v) == "f64" { v } else if type_of(v) == "int" { v.to_float() } else { 50.0 } }
-fn safe_gap(v) { if type_of(v) == "bool" { v } else { false } }
+// safe_conf: 缺失字段（unit/null）返回 0.0（零置信度），避免把"数据缺失"误判为"数据正常"
+fn safe_conf(v) { if type_of(v) == "f64" { v } else if type_of(v) == "int" { v.to_float() } else { 0.0 } }
+// safe_gap: 缺失字段（unit/null）返回 true（视为有缺口），避免虚高评分
+fn safe_gap(v) { if type_of(v) == "bool" { v } else { true } }
 
 // ── 分析师字段解析（每新增一个分析师，在此加一对 {abbr}_confidence + {abbr}_data_gaps）──
 let mk_c = safe_conf(mk_confidence); let mk_g = safe_gap(mk_data_gaps);

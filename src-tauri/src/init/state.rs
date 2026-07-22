@@ -461,6 +461,12 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             engine.init_dispatcher().await;
             // ApprovalNode HITL: 注入数据库连接供 ApprovalOps 回调使用
             engine.set_db(sea_db.clone());
+            // 注：ToolRegistry 暂未注入到 WorkEngine。
+            // 原因：local_tool_registry 是 Arc<tokio::sync::Mutex<UnifiedToolRegistry>>，
+            // 而 ToolRegistry trait 方法是同步的，无法在同步方法中获取 tokio Mutex 锁。
+            // 当前工具通过 ToolResolver 回调路径执行（services.rs 中注入），
+            // tool_executor.rs 已支持 ToolRegistry find 不到工具时 fallback 到回调路径。
+            // 未来注入需要重构为 parking_lot::Mutex 或创建异步适配器。
             engine
         };
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =

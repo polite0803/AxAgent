@@ -49,8 +49,6 @@ function getDefaultVariables(): Variable[] {
   b("pos_max_single_pct", 20, "stockAnalysis.configDescriptions.posMaxSinglePct", "number");
   b("pos_max_total", 10, "stockAnalysis.configDescriptions.posMaxTotal", "number");
   b("pos_max_sector_pct", 40, "stockAnalysis.configDescriptions.posMaxSectorPct", "number");
-  b("pos_min_cash_pct", 5, "stockAnalysis.configDescriptions.posMinCashPct", "number");
-  b("pos_max_turnover_pct", 100, "stockAnalysis.configDescriptions.posMaxTurnoverPct", "number");
   // 估值参数
   b("value_dcf_growth_rate", 8, "stockAnalysis.configDescriptions.valueDcfGrowthRate", "number");
   b("value_dcf_perpetual_rate", 3, "stockAnalysis.configDescriptions.valueDcfPerpetualRate", "number");
@@ -58,11 +56,6 @@ function getDefaultVariables(): Variable[] {
   b("value_moat_threshold", 60, "stockAnalysis.configDescriptions.valueMoatThreshold", "number");
   b("value_fscore_buy", 7, "stockAnalysis.configDescriptions.valueFscoreBuy", "number");
   b("value_safety_margin", 20, "stockAnalysis.configDescriptions.valueSafetyMargin", "number");
-  // 护城河量化（value.rs:320）
-  b("moat_roe_years_min", 3, "stockAnalysis.configDescriptions.moatRoeYearsMin", "number");
-  b("moat_avg_gross_margin_min", 20, "stockAnalysis.configDescriptions.moatAvgGrossMarginMin", "number");
-  b("moat_margin_stable_std_max", 5, "stockAnalysis.configDescriptions.moatMarginStableStdMax", "number");
-  b("moat_fcf_ratio_min", 0.5, "stockAnalysis.configDescriptions.moatFcfRatioMin", "number");
   // 监控
   b("monitor_poll_interval_secs", 30, "stockAnalysis.configDescriptions.monitorPollIntervalSecs", "number");
   b("monitor_change_pct", 5, "stockAnalysis.configDescriptions.monitorChangePct", "number");
@@ -70,7 +63,6 @@ function getDefaultVariables(): Variable[] {
   b("monitor_alert_cooldown_secs", 300, "stockAnalysis.configDescriptions.monitorAlertCooldownSecs", "number");
   b("monitor_min_severity", "info", "stockAnalysis.configDescriptions.monitorMinSeverity", "enum");
   b("monitor_channels", "in_app", "stockAnalysis.configDescriptions.monitorChannels", "string");
-  b("dual_view_disagreement_threshold", 40, "stockAnalysis.configDescriptions.dualViewDisagreementThreshold", "number");
   // 风险/置信度
   b("min_confidence", 60, "stockAnalysis.configDescriptions.minConfidence", "number");
   b("var_confidence", 0.95, "stockAnalysis.configDescriptions.varConfidence", "number");
@@ -107,14 +99,6 @@ function getDefaultVariables(): Variable[] {
   b("risk_max_drawdown_limit", 15, "stockAnalysis.configDescriptions.riskMaxDrawdownLimit", "number");
   b("risk_max_daily_loss_pct", 3, "stockAnalysis.configDescriptions.riskMaxDailyLossPct", "number");
   b("risk_correlation_lookback_days", 60, "stockAnalysis.configDescriptions.riskCorrelationLookbackDays", "number");
-  // 选股筛选（screener.rs:8 ScreenCriteria）
-  b("screener_min_change_pct", -30, "stockAnalysis.configDescriptions.screenerMinChangePct", "number");
-  b("screener_max_change_pct", 30, "stockAnalysis.configDescriptions.screenerMaxChangePct", "number");
-  b("screener_main_inflow_min", 0, "stockAnalysis.configDescriptions.screenerMainInflowMin", "number");
-  b("screener_northbound_ratio_min", 0, "stockAnalysis.configDescriptions.screenerNorthboundRatioMin", "number");
-  b("screener_turnover_rate_min", 0, "stockAnalysis.configDescriptions.screenerTurnoverRateMin", "number");
-  b("screener_rsi_oversold", false, "stockAnalysis.configDescriptions.screenerRsiOversold", "boolean");
-  b("screener_rsi_overbought", false, "stockAnalysis.configDescriptions.screenerRsiOverbought", "boolean");
   // 行业财务基线参考股票代码（stock_analysis_setup 中 t-baseline-* 节点使用）
   b("ref_semi_code", "002371", "stockAnalysis.configDescriptions.refSemiCode", "string");
   b("ref_battery_code", "300750", "stockAnalysis.configDescriptions.refBatteryCode", "string");
@@ -163,17 +147,11 @@ function getDefaultVariables(): Variable[] {
   b("cap_turnover_min", 2, "stockAnalysis.configDescriptions.capTurnoverMin", "number");
   b("cap_nb_ratio_min", 0.3, "stockAnalysis.configDescriptions.capNbRatioMin", "number");
   // 交易决策（trading.rs）
-  b("trading_price_deviation_limit", 5, "stockAnalysis.configDescriptions.tradingPriceDeviationLimit", "number");
   // 风险模型扩展（risk.rs）
   b("risk_sharpe_annualization", 252, "stockAnalysis.configDescriptions.riskSharpeAnnualization", "number");
   b("risk_kelly_heavy_threshold", 0.25, "stockAnalysis.configDescriptions.riskKellyHeavyThreshold", "number");
   b("risk_kelly_medium_threshold", 0.1, "stockAnalysis.configDescriptions.riskKellyMediumThreshold", "number");
   // 风险组合（compute_portfolio_risk / compute_scoring / compute_valuation）
-  b("fscore_roe_min", 0.10, "stockAnalysis.configDescriptions.fscoreRoeMin", "number");
-  b("fscore_gross_margin_min", 0.30, "stockAnalysis.configDescriptions.fscoreGrossMarginMin", "number");
-  b("fscore_net_margin_min", 0.10, "stockAnalysis.configDescriptions.fscoreNetMarginMin", "number");
-  b("fscore_debt_max", 0.60, "stockAnalysis.configDescriptions.fscoreDebtMax", "number");
-  b("fscore_pe_max", 20, "stockAnalysis.configDescriptions.fscorePeMax", "number");
   b("val_pe_low", 15, "stockAnalysis.configDescriptions.valPeLow", "number");
   b("val_pe_high", 50, "stockAnalysis.configDescriptions.valPeHigh", "number");
   b("val_pb_low", 1.0, "stockAnalysis.configDescriptions.valPbLow", "number");
@@ -494,16 +472,9 @@ export function StockAnalysisConfigPanel(_props: Props) {
         ]),
       },
       {
-        tool: "screener",
-        label: t("stockAnalysis.settings.group.screener"),
+        tool: "refCodes",
+        label: t("stockAnalysis.settings.group.refCodes"),
         vars: resolve([
-          "screener_min_change_pct",
-          "screener_max_change_pct",
-          "screener_main_inflow_min",
-          "screener_northbound_ratio_min",
-          "screener_turnover_rate_min",
-          "screener_rsi_oversold",
-          "screener_rsi_overbought",
           "ref_semi_code",
           "ref_battery_code",
           "ref_chem_code",

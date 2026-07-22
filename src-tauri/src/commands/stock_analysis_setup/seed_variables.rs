@@ -59,6 +59,56 @@ pub(crate) fn build_template_variables() -> Vec<Variable> {
             description: Some("新闻获取条数 (1-100)".into()),
             is_secret: false,
         },
+        // ── 行业参照参数（股票分析中 t-baseline-* 节点使用）──
+        Variable {
+            name: "ref_semi_code".into(),
+            var_type: "string".into(),
+            value: serde_json::json!("002371"),
+            description: Some("半导体行业参照股票代码".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "ref_battery_code".into(),
+            var_type: "string".into(),
+            value: serde_json::json!("300750"),
+            description: Some("电池行业参照股票代码".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "ref_chem_code".into(),
+            var_type: "string".into(),
+            value: serde_json::json!("600309"),
+            description: Some("化工行业参照股票代码".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "ref_med_code".into(),
+            var_type: "string".into(),
+            value: serde_json::json!("688981"),
+            description: Some("医疗行业参照股票代码".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "ref_aero_code".into(),
+            var_type: "string".into(),
+            value: serde_json::json!("600760"),
+            description: Some("航空军工行业参照股票代码".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "ref_consumer_elec_code".into(),
+            var_type: "string".into(),
+            value: serde_json::json!("002475"),
+            description: Some("消费电子行业参照股票代码".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "ref_auto_code".into(),
+            var_type: "string".into(),
+            value: serde_json::json!("600104"),
+            description: Some("汽车行业参照股票代码".into()),
+            is_secret: false,
+        },
         // ── Agent 节点 LLM 参数 ──
         Variable {
             name: "agent_temperature".into(),
@@ -447,6 +497,49 @@ pub(crate) fn build_template_variables() -> Vec<Variable> {
             description: Some("凯利最低赔率要求".into()),
             is_secret: false,
         },
+        // ── 金融模型补充参数 ──
+        Variable {
+            name: "risk_sharpe_annualization".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(252),
+            description: Some("夏普比率年化因子（交易日数）".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "risk_kelly_heavy_threshold".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(0.25),
+            description: Some("凯利重度仓位阈值".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "risk_kelly_medium_threshold".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(0.1),
+            description: Some("凯利中度仓位阈值".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "kelly_default_win_rate".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(0.5),
+            description: Some("凯利默认胜率 (0-1)".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "kelly_default_avg_win".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(0.05),
+            description: Some("凯利默认平均盈利率".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "kelly_default_avg_loss".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(0.05),
+            description: Some("凯利默认平均亏损率".into()),
+            is_secret: false,
+        },
         // ── 组合风控 ──
         Variable {
             name: "risk_max_drawdown_limit".into(),
@@ -655,6 +748,35 @@ pub(crate) fn build_template_variables() -> Vec<Variable> {
             var_type: "number".into(),
             value: serde_json::json!(0.7),
             description: Some("缩量阈值".into()),
+            is_secret: false,
+        },
+        // ── 技术指标补充参数 ──
+        Variable {
+            name: "atr_period".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(14),
+            description: Some("ATR 计算周期（默认 14）".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "kdj_n".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(9),
+            description: Some("KDJ 计算周期 N".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "fill_missing_method".into(),
+            var_type: "enum".into(),
+            value: serde_json::json!("forward"),
+            description: Some("数据清洗缺失值填充: forward / zero / drop".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "breakout_volume_threshold".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(1.5),
+            description: Some("突破放量倍数阈值".into()),
             is_secret: false,
         },
         // ── 推荐器策略参数 ──
