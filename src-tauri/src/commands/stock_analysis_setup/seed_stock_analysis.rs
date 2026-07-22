@@ -114,7 +114,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 description: Some(format!("获取数据: {tool_name}")),
                 position: Position { x, y },
                 retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
-                timeout: Some(120),
+                timeout: None, // 继承 RunOptions.tool_timeout（来自 tool_timeout_secs 设置）,用户可在面板中控制
                 enabled: true,
                 parent_id: parent_id.map(String::from),
                 compensation: None,

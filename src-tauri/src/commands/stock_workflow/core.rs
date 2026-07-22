@@ -433,9 +433,15 @@ async fn run_stock_workflow_inner(
         type_limits.insert("file".into(), 10usize);
         type_limits.insert("llm".into(), max_concurrent);
         type_limits.insert("agent".into(), max_concurrent);
+        // 从模板变量读取工具节点超时（默认 30s）
+        let tool_timeout = loaded.variables.as_ref().and_then(|vars| {
+            vars.iter().find(|v| v.name == "tool_timeout_secs")
+                .and_then(|v| v.value.as_u64())
+        }).map(|s| std::cmp::max(s, 5)).unwrap_or(30);
         let mut opts = RunOptions {
             max_concurrent,
             step_timeout,
+            tool_timeout: std::time::Duration::from_secs(tool_timeout),
             max_concurrent_by_type: Some(type_limits),
             progress_callback: Some(progress_cb),
             input: Some(json!({"stock_code": &stock_code})),
@@ -1312,6 +1318,19 @@ pub async fn run_single_stock_analysis(
             m.insert("agent".into(), max_concurrent);
             m
         }),
+        // 从模板变量读取工具节点超时
+        tool_timeout: std::time::Duration::from_secs(
+            loaded
+                .variables
+                .as_ref()
+                .and_then(|vars| {
+                    vars.iter()
+                        .find(|v| v.name == "tool_timeout_secs")
+                        .and_then(|v| v.value.as_u64())
+                })
+                .map(|s| std::cmp::max(s, 5))
+                .unwrap_or(30),
+        ),
         progress_callback: None,
         input: Some(json!({"stock_code": stock_code})),
         input_schema: loaded.input_schema.clone(),

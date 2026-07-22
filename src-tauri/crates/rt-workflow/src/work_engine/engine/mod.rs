@@ -88,6 +88,9 @@ pub struct RunOptions {
     /// 按节点类型细粒度并发限制：工具/文件操作为 10，LLM 调用为 3；None 则统一用 max_concurrent
     pub max_concurrent_by_type: Option<HashMap<String, usize>>,
     pub step_timeout: Duration,
+    /// 工具节点专用超时（默认 30s）。当节点类型为 tool 且未设显式 base.timeout 时使用此值，
+    /// 而非 fallback 到 step_timeout（后者面向 LLM/agent 节点，通常长很多）。
+    pub tool_timeout: Duration,
     /// 调用方指定的模型 ID（来自会话/用户设置），执行器优先使用
     pub model_id: Option<String>,
     /// 调用方指定的 provider ID（来自会话/用户设置），执行器优先使用
@@ -127,6 +130,7 @@ impl std::fmt::Debug for RunOptions {
             .field("max_concurrent", &self.max_concurrent)
             .field("max_concurrent_by_type", &self.max_concurrent_by_type)
             .field("step_timeout", &self.step_timeout)
+            .field("tool_timeout", &self.tool_timeout)
             .field("model_id", &self.model_id)
             .field("provider_id", &self.provider_id)
             .field("progress_callback", &self.progress_callback.is_some())
@@ -151,6 +155,7 @@ impl Default for RunOptions {
             max_concurrent: 3,
             max_concurrent_by_type: Some(by_type),
             step_timeout: Duration::from_secs(300),
+            tool_timeout: Duration::from_secs(30), // 工具节点默认 30s 超时
             model_id: None,
             provider_id: None,
             progress_callback: None,
@@ -1879,8 +1884,15 @@ impl WorkEngine {
                     .await;
                 }
 
-                let node_timeout =
-                    node.base_timeout().map(Duration::from_secs).unwrap_or(options.step_timeout);
+                let node_timeout = match node_type_name(&node) {
+                    // 工具节点优先使用 tool_timeout，而非 step_timeout（后者面向 LLM 节点）
+                    "tool" => {
+                        node.base_timeout().map(Duration::from_secs).unwrap_or(options.tool_timeout)
+                    },
+                    _ => {
+                        node.base_timeout().map(Duration::from_secs).unwrap_or(options.step_timeout)
+                    },
+                };
                 let mut exec_ctx = ExecutionState::new(
                     format!("node_{}", uuid::Uuid::new_v4()),
                     workflow_id.to_string(),
@@ -2851,10 +2863,16 @@ impl WorkEngine {
                         .await
                         .ok();
 
-                        let node_timeout = node
-                            .base_timeout()
-                            .map(Duration::from_secs)
-                            .unwrap_or(options.step_timeout);
+                        let node_timeout = match node_type_name(&node) {
+                            "tool" => node
+                                .base_timeout()
+                                .map(Duration::from_secs)
+                                .unwrap_or(options.tool_timeout),
+                            _ => node
+                                .base_timeout()
+                                .map(Duration::from_secs)
+                                .unwrap_or(options.step_timeout),
+                        };
                         let mut exec_ctx = ExecutionState::new(
                             format!("node_{}", uuid::Uuid::new_v4()),
                             workflow_id.to_string(),
