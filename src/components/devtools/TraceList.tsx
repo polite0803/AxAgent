@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useFormatCny } from "@/stores";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { TraceSummary } from "@/types";
 import { Card, DatePicker, Input, Space, Tag, Typography } from "antd";
@@ -22,10 +23,6 @@ function formatDuration(ms?: number): string {
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
-function formatCost(cost: number): string {
-  return `$${cost.toFixed(4)}`;
-}
-
 function getStatusColor(errorCount: number): "green" | "red" | "default" {
   if (errorCount > 0) {
     return "red";
@@ -40,6 +37,8 @@ interface TraceItemProps {
 }
 
 function TraceItem({ trace, isSelected, onClick }: TraceItemProps) {
+  // 成本以人民币展示
+  const formatCny = useFormatCny();
   return (
     <Card
       size="small"
@@ -72,7 +71,7 @@ function TraceItem({ trace, isSelected, onClick }: TraceItemProps) {
         </Text>
         <Text type="secondary" className="text-xs">
           <span className="font-medium">
-            {formatCost(trace.total_cost_usd)}
+            {formatCny(trace.total_cost_usd, 4)}
           </span>
         </Text>
       </div>

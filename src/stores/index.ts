@@ -37,6 +37,7 @@ export type { BuddyInfo, BuddyMessage, BuddyMood } from "./feature/buddyStore";
 export { useBusinessRoleStore } from "./feature/businessRoleStore";
 export { useCacheStore } from "./feature/cacheStore";
 export { useCategoryStore } from "./feature/categoryStore";
+export { formatCny, useCurrencyStore, useFormatCny } from "./feature/currencyStore";
 export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useEvolutionStore } from "./feature/evolutionStore";
 export type { ABTestResult, EngineLog, EngineStatus, EvolutionEvent, SkillVersion } from "./feature/evolutionStore";
