@@ -38,6 +38,8 @@ pub fn estimated_financial_report(stock_code: &str) -> FinancialReport {
         free_cash_flow: None,
         current_ratio: Some(1.5),
         quick_ratio: Some(1.0),
+        goodwill: None,
+        accounts_receivable: None,
         estimated: Some(true),
     }
 }
@@ -114,6 +116,25 @@ pub struct NorthBoundHolding {
     pub holding_shares: f64, // 持股数量
     pub holding_ratio: f64,  // 持股占比
     pub change_shares: f64,  // 变动数量
+}
+
+/// 股权质押数据
+/// 新增(2026-07-22 #4): 原 astock-data 无质押数据接口,
+/// LLM 调用 detect_pledge_risk 时无 pledge_pct 可用,导致报告 8 处标注质押数据缺失。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PledgeData {
+    pub stock_code: String,
+    /// 大股东质押总比例(%)
+    pub pledge_ratio: f64,
+    /// 质押股数(股)
+    pub pledge_shares: f64,
+    /// 质押笔数
+    pub pledge_count: i32,
+    /// 控股股东质押比例(%)
+    pub controlling_pledge_ratio: f64,
+    /// 风险等级("安全"/"低风险"/"中风险"/"高风险"/"极高风险")
+    pub risk_level: String,
 }
 
 /// 行业分类

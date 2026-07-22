@@ -123,6 +123,8 @@ let events = [];
 // 各事件使用自身的 hours_elapsed 字段做时间衰减，无需全局 now。
 
 // 解析输入事件（来自 LLM a-catalyst / a-news 节点）
+// P0 修复(2026-07-22): 支持 a-catalyst 的输出格式（含 catalyst_level/confidence/verdict）
+// a-catalyst 输出不是事件数组，而是综合评估 JSON，需要从中提取事件信息
 if present(llm_events) && type_of(llm_events) == "string" && llm_events != "" {
     let parsed = json_parse(llm_events);
     if type_of(parsed) == "array" {
@@ -132,8 +134,56 @@ if present(llm_events) && type_of(llm_events) == "string" && llm_events != "" {
             }
         }
     } else if type_of(parsed) == "map" {
-        // 单个事件
-        events.push(parsed);
+        // 检查是否是 a-catalyst 的输出格式（含 catalyst_level 字段）
+        if type_of(parsed["catalyst_level"]) == "string" {
+            let level = parsed["catalyst_level"];
+            let confidence_val = if type_of(parsed["confidence"]) == "f64" {
+                parsed["confidence"] / 100.0
+            } else if type_of(parsed["confidence"]) == "int" {
+                parsed["confidence"] * 1.0 / 100.0
+            } else {
+                0.5
+            };
+
+            // 从 catalyst_level 提取事件类型
+            // L1/L2/L3 = 利好事件, L-1/L-2/L-3 = 利空事件
+            let event_type = if level.contains("L3") && !level.contains("L-3") {
+                "业绩超预期"
+            } else if level.contains("L2") && !level.contains("L-2") {
+                "政策利好"
+            } else if level.contains("L-3") {
+                "退市"
+            } else if level.contains("L-2") {
+                "业绩预亏"
+            } else if level.contains("L-1") {
+                "风险提示"
+            } else {
+                "定期报告"
+            };
+
+            // 从 verdict 提取方向（看多/看空/中性）
+            let verdict = if type_of(parsed["verdict"]) == "string" { parsed["verdict"] } else { "" };
+
+            // 如果 verdict 是看空，但 catalyst_level 是利好，说明有分歧，降低 confidence
+            let adjusted_confidence = if verdict == "看空" && (level.contains("L2") || level.contains("L3")) {
+                confidence_val * 0.5
+            } else {
+                confidence_val
+            };
+
+            events.push(#{
+                "event_type": event_type,
+                "source_type": "research",
+                "confidence_score": adjusted_confidence,
+                "hours_elapsed": 6.0,  // 假设近期事件
+                "target_entity": "",
+                "verdict": verdict,
+                "catalyst_level": level,
+            });
+        } else {
+            // 其他 map 格式，直接作为事件
+            events.push(parsed);
+        }
     }
 }
 
@@ -315,6 +365,8 @@ let p_normalized = if valid_event_count > 0 {
 } else { 0.0 };
 
 // ── 输出 ──
+// P2-2 修复: 当 valid_event_count == 0 时标记 pace_degraded=true，
+// 让下游 portfolio-mgr.rhai 能感知 pace 数据无效，避免误用 pace_signal=0 作为中性信号。
 #{
     "pace_vector": #{
         "P": (p_normalized * 100.0).round() / 100.0,
@@ -333,4 +385,6 @@ let p_normalized = if valid_event_count > 0 {
     "synergy_reason": synergy_reason,
     "pace_factor": (pace_factor * 100.0).round() / 100.0,
     "pace_signal": (p_normalized * pace_factor * 100.0).round() / 100.0,
+    "pace_degraded": valid_event_count == 0,
+    "degraded_reason": if valid_event_count == 0 { "无有效事件输入(a-catalyst/a-news 输出为空或解析失败)" } else { "" },
 }

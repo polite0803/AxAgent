@@ -112,6 +112,13 @@ pub trait StockVendor: Send + Sync {
         Ok(None)
     }
 
+    /// 获取股权质押数据
+    /// 新增(2026-07-22 #4): 默认返回 None,由 eastmoney 等支持该数据的 vendor 覆盖。
+    async fn get_pledge_data(&self, stock_code: &str) -> Result<Option<PledgeData>, DataError> {
+        let _ = stock_code;
+        Ok(None)
+    }
+
     async fn get_concept_blocks(
         &self,
         stock_code: &str,

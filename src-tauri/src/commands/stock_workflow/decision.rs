@@ -1592,7 +1592,7 @@ pub async fn rerun_decision(
 /// snapshot 中的 key 格式为 `report.{expert_id}`（如 `report.a-fundamentals`），
 /// 值为 JSON 字符串或对象。本函数把 `a-` 前缀去掉，映射到不带前缀的 expert_id
 /// （如 `fundamentals-analyst`），供 `build_dashboard_report_from_workflow` 使用。
-fn extract_analyst_reports_from_snapshot(
+pub(crate) fn extract_analyst_reports_from_snapshot(
     snapshot: &std::collections::HashMap<String, serde_json::Value>,
 ) -> std::collections::HashMap<String, String> {
     let mut reports = std::collections::HashMap::new();
@@ -1633,4 +1633,59 @@ fn extract_analyst_reports_from_snapshot(
     }
 
     reports
+}
+
+/// 从 Workflow 执行结果构建 DashboardReport + Markdown 文本。
+///
+/// 复用 rerun_decision 中的构建逻辑，让正常完成的 run_stock_workflow
+/// 也能在 workflow-completed 事件中携带 dashboard 数据，避免前端
+/// dashboardReport 在工作流完成后仍为 null（概览/仪表板 tab 永远显示空态）。
+///
+/// 内部使用 extract_decision_json 提取 portfolio-mgr 决策，
+/// 从 results["t-scoring"] 提取评分 JSON，从 results 提取分析师报告。
+pub(crate) fn build_dashboard_from_workflow_result(
+    wf: &Workflow,
+    stock_code: &str,
+    stock_name: &str,
+    analysis_date: &str,
+) -> Option<(axagent_harness::DashboardReport, String)> {
+    // 1. 提取决策 JSON 字符串并 parse 为 Value
+    let decision_str = extract_decision_json(wf)?;
+    let decision_value: serde_json::Value = serde_json::from_str(&decision_str).unwrap_or(
+        serde_json::json!({"action": "观望", "positionPct": 0, "confidence": 0.0, "reasoning": ""}),
+    );
+
+    // 2. 提取评分 JSON（与 rerun_decision 一致：优先 t-scoring，回退 t-scoring.result）
+    let score_json = wf
+        .results
+        .get("t-scoring")
+        .or_else(|| wf.results.get("t-scoring.result"))
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+
+    // 3. 提取分析师报告
+    let analyst_reports = extract_analyst_reports_from_snapshot(&wf.results);
+
+    // 4. 构建 DashboardReport
+    let dashboard_report =
+        axagent_stock_analysis::dashboard_report::build_dashboard_report_from_workflow(
+            &decision_value,
+            &score_json,
+            stock_code,
+            stock_name,
+            analysis_date,
+            &analyst_reports,
+        );
+    let dashboard_md =
+        axagent_stock_analysis::dashboard_report::render_dashboard_md(&dashboard_report);
+
+    tracing::info!(
+        "[build_dashboard_from_workflow_result] DashboardReport 构建完成: \
+         integrity_passed={}, risk_alerts={}, catalysts={}",
+        dashboard_report.integrity_passed,
+        dashboard_report.risk_alerts.len(),
+        dashboard_report.catalysts.len()
+    );
+
+    Some((dashboard_report, dashboard_md))
 }

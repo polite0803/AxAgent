@@ -10,7 +10,6 @@ import { Button, Collapse, Dropdown } from "antd";
 import {
   ArrowLeftRight,
   Coins,
-  Eye,
   LayoutDashboard,
   LineChart,
   RotateCcw,
@@ -94,24 +93,6 @@ function DashboardTabContent() {
   );
 }
 
-/** 概览标签页内容 */
-function OverviewTabContent() {
-  const dashboardReport = useStockAnalysisStore((s) => s.dashboardReport);
-  const { t } = useTranslation();
-
-  if (!dashboardReport) {
-    return (
-      <div style={{ padding: 24, textAlign: "center", color: "#8c8c8c" }}>
-        {t("stockAnalysis.dashboard.empty", "暂无仪表盘报告，请先运行决策分析或重跑决策")}
-      </div>
-    );
-  }
-  return (
-    <div>
-      <DashboardReportPreview report={dashboardReport} />
-    </div>
-  );
-}
 import { EvolutionDriftPanel } from "./EvolutionDriftPanel";
 import { IndexQuotesPanel } from "./IndexQuotesPanel";
 import { IndustryRankingPanel } from "./IndustryRankingPanel";
@@ -307,12 +288,6 @@ export function StockAnalysisPage() {
   }, [searchParams, navigate, sheetOpen]);
 
   const tabs = useMemo(() => [
-    {
-      key: "overview",
-      label: t("stockAnalysis.tab.overview"),
-      icon: <Eye size={14} />,
-      children: <OverviewTabContent />,
-    },
     {
       key: "market",
       label: t("stockAnalysis.tab.market"),

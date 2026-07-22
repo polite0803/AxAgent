@@ -109,6 +109,16 @@ pub struct FinancialReport {
     pub current_ratio: Option<f64>,
     #[serde(default)]
     pub quick_ratio: Option<f64>,
+    /// #8 修复(2026-07-22): 新增商誉字段(资产负债表科目)
+    /// 用于商誉占比风险评估(goodwill / total_assets)。
+    /// 数据来源:东方财富 ZcfzbAjaxNew 资产负债表接口。
+    #[serde(default)]
+    pub goodwill: Option<f64>,
+    /// #8 修复(2026-07-22): 新增应收账款字段(资产负债表科目)
+    /// 用于应收账款风险评估(accounts_receivable / revenue)。
+    /// 数据来源:东方财富 ZcfzbAjaxNew 资产负债表接口。
+    #[serde(default)]
+    pub accounts_receivable: Option<f64>,
     /// 标记该报告是否为估值/行业均值 fallback（非真实财报数据）
     #[serde(default)]
     pub estimated: Option<bool>,

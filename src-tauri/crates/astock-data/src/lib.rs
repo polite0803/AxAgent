@@ -158,6 +158,8 @@ struct VendorRouting {
     index_quotes: Vec<String>,
     peers: Vec<String>,
     option_pcr: Vec<String>,
+    /// 新增(2026-07-22 #4): 股权质押数据路由
+    pledge: Vec<String>,
     /// 缺陷 G 修复: per-method replay 旁路 vendor 顺序。
     /// Key 必须与上述 27 个字段名完全一致;
     /// 若 key 不存在(默认),replay 模式用上述字段本身。
@@ -248,7 +250,13 @@ impl VendorRouting {
             shareholder_trades: vec!["eastmoney".into(), "baidu_stock".into()],
             dividend: vec!["eastmoney".into(), "baidu_stock".into()],
             research_reports: vec!["eastmoney".into(), "baidu_stock".into()],
-            consensus_eps: vec!["ths".into(), "akshare".into(), "iwencai".into()],
+            // P1-2: eastmoney 首选（reportapi 接口稳定），ths/akshare fallback，iwencai 需 api_key
+            consensus_eps: vec![
+                "eastmoney".into(),
+                "ths".into(),
+                "akshare".into(),
+                "iwencai".into(),
+            ],
             concept_blocks: vec![
                 "eastmoney".into(),
                 "ths".into(),
@@ -280,6 +288,8 @@ impl VendorRouting {
             index_quotes: vec!["eastmoney".into(), "tencent".into(), "neodata".into()],
             peers: vec!["eastmoney".into(), "iwencai".into(), "neodata".into()], // neodata 末位兜底
             option_pcr: vec!["eastmoney".into()],
+            // #4: 股权质押数据 — eastmoney datacenter 接口稳定
+            pledge: vec!["eastmoney".into()],
             // P2-4 修复: 在 replay 模式下, 把 3 个核心方法切到对历史日期支持最好的 vendor。
             // 依据 as_of_capability.rs:
             //   - get_quote:        tencent 是 SynthesizeFromKline(replay 模式从 K 线最后一行
@@ -514,6 +524,9 @@ impl AStockClient {
         // 1) L1 moka
         if let Some((expires_at, val)) = self.cache.get(key).await {
             if expires_at > chrono::Utc::now().timestamp() {
+                // P0-2 修复(2026-07-22): 缓存命中添加 debug 日志,
+                // 区分"缓存命中快速返回"和"vendor 静默降级返回空"
+                tracing::debug!("[astock-data] 缓存命中(L1): key={key}");
                 return Some(val);
             }
             // 已过期: moka 自动 tidle 会清理, 这里直接忽略
@@ -523,6 +536,7 @@ impl AStockClient {
             if let Some(val) = l2.get(key) {
                 let expires_at = chrono::Utc::now().timestamp() + 3600;
                 self.cache.insert(key.to_string(), (expires_at, val.clone())).await;
+                tracing::debug!("[astock-data] 缓存命中(L2): key={key}");
                 return Some(val);
             }
         }
@@ -1041,6 +1055,13 @@ impl AStockClient {
                             );
                             // 限流(429)单独处理：不增加连续失败计数（避免"限流→降级→
                             // 降级后 vendor 列表縮短→剩余 vendor 压力更大→更多 429"的恶性循环）
+                            //
+                            // "数据为空"类错误也不触发降级(2026-07-22 修复):
+                            // cls_flash/news 等工具返回"数据为空"通常是因为该数据源
+                            // 当前时段确实没有数据(如非交易时段、cls 快讯暂时为空),
+                            // 并非 vendor 本身故障。如果将其计入降级计数,会导致
+                            // eastmoney 因 cls_flash 空数据被全局降级,进而影响
+                            // news/money_flow/peers 等所有依赖 eastmoney 的工具。
                             match &e {
                                 DataError::RateLimited { .. } => {
                                     tracing::warn!(
@@ -1049,6 +1070,26 @@ impl AStockClient {
                                         stock_code,
                                         name
                                     );
+                                },
+                                DataError::VendorError { message, .. } => {
+                                    let msg_lower = message.to_lowercase();
+                                    let is_empty_data = msg_lower.contains("为空")
+                                        || msg_lower.contains("返回空")
+                                        || msg_lower.contains("empty")
+                                        || msg_lower.contains("no data")
+                                        || msg_lower.contains("无数据");
+                                    if is_empty_data {
+                                        tracing::info!(
+                                            "[降级] {} {} {} 返回空数据(非故障)，不触发 vendor 降级",
+                                            route_key,
+                                            stock_code,
+                                            name
+                                        );
+                                    } else {
+                                        self.health_tracker
+                                            .record_failure(name, &e.to_string())
+                                            .await;
+                                    }
                                 },
                                 _ => {
                                     self.health_tracker.record_failure(name, &e.to_string()).await;
@@ -2292,35 +2333,168 @@ impl AStockClient {
         }
         let vendor_names: Vec<String> = self.routing.margin.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
-        match self
-            .try_vendors_retry(stock_code, "margin", &vendor_names, 2, |name, vendor| {
-                let sc = sc.clone();
-                Box::pin(async move {
+        // P1-1 修复: margin 不走 try_vendors_retry 的 health_tracker 过滤。
+        // 原因：eastmoney 的 get_margin_data 用独立的 RPTA_WEB_RZRQ_GGMX 接口，
+        // 与 push2his/push2 系列接口完全独立。当 push2his 系列故障导致 eastmoney
+        // 被整体降级时，margin 不应受牵连。
+        //
+        // 重试策略（用户要求"保证代码正确，不在错误状态下不断重试"）：
+        // - 真实故障（网络/解析错误）→ 指数退避重试（最多 2 次），计入 health_tracker
+        // - 空数据（Ok(None) 或 Err("为空")）→ 确定性错误，不重试，直接返回 Ok(None)
+        //   理由：空数据是业务层面的"无数据"（如该股票无融资融券），重试只会浪费时间
+        let max_retries = 2u32;
+        let mut retry_count = 0u32;
+        loop {
+            let mut last_retryable_err: Option<DataError> = None;
+            let mut has_empty = false;
+            for name in &vendor_names {
+                if let Some(vendor) = self.find_vendor(name) {
                     match vendor.get_margin_data(&sc).await {
-                        Ok(Some(r)) => Ok(r),
-                        Ok(None) => Err(DataError::VendorError {
-                            vendor: name.to_string(),
-                            message: "融资融券数据为空".into(),
-                        }),
-                        Err(e) => Err(e),
+                        Ok(Some(r)) => {
+                            self.health_tracker.record_success(name).await;
+                            let cache_key = Self::cache_key_for("margin", stock_code);
+                            self.cache_set_serialized(cache_key, &r, 300).await;
+                            return Ok(Some(r));
+                        },
+                        Ok(None) => {
+                            has_empty = true;
+                            tracing::info!(
+                                "[margin] {} {} 返回空数据(非故障)，尝试下一个 vendor",
+                                name,
+                                stock_code
+                            );
+                        },
+                        Err(e) => {
+                            // 判断是否是空数据类错误（不可重试的确定性错误）
+                            let is_empty_err = matches!(
+                                e,
+                                DataError::VendorError { ref message, .. }
+                                    if message.contains("为空") || message.contains("empty")
+                            );
+                            if is_empty_err {
+                                has_empty = true;
+                            } else {
+                                // 真实故障，可重试，计入 health_tracker
+                                tracing::warn!("[降级] margin {} {} 失败: {}", stock_code, name, e);
+                                self.health_tracker.record_failure(name, &e.to_string()).await;
+                                last_retryable_err = Some(e);
+                            }
+                        },
                     }
-                })
-            })
-            .await
-        {
-            Ok(result) => {
-                let cache_key = Self::cache_key_for("margin", stock_code);
-                self.cache_set_serialized(cache_key, &result, 300).await;
-                Ok(Some(result))
-            },
-            Err(e) => {
+                }
+            }
+            // 只有真实故障才重试；空数据是确定性错误，重试无意义
+            if retry_count < max_retries && last_retryable_err.is_some() {
+                retry_count += 1;
+                let delay = (1u64 << retry_count) - 1;
+                tracing::warn!(
+                    "[retry] margin {} 真实故障，{}s 后第 {} 次重试",
+                    stock_code,
+                    delay,
+                    retry_count
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+                continue;
+            }
+            if last_retryable_err.is_some() {
                 tracing::warn!(
                     "[astock] get_margin_data 所有 vendor 失败(stock_code={}): {}",
                     stock_code,
-                    e
+                    last_retryable_err.as_ref().map(|e| e.to_string()).unwrap_or_default()
                 );
-                Ok(None)
-            },
+            } else if has_empty {
+                tracing::info!("[margin] {} 所有 vendor 返回空数据（非故障），不重试", stock_code);
+            }
+            return Ok(None);
+        }
+    }
+
+    /// #4: 股权质押数据路由方法。
+    ///
+    /// 实现：调用 `vendor.get_pledge_data(stock_code)`，eastmoney 已实现。
+    /// as-of 模式：所有 vendor 申报 Fallthrough（无历史语义），直接降级返回 None。
+    /// 重试策略：与 margin 一致 — 真实故障（网络/解析）才重试，空数据直接返回。
+    pub async fn get_pledge_data(&self, stock_code: &str) -> Result<Option<PledgeData>, DataError> {
+        if crate::as_of::is_asof_active() {
+            crate::as_of::record_degradation(
+                "astock-data",
+                "get_pledge_data",
+                "as-of 模式所有 vendor 均未提供历史质押数据",
+            );
+            return Ok(None);
+        }
+        {
+            let cache_key = Self::cache_key_for("pledge", stock_code);
+            if let Some(cached) = self.cache_get(&cache_key).await {
+                if let Ok(data) = serde_json::from_str::<Option<PledgeData>>(&cached) {
+                    return Ok(data);
+                }
+            }
+        }
+        let vendor_names: Vec<String> = self.routing.pledge.iter().map(|n| n.to_string()).collect();
+        let sc = stock_code.to_string();
+        // 与 margin 一致：区分真实故障与空数据，空数据不重试
+        let max_retries = 2u32;
+        let mut retry_count = 0u32;
+        loop {
+            let mut last_retryable_err: Option<DataError> = None;
+            let mut has_empty = false;
+            for name in &vendor_names {
+                if let Some(vendor) = self.find_vendor(name) {
+                    match vendor.get_pledge_data(&sc).await {
+                        Ok(Some(r)) => {
+                            self.health_tracker.record_success(name).await;
+                            let cache_key = Self::cache_key_for("pledge", stock_code);
+                            self.cache_set_serialized(cache_key, &r, 300).await;
+                            return Ok(Some(r));
+                        },
+                        Ok(None) => {
+                            has_empty = true;
+                            tracing::info!(
+                                "[pledge] {} {} 返回空数据(非故障)，尝试下一个 vendor",
+                                name,
+                                stock_code
+                            );
+                        },
+                        Err(e) => {
+                            let is_empty_err = matches!(
+                                e,
+                                DataError::VendorError { ref message, .. }
+                                    if message.contains("为空") || message.contains("empty")
+                            );
+                            if is_empty_err {
+                                has_empty = true;
+                            } else {
+                                tracing::warn!("[降级] pledge {} {} 失败: {}", stock_code, name, e);
+                                self.health_tracker.record_failure(name, &e.to_string()).await;
+                                last_retryable_err = Some(e);
+                            }
+                        },
+                    }
+                }
+            }
+            if retry_count < max_retries && last_retryable_err.is_some() {
+                retry_count += 1;
+                let delay = (1u64 << retry_count) - 1;
+                tracing::warn!(
+                    "[retry] pledge {} 真实故障，{}s 后第 {} 次重试",
+                    stock_code,
+                    delay,
+                    retry_count
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+                continue;
+            }
+            if last_retryable_err.is_some() {
+                tracing::warn!(
+                    "[astock] get_pledge_data 所有 vendor 失败(stock_code={}): {}",
+                    stock_code,
+                    last_retryable_err.as_ref().map(|e| e.to_string()).unwrap_or_default()
+                );
+            } else if has_empty {
+                tracing::info!("[pledge] {} 所有 vendor 返回空数据（非故障），不重试", stock_code);
+            }
+            return Ok(None);
         }
     }
 
@@ -3919,6 +4093,8 @@ mod asof_truncate_tests {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            goodwill: None,
+            accounts_receivable: None,
             estimated: Some(false),
         }
     }

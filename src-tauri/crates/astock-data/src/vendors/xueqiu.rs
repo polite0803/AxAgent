@@ -209,6 +209,8 @@ impl StockVendor for XueqiuVendor {
                     free_cash_flow: None,
                     current_ratio: f("current_ratio"),
                     quick_ratio: f("quick_ratio"),
+                    goodwill: None,
+                    accounts_receivable: None,
                     estimated: Some(false),
                 }
             })

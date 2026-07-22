@@ -130,7 +130,6 @@ fn sim_trades_to_metrics(
     let mut cost_basis = 0.0;
     let mut equity_points: Vec<EquityPoint> = Vec::new();
     let mut trades: Vec<Trade> = Vec::new();
-    let mut trade_idx = 0u32;
 
     // 筛选策略 Agent 的成交
     let mut agent_trades: Vec<&TradeRecord> = sim_trades
@@ -146,7 +145,8 @@ fn sim_trades_to_metrics(
         format!("2024-{:02}-{:02}", m.min(12), d.min(28))
     }
 
-    for trade in agent_trades {
+    for (trade_idx, trade) in agent_trades.into_iter().enumerate() {
+        let trade_idx = trade_idx as u32;
         let is_buy = trade.buyer_agent_id == strategy_agent_id;
         let price = trade.price as f64;
         let qty = trade.quantity;
@@ -203,7 +203,6 @@ fn sim_trades_to_metrics(
         }
 
         let date = idx_to_date(trade_idx);
-        trade_idx += 1;
         let pos_value = position as f64 * price;
         equity_points.push(EquityPoint {
             date,
@@ -269,7 +268,7 @@ fn run_des_simulation(
         300_000,
         BEST_PARAMS.noise_act_prob,
         50,
-        BEST_PARAMS.noise_price_noise_bps as i64,
+        BEST_PARAMS.noise_price_noise_bps,
         des.reference_price,
         des.seed,
     )));

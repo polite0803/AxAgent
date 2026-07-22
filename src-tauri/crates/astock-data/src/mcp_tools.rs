@@ -341,10 +341,26 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
                 "required": ["stock_code"]
             }
         }),
+        // #4: 股权质押数据工具
+        // 前置工具：LLM 在调用 detect_pledge_risk（tools/finance.rs）前应先调用本工具获取 pledge_pct。
+        // 输出字段：pledge_ratio（大股东质押总比例%）、pledge_shares（质押股数）、
+        //           pledge_count（质押笔数）、controlling_pledge_ratio（控股股东质押比例%）、
+        //           risk_level（安全/低风险/中风险/高风险/极高风险）
+        json!({
+            "name": "get_stock_pledge_data",
+            "description": "获取股权质押数据（大股东质押比例/质押股数/控股股东质押比例/风险等级），用于质押风险评估",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
         // ── 算法工具 ──
         json!({
             "name": "compute_scoring",
-            "description": "六维度技术评分（趋势/乖离/MACD/量能/RSI/支撑）+ 基本面修正 + 价值修正，返回100分制评分及买入信号",
+            "description": "六维度技术评分（趋势/乖离/MACD/量能/RSI/支撑）+ 基本面修正 + 价值修正，返回100分制评分、买入信号、完整技术指标(ma5/ma20/bias_ma5/macd_dif/rsi14/boll_upper等)和最新价",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -398,37 +414,62 @@ pub async fn execute_mcp_tool(
     tool_name: &str,
     arguments: &serde_json::Value,
 ) -> Result<String, String> {
+    // 辅助函数:兼容 LLM 传入数字或字符串类型的 stock_code
+    // 修复(2026-07-22): GLM-5.2 偶尔传入 {"stock_code": 600887} (数字) 而非
+    // {"stock_code": "600887"} (字符串),导致 as_str() 返回 None → 空字符串。
+    let parse_code = |args: &serde_json::Value| -> String {
+        match &args["stock_code"] {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Number(n) => n.to_string(),
+            _ => String::new(),
+        }
+    };
+    // 同上,兼容 keyword 的数字/字符串类型
+    let parse_str = |args: &serde_json::Value, key: &str| -> String {
+        match &args[key] {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Number(n) => n.to_string(),
+            _ => String::new(),
+        }
+    };
+
     match tool_name {
         "search_stock" => {
-            let keyword = arguments["keyword"].as_str().unwrap_or("");
+            let keyword = parse_str(arguments, "keyword");
+            let keyword = keyword.as_str();
             let results = client.search_stock(keyword).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&results).map_err(|e| e.to_string())
         },
         "search_news" => {
-            let keyword = arguments["keyword"].as_str().unwrap_or("");
+            let keyword = parse_str(arguments, "keyword");
+            let keyword = keyword.as_str();
             let limit = arguments["limit"].as_u64().unwrap_or(10) as u32;
             let results = client.search_news(keyword, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&results).map_err(|e| e.to_string())
         },
         "get_stock_quote" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let quote = client.get_quote(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&quote).map_err(|e| e.to_string())
         },
         "get_stock_kline" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let period = arguments["period"].as_str().unwrap_or("daily");
             let limit = arguments["limit"].as_u64().unwrap_or(120).min(500) as u32;
             let klines = client.get_klines(code, period, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&klines).map_err(|e| e.to_string())
         },
         "get_stock_financials" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&financials).map_err(|e| e.to_string())
         },
         "get_fundamentals_report_markdown" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let quote = client.get_quote(code).await.map_err(|e| e.to_string())?;
             let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
             let report = crate::fundamentals_report::FundamentalsAnalyzer::generate(
@@ -439,94 +480,112 @@ pub async fn execute_mcp_tool(
             Ok(report.to_markdown())
         },
         "get_stock_news" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let limit = arguments["limit"].as_u64().unwrap_or(30).min(100) as u32;
             let news = client.get_news(code, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&news).map_err(|e| e.to_string())
         },
         "get_stock_policy_news" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let limit = arguments["limit"].as_u64().unwrap_or(30).min(100) as u32;
             let news = client.get_policy_news(code, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&news).map_err(|e| e.to_string())
         },
         "get_stock_money_flow" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let flow = client.get_money_flow(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&flow).map_err(|e| e.to_string())
         },
         "get_social_sentiment" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let sentiment = client.get_social_sentiment(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&sentiment).map_err(|e| e.to_string())
         },
         "get_stock_dragon_tiger" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let dt = client.get_dragon_tiger(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&dt).map_err(|e| e.to_string())
         },
         "get_stock_margin_data" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let margin = client.get_margin_data(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&margin).map_err(|e| e.to_string())
         },
         "get_stock_sector_info" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let sector = client.get_sector_info(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&sector).map_err(|e| e.to_string())
         },
         "get_stock_north_bound" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let nb = client.get_north_bound_holding(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&nb).map_err(|e| e.to_string())
         },
         "get_stock_lockup" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let lockup = client.get_lockup_schedule(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&lockup).map_err(|e| e.to_string())
         },
         "get_stock_lockup_bundle" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let bundle = client.get_lockup_bundle(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&bundle).map_err(|e| e.to_string())
         },
         "get_stock_shareholder_trades" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let trades = client.get_shareholder_trades(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&trades).map_err(|e| e.to_string())
         },
         "get_stock_dividend_records" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let dividends = client.get_dividend_records(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&dividends).map_err(|e| e.to_string())
         },
         "get_stock_research_reports" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let reports = client.get_research_reports(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&reports).map_err(|e| e.to_string())
         },
         "get_stock_consensus_eps" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let eps = client.get_consensus_eps(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&eps).map_err(|e| e.to_string())
         },
         "get_stock_concept_blocks" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let blocks = client.get_concept_blocks(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&blocks).map_err(|e| e.to_string())
         },
         "get_stock_announcements" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let anns = client.get_announcements(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&anns).map_err(|e| e.to_string())
         },
         "get_stock_block_trades" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let bt = client.get_block_trades(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&bt).map_err(|e| e.to_string())
         },
         "get_stock_institutional_visits" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let visits = client.get_institutional_visits(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&visits).map_err(|e| e.to_string())
         },
@@ -555,14 +614,24 @@ pub async fn execute_mcp_tool(
             serde_json::to_string(&idx).map_err(|e| e.to_string())
         },
         "get_stock_peers" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let peers = client.get_peers(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&peers).map_err(|e| e.to_string())
         },
         "get_stock_option_pcr" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             let pcr = client.get_option_pcr(code).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&pcr).map_err(|e| e.to_string())
+        },
+        // #4: 股权质押数据 — LLM 可先调用本工具拿到 pledge_pct,
+        // 再调用 detect_pledge_risk (tools/finance.rs) 做阈值判断。
+        "get_stock_pledge_data" => {
+            let code = parse_code(arguments);
+            let code = code.as_str();
+            let pledge = client.get_pledge_data(code).await.map_err(|e| e.to_string())?;
+            serde_json::to_string(&pledge).map_err(|e| e.to_string())
         },
         // ── 算法工具：compute_scoring / compute_valuation / compute_portfolio_risk ──
         // 历史问题：工具列表（stock_mcp_tools）声明了这些算法工具，但 dispatch_tool
@@ -570,7 +639,8 @@ pub async fn execute_mcp_tool(
         // V57 修复：补全三个算法工具的分发，复用 astock-data 内的 ScoringEngine 等模块，
         // 避免重复实现（铁律 4）。
         "compute_scoring" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             if code.is_empty() {
                 return Err("compute_scoring 缺少 stock_code 参数".to_string());
             }
@@ -584,10 +654,44 @@ pub async fn execute_mcp_tool(
             let ind = crate::indicators::compute_indicators(code, &klines);
             let latest_price = klines.last().map(|k| k.close).unwrap_or(0.0);
             let score = crate::scoring::ScoringEngine::score(&ind, latest_price, None);
-            serde_json::to_string(&score).map_err(|e| e.to_string())
+            // #7 修复(2026-07-22): 原实现只返回 ObjectiveScore 评分结构,
+            // 缺少 totalScore/currentPrice/indicators/factor_backtest 字段,
+            // 导致下游 input_mapping 引用(t-scoring.result.indicators.rsi14 等)全部为 null,
+            // LLM 报告中 MA5/MA20/bias_ma5 等技术指标缺失。
+            //
+            // 修复: 用 json! 构造扩展返回结构,既保留原 ObjectiveScore 字段(向后兼容),
+            // 又追加 totalScore(别名)/currentPrice/indicators/factor_backtest(占位)。
+            let score_json = serde_json::to_value(&score).map_err(|e| e.to_string())?;
+            let ind_json = serde_json::to_value(&ind).map_err(|e| e.to_string())?;
+            let result = serde_json::json!({
+                // ── 原 ObjectiveScore 字段(flatten 等价,向后兼容) ──
+                "total": score_json["total"],
+                "trendScore": score_json["trendScore"],
+                "deviationScore": score_json["deviationScore"],
+                "macdScore": score_json["macdScore"],
+                "volumeScore": score_json["volumeScore"],
+                "rsiScore": score_json["rsiScore"],
+                "supportScore": score_json["supportScore"],
+                "bollScore": score_json["bollScore"],
+                "fundamentalAdjustment": score_json["fundamentalAdjustment"],
+                "signal": score_json["signal"],
+                "signalCode": score_json["signalCode"],
+                // ── #7 新增: 别名 + 原始指标 + 占位字段 ──
+                "totalScore": score_json["total"], // 别名,供 input_mapping 引用
+                "currentPrice": latest_price,       // 最新收盘价
+                "indicators": ind_json,             // 完整技术指标(ma5/ma20/bias_ma5/macd_dif/rsi14/boll_upper 等)
+                // factor_backtest 占位: 因子回测引擎未实现,下游 portfolio-mgr.rhai
+                // 会 fallback 到等权,不会因 null 报错。
+                "factor_backtest": {
+                    "factors": serde_json::json!({}),
+                    "note": "factor backtest engine not implemented, using equal weights fallback"
+                }
+            });
+            serde_json::to_string(&result).map_err(|e| e.to_string())
         },
         "compute_valuation" => {
-            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let code = parse_code(arguments);
+            let code = code.as_str();
             if code.is_empty() {
                 return Err("compute_valuation 缺少 stock_code 参数".to_string());
             }

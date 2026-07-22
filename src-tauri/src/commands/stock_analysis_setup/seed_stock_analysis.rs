@@ -11,14 +11,14 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     use axagent_harness::hallucination_guard::HallucinationGuardConfig;
     use axagent_harness::workflow_types::{
         AgentNode, AgentNodeConfig, AggregatorNode, AggregatorNodeConfig, BackoffType, Branch,
-        CodeNode, CodeNodeConfig, DebateNode, DebateNodeConfig, EdgeType, EndNode, EndNodeConfig,
-        ErrorConfig, JsonSchema, JsonSchemaProperty, LlmClassifierNode, LlmClassifierNodeConfig,
-        MergeStrategy, NotificationNode, NotificationNodeConfig, OnFailureAction, OutputMode,
-        ParallelNode, ParallelNodeConfig, Position, RetryConfig, StorageNode, StorageNodeConfig,
-        SubGraph, SwitchCase, SwitchNode, SwitchNodeConfig, ToolDef, ToolNode, ToolNodeConfig,
-        TriggerConfig, TriggerNode, TriggerType, ValidationAssertion, ValidationNode,
-        ValidationNodeConfig, Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
-        WorkflowRetryPolicy,
+        CodeNode, CodeNodeConfig, DebateNode, DebateNodeConfig, DegradeStrategy, EdgeType, EndNode,
+        EndNodeConfig, ErrorConfig, JsonSchema, JsonSchemaProperty, LlmClassifierNode,
+        LlmClassifierNodeConfig, MergeStrategy, NotificationNode, NotificationNodeConfig,
+        OnFailureAction, OutputMode, ParallelNode, ParallelNodeConfig, Position, RetryConfig,
+        StorageNode, StorageNodeConfig, SubGraph, SwitchCase, SwitchNode, SwitchNodeConfig,
+        ToolDef, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode, TriggerType,
+        ValidationAssertion, ValidationNode, ValidationNodeConfig, Variable, WorkflowEdge,
+        WorkflowNode, WorkflowNodeBase, WorkflowRetryPolicy,
     };
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
@@ -31,7 +31,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // V56: 修复 pace-calc.rhai 第 310 行 Rhai 语法错误（`(valid_event_count as f64).max(1.0)`
     // 链式调用解析歧义，改为先 `let count_f = ... as f64;` 再用变量）。
     // 每次修改 DAG 拓扑/节点配置/input_mapping 后必须递增此常量。
-    const TEMPLATE_VERSION: i32 = 64; // v64: t-policy-data 改用新增的 get_stock_policy_news 工具(基于行业关键词搜索政策新闻)
+    const TEMPLATE_VERSION: i32 = 69; // v69: debate-convergence context_sources 优化——移除 10 个分析师节点(16→6),仅保留 6 轮辩手;分析师评分仍通过 input_mapping 独立通道注入;预期 input tokens 减半(~30k-40k→~15k-20k)
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
@@ -582,11 +582,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         description: Some("获取融资融券数据（融资买入额、余额、融券卖出量、余量）".into()),
         parameters: stock_code_params(),
     };
-    let td_announce_content = ToolDef {
-        name: "get_announcement_content".into(),
-        description: Some("获取公司公告PDF全文内容（下载并解析公告PDF正文）".into()),
-        parameters: stock_code_params(),
-    };
+    // P0 修复(2026-07-22): 移除未实现的 get_announcement_content ToolDef
+    // 该工具在 mcp_tools.rs 中未注册 dispatch，调用会触发 "Unknown MCP tool" 错误
     let td_sector_info = ToolDef {
         name: "get_stock_sector_info".into(),
         description: Some("获取行业分类（申万一级/二级、概念板块标签）".into()),
@@ -649,7 +646,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         ("get_stock_north_bound", td_nb_holding.clone()),
         ("get_stock_dragon_tiger", td_dt.clone()),
         ("get_stock_margin_data", td_margin.clone()),
-        ("get_announcement_content", td_announce_content.clone()),
         ("get_stock_sector_info", td_sector_info.clone()),
         ("detect_candlestick_patterns", td_candlestick_patterns.clone()),
         ("detect_divergence", td_divergence.clone()),
@@ -743,6 +739,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // 重试使用简化 ChatRequest（无 tools），成功则替换 final_content。
                 fallback_model: Some("glm-5.2".to_string()),
                 task_scene: None,
+                stream_chunk_timeout_secs: None,
             },
         })
     };
@@ -927,12 +924,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         if let WorkflowNode::Agent(ref mut a) = an {
             a.config.context_sources = vec![tool_id.to_string()];
             // fundamentals-analyst prompt 引用了 {{market_regime}}，
-            // 从 t-scoring 注入 market_regime.state（bull/bear/neutral 状态字符串）
+            // 从工作流变量 market_regime.regime 注入（bull/bear/sideways 状态字符串）
             if *id == "a-fundamentals" {
-                a.config.input_mapping.insert(
-                    "market_regime".to_string(),
-                    "t-scoring.result.market_regime.state".to_string(),
-                );
+                a.config
+                    .input_mapping
+                    .insert("market_regime".to_string(), "market_regime.regime".to_string());
             }
             // catalyst-analyst 需要 3 轮：R1 读公告→确认催化剂,R2 调 K线/概念验证,R3 综合评估叙事
             a.config.max_tool_rounds = if *id == "a-catalyst" {
@@ -1286,23 +1282,38 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             1420.0,
         );
         if let WorkflowNode::Agent(ref mut a) = dc {
-            // 动态构建 context_sources：根据实际辩论轮数引用所有辩手输出
-            // 同时包含全部分析师报告，因为 input_mapping 通过 build_analyst_input_mapping
-            // 注入了 10 个分析师的 bull_score/bear_score/consensus_score 结构化字段，
-            // 追加分析师节点到 context_sources 确保 context_sources 覆盖 input_mapping 引用。
+            // 动态构建 context_sources：仅引用辩手输出（6 轮 R1→R3 完整辩论轨迹）。
+            //
+            // v69 优化(2026-07-22): 移除 10 个分析师节点,context_sources 从 16 → 6。
+            // 理由:
+            //   1. debate-convergence prompt 的核心职责是"收敛辩论",evidence 源是 R1-R3
+            //      辩手输出(含 report 全文 + VERDICT 标签),不依赖分析师原文。
+            //   2. 辩手 R1(bull/bear-researcher.md)已消化分析师报告,prompt 明确写
+            //      "所有原始信号已经在上游 10 位分析师的报告中",convergence 无需重复读取。
+            //   3. 分析师的 bull_score/bear_score/consensus_score 通过 input_mapping
+            //      独立通道注入(agent_executor.rs 中 context_sources 和 input_mapping
+            //      是两条独立路径,input_mapping 从全局 blackboard 提取,不依赖
+            //      context_sources),30 个评分字段仍可用。
+            // 预期效果: input tokens ~30k-40k → ~15k-20k(减少约 50%),缓解 LLM TTFB 超时。
             let mut ctx: Vec<String> = Vec::new();
             for r in 1..=debate_max_rounds {
                 ctx.push(format!("bull-r{r}"));
                 ctx.push(format!("bear-r{r}"));
-            }
-            for aid in &a_ids {
-                ctx.push(aid.to_string());
             }
             a.config.context_sources = ctx;
             a.config.model_role = Some("debater".into());
             a.config.max_tool_rounds = Some(1);
             a.config.output_mode = OutputMode::Json; // 输出结构化 JSON，确保 consensus_score / aggregate_prediction 被 input_mapping 解析
             a.config.input_mapping = build_analyst_input_mapping(&a_ids);
+            // #1 修复(2026-07-22): debate-convergence 上下文极大
+            // (6 轮辩手 + 30 个 input_mapping 结构化字段, ~15k-20k input tokens),
+            // LLM 处理大上下文 TTFB 偶发 >120s 触发 stream chunk timeout。
+            // 1) stream_chunk_timeout_secs: 300s（5 分钟）— 单 chunk 等待余量
+            // 2) base.timeout: 900s（15 分钟）— 节点级总超时,避免外层 600s 兜底先触发
+            a.config.stream_chunk_timeout_secs = Some(300);
+        }
+        if let WorkflowNode::Agent(ref mut a) = dc {
+            a.base.timeout = Some(900);
         }
         nodes.push(dc);
         edges.push(edge("e-bear-r3-debate-convergence", &last_debate_node, "debate-convergence"));
@@ -1395,21 +1406,24 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     title: "激进评估".into(),
                     steps: vec!["risk-agg".into()],
                     branch_timeout_ms: None,
-                    degrade_strategy: Default::default(),
+                    // P0 修复: 改用 UseDefault，超时后注入 null 到 workflow.results，
+                    // 确保下游 research-mgr 的 context_sources 能找到 risk-agg 变量，
+                    // 避免 "context_sources 变量未在 context.variables 中找到" ERROR。
+                    degrade_strategy: DegradeStrategy::UseDefault,
                 },
                 Branch {
                     id: "risk-con".into(),
                     title: "保守评估".into(),
                     steps: vec!["risk-con".into()],
                     branch_timeout_ms: None,
-                    degrade_strategy: Default::default(),
+                    degrade_strategy: DegradeStrategy::UseDefault,
                 },
                 Branch {
                     id: "risk-neu".into(),
                     title: "中性评估".into(),
                     steps: vec!["risk-neu".into()],
                     branch_timeout_ms: None,
-                    degrade_strategy: Default::default(),
+                    degrade_strategy: DegradeStrategy::UseDefault,
                 },
             ],
             wait_for_all: true,
@@ -1859,11 +1873,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             "t-risk".into(),
             // V29 修复: 改为引用三档风险评估的原始 AgentNode，而非聚合后的数组
             // AggregatorNode strategy="all" 的 result 是数组，无法用对象字段路径导航，
-            // 因此 research-mgr 直接消费三个原始风险辩手的输出
+            // 因此 research-mgr 直接消费三个原始风险辩手的输出。
+            // V67 修复: 移除 "risk-aggregated"——V29 注释明确说不引用聚合数组，
+            // 但该字段遗留未删，导致 research-mgr 报 "context_sources 变量未找到" ERROR。
             "risk-agg".into(),
             "risk-con".into(),
             "risk-neu".into(),
-            "risk-aggregated".into(),
             "risk-level".into(),
             // V29 修复: input_mapping 引用 debate-convergence，需在 context_sources 中声明
             "debate-convergence".into(),
@@ -2032,8 +2047,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // P1-1: 市场状态权重调节（regime-weights.rhai）替代纯回测权重
                 // 牛市→趋势↑, 熊市→估值/风险↑, 高波动→全降权
                 ("regime_factor_weights", "regime-weights.factor_weights"),
-                ("market_regime_prior", "t-scoring.result.market_regime.prior"),
-                ("market_regime_state", "t-scoring.result.market_regime.state"),
+                // market_regime 是 core.rs 注入的工作流变量（非 t-scoring 节点输出）
+                ("market_regime_prior", "market_regime.confidence"),
+                ("market_regime_state", "market_regime.regime"),
                 // P1-7 修复: LLM 风险分类器作为算法分类的 fallback
                 // Rhai 脚本先基于 t-risk stockRiskProfile 做确定性算法分类，
                 // 仅当数据缺失时回退到此 LLM 分类结果。
@@ -2110,6 +2126,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("untrusted_risk_conv", "risk-convergence.__untrusted"),
                 // ── PACE 情绪因子 f11: pace-calc CodeNode 输出 pace_signal ──
                 ("pace_signal", "pace-calc.pace_signal"),
+                // P2-2: pace 降级标志（valid_event_count==0 时 pace-calc 设置）
+                ("pace_degraded", "pace-calc.pace_degraded"),
                 // ── 技术否决（technical-veto）输入：从 t-scoring 的完整指标获取 ──
                 ("rsi_14", "t-scoring.result.indicators.rsi14"),
                 ("macd_dif", "t-scoring.result.indicators.macdDif"),
@@ -2181,8 +2199,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 tool_name: None,
                 execute_directly: true,
                 input_mapping: [
-                    ("market_regime_state", "t-scoring.result.market_regime.state"),
-                    ("market_regime_prior", "t-scoring.result.market_regime.prior"),
+                    // market_regime 是 core.rs 注入的工作流变量（非 t-scoring 节点输出）
+                    ("market_regime_state", "market_regime.regime"),
+                    ("market_regime_prior", "market_regime.confidence"),
+                    ("market_regime_volatility", "market_regime.volatility"),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2200,6 +2220,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // 加显式边确保共识分数在节点执行前就绪（符合显式依赖原则）
     edges.push(edge("e-debate-convergence-research-mgr", "debate-convergence", "research-mgr"));
     edges.push(edge("e-debate-convergence-trader", "debate-convergence", "trader"));
+    // P0-3 修复: risk-convergence → research-mgr 显式边
+    // research-mgr 的 context_sources 引用 risk-agg/risk-con/risk-neu 的原始输出，
+    // 但 DAG 中仅有 debate-convergence → research-mgr 边，不保证风险辩手已完成。
+    // 添加 risk-convergence → research-mgr 边，使 research-mgr 等待三个风险辩手
+    // 全部完成后再调度，避免 risk-con 超时重试期间 context_sources 变量缺失。
+    edges.push(edge("e-risk-convergence-research-mgr", "risk-convergence", "research-mgr"));
     // data-quality → portfolio-mgr: 显式边确保 dqi_score 在 Rhai 公式执行前就绪
     edges.push(edge("e-data-quality-portfolio-mgr", "data-quality", "portfolio-mgr"));
     // V50 修复: risk-convergence → portfolio-mgr 显式边
@@ -2277,17 +2303,23 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     ("sector_etf_direction", ""),
                     // 历史 P 值 - 暂未接入（需要 upstream LLM 长期输出）
                     ("p_history", ""),
-                    // LLM 事件源（a-catalyst/a-news 输出）- 暂未接入，留空占位避免 Rhai 访问未定义变量
-                    ("llm_events", ""),
+                    // LLM 事件源：a-catalyst 输出（含 catalyst_level/confidence/verdict）
+                    // P0 修复(2026-07-22): 原为空占位导致 pace-calc 在 a-catalyst 完成前执行，
+                    // 且 llm_events 恒为空。现在接入 a-catalyst.result，pace-calc.rhai 会
+                    // 从 catalyst_level 中提取事件类型。
+                    ("llm_events", "a-catalyst.result"),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
             },
         }));
-        // pace-calc 依赖 t-catalyst-data 和 t-hotmoney-data
+        // pace-calc 依赖 t-catalyst-data 和 t-hotmoney-data（工具节点）
         edges.push(edge("e-t-catalyst-data-pace-calc", "t-catalyst-data", pace_id));
         edges.push(edge("e-t-hotmoney-data-pace-calc", "t-hotmoney-data", pace_id));
+        // P0 修复(2026-07-22): 添加 pace-calc → a-catalyst 依赖边
+        // 原缺失此边导致 pace-calc 在 a-catalyst 完成前就执行，llm_events 恒为 null
+        edges.push(edge("e-a-catalyst-pace-calc", "a-catalyst", pace_id));
         // pace-calc → portfolio-mgr: pace_signal 作为 f11 输入
         edges.push(edge("e-pace-calc-portfolio-mgr", pace_id, "portfolio-mgr"));
     }
@@ -2439,15 +2471,15 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 "{}\n{}",
                 "你是投资决策解释官。输入是符号系统（Rhai 规则引擎）的硬裁决结果，你的任务是将裁决翻译为用户可读的决策依据说明书。",
                 "输出 JSON 格式（严格模式）：\n\
-                 {{\n\
+                 {\n\
                    \"summary\": \"一段话摘要（50-100字），包含最终行动、仓位、置信度\",\n\
                    \"explanation\": \"详细的决策依据说明（200-300字），解释为什么做出这个决策\",\n\
                    \"rule_trace\": [\n\
-                     {{\"rule_id\": \"R-xxx\", \"status\": \"PASS/VETOED/DOWNGRADED\", \"description\": \"规则的通俗解释\"}}\n\
+                     {\"rule_id\": \"R-xxx\", \"status\": \"PASS/VETOED/DOWNGRADED\", \"description\": \"规则的通俗解释\"}\n\
                    ],\n\
                    \"risk_comment\": \"风险提示（如有）\",\n\
                    \"confidence_note\": \"置信度解读\"\n\
-                 }}\n\
+                 }\n\
                  规则追溯码对照表：\n\
                  R-200: 高风险风控否决 | R-201: 空头预测否决 | R-202: trader数据异常\n\
                  R-203: 因子权重坍缩 | R-204: 零仓位修正 | R-205: 单点不可信部分降级\n\

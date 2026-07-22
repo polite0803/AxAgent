@@ -521,6 +521,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                 }),
                 fallback_model: None,
                 task_scene: None,
+                stream_chunk_timeout_secs: None,
             },
         })
     };

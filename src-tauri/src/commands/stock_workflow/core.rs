@@ -1,8 +1,8 @@
 use super::decision::QualityPrecheckResult;
 use super::decision::{
-    compute_decision_agreement, data_quality_precheck, extract_decision_fields,
-    extract_decision_json, extract_llm_decision_json, load_and_inject_template, parse_asof_param,
-    resolve_runtime_options,
+    build_dashboard_from_workflow_result, compute_decision_agreement, data_quality_precheck,
+    extract_decision_fields, extract_decision_json, extract_llm_decision_json,
+    load_and_inject_template, parse_asof_param, resolve_runtime_options,
 };
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
@@ -728,6 +728,22 @@ async fn run_stock_workflow_inner(
                     },
                     axagent_rt_workflow::workflow_engine::WorkflowStatus::Failed => {
                         tracing::warn!(%wf_id, status=?wf_status, "工作流以 Failed 状态结束，保存部分结果");
+                        // 构建 DashboardReport（与 rerun_decision 复用同一逻辑），让前端
+                        // 在工作流部分失败时也能展示已收集到的分析结果，避免 dashboard tab
+                        // 永远显示空态。
+                        let analysis_date_str = as_of::current_as_of()
+                            .map(|c| c.as_string())
+                            .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
+                        let dashboard_payload = build_dashboard_from_workflow_result(
+                            &result,
+                            &stock_code,
+                            &sc_name_for_spawn,
+                            &analysis_date_str,
+                        );
+                        let (dashboard_report, dashboard_md) = match dashboard_payload {
+                            Some((r, m)) => (json!(r), json!(m)),
+                            None => (serde_json::Value::Null, serde_json::Value::Null),
+                        };
                         if let Err(e) = app_h.emit(
                             "workflow-completed",
                             serde_json::json!({
@@ -736,6 +752,8 @@ async fn run_stock_workflow_inner(
                                 "output": result.output,
                                 "degraded": true,
                                 "degradationReason": "部分分析步骤失败，结果为部分数据",
+                                "dashboardReport": dashboard_report,
+                                "dashboardMd": dashboard_md,
                             }),
                         ) {
                             tracing::warn!("[emit] workflow-completed 发送失败: {e}");
@@ -809,12 +827,30 @@ async fn run_stock_workflow_inner(
                         }
                     },
                     _ => {
+                        // 构建 DashboardReport（与 rerun_decision 复用同一逻辑），让前端
+                        // dashboardReport 在工作流正常完成时立即填充，避免概览/仪表板 tab
+                        // 显示空态("No dashboard report yet")。
+                        let analysis_date_str = as_of::current_as_of()
+                            .map(|c| c.as_string())
+                            .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
+                        let dashboard_payload = build_dashboard_from_workflow_result(
+                            &result,
+                            &stock_code,
+                            &sc_name_for_spawn,
+                            &analysis_date_str,
+                        );
+                        let (dashboard_report, dashboard_md) = match dashboard_payload {
+                            Some((r, m)) => (json!(r), json!(m)),
+                            None => (serde_json::Value::Null, serde_json::Value::Null),
+                        };
                         if let Err(e) = app_h.emit(
                             "workflow-completed",
                             serde_json::json!({
                                 "workflowId": wf_id,
                                 "results": result.results,
                                 "output": result.output,
+                                "dashboardReport": dashboard_report,
+                                "dashboardMd": dashboard_md,
                             }),
                         ) {
                             tracing::warn!("[emit] workflow-completed 发送失败: {e}");

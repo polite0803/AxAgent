@@ -425,6 +425,8 @@ mod tests {
             free_cash_flow: Some(5.9e10),
             current_ratio: Some(2.5),
             quick_ratio: Some(2.0),
+            goodwill: None,
+            accounts_receivable: None,
             estimated: Some(false),
         }]
     }

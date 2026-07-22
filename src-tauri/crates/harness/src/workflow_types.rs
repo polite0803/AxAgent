@@ -339,6 +339,15 @@ pub struct AgentNodeConfig {
     /// executor 会在拼接 prompt 前对 input 文本调用 `infer` 推断。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub task_scene: Option<crate::TaskScene>,
+    /// #1 修复(2026-07-22): 单节点 LLM stream chunk 超时(秒)。
+    ///
+    /// 默认 `None` 时 agent_executor 用 120s。
+    /// 大上下文节点(如 debate-convergence: 16 节点 context_sources +
+    /// 30 个 input_mapping 结构化字段, ~30k-40k input tokens)的 TTFB
+    /// 偶发 > 120s, 触发 "stream chunk timeout" 失败。
+    /// 配置示例: debate-convergence 设 300s, 辩手节点保持默认 120s。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stream_chunk_timeout_secs: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
@@ -1482,6 +1491,48 @@ impl WorkflowNode {
 
     pub fn base_title(&self) -> &str {
         &self.base().title
+    }
+
+    /// 获取节点 config 中的 output_var。
+    /// 用于降级（UseDefault）时把 null 写入 output_var key，
+    /// 避免下游 context_sources 引用 output_var 时报"变量未找到"。
+    /// 无 output_var 字段的节点类型返回 None。
+    pub fn base_output_var(&self) -> Option<&str> {
+        match self {
+            // TriggerConfig 无 output_var 字段
+            WorkflowNode::Trigger(_) => None,
+            WorkflowNode::Agent(n) => Some(&n.config.output_var),
+            WorkflowNode::Tool(n) => Some(&n.config.output_var),
+            WorkflowNode::Code(n) => Some(&n.config.output_var),
+            WorkflowNode::SubWorkflow(n) => Some(&n.config.output_var),
+            WorkflowNode::DocumentParser(n) => Some(&n.config.output_var),
+            WorkflowNode::VectorRetrieve(n) => Some(&n.config.output_var),
+            WorkflowNode::HttpRequest(n) => Some(&n.config.output_var),
+            WorkflowNode::DatabaseQuery(n) => Some(&n.config.output_var),
+            WorkflowNode::Notification(n) => Some(&n.config.output_var),
+            WorkflowNode::FileOperation(n) => Some(&n.config.output_var),
+            WorkflowNode::DataTransformer(n) => Some(&n.config.output_var),
+            WorkflowNode::WebhookSend(n) => Some(&n.config.output_var),
+            WorkflowNode::Logging(n) => Some(&n.config.output_var),
+            WorkflowNode::LlmClassifier(n) => Some(&n.config.output_var),
+            WorkflowNode::Aggregator(n) => Some(&n.config.output_var),
+            WorkflowNode::Email(n) => Some(&n.config.output_var),
+            WorkflowNode::Debate(n) => Some(&n.config.output_var),
+            WorkflowNode::Swarm(n) => Some(&n.config.output_var),
+            WorkflowNode::Storage(n) => Some(&n.config.output_var),
+            WorkflowNode::Approval(n) => Some(&n.config.output_var),
+            WorkflowNode::End(n) => n.config.output_var.as_deref(),
+            // 无 output_var 字段的节点类型
+            WorkflowNode::Llm(_)
+            | WorkflowNode::Condition(_)
+            | WorkflowNode::Parallel(_)
+            | WorkflowNode::Loop(_)
+            | WorkflowNode::Merge(_)
+            | WorkflowNode::Delay(_)
+            | WorkflowNode::Validation(_)
+            | WorkflowNode::Switch(_)
+            | WorkflowNode::WorkflowRef(_) => None,
+        }
     }
 }
 

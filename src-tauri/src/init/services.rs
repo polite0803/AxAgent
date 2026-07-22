@@ -1489,6 +1489,24 @@ fn start_cron_scheduler(state: &AppState) {
                                     .await
                                     {
                                         Ok(content) => {
+                                            // P0-2 修复(2026-07-22): 检测空结果(静默降级)。
+                                            // get_money_flow 等方法在所有 vendor 失败时返回
+                                            // Ok(None/vec![]) 而非 Err,导致节点标记 "completed"
+                                            // 但实际数据为空,下游 LLM 误以为数据可用。
+                                            // 这里添加 warn 日志让空结果可观测。
+                                            let trimmed = content.trim();
+                                            if trimmed.is_empty()
+                                                || trimmed == "null"
+                                                || trimmed == "[]"
+                                                || trimmed == "{}"
+                                            {
+                                                tracing::warn!(
+                                                    "[ToolCallback] 工具 '{}' 返回空结果(len={}), \
+                                                     可能 vendor 全部降级或缓存未命中",
+                                                    tn,
+                                                    content.len()
+                                                );
+                                            }
                                             Ok(serde_json::json!({ "content": content }))
                                         },
                                         Err(e) => Err(format!("stock tool '{}' failed: {}", tn, e)),

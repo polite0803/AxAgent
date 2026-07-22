@@ -329,6 +329,8 @@ mod tests {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            goodwill: None,
+            accounts_receivable: None,
             estimated: Some(false),
         };
         let r = validate_financial(&f);
@@ -356,6 +358,8 @@ mod tests {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            goodwill: None,
+            accounts_receivable: None,
             estimated: Some(false),
         };
         let r = validate_financial(&f);

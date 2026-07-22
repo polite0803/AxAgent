@@ -151,6 +151,7 @@ fn step_to_agent_node(
             task_scene: None,
             input_mapping: std::collections::HashMap::new(),
             fallback_model: None,
+            stream_chunk_timeout_secs: None,
         },
     })
 }

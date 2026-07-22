@@ -384,13 +384,12 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     ),
     // ── Catalyst & Narrative Analyst ──
     // 需要读取新闻/公告做催化剂判断 + K线/量价做机构行为分析
-    // P2: 新增 get_announcement_content 调用 cninfo PDF 全文解析，突破标题级别信息局限
+    // P0 修复(2026-07-22): 移除未实现的 get_announcement_content（PDF 全文解析为 P2 功能，尚未落地）
     (
         "catalyst-analyst",
         &[
             "get_stock_news",
             "get_stock_announcements",
-            "get_announcement_content",
             "get_stock_concept_blocks",
             "get_stock_peers",
             "get_stock_kline",
@@ -946,31 +945,9 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 items: None,
             }),
         };
-        let td_announce = ToolDef {
-            name: "get_announcement_content".into(),
-            description: Some("获取公司公告PDF全文内容，用于事后查阅分析期间发布的新公告".into()),
-            parameters: Some(axagent_harness::workflow_types::JsonSchema {
-                schema_type: "object".into(),
-                description: None,
-                properties: Some(
-                    [(
-                        "stock_code".into(),
-                        axagent_harness::workflow_types::JsonSchemaProperty {
-                            schema_type: "string".into(),
-                            description: Some("6位股票代码".into()),
-                            default: None,
-                            enum_values: None,
-                            format: None,
-                        },
-                    )]
-                    .into_iter()
-                    .collect(),
-                ),
-                required: Some(vec!["stock_code".into()]),
-                items: None,
-            }),
-        };
-        vec![td_kline, td_announce]
+        // P0 修复(2026-07-22): 移除未实现的 get_announcement_content 工具引用
+        // 该工具在 mcp_tools.rs 中未注册 dispatch，调用会触发 "Unknown MCP tool" 错误
+        vec![td_kline]
     };
 
     // ── CodeNode: 定量对比脚本（sub-analysis → reflection-comparator → reflection-agent）──
@@ -1199,6 +1176,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                 }),
                 fallback_model: None,
                 task_scene: None,
+                stream_chunk_timeout_secs: None,
             },
         }),
         // 4. 硬裁决验证：reflection-agent → reflection-validator → store-ref

@@ -148,6 +148,7 @@ pub fn compile_plan_to_dag(
                         task_scene: None,
                         input_mapping: std::collections::HashMap::new(),
                         fallback_model: None,
+                        stream_chunk_timeout_secs: None,
                     },
                 }),
             };

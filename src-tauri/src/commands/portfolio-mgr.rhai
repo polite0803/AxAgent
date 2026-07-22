@@ -625,8 +625,12 @@ let f10_weight = if f10_signal != 0.0 { get_weight(f_weights, "chip", f10_defaul
 // 输出 pace_signal ∈ [-1, 1]，通过 input_mapping "pace-calc.pace_signal" 注入。
 // f11 权重 0.08（与 f9/f10 同级补充因子），仅在 pace_signal 非零时激活。
 // 修复 D6: 使用 get_weight 消费 IC 代理权重（key="pace"），与 f5/f9/f10 一致
+// P2-2 修复: 检查 pace_degraded 标志，降级时 f11 权重归零，避免误用 pace_signal=0 作为中性信号
 let f11_default = 0.08;
-let f11_signal = if present(pace_signal) && type_of(pace_signal) == "f64" && pace_signal != 0.0 {
+let pace_is_degraded = present(pace_degraded) && type_of(pace_degraded) == "bool" && pace_degraded;
+let f11_signal = if pace_is_degraded {
+    0.0  // pace 数据降级，不参与决策
+} else if present(pace_signal) && type_of(pace_signal) == "f64" && pace_signal != 0.0 {
     clamp(pace_signal, -1.0, 1.0)
 } else { 0.0 };
 let f11_weight = if f11_signal != 0.0 { get_weight(f_weights, "pace", f11_default) } else { 0.0 };

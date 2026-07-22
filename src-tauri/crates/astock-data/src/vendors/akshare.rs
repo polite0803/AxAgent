@@ -84,6 +84,8 @@ impl StockVendor for AkshareVendor {
                     free_cash_flow: None,
                     current_ratio: n("LD"), // 流动比率
                     quick_ratio: n("SD"),   // 速动比率
+                    goodwill: None,
+                    accounts_receivable: None,
                     estimated: Some(false),
                 }
             })

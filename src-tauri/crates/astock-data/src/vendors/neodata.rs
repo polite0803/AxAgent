@@ -349,6 +349,8 @@ impl StockVendor for NeoDataVendor {
             free_cash_flow: None,
             current_ratio: None,
             quick_ratio: None,
+            goodwill: None,
+            accounts_receivable: None,
             estimated: Some(false),
         }])
     }

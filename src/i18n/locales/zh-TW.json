@@ -10029,6 +10029,7 @@
       "bull": "牛市",
       "confidence": "置信度",
       "dailyReview": "每日復盘",
+      "empty": "暫無儀表盤報告，請先執行決策分析或重跑決策",
       "highVol": "高波動",
       "marketState": "市场状态",
       "recentAnalyses": "最近分析",
@@ -10036,7 +10037,8 @@
       "recordTrade": "記录交易",
       "sideways": "震荡",
       "title": "投資仪表盘",
-      "viewAll": "查看全部"
+      "viewAll": "查看全部",
+      "viewMarkdown": "查看 Markdown 原始碼"
     },
     "evolutionDrift": {
       "title": "演化漂移",

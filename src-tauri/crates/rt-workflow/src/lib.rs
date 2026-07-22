@@ -2,6 +2,10 @@
 
 //! Workflow Engine — DAG executor, agent roles, work engine, orchestration.
 
+// rt-workflow 使用嵌套 if let 模式（let-chain 需要 Rust 1.88+），
+// 与主 bin 保持一致允许 clippy::collapsible_if。
+#![allow(clippy::collapsible_if)]
+
 pub mod agent_roles;
 pub mod business_rules;
 pub mod expression_engine;

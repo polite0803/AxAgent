@@ -835,6 +835,7 @@ pub(super) fn parse_llm_response(
                         task_scene: None,
                         input_mapping: std::collections::HashMap::new(),
                         fallback_model: None,
+                        stream_chunk_timeout_secs: None,
                     });
                 WorkflowNode::Agent(AgentNode { base, config: agent_config })
             },
@@ -1176,6 +1177,7 @@ pub(super) fn parse_llm_response(
                     input_mapping: std::collections::HashMap::new(),
                     fallback_model: None,
                     task_scene: None,
+                    stream_chunk_timeout_secs: None,
                 },
             }),
         };

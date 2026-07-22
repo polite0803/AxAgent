@@ -19,8 +19,15 @@
 
 fn present(x) { type_of(x) != "()" }
 
-let state = if present(market_regime_state) { market_regime_state } else { "neutral" };
+// 输入：market_regime_state ("bull"/"bear"/"sideways"/"volatile"/"unknown")
+//       market_regime_prior (0-1 f64)
+//       market_regime_volatility ("high"/"low")
+// stock-analysis crate 的 classify_regime 输出 "sideways" 而非 "neutral"，
+// 此处统一映射。高波动状态下 regime_key 走 "volatile" 降权。
+let raw_state = if present(market_regime_state) { market_regime_state } else { "neutral" };
+let state = if raw_state == "sideways" || raw_state == "unknown" { "neutral" } else { raw_state };
 let prior_val = if present(market_regime_prior) { market_regime_prior } else { 0.50 };
+let volatility = if present(market_regime_volatility) { market_regime_volatility } else { "low" };
 
 // ── 各因子基权重 + 市场状态调节系数 ──
 // P2 修复新增: money_flow (f9), chip (f10), trade_signal (f7)
@@ -37,9 +44,8 @@ let factors = #{
     "chip": #{ "base": 0.08, "bull": 0.8, "bear": 1.3, "neutral": 1.0, "volatile": 1.5 },
 };
 
-// 解析状态（含高波动后缀处理）
-let regime_key = if state == "bull_high_vol" { "volatile" }
-    else if state == "bear_high_vol" { "volatile" }
+// 解析状态：高波动（volatility="high"）时统一走 "volatile" 降权路径
+let regime_key = if volatility == "high" { "volatile" }
     else if state == "bull" || state == "bear" || state == "neutral" { state }
     else { "neutral" };
 

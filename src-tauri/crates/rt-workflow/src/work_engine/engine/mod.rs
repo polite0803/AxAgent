@@ -2682,23 +2682,20 @@ impl WorkEngine {
                                     .ok();
                                 },
                                 Some(DegradeStrategy::UseDefault) => {
-                                    // UseDefault: 注入空默认值并标记为已完成
-                                    {
-                                        let mut workflows = self.execution_workflows.write().await;
-                                        if let Some(wf) = workflows.get_mut(&execution_id) {
-                                            wf.results.insert(
-                                                nr.node_id.clone(),
-                                                serde_json::json!(null),
-                                            );
-                                        }
-                                    }
+                                    // UseDefault: 注入空默认值并标记为已完成。
+                                    // 修复：原实现只手动插入 node_id key，漏插 output_var key，
+                                    // 导致下游 context_sources 引用 output_var 时报"变量未找到"。
+                                    // 现通过 update_node_status_for_execution 传入 result=Some(null)
+                                    // 和 output_var（从节点 config 获取），确保两个 key 都被插入。
+                                    let out_var = nr.node.base_output_var().map(|s| s.to_string());
+                                    let null_val = serde_json::json!(null);
                                     self.update_node_status_for_execution(
                                         &execution_id,
                                         &nr.node_id,
                                         NodeStatus::Completed,
-                                        None,
+                                        Some(null_val),
                                         Some(format!("{err_msg} (degraded: useDefault)")),
-                                        None,
+                                        out_var.as_deref(),
                                     )
                                     .await
                                     .ok();

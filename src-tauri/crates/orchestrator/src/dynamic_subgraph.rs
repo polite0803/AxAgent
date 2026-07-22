@@ -137,6 +137,7 @@ impl DynamicSubGraph {
             hallucination_guard: None,
             fallback_model: None,
             task_scene: None,
+            stream_chunk_timeout_secs: None,
         };
 
         WorkflowNode::Agent(AgentNode { base, config })

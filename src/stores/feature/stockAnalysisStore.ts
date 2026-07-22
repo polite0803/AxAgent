@@ -1786,8 +1786,12 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         workflowId: string;
         results: Record<string, unknown>;
         output?: unknown;
+        // 后端 core.rs 在 emit workflow-completed 时附加 dashboardReport/dashboardMd，
+        // 让 dashboard tab 在正常完成路径立即填充，不再依赖 rerunDecision。
+        dashboardReport?: DashboardReport | null;
+        dashboardMd?: string | null;
       }>("workflow-completed", (event) => {
-        const { results, output } = event.payload;
+        const { results, output, dashboardReport: wfDashboardReport, dashboardMd: wfDashboardMd } = event.payload;
 
         // 优先从 portfolio-mgr 节点结果中提取决策（与分析页一致）
         let decision: StockDecision | null = null;
@@ -1940,6 +1944,11 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           progressMessage: i18n.t("stockAnalysis.progress.completed"),
           progressPct: 100,
           currentStage: 4,
+          // 后端在 workflow-completed 事件中携带 dashboardReport/dashboardMd，
+          // 正常分析完成路径也立即填充 dashboard，无需用户手动点"重跑决策"。
+          // 后端为 null（dashboard 构建失败）时回退到 store 现有值，避免覆盖。
+          dashboardReport: wfDashboardReport ?? s.dashboardReport,
+          dashboardMd: wfDashboardMd ?? s.dashboardMd,
           // #21 工作流成功完成，重置自动重试计数，允许下次失败再次重试
           _workflowErrorRetries: 0,
         });

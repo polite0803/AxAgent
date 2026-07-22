@@ -797,6 +797,8 @@ mod tests {
             free_cash_flow: None,
             current_ratio: Some(current_ratio),
             quick_ratio: None,
+            goodwill: None,
+            accounts_receivable: None,
             estimated: None,
         }
     }

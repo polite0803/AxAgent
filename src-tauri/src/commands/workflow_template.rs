@@ -1366,6 +1366,7 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
         task_scene: None,
         input_mapping: std::collections::HashMap::new(),
         fallback_model: None,
+        stream_chunk_timeout_secs: None,
     }
 }
 

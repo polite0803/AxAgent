@@ -947,13 +947,16 @@ impl NodeExecutorTrait for AgentExecutor {
             let mut stream_usage = (0u32, 0u32);
 
             // v8.1: per-chunk 超时，防止 LLM provider 挂起导致 engine 永久阻塞。
-            // 默认 120s（v24.6: 从 60s 调到 120s），硬编码为固定值。
+            // 默认 120s（v24.6: 从 60s 调到 120s）。
             // 原因：DeepSeek 等模型在大上下文（如 K-line 120 根 K 线）下的 TTFB 偶发 >60s，
             // 60s per-chunk 超时过于激进，导致首 chunk 未到就提前超时 Failed。
             // 外层还有 node_timeout 兜底，但每次 stream.next() 阻塞太久
             // 会让整个 JoinSet 卡住，其他已完成 Agent 的结果无法推进引擎。
-            // 注：AgentNodeConfig.stream_chunk_timeout_secs 字段将在后续版本中扩展。
-            let chunk_timeout = Duration::from_secs(120);
+            // #1 修复(2026-07-22): 支持节点级覆盖 — AgentNodeConfig.stream_chunk_timeout_secs。
+            // 大上下文节点(如 debate-convergence: ~30k-40k input tokens)的 TTFB 偶发 >120s,
+            // 配置 stream_chunk_timeout_secs=300 后单 chunk 等待可达 5 分钟。
+            let chunk_timeout =
+                Duration::from_secs(an.config.stream_chunk_timeout_secs.unwrap_or(120));
             while let Some(chunk) =
                 tokio::time::timeout(chunk_timeout, stream.next()).await.map_err(|_| {
                     NodeError::exec_failed(
@@ -1273,7 +1276,12 @@ impl NodeExecutorTrait for AgentExecutor {
                                         {
                                             Ok(mut fb_stream) => {
                                                 let mut fb_content = String::new();
-                                                let chunk_timeout = Duration::from_secs(120);
+                                                // #1: fallback 流也用节点级配置,与主流保持一致
+                                                let chunk_timeout = Duration::from_secs(
+                                                    an.config
+                                                        .stream_chunk_timeout_secs
+                                                        .unwrap_or(120),
+                                                );
                                                 while let Ok(maybe_chunk) = tokio::time::timeout(
                                                     chunk_timeout,
                                                     fb_stream.next(),
@@ -1402,7 +1410,11 @@ impl NodeExecutorTrait for AgentExecutor {
                     .join("\n")
             };
 
-            if !source_context.is_empty() {
+            // P2-1 修复: source_context 过短时（<200 字符）说明上游数据严重缺失，
+            // 此时锚定检查必然失败但并非 LLM 幻觉，而是数据源故障。
+            // 跳过锚定检查，避免误注入 __untrusted 导致权重坍缩。
+            // 仅当 source_context 足够长（≥200 字符）时才执行锚定检查。
+            if source_context.len() >= 200 {
                 use axagent_harness::hallucination_guard::check_anchor;
                 let anchor_result =
                     check_anchor(&final_content, &source_context, hg_config.match_threshold);
@@ -1415,7 +1427,27 @@ impl NodeExecutorTrait for AgentExecutor {
                         unverified_count = %anchor_result.unverified_claims.len(),
                         "防幻觉锚定检查未通过: {}", anchor_result.details
                     );
+                    // P2-1 修复: 锚定检查未通过时注入 __untrusted=true 到 final_content
+                    // 原 bug: 只打 warn 日志未注入标记，导致 portfolio-mgr.rhai 的
+                    // untrusted_count 恒为 0，权重坍缩兜底从未被正确触发。
+                    // 现在注入后，portfolio-mgr 能正确感知上游不可信并触发降级。
+                    // 同时保留原 content 数据，只在 JSON 顶层加 __untrusted 字段。
+                    if let Ok(mut parsed) =
+                        serde_json::from_str::<serde_json::Value>(&final_content)
+                    {
+                        if parsed.is_object() {
+                            parsed["__untrusted"] = serde_json::json!(true);
+                            final_content = parsed.to_string();
+                        }
+                    }
                 }
+            } else if !source_context.is_empty() {
+                tracing::info!(
+                    node_id = %node.base_id(),
+                    node_type = "agent",
+                    context_len = %source_context.len(),
+                    "上游数据严重不足(<200字符)，跳过锚定检查避免误触发 __untrusted"
+                );
             }
         }
 
