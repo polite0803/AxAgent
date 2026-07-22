@@ -3474,8 +3474,16 @@ mod pdf_math_test {
     }
 
     /// 行内数学：$x^2$ 应在 PDF 文本中显示为 x^2 形式（保留 sup 标记以反映结构）
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
     #[tokio::test]
     async fn inline_math_appears_in_pdf() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("inline_math.pdf");
         let md = "勾股定理：$a^2 + b^2 = c^2$。";
         let doc = markdown::parse_markdown(md);
@@ -3507,8 +3515,14 @@ mod pdf_math_test {
     }
 
     /// 块级数学：$$...$$ 包含 LaTeX 命令，应展开为 Unicode 字符
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
     #[tokio::test]
     async fn display_math_unfolds_latex() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("display_math.pdf");
         let md = "## 公式\n\n$$\\alpha + \\beta = \\gamma$$\n\n行内 $\\sum_{i=1}^n i$ 求和。";
         let doc = markdown::parse_markdown(md);
@@ -3542,8 +3556,14 @@ mod pdf_math_test {
     }
 
     /// 不等式符号：\leq, \geq, \neq
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
     #[tokio::test]
     async fn inequality_symbols() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("inequality.pdf");
         let md = "约束：$a \\leq b$ 且 $b \\neq c$。";
         let doc = markdown::parse_markdown(md);
