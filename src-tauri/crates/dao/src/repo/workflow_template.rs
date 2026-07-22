@@ -112,7 +112,15 @@ pub async fn update_workflow_template(
             error_config: Set(t.error_config.clone()),
             created_at: Set(chrono::Utc::now().timestamp_millis()),
         };
-        version_snapshot.insert(db).await?;
+        // 历史快照若已存在（如回滚后再次保存相同 version），保留旧快照不覆盖
+        workflow_template_version::Entity::insert(version_snapshot)
+            .on_conflict(
+                OnConflict::column(workflow_template_version::Column::Id)
+                    .do_nothing()
+                    .to_owned(),
+            )
+            .exec(db)
+            .await?;
 
         let mut active_model: workflow_template::ActiveModel = t.clone().into();
         active_model.name = Set(name);

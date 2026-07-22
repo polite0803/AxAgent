@@ -9082,7 +9082,8 @@
         "dryRun": "Dry Run",
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
-        "simulation": "蒙特卡洛仿真"
+        "simulation": "蒙特卡洛仿真",
+        "refCodes": "行业参考标的"
       },
       "panels": {
         "main": "Main Panel",

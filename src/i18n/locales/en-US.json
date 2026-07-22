@@ -10342,7 +10342,11 @@
         "indicators": "Indicators",
         "strategyParams": "Strategy Params",
         "trading": "Trading",
-        "dryRun": "Dry Run"
+        "dryRun": "Dry Run",
+        "portfolioMgrAction": "Portfolio Decision Thresholds (portfolio-mgr)",
+        "portfolioMgrRisk": "Risk Classification Thresholds (portfolio-mgr)",
+        "simulation": "Monte Carlo Simulation",
+        "refCodes": "Industry Reference Codes"
       },
       "klineLimit": "K-line Limit",
       "klinePeriod": "K-line Period",
