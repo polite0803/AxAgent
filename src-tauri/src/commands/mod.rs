@@ -100,6 +100,8 @@ pub mod sources;
 pub mod spawn_guard;
 pub mod stock_analysis;
 pub mod stock_analysis_setup;
+// ── Walk-Forward + DES 对比 ──
+pub mod wf_des;
 pub mod stock_pipeline;
 pub mod stock_workflow;
 pub mod storage;

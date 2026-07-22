@@ -748,11 +748,12 @@ async fn run_validation_hook(
                 "sample_count": min_sample + 5,
                 "win_rate": 0.62,
                 "avg_return": 0.018,
-                "max_drawdown": 0.04,
+                "max_drawdown_pct": 0.04,
                 "min_sample_count": min_sample,
                 "max_regression_pct": max_regression,
             });
-            let passed = metrics["max_drawdown"].as_f64().unwrap_or(0.0) < (max_regression / 100.0);
+            let passed =
+                metrics["max_drawdown_pct"].as_f64().unwrap_or(0.0) < (max_regression / 100.0);
             (passed, metrics)
         },
         unknown => (

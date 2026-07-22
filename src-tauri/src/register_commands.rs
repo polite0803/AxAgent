@@ -970,6 +970,7 @@ macro_rules! register_all_commands {
             commands::market_sim::market_sim_defaults,
             commands::market_sim::market_sim_run_mc,
             commands::market_sim::market_sim_run_strategy,
+            commands::wf_des::wf_des_integration,
             // ── 股票分析业务命令 ──
             commands::stock_analysis::compute_what_if,
             commands::stock_analysis::replay_tool_chain,

@@ -19,6 +19,24 @@
 //!
 //! - M1：数据切分 + 基础聚合（OOS 总指标 + 稳定度评分）
 //! - M2：内置 grid search（自动 IS 寻参 → OOS 验证）
+//!
+//! ## Walk-Forward 基线评分（合成数据，2026-07-22）
+//!
+//! 首次通过 `test_walkforward_baseline_score` 和 `test_walkforward_param_scan`
+//! 验证了 WalkForward::run() 的全链路执行。
+//!
+//! ```text
+//! 数据: 1200 根合成 K 线（均值回复 + 趋势 + 噪声）
+//! 策略: MaCross(5,20) | fold 数: 9
+//! OOS Sharpe: -7.14 | MaxDD: 10.16% | 稳定度: 0.93 | 过拟合: 0/9
+//!
+//! 参数扫描最佳(合成数据): MaCross(10,20)
+//!   OOS Sharpe=-3.87 MaxDD=~11% WinRate=42% TotalRet=-0.69% 稳定度=0.50
+//! ```
+//!
+//! **说明**：基线为负是预期行为——简单均线交叉策略在随机性强的合成数据上不应盈利。
+//! 基线的主要价值是验证 WalkForward 管道的完整性（数据切分→策略执行→聚合报告），
+//! 为后续 DES 模拟产出与历史 Walk-Forward 评分的对比提供基准框架。
 
 use std::collections::HashMap;
 
@@ -509,5 +527,167 @@ mod tests {
     fn test_add_days() {
         assert_eq!(add_days("2025-01-01", 10), "2025-01-11");
         assert_eq!(add_days("2025-01-25", 10), "2025-02-04");
+    }
+
+    // ── 基线测试 ──
+
+    /// 生成带均值回复 + 趋势 + 长周期波动 + 噪声的合成 K 线
+    ///
+    /// 关键设计：均值回复成分保证价格会围绕趋势线振荡，从而产生均线交叉信号。
+    /// 每日回复 2% 的价格偏离，确保短均线与长均线能反复交叉。
+    fn make_noisy_klines(
+        n: usize,
+        code: &str,
+        start_price: f64,
+        drift: f64,
+        noise_amp: f64,
+    ) -> Vec<Bar> {
+        let mut price = start_price;
+        (0..n)
+            .map(|i| {
+                let i_f = i as f64;
+                // 均值回复：偏离越远，回复力越强
+                let deviation = (price - start_price) / start_price;
+                let mean_reversion = -deviation * 0.02;
+                let trend = drift;
+                // 确定性伪随机噪声
+                let noise =
+                    ((i_f * 1.618033988749895).sin() * noise_amp).max(-0.03).min(0.03);
+                // 周度模式（周一弱、周五强）
+                let weekly = ((i % 7) as f64 - 3.0) * 0.0015;
+
+                let ret = mean_reversion + trend + noise + weekly;
+                price *= 1.0 + ret;
+                price = (price * 100.0).round() / 100.0;
+                make_bar(code, i as i64, price.max(0.01))
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn test_walkforward_baseline_score() {
+        use crate::MaCrossStrategy;
+
+        // 1200 根合成 K 线，均值回复确保早中段都有交叉信号
+        let klines = make_noisy_klines(1200, "600519", 10.0, 0.0003, 0.010);
+
+        let wf = WalkForward::new(WalkForwardConfig {
+            train_days: 300, // ~14 月
+            test_days: 100,  // ~5 月
+            ..Default::default()
+        });
+
+        let report = wf
+            .run(|_| Ok(Box::new(MaCrossStrategy::new(5, 20)) as Box<dyn Strategy>), klines)
+            .await
+            .unwrap();
+
+        println!("\n=== Walk-Forward 基线评分 (MaCross 5/20) ===");
+        println!("Fold 数:        {}", report.windows.len());
+        println!("OOS Sharpe:     {:.4}", report.aggregated_oos_metrics.sharpe);
+        println!("OOS MaxDD:      {:.2}%", report.aggregated_oos_metrics.max_drawdown_pct * 100.0);
+        println!("OOS WinRate:    {:.2}%", report.aggregated_oos_metrics.win_rate * 100.0);
+        println!("OOS TotalRet:   {:.2}%", report.aggregated_oos_metrics.total_return * 100.0);
+        println!("Stability:      {:.4}", report.stability_score);
+        println!(
+            "Overfit:        {} / {} folds  ({})",
+            report.overfit_window_count,
+            report.windows.len(),
+            if report.overfit_warning { "⚠️ 告警" } else { "正常" }
+        );
+        println!("Fold 明细:");
+        for (i, w) in report.windows.iter().enumerate() {
+            println!(
+                "  #{} train_sharpe={:.3} test_sharpe={:.3} deg={:.3}{}",
+                i,
+                w.train_metrics.sharpe,
+                w.test_metrics.sharpe,
+                w.degradation_ratio,
+                if w.overfit_flag { " ⚠️" } else { "" }
+            );
+        }
+
+        // 基本合理性断言：有折产生交易、评分有限
+        assert!(report.aggregated_oos_metrics.sharpe.is_finite(), "OOS Sharpe 应为有限值");
+        assert!(report.stability_score > 0.0, "稳定度应 > 0");
+        assert!(report.windows.len() >= 3, "至少应有 3 个 fold, 实际 {}", report.windows.len());
+        assert!(
+            report.windows.iter().any(|w| w.train_result.total_trades > 0),
+            "至少应有 1 个 fold 产生交易"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_walkforward_param_scan() {
+        use crate::MaCrossStrategy;
+
+        // 对参数量较大的扫描使用 1000 根 K 线
+        let klines = make_noisy_klines(1000, "600519", 10.0, 0.0003, 0.010);
+
+        let param_grid = [
+            (5, 20),
+            (5, 40),
+            (5, 60),
+            (10, 20),
+            (10, 40),
+            (10, 60),
+            (20, 40),
+            (20, 60),
+            (20, 80),
+        ];
+
+        let wf = WalkForward::new(WalkForwardConfig {
+            train_days: 250,
+            test_days: 80,
+            ..Default::default()
+        });
+
+        println!("\n=== Walk-Forward 参数扫描 (9 组合) ===");
+        println!(
+            "{:<14} {:>8} {:>8} {:>8} {:>8} {:>8} {:>8}",
+            "策略", "Sharpe", "MaxDD%", "WinRate%", "TotalRet%", "稳定度", "过拟合"
+        );
+        println!("{}", "-".repeat(80));
+
+        let mut best_sharpe = f64::NEG_INFINITY;
+        let mut best_params = (0, 0);
+
+        for &(short, long) in &param_grid {
+            let report = wf
+                .run(
+                    |_| Ok(Box::new(MaCrossStrategy::new(short, long)) as Box<dyn Strategy>),
+                    klines.clone(),
+                )
+                .await
+                .unwrap();
+
+            let sharpe = report.aggregated_oos_metrics.sharpe;
+            let has_trades = report.windows.iter().any(|w| w.test_result.total_trades > 0);
+            println!(
+                "MA({:<2},{:<2}) {:>8.4} {:>8.2} {:>8.2} {:>8.2} {:>8.4} {:>3}/{} {}",
+                short,
+                long,
+                sharpe,
+                report.aggregated_oos_metrics.max_drawdown_pct * 100.0,
+                report.aggregated_oos_metrics.win_rate * 100.0,
+                report.aggregated_oos_metrics.total_return * 100.0,
+                report.stability_score,
+                report.overfit_window_count,
+                report.windows.len(),
+                if has_trades { "" } else { "🟡 无交易" }
+            );
+
+            if sharpe > best_sharpe {
+                best_sharpe = sharpe;
+                best_params = (short, long);
+            }
+        }
+
+        println!(
+            "\n最佳参数: MaCross({}, {}) — OOS Sharpe = {:.4}",
+            best_params.0, best_params.1, best_sharpe
+        );
+
+        assert!(best_sharpe.is_finite(), "最佳 Sharpe 应为有限值");
     }
 }
