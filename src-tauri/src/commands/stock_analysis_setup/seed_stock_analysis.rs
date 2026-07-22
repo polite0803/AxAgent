@@ -1105,7 +1105,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         },
         config: SwitchNodeConfig {
             input_var: "analyst-brief".into(),
-            cases: vec![SwitchCase { value: "_value != \"\"".into(), label: "brief_ok".into() }],
+            cases: vec![SwitchCase {
+                value: "_value.contains(\"看多=\")".into(),
+                label: "brief_ok".into(),
+            }],
             default_case: Some("brief_fallback".into()),
             match_mode: "expression".into(),
             use_llm: None,
