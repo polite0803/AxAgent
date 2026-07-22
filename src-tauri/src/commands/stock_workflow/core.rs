@@ -258,6 +258,10 @@ async fn run_stock_workflow_inner(
         }
     }
 
+    // 从模板变量解析 vendor_* 布尔开关，注入到 astock_client 的启用状态过滤器
+    // 未启用的 vendor 会在 find_vendor 中被跳过，避免无效调用和超时重试
+    super::decision::inject_vendor_state(&state.astock_client, loaded.variables.as_ref());
+
     let engine = Arc::clone(&state.work_engine);
 
     // ── 从模板变量中解析执行参数 ──
@@ -422,9 +426,17 @@ async fn run_stock_workflow_inner(
         // P3 修复: 在 spawn 内恢复 AS_OF + DEGRADATION_LOG 作用域
         as_of::with_optional_asof(captured_asof, async {
             as_of::with_degradation_log(async {
+        // 按类型并发上限：tool/file 保持高位，llm/agent 对齐用户设定的 max_concurrent
+        // 修复: 默认按类型上限 llm=3 会覆盖全局 max_concurrent，使设置面板的值失效
+        let mut type_limits = std::collections::HashMap::new();
+        type_limits.insert("tool".into(), 10usize);
+        type_limits.insert("file".into(), 10usize);
+        type_limits.insert("llm".into(), max_concurrent);
+        type_limits.insert("agent".into(), max_concurrent);
         let mut opts = RunOptions {
             max_concurrent,
             step_timeout,
+            max_concurrent_by_type: Some(type_limits),
             progress_callback: Some(progress_cb),
             input: Some(json!({"stock_code": &stock_code})),
             input_schema: input_schema.clone(),
@@ -1291,6 +1303,15 @@ pub async fn run_single_stock_analysis(
     let opts = RunOptions {
         max_concurrent,
         step_timeout,
+        // 按类型并发上限对齐全局 max_concurrent，修复默认 llm=3 覆盖用户设定
+        max_concurrent_by_type: Some({
+            let mut m = std::collections::HashMap::new();
+            m.insert("tool".into(), 10usize);
+            m.insert("file".into(), 10usize);
+            m.insert("llm".into(), max_concurrent);
+            m.insert("agent".into(), max_concurrent);
+            m
+        }),
         progress_callback: None,
         input: Some(json!({"stock_code": stock_code})),
         input_schema: loaded.input_schema.clone(),

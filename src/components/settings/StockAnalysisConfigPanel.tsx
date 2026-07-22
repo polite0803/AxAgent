@@ -24,8 +24,8 @@ function getDefaultVariables(): Variable[] {
   b("news_limit", 30, "stockAnalysis.configDescriptions.newsLimit", "number");
   // Agent 节点 LLM 参数
   b("agent_temperature", 0.3, "stockAnalysis.configDescriptions.agentTemperature", "number");
-  b("agent_max_tokens", 4096, "stockAnalysis.configDescriptions.agentMaxTokens", "number");
-  b("agent_timeout_secs", 300, "stockAnalysis.configDescriptions.agentTimeoutSecs", "number");
+  b("agent_max_tokens", 32768, "stockAnalysis.configDescriptions.agentMaxTokens", "number");
+  b("agent_timeout_secs", 600, "stockAnalysis.configDescriptions.agentTimeoutSecs", "number");
   b("agent_retry_max", 2, "stockAnalysis.configDescriptions.agentRetryMax", "number");
   // Tool 节点参数
   b("tool_timeout_secs", 30, "stockAnalysis.configDescriptions.toolTimeoutSecs", "number");

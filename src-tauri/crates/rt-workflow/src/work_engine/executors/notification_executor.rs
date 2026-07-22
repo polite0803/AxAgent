@@ -83,6 +83,28 @@ impl NodeExecutorTrait for NotificationExecutor {
         };
         let c = &n.config;
 
+        // P0 修复(2026-07-22): channel="system" 时不需要 webhook_url，
+        // 直接返回成功（系统通知在前端展示，无需 HTTP 调用）。
+        // 原逻辑无条件检查 webhook_url，导致 channel="system" + webhook_url=None
+        // 时返回 NOTIFICATION_CONFIG_INVALID，工作流状态变为 PartiallyCompleted。
+        if c.channel == "system" {
+            tracing::info!(
+                channel = %c.channel,
+                message = %c.message,
+                "NotificationExecutor: system channel, skip webhook send"
+            );
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "channel": "system",
+                    "message": &c.message,
+                    "sent": false,
+                    "reason": "system channel does not require webhook",
+                }),
+                output_var: Some(c.output_var.clone()),
+                control: None,
+            });
+        }
+
         if c.webhook_url.as_deref().unwrap_or("").trim().is_empty() {
             return Err(NodeError::exec_failed(
                 "NOTIFICATION_CONFIG_INVALID",

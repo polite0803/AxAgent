@@ -37,7 +37,7 @@ use tauri::State;
 #[allow(clippy::too_many_arguments)]
 pub async fn run_reflection_workflow(
     db: &DatabaseConnection,
-    _client: &axagent_astock_data::AStockClient,
+    client: &axagent_astock_data::AStockClient,
     engine: &Arc<axagent_rt_workflow::work_engine::WorkEngine>,
     vector_store: &axagent_search::vector_store::VectorStore,
     master_key: &[u8; 32],
@@ -139,6 +139,10 @@ pub async fn run_reflection_workflow(
 
     // 2. 加载反思复盘模板（stock-reflection，DAG 结构与 stock-analysis 一致）
     let loaded = load_and_inject_template(db, stock_code, stock_name, "stock-reflection").await?;
+
+    // 注入 vendor 启用状态过滤器（与 stock-analysis 主工作流一致）
+    super::decision::inject_vendor_state(client, loaded.variables.as_ref());
+
     let (max_concurrent, step_timeout, _total_timeout) =
         resolve_runtime_options(loaded.variables.as_deref());
 

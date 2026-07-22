@@ -31,6 +31,7 @@ use chrono::Local;
 use futures::future::BoxFuture;
 use moka::future::Cache as MokaCache;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -204,6 +205,7 @@ impl VendorRouting {
             financials: vec![
                 "eastmoney".into(),
                 "browser_eastmoney".into(),
+                "baidu_stock".into(), // P2-1 修复(2026-07-22): 新增 baidu_stock 作为备选，避免 eastmoney IncompleteMessage + browser_eastmoney/xueqiu/neodata token 缺失时无可用源
                 "xueqiu".into(),
                 "akshare".into(),
                 "neodata".into(), // 末位兜底
@@ -282,8 +284,10 @@ impl VendorRouting {
             cls_flash: vec!["eastmoney".into(), "akshare".into(), "neodata".into()],
             north_bound_flow: vec!["eastmoney".into(), "ths".into(), "baidu_stock".into()],
             block_trades: vec!["eastmoney".into(), "baidu_stock".into()],
-            // 政策新闻:优先 eastmoney(基于行业关键词搜索),akshare 作为备选
-            policy_news: vec!["eastmoney".into(), "akshare".into()],
+            // 政策新闻:优先 eastmoney(基于行业关键词搜索),baidu_stock 作为备选(个股新闻+政策过滤),
+            // akshare 未实现 get_policy_news(默认返回空),实际不生效。
+            // P1-2 修复(2026-07-22): 新增 baidu_stock 作为有效备选，避免 eastmoney 单点故障。
+            policy_news: vec!["eastmoney".into(), "baidu_stock".into(), "akshare".into()],
             institutional_visits: vec!["eastmoney".into()],
             index_quotes: vec!["eastmoney".into(), "tencent".into(), "neodata".into()],
             peers: vec!["eastmoney".into(), "iwencai".into(), "neodata".into()], // neodata 末位兜底
@@ -346,6 +350,12 @@ pub struct AStockClient {
     /// 浏览器 HTTP fetch 能力（Harness 注入）
     /// 通过 Playwright/Chromium 绕过 EastMoney JA3 封锁
     browser_fetcher: Option<Arc<dyn BrowserHttpFetch>>,
+    /// vendor 启用状态过滤器（来自设置页 vendor_* 布尔开关）
+    /// - None = 全部启用（默认，向后兼容）
+    /// - Some(set) = 只有 set 中的 vendor 启用，find_vendor 会跳过未启用的 vendor
+    ///
+    /// 用 parking_lot::RwLock 支持同步读取（find_vendor 是同步方法，不跨 await）
+    enabled_vendors: parking_lot::RwLock<Option<HashSet<String>>>,
 }
 
 impl AStockClient {
@@ -384,6 +394,7 @@ impl AStockClient {
                     neodata_token: None,
                     news_archive_sink: None,
                     browser_fetcher: None,
+                    enabled_vendors: parking_lot::RwLock::new(None),
                 };
                 client.register_default_vendors(http);
                 client
@@ -462,6 +473,7 @@ impl AStockClient {
             neodata_token: None,
             news_archive_sink: None, // P6:默认不写入,调用方通过 with_news_archive_sink 注入
             browser_fetcher: None,   // 浏览器 fetch 通过 with_browser_fetcher() 注入
+            enabled_vendors: parking_lot::RwLock::new(None), // 默认全部启用
         };
 
         client.register_default_vendors(http);
@@ -471,6 +483,19 @@ impl AStockClient {
 
     pub fn register_vendor(&mut self, name: &str, vendor: Box<dyn StockVendor>) {
         self.vendors.push((name.to_string(), vendor));
+    }
+
+    /// 设置 vendor 启用状态过滤器（来自设置页 vendor_* 布尔开关）
+    /// 传入空 set 等效于全部禁用；传入 None 等效于全部启用（向后兼容）
+    pub fn set_enabled_vendors(&self, vendors: Option<HashSet<String>>) {
+        *self.enabled_vendors.write() = vendors;
+    }
+
+    /// 检查 vendor 是否启用（用于 find_vendor 过滤）
+    /// - enabled_vendors 为 None → 全部启用（默认）
+    /// - enabled_vendors 为 Some(set) → 只有 set 中的 vendor 启用
+    fn is_vendor_enabled(&self, name: &str) -> bool {
+        self.enabled_vendors.read().as_ref().is_none_or(|set| set.contains(name))
     }
 
     /// 缺陷 D 修复: 注入 L2 磁盘缓存。
@@ -965,6 +990,11 @@ impl AStockClient {
     }
 
     fn find_vendor(&self, name: &str) -> Option<&dyn StockVendor> {
+        // 启用状态过滤：未启用的 vendor 直接返回 None，跳过调用
+        if !self.is_vendor_enabled(name) {
+            tracing::debug!("[astock-data] vendor '{name}' 未启用，跳过");
+            return None;
+        }
         self.vendors.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_ref())
     }
 

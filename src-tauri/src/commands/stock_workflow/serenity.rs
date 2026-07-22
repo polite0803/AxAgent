@@ -726,6 +726,9 @@ pub async fn run_serenity_screening(
     // 1. 加载 serenity-screening 模板
     let loaded = load_and_inject_template(state.harness.db(), "", "", "serenity-screening").await?;
 
+    // 注入 vendor 启用状态过滤器（与 stock-analysis 主工作流一致）
+    super::decision::inject_vendor_state(&state.astock_client, loaded.variables.as_ref());
+
     let (max_concurrent, step_timeout, _total_timeout) =
         resolve_runtime_options(loaded.variables.as_deref());
 

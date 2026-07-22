@@ -193,6 +193,25 @@ pub(crate) struct LoadedTemplate {
     pub variables: Option<Vec<Variable>>,
 }
 
+/// 从模板变量解析 vendor_* 布尔开关，注入到 astock_client 的启用状态过滤器。
+/// 未启用的 vendor 会在 find_vendor 中被跳过，避免无效调用和超时重试。
+/// 应在 load_and_inject_template 之后、run_workflow 之前调用。
+pub(crate) fn inject_vendor_state(
+    astock_client: &axagent_astock_data::AStockClient,
+    variables: Option<&Vec<Variable>>,
+) {
+    if let Some(vars) = variables {
+        let template_vars: Vec<(String, serde_json::Value)> =
+            vars.iter().map(|v| (v.name.clone(), v.value.clone())).collect();
+        let enabled_set =
+            axagent_stock_analysis::recommender::pool::load_enabled_vendors_from_template(
+                &template_vars,
+            );
+        tracing::info!("[stock_workflow] vendor 启用状态已注入: {:?}", enabled_set);
+        astock_client.set_enabled_vendors(Some(enabled_set));
+    }
+}
+
 #[cfg(test)]
 mod precheck_tests {
     use super::*;

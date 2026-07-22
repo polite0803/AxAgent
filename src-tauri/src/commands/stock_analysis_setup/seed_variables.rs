@@ -70,15 +70,19 @@ pub(crate) fn build_template_variables() -> Vec<Variable> {
         Variable {
             name: "agent_max_tokens".into(),
             var_type: "number".into(),
-            value: serde_json::json!(4096),
-            description: Some("所有 Agent 节点最大输出 token 数".into()),
+            value: serde_json::json!(32768),
+            description: Some(
+                "所有 Agent 节点最大输出 token 数（模板变量覆盖硬编码默认值）".into(),
+            ),
             is_secret: false,
         },
         Variable {
             name: "agent_timeout_secs".into(),
             var_type: "number".into(),
-            value: serde_json::json!(120),
-            description: Some("每个 Agent 节点执行超时秒数 (v8.1: 120s)".into()),
+            value: serde_json::json!(600),
+            description: Some(
+                "每个 Agent 节点执行超时秒数（主控，继承到所有无显式超时的 agent 节点）".into(),
+            ),
             is_secret: false,
         },
         Variable {
@@ -354,6 +358,44 @@ pub(crate) fn build_template_variables() -> Vec<Variable> {
             value: serde_json::json!(true),
             description: Some("Mootdx — 本地行情接口".into()),
             is_secret: false,
+        },
+        // ── 需要 Token/Key 的数据源（开关默认关闭，需用户手动配置凭据后开启）──
+        Variable {
+            name: "vendor_xueqiu".into(),
+            var_type: "boolean".into(),
+            value: serde_json::json!(false),
+            description: Some("雪球 — 需配置 xq_a_token".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "vendor_neodata".into(),
+            var_type: "boolean".into(),
+            value: serde_json::json!(false),
+            description: Some("NeoData — 需配置 API Token".into()),
+            is_secret: false,
+        },
+        // ── 凭据变量（is_secret=true，前端设置页管理）──
+        // 后端 stock_analysis.rs / core.rs 通过变量名读取并注入到 vendor
+        Variable {
+            name: "vendor_iwencai_key".into(),
+            var_type: "string".into(),
+            value: serde_json::json!(""),
+            description: Some("问财 API Key".into()),
+            is_secret: true,
+        },
+        Variable {
+            name: "vendor_xueqiu_token".into(),
+            var_type: "string".into(),
+            value: serde_json::json!(""),
+            description: Some("雪球 xq_a_token".into()),
+            is_secret: true,
+        },
+        Variable {
+            name: "vendor_neodata_token".into(),
+            var_type: "string".into(),
+            value: serde_json::json!(""),
+            description: Some("NeoData API Token".into()),
+            is_secret: true,
         },
         // ── 金融模型参数 ──
         Variable {

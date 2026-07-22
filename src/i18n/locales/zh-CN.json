@@ -9393,6 +9393,10 @@
     "searchStock": "搜索股票",
     "loadAnalysisFailed": "加载历史分析失败",
     "willOverwrite": "将覆盖原记录（保留相同 analysisId）",
+    "decision": {
+      "confidenceLabel": "置信度",
+      "positionLabel": "仓位"
+    },
     "position": "仓位",
     "targetPrice": "目标价",
     "stopLoss": "止损",

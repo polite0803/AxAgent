@@ -8917,6 +8917,10 @@
     "searchStock": "Search Stock",
     "loadAnalysisFailed": "Échec du chargement de l'historique d'analyse",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
+    "decision": {
+      "confidenceLabel": "Confiance",
+      "positionLabel": "Position"
+    },
     "position": "Position",
     "targetPrice": "Target Price",
     "stopLoss": "Stop Loss",

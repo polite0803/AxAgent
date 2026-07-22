@@ -433,9 +433,48 @@ pub async fn execute_mcp_tool(
         }
     };
 
+    // P0 修复(2026-07-22): 对需要 stock_code 的工具统一做空值预检，
+    // 避免空字符串传给 vendor 后触发 6 vendor × 2 轮无效重试（浪费 ~3 分钟）。
+    // 根因：Agent 节点 LLM 流式 tool_call arguments 反序列化失败时 stock_code 为空，
+    // parse_code 返回空字符串 → to_em_secid("") → "0." → vendor 全部失败 → 重试。
+    // 以下工具不需要 stock_code（用 keyword 或无参数），排除在预检之外。
+    if !matches!(
+        tool_name,
+        "search_stock"
+            | "search_news"
+            | "get_market_dragon_tiger"
+            | "get_hot_stocks"
+            | "get_industry_ranking"
+            | "get_cls_flash"
+            | "get_north_bound_flow"
+            | "get_index_quotes"
+            | "compute_portfolio_risk"
+    ) {
+        let code = parse_code(arguments);
+        if code.is_empty() {
+            tracing::warn!(
+                tool = tool_name,
+                args = %arguments,
+                "stock_code 为空（LLM 参数解析失败），快速失败避免无效重试"
+            );
+            return Err(format!(
+                "工具 '{}' 缺少 stock_code 参数（LLM 参数解析失败，arguments={}）",
+                tool_name, arguments
+            ));
+        }
+    }
+
     match tool_name {
         "search_stock" => {
             let keyword = parse_str(arguments, "keyword");
+            // P0 修复(2026-07-22): 校验 keyword，避免 LLM 传入拼音片段或空字符串。
+            // 日志显示 GLM-5.2 曾生成 "zhong'g"/"中国wei"/"中国卫tong" 等拼音片段，
+            // 导致所有 vendor 搜索失败并重试，浪费 ~14 秒。
+            if keyword.trim().is_empty() {
+                return Err(
+                    "search_stock 缺少 keyword 参数，请传入完整中文名称或6位数字代码".to_string()
+                );
+            }
             let keyword = keyword.as_str();
             let results = client.search_stock(keyword).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&results).map_err(|e| e.to_string())
@@ -663,6 +702,12 @@ pub async fn execute_mcp_tool(
             // 又追加 totalScore(别名)/currentPrice/indicators/factor_backtest(占位)。
             let score_json = serde_json::to_value(&score).map_err(|e| e.to_string())?;
             let ind_json = serde_json::to_value(&ind).map_err(|e| e.to_string())?;
+            // P0 根因修复(2026-07-22): 返回 kline_json 供下游 trader 节点通过 input_mapping
+            // 引用，避免 trader 重新调用 get_stock_kline（原设计导致 LLM 生成空 stock_code
+            // 的 tool_call，触发 6 vendor × 2 轮无效重试，浪费 3.4 分钟）。
+            // kline_json 是 120 根日 K 线的 JSON 数组，trader 可直接传给 compute_atr /
+            // compute_kelly / compute_mc 等纯计算工具。
+            let kline_json = serde_json::to_value(&klines).map_err(|e| e.to_string())?;
             let result = serde_json::json!({
                 // ── 原 ObjectiveScore 字段(flatten 等价,向后兼容) ──
                 "total": score_json["total"],
@@ -680,6 +725,8 @@ pub async fn execute_mcp_tool(
                 "totalScore": score_json["total"], // 别名,供 input_mapping 引用
                 "currentPrice": latest_price,       // 最新收盘价
                 "indicators": ind_json,             // 完整技术指标(ma5/ma20/bias_ma5/macd_dif/rsi14/boll_upper 等)
+                // kline_json: 120 根日 K 线原始数据，供 trader 节点的 ATR/Kelly/MC 工具使用
+                "kline_json": kline_json,
                 // factor_backtest 占位: 因子回测引擎未实现,下游 portfolio-mgr.rhai
                 // 会 fallback 到等权,不会因 null 报错。
                 "factor_backtest": {

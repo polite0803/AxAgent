@@ -8916,6 +8916,10 @@
     "searchStock": "Search Stock",
     "loadAnalysisFailed": "فشل تحميل سجل التحليل",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
+    "decision": {
+      "confidenceLabel": "الثقة",
+      "positionLabel": "الوظيفة"
+    },
     "position": "Position",
     "targetPrice": "Target Price",
     "stopLoss": "Stop Loss",

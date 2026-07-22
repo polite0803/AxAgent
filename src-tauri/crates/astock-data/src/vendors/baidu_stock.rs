@@ -258,6 +258,69 @@ impl StockVendor for BaiduStockVendor {
             .collect())
     }
 
+    /// P1-2 修复(2026-07-22): 实现 get_policy_news 作为 eastmoney 的备选 vendor。
+    /// 策略：调用 get_news 获取个股新闻，用 26 个政策关键词过滤。
+    /// 与 eastmoney 的差异：baidu_stock 无 search_news 能力，只能获取个股新闻，
+    /// 无法按行业名搜索（政策新闻通常不提公司名，因此过滤后可能较少）。
+    /// 但作为 fallback，至少能提供个股层面的政策相关公告/监管通知。
+    async fn get_policy_news(
+        &self,
+        stock_code: &str,
+        limit: u32,
+    ) -> Result<Vec<NewsItem>, DataError> {
+        let fetch_limit = limit.clamp(50, 100);
+        let all_news = self.get_news(stock_code, fetch_limit).await?;
+
+        const POLICY_KEYWORDS: &[&str] = &[
+            "政策",
+            "规划",
+            "通知",
+            "补贴",
+            "监管",
+            "法规",
+            "条例",
+            "办法",
+            "意见",
+            "纲要",
+            "改革",
+            "扶持",
+            "刺激",
+            "减税",
+            "降费",
+            "鼓励",
+            "限制",
+            "禁止",
+            "标准",
+            "五年规划",
+            "中央经济",
+            "工信部",
+            "发改委",
+            "证监会",
+            "农业农村部",
+            "国务院",
+            "常务会议",
+        ];
+
+        let filtered: Vec<NewsItem> = all_news
+            .iter()
+            .filter(|n| {
+                let haystack = format!("{} {}", n.title, n.summary);
+                POLICY_KEYWORDS.iter().any(|kw| haystack.contains(kw))
+            })
+            .cloned()
+            .collect();
+
+        if filtered.is_empty() && !all_news.is_empty() {
+            tracing::debug!(
+                "[baidu_stock] get_policy_news 过滤后为空，返回全部个股新闻 {} 条让 LLM 判断",
+                all_news.len()
+            );
+            return Ok(all_news);
+        }
+
+        Ok(filtered)
+    }
+
     async fn get_money_flow(&self, stock_code: &str) -> Result<Option<MoneyFlow>, DataError> {
         let code = to_baidu_code(stock_code);
         let url = self.build_url(5356, &code, "");

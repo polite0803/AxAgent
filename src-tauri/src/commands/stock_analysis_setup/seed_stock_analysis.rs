@@ -31,7 +31,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // V56: 修复 pace-calc.rhai 第 310 行 Rhai 语法错误（`(valid_event_count as f64).max(1.0)`
     // 链式调用解析歧义，改为先 `let count_f = ... as f64;` 再用变量）。
     // 每次修改 DAG 拓扑/节点配置/input_mapping 后必须递增此常量。
-    const TEMPLATE_VERSION: i32 = 69; // v69: debate-convergence context_sources 优化——移除 10 个分析师节点(16→6),仅保留 6 轮辩手;分析师评分仍通过 input_mapping 独立通道注入;预期 input tokens 减半(~30k-40k→~15k-20k)
+    const TEMPLATE_VERSION: i32 = 73; // v73: 补全 seed_variables 缺失的 5 个 vendor 变量（vendor_xueqiu/vendor_neodata 开关 + vendor_iwencai_key/vendor_xueqiu_token/vendor_neodata_token 凭据），修复前端数据 tab 中需要 token 的 vendor 缺失问题
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
@@ -324,11 +324,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         description: Some("MA 金叉死叉检测".into()),
         parameters: data_params(),
     };
-    let td_breakout = ToolDef {
-        name: "detect_breakout".into(),
-        description: Some("支撑阻力突破检测".into()),
-        parameters: data_params(),
-    };
     let td_kelly = ToolDef {
         name: "calc_kelly".into(),
         description: Some("凯利公式仓位计算".into()),
@@ -384,21 +379,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         name: "get_cls_flash".into(),
         description: Some("获取财联社实时快讯".into()),
         parameters: no_params(),
-    };
-    // ── P1: 4 个技术指标 ToolDef ──
-    let mut atr_props = std::collections::HashMap::new();
-    atr_props.insert("klines_json".into(), sc_prop("K线JSON(含high/low/close)"));
-    atr_props.insert("period".into(), int_prop("ATR周期", Some(14)));
-    let td_atr = ToolDef {
-        name: "compute_atr".into(),
-        description: Some("计算 ATR 平均真实波幅".into()),
-        parameters: Some(JsonSchema {
-            schema_type: "object".into(),
-            description: None,
-            properties: Some(atr_props),
-            required: None,
-            items: None,
-        }),
     };
     let mut kdj_props = std::collections::HashMap::new();
     kdj_props.insert("klines_json".into(), sc_prop("K线JSON(含high/low/close)"));
@@ -508,20 +488,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             items: None,
         }),
     };
-    let mut lup_props = std::collections::HashMap::new();
-    lup_props.insert("klines_json".into(), sc_prop("K线JSON(含close/high/volume)"));
-    lup_props.insert("market_type".into(), sc_prop("板块: main/star/chinext/bj"));
-    let td_lup = ToolDef {
-        name: "detect_limit_up_potential".into(),
-        description: Some("涨停潜力评估".into()),
-        parameters: Some(JsonSchema {
-            schema_type: "object".into(),
-            description: None,
-            properties: Some(lup_props),
-            required: None,
-            items: None,
-        }),
-    };
     let td_block = ToolDef {
         name: "get_stock_block_trades".into(),
         description: Some("获取大宗交易记录：成交价、成交量、买卖方营业部、折价率".into()),
@@ -619,8 +585,20 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             "search_stock",
             ToolDef {
                 name: "search_stock".into(),
-                description: Some("按代码或名称模糊搜索A股".into()),
-                parameters: None,
+                description: Some(
+                    "按代码或名称模糊搜索A股。keyword 必须是完整的中文名称（如'中国卫通'）或 6 位数字代码（如'601698'），禁止传入拼音片段".into(),
+                ),
+                parameters: {
+                    let mut props = std::collections::HashMap::new();
+                    props.insert("keyword".into(), sc_prop("完整中文名称或6位数字代码，如'中国卫通'或'601698'"));
+                    Some(JsonSchema {
+                        schema_type: "object".into(),
+                        description: None,
+                        properties: Some(props),
+                        required: Some(vec!["keyword".into()]),
+                        items: None,
+                    })
+                },
             },
         ),
         ("get_hot_stocks", td_hot.clone()),
@@ -685,7 +663,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     max_delay_ms: 60000, // v24: 从 30000 提升到 60000
                     backoff_type: BackoffType::Exponential,
                 },
-                timeout: Some(600), // V40: 与 step_timeout=600s 对齐，为多轮工具调用保留余量
+                timeout: None, // 继承 RunOptions.step_timeout（来自 agent_timeout_secs 设置）,让用户在面板中可调
                 enabled: true,
                 parent_id: parent_id.map(String::from),
                 compensation: None,
@@ -1137,13 +1115,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // DebateNode 的子节点：按轮次展开多方辩手和空方辩手
     // parentId 指向容器节点，前端将它们渲染在 DebateNode 内部
     // 位置：容器内 20px 左偏移，按轮次纵向排列（绝对坐标 = 容器坐标 + 偏移）
-    // v16 修复:R1/R2/R3 多空双方统一用 bull_tools(基础数据工具集),让 R2/R3
-    // LMM 能拿到 stock_quote/kline/financials/news 等基础数据,避免工具调用
-    // 全部返回空导致 R2/R3 输出 "暂无数据"。R2/R3 的"质询型"角色由
-    // bull-r2.md / bear-r2.md / bull-r3.md / bear-r3.md prompt 控制,与工具集无关。
-    // v17+ 可考虑给空方注入估值/风险类特色工具(td_var / td_maxdd / td_pledge / td_corr),
-    // 当前 v16 简化统一工具集优先修复 R2/R3 没数据问题。
-    let bull_tools = vec![
+    // v16 历史工具集：辩手节点 v71 改为纯决策节点后不再使用，保留定义供未来恢复参考。
+    // v17+ 可考虑给空方注入估值/风险类特色工具(td_var / td_maxdd / td_pledge / td_corr)。
+    let _bull_tools = vec![
         td_quote.clone(),
         td_kline.clone(),
         td_fin.clone(),
@@ -1199,12 +1173,21 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             //   上下文则 R2/R3 全部"暂无数据")。1 次重试覆盖 ~95% 瞬时失败,不会
             //   把工作流时长翻倍(30s 退避)。
             a.base.retry = RetryConfig { enabled: true, max_retries: 1, ..Default::default() };
-            a.base.timeout = Some(180);
-            a.config.tools = bull_tools.clone();
-            a.config.exposed_tools = bull_tools.iter().map(|t| t.name.clone()).collect();
-            a.config.system_prompt =
-                format!("{}{}", a.config.system_prompt, tool_prompt(&bull_tools));
-            a.config.max_tool_rounds = Some(2);
+            // 超时继承 RunOptions.step_timeout（来自 agent_timeout_secs 设置），用户可在面板控制
+            a.base.timeout = None;
+            // P0 修复(2026-07-22): 移除 bull_tools，改为纯决策节点。
+            // 原问题：bull_tools 含 td_quote/td_kline/td_fin 等需要 stock_code 的工具，
+            // 但 input_mapping 未注入 stock_code（只有分析师评分），LLM 会传空值。
+            // 辩手的 context_sources 已包含所有分析师报告（含原始数据），无需重新获取。
+            a.config.tools = vec![];
+            a.config.exposed_tools = vec![];
+            a.config.system_prompt = format!(
+                "{}\n\n--- 数据约束 ---\n\
+                 你是辩论辩手，所有数据来自上游分析师报告和前序辩论输出，禁止调用任何工具重新获取数据。\n\
+                 基于分析师报告中的数据和对方辩手的论据进行论证/质询/反驳。",
+                a.config.system_prompt
+            );
+            a.config.max_tool_rounds = Some(0);
             a.config.model_role = Some("debater".into());
             // 注入前序轮次辩论输出 + 所有分析师报告作为上下文
             let mut ctx: Vec<String> = Vec::new();
@@ -1230,12 +1213,21 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // 修复(阶段 4):同 bull_an,加 1 次重试 + 180s 超时,避免 LLM 瞬时失败
             //   导致辩论链雪崩(详见 bull_an 注释)。
             a.base.retry = RetryConfig { enabled: true, max_retries: 1, ..Default::default() };
-            a.base.timeout = Some(180);
-            a.config.tools = bull_tools.clone();
-            a.config.exposed_tools = bull_tools.iter().map(|t| t.name.clone()).collect();
-            a.config.system_prompt =
-                format!("{}{}", a.config.system_prompt, tool_prompt(&bull_tools));
-            a.config.max_tool_rounds = Some(2);
+            // 超时继承 RunOptions.step_timeout（来自 agent_timeout_secs 设置），用户可在面板控制
+            a.base.timeout = None;
+            // P0 修复(2026-07-22): 移除 bull_tools，改为纯决策节点。
+            // 原问题：bull_tools 含 td_quote/td_kline/td_fin 等需要 stock_code 的工具，
+            // 但 input_mapping 未注入 stock_code（只有分析师评分），LLM 会传空值。
+            // 辩手的 context_sources 已包含所有分析师报告（含原始数据），无需重新获取。
+            a.config.tools = vec![];
+            a.config.exposed_tools = vec![];
+            a.config.system_prompt = format!(
+                "{}\n\n--- 数据约束 ---\n\
+                 你是辩论辩手，所有数据来自上游分析师报告和前序辩论输出，禁止调用任何工具重新获取数据。\n\
+                 基于分析师报告中的数据和对方辩手的论据进行论证/质询/反驳。",
+                a.config.system_prompt
+            );
+            a.config.max_tool_rounds = Some(0);
             a.config.model_role = Some("debater".into());
             // 注入前序轮次 + 本轮多方输出 + 所有分析师报告作为上下文
             let mut ctx: Vec<String> = Vec::new();
@@ -1302,7 +1294,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             }
             a.config.context_sources = ctx;
             a.config.model_role = Some("debater".into());
-            a.config.max_tool_rounds = Some(1);
+            // 纯决策节点：tools 默认为空（agent 闭包），无需工具调用轮次
+            a.config.max_tool_rounds = Some(0);
             a.config.output_mode = OutputMode::Json; // 输出结构化 JSON，确保 consensus_score / aggregate_prediction 被 input_mapping 解析
             a.config.input_mapping = build_analyst_input_mapping(&a_ids);
             // #1 修复(2026-07-22): debate-convergence 上下文极大
@@ -1338,19 +1331,25 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 "debate-convergence".into(),
             ];
             a.config.model_role = Some("stock-analyst".into());
-            a.config.max_tool_rounds = Some(2);
-            // value-investor 改用 Json 输出模式，prompt 已从 VERDICT 标签改为纯 JSON 格式
+            // P0 修复(2026-07-22): 移除所有工具，改为纯决策节点。
+            // 原问题：tools 含 get_stock_financials/compute_valuation 等需要 stock_code
+            // 的工具，但 input_mapping 未注入 stock_code，LLM 会传空值。
+            // value-investor 的 context_sources 已包含 a-fundamentals/a-research/a-sector
+            // + 辩论结果，基本面和估值数据已通过分析师报告注入。
+            a.config.tools = vec![];
+            a.config.exposed_tools = vec![];
+            a.config.max_tool_rounds = Some(0);
             a.config.output_mode = OutputMode::Json;
-            let tool_names = PROFILE_TOOLS
-                .iter()
-                .find(|(k, _)| *k == "value-investor")
-                .map(|(_, v)| *v)
-                .unwrap_or(&[]);
-            a.config.tools =
-                tool_names.iter().filter_map(|&tn| tool_def_map.get(tn).cloned()).collect();
-            a.config.exposed_tools = tool_names.iter().map(|&tn| tn.to_string()).collect();
-            a.config.system_prompt =
-                format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
+            a.config.system_prompt = format!(
+                "{}\n\n--- 数据约束 ---\n\
+                 你是价值投资评估官，所有数据来自上游分析师报告和辩论结果，禁止调用任何工具重新获取数据。\n\
+                 - 基本面数据: 来自 a-fundamentals\n\
+                 - 研报数据: 来自 a-research\n\
+                 - 行业数据: 来自 a-sector\n\
+                 - 辩论共识: 来自 debate-convergence\n\
+                 基于上述数据以巴菲特-芒格价值投资理念评估护城河、财务健康度、管理层、安全边际。",
+                a.config.system_prompt
+            );
             // 环 A: 注入历史反思教训
             a.config.input_mapping =
                 std::collections::HashMap::from([("stock_lessons".into(), "stock_lessons".into())]);
@@ -1452,7 +1451,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     edges.push(edge("e-valuation-p-risk-assess", "t-valuation", "p-risk-assess"));
     edges.push(edge("e-convergence-p-risk-assess", "debate-convergence", "p-risk-assess"));
 
-    for (i, (rid, rtitle, rexpert, rtools)) in [
+    for (i, (rid, rtitle, rexpert, _rtools)) in [
         (
             "risk-agg",
             "以最激进的风险偏好评估该股票",
@@ -1504,9 +1503,22 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         let risk_x = RISK_X + 20.0;
         let mut an = agent(rid, rtitle, rexpert, Some("p-risk-assess"), risk_x, risk_y);
         if let WorkflowNode::Agent(ref mut a) = an {
-            a.config.tools = rtools.clone();
-            a.config.max_tool_rounds = Some(2);
-            a.config.system_prompt = format!("{}{}", a.config.system_prompt, tool_prompt(rtools));
+            // P0 修复(2026-07-22): 移除 rtools，改为纯决策节点。
+            // 原问题：rtools 含 td_score/td_risk/td_val/td_sharpe 等需要 stock_code 或
+            // kline_json 的工具，但 input_mapping 未注入 stock_code，LLM 会传空值。
+            // 风险评估的 context_sources 已包含所有分析师报告 + 辩论结果 + t-scoring/
+            // t-valuation/t-risk，数据已完整注入，无需重新计算。
+            a.config.tools = vec![];
+            a.config.max_tool_rounds = Some(0);
+            a.config.system_prompt = format!(
+                "{}\n\n--- 数据约束 ---\n\
+                 你是风险评估师，所有数据来自上游分析师报告、辩论结果和技术评分节点，禁止调用任何工具重新获取或计算。\n\
+                 - 技术评分: 来自 t-scoring\n\
+                 - 估值数据: 来自 t-valuation\n\
+                 - 风险评分: 来自 t-risk\n\
+                 基于上述数据以{}评估该股票的风险。",
+                a.config.system_prompt, rtitle
+            );
             a.config.model_role = Some("risk-evaluator".into());
             // 修复：风险评估 Agent 需要读到上游分析师报告 + 辩论结果 + 技术指标，
             // 否则 LLM 没有分析素材，不会主动调用工具。
@@ -1590,7 +1602,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             a.config.context_sources =
                 vec!["risk-agg".into(), "risk-con".into(), "risk-neu".into()];
             a.config.model_role = Some("risk-evaluator".into());
-            a.config.max_tool_rounds = Some(1);
+            // 纯决策节点：tools 默认为空（agent 闭包），无需工具调用轮次
+            a.config.max_tool_rounds = Some(0);
             a.config.output_mode = OutputMode::Json; // V54 修复: 纯JSON输出,使 content.disagreement_score 可解析
         }
         nodes.push(rc);
@@ -1904,35 +1917,27 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect();
         a.config.model_role = Some("decision-maker".into());
-        a.config.tools = vec![
-            td_score.clone(),
-            td_val.clone(),
-            td_risk.clone(),
-            td_maxdd.clone(),
-            td_sharpe.clone(),
-            td_var.clone(),
-            td_pe_pct.clone(),
-            td_peg.clone(),
-            td_kelly.clone(),
-            td_rp.clone(),
-            td_corr.clone(),
-            td_ind.clone(),
-            td_candlestick_patterns.clone(),
-            td_divergence.clone(),
-        ];
-        a.config.system_prompt =
-            format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
-        a.config.max_tool_rounds = Some(3);
-        // exposed_tools 排除已由 t-scoring/t-valuation/t-risk 注入的算法工具
-        a.config.exposed_tools = a
-            .config
-            .tools
-            .iter()
-            .map(|td| td.name.clone())
-            .filter(|n| {
-                n != "compute_scoring" && n != "compute_valuation" && n != "compute_portfolio_risk"
-            })
-            .collect();
+        // P0 修复(2026-07-22): research-mgr 改为纯决策节点，移除全部 14 个计算工具。
+        // 原问题与 trader 同款：
+        //   1) td_score/td_val/td_risk 与上游 t-scoring/t-valuation/t-risk 重复
+        //   2) td_maxdd/td_sharpe/td_var/td_kelly 等需要 stock_code 或 kline_json 参数，
+        //      但 input_mapping 未注入 stock_code，LLM 会传空值触发无效重试
+        // 正确架构：综合评估基于 context_sources 注入的上游数据（t-scoring/t-valuation/
+        // t-risk/risk-agg/risk-con/risk-neu/debate-convergence），无需重新计算。
+        a.config.tools = vec![];
+        a.config.system_prompt = format!(
+            "{}\n\n--- 数据约束 ---\n\
+             你是综合风险评估官，所有需要的数据已通过输入上下文注入，禁止调用任何工具重新获取或计算。\n\
+             - 技术评分/指标: 来自 t-scoring（currentPrice/indicators/totalScore）\n\
+             - 估值数据: 来自 t-valuation\n\
+             - 风险评分: 来自 t-risk\n\
+             - 三档风险评估: 来自 risk-agg/risk-con/risk-neu\n\
+             - 辩论共识: 来自 debate-convergence（consensus_score）\n\
+             基于上述数据综合评估总体风险评级与主要风险点清单。",
+            a.config.system_prompt
+        );
+        a.config.max_tool_rounds = Some(0);
+        a.config.exposed_tools = vec![];
     }
     nodes.push(rm);
     edges.push(edge("e-value-investor-research-mgr", "value-investor", "research-mgr"));
@@ -1961,23 +1966,29 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         ];
         a.config.model_role = Some("trader".into());
         a.config.output_mode = OutputMode::Json;
-        a.config.tools = vec![
-            td_quote.clone(),
-            td_kline.clone(),
-            td_mf.clone(),
-            td_score.clone(),
-            td_atr.clone(),
-            td_ma_cross.clone(),
-            td_breakout.clone(),
-            td_kelly.clone(),
-            td_mc.clone(),
-            td_lup.clone(),
-            td_candlestick_patterns.clone(),
-            td_divergence.clone(),
-        ];
-        a.config.system_prompt =
-            format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
-        a.config.max_tool_rounds = Some(3);
+        // P0 根因修复(2026-07-22): trader 改为纯决策节点，移除所有数据获取工具。
+        // 原设计问题：
+        //   1) td_quote/td_kline/td_mf 需要 stock_code，但 Agent 节点工具参数由 LLM
+        //      自主生成，LLM 不知道 stock_code（input_mapping 只注入 system_prompt 文本），
+        //      导致空 stock_code → 6 vendor × 2 轮无效重试（浪费 3.4 分钟）。
+        //   2) compute_atr/kelly/mc 等需要 kline_json 参数，LLM 无法可靠地从
+        //      system_prompt 复制 120 根 K 线 JSON 到工具参数。
+        // 正确架构：数据由上游 t-scoring 获取并注入，trader 基于注入数据做决策。
+        // ATR/Kelly/MC 等复杂计算应由独立 Code 节点完成（后续优化）。
+        a.config.tools = vec![]; // 纯决策节点，无需工具
+        a.config.system_prompt = format!(
+            "{}\n\n--- 数据约束 ---\n\
+             你是交易方案制定者，所有需要的数据已通过输入上下文注入，禁止调用任何工具重新获取数据。\n\
+             - 当前价: 参考【reference_price】\n\
+             - 技术指标: 参考【technical_indicators】(含 ma5/ma20/macd_dif/rsi14/boll_upper/boll_lower 等)\n\
+             - 综合评分: 参考【total_score】\n\
+             - 共识评分: 参考【consensus_score】\n\
+             - 风险分歧: 参考【risk_disagreement】(>50 时保守)\n\
+             - 数据质量: 参考【dqi_score】(<50 时保守)\n\
+             基于上述数据直接制定交易方案，输出入场价、目标价、止损价、仓位比例。",
+            a.config.system_prompt
+        );
+        a.config.max_tool_rounds = Some(0); // 禁用工具调用轮次
         a.config.input_mapping = [
             ("consensus_score", "debate-convergence.content.consensus_score"),
             ("stock_lessons", "stock_lessons"),
@@ -1994,6 +2005,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // P2 修复: 注入数据质量评分，使 trader 知道当前数据覆盖度
             // dqi_score 0-100，低分时 trader 应保守操作
             ("dqi_score", "data-quality.score"),
+            // P0 修复(2026-07-22): 注入 t-scoring 完整技术指标，替代 get_stock_quote/kline。
+            // 包含 ma5/ma20/bias_ma5/macd_dif/macd_dea/rsi14/boll_upper/boll_lower 等，
+            // trader 可直接读取指标制定交易方案，无需重新调用行情工具。
+            ("technical_indicators", "t-scoring.result.indicators"),
+            ("total_score", "t-scoring.result.totalScore"),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2341,16 +2357,29 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 "trader".into(),
             ];
             a.config.model_role = Some("risk-evaluator".into());
-            let tool_names = PROFILE_TOOLS
-                .iter()
-                .find(|(k, _)| *k == "rule-checker")
-                .map(|(_, v)| *v)
-                .unwrap_or(&[]);
-            a.config.tools =
-                tool_names.iter().filter_map(|&tn| tool_def_map.get(tn).cloned()).collect();
-            a.config.exposed_tools = tool_names.iter().map(|&tn| tn.to_string()).collect();
-            a.config.system_prompt =
-                format!("{}{}", a.config.system_prompt, tool_prompt(&a.config.tools));
+            // P0 修复(2026-07-22): rule-check 改为纯决策节点，移除全部工具。
+            // 原问题与 trader 同款：context_sources 已包含 t-scoring/t-valuation/t-risk，
+            // 这些上游 ToolNode 的输出就是 compute_scoring/compute_valuation/
+            // compute_portfolio_risk 的计算结果。LLM 重新调用这些工具属于重复获取，
+            // 且 compute_* 工具需要 stock_code 参数，Agent 节点工具参数由 LLM 自主
+            // 生成，容易传空值触发无效重试。rule-check 的职责是对照硬性规则阈值
+            // 检查交易方案是否违规，所需技术指标/估值/风控数据已通过 context_sources
+            // 注入，无需重新计算。
+            a.config.tools = vec![];
+            a.config.exposed_tools = vec![];
+            a.config.max_tool_rounds = Some(0);
+            a.config.system_prompt = format!(
+                "{}\n\n--- 数据约束 ---\n\
+                 你是硬性规则检查员，所有需要的数据已通过输入上下文注入，禁止调用任何工具重新获取或计算。\n\
+                 - 技术指标(RSI/MACD/乖离率等): 参考 t-scoring 的 indicators\n\
+                 - 估值数据(DCF/格雷厄姆/F-Score): 参考 t-valuation\n\
+                 - 风险指标(波动率/最大回撤/夏普比率): 参考 t-risk\n\
+                 - 交易方案(入场价/目标价/止损价): 参考 trader\n\
+                 - 组合决策(action/positionPct): 参考 portfolio-mgr\n\
+                 基于上述数据直接检查交易方案是否违反硬性规则（RSI超买/乖离率追高/缺失止损/放量下跌/空头排列），\n\
+                 输出 violations / corrections / force_signals。",
+                a.config.system_prompt
+            );
         }
         nodes.push(rc);
         // ── NotificationNode 由 rule-check 完成后触发（不再保留 portfolio-mgr → notify
@@ -2411,15 +2440,19 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             ];
             a.config.output_mode = OutputMode::Json;
             a.config.model_role = Some("decision-maker".into());
-            a.config.tools = vec![td_quote.clone(), td_kline.clone(), td_score.clone()];
+            // P0 修复(2026-07-22): 移除 td_quote/td_kline/td_score——context_sources 已包含
+            // t-scoring/t-valuation/t-risk，上游数据已注入。原配置与 trader 同款问题：
+            // LLM 重新获取数据会传入空 stock_code，触发无效重试。
+            a.config.tools = vec![];
             a.config.system_prompt =
                 "数据质量评估为 D 或 F，上游分析数据不可靠。你需要在数据不足的情况下做出最保守的投资决策。\
+                 所有需要的数据已通过输入上下文注入（t-scoring 的 currentPrice/indicators/totalScore、\
+                 t-valuation 的估值、t-risk 的风险评分），禁止调用任何工具重新获取数据。\
                  输出JSON格式（严格模式）：{\"action\":\"持有/减持/卖出\",\"positionPct\":0-20,\"reasoning\":\"保守决策理由\"}}\
                  只输出上述JSON对象，前后不要有任何其他文字"
                     .to_string();
-            a.config.exposed_tools =
-                vec!["get_stock_quote".into(), "get_stock_kline".into(), "compute_scoring".into()];
-            a.config.max_tool_rounds = Some(1);
+            a.config.exposed_tools = vec![];
+            a.config.max_tool_rounds = Some(0);
         }
         nodes.push(fq);
         // Switch 出边：
@@ -2464,9 +2497,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             ];
             a.config.model_role = Some("explainer".into());
             a.config.output_mode = OutputMode::Json;
-            a.config.tools = vec![td_quote.clone(), td_score.clone()];
-            a.config.exposed_tools = vec!["get_stock_quote".into(), "compute_scoring".into()];
-            a.config.max_tool_rounds = Some(1);
+            // P0 修复(2026-07-22): 移除 td_quote/td_score——context_sources 已包含 t-scoring，
+            // 上游 currentPrice/indicators/totalScore 已注入。explainer 职责是翻译规则引擎
+            // 裁决结果为自然语言，不需要重新获取行情或计算评分。
+            a.config.tools = vec![];
+            a.config.exposed_tools = vec![];
+            a.config.max_tool_rounds = Some(0);
             a.config.system_prompt = format!(
                 "{}\n{}",
                 "你是投资决策解释官。输入是符号系统（Rhai 规则引擎）的硬裁决结果，你的任务是将裁决翻译为用户可读的决策依据说明书。",

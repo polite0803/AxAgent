@@ -254,7 +254,8 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "market-analyst",
         &[
-            "get_stock_kline",
+            // P0 修复(2026-07-22): 移除 get_stock_kline——上游 t-market-data 已获取并通过
+            // context_sources 注入，LLM 重新调用会重复获取数据 + 可能传入空 stock_code。
             "get_stock_quote",
             "compute_scoring",
             "compute_kdj",
@@ -265,7 +266,9 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "sentiment-analyst",
         &[
-            "get_social_sentiment",
+            // P0 修复(2026-07-22): 移除 get_social_sentiment——上游 t-sentiment-data 已获取。
+            // 保留 get_stock_news/get_stock_money_flow：a-sentiment 的 context_sources 只有
+            // t-sentiment-data，看不到 t-news-data/t-hotmoney-data 的数据，LLM 主动调用是合理补充。
             "get_stock_news",
             "get_stock_money_flow",
             "get_stock_option_pcr",
@@ -279,7 +282,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "news-analyst",
         &[
-            "get_stock_news",
+            // P0 修复(2026-07-22): 移除 get_stock_news——上游 t-news-data 已获取。
             "get_stock_announcements",
             "get_cls_flash",
             "get_stock_option_pcr",
@@ -289,6 +292,8 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "fundamentals-analyst",
         &[
+            // 注：上游 t-fundamentals-data 用 get_fundamentals_report_markdown（预聚合），
+            // 保留 get_stock_financials 供 LLM 做更细颗粒分析（非重复）。
             "get_stock_financials",
             "compute_valuation",
             "get_stock_consensus_eps",
@@ -301,7 +306,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "hot-money-tracker",
         &[
-            "get_stock_money_flow",
+            // P0 修复(2026-07-22): 移除 get_stock_money_flow——上游 t-hotmoney-data 已获取。
             "get_stock_dragon_tiger",
             "get_north_bound_flow",
             "get_stock_institutional_visits",
@@ -311,7 +316,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "lockup-watcher",
         &[
-            "get_stock_lockup_bundle",
+            // P0 修复(2026-07-22): 移除 get_stock_lockup_bundle——上游 t-lockup-data 已获取。
             "get_stock_lockup",
             "get_stock_shareholder_trades",
             "get_stock_margin_data",
@@ -323,10 +328,10 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "research-analyst",
         &[
+            // P0 修复(2026-07-22): 移除 get_stock_research_reports——上游 t-research-data 已获取。
             "get_stock_consensus_eps",
             "get_stock_financials",
             "get_stock_news",
-            "get_stock_research_reports",
             "get_stock_institutional_visits",
             "search_stock",
         ],
@@ -334,7 +339,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "sector-analyst",
         &[
-            "get_industry_ranking",
+            // P0 修复(2026-07-22): 移除 get_industry_ranking——上游 t-sector-data 已获取。
             "get_hot_stocks",
             "get_stock_quote",
             "get_stock_concept_blocks",

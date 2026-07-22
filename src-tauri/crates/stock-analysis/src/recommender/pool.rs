@@ -147,6 +147,7 @@ const VENDOR_TTL: Duration = Duration::from_secs(300);
 /// 通过 `get_workflow_template` 读 `vendor_*` 变量，返回启用的 vendor 集合
 ///
 /// 使用白名单模式：只解析已知的 vendor 名称，排除 `vendor_xueqiu_token` / `vendor_neodata_token` 等凭据变量
+/// 对于 KNOWN_VENDORS 中模板未定义的 vendor，默认启用（避免新 vendor 被误过滤）
 static KNOWN_VENDORS: &[&str] = &[
     "tencent",
     "eastmoney",
@@ -159,11 +160,35 @@ static KNOWN_VENDORS: &[&str] = &[
     "mootdx",
     "xueqiu",
     "neodata",
+    // 以下 vendor 无需用户配置凭据，始终启用
+    "browser_eastmoney",
+    "guba",
 ];
 pub fn load_enabled_vendors_from_template(
     template_vars: &[(String, serde_json::Value)],
 ) -> HashSet<String> {
     let mut set = HashSet::new();
+    // KNOWN_VENDORS 中模板未定义的 vendor 默认启用
+    let template_vendor_names: std::collections::HashSet<&str> = template_vars
+        .iter()
+        .filter_map(|(n, _)| {
+            if !n.starts_with("vendor_") {
+                return None;
+            }
+            let v = n.trim_start_matches("vendor_");
+            if KNOWN_VENDORS.contains(&v) {
+                Some(v)
+            } else {
+                None
+            }
+        })
+        .collect();
+    for v in KNOWN_VENDORS {
+        if !template_vendor_names.contains(v) {
+            set.insert(v.to_string());
+        }
+    }
+    // 处理模板中显式定义的 vendor 变量
     for (name, value) in template_vars {
         if !name.starts_with("vendor_") {
             continue;
@@ -180,6 +205,8 @@ pub fn load_enabled_vendors_from_template(
         };
         if enabled {
             set.insert(vendor_name.to_string());
+        } else {
+            set.remove(vendor_name); // 显式禁用
         }
     }
     set

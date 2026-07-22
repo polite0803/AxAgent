@@ -8917,6 +8917,10 @@
     "searchStock": "Search Stock",
     "loadAnalysisFailed": "विश्लेषण इतिहास लोड करने में विफल",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
+    "decision": {
+      "confidenceLabel": "विश्वास",
+      "positionLabel": "स्थिति"
+    },
     "position": "Position",
     "targetPrice": "Target Price",
     "stopLoss": "Stop Loss",

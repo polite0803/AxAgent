@@ -9969,6 +9969,10 @@
       "warningTitle": "Concentration Warning",
       "worstHit": "Worst Hit"
     },
+    "decision": {
+      "confidenceLabel": "Confidence",
+      "positionLabel": "Position"
+    },
     "position": "Position",
     "price": "Price",
     "profitGrowth": "Profit Growth",

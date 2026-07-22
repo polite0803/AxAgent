@@ -905,12 +905,23 @@ impl NodeExecutorTrait for AgentExecutor {
                 break;
             }
 
+            // 支持从模板变量覆盖 temperature/max_tokens（优先级：模板变量 > 节点配置）
+            let runtime_temp = context
+                .variables
+                .get("agent_temperature")
+                .and_then(|v| v.as_f64())
+                .or_else(|| an.config.temperature.map(|t| t as f64));
+            let runtime_max_tokens = context
+                .variables
+                .get("agent_max_tokens")
+                .and_then(|v| v.as_u64().map(|u| u as u32))
+                .or(an.config.max_tokens);
             let request = ChatRequest {
                 model: model.clone(),
                 messages: messages.clone(),
                 stream: true,
-                temperature: an.config.temperature.map(|t| t as f64),
-                max_tokens: an.config.max_tokens,
+                temperature: runtime_temp,
+                max_tokens: runtime_max_tokens,
                 top_p: None,
                 // 首轮传 tools，后续轮次若 tools 为空则不传
                 tools: if round == 0 { tools.clone() } else { None },
@@ -1078,7 +1089,20 @@ impl NodeExecutorTrait for AgentExecutor {
             // 执行每个工具调用
             for tc in tc_list {
                 let args: serde_json::Value =
-                    serde_json::from_str(&tc.function.arguments).unwrap_or(serde_json::Value::Null);
+                    serde_json::from_str(&tc.function.arguments).unwrap_or_else(|e| {
+                        // P0 修复(2026-07-22): 记录反序列化失败的原始值，
+                        // 便于定位 LLM 流式 tool_call arguments 累积不完整/截断问题。
+                        // 根因：providers/openai.rs 流式 delta push_str 累积的 arguments
+                        // 可能不完整，反序列化失败后 args=Null，下游 parse_code 返回空字符串。
+                        tracing::warn!(
+                            tool = %tc.function.name,
+                            raw_len = tc.function.arguments.len(),
+                            error = %e,
+                            raw_preview = &tc.function.arguments[..tc.function.arguments.len().min(200)],
+                            "LLM tool_call arguments 反序列化失败，args 将为 Null"
+                        );
+                        serde_json::Value::Null
+                    });
 
                 let tool_result = execute_tool(context, &tc.function.name, args.clone()).await;
 
@@ -1100,6 +1124,25 @@ impl NodeExecutorTrait for AgentExecutor {
                     content: ChatContent::Text(result_str),
                     tool_calls: None,
                     tool_call_id: Some(tc.id.clone()),
+                    thinking: None,
+                });
+            }
+
+            // P1-3 修复(2026-07-22): 工具调用后预防性追加简短提醒，减少 GLM-5.2 空内容轮次。
+            // 问题：GLM-5.2 在工具调用模式下常忽略初始 prompt 中的"工具调用后输出 JSON"要求，
+            // 导致 has_tool_calls=true 但 content 为空，需要额外一轮强制总结指令补救。
+            // 优化：在 tool result 后立即追加简短 system 提醒（而非等到空内容才注入长指令），
+            // 让 LLM 在看到工具结果的同时就收到输出要求。
+            // 仅在非最后一轮且有工具调用时注入，避免多余消息。
+            if !tc_list.is_empty() && round + 1 < max_rounds {
+                messages.push(ChatMessage {
+                    role: "system".to_string(),
+                    content: ChatContent::Text(
+                        "工具数据已获取。请基于上述工具结果直接输出最终分析结果，不要再调用工具。"
+                            .to_string(),
+                    ),
+                    tool_calls: None,
+                    tool_call_id: None,
                     thinking: None,
                 });
             }
@@ -1246,12 +1289,23 @@ impl NodeExecutorTrait for AgentExecutor {
                                             axagent_harness::build_provider_request_context(
                                                 &fb_prov, &fb_key, fb_api_key,
                                             );
+                                        // 支持从模板变量覆盖 temperature/max_tokens
+                                        let fb_temp = context
+                                            .variables
+                                            .get("agent_temperature")
+                                            .and_then(|v| v.as_f64())
+                                            .or_else(|| an.config.temperature.map(|t| t as f64));
+                                        let fb_mt = context
+                                            .variables
+                                            .get("agent_max_tokens")
+                                            .and_then(|v| v.as_u64().map(|u| u as u32))
+                                            .or(an.config.max_tokens);
                                         let fb_request = ChatRequest {
                                             model: fb_model.clone(),
                                             messages: messages.clone(),
                                             stream: true,
-                                            temperature: an.config.temperature.map(|t| t as f64),
-                                            max_tokens: an.config.max_tokens,
+                                            temperature: fb_temp,
+                                            max_tokens: fb_mt,
                                             top_p: None,
                                             tools: None,
                                             thinking_budget: None,
@@ -1437,6 +1491,17 @@ impl NodeExecutorTrait for AgentExecutor {
                     {
                         if parsed.is_object() {
                             parsed["__untrusted"] = serde_json::json!(true);
+                            // P2-2 修复(2026-07-22): 锚定分数极低(<0.1)时注入显式数据警告。
+                            // 问题：日志显示多个节点锚定分数 0.00-0.04，但报告中对数据不足
+                            // 无任何提示，用户无法判断结论可信度。
+                            // 优化：当 score<0.1 时在 JSON 中注入 data_sufficiency_warning 字段，
+                            // 前端可据此显示显著警告横幅。
+                            if anchor_result.score < 0.1 {
+                                parsed["data_sufficiency_warning"] = serde_json::json!(format!(
+                                    "⚠️ 数据严重不足（锚定分数 {:.2}），本节点分析结论可信度极低，仅供参考。上游数据源可能失效或返回空值。",
+                                    anchor_result.score
+                                ));
+                            }
                             final_content = parsed.to_string();
                         }
                     }
